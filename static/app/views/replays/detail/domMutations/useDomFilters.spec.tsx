@@ -17,64 +17,66 @@ const mockBrowserHistoryPush = browserHistory.push as jest.MockedFunction<
   typeof browserHistory.push
 >;
 
-const actions: Extraction[] = [
-  {
-    crumb: {
-      type: BreadcrumbType.DEBUG,
-      timestamp: '2022-09-20T16:32:39.961Z',
-      level: BreadcrumbLevelType.INFO,
-      category: 'default',
-      data: {
-        action: 'largest-contentful-paint',
-        duration: 0,
-        size: 17782,
-        nodeId: 1126,
-        label: 'LCP',
-      },
-      id: 21,
-      color: 'purple300',
-      description: 'Debug',
+const ACTION_1_DEBUG = {
+  crumb: {
+    type: BreadcrumbType.DEBUG,
+    timestamp: '2022-09-20T16:32:39.961Z',
+    level: BreadcrumbLevelType.INFO,
+    category: 'default',
+    data: {
+      action: 'largest-contentful-paint',
+      duration: 0,
+      size: 17782,
+      nodeId: 1126,
+      label: 'LCP',
     },
-    html: '<div class="css-vruter e1weinmj3">HTTP 400 (invalid_grant): The provided authorization grant is invalid, expired, revoked, does not match the redirection URI used in the authorization request, or was issued to another client.</div>',
-    timestamp: 1663691559961,
+    id: 21,
+    color: 'purple300',
+    description: 'Debug',
   },
-  {
-    crumb: {
-      type: BreadcrumbType.UI,
-      timestamp: '2022-09-20T16:32:50.812Z',
-      category: 'ui.click',
-      message: 'li.active > a.css-c5vwnq.e1ycxor00 > span.css-507rzt.e1lk5gpt0',
-      data: {
-        nodeId: 424,
-      },
-      id: 4,
-      color: 'purple300',
-      description: 'User Action',
-      level: BreadcrumbLevelType.UNDEFINED,
+  html: '<div class="css-vruter e1weinmj3">HTTP 400 (invalid_grant): The provided authorization grant is invalid, expired, revoked, does not match the redirection URI used in the authorization request, or was issued to another client.</div>',
+  timestamp: 1663691559961,
+} as Extraction;
+
+const ACTION_2_UI = {
+  crumb: {
+    type: BreadcrumbType.UI,
+    timestamp: '2022-09-20T16:32:50.812Z',
+    category: 'ui.click',
+    message: 'li.active > a.css-c5vwnq.e1ycxor00 > span.css-507rzt.e1lk5gpt0',
+    data: {
+      nodeId: 424,
     },
-    html: '<span aria-describedby="tooltip-nxf8deymg3" class="css-507rzt e1lk5gpt0">Ignored <span type="default" class="css-2uol17 e1gotaso0"><span><!-- 1 descendents --></span></span></span>',
-    timestamp: 1663691570812,
+    id: 4,
+    color: 'purple300',
+    description: 'User Action',
+    level: BreadcrumbLevelType.UNDEFINED,
   },
-  {
-    crumb: {
-      type: BreadcrumbType.UI,
-      timestamp: '2022-09-20T16:33:54.529Z',
-      category: 'ui.click',
-      message: 'div > div.exception > pre.exc-message.css-r7tqg9.e1rtpi7z1',
-      data: {
-        nodeId: 9304,
-      },
-      id: 17,
-      color: 'purple300',
-      description: 'User Action',
-      level: BreadcrumbLevelType.UNDEFINED,
+  html: '<span aria-describedby="tooltip-nxf8deymg3" class="css-507rzt e1lk5gpt0">Ignored <span type="default" class="css-2uol17 e1gotaso0"><span><!-- 1 descendents --></span></span></span>',
+  timestamp: 1663691570812,
+} as Extraction;
+
+const ACTION_3_UI = {
+  crumb: {
+    type: BreadcrumbType.UI,
+    timestamp: '2022-09-20T16:33:54.529Z',
+    category: 'ui.click',
+    message: 'div > div.exception > pre.exc-message.css-r7tqg9.e1rtpi7z1',
+    data: {
+      nodeId: 9304,
     },
-    html: '<div class="loadmore" style="display: block;">Load more..</div>',
-    timestamp: 1663691634529,
+    id: 17,
+    color: 'purple300',
+    description: 'User Action',
+    level: BreadcrumbLevelType.UNDEFINED,
   },
-];
+  html: '<div class="loadmore" style="display: block;">Load more..</div>',
+  timestamp: 1663691634529,
+} as Extraction;
 
 describe('useDomFilters', () => {
+  const actions: Extraction[] = [ACTION_1_DEBUG, ACTION_2_UI, ACTION_3_UI];
+
   beforeEach(() => {
     mockBrowserHistoryPush.mockReset();
   });
@@ -162,5 +164,27 @@ describe('useDomFilters', () => {
 
     const {result} = reactHooks.renderHook(useDomFilters, {initialProps: {actions}});
     expect(result.current.items.length).toEqual(1);
+  });
+});
+
+describe('getDomMutationsTypes', () => {
+  it('should return a sorted list of BreadcrumbType', () => {
+    const actions = [ACTION_1_DEBUG, ACTION_2_UI];
+
+    const {result} = reactHooks.renderHook(useDomFilters, {initialProps: {actions}});
+    expect(result.current.getMutationsTypes()).toStrictEqual([
+      {label: BreadcrumbType.DEBUG, value: BreadcrumbType.DEBUG},
+      {label: BreadcrumbType.UI, value: BreadcrumbType.UI},
+    ]);
+  });
+
+  it('should deduplicate BreadcrumbType', () => {
+    const actions = [ACTION_1_DEBUG, ACTION_2_UI, ACTION_3_UI];
+
+    const {result} = reactHooks.renderHook(useDomFilters, {initialProps: {actions}});
+    expect(result.current.getMutationsTypes()).toStrictEqual([
+      {label: BreadcrumbType.DEBUG, value: BreadcrumbType.DEBUG},
+      {label: BreadcrumbType.UI, value: BreadcrumbType.UI},
+    ]);
   });
 });

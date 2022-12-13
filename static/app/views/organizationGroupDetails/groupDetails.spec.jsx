@@ -98,10 +98,6 @@ describe('groupDetails', () => {
       body: [project],
     });
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/users/',
-      body: [],
-    });
-    MockApiClient.addMockResponse({
       url: `/issues/${group.id}/first-last-release/`,
       body: {firstRelease: group.firstRelease, lastRelease: group.lastRelease},
     });

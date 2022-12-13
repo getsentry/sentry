@@ -22,10 +22,11 @@ export enum GenericPerformanceWidgetDataType {
   vitals = 'vitals',
   line_list = 'line_list',
   trends = 'trends',
+  stacked_bars = 'stacked_bars',
 }
 
 export type PerformanceWidgetProps = {
-  ContainerActions: React.FC<{isLoading: boolean}>;
+  ContainerActions: React.FC<{isLoading: boolean}> | null;
   chartDefinition: ChartDefinition;
   chartHeight: number;
 
@@ -36,6 +37,8 @@ export type PerformanceWidgetProps = {
   organization: Organization;
   title: string;
   titleTooltip: string;
+
+  InteractiveTitle?: React.FC<{isLoading: boolean}> | null;
 
   chartColor?: string;
 
@@ -112,6 +115,8 @@ type HeaderActions<T> = React.FC<{
   widgetData: T;
 }>;
 
+type InteractiveTitle<T> = React.FC<{widgetData: T}>;
+
 type Subtitle<T> = React.FC<{
   widgetData: T;
 }>;
@@ -137,7 +142,7 @@ export type GenericPerformanceWidgetProps<T extends WidgetDataConstraint> = {
   EmptyComponent?: React.FC<{height?: number}>;
 
   HeaderActions?: HeaderActions<T>;
-  // Components
+  InteractiveTitle?: InteractiveTitle<T> | null;
   Subtitle?: Subtitle<T>;
 };
 

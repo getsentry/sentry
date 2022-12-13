@@ -323,12 +323,12 @@ def post_process_group(
 
     with snuba.options_override({"consistent": True}):
         from sentry.eventstore.processing import event_processing_store
+        from sentry.ingest.transaction_clusterer.datasource.redis import (
+            record_transaction_name as record_transaction_name_for_clustering,  # We use the data being present/missing in the processing store; to ensure that we don't duplicate work should the forwarding consumers; need to rewind history.
+        )
         from sentry.models import Organization, Project
         from sentry.reprocessing2 import is_reprocessed_event
 
-        # We use the data being present/missing in the processing store
-        # to ensure that we don't duplicate work should the forwarding consumers
-        # need to rewind history.
         data = event_processing_store.get(cache_key)
         if not data:
             logger.info(
@@ -360,6 +360,7 @@ def post_process_group(
         # This should eventually be completely removed and transactions
         # will not go through any post processing.
         if is_transaction_event:
+            record_transaction_name_for_clustering(event.project, event)
             with sentry_sdk.start_span(op="tasks.post_process_group.transaction_processed_signal"):
                 transaction_processed.send_robust(
                     sender=post_process_group,
@@ -622,17 +623,13 @@ def process_code_mappings(job: PostProcessJob) -> None:
         if project_queued:
             return
 
-        org_slug = project.organization.slug
+        org = event.project.organization
+        org_slug = org.slug
         next_time = timezone.now() + timedelta(hours=1)
-        has_normal_run_flag = features.has(
-            "organizations:derive-code-mappings", event.project.organization
-        )
-        has_dry_run_flag = features.has(
-            "organizations:derive-code-mappings-dry-run", event.project.organization
-        )
+        has_normal_run_flag = features.has("organizations:derive-code-mappings", org)
+        has_dry_run_flag = features.has("organizations:derive-code-mappings-dry-run", org)
 
-        # Right now EA orgs have both flags on, thus, only supporting dry run
-        if has_normal_run_flag and event.data["platform"] == "python":
+        if has_normal_run_flag:
             logger.info(
                 f"derive_code_mappings: Queuing code mapping derivation for {project.slug=} {event.group_id=}."
                 + f" Future events in {org_slug=} will not have not have code mapping derivation until {next_time}"

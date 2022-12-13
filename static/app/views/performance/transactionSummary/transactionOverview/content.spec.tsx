@@ -80,8 +80,8 @@ describe('Transaction Summary Content', function () {
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/eventsv2/',
-      body: {data: [{'event.type': 'error'}], meta: {'event.type': 'string'}},
+      url: '/organizations/org-slug/events/',
+      body: {data: [{'event.type': 'error'}], meta: {fields: {'event.type': 'string'}}},
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/users/',

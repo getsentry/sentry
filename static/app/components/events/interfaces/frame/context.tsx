@@ -2,6 +2,10 @@ import styled from '@emotion/styled';
 
 import ClippedBox from 'sentry/components/clippedBox';
 import ErrorBoundary from 'sentry/components/errorBoundary';
+import {
+  isMobileLanguage,
+  StacktraceLink,
+} from 'sentry/components/events/interfaces/frame/stacktraceLink';
 import {IconFlag} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -17,7 +21,6 @@ import ContextLine from './contextLine';
 import {FrameRegisters} from './frameRegisters';
 import {FrameVariables} from './frameVariables';
 import {OpenInContextLine} from './openInContextLine';
-import StacktraceLink from './stacktraceLink';
 
 type Props = {
   components: Array<SentryAppComponent>;
@@ -54,13 +57,39 @@ const Context = ({
   frameMeta,
   registersMeta,
 }: Props) => {
-  if (!hasContextSource && !hasContextVars && !hasContextRegisters && !hasAssembly) {
+  const isMobile = isMobileLanguage(event);
+
+  if (
+    !hasContextSource &&
+    !hasContextVars &&
+    !hasContextRegisters &&
+    !hasAssembly &&
+    !isMobile
+  ) {
     return emptySourceNotation ? (
       <div className="empty-context">
         <StyledIconFlag size="xs" />
         <p>{t('No additional details are available for this frame.')}</p>
       </div>
     ) : null;
+  }
+
+  // Temporarily allow mobile platforms to make API call and "show" stacktrace link
+  if (isMobile) {
+    if (
+      event.platform !== 'java' ||
+      (event.platform === 'java' && frame?.module?.startsWith('com.'))
+    ) {
+      return (
+        <ErrorBoundary customComponent={null}>
+          <StacktraceLink
+            line={frame.function ? frame.function : ''}
+            frame={frame}
+            event={event}
+          />
+        </ErrorBoundary>
+      );
+    }
   }
 
   const contextLines = isExpanded
@@ -108,7 +137,6 @@ const Context = ({
                   <StacktraceLink
                     key={index}
                     line={line[1]}
-                    lineNo={line[0]}
                     frame={frame}
                     event={event}
                   />

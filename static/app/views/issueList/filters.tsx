@@ -36,10 +36,15 @@ function IssueListFilters({organization, query, onSearch}: Props) {
 
 const SearchContainer = styled('div')`
   display: flex;
-  gap: ${space(2)};
   flex-wrap: wrap;
+  column-gap: ${space(2)};
+  row-gap: ${space(1)};
   width: 100%;
   margin-bottom: ${space(2)};
+
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
+    flex-direction: column;
+  }
 `;
 
 const StyledPageFilterBar = styled(PageFilterBar)`
@@ -51,10 +56,13 @@ const StyledPageFilterBar = styled(PageFilterBar)`
 const StyledIssueListSearchBar = styled(IssueListSearchBar)`
   flex: 1;
   width: 100%;
-  min-width: 20rem;
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
-    min-width: 25rem;
+    min-width: 20rem;
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints.large}) {
+    min-width: 30rem;
   }
 `;
 

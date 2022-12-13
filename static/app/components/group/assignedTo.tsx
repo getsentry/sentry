@@ -48,7 +48,7 @@ function AssignedTo({group, projectId, disableDropdown = false}: AssignedToProps
   }, [api, organization.slug, projectId]);
 
   return (
-    <SidebarSection.Wrap>
+    <SidebarSection.Wrap data-test-id="assigned-to">
       <SidebarSection.Title>{t('Assigned To')}</SidebarSection.Title>
       <StyledSidebarSectionContent>
         <AssigneeSelectorDropdown disabled={disableDropdown} id={group.id}>
