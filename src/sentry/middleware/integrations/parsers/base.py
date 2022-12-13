@@ -12,7 +12,6 @@ from sentry.models.organization import Organization
 from sentry.silo import SiloLimit, SiloMode
 from sentry.silo.client import RegionSiloClient
 from sentry.types.region import Region, get_region_for_organization
-from sentry.utils import json
 
 logger = logging.getLogger(__name__)
 
@@ -26,60 +25,54 @@ class BaseRequestParser(abc.ABC):
         self.response_handler = response_handler
         self.error_message = "Integration Request Parsers should only be run on the control silo."
 
-    def _get_request_args(self):
-        query_params = getattr(self.request, self.request.method, None)
-        # In the event we receive an empty body `b''`, still treat it as a JSON request
-        data = json.loads(self.request.body if len(self.request.body) > 0 else "{}")
-        request_args = {
-            "method": self.request.method,
-            "path": self.request.path,
-            "headers": self.request.headers,
-            "data": data,
-            "params": dict(query_params) if query_params is not None else None,
-        }
-        return request_args.values()
+    def _ensure_control_silo(self):
+        if SiloMode.get_current_mode() != SiloMode.CONTROL:
+            logger.error(
+                "integration_control.base.silo_error",
+                extra={"path": self.request.path, "silo": SiloMode.get_current_mode()},
+            )
+            raise SiloLimit.AvailabilityError(self.error_message)
 
     def get_response_from_control_silo(self):
         """
-        Used to synchronously process the incoming request directly on the control silo.
+        Used to handle the request directly on the control silo.
         """
-        if SiloMode.get_current_mode() != SiloMode.CONTROL:
-            logger.error(
-                "integration_control.base.silo_error",
-                extra={"path": self.request.path, "silo": SiloMode.get_current_mode()},
-            )
-            raise SiloLimit.AvailabilityError(self.error_message)
+        self._ensure_control_silo()
         return self.response_handler(self.request)
 
-    def get_response_from_region_silo(self, regions: Iterable[Region]):
+    def get_response_from_region_silos(self, regions: Iterable[Region]):
         """
-        Used to process the incoming request from region silos.
-        This shouldn't use the API Gateway to stay performant.
+        Used to handle the requests on a given list of regions (synchronously).
+        If multiple regions are provided, only the last response is returned to the requestor.
         """
-        if SiloMode.get_current_mode() != SiloMode.CONTROL:
-            logger.error(
-                "integration_control.base.silo_error",
-                extra={"path": self.request.path, "silo": SiloMode.get_current_mode()},
-            )
-            raise SiloLimit.AvailabilityError(self.error_message)
-
+        self._ensure_control_silo()
         region_response = None
         for region in regions:
             region_client = RegionSiloClient(region)
             region_response = region_client.proxy_request(self.request).to_http_response()
-        # If the response is sent to multiple regions, return the last response to the requestor
+        if region_response is None:
+            logger.error(
+                "integration_control.base.region_proxy_error",
+                extra={
+                    "path": self.request.path,
+                    "regions": [region.name for region in regions],
+                },
+            )
+            return self.response_handler(self.request)
         return region_response
 
     def get_response(self):
         """
         Used to surface a response as part of the middleware.
-        Default behaviour is to process the response in the control silo.
+        Should be overwritten by implementation.
+        Default behaviour is handle the response ignoring SiloMode.
         """
-        return self.get_response_from_control_silo()
+        return self.response_handler(self.request)
 
     def get_integration(self) -> Integration | None:
         """
         Parse the request to retreive organizations to forward the request to.
+        Should be overwritten by implementation.
         """
         return None
 

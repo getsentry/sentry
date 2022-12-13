@@ -14,7 +14,7 @@ import {FlamegraphView} from 'sentry/utils/profiling/flamegraphView';
 import {formatColorForFrame, Rect} from 'sentry/utils/profiling/gl/utils';
 import {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
 
-import {BoundTooltip} from './boundTooltip';
+import {BoundTooltip} from '../boundTooltip';
 
 export function formatWeightToProfileDuration(
   frame: CallTreeNode,

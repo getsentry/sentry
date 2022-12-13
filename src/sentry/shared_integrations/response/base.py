@@ -44,9 +44,9 @@ class BaseApiResponse:
 
     def to_http_response(self) -> HttpResponse:
         """
-        These response types to not inherit from HttpResponse, meaning Django might throw
-        internal library errors when interacting with these responses in middleware. This method
-        returns an HttpResponse equivalent of the request.
+        These response types do not inherit from HttpResponse, meaning Django might throw
+        internal library errors when interacting with these objects in middleware. This method
+        returns an HttpResponse/JsonResponse equivalent of the request.
         """
         response = (
             JsonResponse(self.body)

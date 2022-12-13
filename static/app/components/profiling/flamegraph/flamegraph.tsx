@@ -9,18 +9,17 @@ import {
 } from 'react';
 import {mat3, vec2} from 'gl-matrix';
 
-import {FlamegraphOptionsMenu} from 'sentry/components/profiling/flamegraphOptionsMenu';
-import {FlamegraphSearch} from 'sentry/components/profiling/flamegraphSearch';
-import {FlamegraphToolbar} from 'sentry/components/profiling/flamegraphToolbar';
-import {FlamegraphViewSelectMenu} from 'sentry/components/profiling/flamegraphViewSelectMenu';
-import {FlamegraphZoomView} from 'sentry/components/profiling/flamegraphZoomView';
-import {FlamegraphZoomViewMinimap} from 'sentry/components/profiling/flamegraphZoomViewMinimap';
-import {FrameStack} from 'sentry/components/profiling/FrameStack/frameStack';
 import {
   ProfileDragDropImport,
   ProfileDragDropImportProps,
-} from 'sentry/components/profiling/profileDragDropImport';
-import {ThreadMenuSelector} from 'sentry/components/profiling/threadSelector';
+} from 'sentry/components/profiling/flamegraph/flamegraphOverlays/profileDragDropImport';
+import {FlamegraphOptionsMenu} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphOptionsMenu';
+import {FlamegraphSearch} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphSearch';
+import {FlamegraphThreadSelector} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphThreadSelector';
+import {FlamegraphToolbar} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphToolbar';
+import {FlamegraphViewSelectMenu} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphViewSelectMenu';
+import {FlamegraphZoomView} from 'sentry/components/profiling/flamegraph/flamegraphZoomView';
+import {FlamegraphZoomViewMinimap} from 'sentry/components/profiling/flamegraph/flamegraphZoomViewMinimap';
 import {defined} from 'sentry/utils';
 import {CanvasPoolManager, CanvasScheduler} from 'sentry/utils/profiling/canvasScheduler';
 import {Flamegraph as FlamegraphModel} from 'sentry/utils/profiling/flamegraph';
@@ -44,8 +43,9 @@ import {formatTo, ProfilingFormatterUnit} from 'sentry/utils/profiling/units/uni
 import {useDevicePixelRatio} from 'sentry/utils/useDevicePixelRatio';
 import {useMemoWithPrevious} from 'sentry/utils/useMemoWithPrevious';
 
-import {FlamegraphWarnings} from './FlamegraphWarnings';
-import {ProfilingFlamechartLayout} from './profilingFlamechartLayout';
+import {FlamegraphDrawer} from './flamegraphDrawer/flamegraphDrawer';
+import {FlamegraphWarnings} from './flamegraphOverlays/FlamegraphWarnings';
+import {FlamegraphLayout} from './flamegraphLayout';
 
 function getTransactionConfigSpace(
   profileGroup: ProfileGroup,
@@ -352,7 +352,7 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
     [flamegraphRenderer]
   );
 
-  // referenceNode is passed down to the frameStack and is used to determine
+  // referenceNode is passed down to the flamegraphdrawer and is used to determine
   // the weights of each frame. In other words, in case there is no user selected root, then all
   // of the frame weights and timing are relative to the entire profile. If there is a user selected
   // root however, all weights are relative to that sub tree.
@@ -371,7 +371,7 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
   return (
     <Fragment>
       <FlamegraphToolbar>
-        <ThreadMenuSelector
+        <FlamegraphThreadSelector
           profileGroup={props.profiles}
           threadId={threadId}
           onThreadIdChange={newThreadId =>
@@ -395,7 +395,7 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
         <FlamegraphOptionsMenu canvasPoolManager={canvasPoolManager} />
       </FlamegraphToolbar>
 
-      <ProfilingFlamechartLayout
+      <FlamegraphLayout
         minimap={
           <FlamegraphZoomViewMinimap
             canvasPoolManager={canvasPoolManager}
@@ -408,7 +408,7 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
             setFlamegraphMiniMapOverlayCanvasRef={setFlamegraphMiniMapOverlayCanvasRef}
           />
         }
-        flamechart={
+        flamegraph={
           <ProfileDragDropImport onImport={props.onImport}>
             <FlamegraphWarnings flamegraph={flamegraph} />
             <FlamegraphZoomView
@@ -425,8 +425,8 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
             />
           </ProfileDragDropImport>
         }
-        frameStack={
-          <FrameStack
+        flamegraphDrawer={
+          <FlamegraphDrawer
             profileGroup={props.profiles}
             flamegraph={flamegraph}
             referenceNode={referenceNode}

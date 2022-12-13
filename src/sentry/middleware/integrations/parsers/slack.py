@@ -85,4 +85,4 @@ class SlackRequestParser(BaseRequestParser):
 
         # Slack only requires one synchronous response.
         # By convention, we just assume it's the first returned region.
-        return self.get_response_from_region_silo(regions=[regions[0]])
+        return self.get_response_from_region_silos(regions=[regions[0]])
