@@ -589,6 +589,7 @@ class SpanTree extends Component<PropType> {
             addContentSpanBarRef,
             removeContentSpanBarRef,
             storeSpanBar,
+            getCurrentLeftPos: this.props.getCurrentLeftPos,
           },
         });
 

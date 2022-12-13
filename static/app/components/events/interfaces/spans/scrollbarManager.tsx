@@ -18,6 +18,7 @@ import SpanBar from './spanBar';
 
 export type ScrollbarManagerChildrenProps = {
   addContentSpanBarRef: (instance: HTMLDivElement | null) => void;
+  getCurrentLeftPos: () => number;
   onDragStart: (event: React.MouseEvent<HTMLDivElement, MouseEvent>) => void;
   onScroll: () => void;
   onWheel: (deltaX: number) => void;
@@ -27,7 +28,6 @@ export type ScrollbarManagerChildrenProps = {
   updateHorizontalScrollState: (avgSpanDepth: number) => void;
   updateScrollState: () => void;
   virtualScrollbarRef: React.RefObject<HTMLDivElement>;
-  currentLeftPos: number;
 };
 
 const ScrollbarManagerContext = createContext<ScrollbarManagerChildrenProps>({
@@ -41,7 +41,7 @@ const ScrollbarManagerContext = createContext<ScrollbarManagerChildrenProps>({
   onWheel: () => {},
   updateScrollState: () => {},
   storeSpanBar: () => {},
-  currentLeftPos: 0,
+  getCurrentLeftPos: () => 0,
 });
 
 const selectRefs = (
@@ -199,6 +199,8 @@ export class Provider extends Component<Props, State> {
       this.syncVirtualScrollbar(spanBarDOM);
     }
   };
+
+  getCurrentLeftPos = () => this.currentLeftPos;
 
   updateHorizontalScrollState = (avgSpanDepth: number) => {
     if (avgSpanDepth === 0) {
@@ -533,7 +535,7 @@ export class Provider extends Component<Props, State> {
       scrollBarAreaRef: this.scrollBarArea,
       updateScrollState: this.initializeScrollState,
       storeSpanBar: this.storeSpanBar,
-      currentLeftPos: this.currentLeftPos,
+      getCurrentLeftPos: this.getCurrentLeftPos,
     };
 
     return (

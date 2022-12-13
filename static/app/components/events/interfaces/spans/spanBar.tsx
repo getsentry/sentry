@@ -113,6 +113,7 @@ export type SpanBarProps = {
   event: Readonly<EventTransaction>;
   fetchEmbeddedChildrenState: FetchEmbeddedChildrenState;
   generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
+  getCurrentLeftPos: () => number;
   isEmbeddedTransactionTimeAdjusted: boolean;
   isSpanExpanded: (span: Readonly<ProcessedSpanType>) => boolean;
   listRef: React.RefObject<ReactVirtualizedList>;
@@ -171,9 +172,9 @@ class SpanBar extends Component<SpanBarProps, SpanBarState> {
     // If we rely on the scrollBarManager to set the styling, it happens too late and awkwardly applies an animation.
     if (this.spanContentRef) {
       this.props.addContentSpanBarRef(this.spanContentRef);
-      // const left = -this.props.getScrollLeftValue();
-      // this.spanContentRef.style.transform = `translateX(${left}px)`;
-      // this.spanContentRef.style.transformOrigin = 'left';
+      const left = -this.props.getCurrentLeftPos();
+      this.spanContentRef.style.transform = `translateX(${left}px)`;
+      this.spanContentRef.style.transformOrigin = 'left';
     }
 
     const {span, markAnchoredSpanIsMounted, addExpandedSpan, isSpanExpanded, measure} =
