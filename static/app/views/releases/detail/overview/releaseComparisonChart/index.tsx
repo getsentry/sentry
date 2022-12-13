@@ -28,6 +28,7 @@ import {
   SessionStatus,
 } from 'sentry/types';
 import {defined} from 'sentry/utils';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {formatPercentage} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
@@ -842,6 +843,10 @@ function ReleaseComparisonChart({
   }
 
   function handleChartChange(chartType: ReleaseComparisonChartType) {
+    trackAdvancedAnalyticsEvent('releases.change_chart_type', {
+      organization,
+      chartType,
+    });
     browserHistory.push({
       ...location,
       query: {
