@@ -41,8 +41,10 @@ class RedisRuleStore:
         client = get_redis_client()
         key = self._get_rules_key(project)
 
-        # TODO: Replace contents
-        client.hmset(key, rules)
+        with client.pipeline() as p:
+            # to be consistent with other stores, clear previous hash entries:
+            p.delete(key)
+            p.hmset(key, rules)
 
 
 class ProjectOptionRuleStore:
