@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from time import sleep, time
-from typing import Any, List, Mapping, MutableMapping, Optional, Tuple
+from typing import Any, Dict, List, Mapping, MutableMapping, Optional, Tuple
 
 import sentry_sdk
 from arroyo.backends.kafka.consumer import KafkaPayload, KafkaProducer
@@ -307,7 +307,10 @@ def _process_symbolicator_results(
 def _process_symbolicator_results_for_sample(profile: Profile, stacktraces: List[Any]) -> None:
     original_frames = profile["profile"]["frames"]
     symbolicated_frames = stacktraces[0]["frames"]
-    inline_frame_ids = {}
+    inline_frame_ids: Dict[int, List] = {}
+
+    # reverse the list to have the first frame be the "real" one
+    symbolicated_frames.reverse()
 
     # merge results
     for symbolicated_frame in symbolicated_frames:
@@ -321,11 +324,11 @@ def _process_symbolicator_results_for_sample(profile: Profile, stacktraces: List
         # check if we already merged a symbolicated frame result
         # if it's the case, the status field will contain the result of the symbolication
         if "status" in original_frame:
-            inline_frame_ids[original_index].append(len(original_frames))
+            inline_frame_ids[original_index].insert(0, len(original_frames))
             original_frames.append(symbolicated_frame)
         else:
+            inline_frame_ids[original_index] = [original_index]
             original_frame.update(symbolicated_frame)
-            inline_frame_ids[original_index] = []
 
     if profile["platform"] == "rust":
 
@@ -357,6 +360,16 @@ def _process_symbolicator_results_for_sample(profile: Profile, stacktraces: List
         ) -> List[Any]:
             return stack
 
+    def merge_stack(stack: List[int]) -> List[int]:
+        new_stack: List[int] = []
+        for index in stack:
+            # the new stack extends the older by replacing
+            # a specific frame index with the indices of
+            # the frames originated from the original frame
+            # should inlines be present
+            new_stack.extend(inline_frame_ids[index])
+        return new_stack
+
     for sample in profile["profile"]["samples"]:
         stack_id = sample["stack_id"]
         stack = profile["profile"]["stacks"][stack_id]
@@ -364,15 +377,10 @@ def _process_symbolicator_results_for_sample(profile: Profile, stacktraces: List
         if len(stack) < 2:
             continue
 
-        # add inline frames to the stack
-        for i, frame_id in enumerate(stack):
-            if frame_id in inline_frame_ids:
-                stack = stack[:i] + inline_frame_ids[frame_id] + stack[i:]
-
-        profile["profile"]["stacks"][stack_id] = stack
-
         # truncate some unneeded frames in the stack (related to the profiler itself or impossible to symbolicate)
-        profile["profile"]["stacks"][stack_id] = truncate_stack_needed(original_frames, stack)
+        profile["profile"]["stacks"][stack_id] = truncate_stack_needed(
+            original_frames, merge_stack(stack)
+        )
 
     profile["profile"]["frames"] = original_frames
 
