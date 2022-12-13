@@ -1,4 +1,5 @@
 from copy import deepcopy
+from typing import Dict, List, Union
 from unittest.mock import patch
 
 import responses
@@ -21,34 +22,43 @@ class BaseDeriveCodeMappings(TestCase):
         )
         self.project = self.create_project(organization=self.organization)
 
+    def generate_data(self, frames: List[Dict[str, Union[str, bool]]], platform: str = ""):
+        test_data = {"platform": platform or self.platform, "stacktrace": {"frames": frames}}
+        return self.store_event(data=test_data, project_id=self.project.id).data
+
 
 class TestJavascriptDeriveCodeMappings(BaseDeriveCodeMappings):
     def setUp(self):
         super().setUp()
-        self.test_data = {
-            "platform": "javascript",
-            "stacktrace": {
-                "frames": [
-                    {
-                        "module": "@sentry/browser/node_modules/@sentry/core/esm/hub",
-                        "filename": "../node_modules/@sentry/browser/node_modules/@sentry/core/esm/hub.js",
-                        "abs_path": "webpack:///../node_modules/@sentry/browser/node_modules/@sentry/core/esm/hub.js",
-                        "in_app": False,
-                    },
-                    {
-                        "module": "app/utils/handleXhrErrorResponse",
-                        "filename": "./app/utils/handleXhrErrorResponse.tsx",
-                        "abs_path": "webpack:///./app/utils/handleXhrErrorResponse.tsx",
-                        "in_app": True,
-                    },
-                ]
-            },
-        }
-        self.event_data = self.store_event(data=self.test_data, project_id=self.project.id).data
+        self.platform = "javascript"
+        self.event_data = self.generate_data(
+            [
+                {
+                    "filename": "../node_modules/@sentry/browser/node_modules/@sentry/core/esm/hub.js",
+                    "in_app": False,
+                },
+                {
+                    "filename": "./app/utils/handleXhrErrorResponse.tsx",
+                    "in_app": True,
+                },
+            ]
+        )
 
     def test_find_stacktrace_paths_single_project(self):
         stacktrace_paths = identify_stacktrace_paths(self.event_data)
         assert stacktrace_paths == ["./app/utils/handleXhrErrorResponse.tsx"]
+
+    def test_find_stacktrace_paths_bad_data(self):
+        data = self.generate_data([{}])
+        data["stacktrace"]["frames"] = [
+            {
+                "abs_path": "https://example.com/static/chunks/foo.bar.js",
+                "data": {"sourcemap": "https://example.com/_next/static/chunks/foo.bar.js.map"},
+                "in_app": True,
+            }
+        ]
+        stacktrace_paths = identify_stacktrace_paths(data)
+        assert stacktrace_paths == []
 
     @responses.activate
     @with_feature("organizations:derive-code-mappings")
@@ -115,15 +125,6 @@ class TestPythonDeriveCodeMappings(BaseDeriveCodeMappings):
             "sentry/tasks.py",
         ]
 
-    def test_skips_nonpython_projects(self):
-        new_data = deepcopy(self.test_data)
-        new_data["platform"] = "elixir"
-        event = self.store_event(data=new_data, project_id=self.project.id)
-
-        stacktrace_paths = identify_stacktrace_paths(event.data)
-
-        assert sorted(stacktrace_paths) == []
-
     def test_handle_duplicate_filenames_in_stacktrace(self):
         data = deepcopy(self.test_data)
         data["stacktrace"]["frames"].append(self.test_data["stacktrace"]["frames"][0])
@@ -188,6 +189,12 @@ class TestPythonDeriveCodeMappings(BaseDeriveCodeMappings):
         code_mapping = RepositoryProjectPathConfig.objects.filter(project_id=self.project.id)
         assert code_mapping.exists()
         assert code_mapping.first().automatically_generated is True
+
+    def test_skips_supported_projects(self):
+        new_data = deepcopy(self.test_data)
+        new_data["platform"] = "elixir"
+        event = self.store_event(data=new_data, project_id=self.project.id)
+        assert derive_code_mappings(self.project.id, event.data) is None
 
     @patch("sentry.integrations.github.GitHubIntegration.get_trees_for_org")
     @patch(
