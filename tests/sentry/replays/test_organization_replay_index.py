@@ -189,7 +189,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
 
         with self.feature(REPLAYS_FEATURES):
             response = self.client.get(
-                self.url + "?field=id&sort=countErrors&query=test:hello user_id:123"
+                self.url + "?field=id&sort=countErrors&query=test:hello OR user_id:123"
             )
             assert response.status_code == 200
 

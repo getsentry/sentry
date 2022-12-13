@@ -156,9 +156,11 @@ def make_select_statement(
 
     unique_fields = set(fields)
     for fltr in search_filters:
-        unique_fields.add(fltr.key.name)
+        if isinstance(fltr, SearchFilter):
+            unique_fields.add(fltr.key.name)
     for sort in sorting:
         unique_fields.add(sort.exp.name)
+
     return select_from_fields(list(unique_fields))
 
 
@@ -250,21 +252,21 @@ class ReplayQueryConfig(QueryConfig):
     agg_environment = String(field_alias="environment")
     releases = ListField()
     dist = String()
-    urls = ListField(query_alias="urls_sorted", field_alias="url")
-    user_id = String(field_alias="user.id")
-    user_email = String(field_alias="user.email")
-    user_name = String(field_alias="user.name")
+    urls = ListField(field_alias="urls", query_alias="urls_sorted")
+    user_id = String(field_alias="user.id", query_alias="user_id")
+    user_email = String(field_alias="user.email", query_alias="user_email")
+    user_name = String(field_alias="user.name", query_alias="user_name")
     user_ip_address = String(field_alias="user.ipAddress", query_alias="user_ipAddress")
-    os_name = String(field_alias="os.name")
-    os_version = String(field_alias="os.version")
-    browser_name = String(field_alias="browser.name")
-    browser_version = String(field_alias="browser.version")
-    device_name = String(field_alias="device.name")
-    device_brand = String(field_alias="device.brand")
-    device_family = String(field_alias="device.family")
-    device_model = String(field_alias="device.model")
-    sdk_name = String(field_alias="sdk.name")
-    sdk_version = String(field_alias="sdk.version")
+    os_name = String(field_alias="os.name", query_alias="os_name")
+    os_version = String(field_alias="os.version", query_alias="os_version")
+    browser_name = String(field_alias="browser.name", query_alias="browser_name")
+    browser_version = String(field_alias="browser.version", query_alias="browser_version")
+    device_name = String(field_alias="device.name", query_alias="device_name")
+    device_brand = String(field_alias="device.brand", query_alias="device_brand")
+    device_family = String(field_alias="device.family", query_alias="device_family")
+    device_model = String(field_alias="device.model", query_alias="device_model")
+    sdk_name = String(field_alias="sdk.name", query_alias="sdk_name")
+    sdk_version = String(field_alias="sdk.version", query_alias="sdk_version")
 
     # Tag
     tags = Tag(field_alias="*")
