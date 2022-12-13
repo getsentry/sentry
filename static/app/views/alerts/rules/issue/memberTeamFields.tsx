@@ -79,48 +79,57 @@ class MemberTeamFields extends Component<Props> {
 
     return (
       <PanelItemGrid>
-        <SelectControl
-          isClearable={false}
-          isDisabled={disabled || loading}
-          value={ruleData.targetType}
-          styles={selectControlStyles}
-          options={options}
-          onChange={this.handleChangeActorType}
-        />
-        {teamSelected ? (
-          <TeamSelector
-            disabled={disabled}
-            key={teamValue}
-            project={project}
-            // The value from the endpoint is of type `number`, `SelectMembers` require value to be of type `string`
-            value={`${ruleData.targetIdentifier}`}
+        <SelectWrapper>
+          <SelectControl
+            isClearable={false}
+            isDisabled={disabled || loading}
+            value={ruleData.targetType}
             styles={selectControlStyles}
-            onChange={this.handleChangeActorId}
-            useId
+            options={options}
+            onChange={this.handleChangeActorType}
           />
-        ) : memberSelected ? (
-          <SelectMembers
-            disabled={disabled}
-            key={teamSelected ? teamValue : memberValue}
-            project={project}
-            organization={organization}
-            // The value from the endpoint is of type `number`, `SelectMembers` require value to be of type `string`
-            value={`${ruleData.targetIdentifier}`}
-            styles={selectControlStyles}
-            onChange={this.handleChangeActorId}
-          />
-        ) : null}
+        </SelectWrapper>
+        {(teamSelected || memberSelected) && (
+          <SelectWrapper>
+            {teamSelected ? (
+              <TeamSelector
+                disabled={disabled}
+                key={teamValue}
+                project={project}
+                // The value from the endpoint is of type `number`, `SelectMembers` require value to be of type `string`
+                value={`${ruleData.targetIdentifier}`}
+                styles={selectControlStyles}
+                onChange={this.handleChangeActorId}
+                useId
+              />
+            ) : memberSelected ? (
+              <SelectMembers
+                disabled={disabled}
+                key={teamSelected ? teamValue : memberValue}
+                project={project}
+                organization={organization}
+                // The value from the endpoint is of type `number`, `SelectMembers` require value to be of type `string`
+                value={`${ruleData.targetIdentifier}`}
+                styles={selectControlStyles}
+                onChange={this.handleChangeActorId}
+              />
+            ) : null}
+          </SelectWrapper>
+        )}
       </PanelItemGrid>
     );
   }
 }
 
 const PanelItemGrid = styled(PanelItem)`
-  display: grid;
-  grid-template-columns: 200px 200px;
-  padding: 0;
+  display: flex;
   align-items: center;
+  padding: 0;
   gap: ${space(2)};
+`;
+
+const SelectWrapper = styled('div')`
+  width: 200px;
 `;
 
 export default MemberTeamFields;
