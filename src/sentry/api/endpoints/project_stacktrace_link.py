@@ -147,7 +147,12 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
             inserted = False
             for index, sorted_config in enumerate(sorted_configs):
                 # This check will ensure that all user defined code mappings will come before Sentry generated ones
-                if sorted_config.automatically_generated and not config.automatically_generated:
+                if (
+                    sorted_config.automatically_generated and not config.automatically_generated
+                ) or (  # Insert more defined stack roots before less defined ones
+                    (sorted_config.automatically_generated == config.automatically_generated)
+                    and config.stack_root.startswith(sorted_config.stack_root)
+                ):
                     sorted_configs.insert(index, config)
                     inserted = True
                     break
