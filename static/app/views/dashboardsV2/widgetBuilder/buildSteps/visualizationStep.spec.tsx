@@ -126,7 +126,7 @@ describe('VisualizationStep', function () {
       jest.advanceTimersByTime(DEFAULT_DEBOUNCE_DURATION + 1);
     });
 
-    await waitFor(() => expect(eventsMock).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(eventsMock).toHaveBeenCalledTimes(1));
   });
 
   it('displays stored data alert', async function () {
