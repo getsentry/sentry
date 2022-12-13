@@ -9,7 +9,7 @@ from sentry.db.models import Model, region_silo_only_model, sane_repr
 from sentry.db.models.fields import FlexibleForeignKey, JSONField
 from sentry.models import ActorTuple
 from sentry.models.groupowner import OwnerRuleType
-from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.ownership.grammar import Rule, load_schema, resolve_actors
 from sentry.utils import metrics
 from sentry.utils.cache import cache
@@ -92,7 +92,7 @@ class ProjectOwnership(Model):
 
     @classmethod
     def get_owners(
-        cls, project_id: int, data: Mapping[str, Any], organization: Optional[Organization] = None
+        cls, project_id: int, data: Mapping[str, Any]
     ) -> Tuple[Union["Everyone", Sequence["ActorTuple"]], Optional[Sequence[Rule]]]:
         """
         For a given project_id, and event data blob.
@@ -120,7 +120,8 @@ class ProjectOwnership(Model):
         rules = cls._matching_ownership_rules(ownership, project_id, data)
 
         if not rules:
-            if features.has("organizations:issue-alert-fallback-targeting", organization):
+            project = Project.objects.get(id=project_id)
+            if features.has("organizations:issue-alert-fallback-targeting", project.organization):
                 return [], None
 
             return cls.Everyone if ownership.fallthrough else [], None

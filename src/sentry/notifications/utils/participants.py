@@ -4,7 +4,7 @@ import logging
 from collections import defaultdict
 from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping, Sequence
 
-from sentry import features, roles
+from sentry import features
 from sentry.models import (
     ActorTuple,
     Commit,
@@ -157,9 +157,7 @@ def get_owners(project: Project, event: Event | None = None) -> Sequence[Team | 
     """
 
     if event:
-        owners, _ = ProjectOwnership.get_owners(
-            project.id, event.data, organization=project.organization
-        )
+        owners, _ = ProjectOwnership.get_owners(project.id, event.data)
     else:
         owners = ProjectOwnership.Everyone
 
@@ -352,44 +350,13 @@ def get_fallthrough_recipients(
 
     # Case 2: notify all members
     elif fallthrough_choice == FallthroughChoiceType.ALL_MEMBERS:
-        return project.member_set.all()
+        user_ids = project.member_set.all().values_list("user_id", flat=True)
+        return User.objects.filter(id__in=user_ids)
 
+    # TODO(snigdhasharma): Handle this in a followup PR (WOR-2385)
     # Case 3: Admin or recent
     elif fallthrough_choice == FallthroughChoiceType.ADMIN_OR_RECENT:
-        if len(project.member_set) < 20:
-            return project.member_set.all()
-
-        # We notify at most 20 people, so we'll try to notify all admins first
-        team_admins = (
-            OrganizationMember.objects.get_contactable_members_for_org(project.organization_id)
-            .filter(
-                teams__in=project.teams.all(),
-                role__in=(r.id for r in roles.get_all() if r.has_scope("member:admin")),
-            )
-            .values_list("actor_id", flat=True)
-        )
-
-        actor_ids = []
-        if len(team_admins) > 20:
-            actor_ids = team_admins[:20]
-
-        # If we have less than 20 admins, we'll include the N most recently active users
-        recently_active_limit = 20 - len(actor_ids)
-        if recently_active_limit > 0:
-            recently_active = (
-                OrganizationMember.objects.get_contactable_members_for_org(project.organization_id)
-                .filter(
-                    teams__in=project.teams.all(),
-                    user__is_active=True,
-                    actor_id__not_in=[r.actor_id for r in actor_ids],
-                )
-                .order_by("-user__last_active")
-                .values_list("actor_id", flat=True)[:recently_active_limit]
-            )
-
-            actor_ids.extend(recently_active)
-
-        return User.objects.filter(id__in=actor_ids)
+        return []
 
 
 def get_user_from_identifier(project: Project, target_identifier: str | int | None) -> User | None:

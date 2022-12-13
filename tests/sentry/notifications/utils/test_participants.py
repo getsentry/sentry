@@ -5,6 +5,7 @@ from sentry.eventstore.models import Event
 from sentry.models import GroupRelease, NotificationSetting, Project, ProjectOwnership, Team, User
 from sentry.notifications.types import (
     ActionTargetType,
+    FallthroughChoiceType,
     NotificationSettingOptionValues,
     NotificationSettingTypes,
 )
@@ -19,6 +20,7 @@ from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema
 from sentry.services.hybrid_cloud.user import APIUser, UserService, user_service
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.features import apply_feature_flag_on_cls
 from sentry.testutils.silo import region_silo_test
 from sentry.types.integrations import ExternalProviders
 from sentry.utils.cache import cache
@@ -521,3 +523,77 @@ class GetOwnersCase(TestCase):
                 event=event,
             )
             assert owner_reason is None
+
+
+@apply_feature_flag_on_cls("organizations:issue-alert-fallback-targeting")
+class GetSendToFallthroughTest(TestCase):
+    def get_send_to_fallthrough(
+        self, event: Event, fallthrough_choice: Optional[FallthroughChoiceType] = None
+    ) -> Mapping[ExternalProviders, Iterable[Union["Team", "User"]]]:
+        return get_send_to(
+            self.project,
+            target_type=ActionTargetType.ISSUE_OWNERS,
+            target_identifier=None,
+            event=event,
+            fallthrough_choice=fallthrough_choice,
+        )
+
+    def store_event(self, filename: str) -> Event:
+        return super().store_event(data=make_event_data(filename), project_id=self.project.id)
+
+    def setUp(self):
+        self.user2 = self.create_user(email="baz@example.com", is_active=True)
+        self.user3 = self.create_user(email="bar@example.com", is_active=True)
+
+        self.team2 = self.create_team(
+            organization=self.organization, members=[self.user, self.user2]
+        )
+        self.project.add_team(self.team2)
+
+        ProjectOwnership.objects.create(
+            project_id=self.project.id,
+            schema=dump_schema(
+                [
+                    grammar.Rule(Matcher("path", "*.py"), [Owner("team", self.team2.slug)]),
+                    grammar.Rule(Matcher("path", "*.jsx"), [Owner("user", self.user.email)]),
+                    grammar.Rule(Matcher("path", "*.jx"), [Owner("user", self.user3.email)]),
+                    grammar.Rule(
+                        Matcher("path", "*.cbl"),
+                        [
+                            Owner("user", user.email)
+                            for user in User.objects.filter(
+                                id__in=self.project.member_set.values_list("user", flat=True)
+                            )
+                        ],
+                    ),
+                    grammar.Rule(Matcher("path", "*.lol"), []),
+                ]
+            ),
+            fallthrough=True,
+        )
+
+        # turn off slack for teams
+        for user in [self.user, self.user2]:
+            NotificationSetting.objects.update_settings(
+                ExternalProviders.SLACK,
+                NotificationSettingTypes.ISSUE_ALERTS,
+                NotificationSettingOptionValues.NEVER,
+                user=user,
+            )
+
+    def test_no_fallthrough(self):
+        event = self.store_event("empty.lol")
+        assert self.get_send_to_fallthrough(event, None) == {}
+
+    def test_fallthrough_no_one(self):
+        event = self.store_event("empty.lol")
+        assert self.get_send_to_fallthrough(event, FallthroughChoiceType.NO_ONE) == {}
+
+    def test_fallthrough_all_members(self):
+        event = self.store_event("all.py")
+        assert self.get_send_to_fallthrough(event, FallthroughChoiceType.ALL_MEMBERS) == {
+            ExternalProviders.EMAIL: {
+                UserService.serialize_user(self.user),
+                UserService.serialize_user(self.user2),
+            },
+        }
