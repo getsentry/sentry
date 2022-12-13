@@ -113,12 +113,9 @@ export type SpanBarProps = {
   event: Readonly<EventTransaction>;
   fetchEmbeddedChildrenState: FetchEmbeddedChildrenState;
   generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
-  getScrollLeftValue: () => number;
   isEmbeddedTransactionTimeAdjusted: boolean;
   isSpanExpanded: (span: Readonly<ProcessedSpanType>) => boolean;
   listRef: React.RefObject<ReactVirtualizedList>;
-  markSpanInView: (spanId: string, treeDepth: number) => void;
-  markSpanOutOfView: (spanId: string) => void;
   numOfSpanChildren: number;
   numOfSpans: number;
   onWheel: (deltaX: number) => void;
@@ -174,9 +171,9 @@ class SpanBar extends Component<SpanBarProps, SpanBarState> {
     // If we rely on the scrollBarManager to set the styling, it happens too late and awkwardly applies an animation.
     if (this.spanContentRef) {
       this.props.addContentSpanBarRef(this.spanContentRef);
-      const left = -this.props.getScrollLeftValue();
-      this.spanContentRef.style.transform = `translateX(${left}px)`;
-      this.spanContentRef.style.transformOrigin = 'left';
+      // const left = -this.props.getScrollLeftValue();
+      // this.spanContentRef.style.transform = `translateX(${left}px)`;
+      // this.spanContentRef.style.transformOrigin = 'left';
     }
 
     const {span, markAnchoredSpanIsMounted, addExpandedSpan, isSpanExpanded, measure} =
@@ -209,12 +206,11 @@ class SpanBar extends Component<SpanBarProps, SpanBarState> {
       this.spanTitleRef.current.removeEventListener('wheel', this.handleWheel);
     }
 
-    const {span, markSpanOutOfView} = this.props;
+    const {span} = this.props;
     if (isGapSpan(span)) {
       return;
     }
 
-    markSpanOutOfView(span.span_id);
     this.props.removeContentSpanBarRef(this.spanContentRef);
   }
 
@@ -727,13 +723,6 @@ class SpanBar extends Component<SpanBarProps, SpanBarState> {
               return;
             }
 
-            // If isIntersecting is false, this means the span is out of view below the viewport
-            if (!entry.isIntersecting) {
-              // this.props.markSpanOutOfView(span.span_id);
-            } else {
-              // this.props.markSpanInView(span.span_id, treeDepth);
-            }
-
             // if the first span is below the minimap, we scroll the minimap
             // to the top. this addresses spurious scrolling to the top of the page
             if (spanNumber <= 1) {
@@ -750,8 +739,6 @@ class SpanBar extends Component<SpanBarProps, SpanBarState> {
             if ('type' in span) {
               return;
             }
-
-            this.props.markSpanOutOfView(span.span_id);
 
             return;
           }

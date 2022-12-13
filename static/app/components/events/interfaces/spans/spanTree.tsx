@@ -395,10 +395,7 @@ class SpanTree extends Component<PropType> {
       onWheel,
       addContentSpanBarRef,
       removeContentSpanBarRef,
-      markSpanOutOfView,
-      markSpanInView,
       storeSpanBar,
-      getScrollLeftValue,
     } = this.props;
 
     const generateBounds = waterfallModel.generateBounds({
@@ -480,7 +477,6 @@ class SpanTree extends Component<PropType> {
               onWheel,
               addContentSpanBarRef,
               removeContentSpanBarRef,
-              getScrollLeftValue,
             },
           });
           acc.spanNumber = spanNumber + 1;
@@ -509,7 +505,6 @@ class SpanTree extends Component<PropType> {
               addContentSpanBarRef,
               removeContentSpanBarRef,
               isEmbeddedSpanTree,
-              getScrollLeftValue,
             },
           });
 
@@ -593,20 +588,9 @@ class SpanTree extends Component<PropType> {
             onWheel,
             addContentSpanBarRef,
             removeContentSpanBarRef,
-            markSpanOutOfView,
-            markSpanInView,
             storeSpanBar,
-            getScrollLeftValue,
           },
         });
-
-        // If this is an embedded span tree, we will manually mark these spans as in view.
-        // This is necessary because generally these spans are dependant on intersection observers which will
-        // mark them in view, but these observers are not reliable when the span tree is in a condensed state.
-        // Marking them here will ensure that the horizontally positioning is correctly set when the tree is loaded.
-        if (isAffectedSpan) {
-          markSpanInView(span.span_id, treeDepth);
-        }
 
         acc.spanNumber = spanNumber + 1;
         return acc;

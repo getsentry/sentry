@@ -52,7 +52,6 @@ type Props = {
   didAnchoredSpanMount: boolean;
   event: Readonly<EventTransaction>;
   generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
-  getScrollLeftValue: () => number;
   onWheel: (deltaX: number) => void;
   removeContentSpanBarRef: (instance: HTMLDivElement | null) => void;
   renderGroupSpansTitle: () => React.ReactNode;
@@ -158,7 +157,6 @@ export function SpanGroupBar(props: Props) {
     onWheel,
     addContentSpanBarRef,
     removeContentSpanBarRef,
-    getScrollLeftValue,
     didAnchoredSpanMount,
     spanGrouping,
     toggleSpanGroup,
@@ -171,16 +169,16 @@ export function SpanGroupBar(props: Props) {
       if (ref) {
         spanContentRef.current = ref;
         addContentSpanBarRef(ref);
-        const left = -getScrollLeftValue();
-        ref.style.transform = `translateX(${left}px)`;
-        ref.style.transformOrigin = 'left';
+        // const left = -getScrollLeftValue();
+        // ref.style.transform = `translateX(${left}px)`;
+        // ref.style.transformOrigin = 'left';
         return;
       }
 
       // If ref is null, this means the component is about to unmount
       removeContentSpanBarRef(spanContentRef.current);
     },
-    [getScrollLeftValue, addContentSpanBarRef, removeContentSpanBarRef]
+    [addContentSpanBarRef, removeContentSpanBarRef]
   );
 
   useEffect(() => {
