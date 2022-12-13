@@ -50,6 +50,8 @@ export function StackedBarsChartListWidget(props: PerformanceWidgetProps) {
   const pageError = usePageError();
   const theme = useTheme();
 
+  const colors = [...theme.charts.getColorPalette(5)].reverse();
+
   const listQuery = useMemo<QueryDefinition<DataType, WidgetDataResult>>(
     () => ({
       fields,
@@ -223,7 +225,7 @@ export function StackedBarsChartListWidget(props: PerformanceWidgetProps) {
                   <BarChart
                     {...provided.widgetData.chart}
                     {...provided}
-                    colors={theme.charts.getColorPalette(5).reverse()}
+                    colors={colors}
                     series={provided.widgetData.chart.data}
                     stacked
                     animation
