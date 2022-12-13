@@ -1,32 +1,25 @@
-# import uuid
 from datetime import datetime
 
 from sentry.testutils import APITestCase
 from sentry.types.issues import GroupType
 from sentry.utils.dates import ensure_aware
-from sentry.utils.samples import load_data
 
 
 class IssueOccurrenceTest(APITestCase):
     def test_simple(self):
         user = self.create_user(is_superuser=True)
-        self.login_as(user=user)
+        self.login_as(user=user, superuser=True)
 
-        event = dict(load_data("python"))
-        event["message"] = "meow meow"
-        event.pop("logentry", None)
-        event["event_id"] = "44f1419e73884cd2b45c79918f4b6dc4"
-        event["environment"] = "prod"
-        event["tags"] = [
-            ("logger", "javascript"),
-            ("environment", "prod"),
-            ("level", "error"),
-            ("device", "Other"),
-        ]
+        event = {
+            "event_id": "44f1419e73884cd2b45c79918f4b6dc4",
+            "title": "Meow meow",
+            "platform": "python",
+            "tags": {"environment": "prod"},
+            "timestamp": ensure_aware(datetime.now()),
+            "message_timestamp": ensure_aware(datetime.now()),
+        }
 
         data = {
-            # "id": uuid.uuid4().hex,
-            # "event_id": data["event_id"],
             "fingerprint": ["some-fingerprint"],
             "issue_title": "something bad happened",
             "subtitle": "it was bad",
@@ -46,5 +39,3 @@ class IssueOccurrenceTest(APITestCase):
         response = self.client.post(url, data=data, format="json")
 
         assert response.status_code == 201, response.content
-        # assert response.data["id"] == str(group.id)
-        # TODO do we need anything in the response?
