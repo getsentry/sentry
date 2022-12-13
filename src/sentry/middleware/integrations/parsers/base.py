@@ -40,7 +40,7 @@ class BaseRequestParser(abc.ABC):
         self._ensure_control_silo()
         return self.response_handler(self.request)
 
-    def get_response_from_region_silo(self, regions: Iterable[Region]):
+    def get_response_from_region_silos(self, regions: Iterable[Region]):
         """
         Used to handle the requests on a given list of regions (synchronously).
         If multiple regions are provided, only the last response is returned to the requestor.
