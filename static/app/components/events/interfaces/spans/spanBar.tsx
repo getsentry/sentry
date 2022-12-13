@@ -722,16 +722,16 @@ class SpanBar extends Component<SpanBarProps, SpanBarState> {
             relativeToMinimap.top > 0 && relativeToMinimap.bottom > 0;
 
           if (rectBelowMinimap) {
-            const {span, treeDepth} = this.props;
+            const {span} = this.props;
             if ('type' in span) {
               return;
             }
 
             // If isIntersecting is false, this means the span is out of view below the viewport
             if (!entry.isIntersecting) {
-              this.props.markSpanOutOfView(span.span_id);
+              // this.props.markSpanOutOfView(span.span_id);
             } else {
-              this.props.markSpanInView(span.span_id, treeDepth);
+              // this.props.markSpanInView(span.span_id, treeDepth);
             }
 
             // if the first span is below the minimap, we scroll the minimap

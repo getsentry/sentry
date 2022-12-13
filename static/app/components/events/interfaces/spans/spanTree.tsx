@@ -739,10 +739,14 @@ class SpanTree extends Component<PropType> {
     () => {
       console.dir(this.state.spanRows);
 
-      const {depthSum, visibleSpanCount} = this.state.spanRows.reduce(
+      const {depthSum, visibleSpanCount, isRootSpanVisible} = this.state.spanRows.reduce(
         (acc, {spanRow, treeDepth}) => {
           if (!spanRow.current || !this.isSpanRowVisible(spanRow)) {
             return acc;
+          }
+
+          if (treeDepth === 0) {
+            acc.isRootSpanVisible = true;
           }
 
           acc.depthSum += treeDepth;
@@ -753,10 +757,14 @@ class SpanTree extends Component<PropType> {
         {
           depthSum: 0,
           visibleSpanCount: 0,
+          isRootSpanVisible: false,
         }
       );
 
-      const averageDepth = depthSum / visibleSpanCount;
+      // If the root is visible, we do not want to shift the view around so just pass 0 instead of the average
+      const v = isRootSpanVisible ? 0 : Math.round(depthSum / visibleSpanCount);
+      console.log('avg: ', v);
+      this.props.updateHorizontalScrollState(v);
     },
     500,
     {trailing: true}

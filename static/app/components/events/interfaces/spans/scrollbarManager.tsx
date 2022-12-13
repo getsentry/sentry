@@ -12,9 +12,14 @@ import {setBodyUserSelect, UserSelectValues} from 'sentry/utils/userselect';
 import {DragManagerChildrenProps} from './dragManager';
 import SpanBar from './spanBar';
 import {SpansInViewMap, spanTargetHash} from './utils';
+import {
+  TOGGLE_BORDER_BOX,
+  TOGGLE_BUTTON_MAX_WIDTH,
+} from 'sentry/components/performance/waterfall/treeConnector';
 
 export type ScrollbarManagerChildrenProps = {
   addContentSpanBarRef: (instance: HTMLDivElement | null) => void;
+  updateHorizontalScrollState: (avgSpanDepth: number) => void;
   getScrollLeftValue: () => number;
   markSpanInView: (spanId: string, treeDepth: number) => void;
   markSpanOutOfView: (spanId: string) => void;
@@ -30,6 +35,7 @@ export type ScrollbarManagerChildrenProps = {
 
 const ScrollbarManagerContext = createContext<ScrollbarManagerChildrenProps>({
   addContentSpanBarRef: () => {},
+  updateHorizontalScrollState: () => {},
   removeContentSpanBarRef: () => {},
   virtualScrollbarRef: createRef<HTMLDivElement>(),
   scrollBarAreaRef: createRef<HTMLDivElement>(),
@@ -240,6 +246,11 @@ export class Provider extends Component<Props, State> {
 
     const left = this.spansInView.getScrollVal();
     this.performScroll(left);
+  };
+
+  updateHorizontalScrollState = (avgSpanDepth: number) => {
+    const left = avgSpanDepth * (TOGGLE_BORDER_BOX / 2) - TOGGLE_BUTTON_MAX_WIDTH / 2;
+    this.throttledScroll(left, true);
   };
 
   syncVirtualScrollbar = (spanBar: HTMLDivElement) => {
@@ -573,6 +584,7 @@ export class Provider extends Component<Props, State> {
   render() {
     const childrenProps: ScrollbarManagerChildrenProps = {
       addContentSpanBarRef: this.addContentSpanBarRef,
+      updateHorizontalScrollState: this.updateHorizontalScrollState,
       removeContentSpanBarRef: this.removeContentSpanBarRef,
       onDragStart: this.onDragStart,
       onScroll: this.onScroll,
