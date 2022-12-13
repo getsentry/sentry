@@ -716,7 +716,7 @@ class SpanTree extends Component<PropType> {
     const {bottom, top} = spanRow.current.getBoundingClientRect();
 
     // We determine if a span row is visible if it is above the viewport bottom boundary, below the header, and also below the top of the viewport
-    return bottom < viewportBottom && top > headerBottom && top > 0;
+    return bottom < viewportBottom && bottom > headerBottom && top > 0;
   };
 
   throttledOnScroll = throttle(
