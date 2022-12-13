@@ -14,7 +14,6 @@ from sentry.ratelimits.cardinality import CardinalityLimiter
 from sentry.sentry_metrics.configuration import IndexerStorage, UseCaseKey, get_ingest_config
 from sentry.sentry_metrics.consumers.indexer.batch import invalid_metric_tags, valid_metric_name
 from sentry.sentry_metrics.consumers.indexer.common import BatchMessages, MetricsBatchBuilder
-from sentry.sentry_metrics.consumers.indexer.multiprocess import TransformStep
 from sentry.sentry_metrics.consumers.indexer.processing import MessageProcessor
 from sentry.sentry_metrics.indexer.limiters.cardinality import (
     TimeseriesCardinalityLimiter,
@@ -316,52 +315,6 @@ def test_process_messages() -> None:
         for i, m in enumerate(message_batch)
     ]
     compare_message_batches_ignoring_metadata(new_batch, expected_new_batch)
-
-
-def test_transform_step() -> None:
-    config = get_ingest_config(UseCaseKey.RELEASE_HEALTH, IndexerStorage.POSTGRES)
-
-    message_payloads = [counter_payload, distribution_payload, set_payload]
-
-    produce_step = Mock()
-    transform_step = TransformStep(next_step=produce_step, config=config)
-
-    message_batch = [
-        Message(
-            BrokerValue(
-                KafkaPayload(None, json.dumps(payload).encode("utf-8"), []),
-                Partition(Topic("topic"), 0),
-                i + 1,
-                datetime.now(),
-            )
-        )
-        for i, payload in enumerate(message_payloads)
-    ]
-    expected_new_batch = [
-        Message(
-            BrokerValue(
-                KafkaPayload(
-                    None,
-                    json.dumps(__translated_payload(message_payloads[i])).encode("utf-8"),
-                    [("metric_type", message_payloads[i]["type"])],
-                ),
-                m.value.partition,
-                m.value.offset,
-                m.value.timestamp,
-            )
-        )
-        for i, m in enumerate(message_batch)
-    ]
-    last = message_batch[-1]
-    outer_message = Message(Value(message_batch, last.committable))
-
-    transform_step.submit(outer_message)
-
-    produce_step_calls = produce_step.submit.call_args_list
-    for i, _ in enumerate(message_batch):
-        compare_messages_ignoring_mapping_metadata(
-            produce_step_calls[i].args[0], expected_new_batch[i]
-        )
 
 
 invalid_payloads = [
