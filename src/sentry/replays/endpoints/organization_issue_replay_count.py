@@ -85,7 +85,9 @@ def _query_discover_for_replay_ids(
     )
     _validate_params(builder)
 
-    discover_results = builder.run_query("api.organization-issue-replay-count")
+    discover_results = builder.run_query(
+        referrer="api.organization-issue-replay-count", use_cache=True
+    )
 
     replay_id_to_issue_map = defaultdict(list)
 
