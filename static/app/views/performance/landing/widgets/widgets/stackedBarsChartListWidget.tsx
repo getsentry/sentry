@@ -75,9 +75,6 @@ export function StackedBarsChartListWidget(props: PerformanceWidgetProps) {
         const mutableSearch = new MutableSearch(eventView.query);
         mutableSearch.removeFilter('transaction.duration');
 
-        eventView.additionalConditions.removeFilter('transaction.op'); // Remove transaction op incase it's applied from the performance view.
-        eventView.additionalConditions.removeFilter('!transaction.op'); // Remove transaction op incase it's applied from the performance view.
-
         eventView.query = mutableSearch.formatString();
 
         // Don't retrieve list items with 0 in the field.

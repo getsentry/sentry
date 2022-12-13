@@ -41,6 +41,7 @@ export function BackendView(props: BasePerformanceViewProps) {
         <DoubleChartRow
           {...props}
           allowedCharts={[
+            PerformanceWidgetSetting.SPAN_OPERATIONS,
             PerformanceWidgetSetting.SLOW_HTTP_OPS,
             PerformanceWidgetSetting.SLOW_DB_OPS,
             PerformanceWidgetSetting.MOST_IMPROVED,
