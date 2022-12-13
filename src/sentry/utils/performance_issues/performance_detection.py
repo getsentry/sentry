@@ -741,6 +741,10 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
     __slots__ = ["stored_problems"]
     settings_key: DetectorType = DetectorType.N_PLUS_ONE_API_CALLS
 
+    HOST_DENYLIST = [
+        "a.tiles.mapbox.com",  # Mapbox loads a lot of tiles via JSON all at once
+    ]
+
     def init(self):
         # TODO: Only store the span IDs and timestamps instead of entire span objects
         self.stored_problems: PerformanceProblemsMap = {}
@@ -824,6 +828,9 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
             url = url.get("pathname") or ""
 
         parsed_url = urlparse(str(url))
+
+        if parsed_url.netloc in cls.HOST_DENYLIST:
+            return False
 
         _pathname, extension = os.path.splitext(parsed_url.path)
         if extension and extension in [".js", ".css", ".svg", ".png", ".mp3"]:

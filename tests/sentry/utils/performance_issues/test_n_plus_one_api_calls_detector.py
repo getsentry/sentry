@@ -145,6 +145,12 @@ def test_allows_eligible_spans(span):
             "hash": "b",
             "description": "GET /_next/data/LjdprRSkUtLP0bMUoWLur/items.json?collection=hello",
         },
+        {
+            "span_id": "a",
+            "op": "http.client",
+            "hash": "b",
+            "description": "GET https://a.tiles.mapbox.com/v4/mapbox.mapbox-terrain-v2.json?access_token=pk.mystery",
+        },
     ],
 )
 def test_rejects_ineligible_spans(span):
