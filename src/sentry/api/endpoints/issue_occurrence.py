@@ -1,15 +1,19 @@
+from django.conf import settings
 from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
 from sentry.api.permissions import SuperuserPermission
-from sentry.api.serializers import EventSerializer, serialize
+
+# from sentry.api.serializers import SimpleEventSerializer, serialize
+from sentry.eventstream.kafka import KafkaEventStream
+from sentry.utils import json
 
 
 class IssueOccurrenceSerializer(serializers.Serializer):
     # id = serializers.IntegerField()
-    event_id = serializers.UUIDField()
+    event_id = serializers.CharField()
     fingerprint = serializers.ListField()
     issue_title = serializers.CharField()
     subtitle = serializers.CharField()
@@ -32,15 +36,15 @@ class IssueOccurrenceEndpoint(Endpoint):
         event = request.data.pop("event")
         occurrence = request.data
 
-        # having issues here, clearly not sending the right format
-        # going to asssume for now it's valid data. or maybe passing an event_id makes more sense idk
+        # this needs to be passed an Event or GroupEvent instance which obviously doesn't work here
+        # but not sure what to use instead. maybe can skip this since it's a temp internal thing?
 
-        # event_serializer = serialize(event, request.user, EventSerializer())
+        # event_serializer = serialize(event, request.user, SimpleEventSerializer())
         # if not event_serializer.is_valid():
         #     return Response(event_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         # event = event_serializer.validated_data
 
-        occurrence["event_id"] = event["id"]
+        occurrence["event_id"] = str(event["event_id"])
 
         serializer = IssueOccurrenceSerializer(data=occurrence)
         if not serializer.is_valid():
@@ -48,15 +52,20 @@ class IssueOccurrenceEndpoint(Endpoint):
 
         occurrence = serializer.validated_data
 
-        print("occurrence: ", occurrence)
+        eventstream = KafkaEventStream()
+        topic = settings.KAFKA_EVENTS  # needs to be changed, not sure what the new topic is called
+        producer = eventstream.get_producer(topic)
+        data = {
+            **occurrence,
+            "event": event,
+        }
 
-        # write to kafka topic - see eventstream/kafka/backend.py#L171-L202
-        # example dan code below
-        # producer.produce(
-        #     topic=topic,
-        #     key=None,
-        #     value=json.dumps(<your_data>),
-        # )
-        # producer.flush()
+        producer.produce(
+            topic=topic,
+            key=None,
+            value=json.dumps(data, default=str),
+        )
+        producer.flush()
 
-        return Response(status=201)
+        return Response(status=status.HTTP_201_CREATED)
+        # Do we want to return data in the response
