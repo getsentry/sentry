@@ -33,7 +33,7 @@ class IssueOccurrenceSerializer(serializers.Serializer):
 @region_silo_endpoint
 class IssueOccurrenceEndpoint(Endpoint):
     permission_classes = (SuperuserPermission,)
-    private: True
+    private = True
 
     def post(self, request: Request) -> Response:
         """
