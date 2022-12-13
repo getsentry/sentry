@@ -72,10 +72,10 @@ class BaseRequestParser(abc.ABC):
 
     def get_response(self):
         """
-        Used to surface a response as part of the middleware.
-        Default behaviour is to process the response in the control silo.
+        Used to surface a response as part of the middleware. Should be overwritten.
+        Default behaviour is handle the response ignoring SiloMode.
         """
-        return self.get_response_from_control_silo()
+        return self.response_handler(self.request)
 
     def get_integration(self) -> Integration | None:
         """
