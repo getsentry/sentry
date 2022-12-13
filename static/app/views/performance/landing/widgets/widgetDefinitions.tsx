@@ -1,6 +1,7 @@
 import CHART_PALETTE from 'sentry/constants/chartPalette';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
+import {SPAN_OP_BREAKDOWN_FIELDS} from 'sentry/utils/discover/fields';
 
 import {getTermHelp, PERFORMANCE_TERM} from '../../data';
 
@@ -54,6 +55,7 @@ export enum PerformanceWidgetSetting {
   FROZEN_FRAMES_AREA = 'frozen_frames_area',
   MOST_SLOW_FRAMES = 'most_slow_frames',
   MOST_FROZEN_FRAMES = 'most_frozen_frames',
+  SPAN_OPERATIONS = 'span_operations',
 }
 
 const WIDGET_PALETTE = CHART_PALETTE[5];
@@ -311,5 +313,11 @@ export const WIDGET_DEFINITIONS: ({
     ),
     fields: [],
     dataType: GenericPerformanceWidgetDataType.trends,
+  },
+  [PerformanceWidgetSetting.SPAN_OPERATIONS]: {
+    title: t('Span Operations'),
+    titleTooltip: '',
+    fields: SPAN_OP_BREAKDOWN_FIELDS.map(spanOp => `p75(${spanOp})`),
+    dataType: GenericPerformanceWidgetDataType.stacked_bars,
   },
 });

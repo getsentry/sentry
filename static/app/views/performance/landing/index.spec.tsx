@@ -306,7 +306,7 @@ describe('Performance > Landing > Index', function () {
     expect(screen.getByTestId('frontend-pageload-view')).toBeInTheDocument();
   });
 
-  describe('with transaction search feature', function () {
+  describe('With transaction search feature', function () {
     it('renders the search bar', async function () {
       addMetricsDataMock();
 
@@ -338,6 +338,23 @@ describe('Performance > Landing > Index', function () {
       await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
       expect(await screen.findByPlaceholderText('Search Transactions')).toHaveValue('');
+    });
+  });
+
+  describe('With span operations widget feature flag', function () {
+    it('Displays the span operations widget', async function () {
+      addMetricsDataMock();
+
+      const data = initializeData({
+        features: [
+          'performance-transaction-name-only-search',
+          'performance-new-widget-designs',
+        ],
+      });
+
+      wrapper = render(<WrappedComponent data={data} />, data.routerContext);
+      const titles = await screen.findAllByTestId('performance-widget-title');
+      expect(titles.at(0)).toHaveTextContent('Span Operations');
     });
   });
 });
