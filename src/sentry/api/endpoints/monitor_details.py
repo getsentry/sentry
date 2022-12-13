@@ -14,7 +14,9 @@ from sentry.models import Monitor, MonitorStatus, ScheduledDeletion
 
 @pending_silo_endpoint
 class MonitorDetailsEndpoint(MonitorEndpoint):
-    def get(self, request: Request, project, monitor) -> Response:
+    def get(
+        self, request: Request, project, monitor, organization_slug: Optional[str] = None
+    ) -> Response:
         """
         Retrieve a monitor
         ``````````````````
