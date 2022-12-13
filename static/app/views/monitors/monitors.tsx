@@ -167,7 +167,7 @@ class Monitors extends AsyncView<Props, State> {
                 <h3>{t('Let Sentry Monitor Your Recurring Jobs')}</h3>
                 <p>
                   {t(
-                    "We'll tell you if your recurring jobs are running on schedule, failling, or succeeding."
+                    "We'll tell you if your recurring jobs are running on schedule, failing, or succeeding."
                   )}
                 </p>
                 <NewMonitorButton>{t('Set Up First Cron Monitor')}</NewMonitorButton>
