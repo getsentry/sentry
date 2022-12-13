@@ -52,7 +52,14 @@ function Console({breadcrumbs, startTimestampMs}: Props) {
     : null;
 
   const listRef = useRef<ReactVirtualizedList>(null);
-  const {cache} = useVirtualizedList({listRef, deps: [items]});
+  const {cache} = useVirtualizedList({
+    cellMeasurer: {
+      fixedWidth: true,
+      minHeight: 24,
+    },
+    ref: listRef,
+    deps: [items],
+  });
 
   const renderRow = ({index, key, style, parent}: ListRowProps) => {
     const item = items[index];
