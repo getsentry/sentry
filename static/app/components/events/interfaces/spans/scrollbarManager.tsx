@@ -2,6 +2,10 @@ import {Component, createContext, createRef} from 'react';
 import throttle from 'lodash/throttle';
 
 import {
+  TOGGLE_BORDER_BOX,
+  TOGGLE_BUTTON_MAX_WIDTH,
+} from 'sentry/components/performance/waterfall/treeConnector';
+import {
   clamp,
   rectOfContent,
   toPercent,
@@ -11,20 +15,16 @@ import {setBodyUserSelect, UserSelectValues} from 'sentry/utils/userselect';
 
 import {DragManagerChildrenProps} from './dragManager';
 import SpanBar from './spanBar';
-import {
-  TOGGLE_BORDER_BOX,
-  TOGGLE_BUTTON_MAX_WIDTH,
-} from 'sentry/components/performance/waterfall/treeConnector';
 
 export type ScrollbarManagerChildrenProps = {
   addContentSpanBarRef: (instance: HTMLDivElement | null) => void;
-  updateHorizontalScrollState: (avgSpanDepth: number) => void;
   onDragStart: (event: React.MouseEvent<HTMLDivElement, MouseEvent>) => void;
   onScroll: () => void;
   onWheel: (deltaX: number) => void;
   removeContentSpanBarRef: (instance: HTMLDivElement | null) => void;
   scrollBarAreaRef: React.RefObject<HTMLDivElement>;
   storeSpanBar: (spanBar: SpanBar) => void;
+  updateHorizontalScrollState: (avgSpanDepth: number) => void;
   updateScrollState: () => void;
   virtualScrollbarRef: React.RefObject<HTMLDivElement>;
 };

@@ -746,7 +746,10 @@ class SpanTree extends Component<PropType> {
       );
 
       // If the root is visible, we do not want to shift the view around so just pass 0 instead of the average
-      const v = isRootSpanVisible ? 0 : Math.round(depthSum / visibleSpanCount);
+      const v =
+        isRootSpanVisible || visibleSpanCount === 0
+          ? 0
+          : Math.round(depthSum / visibleSpanCount);
       console.log('avg: ', v);
       this.props.updateHorizontalScrollState(v);
     },
