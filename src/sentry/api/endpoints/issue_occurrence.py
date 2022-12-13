@@ -4,7 +4,7 @@ from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.api.base import Endpoint
+from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.permissions import SuperuserPermission
 from sentry.utils import json
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options
@@ -30,6 +30,7 @@ class IssueOccurrenceSerializer(serializers.Serializer):
     detection_time = serializers.DateTimeField()
 
 
+@region_silo_endpoint
 class IssueOccurrenceEndpoint(Endpoint):
     permission_classes = (SuperuserPermission,)
     private: True
