@@ -27,7 +27,7 @@ export function generateTransactionSummaryRoute({
   orgSlug: string;
   subPath?: string;
 }): string {
-  return `/organizations/${orgSlug}/performance/summary/${subPath ? subPath + '/' : ''}`;
+  return `/organizations/${orgSlug}/performance/summary/${subPath ? `${subPath}/` : ''}`;
 }
 
 // normalizes search conditions by removing any redundant search conditions before presenting them in:
