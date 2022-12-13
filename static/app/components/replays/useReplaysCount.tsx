@@ -140,8 +140,11 @@ function useReplaysCount({
   }, [api, organization.slug, query, zeroCounts, eventView, projectIds]);
 
   useEffect(() => {
-    fetchReplayCount();
-  }, [fetchReplayCount]);
+    const hasSessionReplay = organization.features.includes('session-replay-ui');
+    if (hasSessionReplay) {
+      fetchReplayCount();
+    }
+  }, [fetchReplayCount, organization]);
 
   return replayCounts;
 }
