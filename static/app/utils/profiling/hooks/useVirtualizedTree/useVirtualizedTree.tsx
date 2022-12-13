@@ -88,7 +88,7 @@ export function useVirtualizedTree<T extends TreeLike>(
   );
 
   const flattenedHistory = useRef<ReadonlyArray<VirtualizedTreeNode<T>>>(tree.flattened);
-  const expandedHistory = useRef<Set<T>>(tree.getAllExpandedNodes(new Set()));
+  const expandedHistory = useRef<Set<T>>(new Set());
 
   // Keep a ref to latest state to avoid re-rendering
   const latestStateRef = useRef<typeof state>(state);
