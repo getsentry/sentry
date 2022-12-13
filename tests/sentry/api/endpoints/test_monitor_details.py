@@ -5,8 +5,10 @@ from django.utils import timezone
 
 from sentry.models import Monitor, MonitorStatus, MonitorType, ScheduledDeletion, ScheduleType
 from sentry.testutils import APITestCase
+from sentry.testutils.silo import region_silo_test
 
 
+@region_silo_test(stable=True)
 class MonitorDetailsTest(APITestCase):
     def test_simple(self):
         user = self.create_user()
@@ -33,6 +35,7 @@ class MonitorDetailsTest(APITestCase):
                 assert resp.data["id"] == str(monitor.guid)
 
 
+@region_silo_test(stable=True)
 class UpdateMonitorTest(APITestCase):
     def setUp(self):
         self.user = self.create_user()
@@ -258,6 +261,7 @@ class UpdateMonitorTest(APITestCase):
                 assert resp.status_code == 400, resp.content
 
 
+@region_silo_test()
 class DeleteMonitorTest(APITestCase):
     def _create_monitor(self, org, project):
         return Monitor.objects.create(
@@ -296,6 +300,7 @@ class DeleteMonitorTest(APITestCase):
 
                 monitor = Monitor.objects.get(id=monitor.id)
                 assert monitor.status == MonitorStatus.PENDING_DELETION
+                # ScheduledDeletion only available in control silo
                 assert ScheduledDeletion.objects.filter(
                     object_id=monitor.id, model_name="Monitor"
                 ).exists()

@@ -5,14 +5,14 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import audit_log
-from sentry.api.base import pending_silo_endpoint
+from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.monitor import MonitorEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.validators import MonitorValidator
 from sentry.models import Monitor, MonitorStatus, ScheduledDeletion
 
 
-@pending_silo_endpoint
+@region_silo_endpoint
 class MonitorDetailsEndpoint(MonitorEndpoint):
     def get(
         self, request: Request, project, monitor, organization_slug: Optional[str] = None
