@@ -122,7 +122,7 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
 
     `file`: The file path from the stack trace
     `commitId` (optional): The commit_id for the last commit of the
-                        release associated to the stack trace's event
+                           release associated to the stack trace's event
     `sdkName` (optional): The sdk.name associated with the event
     `absPath` (optional): The abs_path field value of the relevant stack frame
     `module`   (optional): The module field value of the relevant stack frame
@@ -148,10 +148,12 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
         inserted = False
         for config in configs:
             for index, sorted_config in enumerate(sorted_configs):
+                # This check will ensure that all user defined code mappings will come before Sentry generated ones
                 if (
                     sorted_config.automatically_generated and not config.automatically_generated
                 ) or (
                     sorted_config.automatically_generated == config.automatically_generated
+                    # Insert more defined stack roots before less defined ones
                     and re.match(
                         sorted_config.stack_root + regex,
                         config.stack_root,
@@ -161,6 +163,7 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                     inserted = True
                     break
             if not inserted:
+                # Insert the code mapping at the back if it's Sentry generated or at the front if it is user defined
                 if config.automatically_generated:
                     sorted_configs.insert(len(sorted_configs), config)
                 else:
@@ -191,7 +194,6 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
         configs = RepositoryProjectPathConfig.objects.filter(
             project=project, organization_integration__isnull=False
         )
-        # sort the code mapping configs based on precedence
         configs = self.sort_code_mapping_configs(configs)
         derived = False
         current_config = None
@@ -243,9 +245,9 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
             if current_config:
                 result["config"] = current_config["config"]
                 if not found:
-                    result["error"] = current_config["outcome"]["error"]  # Backwards compatible
+                    result["error"] = current_config["outcome"]["error"]
                     # When no code mapping have been matched we have not attempted a URL
-                    if current_config["outcome"].get("attemptedUrl"):  # Backwards compatible
+                    if current_config["outcome"].get("attemptedUrl"):
                         result["attemptedUrl"] = current_config["outcome"]["attemptedUrl"]
                     if result["error"] == "stack_root_mismatch":
                         scope.set_tag("stacktrace_link.error", "stack_root_mismatch")
