@@ -2,16 +2,18 @@ from __future__ import annotations
 
 import abc
 import logging
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Callable, Iterable, Sequence
 
 from django.http.request import HttpRequest
 from django.urls import ResolverMatch, resolve
 
 from sentry.models.integrations import Integration, OrganizationIntegration
-from sentry.models.organization import Organization
+from sentry.services.hybrid_cloud.organization import ApiOrganizationSummary, organization_service
 from sentry.silo import SiloLimit, SiloMode
 from sentry.silo.client import RegionSiloClient
 from sentry.types.region import Region, get_region_for_organization
+from sentry.utils.sdk import capture_exception
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +30,7 @@ class BaseRequestParser(abc.ABC):
     def _ensure_control_silo(self):
         if SiloMode.get_current_mode() != SiloMode.CONTROL:
             logger.error(
-                "integration_control.base.silo_error",
+                "request_parser.base.silo_error",
                 extra={"path": self.request.path, "silo": SiloMode.get_current_mode()},
             )
             raise SiloLimit.AvailabilityError(self.error_message)
@@ -40,26 +42,48 @@ class BaseRequestParser(abc.ABC):
         self._ensure_control_silo()
         return self.response_handler(self.request)
 
+    def _get_response_from_region_silo(self, region: Region):
+        region_client = RegionSiloClient(region)
+        return region_client.proxy_request(self.request).to_http_response()
+
     def get_response_from_region_silos(self, regions: Iterable[Region]):
         """
         Used to handle the requests on a given list of regions (synchronously).
-        If multiple regions are provided, only the last response is returned to the requestor.
+        If multiple regions are provided, only the latest response is returned to the requestor.
         """
         self._ensure_control_silo()
-        region_response = None
-        for region in regions:
-            region_client = RegionSiloClient(region)
-            region_response = region_client.proxy_request(self.request).to_http_response()
-        if region_response is None:
+
+        response = None
+
+        with ThreadPoolExecutor(max_workers=len(regions)) as executor:
+            future_to_region = {
+                executor.submit(self._get_response_from_region_silo, region): region
+                for region in regions
+            }
+            for future in as_completed(future_to_region):
+                region = future_to_region[future]
+                try:
+                    region_response = future.result()
+                # This will capture errors from this silo and any 4xx/5xx responses from others
+                except Exception as e:
+                    capture_exception(e)
+                    logger.error(
+                        "request_parser.base.region_proxy_error", extra={"region": region.name}
+                    )
+                else:
+                    response = region_response if region_response is not None else response
+
+        if response is None:
             logger.error(
-                "integration_control.base.region_proxy_error",
+                "request_parser.base.region_no_response",
                 extra={
                     "path": self.request.path,
                     "regions": [region.name for region in regions],
                 },
             )
             return self.response_handler(self.request)
-        return region_response
+
+        return response
 
     def get_response(self):
         """
@@ -76,7 +100,9 @@ class BaseRequestParser(abc.ABC):
         """
         return None
 
-    def get_organizations(self, integration: Integration = None) -> Sequence[Organization]:
+    def get_organizations(
+        self, integration: Integration = None
+    ) -> Sequence[ApiOrganizationSummary]:
         """
         Use the get_integration() method to identify organizations associated with
         the integration request.
@@ -85,16 +111,23 @@ class BaseRequestParser(abc.ABC):
             integration = self.get_integration()
         if not integration:
             logger.error(
-                "integration_control.base.no_integration",
+                "request_parser.base.no_integration",
                 extra={"path": self.request.path},
             )
             return []
         organization_integrations = OrganizationIntegration.objects.filter(
             integration_id=integration
-        ).select_related("organization")
-        return [integration.organization for integration in organization_integrations]
+        )
+        organization_ids = [
+            integration.organization_id for integration in organization_integrations
+        ]
+        return organization_service.get_organizations(
+            user_id=None, scope=None, only_visible=False, organization_ids=organization_ids
+        )
 
-    def get_regions(self, organizations: Sequence[Organization] = None) -> Sequence[Region]:
+    def get_regions(
+        self, organizations: Sequence[ApiOrganizationSummary] = None
+    ) -> Sequence[Region]:
         """
         Use the get_organizations() method to identify forwarding regions.
         """
@@ -102,7 +135,7 @@ class BaseRequestParser(abc.ABC):
             organizations = self.get_organizations()
         if not organizations:
             logger.error(
-                "integration_control.base.no_organizations",
+                "request_parser.base.no_organizations",
                 extra={"path": self.request.path},
             )
             return []
