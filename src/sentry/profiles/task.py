@@ -372,15 +372,13 @@ def _process_symbolicator_results_for_sample(profile: Profile, stacktraces: List
 
     for sample in profile["profile"]["samples"]:
         stack_id = sample["stack_id"]
-        stack = profile["profile"]["stacks"][stack_id]
+        stack = merge_stack(profile["profile"]["stacks"][stack_id])
 
         if len(stack) < 2:
             continue
 
         # truncate some unneeded frames in the stack (related to the profiler itself or impossible to symbolicate)
-        profile["profile"]["stacks"][stack_id] = truncate_stack_needed(
-            original_frames, merge_stack(stack)
-        )
+        profile["profile"]["stacks"][stack_id] = truncate_stack_needed(original_frames, stack)
 
     profile["profile"]["frames"] = original_frames
 
