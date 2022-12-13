@@ -1,5 +1,6 @@
 from datetime import timedelta
 
+from django.urls import reverse
 from django.utils import timezone
 
 from sentry.models import Monitor, MonitorStatus, MonitorType, ScheduledDeletion, ScheduleType
@@ -22,11 +23,14 @@ class MonitorDetailsTest(APITestCase):
         )
 
         self.login_as(user=user)
-        with self.feature({"organizations:monitors": True}):
-            resp = self.client.get(f"/api/0/monitors/{monitor.guid}/")
+        urls = (f"/api/0/monitors/{monitor.guid}/", f"/api/0/monitors/{org.slug}/{monitor.guid}/")
 
-        assert resp.status_code == 200, resp.content
-        assert resp.data["id"] == str(monitor.guid)
+        with self.feature({"organizations:monitors": True}):
+            for url in urls:
+                resp = self.client.get(url)
+
+                assert resp.status_code == 200, resp.content
+                assert resp.data["id"] == str(monitor.guid)
 
 
 class UpdateMonitorTest(APITestCase):
@@ -35,8 +39,21 @@ class UpdateMonitorTest(APITestCase):
         self.org = self.create_organization(owner=self.user)
         self.team = self.create_team(organization=self.org, members=[self.user])
         self.project = self.create_project(teams=[self.team])
+        self.num_paths = 2
 
-        self.monitor = Monitor.objects.create(
+        self.login_as(user=self.user)
+
+    def _get_urls(self):
+        return ("sentry-api-0-monitor-details", "sentry-api-0-monitor-details-with-org")
+
+    def _get_path(self, i, monitor):
+        urls = self._get_urls()
+        if i:
+            return reverse(urls[i], args=[self.org.slug, monitor.guid])
+        return reverse(urls[i], args=[monitor.guid])
+
+    def _create_monitor(self):
+        return Monitor.objects.create(
             organization_id=self.org.id,
             project_id=self.project.id,
             next_checkin=timezone.now() - timedelta(minutes=1),
@@ -44,92 +61,120 @@ class UpdateMonitorTest(APITestCase):
             config={"schedule": "* * * * *", "schedule_type": ScheduleType.CRONTAB},
         )
 
-        self.path = f"/api/0/monitors/{self.monitor.guid}/"
-
-        self.login_as(user=self.user)
-
     def test_name(self):
+        monitor = self._create_monitor()
+
         with self.feature({"organizations:monitors": True}):
-            resp = self.client.put(self.path, data={"name": "Monitor Name"})
+            for i in range(self.num_paths):
+                path = self._get_path(i, monitor)
+                resp = self.client.put(path, data={"name": f"Monitor Name {i}"})
 
-        assert resp.status_code == 200, resp.content
-        assert resp.data["id"] == str(self.monitor.guid)
+                assert resp.status_code == 200, resp.content
+                assert resp.data["id"] == str(monitor.guid)
 
-        monitor = Monitor.objects.get(id=self.monitor.id)
-        assert monitor.name == "Monitor Name"
+                monitor = Monitor.objects.get(id=monitor.id)
+                assert monitor.name == f"Monitor Name {i}"
 
     def test_can_disable(self):
         with self.feature({"organizations:monitors": True}):
-            resp = self.client.put(self.path, data={"status": "disabled"})
+            for i in range(self.num_paths):
+                monitor = self._create_monitor()
+                path = self._get_path(i, monitor)
 
-        assert resp.status_code == 200, resp.content
-        assert resp.data["id"] == str(self.monitor.guid)
+                resp = self.client.put(path, data={"status": "disabled"})
 
-        monitor = Monitor.objects.get(id=self.monitor.id)
-        assert monitor.status == MonitorStatus.DISABLED
+                assert resp.status_code == 200, resp.content
+                assert resp.data["id"] == str(monitor.guid)
+
+                monitor = Monitor.objects.get(id=monitor.id)
+                assert monitor.status == MonitorStatus.DISABLED
 
     def test_can_enable(self):
-        self.monitor.update(status=MonitorStatus.DISABLED)
         with self.feature({"organizations:monitors": True}):
-            resp = self.client.put(self.path, data={"status": "active"})
+            for i in range(self.num_paths):
+                monitor = self._create_monitor()
+                monitor.update(status=MonitorStatus.DISABLED)
+                path = self._get_path(i, monitor)
 
-        assert resp.status_code == 200, resp.content
-        assert resp.data["id"] == str(self.monitor.guid)
+                resp = self.client.put(path, data={"status": "active"})
 
-        monitor = Monitor.objects.get(id=self.monitor.id)
-        assert monitor.status == MonitorStatus.ACTIVE
+                assert resp.status_code == 200, resp.content
+                assert resp.data["id"] == str(monitor.guid)
+
+                monitor = Monitor.objects.get(id=monitor.id)
+                assert monitor.status == MonitorStatus.ACTIVE
 
     def test_cannot_enable_if_enabled(self):
-        self.monitor.update(status=MonitorStatus.OK)
         with self.feature({"organizations:monitors": True}):
-            resp = self.client.put(self.path, data={"status": "active"})
+            for i in range(self.num_paths):
+                monitor = self._create_monitor()
+                monitor.update(status=MonitorStatus.OK)
+                path = self._get_path(i, monitor)
 
-        assert resp.status_code == 200, resp.content
-        assert resp.data["id"] == str(self.monitor.guid)
+                resp = self.client.put(path, data={"status": "active"})
 
-        monitor = Monitor.objects.get(id=self.monitor.id)
-        assert monitor.status == MonitorStatus.OK
+                assert resp.status_code == 200, resp.content
+                assert resp.data["id"] == str(monitor.guid)
+
+                monitor = Monitor.objects.get(id=monitor.id)
+                assert monitor.status == MonitorStatus.OK
 
     def test_checkin_margin(self):
         with self.feature({"organizations:monitors": True}):
-            resp = self.client.put(self.path, data={"config": {"checkin_margin": 30}})
+            for i in range(self.num_paths):
+                monitor = self._create_monitor()
+                path = self._get_path(i, monitor)
 
-        assert resp.status_code == 200, resp.content
-        assert resp.data["id"] == str(self.monitor.guid)
+                resp = self.client.put(path, data={"config": {"checkin_margin": 30}})
 
-        monitor = Monitor.objects.get(id=self.monitor.id)
-        assert monitor.config["checkin_margin"] == 30
+                assert resp.status_code == 200, resp.content
+                assert resp.data["id"] == str(monitor.guid)
+
+                monitor = Monitor.objects.get(id=monitor.id)
+                assert monitor.config["checkin_margin"] == 30
 
     def test_max_runtime(self):
         with self.feature({"organizations:monitors": True}):
-            resp = self.client.put(self.path, data={"config": {"max_runtime": 30}})
+            for i in range(self.num_paths):
+                monitor = self._create_monitor()
+                path = self._get_path(i, monitor)
 
-        assert resp.status_code == 200, resp.content
-        assert resp.data["id"] == str(self.monitor.guid)
+                resp = self.client.put(path, data={"config": {"max_runtime": 30}})
 
-        monitor = Monitor.objects.get(id=self.monitor.id)
-        assert monitor.config["max_runtime"] == 30
+                assert resp.status_code == 200, resp.content
+                assert resp.data["id"] == str(monitor.guid)
+
+                monitor = Monitor.objects.get(id=monitor.id)
+                assert monitor.config["max_runtime"] == 30
 
     def test_invalid_config_param(self):
         with self.feature({"organizations:monitors": True}):
-            resp = self.client.put(self.path, data={"config": {"invalid": True}})
+            for i in range(self.num_paths):
+                monitor = self._create_monitor()
+                path = self._get_path(i, monitor)
 
-        assert resp.status_code == 200, resp.content
-        assert resp.data["id"] == str(self.monitor.guid)
+                resp = self.client.put(path, data={"config": {"invalid": True}})
 
-        monitor = Monitor.objects.get(id=self.monitor.id)
-        assert "invalid" not in monitor.config
+                assert resp.status_code == 200, resp.content
+                assert resp.data["id"] == str(monitor.guid)
+
+                monitor = Monitor.objects.get(id=monitor.id)
+                assert "invalid" not in monitor.config
 
     def test_cronjob_crontab(self):
         with self.feature({"organizations:monitors": True}):
-            resp = self.client.put(self.path, data={"config": {"schedule": "*/5 * * * *"}})
+            for i in range(self.num_paths):
+                monitor = self._create_monitor()
+                path = self._get_path(i, monitor)
 
-        assert resp.status_code == 200, resp.content
-        assert resp.data["id"] == str(self.monitor.guid)
+                resp = self.client.put(path, data={"config": {"schedule": "*/5 * * * *"}})
 
-        monitor = Monitor.objects.get(id=self.monitor.id)
-        assert monitor.config["schedule_type"] == ScheduleType.CRONTAB
-        assert monitor.config["schedule"] == "*/5 * * * *"
+                assert resp.status_code == 200, resp.content
+                assert resp.data["id"] == str(monitor.guid)
+
+                monitor = Monitor.objects.get(id=monitor.id)
+                assert monitor.config["schedule_type"] == ScheduleType.CRONTAB
+                assert monitor.config["schedule"] == "*/5 * * * *"
 
     # TODO(dcramer): would be lovely to run the full spectrum, but it requires
     # this test to not be class-based
@@ -143,68 +188,79 @@ class UpdateMonitorTest(APITestCase):
     # ))
     def test_cronjob_nonstandard(self):
         with self.feature({"organizations:monitors": True}):
-            resp = self.client.put(self.path, data={"config": {"schedule": "@monthly"}})
+            for i in range(self.num_paths):
+                monitor = self._create_monitor()
+                path = self._get_path(i, monitor)
 
-        assert resp.status_code == 200, resp.content
-        assert resp.data["id"] == str(self.monitor.guid)
+                resp = self.client.put(path, data={"config": {"schedule": "@monthly"}})
 
-        monitor = Monitor.objects.get(id=self.monitor.id)
-        assert monitor.config["schedule_type"] == ScheduleType.CRONTAB
-        assert monitor.config["schedule"] == "0 0 1 * *"
+                assert resp.status_code == 200, resp.content
+                assert resp.data["id"] == str(monitor.guid)
+
+                monitor = Monitor.objects.get(id=monitor.id)
+                assert monitor.config["schedule_type"] == ScheduleType.CRONTAB
+                assert monitor.config["schedule"] == "0 0 1 * *"
 
     def test_cronjob_crontab_invalid(self):
         with self.feature({"organizations:monitors": True}):
-            resp = self.client.put(self.path, data={"config": {"schedule": "*/0.5 * * * *"}})
+            for i in range(self.num_paths):
+                monitor = self._create_monitor()
+                path = self._get_path(i, monitor)
 
-            assert resp.status_code == 400, resp.content
+                resp = self.client.put(path, data={"config": {"schedule": "*/0.5 * * * *"}})
 
-            resp = self.client.put(self.path, data={"config": {"schedule": "* * * *"}})
+                assert resp.status_code == 400, resp.content
 
-            assert resp.status_code == 400, resp.content
+                resp = self.client.put(path, data={"config": {"schedule": "* * * *"}})
+
+                assert resp.status_code == 400, resp.content
 
     def test_cronjob_interval(self):
         with self.feature({"organizations:monitors": True}):
-            resp = self.client.put(
-                self.path, data={"config": {"schedule_type": "interval", "schedule": [1, "month"]}}
-            )
+            for i in range(self.num_paths):
+                monitor = self._create_monitor()
+                path = self._get_path(i, monitor)
 
-        assert resp.status_code == 200, resp.content
-        assert resp.data["id"] == str(self.monitor.guid)
+                resp = self.client.put(
+                    path, data={"config": {"schedule_type": "interval", "schedule": [1, "month"]}}
+                )
 
-        monitor = Monitor.objects.get(id=self.monitor.id)
-        assert monitor.config["schedule_type"] == ScheduleType.INTERVAL
-        assert monitor.config["schedule"] == [1, "month"]
+                assert resp.status_code == 200, resp.content
+                assert resp.data["id"] == str(monitor.guid)
+
+                monitor = Monitor.objects.get(id=monitor.id)
+                assert monitor.config["schedule_type"] == ScheduleType.INTERVAL
+                assert monitor.config["schedule"] == [1, "month"]
 
     def test_cronjob_interval_invalid_inteval(self):
         with self.feature({"organizations:monitors": True}):
-            resp = self.client.put(
-                self.path, data={"config": {"schedule_type": "interval", "schedule": [1, "decade"]}}
-            )
+            for i in range(self.num_paths):
+                monitor = self._create_monitor()
+                path = self._get_path(i, monitor)
 
-            assert resp.status_code == 400, resp.content
+                resp = self.client.put(
+                    path, data={"config": {"schedule_type": "interval", "schedule": [1, "decade"]}}
+                )
 
-            resp = self.client.put(
-                self.path,
-                data={"config": {"schedule_type": "interval", "schedule": ["foo", "month"]}},
-            )
+                assert resp.status_code == 400, resp.content
 
-            assert resp.status_code == 400, resp.content
+                resp = self.client.put(
+                    path,
+                    data={"config": {"schedule_type": "interval", "schedule": ["foo", "month"]}},
+                )
 
-            resp = self.client.put(
-                self.path, data={"config": {"schedule_type": "interval", "schedule": "bar"}}
-            )
+                assert resp.status_code == 400, resp.content
 
-            assert resp.status_code == 400, resp.content
+                resp = self.client.put(
+                    path, data={"config": {"schedule_type": "interval", "schedule": "bar"}}
+                )
+
+                assert resp.status_code == 400, resp.content
 
 
 class DeleteMonitorTest(APITestCase):
-    def test_simple(self):
-        user = self.create_user()
-        org = self.create_organization(owner=user)
-        team = self.create_team(organization=org, members=[user])
-        project = self.create_project(teams=[team])
-
-        monitor = Monitor.objects.create(
+    def _create_monitor(self, org, project):
+        return Monitor.objects.create(
             organization_id=org.id,
             project_id=project.id,
             next_checkin=timezone.now() - timedelta(minutes=1),
@@ -212,12 +268,34 @@ class DeleteMonitorTest(APITestCase):
             config={"schedule": "* * * * *"},
         )
 
+    def _get_urls(self):
+        return ("sentry-api-0-monitor-details", "sentry-api-0-monitor-details-with-org")
+
+    def _get_path(self, i, org, monitor):
+        urls = self._get_urls()
+        if i:
+            return reverse(urls[i], args=[org.slug, monitor.guid])
+        return reverse(urls[i], args=[monitor.guid])
+
+    def test_simple(self):
+        user = self.create_user()
+        org = self.create_organization(owner=user)
+        team = self.create_team(organization=org, members=[user])
+        project = self.create_project(teams=[team])
+        num_paths = 2
+
         self.login_as(user=user)
         with self.feature({"organizations:monitors": True}):
-            resp = self.client.delete(f"/api/0/monitors/{monitor.guid}/")
+            for i in range(num_paths):
+                monitor = self._create_monitor(org, project)
+                path = self._get_path(i, org, monitor)
 
-        assert resp.status_code == 202, resp.content
+                resp = self.client.delete(path)
 
-        monitor = Monitor.objects.get(id=monitor.id)
-        assert monitor.status == MonitorStatus.PENDING_DELETION
-        assert ScheduledDeletion.objects.filter(object_id=monitor.id, model_name="Monitor").exists()
+                assert resp.status_code == 202, resp.content
+
+                monitor = Monitor.objects.get(id=monitor.id)
+                assert monitor.status == MonitorStatus.PENDING_DELETION
+                assert ScheduledDeletion.objects.filter(
+                    object_id=monitor.id, model_name="Monitor"
+                ).exists()
