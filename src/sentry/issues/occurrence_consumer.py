@@ -154,7 +154,7 @@ class OccurrenceStrategy(ProcessingStrategy[KafkaPayload]):
             payload = json.loads(message.payload.value, use_rapid_json=True)
             _process_message(payload)
         except rapidjson.JSONDecodeError:
-            pass
+            logger.exception("invalid json received")
 
     def close(self) -> None:
         pass
