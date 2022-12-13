@@ -1,5 +1,4 @@
 import logging
-import re
 from typing import Dict, List, Mapping, Optional
 
 from rest_framework.request import Request
@@ -138,27 +137,17 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
         Sorts the code mapping config list based on precedence.
         User generated code mappings are evaluated before Sentry generated code mappings.
         Code mappings with more defined stack trace roots are evaluated before less defined stack trace
-        roots.
+        roots (To Do)
 
         `configs`: The list of code mapping configs
 
         """
         sorted_configs = []  # type: List[RepositoryProjectPathConfig]
-        regex = r"\w+"
-        inserted = False
         for config in configs:
+            inserted = False
             for index, sorted_config in enumerate(sorted_configs):
                 # This check will ensure that all user defined code mappings will come before Sentry generated ones
-                if (
-                    sorted_config.automatically_generated and not config.automatically_generated
-                ) or (
-                    sorted_config.automatically_generated == config.automatically_generated
-                    # Insert more defined stack roots before less defined ones
-                    and re.match(
-                        sorted_config.stack_root + regex,
-                        config.stack_root,
-                    )
-                ):
+                if sorted_config.automatically_generated and not config.automatically_generated:
                     sorted_configs.insert(index, config)
                     inserted = True
                     break
@@ -194,7 +183,11 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
         configs = RepositoryProjectPathConfig.objects.filter(
             project=project, organization_integration__isnull=False
         )
-        configs = self.sort_code_mapping_configs(configs)
+        try:
+            configs = self.sort_code_mapping_configs(configs)
+        except Exception:
+            logger.exception("There was a failure sorting the code mappings")
+
         derived = False
         current_config = None
         with configure_scope() as scope:
