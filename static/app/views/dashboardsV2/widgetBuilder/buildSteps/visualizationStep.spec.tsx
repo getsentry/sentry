@@ -220,4 +220,46 @@ describe('VisualizationStep', function () {
       )
     );
   });
+
+  it('does not trigger an extra events request when adding a column', async function () {
+    const {eventsMock} = mockRequests(organization.slug);
+    render(
+      <WidgetBuilder
+        route={{}}
+        router={router}
+        routes={router.routes}
+        routeParams={router.params}
+        location={{
+          ...router.location,
+          query: {
+            ...router.location.query,
+            release: ['v1'],
+          },
+        }}
+        dashboard={{
+          id: 'new',
+          title: 'Dashboard',
+          createdBy: undefined,
+          dateCreated: '2020-01-01T00:00:00.000Z',
+          widgets: [],
+          projects: [],
+          filters: {},
+        }}
+        onSave={jest.fn()}
+        params={{
+          orgId: organization.slug,
+          dashboardId: 'new',
+        }}
+      />,
+      {
+        context: routerContext,
+        organization,
+      }
+    );
+
+    userEvent.click(screen.getByText('Add a Column'));
+
+    // Only called once on the initial render
+    await waitFor(() => expect(eventsMock).toHaveBeenCalledTimes(1));
+  });
 });
