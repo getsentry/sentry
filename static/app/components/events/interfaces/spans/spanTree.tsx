@@ -833,7 +833,7 @@ function SpanRow(props: SpanRowProps) {
 
     return () => {
       if (spanNode.type !== SpanTreeNodeType.MESSAGE) {
-        console.log(spanNode.props.treeDepth);
+        console.log('Remove: ', spanNode.props);
         removeSpanRowFromState(rowRef);
       }
     };

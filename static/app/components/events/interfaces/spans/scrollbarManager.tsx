@@ -114,12 +114,8 @@ export class Provider extends Component<Props, State> {
 
   componentWillUnmount() {
     this.cleanUpListeners();
-    if (this.anchorCheckInterval) {
-      clearInterval(this.anchorCheckInterval);
-    }
   }
 
-  anchorCheckInterval: NodeJS.Timer | null = null;
   contentSpanBar: Set<HTMLDivElement> = new Set();
   virtualScrollbar: React.RefObject<HTMLDivElement> = createRef<HTMLDivElement>();
   scrollBarArea: React.RefObject<HTMLDivElement> = createRef<HTMLDivElement>();
@@ -204,6 +200,7 @@ export class Provider extends Component<Props, State> {
   updateHorizontalScrollState = (avgSpanDepth: number) => {
     if (avgSpanDepth === 0) {
       this.throttledScroll(0, true);
+
       return;
     }
 
