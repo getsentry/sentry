@@ -285,7 +285,7 @@ yarn.lock           @getsentry/owners-js-deps
 /src/sentry/models/groupresolution.py         @getsentry/data
 /src/sentry/models/integration.py             @getsentry/data @getsentry/ecosystem
 /src/sentry/models/organization.py            @getsentry/data
-/src/sentry/models/organizationmember.py      @getsentry/data
+/src/sentry/models/organizationmember.py      @getsentry/data @AniketDas-Tekky
 /src/sentry/models/organizationoption.py      @getsentry/data
 /src/sentry/models/project.py                 @getsentry/data
 /src/sentry/models/projectoption.py           @getsentry/data
