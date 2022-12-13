@@ -151,7 +151,7 @@ issue_rate_limiter = RedisSlidingWindowRateLimiter(
 )
 PERFORMANCE_ISSUE_QUOTA = Quota(3600, 60, 5)
 
-GROUPHASH_IGNORE_LIMIT = 3
+DEFAULT_GROUPHASH_IGNORE_LIMIT = 3
 GROUPHASH_IGNORE_LIMIT_MAP = {
     GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES: 3,
     GroupType.PERFORMANCE_SLOW_SPAN: 100,
@@ -2391,7 +2391,7 @@ def should_create_group(client: Any, grouphash: str, type: GroupType) -> bool:
         sample_rate=1.0,
     )
 
-    if times_seen >= GROUPHASH_IGNORE_LIMIT_MAP.get(type, GROUPHASH_IGNORE_LIMIT):
+    if times_seen >= GROUPHASH_IGNORE_LIMIT_MAP.get(type, DEFAULT_GROUPHASH_IGNORE_LIMIT):
         client.delete(grouphash)
         return True
     else:
