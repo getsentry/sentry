@@ -155,9 +155,18 @@ def make_select_statement(
         return QUERY_ALIAS_COLUMN_MAP.values()
 
     unique_fields = set(fields)
+
+    # Select fields used for filtering.
+    #
+    # These fields can filter a query without being selected.  However, if we did not select these
+    # values we could not reuse those columns which are expensive to calculate.  This coupled with
+    # the complexity of dependency management means we filter these columns manually in the final
+    # output.
     for fltr in search_filters:
         if isinstance(fltr, SearchFilter):
             unique_fields.add(fltr.key.name)
+
+    # Select fields used for sorting.
     for sort in sorting:
         unique_fields.add(sort.exp.name)
 
