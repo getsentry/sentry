@@ -64,13 +64,16 @@ class SetupWizard(PermissionTestCase):
     @override_settings(SENTRY_SIGNUP_URL="https://sentry.io/signup/")
     def test_redirect_to_signup(self):
         self.create_organization(owner=self.user)
-        url = reverse("sentry-project-wizard-fetch", kwargs={"wizard_hash": "xyz"}) + "?signup=1"
+        url = (
+            reverse("sentry-project-wizard-fetch", kwargs={"wizard_hash": "xyz"})
+            + "?signup=1&test=other"
+        )
         resp = self.client.get(url)
 
         assert resp.status_code == 302
         assert (
             resp.url
-            == "https://sentry.io/signup/?next=http%3A%2F%2Ftestserver%2Faccount%2Fsettings%2Fwizard%2Fxyz%2F"
+            == "https://sentry.io/signup/?next=http%3A%2F%2Ftestserver%2Faccount%2Fsettings%2Fwizard%2Fxyz%2F&test=other"
         )
 
     @override_settings(SENTRY_SIGNUP_URL="https://sentry.io/signup/")
