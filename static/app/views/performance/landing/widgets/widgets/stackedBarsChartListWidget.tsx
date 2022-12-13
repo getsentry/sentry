@@ -92,7 +92,6 @@ export function StackedBarsChartListWidget(props: PerformanceWidgetProps) {
             cursor="0:0:1"
             noPagination
             queryExtras={getMEPParamsIfApplicable(mepSetting, props.chartSetting)}
-            useEvents
           />
         );
       },
@@ -222,25 +221,32 @@ export function StackedBarsChartListWidget(props: PerformanceWidgetProps) {
                 expandedIndex={selectedListIndex}
                 setExpandedIndex={setSelectListIndex}
                 content={
-                  // TODO add bottom grid
                   <BarChart
                     {...provided.widgetData.chart}
                     {...provided}
                     series={provided.widgetData.chart.data}
-                    start={provided.widgetData.chart.start as unknown as Date}
-                    end={provided.widgetData.chart.end as unknown as Date}
                     stacked
                     animation
                     isGroupedByDate
                     showTimeInTooltip
                     xAxis={{
-                      axisLabel: {show: false},
+                      show: false,
+                      axisLabel: {show: true, margin: 8},
                       axisLine: {show: false},
-                      axisTick: {show: false},
                     }}
                     tooltip={{
                       valueFormatter: value => tooltipFormatter(value, 'duration'),
                     }}
+                    start={
+                      provided.widgetData.chart.start
+                        ? new Date(provided.widgetData.chart.start)
+                        : undefined
+                    }
+                    end={
+                      provided.widgetData.chart.end
+                        ? new Date(provided.widgetData.chart.end)
+                        : undefined
+                    }
                   />
                 }
                 headers={getHeaders(provided)}
