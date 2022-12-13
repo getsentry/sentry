@@ -739,16 +739,24 @@ class SpanTree extends Component<PropType> {
     () => {
       console.dir(this.state.spanRows);
 
-      this.state.spanRows.forEach(({spanRow, treeDepth}) => {
-        if (!spanRow.current) {
-          return;
-        }
+      const {depthSum, visibleSpanCount} = this.state.spanRows.reduce(
+        (acc, {spanRow, treeDepth}) => {
+          if (!spanRow.current || !this.isSpanRowVisible(spanRow)) {
+            return acc;
+          }
 
-        if (this.isSpanRowVisible(spanRow)) {
-          // Manage view here
-          treeDepth;
+          acc.depthSum += treeDepth;
+          acc.visibleSpanCount += 1;
+
+          return acc;
+        },
+        {
+          depthSum: 0,
+          visibleSpanCount: 0,
         }
-      });
+      );
+
+      const averageDepth = depthSum / visibleSpanCount;
     },
     500,
     {trailing: true}
