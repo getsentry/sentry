@@ -34,13 +34,10 @@ class CreateMonitor extends AsyncView<Props, AsyncView['state']> {
     return (
       <Layout.Body>
         <Layout.Main fullWidth>
-          <h1>{t('New Monitor')}</h1>
+          <h1>{t('Set Up Cron Monitor')}</h1>
           <HelpText>
             {t(
-              `Creating a monitor will allow you to track the executions of a scheduled
-             job in your organization. For example, ensure a cron job that is
-             scheduled to run once a day executes and finishes within a specified
-             duration.`
+              `Sentry will tell you if your recurring jobs are running on schedule, failing, or succeeding.`
             )}
           </HelpText>
           <MonitorForm
