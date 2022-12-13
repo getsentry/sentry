@@ -134,6 +134,10 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
       .reduce(
         ([names, queries]: [string[], Omit<WidgetQuery, 'name'>[]], {name, ...rest}) => {
           names.push(name);
+          rest.fields = (rest.fields ?? []).filter(field => !!field);
+
+          // Ignore aliases because changing alias does not need a query
+          rest.fieldAliases = [];
           queries.push(rest);
           return [names, queries];
         },
@@ -151,6 +155,10 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
       .reduce(
         ([names, queries]: [string[], Omit<WidgetQuery, 'name'>[]], {name, ...rest}) => {
           names.push(name);
+          rest.fields = (rest.fields ?? []).filter(field => !!field);
+
+          // Ignore aliases because changing alias does not need a query
+          rest.fieldAliases = [];
           queries.push(rest);
           return [names, queries];
         },
@@ -163,7 +171,7 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
         : widget.limit !== prevProps.widget.limit ||
           !isEqual(widget.displayType, prevProps.widget.displayType) ||
           !isEqual(widget.interval, prevProps.widget.interval) ||
-          !isEqual(widgetQueries, prevWidgetQueries) ||
+          !isEqual(new Set(widgetQueries), new Set(prevWidgetQueries)) ||
           !isEqual(this.props.dashboardFilters, prevProps.dashboardFilters) ||
           !isSelectionEqual(selection, prevProps.selection) ||
           cursor !== prevProps.cursor
