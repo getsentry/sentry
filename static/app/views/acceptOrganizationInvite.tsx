@@ -26,7 +26,7 @@ type InviteDetails = {
   ssoProvider?: string;
 };
 
-type Props = RouteComponentProps<{memberId: string; token: string}, {}>;
+type Props = RouteComponentProps<{memberId: string; token: string; orgId?: string}, {}>;
 
 type State = AsyncView['state'] & {
   acceptError: boolean | undefined;
@@ -38,7 +38,10 @@ class AcceptOrganizationInvite extends AsyncView<Props, State> {
   disableErrorReport = false;
 
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
-    const {memberId, token} = this.props.params;
+    const {memberId, orgId, token} = this.props.params;
+    if (orgId) {
+      return [['inviteDetails', `/accept-invite/${orgId}/${memberId}/${token}/`]];
+    }
     return [['inviteDetails', `/accept-invite/${memberId}/${token}/`]];
   }
 
@@ -57,13 +60,19 @@ class AcceptOrganizationInvite extends AsyncView<Props, State> {
   };
 
   handleAcceptInvite = async () => {
-    const {memberId, token} = this.props.params;
+    const {memberId, orgId, token} = this.props.params;
 
     this.setState({accepting: true});
     try {
-      await this.api.requestPromise(`/accept-invite/${memberId}/${token}/`, {
-        method: 'POST',
-      });
+      if (orgId) {
+        await this.api.requestPromise(`/accept-invite/${orgId}/${memberId}/${token}/`, {
+          method: 'POST',
+        });
+      } else {
+        await this.api.requestPromise(`/accept-invite/${memberId}/${token}/`, {
+          method: 'POST',
+        });
+      }
       browserHistory.replace(`/${this.state.inviteDetails.orgSlug}/`);
     } catch {
       this.setState({acceptError: true});
