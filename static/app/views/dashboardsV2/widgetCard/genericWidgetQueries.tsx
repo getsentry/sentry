@@ -134,7 +134,7 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
       .reduce(
         ([names, queries]: [string[], Omit<WidgetQuery, 'name'>[]], {name, ...rest}) => {
           names.push(name);
-          rest.fields = (rest.fields ?? []).filter(field => !!field);
+          rest.fields = rest.fields?.filter(field => !!field) ?? [];
 
           // Ignore aliases because changing alias does not need a query
           rest.fieldAliases = [];
@@ -155,7 +155,7 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
       .reduce(
         ([names, queries]: [string[], Omit<WidgetQuery, 'name'>[]], {name, ...rest}) => {
           names.push(name);
-          rest.fields = (rest.fields ?? []).filter(field => !!field);
+          rest.fields = rest.fields?.filter(field => !!field) ?? [];
 
           // Ignore aliases because changing alias does not need a query
           rest.fieldAliases = [];
