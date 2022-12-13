@@ -166,6 +166,65 @@ describe('useReplaysCount', () => {
     });
   });
 
+  it('should request the count for a group only once', async () => {
+    const replayCountRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issue-replay-count/`,
+      method: 'GET',
+      body: {},
+    });
+
+    const {result, rerender, waitForNextUpdate} = reactHooks.renderHook(useReplaysCount, {
+      initialProps: {
+        organization,
+        projectIds,
+        groupIds: mockGroupIds,
+      },
+    });
+
+    await waitForNextUpdate();
+
+    expect(replayCountRequest).toHaveBeenCalledTimes(1);
+    expect(replayCountRequest).toHaveBeenCalledWith(
+      '/organizations/org-slug/issue-replay-count/',
+      expect.objectContaining({
+        query: {
+          query: `issue.id:[123,456]`,
+          statsPeriod: '14d',
+          project: [2],
+        },
+      })
+    );
+    expect(result.current).toEqual({
+      123: 0,
+      456: 0,
+    });
+
+    rerender({
+      organization,
+      projectIds,
+      groupIds: [...mockGroupIds, '789'],
+    });
+
+    await waitForNextUpdate();
+
+    expect(replayCountRequest).toHaveBeenCalledTimes(2);
+    expect(replayCountRequest).toHaveBeenCalledWith(
+      '/organizations/org-slug/issue-replay-count/',
+      expect.objectContaining({
+        query: {
+          query: `issue.id:[789]`,
+          statsPeriod: '14d',
+          project: [2],
+        },
+      })
+    );
+    expect(result.current).toEqual({
+      123: 0,
+      456: 0,
+      789: 0,
+    });
+  });
+
   it('should query for transactionNames', async () => {
     const countRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,

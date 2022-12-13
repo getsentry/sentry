@@ -51,11 +51,18 @@ function useReplaysCount({
       // max rows that the issue list page will show.
       const chunkSize = 25;
 
-      const chunks = Math.ceil(groupIds.length / chunkSize);
+      const groupsToFetch = groupIds.filter(gid => !(gid in replayCounts));
+      if (!groupsToFetch.length) {
+        return null;
+      }
+
+      const chunks = Math.ceil(groupsToFetch.length / chunkSize);
       const conditions: string[] = [];
       for (let i = 0; i < chunks; i++) {
         conditions.push(
-          `issue.id:[${groupIds.slice(i * chunkSize, (i + 1) * chunkSize).join(',')}]`
+          `issue.id:[${groupsToFetch
+            .slice(i * chunkSize, (i + 1) * chunkSize)
+            .join(',')}]`
         );
       }
 
@@ -71,7 +78,7 @@ function useReplaysCount({
       };
     }
     return null;
-  }, [groupIds, transactionNames]);
+  }, [replayCounts, groupIds, transactionNames]);
 
   const eventView = useMemo(
     () =>
