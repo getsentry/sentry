@@ -35,6 +35,7 @@ export type SpanDescendantGroupBarProps = {
   didAnchoredSpanMount: boolean;
   event: Readonly<EventTransaction>;
   generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
+  getCurrentLeftPos: () => number;
   onWheel: (deltaX: number) => void;
   removeContentSpanBarRef: (instance: HTMLDivElement | null) => void;
   span: Readonly<ProcessedSpanType>;
@@ -49,6 +50,7 @@ export function SpanDescendantGroupBar(props: SpanDescendantGroupBarProps) {
     continuingTreeDepths,
     event,
     generateBounds,
+    getCurrentLeftPos,
     span,
     spanGrouping,
     spanNumber,
@@ -168,6 +170,7 @@ export function SpanDescendantGroupBar(props: SpanDescendantGroupBarProps) {
       addContentSpanBarRef={addContentSpanBarRef}
       removeContentSpanBarRef={removeContentSpanBarRef}
       didAnchoredSpanMount={didAnchoredSpanMount}
+      getCurrentLeftPos={getCurrentLeftPos}
     />
   );
 }

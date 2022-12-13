@@ -52,6 +52,7 @@ type Props = {
   didAnchoredSpanMount: boolean;
   event: Readonly<EventTransaction>;
   generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
+  getCurrentLeftPos: () => number;
   onWheel: (deltaX: number) => void;
   removeContentSpanBarRef: (instance: HTMLDivElement | null) => void;
   renderGroupSpansTitle: () => React.ReactNode;
@@ -160,6 +161,7 @@ export function SpanGroupBar(props: Props) {
     didAnchoredSpanMount,
     spanGrouping,
     toggleSpanGroup,
+    getCurrentLeftPos,
   } = props;
 
   // On mount, it is necessary to set the left styling of the content here due to the span tree being virtualized.
@@ -169,9 +171,9 @@ export function SpanGroupBar(props: Props) {
       if (ref) {
         spanContentRef.current = ref;
         addContentSpanBarRef(ref);
-        // const left = -getScrollLeftValue();
-        // ref.style.transform = `translateX(${left}px)`;
-        // ref.style.transformOrigin = 'left';
+        const left = -getCurrentLeftPos();
+        ref.style.transform = `translateX(${left}px)`;
+        ref.style.transformOrigin = 'left';
         return;
       }
 

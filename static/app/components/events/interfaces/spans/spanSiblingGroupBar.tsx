@@ -29,6 +29,7 @@ export type SpanSiblingGroupBarProps = {
   didAnchoredSpanMount: boolean;
   event: Readonly<EventTransaction>;
   generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
+  getCurrentLeftPos: () => number;
   isEmbeddedSpanTree: boolean;
   isLastSibling: boolean;
   occurrence: number;
@@ -46,6 +47,7 @@ export default function SpanSiblingGroupBar(props: SpanSiblingGroupBarProps) {
     continuingTreeDepths,
     event,
     generateBounds,
+    getCurrentLeftPos,
     isLastSibling,
     span,
     spanGrouping,
@@ -160,6 +162,7 @@ export default function SpanSiblingGroupBar(props: SpanSiblingGroupBarProps) {
       addContentSpanBarRef={addContentSpanBarRef}
       removeContentSpanBarRef={removeContentSpanBarRef}
       didAnchoredSpanMount={didAnchoredSpanMount}
+      getCurrentLeftPos={getCurrentLeftPos}
     />
   );
 }
