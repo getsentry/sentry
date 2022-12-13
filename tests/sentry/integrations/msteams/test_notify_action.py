@@ -6,17 +6,13 @@ from unittest import mock
 
 import responses
 
-from sentry.event_manager import EventManager
 from sentry.integrations.msteams import MsTeamsNotifyServiceAction
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.models import Integration
-from sentry.testutils.cases import RuleTestCase
-from sentry.testutils.helpers import override_options
-from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase
 from sentry.types.issues import GroupType
 from sentry.utils import json
 from sentry.utils.dates import ensure_aware
-from sentry.utils.samples import load_data
 
 my_occurrence = IssueOccurrence(
     uuid.uuid4().hex,
@@ -36,7 +32,7 @@ my_occurrence = IssueOccurrence(
 )
 
 
-class MsTeamsNotifyActionTest(RuleTestCase):
+class MsTeamsNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
     rule_cls = MsTeamsNotifyServiceAction
 
     def setUp(self):
@@ -134,27 +130,7 @@ class MsTeamsNotifyActionTest(RuleTestCase):
 
     @responses.activate
     def test_applies_correctly_performance_issue(self):
-        event_data = load_data(
-            "transaction-n-plus-one",
-            timestamp=before_now(minutes=10),
-            fingerprint=[f"{GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value}-group1"],
-        )
-        perf_event_manager = EventManager(event_data)
-        perf_event_manager.normalize()
-        with override_options(
-            {
-                "performance.issues.all.problem-creation": 1.0,
-                "performance.issues.all.problem-detection": 1.0,
-                "performance.issues.n_plus_one_db.problem-creation": 1.0,
-            }
-        ), self.feature(
-            [
-                "organizations:performance-issues-ingest",
-                "projects:performance-suspect-spans-ingestion",
-            ]
-        ):
-            event = perf_event_manager.save(self.project.id)
-        event = event.for_group(event.groups[0])
+        event = self.create_performance_issue()
 
         rule = self.get_rule(
             data={"team": self.integration.id, "channel": "Naboo", "channel_id": "nb"}
