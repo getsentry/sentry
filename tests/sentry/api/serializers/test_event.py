@@ -2,6 +2,7 @@ from unittest import mock
 
 from sentry.api.serializers import SimpleEventSerializer, serialize
 from sentry.api.serializers.models.event import DetailedEventSerializer, SharedEventSerializer
+from sentry.api.serializers.rest_framework import convert_dict_key_case, snake_to_camel_case
 from sentry.event_manager import EventManager
 from sentry.models import EventError
 from sentry.sdk_updates import SdkIndexState
@@ -12,11 +13,12 @@ from sentry.testutils.silo import region_silo_test
 from sentry.utils import json
 from sentry.utils.samples import load_data
 from tests.sentry.event_manager.test_event_manager import make_event
+from tests.sentry.issues.test_utils import OccurrenceTestMixin
 from tests.sentry.utils.performance_issues.test_performance_detection import EVENTS
 
 
 @region_silo_test
-class EventSerializerTest(TestCase):
+class EventSerializerTest(TestCase, OccurrenceTestMixin):
     def test_simple(self):
         event_id = "a" * 32
         event = self.store_event(
@@ -26,6 +28,7 @@ class EventSerializerTest(TestCase):
         result = serialize(event)
         assert result["id"] == event_id
         assert result["eventID"] == event_id
+        assert result["occurrence"] is None
 
     def test_eventerror(self):
         event = self.store_event(
@@ -222,6 +225,18 @@ class EventSerializerTest(TestCase):
         event = self.store_event(data=event_data, project_id=self.project.id)
         result = serialize(event)
         assert result["entries"][0]["type"] == "spans"
+
+    def test_event_with_occurrence(self):
+        event = self.store_event(
+            data={},
+            project_id=self.project.id,
+        )
+        event_group = event.for_group(event.group)
+        event_group.occurrence = occurrence = self.build_occurrence()
+        result = serialize(event_group)
+        assert result["occurrence"] == convert_dict_key_case(
+            occurrence.to_dict(), snake_to_camel_case
+        )
 
 
 @region_silo_test

@@ -235,6 +235,8 @@ class EventSerializer(Serializer):
         )
 
     def serialize(self, obj, attrs, user):
+        from sentry.api.serializers.rest_framework import convert_dict_key_case, snake_to_camel_case
+
         errors = [
             EventError(error).get_api_context()
             for error in get_path(obj.data, "errors", filter=True, default=())
@@ -256,6 +258,8 @@ class EventSerializer(Serializer):
                 received = datetime.utcfromtimestamp(received).replace(tzinfo=timezone.utc)
             except TypeError:
                 received = None
+
+        occurrence = getattr(obj, "occurrence", None)
 
         d = {
             "id": obj.event_id,
@@ -281,6 +285,9 @@ class EventSerializer(Serializer):
             "platform": obj.platform,
             "dateReceived": received,
             "errors": errors,
+            "occurrence": convert_dict_key_case(occurrence.to_dict(), snake_to_camel_case)
+            if occurrence
+            else None,
             "_meta": {
                 "entries": attrs["_meta"]["entries"],
                 "message": message_meta,
