@@ -802,6 +802,14 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         if "graphql" in description:
             return False
 
+        # Next.js infixes its data URLs with a build ID. (e.g.,
+        # /_next/data/<uuid>/some-endpoint) This causes a fingerprinting
+        # explosion, since every deploy would change this ID and create new
+        # fingerprints. Since we're not parameterizing URLs yet, we need to
+        # exclude them
+        if "_next/data" in description:
+            return False
+
         # Ignore anything that looks like an asset. Some frameworks (and apps)
         # fetch assets via XHR, which is not our concern
         data = span.get("data") or {}
