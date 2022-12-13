@@ -1,3 +1,4 @@
+import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {Client} from 'sentry/api';
@@ -10,7 +11,6 @@ describe('TeamMembers', () => {
   const organization = TestStubs.Organization();
   const team = TestStubs.Team({hasAccess: false});
   const teamHasAccess = TestStubs.Team({id: '1337', slug: 'django', hasAccess: true});
-  const context = TestStubs.routerContext();
 
   beforeEach(() => {
     TeamStore.init();
@@ -27,13 +27,20 @@ describe('TeamMembers', () => {
   });
 
   it('can request membership', () => {
+    const {routerContext} = initializeOrg({
+      organization,
+      router: {
+        params: {orgId: organization.slug, teamId: team.slug},
+      },
+    });
+
     render(
-      <TeamDetails params={{orgId: organization.slug, teamId: team.slug}}>
+      <TeamDetails params={routerContext.context.router.params}>
         <div data-test-id="test" />
       </TeamDetails>,
       {
         organization,
-        context,
+        context: routerContext,
       }
     );
 
@@ -44,13 +51,19 @@ describe('TeamMembers', () => {
   });
 
   it('displays children', () => {
+    const {routerContext} = initializeOrg({
+      organization,
+      router: {
+        params: {orgId: organization.slug, teamId: teamHasAccess.slug},
+      },
+    });
     render(
-      <TeamDetails params={{orgId: organization.slug, teamId: teamHasAccess.slug}}>
+      <TeamDetails params={routerContext.context.router.params}>
         <div data-test-id="test" />
       </TeamDetails>,
       {
         organization,
-        context,
+        context: routerContext,
       }
     );
 

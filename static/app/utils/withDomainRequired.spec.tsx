@@ -59,6 +59,8 @@ describe('normalizeUrl', function () {
         '/settings/projects/python/filters/discarded/',
         '/settings/projects/python/filters/discarded/',
       ],
+      // Team settings links in breadcrumbs can be pre-normalized from breadcrumbs
+      ['/settings/teams/peeps/', '/settings/teams/peeps/'],
     ];
     for (const [input, expected] of cases) {
       result = normalizeUrl(input);

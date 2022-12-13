@@ -244,10 +244,13 @@ _path_patterns: List[Tuple[re.Pattern[str], str]] = [
     # /organizations/slug/section, but not /organizations/new
     (re.compile(r"\/?organizations\/(?!new)[^\/]+\/(.*)"), r"/\1"),
     # For /settings/:orgId/ -> /settings/organization/
-    (re.compile(r"\/settings\/(?!account)[^\/]+\/?$"), "/settings/organization/"),
+    (
+        re.compile(r"\/settings\/(?!account)(?!projects)(?!teams)[^\/]+\/?$"),
+        "/settings/organization/",
+    ),
     # Move /settings/:orgId/:section -> /settings/:section
     # but not /settings/organization or /settings/projects which is a new URL
-    (re.compile(r"\/?settings\/(?!projects)(?!account)[^\/]+\/(.*)"), r"/settings/\1"),
+    (re.compile(r"\/?settings\/(?!account)(?!projects)(?!teams)[^\/]+\/(.*)"), r"/settings/\1"),
     (re.compile(r"\/?join-request\/[^\/]+\/?.*"), r"/join-request/"),
     (re.compile(r"\/?onboarding\/[^\/]+\/(.*)"), r"/onboarding/\1"),
     (re.compile(r"\/?[^\/]+\/([^\/]+)\/getting-started\/(.*)"), r"/getting-started/\1/\2"),
