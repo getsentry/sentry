@@ -87,11 +87,12 @@ class SimpleProduceStep(ProcessingStep[KafkaPayload]):
 
         self.poll_producer(timeout)
 
-        if self._ready():
-            self.__commit_function(self.__produced_message_offsets)
-            self.__callbacks = 0
-            self.__produced_message_offsets = {}
-            self.__started = time.time()
+        with metrics.timer("simple_produce_step.poll.maybe_commit", sample_rate=0.05):
+            if self._ready():
+                self.__commit_function(self.__produced_message_offsets)
+                self.__callbacks = 0
+                self.__produced_message_offsets = {}
+                self.__started = time.time()
 
     def submit(self, message: Message[KafkaPayload]) -> None:
         self.__producer.produce(
