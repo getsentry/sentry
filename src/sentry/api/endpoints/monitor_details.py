@@ -1,6 +1,7 @@
 from typing import Optional
 
 from django.db import transaction
+from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -14,6 +15,10 @@ from sentry.models import Monitor, MonitorStatus, ScheduledDeletion
 
 @region_silo_endpoint
 class MonitorDetailsEndpoint(MonitorEndpoint):
+    @staticmethod
+    def respond_invalid() -> Response:
+        return Response(status=status.HTTP_400_BAD_REQUEST, data={"details": "Invalid monitor"})
+
     def get(
         self, request: Request, project, monitor, organization_slug: Optional[str] = None
     ) -> Response:
@@ -24,6 +29,10 @@ class MonitorDetailsEndpoint(MonitorEndpoint):
         :pparam string monitor_id: the id of the monitor.
         :auth: required
         """
+        if organization_slug:
+            if project.organization.slug != organization_slug:
+                return self.respond_invalid()
+
         return self.respond(serialize(monitor, request.user))
 
     def put(
@@ -36,6 +45,10 @@ class MonitorDetailsEndpoint(MonitorEndpoint):
         :pparam string monitor_id: the id of the monitor.
         :auth: required
         """
+        if organization_slug:
+            if project.organization.slug != organization_slug:
+                return self.respond_invalid()
+
         validator = MonitorValidator(
             data=request.data,
             partial=True,
@@ -89,6 +102,10 @@ class MonitorDetailsEndpoint(MonitorEndpoint):
         :pparam string monitor_id: the id of the monitor.
         :auth: required
         """
+        if organization_slug:
+            if project.organization.slug != organization_slug:
+                return self.respond_invalid()
+
         with transaction.atomic():
             affected = (
                 Monitor.objects.filter(id=monitor.id)

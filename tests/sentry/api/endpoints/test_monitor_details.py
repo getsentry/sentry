@@ -10,29 +10,43 @@ from sentry.testutils.silo import region_silo_test
 
 @region_silo_test(stable=True)
 class MonitorDetailsTest(APITestCase):
-    def test_simple(self):
-        user = self.create_user()
-        org = self.create_organization(owner=user)
-        team = self.create_team(organization=org, members=[user])
-        project = self.create_project(teams=[team])
+    def setUp(self):
+        self.user = self.create_user()
+        self.org = self.create_organization(owner=self.user)
+        self.team = self.create_team(organization=self.org, members=[self.user])
+        self.project = self.create_project(teams=[self.team])
 
-        monitor = Monitor.objects.create(
-            organization_id=org.id,
-            project_id=project.id,
+        self.monitor = Monitor.objects.create(
+            organization_id=self.org.id,
+            project_id=self.project.id,
             next_checkin=timezone.now() - timedelta(minutes=1),
             type=MonitorType.CRON_JOB,
             config={"schedule": "* * * * *"},
         )
 
-        self.login_as(user=user)
-        urls = (f"/api/0/monitors/{monitor.guid}/", f"/api/0/monitors/{org.slug}/{monitor.guid}/")
+        self.paths = (
+            f"/api/0/monitors/{self.monitor.guid}/",
+            f"/api/0/monitors/{self.org.slug}/{self.monitor.guid}/",
+        )
+
+    def test_simple(self):
+        self.login_as(user=self.user)
 
         with self.feature({"organizations:monitors": True}):
-            for url in urls:
-                resp = self.client.get(url)
+            for path in self.paths:
+                resp = self.client.get(path)
 
                 assert resp.status_code == 200, resp.content
-                assert resp.data["id"] == str(monitor.guid)
+                assert resp.data["id"] == str(self.monitor.guid)
+
+    def test_mismatched_org_slugs(self):
+        path = f"/api/0/monitors/asdf/{self.monitor.guid}/"
+        self.login_as(user=self.user)
+
+        with self.feature({"organizations:monitors": True}):
+            resp = self.client.get(path)
+
+            assert resp.status_code == 400
 
 
 @region_silo_test(stable=True)
@@ -260,13 +274,32 @@ class UpdateMonitorTest(APITestCase):
 
                 assert resp.status_code == 400, resp.content
 
+    def test_mismatched_org_slugs(self):
+        monitor = self._create_monitor()
+        path = f"/api/0/monitors/asdf/{monitor.guid}/"
+        self.login_as(user=self.user)
+
+        with self.feature({"organizations:monitors": True}):
+            resp = self.client.put(
+                path, data={"config": {"schedule_type": "interval", "schedule": [1, "month"]}}
+            )
+
+            assert resp.status_code == 400
+
 
 @region_silo_test()
 class DeleteMonitorTest(APITestCase):
-    def _create_monitor(self, org, project):
+    def setUp(self):
+        self.user = self.create_user()
+        self.org = self.create_organization(owner=self.user)
+        self.team = self.create_team(organization=self.org, members=[self.user])
+        self.project = self.create_project(teams=[self.team])
+        self.num_paths = 2
+
+    def _create_monitor(self):
         return Monitor.objects.create(
-            organization_id=org.id,
-            project_id=project.id,
+            organization_id=self.org.id,
+            project_id=self.project.id,
             next_checkin=timezone.now() - timedelta(minutes=1),
             type=MonitorType.CRON_JOB,
             config={"schedule": "* * * * *"},
@@ -275,24 +308,18 @@ class DeleteMonitorTest(APITestCase):
     def _get_urls(self):
         return ("sentry-api-0-monitor-details", "sentry-api-0-monitor-details-with-org")
 
-    def _get_path(self, i, org, monitor):
+    def _get_path(self, i, monitor):
         urls = self._get_urls()
         if i:
-            return reverse(urls[i], args=[org.slug, monitor.guid])
+            return reverse(urls[i], args=[self.org.slug, monitor.guid])
         return reverse(urls[i], args=[monitor.guid])
 
     def test_simple(self):
-        user = self.create_user()
-        org = self.create_organization(owner=user)
-        team = self.create_team(organization=org, members=[user])
-        project = self.create_project(teams=[team])
-        num_paths = 2
-
-        self.login_as(user=user)
+        self.login_as(user=self.user)
         with self.feature({"organizations:monitors": True}):
-            for i in range(num_paths):
-                monitor = self._create_monitor(org, project)
-                path = self._get_path(i, org, monitor)
+            for i in range(self.num_paths):
+                monitor = self._create_monitor()
+                path = self._get_path(i, monitor)
 
                 resp = self.client.delete(path)
 
@@ -304,3 +331,13 @@ class DeleteMonitorTest(APITestCase):
                 assert ScheduledDeletion.objects.filter(
                     object_id=monitor.id, model_name="Monitor"
                 ).exists()
+
+    def test_mismatched_org_slugs(self):
+        monitor = self._create_monitor()
+        path = f"/api/0/monitors/asdf/{monitor.guid}/"
+        self.login_as(user=self.user)
+
+        with self.feature({"organizations:monitors": True}):
+            resp = self.client.delete(path)
+
+            assert resp.status_code == 400
