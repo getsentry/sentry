@@ -125,15 +125,6 @@ class TestPythonDeriveCodeMappings(BaseDeriveCodeMappings):
             "sentry/tasks.py",
         ]
 
-    def test_skips_nonpython_projects(self):
-        new_data = deepcopy(self.test_data)
-        new_data["platform"] = "elixir"
-        event = self.store_event(data=new_data, project_id=self.project.id)
-
-        stacktrace_paths = identify_stacktrace_paths(event.data)
-
-        assert sorted(stacktrace_paths) == []
-
     def test_handle_duplicate_filenames_in_stacktrace(self):
         data = deepcopy(self.test_data)
         data["stacktrace"]["frames"].append(self.test_data["stacktrace"]["frames"][0])
@@ -198,6 +189,12 @@ class TestPythonDeriveCodeMappings(BaseDeriveCodeMappings):
         code_mapping = RepositoryProjectPathConfig.objects.filter(project_id=self.project.id)
         assert code_mapping.exists()
         assert code_mapping.first().automatically_generated is True
+
+    def test_skips_supported_projects(self):
+        new_data = deepcopy(self.test_data)
+        new_data["platform"] = "elixir"
+        event = self.store_event(data=new_data, project_id=self.project.id)
+        assert derive_code_mappings(self.project.id, event.data) is None
 
     @patch("sentry.integrations.github.GitHubIntegration.get_trees_for_org")
     @patch(
