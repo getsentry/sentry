@@ -122,7 +122,7 @@ from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.tasks.process_buffer import buffer_incr
 from sentry.tasks.relay import schedule_invalidate_project_config
 from sentry.types.activity import ActivityType
-from sentry.types.issues import GroupCategory
+from sentry.types.issues import GroupCategory, GroupType
 from sentry.utils import json, metrics, redis
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.canonical import CanonicalKeyDict
@@ -150,7 +150,11 @@ issue_rate_limiter = RedisSlidingWindowRateLimiter(
     **settings.SENTRY_PERFORMANCE_ISSUES_RATE_LIMITER_OPTIONS
 )
 PERFORMANCE_ISSUE_QUOTA = Quota(3600, 60, 5)
-GROUPHASH_IGNORE_LIMIT = 3
+
+GROUPHASH_IGNORE_LIMIT = {
+    GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES: 3,
+    GroupType.PERFORMANCE_SLOW_SPAN: 100,
+}
 
 
 @dataclass
@@ -2384,7 +2388,7 @@ def should_create_group(client: Any, grouphash: str) -> bool:
         tags={"times_seen": times_seen},
         sample_rate=1.0,
     )
-    if times_seen >= GROUPHASH_IGNORE_LIMIT:
+    if times_seen >= GROUPHASH_IGNORE_LIMIT[GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES]:
         client.delete(grouphash)
         return True
     else:
