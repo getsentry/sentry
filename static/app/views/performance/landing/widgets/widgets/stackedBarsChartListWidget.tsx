@@ -33,12 +33,12 @@ import {
   WidgetEmptyStateWarning,
 } from '../components/selectableList';
 import {transformDiscoverToList} from '../transforms/transformDiscoverToList';
-import {transformEventsRequestToArea} from '../transforms/transformEventsToArea';
+import {transformEventsRequestToStackedBars} from '../transforms/transformEventsToStackedBars';
 import {PerformanceWidgetProps, QueryDefinition, WidgetDataResult} from '../types';
 import {eventsRequestQueryProps, getMEPParamsIfApplicable} from '../utils';
 
 type DataType = {
-  chart: WidgetDataResult & ReturnType<typeof transformEventsRequestToArea>;
+  chart: WidgetDataResult & ReturnType<typeof transformEventsRequestToStackedBars>;
   list: WidgetDataResult & ReturnType<typeof transformDiscoverToList>;
 };
 
@@ -152,7 +152,7 @@ export function StackedBarsChartListWidget(props: PerformanceWidgetProps) {
             />
           );
         },
-        transform: transformEventsRequestToArea,
+        transform: transformEventsRequestToStackedBars,
       };
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps

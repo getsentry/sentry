@@ -4,7 +4,7 @@ import {defined} from 'sentry/utils';
 
 import {QueryDefinitionWithKey, WidgetDataConstraint, WidgetPropUnion} from '../types';
 
-export function transformEventsRequestToArea<T extends WidgetDataConstraint>(
+export function transformEventsRequestToStackedBars<T extends WidgetDataConstraint>(
   widgetProps: WidgetPropUnion<T>,
   results: RenderProps,
   _: QueryDefinitionWithKey<T>
@@ -13,7 +13,7 @@ export function transformEventsRequestToArea<T extends WidgetDataConstraint>(
     widgetProps.location.query
   );
 
-  const data = results.timeseriesData ?? [];
+  const data = results.results ?? [];
 
   const childData = {
     ...results,
