@@ -6,17 +6,17 @@ import {
   ProfilingContextMenuHeading,
   ProfilingContextMenuItem,
   ProfilingContextMenuLayer,
-} from 'sentry/components/profiling/ProfilingContextMenu/profilingContextMenu';
+} from 'sentry/components/profiling/profilingContextMenu';
 import {t} from 'sentry/locale';
 import {useContextMenu} from 'sentry/utils/profiling/hooks/useContextMenu';
 
-interface FrameStackContextMenuProps {
+interface FlamegraphTreeContextMenuProps {
   contextMenu: ReturnType<typeof useContextMenu>;
   onHighlightAllFramesClick: (evt: React.MouseEvent<HTMLDivElement>) => void;
   onZoomIntoFrameClick: (evt: React.MouseEvent<HTMLDivElement>) => void;
 }
 
-export function FrameStackContextMenu(props: FrameStackContextMenuProps) {
+export function FlamegraphTreeContextMenu(props: FlamegraphTreeContextMenuProps) {
   return props.contextMenu.open ? (
     <Fragment>
       <ProfilingContextMenuLayer onClick={() => props.contextMenu.setOpen(false)} />

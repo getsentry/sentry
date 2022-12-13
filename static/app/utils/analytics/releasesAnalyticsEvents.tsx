@@ -1,4 +1,7 @@
+import {ReleaseComparisonChartType} from 'sentry/types';
+
 export type ReleasesEventParameters = {
+  'releases.change_chart_type': {chartType: ReleaseComparisonChartType};
   'releases.quickstart_copied': {project_id: string};
   'releases.quickstart_create_integration.success': {
     integration_uuid: string;
@@ -17,4 +20,5 @@ export const releasesEventMap: Record<ReleasesEventKey, string | null> = {
     'Releases: Quickstart Created Integration',
   'releases.quickstart_create_integration_modal.close':
     'Releases: Quickstart Create Integration Modal Exit',
+  'releases.change_chart_type': 'Releases: Change Chart Type',
 };
