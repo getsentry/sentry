@@ -255,6 +255,7 @@ def _merge_full_response(data, response):
 
 
 def process_minidump(data):
+    assert 0
     project = Project.objects.get_from_cache(id=data["project"])
 
     minidump = get_event_attachment(data, MINIDUMP_ATTACHMENT_TYPE)
@@ -273,6 +274,7 @@ def process_minidump(data):
 
 
 def process_applecrashreport(data):
+    assert 0
     project = Project.objects.get_from_cache(id=data["project"])
 
     report = get_event_attachment(data, APPLECRASHREPORT_ATTACHMENT_TYPE)
