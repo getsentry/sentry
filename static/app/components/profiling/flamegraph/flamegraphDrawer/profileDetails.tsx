@@ -75,8 +75,8 @@ export function ProfileDetails(props: ProfileDetailsProps) {
       flamegraphPreferences.layout === 'table bottom' ? [260, 200] : [0, 200];
 
     const onResize = (
-      newDimensions: [number, number],
-      maybeOldDimensions?: [number, number]
+      newDimensions: [number, number] | undefined,
+      maybeOldDimensions?: [number, number] | undefined
     ) => {
       if (!detailsBarRef.current) {
         return;
@@ -88,7 +88,7 @@ export function ProfileDetails(props: ProfileDetailsProps) {
       ) {
         detailsBarRef.current.style.width = `100%`;
         detailsBarRef.current.style.height =
-          (maybeOldDimensions?.[1] ?? newDimensions[1]) + 'px';
+          (maybeOldDimensions?.[1] ?? newDimensions?.[1]) + 'px';
       } else {
         detailsBarRef.current.style.height = ``;
         detailsBarRef.current.style.width = ``;

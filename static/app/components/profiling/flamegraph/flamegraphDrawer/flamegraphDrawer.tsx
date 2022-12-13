@@ -383,6 +383,10 @@ const StyledButton = styled(Button)<{active: boolean}>`
     margin-right: ${space(1)};
   }
 
+  span:first-child {
+    opacity: 0 !important;
+  }
+
   &:hover {
     border: none;
     background-color: transparent;

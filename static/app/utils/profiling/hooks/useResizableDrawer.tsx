@@ -1,11 +1,11 @@
-import {useCallback, useLayoutEffect, useRef, useState} from 'react';
+import {useCallback, useEffect, useLayoutEffect, useRef, useState} from 'react';
 
 export interface UseResizableDrawerOptions {
   direction: 'horizontal-ltr' | 'horizontal-rtl' | 'vertical';
   min: [number, number];
   onResize: (
-    newDimensions: [number, number],
-    maybeOldDimensions?: [number, number]
+    newDimensions: [number, number] | undefined,
+    initialDimensions: [number, number] | undefined
   ) => void;
   initialDimensions?: [number, number];
 }
@@ -24,8 +24,16 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
   // We intentionally fire this once at mount to ensure the dimensions are set and
   // any potentional values set by CSS will be overriden. If no initialDimensions are provided,
   // invoke the onResize callback with the previously stored dimensions.
+  const lastDimensionsRef = useRef<[number, number]>(dimensions);
+  lastDimensionsRef.current = dimensions;
+
+  // Update the value of dimensions if initialDimensions changes
+  useEffect(() => {
+    setDimensions(options.initialDimensions ?? lastDimensionsRef.current);
+  }, [options.initialDimensions]);
+
   useLayoutEffect(() => {
-    options.onResize(options.initialDimensions ?? [0, 0], dimensions);
+    options.onResize(undefined, options.initialDimensions);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [options.direction]);
 
@@ -47,29 +55,26 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
         }
         const currentPositionVector: [number, number] = [event.clientX, event.clientY];
 
+        // we express the distance in % relative to window. This is a bit unfortunate as working with
+        // absolute values would be more accurate, but working with % ends up ultimately being more
+        // reasonable as it allows us to not have to revalidate values when window sizes change.
         const distance = [
-          startResizeVectorRef.current[0] - currentPositionVector[0],
-          startResizeVectorRef.current[1] - currentPositionVector[1],
+          (startResizeVectorRef.current[0] - currentPositionVector[0]) /
+            window.innerWidth,
+          (startResizeVectorRef.current[1] - currentPositionVector[1]) /
+            window.innerHeight,
         ];
 
         startResizeVectorRef.current = currentPositionVector;
 
         const newDimensions: [number, number] = [
+          dimensionsRef.current[0] +
+            distance[0] * (options.direction === 'horizontal-ltr' ? -1 : 1),
           // Round to 1px precision
-          Math.round(
-            Math.max(
-              options.min[0],
-              dimensionsRef.current[0] +
-                distance[0] * (options.direction === 'horizontal-ltr' ? -1 : 1)
-            )
-          ),
-          // Round to 1px precision
-          Math.round(
-            Math.max(options.min[1] ?? 0, dimensionsRef.current[1] + distance[1])
-          ),
+          dimensionsRef.current[1] + distance[1],
         ];
 
-        options.onResize(newDimensions);
+        options.onResize(newDimensions, options.initialDimensions);
         setDimensions(newDimensions);
       });
     },

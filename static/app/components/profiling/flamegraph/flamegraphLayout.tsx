@@ -9,48 +9,80 @@ import {
   useResizableDrawer,
   UseResizableDrawerOptions,
 } from 'sentry/utils/profiling/hooks/useResizableDrawer';
+import {useStoredDimensions} from 'sentry/utils/profiling/hooks/useStoredDimensions';
 
-// 664px is approximately the width where we start to scroll inside
+// 680px is approximately the width where we start to scroll inside
 // 30px is the min height to where the drawer can still be resized
 const MIN_FLAMEGRAPH_DRAWER_DIMENSIONS: [number, number] = [680, 30];
+
 interface FlamegraphLayoutProps {
   flamegraph: React.ReactElement;
   flamegraphDrawer: React.ReactElement;
   minimap: React.ReactElement;
 }
 
+function getDefaultDrawerDimensions(
+  layout: FlamegraphPreferences['layout']
+): [number, number] {
+  if (layout === 'table bottom') {
+    return [0.7, 0.3];
+  }
+  return [0.5, 0.5];
+}
+
 export function FlamegraphLayout(props: FlamegraphLayoutProps) {
   const flamegraphTheme = useFlamegraphTheme();
   const {layout} = useFlamegraphPreferences();
   const flamegraphDrawerRef = useRef<HTMLDivElement>(null);
+  const flamegraphPreferences = useFlamegraphPreferences();
+
+  const [storedDimensions, setStoredDimensions] = useStoredDimensions(
+    'profiling:drawer-dimensions',
+    {
+      [layout]: getDefaultDrawerDimensions(layout),
+    },
+    {debounce: 200}
+  );
 
   const resizableOptions: UseResizableDrawerOptions = useMemo(() => {
-    const initialDimensions: [number, number] = [
-      // Half the screen minus the ~sidebar width
-      Math.max(window.innerWidth * 0.5 - 220, MIN_FLAMEGRAPH_DRAWER_DIMENSIONS[0]),
-      (flamegraphTheme.SIZES.FLAMEGRAPH_DEPTH_OFFSET + 2) *
-        flamegraphTheme.SIZES.BAR_HEIGHT,
-    ];
+    const initialDimensions: [number, number] = storedDimensions?.[
+      flamegraphPreferences.layout
+    ]
+      ? [
+          storedDimensions[flamegraphPreferences.layout]?.[0] as number,
+          storedDimensions[flamegraphPreferences.layout]?.[1] as number,
+        ]
+      : getDefaultDrawerDimensions(layout);
 
     const onResize = (
-      newDimensions: [number, number],
-      maybeOldDimensions: [number, number] | undefined
+      newDimensions: [number, number] | undefined,
+      oldDimensions: [number, number] | undefined
     ) => {
       if (!flamegraphDrawerRef.current) {
         return;
       }
 
-      if (layout === 'table left' || layout === 'table right') {
-        flamegraphDrawerRef.current.style.width = `${
-          maybeOldDimensions?.[0] ?? newDimensions[0]
-        }px`;
-        flamegraphDrawerRef.current.style.height = `100%`;
-      } else {
-        flamegraphDrawerRef.current.style.height = `${
-          maybeOldDimensions?.[1] ?? newDimensions[1]
-        }px`;
-        flamegraphDrawerRef.current.style.width = `100%`;
+      if (!newDimensions && !oldDimensions) {
+        return;
       }
+
+      const dimensionsToStore = newDimensions || oldDimensions;
+
+      if (!dimensionsToStore) {
+        return;
+      }
+      const widthInPx = dimensionsToStore[0] * window.innerWidth;
+      const heightInPx = dimensionsToStore[1] * window.innerHeight;
+
+      if (layout === 'table left' || layout === 'table right') {
+        flamegraphDrawerRef.current.style.width = `${widthInPx}px`;
+        flamegraphDrawerRef.current.style.height = `100%`; // clear any previously set height
+      } else {
+        flamegraphDrawerRef.current.style.height = `${heightInPx}px`;
+        flamegraphDrawerRef.current.style.width = `100%`; // clear any previously set width
+      }
+
+      setStoredDimensions(layout, dimensionsToStore);
     };
 
     return {
@@ -64,9 +96,12 @@ export function FlamegraphLayout(props: FlamegraphLayoutProps) {
           : 'vertical',
       min: MIN_FLAMEGRAPH_DRAWER_DIMENSIONS,
     };
+    // we dont care about the initialDimensions past the first render
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     flamegraphTheme.SIZES.FLAMEGRAPH_DEPTH_OFFSET,
     flamegraphTheme.SIZES.BAR_HEIGHT,
+    flamegraphPreferences.layout,
     layout,
   ]);
 
@@ -79,9 +114,9 @@ export function FlamegraphLayout(props: FlamegraphLayoutProps) {
           {props.minimap}
         </MinimapContainer>
         <ZoomViewContainer>{props.flamegraph}</ZoomViewContainer>
-        <FLAMEGRAPH_DRAWERContainer ref={flamegraphDrawerRef} layout={layout}>
+        <FlamegraphDrawerContainer ref={flamegraphDrawerRef} layout={layout}>
           {cloneElement(props.flamegraphDrawer, {onResize: onMouseDown})}
-        </FLAMEGRAPH_DRAWERContainer>
+        </FlamegraphDrawerContainer>
       </FlamegraphGrid>
     </FlamegraphLayoutContainer>
   );
@@ -148,13 +183,14 @@ const ZoomViewContainer = styled('div')`
   position: relative;
 `;
 
-const FLAMEGRAPH_DRAWERContainer = styled('div')<{
+const FlamegraphDrawerContainer = styled('div')<{
   layout: FlamegraphPreferences['layout'];
 }>`
   grid-area: frame-stack;
   position: relative;
   overflow: hidden;
   min-width: ${MIN_FLAMEGRAPH_DRAWER_DIMENSIONS[0]}px;
+  min-height: ${MIN_FLAMEGRAPH_DRAWER_DIMENSIONS[1]}px;
 
   > div {
     position: absolute;
