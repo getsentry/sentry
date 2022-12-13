@@ -4,10 +4,12 @@ from django.db import models
 from django.db.models.signals import post_delete, post_save
 from django.utils import timezone
 
+from sentry import features
 from sentry.db.models import Model, region_silo_only_model, sane_repr
 from sentry.db.models.fields import FlexibleForeignKey, JSONField
 from sentry.models import ActorTuple
 from sentry.models.groupowner import OwnerRuleType
+from sentry.models.organization import Organization
 from sentry.ownership.grammar import Rule, load_schema, resolve_actors
 from sentry.utils import metrics
 from sentry.utils.cache import cache
@@ -90,7 +92,7 @@ class ProjectOwnership(Model):
 
     @classmethod
     def get_owners(
-        cls, project_id: int, data: Mapping[str, Any]
+        cls, project_id: int, data: Mapping[str, Any], organization: Optional[Organization] = None
     ) -> Tuple[Union["Everyone", Sequence["ActorTuple"]], Optional[Sequence[Rule]]]:
         """
         For a given project_id, and event data blob.
@@ -118,6 +120,9 @@ class ProjectOwnership(Model):
         rules = cls._matching_ownership_rules(ownership, project_id, data)
 
         if not rules:
+            if features.has("organizations:issue-alert-fallback-targeting", organization):
+                return [], None
+
             return cls.Everyone if ownership.fallthrough else [], None
 
         owners = {o for rule in rules for o in rule.owners}

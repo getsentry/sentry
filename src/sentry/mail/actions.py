@@ -51,19 +51,9 @@ class NotifyEmailAction(EventAction):
             fallthrough_type = FallthroughChoiceType(self.data["fallthroughType"])
 
         if not determine_eligible_recipients(group.project, target_type, target_identifier, event):
-            if (
-                features.has(
-                    "organizations:issue-alert-fallback-targeting",
-                    self.project.organization,
-                    actor=None,
-                )
-                and target_type == ActionTargetType.ISSUE_OWNERS
-            ):
-                logger.info("no issue owners found, falling back to %s", fallthrough_type)
-            else:
-                extra["group_id"] = group.id
-                self.logger.info("rule.fail.should_notify", extra=extra)
-                return
+            extra["group_id"] = group.id
+            self.logger.info("rule.fail.should_notify", extra=extra)
+            return
 
         metrics.incr("notifications.sent", instance=self.metrics_slug, skip_internal=False)
         yield self.future(

@@ -157,7 +157,9 @@ def get_owners(project: Project, event: Event | None = None) -> Sequence[Team | 
     """
 
     if event:
-        owners, _ = ProjectOwnership.get_owners(project.id, event.data)
+        owners, _ = ProjectOwnership.get_owners(
+            project.id, event.data, organization=project.organization
+        )
     else:
         owners = ProjectOwnership.Everyone
 
@@ -256,6 +258,7 @@ def determine_eligible_recipients(
     target_type: ActionTargetType,
     target_identifier: int | None = None,
     event: Event | None = None,
+    fallthrough_choice: FallthroughChoiceType | None = None,
 ) -> Iterable[Team | APIUser]:
     """
     Either get the individual recipient from the target type/id or the
@@ -278,7 +281,12 @@ def determine_eligible_recipients(
         return get_release_committers(project, event)
 
     else:
-        return get_owners(project, event)
+        owners = get_owners(project, event)
+        if owners:
+            return owners
+
+        if target_type == ActionTargetType.ISSUE_OWNERS and fallthrough_choice is not None:
+            return get_fallthrough_recipients(project, fallthrough_choice)
 
     return set()
 
@@ -329,14 +337,9 @@ def get_send_to(
     notification_type: NotificationSettingTypes = NotificationSettingTypes.ISSUE_ALERTS,
     fallthrough_choice: FallthroughChoiceType | None = None,
 ) -> Mapping[ExternalProviders, set[Team | APIUser]]:
-    recipients = determine_eligible_recipients(project, target_type, target_identifier, event)
-    if (
-        not recipients
-        and target_type == ActionTargetType.ISSUE_OWNERS
-        and fallthrough_choice is not None
-    ):
-        recipients = get_fallthrough_recipients(project, fallthrough_choice)
-
+    recipients = determine_eligible_recipients(
+        project, target_type, target_identifier, event, fallthrough_choice
+    )
     return get_recipients_by_provider(project, recipients, notification_type)
 
 
