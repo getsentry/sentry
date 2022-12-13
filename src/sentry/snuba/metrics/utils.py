@@ -204,6 +204,7 @@ FILTERABLE_TAGS = {
     "tags[transaction.status]",
     "tags[browser.name]",
     "tags[os.name]",
+    "tags[release]",
 }
 
 

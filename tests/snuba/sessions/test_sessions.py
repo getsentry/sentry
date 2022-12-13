@@ -8,6 +8,7 @@ from django.utils import timezone
 
 from sentry.release_health.base import OverviewStat
 from sentry.release_health.metrics import MetricsReleaseHealthBackend
+from sentry.release_health.metrics_new import MetricsLayerReleaseHealthBackend
 from sentry.release_health.sessions import SessionsReleaseHealthBackend
 from sentry.snuba.dataset import EntityKey
 from sentry.snuba.sessions import _make_stats
@@ -35,6 +36,14 @@ def parametrize_backend(cls):
     MetricsTest.__name__ = f"{cls.__name__}Metrics"
 
     globals()[MetricsTest.__name__] = MetricsTest
+
+    class MetricsLayerTest(BaseMetricsTestCase, cls):
+        __doc__ = f"Repeat tests from {cls} with metrics layer"
+        backend = MetricsLayerReleaseHealthBackend()
+
+    MetricsLayerTest.__name__ = f"{cls.__name__}MetricsLayer"
+
+    globals()[MetricsLayerTest.__name__] = MetricsLayerTest
 
     return cls
 
