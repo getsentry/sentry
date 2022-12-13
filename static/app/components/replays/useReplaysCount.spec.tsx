@@ -97,6 +97,7 @@ describe('useReplaysCount', () => {
         query: {
           query: `issue.id:[${mockGroupIds.join(',')}]`,
           statsPeriod: '14d',
+          project: [2],
         },
       })
     );

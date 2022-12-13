@@ -101,6 +101,7 @@ function useReplaysCount({groupIds, transactionNames, organization, project}: Op
                 query: {
                   query: cond,
                   statsPeriod: '14d',
+                  project: [Number(project?.id)],
                 },
               }
             )
@@ -136,7 +137,7 @@ function useReplaysCount({groupIds, transactionNames, organization, project}: Op
     } catch (err) {
       Sentry.captureException(err);
     }
-  }, [api, organization.slug, query, zeroCounts, eventView]);
+  }, [api, organization.slug, query, zeroCounts, eventView, project]);
 
   useEffect(() => {
     const hasSessionReplay =

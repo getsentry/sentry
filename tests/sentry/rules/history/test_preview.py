@@ -178,7 +178,7 @@ class ProjectRulePreviewTest(TestCase, SnubaTestCase):
                     Group.objects.create(
                         project=self.project,
                         first_seen=prev_hour,
-                        type=GroupType.PERFORMANCE_N_PLUS_ONE.value,
+                        type=GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value,
                     )
                 )
 
