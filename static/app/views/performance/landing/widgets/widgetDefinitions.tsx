@@ -316,7 +316,6 @@ export const WIDGET_DEFINITIONS: ({
   },
   [PerformanceWidgetSetting.SPAN_OPERATIONS]: {
     title: t('Span Operations'),
-    titleTooltip: t('The top transactions with their span breakdown.'),
     fields: SPAN_OP_BREAKDOWN_FIELDS.map(spanOp => `p75(${spanOp})`),
     dataType: GenericPerformanceWidgetDataType.stacked_bars,
     // TODO hook this in
