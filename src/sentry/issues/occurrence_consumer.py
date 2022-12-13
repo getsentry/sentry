@@ -1,6 +1,7 @@
 import logging
-from typing import Any, Callable, Mapping, Optional
+from typing import Any, Callable, Dict, Mapping, Optional
 
+import rapidjson
 from arroyo import Topic
 from arroyo.backends.kafka.configuration import build_kafka_consumer_configuration
 from arroyo.backends.kafka.consumer import KafkaConsumer, KafkaPayload
@@ -11,8 +12,8 @@ from arroyo.types import Message, Partition, Position
 from django.conf import settings
 
 from sentry.eventstore.models import Event
-from sentry.issues.issue_occurrence import IssueOccurrenceData  # IssueOccurrence
-from sentry.tasks.base import instrumented_task
+from sentry.issues.ingest import save_issue_occurrence
+from sentry.issues.issue_occurrence import IssueOccurrence, IssueOccurrenceData
 from sentry.utils import json, metrics
 from sentry.utils.canonical import CanonicalKeyDict
 from sentry.utils.kafka_config import get_kafka_consumer_cluster_options
@@ -51,91 +52,74 @@ def create_ingest_occurences_consumer(
     )
 
 
-@instrumented_task(  # type: ignore
-    name="sentry.tasks.store.save_event_occurrence",
-    queue="events.save_event_occurrence",
-    time_limit=65,
-    soft_time_limit=60,
-)
-def save_event_occurrence(
-    data: Optional[Event] = None,
-    start_time: Optional[int] = None,
+def save_event_from_occurrence(
+    data: Dict[str, Any],
     **kwargs: Any,
-) -> Optional[Event]:
+) -> Event:
 
     from sentry.event_manager import EventManager
 
     event_type = "platform"
 
     with metrics.global_tags(event_type=event_type):
-        if data is not None:
-            data = CanonicalKeyDict(data)
+        project_id = data["data"].pop("project_id")
+        data = CanonicalKeyDict(data)
 
-            with metrics.timer("occurrence_consumer.save_event_occurrence.event_manager.save"):
-                manager = EventManager(data)
-                event = manager.save()
+        with metrics.timer("occurrence_consumer.save_event_occurrence.event_manager.save"):
+            manager = EventManager(data)
+            event = manager.save(project_id=project_id)
 
-                return event
-
-    return None
+            return event
 
 
-def dispatch_process_event_and_issue_occurrence_task(
-    occurrence_data: IssueOccurrenceData, event_data: Any  # EventData
-) -> None:
-    # event = save_event_occurrence(event_data)
-    # if not event:
-    #    # event failed to save
-    #    return
-    # save_issue_occurrence(occurrence_data, event)
-    pass
+def process_event_and_issue_occurrence(
+    occurrence_data: IssueOccurrenceData, event_data: Dict[str, Any]
+) -> Optional[IssueOccurrence]:
+    try:
+        event = save_event_from_occurrence(event_data)
+    except Exception:
+        logger.error("error saving message")
+        return None
+
+    occurrence_data["event_id"] = event.event_id
+    return save_issue_occurrence(occurrence_data, event)
 
 
-def dispatch_process_issue_occurrence_task(
-    occurrence_data: IssueOccurrenceData,
-) -> None:
-    # event = occurrence_data.event_id  # TODO get Event object here
-    # occurrence_data.event_id = event.id
-    # save_issue_occurrence(**kwargs, event)
-    pass
+def _get_kwargs(payload: Mapping[str, Any]) -> Optional[Mapping[str, Any]]:
+    try:
+        with metrics.timer(_DURATION_METRIC, instance="get_task_kwargs_for_message"):
+            metrics.timing("occurrence.ingest.size.data", len(payload))
+
+            kwargs = {
+                "occurrence_data": {
+                    "id": payload["id"],
+                    "event_id": None,
+                    "fingerprint": payload["fingerprint"],
+                    "issue_title": payload["issue_title"],
+                    "subtitle": payload["subtitle"],
+                    "resource_id": payload.get("resource_id"),
+                    "evidence_data": payload.get("evidence_data"),
+                    "evidence_display": payload.get("evidence_display"),
+                    "type": payload["type"],
+                    "detection_time": payload["detection_time"],
+                }
+            }
+
+            if "event" in payload:
+                kwargs["event_data"] = {"data": payload["event"]}
+            else:
+                kwargs["occurrence_data"]["event_id"] = payload.get("event_id")
+
+            return kwargs
+
+    except (KeyError, ValueError):
+        logger.exception("invalid payload data")
+        return None
 
 
-def get_task_kwargs_for_message(value: bytes) -> Optional[Mapping[str, Any]]:
-    metrics.timing("occurrence.ingest.size.data", len(value))
-    payload = json.loads(value, use_rapid_json=True)
-
-    kwargs = {
-        "occurrence": {
-            "id": payload["id"],
-            # event_id: str
-            "fingerprint": payload["fingerprint"],
-            "issue_title": payload["issue_title"],
-            "subtitle": payload["subtitle"],
-            "resource_id": payload.get("resource_id"),
-            "evidence_data": None,
-            "evidence_display": None,
-            "type": payload["type"],
-            "detection_time": float,
-        }
-        # TODO validate payload here
-    }
-
-    if "event" in payload:
-        kwargs["event"] = {}
-    else:
-        kwargs["occurrence"].event_id = payload.get("event_id")
-
-    return kwargs
-
-
-def _get_task_kwargs(message: Message[KafkaPayload]) -> Optional[Mapping[str, Any]]:
-    with metrics.timer(_DURATION_METRIC, instance="get_task_kwargs_for_message"):
-        return get_task_kwargs_for_message(message.payload.value)
-
-
-def _get_task_kwargs_and_dispatch(message: Message[KafkaPayload]) -> None:
-    task_kwargs = _get_task_kwargs(message)
-    if not task_kwargs:
+def _process_message(message: Mapping[str, Any]) -> Optional[IssueOccurrence]:
+    kwargs = _get_kwargs(message)
+    if not kwargs:
         return None
 
     metrics.incr(
@@ -145,10 +129,13 @@ def _get_task_kwargs_and_dispatch(message: Message[KafkaPayload]) -> None:
         sample_rate=1,
     )
 
-    if "event_data" in task_kwargs:
-        dispatch_process_event_and_issue_occurrence_task(**task_kwargs)
+    if "event_data" in kwargs:
+        return process_event_and_issue_occurrence(**kwargs)  # returning this now for easier testing
     else:
-        dispatch_process_issue_occurrence_task(**task_kwargs)
+        # all occurrences will have Event data, for now
+        pass
+
+    return None
 
 
 class OccurrenceStrategy(ProcessingStrategy[KafkaPayload]):
@@ -163,8 +150,11 @@ class OccurrenceStrategy(ProcessingStrategy[KafkaPayload]):
         pass
 
     def submit(self, message: Message[KafkaPayload]) -> None:
-        logger.info(f"OCCURRENCE RECEIVED: {message.payload.value}")
-        _get_task_kwargs_and_dispatch(message)
+        try:
+            payload = json.loads(message.payload.value, use_rapid_json=True)
+            _process_message(payload)
+        except rapidjson.JSONDecodeError:
+            pass
 
     def close(self) -> None:
         pass
