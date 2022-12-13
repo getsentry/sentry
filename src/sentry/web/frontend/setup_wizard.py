@@ -1,4 +1,11 @@
+from __future__ import annotations
+
+from typing import Any
+from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
+
+from django.conf import settings
 from django.db.models import F
+from django.http import HttpResponse
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -15,11 +22,27 @@ from sentry.models import (
     ProjectKeyStatus,
     ProjectStatus,
 )
+from sentry.utils.http import absolute_uri
+from sentry.utils.urls import add_params_to_url
 from sentry.web.frontend.base import BaseView
 from sentry.web.helpers import render_to_response
 
 
 class SetupWizardView(BaseView):
+    def handle_auth_required(self, request: Request, *args: Any, **kwargs: Any) -> HttpResponse:
+        if request.GET.get("signup") == "1" and settings.SENTRY_SIGNUP_URL:
+
+            fragments = list(urlparse(absolute_uri(request.get_full_path())))
+            params_for_next_url = dict(parse_qsl(fragments[4]))
+            # remove signup if it's there
+            params_for_next_url.pop("signup", None)
+            fragments[4] = urlencode(list(params_for_next_url))
+
+            params = {"next": urlunparse(fragments)}
+
+            return self.redirect(add_params_to_url(settings.SENTRY_SIGNUP_URL, params))
+        return super().handle_auth_required(request, *args, **kwargs)
+
     def get(self, request: Request, wizard_hash) -> Response:
         """
         This opens a page where with an active session fill stuff into the cache
