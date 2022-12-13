@@ -103,6 +103,12 @@ class NPlusOneAPICallsDetectorTest(unittest.TestCase):
                 }
             },
         },
+        {
+            "span_id": "a",
+            "op": "http.client",
+            "description": "GET http://service.io/resource.json?param=something",
+            "hash": "a",
+        },
     ],
 )
 def test_allows_eligible_spans(span):
@@ -144,12 +150,6 @@ def test_allows_eligible_spans(span):
             "op": "http.client",
             "hash": "b",
             "description": "GET /_next/data/LjdprRSkUtLP0bMUoWLur/items.json?collection=hello",
-        },
-        {
-            "span_id": "a",
-            "op": "http.client",
-            "hash": "b",
-            "description": "GET https://a.tiles.mapbox.com/v4/mapbox.mapbox-terrain-v2.json?access_token=pk.mystery",
         },
     ],
 )
