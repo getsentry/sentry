@@ -43,7 +43,7 @@ class DSRulesLogger:
             # Sentry.
             sentry_sdk.capture_exception(e)
 
-    def _format_rules(self) -> Dict:
+    def _format_rules(self) -> List[Dict[str, Union[List[str], str, float, None]]]:
         formatted_rules = []
 
         for rule_type, rule in self.rules:
@@ -52,22 +52,22 @@ class DSRulesLogger:
                     "type": rule_type.value,
                     "id": rule["id"],
                     "sample_rate": rule["sampleRate"],
-                    **self._extract_info_from_rule(rule_type, rule),
+                    **self._extract_info_from_rule(rule_type, rule),  # type:ignore
                 }
             )
 
-        return formatted_rules
+        return formatted_rules  # type:ignore
 
     def _extract_info_from_rule(
         self, rule_type: RuleType, rule: Union[BaseRule, ReleaseRule]
-    ) -> Dict:
+    ) -> Dict[str, Union[List[str], str, None]]:
         if rule_type == RuleType.BOOST_LATEST_RELEASES_RULE:
             return {
-                "release": rule["condition"]["inner"][0]["value"],
-                "environment": rule["condition"]["inner"][1]["value"],
+                "release": rule["condition"]["inner"][0]["value"],  # type:ignore
+                "environment": rule["condition"]["inner"][1]["value"],  # type:ignore
             }
         elif rule_type == RuleType.BOOST_KEY_TRANSACTIONS_RULE:
-            return {"transaction": rule["condition"]["inner"][0]["value"]}
+            return {"transaction": rule["condition"]["inner"][0]["value"]}  # type:ignore
         else:
             return {}
 
@@ -212,7 +212,7 @@ def generate_rules(project: Project) -> List[Union[BaseRule, ReleaseRule]]:
     """
     This function handles generate rules logic or fallback empty list of rules
     """
-    rules: List[Tuple(RuleType, Union[BaseRule, ReleaseRule])] = []
+    rules: List[Tuple[RuleType, Union[BaseRule, ReleaseRule]]] = []
 
     sample_rate = quotas.get_blended_sample_rate(project)
 
