@@ -598,7 +598,7 @@ def invitation(request):
             "organization": org,
             "url": absolute_uri(
                 reverse(
-                    "sentry-accept-invite",
+                    "sentry-accept-invite-with-org",
                     kwargs={"organization_slug": org.slug, "member_id": om.id, "token": om.token},
                 )
             ),
