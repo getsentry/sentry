@@ -175,7 +175,9 @@ def query_replays_count(
             granularity=Granularity(3600),
         ),
     )
-    return raw_snql_query(snuba_request, "replays.query.query_replays_count")
+    return raw_snql_query(
+        snuba_request, referrer="replays.query.query_replays_count", use_cache=True
+    )
 
 
 # Select.
