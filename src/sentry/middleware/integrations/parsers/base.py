@@ -72,7 +72,8 @@ class BaseRequestParser(abc.ABC):
 
     def get_response(self):
         """
-        Used to surface a response as part of the middleware. Should be overwritten.
+        Used to surface a response as part of the middleware.
+        Should be overwritten by implementation.
         Default behaviour is handle the response ignoring SiloMode.
         """
         return self.response_handler(self.request)
@@ -80,6 +81,7 @@ class BaseRequestParser(abc.ABC):
     def get_integration(self) -> Integration | None:
         """
         Parse the request to retreive organizations to forward the request to.
+        Should be overwritten by implementation.
         """
         return None
 
