@@ -137,7 +137,7 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
         Sorts the code mapping config list based on precedence.
         User generated code mappings are evaluated before Sentry generated code mappings.
         Code mappings with more defined stack trace roots are evaluated before less defined stack trace
-        roots (To Do)
+        roots.
 
         `configs`: The list of code mapping configs
 
