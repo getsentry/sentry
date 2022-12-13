@@ -27,6 +27,7 @@ export type ScrollbarManagerChildrenProps = {
   updateHorizontalScrollState: (avgSpanDepth: number) => void;
   updateScrollState: () => void;
   virtualScrollbarRef: React.RefObject<HTMLDivElement>;
+  currentLeftPos: number;
 };
 
 const ScrollbarManagerContext = createContext<ScrollbarManagerChildrenProps>({
@@ -40,6 +41,7 @@ const ScrollbarManagerContext = createContext<ScrollbarManagerChildrenProps>({
   onWheel: () => {},
   updateScrollState: () => {},
   storeSpanBar: () => {},
+  currentLeftPos: 0,
 });
 
 const selectRefs = (
@@ -125,6 +127,7 @@ export class Provider extends Component<Props, State> {
   animationTimeout: NodeJS.Timeout | null = null;
   previousUserSelect: UserSelectValues | null = null;
   spanBars: SpanBar[] = [];
+  currentLeftPos = 0;
 
   getReferenceSpanBar() {
     for (const currentSpanBar of this.contentSpanBar) {
@@ -200,12 +203,14 @@ export class Provider extends Component<Props, State> {
   updateHorizontalScrollState = (avgSpanDepth: number) => {
     if (avgSpanDepth === 0) {
       this.throttledScroll(0, true);
+      this.currentLeftPos = 0;
 
       return;
     }
 
     const left = avgSpanDepth * (TOGGLE_BORDER_BOX / 2) - TOGGLE_BUTTON_MAX_WIDTH / 2;
     this.throttledScroll(left, true);
+    this.currentLeftPos = left;
   };
 
   syncVirtualScrollbar = (spanBar: HTMLDivElement) => {
@@ -300,7 +305,7 @@ export class Provider extends Component<Props, State> {
   };
 
   // Throttle the scroll function to prevent jankiness in the auto-adjust animations when scrolling fast
-  throttledScroll = throttle(this.performScroll, 300, {trailing: true});
+  throttledScroll = throttle(this.performScroll, 500, {trailing: true});
 
   onWheel = (deltaX: number) => {
     if (this.isDragging || !this.hasInteractiveLayer()) {
@@ -528,6 +533,7 @@ export class Provider extends Component<Props, State> {
       scrollBarAreaRef: this.scrollBarArea,
       updateScrollState: this.initializeScrollState,
       storeSpanBar: this.storeSpanBar,
+      currentLeftPos: this.currentLeftPos,
     };
 
     return (
