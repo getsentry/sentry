@@ -202,6 +202,11 @@ export class Provider extends Component<Props, State> {
   };
 
   updateHorizontalScrollState = (avgSpanDepth: number) => {
+    if (avgSpanDepth === 0) {
+      this.throttledScroll(0, true);
+      return;
+    }
+
     const left = avgSpanDepth * (TOGGLE_BORDER_BOX / 2) - TOGGLE_BUTTON_MAX_WIDTH / 2;
     this.throttledScroll(left, true);
   };
