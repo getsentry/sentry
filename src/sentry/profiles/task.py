@@ -307,7 +307,7 @@ def _process_symbolicator_results(
 def _process_symbolicator_results_for_sample(profile: Profile, stacktraces: List[Any]) -> None:
     original_frames = profile["profile"]["frames"]
     symbolicated_frames = stacktraces[0]["frames"]
-    inline_frame_ids: Dict[int, List] = {}
+    inline_frame_ids: Dict[int, List[int]] = {}
 
     # reverse the list to have the first frame be the "real" one
     symbolicated_frames.reverse()
