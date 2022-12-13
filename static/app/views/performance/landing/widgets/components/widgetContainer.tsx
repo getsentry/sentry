@@ -164,17 +164,37 @@ const _WidgetContainer = (props: Props) => {
     'withStaticFilters',
   ]);
 
+  const titleTooltip = showNewWidgetDesign ? '' : widgetProps.titleTooltip;
+
   switch (widgetProps.dataType) {
     case GenericPerformanceWidgetDataType.trends:
-      return <TrendsWidget {...passedProps} {...widgetProps} />;
+      return (
+        <TrendsWidget {...passedProps} {...widgetProps} titleTooltip={titleTooltip} />
+      );
     case GenericPerformanceWidgetDataType.area:
-      return <SingleFieldAreaWidget {...passedProps} {...widgetProps} />;
+      return (
+        <SingleFieldAreaWidget
+          {...passedProps}
+          {...widgetProps}
+          titleTooltip={titleTooltip}
+        />
+      );
     case GenericPerformanceWidgetDataType.vitals:
-      return <VitalWidget {...passedProps} {...widgetProps} />;
+      return (
+        <VitalWidget {...passedProps} {...widgetProps} titleTooltip={titleTooltip} />
+      );
     case GenericPerformanceWidgetDataType.line_list:
-      return <LineChartListWidget {...passedProps} {...widgetProps} />;
+      return (
+        <LineChartListWidget
+          {...passedProps}
+          {...widgetProps}
+          titleTooltip={titleTooltip}
+        />
+      );
     case GenericPerformanceWidgetDataType.histogram:
-      return <HistogramWidget {...passedProps} {...widgetProps} />;
+      return (
+        <HistogramWidget {...passedProps} {...widgetProps} titleTooltip={titleTooltip} />
+      );
     default:
       throw new Error(`Widget type "${widgetProps.dataType}" has no implementation.`);
   }
