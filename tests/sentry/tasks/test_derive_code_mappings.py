@@ -48,6 +48,12 @@ class TestJavascriptDeriveCodeMappings(BaseDeriveCodeMappings):
         stacktrace_paths = identify_stacktrace_paths(self.event_data)
         assert stacktrace_paths == ["./app/utils/handleXhrErrorResponse.tsx"]
 
+    def test_find_stacktrace_empty(self):
+        data = self.generate_data([{}])
+        data["stacktrace"]["frames"] = [None]
+        stacktrace_paths = identify_stacktrace_paths(data)
+        assert stacktrace_paths == []
+
     def test_find_stacktrace_paths_bad_data(self):
         data = self.generate_data([{}])
         data["stacktrace"]["frames"] = [
