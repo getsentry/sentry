@@ -197,17 +197,17 @@ def save_issue_from_occurrence(
 def send_issue_occurrence_to_eventstream(
     event: Event, occurrence: IssueOccurrence, group_info: GroupInfo
 ) -> None:
-    event_group = event.for_group(group_info.group)
-    event_group.occurrence = occurrence
+    group_event = event.for_group(group_info.group)
+    group_event.occurrence = occurrence
 
     eventstream.insert(
-        event=event_group,
+        event=group_event,
         is_new=group_info.is_new,
         is_regression=group_info.is_regression,
         is_new_group_environment=group_info.is_new_group_environment,
-        primary_hash=event_group.get_primary_hash(),
+        primary_hash=group_event.get_primary_hash(),
         # Not totally sure this is right. Should it be detection time instead?
-        received_timestamp=event_group.datetime,
+        received_timestamp=group_event.data.get("received") or group_event.datetime,
         skip_consume=False,
         group_states=[
             {

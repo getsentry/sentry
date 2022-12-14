@@ -185,15 +185,15 @@ class SaveIssueOccurrenceToEventstreamTest(OccurrenceTestMixin, TestCase):  # ty
     def test(self) -> None:
         # TODO: We should make this a platform event once we have one
         event = self.store_event(data={}, project_id=self.project.id)
-        event_group = event.for_group(self.group)
+        group_event = event.for_group(self.group)
         occurrence = self.build_occurrence(event_id=event.event_id)
         group_info = GroupInfo(event.group, True, False, None, False)
         with mock.patch("sentry.issues.ingest.eventstream") as eventstream, mock.patch.object(
-            event, "for_group", return_value=event_group
+            event, "for_group", return_value=group_event
         ):
             send_issue_occurrence_to_eventstream(event, occurrence, group_info)
             eventstream.insert.assert_called_once_with(
-                event=event_group,
+                event=group_event,
                 is_new=group_info.is_new,
                 is_regression=group_info.is_regression,
                 is_new_group_environment=group_info.is_new_group_environment,
