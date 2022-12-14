@@ -66,9 +66,7 @@ describe('IssueListSetAsDefault', () => {
 
     render(<IssueListSetAsDefault {...defaultProps} />, {organization});
 
-    await waitFor(() => {
-      userEvent.click(screen.getByRole('button', {name: /remove default/i}));
-    });
+    userEvent.click(await screen.findByRole('button', {name: /remove default/i}));
 
     await waitFor(() => {
       expect(mockUnpinSearch).toHaveBeenCalledWith(
