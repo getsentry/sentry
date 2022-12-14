@@ -13,6 +13,7 @@ import Button from 'sentry/components/button';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import Placeholder from 'sentry/components/placeholder';
+import type {PlatformKey} from 'sentry/data/platformCategories';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -29,6 +30,7 @@ import {
   getIntegrationIcon,
   trackIntegrationAnalytics,
 } from 'sentry/utils/integrationUtil';
+import {isMobilePlatform} from 'sentry/utils/platform';
 import {promptIsDismissed} from 'sentry/utils/promptIsDismissed';
 import {useQuery, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
@@ -37,6 +39,16 @@ import useProjects from 'sentry/utils/useProjects';
 
 import {OpenInContainer} from './openInContextLine';
 import StacktraceLinkModal from './stacktraceLinkModal';
+
+const supportedStacktracePlatforms: PlatformKey[] = [
+  'go',
+  'javascript',
+  'node',
+  'php',
+  'python',
+  'ruby',
+  'elixir',
+];
 
 interface StacktraceLinkSetupProps {
   event: Event;
@@ -84,9 +96,7 @@ function StacktraceLinkSetup({organization, project, event}: StacktraceLinkSetup
     <CodeMappingButtonContainer columnQuantity={2}>
       <StyledLink to={`/settings/${organization.slug}/integrations/`}>
         <StyledIconWrapper>{getIntegrationIcon('github', 'sm')}</StyledIconWrapper>
-        {t(
-          'Add a GitHub, Bitbucket, or similar integration to make sh*t easier for your team'
-        )}
+        {t('Add the GitHub or GitLab integration to jump straight to your source code')}
       </StyledLink>
       <CloseButton type="button" priority="link" onClick={dismissPrompt}>
         <IconClose size="xs" aria-label={t('Close')} />
@@ -102,6 +112,15 @@ interface StacktraceLinkProps {
    * The line of code being linked
    */
   line: string;
+}
+
+export function isMobileLanguage(event: Event) {
+  return (
+    isMobilePlatform(event.platform) ||
+    (event.platform === 'other' &&
+      isMobilePlatform(event.release?.projects?.[0].platform)) ||
+    (event.platform === 'java' && isMobilePlatform(event.release?.projects?.[0].platform))
+  );
 }
 
 export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
@@ -124,6 +143,8 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
         })
       : false;
 
+  const isMobile = isMobileLanguage(event);
+
   const query = {
     file: frame.filename,
     platform: event.platform,
@@ -137,10 +158,10 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
     data: match,
     isLoading,
     refetch,
-  } = useQuery<StacktraceLinkResult>([
-    `/projects/${organization.slug}/${project?.slug}/stacktrace-link/`,
-    {query},
-  ]);
+  } = useQuery<StacktraceLinkResult>(
+    [`/projects/${organization.slug}/${project?.slug}/stacktrace-link/`, {query}],
+    {staleTime: Infinity, retry: false}
+  );
 
   // Track stacktrace analytics after loaded
   useEffect(() => {
@@ -188,6 +209,11 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
     refetch();
   };
 
+  // Temporarily prevent mobile platforms from showing stacktrace link
+  if (isMobile) {
+    return null;
+  }
+
   if (isLoading || !match) {
     return (
       <CodeMappingButtonContainer columnQuantity={2}>
@@ -216,8 +242,12 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
 
   // Hide stacktrace link errors if the stacktrace might be minified javascript
   // Check if the line starts and ends with {snip}
-  const hideErrors = event.platform === 'javascript' && /(\{snip\}).*\1/.test(line);
-
+  const isMinifiedJsError =
+    event.platform === 'javascript' && /(\{snip\}).*\1/.test(line);
+  const isUnsupportedPlatform = !supportedStacktracePlatforms.includes(
+    event.platform as PlatformKey
+  );
+  const hideErrors = isMinifiedJsError || isUnsupportedPlatform;
   // No match found - Has integration but no code mappings
   if (!hideErrors && (match.error || match.integrations.length > 0)) {
     const filename = frame.filename;

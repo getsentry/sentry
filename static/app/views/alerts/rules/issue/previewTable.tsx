@@ -67,6 +67,7 @@ const PreviewTable = ({
           useFilteredStats
           withChart={false}
           canSelect={false}
+          showLastTriggered
         />
       );
     });
@@ -97,7 +98,7 @@ const PreviewTable = ({
   return (
     <IssuesReplayCountProvider groupIds={previewGroups || []}>
       <Panel>
-        <GroupListHeader withChart={false} />
+        <GroupListHeader withChart={false} showLastTriggered />
         <PanelBody>{renderBody()}</PanelBody>
       </Panel>
       {renderPagination()}

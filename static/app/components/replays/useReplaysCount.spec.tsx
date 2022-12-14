@@ -1,18 +1,27 @@
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
 
+import type {Project} from 'sentry/types';
 import {useLocation} from 'sentry/utils/useLocation';
 
 import useReplaysCount from './useReplaysCount';
 
 jest.mock('sentry/utils/useLocation');
 
-function getExpectedReqestParams({field, query}: {field: string[]; query: string}) {
+function getExpectedReqestParams({
+  field,
+  project,
+  query,
+}: {
+  field: string[];
+  project: Project;
+  query: string;
+}) {
   return expect.objectContaining({
     query: {
       environment: [],
       field,
       per_page: 50,
-      project: [],
+      project: [String(project.id)],
       query,
       statsPeriod: '14d',
     },
@@ -65,10 +74,10 @@ describe('useReplaysCount', () => {
   });
 
   it('should query for groupIds', async () => {
-    const countRequest = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events/`,
+    const replayCountRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issue-replay-count/`,
       method: 'GET',
-      body: {data: []},
+      body: {},
     });
 
     const {result, waitForNextUpdate} = reactHooks.renderHook(useReplaysCount, {
@@ -80,11 +89,14 @@ describe('useReplaysCount', () => {
     });
 
     expect(result.current).toEqual({});
-    expect(countRequest).toHaveBeenCalledWith(
-      '/organizations/org-slug/events/',
-      getExpectedReqestParams({
-        field: ['count_unique(replayId)', 'issue.id'],
-        query: `!replayId:"" issue.id:[${mockGroupIds.join(',')}]`,
+    expect(replayCountRequest).toHaveBeenCalledWith(
+      '/organizations/org-slug/issue-replay-count/',
+      expect.objectContaining({
+        query: {
+          query: `issue.id:[${mockGroupIds.join(',')}]`,
+          statsPeriod: '14d',
+          project: [2],
+        },
       })
     );
 
@@ -92,16 +104,11 @@ describe('useReplaysCount', () => {
   });
 
   it('should return the count of each groupId, or zero if not included in the response', async () => {
-    const countRequest = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events/`,
+    const replayCountRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issue-replay-count/`,
       method: 'GET',
       body: {
-        data: [
-          {
-            'count_unique(replayId)': 42,
-            'issue.id': 123,
-          },
-        ],
+        123: 42,
       },
     });
 
@@ -114,7 +121,7 @@ describe('useReplaysCount', () => {
     });
 
     expect(result.current).toEqual({});
-    expect(countRequest).toHaveBeenCalled();
+    expect(replayCountRequest).toHaveBeenCalled();
 
     await waitForNextUpdate();
 
@@ -144,6 +151,7 @@ describe('useReplaysCount', () => {
       '/organizations/org-slug/events/',
       getExpectedReqestParams({
         field: ['count_unique(replayId)', 'transaction'],
+        project,
         query: `!replayId:"" event.type:transaction transaction:[${mockTransactionNames.join(
           ','
         )}]`,

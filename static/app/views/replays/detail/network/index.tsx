@@ -8,14 +8,10 @@ import {
 } from 'react-virtualized';
 import styled from '@emotion/styled';
 
-import CompactSelect from 'sentry/components/compactSelect';
-import DateTime from 'sentry/components/dateTime';
-import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import FileSize from 'sentry/components/fileSize';
 import Placeholder from 'sentry/components/placeholder';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
-import {relativeTimeInMs, showPlayerTime} from 'sentry/components/replays/utils';
-import SearchBar from 'sentry/components/searchBar';
+import {relativeTimeInMs} from 'sentry/components/replays/utils';
 import Tooltip from 'sentry/components/tooltip';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -23,13 +19,11 @@ import space from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {getPrevReplayEvent} from 'sentry/utils/replays/getReplayEvent';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
+import NetworkFilters from 'sentry/views/replays/detail/network/networkFilters';
 import useNetworkFilters from 'sentry/views/replays/detail/network/useNetworkFilters';
-import {
-  getResourceTypes,
-  getStatusTypes,
-  ISortConfig,
-  sortNetwork,
-} from 'sentry/views/replays/detail/network/utils';
+import {ISortConfig, sortNetwork} from 'sentry/views/replays/detail/network/utils';
+import NoRowRenderer from 'sentry/views/replays/detail/noRowRenderer';
+import TimestampButton from 'sentry/views/replays/detail/timestampButton';
 import type {NetworkSpan, ReplayRecord} from 'sentry/views/replays/types';
 
 type Props = {
@@ -58,15 +52,9 @@ function NetworkList({replayRecord, networkSpans}: Props) {
   const multiGridRef = useRef<MultiGrid>(null);
   const networkTableRef = useRef<HTMLDivElement>(null);
 
-  const {
-    items,
-    status: selectedStatus,
-    type: selectedType,
-    searchTerm,
-    setStatus,
-    setType,
-    setSearchTerm,
-  } = useNetworkFilters({networkSpans});
+  const filterProps = useNetworkFilters({networkSpans: networkSpans || []});
+  const {items, searchTerm, setSearchTerm} = filterProps;
+  const clearSearchTerm = () => setSearchTerm('');
 
   const networkData = useMemo(() => sortNetwork(items, sortConfig), [items, sortConfig]);
 
@@ -253,11 +241,12 @@ function NetworkList({replayRecord, networkSpans}: Props) {
         {`${(networkEndTimestamp - networkStartTimestamp).toFixed(2)}ms`}
       </Item>,
       <Item key="timestamp" {...columnHandlers} {...columnProps} numeric>
-        <Tooltip title={<DateTime date={networkStartTimestamp} seconds />}>
-          <UnstyledButton onClick={() => handleClick(networkStartTimestamp)}>
-            {showPlayerTime(networkStartTimestamp, startTimestampMs, true)}
-          </UnstyledButton>
-        </Tooltip>
+        <TimestampButton
+          format="mm:ss.SSS"
+          onClick={() => handleClick(networkStartTimestamp)}
+          startTimestampMs={startTimestampMs}
+          timestampMs={networkStartTimestamp}
+        />
       </Item>,
     ];
 
@@ -286,42 +275,7 @@ function NetworkList({replayRecord, networkSpans}: Props) {
 
   return (
     <NetworkContainer>
-      <NetworkFilters>
-        <CompactSelect
-          triggerProps={{prefix: t('Status')}}
-          triggerLabel={selectedStatus.length === 0 ? t('Any') : null}
-          multiple
-          options={getStatusTypes(networkSpans || []).map(value => ({
-            value,
-            label: value,
-          }))}
-          size="sm"
-          onChange={selected => setStatus(selected.map(_ => _.value))}
-          value={selectedStatus}
-          isDisabled={!networkSpans}
-        />
-        <CompactSelect
-          triggerProps={{prefix: t('Type')}}
-          triggerLabel={selectedType.length === 0 ? t('Any') : null}
-          multiple
-          options={getResourceTypes(networkSpans || []).map(value => ({
-            value,
-            label: value,
-          }))}
-          size="sm"
-          onChange={selected => setType(selected.map(_ => _.value))}
-          value={selectedType}
-          isDisabled={!networkSpans}
-        />
-        <SearchBar
-          size="sm"
-          onChange={setSearchTerm}
-          placeholder={t('Search Network...')}
-          query={searchTerm}
-          disabled={!networkSpans}
-        />
-      </NetworkFilters>
-
+      <NetworkFilters networkSpans={networkSpans} {...filterProps} />
       <NetworkTable ref={networkTableRef}>
         {networkSpans ? (
           <AutoSizer>
@@ -358,17 +312,14 @@ function NetworkList({replayRecord, networkSpans}: Props) {
                     setScrollBarWidth(0);
                   }
                 }}
-                noContentRenderer={() =>
-                  networkSpans.length === 0 ? (
-                    <EmptyStateWarning withIcon={false} small>
-                      {t('No related network requests recorded')}
-                    </EmptyStateWarning>
-                  ) : (
-                    <EmptyStateWarning withIcon small>
-                      {t('No results found')}
-                    </EmptyStateWarning>
-                  )
-                }
+                noContentRenderer={() => (
+                  <NoRowRenderer
+                    unfilteredItems={networkSpans}
+                    clearSearchTerm={clearSearchTerm}
+                  >
+                    {t('No network requests recorded')}
+                  </NoRowRenderer>
+                )}
               />
             )}
           </AutoSizer>
@@ -382,17 +333,6 @@ function NetworkList({replayRecord, networkSpans}: Props) {
 
 const NetworkContainer = styled(FluidHeight)`
   height: 100%;
-`;
-
-const NetworkFilters = styled('div')`
-  display: grid;
-  gap: ${space(1)};
-  grid-template-columns: max-content max-content 1fr;
-  margin-bottom: ${space(1)};
-
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
-    margin-top: ${space(1)};
-  }
 `;
 
 const Text = styled('p')`

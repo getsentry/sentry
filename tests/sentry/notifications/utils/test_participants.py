@@ -503,7 +503,7 @@ class GetOwnersCase(TestCase):
         )
         assert owner_reason is None
 
-        with self.feature("organizations:issue-alert-fallback-targeting"):
+        with self.feature("organizations:issue-alert-fallback-message"):
             owner_reason = get_owner_reason(
                 project=self.project, target_type=ActionTargetType.ISSUE_OWNERS, event=event
             )
@@ -515,7 +515,7 @@ class GetOwnersCase(TestCase):
     def test_get_owner_reason_assigned(self):
         self.create_ownership(self.project, [], True)
         event = self.create_event(self.project)
-        with self.feature("organizations:issue-alert-fallback-targeting"):
+        with self.feature("organizations:issue-alert-fallback-message"):
             owner_reason = get_owner_reason(
                 project=self.project,
                 target_type=ActionTargetType.ISSUE_OWNERS,

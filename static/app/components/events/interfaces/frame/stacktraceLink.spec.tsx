@@ -21,6 +21,7 @@ describe('StacktraceLink', function () {
   const frame = {filename: '/sentry/app.py', lineNo: 233} as Frame;
   const config = TestStubs.RepositoryProjectPathConfig({project, repo, integration});
   let promptActivity: jest.Mock;
+
   const analyticsSpy = jest.spyOn(analytics, 'trackIntegrationAnalytics');
 
   beforeEach(function () {
@@ -44,7 +45,7 @@ describe('StacktraceLink', function () {
     });
     expect(
       await screen.findByText(
-        'Add a GitHub, Bitbucket, or similar integration to make sh*t easier for your team'
+        'Add the GitHub or GitLab integration to jump straight to your source code'
       )
     ).toBeInTheDocument();
     expect(stacktraceLinkMock).toHaveBeenCalledTimes(1);
@@ -59,6 +60,16 @@ describe('StacktraceLink', function () {
       })
     );
     expect(promptActivity).toHaveBeenCalledTimes(1);
+    expect(promptActivity).toHaveBeenCalledWith(
+      '/prompts-activity/',
+      expect.objectContaining({
+        query: {
+          feature: 'stacktrace_link',
+          organization_id: org.id,
+          project_id: project.id,
+        },
+      })
+    );
     expect(analyticsSpy).toHaveBeenCalledTimes(1);
   });
 
@@ -77,7 +88,7 @@ describe('StacktraceLink', function () {
     });
     expect(
       await screen.findByText(
-        'Add a GitHub, Bitbucket, or similar integration to make sh*t easier for your team'
+        'Add the GitHub or GitLab integration to jump straight to your source code'
       )
     ).toBeInTheDocument();
 
@@ -162,6 +173,24 @@ describe('StacktraceLink', function () {
         event={{...event, platform: 'javascript'}}
         line="{snip} somethingInsane=e.IsNotFound {snip}"
       />,
+      {context: TestStubs.routerContext()}
+    );
+    await waitFor(() => {
+      expect(container).toBeEmptyDOMElement();
+    });
+  });
+
+  it('should hide stacktrace link error state on unsupported platforms', async function () {
+    MockApiClient.addMockResponse({
+      url: `/projects/${org.slug}/${project.slug}/stacktrace-link/`,
+      body: {
+        config,
+        sourceUrl: null,
+        integrations: [integration],
+      },
+    });
+    const {container} = render(
+      <StacktraceLink frame={frame} event={{...event, platform: 'unreal'}} line="" />,
       {context: TestStubs.routerContext()}
     );
     await waitFor(() => {

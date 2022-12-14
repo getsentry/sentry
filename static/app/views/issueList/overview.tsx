@@ -13,11 +13,6 @@ import * as qs from 'query-string';
 
 import {addMessage} from 'sentry/actionCreators/indicator';
 import {fetchOrgMembers, indexMembersByProject} from 'sentry/actionCreators/members';
-import {
-  deleteSavedSearch,
-  fetchSavedSearches,
-  resetSavedSearches,
-} from 'sentry/actionCreators/savedSearches';
 import {fetchTagValues, loadOrganizationTags} from 'sentry/actionCreators/tags';
 import {Client} from 'sentry/api';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -187,12 +182,10 @@ class IssueListOverview extends Component<Props, State> {
       success: this.onRealtimePoll,
     });
 
-    // Start by getting searches first so if the user is on a saved search
+    // Wait for saved searches to load so if the user is on a saved search
     // or they have a pinned search we load the correct data the first time.
     // But if searches are already there, we can go right to fetching issues
-    if (this.props.savedSearchLoading) {
-      this.fetchSavedSearches();
-    } else {
+    if (!this.props.savedSearchLoading) {
       this.fetchData();
     }
     this.fetchTags();
@@ -268,17 +261,6 @@ class IssueListOverview extends Component<Props, State> {
     GroupStore.reset();
     this.props.api.clear();
     this.listener?.();
-    // Reset store when unmounting because we always fetch on mount
-    // This means if you navigate away from stream and then back to stream,
-    // this component will go from:
-    // "ready" ->
-    // "loading" (because fetching saved searches) ->
-    // "ready"
-    //
-    // We don't render anything until saved searches is ready, so this can
-    // cause weird side effects (e.g. ProcessingIssueList mounting and making
-    // a request, but immediately unmounting when fetching saved searches)
-    resetSavedSearches();
   }
 
   private _poller: any;
@@ -382,14 +364,6 @@ class IssueListOverview extends Component<Props, State> {
   fetchTags() {
     const {api, organization, selection} = this.props;
     loadOrganizationTags(api, organization.slug, selection);
-  }
-
-  fetchSavedSearches() {
-    const {organization, api} = this.props;
-
-    if (!organization.features.includes('issue-list-saved-searches-v2')) {
-      fetchSavedSearches(api, organization.slug);
-    }
   }
 
   fetchStats = (groups: string[]) => {
@@ -969,19 +943,6 @@ class IssueListOverview extends Component<Props, State> {
     this.setState({issuesLoading: true}, () => this.transitionTo(undefined, savedSearch));
   };
 
-  onSavedSearchDelete = (search: SavedSearch) => {
-    const {orgId} = this.props.params;
-
-    deleteSavedSearch(this.props.api, orgId, search).then(() => {
-      this.setState(
-        {
-          issuesLoading: true,
-        },
-        () => this.transitionTo({}, null)
-      );
-    });
-  };
-
   onDelete = () => {
     this.setState({actionTaken: true});
     this.fetchData(true);
@@ -1113,6 +1074,10 @@ class IssueListOverview extends Component<Props, State> {
   };
 
   onToggleSavedSearches = (isOpen: boolean) => {
+    trackAdvancedAnalyticsEvent('search.saved_search_sidebar_toggle_clicked', {
+      organization: this.props.organization,
+      open: isOpen,
+    });
     this.setState({
       isSavedSearchesOpen: isOpen,
     });
@@ -1150,8 +1115,7 @@ class IssueListOverview extends Component<Props, State> {
       issuesLoading,
       error,
     } = this.state;
-    const {organization, savedSearch, savedSearches, selection, location, router} =
-      this.props;
+    const {organization, savedSearch, selection, location, router} = this.props;
     const links = parseLinkHeader(pageLinks);
     const query = this.getQuery();
     const queryPageInt = parseInt(location.query.page, 10);
@@ -1204,9 +1168,6 @@ class IssueListOverview extends Component<Props, State> {
           realtimeActive={realtimeActive}
           onRealtimeChange={this.onRealtimeChange}
           router={router}
-          savedSearchList={savedSearches}
-          onSavedSearchSelect={this.onSavedSearchSelect}
-          onSavedSearchDelete={this.onSavedSearchDelete}
           displayReprocessingTab={showReprocessingTab}
           savedSearch={savedSearch}
           selectedProjectIds={selection.projects}
@@ -1216,8 +1177,6 @@ class IssueListOverview extends Component<Props, State> {
             <IssueListFilters
               organization={organization}
               query={query}
-              savedSearch={savedSearch}
-              sort={this.getSort()}
               onSearch={this.onSearch}
             />
 

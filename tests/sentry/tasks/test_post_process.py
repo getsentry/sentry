@@ -1146,7 +1146,7 @@ class PostProcessGroupPerformanceTest(
 ):
     def create_event(self, data, project_id):
         fingerprint = data["fingerprint"][0] if data.get("fingerprint") else "some_group"
-        fingerprint = f"{GroupType.PERFORMANCE_N_PLUS_ONE.value}-{fingerprint}"
+        fingerprint = f"{GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value}-{fingerprint}"
         # Store a performance event
         event = self.store_transaction(
             project_id=project_id,
@@ -1231,7 +1231,7 @@ class PostProcessGroupPerformanceTest(
             user_id=self.create_user(name="user1").name,
             fingerprint=[
                 f"{GroupType.PERFORMANCE_SLOW_SPAN.value}-group1",
-                f"{GroupType.PERFORMANCE_N_PLUS_ONE.value}-group2",
+                f"{GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value}-group2",
             ],
             environment=None,
             timestamp=min_ago,
@@ -1254,3 +1254,38 @@ class PostProcessGroupPerformanceTest(
         assert event_processed_signal_mock.call_count == 0
         assert mock_processor.call_count == 0
         assert run_post_process_job_mock.call_count == 2
+
+
+class TransactionClustererTestCase(TestCase, SnubaTestCase):
+    @with_feature("organizations:transaction-name-clusterer")
+    @patch("sentry.ingest.transaction_clusterer.datasource.redis._store_transaction_name")
+    def test_process_transaction_event_clusterer(
+        self,
+        mock_store_transaction_name,
+    ):
+        min_ago = before_now(minutes=1).replace(tzinfo=pytz.utc)
+        event = self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "transaction": "foo",
+                "start_timestamp": str(min_ago),
+                "timestamp": str(min_ago),
+                "type": "transaction",
+                "transaction_info": {
+                    "source": "url",
+                },
+                "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
+            },
+            project_id=self.project.id,
+        )
+        cache_key = write_event_to_cache(event)
+        post_process_group(
+            is_new=False,
+            is_regression=False,
+            is_new_group_environment=False,
+            cache_key=cache_key,
+            group_id=None,
+            group_states=None,
+        )
+
+        assert mock_store_transaction_name.mock_calls == [mock.call(self.project, "foo")]

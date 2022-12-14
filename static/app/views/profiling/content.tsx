@@ -3,7 +3,6 @@ import {browserHistory, InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import {openModal} from 'sentry/actionCreators/modal';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import DatePageFilter from 'sentry/components/datePageFilter';
@@ -17,7 +16,6 @@ import PageHeading from 'sentry/components/pageHeading';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import Pagination from 'sentry/components/pagination';
 import {ProfileEventsTable} from 'sentry/components/profiling/profileEventsTable';
-import {ProfilingOnboardingModal} from 'sentry/components/profiling/ProfilingOnboarding/profilingOnboardingModal';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {SidebarPanelKey} from 'sentry/components/sidebar/types';
@@ -95,16 +93,10 @@ function ProfilingContent({location, router}: ProfilingContentProps) {
 
   // Open the modal on demand
   const onSetupProfilingClick = useCallback(() => {
-    const profilingOnboardingChecklistEnabled = organization.features?.includes(
-      'profiling-onboarding-checklist'
-    );
-    if (profilingOnboardingChecklistEnabled) {
-      SidebarPanelStore.activatePanel(SidebarPanelKey.ProfilingOnboarding);
-      return;
-    }
-    openModal(props => {
-      return <ProfilingOnboardingModal {...props} organization={organization} />;
+    trackAdvancedAnalyticsEvent('profiling_views.onboarding', {
+      organization,
     });
+    SidebarPanelStore.activatePanel(SidebarPanelKey.ProfilingOnboarding);
   }, [organization]);
 
   const shouldShowProfilingOnboardingPanel = useMemo((): boolean => {

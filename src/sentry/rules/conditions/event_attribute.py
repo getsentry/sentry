@@ -276,7 +276,11 @@ class EventAttributeCondition(EventCondition):
         try:
             attr = self.get_option("attribute").lower()
             dataset = condition_activity.data["dataset"]
-            column = getattr(ATTR_CHOICES[attr].value, DATASET_TO_COLUMN_NAME[dataset])
+            column = ATTR_CHOICES[attr]
+            if column is None:
+                raise NotImplementedError
+
+            column = getattr(column.value, DATASET_TO_COLUMN_NAME[dataset])
             attribute_values = event_map[condition_activity.data["event_id"]][column]
 
             if isinstance(attribute_values, str):
