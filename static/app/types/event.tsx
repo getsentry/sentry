@@ -493,6 +493,45 @@ interface OtelContext extends Partial<Record<OtelContextKey, unknown>>, BaseCont
   [OtelContextKey.RESOURCE]?: Record<string, unknown>;
 }
 
+export enum MemoryInfoContextKey {
+  ALLOCATED_BYTES = 'allocated_bytes',
+  FRAGMENTED_BYTES = 'fragmented_bytes',
+  HEAP_SIZE_BYTES = 'heap_size_bytes',
+  HIGH_MEMORY_LOAD_THRESHOLD_BYTES = 'high_memory_load_threshold_bytes',
+  TOTAL_AVAILABLE_MEMORY_BYTES = 'total_available_memory_bytes',
+  MEMORY_LOAD_BYTES = 'memory_load_bytes',
+  TOTAL_COMMITTED_BYTES = 'total_committed_bytes',
+  PROMOTED_BYTES = 'promoted_bytes',
+  PINNED_OBJECTS_COUNT = 'pinned_objects_count',
+  PAUSE_TIME_PERCENTAGE = 'pause_time_percentage',
+  INDEX = 'index',
+  FINALIZATION_PENDING_COUNT = 'finalization_pending_count',
+  COMPACTED = 'compacted',
+  CONCURRENT = 'concurrent',
+  PAUSE_DURATIONS = 'pause_durations',
+}
+
+// MemoryInfo Context
+// TODO(Priscila): Add this context to the docs
+export interface MemoryInfoContext {
+  type: 'Memory Info' | 'memory_info';
+  [MemoryInfoContextKey.FINALIZATION_PENDING_COUNT]: number;
+  [MemoryInfoContextKey.COMPACTED]: boolean;
+  [MemoryInfoContextKey.CONCURRENT]: boolean;
+  [MemoryInfoContextKey.PAUSE_DURATIONS]: number[];
+  [MemoryInfoContextKey.TOTAL_AVAILABLE_MEMORY_BYTES]?: number;
+  [MemoryInfoContextKey.MEMORY_LOAD_BYTES]?: number;
+  [MemoryInfoContextKey.TOTAL_COMMITTED_BYTES]?: number;
+  [MemoryInfoContextKey.PROMOTED_BYTES]?: number;
+  [MemoryInfoContextKey.PINNED_OBJECTS_COUNT]?: number;
+  [MemoryInfoContextKey.PAUSE_TIME_PERCENTAGE]?: number;
+  [MemoryInfoContextKey.INDEX]?: number;
+  [MemoryInfoContextKey.ALLOCATED_BYTES]?: number;
+  [MemoryInfoContextKey.FRAGMENTED_BYTES]?: number;
+  [MemoryInfoContextKey.HEAP_SIZE_BYTES]?: number;
+  [MemoryInfoContextKey.HIGH_MEMORY_LOAD_THRESHOLD_BYTES]?: number;
+}
+
 export enum ThreadPoolInfoContextKey {
   MIN_WORKER_THREADS = 'min_worker_threads',
   MIN_COMPLETION_PORT_THREADS = 'min_completion_port_threads',
@@ -515,10 +554,12 @@ export interface ThreadPoolInfoContext {
 }
 
 type EventContexts = {
+  'Memory Info'?: MemoryInfoContext;
   'ThreadPool Info'?: ThreadPoolInfoContext;
   client_os?: OSContext;
   device?: DeviceContext;
   feedback?: Record<string, any>;
+  memory_info?: MemoryInfoContext;
   os?: OSContext;
   otel?: OtelContext;
   // TODO (udameli): add better types here

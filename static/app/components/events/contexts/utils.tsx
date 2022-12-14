@@ -14,6 +14,12 @@ const CONTEXT_TYPES = {
   default: require('sentry/components/events/contexts/default').default,
   app: require('sentry/components/events/contexts/app').AppEventContext,
   device: require('sentry/components/events/contexts/device').DeviceEventContext,
+  // 'Memory Info' will be replaced with 'memory_info' but
+  // we want to keep it here for now so it works for existing versions
+  'Memory Info': require('sentry/components/events/contexts/memoryInfo')
+    .MemoryInfoEventContext,
+  memory_info: require('sentry/components/events/contexts/memoryInfo')
+    .MemoryInfoEventContext,
   browser: require('sentry/components/events/contexts/browser').BrowserEventContext,
   os: require('sentry/components/events/contexts/operatingSystem')
     .OperatingSystemEventContext,
