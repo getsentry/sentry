@@ -594,14 +594,14 @@ class EventManager:
                     project=project, event=job["event"], sender=Project
                 )
 
-            if not (
-                project.flags.project.flags.has_minified_stack_trace
+            if (
+                has_event_minified_stack_trace(job["event"])
+                and not project.flags.has_minified_stack_trace
                 # We only want to record events from projects created after 2022-12-14,
                 # otherwise amplitude would receive a large amount of data in a short period of time
-                or project.date_added
-                < settings.START_DATE_TRACKING_FIRST_EVENT_WITH_MINIFIED_STACK_TRACE_PER_PROJ
-            ) and has_event_minified_stack_trace(job["event"]):
-                project.update(first_event=job["event"].datetime)
+                and project.date_added
+                > settings.START_DATE_TRACKING_FIRST_EVENT_WITH_MINIFIED_STACK_TRACE_PER_PROJ
+            ):
                 first_event_with_minified_stack_trace_received.send_robust(
                     project=project, event=job["event"], sender=Project
                 )
