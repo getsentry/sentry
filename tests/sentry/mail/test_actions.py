@@ -4,7 +4,7 @@ from django.core import mail
 
 from sentry.mail.actions import NotifyEmailAction, NotifyEmailForm
 from sentry.models import OrganizationMember, OrganizationMemberTeam, ProjectOwnership, Rule
-from sentry.notifications.types import ActionTargetType
+from sentry.notifications.types import ActionTargetType, FallthroughChoiceType
 from sentry.tasks.post_process import post_process_group
 from sentry.testutils import TestCase
 from sentry.testutils.cases import RuleTestCase
@@ -17,6 +17,7 @@ from sentry.utils.samples import load_data
 
 class NotifyEmailFormTest(TestCase):
     TARGET_TYPE_KEY = "targetType"
+    FALLTHROUGH_CHOICE_KEY = "fallthroughChoice"
     TARGET_IDENTIFIER_KEY = "targetIdentifier"
 
     def setUp(self):
@@ -46,8 +47,8 @@ class NotifyEmailFormTest(TestCase):
     def form_from_json(self, json):
         return NotifyEmailForm(self.project, json)
 
-    def form_from_values(self, target_type_value, target_id=None):
-        json = {self.TARGET_TYPE_KEY: target_type_value}
+    def form_from_values(self, target_type_value, target_id=None, fallthroughChoice=None):
+        json = {self.TARGET_TYPE_KEY: target_type_value, "fallthroughChoice": fallthroughChoice}
         if target_id:
             json[self.TARGET_IDENTIFIER_KEY] = target_id
         return self.form_from_json(json)
@@ -71,6 +72,26 @@ class NotifyEmailFormTest(TestCase):
     def test_validate_issue_owners(self):
         form = self.form_from_values(ActionTargetType.ISSUE_OWNERS.value)
         assert form.is_valid()
+
+    def test_validate_fallthrough_choice(self):
+        form = self.form_from_values(
+            ActionTargetType.ISSUE_OWNERS.value,
+            fallthroughChoice=FallthroughChoiceType.NO_ONE.value,
+        )
+        assert form.is_valid()
+
+        form = self.form_from_values(
+            ActionTargetType.ISSUE_OWNERS.value,
+            fallthroughChoice=FallthroughChoiceType.ALL_MEMBERS.value,
+        )
+        assert form.is_valid()
+
+    def test_validate_invalid_fallthrough_choice(self):
+        form = self.form_from_values(
+            ActionTargetType.TEAM.value,
+            fallthroughChoice=FallthroughChoiceType.ADMIN_OR_RECENT.value,
+        )
+        assert not form.is_valid()
 
     def test_validate_team(self):
         form = self.form_from_values(ActionTargetType.TEAM.value, self.team.id)
