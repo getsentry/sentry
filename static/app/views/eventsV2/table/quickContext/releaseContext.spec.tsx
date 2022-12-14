@@ -40,17 +40,19 @@ const renderReleaseContext = () => {
 };
 
 describe('Quick Context Content Release Column', function () {
+  beforeEach(() => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/releases/backend@22.10.0+aaf33944f93dc8fa4234ca046a8d88fb1dccfb76/',
+      body: mockedReleaseWithHealth,
+    });
+  });
+
   afterEach(() => {
     queryClient.clear();
     MockApiClient.clearMockResponses();
   });
 
   it('Renders Release details for release', async () => {
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/releases/backend@22.10.0+aaf33944f93dc8fa4234ca046a8d88fb1dccfb76/',
-      body: mockedReleaseWithHealth,
-    });
-
     renderReleaseContext();
 
     expect(await screen.findByText(/Created/i)).toBeInTheDocument();
@@ -62,11 +64,6 @@ describe('Quick Context Content Release Column', function () {
   });
 
   it('Renders Last Commit', async () => {
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/releases/backend@22.10.0+aaf33944f93dc8fa4234ca046a8d88fb1dccfb76/',
-      body: mockedReleaseWithHealth,
-    });
-
     renderReleaseContext();
 
     expect(await screen.findByText(/Last Commit/i)).toBeInTheDocument();
@@ -74,11 +71,6 @@ describe('Quick Context Content Release Column', function () {
   });
 
   it('Renders Commit Count and Author when user is NOT in list of authors', async () => {
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/releases/backend@22.10.0+aaf33944f93dc8fa4234ca046a8d88fb1dccfb76/',
-      body: mockedReleaseWithHealth,
-    });
-
     renderReleaseContext();
 
     const authorsSectionHeader = within(
@@ -95,11 +87,6 @@ describe('Quick Context Content Release Column', function () {
 
   it('Renders Commit Count and Author when user is in list of authors', async () => {
     jest.spyOn(ConfigStore, 'get').mockImplementation(() => mockedUser1);
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/releases/backend@22.10.0+aaf33944f93dc8fa4234ca046a8d88fb1dccfb76/',
-      body: mockedReleaseWithHealth,
-    });
-
     renderReleaseContext();
 
     expect(await screen.findByText(/4/i)).toBeInTheDocument();

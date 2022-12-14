@@ -26,6 +26,12 @@ const makeEvent = (event: Partial<Event> = {}): Event => {
   return evt;
 };
 
+const mockedLocation = TestStubs.location({
+  query: {
+    field: ['issue', 'transaction.duration'],
+  },
+});
+
 const dataRow: EventData = {
   id: '6b43e285de834ec5b5fe30d62d549b20',
   issue: 'SENTRY-VVY',
@@ -65,11 +71,7 @@ describe('Quick Context Content: Event ID Column', function () {
 
   it('Renders transaction duration context', async () => {
     const currentTime = Date.now();
-    const mockedLocation = TestStubs.location({
-      query: {
-        field: 'title',
-      },
-    });
+
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/sentry:6b43e285de834ec5b5fe30d62d549b20/',
       body: makeEvent({
@@ -87,11 +89,7 @@ describe('Quick Context Content: Event ID Column', function () {
 
   it('Renders transaction status context', async () => {
     const currentTime = Date.now();
-    const mockedLocation = TestStubs.location({
-      query: {
-        field: 'title',
-      },
-    });
+
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/sentry:6b43e285de834ec5b5fe30d62d549b20/',
       body: makeEvent({
@@ -185,12 +183,6 @@ describe('Quick Context Content: Event ID Column', function () {
         },
       ],
     } as EventError;
-
-    const mockedLocation = TestStubs.location({
-      query: {
-        field: ['issue', 'transaction.duration'],
-      },
-    });
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/sentry:6b43e285de834ec5b5fe30d62d549b20/',

@@ -30,6 +30,7 @@ let mockedGroup = TestStubs.Group({
   },
   count: 2500000,
   userCount: 64000,
+  title: 'typeError: error description',
 });
 
 const renderIssueContext = (dataRow: EventData = defaultRow) => {
@@ -59,6 +60,12 @@ describe('Quick Context Content Issue Column', function () {
       method: 'GET',
       body: [],
     });
+
+    MockApiClient.addMockResponse({
+      url: '/issues/3512441874/',
+      method: 'GET',
+      body: mockedGroup,
+    });
   });
 
   afterEach(function () {
@@ -67,12 +74,6 @@ describe('Quick Context Content Issue Column', function () {
   });
 
   it('Renders ignored issue status context', async () => {
-    MockApiClient.addMockResponse({
-      url: '/issues/3512441874/',
-      method: 'GET',
-      body: mockedGroup,
-    });
-
     renderIssueContext();
 
     expect(await screen.findByText(/Issue Status/i)).toBeInTheDocument();
@@ -110,11 +111,6 @@ describe('Quick Context Content Issue Column', function () {
   });
 
   it('Renders event and user counts', async () => {
-    MockApiClient.addMockResponse({
-      url: '/issues/3512441874/',
-      method: 'GET',
-      body: mockedGroup,
-    });
     renderIssueContext();
 
     expect(await screen.findByText(/Events/i)).toBeInTheDocument();
@@ -124,24 +120,20 @@ describe('Quick Context Content Issue Column', function () {
   });
 
   it('Renders assigned to context', async () => {
-    MockApiClient.addMockResponse({
-      url: '/issues/3512441874/',
-      method: 'GET',
-      body: mockedGroup,
-    });
     renderIssueContext();
 
     expect(await screen.findByText(/Assigned To/i)).toBeInTheDocument();
     expect(screen.getByText(/#ingest/i)).toBeInTheDocument();
   });
 
-  it('Renders Suspect Commits', async () => {
-    MockApiClient.addMockResponse({
-      url: '/issues/3512441874/',
-      method: 'GET',
-      body: mockedGroup,
-    });
+  it('Renders title', async () => {
+    renderIssueContext();
 
+    expect(await screen.findByText(/Title/i)).toBeInTheDocument();
+    expect(screen.getByText(/typeError: error description/i)).toBeInTheDocument();
+  });
+
+  it('Renders Suspect Commits', async () => {
     MockApiClient.addMockResponse({
       url: '/issues/3512441874/events/oldest/',
       method: 'GET',
