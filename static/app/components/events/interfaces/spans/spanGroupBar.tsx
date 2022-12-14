@@ -180,7 +180,7 @@ export function SpanGroupBar(props: Props) {
       // If ref is null, this means the component is about to unmount
       removeContentSpanBarRef(spanContentRef.current);
     },
-    [addContentSpanBarRef, removeContentSpanBarRef]
+    [addContentSpanBarRef, removeContentSpanBarRef, getCurrentLeftPos]
   );
 
   useEffect(() => {
