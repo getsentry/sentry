@@ -1,6 +1,6 @@
 import logging
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import (
     Any,
     Callable,
@@ -190,7 +190,7 @@ def get_transaction_names_config(project: Project) -> Optional[Sequence[Transact
 def _get_tx_name_rule(pattern: str, expiry: int) -> TransactionNameRule:
     return TransactionNameRule(
         pattern=pattern,
-        expiry=expiry,
+        expiry=datetime.fromtimestamp(expiry, tz=timezone.utc).isoformat(),
         # Some more hardcoded fileds for future comptability. These are not
         # currently used.
         scope={"source": "url"},
