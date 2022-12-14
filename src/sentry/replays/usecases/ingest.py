@@ -12,9 +12,10 @@ from django.db.utils import IntegrityError
 from sentry_sdk.tracing import Transaction
 
 from sentry.constants import DataCategory
-from sentry.models import File
+from sentry.models.file import File, get_storage
 from sentry.models.project import Project
 from sentry.replays.cache import RecordingSegmentCache, RecordingSegmentParts
+from sentry.replays.lib.segment_file import replays_storage_options
 from sentry.replays.models import ReplayRecordingSegment as ReplayRecordingSegmentModel
 from sentry.signals import first_replay_received
 from sentry.utils import json, metrics
@@ -152,41 +153,10 @@ def ingest_recording(message: RecordingIngestMessage, transaction: Transaction) 
         return None
 
     # create a File for our recording segment.
-    recording_segment_file_name = f"rr:{message.replay_id}:{headers['segment_id']}"
-    with metrics.timer("replays.store_recording.store_recording.create_file"):
-        file = File.objects.create(
-            name=recording_segment_file_name,
-            type="replay.recording",
-        )
-    with metrics.timer("replays.store_recording.store_recording.put_segment_file"):
-        file.putfile(
-            BytesIO(recording_segment),
-            blob_size=settings.SENTRY_ATTACHMENT_BLOB_SIZE,
-        )
-
-    try:
-        # associate this file with an indexable replay_id via ReplayRecordingSegmentModel
-        with metrics.timer("replays.store_recording.store_recording.create_segment_row"):
-            ReplayRecordingSegmentModel.objects.create(
-                replay_id=message.replay_id,
-                project_id=message.project_id,
-                segment_id=headers["segment_id"],
-                file_id=file.id,
-                size=len(recording_segment),
-            )
-    except IntegrityError:
-        # Raised in the event of a concurrent write.  Reasonably space
-        logger.warning(
-            "Recording-segment has already been processed.",
-            extra={
-                "replay_id": message.replay_id,
-                "project_id": message.project_id,
-                "segment_id": headers["segment_id"],
-            },
-        )
-
-        # Cleanup the blob.
-        file.delete()
+    if message.org_id in settings.SENTRY_REPLAYS_DIRECT_FILESTORE_ORGS:
+        store_replays_directly(message, headers, recording_segment)
+    else:
+        store_replays_with_filestore(message, headers, recording_segment)
 
     # TODO: how to handle failures in the above calls. what should happen?
     # also: handling same message twice?
@@ -248,3 +218,50 @@ def process_headers(bytes_with_headers: bytes) -> tuple[RecordingSegmentHeaders,
 
 def replay_recording_segment_cache_id(project_id: int, replay_id: str, segment_id: str) -> str:
     return f"{project_id}:{replay_id}:{segment_id}"
+
+
+def store_replays_with_filestore(message, headers, recording_segment):
+    recording_segment_file_name = f"rr:{message.replay_id}:{headers['segment_id']}"
+    with metrics.timer("replays.store_recording.store_recording.create_file"):
+        file = File.objects.create(
+            name=recording_segment_file_name,
+            type="replay.recording",
+        )
+    with metrics.timer("replays.store_recording.store_recording.put_segment_file"):
+        file.putfile(
+            BytesIO(recording_segment),
+            blob_size=settings.SENTRY_ATTACHMENT_BLOB_SIZE,
+        )
+
+    try:
+        # associate this file with an indexable replay_id via ReplayRecordingSegmentModel
+        with metrics.timer("replays.store_recording.store_recording.create_segment_row"):
+            ReplayRecordingSegmentModel.objects.create(
+                replay_id=message.replay_id,
+                project_id=message.project_id,
+                segment_id=headers["segment_id"],
+                file_id=file.id,
+                size=len(recording_segment),
+            )
+    except IntegrityError:
+        # Raised in the event of a concurrent write.  Reasonably space
+        logger.warning(
+            "Recording-segment has already been processed.",
+            extra={
+                "replay_id": message.replay_id,
+                "project_id": message.project_id,
+                "segment_id": headers["segment_id"],
+            },
+        )
+
+        # Cleanup the blob.
+        file.delete()
+
+
+def store_replays_directly(message, headers, recording_segment):
+    storage = get_storage(replays_storage_options())
+    file_path = f"{message.project_id}/{message.replay_id}/{headers['segment_id']}"
+    storage.save(
+        file_path,
+        BytesIO(recording_segment),
+    )
