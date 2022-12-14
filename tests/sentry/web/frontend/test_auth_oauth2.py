@@ -1,9 +1,9 @@
 from collections import namedtuple
+from functools import cached_property
 from unittest import mock
 from urllib.parse import parse_qs, urlencode, urlparse
 
 from django.urls import reverse
-from exam import fixture
 
 from sentry.auth.authenticators import RecoveryCodeInterface, TotpInterface
 from sentry.auth.providers.oauth2 import OAuth2Callback, OAuth2Login, OAuth2Provider
@@ -60,11 +60,11 @@ class AuthOAuth2Test(AuthProviderTestCase):
             ident="oauth_external_id_1234",
         )
 
-    @fixture
+    @cached_property
     def login_path(self):
         return reverse("sentry-auth-organization", args=[self.organization.slug])
 
-    @fixture
+    @cached_property
     def sso_path(self):
         return reverse("sentry-auth-sso")
 

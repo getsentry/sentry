@@ -430,7 +430,6 @@ class Group(Model):
                 GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN.value,
                 _("Render Blocking Asset Span"),
             ),
-            (GroupType.PERFORMANCE_DUPLICATE_SPANS.value, _("Duplicate Spans")),
             # TODO add more group types when detection starts outputting them
         ),
     )
