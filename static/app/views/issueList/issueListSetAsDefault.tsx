@@ -73,10 +73,6 @@ const IssueListSetAsDefault = ({
     }
   };
 
-  if (!organization.features.includes('issue-list-saved-searches-v2')) {
-    return null;
-  }
-
   return (
     <Button
       onClick={onTogglePinnedSearch}
