@@ -37,7 +37,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
     def __init__(self, **options: Any) -> None:
         self.topic = settings.KAFKA_EVENTS
         self.transactions_topic = settings.KAFKA_TRANSACTIONS
-        self.issue_platform_topic = settings.KAFKA_EVENTSTREAM_ISSUE_PLATFORM
+        self.issue_platform_topic = settings.KAFKA_EVENTSTREAM_GENERIC
         self.assign_transaction_partitions_randomly = True
         self.__producers = {}
 
