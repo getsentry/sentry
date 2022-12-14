@@ -162,8 +162,10 @@ class UserService(InterfaceWithLifecycle):
             permissions = frozenset(user.permissions)
         args["permissions"] = permissions
 
-        if hasattr(user, "roles"):
-            args["roles"] = frozenset(flatten(user.roles.values_list("permissions", flat=True)))
+        roles: FrozenSet[str] = frozenset({})
+        if hasattr(user, "roles") and user.roles is not None:
+            roles = frozenset(user.roles)
+        args["roles"] = roles
 
         avatar = user.avatar.first()
         if avatar is not None:

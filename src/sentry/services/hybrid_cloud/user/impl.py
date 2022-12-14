@@ -77,12 +77,14 @@ class DatabaseBackedUserService(UserService):
         pass
 
     def __base_user_query(self) -> QuerySet:
-        return (
-            User.objects.prefetch_related("roles")
-            .select_related("avatar")
-            .extra(
-                select={
-                    "permissions": "select array_agg(permission) from sentry_userpermission where user_id=auth_user.id"
-                }
-            )
+        return User.objects.select_related("avatar").extra(
+            select={
+                "permissions": "select array_agg(permission) from sentry_userpermission where user_id=auth_user.id",
+                "roles": """
+                    SELECT array_agg(permissions)
+                    FROM sentry_userrole
+                    JOIN sentry_userrole_users
+                      ON sentry_userrole_users.role_id=sentry_userrole.id
+                   WHERE user_id=auth_user.id""",
+            }
         )

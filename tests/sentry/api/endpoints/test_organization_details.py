@@ -142,7 +142,7 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
             expected_queries = 37
         else:
             # In region mode, a number of auth related queries are batched considerably.
-            expected_queries = 38
+            expected_queries = 37
 
         with self.assertNumQueries(expected_queries, using="default"):
             response = self.get_success_response(self.organization.slug)
