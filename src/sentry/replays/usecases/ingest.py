@@ -220,7 +220,9 @@ def replay_recording_segment_cache_id(project_id: int, replay_id: str, segment_i
     return f"{project_id}:{replay_id}:{segment_id}"
 
 
-def store_replays_with_filestore(message, headers, recording_segment):
+def store_replays_with_filestore(
+    message: RecordingIngestMessage, headers: RecordingSegmentHeaders, recording_segment: bytes
+) -> None:
     recording_segment_file_name = f"rr:{message.replay_id}:{headers['segment_id']}"
     with metrics.timer("replays.store_recording.store_recording.create_file"):
         file = File.objects.create(
@@ -258,7 +260,9 @@ def store_replays_with_filestore(message, headers, recording_segment):
         file.delete()
 
 
-def store_replays_directly(message, headers, recording_segment):
+def store_replays_directly(
+    message: RecordingIngestMessage, headers: RecordingSegmentHeaders, recording_segment: bytes
+) -> None:
     storage = get_storage(replays_storage_options())
     file_path = f"{message.project_id}/{message.replay_id}/{headers['segment_id']}"
     storage.save(
