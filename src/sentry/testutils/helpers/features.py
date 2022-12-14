@@ -3,7 +3,10 @@ __all__ = ["Feature", "with_feature", "apply_feature_flag_on_cls"]
 import logging
 from collections.abc import Mapping
 from contextlib import contextmanager
+from typing import Generator
 from unittest.mock import patch
+
+import pytest
 
 import sentry.features
 from sentry import features
@@ -103,10 +106,14 @@ def with_feature(feature):
 
 def apply_feature_flag_on_cls(feature_flag):
     def decorate(cls):
-        # Wrap the [run](https://docs.python.org/3/library/unittest.html#unittest.TestCase.run) method
-        # with the with_feature decorator so all tests in the class can access the
-        # feature flag.
-        setattr(cls, "run", with_feature(feature_flag)(cls.run))
+        def _feature_fixture(self: object) -> Generator[None, None, None]:
+            with Feature(feature_flag):
+                yield
+
+        name = f"{_feature_fixture.__name__}[{feature_flag}]"
+        _feature_fixture.__name__ = name
+        fixture = pytest.fixture(scope="class", autouse=True)(_feature_fixture)
+        setattr(cls, name, fixture)
         return cls
 
     return decorate
