@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {useCallback, useEffect, useRef, useState} from 'react';
 import {
   AutoSizer,
   CellMeasurer,
@@ -21,7 +21,7 @@ import {getPrevReplayEvent} from 'sentry/utils/replays/getReplayEvent';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import NetworkFilters from 'sentry/views/replays/detail/network/networkFilters';
 import useNetworkFilters from 'sentry/views/replays/detail/network/useNetworkFilters';
-import {ISortConfig, sortNetwork} from 'sentry/views/replays/detail/network/utils';
+import useSortNetwork from 'sentry/views/replays/detail/network/useSortNetwork';
 import NoRowRenderer from 'sentry/views/replays/detail/noRowRenderer';
 import TimestampButton from 'sentry/views/replays/detail/timestampButton';
 import type {NetworkSpan, ReplayRecord} from 'sentry/views/replays/types';
@@ -43,11 +43,7 @@ const headerRowHeight = 24;
 function NetworkList({replayRecord, networkSpans}: Props) {
   const startTimestampMs = replayRecord?.startedAt?.getTime() || 0;
   const {setCurrentHoverTime, setCurrentTime, currentTime} = useReplayContext();
-  const [sortConfig, setSortConfig] = useState<ISortConfig>({
-    by: 'startTimestamp',
-    asc: true,
-    getValue: row => row[sortConfig.by],
-  });
+
   const [scrollBarWidth, setScrollBarWidth] = useState(0);
   const multiGridRef = useRef<MultiGrid>(null);
   const networkTableRef = useRef<HTMLDivElement>(null);
@@ -55,8 +51,7 @@ function NetworkList({replayRecord, networkSpans}: Props) {
   const filterProps = useNetworkFilters({networkSpans: networkSpans || []});
   const {items, searchTerm, setSearchTerm} = filterProps;
   const clearSearchTerm = () => setSearchTerm('');
-
-  const networkData = useMemo(() => sortNetwork(items, sortConfig), [items, sortConfig]);
+  const {handleSort, items: networkData, sortConfig} = useSortNetwork({items});
 
   const currentNetworkSpan = getPrevReplayEvent({
     items: networkData,
@@ -110,23 +105,6 @@ function NetworkList({replayRecord, networkSpans}: Props) {
       observer?.disconnect();
     };
   }, [networkTableRef, searchTerm]);
-
-  function handleSort(fieldName: keyof NetworkSpan): void;
-  function handleSort(key: string, getValue: (row: NetworkSpan) => any): void;
-  function handleSort(
-    fieldName: string | keyof NetworkSpan,
-    getValue?: (row: NetworkSpan) => any
-  ) {
-    const getValueFunction = getValue ? getValue : (row: NetworkSpan) => row[fieldName];
-
-    setSortConfig(prevSort => {
-      if (prevSort.by === fieldName) {
-        return {by: fieldName, asc: !prevSort.asc, getValue: getValueFunction};
-      }
-
-      return {by: fieldName, asc: true, getValue: getValueFunction};
-    });
-  }
 
   const sortArrow = (sortedBy: string) => {
     return sortConfig.by === sortedBy ? (
