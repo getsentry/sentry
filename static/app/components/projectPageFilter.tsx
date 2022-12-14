@@ -1,6 +1,4 @@
 import {useEffect, useState} from 'react';
-// eslint-disable-next-line no-restricted-imports
-import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 import partition from 'lodash/partition';
@@ -22,10 +20,11 @@ import {trimSlug} from 'sentry/utils/trimSlug';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
+import useRouter from 'sentry/utils/useRouter';
 
 type ProjectSelectorProps = React.ComponentProps<typeof ProjectSelector>;
 
-type Props = WithRouterProps & {
+type Props = {
   disabled?: ProjectSelectorProps['disabled'];
   /**
    * Message to display at the bottom of project list
@@ -44,7 +43,7 @@ type Props = WithRouterProps & {
   lockedMessageSubject?: string;
 
   /**
-   * Max character length for the dropdown title. Default is 20. This number
+   * Max character length for the dropdown title. Default is 25. This number
    * is used to determine how many projects to show, and how much to truncate.
    */
   maxTitleLength?: number;
@@ -80,13 +79,14 @@ type Props = WithRouterProps & {
 };
 
 function ProjectPageFilter({
-  router,
   specificProjectSlugs,
-  maxTitleLength = 30,
+  maxTitleLength = 25,
   resetParamsOnChange = [],
   disabled,
   ...otherProps
 }: Props) {
+  const router = useRouter();
+
   const [currentSelectedProjects, setCurrentSelectedProjects] = useState<number[] | null>(
     null
   );
@@ -236,4 +236,4 @@ const StyledBadge = styled(Badge)`
   flex-shrink: 0;
 `;
 
-export default withRouter(ProjectPageFilter);
+export default ProjectPageFilter;

@@ -11,7 +11,7 @@ from sentry.models import Integration
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import jwt
 
-logger = logging.getLogger("sentry.integrations.jira_server.webhooks")
+logger = logging.getLogger(__name__)
 
 
 def get_integration_from_token(token):
@@ -51,23 +51,29 @@ class JiraIssueUpdatedWebhook(Endpoint):
         return super().dispatch(request, *args, **kwargs)
 
     def post(self, request: Request, token, *args, **kwargs) -> Response:
+        extra = {}
         try:
             integration = get_integration_from_token(token)
+            extra["integration_id"] = integration.id
         except ValueError as err:
-            logger.info("token-validation-error", extra={"token": token, "error": str(err)})
+            extra.update({"token": token, "error": str(err)})
+            logger.info("token-validation-error", extra=extra)
+            logger.exception("Invalid token.")
             return self.respond(status=400)
 
         data = request.data
 
         if not data.get("changelog"):
-            logger.info("missing-changelog", extra={"integration_id": integration.id})
+            logger.info("missing-changelog", extra=extra)
             return self.respond()
 
         try:
             handle_assignee_change(integration, data)
             handle_status_change(integration, data)
         except (ApiError, ObjectDoesNotExist) as err:
-            logger.info("sync-failed", extra={"token": token, "error": str(err)})
+            extra.update({"token": token, "error": str(err)})
+            logger.info("sync-failed", extra=extra)
+            logger.exception("Invalid token.")
             return self.respond(status=400)
         else:
             return self.respond()

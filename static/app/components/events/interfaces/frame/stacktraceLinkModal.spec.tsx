@@ -128,5 +128,9 @@ describe('StacktraceLinkModal', () => {
     expect(
       screen.getByText('We don’t have access to that', {exact: false})
     ).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'add your repo.'})).toHaveAttribute(
+      'href',
+      '/settings/org-slug/integrations/github/1/'
+    );
   });
 });

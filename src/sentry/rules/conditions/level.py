@@ -9,6 +9,9 @@ from sentry.eventstore.models import GroupEvent
 from sentry.rules import LEVEL_MATCH_CHOICES as MATCH_CHOICES
 from sentry.rules import EventState, MatchType
 from sentry.rules.conditions.base import EventCondition
+from sentry.rules.history.preview_strategy import get_dataset_columns
+from sentry.snuba.dataset import Dataset
+from sentry.snuba.events import Columns
 from sentry.types.condition_activity import ConditionActivity
 
 key: Callable[[Tuple[int, str]], int] = lambda x: x[0]
@@ -62,8 +65,11 @@ class LevelCondition(EventCondition):
         }
         return self.label.format(**data)
 
-    def get_event_columns(self) -> Sequence[str]:
-        return ["tags.key", "tags.value"]
+    def get_event_columns(self) -> Dict[Dataset, Sequence[str]]:
+        columns: Dict[Dataset, Sequence[str]] = get_dataset_columns(
+            [Columns.TAGS_KEY, Columns.TAGS_VALUE]
+        )
+        return columns
 
     def passes_activity(
         self, condition_activity: ConditionActivity, event_map: Dict[str, Any]

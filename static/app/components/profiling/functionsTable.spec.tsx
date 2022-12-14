@@ -80,13 +80,13 @@ describe('FunctionsTable', function () {
     expect(screen.getByText('Package')).toBeInTheDocument();
     expect(screen.getByText('bar')).toBeInTheDocument();
 
-    expect(screen.getByText('Count')).toBeInTheDocument();
+    expect(screen.getByText('Total Occurrences')).toBeInTheDocument();
     expect(screen.getByText('10')).toBeInTheDocument();
 
-    expect(screen.getByText('P75 Duration')).toBeInTheDocument();
+    expect(screen.getByText('P75 Total Duration')).toBeInTheDocument();
     expect(screen.getByText('10.00ms')).toBeInTheDocument();
 
-    expect(screen.getByText('P99 Duration')).toBeInTheDocument();
+    expect(screen.getByText('P99 Total Duration')).toBeInTheDocument();
     expect(screen.getByText('12.50ms')).toBeInTheDocument();
   });
 

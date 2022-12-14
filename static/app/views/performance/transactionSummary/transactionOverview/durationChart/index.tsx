@@ -1,8 +1,7 @@
 import {Fragment} from 'react';
-// eslint-disable-next-line no-restricted-imports
-import {browserHistory, withRouter, WithRouterProps} from 'react-router';
+import {browserHistory} from 'react-router';
 import {useTheme} from '@emotion/react';
-import {Location, Query} from 'history';
+import {Query} from 'history';
 
 import EventsRequest from 'sentry/components/charts/eventsRequest';
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
@@ -13,6 +12,8 @@ import {t, tct} from 'sentry/locale';
 import {OrganizationSummary} from 'sentry/types';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import useApi from 'sentry/utils/useApi';
+import {useLocation} from 'sentry/utils/useLocation';
+import useRouter from 'sentry/utils/useRouter';
 
 import {ViewProps} from '../../../types';
 import {
@@ -22,14 +23,12 @@ import {
 
 import Content from './content';
 
-type Props = WithRouterProps &
-  ViewProps & {
-    currentFilter: SpanOperationBreakdownFilter;
-    location: Location;
-    organization: OrganizationSummary;
-    queryExtra: Query;
-    withoutZerofill: boolean;
-  };
+type Props = ViewProps & {
+  currentFilter: SpanOperationBreakdownFilter;
+  organization: OrganizationSummary;
+  queryExtra: Query;
+  withoutZerofill: boolean;
+};
 
 enum DurationFunctionField {
   P50 = 'p50',
@@ -46,17 +45,17 @@ enum DurationFunctionField {
 function DurationChart({
   project,
   environment,
-  location,
   organization,
   query,
   statsPeriod,
-  router,
   queryExtra,
   currentFilter,
   withoutZerofill,
   start: propsStart,
   end: propsEnd,
 }: Props) {
+  const router = useRouter();
+  const location = useLocation();
   const api = useApi();
   const theme = useTheme();
 
@@ -161,4 +160,4 @@ function DurationChart({
   );
 }
 
-export default withRouter(DurationChart);
+export default DurationChart;

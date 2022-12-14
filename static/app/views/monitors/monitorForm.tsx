@@ -22,9 +22,7 @@ const SCHEDULE_TYPES: SelectValue<ScheduleType>[] = [
   {value: 'interval', label: 'Interval'},
 ];
 
-const MONITOR_TYPES: SelectValue<MonitorTypes>[] = [
-  {value: 'cron_job', label: 'Cron Job'},
-];
+const DEFAULT_MONITOR_TYPE = 'cron_job';
 
 const INTERVALS: SelectValue<string>[] = [
   {value: 'minute', label: 'minute(s)'},
@@ -122,12 +120,13 @@ class MonitorForm extends Component<Props> {
               monitor
                 ? {
                     name: monitor.name,
-                    type: monitor.type,
+                    type: monitor.type ?? DEFAULT_MONITOR_TYPE,
                     project: monitor.project.slug,
                     ...this.formDataFromConfig(monitor.type, monitor.config),
                   }
                 : {
                     project: selectedProject ? selectedProject.slug : null,
+                    type: DEFAULT_MONITOR_TYPE,
                   }
             }
             onSubmitSuccess={this.props.onSubmitSuccess}
@@ -151,13 +150,15 @@ class MonitorForm extends Component<Props> {
                   options={this.props.projects
                     .filter(p => p.isMember)
                     .map(p => ({value: p.slug, label: p.slug}))}
-                  help={t('Associate your monitor with the appropriate project.')}
+                  help={t(
+                    "Select the project which contains the recurring job you'd like to monitor."
+                  )}
                   required
                 />
                 <TextField
                   name="name"
                   placeholder={t('My Cron Job')}
-                  label={t('Name')}
+                  label={t('Name your cron monitor')}
                   disabled={!hasAccess}
                   required
                 />
@@ -167,42 +168,22 @@ class MonitorForm extends Component<Props> {
               <PanelHeader>{t('Config')}</PanelHeader>
 
               <PanelBody>
-                <SelectField
-                  name="type"
-                  label={t('Type')}
+                <NumberField
+                  name="config.max_runtime"
+                  label={t('Max Runtime')}
                   disabled={!hasAccess}
-                  options={MONITOR_TYPES}
+                  help={t(
+                    "Set the number of minutes a recurring job is allowed to run before it's considered failed"
+                  )}
+                  placeholder="e.g. 30"
+                />
+                <SelectField
+                  name="config.schedule_type"
+                  label={t('Schedule Type')}
+                  disabled={!hasAccess}
+                  options={SCHEDULE_TYPES}
                   required
                 />
-                <Observer>
-                  {() => {
-                    switch (this.form.getValue('type')) {
-                      case 'cron_job':
-                        return (
-                          <Fragment>
-                            <NumberField
-                              name="config.max_runtime"
-                              label={t('Max Runtime')}
-                              disabled={!hasAccess}
-                              help={t(
-                                "The maximum runtime (in minutes) a check-in is allowed before it's marked as a failure."
-                              )}
-                              placeholder="e.g. 30"
-                            />
-                            <SelectField
-                              name="config.schedule_type"
-                              label={t('Schedule Type')}
-                              disabled={!hasAccess}
-                              options={SCHEDULE_TYPES}
-                              required
-                            />
-                          </Fragment>
-                        );
-                      default:
-                        return null;
-                    }
-                  }}
-                </Observer>
                 <Observer>
                   {() => {
                     switch (this.form.getValue('config.schedule_type')) {
@@ -216,7 +197,7 @@ class MonitorForm extends Component<Props> {
                               placeholder="*/5 * * * *"
                               required
                               help={tct(
-                                'Changes to the schedule will apply on the next check-in. See [link:Wikipedia] for crontab syntax.',
+                                'Any schedule changes will be applied to the next check-in. See [link:Wikipedia] for crontab syntax.',
                                 {
                                   link: <a href="https://en.wikipedia.org/wiki/Cron" />,
                                 }
@@ -227,7 +208,7 @@ class MonitorForm extends Component<Props> {
                               label={t('Check-in Margin')}
                               disabled={!hasAccess}
                               help={t(
-                                "The margin (in minutes) a check-in is allowed to exceed it's scheduled window before being treated as missed."
+                                "The max error margin (in minutes) before a check-in is considered missed. If you don't expect your job to start immediately at the scheduled time, expand this margin to account for delays."
                               )}
                               placeholder="e.g. 30"
                             />
@@ -242,7 +223,7 @@ class MonitorForm extends Component<Props> {
                               disabled={!hasAccess}
                               placeholder="e.g. 1"
                               help={t(
-                                'The amount of times you expect the cron job to run within the specified interval.'
+                                'The amount of intervals that pass between executions of the cron job.'
                               )}
                               required
                             />
@@ -252,7 +233,7 @@ class MonitorForm extends Component<Props> {
                               disabled={!hasAccess}
                               options={INTERVALS}
                               help={t(
-                                'The interval on which the frequency will be applied. X times an (hour, day, week...)'
+                                'The interval on which the frequency will be applied. 1 time every X amount of (minutes, hours, days)'
                               )}
                               required
                             />
@@ -261,7 +242,7 @@ class MonitorForm extends Component<Props> {
                               label={t('Check-in Margin')}
                               disabled={!hasAccess}
                               help={t(
-                                "The margin (in minutes) a check-in is allowed to exceed it's scheduled window before being treated as missed."
+                                "The max error margin (in minutes) before a check-in is considered missed. If you don't expect your job to start immediately at the scheduled time, expand this margin to account for delays."
                               )}
                               placeholder="e.g. 30"
                             />

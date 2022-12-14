@@ -76,7 +76,7 @@ def _get_team_memberships(team_list: Sequence[Team], user: User) -> Iterable[int
         return ()
 
     team_ids: Iterable[int] = OrganizationMemberTeam.objects.filter(
-        organizationmember__user=user, team__in=team_list
+        organizationmember__user_id=user.id, team__in=team_list
     ).values_list("team", flat=True)
     return set(team_ids)
 
@@ -166,25 +166,26 @@ def get_features_for_projects(
 
 
 def format_options(attrs: defaultdict(dict)):
+    options = attrs["options"]
     return {
         "sentry:csp_ignored_sources_defaults": bool(
-            attrs["options"].get("sentry:csp_ignored_sources_defaults", True)
+            options.get("sentry:csp_ignored_sources_defaults", True)
         ),
         "sentry:csp_ignored_sources": "\n".join(
-            attrs["options"].get("sentry:csp_ignored_sources", []) or []
+            options.get("sentry:csp_ignored_sources", []) or []
         ),
-        "sentry:reprocessing_active": bool(attrs.get("sentry:reprocessing_active", False)),
-        "sentry:performance_issue_creation_rate": attrs["options"].get(
+        "sentry:reprocessing_active": bool(options.get("sentry:reprocessing_active", False)),
+        "sentry:performance_issue_creation_rate": options.get(
             "sentry:performance_issue_creation_rate"
         ),
-        "filters:blacklisted_ips": "\n".join(attrs["options"].get("sentry:blacklisted_ips", [])),
+        "filters:blacklisted_ips": "\n".join(options.get("sentry:blacklisted_ips", [])),
         f"filters:{FilterTypes.RELEASES}": "\n".join(
-            attrs["options"].get(f"sentry:{FilterTypes.RELEASES}", [])
+            options.get(f"sentry:{FilterTypes.RELEASES}", [])
         ),
         f"filters:{FilterTypes.ERROR_MESSAGES}": "\n".join(
-            attrs["options"].get(f"sentry:{FilterTypes.ERROR_MESSAGES}", [])
+            options.get(f"sentry:{FilterTypes.ERROR_MESSAGES}", [])
         ),
-        "feedback:branding": attrs.get("feedback:branding", "1") == "1",
+        "feedback:branding": options.get("feedback:branding", "1") == "1",
     }
 
 
@@ -267,7 +268,7 @@ class ProjectSerializer(Serializer):  # type: ignore
             if user.is_authenticated and item_list:
                 bookmarks = set(
                     ProjectBookmark.objects.filter(
-                        user=user, project_id__in=project_ids
+                        user_id=user.id, project_id__in=project_ids
                     ).values_list("project_id", flat=True)
                 )
 

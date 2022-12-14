@@ -611,6 +611,7 @@ export const TRACING_FIELDS = [
   FieldKey.TRANSACTION_DURATION,
   FieldKey.TRANSACTION_OP,
   FieldKey.TRANSACTION_STATUS,
+  FieldKey.ISSUE,
   AggregationKey.P50,
   AggregationKey.P75,
   AggregationKey.P95,

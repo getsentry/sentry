@@ -32,6 +32,7 @@ from sentry.signals import (
     transaction_processed,
 )
 from sentry.utils.javascript import has_sourcemap
+from sentry.utils.safe import get_path
 
 
 def try_mark_onboarding_complete(organization_id):
@@ -143,6 +144,35 @@ def record_first_event(project, event, **kwargs):
         )
         return
 
+    url = None
+
+    # Check for the event url
+    for key, value in event.tags:
+        if key == "url":
+            url = value
+            break
+
+    # Check if an event contains a minified stack trace
+    has_minified_stack_trace = False
+
+    exception_values = get_path(event.data, "exception", "values", filter=True)
+
+    if exception_values:
+        for exception_value in exception_values:
+            if "raw_stacktrace" in exception_value:
+                has_minified_stack_trace = True
+                break
+
+    if has_minified_stack_trace:
+        analytics.record(
+            "first_event_with_minified_stack_trace_for_project.sent",
+            user_id=user.id,
+            organization_id=project.organization_id,
+            project_id=project.id,
+            platform=event.platform,
+            url=url,
+        )
+
     # this event fires once per project
     analytics.record(
         "first_event_for_project.sent",
@@ -150,6 +180,8 @@ def record_first_event(project, event, **kwargs):
         organization_id=project.organization_id,
         project_id=project.id,
         platform=event.platform,
+        url=url,
+        has_minified_stack_trace=has_minified_stack_trace,
     )
 
     if rows_affected or created:
@@ -222,14 +254,9 @@ def record_first_transaction(project, event, **kwargs):
 def record_first_profile(project, **kwargs):
     project.update(flags=F("flags").bitor(Project.flags.has_profiles))
 
-    try:
-        default_user_id = project.organization.get_default_owner().id
-    except IndexError:
-        default_user_id = None
-
     analytics.record(
         "first_profile.sent",
-        default_user_id=default_user_id,
+        user_id=project.organization.default_owner_id,
         organization_id=project.organization_id,
         project_id=project.id,
         platform=project.platform,
@@ -263,14 +290,14 @@ def record_member_invited(member, user, **kwargs):
     OrganizationOnboardingTask.objects.record(
         organization_id=member.organization_id,
         task=OnboardingTask.INVITE_MEMBER,
-        user=user,
+        user_id=user.id if user else None,
         status=OnboardingTaskStatus.PENDING,
         data={"invited_member_id": member.id},
     )
     analytics.record(
         "member.invited",
         invited_member_id=member.id,
-        inviter_user_id=user.id,
+        inviter_user_id=user.id if user else None,
         organization_id=member.organization_id,
         referrer=kwargs.get("referrer"),
     )

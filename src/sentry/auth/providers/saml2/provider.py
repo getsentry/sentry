@@ -78,6 +78,10 @@ class SAML2LoginView(AuthView):
         if not provider.config:
             provider.config = provider.build_config(helper.fetch_state())
 
+        if request.subdomain:
+            # See auth.helper.handle_existing_identity()
+            helper.bind_state("subdomain", request.subdomain)
+
         saml_config = build_saml_config(provider.config, helper.organization.slug)
         auth = build_auth(request, saml_config)
 

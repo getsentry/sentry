@@ -328,4 +328,5 @@ class GitLabApiClient(ApiClient):
         contents = self.get(
             request_path, params={"ref": ref, "range[start]": lineno, "range[end]": lineno}
         )
+
         return contents

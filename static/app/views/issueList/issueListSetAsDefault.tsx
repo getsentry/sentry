@@ -1,5 +1,4 @@
-// eslint-disable-next-line no-restricted-imports
-import {browserHistory, withRouter, WithRouterProps} from 'react-router';
+import {browserHistory} from 'react-router';
 import isNil from 'lodash/isNil';
 
 import Button from 'sentry/components/button';
@@ -8,10 +7,11 @@ import {IconBookmark} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {Organization, SavedSearch, SavedSearchType} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {useLocation} from 'sentry/utils/useLocation';
 import {usePinSearch} from 'sentry/views/issueList/mutations/usePinSearch';
 import {useUnpinSearch} from 'sentry/views/issueList/mutations/useUnpinSearch';
 
-interface IssueListSetAsDefaultProps extends WithRouterProps {
+interface IssueListSetAsDefaultProps {
   organization: Organization;
   query: string;
   savedSearch: SavedSearch | null;
@@ -19,12 +19,13 @@ interface IssueListSetAsDefaultProps extends WithRouterProps {
 }
 
 const IssueListSetAsDefault = ({
-  location,
   organization,
   savedSearch,
   sort,
   query,
 }: IssueListSetAsDefaultProps) => {
+  const location = useLocation();
+
   const pinnedSearch = savedSearch?.isPinned ? savedSearch : undefined;
   const pinnedSearchActive = !isNil(pinnedSearch);
 
@@ -72,10 +73,6 @@ const IssueListSetAsDefault = ({
     }
   };
 
-  if (!organization.features.includes('issue-list-saved-searches-v2')) {
-    return null;
-  }
-
   return (
     <Button
       onClick={onTogglePinnedSearch}
@@ -88,4 +85,4 @@ const IssueListSetAsDefault = ({
   );
 };
 
-export default withRouter(IssueListSetAsDefault);
+export default IssueListSetAsDefault;

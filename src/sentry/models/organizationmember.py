@@ -125,6 +125,8 @@ class OrganizationMember(Model):
             ("sso:linked", "sso:linked"),
             ("sso:invalid", "sso:invalid"),
             ("member-limit:restricted", "member-limit:restricted"),
+            ("idp:provisioned", "idp:provisioned"),
+            ("idp:role-restricted", "idp:role-restricted"),
         ),
         default=0,
     )
@@ -242,8 +244,12 @@ class OrganizationMember(Model):
             return None
         return absolute_uri(
             reverse(
-                "sentry-accept-invite",
-                kwargs={"member_id": self.id, "token": self.token or self.legacy_token},
+                "sentry-accept-invite-with-org",
+                kwargs={
+                    "organization_slug": self.organization.slug,
+                    "member_id": self.id,
+                    "token": self.token or self.legacy_token,
+                },
             )
         )
 
@@ -292,7 +298,7 @@ class OrganizationMember(Model):
         msg.send_async([self.get_email()])
 
     def send_sso_unlink_email(self, actor, provider):
-        from sentry.services.hybrid_cloud.lostpasswordhash import lost_password_hash_service
+        from sentry.services.hybrid_cloud.lost_password_hash import lost_password_hash_service
         from sentry.utils.email import MessageBuilder
 
         email = self.get_email()

@@ -54,7 +54,7 @@ def _get_team_memberships(team_list: Sequence[Team], user: User) -> Mapping[int,
     return {
         team_id: team_role
         for (team_id, team_role) in OrganizationMemberTeam.objects.filter(
-            organizationmember__user=user, team__in=team_list
+            organizationmember__user_id=user.id, team__in=team_list
         ).values_list("team__id", "role")
     }
 
@@ -84,7 +84,7 @@ def get_org_roles(org_ids: Set[int], user: User) -> Mapping[int, str]:
     return {
         om["organization_id"]: om["role"]
         for om in OrganizationMember.objects.filter(
-            user=user, organization__in=set(org_ids)
+            user_id=user.id, organization__in=set(org_ids)
         ).values("role", "organization_id")
     }
 
@@ -93,7 +93,7 @@ def get_access_requests(item_list: Sequence[Team], user: User) -> AbstractSet[Te
     if user.is_authenticated:
         return frozenset(
             OrganizationAccessRequest.objects.filter(
-                team__in=item_list, member__user=user
+                team__in=item_list, member__user_id=user.id
             ).values_list("team", flat=True)
         )
     return frozenset()
@@ -112,6 +112,7 @@ class TeamSerializerResponse(_TeamSerializerResponseOptional):
     dateCreated: datetime
     isMember: bool
     teamRole: str
+    idpProvisioned: bool
     hasAccess: bool
     isPending: bool
     memberCount: int
@@ -232,6 +233,7 @@ class TeamSerializer(Serializer):  # type: ignore
             "dateCreated": obj.date_added,
             "isMember": attrs["is_member"],
             "teamRole": attrs["team_role"],
+            "idpProvisioned": bool(obj.idp_provisioned),
             "hasAccess": attrs["has_access"],
             "isPending": attrs["pending_request"],
             "memberCount": attrs["member_count"],

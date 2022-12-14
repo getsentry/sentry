@@ -63,17 +63,33 @@ class OrganizationSearchesEndpoint(OrganizationEndpoint):
 
         result = serializer.validated_data
 
-        # Prevent from creating duplicate queries
-        if (
-            SavedSearch.objects
-            # Query duplication for pinned searches is fine, exlcuded these
-            .exclude(visibility=Visibility.OWNER_PINNED)
-            .filter(Q(is_global=True) | Q(organization=organization), query=result["query"])
-            .exists()
-        ):
-            return Response(
-                {"detail": "Query {} already exists".format(result["query"])}, status=400
-            )
+        if result["visibility"] == Visibility.ORGANIZATION:
+            # Check for conflicts against existing org searches
+            if SavedSearch.objects.filter(
+                is_global=False,
+                organization=organization,
+                type=SearchType.ISSUE.value,
+                visibility=Visibility.ORGANIZATION,
+                query=result["query"],
+            ).exists():
+                return Response(
+                    {"detail": f"An organization search for '{result['query']}' already exists"},
+                    status=400,
+                )
+        elif result["visibility"] == Visibility.OWNER:
+            # Check for conflicts against the user's searches
+            if SavedSearch.objects.filter(
+                is_global=False,
+                organization=organization,
+                type=SearchType.ISSUE.value,
+                visibility=Visibility.OWNER,
+                owner=request.user,
+                query=result["query"],
+            ).exists():
+                return Response(
+                    {"detail": f"A search for '{result['query']}' already exists"},
+                    status=400,
+                )
 
         saved_search = SavedSearch.objects.create(
             organization=organization,

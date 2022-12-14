@@ -12,7 +12,7 @@ if TYPE_CHECKING:
     from sentry.models.organization import Organization
 
 
-class AuthView(BaseView):  # type: ignore[misc]
+class AuthView(BaseView):
     """
     A segment of Provider's auth pipeline.
 
@@ -27,7 +27,7 @@ class AuthView(BaseView):  # type: ignore[misc]
         return f"{cls.__module__}.{cls.__name__}"
 
 
-class ConfigureView(BaseView, PluggableViewMixin):  # type: ignore[misc]
+class ConfigureView(BaseView, PluggableViewMixin):
     def dispatch(
         self, request: Request, organization: Organization, auth_provider: AuthProvider
     ) -> str:

@@ -1,13 +1,13 @@
+from functools import cached_property
 from io import BytesIO
 from os.path import join
 from zipfile import ZipFile
 
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
-from exam import fixture
 
 from sentry.models import Project
-from sentry.profiles.task import _deobfuscate, _normalize
+from sentry.profiles.task import _deobfuscate, _normalize, _process_symbolicator_results_for_sample
 from sentry.testutils import TestCase
 from sentry.testutils.factories import get_fixture_path
 from sentry.utils import json
@@ -75,13 +75,13 @@ class ProfilesProcessTaskTest(TestCase):
 
         self.login_as(user=self.owner)
 
-    @fixture
+    @cached_property
     def ios_profile(self):
         path = join(PROFILES_FIXTURES_PATH, "valid_ios_profile.json")
         with open(path) as f:
             return json.loads(f.read())
 
-    @fixture
+    @cached_property
     def android_profile(self):
         path = join(PROFILES_FIXTURES_PATH, "valid_android_profile.json")
         with open(path) as f:
@@ -263,3 +263,84 @@ class ProfilesProcessTaskTest(TestCase):
         _deobfuscate(profile, project)
 
         assert profile["profile"]["methods"] == obfuscated_frames
+
+    def test_process_symbolicator_results_for_sample(self):
+        profile = {
+            "platform": "rust",
+            "profile": {
+                "frames": [
+                    {
+                        "instruction_addr": "0x55bd050e168d",
+                        "lang": "rust",
+                        "sym_addr": "0x55bd050e1590",
+                    },
+                    {
+                        "instruction_addr": "0x89bf050e178a",
+                        "lang": "rust",
+                        "sym_addr": "0x95bc050e2530",
+                    },
+                    {
+                        "instruction_addr": "0x88ad050d167e",
+                        "lang": "rust",
+                        "sym_addr": "0x29cd050a1642",
+                    },
+                ],
+                "samples": [
+                    {"stack_id": 0},
+                ],
+                "stacks": [
+                    [0, 1, 2],
+                ],
+            },
+        }
+
+        # returned from symbolicator
+        stacktraces = [
+            {
+                "frames": [
+                    {
+                        "instruction_addr": "0x72ba053e168c",
+                        "lang": "rust",
+                        "function": "C_inline_1",
+                        "original_index": 0,
+                    },
+                    {
+                        "instruction_addr": "0x55bd050e168d",
+                        "lang": "rust",
+                        "function": "C",
+                        "sym_addr": "0x55bd050e1590",
+                        "original_index": 0,
+                    },
+                    {
+                        "instruction_addr": "0x89bf050e178a",
+                        "lang": "rust",
+                        "function": "B",
+                        "sym_addr": "0x95bc050e2530",
+                        "original_index": 1,
+                    },
+                    {
+                        "instruction_addr": "0x68fd050d127b",
+                        "lang": "rust",
+                        "function": "A_inline_1",
+                        "original_index": 2,
+                    },
+                    {
+                        "instruction_addr": "0x29ce061d168a",
+                        "lang": "rust",
+                        "function": "A_inline_2",
+                        "original_index": 2,
+                    },
+                    {
+                        "instruction_addr": "0x88ad050d167e",
+                        "lang": "rust",
+                        "function": "A",
+                        "sym_addr": "0x29cd050a1642",
+                        "original_index": 2,
+                    },
+                ],
+            },
+        ]
+
+        _process_symbolicator_results_for_sample(profile, stacktraces)
+
+        assert profile["profile"]["stacks"][0] == [0, 1, 2, 3, 4, 5]

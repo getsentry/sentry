@@ -8,7 +8,12 @@ from sentry.notifications.types import (
     NotificationSettingOptionValues,
     NotificationSettingTypes,
 )
-from sentry.notifications.utils.participants import get_owners, get_release_committers, get_send_to
+from sentry.notifications.utils.participants import (
+    get_owner_reason,
+    get_owners,
+    get_release_committers,
+    get_send_to,
+)
 from sentry.ownership import grammar
 from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema
 from sentry.services.hybrid_cloud.user import APIUser, UserService, user_service
@@ -485,3 +490,34 @@ class GetOwnersCase(TestCase):
         event_2 = self.create_event(self.project)
         recipients_2 = get_owners(project=self.project, event=event_2)
         self.assert_recipients(expected=[self.user_1], received=recipients_2)
+
+    def test_get_owner_reason(self):
+        self.create_ownership(self.project, [], True)
+        event = self.create_event(self.project)
+
+        # Test feature flag
+        owner_reason = get_owner_reason(
+            project=self.project, target_type=ActionTargetType.ISSUE_OWNERS, event=event
+        )
+        assert owner_reason is None
+
+        with self.feature("organizations:issue-alert-fallback-message"):
+            owner_reason = get_owner_reason(
+                project=self.project, target_type=ActionTargetType.ISSUE_OWNERS, event=event
+            )
+            assert (
+                owner_reason
+                == f"We notified all members in the {self.project.get_full_name()} project of this issue"
+            )
+
+    def test_get_owner_reason_assigned(self):
+        self.create_ownership(self.project, [], True)
+        event = self.create_event(self.project)
+        with self.feature("organizations:issue-alert-fallback-message"):
+            owner_reason = get_owner_reason(
+                project=self.project,
+                target_type=ActionTargetType.ISSUE_OWNERS,
+                target_identifier=self.user_1,
+                event=event,
+            )
+            assert owner_reason is None

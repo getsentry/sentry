@@ -124,8 +124,6 @@ def query_replays_dataset(
             having=[
                 # Must include the first sequence otherwise the replay is too old.
                 Condition(Function("min", parameters=[Column("segment_id")]), Op.EQ, 0),
-                # Discard short replays (5 seconds by arbitrary decision).
-                Condition(Column("duration"), Op.GTE, 5),
                 # Require non-archived replays.
                 Condition(Column("isArchived"), Op.EQ, 0),
                 # User conditions.
@@ -137,7 +135,49 @@ def query_replays_dataset(
             **query_options,
         ),
     )
-    return raw_snql_query(snuba_request)
+    return raw_snql_query(snuba_request, "replays.query.query_replays_dataset")
+
+
+def query_replays_count(
+    project_ids: List[str],
+    start: datetime,
+    end: datetime,
+    replay_ids: List[str],
+):
+
+    snuba_request = Request(
+        dataset="replays",
+        app_id="replay-backend-web",
+        query=Query(
+            match=Entity("replays"),
+            select=[
+                _strip_uuid_dashes("replay_id", Column("replay_id")),
+                Function(
+                    "notEmpty",
+                    parameters=[Function("groupArray", parameters=[Column("is_archived")])],
+                    alias="isArchived",
+                ),
+            ],
+            where=[
+                Condition(Column("project_id"), Op.IN, project_ids),
+                Condition(Column("timestamp"), Op.LT, end),
+                Condition(Column("timestamp"), Op.GTE, start),
+                Condition(Column("replay_id"), Op.IN, replay_ids),
+            ],
+            having=[
+                # Must include the first sequence otherwise the replay is too old.
+                Condition(Function("min", parameters=[Column("segment_id")]), Op.EQ, 0),
+                # Require non-archived replays.
+                Condition(Column("isArchived"), Op.EQ, 0),
+            ],
+            orderby=[],
+            groupby=[Column("replay_id")],
+            granularity=Granularity(3600),
+        ),
+    )
+    return raw_snql_query(
+        snuba_request, referrer="replays.query.query_replays_count", use_cache=True
+    )
 
 
 # Select.
@@ -149,6 +189,7 @@ def make_select_statement() -> List[Union[Column, Function]]:
         _strip_uuid_dashes("replay_id", Column("replay_id")),
         # First, non-null value of a collected array.
         _grouped_unique_scalar_value(column_name="title"),
+        _grouped_unique_scalar_value(column_name="replay_type", alias="replayType"),
         Function(
             "toString",
             parameters=[_grouped_unique_scalar_value(column_name="project_id", alias="agg_pid")],

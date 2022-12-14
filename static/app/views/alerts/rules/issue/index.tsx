@@ -35,9 +35,10 @@ import LoadingMask from 'sentry/components/loadingMask';
 import {CursorHandler} from 'sentry/components/pagination';
 import {Panel, PanelBody} from 'sentry/components/panels';
 import TeamSelector from 'sentry/components/teamSelector';
+import Tooltip from 'sentry/components/tooltip';
 import {ALL_ENVIRONMENTS_KEY} from 'sentry/constants';
 import {IconChevron} from 'sentry/icons';
-import {t, tct} from 'sentry/locale';
+import {t, tct, tn} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import space from 'sentry/styles/space';
 import {
@@ -154,7 +155,8 @@ type State = AsyncView['state'] & {
   issueCount: number;
   loadingPreview: boolean;
   previewCursor: string | null | undefined;
-  previewError: boolean;
+  previewEndpoint: null | string;
+  previewError: null | string;
   previewGroups: string[] | null;
   previewPage: number;
   project: Project;
@@ -171,6 +173,7 @@ function isSavedAlertRule(rule: State['rule']): rule is IssueAlertRule {
 
 class IssueRuleEditor extends AsyncView<Props, State> {
   pollingTimeout: number | undefined = undefined;
+  trackIncompatibleAnalytics: boolean = false;
 
   get isDuplicateRule(): boolean {
     const {location} = this.props;
@@ -244,13 +247,14 @@ class IssueRuleEditor extends AsyncView<Props, State> {
       project,
       previewGroups: null,
       previewCursor: null,
-      previewError: false,
+      previewError: null,
       issueCount: 0,
       previewPage: 0,
       loadingPreview: false,
       sendingNotification: false,
       incompatibleConditions: null,
       incompatibleFilters: null,
+      previewEndpoint: null,
     };
 
     const projectTeamIds = new Set(project.teams.map(({id}) => id));
@@ -365,7 +369,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
 
   fetchPreview = (resetCursor = false) => {
     const {organization} = this.props;
-    const {project, rule, previewCursor} = this.state;
+    const {project, rule, previewCursor, previewEndpoint} = this.state;
 
     if (!rule || !organization.features.includes('issue-alert-preview')) {
       return;
@@ -390,6 +394,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
           actionMatch: rule?.actionMatch || 'all',
           filterMatch: rule?.filterMatch || 'all',
           frequency: rule?.frequency || 60,
+          endpoint: previewEndpoint,
         },
       })
       .then(([data, _, resp]) => {
@@ -397,19 +402,25 @@ class IssueRuleEditor extends AsyncView<Props, State> {
 
         const pageLinks = resp?.getResponseHeader('Link');
         const hits = resp?.getResponseHeader('X-Hits');
+        const endpoint = resp?.getResponseHeader('Endpoint');
         const issueCount =
           typeof hits !== 'undefined' && hits ? parseInt(hits, 10) || 0 : 0;
         this.setState({
           previewGroups: data.map(g => g.id),
-          previewError: false,
+          previewError: null,
           pageLinks: pageLinks ?? '',
           issueCount,
           loadingPreview: false,
+          previewEndpoint: endpoint ?? null,
         });
       })
       .catch(_ => {
+        const errorMessage =
+          rule?.conditions.length || rule?.filters.length
+            ? t('Preview is not supported for these conditions')
+            : t('Select a condition to generate a preview');
         this.setState({
-          previewError: true,
+          previewError: errorMessage,
           loadingPreview: false,
         });
       });
@@ -422,10 +433,19 @@ class IssueRuleEditor extends AsyncView<Props, State> {
   // As more incompatible combinations are added, we will need a more generic way to check for incompatibility.
   checkIncompatibleRule = debounce(() => {
     if (this.props.organization.features.includes('issue-alert-incompatible-rules')) {
-      const incompatibleRule = findIncompatibleRules(this.state.rule);
+      const {conditionIndices, filterIndices} = findIncompatibleRules(this.state.rule);
+      if (
+        !this.trackIncompatibleAnalytics &&
+        (conditionIndices !== null || filterIndices !== null)
+      ) {
+        this.trackIncompatibleAnalytics = true;
+        trackAdvancedAnalyticsEvent('edit_alert_rule.incompatible_rule', {
+          organization: this.props.organization,
+        });
+      }
       this.setState({
-        incompatibleConditions: incompatibleRule.conditionIndices,
-        incompatibleFilters: incompatibleRule.filterIndices,
+        incompatibleConditions: conditionIndices,
+        incompatibleFilters: filterIndices,
       });
     }
   }, 500);
@@ -469,7 +489,10 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     const {organization} = this.props;
     const {project, rule} = this.state;
     this.setState({sendingNotification: true});
-    addLoadingMessage(t('Sending a test notification...'));
+    const actions = rule?.actions ? rule?.actions.length : 0;
+    addLoadingMessage(
+      tn('Sending a test notification...', 'Sending test notifications...', actions)
+    );
     this.api
       .requestPromise(`/projects/${organization.slug}/${project.slug}/rule-actions/`, {
         method: 'POST',
@@ -478,10 +501,18 @@ class IssueRuleEditor extends AsyncView<Props, State> {
         },
       })
       .then(() => {
-        addSuccessMessage(t('Notification sent!'));
+        addSuccessMessage(tn('Notification sent!', 'Notifications sent!', actions));
+        trackAdvancedAnalyticsEvent('edit_alert_rule.notification_test', {
+          organization,
+          success: true,
+        });
       })
       .catch(() => {
-        addErrorMessage(t('Notification failed'));
+        addErrorMessage(tn('Notification failed', 'Notifications failed', actions));
+        trackAdvancedAnalyticsEvent('edit_alert_rule.notification_test', {
+          organization,
+          success: false,
+        });
       })
       .finally(() => {
         this.setState({sendingNotification: false});
@@ -925,9 +956,15 @@ class IssueRuleEditor extends AsyncView<Props, State> {
       );
     }
     return tct(
-      "[issueCount] issues would have triggered this rule in the past 14 days approximately. If you're looking to reduce noise then make sure to [link:read the docs].",
+      "[issueCount] issues would have triggered this rule in the past 14 days [approximately:approximately]. If you're looking to reduce noise then make sure to [link:read the docs].",
       {
         issueCount,
+        approximately: (
+          <Tooltip
+            title={t('Previews that include issue frequency conditions are approximated')}
+            showUnderline
+          />
+        ),
         link: <a href={SENTRY_ISSUE_ALERT_DOCS_URL} />,
       }
     );
@@ -1469,7 +1506,7 @@ export const findIncompatibleRules = (
       if (firstSeenError || regressionReappearedError) {
         const indices = [firstSeen, regression, reappeared, eventFrequency, userFrequency]
           .filter(idx => idx !== -1)
-          .sort();
+          .sort((a, b) => a - b);
         return {conditionIndices: indices, filterIndices: null};
       }
     }
@@ -1496,19 +1533,13 @@ export const findIncompatibleRules = (
         }
       } else if (id.endsWith('AgeComparisonFilter')) {
         if (rule.filterMatch !== 'none') {
-          if (
-            (filter.comparison_type === 'older' && filter.value >= 0) ||
-            (filter.comparison_type === 'newer' && filter.value <= 0)
-          ) {
+          if (filter.comparison_type === 'older') {
             if (rule.filterMatch === 'all') {
               return {conditionIndices: [firstSeen], filterIndices: [i]};
             }
             incompatibleFilters += 1;
           }
-        } else if (
-          (filter.comparison_type === 'older' && filter.value < 0) ||
-          (filter.comparison_type === 'newer' && filter.value > 0)
-        ) {
+        } else if (filter.comparison_type === 'newer' && filter.value > 0) {
           return {conditionIndices: [firstSeen], filterIndices: [i]};
         }
       }

@@ -4,7 +4,6 @@ import {Observer} from 'mobx-react';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
-import {CustomerProfiler} from 'sentry/utils/performanceForSentry';
 
 import * as CursorGuideHandler from './cursorGuideHandler';
 import * as DividerHandlerManager from './dividerHandlerManager';
@@ -96,21 +95,19 @@ function TraceView(props: Props) {
                                 {renderHeader(dragProps)}
                                 <Observer>
                                   {() => (
-                                    <CustomerProfiler id="SpanTree">
-                                      <SpanTree
-                                        traceViewRef={traceViewRef}
-                                        dragProps={dragProps}
-                                        organization={organization}
-                                        waterfallModel={waterfallModel}
-                                        filterSpans={waterfallModel.filterSpans}
-                                        spans={waterfallModel.getWaterfall({
-                                          viewStart: dragProps.viewWindowStart,
-                                          viewEnd: dragProps.viewWindowEnd,
-                                        })}
-                                        focusedSpanIds={waterfallModel.focusedSpanIds}
-                                        spanContextProps={spanContextProps}
-                                      />
-                                    </CustomerProfiler>
+                                    <SpanTree
+                                      traceViewRef={traceViewRef}
+                                      dragProps={dragProps}
+                                      organization={organization}
+                                      waterfallModel={waterfallModel}
+                                      filterSpans={waterfallModel.filterSpans}
+                                      spans={waterfallModel.getWaterfall({
+                                        viewStart: dragProps.viewWindowStart,
+                                        viewEnd: dragProps.viewWindowEnd,
+                                      })}
+                                      focusedSpanIds={waterfallModel.focusedSpanIds}
+                                      spanContextProps={spanContextProps}
+                                    />
                                   )}
                                 </Observer>
                               </ScrollbarManager.Provider>

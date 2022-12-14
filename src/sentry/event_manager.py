@@ -53,11 +53,7 @@ from sentry.constants import (
 )
 from sentry.culprit import generate_culprit
 from sentry.dynamic_sampling.feature_multiplexer import DynamicSamplingFeatureMultiplexer
-from sentry.dynamic_sampling.latest_release_booster import (
-    TooManyBoostedReleasesException,
-    add_boosted_release,
-    observe_release,
-)
+from sentry.dynamic_sampling.latest_release_booster import LatestReleaseBias, LatestReleaseParams
 from sentry.eventstore.processing import event_processing_store
 from sentry.eventtypes import (
     CspEvent,
@@ -116,6 +112,7 @@ from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.plugins.base import plugins
 from sentry.projectoptions.defaults import BETA_GROUPING_CONFIG, DEFAULT_GROUPING_CONFIG
+from sentry.quotas.base import index_data_category
 from sentry.ratelimits.sliding_windows import Quota, RedisSlidingWindowRateLimiter, RequestedQuota
 from sentry.reprocessing2 import is_reprocessed_event, save_unprocessed_event
 from sentry.shared_integrations.exceptions import ApiError
@@ -125,7 +122,7 @@ from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.tasks.process_buffer import buffer_incr
 from sentry.tasks.relay import schedule_invalidate_project_config
 from sentry.types.activity import ActivityType
-from sentry.types.issues import GroupCategory
+from sentry.types.issues import GROUP_TYPE_TO_TEXT, GroupCategory, GroupType
 from sentry.utils import json, metrics, redis
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.canonical import CanonicalKeyDict
@@ -153,7 +150,12 @@ issue_rate_limiter = RedisSlidingWindowRateLimiter(
     **settings.SENTRY_PERFORMANCE_ISSUES_RATE_LIMITER_OPTIONS
 )
 PERFORMANCE_ISSUE_QUOTA = Quota(3600, 60, 5)
-GROUPHASH_IGNORE_LIMIT = 3
+
+DEFAULT_GROUPHASH_IGNORE_LIMIT = 3
+GROUPHASH_IGNORE_LIMIT_MAP = {
+    GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES: 3,
+    GroupType.PERFORMANCE_SLOW_SPAN: 100,
+}
 
 
 @dataclass
@@ -714,18 +716,6 @@ def _run_background_grouping(project: Project, job: Job) -> None:
         sentry_sdk.capture_exception()
 
 
-def _get_job_category(data: Mapping[str, Any]) -> DataCategory:
-    event_type = data.get("type")
-    if event_type == "transaction":
-        # TODO: This logic should move into sentry-relay, but I'm not sure
-        # about the consequences of making `from_event_type` return
-        # `TRANSACTION_INDEXED` unconditionally.
-        # https://github.com/getsentry/relay/blob/d77c489292123e53831e10281bd310c6a85c63cc/relay-server/src/envelope.rs#L121
-        return DataCategory.TRANSACTION_INDEXED
-
-    return DataCategory.from_event_type(event_type)
-
-
 @metrics.wraps("save_event.pull_out_data")
 def _pull_out_data(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
     """
@@ -758,9 +748,9 @@ def _pull_out_data(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
         job["event"] = event = _get_event_instance(job["data"], project_id=job["project_id"])
         job["data"] = data = event.data.data
 
-        job["category"] = _get_job_category(data)
+        event._project_cache = project = projects[job["project_id"]]
+        job["category"] = index_data_category(data.get("type"), project.organization)
         job["platform"] = event.platform
-        event._project_cache = projects[job["project_id"]]
 
         # Some of the data that are toplevel attributes are duplicated
         # into tags (logger, level, environment, transaction).  These are
@@ -891,34 +881,42 @@ def _get_or_create_release_many(jobs: Sequence[Job], projects: ProjectsMapping) 
                 ):
                     with sentry_sdk.start_span(
                         op="event_manager.dynamic_sampling_observe_latest_release"
-                    ) as span, metrics.timer(
-                        "event_manager.dynamic_sampling_observe_latest_release"
-                    ) as metrics_tags:
+                    ) as span:
                         try:
-                            release_observed_in_last_24h = observe_release(project_id, release.id)
-                            if not release_observed_in_last_24h:
+                            latest_release_params = LatestReleaseParams(
+                                release=release,
+                                project=projects[project_id],
+                                environment=_get_environment_from_transaction(data),
+                            )
+
+                            def on_release_boosted() -> None:
                                 span.set_tag(
                                     "dynamic_sampling.observe_release_status",
-                                    f"New release observed {release.id}",
+                                    "(release, environment) pair observed and boosted",
                                 )
-                                metrics_tags[
-                                    "dynamic_sampling.observe_release_status"
-                                ] = f"New release observed {release.id}"
-                                add_boosted_release(project_id, release.id)
+                                span.set_data("release", latest_release_params.release.id)
+                                span.set_data("environment", latest_release_params.environment)
+
                                 schedule_invalidate_project_config(
-                                    project_id=project_id, trigger="dynamic_sampling:boost_release"
+                                    project_id=project_id,
+                                    trigger="dynamic_sampling:boost_release",
                                 )
-                        except TooManyBoostedReleasesException:
-                            span.set_tag(
-                                "dynamic_sampling.observe_release_status",
-                                "Too many boosted releases",
-                            )
-                            metrics_tags[
-                                "dynamic_sampling.observe_release_status"
-                            ] = "Too many boosted releases"
-                            pass
+
+                            LatestReleaseBias(
+                                latest_release_params=latest_release_params
+                            ).observe_release(on_boosted_release_added=on_release_boosted)
                         except Exception:
                             sentry_sdk.capture_exception()
+
+
+def _get_environment_from_transaction(data: EventDict) -> Optional[str]:
+    environment = data.get("environment", None)
+    # We handle the case in which the users sets the empty string as environment, for us that
+    # is equal to having no environment at all.
+    if environment == "":
+        environment = None
+
+    return environment  # type:ignore
 
 
 @metrics.wraps("save_event.get_event_user_many")
@@ -1358,9 +1356,8 @@ def materialize_metadata(
 def inject_performance_problem_metadata(
     metadata: dict[str, Any], problem: PerformanceProblem
 ) -> dict[str, Any]:
-    # TODO make type here dynamic, pull it from group type
     metadata["value"] = problem.desc
-    metadata["title"] = "N+1 Query"
+    metadata["title"] = problem.title
     return metadata
 
 
@@ -2217,8 +2214,8 @@ def _save_grouphash_and_group(
 def _message_from_metadata(meta: Mapping[str, str]) -> str:
     title = meta.get("title", "")
     location = meta.get("location", "")
-    seperator = ": " if title and location else ""
-    return f"{title}{seperator}{location}"
+    separator = ": " if title and location else ""
+    return f"{title}{separator}{location}"
 
 
 @metrics.wraps("save_event.save_aggregate_performance")
@@ -2275,7 +2272,8 @@ def _save_aggregate_performance(jobs: Sequence[PerformanceJob], projects: Projec
                     client = redis.redis_clusters.get(cluster_key)
 
                     for new_grouphash in new_grouphashes:
-                        if not should_create_group(client, new_grouphash):
+                        group_type = performance_problems_by_hash[new_grouphash].type
+                        if not should_create_group(client, new_grouphash, group_type):
                             groups_to_ignore.add(new_grouphash)
 
                     new_grouphashes = new_grouphashes - groups_to_ignore
@@ -2385,14 +2383,15 @@ def _save_aggregate_performance(jobs: Sequence[PerformanceJob], projects: Projec
 
 
 @metrics.wraps("performance.performance_issue.should_create_group", sample_rate=1.0)
-def should_create_group(client: Any, grouphash: str) -> bool:
+def should_create_group(client: Any, grouphash: str, type: GroupType) -> bool:
     times_seen = client.incr(f"grouphash:{grouphash}")
     metrics.incr(
         "performance.performance_issue.grouphash_counted",
-        tags={"times_seen": times_seen},
+        tags={"times_seen": times_seen, "group_type": GROUP_TYPE_TO_TEXT.get(type, "Unknown Type")},
         sample_rate=1.0,
     )
-    if times_seen >= GROUPHASH_IGNORE_LIMIT:
+
+    if times_seen >= GROUPHASH_IGNORE_LIMIT_MAP.get(type, DEFAULT_GROUPHASH_IGNORE_LIMIT):
         client.delete(grouphash)
         return True
     else:

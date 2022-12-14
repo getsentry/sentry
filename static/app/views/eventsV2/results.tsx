@@ -36,7 +36,7 @@ import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters, SavedQuery} from 'sentry/types';
 import {defined, generateQueryWithTag} from 'sentry/utils';
-import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {CustomMeasurementsContext} from 'sentry/utils/customMeasurements/customMeasurementsContext';
 import {CustomMeasurementsProvider} from 'sentry/utils/customMeasurements/customMeasurementsProvider';
 import EventView, {isAPIPayloadSimilar} from 'sentry/utils/discover/eventView';
@@ -56,7 +56,7 @@ import withPageFilters from 'sentry/utils/withPageFilters';
 import {addRoutePerformanceContext} from '../performance/utils';
 
 import {DEFAULT_EVENT_VIEW} from './data';
-import {MetricsBaselineContainer} from './metricsBaselineContainer';
+import ResultsChart from './resultsChart';
 import ResultsHeader from './resultsHeader';
 import Table from './table';
 import Tags from './tags';
@@ -156,7 +156,7 @@ export class Results extends Component<Props, State> {
   }
 
   componentDidUpdate(prevProps: Props, prevState: State) {
-    const {api, location, organization, selection} = this.props;
+    const {location, organization, selection} = this.props;
     const {eventView, confirmedQuery, savedQuery} = this.state;
 
     this.checkEventView();
@@ -174,7 +174,6 @@ export class Results extends Component<Props, State> {
         yAxisArray
       )
     ) {
-      api.clear();
       this.canLoadEvents();
     }
     if (
@@ -344,10 +343,8 @@ export class Results extends Component<Props, State> {
 
   handleChangeShowTags = () => {
     const {organization} = this.props;
-    trackAnalyticsEvent({
-      eventKey: 'discover_v2.results.toggle_tag_facets',
-      eventName: 'Discoverv2: Toggle Tag Facets',
-      organization_id: parseInt(organization.id, 10),
+    trackAdvancedAnalyticsEvent('discover_v2.results.toggle_tag_facets', {
+      organization,
     });
     this.setState(state => {
       const newValue = !state.showTags;
@@ -401,10 +398,8 @@ export class Results extends Component<Props, State> {
       this.handleConfirmed();
     }
 
-    trackAnalyticsEvent({
-      eventKey: 'discover_v2.y_axis_change',
-      eventName: "Discoverv2: Change chart's y axis",
-      organization_id: parseInt(this.props.organization.id, 10),
+    trackAdvancedAnalyticsEvent('discover_v2.y_axis_change', {
+      organization: this.props.organization,
       y_axis_value: value,
     });
   };
@@ -634,7 +629,7 @@ export class Results extends Component<Props, State> {
                     organization={organization}
                     location={location}
                   >
-                    <MetricsBaselineContainer
+                    <ResultsChart
                       api={api}
                       router={router}
                       organization={organization}
