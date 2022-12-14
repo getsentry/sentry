@@ -1695,70 +1695,9 @@ function buildRoutes() {
 
   // Once org issues is complete, these routes can be nested under
   // /organizations/:orgId/issues
-  const issueDetailsChildRoutes = (
-    <Fragment>
-      <IndexRoute
-        component={make(
-          () => import('sentry/views/organizationGroupDetails/groupEventDetails')
-        )}
-      />
-      <Route
-        path={TabPaths[Tab.REPLAYS]}
-        component={make(
-          () => import('sentry/views/organizationGroupDetails/groupReplays')
-        )}
-      />
-      <Route
-        path={TabPaths[Tab.ACTIVITY]}
-        component={make(
-          () => import('sentry/views/organizationGroupDetails/groupActivity')
-        )}
-      />
-      <Route
-        path={TabPaths[Tab.EVENTS]}
-        component={make(
-          () => import('sentry/views/organizationGroupDetails/groupEvents')
-        )}
-      />
-      <Route
-        path={TabPaths[Tab.TAGS]}
-        component={make(() => import('sentry/views/organizationGroupDetails/groupTags'))}
-      />
-      <Route
-        path={`${TabPaths[Tab.TAGS]}:tagKey/`}
-        component={make(
-          () => import('sentry/views/organizationGroupDetails/groupTagValues')
-        )}
-      />
-      <Route
-        path={TabPaths[Tab.USER_FEEDBACK]}
-        component={make(
-          () => import('sentry/views/organizationGroupDetails/groupUserFeedback')
-        )}
-      />
-      <Route
-        path={TabPaths[Tab.ATTACHMENTS]}
-        component={make(
-          () => import('sentry/views/organizationGroupDetails/groupEventAttachments')
-        )}
-      />
-      <Route
-        path={TabPaths[Tab.SIMILAR_ISSUES]}
-        component={make(
-          () => import('sentry/views/organizationGroupDetails/groupSimilarIssues')
-        )}
-      />
-      <Route
-        path={TabPaths[Tab.MERGED]}
-        component={make(
-          () => import('sentry/views/organizationGroupDetails/groupMerged')
-        )}
-      />
-      <Route
-        path={TabPaths[Tab.GROUPING]}
-        component={make(() => import('sentry/views/organizationGroupDetails/grouping'))}
-      />
-      <Route path={`${TabPaths[Tab.EVENTS]}:eventId/`}>
+  const issueTabs = () => {
+    return (
+      <Fragment>
         <IndexRoute
           component={make(
             () => import('sentry/views/organizationGroupDetails/groupEventDetails')
@@ -1780,12 +1719,6 @@ function buildRoutes() {
           path={TabPaths[Tab.EVENTS]}
           component={make(
             () => import('sentry/views/organizationGroupDetails/groupEvents')
-          )}
-        />
-        <Route
-          path={TabPaths[Tab.SIMILAR_ISSUES]}
-          component={make(
-            () => import('sentry/views/organizationGroupDetails/groupSimilarIssues')
           )}
         />
         <Route
@@ -1813,6 +1746,12 @@ function buildRoutes() {
           )}
         />
         <Route
+          path={TabPaths[Tab.SIMILAR_ISSUES]}
+          component={make(
+            () => import('sentry/views/organizationGroupDetails/groupSimilarIssues')
+          )}
+        />
+        <Route
           path={TabPaths[Tab.MERGED]}
           component={make(
             () => import('sentry/views/organizationGroupDetails/groupMerged')
@@ -1822,7 +1761,14 @@ function buildRoutes() {
           path={TabPaths[Tab.GROUPING]}
           component={make(() => import('sentry/views/organizationGroupDetails/grouping'))}
         />
-      </Route>
+      </Fragment>
+    );
+  };
+
+  const issueDetailsChildRoutes = (
+    <Fragment>
+      {issueTabs()}
+      <Route path={`${TabPaths[Tab.EVENTS]}:eventId/`}>{issueTabs()}</Route>
     </Fragment>
   );
   const issueDetailsRoutes = (
