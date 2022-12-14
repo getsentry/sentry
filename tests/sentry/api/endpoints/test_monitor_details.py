@@ -1,46 +1,34 @@
-from datetime import timedelta
-
-from django.urls import reverse
-from django.utils import timezone
-
-from sentry.models import Monitor, MonitorStatus, MonitorType, ScheduledDeletion, ScheduleType
-from sentry.testutils import APITestCase
+from sentry.models import Monitor, MonitorStatus, ScheduledDeletion, ScheduleType
+from sentry.testutils import MonitorTestCase
 from sentry.testutils.silo import region_silo_test
 
 
 @region_silo_test(stable=True)
-class MonitorDetailsTest(APITestCase):
+class MonitorDetailsTest(MonitorTestCase):
+    endpoint = "sentry-api-0-monitor-details"
+    endpoint_with_org = "sentry-api-0-monitor-details-with-org"
+
     def setUp(self):
         self.user = self.create_user()
         self.org = self.create_organization(owner=self.user)
         self.team = self.create_team(organization=self.org, members=[self.user])
         self.project = self.create_project(teams=[self.team])
 
-        self.monitor = Monitor.objects.create(
-            organization_id=self.org.id,
-            project_id=self.project.id,
-            next_checkin=timezone.now() - timedelta(minutes=1),
-            type=MonitorType.CRON_JOB,
-            config={"schedule": "* * * * *"},
-        )
-
-        self.paths = (
-            f"/api/0/monitors/{self.monitor.guid}/",
-            f"/api/0/monitors/{self.org.slug}/{self.monitor.guid}/",
-        )
-
     def test_simple(self):
         self.login_as(user=self.user)
+        monitor = self._create_monitor()
 
         with self.feature({"organizations:monitors": True}):
-            for path in self.paths:
+            for path_func in self._get_path_functions():
+                path = path_func(monitor)
                 resp = self.client.get(path)
 
                 assert resp.status_code == 200, resp.content
-                assert resp.data["id"] == str(self.monitor.guid)
+                assert resp.data["id"] == str(monitor.guid)
 
     def test_mismatched_org_slugs(self):
-        path = f"/api/0/monitors/asdf/{self.monitor.guid}/"
+        monitor = self._create_monitor()
+        path = f"/api/0/monitors/asdf/{monitor.guid}/"
         self.login_as(user=self.user)
 
         with self.feature({"organizations:monitors": True}):
@@ -50,40 +38,25 @@ class MonitorDetailsTest(APITestCase):
 
 
 @region_silo_test(stable=True)
-class UpdateMonitorTest(APITestCase):
+class UpdateMonitorTest(MonitorTestCase):
+    endpoint = "sentry-api-0-monitor-details"
+    endpoint_with_org = "sentry-api-0-monitor-details-with-org"
+
     def setUp(self):
         self.user = self.create_user()
         self.org = self.create_organization(owner=self.user)
         self.team = self.create_team(organization=self.org, members=[self.user])
         self.project = self.create_project(teams=[self.team])
-        self.num_paths = 2
 
         self.login_as(user=self.user)
-
-    def _get_urls(self):
-        return ("sentry-api-0-monitor-details", "sentry-api-0-monitor-details-with-org")
-
-    def _get_path(self, i, monitor):
-        urls = self._get_urls()
-        if i:
-            return reverse(urls[i], args=[self.org.slug, monitor.guid])
-        return reverse(urls[i], args=[monitor.guid])
-
-    def _create_monitor(self):
-        return Monitor.objects.create(
-            organization_id=self.org.id,
-            project_id=self.project.id,
-            next_checkin=timezone.now() - timedelta(minutes=1),
-            type=MonitorType.CRON_JOB,
-            config={"schedule": "* * * * *", "schedule_type": ScheduleType.CRONTAB},
-        )
 
     def test_name(self):
         monitor = self._create_monitor()
 
         with self.feature({"organizations:monitors": True}):
-            for i in range(self.num_paths):
-                path = self._get_path(i, monitor)
+            for i, path_func in enumerate(self._get_path_functions()):
+                monitor = self._create_monitor()
+                path = path_func(monitor)
                 resp = self.client.put(path, data={"name": f"Monitor Name {i}"})
 
                 assert resp.status_code == 200, resp.content
@@ -94,10 +67,9 @@ class UpdateMonitorTest(APITestCase):
 
     def test_can_disable(self):
         with self.feature({"organizations:monitors": True}):
-            for i in range(self.num_paths):
+            for path_func in self._get_path_functions():
                 monitor = self._create_monitor()
-                path = self._get_path(i, monitor)
-
+                path = path_func(monitor)
                 resp = self.client.put(path, data={"status": "disabled"})
 
                 assert resp.status_code == 200, resp.content
@@ -108,10 +80,11 @@ class UpdateMonitorTest(APITestCase):
 
     def test_can_enable(self):
         with self.feature({"organizations:monitors": True}):
-            for i in range(self.num_paths):
+            for path_func in self._get_path_functions():
                 monitor = self._create_monitor()
+                path = path_func(monitor)
+
                 monitor.update(status=MonitorStatus.DISABLED)
-                path = self._get_path(i, monitor)
 
                 resp = self.client.put(path, data={"status": "active"})
 
@@ -123,10 +96,11 @@ class UpdateMonitorTest(APITestCase):
 
     def test_cannot_enable_if_enabled(self):
         with self.feature({"organizations:monitors": True}):
-            for i in range(self.num_paths):
+            for path_func in self._get_path_functions():
                 monitor = self._create_monitor()
+                path = path_func(monitor)
+
                 monitor.update(status=MonitorStatus.OK)
-                path = self._get_path(i, monitor)
 
                 resp = self.client.put(path, data={"status": "active"})
 
@@ -138,9 +112,9 @@ class UpdateMonitorTest(APITestCase):
 
     def test_checkin_margin(self):
         with self.feature({"organizations:monitors": True}):
-            for i in range(self.num_paths):
+            for path_func in self._get_path_functions():
                 monitor = self._create_monitor()
-                path = self._get_path(i, monitor)
+                path = path_func(monitor)
 
                 resp = self.client.put(path, data={"config": {"checkin_margin": 30}})
 
@@ -152,9 +126,9 @@ class UpdateMonitorTest(APITestCase):
 
     def test_max_runtime(self):
         with self.feature({"organizations:monitors": True}):
-            for i in range(self.num_paths):
+            for path_func in self._get_path_functions():
                 monitor = self._create_monitor()
-                path = self._get_path(i, monitor)
+                path = path_func(monitor)
 
                 resp = self.client.put(path, data={"config": {"max_runtime": 30}})
 
@@ -166,9 +140,9 @@ class UpdateMonitorTest(APITestCase):
 
     def test_invalid_config_param(self):
         with self.feature({"organizations:monitors": True}):
-            for i in range(self.num_paths):
+            for path_func in self._get_path_functions():
                 monitor = self._create_monitor()
-                path = self._get_path(i, monitor)
+                path = path_func(monitor)
 
                 resp = self.client.put(path, data={"config": {"invalid": True}})
 
@@ -180,9 +154,9 @@ class UpdateMonitorTest(APITestCase):
 
     def test_cronjob_crontab(self):
         with self.feature({"organizations:monitors": True}):
-            for i in range(self.num_paths):
+            for path_func in self._get_path_functions():
                 monitor = self._create_monitor()
-                path = self._get_path(i, monitor)
+                path = path_func(monitor)
 
                 resp = self.client.put(path, data={"config": {"schedule": "*/5 * * * *"}})
 
@@ -205,9 +179,9 @@ class UpdateMonitorTest(APITestCase):
     # ))
     def test_cronjob_nonstandard(self):
         with self.feature({"organizations:monitors": True}):
-            for i in range(self.num_paths):
+            for path_func in self._get_path_functions():
                 monitor = self._create_monitor()
-                path = self._get_path(i, monitor)
+                path = path_func(monitor)
 
                 resp = self.client.put(path, data={"config": {"schedule": "@monthly"}})
 
@@ -220,9 +194,9 @@ class UpdateMonitorTest(APITestCase):
 
     def test_cronjob_crontab_invalid(self):
         with self.feature({"organizations:monitors": True}):
-            for i in range(self.num_paths):
+            for path_func in self._get_path_functions():
                 monitor = self._create_monitor()
-                path = self._get_path(i, monitor)
+                path = path_func(monitor)
 
                 resp = self.client.put(path, data={"config": {"schedule": "*/0.5 * * * *"}})
 
@@ -234,9 +208,9 @@ class UpdateMonitorTest(APITestCase):
 
     def test_cronjob_interval(self):
         with self.feature({"organizations:monitors": True}):
-            for i in range(self.num_paths):
+            for path_func in self._get_path_functions():
                 monitor = self._create_monitor()
-                path = self._get_path(i, monitor)
+                path = path_func(monitor)
 
                 resp = self.client.put(
                     path, data={"config": {"schedule_type": "interval", "schedule": [1, "month"]}}
@@ -251,9 +225,9 @@ class UpdateMonitorTest(APITestCase):
 
     def test_cronjob_interval_invalid_inteval(self):
         with self.feature({"organizations:monitors": True}):
-            for i in range(self.num_paths):
+            for path_func in self._get_path_functions():
                 monitor = self._create_monitor()
-                path = self._get_path(i, monitor)
+                path = path_func(monitor)
 
                 resp = self.client.put(
                     path, data={"config": {"schedule_type": "interval", "schedule": [1, "decade"]}}
@@ -288,38 +262,22 @@ class UpdateMonitorTest(APITestCase):
 
 
 @region_silo_test()
-class DeleteMonitorTest(APITestCase):
+class DeleteMonitorTest(MonitorTestCase):
+    endpoint = "sentry-api-0-monitor-details"
+    endpoint_with_org = "sentry-api-0-monitor-details-with-org"
+
     def setUp(self):
         self.user = self.create_user()
         self.org = self.create_organization(owner=self.user)
         self.team = self.create_team(organization=self.org, members=[self.user])
         self.project = self.create_project(teams=[self.team])
-        self.num_paths = 2
-
-    def _create_monitor(self):
-        return Monitor.objects.create(
-            organization_id=self.org.id,
-            project_id=self.project.id,
-            next_checkin=timezone.now() - timedelta(minutes=1),
-            type=MonitorType.CRON_JOB,
-            config={"schedule": "* * * * *"},
-        )
-
-    def _get_urls(self):
-        return ("sentry-api-0-monitor-details", "sentry-api-0-monitor-details-with-org")
-
-    def _get_path(self, i, monitor):
-        urls = self._get_urls()
-        if i:
-            return reverse(urls[i], args=[self.org.slug, monitor.guid])
-        return reverse(urls[i], args=[monitor.guid])
 
     def test_simple(self):
         self.login_as(user=self.user)
         with self.feature({"organizations:monitors": True}):
-            for i in range(self.num_paths):
+            for path_func in self._get_path_functions():
                 monitor = self._create_monitor()
-                path = self._get_path(i, monitor)
+                path = path_func(monitor)
 
                 resp = self.client.delete(path)
 

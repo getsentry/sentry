@@ -1,4 +1,4 @@
-from typing import Optional
+from __future__ import annotations
 
 from django.db import transaction
 from rest_framework import status
@@ -20,7 +20,7 @@ class MonitorDetailsEndpoint(MonitorEndpoint):
         return Response(status=status.HTTP_400_BAD_REQUEST, data={"details": "Invalid monitor"})
 
     def get(
-        self, request: Request, project, monitor, organization_slug: Optional[str] = None
+        self, request: Request, project, monitor, organization_slug: str | None = None
     ) -> Response:
         """
         Retrieve a monitor
@@ -36,7 +36,7 @@ class MonitorDetailsEndpoint(MonitorEndpoint):
         return self.respond(serialize(monitor, request.user))
 
     def put(
-        self, request: Request, project, monitor, organization_slug: Optional[str] = None
+        self, request: Request, project, monitor, organization_slug: str | None = None
     ) -> Response:
         """
         Update a monitor
@@ -93,7 +93,7 @@ class MonitorDetailsEndpoint(MonitorEndpoint):
         return self.respond(serialize(monitor, request.user))
 
     def delete(
-        self, request: Request, project, monitor, organization_slug: Optional[str] = None
+        self, request: Request, project, monitor, organization_slug: str | None = None
     ) -> Response:
         """
         Delete a monitor
