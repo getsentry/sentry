@@ -12,6 +12,7 @@ from sentry.utils.kafka_config import get_kafka_producer_cluster_options
 
 class BasicEventSerializer(serializers.Serializer):
     event_id = serializers.CharField()
+    project_id = serializers.IntegerField()
     title = serializers.CharField()
     platform = serializers.CharField()
     tags = serializers.DictField()
