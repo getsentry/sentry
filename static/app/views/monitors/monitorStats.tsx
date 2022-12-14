@@ -140,8 +140,7 @@ const MonitorStats = ({monitor}: Props) => {
           />
         ) : (
           <EmptyMessage
-            title={t('Nothing recorded in the chosen time window.')}
-            description={t('All check-ins for this monitor.')}
+            title={t('No check-ins have been recorded for this time period.')}
           />
         )}
       </PanelBody>
