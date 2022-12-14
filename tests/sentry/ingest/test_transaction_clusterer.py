@@ -111,8 +111,9 @@ def test_record_transactions(
         assert len(mocked_record.mock_calls) == expected
 
 
-def test_save_rules():
-    project = Project(id=111, name="project", organization_id=1)
+@pytest.mark.django_db
+def test_save_rules(default_project):
+    project = default_project
 
     project_rules = rules.get_rules(project)
     assert project_rules == {}
@@ -120,12 +121,12 @@ def test_save_rules():
     with freeze_time("2012-01-14 12:00:01"):
         rules.update_rules(project, [ReplacementRule("foo"), ReplacementRule("bar")])
     project_rules = rules.get_rules(project)
-    assert project_rules == {"foo": "1334318401", "bar": "1334318401"}
+    assert project_rules == {"foo": 1326542401, "bar": 1326542401}
 
     with freeze_time("2012-01-14 12:00:02"):
         rules.update_rules(project, [ReplacementRule("bar"), ReplacementRule("zap")])
     project_rules = rules.get_rules(project)
-    assert {"bar": "1334318402", "foo": "1334318401", "zap": "1334318402"}
+    assert {"bar": 1326542402, "foo": 1326542401, "zap": 1326542402}
 
 
 @mock.patch("django.conf.settings.SENTRY_TRANSACTION_CLUSTERER_RUN", True)

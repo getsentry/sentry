@@ -15,9 +15,7 @@ import {SavedSearchVisibility} from 'sentry/types';
 import SavedIssueSearches from 'sentry/views/issueList/savedIssueSearches';
 
 describe('SavedIssueSearches', function () {
-  const organization = TestStubs.Organization({
-    features: ['issue-list-saved-searches-v2'],
-  });
+  const organization = TestStubs.Organization();
 
   const recommendedSearch = TestStubs.Search({
     id: 'global-search',

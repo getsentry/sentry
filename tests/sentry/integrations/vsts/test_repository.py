@@ -1,9 +1,9 @@
 import datetime
+from functools import cached_property
 from time import time
 
 import responses
 from django.utils import timezone
-from exam import fixture
 
 from fixtures.vsts import COMMIT_DETAILS_EXAMPLE, COMPARE_COMMITS_EXAMPLE, FILE_CHANGES_EXAMPLE
 from sentry.integrations.vsts.repository import VstsRepositoryProvider
@@ -16,7 +16,7 @@ class VisualStudioRepositoryProviderTest(TestCase):
         self.base_url = "https://visualstudio.com/"
         self.vsts_external_id = "654321"
 
-    @fixture
+    @cached_property
     def provider(self):
         return VstsRepositoryProvider("integrations:vsts")
 
@@ -163,7 +163,7 @@ class AzureDevOpsRepositoryProviderTest(IntegrationRepositoryTestCase):
         }
         self.login_as(self.user)
 
-    @fixture
+    @cached_property
     def provider(self):
         return VstsRepositoryProvider("integrations:vsts")
 

@@ -93,7 +93,7 @@ const MonitorHeaderActions = ({monitor, orgId, onUpdate}: Props) => {
             <Confirm
               onConfirm={handleDelete}
               message={t(
-                'Deleting this monitor is permanent. Are you sure you wish to continue?'
+                'Are you sure you want to permanently delete this cron monitor?'
               )}
               disabled={!hasAccess}
             >
