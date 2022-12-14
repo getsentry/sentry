@@ -100,9 +100,9 @@ def _now() -> int:
 
 
 def get_rules(project: Project) -> Mapping[ReplacementRule, int]:
-    """ Public interface for fetching rules for a project.
+    """Public interface for fetching rules for a project.
     Project options are the persistent, long-term store for rules, while redis is just a short-term buffer,
-    so project options is what we fetch from. """
+    so project options is what we fetch from."""
     return ProjectOptionRuleStore().read(project)
 
 
