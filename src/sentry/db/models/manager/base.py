@@ -509,7 +509,7 @@ class BaseManager(DjangoBaseManager.from_queryset(BaseQuerySet), Generic[M]):  #
 
 
 def create_silo_limited_copy(
-    self, limit: SiloLimit, read_modes: Iterable[SiloMode]
+    self: BaseManager[M], limit: SiloLimit, read_modes: Iterable[SiloMode]
 ) -> BaseManager[M]:
     """Create a copy of this manager that enforces silo limitations."""
 

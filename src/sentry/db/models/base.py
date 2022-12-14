@@ -206,11 +206,12 @@ class ModelSiloLimit(SiloLimit):
     def __call__(self, model_class: ModelClass) -> Type[ModelClass]:
         if not (isinstance(model_class, type) and issubclass(model_class, models.Model)):
             raise TypeError("`@ModelSiloLimit ` must decorate a Model class")
-        assert isinstance(model_class.objects, BaseManager) or isinstance(
-            model_class.objects, models.Manager
-        )
 
-        model_class.objects = create_silo_limited_copy(model_class.objects, self, self.read_only)
+        setattr(
+            model_class,
+            "objects",
+            create_silo_limited_copy(getattr(model_class, "objects"), self, self.read_only),
+        )
 
         # On the model (not manager) class itself, find all methods that are tagged
         # with the `alters_data` meta-attribute and replace them with overrides.
@@ -225,7 +226,7 @@ class ModelSiloLimit(SiloLimit):
                 # trigger hooks in Django's ModelBase metaclass a second time.
                 setattr(model_class, model_attr_name, override)
 
-        model_class._meta.silo_limit = self
+        getattr(model_class, "_meta").silo_limit = self
 
         return model_class
 
