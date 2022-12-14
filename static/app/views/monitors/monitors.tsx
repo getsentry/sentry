@@ -57,7 +57,7 @@ function NewMonitorButton(props: ButtonProps) {
             disabled: hasAccess,
           }}
           title={t(
-            'You must be an organization owner, manager, or admin to create a new monitor'
+            'You must be an organization owner, manager, or admin to set up a monitor'
           )}
           {...props}
         >
@@ -113,11 +113,11 @@ class Monitors extends AsyncView<Props, State> {
         <Layout.Header>
           <Layout.HeaderContent>
             <HeaderTitle>
-              {t('Monitors')} <FeatureBadge type="beta" />
+              {t('Cron Monitors')} <FeatureBadge type="beta" />
             </HeaderTitle>
           </Layout.HeaderContent>
           <Layout.HeaderActions>
-            <NewMonitorButton size="sm">{t('New Monitor')}</NewMonitorButton>
+            <NewMonitorButton size="sm">{t('Set Up Cron Monitor')}</NewMonitorButton>
           </Layout.HeaderActions>
         </Layout.Header>
         <Layout.Body>
@@ -164,13 +164,13 @@ class Monitors extends AsyncView<Props, State> {
               </Fragment>
             ) : (
               <OnboardingPanel image={<img src={onboardingImg} />}>
-                <h3>{t('Monitor your recurring jobs')}</h3>
+                <h3>{t('Let Sentry Monitor Your Recurring Jobs')}</h3>
                 <p>
                   {t(
-                    'Stop worrying about the status of your cron jobs. Let us notify you when your jobs take too long or do not execute on schedule.'
+                    "We'll tell you if your recurring jobs are running on schedule, failing, or succeeding."
                   )}
                 </p>
-                <NewMonitorButton>{t('Create a Monitor')}</NewMonitorButton>
+                <NewMonitorButton>{t('Set Up First Cron Monitor')}</NewMonitorButton>
               </OnboardingPanel>
             )}
           </Layout.Main>

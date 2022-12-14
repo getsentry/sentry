@@ -13,7 +13,6 @@ import {
   IconChevron,
   IconDashboard,
   IconIssues,
-  IconLab,
   IconLightning,
   IconList,
   IconPlay,
@@ -25,6 +24,7 @@ import {
   IconStats,
   IconSupport,
   IconTelescope,
+  IconTimer,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
@@ -233,8 +233,8 @@ function Sidebar({location, organization}: Props) {
     <Feature features={['monitors']} organization={organization}>
       <SidebarItem
         {...sidebarItemProps}
-        icon={<IconLab size="md" />}
-        label={t('Monitors')}
+        icon={<IconTimer size="md" />}
+        label={t('Crons')}
         to={`/organizations/${organization.slug}/monitors/`}
         id="monitors"
         isBeta

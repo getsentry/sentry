@@ -23,24 +23,21 @@ const MonitorOnboarding = ({monitor}: Props) => {
   const organization = useOrganization();
   return (
     <Panel>
-      <PanelHeader>{t('How to instrument monitors')}</PanelHeader>
+      <PanelHeader>{t('How to instrument a cron monitor:')}</PanelHeader>
       <PanelBody withPadding>
         <List symbol="bullet">
           <StyledListItem>
             <OnboardingText>
-              {tct(
-                'To report the start of a job execution using [linkDocs:DSN authentication], use the following request (your DSN can be found [linkProjectDSN:here])',
-                {
-                  linkDocs: (
-                    <ExternalLink href="https://docs.sentry.io/api/auth/#dsn-authentication" />
-                  ),
-                  linkProjectDSN: (
-                    <Link
-                      to={`/settings/${organization.slug}/projects/${monitor.project.slug}/keys/`}
-                    />
-                  ),
-                }
-              )}
+              {tct('Use your [linkProjectDSN:DSN] to report the start of a cron job.', {
+                linkDocs: (
+                  <ExternalLink href="https://docs.sentry.io/api/auth/#dsn-authentication" />
+                ),
+                linkProjectDSN: (
+                  <Link
+                    to={`/settings/${organization.slug}/projects/${monitor.project.slug}/keys/`}
+                  />
+                ),
+              })}
             </OnboardingText>
             <CodeSnippet language="text" hideActionBar>
               {`curl -X POST \\\n'${checkInUrl}' \\\n--header 'Authorization: DSN {DSN}' \\\n--header 'Content-Type: application/json' \\\n--data-raw '{"status": "in_progress"}'`}
@@ -53,13 +50,13 @@ const MonitorOnboarding = ({monitor}: Props) => {
               )}
             </OnboardingText>
             <OnboardingText>
-              {t('For reflecting successful execution with optional duration in ms')}
+              {t('For reflecting successful execution, (with optional duration in ms).')}
             </OnboardingText>
             <CodeSnippet language="json" hideActionBar>
               {`curl -X PUT \\\n'${checkInDetailsUrl}' \\\n--header 'Authorization: DSN {DSN}' \\\n--header 'Content-Type: application/json' \\\n--data-raw '{"status": "ok", "duration": 3000}'`}
             </CodeSnippet>
             <OnboardingText>
-              {t('For reflecting failed execution with optional duration in ms')}
+              {t('For reflecting failed execution, (with optional duration in ms).')}
             </OnboardingText>
             <CodeSnippet language="json" hideActionBar>
               {`curl -X PUT \\\n'${checkInDetailsUrl}' \\\n--header 'Authorization: DSN {DSN}' \\\n--header 'Content-Type: application/json' \\\n--data-raw '{"status": "error", "duration": 3000}'`}
