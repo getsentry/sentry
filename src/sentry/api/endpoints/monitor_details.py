@@ -1,18 +1,27 @@
+from __future__ import annotations
+
 from django.db import transaction
+from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import audit_log
-from sentry.api.base import pending_silo_endpoint
+from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.monitor import MonitorEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.validators import MonitorValidator
 from sentry.models import Monitor, MonitorStatus, ScheduledDeletion
 
 
-@pending_silo_endpoint
+@region_silo_endpoint
 class MonitorDetailsEndpoint(MonitorEndpoint):
-    def get(self, request: Request, project, monitor) -> Response:
+    @staticmethod
+    def respond_invalid() -> Response:
+        return Response(status=status.HTTP_400_BAD_REQUEST, data={"details": "Invalid monitor"})
+
+    def get(
+        self, request: Request, project, monitor, organization_slug: str | None = None
+    ) -> Response:
         """
         Retrieve a monitor
         ``````````````````
@@ -20,9 +29,15 @@ class MonitorDetailsEndpoint(MonitorEndpoint):
         :pparam string monitor_id: the id of the monitor.
         :auth: required
         """
+        if organization_slug:
+            if project.organization.slug != organization_slug:
+                return self.respond_invalid()
+
         return self.respond(serialize(monitor, request.user))
 
-    def put(self, request: Request, project, monitor) -> Response:
+    def put(
+        self, request: Request, project, monitor, organization_slug: str | None = None
+    ) -> Response:
         """
         Update a monitor
         ````````````````
@@ -30,6 +45,10 @@ class MonitorDetailsEndpoint(MonitorEndpoint):
         :pparam string monitor_id: the id of the monitor.
         :auth: required
         """
+        if organization_slug:
+            if project.organization.slug != organization_slug:
+                return self.respond_invalid()
+
         validator = MonitorValidator(
             data=request.data,
             partial=True,
@@ -73,7 +92,9 @@ class MonitorDetailsEndpoint(MonitorEndpoint):
 
         return self.respond(serialize(monitor, request.user))
 
-    def delete(self, request: Request, project, monitor) -> Response:
+    def delete(
+        self, request: Request, project, monitor, organization_slug: str | None = None
+    ) -> Response:
         """
         Delete a monitor
         ````````````````
@@ -81,6 +102,10 @@ class MonitorDetailsEndpoint(MonitorEndpoint):
         :pparam string monitor_id: the id of the monitor.
         :auth: required
         """
+        if organization_slug:
+            if project.organization.slug != organization_slug:
+                return self.respond_invalid()
+
         with transaction.atomic():
             affected = (
                 Monitor.objects.filter(id=monitor.id)
