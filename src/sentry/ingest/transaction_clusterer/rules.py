@@ -22,9 +22,12 @@ class RedisRuleStore:
     """We store rules in both project options and redis.
     The reason for the additional redis store is that in the future, we want
     to extend rule lifetimes when we see a sanitized transaction.
-    Writing to postgres every time we see a sanitzed transaction will presumably
-    create too much load, so we write to both redis and postgres and merge
-    their contents every time we discover new rules.
+    The load of writes on every sanitized transaction name is very high, but
+    the load of writes on the generation of new rules is low. Both postgres and
+    redis can handle the latter, but only redis can handle the former. The
+    approach consists of writing the former only on redis, and when we generate
+    rules (the latter) we merge and update the contents of both postgres and
+    redis.
     """
 
     @staticmethod
@@ -76,7 +79,7 @@ class CompositeRuleStore:
             store.write(project, rules)
 
     def merge(self, project: Project) -> None:
-        """Read rules from all stores and write back so they all contain the same set"""
+        """Read rules from all stores, merge and write them back so they all are up-to-date."""
         merged_rules = self.read(project)
         self.write(project, merged_rules)
 
@@ -97,6 +100,9 @@ def _now() -> int:
 
 
 def get_rules(project: Project) -> Mapping[ReplacementRule, int]:
+    """ Public interface for fetching rules for a project.
+    Project options are the persistent, long-term store for rules, while redis is just a short-term buffer,
+    so project options is what we fetch from. """
     return ProjectOptionRuleStore().read(project)
 
 
