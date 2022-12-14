@@ -136,23 +136,23 @@ class DownloadSegmentsTestCaseDirect(TransactionTestCase):
     def setUp(self):
         super().setUp()
         self.login_as(self.user)
-        self.replay_id = uuid.uuid4().hex
-        self.url = reverse(
-            self.endpoint,
-            args=(self.organization.slug, self.project.slug, self.replay_id),
-        )
 
     def test_index_download_basic_compressed(self):
+        replay_id = uuid.uuid4().hex
+        url = reverse(
+            self.endpoint,
+            args=(self.organization.slug, self.project.slug, replay_id),
+        )
         with override_settings(SENTRY_REPLAYS_DIRECT_FILESTORE_ORGS=[self.organization.id]):
             for i in range(0, 3):
-                message = Message(project_id=self.project.id, replay_id=self.replay_id)
+                message = Message(project_id=self.project.id, replay_id=replay_id)
                 headers = {"segment_id": i}
                 store_replays_directly(
                     message, headers, zlib.compress(f'[{{"test":"hello {i}"}}]'.encode())
                 )
 
             with self.feature("organizations:session-replay"):
-                response = self.client.get(self.url + "?download=true")
+                response = self.client.get(url + "?download=true")
 
             assert response.status_code == 200
 
@@ -162,15 +162,20 @@ class DownloadSegmentsTestCaseDirect(TransactionTestCase):
             )
 
     def test_index_download_basic_compressed_over_chunk_size(self):
+        replay_id = uuid.uuid4().hex
+        url = reverse(
+            self.endpoint,
+            args=(self.organization.slug, self.project.slug, replay_id),
+        )
         with override_settings(SENTRY_REPLAYS_DIRECT_FILESTORE_ORGS=[self.organization.id]):
             segment_id = 1
 
-            message = Message(project_id=self.project.id, replay_id=self.replay_id)
+            message = Message(project_id=self.project.id, replay_id=replay_id)
             headers = {"segment_id": segment_id}
             store_replays_directly(message, headers, zlib.compress(("a" * 5000).encode()))
 
             with self.feature("organizations:session-replay"):
-                response = self.client.get(self.url + "?download=true")
+                response = self.client.get(url + "?download=true")
 
             assert response.status_code == 200
 
@@ -178,14 +183,19 @@ class DownloadSegmentsTestCaseDirect(TransactionTestCase):
             assert len(b"".join(response.streaming_content)) == 5002
 
     def test_index_download_basic_not_compressed(self):
+        replay_id = uuid.uuid4().hex
+        url = reverse(
+            self.endpoint,
+            args=(self.organization.slug, self.project.slug, replay_id),
+        )
         with override_settings(SENTRY_REPLAYS_DIRECT_FILESTORE_ORGS=[self.organization.id]):
             for i in range(0, 3):
-                message = Message(project_id=self.project.id, replay_id=self.replay_id)
+                message = Message(project_id=self.project.id, replay_id=replay_id)
                 headers = {"segment_id": i}
                 store_replays_directly(message, headers, f'[{{"test":"hello {i}"}}]'.encode())
 
             with self.feature("organizations:session-replay"):
-                response = self.client.get(self.url + "?download")
+                response = self.client.get(url + "?download")
 
             assert response.status_code == 200
 
@@ -195,16 +205,21 @@ class DownloadSegmentsTestCaseDirect(TransactionTestCase):
             )
 
     def test_index_download_paginate(self):
+        replay_id = uuid.uuid4().hex
+        url = reverse(
+            self.endpoint,
+            args=(self.organization.slug, self.project.slug, replay_id),
+        )
         with override_settings(SENTRY_REPLAYS_DIRECT_FILESTORE_ORGS=[self.organization.id]):
             for i in range(0, 3):
-                message = Message(project_id=self.project.id, replay_id=self.replay_id)
+                message = Message(project_id=self.project.id, replay_id=replay_id)
                 headers = {"segment_id": i}
                 store_replays_directly(
                     message, headers, zlib.compress(f'[{{"test":"hello {i}"}}]'.encode())
                 )
 
             with self.feature("organizations:session-replay"):
-                response = self.client.get(self.url + "?download&per_page=1&cursor=0:0:0")
+                response = self.client.get(url + "?download&per_page=1&cursor=0:0:0")
 
             assert response.status_code == 200
 
@@ -212,7 +227,7 @@ class DownloadSegmentsTestCaseDirect(TransactionTestCase):
             assert b'[[{"test":"hello 0"}]]' == b"".join(response.streaming_content)
 
             with self.feature("organizations:session-replay"):
-                response = self.client.get(self.url + "?download&per_page=1&cursor=1:1:0")
+                response = self.client.get(url + "?download&per_page=1&cursor=1:1:0")
 
             assert response.status_code == 200
 
@@ -220,7 +235,7 @@ class DownloadSegmentsTestCaseDirect(TransactionTestCase):
             assert b'[[{"test":"hello 1"}]]' == b"".join(response.streaming_content)
 
             with self.feature("organizations:session-replay"):
-                response = self.client.get(self.url + "?download&per_page=2&cursor=1:1:0")
+                response = self.client.get(url + "?download&per_page=2&cursor=1:1:0")
 
             assert response.status_code == 200
 
@@ -230,20 +245,25 @@ class DownloadSegmentsTestCaseDirect(TransactionTestCase):
             )
 
     def test_index_download_basic_compressed_fallback_to_filemodel(self):
+        replay_id = uuid.uuid4().hex
+        url = reverse(
+            self.endpoint,
+            args=(self.organization.slug, self.project.slug, replay_id),
+        )
         with override_settings(SENTRY_REPLAYS_DIRECT_FILESTORE_ORGS=[self.organization.id]):
 
             for i in range(0, 3):
                 f = File.objects.create(name=f"rr:{i}", type="replay.recording")
                 f.putfile(BytesIO(zlib.compress(f'[{{"test":"hello {i}"}}]'.encode())))
                 ReplayRecordingSegment.objects.create(
-                    replay_id=self.replay_id,
+                    replay_id=replay_id,
                     project_id=self.project.id,
                     segment_id=i,
                     file_id=f.id,
                 )
 
             with self.feature("organizations:session-replay"):
-                response = self.client.get(self.url + "?download=true")
+                response = self.client.get(url + "?download=true")
 
             assert response.status_code == 200
 
