@@ -9,10 +9,7 @@ class MonitorDetailsTest(MonitorTestCase):
     endpoint_with_org = "sentry-api-0-monitor-details-with-org"
 
     def setUp(self):
-        self.user = self.create_user()
-        self.org = self.create_organization(owner=self.user)
-        self.team = self.create_team(organization=self.org, members=[self.user])
-        self.project = self.create_project(teams=[self.team])
+        super().setUp()
 
     def test_simple(self):
         self.login_as(user=self.user)
@@ -43,10 +40,7 @@ class UpdateMonitorTest(MonitorTestCase):
     endpoint_with_org = "sentry-api-0-monitor-details-with-org"
 
     def setUp(self):
-        self.user = self.create_user()
-        self.org = self.create_organization(owner=self.user)
-        self.team = self.create_team(organization=self.org, members=[self.user])
-        self.project = self.create_project(teams=[self.team])
+        super().setUp()
 
         self.login_as(user=self.user)
 
@@ -267,10 +261,7 @@ class DeleteMonitorTest(MonitorTestCase):
     endpoint_with_org = "sentry-api-0-monitor-details-with-org"
 
     def setUp(self):
-        self.user = self.create_user()
-        self.org = self.create_organization(owner=self.user)
-        self.team = self.create_team(organization=self.org, members=[self.user])
-        self.project = self.create_project(teams=[self.team])
+        super().setUp()
 
     def test_simple(self):
         self.login_as(user=self.user)
