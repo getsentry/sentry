@@ -585,9 +585,35 @@ class GitHubIntegrationTest(IntegrationTestCase):
             organization=self.organization, integration=integration
         ).exists()
 
+    def get_installation_helper(self):
+        with self.tasks():
+            self.assert_setup_flow()  # This somehow creates the integration
+
+        integration = Integration.objects.get(provider=self.provider.key)
+        installation = integration.get_installation(self.organization.id)
+        return installation
+
+    @responses.activate
+    def test_get_trees_for_org_handles_rate_limit_reached(self):
+        """Test that we will not hit Github's API more than once when we reach the API rate limit"""
+        installation = self.get_installation_helper()
+        responses.add(
+            responses.GET,
+            f"{self.base_url}/repos/Test-Organization/foo/git/trees/master?recursive=1",
+            json={
+                "message": "API rate limit exceeded for installation ID 865116.",
+                "documentation_url": "https://docs.github.com/rest/overview/resources-in-the-rest-api#rate-limiting",
+            },
+            status=403,
+        )
+        trees = installation.get_trees_for_org()
+        # breakpoint()
+        assert trees["Test-Organization/foo"].files == []
+
     @responses.activate
     def test_get_trees_for_org(self):
         """Fetch the tree representation of a repo"""
+        installation = self.get_installation_helper()
         expected_trees = {
             "Test-Organization/bar": RepoTree(Repo("Test-Organization/bar", "main"), []),
             "Test-Organization/baz": RepoTree(Repo("Test-Organization/baz", "master"), []),
@@ -596,11 +622,6 @@ class GitHubIntegrationTest(IntegrationTestCase):
                 ["src/sentry/api/endpoints/auth_login.py"],
             ),
         }
-        with self.tasks():
-            self.assert_setup_flow()
-
-        integration = Integration.objects.get(provider=self.provider.key)
-        installation = integration.get_installation(self.organization.id)
 
         with patch("sentry.integrations.utils.code_mapping.logger") as logger:
             assert not cache.get("githubtrees:repositories:Test-Organization")
