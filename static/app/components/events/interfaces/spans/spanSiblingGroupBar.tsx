@@ -26,7 +26,7 @@ import {
 export type SpanSiblingGroupBarProps = {
   addContentSpanBarRef: (instance: HTMLDivElement | null) => void;
   continuingTreeDepths: Array<TreeDepthType>;
-  didAnchoredSpanMount: boolean;
+  didAnchoredSpanMount: () => boolean;
   event: Readonly<EventTransaction>;
   generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
   getCurrentLeftPos: () => number;

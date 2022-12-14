@@ -49,7 +49,7 @@ const MARGIN_LEFT = 0;
 
 type Props = {
   addContentSpanBarRef: (instance: HTMLDivElement | null) => void;
-  didAnchoredSpanMount: boolean;
+  didAnchoredSpanMount: () => boolean;
   event: Readonly<EventTransaction>;
   generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
   getCurrentLeftPos: () => number;
@@ -184,7 +184,7 @@ export function SpanGroupBar(props: Props) {
   );
 
   useEffect(() => {
-    if (location.hash && !didAnchoredSpanMount) {
+    if (location.hash && !didAnchoredSpanMount()) {
       const anchoredSpanIndex = spanGrouping.findIndex(
         span => spanTargetHash(span.span.span_id) === location.hash
       );

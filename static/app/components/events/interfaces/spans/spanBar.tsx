@@ -109,7 +109,7 @@ export type SpanBarProps = {
   addExpandedSpan: (span: Readonly<ProcessedSpanType>, callback?: () => void) => void;
   cellMeasurerCache: CellMeasurerCache;
   continuingTreeDepths: Array<TreeDepthType>;
-  didAnchoredSpanMount: boolean;
+  didAnchoredSpanMount: () => boolean;
   event: Readonly<EventTransaction>;
   fetchEmbeddedChildrenState: FetchEmbeddedChildrenState;
   generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
@@ -177,17 +177,20 @@ class SpanBar extends Component<SpanBarProps, SpanBarState> {
       this.spanContentRef.style.transformOrigin = 'left';
     }
 
-    const {span, markAnchoredSpanIsMounted, addExpandedSpan, isSpanExpanded, measure} =
-      this.props;
+    const {
+      span,
+      markAnchoredSpanIsMounted,
+      addExpandedSpan,
+      isSpanExpanded,
+      measure,
+      didAnchoredSpanMount,
+    } = this.props;
 
     if (isGapSpan(span)) {
       return;
     }
 
-    if (
-      spanTargetHash(span.span_id) === location.hash &&
-      !this.props.didAnchoredSpanMount
-    ) {
+    if (spanTargetHash(span.span_id) === location.hash && !didAnchoredSpanMount()) {
       this.scrollIntoView();
       markAnchoredSpanIsMounted?.();
       addExpandedSpan(span);
