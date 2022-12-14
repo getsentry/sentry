@@ -67,6 +67,8 @@ class ProjectReplayRecordingSegmentIndexEndpoint(ProjectEndpoint):
 
 def get_files_direct(storage, project_id, replay_id, offset, limit):
     replay_files = storage.listdir(f"{project_id}/{replay_id}/")[1]
+    # the files aren't guaranteed to be in order, so sort them by the segment id
+    replay_files = sorted(replay_files, key=lambda f: int(f.split("/")[-1]))
 
     start_index = min(offset, len(replay_files))
     end_index = min(offset + limit, len(replay_files))
