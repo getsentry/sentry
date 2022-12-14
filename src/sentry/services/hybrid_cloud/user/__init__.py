@@ -24,6 +24,7 @@ class APIUser:
     username: str = ""
     actor_id: int = -1
     display_name: str = ""
+    label: str = ""
     is_superuser: bool = False
     is_authenticated: bool = False
     is_anonymous: bool = False
@@ -35,6 +36,7 @@ class APIUser:
 
     roles: Set[str] = frozenset()
     permissions: Set[str] = frozenset()
+    avatar: Optional[APIAvatar] = None
 
     def has_usable_password(self) -> bool:
         return self.password_usable
@@ -42,14 +44,30 @@ class APIUser:
     def get_display_name(self) -> str:  # API compatibility with ORM User
         return self.display_name
 
+    def get_label(self) -> str:  # API compatibility with ORM User
+        return self.label
+
     def get_full_name(self) -> str:
         return self.name
 
     def get_short_name(self) -> str:
         return self.username
 
+    def get_avatar_type(self) -> str:
+        if self.avatar is not None:
+            return self.avatar.avatar_type
+        return "letter_avatar"
+
     def class_name(self) -> str:
         return "User"
+
+
+@dataclass(frozen=True, eq=True)
+class APIAvatar:
+    id: int = 0
+    file_id: int = 0
+    ident: str = ""
+    avatar_type: str = "letter_avatar"
 
 
 class UserSerializeType(IntEnum):
@@ -134,6 +152,7 @@ class UserService(InterfaceWithLifecycle):
         }
         args["pk"] = user.pk
         args["display_name"] = user.get_display_name()
+        args["label"] = user.get_label()
         args["is_superuser"] = user.is_superuser
         args["password_usable"] = user.has_usable_password()
 
@@ -145,6 +164,16 @@ class UserService(InterfaceWithLifecycle):
 
         if hasattr(user, "roles"):
             args["roles"] = frozenset(flatten(user.roles.values_list("permissions", flat=True)))
+
+        avatar = user.avatar.first()
+        if avatar is not None:
+            avatar = APIAvatar(
+                id=avatar.id,
+                file_id=avatar.file_id,
+                ident=avatar.ident,
+                avatar_type=avatar.avatar_type,
+            )
+        args["avatar"] = avatar
         return APIUser(**args)
 
 
