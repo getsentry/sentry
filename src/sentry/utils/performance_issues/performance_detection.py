@@ -468,6 +468,15 @@ def fingerprint_span(span: Span):
     return fingerprint
 
 
+def fingerprint_spans(spans: List[Span]):
+    span_hashes = []
+    for span in spans:
+        hash = span.get("hash", "") or ""
+        span_hashes.append(str(hash))
+    joined_hashes = "-".join(span_hashes)
+    return hashlib.sha1(joined_hashes.encode("utf8")).hexdigest()
+
+
 # Simple fingerprint for broader checks, using the span op.
 def fingerprint_span_op(span: Span):
     op = span.get("op", None)
@@ -1003,11 +1012,9 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
         return is_db_op and is_query
 
     def _fingerprint(self) -> str:
-        """
-        TODO - improve fingerprinting
-        """
+        hashed_spans = fingerprint_spans(self.consecutive_db_spans)
         problem_class = GroupType.PERFORMANCE_CONSECUTIVE_DB_OP
-        return f"1-{problem_class}"
+        return f"1-{problem_class}-{hashed_spans}"
 
     def on_complete(self) -> None:
         self._validate_and_store_performance_problem()
