@@ -358,6 +358,8 @@ def get_fallthrough_recipients(
     elif fallthrough_choice == FallthroughChoiceType.ADMIN_OR_RECENT:
         return []
 
+    return []
+
 
 def get_user_from_identifier(project: Project, target_identifier: str | int | None) -> User | None:
     if target_identifier is None:
