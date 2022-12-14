@@ -33,6 +33,7 @@ from sentry.ingest.inbound_filters import (
     get_all_filter_specs,
     get_filter_key,
 )
+from sentry.ingest.transaction_clusterer.rules import get_rules
 from sentry.interfaces.security import DEFAULT_DISALLOWED_SOURCES
 from sentry.models import Project, ProjectKey
 from sentry.relay.config.metric_extraction import get_metric_conditional_tagging_rules
@@ -174,9 +175,12 @@ def get_transaction_names_config(project: Project) -> Optional[Sequence[Transact
     if not features.has("organizations:transaction_name_sanitization", project.organization):
         return None
 
+    # TODO: swap the lines below when the format updates from Mapping to Sequence
+    # cluster_rules = get_rules(project)
     cluster_rules: Sequence[Tuple[str, int]] = project.get_option(
         "sentry:transaction_name_cluster_rules", {}
     )
+
     if cluster_rules is None or len(cluster_rules) == 0:
         return None
 
