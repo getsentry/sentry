@@ -129,6 +129,7 @@ default_manager.add("organizations:performance-mep-bannerless-ui", OrganizationF
 default_manager.add("organizations:performance-mep-reintroduce-histograms", OrganizationFeature, True)
 default_manager.add("organizations:performance-new-widget-designs", OrganizationFeature, True)
 default_manager.add("organizations:profiling", OrganizationFeature)
+default_manager.add("organizations:profiling-flamechart-spans", OrganizationFeature, True)
 default_manager.add("organizations:project-event-date-limit", OrganizationFeature, True)
 default_manager.add("organizations:project-stats", OrganizationFeature, True)
 default_manager.add("organizations:related-events", OrganizationFeature)
