@@ -53,7 +53,7 @@ class EventStreamEventType(Enum):
 
     Error = "error"  # error, default, various security errors
     Transaction = "transaction"  # transactions
-    IssuePlatform = "issue_platform"  # events ingested via the issue platform
+    Generic = "generic"  # generic events ingested via the issue platform
 
 
 class EventStream(Service):
@@ -110,7 +110,7 @@ class EventStream(Service):
         event_type = self._get_event_type(event)
         if event_type == EventStreamEventType.Transaction:
             return "post_process_transactions"
-        elif event_type == EventStreamEventType.IssuePlatform:
+        elif event_type == EventStreamEventType.Generic:
             return "post_process_issue_platform"
         else:
             return "post_process_errors"
@@ -221,7 +221,7 @@ class EventStream(Service):
         if getattr(event, "occurrence", None):
             # For now, all events with an associated occurrence are specific to the issue platform.
             # When/if we move errors and transactions onto the platform, this might change.
-            return EventStreamEventType.IssuePlatform
+            return EventStreamEventType.Generic
         if event.get_event_type() == "transaction":
             return EventStreamEventType.Transaction
         return EventStreamEventType.Error

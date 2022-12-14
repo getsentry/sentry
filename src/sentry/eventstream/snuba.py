@@ -400,7 +400,7 @@ class SnubaEventStream(SnubaProtocolEventStream):
         entity = "events"
         if event_type == EventStreamEventType.Transaction:
             entity = "transactions"
-        if event_type == EventStreamEventType.IssuePlatform:
+        if event_type == EventStreamEventType.Generic:
             entity = "search_issues"
         try:
             resp = snuba._snuba_pool.urlopen(

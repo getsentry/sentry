@@ -131,7 +131,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
     ):
         event_type = self._get_event_type(event)
 
-        if event_type == EventStreamEventType.IssuePlatform:
+        if event_type == EventStreamEventType.Generic:
             assign_partitions_randomly = True
         elif (
             event_type == EventStreamEventType.Transaction
@@ -176,7 +176,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
 
         if event_type == EventStreamEventType.Transaction:
             topic = self.get_transactions_topic(project_id)
-        elif event_type == EventStreamEventType.IssuePlatform:
+        elif event_type == EventStreamEventType.Generic:
             topic = self.issue_platform_topic
         else:
             topic = self.topic
