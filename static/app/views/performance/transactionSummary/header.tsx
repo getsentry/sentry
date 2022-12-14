@@ -9,6 +9,7 @@ import {CreateAlertFromViewButton} from 'sentry/components/createAlertButton';
 import FeatureBadge from 'sentry/components/featureBadge';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
+import {isProfilingSupportedOrProjectHasProfiles} from 'sentry/components/profiling/ProfilingOnboarding/util';
 import ReplayCountBadge from 'sentry/components/replays/replayCountBadge';
 import ReplaysFeatureBadge from 'sentry/components/replays/replaysFeatureBadge';
 import useReplaysCount from 'sentry/components/replays/useReplaysCount';
@@ -23,7 +24,6 @@ import HasMeasurementsQuery from 'sentry/utils/performance/vitals/hasMeasurement
 import projectSupportsReplay from 'sentry/utils/replays/projectSupportsReplay';
 import Breadcrumb from 'sentry/views/performance/breadcrumb';
 
-import {isProfilingSupportedForProject} from '../../../components/profiling/ProfilingOnboarding/util';
 import {getCurrentLandingDisplay, LandingDisplayField} from '../landing/utils';
 
 import Tab from './tabs';
@@ -76,7 +76,7 @@ function TransactionHeader({
   const hasProfiling =
     project &&
     organization.features.includes('profiling') &&
-    isProfilingSupportedForProject(project);
+    isProfilingSupportedOrProjectHasProfiles(project);
 
   const getWebVitals = useCallback(
     (hasMeasurements: boolean) => {
