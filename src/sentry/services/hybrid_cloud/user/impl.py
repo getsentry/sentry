@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import Any, Iterable, List
 
+from django.db.models import QuerySet
+
 from sentry.api.serializers import (
     DetailedSelfUserSerializer,
     DetailedUserSerializer,
@@ -74,7 +76,7 @@ class DatabaseBackedUserService(UserService):
     def close(self) -> None:
         pass
 
-    def __base_user_query(self):
+    def __base_user_query(self) -> QuerySet:
         return (
             User.objects.prefetch_related("roles")
             .select_related("avatar")

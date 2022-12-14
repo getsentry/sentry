@@ -4,7 +4,7 @@ import datetime
 from abc import abstractmethod
 from dataclasses import dataclass, fields
 from enum import IntEnum
-from typing import TYPE_CHECKING, Any, Iterable, List, Optional, Set
+from typing import TYPE_CHECKING, Any, FrozenSet, Iterable, List, Optional
 
 from sentry.db.models import BaseQuerySet
 from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_delegation, stubbed
@@ -34,8 +34,8 @@ class APIUser:
     is_sentry_app: bool = False
     password_usable: bool = False
 
-    roles: Set[str] = frozenset()
-    permissions: Set[str] = frozenset()
+    roles: FrozenSet[str] = frozenset()
+    permissions: FrozenSet[str] = frozenset()
     avatar: Optional[APIAvatar] = None
 
     def has_usable_password(self) -> bool:
@@ -157,7 +157,7 @@ class UserService(InterfaceWithLifecycle):
         args["password_usable"] = user.has_usable_password()
 
         # And process the _base_user_query special data additions
-        permissions = frozenset({})
+        permissions: FrozenSet[str] = frozenset({})
         if hasattr(user, "permissions") and user.permissions is not None:
             permissions = frozenset(user.permissions)
         args["permissions"] = permissions
@@ -177,7 +177,7 @@ class UserService(InterfaceWithLifecycle):
         return APIUser(**args)
 
 
-def flatten(iter: Iterable):
+def flatten(iter: Iterable[Any]) -> List[Any]:
     return (
         ((flatten(iter[0]) + flatten(iter[1:])) if len(iter) > 0 else [])
         if type(iter) is list or isinstance(iter, BaseQuerySet)

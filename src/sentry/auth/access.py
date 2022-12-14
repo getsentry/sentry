@@ -49,8 +49,9 @@ def get_cached_organization_member(user_id: int, organization_id: int) -> Organi
 
 def get_permissions_for_user(user_id: int) -> FrozenSet[str]:
     user = user_service.get_user(user_id)
-    union = user.roles | user.permissions
-    return cast(FrozenSet[str], union)
+    if user is None:
+        return FrozenSet()
+    return user.roles | user.permissions
 
 
 class Access(abc.ABC):
