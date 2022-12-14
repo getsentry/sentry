@@ -20,9 +20,6 @@ S004_methods = frozenset(("assertRaises", "assertRaisesRegex"))
 
 S005_msg = "S005 Do not import models from sentry.models but the actual module"
 
-S006_msg = "S006 use unittest.mock instead of exam.patcher"
-S007_msg = "S007 use pytest.fixture(autouse=True) instead of exam.before / exam.around"
-
 
 class SentryVisitor(ast.NodeVisitor):
     def __init__(self, filename: str) -> None:
@@ -40,10 +37,6 @@ class SentryVisitor(ast.NodeVisitor):
                 and any(x.name.isupper() or x.name.istitle() for x in node.names)
             ):
                 self.errors.append((node.lineno, node.col_offset, S005_msg))
-            elif node.module == "exam" and any(x.name == "patcher" for x in node.names):
-                self.errors.append((node.lineno, node.col_offset, S006_msg))
-            elif node.module == "exam" and any(x.name in {"before", "around"} for x in node.names):
-                self.errors.append((node.lineno, node.col_offset, S007_msg))
 
         self.generic_visit(node)
 

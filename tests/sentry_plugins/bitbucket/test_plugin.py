@@ -1,8 +1,9 @@
+from functools import cached_property
+
 import pytest
 import responses
 from django.contrib.auth.models import AnonymousUser
 from django.test import RequestFactory
-from exam import fixture
 
 from sentry.plugins.bases.issue2 import PluginError
 from sentry.testutils import PluginTestCase
@@ -11,11 +12,11 @@ from social_auth.models import UserSocialAuth
 
 
 class BitbucketPluginTest(PluginTestCase):
-    @fixture
+    @cached_property
     def plugin(self):
         return BitbucketPlugin()
 
-    @fixture
+    @cached_property
     def request(self):
         return RequestFactory()
 

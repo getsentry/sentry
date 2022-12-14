@@ -1,10 +1,10 @@
 import logging
 import uuid
+from functools import cached_property
 from time import time
 from unittest import mock
 
 from django.urls import reverse
-from exam import fixture
 
 from sentry.event_manager import EventManager
 from sentry.testutils import TestCase
@@ -28,7 +28,7 @@ del nplus_one_no_timestamp["timestamp"]
 
 
 class DisabledMemberViewTest(TestCase):
-    @fixture
+    @cached_property
     def path(self):
         return reverse("sentry-organization-newest-performance-issue", args=[self.org.slug])
 

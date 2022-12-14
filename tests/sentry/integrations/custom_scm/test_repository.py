@@ -1,6 +1,5 @@
+from functools import cached_property
 from uuid import uuid4
-
-from exam import fixture
 
 from sentry.integrations.custom_scm.repository import CustomSCMRepositoryProvider
 from sentry.models import Integration, Repository
@@ -33,7 +32,7 @@ class CustomSCMRepositoryProviderTest(IntegrationRepositoryTestCase):
             "id": self.repo.id,
         }
 
-    @fixture
+    @cached_property
     def provider(self):
         return CustomSCMRepositoryProvider("custom_scm")
 

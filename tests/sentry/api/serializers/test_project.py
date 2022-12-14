@@ -1,10 +1,10 @@
 import datetime
 from datetime import timedelta
+from functools import cached_property
 from unittest import mock
 
 from django.db.models import F
 from django.utils import timezone
-from exam import fixture
 
 from sentry import features
 from sentry.api.serializers import serialize
@@ -554,11 +554,11 @@ class ProjectWithOrganizationSerializerTest(TestCase):
 
 @region_silo_test
 class BulkFetchProjectLatestReleases(TestCase):
-    @fixture
+    @cached_property
     def project(self):
         return self.create_project(teams=[self.team], organization=self.organization)
 
-    @fixture
+    @cached_property
     def other_project(self):
         return self.create_project(teams=[self.team], organization=self.organization)
 

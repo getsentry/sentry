@@ -1,4 +1,5 @@
 import copy
+from functools import cached_property
 from unittest import mock
 from unittest.mock import patch
 
@@ -6,7 +7,6 @@ import pytest
 import responses
 from django.test.utils import override_settings
 from django.urls import reverse
-from exam import fixture
 
 from fixtures.integrations import StubService
 from fixtures.integrations.jira import StubJiraApiClient
@@ -34,7 +34,7 @@ def get_client():
 
 
 class JiraIntegrationTest(APITestCase):
-    @fixture
+    @cached_property
     def integration(self):
         integration = Integration.objects.create(
             provider="jira",
@@ -888,7 +888,7 @@ class JiraIntegrationTest(APITestCase):
 
 
 class JiraMigrationIntegrationTest(APITestCase):
-    @fixture
+    @cached_property
     def integration(self):
         integration = Integration.objects.create(
             provider="jira",

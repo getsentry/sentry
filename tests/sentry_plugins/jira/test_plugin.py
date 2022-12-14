@@ -1,8 +1,9 @@
+from functools import cached_property
+
 import responses
 from django.contrib.auth.models import AnonymousUser
 from django.test import RequestFactory
 from django.urls import reverse
-from exam import fixture
 
 from sentry.testutils import TestCase
 from sentry.utils import json
@@ -187,11 +188,11 @@ issue_response = {
 
 
 class JiraPluginTest(TestCase):
-    @fixture
+    @cached_property
     def plugin(self):
         return JiraPlugin()
 
-    @fixture
+    @cached_property
     def request(self):
         return RequestFactory()
 

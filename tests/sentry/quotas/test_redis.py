@@ -1,8 +1,8 @@
 import time
+from functools import cached_property
 from unittest import mock
 
 import pytest
-from exam import fixture
 
 from sentry.constants import DataCategory
 from sentry.quotas.base import QuotaConfig, QuotaScope
@@ -65,7 +65,9 @@ def test_is_rate_limited_script():
 
 
 class RedisQuotaTest(TestCase):
-    quota = fixture(RedisQuota)
+    @cached_property
+    def quota(self):
+        return RedisQuota()
 
     def test_project_abuse_quotas(self):
         # These legacy options need to be set, otherwise we'll run into

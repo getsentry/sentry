@@ -1,5 +1,6 @@
+from functools import cached_property
+
 import responses
-from exam import fixture
 
 from sentry.models import Repository
 from sentry.testutils import TestCase
@@ -9,7 +10,7 @@ from social_auth.models import UserSocialAuth
 
 
 class BitbucketPluginTest(TestCase):
-    @fixture
+    @cached_property
     def provider(self):
         return BitbucketRepositoryProvider("bitbucket")
 

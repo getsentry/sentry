@@ -1,7 +1,7 @@
 from datetime import timedelta
+from functools import cached_property
 
 from django.utils import timezone
-from exam import fixture
 
 from sentry.api.serializers import serialize
 from sentry.incidents.logic import create_incident_activity
@@ -18,15 +18,15 @@ class OrganizationIncidentActivityIndexTest(APITestCase):
         self.create_team(organization=self.organization, members=[self.user])
         self.login_as(self.user)
 
-    @fixture
+    @cached_property
     def organization(self):
         return self.create_organization(owner=self.create_user())
 
-    @fixture
+    @cached_property
     def project(self):
         return self.create_project(organization=self.organization)
 
-    @fixture
+    @cached_property
     def user(self):
         return self.create_user()
 

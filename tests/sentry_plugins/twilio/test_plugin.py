@@ -1,7 +1,7 @@
+from functools import cached_property
 from urllib.parse import parse_qs
 
 import responses
-from exam import fixture
 
 from sentry.models import Rule
 from sentry.plugins.base import Notification
@@ -103,7 +103,7 @@ class TwilioConfigurationFormTest(TestCase):
 
 
 class TwilioPluginTest(PluginTestCase):
-    @fixture
+    @cached_property
     def plugin(self):
         return TwilioPlugin()
 

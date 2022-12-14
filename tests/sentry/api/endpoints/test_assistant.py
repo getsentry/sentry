@@ -1,5 +1,6 @@
+from functools import cached_property
+
 from django.utils import timezone
-from exam import fixture
 
 from sentry.assistant import manager
 from sentry.models import AssistantActivity
@@ -9,7 +10,7 @@ from sentry.testutils import APITestCase
 class AssistantActivityTest(APITestCase):
     endpoint = "sentry-api-0-assistant"
 
-    @fixture
+    @cached_property
     def guides(self):
         return manager.all()
 
@@ -49,7 +50,7 @@ class AssistantActivityUpdateTest(APITestCase):
     endpoint = "sentry-api-0-assistant"
     method = "put"
 
-    @fixture
+    @cached_property
     def guides(self):
         return manager.all()
 

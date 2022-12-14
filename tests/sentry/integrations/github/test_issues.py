@@ -1,8 +1,8 @@
+from functools import cached_property
 from unittest.mock import patch
 
 import responses
 from django.test import RequestFactory
-from exam import fixture
 
 from sentry.event_manager import EventManager
 from sentry.integrations.github.integration import GitHubIntegration
@@ -19,7 +19,7 @@ from sentry.utils.samples import load_data
 
 @region_silo_test
 class GitHubIssueBasicTest(TestCase):
-    @fixture
+    @cached_property
     def request(self):
         return RequestFactory()
 

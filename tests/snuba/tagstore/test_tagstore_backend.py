@@ -1,8 +1,8 @@
 from datetime import timedelta
+from functools import cached_property
 
 import pytest
 from django.utils import timezone
-from exam import fixture
 
 from sentry.models import Environment, EventUser, Release, ReleaseProjectEnvironment, ReleaseStages
 from sentry.search.events.constants import (
@@ -129,7 +129,7 @@ class TagStorageTest(TestCase, SnubaTestCase):
         self.proj1env1 = Environment.objects.get(name=env1)
         self.proj1env2 = Environment.objects.get(name=env2)
 
-    @fixture
+    @cached_property
     def perf_group_and_env(self):
         env_name = "test"
         transaction_event_data = {

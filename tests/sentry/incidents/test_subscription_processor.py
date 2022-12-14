@@ -1,5 +1,6 @@
 import unittest
 from datetime import datetime, timedelta
+from functools import cached_property
 from random import randint
 from unittest import mock
 from unittest.mock import Mock, call, patch
@@ -8,7 +9,6 @@ from uuid import uuid4
 import pytest
 import pytz
 from django.utils import timezone
-from exam import fixture
 from freezegun import freeze_time
 
 from sentry.incidents.logic import (
@@ -170,19 +170,19 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         with mock.patch("sentry.integrations.slack.SlackClient.post") as self.slack_client:
             yield
 
-    @fixture
+    @cached_property
     def other_project(self):
         return self.create_project()
 
-    @fixture
+    @cached_property
     def sub(self):
         return self.rule.snuba_query.subscriptions.filter(project=self.project).get()
 
-    @fixture
+    @cached_property
     def other_sub(self):
         return self.rule.snuba_query.subscriptions.filter(project=self.other_project).get()
 
-    @fixture
+    @cached_property
     def rule(self):
         rule = self.create_alert_rule(
             projects=[self.project, self.other_project],
@@ -208,7 +208,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         )
         return rule
 
-    @fixture
+    @cached_property
     def comparison_rule_above(self):
         rule = self.rule
         rule.update(comparison_delta=60 * 60, resolve_threshold=None)
@@ -216,7 +216,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         self.trigger.update(alert_threshold=150)
         return rule
 
-    @fixture
+    @cached_property
     def comparison_rule_below(self):
         rule = self.rule
         rule.update(
@@ -228,11 +228,11 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         self.trigger.update(alert_threshold=50)
         return rule
 
-    @fixture
+    @cached_property
     def trigger(self):
         return self.rule.alertruletrigger_set.get()
 
-    @fixture
+    @cached_property
     def action(self):
         return self.trigger.alertruletriggeraction_set.get()
 
@@ -1628,13 +1628,13 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetrics
                 )
             )
 
-    @fixture
+    @cached_property
     def sub(self):
         return self.crash_rate_alert_rule.snuba_query.subscriptions.filter(
             project=self.project
         ).get()
 
-    @fixture
+    @cached_property
     def crash_rate_alert_rule(self):
         rule = self.create_alert_rule(
             projects=[self.project],
@@ -1655,19 +1655,19 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetrics
         )
         return rule
 
-    @fixture
+    @cached_property
     def crash_rate_alert_critical_trigger(self):
         return self.crash_rate_alert_rule.alertruletrigger_set.get()
 
-    @fixture
+    @cached_property
     def crash_rate_alert_critical_action(self):
         return self.crash_rate_alert_critical_trigger.alertruletriggeraction_set.get()
 
-    @fixture
+    @cached_property
     def crash_rate_alert_warning_trigger(self):
         return create_alert_rule_trigger(self.crash_rate_alert_rule, "warning", 90)
 
-    @fixture
+    @cached_property
     def crash_rate_alert_warning_action(self):
         return create_alert_rule_trigger_action(
             self.crash_rate_alert_warning_trigger,

@@ -1,4 +1,4 @@
-from exam import fixture
+from functools import cached_property
 
 from sentry.api.serializers import serialize
 from sentry.incidents.models import IncidentActivity, IncidentActivityType, IncidentSubscription
@@ -11,15 +11,15 @@ class OrganizationIncidentCommentCreateEndpointTest(APITestCase):
     endpoint = "sentry-api-0-organization-incident-comments"
     method = "post"
 
-    @fixture
+    @cached_property
     def organization(self):
         return self.create_organization()
 
-    @fixture
+    @cached_property
     def project(self):
         return self.create_project(organization=self.organization)
 
-    @fixture
+    @cached_property
     def user(self):
         return self.create_user()
 

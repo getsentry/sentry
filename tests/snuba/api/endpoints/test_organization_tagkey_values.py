@@ -1,7 +1,7 @@
 from datetime import timedelta
+from functools import cached_property
 
 from django.urls import reverse
-from exam import fixture
 
 from sentry.search.events.constants import RELEASE_ALIAS, SEMVER_ALIAS
 from sentry.testutils import APITestCase, SnubaTestCase
@@ -30,11 +30,11 @@ class OrganizationTagKeyTestCase(APITestCase, SnubaTestCase):
         response = self.get_success_response(key, **kwargs)
         assert [(val["value"], val["count"]) for val in response.data] == expected
 
-    @fixture
+    @cached_property
     def project(self):
         return self.create_project(organization=self.org, teams=[self.team])
 
-    @fixture
+    @cached_property
     def group(self):
         return self.create_group(project=self.project)
 

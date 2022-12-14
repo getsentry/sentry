@@ -1,5 +1,6 @@
+from functools import cached_property
+
 from django.urls import reverse
-from exam import fixture
 
 from sentry.incidents.models import IncidentSeen
 from sentry.testutils import APITestCase
@@ -15,15 +16,15 @@ class OrganizationIncidentSeenTest(APITestCase):
         self.create_team(organization=self.organization, members=[self.user])
         self.login_as(self.user)
 
-    @fixture
+    @cached_property
     def organization(self):
         return self.create_organization(owner=self.create_user())
 
-    @fixture
+    @cached_property
     def project(self):
         return self.create_project(organization=self.organization)
 
-    @fixture
+    @cached_property
     def user(self):
         return self.create_user()
 

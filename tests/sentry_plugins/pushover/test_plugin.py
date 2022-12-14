@@ -1,8 +1,8 @@
+from functools import cached_property
 from urllib.parse import parse_qs
 
 import responses
 from django.urls import reverse
-from exam import fixture
 
 from sentry.models import Rule
 from sentry.plugins.base import Notification
@@ -14,7 +14,7 @@ SUCCESS = """{"status":1,"request":"e460545a8b333d0da2f3602aff3133d6"}"""
 
 
 class PushoverPluginTest(PluginTestCase):
-    @fixture
+    @cached_property
     def plugin(self):
         return PushoverPlugin()
 

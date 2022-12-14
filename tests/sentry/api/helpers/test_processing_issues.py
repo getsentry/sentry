@@ -1,4 +1,4 @@
-from exam import fixture
+from functools import cached_property
 
 from sentry.api.helpers.processing_issues import get_processing_issues
 from sentry.models import (
@@ -12,11 +12,11 @@ from sentry.testutils import TestCase
 
 
 class GetProcessingIssuesTest(TestCase):
-    @fixture
+    @cached_property
     def user(self):
         return self.create_user()
 
-    @fixture
+    @cached_property
     def project(self):
         return self.create_project(name="foo")
 

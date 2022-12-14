@@ -1,7 +1,8 @@
+from functools import cached_property
+
 import responses
 from django.core import mail
 from django.urls import reverse
-from exam import fixture
 
 from sentry.models import (
     InviteStatus,
@@ -20,7 +21,7 @@ from sentry.utils import json
 class OrganizationInviteRequestListTest(APITestCase):
     endpoint = "sentry-api-0-organization-invite-request-index"
 
-    @fixture
+    @cached_property
     def org(self):
         return self.create_organization(owner=self.user)
 

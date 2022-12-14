@@ -1,11 +1,11 @@
 from datetime import timedelta
+from functools import cached_property
 from unittest import mock
 
 import pytest
 from django.db.models import F
 from django.test import RequestFactory
 from django.utils import timezone
-from exam import fixture
 from freezegun import freeze_time
 from rest_framework.exceptions import PermissionDenied
 
@@ -158,23 +158,23 @@ class OrganizationPermissionTest(OrganizationPermissionBase):
 
 
 class BaseOrganizationEndpointTest(TestCase):
-    @fixture
+    @cached_property
     def endpoint(self):
         return OrganizationEndpoint()
 
-    @fixture
+    @cached_property
     def user(self):
         return self.create_user("tester@test.com")
 
-    @fixture
+    @cached_property
     def member(self):
         return self.create_user("member@test.com")
 
-    @fixture
+    @cached_property
     def owner(self):
         return self.create_user("owner@test.com")
 
-    @fixture
+    @cached_property
     def org(self):
         org = self.create_organization("test", self.owner)
         org.flags.allow_joinleave = False

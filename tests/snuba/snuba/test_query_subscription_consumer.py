@@ -1,6 +1,7 @@
 import time
 from copy import deepcopy
 from datetime import timedelta
+from functools import cached_property
 from unittest import mock
 from unittest.mock import Mock, call
 from uuid import uuid4
@@ -10,7 +11,6 @@ from confluent_kafka import Producer
 from dateutil.parser import parse as parse_date
 from django.conf import settings
 from django.test.utils import override_settings
-from exam import fixture
 
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery
@@ -25,15 +25,15 @@ from sentry.utils import json
 
 
 class QuerySubscriptionConsumerTest(TestCase, SnubaTestCase):
-    @fixture
+    @cached_property
     def subscription_id(self):
         return "1234"
 
-    @fixture
+    @cached_property
     def old_valid_wrapper(self):
         return {"version": 2, "payload": self.old_payload}
 
-    @fixture
+    @cached_property
     def old_payload(self):
         return {
             "subscription_id": self.subscription_id,
@@ -42,11 +42,11 @@ class QuerySubscriptionConsumerTest(TestCase, SnubaTestCase):
             "timestamp": "2020-01-01T01:23:45.1234",
         }
 
-    @fixture
+    @cached_property
     def valid_wrapper(self):
         return {"version": 3, "payload": self.valid_payload}
 
-    @fixture
+    @cached_property
     def valid_payload(self):
         return {
             "subscription_id": "1234",
@@ -61,11 +61,11 @@ class QuerySubscriptionConsumerTest(TestCase, SnubaTestCase):
             "timestamp": "2020-01-01T01:23:45.1234",
         }
 
-    @fixture
+    @cached_property
     def topic(self):
         return uuid4().hex
 
-    @fixture
+    @cached_property
     def producer(self):
         cluster_name = settings.KAFKA_TOPICS[self.topic]["cluster"]
         conf = {
@@ -90,7 +90,7 @@ class QuerySubscriptionConsumerTest(TestCase, SnubaTestCase):
         subscriber_registry.clear()
         subscriber_registry.update(self.orig_registry)
 
-    @fixture
+    @cached_property
     def registration_key(self):
         return "registered_keyboard_interrupt"
 

@@ -1,4 +1,5 @@
 import base64
+from functools import cached_property
 from unittest import mock
 from urllib.parse import parse_qs, urlencode, urlparse
 
@@ -6,7 +7,6 @@ import pytest
 from django.conf import settings
 from django.db import models
 from django.urls import reverse
-from exam import fixture
 
 from sentry import audit_log
 from sentry.auth.authenticators import TotpInterface
@@ -72,15 +72,15 @@ class AuthSAML2Test(AuthProviderTestCase):
 
         super().tearDown()
 
-    @fixture
+    @cached_property
     def login_path(self):
         return reverse("sentry-auth-organization", args=["saml2-org"])
 
-    @fixture
+    @cached_property
     def acs_path(self):
         return reverse("sentry-auth-organization-saml-acs", args=["saml2-org"])
 
-    @fixture
+    @cached_property
     def setup_path(self):
         return reverse("sentry-organization-auth-provider-settings", args=["saml2-org"])
 

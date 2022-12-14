@@ -1,12 +1,12 @@
 import unittest
 from base64 import b64encode
 from datetime import datetime, timedelta
+from functools import cached_property
 from unittest.mock import patch
 
 import pytz
 from django.urls import reverse
 from django.utils import timezone
-from exam import fixture
 
 from sentry.api.endpoints.organization_releases import (
     ReleaseHeadCommitSerializer,
@@ -2002,7 +2002,7 @@ class OrganizationReleaseListEnvironmentsTest(APITestCase):
 
 @region_silo_test
 class OrganizationReleaseCreateCommitPatch(ReleaseCommitPatchTest):
-    @fixture
+    @cached_property
     def url(self):
         return reverse(
             "sentry-api-0-organization-releases", kwargs={"organization_slug": self.org.slug}
