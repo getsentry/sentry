@@ -112,6 +112,7 @@ class TeamSerializerResponse(_TeamSerializerResponseOptional):
     dateCreated: datetime
     isMember: bool
     teamRole: str
+    idpProvisioned: bool
     hasAccess: bool
     isPending: bool
     memberCount: int
@@ -232,6 +233,7 @@ class TeamSerializer(Serializer):  # type: ignore
             "dateCreated": obj.date_added,
             "isMember": attrs["is_member"],
             "teamRole": attrs["team_role"],
+            "idpProvisioned": bool(obj.idp_provisioned),
             "hasAccess": attrs["has_access"],
             "isPending": attrs["pending_request"],
             "memberCount": attrs["member_count"],

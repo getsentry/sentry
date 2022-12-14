@@ -198,7 +198,7 @@ def get_owner_reason(
     Provide a human readable reason for why a user is receiving a notification.
     Currently only used to explain "issue owners" w/ fallthrough to everyone
     """
-    if not features.has("organizations:issue-alert-fallback-targeting", project.organization):
+    if not features.has("organizations:issue-alert-fallback-message", project.organization):
         return None
 
     # Sent to a specific user or team

@@ -3,6 +3,8 @@ import styled from '@emotion/styled';
 import {mat3, vec2} from 'gl-matrix';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {FlamegraphContextMenu} from 'sentry/components/profiling/flamegraph/flamegraphContextMenu';
+import {FlamegraphTooltip} from 'sentry/components/profiling/flamegraph/flamegraphTooltip';
 import {t} from 'sentry/locale';
 import {CanvasPoolManager, CanvasScheduler} from 'sentry/utils/profiling/canvasScheduler';
 import {DifferentialFlamegraph} from 'sentry/utils/profiling/differentialFlamegraph';
@@ -30,9 +32,6 @@ import {SelectedFrameRenderer} from 'sentry/utils/profiling/renderers/selectedFr
 import {TextRenderer} from 'sentry/utils/profiling/renderers/textRenderer';
 import usePrevious from 'sentry/utils/usePrevious';
 import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
-
-import {FlamegraphTooltip} from './FlamegraphTooltip/flamegraphTooltip';
-import {FlamegraphOptionsContextMenu} from './flamegraphOptionsContextMenu';
 
 function isHighlightingAllOccurences(
   node: FlamegraphFrame | null,
@@ -783,7 +782,7 @@ function FlamegraphZoomView({
           pointerEvents: 'none',
         }}
       />
-      <FlamegraphOptionsContextMenu
+      <FlamegraphContextMenu
         contextMenu={contextMenu}
         profileGroup={profileGroup.type === 'resolved' ? profileGroup.data : null}
         hoveredNode={hoveredNodeOnContextMenuOpen.current}

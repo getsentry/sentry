@@ -403,7 +403,7 @@ class EventsSnubaSearchTest(SharedSnubaTest):
             project_id=self.project.id,
         )
         group_3 = event_3.group
-        group_3.update(type=GroupType.PERFORMANCE_N_PLUS_ONE.value)
+        group_3.update(type=GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value)
         with self.feature("organizations:performance-issues"):
             results = self.make_query(search_filter_query="issue.category:performance")
         assert set(results) == {group_3}
@@ -435,15 +435,17 @@ class EventsSnubaSearchTest(SharedSnubaTest):
                 "fingerprint": ["put-me-in-group3"],
                 "event_id": "c" * 32,
                 "timestamp": iso_format(self.base_datetime - timedelta(days=20)),
-                "type": GroupType.PERFORMANCE_N_PLUS_ONE.value,
+                "type": GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value,
             },
             project_id=self.project.id,
         )
         group_3 = event_3.group
-        group_3.update(type=GroupType.PERFORMANCE_N_PLUS_ONE.value)
+        group_3.update(type=GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value)
 
         with self.feature("organizations:performance-issues"):
-            results = self.make_query(search_filter_query="issue.type:performance_n_plus_one")
+            results = self.make_query(
+                search_filter_query="issue.type:performance_n_plus_one_db_queries"
+            )
         assert set(results) == {group_3}
 
         event_4 = self.store_event(
@@ -462,7 +464,7 @@ class EventsSnubaSearchTest(SharedSnubaTest):
 
         with self.feature("organizations:performance-issues"):
             results = self.make_query(
-                search_filter_query="issue.type:[performance_slow_span, performance_n_plus_one, error]"
+                search_filter_query="issue.type:[performance_slow_span, performance_n_plus_one_db_queries, error]"
             )
         assert set(results) == {self.group1, self.group2, group_3, group_4}
 
@@ -2206,7 +2208,7 @@ class EventsTransactionsSnubaSearchTest(SharedSnubaTest):
 
         with self.feature("organizations:performance-issues"):
             results = self.make_query(
-                search_filter_query="issue.type:[performance_n_plus_one, performance_slow_span] my_tag:1"
+                search_filter_query="issue.type:[performance_n_plus_one_db_queries, performance_slow_span] my_tag:1"
             )
         assert list(results) == [self.perf_group_1, self.perf_group_2]
 
