@@ -134,10 +134,10 @@ class HandleSnubaQueryUpdateTest(TestCase):
         subscriber_registry[INCIDENTS_SNUBA_SUBSCRIPTION_TYPE] = shutdown_callback
 
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
-            with self.assertChanges(
-                lambda: active_incident().exists(), before=False, after=True
-            ), self.tasks(), self.capture_on_commit_callbacks(execute=True):
+            assert not active_incident().exists()
+            with self.tasks(), self.capture_on_commit_callbacks(execute=True):
                 consumer.run()
+            assert active_incident().exists()
 
         assert len(mail.outbox) == 1
         handler = EmailActionHandler(self.action, active_incident().get(), self.project)
