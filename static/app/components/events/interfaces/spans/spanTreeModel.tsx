@@ -670,8 +670,9 @@ class SpanTreeModel {
   }: {
     addTraceBounds: (bounds: TraceBound) => void;
     removeTraceBounds: (eventSlug: string) => void;
-  }) => {
-    const toggleFunction = (props: {eventSlug: string; orgSlug: string}) => {
+  }) =>
+    // @ts-ignore
+    action('toggleEmbeddedChildren', (props: {eventSlug: string; orgSlug: string}) => {
       this.showEmbeddedChildren = !this.showEmbeddedChildren;
       this.fetchEmbeddedChildrenState = 'idle';
 
@@ -693,10 +694,8 @@ class SpanTreeModel {
       }
 
       return Promise.resolve(undefined);
-    };
+    });
 
-    return action('toggleEmbeddedChildren', toggleFunction);
-  };
   fetchEmbeddedTransactions({
     orgSlug,
     eventSlug,
