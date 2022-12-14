@@ -62,11 +62,6 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):
         self.__last_committed: float = 0
         self.__max_pending_futures = 32
 
-    def _run_scheduled(self, message, func, **kwargs) -> None:
-        self.__futures.append(
-            ReplayRecordingMessageFuture(message, self.__threadpool.submit(func, **kwargs))
-        )
-
     @metrics.wraps("replays.process_recording.submit")
     def submit(self, message: Message[KafkaPayload]) -> None:
         assert not self.__closed
@@ -103,19 +98,27 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):
                     prefix=cache_prefix, num_parts=message_dict["replay_recording"]["chunks"]
                 )
 
-                self._run_scheduled(
-                    message,
-                    ingest_recording_chunked,
-                    message_dict=cast(RecordingSegmentMessage, message_dict),
-                    parts=parts,
-                    transaction=current_transaction,
+                self.__futures.append(
+                    ReplayRecordingMessageFuture(
+                        message,
+                        self.__threadpool.submit(
+                            ingest_recording_chunked,
+                            message_dict=cast(RecordingSegmentMessage, message_dict),
+                            parts=parts,
+                            transaction=current_transaction,
+                        ),
+                    )
                 )
             elif message_dict["type"] == "replay_recording_not_chunked":
-                self._run_scheduled(
-                    message,
-                    ingest_recording_not_chunked,
-                    message_dict=cast(RecordingMessage, message_dict),
-                    transaction=current_transaction,
+                self.__futures.append(
+                    ReplayRecordingMessageFuture(
+                        message,
+                        self.__threadpool.submit(
+                            ingest_recording_not_chunked,
+                            message_dict=cast(RecordingMessage, message_dict),
+                            transaction=current_transaction,
+                        ),
+                    )
                 )
         except Exception:
             # avoid crash looping on bad messsages for now
