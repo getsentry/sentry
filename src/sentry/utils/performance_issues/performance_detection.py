@@ -741,6 +741,8 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
     __slots__ = ["stored_problems"]
     settings_key: DetectorType = DetectorType.N_PLUS_ONE_API_CALLS
 
+    HOST_DENYLIST = []
+
     def init(self):
         # TODO: Only store the span IDs and timestamps instead of entire span objects
         self.stored_problems: PerformanceProblemsMap = {}
@@ -802,14 +804,31 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         if "graphql" in description:
             return False
 
+        # Next.js infixes its data URLs with a build ID. (e.g.,
+        # /_next/data/<uuid>/some-endpoint) This causes a fingerprinting
+        # explosion, since every deploy would change this ID and create new
+        # fingerprints. Since we're not parameterizing URLs yet, we need to
+        # exclude them
+        if "_next/data" in description:
+            return False
+
         # Ignore anything that looks like an asset. Some frameworks (and apps)
         # fetch assets via XHR, which is not our concern
         data = span.get("data") or {}
         url = data.get("url") or ""
+        if not url:
+            # If data is missing, fall back to description
+            parts = description.split(" ", 1)
+            if len(parts) == 2:
+                url = parts[1]
+
         if type(url) is dict:
             url = url.get("pathname") or ""
 
         parsed_url = urlparse(str(url))
+
+        if parsed_url.netloc in cls.HOST_DENYLIST:
+            return False
 
         _pathname, extension = os.path.splitext(parsed_url.path)
         if extension and extension in [".js", ".css", ".svg", ".png", ".mp3"]:
