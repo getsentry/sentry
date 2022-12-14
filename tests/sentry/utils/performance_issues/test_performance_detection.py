@@ -215,42 +215,6 @@ class PerformanceDetectionTest(unittest.TestCase):
             perf_problems = _detect_performance_problems(n_plus_one_event, sdk_span_mock)
             assert_n_plus_one_db_problem(perf_problems)
 
-    def test_calls_detect_duplicate(self):
-        no_duplicate_event = create_event([create_span("db")] * 4)
-        duplicate_not_allowed_op_event = create_event([create_span("random", 100.0)] * 5)
-        duplicate_event = create_event([create_span("db")] * 5)
-
-        sdk_span_mock = Mock()
-
-        _detect_performance_problems(no_duplicate_event, sdk_span_mock)
-        assert sdk_span_mock.containing_transaction.set_tag.call_count == 0
-
-        _detect_performance_problems(duplicate_not_allowed_op_event, sdk_span_mock)
-        assert sdk_span_mock.containing_transaction.set_tag.call_count == 0
-
-        _detect_performance_problems(duplicate_event, sdk_span_mock)
-        assert sdk_span_mock.containing_transaction.set_tag.call_count == 4
-        sdk_span_mock.containing_transaction.set_tag.assert_has_calls(
-            [
-                call(
-                    "_pi_all_issue_count",
-                    1,
-                ),
-                call(
-                    "_pi_sdk_name",
-                    "sentry.python",
-                ),
-                call(
-                    "_pi_transaction",
-                    "aaaaaaaaaaaaaaaa",
-                ),
-                call(
-                    "_pi_duplicates",
-                    "bbbbbbbbbbbbbbbb",
-                ),
-            ]
-        )
-
     def test_calls_detect_slow_span(self):
         no_slow_span_event = create_event([create_span("db", 999.0)] * 1)
         slow_span_event = create_event([create_span("db", 1001.0)] * 1)
@@ -452,12 +416,12 @@ class PerformanceDetectionTest(unittest.TestCase):
 
         perf_problems = _detect_performance_problems(n_plus_one_event, sdk_span_mock)
 
-        assert sdk_span_mock.containing_transaction.set_tag.call_count == 9
+        assert sdk_span_mock.containing_transaction.set_tag.call_count == 8
         sdk_span_mock.containing_transaction.set_tag.assert_has_calls(
             [
                 call(
                     "_pi_all_issue_count",
-                    4,
+                    3,
                 ),
                 call(
                     "_pi_sdk_name",
@@ -466,10 +430,6 @@ class PerformanceDetectionTest(unittest.TestCase):
                 call(
                     "_pi_transaction",
                     "da78af6000a6400aaa87cf6e14ddeb40",
-                ),
-                call(
-                    "_pi_duplicates",
-                    "86d2ede57bbf48d4",
                 ),
                 call("_pi_slow_span", "b33db57efd994615"),
                 call(
@@ -494,27 +454,7 @@ class PerformanceDetectionTest(unittest.TestCase):
 
         _detect_performance_problems(n_plus_one_event, sdk_span_mock)
 
-        assert sdk_span_mock.containing_transaction.set_tag.call_count == 4
-        sdk_span_mock.containing_transaction.set_tag.assert_has_calls(
-            [
-                call(
-                    "_pi_all_issue_count",
-                    1,
-                ),
-                call(
-                    "_pi_sdk_name",
-                    "",
-                ),
-                call(
-                    "_pi_transaction",
-                    "da78af6000a6400aaa87cf6e14ddeb40",
-                ),
-                call(
-                    "_pi_duplicates",
-                    "86d2ede57bbf48d4",
-                ),
-            ],
-        )
+        assert sdk_span_mock.containing_transaction.set_tag.call_count == 0
 
     def test_does_not_detect_n_plus_one_with_source_redis_query_with_noredis_detector(
         self,
@@ -524,27 +464,7 @@ class PerformanceDetectionTest(unittest.TestCase):
 
         _detect_performance_problems(n_plus_one_event, sdk_span_mock)
 
-        assert sdk_span_mock.containing_transaction.set_tag.call_count == 4
-        sdk_span_mock.containing_transaction.set_tag.assert_has_calls(
-            [
-                call(
-                    "_pi_all_issue_count",
-                    1,
-                ),
-                call(
-                    "_pi_sdk_name",
-                    "",
-                ),
-                call(
-                    "_pi_transaction",
-                    "da78af6000a6400aaa87cf6e14ddeb40",
-                ),
-                call(
-                    "_pi_duplicates",
-                    "86d2ede57bbf48d4",
-                ),
-            ],
-        )
+        assert sdk_span_mock.containing_transaction.set_tag.call_count == 0
 
     def test_does_not_detect_n_plus_one_with_repeating_redis_query_with_noredis_detector(
         self,
@@ -554,27 +474,7 @@ class PerformanceDetectionTest(unittest.TestCase):
 
         _detect_performance_problems(n_plus_one_event, sdk_span_mock)
 
-        assert sdk_span_mock.containing_transaction.set_tag.call_count == 4
-        sdk_span_mock.containing_transaction.set_tag.assert_has_calls(
-            [
-                call(
-                    "_pi_all_issue_count",
-                    1,
-                ),
-                call(
-                    "_pi_sdk_name",
-                    "",
-                ),
-                call(
-                    "_pi_transaction",
-                    "da78af6000a6400aaa87cf6e14ddeb40",
-                ),
-                call(
-                    "_pi_duplicates",
-                    "86d2ede57bbf48d4",
-                ),
-            ],
-        )
+        assert sdk_span_mock.containing_transaction.set_tag.call_count == 0
 
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
     def test_detects_n_plus_one_with_multiple_potential_sources(self):
@@ -679,7 +579,10 @@ class PerformanceDetectionTest(unittest.TestCase):
                 call("_pi_all_issue_count", 1),
                 call("_pi_sdk_name", ""),
                 call("_pi_transaction", "ba9cf0e72b8c42439a6490be90d9733e"),
-                call("_pi_consecutive_db_fp", "1-GroupType.PERFORMANCE_CONSECUTIVE_DB_OP"),
+                call(
+                    "_pi_consecutive_db_fp",
+                    "1-GroupType.PERFORMANCE_CONSECUTIVE_DB_OP-0700523cc3ca755e447329779e50aeb19549e74f",
+                ),
                 call("_pi_consecutive_db", "abca1c35669c11f2"),
             ]
         )
@@ -851,7 +754,10 @@ class PerformanceDetectionTest(unittest.TestCase):
                 call("_pi_all_issue_count", 4),
                 call("_pi_sdk_name", "sentry.python"),
                 call("_pi_transaction", "aaaaaaaaaaaaaaaa"),
-                call("_pi_consecutive_db_fp", "1-GroupType.PERFORMANCE_CONSECUTIVE_DB_OP"),
+                call(
+                    "_pi_consecutive_db_fp",
+                    "1-GroupType.PERFORMANCE_CONSECUTIVE_DB_OP-e6a9fc04320a924f46c7c737432bb0389d9dd095",
+                ),
                 call("_pi_consecutive_db", "bbbbbbbbbbbbbbbb"),
             ]
         )

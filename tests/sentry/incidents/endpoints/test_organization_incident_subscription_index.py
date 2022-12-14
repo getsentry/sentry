@@ -1,4 +1,4 @@
-from exam import fixture
+from functools import cached_property
 
 from sentry.incidents.logic import subscribe_to_incident
 from sentry.incidents.models import IncidentSubscription
@@ -9,15 +9,15 @@ from sentry.testutils.silo import region_silo_test
 class BaseOrganizationSubscriptionEndpointTest:
     endpoint = "sentry-api-0-organization-incident-subscription-index"
 
-    @fixture
+    @cached_property
     def organization(self):
         return self.create_organization()
 
-    @fixture
+    @cached_property
     def project(self):
         return self.create_project(organization=self.organization)
 
-    @fixture
+    @cached_property
     def user(self):
         return self.create_user()
 
