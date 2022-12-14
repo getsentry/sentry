@@ -65,9 +65,6 @@ function Provider({children, groupIds}: Props) {
     return [gIds, Array.from(pIds)];
   }, [projectsById, groupIds]);
 
-  // Any project that supports replay will do here.
-  // Project is used to signal if we should/should not do the query at all.
-  // const project = first(groups)?.project;
   const replayGroupIds = useMemo(() => groups.map(group => group.id), [groups]);
 
   const counts = useReplaysCount({
