@@ -139,22 +139,19 @@ class GitHubClientMixin(ApiClient):  # type: ignore
         key = f"github:repo:{repo_full_name}:{'source-code' if only_source_code_files else 'all'}"
         repo_files: List[str] = cache.get(key, [])
         if not repo_files:
-            try:
-                tree = self.get_tree(repo_full_name, tree_sha)
-                if tree is not None:
-                    repo_files = [x["path"] for x in tree if x["type"] == "blob"]
-                    if only_source_code_files:
-                        repo_files = filter_source_code_files(files=repo_files)
-                    # The backend's caching will skip silently if the object size greater than 5MB
-                    # The trees API does not return structures larger than 7MB
-                    # As an example, all file paths in Sentry is about 1.3MB
-                    # Larger customers may have larger repositories, however,
-                    # the cost of not having cached the files cached for those
-                    # repositories is a single GH API network request, thus,
-                    # being acceptable to sometimes not having everything cached
-                    cache.set(key, repo_files, cache_seconds)
-            except Exception:
-                logger.exception("An unknown error has ocurred.")
+            tree = self.get_tree(repo_full_name, tree_sha)
+            if tree is not None:
+                repo_files = [x["path"] for x in tree if x["type"] == "blob"]
+                if only_source_code_files:
+                    repo_files = filter_source_code_files(files=repo_files)
+                # The backend's caching will skip silently if the object size greater than 5MB
+                # The trees API does not return structures larger than 7MB
+                # As an example, all file paths in Sentry is about 1.3MB
+                # Larger customers may have larger repositories, however,
+                # the cost of not having cached the files cached for those
+                # repositories is a single GH API network request, thus,
+                # being acceptable to sometimes not having everything cached
+                cache.set(key, repo_files, cache_seconds)
 
         return repo_files
 

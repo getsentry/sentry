@@ -52,6 +52,13 @@ TREE_RESPONSES = {
         "status_code": 404,
         "body": {"message": "Not Found"},
     },
+    "xyz": {
+        "status_code": 403,
+        "body": {
+            "message": "API rate limit exceeded for installation ID 123456.",
+            "documentation_url": "https://docs.github.com/rest/overview/resources-in-the-rest-api#rate-limiting",
+        },
+    },
 }
 
 
@@ -120,7 +127,12 @@ class GitHubIntegrationTest(IntegrationTestCase):
             "archived": {
                 "archived": True,
             },
+            "xyz": {
+                "full_name": "Test-Organization/xyz",
+                "default_branch": "master",
+            },
         }
+        self.repositories = repositories
         api_url = f"{self.base_url}/installation/repositories"
         first = f'<{api_url}?per_page={pp}&page=1>; rel="first"'
         last = f'<{api_url}?per_page={pp}&page={len(repositories)}>; rel="last"'
@@ -597,18 +609,26 @@ class GitHubIntegrationTest(IntegrationTestCase):
     def test_get_trees_for_org_handles_rate_limit_reached(self):
         """Test that we will not hit Github's API more than once when we reach the API rate limit"""
         installation = self.get_installation_helper()
-        responses.add(
-            responses.GET,
-            f"{self.base_url}/repos/Test-Organization/foo/git/trees/master?recursive=1",
-            json={
-                "message": "API rate limit exceeded for installation ID 865116.",
-                "documentation_url": "https://docs.github.com/rest/overview/resources-in-the-rest-api#rate-limiting",
-            },
-            status=403,
+        # This will force reaching for xyz before foo
+        cache.set(
+            "githubtrees:repositories:foo:Test-Organization",
+            [
+                {"full_name": "Test-Organization/bar", "default_branch": "main"},
+                {"full_name": "Test-Organization/xyz", "default_branch": "master"},
+                {"full_name": "Test-Organization/foo", "default_branch": "master"},
+            ],
+            3600,
         )
         trees = installation.get_trees_for_org()
-        # breakpoint()
-        assert trees["Test-Organization/foo"].files == []
+        key_prefix = "github:repo:Test-Organization"
+        bar_files = cache.get(f"{key_prefix}/bar:source-code")
+        assert bar_files == []
+        assert cache.get(f"{key_prefix}/xyz:source-code") is None  # Hit API rate limit
+        assert cache.get(f"{key_prefix}/foo:source-code") is None  # Never tried
+        assert len(trees.keys()) == 1
+        # Only the repos before the API rate limit will be in trees
+        assert trees["Test-Organization/bar"].files == []
+        assert "Test-Organization/foo" not in trees
 
     @responses.activate
     def test_get_trees_for_org(self):
@@ -644,6 +664,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
                 {"full_name": "Test-Organization/foo", "default_branch": "master"},
                 {"full_name": "Test-Organization/bar", "default_branch": "main"},
                 {"full_name": "Test-Organization/baz", "default_branch": "master"},
+                {"full_name": "Test-Organization/xyz", "default_branch": "master"},
             ]
             assert cache.get(repo_key) == ["src/sentry/api/endpoints/auth_login.py"]
             assert trees == expected_trees
