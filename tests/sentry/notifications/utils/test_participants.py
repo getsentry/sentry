@@ -555,21 +555,10 @@ class GetSendToFallthroughTest(TestCase):
             schema=dump_schema(
                 [
                     grammar.Rule(Matcher("path", "*.py"), [Owner("team", self.team2.slug)]),
-                    grammar.Rule(Matcher("path", "*.jsx"), [Owner("user", self.user.email)]),
-                    grammar.Rule(Matcher("path", "*.jx"), [Owner("user", self.user3.email)]),
-                    grammar.Rule(
-                        Matcher("path", "*.cbl"),
-                        [
-                            Owner("user", user.email)
-                            for user in User.objects.filter(
-                                id__in=self.project.member_set.values_list("user", flat=True)
-                            )
-                        ],
-                    ),
                     grammar.Rule(Matcher("path", "*.lol"), []),
                 ]
             ),
-            fallthrough=True,
+            fallthrough=False,  # test with fallthrough off to ensure the new fallthrough logic is used
         )
 
         # turn off slack for teams

@@ -351,7 +351,7 @@ def get_fallthrough_recipients(
     # Case 2: notify all members
     elif fallthrough_choice == FallthroughChoiceType.ALL_MEMBERS:
         user_ids = project.member_set.all().values_list("user_id", flat=True)
-        return User.objects.filter(id__in=user_ids)
+        return list(User.objects.filter(id__in=user_ids))
 
     # TODO(snigdhasharma): Handle this in a followup PR (WOR-2385)
     # Case 3: Admin or recent
