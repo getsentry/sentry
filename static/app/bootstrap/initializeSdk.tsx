@@ -51,6 +51,9 @@ function getSentryIntegrations(sentryConfig: Config['sentryConfig'], routes?: Fu
       _metricOptions: {
         _reportAllChanges: false,
       },
+      _experiments: {
+        enableInteractions: true,
+      },
       ...partialTracingOptions,
     }),
   ];
@@ -84,6 +87,12 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
     allowUrls: SPA_DSN ? SPA_MODE_ALLOW_URLS : sentryConfig?.whitelistUrls,
     integrations: getSentryIntegrations(sentryConfig, routes),
     tracesSampleRate,
+    tracesSampler: context => {
+      if (context.transactionContext.op?.startsWith('ui.action')) {
+        return tracesSampleRate / 100;
+      }
+      return tracesSampleRate;
+    },
     /**
      * There is a bug in Safari, that causes `AbortError` when fetch is
      * aborted, and you are in the middle of reading the response. In Chrome
