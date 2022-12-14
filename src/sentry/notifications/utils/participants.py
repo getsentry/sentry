@@ -148,7 +148,11 @@ def split_participants_and_context(
     }
 
 
-def get_owners(project: Project, event: Event | None = None) -> Sequence[Team | APIUser]:
+def get_owners(
+    project: Project,
+    event: Event | None = None,
+    fallthrough_choice: FallthroughChoiceType | None = None,
+) -> Sequence[Team | APIUser]:
     """
     Given a project and an event, decide which users and teams are the owners.
 
@@ -180,7 +184,9 @@ def get_owners(project: Project, event: Event | None = None) -> Sequence[Team | 
         "features.owners.send_to",
         tags={
             "organization": project.organization_id,
-            "outcome": outcome,
+            "outcome": outcome
+            if outcome == "match" or fallthrough_choice is None
+            else fallthrough_choice.value,
             "isUsingDefault": ProjectOwnership.get_ownership_cached(project.id) is None,
         },
         skip_internal=True,
@@ -279,7 +285,7 @@ def determine_eligible_recipients(
         return get_release_committers(project, event)
 
     elif target_type == ActionTargetType.ISSUE_OWNERS:
-        owners = get_owners(project, event)
+        owners = get_owners(project, event, fallthrough_choice)
         if owners:
             return owners
 
