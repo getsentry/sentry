@@ -56,7 +56,6 @@ class DetectorType(Enum):
     SLOW_SPAN = "slow_span"
     DUPLICATE_SPANS = "duplicates"
     RENDER_BLOCKING_ASSET_SPAN = "render_blocking_assets"
-    N_PLUS_ONE_SPANS = "n_plus_one"
     N_PLUS_ONE_DB_QUERIES = "n_plus_one_db"
     N_PLUS_ONE_DB_QUERIES_EXTENDED = "n_plus_one_db_ext"
     N_PLUS_ONE_API_CALLS = "n_plus_one_api_calls"
@@ -69,7 +68,6 @@ DETECTOR_TYPE_TO_GROUP_TYPE = {
     DetectorType.SLOW_SPAN: GroupType.PERFORMANCE_SLOW_SPAN,
     DetectorType.DUPLICATE_SPANS: GroupType.PERFORMANCE_DUPLICATE_SPANS,
     DetectorType.RENDER_BLOCKING_ASSET_SPAN: GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN,
-    DetectorType.N_PLUS_ONE_SPANS: GroupType.PERFORMANCE_N_PLUS_ONE,
     DetectorType.N_PLUS_ONE_DB_QUERIES: GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
     DetectorType.N_PLUS_ONE_DB_QUERIES_EXTENDED: GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
     DetectorType.N_PLUS_ONE_API_CALLS: GroupType.PERFORMANCE_N_PLUS_ONE_API_CALLS,
@@ -288,13 +286,6 @@ def get_detection_settings(project_id: Optional[str] = None) -> Dict[DetectorTyp
             "fcp_maximum_threshold": settings["render_blocking_fcp_max"],  # ms
             "fcp_ratio_threshold": settings["render_blocking_fcp_ratio"],  # in the range [0, 1]
         },
-        DetectorType.N_PLUS_ONE_SPANS: [
-            {
-                "count": 3,
-                "start_time_threshold": 5.0,  # ms
-                "allowed_span_ops": ["http.client"],
-            }
-        ],
         DetectorType.N_PLUS_ONE_DB_QUERIES: {
             "count": settings["n_plus_one_db_count"],
             "duration_threshold": settings["n_plus_one_db_duration_threshold"],  # ms
@@ -344,7 +335,6 @@ def _detect_performance_problems(data: Event, sdk_span: Any) -> List[Performance
         DetectorType.RENDER_BLOCKING_ASSET_SPAN: RenderBlockingAssetSpanDetector(
             detection_settings, data
         ),
-        DetectorType.N_PLUS_ONE_SPANS: NPlusOneSpanDetector(detection_settings, data),
         DetectorType.N_PLUS_ONE_DB_QUERIES: NPlusOneDBSpanDetector(detection_settings, data),
         DetectorType.N_PLUS_ONE_DB_QUERIES_EXTENDED: NPlusOneDBSpanDetectorExtended(
             detection_settings, data
@@ -734,71 +724,6 @@ class RenderBlockingAssetSpanDetector(PerformanceDetector):
         span_duration = get_span_duration(span)
         fcp_ratio_threshold = self.settings.get("fcp_ratio_threshold")
         return span_duration / self.fcp > fcp_ratio_threshold
-
-
-class NPlusOneSpanDetector(PerformanceDetector):
-    """
-    Checks for multiple concurrent API calls.
-    N.B.1. Non-greedy! Returns the first N concurrent spans of a series of
-      concurrent spans, rather than all spans in a concurrent series.
-    N.B.2. Assumes that spans are passed in ascending order of `start_timestamp`
-    N.B.3. Only returns _the first_ set of concurrent calls of all possible.
-    """
-
-    __slots__ = ("spans_involved", "stored_problems")
-
-    settings_key = DetectorType.N_PLUS_ONE_SPANS
-
-    def init(self):
-        self.spans_involved = {}
-        self.most_recent_start_time = {}
-        self.most_recent_hash = {}
-        self.stored_problems = {}
-
-    def visit_span(self, span: Span):
-        settings_for_span = self.settings_for_span(span)
-        if not settings_for_span:
-            return
-
-        op, span_id, op_prefix, span_duration, settings = settings_for_span
-
-        start_time_threshold = timedelta(milliseconds=settings.get("start_time_threshold", 0))
-        count = settings.get("count", 10)
-
-        fingerprint = fingerprint_span_op(span)
-        if not fingerprint:
-            return
-
-        hash = span.get("hash", None)
-        if not hash:
-            return
-
-        if fingerprint not in self.spans_involved:
-            self.spans_involved[fingerprint] = []
-            self.most_recent_start_time[fingerprint] = 0
-            self.most_recent_hash[fingerprint] = ""
-
-        delta_to_previous_span_start_time = timedelta(
-            seconds=(span["start_timestamp"] - self.most_recent_start_time[fingerprint])
-        )
-
-        is_concurrent_with_previous_span = delta_to_previous_span_start_time < start_time_threshold
-        has_same_hash_as_previous_span = span["hash"] == self.most_recent_hash[fingerprint]
-
-        self.most_recent_start_time[fingerprint] = span["start_timestamp"]
-        self.most_recent_hash[fingerprint] = hash
-
-        if is_concurrent_with_previous_span and has_same_hash_as_previous_span:
-            self.spans_involved[fingerprint].append(span)
-        else:
-            self.spans_involved[fingerprint] = [span_id]
-            return
-
-        if not self.stored_problems.get(fingerprint, False):
-            if len(self.spans_involved[fingerprint]) >= count:
-                self.stored_problems[fingerprint] = PerformanceSpanProblem(
-                    span_id, op_prefix, self.spans_involved[fingerprint]
-                )
 
 
 class NPlusOneAPICallsDetector(PerformanceDetector):

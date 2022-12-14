@@ -1,5 +1,4 @@
 import {browserHistory} from 'react-router';
-import selectEvent from 'react-select-event';
 import merge from 'lodash/merge';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -16,6 +15,7 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 import StreamGroup from 'sentry/components/stream/group';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TagStore from 'sentry/stores/tagStore';
+import {SavedSearchVisibility} from 'sentry/types';
 import * as parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import IssueListWithStores, {IssueListOverview} from 'sentry/views/issueList/overview';
 
@@ -247,12 +247,11 @@ describe('IssueList', function () {
         ],
       });
 
+      const location = {query: {query: 'level:foo'}};
+
       render(
-        <IssueListWithStores
-          {...merge({}, routerProps, {location: {query: {query: 'level:foo'}}})}
-          {...defaultProps}
-        />,
-        {context: routerContext}
+        <IssueListWithStores {...merge({}, routerProps, {location})} {...defaultProps} />,
+        {context: routerContext, router: {location}}
       );
 
       await waitFor(() => {
@@ -269,42 +268,7 @@ describe('IssueList', function () {
       expect(screen.getByRole('textbox')).toHaveValue('level:foo ');
 
       // Tab shows "custom search"
-      expect(screen.getByRole('button', {name: 'Custom Search'})).toBeInTheDocument();
-    });
-
-    it('loads with a pinned saved query', async function () {
-      savedSearchesRequest = MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/searches/',
-        body: [
-          savedSearch,
-          TestStubs.Search({
-            id: '123',
-            name: 'Org Custom',
-            isPinned: true,
-            isGlobal: false,
-            query: 'is:resolved',
-          }),
-        ],
-      });
-
-      render(<IssueListWithStores {...routerProps} {...defaultProps} />, {
-        context: routerContext,
-      });
-
-      await waitFor(() => {
-        expect(issuesRequest).toHaveBeenCalledWith(
-          expect.anything(),
-          expect.objectContaining({
-            // Should be called with default query
-            data: expect.stringContaining('is%3Aresolved'),
-          })
-        );
-      });
-
-      expect(screen.getByRole('textbox')).toHaveValue('is:resolved ');
-
-      // Organization saved search selector should have default saved search selected
-      expect(screen.getByRole('button', {name: 'Org Custom'})).toBeInTheDocument();
+      expect(screen.getByRole('tab', {name: 'Custom Search'})).toBeInTheDocument();
     });
 
     it('loads with a pinned custom query', async function () {
@@ -339,7 +303,7 @@ describe('IssueList', function () {
       expect(screen.getByRole('textbox')).toHaveValue('is:resolved ');
 
       // Organization saved search selector should have default saved search selected
-      expect(screen.getByRole('button', {name: 'My Pinned Search'})).toBeInTheDocument();
+      expect(screen.getByRole('tab', {name: 'My Default Search'})).toBeInTheDocument();
     });
 
     it('loads with a saved query', async function () {
@@ -359,12 +323,14 @@ describe('IssueList', function () {
         ],
       });
 
+      const localRouter = {params: {searchId: '123'}};
+
       render(
         <IssueListWithStores
-          {...merge({}, routerProps, {params: {searchId: '123'}})}
+          {...merge({}, routerProps, localRouter)}
           {...defaultProps}
         />,
-        {context: routerContext}
+        {context: routerContext, router: localRouter}
       );
 
       await waitFor(() => {
@@ -382,7 +348,7 @@ describe('IssueList', function () {
       expect(screen.getByRole('textbox')).toHaveValue('assigned:me ');
 
       // Organization saved search selector should have default saved search selected
-      expect(screen.getByRole('button', {name: 'Assigned to Me'})).toBeInTheDocument();
+      expect(screen.getByRole('tab', {name: 'Assigned to Me'})).toBeInTheDocument();
     });
 
     it('loads with a query in URL', async function () {
@@ -401,12 +367,14 @@ describe('IssueList', function () {
         ],
       });
 
+      const localRouter = {location: {query: {query: 'level:error'}}};
+
       render(
         <IssueListWithStores
-          {...merge({}, routerProps, {location: {query: {query: 'level:error'}}})}
+          {...merge({}, routerProps, localRouter)}
           {...defaultProps}
         />,
-        {context: routerContext}
+        {context: routerContext, router: localRouter}
       );
 
       await waitFor(() => {
@@ -422,7 +390,7 @@ describe('IssueList', function () {
       expect(screen.getByRole('textbox')).toHaveValue('level:error ');
 
       // Organization saved search selector should have default saved search selected
-      expect(screen.getByRole('button', {name: 'Custom Search'})).toBeInTheDocument();
+      expect(screen.getByRole('tab', {name: 'Custom Search'})).toBeInTheDocument();
     });
 
     it('loads with an empty query in URL', async function () {
@@ -460,7 +428,7 @@ describe('IssueList', function () {
       expect(screen.getByRole('textbox')).toHaveValue('is:resolved ');
 
       // Organization saved search selector should have default saved search selected
-      expect(screen.getByRole('button', {name: 'My Pinned Search'})).toBeInTheDocument();
+      expect(screen.getByRole('tab', {name: 'My Default Search'})).toBeInTheDocument();
     });
 
     it('selects a saved search', async function () {
@@ -476,10 +444,8 @@ describe('IssueList', function () {
 
       await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
 
-      await selectEvent.select(
-        screen.getByRole('button', {name: 'Saved Searches'}),
-        localSavedSearch.name
-      );
+      userEvent.click(screen.getByRole('button', {name: /saved searches/i}));
+      userEvent.click(screen.getByRole('button', {name: localSavedSearch.name}));
 
       expect(browserHistory.push).toHaveBeenLastCalledWith(
         expect.objectContaining({
@@ -526,27 +492,18 @@ describe('IssueList', function () {
       );
     });
 
-    it('pins and unpins a custom query', async function () {
+    it('pins a custom query', async function () {
+      const pinnedSearch = {
+        id: '666',
+        name: 'My Pinned Search',
+        query: 'assigned:me level:fatal',
+        sort: 'date',
+        isPinned: true,
+        visibility: SavedSearchVisibility.Organization,
+      };
       savedSearchesRequest = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/searches/',
         body: [savedSearch],
-      });
-
-      const createPin = MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/pinned-searches/',
-        method: 'PUT',
-        body: {
-          ...savedSearch,
-          id: '666',
-          name: 'My Pinned Search',
-          query: 'assigned:me level:fatal',
-          sort: 'date',
-          isPinned: true,
-        },
-      });
-      const deletePin = MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/pinned-searches/',
-        method: 'DELETE',
       });
 
       const {rerender} = render(
@@ -569,22 +526,32 @@ describe('IssueList', function () {
 
       await tick();
 
+      const routerWithQuery = {location: {query: {query: 'assigned:me level:fatal'}}};
+
       rerender(
         <IssueListWithStores
-          {...merge({}, routerProps, {
-            location: {query: {query: 'assigned:me level:fatal'}},
-          })}
+          {...merge({}, routerProps, routerWithQuery)}
           {...defaultProps}
         />,
-        {context: routerContext}
+        {context: routerContext, router: routerWithQuery}
       );
 
-      expect(screen.getByRole('button', {name: 'Custom Search'})).toBeInTheDocument();
+      expect(screen.getByRole('tab', {name: 'Custom Search'})).toBeInTheDocument();
 
-      userEvent.click(screen.getByLabelText(/pin this search/i));
-      expect(createPin).toHaveBeenCalled();
+      MockApiClient.clearMockResponses();
+      const createPin = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/pinned-searches/',
+        method: 'PUT',
+        body: pinnedSearch,
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/searches/',
+        body: [savedSearch, pinnedSearch],
+      });
+      userEvent.click(screen.getByLabelText(/Set as Default/i));
 
       await waitFor(() => {
+        expect(createPin).toHaveBeenCalled();
         expect(browserHistory.push).toHaveBeenLastCalledWith(
           expect.objectContaining({
             pathname: '/organizations/org-slug/issues/searches/666/',
@@ -595,35 +562,58 @@ describe('IssueList', function () {
           })
         );
       });
+    });
 
-      rerender(
+    it('unpins a custom query', async function () {
+      const pinnedSearch = TestStubs.Search({
+        id: '666',
+        name: 'My Pinned Search',
+        query: 'assigned:me level:fatal',
+        sort: 'date',
+        isPinned: true,
+        visibility: SavedSearchVisibility.Organization,
+      });
+      savedSearchesRequest = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/searches/',
+        body: [pinnedSearch],
+      });
+      const deletePin = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/pinned-searches/',
+        method: 'DELETE',
+      });
+
+      const routerWithSavedSearch = {
+        params: {orgId: 'org-slug', searchId: pinnedSearch.id},
+      };
+
+      render(
         <IssueListWithStores
-          {...merge({}, routerProps, {params: {searchId: '666'}})}
+          {...merge({}, routerProps, routerWithSavedSearch)}
           {...defaultProps}
         />,
-        {context: routerContext}
+        {context: routerContext, router: routerWithSavedSearch}
       );
 
-      expect(screen.getByRole('button', {name: 'My Pinned Search'})).toBeInTheDocument();
+      await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
 
-      userEvent.click(screen.getByLabelText(/unpin this search/i));
-      expect(deletePin).toHaveBeenCalled();
+      expect(screen.getByRole('tab', {name: 'My Default Search'})).toBeInTheDocument();
+
+      userEvent.click(screen.getByLabelText(/Remove Default/i));
+
+      await waitFor(() => {
+        expect(deletePin).toHaveBeenCalled();
+      });
 
       await waitFor(() => {
         expect(browserHistory.push).toHaveBeenLastCalledWith(
           expect.objectContaining({
             pathname: '/organizations/org-slug/issues/',
-            query: {
-              query: 'assigned:me level:fatal',
-              sort: 'date',
-              referrer: 'search-bar',
-            },
           })
         );
       });
     });
 
-    it('pins and unpins a saved query', async function () {
+    it('pins a saved query', async function () {
       const assignedToMe = TestStubs.Search({
         id: '234',
         name: 'Assigned to Me',
@@ -640,7 +630,7 @@ describe('IssueList', function () {
         body: [savedSearch, assignedToMe],
       });
 
-      let createPin = MockApiClient.addMockResponse({
+      const createPin = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/pinned-searches/',
         method: 'PUT',
         body: {
@@ -648,127 +638,30 @@ describe('IssueList', function () {
           isPinned: true,
         },
       });
+      const routerWithSavedSearch = {params: {searchId: '789'}};
 
-      const {rerender} = render(
-        <IssueListWithStores {...routerProps} {...defaultProps} />,
-        {context: routerContext}
+      render(
+        <IssueListWithStores
+          {...merge({}, routerProps, routerWithSavedSearch)}
+          {...defaultProps}
+        />,
+        {context: routerContext, router: routerWithSavedSearch}
       );
 
       await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
 
-      await selectEvent.select(
-        screen.getByRole('button', {name: 'Saved Searches'}),
-        savedSearch.name
-      );
+      expect(screen.getByRole('tab', {name: savedSearch.name})).toBeInTheDocument();
+
+      userEvent.click(screen.getByLabelText(/set as default/i));
 
       await waitFor(() => {
-        expect(browserHistory.push).toHaveBeenLastCalledWith(
-          expect.objectContaining({
-            pathname: '/organizations/org-slug/issues/searches/789/',
-            query: {
-              environment: [],
-              project: ['3559'],
-              statsPeriod: '14d',
-              sort: 'date',
-              referrer: 'issue-list',
-            },
-          })
-        );
-      });
-
-      rerender(
-        <IssueListWithStores
-          {...merge({}, routerProps, {params: {searchId: '789'}})}
-          {...defaultProps}
-        />,
-        {context: routerContext}
-      );
-
-      expect(screen.getByRole('button', {name: savedSearch.name})).toBeInTheDocument();
-
-      userEvent.click(screen.getByLabelText(/pin this search/i));
-
-      expect(createPin).toHaveBeenCalled();
-
-      await waitFor(() => {
+        expect(createPin).toHaveBeenCalled();
         expect(browserHistory.push).toHaveBeenLastCalledWith(
           expect.objectContaining({
             pathname: '/organizations/org-slug/issues/searches/789/',
           })
         );
       });
-
-      rerender(
-        <IssueListWithStores
-          {...merge({}, routerProps, {params: {searchId: '789'}})}
-          {...defaultProps}
-        />,
-        {context: routerContext}
-      );
-
-      expect(screen.getByRole('button', {name: savedSearch.name})).toBeInTheDocument();
-
-      // Select other saved search
-      await selectEvent.select(
-        screen.getByRole('button', {name: savedSearch.name}),
-        assignedToMe.name
-      );
-
-      await waitFor(() => {
-        expect(browserHistory.push).toHaveBeenLastCalledWith(
-          expect.objectContaining({
-            pathname: '/organizations/org-slug/issues/searches/234/',
-            query: {
-              project: [],
-              environment: [],
-              statsPeriod: '14d',
-              sort: 'date',
-              referrer: 'issue-list',
-            },
-          })
-        );
-      });
-
-      rerender(
-        <IssueListWithStores
-          {...merge({}, routerProps, {params: {searchId: '234'}})}
-          {...defaultProps}
-        />,
-        {context: routerContext}
-      );
-
-      expect(screen.getByRole('button', {name: assignedToMe.name})).toBeInTheDocument();
-
-      createPin = MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/pinned-searches/',
-        method: 'PUT',
-        body: {
-          ...assignedToMe,
-          isPinned: true,
-        },
-      });
-
-      userEvent.click(screen.getByLabelText(/pin this search/i));
-
-      expect(createPin).toHaveBeenCalled();
-
-      await waitFor(() => {
-        expect(browserHistory.push).toHaveBeenLastCalledWith(
-          expect.objectContaining({
-            pathname: '/organizations/org-slug/issues/searches/234/',
-          })
-        );
-      });
-
-      rerender(
-        <IssueListWithStores
-          {...merge({}, routerProps, {params: {searchId: '234'}})}
-          {...defaultProps}
-        />,
-        {context: routerContext}
-      );
-
-      expect(screen.getByRole('button', {name: assignedToMe.name})).toBeInTheDocument();
     });
 
     it('pinning search should keep project selected', async function () {
@@ -817,11 +710,10 @@ describe('IssueList', function () {
         },
       });
 
-      userEvent.click(screen.getByLabelText(/pin this search/i));
-
-      expect(createPin).toHaveBeenCalled();
+      userEvent.click(screen.getByLabelText(/set as default/i));
 
       await waitFor(() => {
+        expect(createPin).toHaveBeenCalled();
         expect(browserHistory.push).toHaveBeenLastCalledWith(
           expect.objectContaining({
             pathname: '/organizations/org-slug/issues/searches/666/',
@@ -882,11 +774,10 @@ describe('IssueList', function () {
 
       await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
 
-      userEvent.click(screen.getByLabelText(/unpin this search/i));
-
-      expect(deletePin).toHaveBeenCalled();
+      userEvent.click(screen.getByLabelText(/Remove Default/i));
 
       await waitFor(() => {
+        expect(deletePin).toHaveBeenCalled();
         expect(browserHistory.push).toHaveBeenLastCalledWith(
           expect.objectContaining({
             pathname: '/organizations/org-slug/issues/',
