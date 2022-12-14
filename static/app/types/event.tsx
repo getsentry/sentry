@@ -550,7 +550,9 @@ export type PerformanceDetectorData = {
 };
 
 type EventEvidenceDisplay = {
-  // Used for alerting, probably not useful for the UI
+  /**
+   * Used for alerting, probably not useful for the UI
+   */
   important: boolean;
   name: string;
   value: string;
@@ -559,10 +561,14 @@ type EventEvidenceDisplay = {
 type EventOccurrence = {
   detectionTime: string;
   eventId: string;
-  // Arbitrary data that vertical teams can pass to assist with rendering the page.
-  // This is intended mostly for use with customizing the UI, not in the generic UI.
+  /**
+   * Arbitrary data that vertical teams can pass to assist with rendering the page.
+   * This is intended mostly for use with customizing the UI, not in the generic UI.
+   */
   evidenceData: Record<string, any>;
-  // Data displayed in the evidence table. Used in all issue types besides errors.
+  /**
+   * Data displayed in the evidence table. Used in all issue types besides errors.
+   */
   evidenceDisplay: EventEvidenceDisplay[];
   fingerprint: string[];
   id: string;
