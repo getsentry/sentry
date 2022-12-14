@@ -102,7 +102,7 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
                         },
                         "module": "org.a.b",
                         "type": "g$a",
-                        "value": "Oh no",
+                        "value": "Attempt to invoke virtual method 'org.a.b.g$a.a' on a null object reference",
                     }
                 ]
             },
@@ -129,6 +129,10 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
         frames = bt.frames
 
         assert exc.type == "Util$ClassContextSecurityManager"
+        assert (
+            exc.value
+            == "Attempt to invoke virtual method 'org.slf4j.helpers.Util$ClassContextSecurityManager.getExtraClassContext' on a null object reference"
+        )
         assert exc.module == "org.slf4j.helpers"
         assert frames[0].function == "getClassContext"
         assert frames[0].module == "org.slf4j.helpers.Util$ClassContextSecurityManager"
