@@ -30,14 +30,16 @@ export function getDescription(crumb: Crumb, startTimestampMs?: number) {
  * Get title of breadcrumb
  */
 export function getTitle(crumb: Crumb) {
-  const [type, action] = crumb.category?.split('.') || [];
-
   // Supports replay specific breadcrumbs
-  if (crumb.data && 'label' in crumb.data) {
+  if (crumb.data && 'label' in crumb.data && crumb.data.label) {
     return crumb.data.label;
   }
 
-  return `${type === 'ui' ? 'User' : type} ${action || ''}`;
+  const [type, action] = crumb.category?.split('.') || [];
+  if (type === 'ui') {
+    return `User ${action || ''}`;
+  }
+  return `${type} ${action || ''}`;
 }
 
 /**

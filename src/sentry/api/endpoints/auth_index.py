@@ -83,13 +83,11 @@ class AuthIndexEndpoint(Endpoint):
                     "u2f_authentication.value_error",
                     extra={"user": request.user.id, "error_message": err},
                 )
-                pass
             except LookupError:
                 logger.warning(
                     "u2f_authentication.interface_not_enrolled",
                     extra={"validated_data": validator.validated_data, "user": request.user.id},
                 )
-                pass
         # attempt password authentication
         elif "password" in validator.validated_data:
             authenticated = request.user.check_password(validator.validated_data["password"])

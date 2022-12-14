@@ -4,6 +4,9 @@ from sentry.api.endpoints.integration_features import IntegrationFeaturesEndpoin
 from sentry.api.endpoints.organization_codeowners_associations import (
     OrganizationCodeOwnersAssociationsEndpoint,
 )
+from sentry.api.endpoints.organization_derive_code_mappings import (
+    OrganizationDeriveCodeMappingsEndpoint,
+)
 from sentry.api.endpoints.organization_profiling_profiles import (
     OrganizationProfilingFiltersEndpoint,
 )
@@ -12,6 +15,7 @@ from sentry.api.endpoints.organization_sentry_function_details import (
     OrganizationSentryFunctionDetailsEndpoint,
 )
 from sentry.api.endpoints.project_grouping_configs import ProjectGroupingConfigsEndpoint
+from sentry.api.endpoints.project_transaction_names import ProjectTransactionNamesCluster
 from sentry.api.endpoints.project_transaction_threshold_override import (
     ProjectTransactionThresholdOverrideEndpoint,
 )
@@ -61,6 +65,9 @@ from sentry.incidents.endpoints.project_alert_rule_index import (
 )
 from sentry.incidents.endpoints.project_alert_rule_task_details import (
     ProjectAlertRuleTaskDetailsEndpoint,
+)
+from sentry.replays.endpoints.organization_issue_replay_count import (
+    OrganizationIssueReplayCountEndpoint,
 )
 from sentry.replays.endpoints.organization_replay_events_meta import (
     OrganizationReplayEventsMetaEndpoint,
@@ -653,6 +660,11 @@ urlpatterns = [
     ),
     # Organization invite
     url(
+        r"^accept-invite/(?P<organization_slug>[^\/]+)/(?P<member_id>[^\/]+)/(?P<token>[^\/]+)/$",
+        AcceptOrganizationInvite.as_view(),
+        name="sentry-api-0-accept-organization-invite-with-org",
+    ),
+    url(
         r"^accept-invite/(?P<member_id>[^\/]+)/(?P<token>[^\/]+)/$",
         AcceptOrganizationInvite.as_view(),
         name="sentry-api-0-accept-organization-invite",
@@ -663,14 +675,19 @@ urlpatterns = [
         include(
             [
                 url(
+                    r"^(?P<monitor_id>[^\/]+)/checkins/$",
+                    MonitorCheckInsEndpoint.as_view(),
+                    name="sentry-api-0-monitor-check-in-index",
+                ),
+                url(
                     r"^(?P<monitor_id>[^\/]+)/$",
                     MonitorDetailsEndpoint.as_view(),
                     name="sentry-api-0-monitor-details",
                 ),
                 url(
-                    r"^(?P<monitor_id>[^\/]+)/checkins/$",
-                    MonitorCheckInsEndpoint.as_view(),
-                    name="sentry-api-0-monitor-check-in-index",
+                    r"^(?P<organization_slug>[^\/]+)/(?P<monitor_id>[^\/]+)/$",
+                    MonitorDetailsEndpoint.as_view(),
+                    name="sentry-api-0-monitor-details-with-org",
                 ),
                 url(
                     r"^(?P<monitor_id>[^\/]+)/checkins/(?P<checkin_id>[^\/]+)/$",
@@ -936,6 +953,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/code-mappings/$",
                     OrganizationCodeMappingsEndpoint.as_view(),
                     name="sentry-api-0-organization-code-mappings",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/derive-code-mappings/$",
+                    OrganizationDeriveCodeMappingsEndpoint.as_view(),
+                    name="sentry-api-0-organization-derive-code-mappings",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/code-mappings/(?P<config_id>[^\/]+)/$",
@@ -1554,6 +1576,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/replays/$",
                     OrganizationReplayIndexEndpoint.as_view(),
                     name="sentry-api-0-organization-replay-index",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/issue-replay-count/$",
+                    OrganizationIssueReplayCountEndpoint.as_view(),
+                    name="sentry-api-0-organization-issue-replay-count",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/replays-events-meta/$",
@@ -2195,6 +2222,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/plugins/(?P<plugin_id>[^\/]+)/$",
                     ProjectPluginDetailsEndpoint.as_view(),
                     name="sentry-api-0-project-plugin-details",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/cluster-transaction-names/$",
+                    ProjectTransactionNamesCluster.as_view(),
+                    name="sentry-api-0-organization-project-cluster-transaction-names",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/plugins?/",

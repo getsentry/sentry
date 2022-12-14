@@ -14,7 +14,7 @@ import getDisplayName from 'sentry/utils/getDisplayName';
 import {setBodyUserSelect, UserSelectValues} from 'sentry/utils/userselect';
 
 import {DragManagerChildrenProps} from './dragManager';
-import SpanBar from './spanBar';
+import {SpanBar} from './spanBar';
 
 export type ScrollbarManagerChildrenProps = {
   addContentSpanBarRef: (instance: HTMLDivElement | null) => void;

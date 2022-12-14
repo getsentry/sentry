@@ -76,13 +76,25 @@ To make a **synchronous request** to another Sentry Silo, simply import the clie
 ```python
 from sentry.silo.client import RegionSiloClient
 
-client = RegionSiloClient("region") # For RegionSiloClient, provide the region name
+
+region = get_region_for_organization(organization)
+client = RegionSiloClient(region) # For RegionSiloClient, provide the region
 response = client.get(
     "/organizations/slug/some-endpoint/",
-    headers={"some": "header"}
+    headers={"some header": "some value"}
     data={"some": "payload"}
 )
 print(response.json) # {'some': 'response'}
 ```
 
 > Note: Protected endpoints may not work as expected while we figure out how API credentials work across silos.
+
+To directly **proxy a request synchronously** you can provide the request as follows:
+
+```python
+response = client.proxy_request(self.request)
+print(response.json) # {'some': 'response'}
+
+# If you need to return the response, it must be converted to a HttpResponse to avoid Django errors
+return response.to_http_response()
+```

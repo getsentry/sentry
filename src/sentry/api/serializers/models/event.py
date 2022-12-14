@@ -12,7 +12,7 @@ from sentry.eventstore.models import Event, GroupEvent
 from sentry.models import EventAttachment, EventError, GroupHash, Release, User, UserReport
 from sentry.sdk_updates import SdkSetupState, get_suggested_updates
 from sentry.search.utils import convert_user_tag_to_query
-from sentry.types.issues import GROUP_CATEGORY_TO_TYPES, GroupCategory
+from sentry.types.issues import GROUP_CATEGORY_TO_TYPES, GroupCategory, GroupType
 from sentry.utils.json import prune_empty_keys
 from sentry.utils.performance_issues.performance_detection import EventPerformanceProblem
 from sentry.utils.safe import get_path
@@ -235,6 +235,8 @@ class EventSerializer(Serializer):
         )
 
     def serialize(self, obj, attrs, user):
+        from sentry.api.serializers.rest_framework import convert_dict_key_case, snake_to_camel_case
+
         errors = [
             EventError(error).get_api_context()
             for error in get_path(obj.data, "errors", filter=True, default=())
@@ -256,6 +258,8 @@ class EventSerializer(Serializer):
                 received = datetime.utcfromtimestamp(received).replace(tzinfo=timezone.utc)
             except TypeError:
                 received = None
+
+        occurrence = getattr(obj, "occurrence", None)
 
         d = {
             "id": obj.event_id,
@@ -281,6 +285,9 @@ class EventSerializer(Serializer):
             "platform": obj.platform,
             "dateReceived": received,
             "errors": errors,
+            "occurrence": convert_dict_key_case(occurrence.to_dict(), snake_to_camel_case)
+            if occurrence
+            else None,
             "_meta": {
                 "entries": attrs["_meta"]["entries"],
                 "message": message_meta,
@@ -343,16 +350,26 @@ class DetailedEventSerializer(EventSerializer):
     def _get_sdk_updates(self, obj):
         return list(get_suggested_updates(SdkSetupState.from_event_json(obj.data)))
 
-    def serialize(self, obj, attrs, user):
+    def _get_perf_problem(self, attrs):
         from sentry.api.serializers.rest_framework import convert_dict_key_case, snake_to_camel_case
 
+        perf_problem = attrs.get("perf_problem")
+        if perf_problem is None:
+            return None
+        converted_problem = convert_dict_key_case(perf_problem, snake_to_camel_case)
+        issue_type = perf_problem.get("type")
+        if issue_type in [type.value for type in GroupType]:
+            converted_problem["issueType"] = GroupType(issue_type).name.lower()
+        else:
+            converted_problem["issueType"] = "Issue"
+        return converted_problem
+
+    def serialize(self, obj, attrs, user):
         result = super().serialize(obj, attrs, user)
         result["release"] = self._get_release_info(user, obj)
         result["userReport"] = self._get_user_report(user, obj)
         result["sdkUpdates"] = self._get_sdk_updates(obj)
-        result["perfProblem"] = convert_dict_key_case(
-            attrs.get("perf_problem"), snake_to_camel_case
-        )
+        result["perfProblem"] = self._get_perf_problem(attrs)
         return result
 
 

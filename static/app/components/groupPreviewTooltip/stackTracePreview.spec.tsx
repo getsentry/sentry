@@ -2,7 +2,6 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import {EventError} from 'sentry/types';
 import {EntryType, Event, ExceptionType, ExceptionValue, Frame} from 'sentry/types/event';
-import useApi from 'sentry/utils/useApi';
 
 import {StackTracePreview} from './stackTracePreview';
 
@@ -15,18 +14,16 @@ const makeEvent = (event: Partial<Event> = {}): Event => {
   return evt;
 };
 
-jest.mock('sentry/utils/useApi');
+beforeEach(() => {
+  MockApiClient.clearMockResponses();
+});
 
 describe('StackTracePreview', () => {
   it('fetches from projects when eventId and projectSlug are provided', async () => {
-    const api = new MockApiClient();
-
-    const spy = jest
-      .spyOn(api, 'requestPromise')
-      .mockResolvedValue(makeEvent({id: 'event_id', entries: []}));
-
-    // @ts-ignore useApi is mocked
-    useApi.mockReturnValue(api);
+    const mockGet = MockApiClient.addMockResponse({
+      url: `/projects/org-slug/project_slug/events/event_id/`,
+      body: makeEvent({id: 'event_id', entries: []}),
+    });
 
     render(
       <StackTracePreview issueId="issue" eventId="event_id" projectSlug="project_slug">
@@ -37,40 +34,30 @@ describe('StackTracePreview', () => {
     userEvent.hover(screen.getByText(/Preview Trigger/));
 
     await waitFor(() => {
-      expect(spy.mock.calls[0][0]).toBe(
-        `/projects/org-slug/project_slug/events/event_id/`
-      );
+      expect(mockGet).toHaveBeenCalled();
     });
   });
 
   it('fetches from issues when issueId when eventId and projectSlug are not provided', async () => {
-    const api = new MockApiClient();
-    const spy = jest
-      .spyOn(api, 'requestPromise')
-      .mockResolvedValue(makeEvent({id: 'event_id', entries: []}));
-
-    // @ts-ignore useApi is mocked
-    useApi.mockReturnValue(api);
+    const mockGet = MockApiClient.addMockResponse({
+      url: `/issues/issue/events/latest/?collapse=stacktraceOnly`,
+      body: makeEvent({id: 'event_id', entries: []}),
+    });
 
     render(<StackTracePreview issueId="issue">Preview Trigger</StackTracePreview>);
 
     userEvent.hover(screen.getByText(/Preview Trigger/));
 
     await waitFor(() => {
-      expect(spy.mock.calls[0][0]).toBe(
-        `/issues/issue/events/latest/?collapse=stacktraceOnly`
-      );
+      expect(mockGet).toHaveBeenCalled();
     });
   });
 
   it('renders error message', async () => {
-    const api = new MockApiClient();
-    jest
-      .spyOn(api, 'requestPromise')
-      .mockRejectedValue(makeEvent({id: 'event_id', entries: []}));
-
-    // @ts-ignore useApi is mocked
-    useApi.mockReturnValue(api);
+    MockApiClient.addMockResponse({
+      url: `/issues/issue/events/latest/?collapse=stacktraceOnly`,
+      statusCode: 400,
+    });
 
     render(<StackTracePreview issueId="issue">Preview Trigger</StackTracePreview>);
 
@@ -80,13 +67,10 @@ describe('StackTracePreview', () => {
   });
 
   it('warns about no stacktrace', async () => {
-    const api = new MockApiClient();
-    jest
-      .spyOn(api, 'requestPromise')
-      .mockResolvedValue(makeEvent({id: 'event_id', entries: []}));
-
-    // @ts-ignore useApi is mocked
-    useApi.mockReturnValue(api);
+    MockApiClient.addMockResponse({
+      url: `/issues/issue/events/latest/?collapse=stacktraceOnly`,
+      body: makeEvent({id: 'event_id', entries: []}),
+    });
 
     render(<StackTracePreview issueId="issue">Preview Trigger</StackTracePreview>);
 
@@ -101,8 +85,6 @@ describe('StackTracePreview', () => {
     ['stack-trace-content', []],
     ['stack-trace-content-v2', ['grouping-stacktrace-ui']],
   ])('renders %s', async (component, features) => {
-    const api = new MockApiClient();
-
     const frame: Frame = {
       colNo: 0,
       filename: 'file.js',
@@ -153,10 +135,10 @@ describe('StackTracePreview', () => {
       ],
     } as EventError;
 
-    jest.spyOn(api, 'requestPromise').mockResolvedValue(makeEvent(errorEvent));
-
-    // @ts-ignore useApi is mocked
-    useApi.mockReturnValue(api);
+    MockApiClient.addMockResponse({
+      url: `/issues/issue/events/latest/?collapse=stacktraceOnly`,
+      body: makeEvent(errorEvent),
+    });
 
     render(<StackTracePreview issueId="issue">Preview Trigger</StackTracePreview>, {
       organization: {features},

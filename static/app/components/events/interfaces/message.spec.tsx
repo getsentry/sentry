@@ -4,6 +4,7 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 import {Message} from 'sentry/components/events/interfaces/message';
 
 describe('Message entry', function () {
+  const routerContext = TestStubs.routerContext();
   it('display redacted data', async function () {
     const event = {
       ...TestStubs.Event(),
@@ -26,6 +27,7 @@ describe('Message entry', function () {
       },
     };
     render(<Message data={{formatted: null}} event={event} />, {
+      context: routerContext,
       organization: {
         relayPiiConfig: JSON.stringify(TestStubs.DataScrubbingRelayPiiConfig()),
       },

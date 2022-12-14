@@ -1,4 +1,5 @@
 import {lazy, Profiler, Suspense, useCallback, useEffect, useRef} from 'react';
+import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {
@@ -17,6 +18,7 @@ import ConfigStore from 'sentry/stores/configStore';
 import HookStore from 'sentry/stores/hookStore';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
+import isValidOrgSlug from 'sentry/utils/isValidOrgSlug';
 import {onRenderCallback} from 'sentry/utils/performanceForSentry';
 import useApi from 'sentry/utils/useApi';
 import {useColorscheme} from 'sentry/utils/useColorscheme';
@@ -26,7 +28,7 @@ import SystemAlerts from './systemAlerts';
 
 type Props = {
   children: React.ReactNode;
-};
+} & RouteComponentProps<{orgId?: string}, {}>;
 
 const InstallWizard = lazy(() => import('sentry/views/admin/installWizard'));
 const NewsletterConsent = lazy(() => import('sentry/views/newsletterConsent'));
@@ -34,7 +36,7 @@ const NewsletterConsent = lazy(() => import('sentry/views/newsletterConsent'));
 /**
  * App is the root level container for all uathenticated routes.
  */
-function App({children}: Props) {
+function App({children, params}: Props) {
   useColorscheme();
 
   const api = useApi();
@@ -97,6 +99,21 @@ function App({children}: Props) {
     });
   }, [api]);
 
+  const {sentryUrl} = ConfigStore.get('links');
+  const {orgId} = params;
+  const isOrgSlugValid = orgId ? isValidOrgSlug(orgId) : true;
+
+  useEffect(() => {
+    if (orgId === undefined) {
+      return;
+    }
+
+    if (!isOrgSlugValid) {
+      window.location.replace(sentryUrl);
+      return;
+    }
+  }, [orgId, sentryUrl, isOrgSlugValid]);
+
   useEffect(() => {
     loadOrganizations();
     checkInternalHealth();
@@ -155,6 +172,10 @@ function App({children}: Props) {
           <NewsletterConsent onSubmitSuccess={clearNewsletterConsent} />
         </Suspense>
       );
+    }
+
+    if (!isOrgSlugValid) {
+      return null;
     }
 
     return children;

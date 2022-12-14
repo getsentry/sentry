@@ -8,6 +8,7 @@ import FeatureBadge from 'sentry/components/featureBadge';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import Input from 'sentry/components/input';
 import ExternalLink from 'sentry/components/links/externalLink';
+import NumberInput from 'sentry/components/numberInput';
 import {releaseHealth} from 'sentry/data/platformCategories';
 import {IconDelete, IconSettings} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -26,6 +27,8 @@ import SentryAppRuleModal from 'sentry/views/alerts/rules/issue/sentryAppRuleMod
 import TicketRuleModal from 'sentry/views/alerts/rules/issue/ticketRuleModal';
 import {SchemaFormConfig} from 'sentry/views/organizationIntegrations/sentryAppExternalForm';
 import {EVENT_FREQUENCY_PERCENT_CONDITION} from 'sentry/views/projectInstall/issueAlertOptions';
+
+const NOTIFY_EMAIL_ACTION = 'sentry.mail.actions.NotifyEmailAction';
 
 interface FieldProps {
   data: Props['data'];
@@ -48,14 +51,13 @@ function NumberField({
   fieldConfig,
   onPropertyChange,
 }: FieldProps) {
-  const value =
-    data[name] && typeof data[name] !== 'boolean' ? (data[name] as string | number) : '';
+  const value = data[name] && typeof data[name] !== 'boolean' ? Number(data[name]) : NaN;
 
   // Set default value of number fields to the placeholder value
   useEffect(() => {
     if (
-      value === '' &&
       data.id === 'sentry.rules.filters.issue_occurrences.IssueOccurrencesFilter' &&
+      isNaN(value) &&
       !isNaN(Number(fieldConfig.placeholder))
     ) {
       onPropertyChange(index, name, `${fieldConfig.placeholder}`);
@@ -66,14 +68,13 @@ function NumberField({
 
   return (
     <InlineNumberInput
-      type="number"
+      min={0}
       name={name}
       value={value}
       placeholder={`${fieldConfig.placeholder}`}
       disabled={disabled}
-      onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-        onPropertyChange(index, name, e.target.value)
-      }
+      onChange={newVal => onPropertyChange(index, name, String(newVal))}
+      aria-label={t('Value')}
     />
   );
 }
@@ -298,7 +299,16 @@ function RuleNode({
       );
     }
 
-    const {label, formFields} = node;
+    let {label} = node;
+
+    if (
+      data.id === NOTIFY_EMAIL_ACTION &&
+      data.targetType !== MailActionTargetType.IssueOwners &&
+      organization.features.includes('issue-alert-fallback-targeting')
+    ) {
+      // Hide the fallback options when targeting team or member
+      label = 'Send a notification to {targetType}';
+    }
 
     const parts = label.split(/({\w+})/).map((part, i) => {
       if (!/^{\w+}$/.test(part)) {
@@ -314,8 +324,8 @@ function RuleNode({
       }
       return (
         <Separator key={key}>
-          {formFields && formFields.hasOwnProperty(key)
-            ? getField(key, formFields[key])
+          {node.formFields && node.formFields.hasOwnProperty(key)
+            ? getField(key, node.formFields[key])
             : part}
         </Separator>
       );
@@ -383,8 +393,9 @@ function RuleNode({
     }
 
     if (
-      data.id === 'sentry.mail.actions.NotifyEmailAction' &&
-      data.targetType === MailActionTargetType.IssueOwners
+      data.id === NOTIFY_EMAIL_ACTION &&
+      data.targetType === MailActionTargetType.IssueOwners &&
+      !organization.features.includes('issue-alert-fallback-targeting')
     ) {
       return (
         <MarginlessAlert type="warning">
@@ -454,7 +465,9 @@ function RuleNode({
     }
     return (
       <MarginlessAlert type="error" showIcon>
-        {t('These conditions conflict, please select different conditions.')}
+        {t(
+          'The conditions highlighted in red are in conflict. They may prevent the alert from ever being triggered.'
+        )}
       </MarginlessAlert>
     );
   }
@@ -588,7 +601,7 @@ const InlineInput = styled(Input)`
   min-height: 28px;
 `;
 
-const InlineNumberInput = styled(Input)`
+const InlineNumberInput = styled(NumberInput)`
   width: 90px;
   height: 28px;
   min-height: 28px;

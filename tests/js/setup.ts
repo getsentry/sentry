@@ -91,10 +91,6 @@ jest.mock('react-router', function reactRouterMockFactory() {
     },
   };
 });
-jest.mock('react-lazyload', function reactLazyLoadMockFactory() {
-  const LazyLoadMock = ({children}) => children;
-  return LazyLoadMock;
-});
 
 jest.mock('react-virtualized', function reactVirtualizedMockFactory() {
   const ActualReactVirtualized = jest.requireActual('react-virtualized');
@@ -265,7 +261,7 @@ window.scrollTo = jest.fn();
 // We need to re-define `window.location`, otherwise we can't spyOn certain
 // methods as `window.location` is read-only
 Object.defineProperty(window, 'location', {
-  value: {...window.location, assign: jest.fn(), reload: jest.fn()},
+  value: {...window.location, assign: jest.fn(), reload: jest.fn(), replace: jest.fn()},
   configurable: true,
   writable: true,
 });

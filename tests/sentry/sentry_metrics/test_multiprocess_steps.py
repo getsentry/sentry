@@ -8,17 +8,12 @@ from unittest.mock import Mock, call
 import pytest
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.processing.strategies import MessageRejected
-from arroyo.types import Message, Partition, Topic
+from arroyo.types import BrokerValue, Message, Partition, Topic, Value
 
 from sentry.ratelimits.cardinality import CardinalityLimiter
 from sentry.sentry_metrics.configuration import IndexerStorage, UseCaseKey, get_ingest_config
 from sentry.sentry_metrics.consumers.indexer.batch import invalid_metric_tags, valid_metric_name
-from sentry.sentry_metrics.consumers.indexer.common import (
-    BatchMessages,
-    DuplicateMessage,
-    MetricsBatchBuilder,
-)
-from sentry.sentry_metrics.consumers.indexer.multiprocess import TransformStep
+from sentry.sentry_metrics.consumers.indexer.common import BatchMessages, MetricsBatchBuilder
 from sentry.sentry_metrics.consumers.indexer.processing import MessageProcessor
 from sentry.sentry_metrics.indexer.limiters.cardinality import (
     TimeseriesCardinalityLimiter,
@@ -39,9 +34,7 @@ MESSAGE_PROCESSOR = MessageProcessor(
 
 
 def compare_messages_ignoring_mapping_metadata(actual: Message, expected: Message) -> None:
-    assert actual.offset == expected.offset
-    assert actual.partition == expected.partition
-    assert actual.timestamp == expected.timestamp
+    assert actual.committable == expected.committable
 
     actual_payload: KafkaPayload = actual.payload
     expected_payload: KafkaPayload = expected.payload
@@ -74,10 +67,17 @@ def _batch_message_set_up(next_step: Mock, max_batch_time: float = 100.0, max_ba
     )
 
     message1 = Message(
-        Partition(Topic("topic"), 0), 1, KafkaPayload(None, b"some value", []), datetime.now()
+        BrokerValue(
+            KafkaPayload(None, b"some value", []), Partition(Topic("topic"), 0), 1, datetime.now()
+        )
     )
     message2 = Message(
-        Partition(Topic("topic"), 0), 2, KafkaPayload(None, b"another value", []), datetime.now()
+        BrokerValue(
+            KafkaPayload(None, b"another value", []),
+            Partition(Topic("topic"), 0),
+            2,
+            datetime.now(),
+        )
     )
     return (batch_messages_step, message1, message2)
 
@@ -106,7 +106,7 @@ def test_batch_messages() -> None:
     batch_messages_step.submit(message=message2)
 
     assert next_step.submit.call_args == call(
-        Message(message2.partition, message2.offset, [message1, message2], message2.timestamp),
+        Message(Value([message1, message2], message2.committable)),
     )
 
     assert batch_messages_step._BatchMessages__batch is None
@@ -123,8 +123,10 @@ def test_batch_messages_rejected_message():
 
     # if we try to submit a batch when the next step is
     # not ready to accept more messages we'll get a
-    # MessageRejected error which will bubble up to the
-    # StreamProcessor.
+    # MessageRejected error. This will be reraised for
+    # to the stream processor on the subsequent call to submit
+    batch_messages_step.submit(message=message2)
+
     with pytest.raises(MessageRejected):
         batch_messages_step.submit(message=message2)
 
@@ -160,13 +162,20 @@ def test_metrics_batch_builder():
     assert not batch_builder_size.ready()
 
     message1 = Message(
-        Partition(Topic("topic"), 0), 1, KafkaPayload(None, b"some value", []), datetime.now()
+        BrokerValue(
+            KafkaPayload(None, b"some value", []), Partition(Topic("topic"), 0), 1, datetime.now()
+        )
     )
     batch_builder_size.append(message1)
     assert not batch_builder_size.ready()
 
     message2 = Message(
-        Partition(Topic("topic"), 0), 2, KafkaPayload(None, b"another value", []), datetime.now()
+        BrokerValue(
+            KafkaPayload(None, b"another value", []),
+            Partition(Topic("topic"), 0),
+            2,
+            datetime.now(),
+        )
     )
     batch_builder_size.append(message2)
     assert batch_builder_size.ready()
@@ -179,7 +188,9 @@ def test_metrics_batch_builder():
     assert not batch_builder_time.ready()
 
     message1 = Message(
-        Partition(Topic("topic"), 0), 1, KafkaPayload(None, b"some value", []), datetime.now()
+        BrokerValue(
+            KafkaPayload(None, b"some value", []), Partition(Topic("topic"), 0), 1, datetime.now()
+        )
     )
     batch_builder_time.append(message1)
     assert not batch_builder_time.ready()
@@ -192,11 +203,11 @@ def test_metrics_batch_builder():
         max_batch_size=max_batch_size, max_batch_time=max_batch_time
     )
     message1 = Message(
-        Partition(Topic("topic"), 0), 1, KafkaPayload(None, b"some value", []), datetime.now()
+        BrokerValue(
+            KafkaPayload(None, b"some value", []), Partition(Topic("topic"), 0), 1, datetime.now()
+        )
     )
     batch_builder_time.append(message1)
-    with pytest.raises(DuplicateMessage):
-        batch_builder_time.append(message1)
 
 
 ts = int(datetime.now(tz=timezone.utc).timestamp())
@@ -273,74 +284,37 @@ def test_process_messages() -> None:
     message_payloads = [counter_payload, distribution_payload, set_payload]
     message_batch = [
         Message(
-            Partition(Topic("topic"), 0),
-            i + 1,
-            KafkaPayload(None, json.dumps(payload).encode("utf-8"), []),
-            datetime.now(),
+            BrokerValue(
+                KafkaPayload(None, json.dumps(payload).encode("utf-8"), []),
+                Partition(Topic("topic"), 0),
+                i + 1,
+                datetime.now(),
+            )
         )
         for i, payload in enumerate(message_payloads)
     ]
     # the outer message uses the last message's partition, offset, and timestamp
     last = message_batch[-1]
-    outer_message = Message(last.partition, last.offset, message_batch, last.timestamp)
+
+    outer_message = Message(Value(message_batch, last.committable))
 
     new_batch = MESSAGE_PROCESSOR.process_messages(outer_message=outer_message)
     expected_new_batch = [
         Message(
-            m.partition,
-            m.offset,
-            KafkaPayload(
-                None,
-                json.dumps(__translated_payload(message_payloads[i])).encode("utf-8"),
-                [("metric_type", message_payloads[i]["type"])],
-            ),
-            m.timestamp,
+            BrokerValue(
+                KafkaPayload(
+                    None,
+                    json.dumps(__translated_payload(message_payloads[i])).encode("utf-8"),
+                    [("metric_type", message_payloads[i]["type"])],
+                ),
+                m.value.partition,
+                m.value.offset,
+                m.value.timestamp,
+            )
         )
         for i, m in enumerate(message_batch)
     ]
     compare_message_batches_ignoring_metadata(new_batch, expected_new_batch)
-
-
-def test_transform_step() -> None:
-    config = get_ingest_config(UseCaseKey.RELEASE_HEALTH, IndexerStorage.POSTGRES)
-
-    message_payloads = [counter_payload, distribution_payload, set_payload]
-
-    produce_step = Mock()
-    transform_step = TransformStep(next_step=produce_step, config=config)
-
-    message_batch = [
-        Message(
-            Partition(Topic("topic"), 0),
-            i + 1,
-            KafkaPayload(None, json.dumps(payload).encode("utf-8"), []),
-            datetime.now(),
-        )
-        for i, payload in enumerate(message_payloads)
-    ]
-    expected_new_batch = [
-        Message(
-            m.partition,
-            m.offset,
-            KafkaPayload(
-                None,
-                json.dumps(__translated_payload(message_payloads[i])).encode("utf-8"),
-                [("metric_type", message_payloads[i]["type"])],
-            ),
-            m.timestamp,
-        )
-        for i, m in enumerate(message_batch)
-    ]
-    last = message_batch[-1]
-    outer_message = Message(last.partition, last.offset, message_batch, last.timestamp)
-
-    transform_step.submit(outer_message)
-
-    produce_step_calls = produce_step.submit.call_args_list
-    for i, _ in enumerate(message_batch):
-        compare_messages_ignoring_mapping_metadata(
-            produce_step_calls[i].args[0], expected_new_batch[i]
-        )
 
 
 invalid_payloads = [
@@ -407,21 +381,26 @@ def test_process_messages_invalid_messages(
     )
     message_batch = [
         Message(
-            Partition(Topic("topic"), 0),
-            0,
-            KafkaPayload(None, json.dumps(counter_payload).encode("utf-8"), []),
-            datetime.now(),
+            BrokerValue(
+                KafkaPayload(None, json.dumps(counter_payload).encode("utf-8"), []),
+                Partition(Topic("topic"), 0),
+                0,
+                datetime.now(),
+            )
         ),
         Message(
-            Partition(Topic("topic"), 0),
-            1,
-            KafkaPayload(None, formatted_payload, []),
-            datetime.now(),
+            BrokerValue(
+                KafkaPayload(None, formatted_payload, []),
+                Partition(Topic("topic"), 0),
+                1,
+                datetime.now(),
+            )
         ),
     ]
     # the outer message uses the last message's partition, offset, and timestamp
     last = message_batch[-1]
-    outer_message = Message(last.partition, last.offset, message_batch, last.timestamp)
+
+    outer_message = Message(Value(message_batch, last.committable))
 
     with caplog.at_level(logging.ERROR):
         new_batch = MESSAGE_PROCESSOR.process_messages(outer_message=outer_message)
@@ -430,14 +409,14 @@ def test_process_messages_invalid_messages(
     expected_msg = message_batch[0]
     expected_new_batch = [
         Message(
-            expected_msg.partition,
-            expected_msg.offset,
-            KafkaPayload(
-                None,
-                json.dumps(__translated_payload(counter_payload)).encode("utf-8"),
-                [("metric_type", "c")],
-            ),
-            expected_msg.timestamp,
+            Value(
+                KafkaPayload(
+                    None,
+                    json.dumps(__translated_payload(counter_payload)).encode("utf-8"),
+                    [("metric_type", "c")],
+                ),
+                expected_msg.committable,
+            )
         )
     ]
     compare_message_batches_ignoring_metadata(new_batch, expected_new_batch)
@@ -458,27 +437,33 @@ def test_process_messages_rate_limited(caplog, settings) -> None:
 
     message_batch = [
         Message(
-            Partition(Topic("topic"), 0),
-            0,
-            KafkaPayload(None, json.dumps(counter_payload).encode("utf-8"), []),
-            datetime.now(),
+            BrokerValue(
+                KafkaPayload(None, json.dumps(counter_payload).encode("utf-8"), []),
+                Partition(Topic("topic"), 0),
+                0,
+                datetime.now(),
+            )
         ),
         Message(
-            Partition(Topic("topic"), 0),
-            1,
-            KafkaPayload(None, json.dumps(rate_limited_payload).encode("utf-8"), []),
-            datetime.now(),
+            BrokerValue(
+                KafkaPayload(None, json.dumps(rate_limited_payload).encode("utf-8"), []),
+                Partition(Topic("topic"), 0),
+                1,
+                datetime.now(),
+            )
         ),
         Message(
-            Partition(Topic("topic"), 0),
-            2,
-            KafkaPayload(None, json.dumps(rate_limited_payload2).encode("utf-8"), []),
-            datetime.now(),
+            BrokerValue(
+                KafkaPayload(None, json.dumps(rate_limited_payload2).encode("utf-8"), []),
+                Partition(Topic("topic"), 0),
+                2,
+                datetime.now(),
+            )
         ),
     ]
     # the outer message uses the last message's partition, offset, and timestamp
     last = message_batch[-1]
-    outer_message = Message(last.partition, last.offset, message_batch, last.timestamp)
+    outer_message = Message(Value(message_batch, last.committable))
 
     message_processor = MessageProcessor(
         get_ingest_config(UseCaseKey.RELEASE_HEALTH, IndexerStorage.MOCK)
@@ -494,14 +479,16 @@ def test_process_messages_rate_limited(caplog, settings) -> None:
     expected_msg = message_batch[0]
     expected_new_batch = [
         Message(
-            expected_msg.partition,
-            expected_msg.offset,
-            KafkaPayload(
-                None,
-                json.dumps(__translated_payload(counter_payload)).encode("utf-8"),
-                [("metric_type", "c")],
-            ),
-            expected_msg.timestamp,
+            BrokerValue(
+                KafkaPayload(
+                    None,
+                    json.dumps(__translated_payload(counter_payload)).encode("utf-8"),
+                    [("metric_type", "c")],
+                ),
+                expected_msg.value.partition,
+                expected_msg.value.offset,
+                expected_msg.value.timestamp,
+            )
         )
     ]
     compare_message_batches_ignoring_metadata(new_batch, expected_new_batch)
@@ -540,16 +527,18 @@ def test_process_messages_cardinality_limited(
     message_payloads = [counter_payload, distribution_payload, set_payload]
     message_batch = [
         Message(
-            Partition(Topic("topic"), 0),
-            i + 1,
-            KafkaPayload(None, json.dumps(payload).encode("utf-8"), []),
-            datetime.now(),
+            BrokerValue(
+                KafkaPayload(None, json.dumps(payload).encode("utf-8"), []),
+                Partition(Topic("topic"), 0),
+                i + 1,
+                datetime.now(),
+            )
         )
         for i, payload in enumerate(message_payloads)
     ]
 
     last = message_batch[-1]
-    outer_message = Message(last.partition, last.offset, message_batch, last.timestamp)
+    outer_message = Message(Value(message_batch, last.committable))
 
     with caplog.at_level(logging.ERROR):
         new_batch = MESSAGE_PROCESSOR.process_messages(outer_message=outer_message)

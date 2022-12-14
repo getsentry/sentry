@@ -17,6 +17,8 @@ type Options = {
 };
 
 type Return = {
+  getResourceTypes: () => {label: string; value: string}[];
+  getStatusTypes: () => {label: string; value: string}[];
   items: NetworkSpan[];
   searchTerm: string;
   setSearchTerm: (searchTerm: string) => void;
@@ -56,6 +58,41 @@ function useNetworkFilters({networkSpans}: Options): Return {
     [networkSpans, status, type, searchTerm]
   );
 
+  const getResourceTypes = useCallback(
+    () =>
+      Array.from(
+        new Set(
+          networkSpans
+            .map(networkSpan => networkSpan.op.replace('resource.', ''))
+            .concat(type)
+        )
+      )
+        .sort()
+        .map(value => ({
+          value,
+          label: value,
+        })),
+    [networkSpans, type]
+  );
+
+  const getStatusTypes = useCallback(
+    () =>
+      Array.from(
+        new Set(
+          networkSpans
+            .map(networkSpan => networkSpan.data.statusCode ?? UNKNOWN_STATUS)
+            .concat(status)
+            .map(String)
+        )
+      )
+        .sort()
+        .map(value => ({
+          value,
+          label: value,
+        })),
+    [networkSpans, status]
+  );
+
   const setStatus = useCallback(
     (f_n_status: string[]) => setFilter({f_n_status}),
     [setFilter]
@@ -69,6 +106,8 @@ function useNetworkFilters({networkSpans}: Options): Return {
   );
 
   return {
+    getResourceTypes,
+    getStatusTypes,
     items,
     searchTerm,
     setSearchTerm,

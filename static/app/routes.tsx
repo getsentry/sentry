@@ -26,7 +26,6 @@ import OrganizationDetails from 'sentry/views/organizationDetails';
 import {Tab, TabPaths} from 'sentry/views/organizationGroupDetails/types';
 import OrganizationRoot from 'sentry/views/organizationRoot';
 import ProjectEventRedirect from 'sentry/views/projectEventRedirect';
-import redirectDeprecatedProjectRoute from 'sentry/views/projects/redirectDeprecatedProjectRoute';
 import RouteNotFound from 'sentry/views/routeNotFound';
 import SettingsWrapper from 'sentry/views/settings/components/settingsWrapper';
 
@@ -153,6 +152,10 @@ function buildRoutes() {
   const rootRoutes = (
     <Fragment>
       <IndexRoute component={make(() => import('sentry/views/app/root'))} />
+      <Route
+        path="/accept/:orgId/:memberId/:token/"
+        component={make(() => import('sentry/views/acceptOrganizationInvite'))}
+      />
       <Route
         path="/accept/:memberId/:token/"
         component={make(() => import('sentry/views/acceptOrganizationInvite'))}
@@ -526,7 +529,6 @@ function buildRoutes() {
           component={make(() => import('sentry/views/settings/project/dynamicSampling'))}
         />
       </Route>
-      <Redirect from="server-side-sampling/" to="dynamic-sampling/" />
       <Route
         path="issue-grouping/"
         name={t('Issue Grouping')}
@@ -1152,83 +1154,130 @@ function buildRoutes() {
     </Fragment>
   );
 
-  const alertRoutes = (
-    <Route
-      path="/organizations/:orgId/alerts/"
-      component={make(() => import('sentry/views/alerts'))}
-    >
-      <IndexRoute component={make(() => import('sentry/views/alerts/list/incidents'))} />
-      <Route path="rules/">
-        <IndexRoute component={make(() => import('sentry/views/alerts/list/rules'))} />
-        <Route
-          path="details/:ruleId/"
-          component={make(() => import('sentry/views/alerts/rules/metric/details'))}
+  const alertChildRoutes = ({forCustomerDomain}: {forCustomerDomain: boolean}) => {
+    return (
+      <Fragment>
+        <IndexRoute
+          component={make(() => import('sentry/views/alerts/list/incidents'))}
         />
-        <Route
-          path=":projectId/"
-          component={make(() => import('sentry/views/alerts/builder/projectProvider'))}
-        >
-          <IndexRedirect to="/organizations/:orgId/alerts/rules/" />
+        <Route path="rules/">
+          <IndexRoute component={make(() => import('sentry/views/alerts/list/rules'))} />
           <Route
-            path=":ruleId/"
-            component={make(() => import('sentry/views/alerts/edit'))}
+            path="details/:ruleId/"
+            component={make(() => import('sentry/views/alerts/rules/metric/details'))}
           />
-        </Route>
-        <Route
-          path=":projectId/:ruleId/details/"
-          component={make(() => import('sentry/views/alerts/rules/issue/details'))}
-        >
-          <IndexRoute
-            component={make(
-              () => import('sentry/views/alerts/rules/issue/details/ruleDetails')
-            )}
-          />
-        </Route>
-      </Route>
-      <Route path="metric-rules/">
-        <IndexRedirect to="/organizations/:orgId/alerts/rules/" />
-        <Route
-          path=":projectId/"
-          component={make(() => import('sentry/views/alerts/builder/projectProvider'))}
-        >
-          <IndexRedirect to="/organizations/:orgId/alerts/rules/" />
           <Route
-            path=":ruleId/"
-            component={make(() => import('sentry/views/alerts/edit'))}
-          />
+            path=":projectId/"
+            component={make(() => import('sentry/views/alerts/builder/projectProvider'))}
+          >
+            <IndexRedirect
+              to={
+                forCustomerDomain
+                  ? '/alerts/rules/'
+                  : '/organizations/:orgId/alerts/rules/'
+              }
+            />
+            <Route
+              path=":ruleId/"
+              component={make(() => import('sentry/views/alerts/edit'))}
+            />
+          </Route>
+          <Route
+            path=":projectId/:ruleId/details/"
+            component={make(() => import('sentry/views/alerts/rules/issue/details'))}
+          >
+            <IndexRoute
+              component={make(
+                () => import('sentry/views/alerts/rules/issue/details/ruleDetails')
+              )}
+            />
+          </Route>
         </Route>
-      </Route>
-      <Route
-        path="wizard/"
-        component={make(() => import('sentry/views/alerts/builder/projectProvider'))}
-      >
-        <IndexRoute component={make(() => import('sentry/views/alerts/wizard'))} />
-      </Route>
-      <Route
-        path="new/"
-        component={make(() => import('sentry/views/alerts/builder/projectProvider'))}
-      >
-        <IndexRedirect to="/organizations/:orgId/alerts/wizard/" />
-        <Route
-          path=":alertType/"
-          component={make(() => import('sentry/views/alerts/create'))}
-        />
-      </Route>
-      <Route
-        path=":alertId/"
-        component={make(() => import('sentry/views/alerts/incidentRedirect'))}
-      />
-      <Route
-        path=":projectId/"
-        component={make(() => import('sentry/views/alerts/builder/projectProvider'))}
-      >
-        <Route path="new/" component={make(() => import('sentry/views/alerts/create'))} />
+        <Route path="metric-rules/">
+          <IndexRedirect
+            to={
+              forCustomerDomain ? '/alerts/rules/' : '/organizations/:orgId/alerts/rules/'
+            }
+          />
+          <Route
+            path=":projectId/"
+            component={make(() => import('sentry/views/alerts/builder/projectProvider'))}
+          >
+            <IndexRedirect
+              to={
+                forCustomerDomain
+                  ? '/alerts/rules/'
+                  : '/organizations/:orgId/alerts/rules/'
+              }
+            />
+            <Route
+              path=":ruleId/"
+              component={make(() => import('sentry/views/alerts/edit'))}
+            />
+          </Route>
+        </Route>
         <Route
           path="wizard/"
-          component={make(() => import('sentry/views/alerts/wizard'))}
+          component={make(() => import('sentry/views/alerts/builder/projectProvider'))}
+        >
+          <IndexRoute component={make(() => import('sentry/views/alerts/wizard'))} />
+        </Route>
+        <Route
+          path="new/"
+          component={make(() => import('sentry/views/alerts/builder/projectProvider'))}
+        >
+          <IndexRedirect
+            to={
+              forCustomerDomain
+                ? '/alerts/wizard/'
+                : '/organizations/:orgId/alerts/wizard/'
+            }
+          />
+          <Route
+            path=":alertType/"
+            component={make(() => import('sentry/views/alerts/create'))}
+          />
+        </Route>
+        <Route
+          path=":alertId/"
+          component={make(() => import('sentry/views/alerts/incidentRedirect'))}
         />
+        <Route
+          path=":projectId/"
+          component={make(() => import('sentry/views/alerts/builder/projectProvider'))}
+        >
+          <Route
+            path="new/"
+            component={make(() => import('sentry/views/alerts/create'))}
+          />
+          <Route
+            path="wizard/"
+            component={make(() => import('sentry/views/alerts/wizard'))}
+          />
+        </Route>
+      </Fragment>
+    );
+  };
+
+  const alertRoutes = (
+    <Fragment>
+      {usingCustomerDomain ? (
+        <Route
+          path="/alerts/"
+          component={withDomainRequired(make(() => import('sentry/views/alerts')))}
+          key="orgless-alerts-route"
+        >
+          {alertChildRoutes({forCustomerDomain: true})}
+        </Route>
+      ) : null}
+      <Route
+        path="/organizations/:orgId/alerts/"
+        component={withDomainRedirect(make(() => import('sentry/views/alerts')))}
+        key="org-alerts"
+      >
+        {alertChildRoutes({forCustomerDomain: false})}
       </Route>
-    </Route>
+    </Fragment>
   );
 
   const monitorsChildRoutes = ({forCustomerDomain}: {forCustomerDomain: boolean}) => {
@@ -1543,6 +1592,13 @@ function buildRoutes() {
           component={make(
             () =>
               import('sentry/views/performance/transactionSummary/transactionAnomalies')
+          )}
+        />
+        <Route
+          path="profiles/"
+          component={make(
+            () =>
+              import('sentry/views/performance/transactionSummary/transactionProfiles')
           )}
         />
         <Route path="spans/">
@@ -1929,7 +1985,7 @@ function buildRoutes() {
     <Fragment>
       {usingCustomerDomain ? (
         <Route
-          path="/:projectId/getting-started/"
+          path="/getting-started/:projectId/"
           component={withDomainRequired(
             make(() => import('sentry/views/projectInstall/gettingStarted'))
           )}
@@ -1941,101 +1997,22 @@ function buildRoutes() {
       <Route
         path="/:orgId/:projectId/getting-started/"
         component={withDomainRedirect(
-          make(() => import('sentry/views/projectInstall/gettingStarted'))
+          make(() => import('sentry/views/projectInstall/gettingStarted')),
+          {
+            redirect: [
+              {
+                // If /:orgId/:projectId/getting-started/* is encountered, then redirect to /getting-started/:projectId/*
+                from: '/:orgId/:projectId/getting-started/',
+                to: '/getting-started/:projectId/',
+              },
+            ],
+          }
         )}
         key="org-getting-started"
       >
         {gettingStartedChildRoutes}
       </Route>
     </Fragment>
-  );
-
-  // Support for deprecated URLs (pre-Sentry 10). We just redirect users to new
-  // canonical URLs.
-  //
-  // XXX(epurkhiser): Can these be moved over to the legacyOrgRedirects routes,
-  // or do these need to be nested into the OrganizationDetails tree?
-  const legacyOrgRedirects = (
-    <Route path="/:orgId/:projectId/">
-      <IndexRoute
-        component={errorHandler(
-          redirectDeprecatedProjectRoute(
-            ({orgId, projectId}) => `/organizations/${orgId}/issues/?project=${projectId}`
-          )
-        )}
-      />
-      <Route
-        path="issues/"
-        component={errorHandler(
-          redirectDeprecatedProjectRoute(
-            ({orgId, projectId}) => `/organizations/${orgId}/issues/?project=${projectId}`
-          )
-        )}
-      />
-      <Route
-        path="dashboard/"
-        component={errorHandler(
-          redirectDeprecatedProjectRoute(
-            ({orgId, projectId}) =>
-              `/organizations/${orgId}/dashboards/?project=${projectId}`
-          )
-        )}
-      />
-      <Route
-        path="user-feedback/"
-        component={errorHandler(
-          redirectDeprecatedProjectRoute(
-            ({orgId, projectId}) =>
-              `/organizations/${orgId}/user-feedback/?project=${projectId}`
-          )
-        )}
-      />
-      <Route
-        path="releases/"
-        component={errorHandler(
-          redirectDeprecatedProjectRoute(
-            ({orgId, projectId}) =>
-              `/organizations/${orgId}/releases/?project=${projectId}`
-          )
-        )}
-      />
-      <Route
-        path="releases/:version/"
-        component={errorHandler(
-          redirectDeprecatedProjectRoute(
-            ({orgId, projectId, router}) =>
-              `/organizations/${orgId}/releases/${router.params.version}/?project=${projectId}`
-          )
-        )}
-      />
-      <Route
-        path="releases/:version/new-events/"
-        component={errorHandler(
-          redirectDeprecatedProjectRoute(
-            ({orgId, projectId, router}) =>
-              `/organizations/${orgId}/releases/${router.params.version}/new-events/?project=${projectId}`
-          )
-        )}
-      />
-      <Route
-        path="releases/:version/all-events/"
-        component={errorHandler(
-          redirectDeprecatedProjectRoute(
-            ({orgId, projectId, router}) =>
-              `/organizations/${orgId}/releases/${router.params.version}/all-events/?project=${projectId}`
-          )
-        )}
-      />
-      <Route
-        path="releases/:version/commits/"
-        component={errorHandler(
-          redirectDeprecatedProjectRoute(
-            ({orgId, projectId, router}) =>
-              `/organizations/${orgId}/releases/${router.params.version}/commits/?project=${projectId}`
-          )
-        )}
-      />
-    </Route>
   );
 
   const profilingChildRoutes = (
@@ -2046,7 +2023,7 @@ function buildRoutes() {
         component={make(() => import('sentry/views/profiling/profileSummary'))}
       />
       <Route
-        path="profile/:projectId/:eventId"
+        path="profile/:projectId/:eventId/"
         component={make(() => import('sentry/views/profiling/profileGroupProvider'))}
       >
         <Route
@@ -2102,7 +2079,6 @@ function buildRoutes() {
       {adminManageRoutes}
       {gettingStartedRoutes}
       {legacyOrganizationRootRoutes}
-      {legacyOrgRedirects}
     </Route>
   );
 

@@ -10,6 +10,7 @@ import {
 } from 'react-virtualized';
 import styled from '@emotion/styled';
 import clone from 'lodash/clone';
+import {withProfiler} from '@sentry/react';
 import differenceWith from 'lodash/differenceWith';
 import isEqual from 'lodash/isEqual';
 import throttle from 'lodash/throttle';
@@ -23,7 +24,7 @@ import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAna
 
 import {DragManagerChildrenProps} from './dragManager';
 import {ScrollbarManagerChildrenProps, withScrollbarManager} from './scrollbarManager';
-import SpanBar from './spanBar';
+import {ProfiledSpanBar} from './spanBar';
 import * as SpanContext from './spanContext';
 import {SpanDescendantGroupBar} from './spanDescendantGroupBar';
 import SpanSiblingGroupBar from './spanSiblingGroupBar';
@@ -632,7 +633,7 @@ class SpanTree extends Component<PropType> {
     switch (node.type) {
       case SpanTreeNodeType.SPAN:
         return (
-          <SpanBar
+          <ProfiledSpanBar
             key={getSpanID(node.props.span, `span-${node.props.spanNumber}`)}
             {...node.props}
             {...extraProps}
@@ -854,7 +855,7 @@ function SpanRow(props: SpanRowProps) {
     switch (node.type) {
       case SpanTreeNodeType.SPAN:
         return (
-          <SpanBar
+          <ProfiledSpanBar
             key={getSpanID(node.props.span, `span-${node.props.spanNumber}`)}
             {...node.props}
             {...extraProps}
@@ -947,4 +948,4 @@ function hasAllSpans(trace: ParsedTraceType): boolean {
   return missingDuration < 0.1;
 }
 
-export default withScrollbarManager(SpanTree);
+export default withProfiler(withScrollbarManager(SpanTree));

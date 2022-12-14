@@ -3,9 +3,11 @@ import isPropValid from '@emotion/is-prop-valid';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import Tooltip from 'sentry/components/tooltip';
+import HookStore from 'sentry/stores/hookStore';
 import space from 'sentry/styles/space';
 import mergeRefs from 'sentry/utils/mergeRefs';
 import {Theme} from 'sentry/utils/theme';
@@ -30,6 +32,19 @@ interface BaseButtonProps
    * Positions the text within the button.
    */
   align?: 'center' | 'left' | 'right';
+  /**
+   * Used when you want to overwrite the default Reload event key for analytics
+   */
+  analyticsEventKey?: string;
+  /**
+   * Used when you want to send an Amplitude Event. By default, Amplitude events are not sent so
+   * you must pass in a eventName to send an Amplitude event.
+   */
+  analyticsEventName?: string;
+  /**
+   * Adds extra parameters to the analytics tracking
+   */
+  analyticsParams?: Record<string, any>;
   /**
    * Used by ButtonBar to determine active status.
    */
@@ -149,9 +164,28 @@ function BaseButton({
   disabled = false,
   tooltipProps,
   onClick,
+  analyticsEventName,
+  analyticsEventKey,
+  analyticsParams,
   ...buttonProps
 }: ButtonProps) {
-  // Intercept onClick and propagate
+  // Fallbacking aria-label to string children is not necessary as screen readers natively understand that scenario.
+  // Leaving it here for a bunch of our tests that query by aria-label.
+  const screenReaderLabel =
+    ariaLabel || (typeof children === 'string' ? children : undefined);
+
+  const useButtonTracking = HookStore.get('react-hook:use-button-tracking')[0];
+  const buttonTracking = useButtonTracking?.({
+    analyticsEventName,
+    analyticsEventKey,
+    analyticsParams: {
+      priority,
+      href,
+      ...analyticsParams,
+    },
+    'aria-label': screenReaderLabel || '',
+  });
+
   const handleClick = useCallback(
     (e: React.MouseEvent) => {
       // Don't allow clicks when disabled or busy
@@ -161,23 +195,20 @@ function BaseButton({
         return;
       }
 
+      buttonTracking?.();
+
       if (typeof onClick !== 'function') {
         return;
       }
 
       onClick(e);
     },
-    [onClick, busy, disabled]
+    [disabled, busy, onClick, buttonTracking]
   );
 
   function getUrl<T extends Url>(prop: T): T | undefined {
     return disabled ? undefined : prop;
   }
-
-  // Fallbacking aria-label to string children is not necessary as screen readers natively understand that scenario.
-  // Leaving it here for a bunch of our tests that query by aria-label.
-  const screenReaderLabel =
-    ariaLabel || (typeof children === 'string' ? children : undefined);
 
   const hasChildren = Array.isArray(children)
     ? children.some(child => !!child)
@@ -201,6 +232,11 @@ function BaseButton({
       onClick={handleClick}
       role="button"
     >
+      {priority !== 'link' && (
+        <InteractionStateLayer
+          higherOpacity={priority && ['primary', 'danger'].includes(priority)}
+        />
+      )}
       <ButtonLabel align={align} size={size} borderless={borderless}>
         {icon && (
           <Icon size={size} hasChildren={hasChildren}>
@@ -268,16 +304,8 @@ const getColors = ({
   theme,
 }: StyledButtonProps) => {
   const themeName = disabled ? 'disabled' : priority || 'default';
-  const {
-    color,
-    colorActive,
-    background,
-    backgroundActive,
-    border,
-    borderActive,
-    focusBorder,
-    focusShadow,
-  } = theme.button[themeName];
+  const {color, colorActive, background, border, borderActive, focusBorder, focusShadow} =
+    theme.button[themeName];
 
   const getFocusState = () => {
     switch (priority) {
@@ -329,7 +357,6 @@ const getColors = ({
       &:active,
       &[aria-expanded="true"] {
         color: ${colorActive || color};
-        background: ${backgroundActive};
         border-color: ${borderless || priority === 'link' ? 'transparent' : borderActive};
       }
 
@@ -368,6 +395,7 @@ const getSizeStyles = ({size = 'md', translucentBorder, theme}: StyledButtonProp
 
 export const getButtonStyles = ({theme, ...props}: StyledButtonProps) => {
   return css`
+    position: relative;
     display: inline-block;
     border-radius: ${theme.borderRadius};
     text-transform: none;

@@ -1,3 +1,4 @@
+import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {
@@ -92,9 +93,15 @@ describe('TeamMembers', function () {
   });
 
   it('can invite member from team dropdown with access', async function () {
-    const org = TestStubs.Organization({access: ['team:admin'], openMembership: false});
+    const {organization: org, routerContext} = initializeOrg({
+      organization: TestStubs.Organization({
+        access: ['team:admin'],
+        openMembership: false,
+      }),
+    });
     render(
-      <TeamMembers params={{orgId: org.slug, teamId: team.slug}} organization={org} />
+      <TeamMembers params={{orgId: org.slug, teamId: team.slug}} organization={org} />,
+      {context: routerContext}
     );
 
     userEvent.click((await screen.findAllByRole('button', {name: 'Add Member'}))[0]);
@@ -104,9 +111,15 @@ describe('TeamMembers', function () {
   });
 
   it('can invite member from team dropdown with access and `Open Membership` enabled', async function () {
-    const org = TestStubs.Organization({access: ['team:admin'], openMembership: true});
+    const {organization: org, routerContext} = initializeOrg({
+      organization: TestStubs.Organization({
+        access: ['team:admin'],
+        openMembership: true,
+      }),
+    });
     render(
-      <TeamMembers params={{orgId: org.slug, teamId: team.slug}} organization={org} />
+      <TeamMembers params={{orgId: org.slug, teamId: team.slug}} organization={org} />,
+      {context: routerContext}
     );
 
     userEvent.click((await screen.findAllByRole('button', {name: 'Add Member'}))[0]);
@@ -116,9 +129,12 @@ describe('TeamMembers', function () {
   });
 
   it('can invite member from team dropdown without access and `Open Membership` enabled', async function () {
-    const org = TestStubs.Organization({access: [], openMembership: true});
+    const {organization: org, routerContext} = initializeOrg({
+      organization: TestStubs.Organization({access: [], openMembership: true}),
+    });
     render(
-      <TeamMembers params={{orgId: org.slug, teamId: team.slug}} organization={org} />
+      <TeamMembers params={{orgId: org.slug, teamId: team.slug}} organization={org} />,
+      {context: routerContext}
     );
 
     userEvent.click((await screen.findAllByRole('button', {name: 'Add Member'}))[0]);
@@ -128,9 +144,12 @@ describe('TeamMembers', function () {
   });
 
   it('can invite member from team dropdown without access and `Open Membership` disabled', async function () {
-    const org = TestStubs.Organization({access: [], openMembership: false});
+    const {organization: org, routerContext} = initializeOrg({
+      organization: TestStubs.Organization({access: [], openMembership: false}),
+    });
     render(
-      <TeamMembers params={{orgId: org.slug, teamId: team.slug}} organization={org} />
+      <TeamMembers params={{orgId: org.slug, teamId: team.slug}} organization={org} />,
+      {context: routerContext}
     );
 
     userEvent.click((await screen.findAllByRole('button', {name: 'Add Member'}))[0]);

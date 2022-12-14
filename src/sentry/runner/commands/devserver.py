@@ -11,6 +11,21 @@ import click
 from sentry.runner.commands.devservices import get_docker_client
 from sentry.runner.decorators import configuration, log_options
 
+_DEV_METRICS_INDEXER_ARGS = [
+    # We don't want to burn laptop CPU while idle, but do want for
+    # metrics to be ingested with lowest latency possible.
+    "--max-batch-time-ms",
+    "10000",
+    "--max-batch-size",
+    "1",
+    # We don't really need more than 1 process.
+    "--processes",
+    "1",
+    # Avoid Offset out of range errors.
+    "--auto-offset-reset",
+    "latest",
+]
+
 _DEFAULT_DAEMONS = {
     "worker": ["sentry", "run", "worker", "-c", "1", "--autoreload"],
     "cron": ["sentry", "run", "cron", "--autoreload"],
@@ -35,6 +50,7 @@ _DEFAULT_DAEMONS = {
         "--synchronize-commit-group=transactions_group",
     ],
     "ingest": ["sentry", "run", "ingest-consumer", "--all-consumer-types"],
+    "occurrences": ["sentry", "run", "occurrences-ingest-consumer"],
     "region_to_control": ["sentry", "run", "region-to-control-consumer", "--region-name", "_local"],
     "server": ["sentry", "run", "web"],
     "storybook": ["yarn", "storybook"],
@@ -50,16 +66,18 @@ _DEFAULT_DAEMONS = {
     "metrics-rh": [
         "sentry",
         "run",
-        "ingest-metrics-consumer-2",
+        "ingest-metrics-parallel-consumer",
         "--ingest-profile",
         "release-health",
+        *_DEV_METRICS_INDEXER_ARGS,
     ],
     "metrics-perf": [
         "sentry",
         "run",
-        "ingest-metrics-consumer-2",
+        "ingest-metrics-parallel-consumer",
         "--ingest-profile",
         "performance",
+        *_DEV_METRICS_INDEXER_ARGS,
     ],
     "metrics-billing": ["sentry", "run", "billing-metrics-consumer"],
     "profiles": ["sentry", "run", "ingest-profiles"],
@@ -90,6 +108,11 @@ def _get_daemon(name: str, *args: str, **kwargs: str) -> tuple[str, list[str]]:
 )
 @click.option("--workers/--no-workers", default=False, help="Run asynchronous workers.")
 @click.option("--ingest/--no-ingest", default=False, help="Run ingest services (including Relay).")
+@click.option(
+    "--occurrence-ingest/--no-occurrence-ingest",
+    default=False,
+    help="Run ingest services for occurrences.",
+)
 @click.option(
     "--prefix/--no-prefix", default=True, help="Show the service name prefix and timestamp"
 )
@@ -123,6 +146,7 @@ def devserver(
     watchers: bool,
     workers: bool,
     ingest: bool,
+    occurrence_ingest: bool,
     experimental_spa: bool,
     styleguide: bool,
     prefix: bool,
@@ -294,6 +318,9 @@ and run `sentry devservices up kafka zookeeper`.
 
         if settings.SENTRY_USE_PROFILING:
             daemons += [_get_daemon("profiles")]
+
+    if occurrence_ingest:
+        daemons += [_get_daemon("occurrences")]
 
     if needs_https and has_https:
         https_port = str(parsed_url.port)

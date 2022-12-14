@@ -1,4 +1,5 @@
 import {
+  canUseMetricsData,
   MetricsEnhancedSettingContext,
   useMEPSettingContext,
 } from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
@@ -35,21 +36,27 @@ function getAllowedChartsSmall(
 
 export function BackendView(props: BasePerformanceViewProps) {
   const mepSetting = useMEPSettingContext();
+  const showSpanOperationsWidget =
+    props.organization.features.includes('performance-new-widget-designs') &&
+    canUseMetricsData(props.organization);
+
+  const doubleChartRowCharts = [
+    PerformanceWidgetSetting.SLOW_HTTP_OPS,
+    PerformanceWidgetSetting.SLOW_DB_OPS,
+    PerformanceWidgetSetting.MOST_IMPROVED,
+    PerformanceWidgetSetting.MOST_REGRESSED,
+  ];
+
+  if (showSpanOperationsWidget) {
+    doubleChartRowCharts.unshift(PerformanceWidgetSetting.SPAN_OPERATIONS);
+  }
   return (
     <PerformanceDisplayProvider value={{performanceType: PROJECT_PERFORMANCE_TYPE.ANY}}>
       <div>
+        <DoubleChartRow {...props} allowedCharts={doubleChartRowCharts} />
         <TripleChartRow
           {...props}
           allowedCharts={getAllowedChartsSmall(props, mepSetting)}
-        />
-        <DoubleChartRow
-          {...props}
-          allowedCharts={[
-            PerformanceWidgetSetting.SLOW_HTTP_OPS,
-            PerformanceWidgetSetting.SLOW_DB_OPS,
-            PerformanceWidgetSetting.MOST_IMPROVED,
-            PerformanceWidgetSetting.MOST_REGRESSED,
-          ]}
         />
         <Table
           {...props}

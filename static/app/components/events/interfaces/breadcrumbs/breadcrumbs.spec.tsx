@@ -1,12 +1,19 @@
-import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import selectEvent from 'react-select-event';
+
+import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import Breadcrumbs from 'sentry/components/events/interfaces/breadcrumbs';
 import {BreadcrumbLevelType, BreadcrumbType} from 'sentry/types/breadcrumbs';
+import {
+  useHaveSelectedProjectsSentAnyReplayEvents,
+  useReplayOnboardingSidebarPanel,
+} from 'sentry/utils/replays/hooks/useReplayOnboarding';
 import ReplayReader from 'sentry/utils/replays/replayReader';
 
 const mockReplay = ReplayReader.factory(TestStubs.ReplayReaderParams());
+
+jest.mock('sentry/utils/replays/hooks/useReplayOnboarding');
 
 jest.mock('screenfull', () => ({
   enabled: true,
@@ -31,12 +38,24 @@ jest.mock('sentry/utils/replays/hooks/useReplayData', () => {
 
 describe('Breadcrumbs', () => {
   let props: React.ComponentProps<typeof Breadcrumbs>;
-  const {router} = initializeOrg();
+
+  const MockUseReplayOnboardingSidebarPanel =
+    useReplayOnboardingSidebarPanel as jest.MockedFunction<
+      typeof useReplayOnboardingSidebarPanel
+    >;
+
+  const MockUseHaveSelectedProjectsSentAnyReplayEvents =
+    useHaveSelectedProjectsSentAnyReplayEvents as jest.MockedFunction<
+      typeof useHaveSelectedProjectsSentAnyReplayEvents
+    >;
 
   beforeEach(() => {
+    MockUseHaveSelectedProjectsSentAnyReplayEvents.mockReturnValue(false);
+    MockUseReplayOnboardingSidebarPanel.mockReturnValue({
+      hasSentOneReplay: false,
+      activateSidebar: jest.fn(),
+    });
     props = {
-      route: {},
-      router,
       organization: TestStubs.Organization(),
       projectSlug: 'project-slug',
       isShare: false,
@@ -178,14 +197,22 @@ describe('Breadcrumbs', () => {
 
       expect(screen.getByTestId('last-crumb')).toBeInTheDocument();
     });
+  });
 
-    it('should render a replay when there is a replayId', async function () {
-      render(
+  describe('replay', () => {
+    it('should render the replay inline onboarding component when replays are enabled and the project supports replay', async function () {
+      MockUseHaveSelectedProjectsSentAnyReplayEvents.mockReturnValue(false);
+      MockUseReplayOnboardingSidebarPanel.mockReturnValue({
+        hasSentOneReplay: false,
+        activateSidebar: jest.fn(),
+      });
+      const {container} = render(
         <Breadcrumbs
           {...props}
           event={TestStubs.Event({
             entries: [],
-            tags: [{key: 'replayId', value: '761104e184c64d439ee1014b72b4d83b'}],
+            tags: [],
+            platform: 'javascript',
           })}
           organization={TestStubs.Organization({
             features: ['session-replay-ui'],
@@ -193,10 +220,106 @@ describe('Breadcrumbs', () => {
         />
       );
 
-      await waitFor(() => {
-        expect(screen.getByText('Replays')).toBeVisible();
-        expect(screen.getByTestId('player-container')).toBeInTheDocument();
+      expect(await screen.findByText('Configure Session Replay')).toBeInTheDocument();
+      expect(container).toSnapshot();
+    });
+
+    it('should not render the replay inline onboarding component when the project is not JS', async function () {
+      MockUseHaveSelectedProjectsSentAnyReplayEvents.mockReturnValue(false);
+      MockUseReplayOnboardingSidebarPanel.mockReturnValue({
+        hasSentOneReplay: false,
+        activateSidebar: jest.fn(),
       });
+      const {container} = render(
+        <Breadcrumbs
+          {...props}
+          event={TestStubs.Event({
+            entries: [],
+            tags: [],
+          })}
+          organization={TestStubs.Organization({
+            features: ['session-replay-ui'],
+          })}
+        />
+      );
+
+      expect(
+        await screen.queryByText('Configure Session Replay')
+      ).not.toBeInTheDocument();
+      expect(await screen.queryByTestId('player-container')).not.toBeInTheDocument();
+      expect(container).toSnapshot();
+    });
+
+    it('should render a replay when there is a replayId', async function () {
+      MockUseHaveSelectedProjectsSentAnyReplayEvents.mockReturnValue(true);
+      MockUseReplayOnboardingSidebarPanel.mockReturnValue({
+        hasSentOneReplay: true,
+        activateSidebar: jest.fn(),
+      });
+      const {container} = render(
+        <Breadcrumbs
+          {...props}
+          event={TestStubs.Event({
+            entries: [],
+            tags: [{key: 'replayId', value: '761104e184c64d439ee1014b72b4d83b'}],
+            platform: 'javascript',
+          })}
+          organization={TestStubs.Organization({
+            features: ['session-replay-ui'],
+          })}
+        />
+      );
+
+      expect(await screen.findByTestId('player-container')).toBeInTheDocument();
+      expect(container).toSnapshot();
+    });
+
+    it('can change the sort', async function () {
+      render(
+        <Breadcrumbs
+          {...props}
+          data={{
+            values: [
+              {
+                message: 'sup',
+                category: 'default',
+                level: BreadcrumbLevelType.WARNING,
+                type: BreadcrumbType.INFO,
+              },
+              {
+                message: 'hey',
+                category: 'error',
+                level: BreadcrumbLevelType.INFO,
+                type: BreadcrumbType.INFO,
+              },
+              {
+                message: 'hello',
+                category: 'default',
+                level: BreadcrumbLevelType.WARNING,
+                type: BreadcrumbType.INFO,
+              },
+            ],
+          }}
+        />
+      );
+
+      const breadcrumbsBefore = screen.getAllByTestId(/crumb/i);
+      expect(breadcrumbsBefore).toHaveLength(4); // Virtual exception crumb added to 3 in props
+
+      // Should be sorted newest -> oldest by default
+      expect(within(breadcrumbsBefore[0]).getByText(/exception/i)).toBeInTheDocument();
+      expect(within(breadcrumbsBefore[1]).getByText('hello')).toBeInTheDocument();
+      expect(within(breadcrumbsBefore[2]).getByText('hey')).toBeInTheDocument();
+      expect(within(breadcrumbsBefore[3]).getByText('sup')).toBeInTheDocument();
+
+      await selectEvent.select(screen.getByText(/newest/i), /oldest/i);
+
+      // Now should be sorted oldest -> newest
+      const breadcrumbsAfter = screen.getAllByTestId(/crumb/i);
+      expect(within(breadcrumbsAfter[0]).getByText('sup')).toBeInTheDocument();
+      expect(within(breadcrumbsAfter[1]).getByText('hey')).toBeInTheDocument();
+      expect(within(breadcrumbsAfter[2]).getByText('hello')).toBeInTheDocument();
+      expect(within(breadcrumbsAfter[3]).getByText(/exception/i)).toBeInTheDocument();
     });
   });
 });

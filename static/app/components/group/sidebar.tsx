@@ -1,7 +1,7 @@
 import {Component, Fragment} from 'react';
-// eslint-disable-next-line no-restricted-imports
-import {withRouter, WithRouterProps} from 'react-router';
+import {WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
+import MD5 from 'crypto-js/md5';
 import isEqual from 'lodash/isEqual';
 import isObject from 'lodash/isObject';
 import keyBy from 'lodash/keyBy';
@@ -41,6 +41,8 @@ import {getUtcDateString} from 'sentry/utils/dates';
 import {userDisplayName} from 'sentry/utils/formatters';
 import {isMobilePlatform} from 'sentry/utils/platform';
 import withApi from 'sentry/utils/withApi';
+// eslint-disable-next-line no-restricted-imports
+import withSentryRouter from 'sentry/utils/withSentryRouter';
 
 import FeatureBadge from '../featureBadge';
 
@@ -242,6 +244,12 @@ class BaseGroupSidebar extends Component<Props, State> {
     const projectId = project.slug;
     const hasIssueActionsV2 = organization.features.includes('issue-actions-v2');
 
+    // Evenly split style between distributions and bars for AB testing
+    const tagFacetsStyle =
+      parseInt(MD5(organization.id).toString().substring(0, 6), 36) % 2 === 0
+        ? 'distributions'
+        : 'bars';
+
     return (
       <Container>
         {!hasIssueActionsV2 && (
@@ -250,10 +258,8 @@ class BaseGroupSidebar extends Component<Props, State> {
           </PageFiltersContainer>
         )}
 
-        <Feature organization={organization} features={['issue-details-owners']}>
-          <OwnedBy group={group} project={project} organization={organization} />
-          <AssignedTo group={group} projectId={project.id} onAssign={this.trackAssign} />
-        </Feature>
+        <OwnedBy group={group} project={project} organization={organization} />
+        <AssignedTo group={group} projectId={project.id} onAssign={this.trackAssign} />
 
         {event && <SuggestedOwners project={project} group={group} event={event} />}
 
@@ -261,22 +267,23 @@ class BaseGroupSidebar extends Component<Props, State> {
           organization={organization}
           features={['issue-details-tag-improvements']}
         >
-          {isMobilePlatform(project.platform) && project.platform === 'react-native' && (
-            <TagFacets
-              environments={environments}
-              groupId={group.id}
-              tagKeys={MOBILE_TAGS}
-              event={event}
-              title={
-                <div>
-                  {t('Tag Summary')} <FeatureBadge type="beta" />
-                </div>
-              }
-              tagFormatter={MOBILE_TAGS_FORMATTER}
-              style="bars"
-              project={project}
-            />
-          )}
+          {isMobilePlatform(project.platform) &&
+            (project.platform === 'react-native' || organization.id === '1') && (
+              <TagFacets
+                environments={environments}
+                groupId={group.id}
+                tagKeys={MOBILE_TAGS}
+                event={event}
+                title={
+                  <div>
+                    {t('Most Impacted Tags')} <FeatureBadge type="beta" />
+                  </div>
+                }
+                tagFormatter={MOBILE_TAGS_FORMATTER}
+                style={tagFacetsStyle}
+                project={project}
+              />
+            )}
         </Feature>
 
         <GroupReleaseStats
@@ -302,7 +309,8 @@ class BaseGroupSidebar extends Component<Props, State> {
 
         {(!organization.features.includes('issue-details-tag-improvements') ||
           !(
-            isMobilePlatform(project.platform) && project.platform === 'react-native'
+            isMobilePlatform(project.platform) &&
+            (project.platform === 'react-native' || organization.id === '1')
           )) && (
           <SidebarSection.Wrap>
             <SidebarSection.Title>{t('Tag Summary')}</SidebarSection.Title>
@@ -395,6 +403,6 @@ const StyledSidebarSectionTitle = styled(SidebarSection.Title)`
   gap: ${space(1)};
 `;
 
-const GroupSidebar = withApi(withRouter(BaseGroupSidebar));
+const GroupSidebar = withApi(withSentryRouter(BaseGroupSidebar));
 
 export default GroupSidebar;

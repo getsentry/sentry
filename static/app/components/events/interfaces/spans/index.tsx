@@ -1,6 +1,5 @@
 import {Fragment, useMemo} from 'react';
 // eslint-disable-next-line no-restricted-imports
-import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import {Observer} from 'mobx-react';
 
@@ -29,7 +28,7 @@ type Props = {
   event: EventTransaction;
   organization: Organization;
   affectedSpanIds?: string[];
-} & WithRouterProps;
+};
 
 function TraceErrorAlerts({
   isLoading,
@@ -174,4 +173,4 @@ const ErrorLabel = styled('div')`
   margin-bottom: ${space(1)};
 `;
 
-export default withRouter(withOrganization(SpansInterface));
+export default withOrganization(SpansInterface);

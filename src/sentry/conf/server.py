@@ -604,6 +604,7 @@ CELERY_IMPORTS = (
     "sentry.utils.suspect_resolutions.get_suspect_resolutions",
     "sentry.utils.suspect_resolutions_releases.get_suspect_resolutions_releases",
     "sentry.tasks.derive_code_mappings",
+    "sentry.ingest.transaction_clusterer.tasks",
 )
 CELERY_QUEUES = [
     Queue("activity.notify", routing_key="activity.notify"),
@@ -684,6 +685,9 @@ CELERY_QUEUES = [
     Queue("counters-0", routing_key="counters-0"),
     Queue("triggers-0", routing_key="triggers-0"),
     Queue("derive_code_mappings", routing_key="derive_code_mappings"),
+    Queue(
+        "transactions.name_clusterer", routing_key="transactions.name_clusterer"
+    ),  # TODO: add workers
 ]
 
 for queue in CELERY_QUEUES:
@@ -811,6 +815,11 @@ CELERYBEAT_SCHEDULE = {
         "task": "sentry.snuba.tasks.subscription_checker",
         "schedule": timedelta(minutes=20),
         "options": {"expires": 20 * 60},
+    },
+    "transaction-name-clusterer": {
+        "task": "sentry.ingest.transaction_clusterer.tasks.spawn_clusterers",
+        "schedule": timedelta(hours=1),
+        "options": {"expires": 3600},
     },
 }
 
@@ -957,8 +966,6 @@ SENTRY_FEATURES = {
     "organizations:api-keys": False,
     # Enable multiple Apple app-store-connect sources per project.
     "organizations:app-store-connect-multiple": False,
-    # Enable the linked event feature in the issue details breadcrumb.
-    "organizations:breadcrumb-linked-event": False,
     # Enable change alerts for an org
     "organizations:change-alerts": True,
     # Enable alerting based on crash free sessions/users
@@ -972,12 +979,8 @@ SENTRY_FEATURES = {
     "organizations:customer-domains": False,
     # Enable the 'discover' interface.
     "organizations:discover": False,
-    # Enables events endpoint usage on discover and dashboards frontend
-    "organizations:discover-frontend-use-events-endpoint": True,
     # Enable using All Events as the landing page for Discover
-    "organizations:discover-query-builder-as-landing-page": False,
-    # Enables events endpoint usage on performance frontend
-    "organizations:performance-frontend-use-events-endpoint": True,
+    "organizations:discover-query-builder-as-landing-page": True,
     # Enables events endpoint rate limit
     "organizations:discover-events-rate-limit": False,
     # Enable attaching arbitrary files to events.
@@ -990,8 +993,6 @@ SENTRY_FEATURES = {
     "organizations:discover-basic": True,
     # Enable discover 2 custom queries and saved queries
     "organizations:discover-query": True,
-    # Enable metrics baseline in discover
-    "organizations:discover-metrics-baseline": False,
     # Enable quick context in discover
     "organizations:discover-quick-context": False,
     # Allows an org to have a larger set of project ownership rules per project
@@ -1036,11 +1037,14 @@ SENTRY_FEATURES = {
     "organizations:metrics": False,
     # Enable metric alert charts in email/slack
     "organizations:metric-alert-chartcuterie": False,
-    # Automatically extract metrics during ingestion.
-    #
-    # XXX(ja): DO NOT ENABLE UNTIL THIS NOTICE IS GONE. Relay experiences
-    # gradual slowdown when this is enabled for too many projects.
+    # Extract metrics for sessions during ingestion.
     "organizations:metrics-extraction": False,
+    # Normalize transaction names during ingestion.
+    "organizations:transaction-name-normalize": False,
+    # Try to derive normalization rules by clustering transaction names.
+    "organizations:transaction-name-clusterer": False,
+    # Extraction metrics for transactions during ingestion.
+    "organizations:transaction-metrics-extraction": False,
     # Allow performance alerts to be created on the metrics dataset. Allows UI to switch between
     # sampled/unsampled performance data.
     "organizations:metrics-performance-alerts": False,
@@ -1088,16 +1092,8 @@ SENTRY_FEATURES = {
     "organizations:dashboards-basic": True,
     # Enable custom editable dashboards
     "organizations:dashboards-edit": True,
-    # Enable dashboard widget library
-    "organizations:widget-library": False,
     # Enable metrics enhanced performance in dashboards
     "organizations:dashboards-mep": False,
-    # Enable top level query filters in dashboards
-    "organizations:dashboards-top-level-filter": True,
-    # Enables usage of custom measurements in dashboard widgets
-    "organizations:dashboard-custom-measurement-widgets": False,
-    # Enable widget viewer modal in dashboards
-    "organizations:widget-viewer-modal": False,
     # Enable minimap in the widget viewer modal in dashboards
     "organizations:widget-viewer-modal-minimap": False,
     # Enable experimental performance improvements.
@@ -1110,12 +1106,14 @@ SENTRY_FEATURES = {
     "organizations:invite-members-rate-limits": True,
     # Enable new issue actions on issue details
     "organizations:issue-actions-v2": False,
+    # Enable new issue alert "issue owners" fallback
+    "organizations:issue-alert-fallback-message": False,
+    # Enable new issue alert "issue owners" fallback
+    "organizations:issue-alert-fallback-targeting": False,
     # Enable "Owned By" and "Assigned To" on issue details
     "organizations:issue-details-owners": False,
     # Enable removing issue from issue list if action taken.
     "organizations:issue-list-removal-action": False,
-    # Enable new saved searches sidebar and visibility features
-    "organizations:issue-list-saved-searches-v2": False,
     # Prefix host with organization ID when giving users DSNs (can be
     # customized with SENTRY_ORG_SUBDOMAIN_TEMPLATE)
     "organizations:org-subdomains": False,
@@ -1141,6 +1139,8 @@ SENTRY_FEATURES = {
     "organizations:performance-issues-post-process-group": False,
     # Enable internal view for bannerless MEP view
     "organizations:performance-mep-bannerless-ui": False,
+    # Enable updated landing page widget designs
+    "organizations:performance-new-widget-designs": False,
     # Enable the new Related Events feature
     "organizations:related-events": False,
     # Enable populating suggested assignees with release committers
@@ -1182,20 +1182,10 @@ SENTRY_FEATURES = {
     # Enable SAML2 based SSO functionality. getsentry/sentry-auth-saml2 plugin
     # must be installed to use this functionality.
     "organizations:sso-saml2": True,
-    # Enable the server-side sampling (backend + relay)
-    "organizations:server-side-sampling": False,
-    # Enable the original behavior of sampling and UI that was used in LA (supported for selected orgs until end of November)
-    "organizations:dynamic-sampling-deprecated": False,
-    # Enable creating DS rules on incompatible platforms (used by SDK teams for dev purposes)
-    "organizations:server-side-sampling-allow-incompatible-platforms": False,
-    # Enable the deletion of sampling uniform rules (used internally for demo purposes)
-    "organizations:dynamic-sampling-demo": False,
     # Enable the new opinionated dynamic sampling
     "organizations:dynamic-sampling": False,
-    # Enable the mobile screenshots feature
-    "organizations:mobile-screenshots": False,
-    # Enable the mobile screenshot gallery in the attachments tab
-    "organizations:mobile-screenshot-gallery": False,
+    # Enable View Hierarchies in issue details page
+    "organizations:mobile-view-hierarchies": False,
     # Enable tag improvements in the issue details page
     "organizations:issue-details-tag-improvements": False,
     # Enable the release details performance section
@@ -1562,6 +1552,8 @@ SENTRY_RELEASE_MONITOR = (
 )
 SENTRY_RELEASE_MONITOR_OPTIONS = {}
 
+# Whether or not to run transaction clusterer
+SENTRY_TRANSACTION_CLUSTERER_RUN = False
 
 # Render charts on the backend. This uses the Chartcuterie external service.
 SENTRY_CHART_RENDERER = "sentry.charts.chartcuterie.Chartcuterie"
@@ -1910,6 +1902,10 @@ SENTRY_USE_CDC_DEV = False
 # This flag activates profiling backend in the development environment
 SENTRY_USE_PROFILING = False
 
+# This flag activates consuming issue platform occurrence data in the development environment
+SENTRY_USE_ISSUE_OCCURRENCE = False
+
+
 # This flag activates code paths that are specific for customer domains
 SENTRY_USE_CUSTOMER_DOMAINS = False
 
@@ -2074,6 +2070,9 @@ SENTRY_DEVSERVICES = {
                 "REDIS_DB": "1",
                 "ENABLE_SENTRY_METRICS_DEV": "1" if settings.SENTRY_USE_METRICS_DEV else "",
                 "ENABLE_PROFILES_CONSUMER": "1" if settings.SENTRY_USE_PROFILING else "",
+                "ENABLE_ISSUE_OCCURRENCE_CONSUMER": "1"
+                if settings.SENTRY_USE_ISSUE_OCCURRENCE
+                else "",
             },
             "only_if": "snuba" in settings.SENTRY_EVENTSTREAM
             or "kafka" in settings.SENTRY_EVENTSTREAM,
@@ -2508,6 +2507,7 @@ KAFKA_INGEST_PERFORMANCE_METRICS = "ingest-performance-metrics"
 KAFKA_SNUBA_GENERIC_METRICS = "snuba-generic-metrics"
 KAFKA_INGEST_REPLAY_EVENTS = "ingest-replay-events"
 KAFKA_INGEST_REPLAYS_RECORDINGS = "ingest-replay-recordings"
+KAFKA_INGEST_OCCURRENCES = "ingest-occurrences"
 KAFKA_REGION_TO_CONTROL = "region-to-control"
 
 # topic for testing multiple indexer backends in parallel
@@ -2554,6 +2554,7 @@ KAFKA_TOPICS = {
     KAFKA_SNUBA_GENERIC_METRICS: {"cluster": "default"},
     KAFKA_INGEST_REPLAY_EVENTS: {"cluster": "default"},
     KAFKA_INGEST_REPLAYS_RECORDINGS: {"cluster": "default"},
+    KAFKA_INGEST_OCCURRENCES: {"cluster": "default"},
     # Metrics Testing Topics
     KAFKA_SNUBA_GENERICS_METRICS_CS: {"cluster": "default"},
     # Region to Control Silo messaging - eg UserIp and AuditLog
@@ -2640,11 +2641,11 @@ SYMBOLICATOR_PROCESS_EVENT_WARN_TIMEOUT = 120
 
 # Block symbolicate_event for this many seconds to wait for a initial response
 # from symbolicator after the task submission.
-SYMBOLICATOR_POLL_TIMEOUT = 10
+SYMBOLICATOR_POLL_TIMEOUT = 5
 
 # When retrying symbolication requests or querying for the result this set the
 # max number of second to wait between subsequent attempts.
-SYMBOLICATOR_MAX_RETRY_AFTER = 5
+SYMBOLICATOR_MAX_RETRY_AFTER = 2
 
 SENTRY_REQUEST_METRIC_ALLOWED_PATHS = (
     "sentry.web.api",
@@ -2720,37 +2721,15 @@ SENTRY_REALTIME_METRICS_BACKEND = (
 SENTRY_REALTIME_METRICS_OPTIONS = {
     # The redis cluster used for the realtime store redis backend.
     "cluster": "default",
-    # The bucket size of the event counter.
+    # Length of the sliding symbolicate_event budgeting window, in seconds.
+    #
+    # The LPQ selection is computed based on the `SENTRY_LPQ_OPTIONS["project_budget"]`
+    # defined below.
+    "budget_time_window": 2 * 60,
+    # The bucket size of the project budget metric.
     #
     # The size (in seconds) of the buckets that events are sorted into.
-    "counter_bucket_size": 10,
-    # Number of seconds to keep symbolicate_event rates per project.
-    #
-    # symbolicate_event tasks report the rates of events per project to redis
-    # so that projects that exceed a reasonable rate can be sent to the low
-    # priority queue. This setting determines how long we keep these rates
-    # around.
-    #
-    # The LPQ selection is computed using the rate of the most recent events covered by this
-    # time window.  See sentry.tasks.low_priority_symbolication.excessive_event_rate for the
-    # exact implementation.
-    "counter_time_window": 10 * 60,
-    # The bucket size of the processing duration histogram.
-    #
-    # The size (in seconds) of the buckets that events are sorted into.
-    "duration_bucket_size": 10,
-    # Number of seconds to keep symbolicate_event durations per project.
-    #
-    # symbolicate_event tasks report the processing durations of events per project to redis
-    # so that projects that exceed a reasonable duration can be sent to the low
-    # priority queue. This setting determines how long we keep these duration values
-    # around.
-    #
-    # The LPQ selection is computed using the durations of the most recent events covered by
-    # this time window.  See
-    # sentry.tasks.low_priority_symbolication.excessive_event_duration for the exact
-    # implementation.
-    "duration_time_window": 3 * 60,
+    "budget_bucket_size": 10,
     # Number of seconds to wait after a project is made eligible or ineligible for the LPQ
     # before its eligibility can be changed again.
     #
@@ -2760,38 +2739,29 @@ SENTRY_REALTIME_METRICS_OPTIONS = {
 }
 
 # Tunable knobs for automatic LPQ eligibility.
-# The values here are sampled based on the `symbolicate-event.low-priority.metrics.submission-rate` option.
-# This sampling rate needs to be considered when tuning any of the cutoff rates.
 #
-# LPQ eligibility is based on two heuristics: recent spikes in the number of events and excessive
-# event processing times.
+# LPQ eligibility is based on the average spent budget in a sliding time window
+# defined in `SENTRY_REALTIME_METRICS_OPTIONS["budget_time_window"]` above.
 #
-# A project is eligible for the LPQ based on event rate if
-# the event rate (events/s) over the `recent_event_period` is greater than `min_recent_event_rate` and
-# exceeds the project's average event rate (within `counter_time_window`) by a factor of `recent_event_multiple`. See
-# sentry.tasks.low_priority_symbolication.excessive_event_rate for the implementation of this heuristic.
+# The `project_budget` option is defined as the average per-second
+# "symbolication time budget" a project can spend.
+# See `RealtimeMetricsStore.record_project_duration` for an explanation of how
+# this works.
+# The "regular interval" at which symbolication time is submitted is defined by
+# a combination of `SYMBOLICATOR_POLL_TIMEOUT` and `SYMBOLICATOR_MAX_RETRY_AFTER`.
 #
-# A project is eligible for the LPQ based on processing duration if it averages more than
-# `min_events_per_minute` events per minute over the `duration_time_window` and the 75th percentile
-# of event processing durations in that window exceeds `min_p75_duration` seconds. See
-# sentry.tasks.low_priority_symbolication.excessive_event_duration for the implementation of this heuristic.
+# This value is already adjusted according to the
+# `symbolicate-event.low-priority.metrics.submission-rate` option.
 SENTRY_LPQ_OPTIONS = {
-    # The period that is considered for "recent events".
-    # Has to be a multiple of `counter_bucket_size` above.
-    "recent_event_period": 60,
-    # The minimum rate of events *per second* a project needs to have
-    # in the `recent_event_period` to be eligible for the LPQ.
-    "min_recent_event_rate": 5,
-    # The ratio of recent event rate over average event rate above which a project is eligible
-    # for the LPQ.
-    "recent_event_multiple": 4,
-    # The minimum rate of events *per minute* a project needs to have
-    # in the `duration_time_window` to be eligible for the LPQ.
-    "min_events_per_minute": 15,
-    # A project is considered for the LPQ if the p75 event processing time
-    # exceeds configured value.
-    # This considers events that *finished* during the last `duration_time_window`.
-    "min_p75_duration": 30,
+    # This is the per-project budget in per-second "symbolication time budget".
+    #
+    # This has been arbitrarily chosen as `5.0` for now, which means an average of:
+    # -  1x 5-second event per second, or
+    # -  5x 1-second events per second, or
+    # - 10x 0.5-second events per second
+    #
+    # Cost increases quadratically with symbolication time.
+    "project_budget": 5.0
 }
 
 # XXX(meredith): Temporary metrics indexer
@@ -2879,6 +2849,11 @@ SNOWFLAKE_VERSION_ID = 1
 SENTRY_SNOWFLAKE_EPOCH_START = datetime(2022, 8, 8, 0, 0).timestamp()
 SENTRY_USE_SNOWFLAKE = False
 
+SENTRY_DEFAULT_LOCKS_BACKEND_OPTIONS = {
+    "path": "sentry.utils.locking.backends.redis.RedisLockBackend",
+    "options": {"cluster": "default"},
+}
+
 SENTRY_POST_PROCESS_LOCKS_BACKEND_OPTIONS = {
     "path": "sentry.utils.locking.backends.redis.RedisLockBackend",
     "options": {"cluster": "default"},
@@ -2922,5 +2897,36 @@ SENTRY_SLICING_LOGICAL_PARTITION_COUNT = 256
 # to a slice ID
 SENTRY_SLICING_CONFIG: Mapping[str, Mapping[Tuple[int, int], int]] = {}
 
-# Show session replay banner on login page
-SHOW_SESSION_REPLAY_BANNER = False
+# Show banners on the login page that are defined in layout.html
+SHOW_LOGIN_BANNER = False
+
+# Mapping of (logical topic names, slice id) to physical topic names
+# and kafka broker names. The kafka broker names are used to construct
+# the broker config from KAFKA_CLUSTERS. This is used for slicing only.
+# Example:
+# SLICED_KAFKA_TOPICS = {
+#   ("KAFKA_SNUBA_GENERIC_METRICS", 0): {
+#       "topic": "generic_metrics_0",
+#       "cluster": "cluster_1",
+#   },
+#   ("KAFKA_SNUBA_GENERIC_METRICS", 1): {
+#       "topic": "generic_metrics_1",
+#       "cluster": "cluster_2",
+# }
+# And then in KAFKA_CLUSTERS:
+# KAFKA_CLUSTERS = {
+#   "cluster_1": {
+#       "bootstrap.servers": "kafka1:9092",
+#   },
+#   "cluster_2": {
+#       "bootstrap.servers": "kafka2:9092",
+#   },
+# }
+SLICED_KAFKA_TOPICS: Mapping[Tuple[str, int], Mapping[str, Any]] = {}
+
+# Used by silo tests -- when requests pass through decorated endpoints, switch the server silo mode to match that
+# decorator.
+SINGLE_SERVER_SILO_MODE = False
+
+# Set the URL for signup page that we redirect to for the setup wizard if signup=1 is in the query params
+SENTRY_SIGNUP_URL = None
