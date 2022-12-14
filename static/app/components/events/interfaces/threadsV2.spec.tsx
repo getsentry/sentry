@@ -192,6 +192,7 @@ describe('ThreadsV2', function () {
         sdkUpdates: [],
         nextEventID: null,
         previousEventID: null,
+        occurrence: null,
       };
 
       const props: React.ComponentProps<typeof ThreadsV2> = {
@@ -852,6 +853,7 @@ describe('ThreadsV2', function () {
         sdkUpdates: [],
         nextEventID: null,
         previousEventID: null,
+        occurrence: null,
       };
 
       const props: React.ComponentProps<typeof ThreadsV2> = {

@@ -79,6 +79,7 @@ export class TransactionEventBuilder {
         uri: undefined,
         value: undefined,
       },
+      occurrence: null,
       projectID: '',
       size: 0,
       tags: [],
