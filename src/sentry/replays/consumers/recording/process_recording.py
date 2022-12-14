@@ -16,7 +16,6 @@ from arroyo.processing.strategies import MessageRejected
 from arroyo.processing.strategies.abstract import ProcessingStrategy
 from arroyo.types import Message, Position
 from django.conf import settings
-from sentry_sdk.tracing import Transaction
 
 from sentry.replays.cache import RecordingSegmentParts
 from sentry.replays.usecases.ingest import (
@@ -63,32 +62,9 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):
         self.__last_committed: float = 0
         self.__max_pending_futures = 32
 
-    def _process_chunked_recording(
-        self,
-        message_dict: RecordingSegmentMessage,
-        message: Message[KafkaPayload],
-        current_transaction: Transaction,
-    ) -> None:
-        cache_prefix = replay_recording_segment_cache_id(
-            project_id=message_dict["project_id"],
-            replay_id=message_dict["replay_id"],
-            segment_id=message_dict["replay_recording"]["id"],
-        )
-        parts = RecordingSegmentParts(
-            prefix=cache_prefix, num_parts=message_dict["replay_recording"]["chunks"]
-        )
-
-        # in a thread, upload the recording segment and delete the cached version
+    def _run_scheduled(self, message, func, **kwargs) -> None:
         self.__futures.append(
-            ReplayRecordingMessageFuture(
-                message,
-                self.__threadpool.submit(
-                    ingest_recording_chunked,
-                    message_dict=message_dict,
-                    parts=parts,
-                    transaction=current_transaction,
-                ),
-            )
+            ReplayRecordingMessageFuture(message, self.__threadpool.submit(func, **kwargs))
         )
 
     @metrics.wraps("replays.process_recording.submit")
@@ -118,14 +94,28 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):
 
                 ingest_chunk(cast(RecordingSegmentChunkMessage, message_dict), current_transaction)
             elif message_dict["type"] == "replay_recording":
-                self._process_chunked_recording(
-                    cast(RecordingSegmentMessage, message_dict),
+                cache_prefix = replay_recording_segment_cache_id(
+                    project_id=message_dict["project_id"],
+                    replay_id=message_dict["replay_id"],
+                    segment_id=message_dict["replay_recording"]["id"],
+                )
+                parts = RecordingSegmentParts(
+                    prefix=cache_prefix, num_parts=message_dict["replay_recording"]["chunks"]
+                )
+
+                self._run_scheduled(
                     message,
-                    current_transaction,
+                    ingest_recording_chunked,
+                    message_dict=cast(RecordingSegmentMessage, message_dict),
+                    parts=parts,
+                    transaction=current_transaction,
                 )
             elif message_dict["type"] == "replay_recording_not_chunked":
-                ingest_recording_not_chunked(
-                    cast(RecordingMessage, message_dict), current_transaction
+                self._run_scheduled(
+                    message,
+                    ingest_recording_not_chunked,
+                    message_dict=cast(RecordingMessage, message_dict),
+                    transaction=current_transaction,
                 )
         except Exception:
             # avoid crash looping on bad messsages for now
