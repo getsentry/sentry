@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from django.db import transaction
-from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -15,10 +14,6 @@ from sentry.models import Monitor, MonitorStatus, ScheduledDeletion
 
 @region_silo_endpoint
 class MonitorDetailsEndpoint(MonitorEndpoint):
-    @staticmethod
-    def respond_invalid() -> Response:
-        return Response(status=status.HTTP_400_BAD_REQUEST, data={"details": "Invalid monitor"})
-
     def get(
         self, request: Request, project, monitor, organization_slug: str | None = None
     ) -> Response:

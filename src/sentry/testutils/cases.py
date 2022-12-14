@@ -2208,12 +2208,14 @@ class MonitorTestCase(APITestCase):
     def _get_path_functions(self):
         return (
             lambda monitor: reverse(self.endpoint, args=[monitor.guid]),
-            lambda monitor: reverse(self.endpoint_with_org, args=[self.org.slug, monitor.guid]),
+            lambda monitor: reverse(
+                self.endpoint_with_org, args=[self.organization.slug, monitor.guid]
+            ),
         )
 
     def _create_monitor(self):
         return Monitor.objects.create(
-            organization_id=self.org.id,
+            organization_id=self.organization.id,
             project_id=self.project.id,
             next_checkin=timezone.now() - timedelta(minutes=1),
             type=MonitorType.CRON_JOB,
