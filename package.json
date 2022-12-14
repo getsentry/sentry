@@ -185,7 +185,7 @@
     "@testing-library/react-hooks": "^8.0.1",
     "@testing-library/user-event": "^13.5.0",
     "@types/js-beautify": "^1.13.3",
-    "@types/node": "^18.0.0",
+    "@types/node": "^18.11.15",
     "@visual-snapshot/jest": "7.0.0",
     "assert": "^2.0.0",
     "babel-gettext-extractor": "^4.1.3",
