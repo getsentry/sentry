@@ -100,6 +100,9 @@ class Chunk extends Component<Props, State> {
         return t('Trace Details');
       case 'otel':
         return t('OpenTelemetry');
+      case 'memory_info': // Future new value for memory info
+      case 'Memory Info': // Current value for memory info
+        return t('Memory Info');
       case 'thread_pool_info': // Future new value for thread pool info
       case 'ThreadPool Info': // Current value for thread pool info
         return t('Thread Pool Info');
