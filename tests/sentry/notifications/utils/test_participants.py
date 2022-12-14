@@ -536,7 +536,7 @@ class GetOwnersCase(TestCase):
         with self.feature("organizations:issue-alert-fallback-targeting"):
             owner_reason = get_owner_reason(
                 project=self.project,
-                target_identifier=self.user_1,
+                target_type=ActionTargetType.ISSUE_OWNERS,
                 event=event,
                 fallthrough_choice=FallthroughChoiceType.ALL_MEMBERS,
             )
