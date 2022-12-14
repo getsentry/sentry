@@ -168,7 +168,6 @@ def _do_preprocess_event(
                 cache_key=cache_key,
                 event_id=event_id,
                 start_time=start_time,
-                data=original_data,
                 has_attachments=has_attachments,
             )
             return

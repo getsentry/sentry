@@ -1,5 +1,6 @@
+from functools import cached_property
+
 from django.urls import reverse
-from exam import fixture
 
 from sentry.models import OrganizationMember, OrganizationMemberTeam, ProjectTeam, Team
 from sentry.testutils import APITestCase
@@ -168,7 +169,7 @@ class OrganizationTeamsCreateTest(APITestCase):
         super().setUp()
         self.login_as(user=self.user)
 
-    @fixture
+    @cached_property
     def path(self):
         return reverse("sentry-api-0-organization-teams", args=[self.organization.slug])
 
