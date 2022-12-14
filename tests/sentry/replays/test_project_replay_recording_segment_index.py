@@ -85,7 +85,6 @@ class DownloadSegmentsTestCaseFileModel(TransactionTestCase):
             response = self.client.get(self.url + "?download")
 
         assert response.status_code == 200
-        assert ReplayRecordingSegment.objects.get(replay_id=self.replay_id)
         assert response.get("Content-Type") == "application/json"
         assert b'[[{"test":"hello 0"}],[{"test":"hello 1"}],[{"test":"hello 2"}]]' == b"".join(
             response.streaming_content

@@ -85,6 +85,7 @@ class TestRecordingsConsumerEndToEndFileModel(TransactionTestCase):
         recording_file_name = f"rr:{self.replay_id}:{segment_id}"
         recording = File.objects.get(name=recording_file_name)
 
+        assert ReplayRecordingSegment.objects.get(replay_id=self.replay_id)
         assert recording
         assert (
             recording.checksum
