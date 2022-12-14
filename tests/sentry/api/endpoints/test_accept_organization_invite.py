@@ -18,7 +18,7 @@ from sentry.testutils.factories import Factories
 from sentry.testutils.silo import control_silo_test, exempt_from_silo_limits
 
 
-@control_silo_test(stable=True)
+@control_silo_test()
 class AcceptInviteTest(TestCase):
     def setUp(self):
         super().setUp()
