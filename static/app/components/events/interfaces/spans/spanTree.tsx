@@ -9,6 +9,7 @@ import {
   WindowScroller,
 } from 'react-virtualized';
 import styled from '@emotion/styled';
+import clone from 'lodash/clone';
 import differenceWith from 'lodash/differenceWith';
 import isEqual from 'lodash/isEqual';
 import throttle from 'lodash/throttle';
@@ -59,7 +60,7 @@ type PropType = ScrollbarManagerChildrenProps & {
 
 type StateType = {
   headerPos: number;
-  spanRows: Array<{spanRow: React.RefObject<HTMLDivElement>; treeDepth: number}>;
+  spanRows: Record<string, {spanRow: React.RefObject<HTMLDivElement>; treeDepth: number}>;
 };
 
 const listRef = React.createRef<ReactVirtualizedList>();
@@ -69,10 +70,7 @@ class SpanTree extends Component<PropType> {
     headerPos: 0,
     // Stores each visible span row ref along with its its tree depth. This is used to calculate the
     // horizontal auto-scroll positioning
-
-    // TODO: Instead of an array here, create a map and use the span's ID as the key, and store its ref and tree depth.
-    // Something weird is going on with refs persisting when expanding autogroups
-    spanRows: [],
+    spanRows: {},
   };
 
   componentDidMount() {
@@ -687,27 +685,26 @@ class SpanTree extends Component<PropType> {
     };
   }
 
-  addSpanRowToState = (spanRow: React.RefObject<HTMLDivElement>, treeDepth: number) => {
+  addSpanRowToState = (
+    spanId: string,
+    spanRow: React.RefObject<HTMLDivElement>,
+    treeDepth: number
+  ) => {
     this.setState((prevState: StateType) => {
-      // It's possible that in some cases, React will lose track of refs and their `current` value becomes
-      // null, so we clean up those dead refs here
+      const newSpanRows = clone(prevState.spanRows);
+      newSpanRows[spanId] = {spanRow, treeDepth};
 
-      const filteredSpanRows = prevState.spanRows.filter(
-        ({spanRow: _spanRow}) => _spanRow.current
-      );
-
-      return {
-        spanRows: [...filteredSpanRows, {spanRow, treeDepth}],
-      };
+      return {spanRows: newSpanRows};
     });
   };
 
-  removeSpanRowFromState = (spanRow: React.RefObject<HTMLDivElement>) => {
-    const filteredSpanRows = this.state.spanRows.filter(({spanRow: _spanRow}) => {
-      return _spanRow.current && !isEqual(spanRow, _spanRow);
-    });
+  removeSpanRowFromState = (spanId: string) => {
+    this.setState((prevState: StateType) => {
+      const newSpanRows = clone(prevState.spanRows);
+      delete newSpanRows[spanId];
 
-    this.setState({spanRows: filteredSpanRows});
+      return {spanRows: newSpanRows};
+    });
   };
 
   isSpanRowVisible = (spanRow: React.RefObject<HTMLDivElement>) => {
@@ -727,9 +724,8 @@ class SpanTree extends Component<PropType> {
 
   throttledOnScroll = throttle(
     () => {
-      console.dir(this.state.spanRows);
-
-      const {depthSum, visibleSpanCount, isRootSpanVisible} = this.state.spanRows.reduce(
+      const spanRowsArray = Object.values(this.state.spanRows);
+      const {depthSum, visibleSpanCount, isRootSpanVisible} = spanRowsArray.reduce(
         (acc, {spanRow, treeDepth}) => {
           if (!spanRow.current || !this.isSpanRowVisible(spanRow)) {
             return acc;
@@ -752,12 +748,12 @@ class SpanTree extends Component<PropType> {
       );
 
       // If the root is visible, we do not want to shift the view around so just pass 0 instead of the average
-      const v =
+      const averageDepth =
         isRootSpanVisible || visibleSpanCount === 0
           ? 0
           : Math.round(depthSum / visibleSpanCount);
-      console.log('avg: ', v);
-      this.props.updateHorizontalScrollState(v);
+
+      this.props.updateHorizontalScrollState(averageDepth);
     },
     500,
     {trailing: true}
@@ -804,11 +800,12 @@ class SpanTree extends Component<PropType> {
 
 type SpanRowProps = ListRowProps & {
   addSpanRowToState: (
+    spanId: string,
     spanRow: React.RefObject<HTMLDivElement>,
     treeDepth: number
   ) => void;
   cache: CellMeasurerCache;
-  removeSpanRowFromState: (spanRow: React.RefObject<HTMLDivElement>) => void;
+  removeSpanRowFromState: (spanId: string) => void;
   spanContextProps: SpanContext.SpanContextProps;
   spanTree: SpanTreeNode[];
 };
@@ -833,14 +830,16 @@ function SpanRow(props: SpanRowProps) {
   // Lifecycle management for row refs, we need to separately do this in useLayoutEffect since
   // we won't have access to the refs in useEffect
   useLayoutEffect(() => {
-    if (spanNode.type !== SpanTreeNodeType.MESSAGE) {
-      addSpanRowToState(rowRef, spanNode.props.treeDepth);
+    // Gap spans do not have IDs, so we can't really store them. This should not be a big deal, since
+    // we only need to keep track of spans to calculate an average depth, a few missing spans will not
+    // throw off the calculation too hard
+    if (spanNode.type !== SpanTreeNodeType.MESSAGE && !isGapSpan(spanNode.props.span)) {
+      addSpanRowToState(spanNode.props.span.span_id, rowRef, spanNode.props.treeDepth);
     }
 
     return () => {
-      if (spanNode.type !== SpanTreeNodeType.MESSAGE) {
-        console.log('Remove: ', spanNode.props);
-        removeSpanRowFromState(rowRef);
+      if (spanNode.type !== SpanTreeNodeType.MESSAGE && !isGapSpan(spanNode.props.span)) {
+        removeSpanRowFromState(spanNode.props.span.span_id);
       }
     };
   }, [rowRef, spanNode, addSpanRowToState, removeSpanRowFromState]);
