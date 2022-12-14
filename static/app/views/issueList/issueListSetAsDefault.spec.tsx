@@ -5,9 +5,7 @@ import {SavedSearchType, SavedSearchVisibility} from 'sentry/types';
 import IssueListSetAsDefault from 'sentry/views/issueList/issueListSetAsDefault';
 
 describe('IssueListSetAsDefault', () => {
-  const organization = TestStubs.Organization({
-    features: ['issue-list-saved-searches-v2'],
-  });
+  const organization = TestStubs.Organization();
 
   const {router} = initializeOrg();
 

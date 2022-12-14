@@ -1,6 +1,7 @@
+from functools import cached_property
+
 import pytest
 import responses
-from exam import fixture
 
 from fixtures.gitlab import COMMIT_DIFF_RESPONSE, COMMIT_LIST_RESPONSE, COMPARE_RESPONSE
 from sentry.integrations.gitlab.repository import GitlabRepositoryProvider
@@ -46,7 +47,7 @@ class GitLabRepositoryProviderTest(IntegrationRepositoryTestCase):
         }
         self.gitlab_id = 123
 
-    @fixture
+    @cached_property
     def provider(self):
         return GitlabRepositoryProvider("gitlab")
 

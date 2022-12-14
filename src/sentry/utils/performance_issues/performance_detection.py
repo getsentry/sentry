@@ -54,7 +54,6 @@ CONTAINS_PARAMETER_REGEX = re.compile(
 
 class DetectorType(Enum):
     SLOW_SPAN = "slow_span"
-    DUPLICATE_SPANS = "duplicates"
     RENDER_BLOCKING_ASSET_SPAN = "render_blocking_assets"
     N_PLUS_ONE_DB_QUERIES = "n_plus_one_db"
     N_PLUS_ONE_DB_QUERIES_EXTENDED = "n_plus_one_db_ext"
@@ -66,7 +65,6 @@ class DetectorType(Enum):
 
 DETECTOR_TYPE_TO_GROUP_TYPE = {
     DetectorType.SLOW_SPAN: GroupType.PERFORMANCE_SLOW_SPAN,
-    DetectorType.DUPLICATE_SPANS: GroupType.PERFORMANCE_DUPLICATE_SPANS,
     DetectorType.RENDER_BLOCKING_ASSET_SPAN: GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN,
     DetectorType.N_PLUS_ONE_DB_QUERIES: GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
     DetectorType.N_PLUS_ONE_DB_QUERIES_EXTENDED: GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
@@ -268,13 +266,6 @@ def get_detection_settings(project_id: Optional[str] = None) -> Dict[DetectorTyp
     )
 
     return {
-        DetectorType.DUPLICATE_SPANS: [
-            {
-                "count": 5,
-                "cumulative_duration": 500.0,  # ms
-                "allowed_span_ops": ["db", "http"],
-            }
-        ],
         DetectorType.SLOW_SPAN: [
             {
                 "duration_threshold": 1000.0,  # ms
@@ -330,7 +321,6 @@ def _detect_performance_problems(data: Event, sdk_span: Any) -> List[Performance
     detection_settings = get_detection_settings(project_id)
     detectors = {
         DetectorType.CONSECUTIVE_DB_OP: ConsecutiveDBSpanDetector(detection_settings, data),
-        DetectorType.DUPLICATE_SPANS: DuplicateSpanDetector(detection_settings, data),
         DetectorType.SLOW_SPAN: SlowSpanDetector(detection_settings, data),
         DetectorType.RENDER_BLOCKING_ASSET_SPAN: RenderBlockingAssetSpanDetector(
             detection_settings, data
@@ -572,52 +562,6 @@ class PerformanceDetector(ABC):
         return True
 
 
-class DuplicateSpanDetector(PerformanceDetector):
-    """
-    Broadly check for duplicate spans.
-    """
-
-    __slots__ = ("cumulative_durations", "duplicate_spans_involved", "stored_problems")
-
-    settings_key = DetectorType.DUPLICATE_SPANS
-
-    def init(self):
-        self.cumulative_durations = {}
-        self.duplicate_spans_involved = {}
-        self.stored_problems = {}
-
-    def visit_span(self, span: Span):
-        settings_for_span = self.settings_for_span(span)
-        if not settings_for_span:
-            return
-        op, span_id, op_prefix, span_duration, settings = settings_for_span
-        duplicate_count_threshold = settings.get("count")
-        duplicate_duration_threshold = settings.get("cumulative_duration")
-
-        fingerprint = fingerprint_span(span)
-        if not fingerprint:
-            return
-
-        self.cumulative_durations[fingerprint] = (
-            self.cumulative_durations.get(fingerprint, timedelta(0)) + span_duration
-        )
-
-        if fingerprint not in self.duplicate_spans_involved:
-            self.duplicate_spans_involved[fingerprint] = []
-
-        self.duplicate_spans_involved[fingerprint] += [span_id]
-        duplicate_spans_counts = len(self.duplicate_spans_involved[fingerprint])
-
-        if not self.stored_problems.get(fingerprint, False):
-            if duplicate_spans_counts >= duplicate_count_threshold and self.cumulative_durations[
-                fingerprint
-            ] >= timedelta(milliseconds=duplicate_duration_threshold):
-                spans_involved = self.duplicate_spans_involved[fingerprint]
-                self.stored_problems[fingerprint] = PerformanceSpanProblem(
-                    span_id, op_prefix, spans_involved
-                )
-
-
 class SlowSpanDetector(PerformanceDetector):
     """
     Check for slow spans in a certain type of span.op (eg. slow db spans)
@@ -741,6 +685,8 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
     __slots__ = ["stored_problems"]
     settings_key: DetectorType = DetectorType.N_PLUS_ONE_API_CALLS
 
+    HOST_DENYLIST = []
+
     def init(self):
         # TODO: Only store the span IDs and timestamps instead of entire span objects
         self.stored_problems: PerformanceProblemsMap = {}
@@ -802,14 +748,31 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         if "graphql" in description:
             return False
 
+        # Next.js infixes its data URLs with a build ID. (e.g.,
+        # /_next/data/<uuid>/some-endpoint) This causes a fingerprinting
+        # explosion, since every deploy would change this ID and create new
+        # fingerprints. Since we're not parameterizing URLs yet, we need to
+        # exclude them
+        if "_next/data" in description:
+            return False
+
         # Ignore anything that looks like an asset. Some frameworks (and apps)
         # fetch assets via XHR, which is not our concern
         data = span.get("data") or {}
         url = data.get("url") or ""
+        if not url:
+            # If data is missing, fall back to description
+            parts = description.split(" ", 1)
+            if len(parts) == 2:
+                url = parts[1]
+
         if type(url) is dict:
             url = url.get("pathname") or ""
 
         parsed_url = urlparse(str(url))
+
+        if parsed_url.netloc in cls.HOST_DENYLIST:
+            return False
 
         _pathname, extension = os.path.splitext(parsed_url.path)
         if extension and extension in [".js", ".css", ".svg", ".png", ".mp3"]:
