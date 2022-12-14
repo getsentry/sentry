@@ -23,6 +23,7 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.models import LostPasswordHash
+from sentry.models.userrole import UserRole
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.utils.http import absolute_uri
 
@@ -175,6 +176,7 @@ class User(BaseModel, AbstractBaseUser):
     )
     date_joined = models.DateTimeField(_("date joined"), default=timezone.now)
     last_active = models.DateTimeField(_("last active"), default=timezone.now, null=True)
+    roles = models.ManyToManyField(UserRole, through="sentry.UserRoleUser")
 
     objects = UserManager(cache_fields=["pk"])
 

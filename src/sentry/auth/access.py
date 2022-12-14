@@ -20,6 +20,7 @@ from django.contrib.auth.models import AnonymousUser
 from sentry import features, roles
 from sentry.auth.superuser import is_active_superuser
 from sentry.auth.system import SystemToken, is_system_auth
+from sentry.db.models import BaseQuerySet
 from sentry.models import (
     ApiKey,
     Organization,
@@ -31,15 +32,13 @@ from sentry.models import (
     Team,
     TeamStatus,
     User,
-    UserPermission,
-    UserRole,
 )
 from sentry.roles import organization_roles
 from sentry.roles.manager import OrganizationRole, TeamRole
 from sentry.services.hybrid_cloud.app import app_service
 from sentry.services.hybrid_cloud.auth import ApiAuthState, ApiMemberSsoState, auth_service
 from sentry.services.hybrid_cloud.organization import ApiTeamMember, ApiUserOrganizationContext
-from sentry.services.hybrid_cloud.user import APIUser
+from sentry.services.hybrid_cloud.user import APIUser, user_service
 from sentry.utils import metrics
 from sentry.utils.request_cache import request_cache
 
@@ -49,8 +48,17 @@ def get_cached_organization_member(user_id: int, organization_id: int) -> Organi
     return OrganizationMember.objects.get(user_id=user_id, organization_id=organization_id)
 
 
+def flatten(iter: Iterable):
+    return (
+        ((flatten(iter[0]) + flatten(iter[1:])) if len(iter) > 0 else [])
+        if type(iter) is list or isinstance(iter, BaseQuerySet)
+        else [iter]
+    )
+
+
 def get_permissions_for_user(user_id: int) -> FrozenSet[str]:
-    union = UserRole.permissions_for_user(user_id) | UserPermission.for_user(user_id)
+    user = user_service.get_user(user_id)
+    union = set(flatten(user.roles.values_list("permissions", flat=True))) | user.permissions
     return cast(FrozenSet[str], union)
 
 

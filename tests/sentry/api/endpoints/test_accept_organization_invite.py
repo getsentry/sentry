@@ -14,10 +14,10 @@ from sentry.models import (
     OrganizationMember,
 )
 from sentry.testutils import TestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import control_silo_test, exempt_from_silo_limits
 
 
-@region_silo_test
+@control_silo_test(stable=True)
 class AcceptInviteTest(TestCase):
     def setUp(self):
         super().setUp()
@@ -69,9 +69,10 @@ class AcceptInviteTest(TestCase):
             assert resp.status_code == 400
 
     def test_invalid_token(self):
-        om = OrganizationMember.objects.create(
-            email="newuser@example.com", token="abc", organization=self.organization
-        )
+        with exempt_from_silo_limits():
+            om = OrganizationMember.objects.create(
+                email="newuser@example.com", token="abc", organization=self.organization
+            )
         for path in self._get_paths([om.id, 2]):
             resp = self.client.get(path)
             assert resp.status_code == 400

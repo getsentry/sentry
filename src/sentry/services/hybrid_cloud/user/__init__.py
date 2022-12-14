@@ -4,7 +4,7 @@ import datetime
 from abc import abstractmethod
 from dataclasses import dataclass, fields
 from enum import IntEnum
-from typing import TYPE_CHECKING, Any, Iterable, List, Optional
+from typing import TYPE_CHECKING, Any, Iterable, List, Optional, Set
 
 from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_delegation, stubbed
 from sentry.silo import SiloMode
@@ -31,6 +31,9 @@ class APIUser:
     last_active: datetime.datetime | None = None
     is_sentry_app: bool = False
     password_usable: bool = False
+
+    roles: Set[str] = frozenset()
+    permissions: Set[str] = frozenset()
 
     def has_usable_password(self) -> bool:
         return self.password_usable
@@ -132,6 +135,8 @@ class UserService(InterfaceWithLifecycle):
         args["display_name"] = user.get_display_name()
         args["is_superuser"] = user.is_superuser
         args["password_usable"] = user.has_usable_password()
+        if hasattr(user, "permissions") and user.permissions is not None:
+            args["permissions"] = frozenset(user.permissions)
         return APIUser(**args)
 
 
