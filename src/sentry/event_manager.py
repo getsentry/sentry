@@ -112,6 +112,7 @@ from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.plugins.base import plugins
 from sentry.projectoptions.defaults import BETA_GROUPING_CONFIG, DEFAULT_GROUPING_CONFIG
+from sentry.quotas.base import index_data_category
 from sentry.ratelimits.sliding_windows import Quota, RedisSlidingWindowRateLimiter, RequestedQuota
 from sentry.reprocessing2 import is_reprocessed_event, save_unprocessed_event
 from sentry.shared_integrations.exceptions import ApiError
@@ -710,20 +711,6 @@ def _run_background_grouping(project: Project, job: Job) -> None:
         sentry_sdk.capture_exception()
 
 
-def _get_job_category(data: Mapping[str, Any], organization: Organization) -> DataCategory:
-    event_type = data.get("type")
-    if event_type == "transaction" and features.has(
-        "organizations:transaction-metrics-extraction", organization
-    ):
-        # TODO: This logic should move into sentry-relay, but I'm not sure
-        # about the consequences of making `from_event_type` return
-        # `TRANSACTION_INDEXED` unconditionally.
-        # https://github.com/getsentry/relay/blob/d77c489292123e53831e10281bd310c6a85c63cc/relay-server/src/envelope.rs#L121
-        return DataCategory.TRANSACTION_INDEXED
-
-    return DataCategory.from_event_type(event_type)
-
-
 @metrics.wraps("save_event.pull_out_data")
 def _pull_out_data(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
     """
@@ -757,7 +744,7 @@ def _pull_out_data(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
         job["data"] = data = event.data.data
 
         event._project_cache = project = projects[job["project_id"]]
-        job["category"] = _get_job_category(data, project.organization)
+        job["category"] = index_data_category(data.get("type"), project.organization)
         job["platform"] = event.platform
 
         # Some of the data that are toplevel attributes are duplicated
@@ -2222,8 +2209,8 @@ def _save_grouphash_and_group(
 def _message_from_metadata(meta: Mapping[str, str]) -> str:
     title = meta.get("title", "")
     location = meta.get("location", "")
-    seperator = ": " if title and location else ""
-    return f"{title}{seperator}{location}"
+    separator = ": " if title and location else ""
+    return f"{title}{separator}{location}"
 
 
 @metrics.wraps("save_event.save_aggregate_performance")

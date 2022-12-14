@@ -424,11 +424,8 @@ class Group(Model):
         default=GroupType.ERROR.value,
         choices=(
             (GroupType.ERROR.value, _("Error")),
-            (GroupType.PERFORMANCE_N_PLUS_ONE.value, _("N Plus One")),
             (GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value, _("N Plus One DB Queries")),
             (GroupType.PERFORMANCE_SLOW_SPAN.value, _("Slow Span")),
-            (GroupType.PERFORMANCE_SEQUENTIAL_SLOW_SPANS.value, _("Sequential Slow Spans")),
-            (GroupType.PERFORMANCE_LONG_TASK_SPANS.value, _("Long Task Span")),
             (
                 GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN.value,
                 _("Render Blocking Asset Span"),

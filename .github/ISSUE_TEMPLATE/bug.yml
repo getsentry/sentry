@@ -16,15 +16,23 @@ body:
     attributes:
       label: Version
       placeholder: 21.7.0 ← should look like this (check the footer)
-      description: If self-hosted, what version are you running?
+      description: If on self-hosted, what version are you running?
     validations:
       required: false
   - type: input
-    id: identification
+    id: link
     attributes:
-      label: Identification
-      placeholder: Link to Sentry or org slug or slug id (non-PII)
-      description: (Optional info) If you are using SaaS, in order to speed up investigations - could you please include a link to where you found the issue (if it applies) or your organization slug? If you are concerned with exposing your organization slug (which is included on links to sentry.io) you can share your organization ID which can be found in your client keys (DSN) which follow the format `https://{tag}@o{ORGANISATION_ID}.ingest.sentry.io/{PROJECT_ID}`
+      label: Link
+      placeholder: https://sentry.io/organizations/{ORG_SLUG}/...
+      description: If on SaaS, where did you find the issue? **Note:** This will divulge your org slug publicly.
+    validations:
+      required: false
+  - type: input
+    id: DSN
+    attributes:
+      label: DSN
+      placeholder: https://{tag}@o{ORG_ID}.ingest.sentry.io/{PROJECT_ID}
+      description: If on SaaS, what is your DSN? This is an easy way to give us your org ID (non-PII).
     validations:
       required: false
   - type: textarea
