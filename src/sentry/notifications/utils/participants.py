@@ -278,12 +278,12 @@ def determine_eligible_recipients(
     elif target_type == ActionTargetType.RELEASE_MEMBERS:
         return get_release_committers(project, event)
 
-    else:
+    elif target_type == ActionTargetType.ISSUE_OWNERS:
         owners = get_owners(project, event)
         if owners:
             return owners
 
-        if target_type == ActionTargetType.ISSUE_OWNERS and fallthrough_choice is not None:
+        if fallthrough_choice:
             return get_fallthrough_recipients(project, fallthrough_choice)
 
     return set()
