@@ -41,7 +41,11 @@ class AbstractOptionsStore(InterfaceWithLifecycle, abc.ABC):
         pass
 
     @abc.abstractmethod
-    def set(self, key: Key, value: any) -> None:
+    def set(self, key: Key, value: Any) -> None:
+        pass
+
+    @abc.abstractmethod
+    def set_cache(self, key: Key, vlaue: Any) -> None:
         pass
 
     @abc.abstractmethod
