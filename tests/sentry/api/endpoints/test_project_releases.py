@@ -1,9 +1,9 @@
 from datetime import datetime, timedelta
+from functools import cached_property
 
 import pytz
 from django.urls import reverse
 from django.utils import timezone
-from exam import fixture
 from rest_framework.exceptions import ErrorDetail
 
 from sentry.api.endpoints.project_releases import ReleaseWithVersionSerializer
@@ -491,7 +491,7 @@ class ProjectReleaseCreateTest(APITestCase):
 
 @region_silo_test
 class ProjectReleaseCreateCommitPatch(ReleaseCommitPatchTest):
-    @fixture
+    @cached_property
     def url(self):
         return reverse(
             "sentry-api-0-project-releases",

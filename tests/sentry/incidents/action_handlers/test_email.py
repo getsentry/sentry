@@ -1,3 +1,4 @@
+from functools import cached_property
 from unittest.mock import patch
 
 import responses
@@ -5,7 +6,6 @@ from django.conf import settings
 from django.core import mail
 from django.urls import reverse
 from django.utils import timezone
-from exam import fixture
 from freezegun import freeze_time
 
 from sentry.incidents.action_handlers import (
@@ -57,7 +57,7 @@ class EmailActionHandlerTest(FireTest, TestCase):
 
 
 class EmailActionHandlerGetTargetsTest(TestCase):
-    @fixture
+    @cached_property
     def incident(self):
         return self.create_incident()
 
