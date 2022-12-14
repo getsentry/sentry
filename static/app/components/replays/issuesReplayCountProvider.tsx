@@ -3,7 +3,7 @@ import {Fragment, ReactNode, useMemo} from 'react';
 import ReplayCountContext from 'sentry/components/replays/replayCountContext';
 import useReplaysCount from 'sentry/components/replays/useReplaysCount';
 import GroupStore from 'sentry/stores/groupStore';
-import type {Group, Project} from 'sentry/types';
+import type {Group} from 'sentry/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 
@@ -37,13 +37,7 @@ function Provider({children, groupIds}: Props) {
   const {projects} = useProjects();
 
   const projectsById = useMemo(
-    () =>
-      projects.reduce<Record<Project['id'], Project>>((map, p) => {
-        return {
-          ...map,
-          [p.id]: p,
-        };
-      }, {}),
+    () => projects.reduce((map, p) => map.set(p.id, p), new Map()),
     [projects]
   );
 
@@ -55,7 +49,7 @@ function Provider({children, groupIds}: Props) {
       .map(id => GroupStore.get(id) as Group)
       .filter(Boolean)
       .filter(group => {
-        const proj = projectsById[group.project.id];
+        const proj = projectsById.get(group.project.id);
         if (proj?.hasReplays) {
           pIds.add(group.project.id);
           return true;
