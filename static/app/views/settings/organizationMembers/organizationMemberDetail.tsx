@@ -292,7 +292,9 @@ class OrganizationMemberDetail extends AsyncView<Props, State> {
                       <DetailLabel>{t('Invite Link')}</DetailLabel>
                       <TextCopyInput>{inviteLink}</TextCopyInput>
                       <p className="help-block">
-                        {t('This unique invite link may only be used by this member.')}
+                        {t(
+                          'This invite link can be used by anyone who knows it. Keep it secure!'
+                        )}
                       </p>
                     </div>
                     <InviteActions>
