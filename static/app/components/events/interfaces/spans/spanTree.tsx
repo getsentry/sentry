@@ -813,7 +813,6 @@ type SpanRowProps = ListRowProps & {
 function SpanRow(props: SpanRowProps) {
   const {
     index,
-    key,
     parent,
     style,
     columnIndex,
@@ -886,7 +885,6 @@ function SpanRow(props: SpanRowProps) {
 
   return (
     <CellMeasurer
-      key={key}
       cache={cache}
       parent={parent}
       columnIndex={columnIndex}

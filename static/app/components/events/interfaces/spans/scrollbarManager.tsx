@@ -204,14 +204,14 @@ export class Provider extends Component<Props, State> {
 
   updateHorizontalScrollState = (avgSpanDepth: number) => {
     if (avgSpanDepth === 0) {
-      this.throttledScroll(0, true);
+      this.performScroll(0, true);
       this.currentLeftPos = 0;
 
       return;
     }
 
     const left = avgSpanDepth * (TOGGLE_BORDER_BOX / 2) - TOGGLE_BUTTON_MAX_WIDTH / 2;
-    this.throttledScroll(left, true);
+    this.performScroll(left, true);
     this.currentLeftPos = left;
   };
 
