@@ -1,7 +1,5 @@
-import datetime
 import logging
 
-import pytz
 from django.db import IntegrityError, transaction
 from django.db.models import F, Q
 from django.utils import timezone
@@ -22,6 +20,7 @@ from sentry.signals import (
     event_processed,
     first_event_pending,
     first_event_received,
+    first_event_with_minified_stack_trace_received,
     first_profile_received,
     first_replay_received,
     first_transaction_received,
@@ -33,20 +32,8 @@ from sentry.signals import (
     project_created,
     transaction_processed,
 )
+from sentry.utils.event import has_event_minified_stack_trace
 from sentry.utils.javascript import has_sourcemap
-from sentry.utils.safe import get_path
-
-
-# Check if an event contains a minified stack trace
-def has_event_minified_stack_trace(event):
-    exception_values = get_path(event.data, "exception", "values", filter=True)
-
-    if exception_values:
-        for exception_value in exception_values:
-            if "raw_stacktrace" in exception_value:
-                return True
-
-    return False
 
 
 def try_mark_onboarding_complete(organization_id):
@@ -375,15 +362,8 @@ def record_user_context_received(project, event, **kwargs):
 event_processed.connect(record_user_context_received, weak=False)
 
 
+@first_event_with_minified_stack_trace_received.connect(weak=False)
 def record_event_with_first_minified_stack_trace_for_project(project, event, **kwargs):
-    # We only want to record events from projects created after 2022-12-09,
-    # otherwise amplitude would receive a large amount of data in a short period of time
-    if project.date_added < datetime.datetime(2022, 12, 9, tzinfo=pytz.utc):
-        return
-
-    if not has_event_minified_stack_trace(event):
-        return
-
     try:
         user: APIUser = Organization.objects.get(id=project.organization_id).get_default_owner()
     except IndexError:
@@ -393,17 +373,19 @@ def record_event_with_first_minified_stack_trace_for_project(project, event, **k
         )
         return
 
-    analytics.record(
-        "first_event_with_minified_stack_trace_for_project.sent",
-        user_id=user.id,
-        organization_id=project.organization_id,
-        project_id=project.id,
-        platform=event.platform,
-        url=dict(event.tags).get("url", None),
-    )
+    if not project.flags.has_minified_stack_trace:
+        analytics.record(
+            "first_event_with_minified_stack_trace_for_project.sent",
+            user_id=user.id,
+            organization_id=project.organization_id,
+            project_id=project.id,
+            platform=event.platform,
+            url=dict(event.tags).get("url", None),
+        )
+
+    project.update(flags=F("flags").bitor(Project.flags.has_minified_stack_trace))
 
 
-event_processed.connect(record_event_with_first_minified_stack_trace_for_project, weak=False)
 transaction_processed.connect(record_user_context_received, weak=False)
 
 

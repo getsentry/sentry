@@ -1,7 +1,6 @@
 """
 These settings act as the default (base) settings for the Sentry-provided web-server
 """
-
 import os
 import os.path
 import platform
@@ -12,6 +11,8 @@ import tempfile
 from datetime import datetime, timedelta
 from typing import Any, Dict, Iterable, Mapping, Tuple
 from urllib.parse import urlparse
+
+import pytz
 
 import sentry
 from sentry.types.region import Region
@@ -2920,3 +2921,9 @@ SLICED_KAFKA_TOPICS: Mapping[Tuple[str, int], Mapping[str, Any]] = {}
 # Used by silo tests -- when requests pass through decorated endpoints, switch the server silo mode to match that
 # decorator.
 SINGLE_SERVER_SILO_MODE = False
+
+
+# Used to determine if we should or not record an analytic data for a first event of a project with a minified stack trace
+START_DATE_TRACKING_FIRST_EVENT_WITH_MINIFIED_STACK_TRACE_PER_PROJ = datetime(
+    2022, 12, 14, tzinfo=pytz.UTC
+)

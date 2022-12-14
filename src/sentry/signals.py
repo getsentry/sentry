@@ -116,6 +116,7 @@ project_created = BetterSignal(providing_args=["project", "user", "default_rules
 first_event_pending = BetterSignal(providing_args=["project", "user"])
 
 first_event_received = BetterSignal(providing_args=["project", "event"])
+first_event_with_minified_stack_trace_received = BetterSignal(providing_args=["project", "event"])
 first_transaction_received = BetterSignal(providing_args=["project", "event"])
 first_profile_received = BetterSignal(providing_args=["project"])
 first_replay_received = BetterSignal(providing_args=["project"])
