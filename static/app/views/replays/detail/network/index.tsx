@@ -7,7 +7,6 @@ import {
   MultiGrid,
 } from 'react-virtualized';
 import styled from '@emotion/styled';
-import range from 'lodash/range';
 
 import FileSize from 'sentry/components/fileSize';
 import Placeholder from 'sentry/components/placeholder';
@@ -219,7 +218,7 @@ function NetworkList({replayRecord, networkSpans}: Props) {
                 columnWidth={({index}) => {
                   if (index === 1) {
                     return Math.max(
-                      range(COLUMN_COUNT).reduce(
+                      Array.from(new Array(COLUMN_COUNT)).reduce(
                         (remaining, _, i) =>
                           i === 1 ? remaining : remaining - cache.columnWidth({index: i}),
                         width - scrollBarWidth
