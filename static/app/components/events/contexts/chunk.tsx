@@ -43,6 +43,12 @@ function getTitle({value = {}, alias, type}: Pick<Props, 'alias' | 'type' | 'val
       return t('Trace Details');
     case 'otel':
       return t('OpenTelemetry');
+    case 'memory_info': // Future new value for memory info
+    case 'Memory Info': // Current value for memory info
+      return t('Memory Info');
+    case 'thread_pool_info': // Future new value for thread pool info
+    case 'ThreadPool Info': // Current value for thread pool info
+      return t('Thread Pool Info');
     case 'default':
       if (alias === 'state') {
         return t('Application State');

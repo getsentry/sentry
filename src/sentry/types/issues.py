@@ -4,7 +4,6 @@ from enum import Enum
 
 class GroupType(Enum):
     ERROR = 1
-    PERFORMANCE_N_PLUS_ONE = 1000
     PERFORMANCE_SLOW_SPAN = 1001
     PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN = 1004
     PERFORMANCE_DUPLICATE_SPANS = 1005
@@ -27,7 +26,6 @@ GROUP_CATEGORIES_CUSTOM_EMAIL = (GroupCategory.ERROR, GroupCategory.PERFORMANCE)
 
 GROUP_TYPE_TO_CATEGORY = {
     GroupType.ERROR: GroupCategory.ERROR,
-    GroupType.PERFORMANCE_N_PLUS_ONE: GroupCategory.PERFORMANCE,
     GroupType.PERFORMANCE_SLOW_SPAN: GroupCategory.PERFORMANCE,
     GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN: GroupCategory.PERFORMANCE,
     GroupType.PERFORMANCE_DUPLICATE_SPANS: GroupCategory.PERFORMANCE,
@@ -40,7 +38,6 @@ GROUP_TYPE_TO_CATEGORY = {
 
 GROUP_TYPE_TO_TEXT = {
     GroupType.ERROR: "Error",
-    GroupType.PERFORMANCE_N_PLUS_ONE: "N+1",  # may be N+1 Spans, N+1 Web Requests
     GroupType.PERFORMANCE_SLOW_SPAN: "Slow Span",
     GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN: "Render Blocking Asset Span",
     GroupType.PERFORMANCE_DUPLICATE_SPANS: "Duplicate Spans",

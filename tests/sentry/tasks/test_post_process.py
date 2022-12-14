@@ -1146,7 +1146,7 @@ class PostProcessGroupPerformanceTest(
 ):
     def create_event(self, data, project_id):
         fingerprint = data["fingerprint"][0] if data.get("fingerprint") else "some_group"
-        fingerprint = f"{GroupType.PERFORMANCE_N_PLUS_ONE.value}-{fingerprint}"
+        fingerprint = f"{GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value}-{fingerprint}"
         # Store a performance event
         event = self.store_transaction(
             project_id=project_id,
@@ -1231,7 +1231,7 @@ class PostProcessGroupPerformanceTest(
             user_id=self.create_user(name="user1").name,
             fingerprint=[
                 f"{GroupType.PERFORMANCE_SLOW_SPAN.value}-group1",
-                f"{GroupType.PERFORMANCE_N_PLUS_ONE.value}-group2",
+                f"{GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value}-group2",
             ],
             environment=None,
             timestamp=min_ago,
