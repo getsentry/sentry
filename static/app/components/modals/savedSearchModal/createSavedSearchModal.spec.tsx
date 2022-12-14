@@ -64,7 +64,7 @@ describe('CreateSavedSearchModal', function () {
             query: 'is:unresolved assigned:lyn@sentry.io',
             sort: IssueSortOptions.DATE,
             type: 0,
-            visibility: SavedSearchVisibility.Organization,
+            visibility: SavedSearchVisibility.Owner,
           },
         })
       );
@@ -92,7 +92,7 @@ describe('CreateSavedSearchModal', function () {
             query: 'is:resolved',
             sort: IssueSortOptions.PRIORITY,
             type: 0,
-            visibility: SavedSearchVisibility.Organization,
+            visibility: SavedSearchVisibility.Owner,
           },
         })
       );
@@ -102,7 +102,6 @@ describe('CreateSavedSearchModal', function () {
   describe('visibility', () => {
     it('only allows owner-level visibility without org:write permission', async function () {
       const org = TestStubs.Organization({
-        features: ['issue-list-saved-searches-v2'],
         access: [],
       });
 
@@ -134,7 +133,6 @@ describe('CreateSavedSearchModal', function () {
 
   it('can change to org-level visibility with org:write permission', async function () {
     const org = TestStubs.Organization({
-      features: ['issue-list-saved-searches-v2'],
       access: ['org:write'],
     });
     render(<CreateSavedSearchModal {...defaultProps} organization={org} />);
