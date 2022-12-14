@@ -1,6 +1,6 @@
 from symbolic import ProguardMapper
 
-from sentry.lang.java.processing import process_proguard_file
+from sentry.lang.java.processing import deobfuscate_exception_value
 from sentry.lang.java.utils import has_proguard_file
 from sentry.models import EventError, ProjectDebugFile
 from sentry.plugins.base.v2 import Plugin2
@@ -139,4 +139,4 @@ class JavaPlugin(Plugin2):
 
     def get_event_preprocessors(self, data):
         if has_proguard_file(data):
-            return [process_proguard_file]
+            return [deobfuscate_exception_value]
