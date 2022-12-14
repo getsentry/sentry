@@ -362,13 +362,13 @@ class ProjectStacktraceLinkTestMultipleMatches(BaseProjectStacktraceLink):
         configs = self.code_mappings
         # Expected configs: stack_root, automatically_generated
         expected_config_order = [
-            self.code_mapping1,  # "", False
             self.code_mapping3,  # "usr/src/getsentry/", False
             self.code_mapping4,  # "usr/src/", False
-            self.code_mapping2,  # "usr/src/getsentry/src/", True
+            self.code_mapping1,  # "", False
             self.code_mapping5,  # "usr/src/getsentry/src/sentry/", True
+            self.code_mapping2,  # "usr/src/getsentry/src/", True
         ]
-        # This will just check that the user generated code mappings are inserted first for now
+
         sorted_configs = project_stacktrace_link_endpoint.sort_code_mapping_configs(configs)
         assert sorted_configs == expected_config_order
 
@@ -381,8 +381,9 @@ class ProjectStacktraceLinkTestMultipleMatches(BaseProjectStacktraceLink):
             response = self.get_success_response(
                 self.organization.slug, self.project.slug, qs_params={"file": self.filepath}
             )
-            # Assert that the code mapping that is user generated is chosen
-            assert response.data["config"] == self.expected_configurations(self.code_mapping1)
+            # Assert that the code mapping that is user generated and has the most defined stack
+            # trace of the user generated code mappings is chosen
+            assert response.data["config"] == self.expected_configurations(self.code_mapping3)
             assert (
                 response.data["sourceUrl"]
                 == "https://github.com/usr/src/getsentry/src/sentry/src/sentry/utils/safe.py"
