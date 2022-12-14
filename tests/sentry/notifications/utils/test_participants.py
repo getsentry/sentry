@@ -503,6 +503,7 @@ class GetOwnersCase(TestCase):
         owner_reason = get_owner_reason(
             project=self.project,
             event=event,
+            target_type=ActionTargetType.ISSUE_OWNERS,
             fallthrough_choice=FallthroughChoiceType.ALL_MEMBERS,
         )
         assert owner_reason is None
@@ -511,6 +512,7 @@ class GetOwnersCase(TestCase):
             owner_reason = get_owner_reason(
                 project=self.project,
                 event=event,
+                target_type=ActionTargetType.ISSUE_OWNERS,
                 fallthrough_choice=FallthroughChoiceType.ALL_MEMBERS,
             )
             assert (
@@ -520,6 +522,7 @@ class GetOwnersCase(TestCase):
             owner_reason = get_owner_reason(
                 project=self.project,
                 event=event,
+                target_type=ActionTargetType.ISSUE_OWNERS,
                 fallthrough_choice=FallthroughChoiceType.ADMIN_OR_RECENT,
             )
             assert (

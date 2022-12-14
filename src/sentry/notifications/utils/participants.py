@@ -190,7 +190,7 @@ def get_owners(project: Project, event: Event | None = None) -> Sequence[Team | 
 
 def get_owner_reason(
     project: Project,
-    target_identifier: int | None = None,
+    target_type: ActionTargetType,
     event: Event | None = None,
     notification_type: NotificationSettingTypes = NotificationSettingTypes.ISSUE_ALERTS,
     fallthrough_choice: FallthroughChoiceType = None,
@@ -203,7 +203,7 @@ def get_owner_reason(
         return None
 
     # Sent to a specific user or team
-    if target_identifier:
+    if target_type != ActionTargetType.ISSUE_OWNERS:
         return None
 
     # Not an issue alert
