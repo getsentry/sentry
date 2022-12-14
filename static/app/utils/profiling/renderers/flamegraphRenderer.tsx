@@ -386,17 +386,18 @@ class FlamegraphRenderer {
         return;
       }
 
-      const frameRect = new Rect(frame.start, frame.depth, frame.end - frame.start, 1);
-
       // We treat entire flamegraph as a segment tree, this allows us to query in O(log n) time by
       // only looking at the nodes that are relevant to the current cursor position. We discard any values
       // on x axis that do not overlap the cursor, and descend until we find a node that overlaps at cursor y position
-      if (!frameRect.containsX(configSpaceCursor)) {
+      if (configSpaceCursor[0] < frame.start || configSpaceCursor[0] > frame.end) {
         return;
       }
 
       // If our frame depth overlaps cursor y position, we have found our node
-      if (frameRect.containsY(configSpaceCursor)) {
+      if (
+        configSpaceCursor[1] >= frame.depth &&
+        configSpaceCursor[1] <= frame.depth + 1
+      ) {
         hoveredNode = frame;
         return;
       }
