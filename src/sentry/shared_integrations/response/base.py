@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any, Mapping
 
 import requests
+from django.http import HttpResponse, JsonResponse
 from django.utils.functional import cached_property
 from requests import Response
 
@@ -31,11 +32,29 @@ class BaseApiResponse:
     def json(self) -> Any:
         raise NotImplementedError
 
+    @property
+    def body(self) -> Any:
+        return self.json
+
     @cached_property  # type: ignore
     def rel(self) -> Mapping[str, str]:
         link_header = (self.headers or {}).get("Link", "")
         parsed_links = requests.utils.parse_header_links(link_header)
         return {item["rel"]: item["url"] for item in parsed_links}
+
+    def to_http_response(self) -> HttpResponse:
+        """
+        These response types do not inherit from HttpResponse, meaning Django might throw
+        internal library errors when interacting with these objects in middleware. This method
+        returns an HttpResponse/JsonResponse equivalent of the request.
+        """
+        response = (
+            JsonResponse(self.body)
+            if (self.headers or {}).get("Content-Type") == "application/json"
+            else HttpResponse(self.body)
+        )
+        response.headers = self.headers
+        return response
 
     @classmethod
     def from_response(

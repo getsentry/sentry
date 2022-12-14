@@ -139,7 +139,49 @@ def query_replays_dataset(
             **query_options,
         ),
     )
-    return raw_snql_query(snuba_request)
+    return raw_snql_query(snuba_request, "replays.query.query_replays_dataset")
+
+
+def query_replays_count(
+    project_ids: List[str],
+    start: datetime,
+    end: datetime,
+    replay_ids: List[str],
+):
+
+    snuba_request = Request(
+        dataset="replays",
+        app_id="replay-backend-web",
+        query=Query(
+            match=Entity("replays"),
+            select=[
+                _strip_uuid_dashes("replay_id", Column("replay_id")),
+                Function(
+                    "notEmpty",
+                    parameters=[Function("groupArray", parameters=[Column("is_archived")])],
+                    alias="isArchived",
+                ),
+            ],
+            where=[
+                Condition(Column("project_id"), Op.IN, project_ids),
+                Condition(Column("timestamp"), Op.LT, end),
+                Condition(Column("timestamp"), Op.GTE, start),
+                Condition(Column("replay_id"), Op.IN, replay_ids),
+            ],
+            having=[
+                # Must include the first sequence otherwise the replay is too old.
+                Condition(Function("min", parameters=[Column("segment_id")]), Op.EQ, 0),
+                # Require non-archived replays.
+                Condition(Column("isArchived"), Op.EQ, 0),
+            ],
+            orderby=[],
+            groupby=[Column("replay_id")],
+            granularity=Granularity(3600),
+        ),
+    )
+    return raw_snql_query(
+        snuba_request, referrer="replays.query.query_replays_count", use_cache=True
+    )
 
 
 # Select.

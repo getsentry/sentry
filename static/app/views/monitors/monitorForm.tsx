@@ -150,13 +150,15 @@ class MonitorForm extends Component<Props> {
                   options={this.props.projects
                     .filter(p => p.isMember)
                     .map(p => ({value: p.slug, label: p.slug}))}
-                  help={t('Associate your monitor with the appropriate project.')}
+                  help={t(
+                    "Select the project which contains the recurring job you'd like to monitor."
+                  )}
                   required
                 />
                 <TextField
                   name="name"
                   placeholder={t('My Cron Job')}
-                  label={t('Name')}
+                  label={t('Name your cron monitor')}
                   disabled={!hasAccess}
                   required
                 />
@@ -171,7 +173,7 @@ class MonitorForm extends Component<Props> {
                   label={t('Max Runtime')}
                   disabled={!hasAccess}
                   help={t(
-                    "The maximum runtime (in minutes) a check-in is allowed before it's marked as a failure."
+                    "Set the number of minutes a recurring job is allowed to run before it's considered failed"
                   )}
                   placeholder="e.g. 30"
                 />
@@ -195,7 +197,7 @@ class MonitorForm extends Component<Props> {
                               placeholder="*/5 * * * *"
                               required
                               help={tct(
-                                'Changes to the schedule will apply on the next check-in. See [link:Wikipedia] for crontab syntax.',
+                                'Any schedule changes will be applied to the next check-in. See [link:Wikipedia] for crontab syntax.',
                                 {
                                   link: <a href="https://en.wikipedia.org/wiki/Cron" />,
                                 }
@@ -206,7 +208,7 @@ class MonitorForm extends Component<Props> {
                               label={t('Check-in Margin')}
                               disabled={!hasAccess}
                               help={t(
-                                "The margin (in minutes) a check-in is allowed to exceed it's scheduled window before being treated as missed."
+                                "The max error margin (in minutes) before a check-in is considered missed. If you don't expect your job to start immediately at the scheduled time, expand this margin to account for delays."
                               )}
                               placeholder="e.g. 30"
                             />
@@ -240,7 +242,7 @@ class MonitorForm extends Component<Props> {
                               label={t('Check-in Margin')}
                               disabled={!hasAccess}
                               help={t(
-                                "The margin (in minutes) a check-in is allowed to exceed it's scheduled window before being treated as missed."
+                                "The max error margin (in minutes) before a check-in is considered missed. If you don't expect your job to start immediately at the scheduled time, expand this margin to account for delays."
                               )}
                               placeholder="e.g. 30"
                             />

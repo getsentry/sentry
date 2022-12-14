@@ -117,6 +117,7 @@ def test_customer_domain_path():
             "/settings/projects/python/filters/discarded/",
             "/settings/projects/python/filters/discarded/",
         ],
+        ["/settings/teams/peeps/", "/settings/teams/peeps/"],
     ]
     for input_path, expected in scenarios:
         assert expected == customer_domain_path(input_path)

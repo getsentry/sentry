@@ -4,16 +4,17 @@ from collections import defaultdict
 
 from rest_framework import status
 from rest_framework.response import Response
-from snuba_sdk import Column, Condition, Op, Request
+from snuba_sdk import Request
 
 from sentry import features
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects
 from sentry.api.bases.organization_events import OrganizationEventsV2EndpointBase
 from sentry.models import Organization
-from sentry.replays.query import query_replays_dataset
+from sentry.replays.query import query_replays_count
 from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.types import ParamsType, SnubaParams
+from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.snuba import Dataset
 
 MAX_REPLAY_COUNT = 51
@@ -27,6 +28,14 @@ class OrganizationIssueReplayCountEndpoint(OrganizationEventsV2EndpointBase):
     """
 
     private = True
+    enforce_rate_limit = True
+    rate_limits = {
+        "GET": {
+            RateLimitCategory.IP: RateLimit(20, 1),
+            RateLimitCategory.USER: RateLimit(20, 1),
+            RateLimitCategory.ORGANIZATION: RateLimit(20, 1),
+        }
+    }
 
     def get(self, request: Request, organization: Organization) -> Response:
         if not features.has("organizations:session-replay", organization, actor=request.user):
@@ -44,17 +53,11 @@ class OrganizationIssueReplayCountEndpoint(OrganizationEventsV2EndpointBase):
         except ValueError as e:
             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
-        replay_results = query_replays_dataset(
+        replay_results = query_replays_count(
             project_ids=[p.id for p in snuba_params.projects],
             start=snuba_params.start,
             end=snuba_params.end,
-            sorting=[],
-            where=[
-                Condition(Column("replay_id"), Op.IN, list(replay_id_to_issue_map.keys())),
-            ],
-            fields=["id"],
-            search_filters=[],
-            pagination=None,
+            replay_ids=list(replay_id_to_issue_map.keys()),
         )
 
         issue_id_counts: dict[int, int] = defaultdict(int)
@@ -82,7 +85,9 @@ def _query_discover_for_replay_ids(
     )
     _validate_params(builder)
 
-    discover_results = builder.run_query("api.organization-issue-replay-count")
+    discover_results = builder.run_query(
+        referrer="api.organization-issue-replay-count", use_cache=True
+    )
 
     replay_id_to_issue_map = defaultdict(list)
 
