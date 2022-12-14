@@ -38,7 +38,8 @@ const platformToDocsPlatform: Record<
 export function isProfilingSupportedOrProjectHasProfiles(project: Project): boolean {
   return !!(
     (project.platform && platformToDocsPlatform[project.platform]) ||
-    // if they somehow managed to send profiles already, then profiling is supported
+    // If this project somehow managed to send profiles, then profiling is supported for this project.
+    // Sometimes and for whatever reason, platform can also not be set on a project so the above check alone would fail
     project.hasProfiles
   );
 }
