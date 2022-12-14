@@ -171,7 +171,8 @@ class TransactionNameRule(TypedDict):
 
 
 def get_transaction_names_config(project: Project) -> Optional[Sequence[TransactionNameRule]]:
-    # TODO: register the feature
+    if not features.has("organizations:transaction_name_sanitization", project.organization):
+        return None
 
     cluster_rules: Sequence[Tuple[str, int]] = project.get_option(
         "sentry:transaction_name_cluster_rules", {}
