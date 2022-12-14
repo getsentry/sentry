@@ -32,16 +32,16 @@ class SetupWizardView(BaseView):
     def handle_auth_required(self, request: Request, *args: Any, **kwargs: Any) -> HttpResponse:
         if request.GET.get("signup") == "1" and settings.SENTRY_SIGNUP_URL:
 
-            fragments = list(urlparse(absolute_uri(request.get_full_path())))
+            uri_components = list(urlparse(absolute_uri(request.get_full_path())))
 
             # get the params from the url and apply it to the signup url
-            params_for_signup = dict(parse_qsl(fragments[4]))
+            params_for_signup = dict(parse_qsl(uri_components[4]))
             # remove the signup query param
             params_for_signup.pop("signup", None)
             # remove query params from next url
-            fragments[4] = ""
+            uri_components[4] = ""
             # add the params to the signup url
-            params = {"next": urlunparse(fragments), **params_for_signup}
+            params = {"next": urlunparse(uri_components), **params_for_signup}
             return self.redirect(add_params_to_url(settings.SENTRY_SIGNUP_URL, params))
         return super().handle_auth_required(request, *args, **kwargs)
 
