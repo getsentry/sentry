@@ -35,8 +35,12 @@ const platformToDocsPlatform: Record<
   'python-tornado': 'python',
 };
 
-export function isProfilingSupportedForProject(project: Project): boolean {
-  return !!(project.platform && platformToDocsPlatform[project.platform]);
+export function isProfilingSupportedOrProjectHasProfiles(project: Project): boolean {
+  return !!(
+    (project.platform && platformToDocsPlatform[project.platform]) ||
+    // if they somehow managed to send profiles already, then profiling is supported
+    project.hasProfiles
+  );
 }
 
 export const profilingOnboardingDocKeys = [
