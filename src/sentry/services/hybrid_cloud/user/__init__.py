@@ -6,6 +6,7 @@ from dataclasses import dataclass, fields
 from enum import IntEnum
 from typing import TYPE_CHECKING, Any, Iterable, List, Optional, Set
 
+from sentry.db.models import BaseQuerySet
 from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_delegation, stubbed
 from sentry.silo import SiloMode
 
@@ -135,9 +136,24 @@ class UserService(InterfaceWithLifecycle):
         args["display_name"] = user.get_display_name()
         args["is_superuser"] = user.is_superuser
         args["password_usable"] = user.has_usable_password()
+
+        # And process the _base_user_query special data additions
+        permissions = frozenset({})
         if hasattr(user, "permissions") and user.permissions is not None:
-            args["permissions"] = frozenset(user.permissions)
+            permissions = frozenset(user.permissions)
+        args["permissions"] = permissions
+
+        if hasattr(user, "roles"):
+            args["roles"] = frozenset(flatten(user.roles.values_list("permissions", flat=True)))
         return APIUser(**args)
+
+
+def flatten(iter: Iterable):
+    return (
+        ((flatten(iter[0]) + flatten(iter[1:])) if len(iter) > 0 else [])
+        if type(iter) is list or isinstance(iter, BaseQuerySet)
+        else [iter]
+    )
 
 
 def impl_with_db() -> UserService:

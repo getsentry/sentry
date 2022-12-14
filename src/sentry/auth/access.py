@@ -20,7 +20,6 @@ from django.contrib.auth.models import AnonymousUser
 from sentry import features, roles
 from sentry.auth.superuser import is_active_superuser
 from sentry.auth.system import SystemToken, is_system_auth
-from sentry.db.models import BaseQuerySet
 from sentry.models import (
     ApiKey,
     Organization,
@@ -48,17 +47,9 @@ def get_cached_organization_member(user_id: int, organization_id: int) -> Organi
     return OrganizationMember.objects.get(user_id=user_id, organization_id=organization_id)
 
 
-def flatten(iter: Iterable):
-    return (
-        ((flatten(iter[0]) + flatten(iter[1:])) if len(iter) > 0 else [])
-        if type(iter) is list or isinstance(iter, BaseQuerySet)
-        else [iter]
-    )
-
-
 def get_permissions_for_user(user_id: int) -> FrozenSet[str]:
     user = user_service.get_user(user_id)
-    union = set(flatten(user.roles.values_list("permissions", flat=True))) | user.permissions
+    union = user.roles | user.permissions
     return cast(FrozenSet[str], union)
 
 
