@@ -206,7 +206,6 @@ def send_issue_occurrence_to_eventstream(
         is_regression=group_info.is_regression,
         is_new_group_environment=group_info.is_new_group_environment,
         primary_hash=group_event.get_primary_hash(),
-        # Not totally sure this is right. Should it be detection time instead?
         received_timestamp=group_event.data.get("received") or group_event.datetime,
         skip_consume=False,
         group_states=[
