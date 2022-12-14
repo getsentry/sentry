@@ -6,6 +6,7 @@ import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {DURATION_UNITS, SIZE_UNITS} from 'sentry/utils/discover/fieldRenderers';
 import {FieldValueType} from 'sentry/utils/fields';
+import RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -20,6 +21,7 @@ interface UseProfileEventsOptions<F> {
   referrer: string;
   sort: Sort<F>;
   cursor?: string;
+  enabled?: boolean;
   limit?: number;
   query?: string;
 }
@@ -47,6 +49,7 @@ export function useProfileEvents<F extends string>({
   query,
   sort,
   cursor,
+  enabled = true,
 }: UseProfileEventsOptions<F>) {
   const api = useApi();
   const organization = useOrganization();
@@ -77,11 +80,15 @@ export function useProfileEvents<F extends string>({
       query: endpointOptions.query,
     });
 
-  return useQuery<[EventsResults<F>, string | undefined, ResponseMeta | undefined]>({
+  return useQuery<
+    [EventsResults<F>, string | undefined, ResponseMeta | undefined],
+    RequestError
+  >({
     queryKey,
     queryFn,
     refetchOnWindowFocus: false,
     retry: false,
+    enabled,
   });
 }
 
