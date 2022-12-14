@@ -13,7 +13,7 @@ import sentry_sdk
 from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.processing.strategies import MessageRejected
 from arroyo.processing.strategies.abstract import ProcessingStrategy, ProcessingStrategyFactory
-from arroyo.types import Message, Partition, Position
+from arroyo.types import Commit, Message, Partition, Position
 from django.conf import settings
 from sentry_sdk.tracing import Transaction
 
@@ -41,7 +41,7 @@ class ChunkedRecordingProcessorStrategyFactory(ProcessingStrategyFactory[KafkaPa
 
     def create_with_partitions(
         self,
-        commit: Callable[[Mapping[Partition, Position]], None],
+        commit: Commit,
         partitions: Mapping[Partition, int],
     ) -> ProcessingStrategy[KafkaPayload]:
         return ChunkedRecordingProcessorStrategy(commit)

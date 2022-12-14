@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 import random
-from typing import Callable, Mapping, cast
+from typing import Mapping, cast
 
 import msgpack
 import sentry_sdk
@@ -10,7 +10,7 @@ from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.processing.strategies import RunTaskInThreads
 from arroyo.processing.strategies.abstract import ProcessingStrategy, ProcessingStrategyFactory
 from arroyo.processing.strategies.commit import CommitOffsets
-from arroyo.types import Message, Partition, Position
+from arroyo.types import Commit, Message, Partition
 from django.conf import settings
 
 from sentry.replays.usecases.ingest import RecordingMessage, ingest_recording_not_chunked
@@ -21,7 +21,7 @@ logger = logging.getLogger("sentry.replays")
 class RecordingProcessorStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
     def create_with_partitions(
         self,
-        commit: Callable[[Mapping[Partition, Position]], None],
+        commit: Commit,
         partitions: Mapping[Partition, int],
     ) -> ProcessingStrategy[KafkaPayload]:
         return RunTaskInThreads(
