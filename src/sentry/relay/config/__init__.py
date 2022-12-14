@@ -11,6 +11,7 @@ from typing import (
     MutableMapping,
     Optional,
     Sequence,
+    Tuple,
     TypedDict,
     Union,
 )
@@ -162,6 +163,36 @@ def get_dynamic_sampling_config(project: Project) -> Optional[Mapping[str, Any]]
     return None
 
 
+class TransactionNameRule(TypedDict):
+    pattern: str
+    expiry: str
+    scope: Mapping[str, str]
+    redaction: Mapping[str, str]
+
+
+def get_transaction_names_config(project: Project) -> Optional[Sequence[TransactionNameRule]]:
+    # TODO: register the feature
+
+    cluster_rules: Sequence[Tuple[str, int]] = project.get_option(
+        "sentry:transaction_name_cluster_rules", {}
+    )
+    if cluster_rules is None or len(cluster_rules) == 0:
+        return None
+
+    return [_get_tx_name_rule(p, e) for p, e in cluster_rules]
+
+
+def _get_tx_name_rule(pattern: str, expiry: int) -> TransactionNameRule:
+    return TransactionNameRule(
+        pattern=pattern,
+        expiry=expiry,
+        # Some more hardcoded fileds for future comptability. These are not
+        # currently used.
+        scope={"source": "url"},
+        redaction={"method": "replace", "substitution": "*"},
+    )
+
+
 def add_experimental_config(
     config: MutableMapping[str, Any],
     key: str,
@@ -225,6 +256,9 @@ def _get_project_config(
 
     # Limit the number of custom measurements
     add_experimental_config(config, "measurements", get_measurements_config)
+
+    # Rules to replace high cardinality transaction names
+    add_experimental_config(config, "txNameRules", get_transaction_names_config, project)
 
     if not full_config:
         # This is all we need for external Relay processors
