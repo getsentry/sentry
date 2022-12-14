@@ -24,10 +24,7 @@ const usePinnedSearch = () => {
   const organization = useOrganization();
   const {data: savedSearches} = useFetchSavedSearchesForOrg(
     {orgSlug: organization.slug},
-    {
-      notifyOnChangeProps: ['data'],
-      enabled: organization.features.includes('issue-list-saved-searches-v2'),
-    }
+    {notifyOnChangeProps: ['data']}
   );
 
   return savedSearches?.find(savedSearch => savedSearch.isPinned) ?? null;
@@ -89,10 +86,6 @@ const IssueListSetAsDefault = ({
       });
     }
   };
-
-  if (!organization.features.includes('issue-list-saved-searches-v2')) {
-    return null;
-  }
 
   // Hide if we are already on the default search,
   // except when the user has a different search pinned.

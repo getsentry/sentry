@@ -26,7 +26,9 @@ export function WidgetHeader<T extends WidgetDataConstraint>(
             <TextOverflow>{title}</TextOverflow>
           )}
           <MEPTag />
-          <QuestionTooltip position="top" size="sm" title={titleTooltip} />
+          {titleTooltip && (
+            <QuestionTooltip position="top" size="sm" title={titleTooltip} />
+          )}
         </StyledHeaderTitleLegend>
         {Subtitle ? <Subtitle {...props} /> : null}
       </TitleContainer>

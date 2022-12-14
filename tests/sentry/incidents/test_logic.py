@@ -348,15 +348,14 @@ class CreateIncidentActivityTest(TestCase, BaseIncidentsTest):
     def test_comment(self):
         incident = self.create_incident()
         comment = "hello"
-        with self.assertChanges(
-            lambda: IncidentSubscription.objects.filter(incident=incident, user=self.user).exists(),
-            before=False,
-            after=True,
-        ):
-            self.record_event.reset_mock()
-            activity = create_incident_activity(
-                incident, IncidentActivityType.COMMENT, user=self.user, comment=comment
-            )
+
+        assert not IncidentSubscription.objects.filter(incident=incident, user=self.user).exists()
+        self.record_event.reset_mock()
+        activity = create_incident_activity(
+            incident, IncidentActivityType.COMMENT, user=self.user, comment=comment
+        )
+        assert IncidentSubscription.objects.filter(incident=incident, user=self.user).exists()
+
         assert activity.incident == incident
         assert activity.type == IncidentActivityType.COMMENT.value
         assert activity.user == self.user
@@ -381,21 +380,22 @@ class CreateIncidentActivityTest(TestCase, BaseIncidentsTest):
         subscribed_mentioned_member = self.create_user()
         IncidentSubscription.objects.create(incident=incident, user=subscribed_mentioned_member)
         comment = f"hello **@{mentioned_member.username}** and **@{subscribed_mentioned_member.username}**"
-        with self.assertChanges(
-            lambda: IncidentSubscription.objects.filter(
-                incident=incident, user=mentioned_member
-            ).exists(),
-            before=False,
-            after=True,
-        ):
-            self.record_event.reset_mock()
-            activity = create_incident_activity(
-                incident,
-                IncidentActivityType.COMMENT,
-                user=self.user,
-                comment=comment,
-                mentioned_user_ids=[mentioned_member.id, subscribed_mentioned_member.id],
-            )
+
+        assert not IncidentSubscription.objects.filter(
+            incident=incident, user=mentioned_member
+        ).exists()
+        self.record_event.reset_mock()
+        activity = create_incident_activity(
+            incident,
+            IncidentActivityType.COMMENT,
+            user=self.user,
+            comment=comment,
+            mentioned_user_ids=[mentioned_member.id, subscribed_mentioned_member.id],
+        )
+        assert IncidentSubscription.objects.filter(
+            incident=incident, user=mentioned_member
+        ).exists()
+
         assert activity.incident == incident
         assert activity.type == IncidentActivityType.COMMENT.value
         assert activity.user == self.user

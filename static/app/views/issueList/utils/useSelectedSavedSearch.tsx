@@ -19,10 +19,7 @@ export const useSelectedSavedSearch = (): SavedSearch | null => {
 
   const {data: savedSearches} = useFetchSavedSearchesForOrg(
     {orgSlug: organization.slug},
-    {
-      notifyOnChangeProps: ['data'],
-      enabled: organization.features.includes('issue-list-saved-searches-v2'),
-    }
+    {notifyOnChangeProps: ['data']}
   );
 
   const selectedSearchId: string | undefined = params.searchId;
