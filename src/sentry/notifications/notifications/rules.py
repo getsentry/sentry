@@ -102,9 +102,9 @@ class AlertRuleNotification(ProjectNotification):
         rule_details = get_rules(self.rules, self.organization, self.project)
         notification_reason = get_owner_reason(
             project=self.project,
-            target_type=self.target_type,
             target_identifier=self.target_identifier,
             event=self.event,
+            fallthrough_choice=self.fallthrough_choice,
         )
 
         context = {
