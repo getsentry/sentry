@@ -671,7 +671,6 @@ class SpanTreeModel {
     addTraceBounds: (bounds: TraceBound) => void;
     removeTraceBounds: (eventSlug: string) => void;
   }) =>
-    // @ts-ignore
     action('toggleEmbeddedChildren', (props: {eventSlug: string; orgSlug: string}) => {
       this.showEmbeddedChildren = !this.showEmbeddedChildren;
       this.fetchEmbeddedChildrenState = 'idle';
