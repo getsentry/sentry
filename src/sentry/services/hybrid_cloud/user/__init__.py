@@ -164,7 +164,7 @@ class UserService(InterfaceWithLifecycle):
 
         roles: FrozenSet[str] = frozenset({})
         if hasattr(user, "roles") and user.roles is not None:
-            roles = frozenset(user.roles)
+            roles = frozenset(flatten(user.roles))
         args["roles"] = roles
 
         avatar = user.avatar.first()
