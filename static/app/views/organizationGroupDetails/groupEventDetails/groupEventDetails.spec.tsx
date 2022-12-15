@@ -4,7 +4,6 @@ import {Location} from 'history';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import CommitterStore from 'sentry/stores/committerStore';
 import {Event, Group} from 'sentry/types';
 import {Organization} from 'sentry/types/organization';
 import {Project} from 'sentry/types/project';
@@ -176,7 +175,6 @@ const mockGroupApis = (
 describe('groupEventDetails', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
-    CommitterStore.init();
   });
 
   afterEach(function () {
@@ -292,7 +290,6 @@ describe('groupEventDetails', () => {
 describe('EventCause', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
-    CommitterStore.init();
   });
 
   afterEach(function () {
@@ -331,17 +328,17 @@ describe('EventCause', () => {
       ],
     });
 
-    CommitterStore.loadSuccess(
-      props.organization.slug,
-      props.project.slug,
-      props.event.id,
-      [
-        {
-          commits: [TestStubs.Commit({author: TestStubs.CommitAuthor()})],
-          author: TestStubs.CommitAuthor(),
-        },
-      ]
-    );
+    MockApiClient.addMockResponse({
+      url: `/projects/${props.organization.slug}/${props.project.slug}/events/${props.event.id}/committers/`,
+      body: {
+        committers: [
+          {
+            commits: [TestStubs.Commit({author: TestStubs.CommitAuthor()})],
+            author: TestStubs.CommitAuthor(),
+          },
+        ],
+      },
+    });
 
     render(<TestComponent project={props.project} />, {organization: props.organization});
 

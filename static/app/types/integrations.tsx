@@ -9,7 +9,7 @@ import type {
 } from 'sentry/views/organizationIntegrations/constants';
 
 import type {Avatar, Choice, Choices, ObjectStatus, Scope} from './core';
-import type {BaseRelease, Release} from './release';
+import type {BaseRelease} from './release';
 import type {User} from './user';
 
 export type PermissionValue = 'no-access' | 'read' | 'write' | 'admin';
@@ -95,10 +95,6 @@ export type Committer = {
   author: User;
   commits: Commit[];
 };
-
-export interface ReleaseCommitter extends Committer {
-  release: Release;
-}
 
 export type CommitAuthor = {
   email?: string;
