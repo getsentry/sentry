@@ -53,7 +53,7 @@ def get_test_message(
 
 
 class IssueOccurrenceTestMessage(OccurrenceTestMixin, TestCase, SnubaTestCase):  # type: ignore
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.eventstore = SnubaEventStorage()
 
