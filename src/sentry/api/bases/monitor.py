@@ -1,3 +1,4 @@
+from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -15,6 +16,10 @@ class InvalidAuthProject(Exception):
 
 class MonitorEndpoint(Endpoint):
     permission_classes = (ProjectPermission,)
+
+    @staticmethod
+    def respond_invalid() -> Response:
+        return Response(status=status.HTTP_400_BAD_REQUEST, data={"details": "Invalid monitor"})
 
     def convert_args(self, request: Request, monitor_id, *args, **kwargs):
         try:
