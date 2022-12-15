@@ -23,15 +23,14 @@ import {
   ContextTitle,
   Wrapper,
 } from './styles';
-import {BaseContextProps, ContextType, fiveMinutesInMs} from './utils';
+import {BaseContextProps, ContextType, tenSecondInMs} from './utils';
 
 function ReleaseContext(props: BaseContextProps) {
   const {dataRow, organization} = props;
   const {isLoading, isError, data} = useQuery<ReleaseWithHealth>(
     [`/organizations/${organization.slug}/releases/${dataRow.release}/`],
     {
-      staleTime: fiveMinutesInMs,
-      retry: false,
+      staleTime: tenSecondInMs,
     }
   );
 

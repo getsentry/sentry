@@ -105,7 +105,7 @@ default_manager.add("organizations:metrics-performance-ui", OrganizationFeature,
 default_manager.add("organizations:minute-resolution-sessions", OrganizationFeature)
 default_manager.add("organizations:mobile-view-hierarchies", OrganizationFeature, True)
 default_manager.add("organizations:java-exception-value-deobfuscation", OrganizationFeature, True)
-default_manager.add("organizations:monitors", OrganizationFeature)
+default_manager.add("organizations:monitors", OrganizationFeature, True)
 default_manager.add("organizations:native-stack-trace-v2", OrganizationFeature, True)
 default_manager.add("organizations:new-weekly-report", OrganizationFeature, True)
 default_manager.add("organizations:notification-all-recipients", OrganizationFeature, True)

@@ -60,6 +60,7 @@ import IssueListFilters from './filters';
 import GroupListBody from './groupListBody';
 import IssueListHeader from './header';
 import {
+  DEFAULT_ISSUE_STREAM_SORT,
   getTabs,
   getTabsWithCounts,
   isForReviewQuery,
@@ -70,7 +71,6 @@ import {
 } from './utils';
 
 const MAX_ITEMS = 25;
-const DEFAULT_SORT = IssueSortOptions.DATE;
 // the default period for the graph in each issue row
 const DEFAULT_GRAPH_STATS_PERIOD = '24h';
 // the allowed period choices for graph in each issue row
@@ -293,7 +293,7 @@ class IssueListOverview extends Component<Props, State> {
       return location.query.sort as string;
     }
 
-    return DEFAULT_SORT;
+    return DEFAULT_ISSUE_STREAM_SORT;
   }
 
   getGroupStatsPeriod(): string {
@@ -334,7 +334,7 @@ class IssueListOverview extends Component<Props, State> {
     }
 
     const sort = this.getSort();
-    if (sort !== DEFAULT_SORT) {
+    if (sort !== DEFAULT_ISSUE_STREAM_SORT) {
       params.sort = sort;
     }
 
