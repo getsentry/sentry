@@ -184,6 +184,12 @@ def add_experimental_config(
             config[key] = subconfig
 
 
+def _should_extract_abnormal_mechanism(project: Project) -> bool:
+    return sample_modulo(
+        "sentry-metrics.releasehealth.abnormal-mechanism-extraction-rate", project.organization_id
+    )
+
+
 def _get_project_config(
     project: Project, full_config: bool = True, project_keys: Optional[Sequence[ProjectKey]] = None
 ) -> "ProjectConfig":
@@ -490,12 +496,6 @@ def _should_extract_transaction_metrics(project: Project) -> bool:
 def _accept_transaction_names_strategy(project: Project) -> TransactionNameStrategy:
     is_selected_org = sample_modulo("relay.transaction-names-client-based", project.organization_id)
     return "clientBased" if is_selected_org else "strict"
-
-
-def _should_extract_abnormal_mechanism(project: Project) -> TransactionNameStrategy:
-    return sample_modulo(
-        "sentry-metrics.releasehealth.abnormal-mechanism-extraction-rate", project.organization_id
-    )
 
 
 def get_transaction_metrics_settings(
