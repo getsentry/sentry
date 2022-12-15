@@ -59,17 +59,17 @@ def save_event_from_occurrence(
 
     from sentry.event_manager import EventManager
 
-    event_type = "platform"
+    event_type = "generic"
+    data["event_type"] = event_type
 
-    with metrics.global_tags(event_type=event_type):
-        project_id = data["data"].pop("project_id")
-        data = CanonicalKeyDict(data)
+    project_id = data["data"].pop("project_id")
+    data = CanonicalKeyDict(data)
 
-        with metrics.timer("occurrence_consumer.save_event_occurrence.event_manager.save"):
-            manager = EventManager(data)
-            event = manager.save(project_id=project_id)
+    with metrics.timer("occurrence_consumer.save_event_occurrence.event_manager.save"):
+        manager = EventManager(data)
+        event = manager.save(project_id=project_id)
 
-            return event
+        return event
 
 
 def process_event_and_issue_occurrence(
@@ -82,7 +82,12 @@ def process_event_and_issue_occurrence(
         return None
 
     occurrence_data["event_id"] = event.event_id
-    return save_issue_occurrence(occurrence_data, event)
+    try:
+        return save_issue_occurrence(occurrence_data, event)
+    except Exception:
+        logger.error("error saving occurrence")
+
+    return None
 
 
 def _get_kwargs(payload: Mapping[str, Any]) -> Optional[Mapping[str, Any]]:

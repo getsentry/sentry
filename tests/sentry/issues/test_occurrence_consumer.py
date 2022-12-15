@@ -6,6 +6,8 @@ import pytest
 
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.occurrence_consumer import _process_message
+
+# from sentry.models import Group
 from sentry.testutils import TestCase
 from sentry.types.issues import GroupType
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
@@ -29,7 +31,7 @@ def get_test_message(
             {"name": "Line", "value": "40", "important": True},
             {"name": "Memory", "value": "breached", "important": False},
         ],
-        "type": GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
+        "type": GroupType.PROFILE_BLOCKED_THREAD,
         "detection_time": now.isoformat(),
     }
 
@@ -57,11 +59,15 @@ class IssueOccurrenceTestMessage(OccurrenceTestMixin, TestCase):  # type: ignore
         fetched_occurrence = IssueOccurrence.fetch(occurrence.id, self.project.id)
         assert fetched_occurrence is not None
         self.assert_occurrences_identical(occurrence, fetched_occurrence)
+        # TODO uncomment this when save_issue_from_occurrence() is merged
+        # assert Group.objects.filter(grouphash__hash=occurrence.fingerprint[0]).exists()
 
-    @pytest.mark.django_db
-    def test_invalid_payload(self) -> None:
-        pass
-        # need to add better typing during message processing before this passes
-        # message = get_test_message(self.project.id, type=300)
-        # occurrence = _process_message(message)
-        # assert occurrence is None
+    def test_invalid_event_payload(self) -> None:
+        message = get_test_message(self.project.id, event={"title": "no project id"})
+        occurrence = _process_message(message)
+        assert occurrence is None
+
+    def test_invalid_occurrence_payload(self) -> None:
+        message = get_test_message(self.project.id, type=300)
+        occurrence = _process_message(message)
+        assert occurrence is None
