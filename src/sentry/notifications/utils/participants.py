@@ -29,12 +29,13 @@ from sentry.notifications.helpers import (
 from sentry.notifications.notify import notification_providers
 from sentry.notifications.types import (
     ActionTargetType,
+    FallthroughChoiceType,
     GroupSubscriptionReason,
     NotificationScopeType,
     NotificationSettingOptionValues,
     NotificationSettingTypes,
 )
-from sentry.services.hybrid_cloud.user import APIUser, user_service
+from sentry.services.hybrid_cloud.user import APIUser, UserService, user_service
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import metrics
 
@@ -255,6 +256,7 @@ def determine_eligible_recipients(
     target_type: ActionTargetType,
     target_identifier: int | None = None,
     event: Event | None = None,
+    fallthrough_choice: FallthroughChoiceType | None = None,
 ) -> Iterable[Team | APIUser]:
     """
     Either get the individual recipient from the target type/id or the
@@ -276,8 +278,13 @@ def determine_eligible_recipients(
     elif target_type == ActionTargetType.RELEASE_MEMBERS:
         return get_release_committers(project, event)
 
-    else:
-        return get_owners(project, event)
+    elif target_type == ActionTargetType.ISSUE_OWNERS:
+        owners = get_owners(project, event)
+        if owners:
+            return owners
+
+        if fallthrough_choice:
+            return get_fallthrough_recipients(project, fallthrough_choice)
 
     return set()
 
@@ -326,9 +333,41 @@ def get_send_to(
     target_identifier: int | None = None,
     event: Event | None = None,
     notification_type: NotificationSettingTypes = NotificationSettingTypes.ISSUE_ALERTS,
+    fallthrough_choice: FallthroughChoiceType | None = None,
 ) -> Mapping[ExternalProviders, set[Team | APIUser]]:
-    recipients = determine_eligible_recipients(project, target_type, target_identifier, event)
+    recipients = determine_eligible_recipients(
+        project, target_type, target_identifier, event, fallthrough_choice
+    )
     return get_recipients_by_provider(project, recipients, notification_type)
+
+
+def get_fallthrough_recipients(
+    project: Project, fallthrough_choice: FallthroughChoiceType
+) -> Iterable[APIUser]:
+    if not features.has(
+        "organizations:issue-alert-fallback-targeting",
+        organization=project.organization,
+        actor=None,
+    ):
+        return []
+
+    # Case 1: No fallthrough
+    if fallthrough_choice == FallthroughChoiceType.NO_ONE:
+        return []
+
+    # Case 2: notify all members
+    elif fallthrough_choice == FallthroughChoiceType.ALL_MEMBERS:
+        user_ids = project.member_set.all().values_list("user_id", flat=True)
+        return list(
+            UserService.serialize_user(user) for user in User.objects.filter(id__in=user_ids)
+        )
+
+    # TODO(snigdhasharma): Handle this in a followup PR (WOR-2385)
+    # Case 3: Admin or recent
+    elif fallthrough_choice == FallthroughChoiceType.ADMIN_OR_RECENT:
+        return []
+
+    return []
 
 
 def get_user_from_identifier(project: Project, target_identifier: str | int | None) -> User | None:
