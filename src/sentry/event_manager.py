@@ -2447,7 +2447,33 @@ def save_transaction_events(jobs: Sequence[Job], projects: ProjectsMapping) -> S
 
 @metrics.wraps("event_manager.save_generic_events")
 def save_generic_events(jobs: Sequence[Job], projects: ProjectsMapping) -> Sequence[Job]:
-    for job in jobs:
-        job["event"] = _get_event_instance(job["data"], project_id=job["project_id"])
+    with metrics.timer("event_manager.save_generic.ganization_ids"):
+        organization_ids = {project.organization_id for project in projects.values()}
+
+    with metrics.timer("event_manager.save_generic.fetch_organizations"):
+        organizations = {
+            o.id: o for o in Organization.objects.get_many_from_cache(organization_ids)
+        }
+
+    with metrics.timer("event_manager.save_generic.set_organization_cache"):
+        for project in projects.values():
+            try:
+                project.set_cached_field_value(
+                    "organization", organizations[project.organization_id]
+                )
+            except KeyError:
+                continue
+
+    _pull_out_data(jobs, projects)
+    _get_or_create_release_many(jobs, projects)
+    _get_event_user_many(jobs, projects)
+    _derive_plugin_tags_many(jobs, projects)
+    _derive_interface_tags_many(jobs)
+    _materialize_metadata_many(jobs)
+    _get_or_create_environment_many(jobs, projects)
+    _materialize_event_metrics(jobs)
+    _nodestore_save_many(jobs)
+    _eventstream_insert_many(jobs)
+    _track_outcome_accepted_many(jobs)
 
     return jobs
