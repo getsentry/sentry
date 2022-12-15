@@ -22,6 +22,7 @@ from sentry.models import (
     User,
     UserEmail,
 )
+from sentry.services.hybrid_cloud.user import APIUser, user_service
 from sentry.testutils import TestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.utils import json
@@ -84,6 +85,11 @@ class AuthIdentityHandlerTest(TestCase):
             user=user, auth_provider=self.auth_provider, ident="test_ident"
         )
         return user, auth_identity
+
+    @staticmethod
+    def assert_users_are_equal(actual_api_user: APIUser, expected_user_model: User) -> None:
+        expected_api_user = user_service.serialize_user(expected_user_model)
+        assert actual_api_user == expected_api_user
 
 
 @control_silo_test
@@ -326,7 +332,7 @@ class HandleUnknownIdentityTest(AuthIdentityHandlerTest):
         existing_user = self.create_user(email=self.email)
         context = self._test_simple(mock_render, "sentry/auth-confirm-identity.html")
         assert not mock_create_key.called
-        assert context["existing_user"] == existing_user
+        self.assert_users_are_equal(context["existing_user"], existing_user)
         assert "login_form" in context
 
     @mock.patch("sentry.auth.helper.render_to_response")
@@ -338,7 +344,7 @@ class HandleUnknownIdentityTest(AuthIdentityHandlerTest):
         context = self._test_simple(mock_render, "sentry/auth-confirm-account.html")
         assert mock_create_key.call_count == 1
         (user, org, provider, email, identity_id) = mock_create_key.call_args.args
-        assert user.id == existing_user.id
+        self.assert_users_are_equal(user, existing_user)
         assert org.id == self.organization.id
         assert provider.id == self.auth_provider.id
         assert email == self.email
@@ -353,7 +359,7 @@ class HandleUnknownIdentityTest(AuthIdentityHandlerTest):
         existing_user = self.create_user(email=self.email)
         context = self._test_simple(mock_render, "sentry/auth-confirm-identity.html")
         assert not mock_create_key.called
-        assert context["existing_user"] == existing_user
+        self.assert_users_are_equal(context["existing_user"], existing_user)
         assert "login_form" in context
 
     # TODO: More test cases for various values of request.POST.get("op")
