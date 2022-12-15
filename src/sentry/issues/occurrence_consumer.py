@@ -62,7 +62,7 @@ def save_event_from_occurrence(
     event_type = "generic"
     data["event_type"] = event_type
 
-    project_id = data["data"].pop("project_id")
+    project_id = data.pop("project_id")
     data = CanonicalKeyDict(data)
 
     with metrics.timer("occurrence_consumer.save_event_occurrence.event_manager.save"):
@@ -78,14 +78,14 @@ def process_event_and_issue_occurrence(
     try:
         event = save_event_from_occurrence(event_data)
     except Exception:
-        logger.error("error saving message")
+        logger.exception("error saving event")
         return None
 
     occurrence_data["event_id"] = event.event_id
     try:
         return save_issue_occurrence(occurrence_data, event)
     except Exception:
-        logger.error("error saving occurrence")
+        logger.exception("error saving occurrence")
 
     return None
 
@@ -111,7 +111,16 @@ def _get_kwargs(payload: Mapping[str, Any]) -> Optional[Mapping[str, Any]]:
             }
 
             if "event" in payload:
-                kwargs["event_data"] = {"data": payload["event"]}
+                payload_event = payload["event"]
+                kwargs["event_data"] = {
+                    "event_id": payload_event["event_id"],
+                    "project_id": payload_event["project_id"],
+                    "title": payload_event["title"],
+                    "platform": payload_event["platform"],
+                    "tags": payload_event["tags"],
+                    "timestamp": payload_event["timestamp"],
+                    # TODO add other params as per the spec
+                }
 
             return kwargs
 
