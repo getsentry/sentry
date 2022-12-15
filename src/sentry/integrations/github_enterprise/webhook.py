@@ -113,7 +113,7 @@ class GitHubEnterpriseWebhookBase(View):
 
     def handle(self, request: Request) -> Response:
         with configure_scope() as scope:
-            meta = request.meta
+            meta = request.META
             try:
                 # XXX: There's lost of customers that are giving us an IP rather than a host name
                 # Use HTTP_X_REAL_IP in a follow up PR
