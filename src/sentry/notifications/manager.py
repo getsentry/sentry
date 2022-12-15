@@ -260,6 +260,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         user_ids: MutableSet[int] = set()
         team_ids: MutableSet[int] = set()
         actor_ids: MutableSet[int] = set()
+
         for recipient in recipients:
             if type(recipient) == Team:
                 team_ids.add(recipient.id)

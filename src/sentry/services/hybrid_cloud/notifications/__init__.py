@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 import dataclasses
 from abc import abstractmethod
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING, List, Protocol
 
 from sentry.notifications.types import (
     NotificationScopeType,
@@ -25,7 +27,25 @@ class ApiNotificationSetting:
     value: NotificationSettingOptionValues = NotificationSettingOptionValues.DEFAULT
 
 
+class MayHaveActor(Protocol):
+    id: int
+    actor_id: int | None
+
+    def class_name(self) -> str:
+        pass
+
+
 class NotificationsService(InterfaceWithLifecycle):
+    @abstractmethod
+    def get_settings_for_recipient_by_parent(
+        self,
+        *,
+        type: NotificationSettingTypes,
+        parent_id: int,
+        recipients: List[MayHaveActor],
+    ) -> List[ApiNotificationSetting]:
+        pass
+
     @abstractmethod
     def get_settings_for_user_by_projects(
         self, *, type: NotificationSettingTypes, user_id: int, parent_ids: List[int]
@@ -33,7 +53,7 @@ class NotificationsService(InterfaceWithLifecycle):
         pass
 
     def _serialize_notification_settings(
-        self, setting: "NotificationSetting"
+        self, setting: NotificationSetting
     ) -> ApiNotificationSetting:
         return ApiNotificationSetting(
             scope_type=setting.scope_type,

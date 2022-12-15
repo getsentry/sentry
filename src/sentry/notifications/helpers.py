@@ -25,15 +25,7 @@ from sentry.types.integrations import (
 )
 
 if TYPE_CHECKING:
-    from sentry.models import (
-        Group,
-        GroupSubscription,
-        NotificationSetting,
-        Organization,
-        Project,
-        Team,
-        User,
-    )
+    from sentry.models import Group, GroupSubscription, Organization, Project, Team, User
     from sentry.services.hybrid_cloud.user import APIUser
 
 
@@ -188,7 +180,7 @@ def get_values_by_provider_by_type(
 
 
 def transform_to_notification_settings_by_recipient(
-    notification_settings: Iterable[NotificationSetting],
+    notification_settings: Iterable[ApiNotificationSetting],
     recipients: Iterable[Team | APIUser],
 ) -> Mapping[
     Team | APIUser,

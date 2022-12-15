@@ -12,7 +12,7 @@ def _iter_models():
 
     for app, app_models in apps.all_models.items():
         for model in app_models.values():
-            if model.__module__.startswith("django."):
+            if model.__module__.startswith("django.") or "tests." in model.__module__:
                 continue
             yield model
 
