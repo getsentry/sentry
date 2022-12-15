@@ -105,7 +105,7 @@ class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):  # type: ignor
 
         new_event = self.store_event(data={}, project_id=self.project.id)
         new_occurrence = self.build_occurrence(
-            fingerprint=occurrence.fingerprint, type=GroupType.PERFORMANCE_N_PLUS_ONE
+            fingerprint=occurrence.fingerprint, type=GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES
         )
         with mock.patch("sentry.issues.ingest.logger") as logger:
             assert save_issue_from_occurrence(new_occurrence, new_event, None) is None
