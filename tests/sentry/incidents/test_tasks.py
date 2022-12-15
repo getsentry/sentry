@@ -1,4 +1,5 @@
 from datetime import timedelta
+from functools import cached_property
 from unittest import mock
 from unittest.mock import Mock, call, patch
 
@@ -6,7 +7,6 @@ import pytest
 import pytz
 from django.urls import reverse
 from django.utils import timezone
-from exam import fixture
 from freezegun import freeze_time
 
 from sentry.incidents.logic import (
@@ -158,15 +158,15 @@ class HandleTriggerActionTest(TestCase):
         with mock.patch("sentry.incidents.tasks.metrics") as self.metrics:
             yield
 
-    @fixture
+    @cached_property
     def alert_rule(self):
         return self.create_alert_rule()
 
-    @fixture
+    @cached_property
     def trigger(self):
         return create_alert_rule_trigger(self.alert_rule, CRITICAL_TRIGGER_LABEL, 100)
 
-    @fixture
+    @cached_property
     def action(self):
         return create_alert_rule_trigger_action(
             self.trigger, AlertRuleTriggerAction.Type.EMAIL, AlertRuleTriggerAction.TargetType.USER
@@ -213,7 +213,7 @@ class HandleTriggerActionTest(TestCase):
 
 
 class TestHandleSubscriptionMetricsLogger(TestCase):
-    @fixture
+    @cached_property
     def subscription(self):
         snuba_query = create_snuba_query(
             SnubaQuery.Type.CRASH_RATE,
