@@ -166,3 +166,13 @@ class CreateMonitorCheckInTest(MonitorTestCase):
                 )
 
                 assert resp.status_code == 400, resp.content
+
+    def test_mismatched_org_slugs(self):
+        monitor = self._create_monitor()
+        path = f"/api/0/monitors/asdf/{monitor.guid}/checkins/"
+        self.login_as(user=self.user)
+
+        with self.feature("organizations:monitors"):
+            resp = self.client.post(path)
+
+            assert resp.status_code == 400
