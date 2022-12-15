@@ -47,7 +47,7 @@ class IssueOccurrenceEndpoint(Endpoint):
         :pparam: string dummy: pass 'True' to load a dummy event instead of providing one in the request
         """
         event = {}
-        if request.query_params.get("dummy") == "True" or "true":
+        if request.query_params.get("dummy") == "True":
             event = {
                 "event_id": "44f1419e73884cd2b45c79918f4b6dc4",
                 "project_id": 1,
@@ -58,7 +58,13 @@ class IssueOccurrenceEndpoint(Endpoint):
                 "message_timestamp": ensure_aware(datetime.now()),
             }
         else:
-            event = request.data.pop("event")
+            event = request.data.pop("event", None)
+
+        if not event:
+            return Response(
+                "Must pass an event or query param of dummy=True",
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         occurrence = request.data
 

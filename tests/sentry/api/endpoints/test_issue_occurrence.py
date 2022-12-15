@@ -59,3 +59,9 @@ class IssueOccurrenceTest(APITestCase):
         data.pop("event", None)
         response = self.client.post(url, data=data, format="json")
         assert response.status_code == 201, response.content
+
+    def test_no_event_passed(self):
+        data = dict(self.data)
+        data.pop("event", None)
+        response = self.client.post(self.url, data=data, format="json")
+        assert response.status_code == 400, response.content
