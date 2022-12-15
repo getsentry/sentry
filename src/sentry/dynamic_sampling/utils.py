@@ -96,7 +96,7 @@ def get_rule_hash(rule: BaseRule) -> int:
     # We want to be explicit in what we use for computing the hash. In addition, we need to remove certain fields like
     # the sampleRate.
     return json.dumps(
-        _nested_sort_dictionary(
+        _deep_sorted(
             {
                 "id": rule["id"],
                 "type": rule["type"],
@@ -107,8 +107,8 @@ def get_rule_hash(rule: BaseRule) -> int:
     ).__hash__()
 
 
-def _nested_sort_dictionary(value: Union[Any, Dict[Any, Any]]) -> Union[Any, Dict[Any, Any]]:
+def _deep_sorted(value: Union[Any, Dict[Any, Any]]) -> Union[Any, Dict[Any, Any]]:
     if isinstance(value, dict):
-        return {key: _nested_sort_dictionary(value) for key, value in sorted(value.items())}
+        return {key: _deep_sorted(value) for key, value in sorted(value.items())}
     else:
         return value
