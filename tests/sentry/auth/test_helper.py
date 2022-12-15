@@ -336,10 +336,15 @@ class HandleUnknownIdentityTest(AuthIdentityHandlerTest):
         existing_user.update(password="")
 
         context = self._test_simple(mock_render, "sentry/auth-confirm-account.html")
-        mock_create_key.assert_called_with(
-            existing_user, self.organization, self.auth_provider, self.email, "1234"
-        )
-        assert context["existing_user"] == existing_user
+        assert mock_create_key.call_count == 1
+        (user, org, provider, email, identity_id) = mock_create_key.call_args.args
+        assert user.id == existing_user.id
+        assert org.id == self.organization.id
+        assert provider.id == self.auth_provider.id
+        assert email == self.email
+        assert identity_id == self.identity["id"]
+
+        assert context["existing_user"].id == existing_user.id
         assert "login_form" in context
 
     @mock.patch("sentry.auth.helper.render_to_response")

@@ -5,7 +5,9 @@ from typing import Any, Dict
 from django.urls import reverse
 
 from sentry import options
-from sentry.models import AuthProvider, Organization, OrganizationMember, User
+from sentry.models import AuthProvider, OrganizationMember
+from sentry.services.hybrid_cloud.organization import ApiOrganization
+from sentry.services.hybrid_cloud.user import APIUser
 from sentry.utils import json, metrics, redis
 from sentry.utils.email import MessageBuilder
 from sentry.utils.http import absolute_uri
@@ -17,8 +19,8 @@ SSO_VERIFICATION_KEY = "confirm_account_verification_key"
 
 
 def send_one_time_account_confirm_link(
-    user: User,
-    org: Organization,
+    user: APIUser,
+    org: ApiOrganization,
     provider: AuthProvider,
     email: str,
     identity_id: str,
@@ -48,8 +50,8 @@ def get_redis_cluster():
 
 @dataclass
 class AccountConfirmLink:
-    user: User
-    organization: Organization
+    user: APIUser
+    organization: ApiOrganization
     provider: AuthProvider
     email: str
     identity_id: str
