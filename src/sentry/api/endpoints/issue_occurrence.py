@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from confluent_kafka import Producer
 from django.conf import settings
 from rest_framework import serializers, status
@@ -7,6 +9,7 @@ from rest_framework.response import Response
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.permissions import SuperuserPermission
 from sentry.utils import json
+from sentry.utils.dates import ensure_aware
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options
 
 
@@ -41,8 +44,22 @@ class IssueOccurrenceEndpoint(Endpoint):
         Write issue occurrence and event data to a Kafka topic
         ``````````````````````````````````````````````````````
         :auth: superuser required
+        :pparam: string dummy: pass 'True' to load a dummy event instead of providing one in the request
         """
-        event = request.data.pop("event")
+        event = {}
+        if request.query_params.get("dummy") == "True" or "true":
+            event = {
+                "event_id": "44f1419e73884cd2b45c79918f4b6dc4",
+                "project_id": 1,
+                "title": "This is bad",
+                "platform": "python",
+                "tags": {"environment": "prod"},
+                "timestamp": ensure_aware(datetime.now()),
+                "message_timestamp": ensure_aware(datetime.now()),
+            }
+        else:
+            event = request.data.pop("event")
+
         occurrence = request.data
 
         event_serializer = BasicEventSerializer(data=event)

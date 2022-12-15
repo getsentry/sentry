@@ -52,3 +52,10 @@ class IssueOccurrenceTest(APITestCase):
         data["detection_time"] = "today"
         response = self.client.post(self.url, data=data, format="json")
         assert response.status_code == 400, response.content
+
+    def test_load_fake_event(self):
+        url = self.url + "?dummy=True"
+        data = dict(self.data)
+        data.pop("event", None)
+        response = self.client.post(url, data=data, format="json")
+        assert response.status_code == 201, response.content
