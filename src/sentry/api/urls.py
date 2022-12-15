@@ -705,6 +705,11 @@ urlpatterns = [
                     MonitorStatsEndpoint.as_view(),
                     name="sentry-api-0-monitor-stats",
                 ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/(?P<monitor_id>[^\/]+)/stats/$",
+                    MonitorStatsEndpoint.as_view(),
+                    name="sentry-api-0-monitor-stats-with-org",
+                ),
             ]
         ),
     ),
