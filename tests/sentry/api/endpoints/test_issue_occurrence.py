@@ -1,5 +1,6 @@
 from datetime import datetime
 
+from sentry.models import OrganizationMember, OrganizationMemberTeam
 from sentry.testutils import APITestCase
 from sentry.types.issues import GroupType
 from sentry.utils.dates import ensure_aware
@@ -8,13 +9,16 @@ from sentry.utils.dates import ensure_aware
 class IssueOccurrenceTest(APITestCase):
     def setUp(self):
         super().setUp()
-        user = self.create_user(is_superuser=True)
-        self.login_as(user=user, superuser=True)
+        self.user = self.create_user(is_superuser=True)
+        self.org = self.create_organization(owner=self.user)
+        self.team = self.create_team(organization=self.org, members=[self.user])
+        project = self.create_project(organization=self.org, teams=[self.team])
+        self.login_as(user=self.user, superuser=True)
 
         self.url = "/api/0/issue-occurrence/"
         self.event = {
             "event_id": "44f1419e73884cd2b45c79918f4b6dc4",
-            "project_id": self.project.id,
+            "project_id": project.id,
             "title": "Meow meow",
             "platform": "python",
             "tags": {"environment": "prod"},
@@ -64,4 +68,14 @@ class IssueOccurrenceTest(APITestCase):
         data = dict(self.data)
         data.pop("event", None)
         response = self.client.post(self.url, data=data, format="json")
+        assert response.status_code == 400, response.content
+
+    def test_no_projects(self):
+        """Test that we raise a 400 if the user belongs to no project teams and passes the dummy query param"""
+        member = OrganizationMember(id=self.user.id, organization=self.org, email=self.user.email)
+        OrganizationMemberTeam.objects.get(team=self.team, organizationmember=member).delete()
+        url = self.url + "?dummy=True"
+        data = dict(self.data)
+        data.pop("event", None)
+        response = self.client.post(url, data=data, format="json")
         assert response.status_code == 400, response.content

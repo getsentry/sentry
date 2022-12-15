@@ -8,6 +8,7 @@ from rest_framework.response import Response
 
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.permissions import SuperuserPermission
+from sentry.models import User
 from sentry.utils import json
 from sentry.utils.dates import ensure_aware
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options
@@ -48,9 +49,16 @@ class IssueOccurrenceEndpoint(Endpoint):
         """
         event = {}
         if request.query_params.get("dummy") == "True":
+            user = User.objects.get(id=request.user.id)
+            projects = user.get_projects()
+            if not projects:
+                return Response(
+                    "Requesting user must belong to at least one project.",
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
             event = {
                 "event_id": "44f1419e73884cd2b45c79918f4b6dc4",
-                "project_id": 1,
+                "project_id": projects[0].id,
                 "title": "This is bad",
                 "platform": "python",
                 "tags": {"environment": "prod"},
