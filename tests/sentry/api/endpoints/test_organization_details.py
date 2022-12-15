@@ -139,10 +139,10 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
 
         # TODO(dcramer): We need to pare this down. Lots of duplicate queries for membership data.
         if SiloMode.get_current_mode() == SiloMode.MONOLITH:
-            expected_queries = 37
+            expected_queries = 38
         else:
             # In region mode, a number of auth related queries are batched considerably.
-            expected_queries = 36
+            expected_queries = 37
 
         with self.assertNumQueries(expected_queries, using="default"):
             response = self.get_success_response(self.organization.slug)

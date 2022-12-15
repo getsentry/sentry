@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {useCallback, useEffect, useRef, useState} from 'react';
 import {
   AutoSizer,
   CellMeasurer,
@@ -13,15 +13,18 @@ import Placeholder from 'sentry/components/placeholder';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {relativeTimeInMs} from 'sentry/components/replays/utils';
 import Tooltip from 'sentry/components/tooltip';
-import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {getPrevReplayEvent} from 'sentry/utils/replays/getReplayEvent';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import NetworkFilters from 'sentry/views/replays/detail/network/networkFilters';
+import NetworkHeaderCell, {
+  COLUMN_COUNT,
+  HEADER_HEIGHT,
+} from 'sentry/views/replays/detail/network/networkHeaderCell';
 import useNetworkFilters from 'sentry/views/replays/detail/network/useNetworkFilters';
-import {ISortConfig, sortNetwork} from 'sentry/views/replays/detail/network/utils';
+import useSortNetwork from 'sentry/views/replays/detail/network/useSortNetwork';
 import NoRowRenderer from 'sentry/views/replays/detail/noRowRenderer';
 import TimestampButton from 'sentry/views/replays/detail/timestampButton';
 import type {NetworkSpan, ReplayRecord} from 'sentry/views/replays/types';
@@ -38,16 +41,10 @@ const cache = new CellMeasurerCache({
   fixedHeight: true,
 });
 
-const headerRowHeight = 24;
-
 function NetworkList({replayRecord, networkSpans}: Props) {
   const startTimestampMs = replayRecord?.startedAt?.getTime() || 0;
   const {setCurrentHoverTime, setCurrentTime, currentTime} = useReplayContext();
-  const [sortConfig, setSortConfig] = useState<ISortConfig>({
-    by: 'startTimestamp',
-    asc: true,
-    getValue: row => row[sortConfig.by],
-  });
+
   const [scrollBarWidth, setScrollBarWidth] = useState(0);
   const multiGridRef = useRef<MultiGrid>(null);
   const networkTableRef = useRef<HTMLDivElement>(null);
@@ -55,8 +52,7 @@ function NetworkList({replayRecord, networkSpans}: Props) {
   const filterProps = useNetworkFilters({networkSpans: networkSpans || []});
   const {items, searchTerm, setSearchTerm} = filterProps;
   const clearSearchTerm = () => setSearchTerm('');
-
-  const networkData = useMemo(() => sortNetwork(items, sortConfig), [items, sortConfig]);
+  const {handleSort, items: networkData, sortConfig} = useSortNetwork({items});
 
   const currentNetworkSpan = getPrevReplayEvent({
     items: networkData,
@@ -110,76 +106,6 @@ function NetworkList({replayRecord, networkSpans}: Props) {
       observer?.disconnect();
     };
   }, [networkTableRef, searchTerm]);
-
-  function handleSort(fieldName: keyof NetworkSpan): void;
-  function handleSort(key: string, getValue: (row: NetworkSpan) => any): void;
-  function handleSort(
-    fieldName: string | keyof NetworkSpan,
-    getValue?: (row: NetworkSpan) => any
-  ) {
-    const getValueFunction = getValue ? getValue : (row: NetworkSpan) => row[fieldName];
-
-    setSortConfig(prevSort => {
-      if (prevSort.by === fieldName) {
-        return {by: fieldName, asc: !prevSort.asc, getValue: getValueFunction};
-      }
-
-      return {by: fieldName, asc: true, getValue: getValueFunction};
-    });
-  }
-
-  const sortArrow = (sortedBy: string) => {
-    return sortConfig.by === sortedBy ? (
-      <IconArrow
-        color="gray300"
-        size="xs"
-        direction={sortConfig.by === sortedBy && !sortConfig.asc ? 'down' : 'up'}
-      />
-    ) : (
-      <IconArrow size="xs" style={{visibility: 'hidden'}} />
-    );
-  };
-
-  const columns = [
-    <SortItem key="status">
-      <UnstyledHeaderButton
-        onClick={() => handleSort('status', row => row.data.statusCode)}
-      >
-        {t('Status')} {sortArrow('status')}
-      </UnstyledHeaderButton>
-    </SortItem>,
-    <SortItem key="path">
-      <UnstyledHeaderButton onClick={() => handleSort('description')}>
-        {t('Path')} {sortArrow('description')}
-      </UnstyledHeaderButton>
-    </SortItem>,
-    <SortItem key="type">
-      <UnstyledHeaderButton onClick={() => handleSort('op')}>
-        {t('Type')} {sortArrow('op')}
-      </UnstyledHeaderButton>
-    </SortItem>,
-    <SortItem key="size">
-      <UnstyledHeaderButton onClick={() => handleSort('size', row => row.data.size)}>
-        {t('Size')} {sortArrow('size')}
-      </UnstyledHeaderButton>
-    </SortItem>,
-    <SortItem key="duration">
-      <UnstyledHeaderButton
-        onClick={() =>
-          handleSort('duration', row => {
-            return row.endTimestamp - row.startTimestamp;
-          })
-        }
-      >
-        {t('Duration')} {sortArrow('duration')}
-      </UnstyledHeaderButton>
-    </SortItem>,
-    <SortItem key="timestamp">
-      <UnstyledHeaderButton onClick={() => handleSort('startTimestamp')}>
-        {t('Timestamp')} {sortArrow('startTimestamp')}
-      </UnstyledHeaderButton>
-    </SortItem>,
-  ];
 
   const getNetworkColumnValue = (network: NetworkSpan, column: number) => {
     const networkStartTimestamp = network.startTimestamp * 1000;
@@ -265,9 +191,15 @@ function NetworkList({replayRecord, networkSpans}: Props) {
         rowIndex={rowIndex}
       >
         <div key={key} style={style}>
-          {rowIndex === 0
-            ? columns[columnIndex]
-            : getNetworkColumnValue(network, columnIndex)}
+          {rowIndex === 0 ? (
+            <NetworkHeaderCell
+              handleSort={handleSort}
+              index={columnIndex}
+              sortConfig={sortConfig}
+            />
+          ) : (
+            getNetworkColumnValue(network, columnIndex)
+          )}
         </div>
       </CellMeasurer>
     );
@@ -282,11 +214,11 @@ function NetworkList({replayRecord, networkSpans}: Props) {
             {({width, height}) => (
               <MultiGrid
                 ref={multiGridRef}
-                columnCount={columns.length}
+                columnCount={COLUMN_COUNT}
                 columnWidth={({index}) => {
                   if (index === 1) {
                     return Math.max(
-                      columns.reduce(
+                      Array.from(new Array(COLUMN_COUNT)).reduce(
                         (remaining, _, i) =>
                           i === 1 ? remaining : remaining - cache.columnWidth({index: i}),
                         width - scrollBarWidth
@@ -302,7 +234,7 @@ function NetworkList({replayRecord, networkSpans}: Props) {
                 overscanRowCount={5}
                 cellRenderer={renderTableRow}
                 rowCount={networkData.length + 1}
-                rowHeight={({index}) => (index === 0 ? headerRowHeight : 28)}
+                rowHeight={({index}) => (index === 0 ? HEADER_HEIGHT : 28)}
                 width={width}
                 fixedRowCount={1}
                 onScrollbarPresenceChange={({vertical, size}) => {
@@ -394,22 +326,6 @@ const Item = styled('div')<{
   }
 `;
 
-const UnstyledButton = styled('button')`
-  border: 0;
-  background: none;
-  padding: 0;
-  text-transform: inherit;
-  width: 100%;
-  text-align: unset;
-`;
-
-const UnstyledHeaderButton = styled(UnstyledButton)`
-  padding: ${space(0.5)} ${space(1)} ${space(0.5)} ${space(1.5)};
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-`;
-
 const NetworkTable = styled('div')`
   list-style: none;
   position: relative;
@@ -419,30 +335,6 @@ const NetworkTable = styled('div')`
   border-radius: ${p => p.theme.borderRadius};
   padding-left: 0;
   margin-bottom: 0;
-`;
-
-const SortItem = styled('span')`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
-  font-weight: 600;
-  background: ${p => p.theme.backgroundSecondary};
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  width: 100%;
-
-  max-height: ${headerRowHeight}px;
-  line-height: 16px;
-  text-transform: uppercase;
-
-  border-radius: 0;
-  border-right: 1px solid ${p => p.theme.innerBorder};
-  border-bottom: 1px solid ${p => p.theme.innerBorder};
-
-  svg {
-    margin-left: ${space(0.25)};
-  }
 `;
 
 export default NetworkList;
