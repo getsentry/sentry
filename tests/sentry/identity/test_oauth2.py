@@ -1,9 +1,9 @@
 from collections import namedtuple
+from functools import cached_property
 from urllib.parse import parse_qs, parse_qsl, urlparse
 
 import responses
 from django.test import Client, RequestFactory
-from exam import fixture
 from requests.exceptions import SSLError
 
 import sentry.identity
@@ -28,7 +28,7 @@ class OAuth2CallbackViewTest(TestCase):
         super().tearDown()
         sentry.identity.unregister(DummyProvider)
 
-    @fixture
+    @cached_property
     def view(self):
         return OAuth2CallbackView(
             access_token_url="https://example.org/oauth/token",
@@ -139,7 +139,7 @@ class OAuth2LoginViewTest(TestCase):
         super().tearDown()
         sentry.identity.unregister(DummyProvider)
 
-    @fixture
+    @cached_property
     def view(self):
         return OAuth2LoginView(
             authorize_url="https://example.org/oauth2/authorize",

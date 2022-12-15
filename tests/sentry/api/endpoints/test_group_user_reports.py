@@ -1,4 +1,4 @@
-from exam import fixture
+from functools import cached_property
 
 from sentry.models import Environment, UserReport
 from sentry.testutils import APITestCase, SnubaTestCase
@@ -26,7 +26,7 @@ class GroupUserReport(APITestCase, SnubaTestCase):
             self.project, self.group, self.env2_events, self.env2
         )
 
-    @fixture
+    @cached_property
     def path(self):
         return f"/api/0/groups/{self.group.id}/user-feedback/"
 

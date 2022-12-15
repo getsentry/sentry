@@ -1,3 +1,4 @@
+from django.test.utils import override_settings
 from django.urls import reverse
 
 from sentry.api.endpoints.setup_wizard import SETUP_WIZARD_CACHE_KEY
@@ -59,3 +60,27 @@ class SetupWizard(PermissionTestCase):
         assert cached.get("projects")[0].get("status") == "active"
         assert cached.get("projects")[0].get("keys")[0].get("isActive")
         assert cached.get("projects")[0].get("organization").get("status").get("id") == "active"
+
+    @override_settings(SENTRY_SIGNUP_URL="https://sentry.io/signup/")
+    def test_redirect_to_signup(self):
+        self.create_organization(owner=self.user)
+        url = (
+            reverse("sentry-project-wizard-fetch", kwargs={"wizard_hash": "xyz"})
+            + "?signup=1&test=other"
+        )
+        resp = self.client.get(url)
+
+        assert resp.status_code == 302
+        assert (
+            resp.url
+            == "https://sentry.io/signup/?next=http%3A%2F%2Ftestserver%2Faccount%2Fsettings%2Fwizard%2Fxyz%2F&test=other"
+        )
+
+    @override_settings(SENTRY_SIGNUP_URL="https://sentry.io/signup/")
+    def test_redirect_to_login_if_no_query_param(self):
+        self.create_organization(owner=self.user)
+        url = reverse("sentry-project-wizard-fetch", kwargs={"wizard_hash": "xyz"})
+        resp = self.client.get(url)
+
+        assert resp.status_code == 302
+        assert resp.url == "/auth/login/"

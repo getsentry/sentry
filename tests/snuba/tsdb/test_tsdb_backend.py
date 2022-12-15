@@ -525,7 +525,7 @@ class SnubaTSDBGroupPerformanceTest(TestCase, SnubaTestCase, PerfIssueTransactio
         defaultenv = ""
 
         group1_fingerprint = f"{GroupType.PERFORMANCE_SLOW_SPAN.value}-group1"
-        group2_fingerprint = f"{GroupType.PERFORMANCE_N_PLUS_ONE.value}-group2"
+        group2_fingerprint = f"{GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value}-group2"
 
         for r in range(0, 14400, 600):  # Every 10 min for 4 hours
             event = self.store_transaction(
@@ -550,7 +550,7 @@ class SnubaTSDBGroupPerformanceTest(TestCase, SnubaTestCase, PerfIssueTransactio
         )
         dts = [now + timedelta(hours=i) for i in range(4)]
         project = self.create_project()
-        group_fingerprint = f"{GroupType.PERFORMANCE_N_PLUS_ONE.value}-group3"
+        group_fingerprint = f"{GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value}-group3"
 
         # not sure what's going on here, but `times=1,2,3,4` work fine
         # fails with anything above 4
@@ -638,7 +638,7 @@ class SnubaTSDBGroupPerformanceTest(TestCase, SnubaTestCase, PerfIssueTransactio
         )
         dts = [now + timedelta(hours=i) for i in range(4)]
         project = self.create_project()
-        group_fingerprint = f"{GroupType.PERFORMANCE_N_PLUS_ONE.value}-group4"
+        group_fingerprint = f"{GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value}-group4"
         ids = ["a", "b", "c", "d", "e", "f", "1", "2", "3", "4", "5"]
         events = []
         for i, _ in enumerate(ids):
