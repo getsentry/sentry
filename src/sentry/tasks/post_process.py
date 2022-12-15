@@ -139,7 +139,7 @@ def handle_owner_assignment(job):
                     issue_owner_key = "owner_exists:1:%s" % group.id
                     issue_owners_exists = cache.get(issue_owner_key)
                     if issue_owners_exists is None:
-                        # We don't care if a Suspect Commit groupowjer exists
+                        # We don't care if a Suspect Commit groupowner exists
                         issue_owners_exists = group.groupowner_set.filter(
                             type__in=[
                                 GroupOwnerType.OWNERSHIP_RULE.value,
