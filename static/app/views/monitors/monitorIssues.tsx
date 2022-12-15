@@ -16,7 +16,7 @@ const MonitorIssuesEmptyMessage = () => (
   <Panel>
     <PanelBody>
       <EmptyStateWarning>
-        <p>{t('No issues founds relating to this monitor')}</p>
+        <p>{t('No issues relating to this cron monitor have been found.')}</p>
       </EmptyStateWarning>
     </PanelBody>
   </Panel>

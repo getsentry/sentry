@@ -160,7 +160,7 @@ function CreateNewSavedSearchButton({
   );
 }
 
-const SavedIssueSearchesContent = ({
+const SavedIssueSearches = ({
   organization,
   onSavedSearchSelect,
   query,
@@ -177,10 +177,7 @@ const SavedIssueSearchesContent = ({
     isLoading,
     isError,
     refetch,
-  } = useFetchSavedSearchesForOrg(
-    {orgSlug: organization.slug},
-    {enabled: organization.features.includes('issue-list-saved-searches-v2')}
-  );
+  } = useFetchSavedSearchesForOrg({orgSlug: organization.slug});
   const isAboveContent = useMedia(`(max-width: ${theme.breakpoints.small})`);
   const onClickSavedSearch = (savedSearch: SavedSearch) => {
     // On small screens, the sidebar appears above the issue list, so we
@@ -273,14 +270,6 @@ const SavedIssueSearchesContent = ({
       )}
     </StyledSidebar>
   );
-};
-
-const SavedIssueSearches = (props: SavedIssueSearchesProps) => {
-  if (!props.organization.features.includes('issue-list-saved-searches-v2')) {
-    return null;
-  }
-
-  return <SavedIssueSearchesContent {...props} />;
 };
 
 const StyledSidebar = styled('aside')`

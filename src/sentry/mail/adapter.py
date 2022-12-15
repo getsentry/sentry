@@ -13,7 +13,7 @@ from sentry.notifications.notifications.activity import EMAIL_CLASSES_BY_TYPE
 from sentry.notifications.notifications.digest import DigestNotification
 from sentry.notifications.notifications.rules import AlertRuleNotification
 from sentry.notifications.notifications.user_report import UserReportNotification
-from sentry.notifications.types import ActionTargetType
+from sentry.notifications.types import ActionTargetType, FallthroughChoiceType
 from sentry.plugins.base.structs import Notification
 from sentry.tasks.digests import deliver_digest
 from sentry.types.integrations import ExternalProviders
@@ -39,6 +39,7 @@ class MailAdapter:
         futures: Sequence[RuleFuture],
         target_type: ActionTargetType,
         target_identifier: Optional[int] = None,
+        fallthrough_choice: FallthroughChoiceType = None,
         skip_digests: bool = False,
     ) -> None:
         metrics.incr("mail_adapter.rule_notify")
@@ -49,6 +50,7 @@ class MailAdapter:
             "is_from_mail_action_adapter": True,
             "target_type": target_type.value,
             "target_identifier": target_identifier,
+            "fallthrough_choice": fallthrough_choice.value if fallthrough_choice else None,
         }
         log_event = "dispatched"
         for future in futures:
@@ -83,7 +85,7 @@ class MailAdapter:
 
         else:
             notification = Notification(event=event, rules=rules)
-            self.notify(notification, target_type, target_identifier)
+            self.notify(notification, target_type, target_identifier, fallthrough_choice)
 
         logger.info("mail.adapter.notification.%s" % log_event, extra=extra)
 
@@ -119,8 +121,12 @@ class MailAdapter:
         return [user.id for user in users]
 
     @staticmethod
-    def notify(notification, target_type, target_identifier=None, **kwargs):
-        AlertRuleNotification(notification, target_type, target_identifier).send()
+    def notify(
+        notification, target_type, target_identifier=None, fallthrough_choice=None, **kwargs
+    ):
+        AlertRuleNotification(
+            notification, target_type, target_identifier, fallthrough_choice
+        ).send()
 
     @staticmethod
     def notify_active_release(notification, state):

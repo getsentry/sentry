@@ -103,6 +103,12 @@ class NPlusOneAPICallsDetectorTest(unittest.TestCase):
                 }
             },
         },
+        {
+            "span_id": "a",
+            "op": "http.client",
+            "description": "GET http://service.io/resource.json?param=something",
+            "hash": "a",
+        },
     ],
 )
 def test_allows_eligible_spans(span):
@@ -123,9 +129,27 @@ def test_allows_eligible_spans(span):
         {
             "span_id": "a",
             "op": "http.client",
+            "description": "GET http://service.io/resource.js",
+            "hash": "a",
+        },
+        {
+            "span_id": "a",
+            "op": "http.client",
             "description": "GET http://service.io/resource",
             "hash": "a",
             "data": {"url": "/resource.js"},
+        },
+        {
+            "span_id": "a",
+            "op": "http.client",
+            "description": "GET http://service.io/resource?graphql=somequery",
+            "hash": "a",
+        },
+        {
+            "span_id": "a",
+            "op": "http.client",
+            "hash": "b",
+            "description": "GET /_next/data/LjdprRSkUtLP0bMUoWLur/items.json?collection=hello",
         },
     ],
 )

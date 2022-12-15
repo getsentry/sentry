@@ -17,9 +17,7 @@ import SavedIssueSearches from 'sentry/views/issueList/savedIssueSearches';
 import {SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY} from 'sentry/views/issueList/utils';
 
 describe('SavedIssueSearches', function () {
-  const organization = TestStubs.Organization({
-    features: ['issue-list-saved-searches-v2'],
-  });
+  const organization = TestStubs.Organization();
 
   const recommendedSearch = TestStubs.Search({
     id: 'global-search',

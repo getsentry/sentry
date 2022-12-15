@@ -2,6 +2,7 @@ import 'intersection-observer'; // this is a polyfill
 
 import {Component, createRef, Fragment} from 'react';
 import styled from '@emotion/styled';
+import {withProfiler} from '@sentry/react';
 
 import Count from 'sentry/components/count';
 import {ROW_HEIGHT, SpanBarType} from 'sentry/components/performance/waterfall/constants';
@@ -143,7 +144,7 @@ type SpanBarState = {
   showDetail: boolean;
 };
 
-class SpanBar extends Component<SpanBarProps, SpanBarState> {
+export class SpanBar extends Component<SpanBarProps, SpanBarState> {
   state: SpanBarState = {
     showDetail: false,
   };
@@ -1065,4 +1066,4 @@ const StyledIconWarning = styled(IconWarning)`
 
 const Regroup = styled('span')``;
 
-export default SpanBar;
+export const ProfiledSpanBar = withProfiler(SpanBar);
