@@ -51,9 +51,7 @@ class NotifyEmailAction(EventAction):
         ):
             fallthrough_choice = self.data.get("fallthroughType", None)
             fallthrough_type = (
-                FallthroughChoiceType(fallthrough_choice)
-                if fallthrough_choice is not None
-                else None
+                FallthroughChoiceType(fallthrough_choice) if fallthrough_choice else None
             )
 
         if not determine_eligible_recipients(

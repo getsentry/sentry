@@ -186,8 +186,6 @@ class NotifyEmailTest(RuleTestCase):
             "fallthroughType": "AllMembers",
         }
         condition_data = {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}
-
-        Rule.objects.filter(project=event.project).delete()
         Rule.objects.create(
             project=event.project, data={"conditions": [condition_data], "actions": [action_data]}
         )
