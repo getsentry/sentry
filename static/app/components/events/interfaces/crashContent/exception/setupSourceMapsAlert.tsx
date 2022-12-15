@@ -1,0 +1,98 @@
+import Alert from 'sentry/components/alert';
+import Button from 'sentry/components/button';
+import {isEventFromBrowserJavaScriptSDK} from 'sentry/components/events/interfaces/spans/utils';
+import {PlatformKey, sourceMaps} from 'sentry/data/platformCategories';
+import {t} from 'sentry/locale';
+import {Event, EventTransaction, Project} from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {eventHasSourceMaps} from 'sentry/utils/events';
+import useOrganization from 'sentry/utils/useOrganization';
+
+// This list must always be updated with the documentation.
+// Ideally it would be nice if we could send a request validating that this URL exists,
+// but due to CORS this is not possible at the moment
+const sourceMapsDocLinksPerPlatform = {
+  react: 'https://docs.sentry.io/platforms/javascript/guides/react/sourcemaps/',
+  electron: 'https://docs.sentry.io/platforms/javascript/guides/electron/sourcemaps/',
+  cordova: 'https://docs.sentry.io/platforms/javascript/guides/cordova/sourcemaps/',
+  'javascript-angularjs':
+    'https://docs.sentry.io/platforms/javascript/guides/angular/sourcemaps/',
+  'javascript-angular':
+    'https://docs.sentry.io/platforms/javascript/guides/angular/sourcemaps/',
+  'javascript-ember':
+    'https://docs.sentry.io/platforms/javascript/guides/ember/sourcemaps/',
+  'javascript-gatsby':
+    'https://docs.sentry.io/platforms/javascript/guides/gatsby/sourcemaps/',
+  'javascript-vue': 'https://docs.sentry.io/platforms/javascript/guides/vue/sourcemaps/',
+  'javascript-nextjs':
+    'https://docs.sentry.io/platforms/javascript/guides/nextjs/sourcemaps/',
+  'javascript-remix':
+    'https://docs.sentry.io/platforms/javascript/guides/remix/sourcemaps/',
+  'javascript-svelte':
+    'https://docs.sentry.io/platforms/javascript/guides/svelte/sourcemaps/',
+};
+
+type Props = {
+  event: Event;
+  projectId: Project['id'];
+};
+
+export function SetupSourceMapsAlert({projectId, event}: Props) {
+  const organization = useOrganization();
+  const eventPlatform = event.platform ?? 'other';
+  const eventFromBrowserJavaScriptSDK = isEventFromBrowserJavaScriptSDK(
+    event as EventTransaction
+  );
+
+  // We would like to filter out all platforms that do not have the concept of source maps
+  if (
+    !eventFromBrowserJavaScriptSDK &&
+    !sourceMaps.includes(eventPlatform as PlatformKey)
+  ) {
+    return null;
+  }
+
+  // If the event already has source maps, we do not want to show this alert
+  if (eventHasSourceMaps(event)) {
+    return null;
+  }
+
+  const platform = eventFromBrowserJavaScriptSDK
+    ? event.sdk?.name?.substring('sentry.javascript.'.length) ?? 'other'
+    : eventPlatform;
+
+  // If there is no documentation defined for the sdk and platform, we fall back to the generic one
+  const docUrl =
+    sourceMapsDocLinksPerPlatform[platform] ??
+    sourceMapsDocLinksPerPlatform[eventPlatform] ??
+    'https://docs.sentry.io/platforms/javascript/sourcemaps/';
+
+  return (
+    <Alert
+      type="info"
+      showIcon
+      trailingItems={
+        <Button
+          priority="link"
+          size="zero"
+          href={docUrl}
+          external
+          onClick={() => {
+            trackAdvancedAnalyticsEvent(
+              'issue_group_details.stack_traces.setup_source_maps_alert.clicked',
+              {
+                organization,
+                project_id: projectId,
+                platform,
+              }
+            );
+          }}
+        >
+          {t('Setup Source Maps')}
+        </Button>
+      }
+    >
+      {t('Get Sentry ready for your production environment')}
+    </Alert>
+  );
+}
