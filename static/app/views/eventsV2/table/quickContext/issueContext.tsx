@@ -27,7 +27,7 @@ import {
   ContextTitle,
   Wrapper,
 } from './styles';
-import {BaseContextProps, ContextType, fiveMinutesInMs} from './utils';
+import {BaseContextProps, ContextType, tenSecondInMs} from './utils';
 
 function IssueContext(props: BaseContextProps) {
   const {dataRow, organization} = props;
@@ -54,7 +54,7 @@ function IssueContext(props: BaseContextProps) {
       },
     ],
     {
-      staleTime: fiveMinutesInMs,
+      staleTime: tenSecondInMs,
     }
   );
 
@@ -65,7 +65,7 @@ function IssueContext(props: BaseContextProps) {
     isError: eventError,
     data: event,
   } = useQuery<Event>([`/issues/${dataRow['issue.id']}/events/oldest/`], {
-    staleTime: fiveMinutesInMs,
+    staleTime: tenSecondInMs,
   });
 
   const title = issue?.title;
