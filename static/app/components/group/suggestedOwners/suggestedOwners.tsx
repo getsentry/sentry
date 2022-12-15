@@ -182,10 +182,13 @@ class SuggestedOwners extends AsyncComponent<Props, State> {
 
 function SuggestedOwnersWrapper(props: Omit<Props, 'committers' | 'organization'>) {
   const organization = useOrganization();
-  const {data} = useCommitters({
-    eventId: props.event.id,
-    projectSlug: props.project.slug,
-  });
+  const {data} = useCommitters(
+    {
+      eventId: props.event.id,
+      projectSlug: props.project.slug,
+    },
+    {notifyOnChangeProps: ['data']}
+  );
 
   return (
     <SuggestedOwners
