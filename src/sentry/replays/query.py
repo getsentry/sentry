@@ -19,7 +19,7 @@ from snuba_sdk import (
 from snuba_sdk.expressions import Expression
 from snuba_sdk.orderby import Direction, OrderBy
 
-from sentry.api.event_search import SearchConfig, SearchFilter
+from sentry.api.event_search import ParenExpression, SearchConfig, SearchFilter
 from sentry.replays.lib.query import (
     ListField,
     Number,
@@ -190,7 +190,7 @@ def query_replays_count(
 def make_select_statement(
     fields: List[str],
     sorting: List[OrderBy],
-    search_filters: List[SearchFilter],
+    search_filters: List[Union[SearchFilter, str, ParenExpression]],
 ) -> List[Union[Column, Function]]:
     """Return the selection that forms the base of our replays response payload."""
     if not fields:
