@@ -8,7 +8,7 @@ from typing import Any, Deque, Mapping, MutableMapping, NamedTuple, Optional, Se
 
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.processing.strategies import ProcessingStrategy
-from arroyo.types import Commit, Message, Partition, Position, Topic
+from arroyo.types import Commit, Message, Partition, Topic
 from confluent_kafka import KafkaError, KafkaException
 from confluent_kafka import Message as ConfluentMessage
 from confluent_kafka import Producer
@@ -89,10 +89,8 @@ class RoutingProducerStep(ProcessingStrategy[RoutingPayload]):
         self.__commit_function = commit_function
         self.__message_router = message_router
         self.__closed = False
-        self.__offsets_to_be_committed: MutableMapping[Partition, Position] = {}
-        self.__queue: Deque[
-            Tuple[Mapping[Partition, Position], Future[Message[KafkaPayload]]]
-        ] = deque()
+        self.__offsets_to_be_committed: MutableMapping[Partition, int] = {}
+        self.__queue: Deque[Tuple[Mapping[Partition, int], Future[Message[KafkaPayload]]]] = deque()
         self.__all_producers = message_router.get_all_producers()
 
     def poll(self) -> None:

@@ -6,7 +6,7 @@ import random
 import time
 from collections import deque
 from concurrent.futures import Future
-from typing import Callable, Deque, Mapping, MutableMapping, NamedTuple, Optional, cast
+from typing import Deque, MutableMapping, NamedTuple, Optional, cast
 
 import msgpack
 import sentry_sdk
@@ -14,7 +14,7 @@ from arroyo import Partition
 from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.processing.strategies import MessageRejected
 from arroyo.processing.strategies.abstract import ProcessingStrategy
-from arroyo.types import Message, Position
+from arroyo.types import Commit, Message
 from django.conf import settings
 
 from sentry.replays.cache import RecordingSegmentParts
@@ -52,13 +52,13 @@ class ReplayRecordingMessageFuture(NamedTuple):
 class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):
     def __init__(
         self,
-        commit: Callable[[Mapping[Partition, Position]], None],
+        commit: Commit,
     ) -> None:
         self.__closed = False
         self.__futures: Deque[ReplayRecordingMessageFuture] = deque()
         self.__threadpool = concurrent.futures.ThreadPoolExecutor(max_workers=16)
         self.__commit = commit
-        self.__commit_data: MutableMapping[Partition, Position] = {}
+        self.__commit_data: MutableMapping[Partition, int] = {}
         self.__last_committed: float = 0
         self.__max_pending_futures = 32
 

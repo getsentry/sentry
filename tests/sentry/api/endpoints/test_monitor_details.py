@@ -9,16 +9,13 @@ class MonitorDetailsTest(MonitorTestCase):
     endpoint_with_org = "sentry-api-0-monitor-details-with-org"
 
     def setUp(self):
-        self.user = self.create_user()
-        self.org = self.create_organization(owner=self.user)
-        self.team = self.create_team(organization=self.org, members=[self.user])
-        self.project = self.create_project(teams=[self.team])
+        super().setUp()
 
     def test_simple(self):
         self.login_as(user=self.user)
         monitor = self._create_monitor()
 
-        with self.feature({"organizations:monitors": True}):
+        with self.feature("organizations:monitors"):
             for path_func in self._get_path_functions():
                 path = path_func(monitor)
                 resp = self.client.get(path)
@@ -43,17 +40,14 @@ class UpdateMonitorTest(MonitorTestCase):
     endpoint_with_org = "sentry-api-0-monitor-details-with-org"
 
     def setUp(self):
-        self.user = self.create_user()
-        self.org = self.create_organization(owner=self.user)
-        self.team = self.create_team(organization=self.org, members=[self.user])
-        self.project = self.create_project(teams=[self.team])
+        super().setUp()
 
         self.login_as(user=self.user)
 
     def test_name(self):
         monitor = self._create_monitor()
 
-        with self.feature({"organizations:monitors": True}):
+        with self.feature("organizations:monitors"):
             for i, path_func in enumerate(self._get_path_functions()):
                 monitor = self._create_monitor()
                 path = path_func(monitor)
@@ -66,7 +60,7 @@ class UpdateMonitorTest(MonitorTestCase):
                 assert monitor.name == f"Monitor Name {i}"
 
     def test_can_disable(self):
-        with self.feature({"organizations:monitors": True}):
+        with self.feature("organizations:monitors"):
             for path_func in self._get_path_functions():
                 monitor = self._create_monitor()
                 path = path_func(monitor)
@@ -79,7 +73,7 @@ class UpdateMonitorTest(MonitorTestCase):
                 assert monitor.status == MonitorStatus.DISABLED
 
     def test_can_enable(self):
-        with self.feature({"organizations:monitors": True}):
+        with self.feature("organizations:monitors"):
             for path_func in self._get_path_functions():
                 monitor = self._create_monitor()
                 path = path_func(monitor)
@@ -95,7 +89,7 @@ class UpdateMonitorTest(MonitorTestCase):
                 assert monitor.status == MonitorStatus.ACTIVE
 
     def test_cannot_enable_if_enabled(self):
-        with self.feature({"organizations:monitors": True}):
+        with self.feature("organizations:monitors"):
             for path_func in self._get_path_functions():
                 monitor = self._create_monitor()
                 path = path_func(monitor)
@@ -111,7 +105,7 @@ class UpdateMonitorTest(MonitorTestCase):
                 assert monitor.status == MonitorStatus.OK
 
     def test_checkin_margin(self):
-        with self.feature({"organizations:monitors": True}):
+        with self.feature("organizations:monitors"):
             for path_func in self._get_path_functions():
                 monitor = self._create_monitor()
                 path = path_func(monitor)
@@ -125,7 +119,7 @@ class UpdateMonitorTest(MonitorTestCase):
                 assert monitor.config["checkin_margin"] == 30
 
     def test_max_runtime(self):
-        with self.feature({"organizations:monitors": True}):
+        with self.feature("organizations:monitors"):
             for path_func in self._get_path_functions():
                 monitor = self._create_monitor()
                 path = path_func(monitor)
@@ -139,7 +133,7 @@ class UpdateMonitorTest(MonitorTestCase):
                 assert monitor.config["max_runtime"] == 30
 
     def test_invalid_config_param(self):
-        with self.feature({"organizations:monitors": True}):
+        with self.feature("organizations:monitors"):
             for path_func in self._get_path_functions():
                 monitor = self._create_monitor()
                 path = path_func(monitor)
@@ -153,7 +147,7 @@ class UpdateMonitorTest(MonitorTestCase):
                 assert "invalid" not in monitor.config
 
     def test_cronjob_crontab(self):
-        with self.feature({"organizations:monitors": True}):
+        with self.feature("organizations:monitors"):
             for path_func in self._get_path_functions():
                 monitor = self._create_monitor()
                 path = path_func(monitor)
@@ -178,7 +172,7 @@ class UpdateMonitorTest(MonitorTestCase):
     #     ['@hourly', '0 * * * *'],
     # ))
     def test_cronjob_nonstandard(self):
-        with self.feature({"organizations:monitors": True}):
+        with self.feature("organizations:monitors"):
             for path_func in self._get_path_functions():
                 monitor = self._create_monitor()
                 path = path_func(monitor)
@@ -193,7 +187,7 @@ class UpdateMonitorTest(MonitorTestCase):
                 assert monitor.config["schedule"] == "0 0 1 * *"
 
     def test_cronjob_crontab_invalid(self):
-        with self.feature({"organizations:monitors": True}):
+        with self.feature("organizations:monitors"):
             for path_func in self._get_path_functions():
                 monitor = self._create_monitor()
                 path = path_func(monitor)
@@ -207,7 +201,7 @@ class UpdateMonitorTest(MonitorTestCase):
                 assert resp.status_code == 400, resp.content
 
     def test_cronjob_interval(self):
-        with self.feature({"organizations:monitors": True}):
+        with self.feature("organizations:monitors"):
             for path_func in self._get_path_functions():
                 monitor = self._create_monitor()
                 path = path_func(monitor)
@@ -224,7 +218,7 @@ class UpdateMonitorTest(MonitorTestCase):
                 assert monitor.config["schedule"] == [1, "month"]
 
     def test_cronjob_interval_invalid_inteval(self):
-        with self.feature({"organizations:monitors": True}):
+        with self.feature("organizations:monitors"):
             for path_func in self._get_path_functions():
                 monitor = self._create_monitor()
                 path = path_func(monitor)
@@ -253,7 +247,7 @@ class UpdateMonitorTest(MonitorTestCase):
         path = f"/api/0/monitors/asdf/{monitor.guid}/"
         self.login_as(user=self.user)
 
-        with self.feature({"organizations:monitors": True}):
+        with self.feature("organizations:monitors"):
             resp = self.client.put(
                 path, data={"config": {"schedule_type": "interval", "schedule": [1, "month"]}}
             )
@@ -267,14 +261,11 @@ class DeleteMonitorTest(MonitorTestCase):
     endpoint_with_org = "sentry-api-0-monitor-details-with-org"
 
     def setUp(self):
-        self.user = self.create_user()
-        self.org = self.create_organization(owner=self.user)
-        self.team = self.create_team(organization=self.org, members=[self.user])
-        self.project = self.create_project(teams=[self.team])
+        super().setUp()
 
     def test_simple(self):
         self.login_as(user=self.user)
-        with self.feature({"organizations:monitors": True}):
+        with self.feature("organizations:monitors"):
             for path_func in self._get_path_functions():
                 monitor = self._create_monitor()
                 path = path_func(monitor)
@@ -295,7 +286,7 @@ class DeleteMonitorTest(MonitorTestCase):
         path = f"/api/0/monitors/asdf/{monitor.guid}/"
         self.login_as(user=self.user)
 
-        with self.feature({"organizations:monitors": True}):
+        with self.feature("organizations:monitors"):
             resp = self.client.delete(path)
 
             assert resp.status_code == 400
