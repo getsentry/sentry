@@ -1,6 +1,7 @@
+from functools import cached_property
+
 import pytest
 import responses
-from exam import fixture
 
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils import PluginTestCase
@@ -9,7 +10,7 @@ from sentry_plugins.splunk.plugin import SplunkPlugin
 
 
 class SplunkPluginTest(PluginTestCase):
-    @fixture
+    @cached_property
     def plugin(self):
         return SplunkPlugin()
 

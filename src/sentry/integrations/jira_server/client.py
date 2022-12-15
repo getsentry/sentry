@@ -11,7 +11,7 @@ from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import jwt
 from sentry.utils.http import absolute_uri
 
-logger = logging.getLogger("sentry.integrations.jira_server")
+logger = logging.getLogger(__name__)
 
 JIRA_KEY = f"{urlparse(absolute_uri()).hostname}.jira"
 ISSUE_KEY_RE = re.compile(r"^[A-Za-z][A-Za-z0-9]*-\d+$")
