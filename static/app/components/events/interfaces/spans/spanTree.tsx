@@ -891,18 +891,16 @@ function SpanRow(props: SpanRowProps) {
       columnIndex={columnIndex}
       rowIndex={index}
     >
-      {({measure}) => {
-        return (
-          <div style={style} ref={rowRef}>
-            {renderSpanNode(spanNode, {
-              measure,
-              listRef,
-              cellMeasurerCache: cache,
-              ...spanContextProps,
-            })}
-          </div>
-        );
-      }}
+      {({measure}) => (
+        <div style={style} ref={rowRef}>
+          {renderSpanNode(spanNode, {
+            measure,
+            listRef,
+            cellMeasurerCache: cache,
+            ...spanContextProps,
+          })}
+        </div>
+      )}
     </CellMeasurer>
   );
 }
