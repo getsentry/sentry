@@ -383,7 +383,6 @@ class FlamegraphRenderer {
 
     while (queue.length && !hoveredNode) {
       const frame = queue.pop()!;
-      const frameRect = new Rect(frame.start, frame.depth, frame.end - frame.start, 1);
 
       // We treat entire flamegraph as a segment tree, this allows us to query in O(log n) time by
       // only looking at the nodes that are relevant to the current cursor position. We discard any values
