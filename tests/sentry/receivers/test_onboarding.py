@@ -488,6 +488,10 @@ class OrganizationOnboardingTaskTest(TestCase):
 
     @patch("sentry.analytics.record")
     def test_first_event_without_minified_stack_trace_received(self, record_analytics):
+        """
+        Test that an analytics event is NOT recorded when
+        there no event with minified stack trace is received
+        """
         now = timezone.now()
         project = self.create_project(first_event=now)
         project_created.send(project=project, user=self.user, sender=type(project))
