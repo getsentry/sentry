@@ -402,9 +402,9 @@ class AuthIdentityHandler:
         return self.request.user if self.request.user.is_authenticated else None
 
     @property
-    def _app_user(self) -> User | None:
+    def _app_user(self) -> APIUser | None:
         """The user, if they are represented persistently in our app."""
-        return self.user if isinstance(self.user, User) else None
+        return self.user if isinstance(self.user, APIUser) else None
 
     def _has_usable_password(self) -> bool:
         return bool(self._app_user and self._app_user.has_usable_password())
