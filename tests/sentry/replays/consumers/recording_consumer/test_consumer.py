@@ -10,7 +10,7 @@ from arroyo.backends.kafka import KafkaPayload
 from arroyo.types import BrokerValue, Message, Partition, Topic
 
 from sentry.models import File, OnboardingTask, OnboardingTaskStatus
-from sentry.replays.consumers.recording.factory import ProcessReplayRecordingStrategyFactory
+from sentry.replays.consumers.recording import ProcessReplayRecordingStrategyFactory
 from sentry.replays.models import ReplayRecordingSegment
 from sentry.testutils import TransactionTestCase
 

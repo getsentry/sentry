@@ -10,7 +10,7 @@ from arroyo.commit import IMMEDIATE
 from arroyo.processing.processor import StreamProcessor
 from django.conf import settings
 
-from sentry.replays.consumers.recording.factory import ProcessReplayRecordingStrategyFactory
+from sentry.replays.consumers.recording import ProcessReplayRecordingStrategyFactory
 from sentry.utils import kafka_config
 
 

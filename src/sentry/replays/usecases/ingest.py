@@ -232,6 +232,11 @@ def ingest_chunk(message_dict: RecordingSegmentChunkMessage, transaction: Transa
             segment_id=message_dict["id"],
         )
 
+        # Uncompressed recording data will be deserialized as a string instead of bytes.  We
+        # encode as bytes to simplify our ingest method.
+        if type(message_dict["payload"]) is str:
+            message_dict["payload"] = message_dict["payload"].encode("utf-8")
+
         part = RecordingSegmentCache(cache_prefix)
         part[message_dict["chunk_index"]] = message_dict["payload"]
 
