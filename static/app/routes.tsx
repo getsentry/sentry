@@ -26,6 +26,7 @@ import OrganizationDetails from 'sentry/views/organizationDetails';
 import {Tab, TabPaths} from 'sentry/views/organizationGroupDetails/types';
 import OrganizationRoot from 'sentry/views/organizationRoot';
 import ProjectEventRedirect from 'sentry/views/projectEventRedirect';
+import redirectDeprecatedProjectRoute from 'sentry/views/projects/redirectDeprecatedProjectRoute';
 import RouteNotFound from 'sentry/views/routeNotFound';
 import SettingsWrapper from 'sentry/views/settings/components/settingsWrapper';
 
@@ -152,6 +153,10 @@ function buildRoutes() {
   const rootRoutes = (
     <Fragment>
       <IndexRoute component={make(() => import('sentry/views/app/root'))} />
+      <Route
+        path="/accept/:orgId/:memberId/:token/"
+        component={make(() => import('sentry/views/acceptOrganizationInvite'))}
+      />
       <Route
         path="/accept/:memberId/:token/"
         component={make(() => import('sentry/views/acceptOrganizationInvite'))}
@@ -2011,6 +2016,94 @@ function buildRoutes() {
     </Fragment>
   );
 
+  // Support for deprecated URLs (pre-Sentry 10). We just redirect users to new
+  // canonical URLs.
+  //
+  // XXX(epurkhiser): Can these be moved over to the legacyOrgRedirects routes,
+  // or do these need to be nested into the OrganizationDetails tree?
+  const legacyOrgRedirects = (
+    <Route path="/:orgId/:projectId/">
+      <IndexRoute
+        component={errorHandler(
+          redirectDeprecatedProjectRoute(
+            ({orgId, projectId}) => `/organizations/${orgId}/issues/?project=${projectId}`
+          )
+        )}
+      />
+      <Route
+        path="issues/"
+        component={errorHandler(
+          redirectDeprecatedProjectRoute(
+            ({orgId, projectId}) => `/organizations/${orgId}/issues/?project=${projectId}`
+          )
+        )}
+      />
+      <Route
+        path="dashboard/"
+        component={errorHandler(
+          redirectDeprecatedProjectRoute(
+            ({orgId, projectId}) =>
+              `/organizations/${orgId}/dashboards/?project=${projectId}`
+          )
+        )}
+      />
+      <Route
+        path="user-feedback/"
+        component={errorHandler(
+          redirectDeprecatedProjectRoute(
+            ({orgId, projectId}) =>
+              `/organizations/${orgId}/user-feedback/?project=${projectId}`
+          )
+        )}
+      />
+      <Route
+        path="releases/"
+        component={errorHandler(
+          redirectDeprecatedProjectRoute(
+            ({orgId, projectId}) =>
+              `/organizations/${orgId}/releases/?project=${projectId}`
+          )
+        )}
+      />
+      <Route
+        path="releases/:version/"
+        component={errorHandler(
+          redirectDeprecatedProjectRoute(
+            ({orgId, projectId, router}) =>
+              `/organizations/${orgId}/releases/${router.params.version}/?project=${projectId}`
+          )
+        )}
+      />
+      <Route
+        path="releases/:version/new-events/"
+        component={errorHandler(
+          redirectDeprecatedProjectRoute(
+            ({orgId, projectId, router}) =>
+              `/organizations/${orgId}/releases/${router.params.version}/new-events/?project=${projectId}`
+          )
+        )}
+      />
+      <Route
+        path="releases/:version/all-events/"
+        component={errorHandler(
+          redirectDeprecatedProjectRoute(
+            ({orgId, projectId, router}) =>
+              `/organizations/${orgId}/releases/${router.params.version}/all-events/?project=${projectId}`
+          )
+        )}
+      />
+      <Route
+        path="releases/:version/commits/"
+        component={errorHandler(
+          redirectDeprecatedProjectRoute(
+            ({orgId, projectId, router}) =>
+              `/organizations/${orgId}/releases/${router.params.version}/commits/?project=${projectId}`
+          )
+        )}
+      />
+    </Route>
+  );
+
   const profilingChildRoutes = (
     <Fragment>
       <IndexRoute component={make(() => import('sentry/views/profiling/content'))} />
@@ -2075,6 +2168,7 @@ function buildRoutes() {
       {adminManageRoutes}
       {gettingStartedRoutes}
       {legacyOrganizationRootRoutes}
+      {legacyOrgRedirects}
     </Route>
   );
 

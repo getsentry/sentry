@@ -660,6 +660,11 @@ urlpatterns = [
     ),
     # Organization invite
     url(
+        r"^accept-invite/(?P<organization_slug>[^\/]+)/(?P<member_id>[^\/]+)/(?P<token>[^\/]+)/$",
+        AcceptOrganizationInvite.as_view(),
+        name="sentry-api-0-accept-organization-invite-with-org",
+    ),
+    url(
         r"^accept-invite/(?P<member_id>[^\/]+)/(?P<token>[^\/]+)/$",
         AcceptOrganizationInvite.as_view(),
         name="sentry-api-0-accept-organization-invite",
@@ -670,14 +675,24 @@ urlpatterns = [
         include(
             [
                 url(
+                    r"^(?P<monitor_id>[^\/]+)/checkins/$",
+                    MonitorCheckInsEndpoint.as_view(),
+                    name="sentry-api-0-monitor-check-in-index",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/(?P<monitor_id>[^\/]+)/checkins/$",
+                    MonitorCheckInsEndpoint.as_view(),
+                    name="sentry-api-0-monitor-check-in-index-with-org",
+                ),
+                url(
                     r"^(?P<monitor_id>[^\/]+)/$",
                     MonitorDetailsEndpoint.as_view(),
                     name="sentry-api-0-monitor-details",
                 ),
                 url(
-                    r"^(?P<monitor_id>[^\/]+)/checkins/$",
-                    MonitorCheckInsEndpoint.as_view(),
-                    name="sentry-api-0-monitor-check-in-index",
+                    r"^(?P<organization_slug>[^\/]+)/(?P<monitor_id>[^\/]+)/$",
+                    MonitorDetailsEndpoint.as_view(),
+                    name="sentry-api-0-monitor-details-with-org",
                 ),
                 url(
                     r"^(?P<monitor_id>[^\/]+)/checkins/(?P<checkin_id>[^\/]+)/$",
