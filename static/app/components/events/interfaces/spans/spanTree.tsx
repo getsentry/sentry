@@ -828,7 +828,14 @@ function SpanRow(props: SpanRowProps) {
   const spanNode = spanTree[index];
 
   // Lifecycle management for row refs, we need to separately do this in useLayoutEffect since
-  // we won't have access to the refs in useEffect
+  // we won't have access to the refs in useEffect.
+  // From React's useLayoutEffect docs:
+
+  // "Updates scheduled inside useLayoutEffect will be flushed synchronously, before the browser has a chance to paint."
+
+  // In `useEffect`, the return function for cleanup isn't able to remove the ref from the map since the component no longer has access
+  // to it, since the return function is executed after the browser paints and so the DOM node is removed.
+
   useLayoutEffect(() => {
     // Gap spans do not have IDs, so we can't really store them. This should not be a big deal, since
     // we only need to keep track of spans to calculate an average depth, a few missing spans will not
