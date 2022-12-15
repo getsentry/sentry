@@ -539,7 +539,7 @@ def bind_cache_to_option_store() -> None:
 
     from sentry.options import default_store
 
-    default_store.cache = default_cache
+    default_store.set_cache_impl(default_cache)
 
 
 def apply_legacy_settings(settings: Any) -> None:

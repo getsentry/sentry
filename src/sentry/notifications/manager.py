@@ -23,6 +23,7 @@ from sentry.notifications.types import (
     NotificationSettingOptionValues,
     NotificationSettingTypes,
 )
+from sentry.services.hybrid_cloud.notifications import notifications_service
 from sentry.types.integrations import ExternalProviders
 from sentry.utils.sdk import configure_scope
 
@@ -260,6 +261,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         user_ids: MutableSet[int] = set()
         team_ids: MutableSet[int] = set()
         actor_ids: MutableSet[int] = set()
+
         for recipient in recipients:
             if type(recipient) == Team:
                 team_ids.add(recipient.id)
@@ -300,7 +302,9 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         are subscribed to alerts. We check both the project level settings and
         global default settings.
         """
-        notification_settings = self.get_for_recipient_by_parent(type, parent, recipients)
+        notification_settings = notifications_service.get_settings_for_recipient_by_parent(
+            type=type, parent_id=parent.id, recipients=list(recipients)
+        )
         notification_settings_by_recipient = transform_to_notification_settings_by_recipient(
             notification_settings, recipients
         )

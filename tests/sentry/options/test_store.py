@@ -7,16 +7,23 @@ from django.conf import settings
 from django.core.cache.backends.locmem import LocMemCache
 
 from sentry.models import Option
+from sentry.options import OptionsManager
 from sentry.options.store import OptionsStore
 from sentry.testutils import TestCase
+from sentry.testutils.silo import no_silo_test
 
 
+@no_silo_test(stable=True)
 class OptionsStoreTest(TestCase):
     @cached_property
     def store(self):
         c = LocMemCache("test", settings.CACHES["default"])
         c.clear()
         return OptionsStore(cache=c)
+
+    @cached_property
+    def manager(self):
+        return OptionsManager(store=self.store)
 
     @cached_property
     def key(self):
@@ -27,7 +34,7 @@ class OptionsStoreTest(TestCase):
         self.store.flush_local_cache()
 
     def make_key(self, ttl=10, grace=10):
-        return self.store.make_key(uuid1().hex, "", object, 0, ttl, grace)
+        return self.manager.make_key(uuid1().hex, "", object, 0, ttl, grace)
 
     def test_simple(self):
         store, key = self.store, self.key

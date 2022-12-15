@@ -26,7 +26,6 @@ from sentry.lang.native.symbolicator import parse_sources, redact_source_secrets
 from sentry.lang.native.utils import convert_crashreport_count
 from sentry.models import (
     EnvironmentProject,
-    NotificationSetting,
     OrganizationMemberTeam,
     Project,
     ProjectAvatar,
@@ -46,6 +45,7 @@ from sentry.notifications.helpers import (
     transform_to_notification_settings_by_scope,
 )
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
+from sentry.services.hybrid_cloud.notifications import notifications_service
 from sentry.snuba import discover
 from sentry.tasks.symbolication import should_demote_symbolication
 from sentry.utils import json
@@ -273,10 +273,10 @@ class ProjectSerializer(Serializer):  # type: ignore
                 )
 
                 notification_settings_by_scope = transform_to_notification_settings_by_scope(
-                    NotificationSetting.objects.get_for_user_by_projects(
-                        NotificationSettingTypes.ISSUE_ALERTS,
-                        user,
-                        item_list,
+                    notifications_service.get_settings_for_user_by_projects(
+                        type=NotificationSettingTypes.ISSUE_ALERTS,
+                        user_id=user.id,
+                        parent_ids=project_ids,
                     )
                 )
             else:

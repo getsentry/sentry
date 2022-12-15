@@ -14,7 +14,7 @@ from sentry.db.models import (
     Model,
     OneToOneCascadeDeletes,
     UUIDField,
-    control_silo_with_replication_model,
+    control_silo_only_model,
     region_silo_only_model,
     sane_repr,
 )
@@ -224,7 +224,7 @@ class IncidentSnapshot(Model):
         db_table = "sentry_incidentsnapshot"
 
 
-@control_silo_with_replication_model
+@control_silo_only_model
 class TimeSeriesSnapshot(Model):
     __include_in_export__ = True
 

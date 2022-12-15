@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from abc import abstractmethod
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, List, Optional
@@ -13,7 +15,7 @@ class OrganizationService(InterfaceWithLifecycle):
     @abstractmethod
     def get_organization_by_id(
         self, *, id: int, user_id: Optional[int]
-    ) -> Optional["ApiUserOrganizationContext"]:
+    ) -> Optional[ApiUserOrganizationContext]:
         """
         Fetches the organization, team, and project data given by an organization id, regardless of its visibility
         status.  When user_id is provided, membership data related to that user from the organization
@@ -30,7 +32,7 @@ class OrganizationService(InterfaceWithLifecycle):
         scope: Optional[str],
         only_visible: bool,
         organization_ids: Optional[List[int]] = None,
-    ) -> List["ApiOrganizationSummary"]:
+    ) -> List[ApiOrganizationSummary]:
         """
         When user_id is set, returns all organizations associated with that user id given
         a scope and visibility requirement.  When user_id is not set, but organization_ids is, provides the
@@ -48,7 +50,7 @@ class OrganizationService(InterfaceWithLifecycle):
     @abstractmethod
     def check_membership_by_email(
         self, organization_id: int, email: str
-    ) -> Optional["ApiOrganizationMember"]:
+    ) -> Optional[ApiOrganizationMember]:
         """
         Used to look up an organization membership by an email
         """
@@ -57,7 +59,7 @@ class OrganizationService(InterfaceWithLifecycle):
     @abstractmethod
     def check_membership_by_id(
         self, organization_id: int, user_id: int
-    ) -> Optional["ApiOrganizationMember"]:
+    ) -> Optional[ApiOrganizationMember]:
         """
         Used to look up an organization membership by a user id
         """
@@ -72,7 +74,7 @@ class OrganizationService(InterfaceWithLifecycle):
 
     def get_organization_by_slug(
         self, *, user_id: Optional[int], slug: str, only_visible: bool
-    ) -> Optional["ApiUserOrganizationContext"]:
+    ) -> Optional[ApiUserOrganizationContext]:
         """
         Defers to check_organization_by_slug -> get_organization_by_id
         """
@@ -110,13 +112,17 @@ class ApiTeam:
     status: int = field(default_factory=team_status_visible)
     organization_id: int = -1
     slug: str = ""
+    actor_id: int | None = None
+
+    def class_name(self) -> str:
+        return "Team"
 
 
 @dataclass
 class ApiTeamMember:
     id: int = -1
     is_active: bool = False
-    role: Optional["TeamRole"] = None
+    role: Optional[TeamRole] = None
     project_ids: List[int] = field(default_factory=list)
     scopes: List[str] = field(default_factory=list)
     team_id: int = -1

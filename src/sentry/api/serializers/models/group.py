@@ -51,7 +51,6 @@ from sentry.models import (
     GroupStatus,
     GroupSubscription,
     Integration,
-    NotificationSetting,
     SentryAppInstallationToken,
     Team,
     User,
@@ -67,6 +66,7 @@ from sentry.notifications.types import NotificationSettingTypes
 from sentry.reprocessing2 import get_progress
 from sentry.search.events.constants import RELEASE_STAGE_ALIAS
 from sentry.search.events.filter import convert_search_filter_to_snuba_query
+from sentry.services.hybrid_cloud.notifications import notifications_service
 from sentry.tagstore.snuba.backend import fix_tag_value_data
 from sentry.tagstore.types import GroupTagValue
 from sentry.tsdb.snuba import SnubaTSDB
@@ -546,10 +546,10 @@ class GroupSerializerBase(Serializer, ABC):
 
         groups_by_project = collect_groups_by_project(groups)
         notification_settings_by_scope = transform_to_notification_settings_by_scope(
-            NotificationSetting.objects.get_for_user_by_projects(
-                NotificationSettingTypes.WORKFLOW,
-                user,
-                groups_by_project.keys(),
+            notifications_service.get_settings_for_user_by_projects(
+                type=NotificationSettingTypes.WORKFLOW,
+                user_id=user.id,
+                parent_ids=list(groups_by_project.keys()),
             )
         )
         query_groups = get_groups_for_query(groups_by_project, notification_settings_by_scope, user)
