@@ -1,8 +1,7 @@
-import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {Client} from 'sentry/api';
 import EventCause from 'sentry/components/events/eventCause';
-import CommitterStore from 'sentry/stores/committerStore';
 
 import {CommitRow} from '../commitRow';
 import {QuickContextCommitRow} from '../discover/quickContextCommitRow';
@@ -15,11 +14,9 @@ describe('EventCause', function () {
 
   afterEach(function () {
     Client.clearMockResponses();
-    act(() => CommitterStore.reset());
   });
 
   beforeEach(function () {
-    CommitterStore.init();
     Client.addMockResponse({
       method: 'GET',
       url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/committers/`,
