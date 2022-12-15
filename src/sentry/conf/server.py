@@ -1001,8 +1001,8 @@ SENTRY_FEATURES = {
     "organizations:performance-view": True,
     # Enable profiling
     "organizations:profiling": False,
-    # Enable profiling on-boarding checklist
-    "organizations:profiling-onboarding-checklist": False,
+    # Enable performance spans in flamecharts
+    "organizations:profiling-flamechart-spans": False,
     # Enable multi project selection
     "organizations:global-views": False,
     # Enable experimental new version of Merged Issues where sub-hashes are shown
@@ -1186,6 +1186,8 @@ SENTRY_FEATURES = {
     "organizations:dynamic-sampling": False,
     # Enable View Hierarchies in issue details page
     "organizations:mobile-view-hierarchies": False,
+    # Enable deobfuscating exception values in Java issues
+    "organizations:java-exception-value-deobfuscation": False,
     # Enable tag improvements in the issue details page
     "organizations:issue-details-tag-improvements": False,
     # Enable the release details performance section
@@ -2882,6 +2884,8 @@ DISALLOWED_CUSTOMER_DOMAINS = []
 
 SENTRY_PERFORMANCE_ISSUES_RATE_LIMITER_OPTIONS = {}
 SENTRY_PERFORMANCE_ISSUES_REDUCE_NOISE = False
+
+SENTRY_ISSUE_PLATFORM_RATE_LIMITER_OPTIONS = {}
 
 SENTRY_REGION = os.environ.get("SENTRY_REGION", None)
 SENTRY_REGION_CONFIG: Iterable[Region] = ()

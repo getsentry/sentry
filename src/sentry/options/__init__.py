@@ -1,3 +1,6 @@
+from sentry.services.hybrid_cloud import silo_mode_delegation, stubbed
+from sentry.silo import SiloMode
+
 from .manager import (  # NOQA
     DEFAULT_FLAGS,
     FLAG_ALLOW_EMPTY,
@@ -10,12 +13,38 @@ from .manager import (  # NOQA
     OptionsManager,
     UnknownOption,
 )
-from .store import OptionsStore
+from .store import AbstractOptionsStore, OptionsStore
 
-__all__ = ("get", "set", "delete", "register", "isset", "lookup_key", "UnknownOption")
+__all__ = (
+    "get",
+    "set",
+    "delete",
+    "register",
+    "isset",
+    "lookup_key",
+    "UnknownOption",
+    "default_store",
+)
 
 # See notes in ``runner.initializer`` regarding lazy cache configuration.
-default_store = OptionsStore(cache=None)
+_local_store_impl = OptionsStore(cache=None)
+
+
+def impl_locally() -> AbstractOptionsStore:
+    return _local_store_impl
+
+
+# An abstraction for hybrid cloud.  Currently, under the hood, all silo modes still use the original options store.
+# However, to allow tests to validate abstraction for future silo separation, we need to use a delegator that can,
+# eventually, use a new implementation.
+default_store: AbstractOptionsStore = silo_mode_delegation(
+    {
+        SiloMode.MONOLITH: impl_locally,
+        SiloMode.REGION: stubbed(impl_locally, SiloMode.CONTROL),
+        SiloMode.CONTROL: impl_locally,
+    }
+)
+
 default_store.connect_signals()
 
 default_manager = OptionsManager(store=default_store)

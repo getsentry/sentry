@@ -11,6 +11,7 @@ from sentry.silo import SiloLimit, SiloMode
 
 from .fields.bounded import BoundedBigAutoField
 from .manager import BaseManager, M
+from .manager.base import create_silo_limited_copy
 from .query import update
 
 __all__ = (
@@ -203,11 +204,14 @@ class ModelSiloLimit(SiloLimit):
         return handle
 
     def __call__(self, model_class: ModelClass) -> Type[ModelClass]:
-        if not (isinstance(model_class, type) and issubclass(model_class, BaseModel)):
+        if not (isinstance(model_class, type) and issubclass(model_class, models.Model)):
             raise TypeError("`@ModelSiloLimit ` must decorate a Model class")
-        assert isinstance(model_class.objects, BaseManager)
 
-        model_class.objects = model_class.objects.create_silo_limited_copy(self, self.read_only)
+        setattr(
+            model_class,
+            "objects",
+            create_silo_limited_copy(getattr(model_class, "objects"), self, self.read_only),
+        )
 
         # On the model (not manager) class itself, find all methods that are tagged
         # with the `alters_data` meta-attribute and replace them with overrides.
@@ -222,11 +226,11 @@ class ModelSiloLimit(SiloLimit):
                 # trigger hooks in Django's ModelBase metaclass a second time.
                 setattr(model_class, model_attr_name, override)
 
-        model_class._meta.silo_limit = self
+        getattr(model_class, "_meta").silo_limit = self
 
         return model_class
 
 
-control_silo_with_replication_model = ModelSiloLimit(SiloMode.CONTROL, read_only=SiloMode.REGION)
 control_silo_only_model = ModelSiloLimit(SiloMode.CONTROL)
 region_silo_only_model = ModelSiloLimit(SiloMode.REGION)
+control_silo_with_replication_model = control_silo_only_model
