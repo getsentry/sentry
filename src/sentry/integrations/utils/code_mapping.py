@@ -276,16 +276,29 @@ class CodeMappingTreesHelper:
             for src_path in repo_tree.files
             if self._potential_match(src_path, frame_filename)
         ]
+        # Allow for empty for ./ as stack root if the following cases apply
+        stacktrace_root = f"{frame_filename.root}/"  # sentry
+        source_path = self._get_code_mapping_source_path(matched_files[0], frame_filename)
+        # Ex. source_path = stacktrace_root = "app/"
+        if source_path == stacktrace_root:
+            stacktrace_root = ""
+            source_path = ""
+        # Ex. source_path = "static/app", stacktrace_root = "./app"
+        elif "static" in source_path and source_path.replace("static", ".") == stacktrace_root:
+            stacktrace_root = "./"
+            source_path = "static/"
+        # Ex. source_path = "app/", stacktrace_root = "./app"
+        elif "./" in stacktrace_root and stacktrace_root.replace("./", "") == source_path:
+            stacktrace_root = "./"
+            source_path = ""
         # It is too risky generating code mappings when there's more
         # than one file potentially matching
         return (
             [
                 CodeMapping(
                     repo=repo_tree.repo,
-                    stacktrace_root=f"{frame_filename.root}/",  # sentry
-                    source_path=self._get_code_mapping_source_path(
-                        matched_files[0], frame_filename
-                    ),
+                    stacktrace_root=f"{stacktrace_root}",  # sentry
+                    source_path=source_path,
                 )
             ]
             if len(matched_files) == 1
