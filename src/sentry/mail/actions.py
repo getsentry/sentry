@@ -49,7 +49,12 @@ class NotifyEmailAction(EventAction):
         if features.has(
             "organizations:issue-alert-fallback-targeting", self.project.organization, actor=None
         ):
-            fallthrough_type = FallthroughChoiceType(self.data["fallthroughType"])
+            fallthrough_choice = self.data.get("fallthroughType", None)
+            fallthrough_type = (
+                FallthroughChoiceType(fallthrough_choice)
+                if fallthrough_choice is not None
+                else None
+            )
 
         if not determine_eligible_recipients(
             group.project, target_type, target_identifier, event, fallthrough_type
