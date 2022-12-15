@@ -162,11 +162,12 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
         project = self.create_project(teams=[self.team])
 
         replay1_id = uuid.uuid4().hex
+        replay2_id = uuid.uuid4().hex
         seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=22)
         seq2_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=5)
         self.store_replays(
             mock_replay(
-                seq1_timestamp,
+                seq2_timestamp,
                 project.id,
                 replay1_id,
                 urls=[
@@ -175,15 +176,17 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 ],
                 tags={"test": "hello", "other": "hello"},
                 user_id=123,
+                replay_start_timestamp=int(seq1_timestamp.timestamp()),
             )
         )
         self.store_replays(
             mock_replay(
                 seq2_timestamp,
                 project.id,
-                replay1_id,
+                replay2_id,
                 urls=["http://localhost:3000/"],
                 tags={"test": "world", "other": "hello"},
+                replay_start_timestamp=int(seq1_timestamp.timestamp()),
             )
         )
 
