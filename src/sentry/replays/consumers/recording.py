@@ -7,7 +7,7 @@ import msgpack
 import sentry_sdk
 from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.processing.strategies import RunTaskInThreads, TransformStep
-from arroyo.processing.strategies.abstract import ProcessingStrategy, ProcessingStrategyFactory
+from arroyo.processing.strategies.abstract import ProcessingStrategyFactory
 from arroyo.processing.strategies.commit import CommitOffsets
 from arroyo.processing.strategies.filter import FilterStep
 from arroyo.types import Commit, Message, Partition
@@ -43,7 +43,7 @@ class ProcessReplayRecordingStrategyFactory(ProcessingStrategyFactory[KafkaPaylo
         self,
         commit: Commit,
         partitions: Mapping[Partition, int],
-    ) -> ProcessingStrategy[KafkaPayload]:
+    ) -> Any:
         return LogExceptionStep(
             message="Invalid recording specified.",
             logger=logger,
@@ -79,13 +79,13 @@ def move_chunks_to_cache_or_skip(message: Message[KafkaPayload]) -> MessageConte
     return MessageContext(message_dict, transaction)
 
 
-def is_capstone_message(message: Message[MessageContext]) -> bool:
+def is_capstone_message(message: Message[MessageContext]) -> Any:
     """Return "True" if the message is a capstone and can be processed in parallel."""
     message_type = message.payload.message["type"]
     return message_type == "replay_recording_not_chunked" or message_type == "replay_recording"
 
 
-def move_replay_to_permanent_storage(message: Message[MessageContext]) -> None:
+def move_replay_to_permanent_storage(message: Message[MessageContext]) -> Any:
     """Move the replay payload to permanent storage."""
     context: MessageContext = message.payload
     message_dict = context.message
