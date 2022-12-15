@@ -1,18 +1,18 @@
+from functools import cached_property
 from unittest import TestCase
 
 import pytest
-from exam import fixture
 
 from sentry.utils.locking.backends.redis import RedisLockBackend
 from sentry.utils.redis import clusters
 
 
 class RedisLockBackendTestCase(TestCase):
-    @fixture
+    @cached_property
     def cluster(self):
         return clusters.get("default")
 
-    @fixture
+    @cached_property
     def backend(self):
         return RedisLockBackend(self.cluster)
 

@@ -122,7 +122,7 @@ from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.tasks.process_buffer import buffer_incr
 from sentry.tasks.relay import schedule_invalidate_project_config
 from sentry.types.activity import ActivityType
-from sentry.types.issues import GroupCategory
+from sentry.types.issues import GROUP_TYPE_TO_TEXT, GroupCategory, GroupType
 from sentry.utils import json, metrics, redis
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.canonical import CanonicalKeyDict
@@ -150,7 +150,12 @@ issue_rate_limiter = RedisSlidingWindowRateLimiter(
     **settings.SENTRY_PERFORMANCE_ISSUES_RATE_LIMITER_OPTIONS
 )
 PERFORMANCE_ISSUE_QUOTA = Quota(3600, 60, 5)
-GROUPHASH_IGNORE_LIMIT = 3
+
+DEFAULT_GROUPHASH_IGNORE_LIMIT = 3
+GROUPHASH_IGNORE_LIMIT_MAP = {
+    GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES: 3,
+    GroupType.PERFORMANCE_SLOW_SPAN: 100,
+}
 
 
 @dataclass
@@ -2267,7 +2272,8 @@ def _save_aggregate_performance(jobs: Sequence[PerformanceJob], projects: Projec
                     client = redis.redis_clusters.get(cluster_key)
 
                     for new_grouphash in new_grouphashes:
-                        if not should_create_group(client, new_grouphash):
+                        group_type = performance_problems_by_hash[new_grouphash].type
+                        if not should_create_group(client, new_grouphash, group_type):
                             groups_to_ignore.add(new_grouphash)
 
                     new_grouphashes = new_grouphashes - groups_to_ignore
@@ -2377,14 +2383,15 @@ def _save_aggregate_performance(jobs: Sequence[PerformanceJob], projects: Projec
 
 
 @metrics.wraps("performance.performance_issue.should_create_group", sample_rate=1.0)
-def should_create_group(client: Any, grouphash: str) -> bool:
+def should_create_group(client: Any, grouphash: str, type: GroupType) -> bool:
     times_seen = client.incr(f"grouphash:{grouphash}")
     metrics.incr(
         "performance.performance_issue.grouphash_counted",
-        tags={"times_seen": times_seen},
+        tags={"times_seen": times_seen, "group_type": GROUP_TYPE_TO_TEXT.get(type, "Unknown Type")},
         sample_rate=1.0,
     )
-    if times_seen >= GROUPHASH_IGNORE_LIMIT:
+
+    if times_seen >= GROUPHASH_IGNORE_LIMIT_MAP.get(type, DEFAULT_GROUPHASH_IGNORE_LIMIT):
         client.delete(grouphash)
         return True
     else:

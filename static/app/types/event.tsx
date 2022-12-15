@@ -493,6 +493,25 @@ interface OtelContext extends Partial<Record<OtelContextKey, unknown>>, BaseCont
   [OtelContextKey.RESOURCE]?: Record<string, unknown>;
 }
 
+export enum UnityContextKey {
+  COPY_TEXTURE_SUPPORT = 'copy_texture_support',
+  EDITOR_VERSION = 'editor_version',
+  INSTALL_MODE = 'install_mode',
+  RENDERING_THREADING_MODE = 'rendering_threading_mode',
+  TARGET_FRAME_RATE = 'target_frame_rate',
+}
+
+// Unity Context
+// TODO(Priscila): Add this context to the docs
+export interface UnityContext {
+  [UnityContextKey.COPY_TEXTURE_SUPPORT]: string;
+  [UnityContextKey.EDITOR_VERSION]: string;
+  [UnityContextKey.INSTALL_MODE]: string;
+  [UnityContextKey.RENDERING_THREADING_MODE]: string;
+  [UnityContextKey.TARGET_FRAME_RATE]: string;
+  type: 'unity';
+}
+
 export enum MemoryInfoContextKey {
   ALLOCATED_BYTES = 'allocated_bytes',
   FRAGMENTED_BYTES = 'fragmented_bytes',
@@ -568,6 +587,7 @@ type EventContexts = {
   runtime?: RuntimeContext;
   threadpool_info?: ThreadPoolInfoContext;
   trace?: TraceContextType;
+  unity?: UnityContext;
 };
 
 export type Measurement = {value: number; unit?: string};
@@ -590,6 +610,34 @@ export type PerformanceDetectorData = {
   issueType?: IssueType;
 };
 
+type EventEvidenceDisplay = {
+  /**
+   * Used for alerting, probably not useful for the UI
+   */
+  important: boolean;
+  name: string;
+  value: string;
+};
+
+type EventOccurrence = {
+  detectionTime: string;
+  eventId: string;
+  /**
+   * Arbitrary data that vertical teams can pass to assist with rendering the page.
+   * This is intended mostly for use with customizing the UI, not in the generic UI.
+   */
+  evidenceData: Record<string, any>;
+  /**
+   * Data displayed in the evidence table. Used in all issue types besides errors.
+   */
+  evidenceDisplay: EventEvidenceDisplay[];
+  fingerprint: string[];
+  id: string;
+  issueTitle: string;
+  resourceId: string;
+  subtitle: string;
+};
+
 interface EventBase {
   contexts: EventContexts;
   crashFile: IssueAttachment | null;
@@ -604,6 +652,7 @@ interface EventBase {
   location: string | null;
   message: string;
   metadata: EventMetadata;
+  occurrence: EventOccurrence | null;
   projectID: string;
   size: number;
   tags: EventTag[];
