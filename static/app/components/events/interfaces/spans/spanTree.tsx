@@ -68,7 +68,7 @@ const listRef = React.createRef<ReactVirtualizedList>();
 class SpanTree extends Component<PropType> {
   state: StateType = {
     headerPos: 0,
-    // Stores each visible span row ref along with its its tree depth. This is used to calculate the
+    // Stores each visible span row ref along with its tree depth. This is used to calculate the
     // horizontal auto-scroll positioning
     spanRows: {},
   };
