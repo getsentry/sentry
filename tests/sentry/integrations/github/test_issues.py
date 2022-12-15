@@ -1,8 +1,8 @@
+from functools import cached_property
 from unittest.mock import patch
 
 import responses
 from django.test import RequestFactory
-from exam import fixture
 
 from sentry.event_manager import EventManager
 from sentry.integrations.github.integration import GitHubIntegration
@@ -19,7 +19,7 @@ from sentry.utils.samples import load_data
 
 @region_silo_test
 class GitHubIssueBasicTest(TestCase):
-    @fixture
+    @cached_property
     def request(self):
         return RequestFactory()
 
@@ -106,7 +106,7 @@ class GitHubIssueBasicTest(TestCase):
         event_data = load_data(
             "transaction-n-plus-one",
             timestamp=before_now(minutes=10),
-            fingerprint=[f"{GroupType.PERFORMANCE_N_PLUS_ONE.value}-group1"],
+            fingerprint=[f"{GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value}-group1"],
         )
         perf_event_manager = EventManager(event_data)
         perf_event_manager.normalize()

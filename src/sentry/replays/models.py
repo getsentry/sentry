@@ -5,11 +5,12 @@ from django.db import models
 from django.utils import timezone
 from django.utils.functional import cached_property
 
-from sentry.db.models import BoundedBigIntegerField, Model, sane_repr
+from sentry.db.models import BoundedBigIntegerField, Model, region_silo_only_model, sane_repr
 from sentry.db.models.fields.bounded import BoundedIntegerField, BoundedPositiveIntegerField
 
 
 # Based heavily on EventAttachment
+@region_silo_only_model
 class ReplayRecordingSegment(Model):
     __include_in_export__ = False
 

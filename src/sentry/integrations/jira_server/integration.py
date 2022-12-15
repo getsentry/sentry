@@ -933,13 +933,16 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
                         v = {"id": v}
                 cleaned_data[field_name] = v
 
-        if not (isinstance(cleaned_data["issuetype"], dict) and "id" in cleaned_data["issuetype"]):
+        if not (
+            isinstance(cleaned_data.get("issuetype"), dict)
+            and "id" in cleaned_data.get("issuetype", {})
+        ):
             # something fishy is going on with this field, working on some Jira
             # instances, and some not.
             # testing against 5.1.5 and 5.1.4 does not convert (perhaps is no longer included
             # in the projectmeta API call, and would normally be converted in the
             # above clean method.)
-            cleaned_data["issuetype"] = {"id": cleaned_data["issuetype"]}
+            cleaned_data["issuetype"] = {"id": issue_type}
 
         try:
             response = client.create_issue(cleaned_data)
