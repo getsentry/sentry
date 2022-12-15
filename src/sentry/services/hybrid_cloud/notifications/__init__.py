@@ -10,6 +10,7 @@ from sentry.notifications.types import (
     NotificationSettingTypes,
 )
 from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_delegation, stubbed
+from sentry.services.hybrid_cloud.user import APIUser
 from sentry.silo import SiloMode
 from sentry.types.integrations import ExternalProviders
 
@@ -48,6 +49,16 @@ class NotificationsService(InterfaceWithLifecycle):
         type: NotificationSettingTypes,
         parent_id: int,
         recipients: Sequence[MayHaveActor],
+    ) -> List[ApiNotificationSetting]:
+        pass
+
+    @abstractmethod
+    def get_settings_for_users(
+        self,
+        *,
+        types: List[NotificationSettingTypes],
+        users: List[APIUser],
+        value: NotificationSettingOptionValues,
     ) -> List[ApiNotificationSetting]:
         pass
 

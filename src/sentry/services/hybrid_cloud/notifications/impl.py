@@ -6,15 +6,35 @@ from django.db.models import Q
 
 from sentry.models import NotificationSetting, User
 from sentry.notifications.helpers import get_scope_type
-from sentry.notifications.types import NotificationScopeType, NotificationSettingTypes
+from sentry.notifications.types import (
+    NotificationScopeType,
+    NotificationSettingOptionValues,
+    NotificationSettingTypes,
+)
 from sentry.services.hybrid_cloud.notifications import (
     ApiNotificationSetting,
     MayHaveActor,
     NotificationsService,
 )
+from sentry.services.hybrid_cloud.user import APIUser
 
 
 class DatabaseBackedNotificationsService(NotificationsService):
+    def get_settings_for_users(
+        self,
+        *,
+        types: List[NotificationSettingTypes],
+        users: List[APIUser],
+        value: NotificationSettingOptionValues,
+    ) -> List[ApiNotificationSetting]:
+        settings = NotificationSetting.objects.filter(
+            target__in=[u.actor_id for u in users],
+            type__in=types,
+            value=value.value,
+            scope_type=NotificationScopeType.USER.value,
+        )
+        return [self._serialize_notification_settings(u) for u in settings]
+
     def get_settings_for_recipient_by_parent(
         self, *, type: NotificationSettingTypes, parent_id: int, recipients: Sequence[MayHaveActor]
     ) -> List[ApiNotificationSetting]:
