@@ -156,7 +156,9 @@ class VercelWebhookEndpoint(Endpoint):
             try:
                 payload = request.data["payload"]
                 external_id = (
-                    payload.get("team")["id"] if payload.get("team") else payload["user"]["id"]
+                    payload.get("team")["id"]
+                    if (payload.get("team") and payload.get("team") != {})
+                    else payload["user"]["id"]
                 )
                 scope.set_tag("vercel_webhook.type", "new")
 
@@ -165,7 +167,7 @@ class VercelWebhookEndpoint(Endpoint):
                     return self._delete(external_id, configuration_id, request)
                 if event_type == "deployment.created":
                     return self._deployment_created(external_id, request)
-            except KeyError:
+            except Exception:
                 external_id = request.data.get("teamId") or request.data["userId"]
                 scope.set_tag("vercel_webhook.type", "old")
 
@@ -185,8 +187,8 @@ class VercelWebhookEndpoint(Endpoint):
                     payload.get("team")["id"] if payload.get("team") else payload["user"]["id"]
                 )
                 scope.set_tag("vercel_webhook.type", "new")
-                configuration_id = request.data["payload"]["configuration"]["id"]
-            except KeyError:
+                configuration_id = payload["configuration"]["id"]
+            except Exception:
                 external_id = request.data.get("teamId") or request.data["userId"]
                 scope.set_tag("vercel_webhook.type", "old")
                 configuration_id = request.data.get("configurationId")
