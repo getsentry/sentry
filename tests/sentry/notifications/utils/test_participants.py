@@ -530,13 +530,13 @@ class GetOwnersCase(TestCase):
                 == f"We notified team admins and recently active members in the {self.project.get_full_name()} project of this issue"
             )
 
-    def test_get_owner_reason_assigned(self):
+    def test_get_owner_reason_member(self):
         self.create_ownership(self.project, [], True)
         event = self.create_event(self.project)
         with self.feature("organizations:issue-alert-fallback-targeting"):
             owner_reason = get_owner_reason(
                 project=self.project,
-                target_type=ActionTargetType.ISSUE_OWNERS,
+                target_type=ActionTargetType.MEMBER,
                 event=event,
                 fallthrough_choice=FallthroughChoiceType.ALL_MEMBERS,
             )
