@@ -553,6 +553,9 @@ register("sentry-metrics.cardinality-limiter.limits.performance.per-org", defaul
 register("sentry-metrics.cardinality-limiter.limits.releasehealth.per-org", default=[])
 register("sentry-metrics.cardinality-limiter.orgs-rollout-rate", default=0.0)
 
+# Flag to determine whether abnormal_mechanism tag should be extracted
+register("sentry-metrics.releasehealth.abnormal-mechanism-extraction-rate", default=0.0)
+
 # Performance issue options to change both detection (which we can monitor with metrics),
 # and the creation of performance problems, which will eventually get turned into issues.
 register("performance.issues.all.problem-detection", default=0.0)
