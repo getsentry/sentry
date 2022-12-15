@@ -2,7 +2,7 @@ import {useCallback} from 'react';
 
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {relativeTimeInMs} from 'sentry/components/replays/utils';
-import {Crumb} from 'sentry/types/breadcrumbs';
+import {BreadcrumbType, Crumb} from 'sentry/types/breadcrumbs';
 import useActiveReplayTab from 'sentry/utils/replays/hooks/useActiveReplayTab';
 
 function useCrumbHandlers(startTimestampMs: number = 0) {
@@ -49,14 +49,12 @@ function useCrumbHandlers(startTimestampMs: number = 0) {
       }
 
       switch (crumb.type) {
-        case 'navigation':
-        case 'debug':
+        case BreadcrumbType.NAVIGATION:
           setActiveTab('network');
           break;
-        case 'ui':
+        case BreadcrumbType.UI:
           setActiveTab('dom');
           break;
-        case 'error':
         default:
           setActiveTab('console');
           break;

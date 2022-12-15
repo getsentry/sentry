@@ -1,4 +1,4 @@
-from exam import fixture
+from functools import cached_property
 
 from sentry.incidents.models import IncidentActivity, IncidentActivityType
 from sentry.testutils import APITestCase
@@ -23,19 +23,19 @@ class BaseIncidentCommentDetailsTest(APITestCase):
             incident=self.incident, user=user2, comment="hello from another user"
         )
 
-    @fixture
+    @cached_property
     def organization(self):
         return self.create_organization()
 
-    @fixture
+    @cached_property
     def project(self):
         return self.create_project(organization=self.organization)
 
-    @fixture
+    @cached_property
     def user(self):
         return self.create_user()
 
-    @fixture
+    @cached_property
     def incident(self):
         return self.create_incident()
 
