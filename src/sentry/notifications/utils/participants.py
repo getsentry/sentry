@@ -193,7 +193,7 @@ def get_owner_reason(
     target_type: ActionTargetType,
     event: Event | None = None,
     notification_type: NotificationSettingTypes = NotificationSettingTypes.ISSUE_ALERTS,
-    fallthrough_choice: FallthroughChoiceType = None,
+    fallthrough_choice: FallthroughChoiceType | None = None,
 ) -> str | None:
     """
     Provide a human readable reason for why a user is receiving a notification.
