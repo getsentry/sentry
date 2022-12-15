@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from typing import Dict, List, Mapping, Protocol, Sequence
+from typing import Dict, List, Mapping, Protocol, Sequence, Tuple
 
 from sentry.ingest.transaction_clusterer.datasource.redis import get_redis_client
 from sentry.models import Project
@@ -53,11 +53,19 @@ class RedisRuleStore:
 class ProjectOptionRuleStore:
     _option_name = "sentry:transaction_name_cluster_rules"
 
+    def read_sorted(self, project: Project) -> List[Tuple[ReplacementRule, int]]:
+        return project.get_option(self._option_name, default=[])  # type: ignore
+
     def read(self, project: Project) -> RuleSet:
-        return project.get_option(self._option_name, default={})  # type: ignore
+        return {rule: last_seen for rule, last_seen in self.read_sorted(project)}
+
+    def _sort(self, rules: RuleSet) -> List[Tuple[ReplacementRule, int]]:
+        """Sort rules by number of slashes, i.e. depth of the rule"""
+        return sorted(rules.items(), key=lambda p: p[0].count("/"), reverse=True)
 
     def write(self, project: Project, rules: RuleSet) -> None:
-        project.update_option(self._option_name, rules)
+        sorted_rules = self._sort(rules)
+        project.update_option(self._option_name, sorted_rules)
 
 
 class CompositeRuleStore:
@@ -99,14 +107,26 @@ def _now() -> int:
     return int(datetime.now(timezone.utc).timestamp())
 
 
-def get_rules(project: Project) -> Mapping[ReplacementRule, int]:
-    """Public interface for fetching rules for a project.
-    Project options are the persistent, long-term store for rules, while redis is just a short-term buffer,
-    so project options is what we fetch from."""
+def _get_rules(project: Project) -> RuleSet:
     return ProjectOptionRuleStore().read(project)
 
 
+def get_sorted_rules(project: Project) -> List[Tuple[ReplacementRule, int]]:
+    """Public interface for fetching rules for a project.
+
+    The rules are fetched from project options rather than redis, because
+    project options is the more persistent store.
+
+    The rules are ordered by specifity, meaning that rules that go deeper
+    into the URL tree occur first.
+    """
+    return ProjectOptionRuleStore().read_sorted(project)
+
+
 def update_rules(project: Project, new_rules: Sequence[ReplacementRule]) -> None:
+    if not new_rules:
+        return
+
     last_seen = _now()
     new_rule_set = {rule: last_seen for rule in new_rules}
     rule_store = CompositeRuleStore(
