@@ -40,6 +40,36 @@ def test_should_not_log_rules_if_unchanged():
         1: {
             get_rule_hash(
                 {
+                    "active": True,
+                    "condition": {"inner": [], "op": "and"},
+                    "id": 1000,
+                    "sampleRate": 0.1,
+                    "type": "trace",
+                },
+            ): 0.1
+        }
+    },
+)
+def test_should_not_log_rules_if_unchanged_and_different_order():
+    new_rules = [
+        {
+            "sampleRate": 0.1,
+            "condition": {"op": "and", "inner": []},
+            "id": 1000,
+            "type": "trace",
+            "active": True,
+        },
+    ]
+
+    assert not should_log_rules_change(1, new_rules)
+
+
+@patch(
+    "sentry.dynamic_sampling.logging.active_rules",
+    new={
+        1: {
+            get_rule_hash(
+                {
                     "sampleRate": 1,
                     "type": "trace",
                     "condition": {

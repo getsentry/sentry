@@ -36,10 +36,9 @@ def should_log_rules_change(project_id: int, rules: List[BaseRule]) -> bool:
         new_rules_per_project[get_rule_hash(rule)] = rule["sampleRate"]
 
     should_log = new_rules_per_project != active_rules_per_project
-
     if should_log:
         _delete_active_rule_if_limit(active_rules_per_project is None)
-        active_rules[project_id] = new_rules_per_project
+        active_rules[project_id] = new_rules_per_project  # type:ignore
 
     return should_log
 
@@ -89,10 +88,10 @@ def _extract_info_from_rule(
 ) -> Dict[str, Union[List[str], str, None]]:
     if rule_type == RuleType.BOOST_LATEST_RELEASES_RULE:
         return {
-            "release": rule["condition"]["inner"][0]["value"],  # type:ignore
-            "environment": rule["condition"]["inner"][1]["value"],  # type:ignore
+            "release": rule["condition"]["inner"][0]["value"],
+            "environment": rule["condition"]["inner"][1]["value"],
         }
     elif rule_type == RuleType.BOOST_KEY_TRANSACTIONS_RULE:
-        return {"transaction": rule["condition"]["inner"][0]["value"]}  # type:ignore
+        return {"transaction": rule["condition"]["inner"][0]["value"]}
     else:
         return {}

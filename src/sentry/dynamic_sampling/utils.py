@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Dict, List, Optional, TypedDict
+from typing import Any, Dict, List, Optional, TypedDict, Union
 
 from sentry.dynamic_sampling.latest_release_booster import ProjectBoostedReleases
 from sentry.utils import json
@@ -96,11 +96,19 @@ def get_rule_hash(rule: BaseRule) -> int:
     # We want to be explicit in what we use for computing the hash. In addition, we need to remove certain fields like
     # the sampleRate.
     return json.dumps(
-        {
-            "id": rule["id"],
-            "type": rule["type"],
-            "active": rule["active"],
-            "condition": rule["condition"],
-        },
-        sort_keys=True,
+        _nested_sort_dictionary(
+            {
+                "id": rule["id"],
+                "type": rule["type"],
+                "active": rule["active"],
+                "condition": rule["condition"],
+            }
+        )
     ).__hash__()
+
+
+def _nested_sort_dictionary(value: Union[Any, Dict[Any, Any]]) -> Union[Any, Dict[Any, Any]]:
+    if isinstance(value, dict):
+        return {key: _nested_sort_dictionary(value) for key, value in sorted(value.items())}
+    else:
+        return value
