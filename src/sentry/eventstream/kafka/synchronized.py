@@ -299,7 +299,7 @@ class SynchronizedConsumer(Consumer[TPayload]):
         return self.__consumer.seek(offsets)
 
     def stage_offsets(self, offsets: Mapping[Partition, int]) -> None:
-        return self.__consumer.stage_positions(offsets)
+        return self.__consumer.stage_offsets(offsets)
 
     def commit_offsets(self) -> Mapping[Partition, int]:
         return self.__consumer.commit_offsets()
