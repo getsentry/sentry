@@ -449,6 +449,9 @@ class QueryBuilder(BaseQueryBuilder):
             lhs, rhs = terms[:1], terms[1:]
             operator = And
 
+        if isinstance(lhs, AliasedExpression):
+            lhs = lhs.exp
+
         lhs_where, lhs_having = self.resolve_boolean_conditions(lhs, use_aggregate_conditions)
         rhs_where, rhs_having = self.resolve_boolean_conditions(rhs, use_aggregate_conditions)
 
@@ -622,7 +625,9 @@ class QueryBuilder(BaseQueryBuilder):
         field = tag_match.group("tag") if tag_match else raw_field
 
         if constants.VALID_FIELD_PATTERN.match(field):
-            return self.aliased_column(raw_field) if alias else self.column(raw_field)
+            resolved = self.resolve_column_name(field)
+            column = Column(resolved)
+            return AliasedExpression(column, f"tags_{field}")
         else:
             raise InvalidSearchQuery(f"Invalid characters in field {field}")
 
@@ -1191,6 +1196,9 @@ class QueryBuilder(BaseQueryBuilder):
 
         lhs = self.resolve_column(name)
 
+        if isinstance(lhs, AliasedExpression):
+            lhs = lhs.exp
+
         if name in constants.ARRAY_FIELDS:
             if search_filter.value.is_wildcard():
                 # TODO: There are rare cases where this chaining don't
@@ -1628,7 +1636,10 @@ class TopEventsQueryBuilder(TimeseriesQueryBuilder):
         self.fields: List[str] = selected_columns if selected_columns is not None else []
 
         if (conditions := self.resolve_top_event_conditions(top_events, other)) is not None:
-            self.where.append(conditions)
+            if isinstance(conditions, AliasedExpression):
+                self.where.append(conditions.column)
+            else:
+                self.where.append(conditions)
 
         if not other:
             self.groupby.extend(
@@ -1680,6 +1691,8 @@ class TopEventsQueryBuilder(TimeseriesQueryBuilder):
             for event in top_events:
                 if field in event:
                     alias = field
+                elif f"tags_{field}" in event:
+                    alias = f"tags_{field}"
                 elif self.is_column_function(resolved_field) and resolved_field.alias in event:
                     alias = resolved_field.alias
                 else:
@@ -1728,9 +1741,20 @@ class TopEventsQueryBuilder(TimeseriesQueryBuilder):
                     else:
                         conditions.append(null_condition)
                 else:
-                    conditions.append(
-                        Condition(resolved_field, Op.IN if not other else Op.NOT_IN, values_list)
-                    )
+                    if isinstance(resolved_field, AliasedExpression):
+                        conditions.append(
+                            Condition(
+                                resolved_field.exp,
+                                Op.IN if not other else Op.NOT_IN,
+                                values_list,
+                            )
+                        )
+                    # else:
+                    #     conditions.append(
+                    #         Condition(
+                    #             resolved_field, Op.IN if not other else Op.NOT_IN, values_list
+                    #         )
+                    #     )
         if len(conditions) > 1:
             final_function = And if not other else Or
             final_condition = final_function(conditions=conditions)

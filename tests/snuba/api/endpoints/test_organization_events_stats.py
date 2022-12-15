@@ -1029,6 +1029,45 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
             kwargs={"organization_slug": self.project.organization.slug},
         )
 
+    def test_conflicting_tag_function_alias(self):
+        self.event_data = [
+            {
+                "data": {
+                    "message": "poof",
+                    "timestamp": iso_format(self.day_ago + timedelta(minutes=2)),
+                    "user": {"email": self.user.email},
+                    "tags": {"count": "9001"},
+                    "fingerprint": ["group1"],
+                },
+                "project": self.project2,
+                "count": 7,
+            },
+        ]
+        self.events = []
+        for index, event_data in enumerate(self.event_data):
+            data = event_data["data"].copy()
+            event = {}
+            for i in range(event_data["count"]):
+                data["event_id"] = f"{index}{i}" * 16
+                event = self.store_event(data, project_id=event_data["project"].id)
+            self.events.append(event)
+
+        # Query for count and count()
+        data = {
+            "start": iso_format(self.day_ago),
+            "end": iso_format(self.day_ago + timedelta(hours=2)),
+            "interval": "90d",
+            "yAxis": "count()",
+            "orderby": ["-count()"],
+            "field": ["count()", "count"],
+            "topEvents": 5,
+            "partial": 1,
+        }
+        with self.feature(self.enabled_features):
+            response = self.client.get(self.url, data, format="json")
+            assert response.status_code == 200
+            assert response.data["9001"]["data"][0][1] == [{"count": 7}]
+
     def test_no_top_events_with_project_field(self):
         project = self.create_project()
         with self.feature(self.enabled_features):

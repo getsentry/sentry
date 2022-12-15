@@ -406,6 +406,7 @@ def top_events_timeseries(
                 auto_aggregations=True,
                 use_aggregate_conditions=True,
                 include_equation_fields=True,
+                transform_alias_to_input_format=True,
             )
 
     top_events_builder = TopEventsQueryBuilder(
