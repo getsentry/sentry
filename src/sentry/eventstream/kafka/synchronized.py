@@ -19,7 +19,7 @@ from arroyo.backends.abstract import Consumer
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.backends.kafka.commit import CommitCodec
 from arroyo.errors import ConsumerError, EndOfPartition
-from arroyo.types import BrokerValue, Partition, Position, Topic, TPayload
+from arroyo.types import BrokerValue, Partition, Topic, TPayload
 from arroyo.utils.concurrent import execute
 
 from sentry.utils import metrics
@@ -298,11 +298,11 @@ class SynchronizedConsumer(Consumer[TPayload]):
     def seek(self, offsets: Mapping[Partition, int]) -> None:
         return self.__consumer.seek(offsets)
 
-    def stage_positions(self, positions: Mapping[Partition, Position]) -> None:
-        return self.__consumer.stage_positions(positions)
+    def stage_offsets(self, offsets: Mapping[Partition, int]) -> None:
+        return self.__consumer.stage_offsets(offsets)
 
-    def commit_positions(self) -> Mapping[Partition, Position]:
-        return self.__consumer.commit_positions()
+    def commit_offsets(self) -> Mapping[Partition, int]:
+        return self.__consumer.commit_offsets()
 
     def close(self, timeout: Optional[float] = None) -> None:
         # TODO: Be careful to ensure there are not any deadlock conditions

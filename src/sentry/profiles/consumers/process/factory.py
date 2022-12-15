@@ -31,8 +31,7 @@ class ProcessProfileStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         commit: Commit,
         partitions: Mapping[Partition, int],
     ) -> ProcessingStrategy[KafkaPayload]:
-        next_step: CommitOffsets[None] = CommitOffsets(commit)
         return RunTask(
             function=process_message,
-            next_step=next_step,
+            next_step=CommitOffsets(commit),
         )

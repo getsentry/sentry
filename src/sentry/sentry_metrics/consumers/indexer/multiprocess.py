@@ -1,12 +1,12 @@
 import logging
 import time
 from functools import partial
-from typing import Any, Callable, Mapping, MutableMapping, Optional
+from typing import Any, Mapping, MutableMapping, Optional
 
 from arroyo.backends.abstract import Producer as AbstractProducer
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.processing.strategies import ProcessingStrategy as ProcessingStep
-from arroyo.types import Message, Partition, Position
+from arroyo.types import Commit, Message, Partition
 from confluent_kafka import Producer
 from django.conf import settings
 
@@ -19,7 +19,7 @@ class SimpleProduceStep(ProcessingStep[KafkaPayload]):
     def __init__(
         self,
         output_topic: str,
-        commit_function: Callable[[Mapping[Partition, Position]], None],
+        commit_function: Commit,
         commit_max_batch_size: int,
         commit_max_batch_time: float,
         producer: Optional[AbstractProducer[KafkaPayload]] = None,
@@ -32,7 +32,7 @@ class SimpleProduceStep(ProcessingStep[KafkaPayload]):
         self.__commit_function = commit_function
 
         self.__closed = False
-        self.__produced_message_offsets: MutableMapping[Partition, Position] = {}
+        self.__produced_message_offsets: MutableMapping[Partition, int] = {}
         self.__callbacks = 0
         self.__started = time.time()
         # TODO: Need to make these flags
@@ -102,7 +102,7 @@ class SimpleProduceStep(ProcessingStep[KafkaPayload]):
             headers=message.payload.headers,
         )
 
-    def callback(self, error: Any, message: Any, committable: Mapping[Partition, Position]) -> None:
+    def callback(self, error: Any, message: Any, committable: Mapping[Partition, int]) -> None:
         if message and error is None:
             self.__callbacks += 1
             self.__produced_message_offsets.update(committable)
