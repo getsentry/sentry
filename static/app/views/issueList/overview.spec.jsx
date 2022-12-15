@@ -731,6 +731,7 @@ describe('IssueList', function () {
     it('unpinning search should keep project selected', async function () {
       const localSavedSearch = {
         ...savedSearch,
+        id: '666',
         isPinned: true,
         query: 'assigned:me level:fatal',
       };
