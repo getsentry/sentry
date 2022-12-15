@@ -3,6 +3,8 @@ import styled from '@emotion/styled';
 import {mat3, vec2} from 'gl-matrix';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {FlamegraphContextMenu} from 'sentry/components/profiling/flamegraph/flamegraphContextMenu';
+import {FlamegraphTooltip} from 'sentry/components/profiling/flamegraph/flamegraphTooltip';
 import {t} from 'sentry/locale';
 import {CanvasPoolManager, CanvasScheduler} from 'sentry/utils/profiling/canvasScheduler';
 import {DifferentialFlamegraph} from 'sentry/utils/profiling/differentialFlamegraph';
@@ -30,9 +32,6 @@ import {SelectedFrameRenderer} from 'sentry/utils/profiling/renderers/selectedFr
 import {TextRenderer} from 'sentry/utils/profiling/renderers/textRenderer';
 import usePrevious from 'sentry/utils/usePrevious';
 import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
-
-import {FlamegraphTooltip} from './FlamegraphTooltip/flamegraphTooltip';
-import {FlamegraphOptionsContextMenu} from './flamegraphOptionsContextMenu';
 
 function isHighlightingAllOccurences(
   node: FlamegraphFrame | null,
@@ -195,8 +194,8 @@ function FlamegraphZoomView({
           selectedFramesRef.current?.[0],
           flamegraph.inverted
         );
+
         if (nextSelected) {
-          selectedFramesRef.current = [nextSelected];
           canvasPoolManager.dispatch('zoom at frame', [nextSelected, 'min']);
         }
       }
@@ -440,7 +439,10 @@ function FlamegraphZoomView({
       setConfigSpaceCursor(null);
     };
 
-    const onZoomIntoFrame = () => {
+    const onZoomIntoFrame = (frame: FlamegraphFrame, _strategy: 'min' | 'exact') => {
+      if (frame) {
+        selectedFramesRef.current = [frame];
+      }
       setConfigSpaceCursor(null);
     };
 
@@ -783,7 +785,7 @@ function FlamegraphZoomView({
           pointerEvents: 'none',
         }}
       />
-      <FlamegraphOptionsContextMenu
+      <FlamegraphContextMenu
         contextMenu={contextMenu}
         profileGroup={profileGroup.type === 'resolved' ? profileGroup.data : null}
         hoveredNode={hoveredNodeOnContextMenuOpen.current}
@@ -859,19 +861,19 @@ function handleFlamegraphKeyboardNavigation(
 
   const key = evt.shiftKey ? `Shift+${evt.key}` : evt.key;
   let direction = keyDirectionMap[key];
+
+  // if the key is not mapped, don't handle it
   if (!direction) {
-    return currentFrame;
+    return null;
   }
   if (inverted && (direction === 'up' || direction === 'down')) {
     direction = direction === 'up' ? 'down' : 'up';
   }
-
   const nextSelection = selectNearestFrame(currentFrame, direction);
   if (!nextSelection) {
     return null;
   }
   evt.preventDefault();
-
   return nextSelection;
 }
 

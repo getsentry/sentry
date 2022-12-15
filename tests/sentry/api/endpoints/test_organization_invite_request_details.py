@@ -1,6 +1,5 @@
+from functools import cached_property
 from unittest.mock import patch
-
-from exam import fixture
 
 from sentry import audit_log
 from sentry.models import (
@@ -18,23 +17,23 @@ from sentry.testutils.silo import region_silo_test
 class InviteRequestBase(APITestCase):
     endpoint = "sentry-api-0-organization-invite-request-detail"
 
-    @fixture
+    @cached_property
     def org(self):
         return self.create_organization(owner=self.user)
 
-    @fixture
+    @cached_property
     def team(self):
         return self.create_team(organization=self.org)
 
-    @fixture
+    @cached_property
     def member(self):
         return self.create_member(organization=self.org, user=self.create_user(), role="member")
 
-    @fixture
+    @cached_property
     def manager(self):
         return self.create_member(organization=self.org, user=self.create_user(), role="manager")
 
-    @fixture
+    @cached_property
     def invite_request(self):
         return self.create_member(
             email="test@example.com",
@@ -43,7 +42,7 @@ class InviteRequestBase(APITestCase):
             invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
         )
 
-    @fixture
+    @cached_property
     def request_to_join(self):
         return self.create_member(
             email="example@gmail.com",

@@ -7,17 +7,12 @@ import {
 } from 'react-virtualized';
 import styled from '@emotion/styled';
 
-import Button from 'sentry/components/button';
-import CompactSelect from 'sentry/components/compactSelect';
-import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import BreadcrumbIcon from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/type/icon';
 import HTMLCode from 'sentry/components/htmlCode';
 import Placeholder from 'sentry/components/placeholder';
 import {getDetails} from 'sentry/components/replays/breadcrumbs/utils';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {relativeTimeInMs} from 'sentry/components/replays/utils';
-import SearchBar from 'sentry/components/searchBar';
-import {IconClose} from 'sentry/icons';
 import {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -25,10 +20,10 @@ import {getPrevReplayEvent} from 'sentry/utils/replays/getReplayEvent';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import useExtractedCrumbHtml from 'sentry/utils/replays/hooks/useExtractedCrumbHtml';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
+import DomFilters from 'sentry/views/replays/detail/domMutations/domFilters';
 import useDomFilters from 'sentry/views/replays/detail/domMutations/useDomFilters';
-import {getDomMutationsTypes} from 'sentry/views/replays/detail/domMutations/utils';
-import FiltersGrid from 'sentry/views/replays/detail/filtersGrid';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
+import NoRowRenderer from 'sentry/views/replays/detail/noRowRenderer';
 import TimestampButton from 'sentry/views/replays/detail/timestampButton';
 import useVirtualizedList from 'sentry/views/replays/detail/useVirtualizedList';
 
@@ -41,13 +36,9 @@ function DomMutations({replay}: Props) {
   const {currentTime} = useReplayContext();
   const {isLoading, actions} = useExtractedCrumbHtml({replay});
 
-  const {
-    items,
-    type: filteredTypes,
-    searchTerm,
-    setType,
-    setSearchTerm,
-  } = useDomFilters({actions});
+  const filterProps = useDomFilters({actions: actions || []});
+  const {items, setSearchTerm} = filterProps;
+  const clearSearchTerm = () => setSearchTerm('');
 
   const currentDomMutation = getPrevReplayEvent({
     items: items.map(mutation => mutation.crumb),
@@ -119,27 +110,9 @@ function DomMutations({replay}: Props) {
 
   return (
     <MutationContainer>
-      <FiltersGrid>
-        <CompactSelect
-          triggerProps={{prefix: t('Event Type')}}
-          triggerLabel={filteredTypes.length === 0 ? t('Any') : null}
-          multiple
-          options={getDomMutationsTypes(actions).map(value => ({value, label: value}))}
-          size="sm"
-          onChange={selected => setType(selected.map(_ => _.value))}
-          value={filteredTypes}
-          isDisabled={!replay || !actions.length}
-        />
-        <SearchBar
-          size="sm"
-          onChange={setSearchTerm}
-          placeholder={t('Search DOM Events')}
-          query={searchTerm}
-          disabled={!replay || !actions.length}
-        />
-      </FiltersGrid>
+      <DomFilters actions={actions} {...filterProps} />
       <MutationList>
-        {isLoading ? (
+        {isLoading || !actions ? (
           <Placeholder height="100%" />
         ) : (
           <AutoSizer>
@@ -150,24 +123,14 @@ function DomMutations({replay}: Props) {
                 height={height}
                 overscanRowCount={5}
                 rowCount={items.length}
-                noRowsRenderer={() =>
-                  actions.length === 0 ? (
-                    <StyledEmptyStateWarning>
-                      <p>{t('No DOM events recorded')}</p>
-                    </StyledEmptyStateWarning>
-                  ) : (
-                    <StyledEmptyStateWarning>
-                      <p>{t('No results found')}</p>
-                      <Button
-                        icon={<IconClose color="gray500" size="sm" isCircled />}
-                        onClick={() => setSearchTerm('')}
-                        size="md"
-                      >
-                        {t('Clear filters')}
-                      </Button>
-                    </StyledEmptyStateWarning>
-                  )
-                }
+                noRowsRenderer={() => (
+                  <NoRowRenderer
+                    unfilteredItems={actions}
+                    clearSearchTerm={clearSearchTerm}
+                  >
+                    {t('No DOM events recorded')}
+                  </NoRowRenderer>
+                )}
                 rowHeight={cache.rowHeight}
                 rowRenderer={renderRow}
                 width={width}
@@ -179,15 +142,6 @@ function DomMutations({replay}: Props) {
     </MutationContainer>
   );
 }
-
-const StyledEmptyStateWarning = styled(EmptyStateWarning)`
-  height: 100%;
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-`;
 
 const MutationContainer = styled(FluidHeight)`
   height: 100%;
