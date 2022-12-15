@@ -10,7 +10,6 @@ import {
 } from 'react-virtualized';
 import styled from '@emotion/styled';
 import {withProfiler} from '@sentry/react';
-import clone from 'lodash/clone';
 import differenceWith from 'lodash/differenceWith';
 import isEqual from 'lodash/isEqual';
 import throttle from 'lodash/throttle';
@@ -692,7 +691,7 @@ class SpanTree extends Component<PropType> {
     treeDepth: number
   ) => {
     this.setState((prevState: StateType) => {
-      const newSpanRows = clone(prevState.spanRows);
+      const newSpanRows = {...prevState.spanRows};
       newSpanRows[spanId] = {spanRow, treeDepth};
 
       return {spanRows: newSpanRows};
@@ -701,7 +700,7 @@ class SpanTree extends Component<PropType> {
 
   removeSpanRowFromState = (spanId: string) => {
     this.setState((prevState: StateType) => {
-      const newSpanRows = clone(prevState.spanRows);
+      const newSpanRows = {...prevState.spanRows};
       delete newSpanRows[spanId];
 
       return {spanRows: newSpanRows};
