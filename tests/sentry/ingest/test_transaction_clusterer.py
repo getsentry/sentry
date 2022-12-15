@@ -10,7 +10,11 @@ from sentry.ingest.transaction_clusterer.datasource.redis import (
     get_transaction_names,
     record_transaction_name,
 )
-from sentry.ingest.transaction_clusterer.rules import _get_rules, _sort_rules, update_rules
+from sentry.ingest.transaction_clusterer.rules import (
+    ProjectOptionRuleStore,
+    _get_rules,
+    update_rules,
+)
 from sentry.ingest.transaction_clusterer.tasks import cluster_projects, spawn_clusterers
 from sentry.ingest.transaction_clusterer.tree import TreeClusterer
 from sentry.models.project import Project
@@ -113,7 +117,7 @@ def test_record_transactions(
 
 def test_sort_rules():
     rules = {"/a/*/**": 1, "/a/**": 2, "/a/*/c/**": 3}
-    assert _sort_rules(rules) == [
+    assert ProjectOptionRuleStore()._sort(rules) == [
         ("/a/*/c/**", 3),
         ("/a/*/**", 1),
         ("/a/**", 2),

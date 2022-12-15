@@ -53,11 +53,19 @@ class RedisRuleStore:
 class ProjectOptionRuleStore:
     _option_name = "sentry:transaction_name_cluster_rules"
 
+    def read_sorted(self, project: Project) -> List[Tuple[ReplacementRule, int]]:
+        return project.get_option(self._option_name, default=[])  # type: ignore
+
     def read(self, project: Project) -> RuleSet:
-        return project.get_option(self._option_name, default={})  # type: ignore
+        return {rule: last_seen for rule, last_seen in self.read_sorted(project)}
+
+    def _sort(self, rules: RuleSet) -> List[Tuple[ReplacementRule, int]]:
+        """Sort rules by number of slashes, i.e. depth of the rule"""
+        return sorted(rules.items(), key=lambda p: p[0].count("/"), reverse=True)
 
     def write(self, project: Project, rules: RuleSet) -> None:
-        project.update_option(self._option_name, rules)
+        sorted_rules = self._sort(rules)
+        project.update_option(self._option_name, sorted_rules)
 
 
 class CompositeRuleStore:
@@ -103,11 +111,6 @@ def _get_rules(project: Project) -> RuleSet:
     return ProjectOptionRuleStore().read(project)
 
 
-def _sort_rules(rule_set: RuleSet) -> List[Tuple[ReplacementRule, int]]:
-    """Sort rules by number of slashes, i.e. depth of the rule"""
-    return sorted(rule_set.items(), key=lambda p: p[0].count("/"), reverse=True)
-
-
 def get_sorted_rules(project: Project) -> List[Tuple[ReplacementRule, int]]:
     """Public interface for fetching rules for a project.
 
@@ -117,8 +120,7 @@ def get_sorted_rules(project: Project) -> List[Tuple[ReplacementRule, int]]:
     The rules are ordered by specifity, meaning that rules that go deeper
     into the URL tree occur first.
     """
-    rule_dict = _get_rules(project)
-    return _sort_rules(rule_dict)
+    return ProjectOptionRuleStore().read_sorted(project)
 
 
 def update_rules(project: Project, new_rules: Sequence[ReplacementRule]) -> None:
