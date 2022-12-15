@@ -274,12 +274,19 @@ class ProjectRulePreviewTest(TestCase, SnubaTestCase):
 
         # empty condition
         assert None is preview(self.project, [], [], "all", "all", 60)
+        # same as empty condition
+        assert None is preview(
+            self.project,
+            [{"id": "sentry.rules.conditions.every_event.EveryEventCondition"}],
+            [],
+            *MATCH_ARGS,
+        )
 
     def test_mutually_exclusive_conditions(self):
         mutually_exclusive = [
             {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"},
             {"id": "sentry.rules.conditions.regression_event.RegressionEventCondition"},
-            {"id": "sentry.rules.conditions.regression_event.ReappearedEventCondition"},
+            {"id": "sentry.rules.conditions.reappeared_event.ReappearedEventCondition"},
         ]
 
         result = preview(self.project, mutually_exclusive, [], "all", "all", 60)

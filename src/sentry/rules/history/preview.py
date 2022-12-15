@@ -39,6 +39,11 @@ ISSUE_STATE_CONDITIONS = [
     "sentry.rules.conditions.regression_event.RegressionEventCondition",
     "sentry.rules.conditions.reappeared_event.ReappearedEventCondition",
 ]
+FREQUENCY_CONDITIONS = [
+    "sentry.rules.conditions.event_frequency.EventFrequencyCondition",
+    "sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyCondition",
+    "sentry.rules.conditions.event_frequency.EventFrequencyPercentCondition",
+]
 
 
 def preview(
@@ -53,14 +58,13 @@ def preview(
     """
     Returns groups that would have triggered the given conditions and filters in the past 2 weeks
     """
-    # must have at least one condition to filter activity
-    if not conditions:
-        return None
-
     issue_state_conditions, frequency_conditions = categorize_conditions(conditions)
 
+    # must have at least one condition to filter activity
+    if not issue_state_conditions and not frequency_conditions:
+        return None
     # all the issue state conditions are mutually exclusive
-    if len(issue_state_conditions) > 1 and condition_match == "all":
+    elif len(issue_state_conditions) > 1 and condition_match == "all":
         return {}
 
     if end is None:
@@ -117,10 +121,13 @@ def categorize_conditions(conditions: Conditions) -> Tuple[Conditions, Condition
     issue_state_conditions = set()
     frequency_conditions = []
     for condition in conditions:
-        if condition["id"] in ISSUE_STATE_CONDITIONS:
-            issue_state_conditions.add(condition["id"])
-        else:
+        condition_id = condition["id"]
+        if condition_id in ISSUE_STATE_CONDITIONS:
+            issue_state_conditions.add(condition_id)
+        elif condition_id in FREQUENCY_CONDITIONS:
             frequency_conditions.append(condition)
+        else:
+            return [], []
     return [{"id": condition_id} for condition_id in issue_state_conditions], frequency_conditions
 
 
