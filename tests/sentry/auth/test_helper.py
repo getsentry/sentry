@@ -19,6 +19,7 @@ from sentry.models import (
     InviteStatus,
     OrganizationMember,
     OrganizationMemberTeam,
+    User,
     UserEmail,
 )
 from sentry.testutils import TestCase
@@ -91,7 +92,7 @@ class HandleNewUserTest(AuthIdentityHandlerTest):
     def test_simple(self, mock_record):
 
         auth_identity = self.handler.handle_new_user()
-        user = auth_identity.user
+        user = User.objects.get(id=auth_identity.user_id)
 
         assert user.email == self.email
         assert OrganizationMember.objects.filter(organization=self.organization, user=user).exists()
@@ -113,7 +114,7 @@ class HandleNewUserTest(AuthIdentityHandlerTest):
         auth_identity = self.handler.handle_new_user()
 
         assigned_member = OrganizationMember.objects.get(
-            organization=self.organization, user=auth_identity.user
+            organization=self.organization, user_id=auth_identity.user_id
         )
 
         assert assigned_member.id == member.id
@@ -129,7 +130,7 @@ class HandleNewUserTest(AuthIdentityHandlerTest):
 
         assert OrganizationMember.objects.filter(
             organization=self.organization,
-            user=auth_identity.user,
+            user_id=auth_identity.user_id,
             invite_status=InviteStatus.APPROVED.value,
         ).exists()
 
@@ -149,7 +150,7 @@ class HandleNewUserTest(AuthIdentityHandlerTest):
         auth_identity = self.handler.handle_new_user()
 
         assigned_member = OrganizationMember.objects.get(
-            organization=self.organization, user=auth_identity.user
+            organization=self.organization, user_id=auth_identity.user_id
         )
 
         assert assigned_member.id == member.id
