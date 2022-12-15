@@ -32,33 +32,32 @@ describe('Frame', () => {
         ).image
       ).toBe(undefined);
     });
-    it('scoped module', () => {
+    it.each([
+      ['/usr/code/node_modules/@sentry/profiling-node/file.js', '@sentry/profiling-node'],
+      ['/usr/code/node_modules/sentry/profiling-node/file.js', 'sentry'],
+      ['/usr/code/node_modules/sentry/file.js', 'sentry'],
+      [
+        'C:\\Program Files (x86)\\node_modules\\@sentry\\profiling-node\\file.js',
+        '@sentry/profiling-node',
+      ],
+      [
+        'C:\\Program Files (x86)\\node_modules\\sentry\\profiling-node\\file.js',
+        'sentry',
+      ],
+      ['C:\\Program Files (x86)\\node_modules\\sentry\\file.js', 'sentry'],
+    ])('%s -> %s', (path, expected) => {
       expect(
         new Frame(
           {
             key: 0,
             name: 'Foo',
-            path: '/usr/code/node_modules/@sentry/profiling-node/file.js',
+            path,
             line: undefined,
             column: undefined,
           },
           'node'
         ).image
-      ).toBe('@sentry/profiling-node');
-    });
-    it('module', () => {
-      expect(
-        new Frame(
-          {
-            key: 0,
-            name: 'Foo',
-            path: '/usr/code/node_modules/sentry/profiling-node/file.js',
-            line: undefined,
-            column: undefined,
-          },
-          'node'
-        ).image
-      ).toBe('sentry');
+      ).toBe(expected);
     });
   });
 });

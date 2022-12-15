@@ -53,30 +53,41 @@ export class Frame extends WeightedNode {
     // If the frame is a web frame and there is no name associated to it, then it was likely invoked as an iife or anonymous callback as
     // most modern browser engines properly show anonymous functions when they are assigned to references (e.g. `let foo = function() {};`)
     if (type === 'web' || type === 'node') {
+      if (this.name === '(garbage collector)' || this.name === '(root)') {
+        this.is_application = false;
+      }
+
       if (!this.name || this.name.startsWith('unknown ')) {
         this.name = t('<anonymous>');
       }
       // If the frame had no line or column, it was part of the native code, (e.g. calling String.fromCharCode)
       if (this.line === undefined && this.column === undefined) {
         this.name += ` ${t('[native code]')}`;
+        this.is_application = false;
       }
 
       // Doing this on the frontend while we figure out how to do this on the backend/client properly
       // @TODO Our old node.js incorrectly sends file instead of path (fixed in SDK, but not all SDK's are upgraded :rip:)
       const pathOrFile = this.path || this.file;
+
+      if (pathOrFile?.startsWith('node:internal')) {
+        this.is_application = false;
+      }
+
       if (this.image === undefined && pathOrFile) {
         const match =
-          /node_modules\/(?<maybeScopeOrPackage>.*)\/(?<maybeFileOrPackage>.*)\//.exec(
+          /node_modules(\/|\\)(?<maybeScopeOrPackage>.*?)(\/|\\)((?<maybePackage>.*)((\/|\\)))?/.exec(
             pathOrFile
           );
         if (match?.groups) {
-          const {maybeScopeOrPackage, maybeFileOrPackage} = match.groups;
+          const {maybeScopeOrPackage, maybePackage} = match.groups;
 
           if (maybeScopeOrPackage.startsWith('@')) {
-            this.image = `${maybeScopeOrPackage}/${maybeFileOrPackage}`;
+            this.image = `${maybeScopeOrPackage}/${maybePackage}`;
           } else {
             this.image = match.groups.maybeScopeOrPackage;
           }
+          this.is_application = false;
         }
       }
     }
