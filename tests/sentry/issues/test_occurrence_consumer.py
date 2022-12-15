@@ -1,14 +1,16 @@
 import datetime
 import logging
+import uuid
 from typing import Any, Dict
 
 import pytest
 
+from sentry.eventstore.snuba.backend import SnubaEventStorage
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.occurrence_consumer import _process_message
 
 # from sentry.models import Group
-from sentry.testutils import TestCase
+from sentry.testutils import SnubaTestCase, TestCase
 from sentry.types.issues import GroupType
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
@@ -20,8 +22,8 @@ def get_test_message(
 ) -> Dict[str, Any]:
     now = datetime.datetime.now()
     payload = {
-        "id": "{}".format(now.strftime("000000000000%Y%m%d%H%M%S%f")),
-        "event_id": None,
+        "id": uuid.uuid4().hex,
+        "event_id": uuid.uuid4().hex,
         "fingerprint": ["touch-id"],
         "issue_title": "segfault",
         "subtitle": "buffer overflow",
@@ -37,6 +39,7 @@ def get_test_message(
 
     if include_event:
         payload["event"] = {
+            "event_id": uuid.uuid4().hex,
             "project_id": project_id,
             "title": "code's broken",
             "platform": "genesis",
@@ -49,7 +52,11 @@ def get_test_message(
     return payload
 
 
-class IssueOccurrenceTestMessage(OccurrenceTestMixin, TestCase):  # type: ignore
+class IssueOccurrenceTestMessage(OccurrenceTestMixin, TestCase, SnubaTestCase):  # type: ignore
+    def setUp(self):
+        super().setUp()
+        self.eventstore = SnubaEventStorage()
+
     @pytest.mark.django_db
     def test_occurrence_consumer_with_event(self) -> None:
         message = get_test_message(self.project.id)
@@ -59,6 +66,11 @@ class IssueOccurrenceTestMessage(OccurrenceTestMixin, TestCase):  # type: ignore
         fetched_occurrence = IssueOccurrence.fetch(occurrence.id, self.project.id)
         assert fetched_occurrence is not None
         self.assert_occurrences_identical(occurrence, fetched_occurrence)
+        assert fetched_occurrence.event_id is not None
+        fetched_event = self.eventstore.get_event_by_id(
+            self.project.id, fetched_occurrence.event_id
+        )
+        assert fetched_event is not None
         # TODO uncomment this when save_issue_from_occurrence() is merged
         # assert Group.objects.filter(grouphash__hash=occurrence.fingerprint[0]).exists()
 

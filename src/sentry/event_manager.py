@@ -424,7 +424,8 @@ class EventManager:
 
         job = {"data": self._data, "project_id": project.id, "raw": raw, "start_time": start_time}
 
-        if self._data.get("type") == "transaction":
+        event_type = self._data.get("type")
+        if event_type == "transaction":
             job["data"]["project"] = project.id
             jobs = save_transaction_events([job], projects)
 
@@ -432,6 +433,11 @@ class EventManager:
                 first_transaction_received.send_robust(
                     project=project, event=jobs[0]["event"], sender=Project
                 )
+
+            return jobs[0]["event"]
+        elif event_type == "generic":
+            job["data"]["project"] = project.id
+            jobs = save_generic_events([job], projects)
 
             return jobs[0]["event"]
 
@@ -2436,4 +2442,12 @@ def save_transaction_events(jobs: Sequence[Job], projects: ProjectsMapping) -> S
     _nodestore_save_many(jobs)
     _eventstream_insert_many(jobs)
     _track_outcome_accepted_many(jobs)
+    return jobs
+
+
+@metrics.wraps("event_manager.save_generic_events")
+def save_generic_events(jobs: Sequence[Job], projects: ProjectsMapping) -> Sequence[Job]:
+    for job in jobs:
+        job["event"] = _get_event_instance(job["data"], project_id=job["project_id"])
+
     return jobs

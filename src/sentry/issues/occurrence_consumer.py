@@ -98,7 +98,7 @@ def _get_kwargs(payload: Mapping[str, Any]) -> Optional[Mapping[str, Any]]:
             kwargs = {
                 "occurrence_data": {
                     "id": payload["id"],
-                    "event_id": None,
+                    "event_id": payload["event_id"],
                     "fingerprint": payload["fingerprint"],
                     "issue_title": payload["issue_title"],
                     "subtitle": payload["subtitle"],
@@ -112,8 +112,6 @@ def _get_kwargs(payload: Mapping[str, Any]) -> Optional[Mapping[str, Any]]:
 
             if "event" in payload:
                 kwargs["event_data"] = {"data": payload["event"]}
-            else:
-                kwargs["occurrence_data"]["event_id"] = payload.get("event_id")
 
             return kwargs
 
