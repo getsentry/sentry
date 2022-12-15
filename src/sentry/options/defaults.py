@@ -553,6 +553,9 @@ register("sentry-metrics.cardinality-limiter.limits.performance.per-org", defaul
 register("sentry-metrics.cardinality-limiter.limits.releasehealth.per-org", default=[])
 register("sentry-metrics.cardinality-limiter.orgs-rollout-rate", default=0.0)
 
+# Flag to determine whether abnormal_mechanism tag should be extracted
+register("sentry-metrics.releasehealth.abnormal-mechanism-extraction-rate", default=0.0)
+
 # Performance issue options to change both detection (which we can monitor with metrics),
 # and the creation of performance problems, which will eventually get turned into issues.
 register("performance.issues.all.problem-detection", default=0.0)
@@ -590,8 +593,10 @@ register("dynamic-sampling:enabled-biases", default=True)
 # project config computation. This is temporary option to monitor the performance of this feature.
 register("dynamic-sampling:boost-latest-release", default=False)
 
-# Controls whether we should attempt to derive code mappings for projects during post processing.
+# Killswitch for deriving code mappings
 register("post_process.derive-code-mappings", default=True)
 # Allows adjusting the percentage of orgs we test under the dry run mode
 register("derive-code-mappings.dry-run.early-adopter-rollout", default=0.0)
 register("derive-code-mappings.dry-run.general-availability-rollout", default=0.0)
+# Allows adjusting the GA percentage
+register("derive-code-mappings.general-availability-rollout", default=0.0)

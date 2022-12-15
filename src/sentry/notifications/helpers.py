@@ -15,6 +15,7 @@ from sentry.notifications.types import (
     NotificationSettingOptionValues,
     NotificationSettingTypes,
 )
+from sentry.services.hybrid_cloud.notifications import ApiNotificationSetting
 from sentry.types.integrations import (
     EXTERNAL_PROVIDERS,
     ExternalProviders,
@@ -24,15 +25,7 @@ from sentry.types.integrations import (
 )
 
 if TYPE_CHECKING:
-    from sentry.models import (
-        Group,
-        GroupSubscription,
-        NotificationSetting,
-        Organization,
-        Project,
-        Team,
-        User,
-    )
+    from sentry.models import Group, GroupSubscription, Organization, Project, Team, User
     from sentry.services.hybrid_cloud.user import APIUser
 
 
@@ -187,7 +180,7 @@ def get_values_by_provider_by_type(
 
 
 def transform_to_notification_settings_by_recipient(
-    notification_settings: Iterable[NotificationSetting],
+    notification_settings: Iterable[ApiNotificationSetting],
     recipients: Iterable[Team | APIUser],
 ) -> Mapping[
     Team | APIUser,
@@ -215,7 +208,7 @@ def transform_to_notification_settings_by_recipient(
 
 
 def transform_to_notification_settings_by_scope(
-    notification_settings: Iterable[NotificationSetting],
+    notification_settings: Iterable[ApiNotificationSetting],
 ) -> Mapping[
     NotificationScopeType,
     Mapping[int, Mapping[ExternalProviders, NotificationSettingOptionValues]],
@@ -324,7 +317,7 @@ def get_subscription_from_attributes(
 
 
 def get_groups_for_query(
-    groups_by_project: Mapping[Project, set[Group]],
+    groups_by_project: Mapping[int, set[Group]],
     notification_settings_by_scope: Mapping[
         NotificationScopeType,
         Mapping[int, Mapping[ExternalProviders, NotificationSettingOptionValues]],
@@ -338,11 +331,11 @@ def get_groups_for_query(
     """
     # Although this can be done with a comprehension, looping for clarity.
     output = set()
-    for project, groups in groups_by_project.items():
+    for project_id, groups in groups_by_project.items():
         value = get_most_specific_notification_setting_value(
             notification_settings_by_scope,
             recipient=user,
-            parent_id=project.id,
+            parent_id=project_id,
             type=NotificationSettingTypes.WORKFLOW,
         )
         if value != NotificationSettingOptionValues.NEVER:
@@ -350,7 +343,7 @@ def get_groups_for_query(
     return output
 
 
-def collect_groups_by_project(groups: Iterable[Group]) -> Mapping[Project, set[Group]]:
+def collect_groups_by_project(groups: Iterable[Group]) -> Mapping[int, set[Group]]:
     """
     Collect all of the projects to look up, and keep a set of groups that are
     part of that project. (Note that the common -- but not only -- case here is
@@ -358,12 +351,12 @@ def collect_groups_by_project(groups: Iterable[Group]) -> Mapping[Project, set[G
     """
     projects = defaultdict(set)
     for group in groups:
-        projects[group.project].add(group)
+        projects[group.project_id].add(group)
     return projects
 
 
 def get_user_subscriptions_for_groups(
-    groups_by_project: Mapping[Project, set[Group]],
+    groups_by_project: Mapping[int, set[Group]],
     notification_settings_by_scope: Mapping[
         NotificationScopeType,
         Mapping[int, Mapping[ExternalProviders, NotificationSettingOptionValues]],
@@ -377,11 +370,11 @@ def get_user_subscriptions_for_groups(
     implicitly subscribed (or if they can subscribe at all.)
     """
     results = {}
-    for project, groups in groups_by_project.items():
+    for project_id, groups in groups_by_project.items():
         notification_settings_by_provider = get_values_by_provider(
             notification_settings_by_scope,
             recipient=user,
-            parent_id=project.id,
+            parent_id=project_id,
             type=NotificationSettingTypes.WORKFLOW,
         )
         for group in groups:

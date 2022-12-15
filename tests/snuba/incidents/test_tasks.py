@@ -1,11 +1,11 @@
 from copy import deepcopy
+from functools import cached_property
 from uuid import uuid4
 
 from confluent_kafka import Producer
 from django.conf import settings
 from django.core import mail
 from django.test.utils import override_settings
-from exam import fixture
 from freezegun import freeze_time
 
 from sentry.incidents.action_handlers import (
@@ -46,11 +46,11 @@ class HandleSnubaQueryUpdateTest(TestCase):
         subscriber_registry.clear()
         subscriber_registry.update(self.orig_registry)
 
-    @fixture
+    @cached_property
     def subscription(self):
         return self.rule.snuba_query.subscriptions.get()
 
-    @fixture
+    @cached_property
     def rule(self):
         with self.tasks():
             rule = self.create_alert_rule(
@@ -70,15 +70,15 @@ class HandleSnubaQueryUpdateTest(TestCase):
             )
             return rule
 
-    @fixture
+    @cached_property
     def trigger(self):
         return self.rule.alertruletrigger_set.get()
 
-    @fixture
+    @cached_property
     def action(self):
         return self.trigger.alertruletriggeraction_set.get()
 
-    @fixture
+    @cached_property
     def producer(self):
         cluster_name = settings.KAFKA_TOPICS[self.topic]["cluster"]
         conf = {
@@ -89,7 +89,7 @@ class HandleSnubaQueryUpdateTest(TestCase):
         }
         return Producer(conf)
 
-    @fixture
+    @cached_property
     def topic(self):
         return uuid4().hex
 
@@ -134,10 +134,10 @@ class HandleSnubaQueryUpdateTest(TestCase):
         subscriber_registry[INCIDENTS_SNUBA_SUBSCRIPTION_TYPE] = shutdown_callback
 
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
-            with self.assertChanges(
-                lambda: active_incident().exists(), before=False, after=True
-            ), self.tasks(), self.capture_on_commit_callbacks(execute=True):
+            assert not active_incident().exists()
+            with self.tasks(), self.capture_on_commit_callbacks(execute=True):
                 consumer.run()
+            assert active_incident().exists()
 
         assert len(mail.outbox) == 1
         handler = EmailActionHandler(self.action, active_incident().get(), self.project)

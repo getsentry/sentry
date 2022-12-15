@@ -1,8 +1,8 @@
+from functools import cached_property
 from urllib.parse import parse_qs
 
 import pytest
 import responses
-from exam import fixture
 
 from sentry.integrations.slack.message_builder import LEVEL_TO_COLOR
 from sentry.models import Rule
@@ -14,7 +14,7 @@ from sentry_plugins.slack.plugin import SlackPlugin
 
 
 class SlackPluginTest(PluginTestCase):
-    @fixture
+    @cached_property
     def plugin(self):
         return SlackPlugin()
 

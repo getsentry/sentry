@@ -1,7 +1,5 @@
 from collections import defaultdict
-from functools import reduce
-
-from exam import fixture
+from functools import cached_property, reduce
 
 from sentry.digests import Record
 from sentry.digests.notifications import (
@@ -21,11 +19,11 @@ from sentry.testutils.silo import region_silo_test
 
 
 class RewriteRecordTestCase(TestCase):
-    @fixture
+    @cached_property
     def rule(self):
         return self.event.project.rule_set.all()[0]
 
-    @fixture
+    @cached_property
     def record(self):
         return event_to_record(self.event, (self.rule,))
 
@@ -63,7 +61,7 @@ class RewriteRecordTestCase(TestCase):
 
 @region_silo_test
 class GroupRecordsTestCase(TestCase):
-    @fixture
+    @cached_property
     def rule(self):
         return self.project.rule_set.all()[0]
 

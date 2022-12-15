@@ -1,5 +1,6 @@
+from functools import cached_property
+
 from django.urls import reverse
-from exam import fixture
 
 from sentry.testutils import PluginTestCase
 from sentry.utils import json
@@ -7,7 +8,7 @@ from sentry_plugins.pivotal.plugin import PivotalPlugin
 
 
 class PivotalPluginTest(PluginTestCase):
-    @fixture
+    @cached_property
     def plugin(self):
         return PivotalPlugin()
 
