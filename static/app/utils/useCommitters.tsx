@@ -26,7 +26,7 @@ function useCommitters(
   return useQuery<CommittersResponse>(
     makeCommittersQueryKey(org.slug, projectSlug, eventId),
     {
-      staleTime: 600000,
+      staleTime: Infinity,
       ...options,
     }
   );
