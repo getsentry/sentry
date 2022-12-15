@@ -168,3 +168,6 @@ export const DISCOVER_EXCLUSION_FIELDS: string[] = [
   'is',
   '__text',
 ];
+
+export const SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY =
+  'issue-stream-saved-searches-sidebar-open';
