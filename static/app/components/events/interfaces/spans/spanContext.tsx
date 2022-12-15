@@ -4,14 +4,14 @@ import {ProcessedSpanType} from './types';
 
 export type SpanContextProps = {
   addExpandedSpan: (span: Readonly<ProcessedSpanType>, callback?: () => void) => void;
-  didAnchoredSpanMount: boolean;
+  didAnchoredSpanMount: () => boolean;
   isSpanExpanded: (span: Readonly<ProcessedSpanType>) => boolean;
   markAnchoredSpanIsMounted: () => void;
   removeExpandedSpan: (span: Readonly<ProcessedSpanType>, callback?: () => void) => void;
 };
 
 const SpanContext = createContext<SpanContextProps>({
-  didAnchoredSpanMount: false,
+  didAnchoredSpanMount: () => false,
   markAnchoredSpanIsMounted: () => undefined,
   addExpandedSpan: () => undefined,
   removeExpandedSpan: () => undefined,
@@ -23,15 +23,14 @@ type Props = {
 };
 
 export class Provider extends Component<Props> {
-  didAnchoredSpanMount = false;
+  isAnchoredSpanMounted = false;
 
   // This set keeps track of all spans which are currently expanded to show their details.
   // Since the span tree is virtualized, we need this so the tree can remember which spans have been expanded after they unmount
   expandedSpansMap: Set<Readonly<ProcessedSpanType>> = new Set();
 
-  markAnchoredSpanIsMounted = () => {
-    this.didAnchoredSpanMount = true;
-  };
+  markAnchoredSpanIsMounted = () => (this.isAnchoredSpanMounted = true);
+  didAnchoredSpanMount = () => this.isAnchoredSpanMounted;
 
   addExpandedSpan = (span: Readonly<ProcessedSpanType>, callback?: () => void) => {
     this.expandedSpansMap.add(span);

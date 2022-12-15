@@ -1,4 +1,4 @@
-import {createRef, memo} from 'react';
+import {createRef, memo, useEffect, useState} from 'react';
 import {Observer} from 'mobx-react';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
@@ -23,8 +23,21 @@ type Props = {
 
 function TraceView(props: Props) {
   const traceViewRef = createRef<HTMLDivElement>();
+  const traceViewHeaderRef = createRef<HTMLDivElement>();
   const virtualScrollBarContainerRef = createRef<HTMLDivElement>();
   const minimapInteractiveRef = createRef<HTMLDivElement>();
+
+  const [isMounted, setIsMounted] = useState(false);
+
+  // Since this component is memoized, we need this hook here.
+  // renderHeader performs some expensive calculations and so we only want to render once, hence why we memoize.
+  // However, the virtualScrollbar will not be visible unless we have this effect here. This is a bit of a hack that will
+  // cause the component to rerender by setting the isMounted state, so we will re-render only once the scrollbar ref is present.
+  useEffect(() => {
+    if (virtualScrollBarContainerRef.current && !isMounted) {
+      setIsMounted(true);
+    }
+  }, [virtualScrollBarContainerRef, isMounted]);
 
   const renderHeader = (dragProps: DragManagerChildrenProps) => (
     <Observer>
@@ -33,6 +46,7 @@ function TraceView(props: Props) {
 
         return (
           <TraceViewHeader
+            traceViewHeaderRef={traceViewHeaderRef}
             organization={props.organization}
             minimapInteractiveRef={minimapInteractiveRef}
             dragProps={dragProps}
@@ -97,6 +111,7 @@ function TraceView(props: Props) {
                                   {() => (
                                     <SpanTree
                                       traceViewRef={traceViewRef}
+                                      traceViewHeaderRef={traceViewHeaderRef}
                                       dragProps={dragProps}
                                       organization={organization}
                                       waterfallModel={waterfallModel}

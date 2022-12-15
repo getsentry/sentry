@@ -2,6 +2,10 @@ import {Component, createContext, createRef} from 'react';
 import throttle from 'lodash/throttle';
 
 import {
+  TOGGLE_BORDER_BOX,
+  TOGGLE_BUTTON_MAX_WIDTH,
+} from 'sentry/components/performance/waterfall/treeConnector';
+import {
   clamp,
   rectOfContent,
   toPercent,
@@ -11,25 +15,24 @@ import {setBodyUserSelect, UserSelectValues} from 'sentry/utils/userselect';
 
 import {DragManagerChildrenProps} from './dragManager';
 import {SpanBar} from './spanBar';
-import {SpansInViewMap, spanTargetHash} from './utils';
 
 export type ScrollbarManagerChildrenProps = {
   addContentSpanBarRef: (instance: HTMLDivElement | null) => void;
-  getScrollLeftValue: () => number;
-  markSpanInView: (spanId: string, treeDepth: number) => void;
-  markSpanOutOfView: (spanId: string) => void;
+  getCurrentLeftPos: () => number;
   onDragStart: (event: React.MouseEvent<HTMLDivElement, MouseEvent>) => void;
   onScroll: () => void;
   onWheel: (deltaX: number) => void;
   removeContentSpanBarRef: (instance: HTMLDivElement | null) => void;
   scrollBarAreaRef: React.RefObject<HTMLDivElement>;
   storeSpanBar: (spanBar: SpanBar) => void;
+  updateHorizontalScrollState: (avgSpanDepth: number) => void;
   updateScrollState: () => void;
   virtualScrollbarRef: React.RefObject<HTMLDivElement>;
 };
 
 const ScrollbarManagerContext = createContext<ScrollbarManagerChildrenProps>({
   addContentSpanBarRef: () => {},
+  updateHorizontalScrollState: () => {},
   removeContentSpanBarRef: () => {},
   virtualScrollbarRef: createRef<HTMLDivElement>(),
   scrollBarAreaRef: createRef<HTMLDivElement>(),
@@ -37,10 +40,8 @@ const ScrollbarManagerContext = createContext<ScrollbarManagerChildrenProps>({
   onScroll: () => {},
   onWheel: () => {},
   updateScrollState: () => {},
-  markSpanOutOfView: () => {},
-  markSpanInView: () => {},
-  getScrollLeftValue: () => 0,
   storeSpanBar: () => {},
+  getCurrentLeftPos: () => 0,
 });
 
 const selectRefs = (
@@ -92,42 +93,6 @@ export class Provider extends Component<Props, State> {
     // but only for DOM elements that actually got rendered
 
     this.initializeScrollState();
-
-    const anchoredSpanHash = window.location.hash.split('#')[1];
-
-    // If the user is opening the span tree with an anchor link provided, we need to continuously reconnect the observers.
-    // This is because we need to wait for the window to scroll to the anchored span first, or there will be inconsistencies in
-    // the spans that are actually considered in the view. The IntersectionObserver API cannot keep up with the speed
-    // at which the window scrolls to the anchored span, and will be unable to register the spans that went out of the view.
-    // We stop reconnecting the observers once we've confirmed that the anchored span is in the view (or after a timeout).
-
-    if (anchoredSpanHash) {
-      // We cannot assume the root is in view to start off, if there is an anchored span
-      this.spansInView.isRootSpanInView = false;
-      const anchoredSpanId = window.location.hash.replace(spanTargetHash(''), '');
-
-      // Continuously check to see if the anchored span is in the view
-      this.anchorCheckInterval = setInterval(() => {
-        this.spanBars.forEach(spanBar => spanBar.connectObservers());
-
-        if (this.spansInView.has(anchoredSpanId)) {
-          clearInterval(this.anchorCheckInterval!);
-          this.anchorCheckInterval = null;
-        }
-      }, 50);
-
-      // If the anchored span is never found in the view (malformed ID), cancel the interval
-      setTimeout(() => {
-        if (this.anchorCheckInterval) {
-          clearInterval(this.anchorCheckInterval);
-          this.anchorCheckInterval = null;
-        }
-      }, 1000);
-
-      return;
-    }
-
-    this.spanBars.forEach(spanBar => spanBar.connectObservers());
   }
 
   componentDidUpdate(prevProps: Props) {
@@ -151,12 +116,8 @@ export class Provider extends Component<Props, State> {
 
   componentWillUnmount() {
     this.cleanUpListeners();
-    if (this.anchorCheckInterval) {
-      clearInterval(this.anchorCheckInterval);
-    }
   }
 
-  anchorCheckInterval: NodeJS.Timer | null = null;
   contentSpanBar: Set<HTMLDivElement> = new Set();
   virtualScrollbar: React.RefObject<HTMLDivElement> = createRef<HTMLDivElement>();
   scrollBarArea: React.RefObject<HTMLDivElement> = createRef<HTMLDivElement>();
@@ -165,8 +126,8 @@ export class Provider extends Component<Props, State> {
   wheelTimeout: NodeJS.Timeout | null = null;
   animationTimeout: NodeJS.Timeout | null = null;
   previousUserSelect: UserSelectValues | null = null;
-  spansInView: SpansInViewMap = new SpansInViewMap(!this.props.isEmbedded);
   spanBars: SpanBar[] = [];
+  currentLeftPos = 0;
 
   getReferenceSpanBar() {
     for (const currentSpanBar of this.contentSpanBar) {
@@ -237,9 +198,21 @@ export class Provider extends Component<Props, State> {
     if (spanBarDOM) {
       this.syncVirtualScrollbar(spanBarDOM);
     }
+  };
 
-    const left = this.spansInView.getScrollVal();
-    this.performScroll(left);
+  getCurrentLeftPos = () => this.currentLeftPos;
+
+  updateHorizontalScrollState = (avgSpanDepth: number) => {
+    if (avgSpanDepth === 0) {
+      this.performScroll(0, true);
+      this.currentLeftPos = 0;
+
+      return;
+    }
+
+    const left = avgSpanDepth * (TOGGLE_BORDER_BOX / 2) - TOGGLE_BUTTON_MAX_WIDTH / 2;
+    this.performScroll(left, true);
+    this.currentLeftPos = left;
   };
 
   syncVirtualScrollbar = (spanBar: HTMLDivElement) => {
@@ -334,7 +307,7 @@ export class Provider extends Component<Props, State> {
   };
 
   // Throttle the scroll function to prevent jankiness in the auto-adjust animations when scrolling fast
-  throttledScroll = throttle(this.performScroll, 300, {trailing: true});
+  throttledScroll = throttle(this.performScroll, 500, {trailing: true});
 
   onWheel = (deltaX: number) => {
     if (this.isDragging || !this.hasInteractiveLayer()) {
@@ -521,26 +494,6 @@ export class Provider extends Component<Props, State> {
     }
   };
 
-  markSpanOutOfView = (spanId: string) => {
-    if (!this.spansInView.removeSpan(spanId)) {
-      return;
-    }
-
-    const left = this.spansInView.getScrollVal();
-    this.throttledScroll(left, true);
-  };
-
-  markSpanInView = (spanId: string, treeDepth: number) => {
-    if (!this.spansInView.addSpan(spanId, treeDepth)) {
-      return;
-    }
-
-    const left = this.spansInView.getScrollVal();
-    this.throttledScroll(left, true);
-  };
-
-  getScrollLeftValue = () => this.spansInView.getScrollVal();
-
   startAnimation() {
     selectRefs(this.contentSpanBar, (spanBarDOM: HTMLDivElement) => {
       spanBarDOM.style.transition = 'transform 0.3s';
@@ -573,6 +526,7 @@ export class Provider extends Component<Props, State> {
   render() {
     const childrenProps: ScrollbarManagerChildrenProps = {
       addContentSpanBarRef: this.addContentSpanBarRef,
+      updateHorizontalScrollState: this.updateHorizontalScrollState,
       removeContentSpanBarRef: this.removeContentSpanBarRef,
       onDragStart: this.onDragStart,
       onScroll: this.onScroll,
@@ -580,10 +534,8 @@ export class Provider extends Component<Props, State> {
       virtualScrollbarRef: this.virtualScrollbar,
       scrollBarAreaRef: this.scrollBarArea,
       updateScrollState: this.initializeScrollState,
-      markSpanOutOfView: this.markSpanOutOfView,
-      markSpanInView: this.markSpanInView,
       storeSpanBar: this.storeSpanBar,
-      getScrollLeftValue: this.getScrollLeftValue,
+      getCurrentLeftPos: this.getCurrentLeftPos,
     };
 
     return (

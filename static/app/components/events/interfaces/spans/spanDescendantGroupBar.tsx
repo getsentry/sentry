@@ -32,10 +32,10 @@ import {
 export type SpanDescendantGroupBarProps = {
   addContentSpanBarRef: (instance: HTMLDivElement | null) => void;
   continuingTreeDepths: Array<TreeDepthType>;
-  didAnchoredSpanMount: boolean;
+  didAnchoredSpanMount: () => boolean;
   event: Readonly<EventTransaction>;
   generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
-  getScrollLeftValue: () => number;
+  getCurrentLeftPos: () => number;
   onWheel: (deltaX: number) => void;
   removeContentSpanBarRef: (instance: HTMLDivElement | null) => void;
   span: Readonly<ProcessedSpanType>;
@@ -50,6 +50,7 @@ export function SpanDescendantGroupBar(props: SpanDescendantGroupBarProps) {
     continuingTreeDepths,
     event,
     generateBounds,
+    getCurrentLeftPos,
     span,
     spanGrouping,
     spanNumber,
@@ -57,7 +58,6 @@ export function SpanDescendantGroupBar(props: SpanDescendantGroupBarProps) {
     onWheel,
     addContentSpanBarRef,
     removeContentSpanBarRef,
-    getScrollLeftValue,
     didAnchoredSpanMount,
   } = props;
 
@@ -169,8 +169,8 @@ export function SpanDescendantGroupBar(props: SpanDescendantGroupBarProps) {
       onWheel={onWheel}
       addContentSpanBarRef={addContentSpanBarRef}
       removeContentSpanBarRef={removeContentSpanBarRef}
-      getScrollLeftValue={getScrollLeftValue}
       didAnchoredSpanMount={didAnchoredSpanMount}
+      getCurrentLeftPos={getCurrentLeftPos}
     />
   );
 }

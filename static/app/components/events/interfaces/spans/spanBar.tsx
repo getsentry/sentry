@@ -111,16 +111,14 @@ export type SpanBarProps = {
   addExpandedSpan: (span: Readonly<ProcessedSpanType>, callback?: () => void) => void;
   cellMeasurerCache: CellMeasurerCache;
   continuingTreeDepths: Array<TreeDepthType>;
-  didAnchoredSpanMount: boolean;
+  didAnchoredSpanMount: () => boolean;
   event: Readonly<EventTransaction>;
   fetchEmbeddedChildrenState: FetchEmbeddedChildrenState;
   generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
-  getScrollLeftValue: () => number;
+  getCurrentLeftPos: () => number;
   isEmbeddedTransactionTimeAdjusted: boolean;
   isSpanExpanded: (span: Readonly<ProcessedSpanType>) => boolean;
   listRef: React.RefObject<ReactVirtualizedList>;
-  markSpanInView: (spanId: string, treeDepth: number) => void;
-  markSpanOutOfView: (spanId: string) => void;
   numOfSpanChildren: number;
   numOfSpans: number;
   onWheel: (deltaX: number) => void;
@@ -176,22 +174,25 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
     // If we rely on the scrollBarManager to set the styling, it happens too late and awkwardly applies an animation.
     if (this.spanContentRef) {
       this.props.addContentSpanBarRef(this.spanContentRef);
-      const left = -this.props.getScrollLeftValue();
+      const left = -this.props.getCurrentLeftPos();
       this.spanContentRef.style.transform = `translateX(${left}px)`;
       this.spanContentRef.style.transformOrigin = 'left';
     }
 
-    const {span, markAnchoredSpanIsMounted, addExpandedSpan, isSpanExpanded, measure} =
-      this.props;
+    const {
+      span,
+      markAnchoredSpanIsMounted,
+      addExpandedSpan,
+      isSpanExpanded,
+      measure,
+      didAnchoredSpanMount,
+    } = this.props;
 
     if (isGapSpan(span)) {
       return;
     }
 
-    if (
-      spanTargetHash(span.span_id) === location.hash &&
-      !this.props.didAnchoredSpanMount
-    ) {
+    if (spanTargetHash(span.span_id) === location.hash && !didAnchoredSpanMount()) {
       this.scrollIntoView();
       markAnchoredSpanIsMounted?.();
       addExpandedSpan(span);
@@ -211,12 +212,11 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
       this.spanTitleRef.current.removeEventListener('wheel', this.handleWheel);
     }
 
-    const {span, markSpanOutOfView} = this.props;
+    const {span} = this.props;
     if (isGapSpan(span)) {
       return;
     }
 
-    markSpanOutOfView(span.span_id);
     this.props.removeContentSpanBarRef(this.spanContentRef);
   }
 
@@ -725,16 +725,9 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
             relativeToMinimap.top > 0 && relativeToMinimap.bottom > 0;
 
           if (rectBelowMinimap) {
-            const {span, treeDepth} = this.props;
+            const {span} = this.props;
             if ('type' in span) {
               return;
-            }
-
-            // If isIntersecting is false, this means the span is out of view below the viewport
-            if (!entry.isIntersecting) {
-              this.props.markSpanOutOfView(span.span_id);
-            } else {
-              this.props.markSpanInView(span.span_id, treeDepth);
             }
 
             // if the first span is below the minimap, we scroll the minimap
@@ -753,8 +746,6 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
             if ('type' in span) {
               return;
             }
-
-            this.props.markSpanOutOfView(span.span_id);
 
             return;
           }

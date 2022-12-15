@@ -50,10 +50,10 @@ const MARGIN_LEFT = 0;
 
 type Props = {
   addContentSpanBarRef: (instance: HTMLDivElement | null) => void;
-  didAnchoredSpanMount: boolean;
+  didAnchoredSpanMount: () => boolean;
   event: Readonly<EventTransaction>;
   generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
-  getScrollLeftValue: () => number;
+  getCurrentLeftPos: () => number;
   onWheel: (deltaX: number) => void;
   removeContentSpanBarRef: (instance: HTMLDivElement | null) => void;
   renderGroupSpansTitle: () => React.ReactNode;
@@ -159,10 +159,10 @@ export function SpanGroupBar(props: Props) {
     onWheel,
     addContentSpanBarRef,
     removeContentSpanBarRef,
-    getScrollLeftValue,
     didAnchoredSpanMount,
     spanGrouping,
     toggleSpanGroup,
+    getCurrentLeftPos,
   } = props;
 
   // On mount, it is necessary to set the left styling of the content here due to the span tree being virtualized.
@@ -172,7 +172,7 @@ export function SpanGroupBar(props: Props) {
       if (ref) {
         spanContentRef.current = ref;
         addContentSpanBarRef(ref);
-        const left = -getScrollLeftValue();
+        const left = -getCurrentLeftPos();
         ref.style.transform = `translateX(${left}px)`;
         ref.style.transformOrigin = 'left';
         return;
@@ -181,11 +181,11 @@ export function SpanGroupBar(props: Props) {
       // If ref is null, this means the component is about to unmount
       removeContentSpanBarRef(spanContentRef.current);
     },
-    [getScrollLeftValue, addContentSpanBarRef, removeContentSpanBarRef]
+    [addContentSpanBarRef, removeContentSpanBarRef, getCurrentLeftPos]
   );
 
   useEffect(() => {
-    if (location.hash && !didAnchoredSpanMount) {
+    if (location.hash && !didAnchoredSpanMount()) {
       const anchoredSpanIndex = spanGrouping.findIndex(
         span => spanTargetHash(span.span.span_id) === location.hash
       );

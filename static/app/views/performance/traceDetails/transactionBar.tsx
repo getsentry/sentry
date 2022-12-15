@@ -51,6 +51,7 @@ import {TraceInfo, TraceRoot, TreeDepth} from './types';
 const MARGIN_LEFT = 0;
 
 type Props = {
+  addContentSpanBarRef: (instance: HTMLDivElement | null) => void;
   continuingDepths: TreeDepth[];
   hasGuideAnchor: boolean;
   index: number;
@@ -60,6 +61,7 @@ type Props = {
   isVisible: boolean;
   location: Location;
   organization: Organization;
+  removeContentSpanBarRef: (instance: HTMLDivElement | null) => void;
   toggleExpandedState: () => void;
   traceInfo: TraceInfo;
   transaction: TraceRoot | TraceFullDetailed;
@@ -87,6 +89,7 @@ class TransactionBar extends Component<Props, State> {
   }
 
   transactionRowDOMRef = createRef<HTMLDivElement>();
+  spanContentRef: HTMLDivElement | null = null;
 
   toggleDisplayDetail = () => {
     const {transaction} = this.props;
@@ -212,7 +215,8 @@ class TransactionBar extends Component<Props, State> {
 
   // TODO: Use ScrollbarManager to bring autoscrolling here
   renderTitle(_: ScrollbarManager.ScrollbarManagerChildrenProps) {
-    const {organization, transaction} = this.props;
+    const {organization, transaction, addContentSpanBarRef, removeContentSpanBarRef} =
+      this.props;
     const left = this.getCurrentOffset();
     const errored = isTraceFullDetailed(transaction)
       ? transaction.errors.length > 0
@@ -252,7 +256,17 @@ class TransactionBar extends Component<Props, State> {
     );
 
     return (
-      <RowTitleContainer>
+      <RowTitleContainer
+        ref={ref => {
+          if (!ref) {
+            removeContentSpanBarRef(this.spanContentRef);
+            return;
+          }
+
+          addContentSpanBarRef(ref);
+          this.spanContentRef = ref;
+        }}
+      >
         {this.renderToggle(errored)}
         <RowTitle
           style={{
