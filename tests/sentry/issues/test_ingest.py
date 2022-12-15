@@ -2,8 +2,6 @@ from dataclasses import replace
 from hashlib import md5
 from unittest import mock
 
-import pytest
-
 from sentry.constants import LOG_LEVELS_MAP
 from sentry.issues.ingest import (
     _create_issue_kwargs,
@@ -99,7 +97,6 @@ class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):  # type: ignor
         assert updated_group.location() == event.location
         assert updated_group.times_seen == 2
 
-    @pytest.mark.skip(reason="flaky: ISP-92")
     def test_existing_group_different_category(self) -> None:
         event = self.store_event(data={}, project_id=self.project.id)
         occurrence = self.build_occurrence()
