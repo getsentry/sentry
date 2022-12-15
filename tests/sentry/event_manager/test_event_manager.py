@@ -2397,7 +2397,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
 
             # sneakily make the group type wrong
             group = event.groups[0]
-            group.type = GroupType.PERFORMANCE_N_PLUS_ONE.value
+            group.type = GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value
             group.save()
             manager = EventManager(make_event())
             manager.normalize()

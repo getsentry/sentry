@@ -1,10 +1,10 @@
+from functools import cached_property
 from unittest.mock import patch
 from uuid import uuid1
 
 import pytest
 from django.conf import settings
 from django.core.cache.backends.locmem import LocMemCache
-from exam import before, fixture
 
 from sentry.models import Option
 from sentry.options.store import OptionsStore
@@ -12,17 +12,17 @@ from sentry.testutils import TestCase
 
 
 class OptionsStoreTest(TestCase):
-    @fixture
+    @cached_property
     def store(self):
         c = LocMemCache("test", settings.CACHES["default"])
         c.clear()
         return OptionsStore(cache=c)
 
-    @fixture
+    @cached_property
     def key(self):
         return self.make_key()
 
-    @before
+    @pytest.fixture(autouse=True)
     def flush_local_cache(self):
         self.store.flush_local_cache()
 

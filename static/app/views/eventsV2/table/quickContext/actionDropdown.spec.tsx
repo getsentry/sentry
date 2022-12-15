@@ -25,6 +25,12 @@ const mockEventView = EventView.fromSavedQuery({
   projects: [1],
 });
 
+const mockedLocation = TestStubs.location({
+  query: {
+    field: 'title',
+  },
+});
+
 const renderActionDropdown = (
   location: Location,
   eventView: EventView,
@@ -53,12 +59,6 @@ describe('Quick Context Actions', function () {
   });
 
   it('Renders correct options for string context value', async () => {
-    const mockedLocation = TestStubs.location({
-      query: {
-        field: 'title',
-      },
-    });
-
     renderActionDropdown(
       mockedLocation,
       mockEventView,
@@ -81,12 +81,6 @@ describe('Quick Context Actions', function () {
   });
 
   it('Renders correct options for non-string context value', async () => {
-    const mockedLocation = TestStubs.location({
-      query: {
-        field: 'title',
-      },
-    });
-
     renderActionDropdown(
       mockedLocation,
       mockEventView,
@@ -109,12 +103,6 @@ describe('Quick Context Actions', function () {
   });
 
   it('Adds context as column', async () => {
-    const mockedLocation = TestStubs.location({
-      query: {
-        field: 'title',
-      },
-    });
-
     renderActionDropdown(
       mockedLocation,
       mockEventView,
@@ -143,12 +131,6 @@ describe('Quick Context Actions', function () {
   });
 
   it('Adds context to filter', async () => {
-    const mockedLocation = TestStubs.location({
-      query: {
-        field: 'title',
-      },
-    });
-
     renderActionDropdown(
       mockedLocation,
       mockEventView,
@@ -177,12 +159,6 @@ describe('Quick Context Actions', function () {
   });
 
   it('Excludes context from filter', async () => {
-    const mockedLocation = TestStubs.location({
-      query: {
-        field: 'title',
-      },
-    });
-
     renderActionDropdown(
       mockedLocation,
       mockEventView,
@@ -213,12 +189,6 @@ describe('Quick Context Actions', function () {
   });
 
   it('Filters by values greater than', async () => {
-    const mockedLocation = TestStubs.location({
-      query: {
-        field: 'title',
-      },
-    });
-
     renderActionDropdown(
       mockedLocation,
       mockEventView,
@@ -249,12 +219,6 @@ describe('Quick Context Actions', function () {
   });
 
   it('Filters by values less than', async () => {
-    const mockedLocation = TestStubs.location({
-      query: {
-        field: 'title',
-      },
-    });
-
     renderActionDropdown(
       mockedLocation,
       mockEventView,
