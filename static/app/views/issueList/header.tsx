@@ -136,7 +136,7 @@ function IssueListHeader({
       </Layout.HeaderContent>
       <Layout.HeaderActions>
         <ButtonBar gap={1}>
-          <IssueListSetAsDefault {...{sort, query, savedSearch, organization}} />
+          <IssueListSetAsDefault {...{sort, query, organization}} />
           <Button
             size="sm"
             icon={<IconStar size="sm" isSolid={isSavedSearchesOpen} />}
