@@ -184,7 +184,9 @@ class VercelWebhookEndpoint(Endpoint):
             try:
                 payload = request.data["payload"]
                 external_id = (
-                    payload.get("team")["id"] if payload.get("team") else payload["user"]["id"]
+                    payload.get("team")["id"]
+                    if (payload.get("team") and payload.get("team") != {})
+                    else payload["user"]["id"]
                 )
                 scope.set_tag("vercel_webhook.type", "new")
                 configuration_id = payload["configuration"]["id"]
