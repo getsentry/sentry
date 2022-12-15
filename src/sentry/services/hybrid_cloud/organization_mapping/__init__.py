@@ -35,7 +35,10 @@ class OrganizationMappingService(InterfaceWithLifecycle):
     ) -> APIOrganizationMapping:
         """
         This method returns a new or recreated OrganizationMapping object.
+        If a record already exists with the same slug, the organization_id can only be
+        updated IF the idempotency key is identical.
         Will raise IntegrityError if the slug already exists.
+
         :param organization_id:
         The org id to create the slug for
         :param slug:

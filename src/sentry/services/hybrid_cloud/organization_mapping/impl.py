@@ -1,7 +1,7 @@
 from dataclasses import fields
 from typing import Any, Optional
 
-from django.db import IntegrityError, transaction
+from django.db import transaction
 
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.user import User
@@ -23,38 +23,27 @@ class DatabaseBackedOrganizationMappingService(OrganizationMappingService):
         # There's only a customer_id when updating an org slug
         customer_id: Optional[str] = None,
     ) -> APIOrganizationMapping:
-        try:
-            with transaction.atomic():
-                # Creating an identical mapping should succeed, even if a record already exists
-                # with this slug. We allow this IFF the idempotency key is identical.
-                org_mapping = OrganizationMapping.objects.create(
-                    organization_id=organization_id,
-                    slug=slug,
-                    customer_id=customer_id,
-                    idempotency_key=idempotency_key,
-                    region_name=region_name,
-                )
-            return self.serialize_organization_mapping(org_mapping)
-        except IntegrityError:
-            pass
 
-        # If we got here, the slug already exists
-        if idempotency_key != "":
-            try:
-                with transaction.atomic():
-                    existing_mapping = OrganizationMapping.objects.select_for_update().get(
-                        slug=slug, idempotency_key=idempotency_key
-                    )
-                    existing_mapping.update(
-                        organization_id=organization_id,
-                        customer_id=customer_id,
-                        region_name=region_name,
-                    )
-                return self.serialize_organization_mapping(existing_mapping)
-            except OrganizationMapping.DoesNotExist:
-                pass
+        if idempotency_key:
+            org_mapping, _created = OrganizationMapping.objects.update_or_create(
+                slug=slug,
+                idempotency_key=idempotency_key,
+                defaults={
+                    "customer_id": customer_id,
+                    "organization_id": organization_id,
+                    "region_name": region_name,
+                },
+            )
+        else:
+            org_mapping = OrganizationMapping.objects.create(
+                organization_id=organization_id,
+                slug=slug,
+                idempotency_key=idempotency_key,
+                region_name=region_name,
+                customer_id=customer_id,
+            )
 
-        raise IntegrityError("An organization with this slug already exists.")
+        return self.serialize_organization_mapping(org_mapping)
 
     def serialize_organization_mapping(
         cls, org_mapping: OrganizationMapping
