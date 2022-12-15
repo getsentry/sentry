@@ -369,6 +369,10 @@ function SpanDetail(props: Props) {
       value => value === 0
     );
 
+    const flamechartSpanFeatureEnabled = organization.features.includes(
+      'profiling-flamechart-spans'
+    );
+
     return (
       <Fragment>
         {renderOrphanSpanMessage()}
@@ -410,7 +414,7 @@ function SpanDetail(props: Props) {
               <Row title="Trace ID" extra={renderTraceButton()}>
                 {span.trace_id}
               </Row>
-              {profileId && event.projectSlug && (
+              {flamechartSpanFeatureEnabled && profileId && event.projectSlug && (
                 <Row
                   title="Profile ID"
                   extra={
