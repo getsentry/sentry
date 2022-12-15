@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sentry.models import OrganizationMember, OrganizationMemberTeam
+from sentry.models import OrganizationMemberTeam
 from sentry.testutils import APITestCase
 from sentry.types.issues import GroupType
 from sentry.utils.dates import ensure_aware
@@ -72,8 +72,7 @@ class IssueOccurrenceTest(APITestCase):
 
     def test_no_projects(self):
         """Test that we raise a 400 if the user belongs to no project teams and passes the dummy query param"""
-        member = OrganizationMember(id=self.user.id, organization=self.org, email=self.user.email)
-        OrganizationMemberTeam.objects.get(team=self.team, organizationmember=member).delete()
+        OrganizationMemberTeam.objects.all().delete()
         url = self.url + "?dummy=True"
         data = dict(self.data)
         data.pop("event", None)
