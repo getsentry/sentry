@@ -185,18 +185,18 @@ def test_transaction_clusterer_generates_rules(default_project):
             get_project_config(project, full_config=True).to_dict().get("config").get("txNameRules")
         )
 
-    with Feature({"organizations:transaction_name_sanitization": False}):
+    with Feature({"organizations:transaction-name-sanitization": False}):
         assert _get_projconfig_tx_rules(default_project) is None
-    with Feature({"organizations:transaction_name_sanitization": True}):
+    with Feature({"organizations:transaction-name-sanitization": True}):
         assert _get_projconfig_tx_rules(default_project) is None
 
     default_project.update_option(
         "sentry:transaction_name_cluster_rules", [("/rule/*/0/**", 0), ("/rule/*/1/**", 1)]
     )
 
-    with Feature({"organizations:transaction_name_sanitization": False}):
+    with Feature({"organizations:transaction-name-sanitization": False}):
         assert _get_projconfig_tx_rules(default_project) is None
-    with Feature({"organizations:transaction_name_sanitization": True}):
+    with Feature({"organizations:transaction-name-sanitization": True}):
         assert _get_projconfig_tx_rules(default_project) == [
             {
                 "pattern": "/rule/*/0/**",
