@@ -303,7 +303,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         global default settings.
         """
         notification_settings = notifications_service.get_settings_for_recipient_by_parent(
-            type=type, parent_id=parent.id, recipients=recipients
+            type=type, parent_id=parent.id, recipients=list(recipients)
         )
         notification_settings_by_recipient = transform_to_notification_settings_by_recipient(
             notification_settings, recipients
