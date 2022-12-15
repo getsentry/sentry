@@ -3,12 +3,13 @@ from __future__ import annotations
 import abc
 import contextlib
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, Dict, Generator, List, Mapping, Tuple, Type
+from typing import TYPE_CHECKING, Any, Collection, Dict, Generator, List, Mapping, Tuple, Type
 
 from django.contrib.auth.models import AnonymousUser
+from rest_framework.request import Request
 
 from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_delegation, stubbed
-from sentry.services.hybrid_cloud.organization import ApiOrganizationMember
+from sentry.services.hybrid_cloud.organization import ApiOrganization, ApiOrganizationMember
 from sentry.services.hybrid_cloud.user import APIUser
 from sentry.silo import SiloMode
 
@@ -60,6 +61,16 @@ class AuthService(InterfaceWithLifecycle):
     @abc.abstractmethod
     def attach_identity(self) -> ApiAuthIdentity:
         """Attach a new auth identity to an existing user."""
+        pass
+
+    @abc.abstractmethod
+    def handle_new_membership(
+        self,
+        request: Request,
+        organization: ApiOrganization,
+        auth_identity: ApiAuthIdentity,
+        default_team_ids: Collection[int],
+    ) -> Tuple[APIUser, ApiOrganizationMember | None]:
         pass
 
 

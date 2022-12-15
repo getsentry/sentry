@@ -2,18 +2,29 @@ from __future__ import annotations
 
 import base64
 import dataclasses
-from typing import List, Mapping, Tuple
+from typing import Collection, List, Mapping, Tuple
 from uuid import uuid4
 
 from django.contrib.auth.models import AnonymousUser
 from django.db import IntegrityError, transaction
 from django.db.models import Count, F
+from rest_framework.request import Request
 
-from sentry import roles
+from sentry import features, roles
+from sentry.api.invite_helper import ApiInviteHelper
 from sentry.auth.access import get_permissions_for_user
 from sentry.auth.system import SystemToken
 from sentry.middleware.auth import RequestAuthenticationMiddleware
-from sentry.models import ApiKey, ApiToken, AuthIdentity, AuthProvider, OrganizationMember, User
+from sentry.models import (
+    ApiKey,
+    ApiToken,
+    AuthIdentity,
+    AuthProvider,
+    Organization,
+    OrganizationMember,
+    Team,
+    User,
+)
 from sentry.services.hybrid_cloud.auth import (
     ApiAuthIdentity,
     ApiAuthProvider,
@@ -26,7 +37,13 @@ from sentry.services.hybrid_cloud.auth import (
     AuthenticationResponse,
     AuthService,
 )
-from sentry.services.hybrid_cloud.organization import ApiOrganizationMember
+from sentry.services.hybrid_cloud.organization import (
+    ApiOrganization,
+    ApiOrganizationMember,
+    ApiOrganizationMemberFlags,
+    organization_service,
+)
+from sentry.services.hybrid_cloud.organization.impl import DatabaseBackedOrganizationService
 from sentry.services.hybrid_cloud.user import APIUser, user_service
 from sentry.silo import SiloMode
 from sentry.utils.auth import AuthUserPasswordExpired
@@ -124,6 +141,7 @@ class DatabaseBackedAuthService(AuthService):
             organization_id=ap.organization_id,
             provider=ap.provider,
             flags=self._serialize_auth_provider_flags(ap),
+            default_team_ids=[team.id for team in ap.default_teams],
         )
 
     def get_org_auth_config(
@@ -264,6 +282,59 @@ class DatabaseBackedAuthService(AuthService):
 
     def attach_identity(self) -> ApiAuthIdentity:
         pass
+
+    def handle_new_membership(
+        self,
+        request: Request,
+        organization: ApiOrganization,
+        auth_identity: ApiAuthIdentity,
+        default_team_ids: Collection[int],
+    ) -> Tuple[APIUser, ApiOrganizationMember | None]:
+        # TODO: Might be able to keep hold of the APIUser object whose ID was
+        #  originally passed to construct the ApiAuthIdentity object
+        user = User.objects.get(id=auth_identity.user_id)
+        serial_user = user_service.serialize_user(user)
+
+        # If the user is either currently *pending* invite acceptance (as indicated
+        # from the invite token and member id in the session) OR an existing invite exists on this
+        # organization for the email provided by the identity provider.
+        invite_helper = ApiInviteHelper.from_session_or_email(
+            request=request,
+            organization=Organization.objects.get(id=organization.id),
+            email=user.email,
+        )
+
+        # If we are able to accept an existing invite for the user for this
+        # organization, do so, otherwise handle new membership
+        if invite_helper:
+            if invite_helper.invite_approved:
+                om = invite_helper.accept_invite(user)
+                return serial_user, DatabaseBackedOrganizationService.serialize_member(om)
+
+            # It's possible the user has an _invite request_ that hasn't been approved yet,
+            # and is able to join the organization without an invite through the SSO flow.
+            # In that case, delete the invite request and create a new membership.
+            invite_helper.handle_invite_not_approved()
+
+        flags = ApiOrganizationMemberFlags(sso__linked=True)
+        # if the org doesn't have the ability to add members then anyone who got added
+        # this way should be disabled until the org upgrades
+        if not features.has("organizations:invite-members", organization):
+            flags.member_limit__restricted = True
+
+        # Otherwise create a new membership
+        om = organization_service.add_organization_member(
+            organization=organization,
+            role=organization.default_role,
+            user=serial_user,
+            flags=flags,
+        )
+
+        default_teams = Team.objects.filter(id__in=default_team_ids)
+        for team in default_teams:
+            organization_service.add_team_member(team=team, organization_member=om)
+
+        return serial_user, om
 
 
 class FakeRequestDict:

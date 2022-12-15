@@ -20,7 +20,7 @@ from django.utils.translation import ugettext_lazy as _
 from django.views import View
 
 from sentry import audit_log, features
-from sentry.api.invite_helper import ApiInviteHelper, remove_invite_details_from_session
+from sentry.api.invite_helper import remove_invite_details_from_session
 from sentry.api.utils import generate_organization_url
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.auth.idpmigration import (
@@ -39,7 +39,6 @@ from sentry.services.hybrid_cloud.email import AmbiguousUserFromEmail, email_ser
 from sentry.services.hybrid_cloud.organization import (
     ApiOrganization,
     ApiOrganizationMember,
-    ApiOrganizationMemberFlags,
     organization_service,
 )
 from sentry.services.hybrid_cloud.user import APIUser
@@ -225,43 +224,10 @@ class AuthIdentityHandler:
     def _handle_new_membership(
         self, auth_identity: ApiAuthIdentity
     ) -> ApiOrganizationMember | None:
-        user = auth_identity.user
-
-        # If the user is either currently *pending* invite acceptance (as indicated
-        # from the invite token and member id in the session) OR an existing invite exists on this
-        # organization for the email provided by the identity provider.
-        invite_helper = ApiInviteHelper.from_session_or_email(
-            request=self.request, organization=self.organization, email=user.email
+        default_team_ids = self.auth_provider.default_teams.values_list("id", flat=True)
+        user, om = auth_service.handle_new_membership(
+            self.request, self.organization, auth_identity, default_team_ids
         )
-
-        # If we are able to accept an existing invite for the user for this
-        # organization, do so, otherwise handle new membership
-        if invite_helper:
-            if invite_helper.invite_approved:
-                return invite_helper.accept_invite(user)
-
-            # It's possible the user has an _invite request_ that hasn't been approved yet,
-            # and is able to join the organization without an invite through the SSO flow.
-            # In that case, delete the invite request and create a new membership.
-            invite_helper.handle_invite_not_approved()
-
-        flags = ApiOrganizationMemberFlags(sso__linked=True)
-        # if the org doesn't have the ability to add members then anyone who got added
-        # this way should be disabled until the org upgrades
-        if not features.has("organizations:invite-members", self.organization):
-            flags.member_limit__restricted = True
-
-        # Otherwise create a new membership
-        om = organization_service.add_organization_member(
-            organization=self.organization,
-            role=self.organization.default_role,
-            user=user,
-            flags=flags,
-        )
-
-        default_teams = self.auth_provider.default_teams.all()
-        for team in default_teams:
-            organization_service.add_team_member(team=team, organization_member=om)
 
         audit_log_service.log_organization_membership(
             metadata=AuditLogMetadata(
