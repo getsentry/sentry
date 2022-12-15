@@ -4,11 +4,13 @@ from datetime import datetime, timedelta
 from unittest.mock import Mock, patch
 
 from django.conf import settings
+from snuba_sdk import Column, Condition, Entity, Op, Query, Request
 
 from sentry.event_manager import EventManager
 from sentry.eventstream.base import EventStreamEventType
 from sentry.eventstream.kafka import KafkaEventStream
 from sentry.eventstream.snuba import SnubaEventStream
+from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.utils import json, snuba
@@ -214,6 +216,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
 
     @patch("sentry.eventstream.insert", autospec=True)
     def test_groupevent_occurrence_passed(self, mock_eventstream_insert):
+        now = datetime.utcnow()
         event = self.__build_transaction_event()
         event.group_id = self.group.id
         group_event = event.for_group(self.group)
@@ -229,9 +232,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
             "skip_consume": False,
             "received_timestamp": event.data["received"],
         }
-        # TODO: Use this once we have a dataset in snuba
-        # self.__produce_event(*insert_args, **insert_kwargs)
-        self.kafka_eventstream.insert(*insert_args, **insert_kwargs)
+        self.__produce_event(*insert_args, **insert_kwargs)
         producer = self.producer_mock
         produce_args, produce_kwargs = list(producer.produce.call_args)
 
@@ -246,18 +247,27 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         assert payload1["occurrence_data"] == occurrence_data
         assert payload1["group_id"] == self.group.id
 
-        # TODO: Query this data and make sure it's present once we have a corresponding dataset in
-        # snuba
-        # result = snuba.raw_query(
-        #     dataset=snuba.Dataset.IssuePlatform,
-        #     start=now - timedelta(days=1),
-        #     end=now + timedelta(days=1),
-        #     selected_columns=["event_id", "group_id", "occurrence_id"],
-        #     groupby=None,
-        #     filter_keys={"project_id": [self.project.id], "event_id": [event.event_id]},
-        # )
-        # assert len(result["data"]) == 1
-        # assert result["data"][0]["group_ids"] == [self.group.id]
+        query = Query(
+            match=Entity(EntityKey.IssuePlatform.value),
+            select=[Column("event_id"), Column("group_id"), Column("occurrence_id")],
+            where=[
+                Condition(Column("timestamp"), Op.GTE, now - timedelta(days=1)),
+                Condition(Column("timestamp"), Op.LT, now + timedelta(days=1)),
+                Condition(Column("project_id"), Op.EQ, self.project.id),
+            ],
+        )
+        request = Request(
+            dataset=Dataset.IssuePlatform.value, app_id="test_eventstream", query=query
+        )
+        result = snuba.raw_snql_query(
+            request,
+            referrer="test_eventstream",
+        )
+
+        assert len(result["data"]) == 1
+        assert result["data"][0]["event_id"] == event.event_id
+        assert result["data"][0]["group_id"] == self.group.id
+        assert result["data"][0]["occurrence_id"] == group_event.occurrence.id
 
     @patch("sentry.eventstream.insert", autospec=True)
     def test_error_queue(self, mock_eventstream_insert):
