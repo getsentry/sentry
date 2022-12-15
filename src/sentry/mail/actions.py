@@ -37,7 +37,8 @@ class NotifyEmailAction(EventAction):
             self.form_fields["fallthroughType"] = {"type": "choice", "choices": FALLTHROUGH_CHOICES}
 
     def after(self, event, state):
-        extra = {"event_id": event.event_id}
+        group = event.group
+        extra = {"event_id": event.event_id, "group_id": group.id}
         group = event.group
 
         target_type = ActionTargetType(self.data["targetType"])
@@ -53,7 +54,6 @@ class NotifyEmailAction(EventAction):
         if not determine_eligible_recipients(
             group.project, target_type, target_identifier, event, fallthrough_type
         ):
-            extra["group_id"] = group.id
             self.logger.info("rule.fail.should_notify", extra=extra)
             return
 

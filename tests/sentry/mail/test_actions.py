@@ -87,6 +87,7 @@ class NotifyEmailFormTest(TestCase):
         assert form.is_valid()
 
     def test_validate_invalid_fallthrough_choice(self):
+        # FallthroughChoice is only set for ActionTargetType.ISSUE_OWNERS
         form = self.form_from_values(
             ActionTargetType.TEAM.value,
             fallthroughChoice=FallthroughChoiceType.ADMIN_OR_RECENT.value,
@@ -144,6 +145,45 @@ class NotifyEmailTest(RuleTestCase):
             "id": "sentry.mail.actions.NotifyEmailAction",
             "targetType": "Member",
             "targetIdentifier": str(self.user.id),
+        }
+        condition_data = {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}
+
+        Rule.objects.filter(project=event.project).delete()
+        Rule.objects.create(
+            project=event.project, data={"conditions": [condition_data], "actions": [action_data]}
+        )
+
+        with self.tasks():
+            post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=False,
+                cache_key=write_event_to_cache(event),
+                group_id=event.group_id,
+            )
+
+        assert len(mail.outbox) == 1
+        sent = mail.outbox[0]
+        assert sent.to == [self.user.email]
+        assert "uh oh" in sent.subject
+
+    @with_feature("organizations:issue-alert-fallback-targeting")
+    def test_full_integration_fallthrough(self):
+        one_min_ago = iso_format(before_now(minutes=1))
+        event = self.store_event(
+            data={
+                "message": "hello",
+                "exception": {"type": "Foo", "value": "uh oh"},
+                "level": "error",
+                "timestamp": one_min_ago,
+            },
+            project_id=self.project.id,
+            assert_no_errors=False,
+        )
+        action_data = {
+            "id": "sentry.mail.actions.NotifyEmailAction",
+            "targetType": "IssueOwners",
+            "fallthroughType": "AllMembers",
         }
         condition_data = {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}
 

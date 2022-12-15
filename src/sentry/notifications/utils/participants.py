@@ -35,7 +35,7 @@ from sentry.notifications.types import (
     NotificationSettingOptionValues,
     NotificationSettingTypes,
 )
-from sentry.services.hybrid_cloud.user import APIUser, user_service
+from sentry.services.hybrid_cloud.user import APIUser, UserService, user_service
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import metrics
 
@@ -344,6 +344,13 @@ def get_send_to(
 def get_fallthrough_recipients(
     project: Project, fallthrough_choice: FallthroughChoiceType
 ) -> Iterable[APIUser]:
+    if not features.has(
+        "organizations:issue-alert-fallback-targeting",
+        organization=project.organization,
+        actor=None,
+    ):
+        return []
+
     # Case 1: No fallthrough
     if fallthrough_choice == FallthroughChoiceType.NO_ONE:
         return []
@@ -351,7 +358,9 @@ def get_fallthrough_recipients(
     # Case 2: notify all members
     elif fallthrough_choice == FallthroughChoiceType.ALL_MEMBERS:
         user_ids = project.member_set.all().values_list("user_id", flat=True)
-        return list(User.objects.filter(id__in=user_ids))
+        return list(
+            UserService.serialize_user(user) for user in User.objects.filter(id__in=user_ids)
+        )
 
     # TODO(snigdhasharma): Handle this in a followup PR (WOR-2385)
     # Case 3: Admin or recent

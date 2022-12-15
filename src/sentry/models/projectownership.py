@@ -121,7 +121,9 @@ class ProjectOwnership(Model):
 
         if not rules:
             project = Project.objects.get(id=project_id)
-            if features.has("organizations:issue-alert-fallback-targeting", project.organization):
+            if features.has(
+                "organizations:issue-alert-fallback-targeting", project.organization, actor=None
+            ):
                 return [], None
 
             return cls.Everyone if ownership.fallthrough else [], None
