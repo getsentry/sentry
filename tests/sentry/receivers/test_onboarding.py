@@ -1,5 +1,6 @@
 from unittest.mock import patch
 
+import pytest
 from django.utils import timezone
 
 from sentry.models import (
@@ -485,8 +486,8 @@ class OrganizationOnboardingTaskTest(TestCase):
             == 1
         )
 
-    @patch("sentry.signals.first_event_with_minified_stack_trace_received.send_robust")
-    def test_first_event_without_minified_stack_trace_received(self, send_robust):
+    @patch("sentry.analytics.record")
+    def test_first_event_without_minified_stack_trace_received(self, record_analytics):
         now = timezone.now()
         project = self.create_project(first_event=now)
         project_created.send(project=project, user=self.user, sender=type(project))
@@ -494,6 +495,7 @@ class OrganizationOnboardingTaskTest(TestCase):
             data={
                 "platform": "javascript",
                 "message": "javascript error message",
+                "tags": {"url": "http://localhost:3000"},
                 "exception": {
                     "values": [
                         {
@@ -537,10 +539,22 @@ class OrganizationOnboardingTaskTest(TestCase):
             project_id=project.id,
         )
 
-        assert not send_robust.called
+        with pytest.raises(AssertionError):
+            record_analytics.assert_called_with(
+                "first_event_with_minified_stack_trace_for_project.sent",
+                user_id=self.user.id,
+                organization_id=project.organization_id,
+                project_id=project.id,
+                platform="javascript",
+                url="http://localhost:3000",
+            )
 
-    @patch("sentry.signals.first_event_with_minified_stack_trace_received.send_robust")
-    def test_first_event_with_minified_stack_trace_received(self, send_robust):
+    @patch("sentry.analytics.record")
+    def test_first_event_with_minified_stack_trace_received(self, record_analytics):
+        """
+        Test that an analytics event is recorded when
+        a first event with minified stack trace is received
+        """
         now = timezone.now()
         project = self.create_project(first_event=now)
         project_created.send(project=project, user=self.user, sender=type(project))
@@ -549,6 +563,7 @@ class OrganizationOnboardingTaskTest(TestCase):
             data={
                 "platform": "javascript",
                 "message": "javascript error message",
+                "tags": {"url": "http://localhost:3000"},
                 "exception": {
                     "values": [
                         {
@@ -610,4 +625,11 @@ class OrganizationOnboardingTaskTest(TestCase):
             },
         )
 
-        assert send_robust.called
+        record_analytics.assert_called_with(
+            "first_event_with_minified_stack_trace_for_project.sent",
+            user_id=self.user.id,
+            organization_id=project.organization_id,
+            project_id=project.id,
+            platform="javascript",
+            url="http://localhost:3000",
+        )
