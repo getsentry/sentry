@@ -18,9 +18,6 @@ from sentry.utils import json, metrics
 from sentry.utils.canonical import CanonicalKeyDict
 from sentry.utils.kafka_config import get_kafka_consumer_cluster_options
 
-_DURATION_METRIC = "occurrence_ingest.duration"
-_MESSAGES_METRIC = "occurrence_ingest.messages"
-
 logger = logging.getLogger(__name__)
 
 
@@ -92,7 +89,7 @@ def process_event_and_issue_occurrence(
 
 def _get_kwargs(payload: Mapping[str, Any]) -> Optional[Mapping[str, Any]]:
     try:
-        with metrics.timer(_DURATION_METRIC, instance="get_task_kwargs_for_message"):
+        with metrics.timer("occurrence_ingest.duration", instance="_get_kwargs"):
             metrics.timing("occurrence.ingest.size.data", len(payload))
 
             kwargs = {
@@ -134,12 +131,7 @@ def _process_message(message: Mapping[str, Any]) -> Optional[IssueOccurrence]:
     if not kwargs:
         return None
 
-    metrics.incr(
-        _MESSAGES_METRIC,
-        amount=1,
-        tags={},  # TODO
-        sample_rate=1,
-    )
+    metrics.incr("occurrence_ingest.messages", sample_rate=1.0)
 
     if "event_data" in kwargs:
         return process_event_and_issue_occurrence(**kwargs)  # returning this now for easier testing
