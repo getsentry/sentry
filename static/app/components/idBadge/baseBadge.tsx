@@ -5,7 +5,7 @@ import Avatar from 'sentry/components/avatar';
 import space from 'sentry/styles/space';
 import {AvatarProject, Organization, Team} from 'sentry/types';
 
-type Props = {
+export interface BaseBadgeProps {
   displayName: React.ReactNode;
   avatarProps?: Record<string, any>;
   avatarSize?: number;
@@ -17,7 +17,7 @@ type Props = {
   organization?: Organization;
   project?: AvatarProject;
   team?: Team;
-};
+}
 
 const BaseBadge = memo(
   ({
@@ -31,7 +31,7 @@ const BaseBadge = memo(
     organization,
     project,
     className,
-  }: Props) => (
+  }: BaseBadgeProps) => (
     <Wrapper className={className}>
       {!hideAvatar && (
         <StyledAvatar

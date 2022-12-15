@@ -32,6 +32,7 @@ export type DiscoverEventParameters = SaveQueryEventParameters & {
     contextType: ContextType;
     eventType?: EventOrGroupType;
   };
+  'discover_v2.quick_context_update_query': {queryKey: string};
   'discover_v2.remove_default': {source: 'homepage' | 'prebuilt-query' | 'saved-query'};
   'discover_v2.results.toggle_tag_facets': {};
   'discover_v2.save_existing_query_failed': SaveQueryParams & {error: string};
@@ -89,4 +90,5 @@ export const discoverEventMap: Record<DiscoverEventKey, string | null> = {
   'discover_v2.update_query_failed': 'Discoverv2: Failed to update a saved query',
   'discover_v2.update_query_request': 'Discoverv2: Request to update a saved query',
   'discover_v2.update_query_success': 'Discoverv2: Successfully updated a saved query',
+  'discover_v2.quick_context_update_query': 'Discoverv2: Update query from Quick Context',
 };

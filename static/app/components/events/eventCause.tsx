@@ -25,13 +25,14 @@ interface Props {
 function EventCause({group, eventId, project, commitRow: CommitRow}: Props) {
   const organization = useOrganization();
   const [isExpanded, setIsExpanded] = useState(false);
-  const {committers, fetching} = useCommitters({
+  const {data, isLoading} = useCommitters({
     eventId,
     projectSlug: project.slug,
   });
+  const committers = data?.committers ?? [];
 
   useRouteAnalyticsParams({
-    fetching,
+    fetching: isLoading,
     num_suspect_commits: committers.length,
   });
 

@@ -67,9 +67,6 @@ register(key="filters:browser-extensions", epoch_defaults={1: "0"})
 # Default legacy-browsers filter
 register(key="filters:localhost", epoch_defaults={1: "0"})
 
-# Default dynamic sampling rules
-register(key="sentry:dynamicSampling", epoch_defaults={1: []})
-
 # Default breakdowns config
 register(
     key="sentry:breakdowns",
@@ -110,3 +107,8 @@ register(
 
 # Using simple bools instead of rates for disabling individual detectors
 register(key="sentry:performance_issue_creation_enabled_n_plus_one_db", default=True)
+
+# Replacement rules for transaction names discovered by the transaction clusterer.
+# Contains a mapping from rule to last seen timestamp,
+# for example `{"/organizations/*/**": 1334318402}`
+register(key="sentry:transaction_name_cluster_rules", default={})

@@ -29,6 +29,7 @@ __all__ = (
     "OrganizationMetricMetaIntegrationTestCase",
     "ReplaysAcceptanceTestCase",
     "ReplaysSnubaTestCase",
+    "MonitorTestCase",
 )
 
 import hashlib
@@ -40,7 +41,6 @@ from datetime import datetime, timedelta
 from io import BytesIO
 from typing import Dict, List, Optional, Sequence, Union
 from unittest import mock
-from unittest.mock import patch
 from urllib.parse import urlencode
 from uuid import uuid4
 from zlib import compress
@@ -62,7 +62,6 @@ from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.functional import cached_property
-from exam import Exam, before, fixture
 from pkg_resources import iter_entry_points
 from rest_framework import status
 from rest_framework.test import APITestCase as BaseAPITestCase
@@ -100,12 +99,15 @@ from sentry.models import (
     Identity,
     IdentityProvider,
     IdentityStatus,
+    Monitor,
+    MonitorType,
     NotificationSetting,
     Organization,
     ProjectOption,
     Release,
     ReleaseCommit,
     Repository,
+    ScheduleType,
     UserEmail,
     UserOption,
 )
@@ -168,13 +170,13 @@ SILENCE_MIXED_TESTCASE_MISUSE = os.environ.get("SENTRY_SILENCE_MIXED_TESTCASE_MI
 SessionOrTransactionMRI = Union[SessionMRI, TransactionMRI]
 
 
-class BaseTestCase(Fixtures, Exam):
+class BaseTestCase(Fixtures):
     def assertRequiresAuthentication(self, path, method="GET"):
         resp = getattr(self.client, method.lower())(path)
         assert resp.status_code == 302
         assert resp["Location"].startswith("http://testserver" + reverse("sentry-login"))
 
-    @before
+    @pytest.fixture(autouse=True)
     def setup_dummy_auth_provider(self):
         auth.register("dummy", DummyProvider)
         self.addCleanup(auth.unregister, "dummy", DummyProvider)
@@ -481,7 +483,7 @@ class PerformanceIssueTestCase(BaseTestCase):
         event_data = load_data(
             "transaction-n-plus-one",
             timestamp=before_now(minutes=10),
-            fingerprint=[f"{GroupType.PERFORMANCE_N_PLUS_ONE.value}-group1"],
+            fingerprint=[f"{GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value}-group1"],
         )
         perf_event_manager = EventManager(event_data)
         perf_event_manager.normalize()
@@ -617,7 +619,7 @@ class APITestCase(BaseTestCase, BaseAPITestCase):
 
 
 class TwoFactorAPITestCase(APITestCase):
-    @fixture
+    @cached_property
     def path_2fa(self):
         return reverse("sentry-account-settings-security")
 
@@ -842,7 +844,9 @@ class PluginTestCase(TestCase):
 
 
 class CliTestCase(TestCase):
-    runner = fixture(CliRunner)
+    @cached_property
+    def runner(self) -> CliRunner:
+        return CliRunner()
 
     @property
     def command(self):
@@ -859,14 +863,13 @@ class CliTestCase(TestCase):
 class AcceptanceTestCase(TransactionTestCase):
     browser: Browser
 
-    def setUp(self):
-        patcher = patch(
+    @pytest.fixture(autouse=True)
+    def _setup_today(self):
+        with mock.patch(
             "django.utils.timezone.now",
             return_value=(datetime(2013, 5, 18, 15, 13, 58, 132928, tzinfo=timezone.utc)),
-        )
-        patcher.start()
-        self.addCleanup(patcher.stop)
-        super().setUp()
+        ):
+            yield
 
     def save_cookie(self, name, value, **params):
         self.browser.save_cookie(name=name, value=value, **params)
@@ -1628,7 +1631,7 @@ class ReplaysAcceptanceTestCase(AcceptanceTestCase, SnubaTestCase):
         self.now = datetime.utcnow().replace(tzinfo=pytz.utc)
         super().setUp()
         self.drop_replays()
-        patcher = patch("django.utils.timezone.now", return_value=self.now)
+        patcher = mock.patch("django.utils.timezone.now", return_value=self.now)
         patcher.start()
         self.addCleanup(patcher.stop)
 
@@ -1709,7 +1712,7 @@ class ReleaseCommitPatchTest(APITestCase):
         self.create_member(teams=[team], user=user, organization=self.org)
         self.login_as(user=user)
 
-    @fixture
+    @cached_property
     def url(self):
         raise NotImplementedError(f"implement for {type(self).__module__}.{type(self).__name__}")
 
@@ -2017,7 +2020,7 @@ class ActivityTestCase(TestCase):
 
 
 class SlackActivityNotificationTest(ActivityTestCase):
-    @fixture
+    @cached_property
     def adapter(self):
         return mail_adapter
 
@@ -2194,4 +2197,27 @@ class OrganizationMetricMetaIntegrationTestCase(MetricsAPIBaseTestCase):
                 },
             ],
             entity="metrics_sets",
+        )
+
+
+class MonitorTestCase(APITestCase):
+    @property
+    def endpoint_with_org(self):
+        raise NotImplementedError(f"implement for {type(self).__module__}.{type(self).__name__}")
+
+    def _get_path_functions(self):
+        return (
+            lambda monitor: reverse(self.endpoint, args=[monitor.guid]),
+            lambda monitor: reverse(
+                self.endpoint_with_org, args=[self.organization.slug, monitor.guid]
+            ),
+        )
+
+    def _create_monitor(self):
+        return Monitor.objects.create(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            next_checkin=timezone.now() - timedelta(minutes=1),
+            type=MonitorType.CRON_JOB,
+            config={"schedule": "* * * * *", "schedule_type": ScheduleType.CRONTAB},
         )

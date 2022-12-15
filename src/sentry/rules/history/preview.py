@@ -6,7 +6,6 @@ from typing import Any, Callable, Dict, List, Sequence, Tuple
 
 from django.utils import timezone
 
-from sentry.db.models import BaseQuerySet
 from sentry.models import Group, Project
 from sentry.rules import RuleBase, rules
 from sentry.rules.history.preview_strategy import (
@@ -40,6 +39,11 @@ ISSUE_STATE_CONDITIONS = [
     "sentry.rules.conditions.regression_event.RegressionEventCondition",
     "sentry.rules.conditions.reappeared_event.ReappearedEventCondition",
 ]
+FREQUENCY_CONDITIONS = [
+    "sentry.rules.conditions.event_frequency.EventFrequencyCondition",
+    "sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyCondition",
+    "sentry.rules.conditions.event_frequency.EventFrequencyPercentCondition",
+]
 
 
 def preview(
@@ -50,19 +54,18 @@ def preview(
     filter_match: str,
     frequency_minutes: int,
     end: datetime | None = None,
-) -> BaseQuerySet | None:
+) -> Dict[int, datetime] | None:
     """
     Returns groups that would have triggered the given conditions and filters in the past 2 weeks
     """
-    # must have at least one condition to filter activity
-    if not conditions:
-        return None
-
     issue_state_conditions, frequency_conditions = categorize_conditions(conditions)
 
+    # must have at least one condition to filter activity
+    if not issue_state_conditions and not frequency_conditions:
+        return None
     # all the issue state conditions are mutually exclusive
-    if len(issue_state_conditions) > 1 and condition_match == "all":
-        return Group.objects.none()
+    elif len(issue_state_conditions) > 1 and condition_match == "all":
+        return {}
 
     if end is None:
         end = timezone.now()
@@ -98,11 +101,11 @@ def preview(
             )
 
         frequency = timedelta(minutes=frequency_minutes)
-        group_ids = get_fired_groups(
+        group_fires = get_fired_groups(
             group_activity, filter_objects, filter_func, start, frequency, event_map
         )
 
-        return Group.objects.filter(id__in=group_ids)
+        return group_fires
     except PreviewException:
         return None
 
@@ -118,10 +121,13 @@ def categorize_conditions(conditions: Conditions) -> Tuple[Conditions, Condition
     issue_state_conditions = set()
     frequency_conditions = []
     for condition in conditions:
-        if condition["id"] in ISSUE_STATE_CONDITIONS:
-            issue_state_conditions.add(condition["id"])
-        else:
+        condition_id = condition["id"]
+        if condition_id in ISSUE_STATE_CONDITIONS:
+            issue_state_conditions.add(condition_id)
+        elif condition_id in FREQUENCY_CONDITIONS:
             frequency_conditions.append(condition)
+        else:
+            return [], []
     return [{"id": condition_id} for condition_id in issue_state_conditions], frequency_conditions
 
 
@@ -185,11 +191,12 @@ def get_fired_groups(
     start: datetime,
     frequency: timedelta,
     event_map: Dict[str, Any],
-) -> Sequence[int]:
+) -> Dict[int, datetime]:
     """
-    Applies filter objects to the condition activity, returns the group ids of activities that pass the filters
+    Applies filter objects to the condition activity.
+    Returns the group ids of activities that pass the filters and the last fire of each group
     """
-    group_ids = set()
+    group_fires = {}
     for group, activities in group_activity.items():
         last_fire = start - frequency
         for event in activities:
@@ -198,11 +205,10 @@ def get_fired_groups(
             except NotImplementedError:
                 raise PreviewException
             if last_fire <= event.timestamp - frequency and filter_func(passes):
-                # XXX: we could break after adding the group, but we may potentially want the times of fires later
-                group_ids.add(group)
+                group_fires[group] = event.timestamp
                 last_fire = event.timestamp
 
-    return list(group_ids)
+    return group_fires
 
 
 def get_top_groups(

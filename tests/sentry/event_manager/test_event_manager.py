@@ -2397,7 +2397,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
 
             # sneakily make the group type wrong
             group = event.groups[0]
-            group.type = GroupType.PERFORMANCE_N_PLUS_ONE.value
+            group.type = GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value
             group.save()
             manager = EventManager(make_event())
             manager.normalize()
@@ -2853,7 +2853,6 @@ class ReleaseIssueTest(TestCase):
 
 
 @region_silo_test
-@apply_feature_flag_on_cls("organizations:server-side-sampling")
 @apply_feature_flag_on_cls("organizations:dynamic-sampling")
 class DSLatestReleaseBoostTest(TestCase):
     def setUp(self):
