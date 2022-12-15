@@ -672,9 +672,70 @@ class GetSendToFallthroughTest(TestCase):
         }
 
     @with_feature("organizations:issue-alert-fallback-targeting")
-    def test_fallthrough_admin_or_recent(self):
+    def test_fallthrough_admin_or_recent_under_20(self):
         event = self.store_event("admin.lol", self.project)
-        assert (
-            self.get_send_to_fallthrough(event, self.project, FallthroughChoiceType.ADMIN_OR_RECENT)
-            == {}
-        )
+        assert self.get_send_to_fallthrough(
+            event, self.project, FallthroughChoiceType.ADMIN_OR_RECENT
+        ) == {
+            ExternalProviders.EMAIL: {
+                UserService.serialize_user(self.user),
+                UserService.serialize_user(self.user2),
+            }
+        }
+
+    @with_feature("organizations:issue-alert-fallback-targeting")
+    def test_fallthrough_admin_or_recent_admin_only(self):
+        notified_users = []
+        for i in range(21):
+            new_user = self.create_user(email=f"user_{i}@example.com", is_active=True)
+            self.create_member(
+                user=new_user, organization=self.organization, role="owner", teams=[self.team2]
+            )
+            notified_users.append(new_user)
+
+        for user in notified_users:
+            NotificationSetting.objects.update_settings(
+                ExternalProviders.SLACK,
+                NotificationSettingTypes.ISSUE_ALERTS,
+                NotificationSettingOptionValues.NEVER,
+                user=user,
+            )
+
+        event = self.store_event("admin.lol", self.project)
+
+        # Since we have > 20 admin, we check that we notify only 20 and
+        # verify the notified users are a subset of the possible notified users.
+        expected_notified_users = {UserService.serialize_user(user) for user in notified_users}
+        notified_users = self.get_send_to_fallthrough(
+            event, self.project, FallthroughChoiceType.ADMIN_OR_RECENT
+        )[ExternalProviders.EMAIL]
+
+        assert len(notified_users) == 20
+        assert self.get_send_to_fallthrough(
+            event, self.project, FallthroughChoiceType.ADMIN_OR_RECENT
+        )[ExternalProviders.EMAIL].issubset(expected_notified_users)
+
+    @with_feature("organizations:issue-alert-fallback-targeting")
+    def test_fallthrough_admin_or_recent_with_recent(self):
+        notified_users = [self.user, self.user2]
+        for i in range(10):
+            new_user = self.create_user(email=f"user_{i}@example.com", is_active=True)
+            self.create_member(
+                user=new_user, organization=self.organization, role="owner", teams=[self.team2]
+            )
+            notified_users.append(new_user)
+
+        for user in notified_users:
+            NotificationSetting.objects.update_settings(
+                ExternalProviders.SLACK,
+                NotificationSettingTypes.ISSUE_ALERTS,
+                NotificationSettingOptionValues.NEVER,
+                user=user,
+            )
+
+        event = self.store_event("admin.lol", self.project)
+        # Check that the notified users contain the 10 admins and 2 recent users.
+        expected_notified_users = {UserService.serialize_user(user) for user in notified_users}
+        assert self.get_send_to_fallthrough(
+            event, self.project, FallthroughChoiceType.ADMIN_OR_RECENT
+        ) == {ExternalProviders.EMAIL: expected_notified_users}
