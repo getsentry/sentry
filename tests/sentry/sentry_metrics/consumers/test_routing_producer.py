@@ -30,7 +30,7 @@ class RoundRobinRouter(MessageRouter):
         return MessageRoute(self.all_producers[dest_id], Topic(f"result-topic-{dest_id}"))
 
 
-def test_routing_producer(kafka_admin) -> None:
+def test_routing_producer() -> None:
     """
     Test that the routing producer step correctly routes messages to the desired
     producer and topic. This uses the RoundRobinRouter, which routes messages to
