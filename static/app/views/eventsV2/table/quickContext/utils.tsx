@@ -1,7 +1,7 @@
 import {Organization} from 'sentry/types';
 import {EventData} from 'sentry/utils/discover/eventView';
 
-export const fiveMinutesInMs = 5 * 60 * 1000;
+export const tenSecondInMs = 10 * 1000;
 
 export enum ContextType {
   ISSUE = 'issue',
