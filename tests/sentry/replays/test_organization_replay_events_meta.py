@@ -9,7 +9,7 @@ pytestmark = pytest.mark.sentry_metrics
 
 
 @region_silo_test
-class OrganizationEventsMetaEndpoint(APITestCase, SnubaTestCase):
+class OrganizationEventsMetaTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
         self.min_ago = before_now(minutes=1)
@@ -46,7 +46,7 @@ class OrganizationEventsMetaEndpoint(APITestCase, SnubaTestCase):
                 "error.type": [],
                 "error.value": [],
                 "id": event_id_a,
-                "issue.id": 1,
+                "issue.id": event_a.group.id,
                 "issue": event_a.group.qualified_short_id,
                 "project.name": self.project_1.slug,
                 "timestamp": iso_format(self.min_ago) + "+00:00",
@@ -56,7 +56,7 @@ class OrganizationEventsMetaEndpoint(APITestCase, SnubaTestCase):
                 "error.type": [],
                 "error.value": [],
                 "id": event_id_b,
-                "issue.id": 2,
+                "issue.id": event_b.group.id,
                 "issue": event_b.group.qualified_short_id,
                 "project.name": self.project_2.slug,
                 "timestamp": iso_format(self.min_ago) + "+00:00",
