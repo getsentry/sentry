@@ -1,7 +1,6 @@
 from unittest.mock import MagicMock, patch
 
 from django.test import RequestFactory, override_settings
-from exam import fixture
 
 from sentry.middleware.integrations.integration_control import IntegrationControlMiddleware
 from sentry.middleware.integrations.parsers.slack import SlackRequestParser
@@ -12,8 +11,10 @@ from sentry.testutils import TestCase
 class IntegrationControlMiddlewareTest(TestCase):
     get_response = MagicMock()
     middleware = IntegrationControlMiddleware(get_response)
-    factory = fixture(RequestFactory)
     prefix = IntegrationControlMiddleware.webhook_prefix
+
+    def setUp(self):
+        self.factory = RequestFactory()
 
     def validate_mock_ran_with_noop(self, request, mock):
         # Ensure mock runs when middleware is called

@@ -18,6 +18,7 @@ from sentry.notifications.helpers import (
     where_should_be_participating,
 )
 from sentry.notifications.types import GroupSubscriptionReason, NotificationSettingTypes
+from sentry.services.hybrid_cloud.notifications import notifications_service
 from sentry.services.hybrid_cloud.user import APIUser, user_service
 from sentry.types.integrations import ExternalProviders
 
@@ -117,16 +118,16 @@ class GroupSubscriptionManager(BaseManager):  # type: ignore
         Identify all users who are participating with a given issue.
         :param group: Group object
         """
-        from sentry.models import NotificationSetting
 
         all_possible_users = user_service.get_from_group(group)
         active_and_disabled_subscriptions = self.filter(
             group=group, user_id__in=[u.id for u in all_possible_users]
         )
-        notification_settings = NotificationSetting.objects.get_for_recipient_by_parent(
-            NotificationSettingTypes.WORKFLOW,
+
+        notification_settings = notifications_service.get_settings_for_recipient_by_parent(
+            type=NotificationSettingTypes.WORKFLOW,
             recipients=all_possible_users,
-            parent=group.project,
+            parent_id=group.project_id,
         )
         subscriptions_by_user_id = {
             subscription.user_id: subscription for subscription in active_and_disabled_subscriptions
