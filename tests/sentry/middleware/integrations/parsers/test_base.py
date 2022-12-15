@@ -54,20 +54,22 @@ class BaseRequestParserTest(TestCase):
     def test_get_response_from_region_silos(self, mock__get_response):
         mock__get_response.side_effect = lambda region: region.name
 
-        response = self.parser.get_response_from_region_silos(regions=self.region_config)
+        response_map = self.parser.get_response_from_region_silos(regions=self.region_config)
         assert mock__get_response.call_count == len(self.region_config)
-        assert response in [region.name for region in self.region_config]
+
+        for region in self.region_config:
+            assert response_map[region.name] == region.name
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @patch.object(BaseRequestParser, "_get_response_from_region_silo")
     def test_get_response_from_region_silos_with_partial_failure(self, mock__get_response):
         mock__get_response.side_effect = lambda region: error_regions(region, ["eu"])
 
-        response = self.parser.get_response_from_region_silos(regions=self.region_config)
+        response_map = self.parser.get_response_from_region_silos(regions=self.region_config)
         assert mock__get_response.call_count == len(self.region_config)
 
-        # Should return NA since EU threw an error silently
-        assert response == "na"
+        assert response_map["na"] == "na"
+        assert type(response_map["eu"]) is SiloLimit.AvailabilityError
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @patch.object(BaseRequestParser, "_get_response_from_region_silo")
@@ -75,9 +77,8 @@ class BaseRequestParserTest(TestCase):
         mock__get_response.side_effect = lambda region: error_regions(region, ["na", "eu"])
 
         self.response_handler.reset_mock()
-        response = self.parser.get_response_from_region_silos(regions=self.region_config)
+        response_map = self.parser.get_response_from_region_silos(regions=self.region_config)
         assert mock__get_response.call_count == len(self.region_config)
-        assert self.response_handler.called
 
-        # When we receive only failures, try to respond from this silo
-        assert response == self.response_handler(self.request)
+        for region in self.region_config:
+            assert type(response_map[region.name]) is SiloLimit.AvailabilityError

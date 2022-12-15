@@ -3,9 +3,9 @@ from __future__ import annotations
 import abc
 import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Callable, Iterable, Sequence
+from typing import Callable, Mapping, Sequence
 
-from django.http.request import HttpRequest
+from django.http import HttpRequest, HttpResponse
 from django.urls import ResolverMatch, resolve
 
 from sentry.models.integrations import Integration, OrganizationIntegration
@@ -35,25 +35,28 @@ class BaseRequestParser(abc.ABC):
             )
             raise SiloLimit.AvailabilityError(self.error_message)
 
-    def get_response_from_control_silo(self):
+    def get_response_from_control_silo(self) -> HttpResponse:
         """
         Used to handle the request directly on the control silo.
         """
         self._ensure_control_silo()
         return self.response_handler(self.request)
 
-    def _get_response_from_region_silo(self, region: Region):
+    def _get_response_from_region_silo(self, region: Region) -> HttpResponse:
         region_client = RegionSiloClient(region)
         return region_client.proxy_request(self.request).to_http_response()
 
-    def get_response_from_region_silos(self, regions: Iterable[Region]):
+    def get_response_from_region_silos(
+        self, regions: Sequence[Region]
+    ) -> Mapping[str, HttpResponse | Exception]:
         """
         Used to handle the requests on a given list of regions (synchronously).
+        Returns a mapping of region name to response/exception.
         If multiple regions are provided, only the latest response is returned to the requestor.
         """
         self._ensure_control_silo()
 
-        response = None
+        region_to_response_map = {}
 
         with ThreadPoolExecutor(max_workers=len(regions)) as executor:
             future_to_region = {
@@ -70,10 +73,11 @@ class BaseRequestParser(abc.ABC):
                     logger.error(
                         "request_parser.base.region_proxy_error", extra={"region": region.name}
                     )
+                    region_to_response_map[region.name] = e
                 else:
-                    response = region_response if region_response is not None else response
+                    region_to_response_map[region.name] = region_response
 
-        if response is None:
+        if len(region_to_response_map) == 0:
             logger.error(
                 "request_parser.base.region_no_response",
                 extra={
@@ -83,7 +87,7 @@ class BaseRequestParser(abc.ABC):
             )
             return self.response_handler(self.request)
 
-        return response
+        return region_to_response_map
 
     def get_response(self):
         """
