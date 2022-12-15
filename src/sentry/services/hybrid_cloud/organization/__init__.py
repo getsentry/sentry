@@ -144,6 +144,10 @@ class ApiTeam:
     status: int = field(default_factory=team_status_visible)
     organization_id: int = -1
     slug: str = ""
+    actor_id: int | None = None
+
+    def class_name(self) -> str:
+        return "Team"
 
 
 @dataclass

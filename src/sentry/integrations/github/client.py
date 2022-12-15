@@ -118,7 +118,8 @@ class GitHubClientMixin(ApiClient):  # type: ignore
             elif msg == "Not Found":
                 logger.warning(f"The Github App does not have access to {repo_full_name}.")
             else:
-                logger.exception("An unknown error has ocurred.")
+                # Raise it so we can stop hammering the API
+                raise (e)
 
         return tree
 
@@ -138,22 +139,19 @@ class GitHubClientMixin(ApiClient):  # type: ignore
         key = f"github:repo:{repo_full_name}:{'source-code' if only_source_code_files else 'all'}"
         repo_files: List[str] = cache.get(key, [])
         if not repo_files:
-            try:
-                tree = self.get_tree(repo_full_name, tree_sha)
-                if tree is not None:
-                    repo_files = [x["path"] for x in tree if x["type"] == "blob"]
-                    if only_source_code_files:
-                        repo_files = filter_source_code_files(files=repo_files)
-                    # The backend's caching will skip silently if the object size greater than 5MB
-                    # The trees API does not return structures larger than 7MB
-                    # As an example, all file paths in Sentry is about 1.3MB
-                    # Larger customers may have larger repositories, however,
-                    # the cost of not having cached the files cached for those
-                    # repositories is a single GH API network request, thus,
-                    # being acceptable to sometimes not having everything cached
-                    cache.set(key, repo_files, cache_seconds)
-            except Exception:
-                logger.exception("An unknown error has ocurred.")
+            tree = self.get_tree(repo_full_name, tree_sha)
+            if tree is not None:
+                repo_files = [x["path"] for x in tree if x["type"] == "blob"]
+                if only_source_code_files:
+                    repo_files = filter_source_code_files(files=repo_files)
+                # The backend's caching will skip silently if the object size greater than 5MB
+                # The trees API does not return structures larger than 7MB
+                # As an example, all file paths in Sentry is about 1.3MB
+                # Larger customers may have larger repositories, however,
+                # the cost of not having cached the files cached for those
+                # repositories is a single GH API network request, thus,
+                # being acceptable to sometimes not having everything cached
+                cache.set(key, repo_files, cache_seconds)
 
         return repo_files
 
@@ -188,6 +186,11 @@ class GitHubClientMixin(ApiClient):  # type: ignore
                 repo_files = self.get_cached_repo_files(full_name, branch)
                 trees[full_name] = RepoTree(Repo(full_name, branch), repo_files)
             logger.info("Using cached trees for Github org.", extra=extra)
+        except ApiError as e:
+            json_data: JSONData = e.json
+            msg: str = json_data.get("message")
+            if msg.startswith("API rate limit exceeded for installation"):
+                logger.exception("API rate limit exceeded. We will not hit it.")
         except Exception:
             # Reset the control cache in order to repopulate
             cache.delete(cache_key)
