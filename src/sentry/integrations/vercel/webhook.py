@@ -8,6 +8,7 @@ from django.views.decorators.csrf import csrf_exempt
 from requests.exceptions import RequestException
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_sdk import configure_scope
 
 from sentry import VERSION, audit_log, http, options
 from sentry.api.base import Endpoint, pending_silo_endpoint
@@ -142,27 +143,57 @@ class VercelWebhookEndpoint(Endpoint):
 
         # Vercel's webhook allows you to subscribe to different events,
         # denoted by the `type` attribute. We currently subscribe to:
-        #     * integration-configuration-removed (Configuration Removed)
-        #     * deployment (Deployment Created)
+        #     * integration-configuration-removed, integration-configuration.removed (Configuration Removed)
+        #     * deployment, deployment.created (Deployment Created)
         # https://vercel.com/docs/integrations/webhooks-overview
-        try:
-            event_type = request.data["type"]
-        except KeyError:
-            return self.respond({"detail": "Missing event type."}, status=400)
+        with configure_scope() as scope:
+            try:
+                event_type = request.data["type"]
+            except KeyError:
+                return self.respond({"detail": "Missing event type."}, status=400)
 
-        external_id = request.data.get("teamId") or request.data["userId"]
+            # Try the new Vercel request. If it fails, try the old Vercel request
+            try:
+                payload = request.data["payload"]
+                external_id = (
+                    payload.get("team")["id"]
+                    if (payload.get("team") and payload.get("team") != {})
+                    else payload["user"]["id"]
+                )
+                scope.set_tag("vercel_webhook.type", "new")
 
-        if event_type == "integration-configuration-removed":
-            configuration_id = request.data["payload"]["configuration"]["id"]
-            return self._delete(external_id, configuration_id, request)
+                if event_type == "integration-configuration.removed":
+                    configuration_id = payload["configuration"]["id"]
+                    return self._delete(external_id, configuration_id, request)
+                if event_type == "deployment.created":
+                    return self._deployment_created(external_id, request)
+            except Exception:
+                external_id = request.data.get("teamId") or request.data["userId"]
+                scope.set_tag("vercel_webhook.type", "old")
 
-        if event_type == "deployment":
-            return self._deployment_created(external_id, request)
+                if event_type == "integration-configuration-removed":
+                    configuration_id = request.data["payload"]["configuration"]["id"]
+                    return self._delete(external_id, configuration_id, request)
+
+                if event_type == "deployment":
+                    return self._deployment_created(external_id, request)
 
     def delete(self, request: Request):
-        # userId should always be present
-        external_id = request.data.get("teamId") or request.data.get("userId")
-        configuration_id = request.data.get("configurationId")
+        with configure_scope() as scope:
+            # Try the new Vercel request. If it fails, try the old Vercel request
+            try:
+                payload = request.data["payload"]
+                external_id = (
+                    payload.get("team")["id"]
+                    if (payload.get("team") and payload.get("team") != {})
+                    else payload["user"]["id"]
+                )
+                scope.set_tag("vercel_webhook.type", "new")
+                configuration_id = payload["configuration"]["id"]
+            except Exception:
+                external_id = request.data.get("teamId") or request.data["userId"]
+                scope.set_tag("vercel_webhook.type", "old")
+                configuration_id = request.data.get("configurationId")
 
         return self._delete(external_id, configuration_id, request)
 
@@ -267,11 +298,14 @@ class VercelWebhookEndpoint(Endpoint):
 
     def _deployment_created(self, external_id, request):
         payload = request.data["payload"]
+        vercel_project_id = (
+            payload["projectId"] if payload.get("projectId") else payload["project"]["id"]
+        )
         # Only create releases for production deploys for now
         if payload["target"] != "production":
             logger.info(
                 f"Ignoring deployment for environment: {payload['target']}",
-                extra={"external_id": external_id, "vercel_project_id": payload["projectId"]},
+                extra={"external_id": external_id, "vercel_project_id": vercel_project_id},
             )
             return self.respond(status=204)
         """
@@ -285,7 +319,7 @@ class VercelWebhookEndpoint(Endpoint):
             7. Create the release using the token WITHOUT refs
             8. Update the release with refs
         """
-        vercel_project_id = payload["projectId"]
+
         logging_params = {"external_id": external_id, "vercel_project_id": vercel_project_id}
 
         org_integrations = OrganizationIntegration.objects.select_related("organization").filter(
