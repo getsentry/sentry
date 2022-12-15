@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import List
+from typing import List, Sequence
 
 from django.db.models import Q
 
@@ -16,7 +16,7 @@ from sentry.services.hybrid_cloud.notifications import (
 
 class DatabaseBackedNotificationsService(NotificationsService):
     def get_settings_for_recipient_by_parent(
-        self, *, type: NotificationSettingTypes, parent_id: int, recipients: List[MayHaveActor]
+        self, *, type: NotificationSettingTypes, parent_id: int, recipients: Sequence[MayHaveActor]
     ) -> List[ApiNotificationSetting]:
         team_ids = [r.id for r in recipients if r.class_name() == "Team"]
         user_ids = [r.id for r in recipients if r.class_name() == "User"]

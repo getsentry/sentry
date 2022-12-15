@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import dataclasses
 from abc import abstractmethod
-from typing import TYPE_CHECKING, List, Protocol
+from typing import TYPE_CHECKING, List, Protocol, Sequence
 
 from sentry.notifications.types import (
     NotificationScopeType,
@@ -28,8 +28,13 @@ class ApiNotificationSetting:
 
 
 class MayHaveActor(Protocol):
-    id: int
-    actor_id: int | None
+    @property
+    def id(self) -> int:
+        pass
+
+    @property
+    def actor_id(self) -> int | None:
+        pass
 
     def class_name(self) -> str:
         pass
@@ -42,7 +47,7 @@ class NotificationsService(InterfaceWithLifecycle):
         *,
         type: NotificationSettingTypes,
         parent_id: int,
-        recipients: List[MayHaveActor],
+        recipients: Sequence[MayHaveActor],
     ) -> List[ApiNotificationSetting]:
         pass
 
