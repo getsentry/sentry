@@ -424,7 +424,8 @@ class EventManager:
 
         job = {"data": self._data, "project_id": project.id, "raw": raw, "start_time": start_time}
 
-        if self._data.get("type") == "transaction":
+        event_type = self._data.get("type")
+        if event_type == "transaction":
             job["data"]["project"] = project.id
             jobs = save_transaction_events([job], projects)
 
@@ -432,6 +433,11 @@ class EventManager:
                 first_transaction_received.send_robust(
                     project=project, event=jobs[0]["event"], sender=Project
                 )
+
+            return jobs[0]["event"]
+        elif event_type == "generic":
+            job["data"]["project"] = project.id
+            jobs = save_generic_events([job], projects)
 
             return jobs[0]["event"]
 
@@ -1371,7 +1377,7 @@ def get_culprit(data: Mapping[str, Any]) -> str:
 def _save_aggregate(
     event: Event,
     hashes: CalculatedHashes,
-    release: Release,
+    release: Optional[Release],
     metadata: dict[str, Any],
     received_timestamp: Union[int, float],
     **kwargs: dict[str, Any],
@@ -1656,7 +1662,7 @@ def _create_group(project: Project, event: Event, **kwargs: dict[str, Any]) -> G
     )
 
 
-def _handle_regression(group: Group, event: Event, release: Release) -> Optional[bool]:
+def _handle_regression(group: Group, event: Event, release: Optional[Release]) -> Optional[bool]:
     if not group.is_resolved():
         return None
 
@@ -1762,7 +1768,7 @@ def _handle_regression(group: Group, event: Event, release: Release) -> Optional
 
 
 def _process_existing_aggregate(
-    group: Group, event: Event, data: Mapping[str, Any], release: Release
+    group: Group, event: Event, data: Mapping[str, Any], release: Optional[Release]
 ) -> bool:
     date = max(event.datetime, group.last_seen)
     extra = {"last_seen": date, "data": data["data"]}
@@ -2436,4 +2442,36 @@ def save_transaction_events(jobs: Sequence[Job], projects: ProjectsMapping) -> S
     _nodestore_save_many(jobs)
     _eventstream_insert_many(jobs)
     _track_outcome_accepted_many(jobs)
+    return jobs
+
+
+@metrics.wraps("event_manager.save_generic_events")
+def save_generic_events(jobs: Sequence[Job], projects: ProjectsMapping) -> Sequence[Job]:
+    with metrics.timer("event_manager.save_generic.ganization_ids"):
+        organization_ids = {project.organization_id for project in projects.values()}
+
+    with metrics.timer("event_manager.save_generic.fetch_organizations"):
+        organizations = {
+            o.id: o for o in Organization.objects.get_many_from_cache(organization_ids)
+        }
+
+    with metrics.timer("event_manager.save_generic.set_organization_cache"):
+        for project in projects.values():
+            try:
+                project.set_cached_field_value(
+                    "organization", organizations[project.organization_id]
+                )
+            except KeyError:
+                continue
+
+    _pull_out_data(jobs, projects)
+    _get_or_create_release_many(jobs, projects)
+    _get_event_user_many(jobs, projects)
+    _derive_plugin_tags_many(jobs, projects)
+    _derive_interface_tags_many(jobs)
+    _materialize_metadata_many(jobs)
+    _get_or_create_environment_many(jobs, projects)
+    _materialize_event_metrics(jobs)
+    _nodestore_save_many(jobs)
+
     return jobs

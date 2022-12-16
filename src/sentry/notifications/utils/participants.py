@@ -35,7 +35,7 @@ from sentry.notifications.types import (
     NotificationSettingOptionValues,
     NotificationSettingTypes,
 )
-from sentry.services.hybrid_cloud.user import APIUser, UserService, user_service
+from sentry.services.hybrid_cloud.user import APIUser, user_service
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import metrics
 
@@ -148,7 +148,11 @@ def split_participants_and_context(
     }
 
 
-def get_owners(project: Project, event: Event | None = None) -> Sequence[Team | APIUser]:
+def get_owners(
+    project: Project,
+    event: Event | None = None,
+    fallthrough_choice: FallthroughChoiceType | None = None,
+) -> Sequence[Team | APIUser]:
     """
     Given a project and an event, decide which users and teams are the owners.
 
@@ -180,7 +184,9 @@ def get_owners(project: Project, event: Event | None = None) -> Sequence[Team | 
         "features.owners.send_to",
         tags={
             "organization": project.organization_id,
-            "outcome": outcome,
+            "outcome": outcome
+            if outcome == "match" or fallthrough_choice is None
+            else fallthrough_choice.value,
             "isUsingDefault": ProjectOwnership.get_ownership_cached(project.id) is None,
         },
         skip_internal=True,
@@ -191,19 +197,19 @@ def get_owners(project: Project, event: Event | None = None) -> Sequence[Team | 
 def get_owner_reason(
     project: Project,
     target_type: ActionTargetType,
-    target_identifier: int | None = None,
     event: Event | None = None,
     notification_type: NotificationSettingTypes = NotificationSettingTypes.ISSUE_ALERTS,
+    fallthrough_choice: FallthroughChoiceType | None = None,
 ) -> str | None:
     """
     Provide a human readable reason for why a user is receiving a notification.
     Currently only used to explain "issue owners" w/ fallthrough to everyone
     """
-    if not features.has("organizations:issue-alert-fallback-message", project.organization):
+    if not features.has("organizations:issue-alert-fallback-targeting", project.organization):
         return None
 
     # Sent to a specific user or team
-    if target_identifier:
+    if target_type != ActionTargetType.ISSUE_OWNERS:
         return None
 
     # Not an issue alert
@@ -211,12 +217,10 @@ def get_owner_reason(
         return None
 
     # Describe why an issue owner was notified
-    if target_type == ActionTargetType.ISSUE_OWNERS:
-        # TODO(workflow): We'll stop looking at ProjectOwnership once we move fallthrough to the alert rule action
-        owners, _ = ProjectOwnership.get_owners(project.id, event.data)
-        # Issue owners are not configured and the default is to notify everyone
-        if owners == ProjectOwnership.Everyone:
-            return f"We notified all members in the {project.get_full_name()} project of this issue"
+    if fallthrough_choice == FallthroughChoiceType.ALL_MEMBERS:
+        return f"We notified all members in the {project.get_full_name()} project of this issue"
+    if fallthrough_choice == FallthroughChoiceType.ADMIN_OR_RECENT:
+        return f"We notified team admins and recently active members in the {project.get_full_name()} project of this issue"
 
     return None
 
@@ -279,7 +283,7 @@ def determine_eligible_recipients(
         return get_release_committers(project, event)
 
     elif target_type == ActionTargetType.ISSUE_OWNERS:
-        owners = get_owners(project, event)
+        owners = get_owners(project, event, fallthrough_choice)
         if owners:
             return owners
 
@@ -346,7 +350,7 @@ def get_fallthrough_recipients(
 ) -> Iterable[APIUser]:
     if not features.has(
         "organizations:issue-alert-fallback-targeting",
-        organization=project.organization,
+        project.organization,
         actor=None,
     ):
         return []
@@ -357,10 +361,7 @@ def get_fallthrough_recipients(
 
     # Case 2: notify all members
     elif fallthrough_choice == FallthroughChoiceType.ALL_MEMBERS:
-        user_ids = project.member_set.all().values_list("user_id", flat=True)
-        return list(
-            UserService.serialize_user(user) for user in User.objects.filter(id__in=user_ids)
-        )
+        return user_service.get_from_project(project.id)
 
     # TODO(snigdhasharma): Handle this in a followup PR (WOR-2385)
     # Case 3: Admin or recent

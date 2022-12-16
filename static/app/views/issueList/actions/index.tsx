@@ -16,6 +16,8 @@ import theme from 'sentry/utils/theme';
 import useApi from 'sentry/utils/useApi';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
+import {SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY} from 'sentry/views/issueList/utils';
 
 import ActionSet from './actionSet';
 import Headers from './headers';
@@ -27,7 +29,6 @@ type IssueListActionsProps = {
   displayCount: React.ReactNode;
   displayReprocessingActions: boolean;
   groupIds: string[];
-  isSavedSearchesOpen: boolean;
   onDelete: () => void;
   onSelectStatsPeriod: (period: string) => void;
   onSortChange: (sort: string) => void;
@@ -44,7 +45,6 @@ function IssueListActions({
   allResultsVisible,
   displayReprocessingActions,
   groupIds,
-  isSavedSearchesOpen,
   onActionTaken,
   onDelete,
   onMarkReviewed,
@@ -67,6 +67,10 @@ function IssueListActions({
     selectedProjectSlug,
     setAllInQuerySelected,
   } = useSelectedGroupsState();
+  const [isSavedSearchesOpen] = useSyncedLocalStorageState(
+    SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY,
+    false
+  );
 
   const disableActions = useMedia(
     `(max-width: ${
