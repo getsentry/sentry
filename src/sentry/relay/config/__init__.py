@@ -178,13 +178,19 @@ def get_transaction_names_config(project: Project) -> Optional[Sequence[Transact
     if not cluster_rules:
         return None
 
-    return [_get_tx_name_rule(p, e) for p, e in cluster_rules]
+    return [_get_tx_name_rule(p, s) for p, s in cluster_rules]
 
 
-def _get_tx_name_rule(pattern: str, expiry: int) -> TransactionNameRule:
+#: How long a transaction name rule lasts, in seconds.
+TRANSACTION_NAME_RULE_TTL_SECS = 90 * 24 * 60 * 60  # 90 days
+
+
+def _get_tx_name_rule(pattern: str, seen_last: int) -> TransactionNameRule:
+    rule_ttl = seen_last + TRANSACTION_NAME_RULE_TTL_SECS
+    expiry_at = datetime.fromtimestamp(rule_ttl, tz=timezone.utc).isoformat()
     return TransactionNameRule(
         pattern=pattern,
-        expiry=datetime.fromtimestamp(expiry, tz=timezone.utc).isoformat(),
+        expiry=expiry_at,
         # Some more hardcoded fileds for future comptability. These are not
         # currently used.
         scope={"source": "url"},
