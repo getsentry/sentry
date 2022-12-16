@@ -1107,8 +1107,6 @@ SENTRY_FEATURES = {
     # Enable new issue actions on issue details
     "organizations:issue-actions-v2": False,
     # Enable new issue alert "issue owners" fallback
-    "organizations:issue-alert-fallback-message": False,
-    # Enable new issue alert "issue owners" fallback
     "organizations:issue-alert-fallback-targeting": False,
     # Enable "Owned By" and "Assigned To" on issue details
     "organizations:issue-details-owners": False,
@@ -2884,6 +2882,8 @@ DISALLOWED_CUSTOMER_DOMAINS = []
 
 SENTRY_PERFORMANCE_ISSUES_RATE_LIMITER_OPTIONS = {}
 SENTRY_PERFORMANCE_ISSUES_REDUCE_NOISE = False
+
+SENTRY_ISSUE_PLATFORM_RATE_LIMITER_OPTIONS = {}
 
 SENTRY_REGION = os.environ.get("SENTRY_REGION", None)
 SENTRY_REGION_CONFIG: Iterable[Region] = ()

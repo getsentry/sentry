@@ -3,6 +3,7 @@ from django.db.models import Q
 from sentry import audit_log, features
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects
+from sentry.api.bases.monitor import OrganizationMonitorPermission
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import OffsetPaginator
@@ -28,6 +29,8 @@ from rest_framework.response import Response
 
 @region_silo_endpoint
 class OrganizationMonitorsEndpoint(OrganizationEndpoint):
+    permission_classes = (OrganizationMonitorPermission,)
+
     def get(self, request: Request, organization) -> Response:
         """
         Retrieve monitors for an organization

@@ -60,6 +60,7 @@ import IssueListFilters from './filters';
 import GroupListBody from './groupListBody';
 import IssueListHeader from './header';
 import {
+  DEFAULT_ISSUE_STREAM_SORT,
   getTabs,
   getTabsWithCounts,
   isForReviewQuery,
@@ -70,7 +71,6 @@ import {
 } from './utils';
 
 const MAX_ITEMS = 25;
-const DEFAULT_SORT = IssueSortOptions.DATE;
 // the default period for the graph in each issue row
 const DEFAULT_GRAPH_STATS_PERIOD = '24h';
 // the allowed period choices for graph in each issue row
@@ -101,7 +101,6 @@ type State = {
   // TODO(Kelly): remove forReview once issue-list-removal-action feature is stable
   forReview: boolean;
   groupIds: string[];
-  isSavedSearchesOpen: boolean;
   issuesLoading: boolean;
   itemsRemoved: number;
   memberList: ReturnType<typeof indexMembersByProject>;
@@ -170,7 +169,6 @@ class IssueListOverview extends Component<Props, State> {
       queryCounts: {},
       queryMaxCount: 0,
       error: null,
-      isSavedSearchesOpen: false,
       issuesLoading: true,
       memberList: {},
     };
@@ -293,7 +291,7 @@ class IssueListOverview extends Component<Props, State> {
       return location.query.sort as string;
     }
 
-    return DEFAULT_SORT;
+    return DEFAULT_ISSUE_STREAM_SORT;
   }
 
   getGroupStatsPeriod(): string {
@@ -334,7 +332,7 @@ class IssueListOverview extends Component<Props, State> {
     }
 
     const sort = this.getSort();
-    if (sort !== DEFAULT_SORT) {
+    if (sort !== DEFAULT_ISSUE_STREAM_SORT) {
       params.sort = sort;
     }
 
@@ -1073,16 +1071,6 @@ class IssueListOverview extends Component<Props, State> {
     this.fetchData(true);
   };
 
-  onToggleSavedSearches = (isOpen: boolean) => {
-    trackAdvancedAnalyticsEvent('search.saved_search_sidebar_toggle_clicked', {
-      organization: this.props.organization,
-      open: isOpen,
-    });
-    this.setState({
-      isSavedSearchesOpen: isOpen,
-    });
-  };
-
   tagValueLoader = (key: string, search: string) => {
     const {orgId} = this.props.params;
     const projectIds = this.getSelectedProjectIds();
@@ -1104,7 +1092,6 @@ class IssueListOverview extends Component<Props, State> {
     }
 
     const {
-      isSavedSearchesOpen,
       pageLinks,
       queryCount,
       queryCounts,
@@ -1158,8 +1145,6 @@ class IssueListOverview extends Component<Props, State> {
     return (
       <StyledPageContent>
         <IssueListHeader
-          isSavedSearchesOpen={isSavedSearchesOpen}
-          onToggleSavedSearches={this.onToggleSavedSearches}
           organization={organization}
           query={query}
           sort={this.getSort()}
@@ -1196,7 +1181,6 @@ class IssueListOverview extends Component<Props, State> {
                 displayReprocessingActions={displayReprocessingActions}
                 sort={this.getSort()}
                 onSortChange={this.onSortChange}
-                isSavedSearchesOpen={isSavedSearchesOpen}
               />
               <PanelBody>
                 <ProcessingIssueList
@@ -1219,7 +1203,6 @@ class IssueListOverview extends Component<Props, State> {
                     loading={issuesLoading}
                     error={error}
                     refetchGroups={this.fetchData}
-                    isSavedSearchesOpen={isSavedSearchesOpen}
                   />
                 </VisuallyCompleteWithData>
               </PanelBody>
@@ -1235,7 +1218,6 @@ class IssueListOverview extends Component<Props, State> {
           </StyledMain>
           <SavedIssueSearches
             {...{organization, query}}
-            isOpen={isSavedSearchesOpen}
             onSavedSearchSelect={this.onSavedSearchSelect}
             sort={this.getSort()}
           />
