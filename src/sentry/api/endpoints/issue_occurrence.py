@@ -9,6 +9,7 @@ from rest_framework.response import Response
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.permissions import SuperuserPermission
 from sentry.models import User
+from sentry.types.issues import GroupType
 from sentry.utils import json
 from sentry.utils.dates import ensure_aware
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options
@@ -45,10 +46,11 @@ class IssueOccurrenceEndpoint(Endpoint):
         Write issue occurrence and event data to a Kafka topic
         ``````````````````````````````````````````````````````
         :auth: superuser required
-        :pparam: string dummy: pass 'True' to load a dummy event instead of providing one in the request
+        :pparam: string dummyEvent: pass 'True' to load a dummy event instead of providing one in the request
+        :pparam: string dummyOccurrence: pass 'True' to load a dummy occurrence instead of providing one in the request
         """
         event = {}
-        if request.query_params.get("dummy") == "True":
+        if request.query_params.get("dummyEvent") == "True":
             user = User.objects.get(id=request.user.id)
             projects = user.get_projects()
             if not projects:
@@ -70,11 +72,35 @@ class IssueOccurrenceEndpoint(Endpoint):
 
         if not event:
             return Response(
-                "Must pass an event or query param of dummy=True",
+                "Must pass an event or query param of dummyEvent=True",
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        occurrence = request.data
+        occurrence = {}
+        if request.query_params.get("dummyOccurrence") == "True":
+            occurrence = {
+                "fingerprint": ["some-fingerprint"],
+                "issue_title": "something bad happened",
+                "subtitle": "it was bad",
+                "resource_id": "1234",
+                "evidence_data": {"Test": 123},
+                "evidence_display": [
+                    ("Attention", "Very important information!!!", True),
+                    ("Evidence 2", "Not important", False),
+                    ("Evidence 3", "Nobody cares about this", False),
+                ],
+                "type": GroupType.PROFILE_BLOCKED_THREAD.value,
+                "detection_time": ensure_aware(datetime.now()),
+                "event": event,
+            }
+        else:
+            occurrence = request.data
+
+        if not occurrence:
+            return Response(
+                "Must pass occurrence data or query param of dummyOccurrence=True",
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         event_serializer = BasicEventSerializer(data=event)
         if not event_serializer.is_valid():

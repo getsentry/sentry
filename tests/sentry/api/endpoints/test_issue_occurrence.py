@@ -58,10 +58,21 @@ class IssueOccurrenceTest(APITestCase):
         assert response.status_code == 400, response.content
 
     def test_load_fake_event(self):
-        url = self.url + "?dummy=True"
+        url = self.url + "?dummyEvent=True"
         data = dict(self.data)
         data.pop("event", None)
         response = self.client.post(url, data=data, format="json")
+        assert response.status_code == 201, response.content
+
+    def test_load_fake_occurrence(self):
+        url = self.url + "?dummyOccurrence=True"
+        data = {"event": self.event}
+        response = self.client.post(url, data=data, format="json")
+        assert response.status_code == 201, response.content
+
+    def test_load_fake_event_and_occurrence(self):
+        url = self.url + "?dummyEvent=True&dummyOccurrence=True"
+        response = self.client.post(url, data={}, format="json")
         assert response.status_code == 201, response.content
 
     def test_no_event_passed(self):
@@ -70,10 +81,16 @@ class IssueOccurrenceTest(APITestCase):
         response = self.client.post(self.url, data=data, format="json")
         assert response.status_code == 400, response.content
 
+    def test_no_occurrence_passed(self):
+        data = dict(self.data)
+        data = data["event"]
+        response = self.client.post(self.url, data=data, format="json")
+        assert response.status_code == 400, response.content
+
     def test_no_projects(self):
-        """Test that we raise a 400 if the user belongs to no project teams and passes the dummy query param"""
+        """Test that we raise a 400 if the user belongs to no project teams and passes the dummyEvent query param"""
         OrganizationMemberTeam.objects.all().delete()
-        url = self.url + "?dummy=True"
+        url = self.url + "?dummyEvent=True"
         data = dict(self.data)
         data.pop("event", None)
         response = self.client.post(url, data=data, format="json")
