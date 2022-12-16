@@ -727,9 +727,7 @@ class GetSendToFallthroughTest(TestCase):
         )[ExternalProviders.EMAIL]
 
         assert len(notified_users) == 20
-        assert self.get_send_to_fallthrough(
-            event, self.project, FallthroughChoiceType.ADMIN_OR_RECENT
-        )[ExternalProviders.EMAIL].issubset(expected_notified_users)
+        assert notified_users.issubset(expected_notified_users)
 
     @with_feature("organizations:issue-alert-fallback-targeting")
     def test_fallthrough_admin_or_recent_with_recent(self):
