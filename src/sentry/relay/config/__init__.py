@@ -163,11 +163,20 @@ def get_dynamic_sampling_config(project: Project) -> Optional[Mapping[str, Any]]
     return None
 
 
+class TransactionNameRuleScope(TypedDict):
+    source: Literal["url"]
+
+
+class TransactionNameRuleRedaction(TypedDict):
+    method: Literal["replace"]
+    substitution: str
+
+
 class TransactionNameRule(TypedDict):
     pattern: str
     expiry: str
-    scope: Mapping[str, str]
-    redaction: Mapping[str, str]
+    scope: TransactionNameRuleScope
+    redaction: TransactionNameRuleRedaction
 
 
 def get_transaction_names_config(project: Project) -> Optional[Sequence[TransactionNameRule]]:
