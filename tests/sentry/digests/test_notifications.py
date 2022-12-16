@@ -159,7 +159,7 @@ class UnsplitKeyTestCase(TestCase):
             == f"mail:p:{self.project.id}:{ActionTargetType.ISSUE_OWNERS.value}::"
         )
 
-    def test_no_fallback(self):
+    def test_no_fallthrough(self):
         identifier = "123"
         assert (
             unsplit_key(self.project, ActionTargetType.ISSUE_OWNERS, identifier, None)

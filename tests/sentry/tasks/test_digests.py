@@ -42,7 +42,7 @@ class DeliverDigestTest(TestCase):
         self.run_test(f"mail:p:{self.project.id}:IssueOwners:")
 
     @with_feature("organizations:issue-alert-fallback-targeting")
-    def test_fallback_choice_key(self):
+    def test_fallthrough_choice_key(self):
         self.run_test(f"mail:p:{self.project.id}:IssueOwners::AllMembers")
 
     def test_member_key(self):
