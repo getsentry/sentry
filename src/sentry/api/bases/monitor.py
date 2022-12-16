@@ -4,6 +4,7 @@ from rest_framework.response import Response
 
 from sentry import features
 from sentry.api.base import Endpoint
+from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.bases.project import ProjectPermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.models import Monitor, Project, ProjectStatus
@@ -14,8 +15,26 @@ class InvalidAuthProject(Exception):
     pass
 
 
+class OrganizationMonitorPermission(OrganizationPermission):
+    scope_map = {
+        "GET": ["org:read", "org:write", "org:admin"],
+        "POST": ["org:read", "org:write", "org:admin"],
+        "PUT": ["org:read", "org:write", "org:admin"],
+        "DELETE": ["org:read", "org:write", "org:admin"],
+    }
+
+
+class ProjectMonitorPermission(ProjectPermission):
+    scope_map = {
+        "GET": ["project:read", "project:write", "project:admin"],
+        "POST": ["project:read", "project:write", "project:admin"],
+        "PUT": ["project:read", "project:write", "project:admin"],
+        "DELETE": ["project:read", "project:write", "project:admin"],
+    }
+
+
 class MonitorEndpoint(Endpoint):
-    permission_classes = (ProjectPermission,)
+    permission_classes = (ProjectMonitorPermission,)
 
     @staticmethod
     def respond_invalid() -> Response:
