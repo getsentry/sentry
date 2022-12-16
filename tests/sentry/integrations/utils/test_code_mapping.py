@@ -263,7 +263,7 @@ class TestDerivedCodeMappings(TestCase):
         ]
         assert matches == expected_matches
 
-    def test_normalized_stack_and_source_roots_static(self):
+    def test_normalized_stack_and_source_roots_starts_with_period_slash(self):
         stacktrace_root, source_path = self.code_mapping_helper._normalized_stack_and_source_roots(
             "./app/", "static/app/"
         )
