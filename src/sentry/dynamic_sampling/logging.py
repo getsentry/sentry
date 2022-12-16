@@ -7,7 +7,7 @@ import sentry_sdk
 
 from sentry.dynamic_sampling.utils import BaseRule, RuleType, get_rule_hash, get_rule_type
 
-logger = logging.getLogger("dynamic_sampling.rules")
+logger = logging.getLogger("sentry.dynamic_sampling")
 
 # Maximum number of projects of which we track active releases. We need to bound this element in order to avoid out
 # of memory errors. In case a single instance will receive a lot of requests from Relay, it will accumulate a lot of
