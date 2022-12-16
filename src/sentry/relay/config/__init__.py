@@ -175,7 +175,7 @@ def get_transaction_names_config(project: Project) -> Optional[Sequence[Transact
         return None
 
     cluster_rules = get_sorted_rules(project)
-    if cluster_rules is None or len(cluster_rules) == 0:
+    if not cluster_rules:
         return None
 
     return [_get_tx_name_rule(p, e) for p, e in cluster_rules]
