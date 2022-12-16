@@ -5,19 +5,20 @@ import re
 from typing import Mapping, Type
 
 from sentry.silo import SiloMode
-from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 
 from .parsers import SlackRequestParser
 from .parsers.base import BaseRequestParser
 
 logger = logging.getLogger(__name__)
 
+ACTIVE_PARSERS = [SlackRequestParser]
+
 
 class IntegrationControlMiddleware:
     webhook_prefix: str = "/extensions/"
 
     integration_parsers: Mapping[str, Type[BaseRequestParser]] = {
-        EXTERNAL_PROVIDERS[ExternalProviders.SLACK]: SlackRequestParser,
+        parser.provider: parser for parser in ACTIVE_PARSERS
     }
 
     def __init__(self, get_response):

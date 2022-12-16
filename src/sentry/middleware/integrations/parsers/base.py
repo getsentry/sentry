@@ -21,6 +21,14 @@ logger = logging.getLogger(__name__)
 class BaseRequestParser(abc.ABC):
     """Base Class for Integration Request Parsers"""
 
+    @property
+    def provider() -> str:
+        return "base"
+
+    @property
+    def create_log_name(self, log_name: str) -> str:
+        return f"request_parser.{self.provider}.{log_name}"
+
     def __init__(self, request: HttpRequest, response_handler: Callable):
         self.request = request
         self.match: ResolverMatch = resolve(self.request.path)
@@ -30,7 +38,7 @@ class BaseRequestParser(abc.ABC):
     def _ensure_control_silo(self):
         if SiloMode.get_current_mode() != SiloMode.CONTROL:
             logger.error(
-                "request_parser.base.silo_error",
+                self.create_log_name("silo_error"),
                 extra={"path": self.request.path, "silo": SiloMode.get_current_mode()},
             )
             raise SiloLimit.AvailabilityError(self.error_message)
@@ -71,7 +79,7 @@ class BaseRequestParser(abc.ABC):
                 except Exception as e:
                     capture_exception(e)
                     logger.error(
-                        "request_parser.base.region_proxy_error", extra={"region": region.name}
+                        self.create_log_name("region_proxy_error"), extra={"region": region.name}
                     )
                     region_to_response_map[region.name] = e
                 else:
@@ -79,7 +87,7 @@ class BaseRequestParser(abc.ABC):
 
         if len(region_to_response_map) == 0:
             logger.error(
-                "request_parser.base.region_no_response",
+                self.create_log_name("region_no_response"),
                 extra={
                     "path": self.request.path,
                     "regions": [region.name for region in regions],
@@ -115,7 +123,7 @@ class BaseRequestParser(abc.ABC):
             integration = self.get_integration()
         if not integration:
             logger.error(
-                "request_parser.base.no_integration",
+                self.create_log_name("no_integration"),
                 extra={"path": self.request.path},
             )
             return []
@@ -139,7 +147,7 @@ class BaseRequestParser(abc.ABC):
             organizations = self.get_organizations()
         if not organizations:
             logger.error(
-                "request_parser.base.no_organizations",
+                self.create_log_name("no_organizations"),
                 extra={"path": self.request.path},
             )
             return []

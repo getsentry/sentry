@@ -9,6 +9,7 @@ from sentry_sdk import capture_exception
 from sentry.integrations.slack.requests.base import SlackRequestError
 from sentry.integrations.slack.webhooks.base import SlackDMEndpoint
 from sentry.models.integrations import Integration, OrganizationIntegration
+from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.utils.signing import unsign
 
 from .base import BaseRequestParser
@@ -17,6 +18,8 @@ logger = logging.getLogger(__name__)
 
 
 class SlackRequestParser(BaseRequestParser):
+    provider = EXTERNAL_PROVIDERS[ExternalProviders.SLACK]  # "slack"
+
     endpoint_classes = ["SlackCommandsEndpoint", "SlackActionEndpoint", "SlackEventEndpoint"]
     """
     Endpoints which provide integration information in the request headers.
@@ -52,7 +55,7 @@ class SlackRequestParser(BaseRequestParser):
             except SlackRequestError as error:
                 capture_exception(error)
                 logger.error(
-                    "integration_control.slack.validation_error",
+                    self.create_log_name("validation_error"),
                     extra={"path": self.request.path},
                 )
                 return None
@@ -74,7 +77,7 @@ class SlackRequestParser(BaseRequestParser):
         regions = self.get_regions()
         if len(regions) == 0:
             logger.error(
-                "integration_control.slack.no_regions",
+                self.create_log_name("no_regions"),
                 extra={"path": self.request.path},
             )
             return self.get_response_from_control_silo()
@@ -93,7 +96,7 @@ class SlackRequestParser(BaseRequestParser):
             return result
         else:
             logger.error(
-                "integration_control.slack.region_error",
+                self.create_log_name("region_error"),
                 extra={"path": self.request.path, "region": first_region.name},
             )
             capture_exception(result)
