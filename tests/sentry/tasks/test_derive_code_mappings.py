@@ -47,6 +47,12 @@ class TestJavascriptDeriveCodeMappings(BaseDeriveCodeMappings):
                 },
             ]
         )
+        self.integration = self.create_integration(
+            organization=self.organization,
+            provider="github",
+            external_id=self.organization.id,
+            metadata={"domain_name": "github.com/Test-Org"},
+        )
 
     def test_find_stacktrace_paths_single_project(self):
         stacktrace_paths = identify_stacktrace_paths(self.event_data)
@@ -69,14 +75,8 @@ class TestJavascriptDeriveCodeMappings(BaseDeriveCodeMappings):
 
     @responses.activate
     @with_feature("organizations:derive-code-mappings")
-    def test_derive_code_mappings(self):
+    def test_derive_code_mappings_starts_with_period_slash(self):
         repo_name = "foo/bar"
-        self.create_integration(
-            organization=self.organization,
-            provider="github",
-            external_id=self.organization.id,
-            metadata={"domain_name": "github.com/Test-Org"},
-        )
         with patch(
             "sentry.integrations.github.client.GitHubClientMixin.get_trees_for_org"
         ) as mock_get_trees_for_org:
@@ -94,14 +94,8 @@ class TestJavascriptDeriveCodeMappings(BaseDeriveCodeMappings):
 
     @responses.activate
     @with_feature("organizations:derive-code-mappings")
-    def test_derive_code_mappings_not_static(self):
+    def test_derive_code_mappings_starts_with_period_slash_no_containing_directory(self):
         repo_name = "foo/bar"
-        self.create_integration(
-            organization=self.organization,
-            provider="github",
-            external_id=self.organization.id,
-            metadata={"domain_name": "github.com/Test-Org"},
-        )
         with patch(
             "sentry.integrations.github.client.GitHubClientMixin.get_trees_for_org"
         ) as mock_get_trees_for_org:
@@ -121,12 +115,6 @@ class TestJavascriptDeriveCodeMappings(BaseDeriveCodeMappings):
     @with_feature("organizations:derive-code-mappings")
     def test_derive_code_mappings_one_to_one_match(self):
         repo_name = "foo/bar"
-        self.create_integration(
-            organization=self.organization,
-            provider="github",
-            external_id=self.organization.id,
-            metadata={"domain_name": "github.com/Test-Org"},
-        )
         with patch(
             "sentry.integrations.github.client.GitHubClientMixin.get_trees_for_org"
         ) as mock_get_trees_for_org:
