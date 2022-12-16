@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 
+from django.http import HttpResponse
 from rest_framework.request import Request
 from sentry_sdk import capture_exception
 
@@ -85,4 +86,15 @@ class SlackRequestParser(BaseRequestParser):
 
         # Slack only requires one synchronous response.
         # By convention, we just assume it's the first returned region.
-        return self.get_response_from_region_silos(regions=[regions[0]])
+        first_region = regions[0]
+        response_map = self.get_response_from_region_silos(regions=[first_region])
+        result = response_map[first_region.name]
+        if type(result) is HttpResponse:
+            return result
+        else:
+            logger.error(
+                "integration_control.slack.region_error",
+                extra={"path": self.request.path, "region": first_region.name},
+            )
+            capture_exception(result)
+            return self.get_response_from_control_silo()
