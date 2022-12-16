@@ -225,8 +225,20 @@ class IssueListOverview extends Component<Props, State> {
       return;
     }
 
-    const prevQuery = prevProps.location.query;
-    const newQuery = this.props.location.query;
+    const prevUrlQuery = prevProps.location.query;
+    const newUrlQuery = this.props.location.query;
+
+    const prevQuery = this.getQueryFromSavedSearchOrLocation({
+      savedSearch: prevProps.savedSearch,
+      location: prevProps.location,
+    });
+    const newQuery = this.getQuery();
+
+    const prevSort = this.getSortFromSavedSearchOrLocation({
+      savedSearch: prevProps.savedSearch,
+      location: prevProps.location,
+    });
+    const newSort = this.getSort();
 
     const selectionChanged = !isEqual(prevProps.selection, this.props.selection);
 
@@ -234,13 +246,11 @@ class IssueListOverview extends Component<Props, State> {
     // reload data.
     if (
       selectionChanged ||
-      prevQuery.cursor !== newQuery.cursor ||
-      prevQuery.sort !== newQuery.sort ||
-      prevQuery.query !== newQuery.query ||
-      prevQuery.statsPeriod !== newQuery.statsPeriod ||
-      prevQuery.groupStatsPeriod !== newQuery.groupStatsPeriod ||
-      prevProps.savedSearch?.query !== this.props.savedSearch?.query ||
-      prevProps.savedSearch?.sort !== this.props.savedSearch?.sort
+      prevUrlQuery.cursor !== newUrlQuery.cursor ||
+      prevUrlQuery.statsPeriod !== newUrlQuery.statsPeriod ||
+      prevUrlQuery.groupStatsPeriod !== newUrlQuery.groupStatsPeriod ||
+      prevQuery !== newQuery ||
+      prevSort !== newSort
     ) {
       this.fetchData(selectionChanged);
     } else if (
@@ -266,8 +276,10 @@ class IssueListOverview extends Component<Props, State> {
   private _lastStatsRequest: any;
   private _lastFetchCountsRequest: any;
 
-  getQuery(): string {
-    const {savedSearch, location} = this.props;
+  getQueryFromSavedSearchOrLocation({
+    savedSearch,
+    location,
+  }: Pick<Props, 'savedSearch' | 'location'>): string {
     if (savedSearch) {
       return savedSearch.query;
     }
@@ -281,8 +293,10 @@ class IssueListOverview extends Component<Props, State> {
     return DEFAULT_QUERY;
   }
 
-  getSort(): string {
-    const {location, savedSearch} = this.props;
+  getSortFromSavedSearchOrLocation({
+    savedSearch,
+    location,
+  }: Pick<Props, 'savedSearch' | 'location'>): string {
     if (!location.query.sort && savedSearch?.id) {
       return savedSearch.sort;
     }
@@ -292,6 +306,20 @@ class IssueListOverview extends Component<Props, State> {
     }
 
     return DEFAULT_ISSUE_STREAM_SORT;
+  }
+
+  getQuery(): string {
+    return this.getQueryFromSavedSearchOrLocation({
+      savedSearch: this.props.savedSearch,
+      location: this.props.location,
+    });
+  }
+
+  getSort(): string {
+    return this.getSortFromSavedSearchOrLocation({
+      savedSearch: this.props.savedSearch,
+      location: this.props.location,
+    });
   }
 
   getGroupStatsPeriod(): string {
