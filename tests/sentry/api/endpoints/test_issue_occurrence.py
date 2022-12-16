@@ -32,9 +32,21 @@ class IssueOccurrenceTest(APITestCase):
             "resource_id": "1234",
             "evidence_data": {"Test": 123},
             "evidence_display": [
-                ("Attention", "Very important information!!!", True),
-                ("Evidence 2", "Not important", False),
-                ("Evidence 3", "Nobody cares about this", False),
+                {
+                    "name": "Attention",
+                    "value": "Very important information!!!",
+                    "important": True,
+                },
+                {
+                    "name": "Evidence 2",
+                    "value": "Not important",
+                    "important": False,
+                },
+                {
+                    "name": "Evidence 3",
+                    "value": "Nobody cares about this",
+                    "important": False,
+                },
             ],
             "type": GroupType.PROFILE_BLOCKED_THREAD.value,
             "detection_time": ensure_aware(datetime.now()),
