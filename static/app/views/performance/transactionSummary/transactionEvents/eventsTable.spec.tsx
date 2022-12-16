@@ -284,7 +284,7 @@ describe('Performance GridEditable Table', function () {
     );
   });
 
-  it('renders replay id', async function () {
+  it('renders replay id', function () {
     const initialData = initializeData({features: ['session-replay-ui']});
 
     fields.push('replayId');
@@ -320,7 +320,7 @@ describe('Performance GridEditable Table', function () {
       {context: initialData.routerContext}
     );
 
-    expect(await screen.getAllByRole('columnheader')).toHaveLength(7);
+    expect(screen.getAllByRole('columnheader')).toHaveLength(7);
     expect(container).toSnapshot();
   });
 });
