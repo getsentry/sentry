@@ -350,7 +350,7 @@ def get_fallthrough_recipients(
 ) -> Iterable[APIUser]:
     if not features.has(
         "organizations:issue-alert-fallback-targeting",
-        organization=project.organization,
+        project.organization,
         actor=None,
     ):
         return []
