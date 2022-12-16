@@ -4,7 +4,7 @@ import dataclasses
 import logging
 from datetime import datetime, timezone
 from io import BytesIO
-from typing import TypedDict
+from typing import TypedDict, Union
 
 import sentry_sdk
 from django.conf import settings
@@ -40,7 +40,7 @@ class RecordingSegmentChunkMessage(TypedDict):
     replay_id: str  # the uuid of the encompassing replay event
     project_id: int
     chunk_index: int  # each segment is split into chunks to fit into kafka
-    payload: bytes
+    payload: Union[bytes, str]
 
 
 class RecordingSegmentMessage(TypedDict):
@@ -78,7 +78,6 @@ class RecordingIngestMessage:
 @metrics.wraps("replays.usecases.ingest.ingest_recording_chunked")
 def ingest_recording_chunked(
     message_dict: RecordingSegmentMessage,
-    parts: RecordingSegmentParts,
     transaction: Transaction,
 ) -> None:
     """Ingest chunked recording messages."""
@@ -86,6 +85,15 @@ def ingest_recording_chunked(
         op="replays.usecases.ingest.ingest_recording_chunked",
         description="ingest_recording_chunked",
     ):
+        cache_prefix = replay_recording_segment_cache_id(
+            project_id=message_dict["project_id"],
+            replay_id=message_dict["replay_id"],
+            segment_id=message_dict["replay_recording"]["id"],
+        )
+        parts = RecordingSegmentParts(
+            prefix=cache_prefix, num_parts=message_dict["replay_recording"]["chunks"]
+        )
+
         try:
             recording_segment_with_headers = collate_segment_chunks(parts)
         except ValueError:
@@ -224,8 +232,11 @@ def ingest_chunk(message_dict: RecordingSegmentChunkMessage, transaction: Transa
             segment_id=message_dict["id"],
         )
 
+        payload = message_dict["payload"]
+        payload = payload.encode("utf-8") if isinstance(payload, str) else payload
+
         part = RecordingSegmentCache(cache_prefix)
-        part[message_dict["chunk_index"]] = message_dict["payload"]
+        part[message_dict["chunk_index"]] = payload
 
     transaction.finish()
 
