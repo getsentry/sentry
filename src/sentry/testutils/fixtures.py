@@ -431,6 +431,9 @@ class Fixtures:
     def create_saved_search(self, *args, **kwargs):
         return Factories.create_saved_search(*args, **kwargs)
 
+    def create_organization_mapping(self, *args, **kwargs):
+        return Factories.create_organization_mapping(*args, **kwargs)
+
     @pytest.fixture(autouse=True)
     def _init_insta_snapshot(self, insta_snapshot):
         self.insta_snapshot = insta_snapshot
