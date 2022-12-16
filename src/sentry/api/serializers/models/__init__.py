@@ -6,6 +6,7 @@ from .alert_rule_trigger_action import *  # noqa: F401,F403
 from .apiapplication import *  # noqa: F401,F403
 from .apiauthorization import *  # noqa: F401,F403
 from .apikey import *  # noqa: F401,F403
+from .apiorganizationmapping import *  # noqa: F401,F403
 from .apitoken import *  # noqa: F401,F403
 from .app_platform_event import *  # noqa: F401,F403
 from .auditlogentry import *  # noqa: F401,F403
