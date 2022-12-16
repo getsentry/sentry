@@ -306,7 +306,7 @@ class CodeMappingTreesHelper:
         return [
             CodeMapping(
                 repo=repo_tree.repo,
-                stacktrace_root=stacktrace_root,  # sentry
+                stacktrace_root=stacktrace_root,  # sentry/
                 source_path=source_path,  # src/sentry/
             )
         ]
