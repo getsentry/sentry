@@ -38,7 +38,7 @@ def deliver_digest(key, schedule_timestamp=None):
     from sentry.mail import mail_adapter
 
     try:
-        project, target_type, target_identifier = split_key(key)
+        project, target_type, target_identifier, _ = split_key(key)
     except Project.DoesNotExist as error:
         logger.info(f"Cannot deliver digest {key} due to error: {error}")
         digests.delete(key)
