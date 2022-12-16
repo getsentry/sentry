@@ -134,12 +134,9 @@ runs:
         WORKDIR: ${{ inputs.workdir }}
       run: |
         cd "$WORKDIR"
-        python setup.py install_egg_info
+        pip install -r requirements-dev-frozen.txt
         # We need to install editable otherwise things like check migration will fail.
-        pip install -r requirements-dev-frozen.txt & \
-        SENTRY_LIGHT_BUILD=1 pip install --no-deps -e . & \
-        wait
-        cd -
+        SENTRY_LIGHT_BUILD=1 pip install --no-deps -e .
 
     - name: Start devservices
       shell: bash
