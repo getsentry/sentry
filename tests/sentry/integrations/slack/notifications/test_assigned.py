@@ -1,37 +1,15 @@
-import uuid
-from datetime import datetime
 from unittest import mock
 from urllib.parse import parse_qs
 
 import responses
 
-from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.models import Activity, Identity, IdentityProvider, IdentityStatus, Integration
 from sentry.notifications.notifications.activity import AssignedActivityNotification
 from sentry.testutils.cases import PerformanceIssueTestCase, SlackActivityNotificationTest
+from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
 from sentry.testutils.helpers.slack import get_attachment, send_notification
 from sentry.types.activity import ActivityType
 from sentry.types.integrations import ExternalProviders
-from sentry.types.issues import GroupType
-from sentry.utils.dates import ensure_aware
-
-# TODO put this in a shared spot to be reused for mocks
-my_occurrence = IssueOccurrence(
-    uuid.uuid4().hex,
-    uuid.uuid4().hex,
-    ["some-fingerprint"],
-    "something bad happened",
-    "it was bad",
-    "1234",
-    {"Test": 123},
-    [
-        IssueEvidence("Attention", "Very important information!!!", True),
-        IssueEvidence("Evidence 2", "Not important", False),
-        IssueEvidence("Evidence 3", "Nobody cares about this", False),
-    ],
-    GroupType.PROFILE_BLOCKED_THREAD,
-    ensure_aware(datetime.now()),
-)
 
 
 class SlackAssignedNotificationTest(SlackActivityNotificationTest, PerformanceIssueTestCase):
@@ -172,7 +150,7 @@ class SlackAssignedNotificationTest(SlackActivityNotificationTest, PerformanceIs
     @responses.activate
     @mock.patch(
         "sentry.eventstore.models.GroupEvent.occurrence",
-        return_value=my_occurrence,
+        return_value=TEST_ISSUE_OCCURRENCE,
         new_callable=mock.PropertyMock,
     )
     @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
@@ -198,8 +176,8 @@ class SlackAssignedNotificationTest(SlackActivityNotificationTest, PerformanceIs
             notification.send()
         attachment, text = get_attachment()
         assert text == f"Issue assigned to {self.name} by themselves"
-        assert attachment["title"] == my_occurrence.issue_title
-        assert attachment["text"] == my_occurrence.evidence_display[0].value
+        assert attachment["title"] == TEST_ISSUE_OCCURRENCE.issue_title
+        assert attachment["text"] == TEST_ISSUE_OCCURRENCE.evidence_display[0].value
         assert (
             attachment["footer"]
             == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=assigned_activity-slack-user|Notification Settings>"
