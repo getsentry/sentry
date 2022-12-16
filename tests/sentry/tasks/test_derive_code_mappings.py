@@ -119,7 +119,7 @@ class TestJavascriptDeriveCodeMappings(BaseDeriveCodeMappings):
 
     @responses.activate
     @with_feature("organizations:derive-code-mappings")
-    def test_derive_code_mappings_empty(self):
+    def test_derive_code_mappings_one_to_one_match(self):
         repo_name = "foo/bar"
         self.create_integration(
             organization=self.organization,
