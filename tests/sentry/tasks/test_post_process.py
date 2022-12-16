@@ -99,7 +99,7 @@ class CorePostProcessGroupTestMixin(BasePostProgressGroupMixin):
             is_regression=False,
             is_new_group_environment=True,
             cache_key=cache_key,
-            group_id=1,
+            group_id=None,
         )
 
         assert mock_processor.call_count == 0
