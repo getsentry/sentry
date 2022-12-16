@@ -20,7 +20,7 @@ import {
 type FlamegraphCandidate = {
   frame: FlamegraphFrame;
   threadId: number;
-  isActiveThread?: boolean;
+  isActiveThread?: boolean; // this is the thread referred to by the active profile index
 };
 
 function findLongestMatchingFrame(
