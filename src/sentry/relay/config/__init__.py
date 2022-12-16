@@ -49,6 +49,9 @@ EXPOSABLE_FEATURES = [
     "organizations:session-replay",
 ]
 
+EXTRACT_METRICS_VERSION = 1
+EXTRACT_ABNORMAL_MECHANISM_VERSION = 2
+
 logger = logging.getLogger(__name__)
 
 
@@ -256,7 +259,9 @@ def _get_project_config(
 
     if features.has("organizations:metrics-extraction", project.organization):
         config["sessionMetrics"] = {
-            "version": 2 if _should_extract_abnormal_mechanism(project) else 1,
+            "version": EXTRACT_ABNORMAL_MECHANISM_VERSION
+            if _should_extract_abnormal_mechanism(project)
+            else EXTRACT_METRICS_VERSION,
             "drop": features.has(
                 "organizations:release-health-drop-sessions", project.organization
             ),
