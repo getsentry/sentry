@@ -835,9 +835,10 @@ class QueryBuilder(BaseQueryBuilder):
                     validated.append(OrderBy(selected_column, direction))
                     break
 
+                # TODO: this should do a tags name lookup
                 elif (
                     isinstance(selected_column, AliasedExpression)
-                    and selected_column.alias == bare_orderby
+                    and selected_column.alias[5:] == bare_orderby
                 ):
                     if bare_orderby in self.orderby_converter:
                         validated.append(self.orderby_converter[bare_orderby](direction))
