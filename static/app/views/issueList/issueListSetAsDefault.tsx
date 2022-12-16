@@ -46,7 +46,7 @@ const IssueListSetAsDefault = ({
   const {mutate: pinSearch, isLoading: isPinning} = usePinSearch({
     onSuccess: response => {
       const {cursor: _cursor, page: _page, ...currentQuery} = location.query;
-      browserHistory.push({
+      browserHistory.replace({
         ...location,
         pathname: `/organizations/${organization.slug}/issues/searches/${response.id}/`,
         query: {referrer: 'search-bar', ...currentQuery},
@@ -56,11 +56,13 @@ const IssueListSetAsDefault = ({
   const {mutate: unpinSearch, isLoading: isUnpinning} = useUnpinSearch({
     onSuccess: () => {
       const {cursor: _cursor, page: _page, ...currentQuery} = location.query;
-      browserHistory.push({
+      browserHistory.replace({
         ...location,
         pathname: `/organizations/${organization.slug}/issues/`,
         query: {
           referrer: 'search-bar',
+          query,
+          sort,
           ...currentQuery,
         },
       });
