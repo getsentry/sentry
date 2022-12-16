@@ -5,7 +5,6 @@ import * as qs from 'query-string';
 
 import onboardingImg from 'sentry-images/spot/onboarding-preview.svg';
 
-import Access from 'sentry/components/acl/access';
 import Button, {ButtonProps} from 'sentry/components/button';
 import FeatureBadge from 'sentry/components/featureBadge';
 import IdBadge from 'sentry/components/idBadge';
@@ -47,24 +46,13 @@ type State = AsyncView['state'] & {
 function NewMonitorButton(props: ButtonProps) {
   const organization = useOrganization();
   return (
-    <Access organization={organization} access={['project:write']}>
-      {({hasAccess}) => (
-        <Button
-          to={`/organizations/${organization.slug}/monitors/create/`}
-          priority="primary"
-          disabled={!hasAccess}
-          tooltipProps={{
-            disabled: hasAccess,
-          }}
-          title={t(
-            'You must be an organization owner, manager, or admin to set up a monitor'
-          )}
-          {...props}
-        >
-          {props.children}
-        </Button>
-      )}
-    </Access>
+    <Button
+      to={`/organizations/${organization.slug}/monitors/create/`}
+      priority="primary"
+      {...props}
+    >
+      {props.children}
+    </Button>
   );
 }
 
