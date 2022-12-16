@@ -92,6 +92,6 @@ def _extract_info_from_rule(
             "environment": rule["condition"]["inner"][1]["value"],
         }
     elif rule_type == RuleType.BOOST_KEY_TRANSACTIONS_RULE:
-        return {"transaction": rule["condition"]["inner"][0]["value"]}
+        return {"transactions": rule["condition"]["inner"][0]["value"]}
     else:
         return {}
