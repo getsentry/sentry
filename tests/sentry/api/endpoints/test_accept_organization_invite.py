@@ -15,10 +15,10 @@ from sentry.models import (
 )
 from sentry.testutils import TestCase
 from sentry.testutils.factories import Factories
-from sentry.testutils.silo import control_silo_test, exempt_from_silo_limits
+from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
 
 
-@control_silo_test()
+@region_silo_test
 class AcceptInviteTest(TestCase):
     def setUp(self):
         super().setUp()
