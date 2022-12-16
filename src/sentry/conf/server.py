@@ -1,7 +1,6 @@
 """
 These settings act as the default (base) settings for the Sentry-provided web-server
 """
-import logging
 import os
 import os.path
 import platform
@@ -1907,7 +1906,6 @@ SENTRY_USE_ISSUE_OCCURRENCE = False
 
 # This flag tells snuba to auto-run migrations within the `search_issues` migration group
 SENTRY_AUTORUN_SEARCH_ISSUES_MIGRATIONS = bool(os.getenv("SENTRY_AUTORUN_SEARCH_ISSUES_MIGRATIONS"))
-logging.info(f"SENTRY_AUTORUN_SEARCH_ISSUES_MIGRATIONS={SENTRY_AUTORUN_SEARCH_ISSUES_MIGRATIONS}")
 
 # This flag activates code paths that are specific for customer domains
 SENTRY_USE_CUSTOMER_DOMAINS = False
