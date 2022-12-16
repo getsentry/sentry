@@ -91,10 +91,10 @@ class AuthenticatorManager(BaseManager):
         except Authenticator.DoesNotExist:
             return interface.generate(EnrollmentStatus.NEW)
 
-    def user_has_2fa(self, user):
+    def user_has_2fa(self, user_id):
         """Checks if the user has any 2FA configured."""
         return Authenticator.objects.filter(
-            user_id=user.id, type__in=[a.type for a in available_authenticators(ignore_backup=True)]
+            user_id=user_id, type__in=[a.type for a in available_authenticators(ignore_backup=True)]
         ).exists()
 
     def bulk_users_have_2fa(self, user_ids):
