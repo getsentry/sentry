@@ -229,17 +229,18 @@ class AuthIdentityHandler:
             self.request, self.organization, auth_identity, default_team_ids
         )
 
-        audit_log_service.log_organization_membership(
-            metadata=AuditLogMetadata(
-                organization=self.organization,
-                actor=user,
-                ip_address=self.request.META["REMOTE_ADDR"],
-                target_object=om.id,
-                target_user=om.user_id,
-                event=audit_log.get_event_id("MEMBER_ADD"),
-            ),
-            organization_member=om,
-        )
+        if om is not None:
+            audit_log_service.log_organization_membership(
+                metadata=AuditLogMetadata(
+                    organization=self.organization,
+                    actor=user,
+                    ip_address=self.request.META["REMOTE_ADDR"],
+                    target_object=om.id,
+                    target_user=om.user_id,
+                    event=audit_log.get_event_id("MEMBER_ADD"),
+                ),
+                organization_member=om,
+            )
 
         return om
 
