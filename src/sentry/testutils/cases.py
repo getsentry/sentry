@@ -29,6 +29,7 @@ __all__ = (
     "OrganizationMetricMetaIntegrationTestCase",
     "ReplaysAcceptanceTestCase",
     "ReplaysSnubaTestCase",
+    "MonitorTestCase",
 )
 
 import hashlib
@@ -98,12 +99,15 @@ from sentry.models import (
     Identity,
     IdentityProvider,
     IdentityStatus,
+    Monitor,
+    MonitorType,
     NotificationSetting,
     Organization,
     ProjectOption,
     Release,
     ReleaseCommit,
     Repository,
+    ScheduleType,
     UserEmail,
     UserOption,
 )
@@ -2193,4 +2197,27 @@ class OrganizationMetricMetaIntegrationTestCase(MetricsAPIBaseTestCase):
                 },
             ],
             entity="metrics_sets",
+        )
+
+
+class MonitorTestCase(APITestCase):
+    @property
+    def endpoint_with_org(self):
+        raise NotImplementedError(f"implement for {type(self).__module__}.{type(self).__name__}")
+
+    def _get_path_functions(self):
+        return (
+            lambda monitor: reverse(self.endpoint, args=[monitor.guid]),
+            lambda monitor: reverse(
+                self.endpoint_with_org, args=[self.organization.slug, monitor.guid]
+            ),
+        )
+
+    def _create_monitor(self):
+        return Monitor.objects.create(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            next_checkin=timezone.now() - timedelta(minutes=1),
+            type=MonitorType.CRON_JOB,
+            config={"schedule": "* * * * *", "schedule_type": ScheduleType.CRONTAB},
         )
