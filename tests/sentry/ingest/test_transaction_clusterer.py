@@ -3,7 +3,6 @@ from unittest import mock
 import pytest
 from freezegun import freeze_time
 
-from sentry.eventstore.models import Event
 from sentry.ingest.transaction_clusterer.base import ReplacementRule
 from sentry.ingest.transaction_clusterer.datasource.redis import (
     _store_transaction_name,
@@ -102,16 +101,14 @@ def test_record_transactions(
 ):
     with Feature({"organizations:transaction-name-clusterer": feature_enabled}):
         project = Project(id=111, name="project", organization_id=default_organization.id)
-        event = Event(
-            project.id,
-            "02552061b47b467cb38d1d2dd26eed21",
-            data={
+        record_transaction_name(
+            project,
+            {
                 "tags": [["transaction", txname]],
                 "transaction": txname,
                 "transaction_info": {"source": source},
             },
         )
-        record_transaction_name(project, event)
         assert len(mocked_record.mock_calls) == expected
 
 
