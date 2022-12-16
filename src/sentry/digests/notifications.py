@@ -46,11 +46,11 @@ def unsplit_key(
     project: Project,
     target_type: ActionTargetType,
     target_identifier: str | None,
-    fallback_choice: FallthroughChoiceType | None,
+    fallthrough_choice: FallthroughChoiceType | None,
 ) -> str:
     target_str = target_identifier if target_identifier is not None else ""
-    fallback = fallback_choice.value if fallback_choice is not None else ""
-    return f"mail:p:{project.id}:{target_type.value}:{target_str}:{fallback}"
+    fallthrough = fallthrough_choice.value if fallthrough_choice is not None else ""
+    return f"mail:p:{project.id}:{target_type.value}:{target_str}:{fallthrough}"
 
 
 def event_to_record(event: Event, rules: Sequence[Rule]) -> Record:
