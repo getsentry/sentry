@@ -384,3 +384,25 @@ def test_session_metrics_extraction(call_endpoint, task_runner, drop_sessions):
         for config in result["configs"].values():
             config = config["config"]
             assert config["sessionMetrics"] == {"version": 1, "drop": drop_sessions}
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("abnormal_mechanism_rollout", [0, 1])
+def test_session_metrics_abnormal_mechanism_tag_extraction(
+    call_endpoint, task_runner, set_sentry_option, abnormal_mechanism_rollout
+):
+    set_sentry_option(
+        "sentry-metrics.releasehealth.abnormal-mechanism-extraction-rate",
+        abnormal_mechanism_rollout,
+    )
+    with Feature({"organizations:metrics-extraction": True}):
+        with task_runner():
+            result, status_code = call_endpoint(full_config=True)
+            assert status_code < 400
+
+        for config in result["configs"].values():
+            config = config["config"]
+            assert config["sessionMetrics"] == {
+                "version": 2 if abnormal_mechanism_rollout else 1,
+                "drop": False,
+            }
