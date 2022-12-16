@@ -8,8 +8,7 @@ import pytest
 from sentry.eventstore.snuba.backend import SnubaEventStorage
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.occurrence_consumer import _process_message
-
-# from sentry.models import Group
+from sentry.models import Group
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.types.issues import GroupType
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
@@ -71,8 +70,7 @@ class IssueOccurrenceTestMessage(OccurrenceTestMixin, TestCase, SnubaTestCase): 
             self.project.id, fetched_occurrence.event_id
         )
         assert fetched_event is not None
-        # TODO uncomment this when save_issue_from_occurrence() is merged
-        # assert Group.objects.filter(grouphash__hash=occurrence.fingerprint[0]).exists()
+        assert Group.objects.filter(grouphash__hash=occurrence.fingerprint[0]).exists()
 
     def test_invalid_event_payload(self) -> None:
         message = get_test_message(self.project.id, event={"title": "no project id"})

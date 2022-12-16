@@ -2473,7 +2473,5 @@ def save_generic_events(jobs: Sequence[Job], projects: ProjectsMapping) -> Seque
     _get_or_create_environment_many(jobs, projects)
     _materialize_event_metrics(jobs)
     _nodestore_save_many(jobs)
-    _eventstream_insert_many(jobs)
-    _track_outcome_accepted_many(jobs)
 
     return jobs
