@@ -202,6 +202,9 @@ class QueryBuilder(BaseQueryBuilder):
             "columns": set(),
         }
 
+        self.tag_resolver_map = {}
+        self.reverse_tag_resolver_map = {}
+
         # Function is a subclass of CurriedFunction
         self.where: List[WhereType] = []
         self.having: List[WhereType] = []
@@ -263,8 +266,13 @@ class QueryBuilder(BaseQueryBuilder):
 
     def resolve_column_name(self, col: str) -> str:
         # TODO when utils/snuba.py becomes typed don't need this extra annotation
+        original_col = self.tag_resolver_map.get(col, col)
         column_resolver: Callable[[str], str] = resolve_column(self.dataset)
-        return column_resolver(col)
+        column_name = column_resolver(original_col)
+        if column_name.startswith("tags["):
+            self.tag_resolver_map[f"tags_{original_col}"] = original_col
+            self.reverse_tag_resolver_map[original_col] = f"tags_{original_col}"
+        return column_name
 
     def resolve_query(
         self,
@@ -799,6 +807,7 @@ class QueryBuilder(BaseQueryBuilder):
             orderby = [orderby]
 
         orderby_columns: List[str] = orderby if orderby else []
+        orderby_columns = [self.reverse_tag_resolver_map.get(o, o) for o in orderby_columns]
 
         resolved_orderby: Union[str, SelectType, None]
         for orderby in orderby_columns:
@@ -829,7 +838,6 @@ class QueryBuilder(BaseQueryBuilder):
                 if isinstance(selected_column, Column) and selected_column == resolved_orderby:
                     validated.append(OrderBy(selected_column, direction))
                     break
-
                 elif (
                     isinstance(selected_column, AliasedExpression)
                     and selected_column.alias == bare_orderby
@@ -1063,14 +1071,14 @@ class QueryBuilder(BaseQueryBuilder):
         # If the expected aliases differs from the resolved snuba column,
         # make sure to alias the expression appropriately so we get back
         # the column with the correct names.
-        return AliasedExpression(column, name)
+        return AliasedExpression(column, self.reverse_tag_resolver_map.get(name, name))
 
     def column(self, name: str) -> Column:
         """Given an unresolved sentry name and return a snql column.
 
         :param name: The unresolved sentry name.
         """
-        resolved_column = self.resolve_column_name(name)
+        resolved_column = self.resolve_column_name(self.reverse_tag_resolver_map.get(name, name))
         return Column(resolved_column)
 
     # Query filter helper methods
@@ -1626,6 +1634,7 @@ class TopEventsQueryBuilder(TimeseriesQueryBuilder):
         )
 
         self.fields: List[str] = selected_columns if selected_columns is not None else []
+        self.fields = [self.reverse_tag_resolver_map.get(c, c) for c in selected_columns]
 
         if (conditions := self.resolve_top_event_conditions(top_events, other)) is not None:
             self.where.append(conditions)
