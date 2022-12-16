@@ -1,4 +1,3 @@
-import {useEffect} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
@@ -13,7 +12,6 @@ import {Organization, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView, {EventData} from 'sentry/utils/discover/eventView';
 import {getShortEventId} from 'sentry/utils/events';
-import {useQueryClient} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 
 import EventContext from './eventContext';
@@ -163,14 +161,7 @@ type ContextProps = {
 
 export function QuickContextHoverWrapper(props: ContextProps) {
   const location = useLocation();
-  const queryClient = useQueryClient();
   const {dataRow, contextType, organization, projects, eventView} = props;
-
-  useEffect(() => {
-    return () => {
-      queryClient.clear();
-    };
-  }, [queryClient]);
 
   return (
     <HoverWrapper>

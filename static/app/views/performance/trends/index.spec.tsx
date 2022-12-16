@@ -182,7 +182,6 @@ function initializeTrendsData(
 
 describe('Performance > Trends', function () {
   let trendsStatsMock;
-  // const originalHook = window._legacyStoreHookUpdate;
   beforeEach(function () {
     browserHistory.push = jest.fn();
     MockApiClient.addMockResponse({
