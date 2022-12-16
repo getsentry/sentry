@@ -1,7 +1,7 @@
 """
 These settings act as the default (base) settings for the Sentry-provided web-server
 """
-
+import logging
 import os
 import os.path
 import platform
@@ -1906,8 +1906,8 @@ SENTRY_USE_PROFILING = False
 SENTRY_USE_ISSUE_OCCURRENCE = False
 
 # This flag tells snuba to auto-run migrations within the `search_issues` migration group
-SENTRY_AUTORUN_SEARCH_ISSUES_MIGRATIONS = False
-
+SENTRY_AUTORUN_SEARCH_ISSUES_MIGRATIONS = bool(os.getenv("SENTRY_AUTORUN_SEARCH_ISSUES_MIGRATIONS"))
+logging.info(f"SENTRY_AUTORUN_SEARCH_ISSUES_MIGRATIONS={SENTRY_AUTORUN_SEARCH_ISSUES_MIGRATIONS}")
 
 # This flag activates code paths that are specific for customer domains
 SENTRY_USE_CUSTOMER_DOMAINS = False
@@ -2073,12 +2073,12 @@ SENTRY_DEVSERVICES = {
                 "REDIS_DB": "1",
                 "ENABLE_SENTRY_METRICS_DEV": "1" if settings.SENTRY_USE_METRICS_DEV else "",
                 "ENABLE_PROFILES_CONSUMER": "1" if settings.SENTRY_USE_PROFILING else "",
-                "ENABLE_ISSUE_OCCURRENCE_CONSUMER": "1",
-                # if settings.SENTRY_USE_ISSUE_OCCURRENCE
-                # else "",
-                # "ENABLE_AUTORUN_MIGRATION_SEARCH_ISSUES": "1"
-                # if settings.SENTRY_AUTORUN_SEARCH_ISSUES_MIGRATIONS
-                # else "",
+                "ENABLE_ISSUE_OCCURRENCE_CONSUMER": "1"
+                if settings.SENTRY_USE_ISSUE_OCCURRENCE
+                else "",
+                "ENABLE_AUTORUN_MIGRATION_SEARCH_ISSUES": os.environ.get(
+                    "ENABLE_AUTORUN_MIGRATION_SEARCH_ISSUES", ""
+                ),
             },
             "only_if": "snuba" in settings.SENTRY_EVENTSTREAM
             or "kafka" in settings.SENTRY_EVENTSTREAM,
