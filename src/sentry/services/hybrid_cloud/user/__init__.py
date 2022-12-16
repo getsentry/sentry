@@ -33,6 +33,8 @@ class APIUser:
     last_active: datetime.datetime | None = None
     is_sentry_app: bool = False
     password_usable: bool = False
+    is_password_expired: bool = False
+    session_nonce: str = ""
 
     roles: FrozenSet[str] = frozenset()
     permissions: FrozenSet[str] = frozenset()
