@@ -566,10 +566,12 @@ def ingest_consumer(consumer_types, all_consumer_types, **options):
 @run.command("occurrences-ingest-consumer")
 @configuration
 def occurrences_ingest_consumer():
+    from django.conf import settings
+
     from sentry.issues.occurrence_consumer import get_occurrences_ingest_consumer
     from sentry.utils import metrics
 
-    consumer_type = "ingest-occurrences"
+    consumer_type = settings.KAFKA_INGEST_OCCURRENCES
 
     with metrics.global_tags(ingest_consumer_types=consumer_type, _all_threads=True):
         get_occurrences_ingest_consumer(consumer_type).run()
