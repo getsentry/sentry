@@ -1377,7 +1377,7 @@ def get_culprit(data: Mapping[str, Any]) -> str:
 def _save_aggregate(
     event: Event,
     hashes: CalculatedHashes,
-    release: Release,
+    release: Optional[Release],
     metadata: dict[str, Any],
     received_timestamp: Union[int, float],
     **kwargs: dict[str, Any],
@@ -1662,7 +1662,7 @@ def _create_group(project: Project, event: Event, **kwargs: dict[str, Any]) -> G
     )
 
 
-def _handle_regression(group: Group, event: Event, release: Release) -> Optional[bool]:
+def _handle_regression(group: Group, event: Event, release: Optional[Release]) -> Optional[bool]:
     if not group.is_resolved():
         return None
 
@@ -1768,7 +1768,7 @@ def _handle_regression(group: Group, event: Event, release: Release) -> Optional
 
 
 def _process_existing_aggregate(
-    group: Group, event: Event, data: Mapping[str, Any], release: Release
+    group: Group, event: Event, data: Mapping[str, Any], release: Optional[Release]
 ) -> bool:
     date = max(event.datetime, group.last_seen)
     extra = {"last_seen": date, "data": data["data"]}

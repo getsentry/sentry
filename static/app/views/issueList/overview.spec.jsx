@@ -16,6 +16,7 @@ import StreamGroup from 'sentry/components/stream/group';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TagStore from 'sentry/stores/tagStore';
 import {SavedSearchVisibility} from 'sentry/types';
+import localStorageWrapper from 'sentry/utils/localStorage';
 import * as parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import IssueListWithStores, {IssueListOverview} from 'sentry/views/issueList/overview';
 
@@ -74,6 +75,7 @@ describe('IssueList', function () {
     // eslint-disable-next-line no-console
     jest.spyOn(console, 'error').mockImplementation(jest.fn());
 
+    localStorageWrapper.clear();
     MockApiClient.clearMockResponses();
 
     savedSearch = TestStubs.Search({
@@ -731,6 +733,7 @@ describe('IssueList', function () {
     it('unpinning search should keep project selected', async function () {
       const localSavedSearch = {
         ...savedSearch,
+        id: '666',
         isPinned: true,
         query: 'assigned:me level:fatal',
       };

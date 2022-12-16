@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Callable, Dict, Mapping, Optional
+from typing import Any, Dict, Mapping, Optional
 
 import rapidjson
 from arroyo import Topic
@@ -8,7 +8,7 @@ from arroyo.backends.kafka.consumer import KafkaConsumer, KafkaPayload
 from arroyo.commit import ONCE_PER_SECOND
 from arroyo.processing.processor import StreamProcessor
 from arroyo.processing.strategies import ProcessingStrategy, ProcessingStrategyFactory
-from arroyo.types import Message, Partition, Position
+from arroyo.types import Commit, Message, Partition
 from django.conf import settings
 
 from sentry.eventstore.models import Event
@@ -145,7 +145,7 @@ def _process_message(message: Mapping[str, Any]) -> Optional[IssueOccurrence]:
 class OccurrenceStrategy(ProcessingStrategy[KafkaPayload]):
     def __init__(
         self,
-        committer: Callable[[Mapping[Partition, Position]], None],
+        committer: Commit,
         partitions: Mapping[Partition, int],
     ):
         pass
@@ -176,7 +176,7 @@ class OccurrenceStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
 
     def create_with_partitions(
         self,
-        commit: Callable[[Mapping[Partition, Position]], None],
+        commit: Commit,
         partitions: Mapping[Partition, int],
     ) -> ProcessingStrategy[KafkaPayload]:
         return OccurrenceStrategy(commit, partitions)
