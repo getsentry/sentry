@@ -7,7 +7,7 @@ import sentry_sdk
 
 from sentry.dynamic_sampling.utils import BaseRule, RuleType, get_rule_hash, get_rule_type
 
-logger = logging.getLogger("dynamic_sampling.rules")
+logger = logging.getLogger("sentry.dynamic_sampling")
 
 # Maximum number of projects of which we track active releases. We need to bound this element in order to avoid out
 # of memory errors. In case a single instance will receive a lot of requests from Relay, it will accumulate a lot of
@@ -92,6 +92,6 @@ def _extract_info_from_rule(
             "environment": rule["condition"]["inner"][1]["value"],
         }
     elif rule_type == RuleType.BOOST_KEY_TRANSACTIONS_RULE:
-        return {"transaction": rule["condition"]["inner"][0]["value"]}
+        return {"transactions": rule["condition"]["inner"][0]["value"]}
     else:
         return {}
