@@ -1,6 +1,5 @@
 import {RouteComponentProps} from 'react-router';
 
-import {Client} from 'sentry/api';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
@@ -8,7 +7,7 @@ import OrganizationEnvironmentsStore from 'sentry/stores/organizationEnvironment
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {Environment, Group, Organization, PageFilters, Project} from 'sentry/types';
 import {Event} from 'sentry/types/event';
-import withApi from 'sentry/utils/withApi';
+import useApi from 'sentry/utils/useApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 
@@ -18,7 +17,6 @@ import GroupEventDetails from './groupEventDetails';
 
 export interface GroupEventDetailsProps
   extends RouteComponentProps<{groupId: string; orgId: string; eventId?: string}, {}> {
-  api: Client;
   event: Event;
   eventError: boolean;
   group: Group;
@@ -32,6 +30,8 @@ export interface GroupEventDetailsProps
 
 // Blocks rendering of the event until the environment is loaded
 export function GroupEventDetailsContainer(props: GroupEventDetailsProps) {
+  const api = useApi();
+
   // fetchOrganizationEnvironments is called in groupDetails.tsx
   const state = useLegacyStore(OrganizationEnvironmentsStore);
 
@@ -52,7 +52,7 @@ export function GroupEventDetailsContainer(props: GroupEventDetailsProps) {
     selection.environments.includes(env.name)
   );
 
-  return <GroupEventDetails {...otherProps} environments={environments} />;
+  return <GroupEventDetails {...otherProps} api={api} environments={environments} />;
 }
 
-export default withApi(withOrganization(withPageFilters(GroupEventDetailsContainer)));
+export default withOrganization(withPageFilters(GroupEventDetailsContainer));
