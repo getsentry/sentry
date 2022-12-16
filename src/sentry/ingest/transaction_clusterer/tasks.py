@@ -43,7 +43,7 @@ def spawn_clusterers(**kwargs: Any) -> None:
             project_count += len(batch)
             cluster_projects.delay(batch)
 
-        metrics.incr("txcluster.spawned_projects", amount=project_count)
+        metrics.incr("txcluster.spawned_projects", amount=project_count, sample_rate=1.0)
 
 
 @instrumented_task(
