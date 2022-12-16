@@ -12,7 +12,7 @@ from confluent_kafka import Producer
 from django.conf import settings
 
 from sentry import options
-from sentry.eventstream.base import GroupStates
+from sentry.eventstream.base import EventStreamEventType, GroupStates
 from sentry.eventstream.kafka.consumer import SynchronizedConsumer
 from sentry.eventstream.kafka.consumer_strategy import PostProcessForwarderStrategyFactory
 from sentry.eventstream.kafka.postprocessworker import (
@@ -37,6 +37,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
     def __init__(self, **options: Any) -> None:
         self.topic = settings.KAFKA_EVENTS
         self.transactions_topic = settings.KAFKA_TRANSACTIONS
+        self.issue_platform_topic = settings.KAFKA_EVENTSTREAM_GENERIC
         self.assign_transaction_partitions_randomly = True
         self.__producers = {}
 
@@ -128,15 +129,19 @@ class KafkaEventStream(SnubaProtocolEventStream):
         group_states: Optional[GroupStates] = None,
         **kwargs,
     ):
-        message_type = "transaction" if self._is_transaction_event(event) else "error"
+        event_type = self._get_event_type(event)
 
-        if message_type == "transaction" and self.assign_transaction_partitions_randomly:
-            assign_partitions_randomly = True
-        else:
-            assign_partitions_randomly = killswitch_matches_context(
-                "kafka.send-project-events-to-random-partitions",
-                {"project_id": event.project_id, "message_type": message_type},
+        assign_partitions_randomly = (
+            (event_type == EventStreamEventType.Generic)
+            or (
+                event_type == EventStreamEventType.Transaction
+                and self.assign_transaction_partitions_randomly
             )
+            or killswitch_matches_context(
+                "kafka.send-project-events-to-random-partitions",
+                {"project_id": event.project_id, "message_type": event_type.value},
+            )
+        )
 
         if assign_partitions_randomly:
             kwargs[KW_SKIP_SEMANTIC_PARTITIONING] = True
@@ -161,15 +166,17 @@ class KafkaEventStream(SnubaProtocolEventStream):
         asynchronous: bool = True,
         headers: Optional[MutableMapping[str, str]] = None,
         skip_semantic_partitioning: bool = False,
-        is_transaction_event: bool = False,
+        event_type: EventStreamEventType = EventStreamEventType.Error,
     ) -> None:
         if headers is None:
             headers = {}
         headers["operation"] = _type
         headers["version"] = str(self.EVENT_PROTOCOL_VERSION)
 
-        if is_transaction_event:
+        if event_type == EventStreamEventType.Transaction:
             topic = self.get_transactions_topic(project_id)
+        elif event_type == EventStreamEventType.Generic:
+            topic = self.issue_platform_topic
         else:
             topic = self.topic
 
@@ -289,7 +296,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
 
     def run_consumer(
         self,
-        entity: Union[Literal["errors"], Literal["transactions"]],
+        entity: Union[Literal["errors"], Literal["transactions"], Literal["search_issues"]],
         consumer_group: str,
         topic: Optional[str],
         commit_log_topic: str,
@@ -307,6 +314,8 @@ class KafkaEventStream(SnubaProtocolEventStream):
             default_topic = self.transactions_topic
         elif entity == PostProcessForwarderType.ERRORS:
             default_topic = self.topic
+        elif entity == PostProcessForwarderType.ISSUE_PLATFORM:
+            default_topic = self.issue_platform_topic
         else:
             raise ValueError("Invalid entity")
 
@@ -346,7 +355,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
 
     def run_post_process_forwarder(
         self,
-        entity: Union[Literal["errors"], Literal["transactions"]],
+        entity: Union[Literal["errors"], Literal["transactions"], Literal["search_issues"]],
         consumer_group: str,
         topic: Optional[str],
         commit_log_topic: str,
