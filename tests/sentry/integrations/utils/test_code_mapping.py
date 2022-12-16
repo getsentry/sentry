@@ -279,6 +279,13 @@ class TestDerivedCodeMappings(TestCase):
         assert stacktrace_root == "./"
         assert source_path == ""
 
+    def test_normalized_stack_and_source_not_matching(self):
+        stacktrace_root, source_path = self.code_mapping_helper._normalized_stack_and_source_roots(
+            "sentry/", "src/sentry/"
+        )
+        assert stacktrace_root == "sentry/"
+        assert source_path == "src/sentry/"
+
     def test_normalized_stack_and_source_roots_equal(self):
         stacktrace_root, source_path = self.code_mapping_helper._normalized_stack_and_source_roots(
             "source/", "source/"
