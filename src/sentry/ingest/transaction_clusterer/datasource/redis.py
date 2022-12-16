@@ -66,6 +66,7 @@ def get_transaction_names(project: Project) -> Iterator[str]:
 
 def record_transaction_name(project: Project, event: Event, **kwargs: Any) -> None:
     transaction_info = event.data.get("transaction_info") or {}
+
     transaction_name = event.transaction
     source = transaction_info.get("source")
     if transaction_name and features.has(
