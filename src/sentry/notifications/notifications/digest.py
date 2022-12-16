@@ -149,6 +149,7 @@ class DigestNotification(ProjectNotification):
             self.project,
             self.target_type,
             self.target_identifier,
+            self.fallthrough_choice,
         )
 
         # Get every actor ID for every provider as a set.
