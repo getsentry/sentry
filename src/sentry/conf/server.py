@@ -2073,12 +2073,12 @@ SENTRY_DEVSERVICES = {
                 "REDIS_DB": "1",
                 "ENABLE_SENTRY_METRICS_DEV": "1" if settings.SENTRY_USE_METRICS_DEV else "",
                 "ENABLE_PROFILES_CONSUMER": "1" if settings.SENTRY_USE_PROFILING else "",
-                "ENABLE_ISSUE_OCCURRENCE_CONSUMER": "1"
-                if settings.SENTRY_USE_ISSUE_OCCURRENCE
-                else "",
-                "ENABLE_AUTORUN_MIGRATION_SEARCH_ISSUES": "1"
-                if settings.SENTRY_AUTORUN_SEARCH_ISSUES_MIGRATIONS
-                else "",
+                "ENABLE_ISSUE_OCCURRENCE_CONSUMER": "1",
+                # if settings.SENTRY_USE_ISSUE_OCCURRENCE
+                # else "",
+                # "ENABLE_AUTORUN_MIGRATION_SEARCH_ISSUES": "1"
+                # if settings.SENTRY_AUTORUN_SEARCH_ISSUES_MIGRATIONS
+                # else "",
             },
             "only_if": "snuba" in settings.SENTRY_EVENTSTREAM
             or "kafka" in settings.SENTRY_EVENTSTREAM,
