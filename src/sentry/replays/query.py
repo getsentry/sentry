@@ -1,6 +1,6 @@
 from collections import namedtuple
 from datetime import datetime
-from typing import Any, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 from snuba_sdk import (
     Column,
@@ -19,7 +19,7 @@ from snuba_sdk import (
 from snuba_sdk.expressions import Expression
 from snuba_sdk.orderby import Direction, OrderBy
 
-from sentry.api.event_search import SearchConfig, SearchFilter
+from sentry.api.event_search import ParenExpression, SearchConfig, SearchFilter
 from sentry.replays.lib.query import (
     ListField,
     Number,
@@ -43,6 +43,7 @@ def query_replays_collection(
     start: datetime,
     end: datetime,
     environment: List[str],
+    fields: List[str],
     sort: Optional[str],
     limit: Optional[str],
     offset: Optional[str],
@@ -65,6 +66,7 @@ def query_replays_collection(
         start=start,
         end=end,
         where=conditions,
+        fields=fields,
         sorting=sort_ordering,
         pagination=paginators,
         search_filters=search_filters,
@@ -86,6 +88,7 @@ def query_replay_instance(
         where=[
             Condition(Column("replay_id"), Op.EQ, replay_id),
         ],
+        fields=[],
         sorting=[],
         pagination=None,
         search_filters=[],
@@ -98,6 +101,7 @@ def query_replays_dataset(
     start: datetime,
     end: datetime,
     where: List[Condition],
+    fields: List[str],
     sorting: List[OrderBy],
     pagination: Optional[Paginators],
     search_filters: List[SearchFilter],
@@ -114,7 +118,7 @@ def query_replays_dataset(
         app_id="replay-backend-web",
         query=Query(
             match=Entity("replays"),
-            select=make_select_statement(),
+            select=make_select_statement(fields, sorting, search_filters),
             where=[
                 Condition(Column("project_id"), Op.IN, project_ids),
                 Condition(Column("timestamp"), Op.LT, end),
@@ -183,108 +187,32 @@ def query_replays_count(
 # Select.
 
 
-def make_select_statement() -> List[Union[Column, Function]]:
+def make_select_statement(
+    fields: List[str],
+    sorting: List[OrderBy],
+    search_filters: List[Union[SearchFilter, str, ParenExpression]],
+) -> List[Union[Column, Function]]:
     """Return the selection that forms the base of our replays response payload."""
-    return [
-        _strip_uuid_dashes("replay_id", Column("replay_id")),
-        # First, non-null value of a collected array.
-        _grouped_unique_scalar_value(column_name="title"),
-        _grouped_unique_scalar_value(column_name="replay_type", alias="replayType"),
-        Function(
-            "toString",
-            parameters=[_grouped_unique_scalar_value(column_name="project_id", alias="agg_pid")],
-            alias="projectId",
-        ),
-        _grouped_unique_scalar_value(column_name="platform"),
-        _grouped_unique_scalar_value(column_name="environment", alias="agg_environment"),
-        _grouped_unique_values(column_name="release", alias="releases", aliased=True),
-        _grouped_unique_scalar_value(column_name="dist"),
-        _grouped_unique_scalar_value(column_name="user_id"),
-        _grouped_unique_scalar_value(column_name="user_email"),
-        _grouped_unique_scalar_value(column_name="user_name"),
-        Function(
-            "IPv4NumToString",
-            parameters=[
-                _grouped_unique_scalar_value(
-                    column_name="ip_address_v4",
-                    aliased=False,
-                )
-            ],
-            alias="user_ipAddress",
-        ),
-        _grouped_unique_scalar_value(column_name="os_name"),
-        _grouped_unique_scalar_value(column_name="os_version"),
-        _grouped_unique_scalar_value(column_name="browser_name"),
-        _grouped_unique_scalar_value(column_name="browser_version"),
-        _grouped_unique_scalar_value(column_name="device_name"),
-        _grouped_unique_scalar_value(column_name="device_brand"),
-        _grouped_unique_scalar_value(column_name="device_family"),
-        _grouped_unique_scalar_value(column_name="device_model"),
-        _grouped_unique_scalar_value(column_name="sdk_name"),
-        _grouped_unique_scalar_value(column_name="sdk_version"),
-        # Flatten array of arrays.
-        Function(
-            "groupArrayArray",
-            parameters=[Column("tags.key")],
-            alias="tk",
-        ),
-        Function(
-            "groupArrayArray",
-            parameters=[Column("tags.value")],
-            alias="tv",
-        ),
-        Function(
-            "arrayMap",
-            parameters=[
-                Lambda(
-                    ["trace_id"],
-                    _strip_uuid_dashes("trace_id", Identifier("trace_id")),
-                ),
-                Function(
-                    "groupUniqArrayArray",
-                    parameters=[Column("trace_ids")],
-                ),
-            ],
-            alias="traceIds",
-        ),
-        Function(
-            "arrayMap",
-            parameters=[
-                Lambda(["error_id"], _strip_uuid_dashes("error_id", Identifier("error_id"))),
-                Function(
-                    "groupUniqArrayArray",
-                    parameters=[Column("error_ids")],
-                ),
-            ],
-            alias="errorIds",
-        ),
-        # Aggregations.
-        Function("min", parameters=[Column("replay_start_timestamp")], alias="startedAt"),
-        Function("max", parameters=[Column("timestamp")], alias="finishedAt"),
-        Function(
-            "dateDiff",
-            parameters=["second", Column("startedAt"), Column("finishedAt")],
-            alias="duration",
-        ),
-        Function(
-            "groupArray",
-            parameters=[Function("tuple", parameters=[Column("segment_id"), Column("urls")])],
-            alias="agg_urls",
-        ),
-        _sorted_aggregated_urls(Column("agg_urls"), "urls_sorted"),
-        Function("count", parameters=[Column("segment_id")], alias="countSegments"),
-        Function(
-            "uniqArray",
-            parameters=[Column("error_ids")],
-            alias="countErrors",
-        ),
-        Function(
-            "notEmpty",
-            parameters=[Function("groupArray", parameters=[Column("is_archived")])],
-            alias="isArchived",
-        ),
-        _activity_score(),
-    ]
+    if not fields:
+        return QUERY_ALIAS_COLUMN_MAP.values()
+
+    unique_fields = set(fields)
+
+    # Select fields used for filtering.
+    #
+    # These fields can filter a query without being selected.  However, if we did not select these
+    # values we could not reuse those columns which are expensive to calculate.  This coupled with
+    # the complexity of dependency management means we filter these columns manually in the final
+    # output.
+    for fltr in search_filters:
+        if isinstance(fltr, SearchFilter):
+            unique_fields.add(fltr.key.name)
+
+    # Select fields used for sorting.
+    for sort in sorting:
+        unique_fields.add(sort.exp.name)
+
+    return select_from_fields(list(unique_fields))
 
 
 def _grouped_unique_values(
@@ -375,21 +303,21 @@ class ReplayQueryConfig(QueryConfig):
     agg_environment = String(field_alias="environment")
     releases = ListField()
     dist = String()
-    urls = ListField(query_alias="urls_sorted", field_alias="url")
-    user_id = String(field_alias="user.id")
-    user_email = String(field_alias="user.email")
-    user_name = String(field_alias="user.name")
+    urls = ListField(field_alias="urls", query_alias="urls_sorted")
+    user_id = String(field_alias="user.id", query_alias="user_id")
+    user_email = String(field_alias="user.email", query_alias="user_email")
+    user_name = String(field_alias="user.name", query_alias="user_name")
     user_ip_address = String(field_alias="user.ipAddress", query_alias="user_ipAddress")
-    os_name = String(field_alias="os.name")
-    os_version = String(field_alias="os.version")
-    browser_name = String(field_alias="browser.name")
-    browser_version = String(field_alias="browser.version")
-    device_name = String(field_alias="device.name")
-    device_brand = String(field_alias="device.brand")
-    device_family = String(field_alias="device.family")
-    device_model = String(field_alias="device.model")
-    sdk_name = String(field_alias="sdk.name")
-    sdk_version = String(field_alias="sdk.version")
+    os_name = String(field_alias="os.name", query_alias="os_name")
+    os_version = String(field_alias="os.version", query_alias="os_version")
+    browser_name = String(field_alias="browser.name", query_alias="browser_name")
+    browser_version = String(field_alias="browser.version", query_alias="browser_version")
+    device_name = String(field_alias="device.name", query_alias="device_name")
+    device_brand = String(field_alias="device.brand", query_alias="device_brand")
+    device_family = String(field_alias="device.family", query_alias="device_family")
+    device_model = String(field_alias="device.model", query_alias="device_model")
+    sdk_name = String(field_alias="sdk.name", query_alias="sdk_name")
+    sdk_version = String(field_alias="sdk.version", query_alias="sdk_version")
 
     # Tag
     tags = Tag(field_alias="*")
@@ -493,3 +421,176 @@ def _activity_score():
         ],
         alias="activity",
     )
+
+
+# A mapping of marshalable fields and theirs dependencies represented as query aliases.  If a
+# column is added which depends on another column, you must add it to this mapping.
+#
+# This mapping represents the minimum number of columns required to satisfy a field.  Without this
+# mapping we would need to select all of the fields in order to ensure that dependent fields do
+# not raise exceptions when their dependencies are not included.
+#
+# If a mapping is left as `[]` the query-alias will default to the field name.
+
+FIELD_QUERY_ALIAS_MAP: Dict[str, List[str]] = {
+    "id": ["replay_id"],
+    "title": ["title"],
+    "replayType": ["replayType"],
+    "projectId": ["projectId"],
+    "platform": ["platform"],
+    "environment": ["agg_environment"],
+    "releases": ["releases"],
+    "dist": ["dist"],
+    "traceIds": ["traceIds"],
+    "errorIds": ["errorIds"],
+    "startedAt": ["startedAt"],
+    "finishedAt": ["finishedAt"],
+    "duration": ["duration", "startedAt", "finishedAt"],
+    "urls": ["urls_sorted"],
+    "countErrors": ["countErrors"],
+    "countUrls": ["urls_sorted"],
+    "countSegments": ["countSegments"],
+    "isArchived": ["isArchived"],
+    "activity": ["activity", "countErrors", "urls_sorted", "agg_urls"],
+    "user": ["user_id", "user_email", "user_name", "user_ipAddress"],
+    "os": ["os_name", "os_version"],
+    "browser": ["browser_name", "browser_version"],
+    "device": ["device_name", "device_brand", "device_family", "device_model"],
+    "sdk": ["sdk_name", "sdk_version"],
+    "tags": ["tags.key", "tags.value"],
+    # Nested fields.  Useful for selecting searchable fields.
+    "user.id": ["user_id"],
+    "user.email": ["user_email"],
+    "user.name": ["user_name"],
+    "user.ipAddress": ["user_ipAddress"],
+    "os.name": ["os_name"],
+    "os.version": ["os_version"],
+    "browser.name": ["browser_name"],
+    "browser.version": ["browser_version"],
+    "device.name": ["device_name"],
+    "device.brand": ["device_brand"],
+    "device.family": ["device_family"],
+    "device.model": ["device_model"],
+    "sdk.name": ["sdk_name"],
+    "sdk.version": ["sdk_version"],
+}
+
+
+# A flat mapping of query aliases to column instances.  To maintain consistency, the key must
+# match the column's query alias.
+
+QUERY_ALIAS_COLUMN_MAP = {
+    "replay_id": _strip_uuid_dashes("replay_id", Column("replay_id")),
+    "title": _grouped_unique_scalar_value(column_name="title"),
+    "replayType": _grouped_unique_scalar_value(column_name="replay_type", alias="replayType"),
+    "projectId": Function(
+        "toString",
+        parameters=[_grouped_unique_scalar_value(column_name="project_id", alias="agg_pid")],
+        alias="projectId",
+    ),
+    "platform": _grouped_unique_scalar_value(column_name="platform"),
+    "environment": _grouped_unique_scalar_value(column_name="environment", alias="agg_environment"),
+    "releases": _grouped_unique_values(column_name="release", alias="releases", aliased=True),
+    "dist": _grouped_unique_scalar_value(column_name="dist"),
+    "traceIds": Function(
+        "arrayMap",
+        parameters=[
+            Lambda(
+                ["trace_id"],
+                _strip_uuid_dashes("trace_id", Identifier("trace_id")),
+            ),
+            Function(
+                "groupUniqArrayArray",
+                parameters=[Column("trace_ids")],
+            ),
+        ],
+        alias="traceIds",
+    ),
+    "errorIds": Function(
+        "arrayMap",
+        parameters=[
+            Lambda(["error_id"], _strip_uuid_dashes("error_id", Identifier("error_id"))),
+            Function(
+                "groupUniqArrayArray",
+                parameters=[Column("error_ids")],
+            ),
+        ],
+        alias="errorIds",
+    ),
+    "startedAt": Function("min", parameters=[Column("replay_start_timestamp")], alias="startedAt"),
+    "finishedAt": Function("max", parameters=[Column("timestamp")], alias="finishedAt"),
+    "duration": Function(
+        "dateDiff",
+        parameters=["second", Column("startedAt"), Column("finishedAt")],
+        alias="duration",
+    ),
+    "urls_sorted": _sorted_aggregated_urls(Column("agg_urls"), "urls_sorted"),
+    "agg_urls": Function(
+        "groupArray",
+        parameters=[Function("tuple", parameters=[Column("segment_id"), Column("urls")])],
+        alias="agg_urls",
+    ),
+    "countSegments": Function("count", parameters=[Column("segment_id")], alias="countSegments"),
+    "countErrors": Function(
+        "uniqArray",
+        parameters=[Column("error_ids")],
+        alias="countErrors",
+    ),
+    "isArchived": Function(
+        "notEmpty",
+        parameters=[Function("groupArray", parameters=[Column("is_archived")])],
+        alias="isArchived",
+    ),
+    "activity": _activity_score(),
+    "user_id": _grouped_unique_scalar_value(column_name="user_id"),
+    "user_email": _grouped_unique_scalar_value(column_name="user_email"),
+    "user_name": _grouped_unique_scalar_value(column_name="user_name"),
+    "user_ipAddress": Function(
+        "IPv4NumToString",
+        parameters=[
+            _grouped_unique_scalar_value(
+                column_name="ip_address_v4",
+                aliased=False,
+            )
+        ],
+        alias="user_ipAddress",
+    ),
+    "os_name": _grouped_unique_scalar_value(column_name="os_name"),
+    "os_version": _grouped_unique_scalar_value(column_name="os_version"),
+    "browser_name": _grouped_unique_scalar_value(column_name="browser_name"),
+    "browser_version": _grouped_unique_scalar_value(column_name="browser_version"),
+    "device_name": _grouped_unique_scalar_value(column_name="device_name"),
+    "device_brand": _grouped_unique_scalar_value(column_name="device_brand"),
+    "device_family": _grouped_unique_scalar_value(column_name="device_family"),
+    "device_model": _grouped_unique_scalar_value(column_name="device_model"),
+    "sdk_name": _grouped_unique_scalar_value(column_name="sdk_name"),
+    "sdk_version": _grouped_unique_scalar_value(column_name="sdk_version"),
+    "tk": Function("groupArrayArray", parameters=[Column("tags.key")], alias="tk"),
+    "tv": Function("groupArrayArray", parameters=[Column("tags.value")], alias="tv"),
+}
+
+
+def collect_aliases(fields: List[str]) -> List[str]:
+    """Return a unique list of aliases required to satisfy the fields."""
+    # isArchived is a required field.  It must always be selected.
+    result = {"isArchived"}
+
+    saw_tags = False
+    for field in fields:
+        aliases = FIELD_QUERY_ALIAS_MAP.get(field, None)
+        if aliases is None:
+            saw_tags = True
+            continue
+        for alias in aliases:
+            result.add(alias)
+
+    if saw_tags:
+        result.add("tk")
+        result.add("tv")
+
+    return list(result)
+
+
+def select_from_fields(fields: List[str]) -> List[Union[Column, Function]]:
+    """Return a list of columns to select."""
+    return [QUERY_ALIAS_COLUMN_MAP[alias] for alias in collect_aliases(fields)]
