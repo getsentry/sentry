@@ -151,6 +151,12 @@ class SplitKeyTestCase(TestCase):
             f"mail:p:{self.project.id}:{ActionTargetType.ISSUE_OWNERS.value}:{identifier}:{fallthrough_choice.value}"
         ) == (self.project, ActionTargetType.ISSUE_OWNERS, identifier, fallthrough_choice)
 
+    def test_no_fallthrough_choice(self):
+        identifier = "123"
+        assert split_key(
+            f"mail:p:{self.project.id}:{ActionTargetType.ISSUE_OWNERS.value}:{identifier}:"
+        ) == (self.project, ActionTargetType.ISSUE_OWNERS, identifier, None)
+
 
 class UnsplitKeyTestCase(TestCase):
     def test_no_identifier(self):
