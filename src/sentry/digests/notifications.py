@@ -30,7 +30,10 @@ def split_key(
     if len(key_parts) == 6:
         target_type = ActionTargetType(key_parts[3])
         target_identifier = key_parts[4] if key_parts[4] else None
-        fallthrough_choice = FallthroughChoiceType(key_parts[5])
+        try:
+            fallthrough_choice = FallthroughChoiceType(key_parts[5])
+        except ValueError:
+            fallthrough_choice = None
     elif len(key_parts) == 5:
         target_type = ActionTargetType(key_parts[3])
         target_identifier = key_parts[4] if key_parts[4] else None
