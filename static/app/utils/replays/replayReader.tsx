@@ -1,5 +1,3 @@
-import {duration} from 'moment';
-
 import type {Crumb} from 'sentry/types/breadcrumbs';
 import {
   breadcrumbFactory,
@@ -7,7 +5,6 @@ import {
   isMemorySpan,
   isNetworkSpan,
   mapRRWebAttachments,
-  replayTimestamps,
   rrwebEventListFactory,
   spansFactory,
 } from 'sentry/utils/replays/replayDataUtils';
@@ -54,20 +51,6 @@ export default class ReplayReader {
     errors,
   }: RequiredNotNull<ReplayReaderParams>) {
     const {breadcrumbs, rrwebEvents, spans} = mapRRWebAttachments(attachments);
-
-    // TODO(replays): We should get correct timestamps from the backend instead
-    // of having to fix them up here.
-    const {startTimestampMs, endTimestampMs} = replayTimestamps(
-      replayRecord,
-      rrwebEvents,
-      breadcrumbs,
-      spans
-    );
-    replayRecord.startedAt = new Date(startTimestampMs);
-    replayRecord.finishedAt = new Date(endTimestampMs);
-    replayRecord.duration = duration(
-      replayRecord.finishedAt.getTime() - replayRecord.startedAt.getTime()
-    );
 
     const sortedSpans = spansFactory(spans);
     this.networkSpans = sortedSpans.filter(isNetworkSpan);
