@@ -239,6 +239,7 @@ function buildRoutes() {
           component={errorHandler(withDomainRequired(OrganizationContextContainer))}
           key="orgless-onboarding"
         >
+          <IndexRedirect to="welcome/" />
           <Route
             path=":step/"
             component={make(() => import('sentry/views/onboarding/onboarding'))}
