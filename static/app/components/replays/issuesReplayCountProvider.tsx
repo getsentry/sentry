@@ -29,6 +29,7 @@ export default function IssuesReplayCountProvider({children, groupIds}: Props) {
   if (hasSessionReplay) {
     return <Provider groupIds={groupIds}>{children}</Provider>;
   }
+
   return <Fragment>{children}</Fragment>;
 }
 

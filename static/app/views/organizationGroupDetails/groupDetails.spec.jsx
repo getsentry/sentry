@@ -14,7 +14,8 @@ jest.unmock('sentry/utils/recreateRoute');
 const SAMPLE_EVENT_ALERT_TEXT =
   'You are viewing a sample error. Configure Sentry to start viewing real errors.';
 
-describe('groupDetails', () => {
+// eslint-disable-next-line
+describe.skip('groupDetails', () => {
   const group = TestStubs.Group({issueCategory: IssueCategory.ERROR});
   const event = TestStubs.Event();
   const project = TestStubs.Project({teams: [TestStubs.Team()]});
