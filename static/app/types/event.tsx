@@ -1,4 +1,5 @@
 import type {TraceContextType} from 'sentry/components/events/interfaces/spans/types';
+import {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
 import type {SymbolicatorStatus} from 'sentry/components/events/interfaces/types';
 import type {PlatformKey} from 'sentry/data/platformCategories';
 import {IssueType} from 'sentry/types';
@@ -292,8 +293,8 @@ type EntryStacktrace = {
   type: EntryType.STACKTRACE;
 };
 
-type EntrySpans = {
-  data: any;
+export type EntrySpans = {
+  data: RawSpanType[];
   type: EntryType.SPANS;
 };
 
