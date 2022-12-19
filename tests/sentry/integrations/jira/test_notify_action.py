@@ -144,6 +144,7 @@ class JiraCreateTicketActionTest(RuleTestCase, PerformanceIssueTestCase):
             ensure_aware(datetime.now()),
         )
         event = self.get_event()
+        event = event.for_group(event.groups[0])
         event.occurrence = occurrence
         data = self.create_issue_base(event)
 
