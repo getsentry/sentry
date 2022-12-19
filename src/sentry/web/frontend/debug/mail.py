@@ -190,7 +190,6 @@ def make_performance_event(project):
     with override_options(
         {
             "performance.issues.all.problem-creation": 1.0,
-            "performance.issues.all.problem-detection": 1.0,
             "performance.issues.n_plus_one_db.problem-creation": 1.0,
         }
     ):
