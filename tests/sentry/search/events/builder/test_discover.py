@@ -394,12 +394,30 @@ class QueryBuilderTest(TestCase):
             self.params,
             query="",
             selected_columns=[
-                "foo",
+                "count_if(foo,equals,bar)",
+                'count_if(foo,notEquals,"baz")',
             ],
-            orderby=["foo"],
         )
-        breakpoint()
-        assert False
+        self.assertCountEqual(query.where, self.default_conditions)
+        self.assertCountEqual(
+            query.aggregates,
+            [
+                Function(
+                    "countIf",
+                    [
+                        Function("equals", [Column("tags[foo]"), "bar"]),
+                    ],
+                    "count_if_foo_equals_bar",
+                ),
+                Function(
+                    "countIf",
+                    [
+                        Function("notEquals", [Column("tags[foo]"), "baz"]),
+                    ],
+                    "count_if_foo_notEquals__baz",
+                ),
+            ],
+        )
 
     def test_array_join(self):
         query = QueryBuilder(
