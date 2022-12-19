@@ -8,7 +8,7 @@ from enum import IntEnum
 from typing import TYPE_CHECKING, Any, Dict, Generator, List, Mapping, Tuple, Type
 
 from django.contrib.auth.models import AnonymousUser
-from rest_framework.authentication import BaseAuthentication, SessionAuthentication
+from rest_framework.authentication import BaseAuthentication
 from rest_framework.request import Request
 
 from sentry.api.authentication import ApiKeyAuthentication, TokenAuthentication
@@ -34,8 +34,6 @@ class ApiAuthenticatorType(IntEnum):
             return ApiAuthenticatorType.API_KEY_AUTHENTICATION
         if auth == TokenAuthentication:
             return ApiAuthenticatorType.TOKEN_AUTHENTICATION
-        if auth == SessionAuthentication:
-            return ApiAuthenticatorType.SESSION_AUTHENTICATION
         return None
 
     def as_authenticator(self) -> BaseAuthentication:
@@ -43,8 +41,6 @@ class ApiAuthenticatorType(IntEnum):
             return ApiKeyAuthentication()
         if self == self.TOKEN_AUTHENTICATION:
             return TokenAuthentication()
-        if self == self.SESSION_AUTHENTICATION:
-            return SessionAuthentication()
         else:
             raise ValueError(f"{self!r} has not authenticator associated with it.")
 

@@ -264,6 +264,7 @@ class AuthIndexEndpoint(Endpoint):
         logout(request._request)
         request.user = AnonymousUser()
         return Response(status=status.HTTP_204_NO_CONTENT)
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 def _promote_request_api_user(request):
