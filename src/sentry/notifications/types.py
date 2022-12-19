@@ -264,6 +264,7 @@ ACTION_CHOICES = [
 
 class FallthroughChoiceType(Enum):
     ALL_MEMBERS = "AllMembers"
+    # TODO(snigdha): Add the ADMIN logic once the team admin functionality is ready. For now, this fallback only applies to recent members.
     ADMIN_OR_RECENT = "AdminOrRecent"
     NO_ONE = "NoOne"
 

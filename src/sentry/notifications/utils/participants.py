@@ -4,7 +4,7 @@ import logging
 from collections import defaultdict
 from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping, Sequence
 
-from sentry import features, roles
+from sentry import features
 from sentry.models import (
     ActorTuple,
     Commit,
@@ -357,53 +357,28 @@ def get_fallthrough_recipients(
     ):
         return []
 
-    # Case 1: No fallthrough
     if fallthrough_choice == FallthroughChoiceType.NO_ONE:
         return []
 
-    # Case 2: notify all members
     elif fallthrough_choice == FallthroughChoiceType.ALL_MEMBERS:
         return user_service.get_from_project(project.id)
 
-    # Case 3: Admin or recent
+    # TODO(snigdha): Add the ADMIN logic once the team admin functionality is ready. For now, this fallback only applies to recent members.
     elif fallthrough_choice == FallthroughChoiceType.ADMIN_OR_RECENT:
         if len(project.member_set) < FALLTHROUGH_NOTIFICATION_LIMIT:
             return user_service.get_from_project(project.id)
 
-        # We notify at most FALLTHROUGH_NOTIFICATION_LIMIT people, so we'll try to notify all admins first
-        team_admins = (
+        user_ids = (
             OrganizationMember.objects.get_contactable_members_for_org(project.organization_id)
             .filter(
                 teams__in=project.teams.all(),
-                role__in=(r.id for r in roles.get_all() if r.has_scope("project:admin")),
+                user__is_active=True,
             )
-            .values_list("user_id", flat=True)
+            .order_by("-user__last_active")
+            .values_list("user_id", flat=True)[:FALLTHROUGH_NOTIFICATION_LIMIT]
         )
 
-        actor_ids = []
-        if len(team_admins) > FALLTHROUGH_NOTIFICATION_LIMIT:
-            actor_ids = team_admins[:FALLTHROUGH_NOTIFICATION_LIMIT]
-
-        # If we have less than FALLTHROUGH_NOTIFICATION_LIMIT admins, we'll include the N most recently active users
-        recently_active_limit = FALLTHROUGH_NOTIFICATION_LIMIT - len(actor_ids)
-        if recently_active_limit > 0:
-            recently_active = (
-                OrganizationMember.objects.get_contactable_members_for_org(project.organization_id)
-                .filter(
-                    teams__in=project.teams.all(),
-                    user__is_active=True,
-                    actor_id__not_in=[r.actor_id for r in actor_ids],
-                )
-                .order_by("-user__last_active")
-                .values_list("user_id", flat=True)[:recently_active_limit]
-            )
-
-            actor_ids.extend(recently_active)
-
-        res = list(
-            UserService.serialize_user(user) for user in User.objects.filter(id__in=actor_ids)
-        )
-        return res
+        return user_service.get_many(user_ids)
 
     return []
 
