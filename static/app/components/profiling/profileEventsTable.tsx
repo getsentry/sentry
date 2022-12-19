@@ -27,6 +27,8 @@ import {renderTableHead} from 'sentry/utils/profiling/tableRenderer';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
+import {QuickContextHoverWrapper} from 'sentry/views/eventsV2/table/quickContext/quickContextWrapper';
+import {ContextType} from 'sentry/views/eventsV2/table/quickContext/utils';
 
 interface ProfileEventsTableProps<F extends FieldType> {
   columns: readonly F[];
@@ -192,6 +194,18 @@ function ProfileEventsCell<F extends FieldType>(props: ProfileEventsCellProps<F>
 
   if (key === 'release') {
     if (value) {
+      if (props.baggage.organization.features.includes('discover-quick-context')) {
+        return (
+          <QuickContextHoverWrapper
+            dataRow={props.dataRow}
+            contextType={ContextType.RELEASE}
+            organization={props.baggage.organization}
+          >
+            <Version version={value} truncate />
+          </QuickContextHoverWrapper>
+        );
+      }
+
       return (
         <VersionContainer>
           <Version version={value} anchor={false} tooltipRawVersion truncate />
