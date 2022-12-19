@@ -39,7 +39,7 @@ export default function IssuesReplayCountProvider({children, groupIds}: Props) {
       .map(id => GroupStore.get(id) as Group)
       .filter(Boolean)
       .filter(group => {
-        const proj = projectsById.get(group.project.id);
+        const proj = projectsById.get(group.project?.id);
         if (proj?.hasReplays) {
           pIds.add(group.project.id);
           return true;
