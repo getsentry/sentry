@@ -15,6 +15,7 @@ import space from 'sentry/styles/space';
 import {logException} from 'sentry/utils/logging';
 import useApi from 'sentry/utils/useApi';
 
+import CronsFeedbackButton from './cronsFeedbackButton';
 import {Monitor} from './types';
 
 type Props = {
@@ -85,6 +86,7 @@ const MonitorHeaderActions = ({monitor, orgId, onUpdate}: Props) => {
             {t('Delete')}
           </Button>
         </Confirm>
+        <CronsFeedbackButton />
       </ButtonBar>
     </ButtonContainer>
   );
