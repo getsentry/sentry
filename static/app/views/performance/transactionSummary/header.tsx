@@ -1,4 +1,4 @@
-import {useCallback} from 'react';
+import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
@@ -110,7 +110,7 @@ function TransactionHeader({
   const replaysCount = useReplaysCount({
     transactionNames: [transactionName],
     organization,
-    projectIds: project ? [project.id] : [],
+    projectIds: useMemo(() => (project ? [project.id] : []), [project]),
   })[transactionName];
 
   return (

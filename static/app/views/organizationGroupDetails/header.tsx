@@ -57,7 +57,7 @@ function GroupHeader({
   const replaysCount = useReplaysCount({
     groupIds: [group.id],
     organization,
-    projectIds: [project.id],
+    projectIds: useMemo(() => [project.id], [project.id]),
   })[group.id];
 
   const disabledTabs = useMemo(() => {

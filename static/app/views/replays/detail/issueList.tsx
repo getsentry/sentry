@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
@@ -82,7 +82,7 @@ function IssueList({projectId, replayId}: Props) {
   const counts = useReplaysCount({
     groupIds: state.issues.map(issue => issue.id),
     organization,
-    projectIds: project ? [project.id] : [],
+    projectIds: useMemo(() => (project ? [project.id] : []), [project]),
   });
 
   return (
