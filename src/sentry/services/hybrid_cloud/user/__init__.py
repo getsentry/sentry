@@ -40,6 +40,10 @@ class APIUser:
     permissions: FrozenSet[str] = frozenset()
     avatar: Optional[APIAvatar] = None
 
+    roles: FrozenSet[str] = frozenset()
+    permissions: FrozenSet[str] = frozenset()
+    avatar: Optional[APIAvatar] = None
+
     def has_usable_password(self) -> bool:
         return self.password_usable
 

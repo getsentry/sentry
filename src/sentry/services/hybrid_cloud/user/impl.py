@@ -71,7 +71,7 @@ class DatabaseBackedUserService(UserService):
         if is_active is not None:
             query = query.filter(is_active=is_active)
         return serialize(  # type: ignore
-            list(query),
+            list(self.__base_user_query().filter(id__in=user_ids)),
             user=as_user,
             serializer=serializer,
         )

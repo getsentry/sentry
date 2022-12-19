@@ -20,6 +20,7 @@ from sentry.signals import (
     event_processed,
     first_event_pending,
     first_event_received,
+    first_event_with_minified_stack_trace_received,
     first_profile_received,
     first_replay_received,
     first_transaction_received,
@@ -31,8 +32,10 @@ from sentry.signals import (
     project_created,
     transaction_processed,
 )
+from sentry.utils.event import has_event_minified_stack_trace
 from sentry.utils.javascript import has_sourcemap
-from sentry.utils.safe import get_path
+
+logger = logging.getLogger("sentry")
 
 
 def try_mark_onboarding_complete(organization_id):
@@ -70,7 +73,7 @@ def record_new_project(project, user, **kwargs):
                 Organization.objects.get(id=project.organization_id).get_default_owner().id
             )
         except IndexError:
-            logging.getLogger("sentry").warning(
+            logger.warning(
                 "Cannot initiate onboarding for organization (%s) due to missing owners",
                 project.organization_id,
             )
@@ -138,40 +141,11 @@ def record_first_event(project, event, **kwargs):
     try:
         user: APIUser = Organization.objects.get(id=project.organization_id).get_default_owner()
     except IndexError:
-        logging.getLogger("sentry").warning(
+        logger.warning(
             "Cannot record first event for organization (%s) due to missing owners",
             project.organization_id,
         )
         return
-
-    url = None
-
-    # Check for the event url
-    for key, value in event.tags:
-        if key == "url":
-            url = value
-            break
-
-    # Check if an event contains a minified stack trace
-    has_minified_stack_trace = False
-
-    exception_values = get_path(event.data, "exception", "values", filter=True)
-
-    if exception_values:
-        for exception_value in exception_values:
-            if "raw_stacktrace" in exception_value:
-                has_minified_stack_trace = True
-                break
-
-    if has_minified_stack_trace:
-        analytics.record(
-            "first_event_with_minified_stack_trace_for_project.sent",
-            user_id=user.id,
-            organization_id=project.organization_id,
-            project_id=project.id,
-            platform=event.platform,
-            url=url,
-        )
 
     # this event fires once per project
     analytics.record(
@@ -180,8 +154,8 @@ def record_first_event(project, event, **kwargs):
         organization_id=project.organization_id,
         project_id=project.id,
         platform=event.platform,
-        url=url,
-        has_minified_stack_trace=has_minified_stack_trace,
+        url=dict(event.tags).get("url", None),
+        has_minified_stack_trace=has_event_minified_stack_trace(event),
     )
 
     if rows_affected or created:
@@ -333,7 +307,7 @@ def record_release_received(project, event, **kwargs):
         try:
             user: APIUser = Organization.objects.get(id=project.organization_id).get_default_owner()
         except IndexError:
-            logging.getLogger("sentry").warning(
+            logger.warning(
                 "Cannot record release received for organization (%s) due to missing owners",
                 project.organization_id,
             )
@@ -372,7 +346,7 @@ def record_user_context_received(project, event, **kwargs):
                     id=project.organization_id
                 ).get_default_owner()
             except IndexError:
-                logging.getLogger("sentry").warning(
+                logger.warning(
                     "Cannot record user context received for organization (%s) due to missing owners",
                     project.organization_id,
                 )
@@ -388,6 +362,35 @@ def record_user_context_received(project, event, **kwargs):
 
 
 event_processed.connect(record_user_context_received, weak=False)
+
+
+@first_event_with_minified_stack_trace_received.connect(weak=False)
+def record_event_with_first_minified_stack_trace_for_project(project, event, **kwargs):
+    try:
+        user: APIUser = Organization.objects.get(id=project.organization_id).get_default_owner()
+    except IndexError:
+        logger.warning(
+            "Cannot record first event for organization (%s) due to missing owners",
+            project.organization_id,
+        )
+        return
+
+    # First, only enter this logic if we've never seen a minified stack trace before
+    # This guarantees us that this analytics event will only be ever sent once.
+    if not project.flags.has_minified_stack_trace:
+        analytics.record(
+            "first_event_with_minified_stack_trace_for_project.sent",
+            user_id=user.id,
+            organization_id=project.organization_id,
+            project_id=project.id,
+            platform=event.platform,
+            url=dict(event.tags).get("url", None),
+        )
+
+        # We set the flag `has_minified_stack_trace` for the project
+        project.update(flags=F("flags").bitor(Project.flags.has_minified_stack_trace))
+
+
 transaction_processed.connect(record_user_context_received, weak=False)
 
 
@@ -406,7 +409,7 @@ def record_sourcemaps_received(project, event, **kwargs):
         try:
             user: APIUser = Organization.objects.get(id=project.organization_id).get_default_owner()
         except IndexError:
-            logging.getLogger("sentry").warning(
+            logger.warning(
                 "Cannot record sourcemaps received for organization (%s) due to missing owners",
                 project.organization_id,
             )
@@ -491,7 +494,7 @@ def record_issue_tracker_used(plugin, project, user, **kwargs):
         try:
             default_user_id = project.organization.get_default_owner().id
         except IndexError:
-            logging.getLogger("sentry").warning(
+            logger.warning(
                 "Cannot record issue tracker used for organization (%s) due to missing owners",
                 project.organization_id,
             )
