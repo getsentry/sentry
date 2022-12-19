@@ -86,18 +86,21 @@ class DatabaseBackedOrganizationService(OrganizationService):
 
         return api_member
 
-    def serialize_member_mapping(self, member: OrganizationMember) -> ApiOrganizationMemberMapping:
+    @classmethod
+    def serialize_member_mapping(cls, member: OrganizationMember) -> ApiOrganizationMemberMapping:
         return ApiOrganizationMemberMapping(
             user_id=member.user.id, organization_id=member.organization.id
         )
 
-    def _serialize_flags(self, org: Organization) -> ApiOrganizationFlags:
+    @classmethod
+    def _serialize_flags(cls, org: Organization) -> ApiOrganizationFlags:
         result = ApiOrganizationFlags()
         for f in dataclasses.fields(result):
             setattr(result, f.name, getattr(org.flags, f.name))
         return result
 
-    def _serialize_team(self, team: Team) -> ApiTeam:
+    @classmethod
+    def _serialize_team(cls, team: Team) -> ApiTeam:
         return ApiTeam(
             id=team.id,
             status=team.status,
@@ -119,7 +122,8 @@ class DatabaseBackedOrganizationService(OrganizationService):
 
         return result
 
-    def _serialize_project(self, project: Project) -> ApiProject:
+    @classmethod
+    def _serialize_project(cls, project: Project) -> ApiProject:
         return ApiProject(
             id=project.id,
             slug=project.slug,
@@ -128,25 +132,27 @@ class DatabaseBackedOrganizationService(OrganizationService):
             status=project.status,
         )
 
-    def _serialize_organization_summary(self, org: Organization) -> ApiOrganizationSummary:
+    @classmethod
+    def _serialize_organization_summary(cls, org: Organization) -> ApiOrganizationSummary:
         return ApiOrganizationSummary(
             slug=org.slug,
             id=org.id,
             name=org.name,
         )
 
-    def _serialize_organization(self, org: Organization) -> ApiOrganization:
+    @classmethod
+    def serialize_organization(cls, org: Organization) -> ApiOrganization:
         api_org: ApiOrganization = ApiOrganization(
             slug=org.slug,
             id=org.id,
-            flags=self._serialize_flags(org),
+            flags=cls._serialize_flags(org),
             name=org.name,
         )
 
         projects: List[Project] = Project.objects.filter(organization=org)
         teams: List[Team] = Team.objects.filter(organization=org)
-        api_org.projects.extend(self._serialize_project(project) for project in projects)
-        api_org.teams.extend(self._serialize_team(team) for team in teams)
+        api_org.projects.extend(cls._serialize_project(project) for project in projects)
+        api_org.teams.extend(cls._serialize_team(team) for team in teams)
         return api_org
 
     def check_membership_by_id(
@@ -178,7 +184,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
             return None
 
         return ApiUserOrganizationContext(
-            user_id=user_id, organization=self._serialize_organization(org), member=membership
+            user_id=user_id, organization=self.serialize_organization(org), member=membership
         )
 
     def check_membership_by_email(

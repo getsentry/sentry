@@ -4,6 +4,8 @@ from django.urls import reverse
 
 import sentry.auth.idpmigration as idpmigration
 from sentry.models import AuthProvider, OrganizationMember
+from sentry.services.hybrid_cloud.organization.impl import DatabaseBackedOrganizationService
+from sentry.services.hybrid_cloud.user import user_service
 from sentry.testutils import TestCase
 from sentry.utils import json
 
@@ -11,16 +13,19 @@ from sentry.utils import json
 class IDPMigrationTests(TestCase):
     def setUp(self):
         super().setUp()
-        self.user = self.create_user()
-        self.login_as(self.user)
+        user_entity = self.create_user()
+        self.user = user_service.serialize_user(user_entity)
+        self.login_as(user_entity)
         self.email = "test@example.com"
-        self.org = self.create_organization()
-        self.provider = AuthProvider.objects.create(organization=self.org, provider="dummy")
+        self.org = DatabaseBackedOrganizationService.serialize_organization(
+            self.create_organization()
+        )
+        self.provider = AuthProvider.objects.create(organization_id=self.org.id, provider="dummy")
 
     IDENTITY_ID = "drgUQCLzOyfHxmTyVs0G"
 
     def test_send_one_time_account_confirm_link(self):
-        om = OrganizationMember.objects.create(organization=self.org, user=self.user)
+        om = OrganizationMember.objects.create(organization_id=self.org.id, user_id=self.user.id)
         link = idpmigration.send_one_time_account_confirm_link(
             self.user, self.org, self.provider, self.email, self.IDENTITY_ID
         )

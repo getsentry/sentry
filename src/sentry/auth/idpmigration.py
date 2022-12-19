@@ -36,7 +36,7 @@ def send_one_time_account_confirm_link(
     in an email to the associated address.
 
     :param user: the user profile to link
-    :param organization: the organization whose SSO provider is being used
+    :param org: the organization whose SSO provider is being used
     :param provider: the SSO provider
     :param email: the email address associated with the SSO identity
     :param identity_id: the SSO identity id
@@ -60,6 +60,12 @@ class AccountConfirmLink:
     identity_id: str
 
     def __post_init__(self) -> None:
+        # TODO: Delete type checks when unit test or mypy coverage is adequate
+        if not isinstance(self.user, APIUser):
+            raise TypeError
+        if not isinstance(self.organization, ApiOrganization):
+            raise TypeError
+
         self.verification_code = get_secure_token()
         self.verification_key = f"auth:one-time-key:{self.verification_code}"
 
@@ -92,7 +98,7 @@ class AccountConfirmLink:
 
         try:
             member_id = OrganizationMember.objects.get(
-                organization=self.organization, user=self.user
+                organization_id=self.organization.id, user_id=self.user.id
             ).id
         except OrganizationMember.DoesNotExist:
             member_id = None
