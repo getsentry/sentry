@@ -1,13 +1,11 @@
-import {EntrySpans} from 'sentry/types/event';
-
-export type Span = EntrySpans['data'][0];
+import {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
 
 class SpanTreeNode {
   parent?: SpanTreeNode | null = null;
-  span: Span;
+  span: RawSpanType;
   children: SpanTreeNode[] = [];
 
-  constructor(span: Span, parent?: SpanTreeNode | null) {
+  constructor(span: RawSpanType, parent?: SpanTreeNode | null) {
     this.span = span;
     this.parent = parent;
   }
@@ -30,7 +28,7 @@ class SpanTreeNode {
     );
   }
 
-  contains(span: Span) {
+  contains(span: RawSpanType) {
     return (
       span.start_timestamp >= this.span.start_timestamp &&
       span.timestamp <= this.span.timestamp
@@ -39,11 +37,11 @@ class SpanTreeNode {
 }
 
 class SpanTree {
-  spans: Span[];
+  spans: RawSpanType[];
   spanTree: SpanTreeNode = SpanTreeNode.Root();
-  orphanedSpans: Span[] = [];
+  orphanedSpans: RawSpanType[] = [];
 
-  constructor(spans: Span[]) {
+  constructor(spans: RawSpanType[]) {
     this.spans = spans;
     this.buildCollapsedSpanTree();
   }
