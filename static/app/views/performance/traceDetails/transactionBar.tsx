@@ -3,9 +3,9 @@ import {Location} from 'history';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Count from 'sentry/components/count';
-import * as AnchorLinkManager from 'sentry/components/events/interfaces/spans/anchorLinkManager';
 import * as DividerHandlerManager from 'sentry/components/events/interfaces/spans/dividerHandlerManager';
 import * as ScrollbarManager from 'sentry/components/events/interfaces/spans/scrollbarManager';
+import {transactionTargetHash} from 'sentry/components/events/interfaces/spans/utils';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {ROW_HEIGHT} from 'sentry/components/performance/waterfall/constants';
 import {
@@ -51,6 +51,7 @@ import {TraceInfo, TraceRoot, TreeDepth} from './types';
 const MARGIN_LEFT = 0;
 
 type Props = {
+  addContentSpanBarRef: (instance: HTMLDivElement | null) => void;
   continuingDepths: TreeDepth[];
   hasGuideAnchor: boolean;
   index: number;
@@ -60,6 +61,7 @@ type Props = {
   isVisible: boolean;
   location: Location;
   organization: Organization;
+  removeContentSpanBarRef: (instance: HTMLDivElement | null) => void;
   toggleExpandedState: () => void;
   traceInfo: TraceInfo;
   transaction: TraceRoot | TraceFullDetailed;
@@ -75,7 +77,19 @@ class TransactionBar extends Component<Props, State> {
     showDetail: false,
   };
 
+  componentDidMount() {
+    const {location, transaction} = this.props;
+
+    if (
+      'event_id' in transaction &&
+      transactionTargetHash(transaction.event_id) === location.hash
+    ) {
+      this.scrollIntoView();
+    }
+  }
+
   transactionRowDOMRef = createRef<HTMLDivElement>();
+  spanContentRef: HTMLDivElement | null = null;
 
   toggleDisplayDetail = () => {
     const {transaction} = this.props;
@@ -199,11 +213,10 @@ class TransactionBar extends Component<Props, State> {
     );
   }
 
-  renderTitle(
-    scrollbarManagerChildrenProps: ScrollbarManager.ScrollbarManagerChildrenProps
-  ) {
-    const {generateContentSpanBarRef} = scrollbarManagerChildrenProps;
-    const {organization, transaction} = this.props;
+  // TODO: Use ScrollbarManager to bring autoscrolling here
+  renderTitle(_: ScrollbarManager.ScrollbarManagerChildrenProps) {
+    const {organization, transaction, addContentSpanBarRef, removeContentSpanBarRef} =
+      this.props;
     const left = this.getCurrentOffset();
     const errored = isTraceFullDetailed(transaction)
       ? transaction.errors.length > 0
@@ -243,7 +256,17 @@ class TransactionBar extends Component<Props, State> {
     );
 
     return (
-      <RowTitleContainer ref={generateContentSpanBarRef()}>
+      <RowTitleContainer
+        ref={ref => {
+          if (!ref) {
+            removeContentSpanBarRef(this.spanContentRef);
+            return;
+          }
+
+          addContentSpanBarRef(ref);
+          this.spanContentRef = ref;
+        }}
+      >
         {this.renderToggle(errored)}
         <RowTitle
           style={{
@@ -437,29 +460,21 @@ class TransactionBar extends Component<Props, State> {
     const {location, organization, isVisible, transaction} = this.props;
     const {showDetail} = this.state;
 
+    if (!isTraceFullDetailed(transaction)) {
+      return null;
+    }
+
+    if (!isVisible || !showDetail) {
+      return null;
+    }
+
     return (
-      <AnchorLinkManager.Consumer>
-        {({registerScrollFn, scrollToHash}) => {
-          if (!isTraceFullDetailed(transaction)) {
-            return null;
-          }
-
-          registerScrollFn(`#txn-${transaction.event_id}`, this.scrollIntoView, false);
-
-          if (!isVisible || !showDetail) {
-            return null;
-          }
-
-          return (
-            <TransactionDetail
-              location={location}
-              organization={organization}
-              transaction={transaction}
-              scrollToHash={scrollToHash}
-            />
-          );
-        }}
-      </AnchorLinkManager.Consumer>
+      <TransactionDetail
+        location={location}
+        organization={organization}
+        transaction={transaction}
+        scrollIntoView={this.scrollIntoView}
+      />
     );
   }
 

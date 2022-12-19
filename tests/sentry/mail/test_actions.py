@@ -307,3 +307,18 @@ class NotifyEmailTest(RuleTestCase):
         assert sent_out_to == sorted([self.user.email, gil_workflow.email, dan_workflow.email])
         for x in [out.subject for out in mail.outbox]:
             assert "uh oh" in x
+
+    @with_feature("organizations:issue-alert-fallback-targeting")
+    def test_render_label_fallback_none(self):
+        rule = self.get_rule(data={"targetType": ActionTargetType.ISSUE_OWNERS.value})
+        assert rule.render_label() == "Send a notification to IssueOwners"
+        rule = self.get_rule(
+            data={
+                "targetType": ActionTargetType.ISSUE_OWNERS.value,
+                "fallthroughType": FallthroughChoiceType.ALL_MEMBERS.value,
+            }
+        )
+        assert (
+            rule.render_label()
+            == "Send a notification to IssueOwners and if none can be found then send a notification to AllMembers"
+        )
