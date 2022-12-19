@@ -365,22 +365,11 @@ def get_fallthrough_recipients(
 
     # TODO(snigdha): Add the ADMIN logic once the team admin functionality is ready. For now, this fallback only applies to recent members.
     elif fallthrough_choice == FallthroughChoiceType.ADMIN_OR_RECENT:
-        if len(project.member_set) < FALLTHROUGH_NOTIFICATION_LIMIT:
-            return user_service.get_from_project(project.id)
+        return user_service.get_many(
+            project.member_set.order_by("-user__last_active").values_list("user_id", flat=True)
+        )[:FALLTHROUGH_NOTIFICATION_LIMIT]
 
-        user_ids = (
-            OrganizationMember.objects.get_contactable_members_for_org(project.organization_id)
-            .filter(
-                teams__in=project.teams.all(),
-                user__is_active=True,
-            )
-            .order_by("-user__last_active")
-            .values_list("user_id", flat=True)[:FALLTHROUGH_NOTIFICATION_LIMIT]
-        )
-
-        return user_service.get_many(user_ids)
-
-    return []
+    raise NotImplementedError(f"Unknown fallthrough choice: {fallthrough_choice}")
 
 
 def get_user_from_identifier(project: Project, target_identifier: str | int | None) -> User | None:
