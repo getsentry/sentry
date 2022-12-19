@@ -224,7 +224,7 @@ class QueryBuilder(BaseQueryBuilder):
         self.meta_resolver_map: Dict[str, str] = {}
 
         self.skip_tag_resolution = skip_tag_resolution
-        # prefixed tags: tag map for post-processing values
+        # prefixed tag: tag map for post-processing values
         self.tag_resolver_map: Dict[str, str] = {}
         # tag: prefixed tag map for post-processing values
         self.reverse_tag_resolver_map: Dict[str, str] = {}
@@ -272,16 +272,15 @@ class QueryBuilder(BaseQueryBuilder):
         self.end = self.params.end
 
     def resolve_column_name(self, col: str) -> str:
-        original_column = self.tag_resolver_map.get(col, col)
         # TODO when utils/snuba.py becomes typed don't need this extra annotation
         column_resolver: Callable[[str], str] = resolve_column(self.dataset)
-        column_name = column_resolver(original_column)
+        column_name = column_resolver(col)
 
         # If the original column was passed in as tag[X], then there won't be a conflict
         # and there's no need to prefix the tag
-        if not original_column.startswith("tags[") and column_name.startswith("tags["):
-            self.tag_resolver_map[f"tags_{original_column}"] = original_column
-            self.reverse_tag_resolver_map[original_column] = f"tags_{original_column}"
+        if not col.startswith("tags[") and column_name.startswith("tags["):
+            self.tag_resolver_map[f"tags_{col}"] = col
+            self.reverse_tag_resolver_map[col] = f"tags_{col}"
 
         return column_name
 
@@ -1089,7 +1088,7 @@ class QueryBuilder(BaseQueryBuilder):
 
         :param name: The unresolved sentry name.
         """
-        resolved_column = self.resolve_column_name(self.reverse_tag_resolver_map.get(name, name))
+        resolved_column = self.resolve_column_name(name)
         return Column(resolved_column)
 
     # Query filter helper methods
