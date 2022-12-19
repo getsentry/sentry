@@ -90,6 +90,22 @@ class UserService(InterfaceWithLifecycle):
         pass
 
     @abstractmethod
+    def find_users(
+        self, username: str, with_valid_password: bool = True, is_active: bool | None = None
+    ) -> List[APIUser]:
+        """
+        Return a list of users that match a username and falling back to email
+        :param username:
+        A case insensitive username/email to match
+        :param with_valid_password:
+        filter to ensure a password is set
+        :param is_active:
+        filter for only active users
+        :return:
+        """
+        pass
+
+    @abstractmethod
     def get_from_group(self, group: Group) -> List[APIUser]:
         """Get all users in all teams in a given Group's project."""
         pass
