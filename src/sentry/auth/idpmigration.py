@@ -8,8 +8,8 @@ from django.urls import reverse
 from rb.clients import LocalClient
 
 from sentry import options
-from sentry.models import AuthProvider, OrganizationMember
-from sentry.services.hybrid_cloud.organization import ApiOrganization
+from sentry.services.hybrid_cloud.auth import ApiAuthProvider
+from sentry.services.hybrid_cloud.organization import ApiOrganization, organization_service
 from sentry.services.hybrid_cloud.user import APIUser
 from sentry.utils import json, metrics, redis
 from sentry.utils.email import MessageBuilder
@@ -24,7 +24,7 @@ SSO_VERIFICATION_KEY = "confirm_account_verification_key"
 def send_one_time_account_confirm_link(
     user: APIUser,
     org: ApiOrganization,
-    provider: AuthProvider,
+    provider: ApiAuthProvider,
     email: str,
     identity_id: str,
 ) -> AccountConfirmLink:
@@ -55,7 +55,7 @@ def get_redis_cluster() -> LocalClient:
 class AccountConfirmLink:
     user: APIUser
     organization: ApiOrganization
-    provider: AuthProvider
+    provider: ApiAuthProvider
     email: str
     identity_id: str
 
@@ -64,6 +64,8 @@ class AccountConfirmLink:
         if not isinstance(self.user, APIUser):
             raise TypeError
         if not isinstance(self.organization, ApiOrganization):
+            raise TypeError
+        if not isinstance(self.provider, ApiAuthProvider):
             raise TypeError
 
         self.verification_code = get_secure_token()
@@ -96,17 +98,14 @@ class AccountConfirmLink:
     def store_in_redis(self) -> None:
         cluster = get_redis_cluster()
 
-        try:
-            member_id = OrganizationMember.objects.get(
-                organization_id=self.organization.id, user_id=self.user.id
-            ).id
-        except OrganizationMember.DoesNotExist:
-            member_id = None
+        member = organization_service.check_membership_by_id(
+            organization_id=self.organization.id, user_id=self.user.id
+        )
 
         verification_value = {
             "user_id": self.user.id,
             "email": self.email,
-            "member_id": member_id,
+            "member_id": member.id if member else None,
             "organization_id": self.organization.id,
             "identity_id": self.identity_id,
             "provider": self.provider.provider,

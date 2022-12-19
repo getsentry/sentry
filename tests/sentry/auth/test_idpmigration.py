@@ -4,6 +4,7 @@ from django.urls import reverse
 
 import sentry.auth.idpmigration as idpmigration
 from sentry.models import AuthProvider, OrganizationMember
+from sentry.services.hybrid_cloud.auth.impl import DatabaseBackedAuthService
 from sentry.services.hybrid_cloud.organization.impl import DatabaseBackedOrganizationService
 from sentry.services.hybrid_cloud.user import user_service
 from sentry.testutils import TestCase
@@ -20,7 +21,9 @@ class IDPMigrationTests(TestCase):
         self.org = DatabaseBackedOrganizationService.serialize_organization(
             self.create_organization()
         )
-        self.provider = AuthProvider.objects.create(organization_id=self.org.id, provider="dummy")
+        self.provider = DatabaseBackedAuthService.serialize_auth_provider(
+            AuthProvider.objects.create(organization_id=self.org.id, provider="dummy")
+        )
 
     IDENTITY_ID = "drgUQCLzOyfHxmTyVs0G"
 

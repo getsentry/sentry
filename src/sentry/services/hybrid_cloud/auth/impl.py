@@ -129,19 +129,20 @@ def query_sso_state(
 
 
 class DatabaseBackedAuthService(AuthService):
-    def _serialize_auth_provider_flags(self, ap: AuthProvider) -> ApiAuthProviderFlags:
+    @classmethod
+    def _serialize_auth_provider_flags(cls, ap: AuthProvider) -> ApiAuthProviderFlags:
         d: dict[str, bool] = {}
         for f in dataclasses.fields(ApiAuthProviderFlags):
             d[f.name] = bool(ap.flags[f.name])
         return ApiAuthProviderFlags(**d)
 
-    def _serialize_auth_provider(self, ap: AuthProvider) -> ApiAuthProvider:
+    @classmethod
+    def serialize_auth_provider(cls, ap: AuthProvider) -> ApiAuthProvider:
         return ApiAuthProvider(
             id=ap.id,
             organization_id=ap.organization_id,
             provider=ap.provider,
-            flags=self._serialize_auth_provider_flags(ap),
-            default_team_ids=[team.id for team in ap.default_teams],
+            flags=cls._serialize_auth_provider_flags(ap),
         )
 
     def get_org_auth_config(
@@ -160,7 +161,7 @@ class DatabaseBackedAuthService(AuthService):
         return [
             ApiOrganizationAuthConfig(
                 organization_id=oid,
-                auth_provider=self._serialize_auth_provider(aps[oid]) if oid in aps else None,
+                auth_provider=self.serialize_auth_provider(aps[oid]) if oid in aps else None,
                 has_api_key=qs.get(oid, 0) > 0,
             )
             for oid in organization_ids

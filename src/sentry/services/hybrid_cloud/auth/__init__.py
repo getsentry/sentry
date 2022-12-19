@@ -242,6 +242,13 @@ class ApiAuthProvider:
     provider: str = ""
     flags: ApiAuthProviderFlags = field(default_factory=lambda: ApiAuthProviderFlags())
 
+    @property
+    def provider_name(self) -> str:
+        from sentry.auth import manager
+
+        managed_provider = manager.get(self.provider)
+        return managed_provider.name
+
 
 @dataclass
 class ApiAuthIdentity:
