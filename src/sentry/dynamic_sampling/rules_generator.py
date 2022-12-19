@@ -196,7 +196,7 @@ def generate_rules(project: Project) -> List[BaseRule]:
         rules.append(generate_uniform_rule(sample_rate))
 
     # We log rules onto Google Cloud Logging in order to have more observability into dynamic sampling rules.
-    log_rules(project.id, rules)
+    log_rules(project.organization.id, project.id, rules)
 
     # We only return the rule and not its type.
     return rules
