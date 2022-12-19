@@ -22,6 +22,7 @@ import {Organization} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 
 import {DragManagerChildrenProps} from './dragManager';
+import {ActiveOperationFilter} from './filter';
 import {ScrollbarManagerChildrenProps, withScrollbarManager} from './scrollbarManager';
 import {ProfiledSpanBar} from './spanBar';
 import * as SpanContext from './spanContext';
@@ -49,6 +50,7 @@ import WaterfallModel from './waterfallModel';
 type PropType = ScrollbarManagerChildrenProps & {
   dragProps: DragManagerChildrenProps;
   filterSpans: FilterSpans | undefined;
+  operationNameFilters: ActiveOperationFilter;
   organization: Organization;
   spanContextProps: SpanContext.SpanContextProps;
   spans: EnhancedProcessedSpanType[];
@@ -178,7 +180,8 @@ class SpanTree extends Component<PropType> {
     // spans that we need to recalculate the heights for, so recompute them all
     if (
       !isEqual(prevProps.filterSpans, this.props.filterSpans) ||
-      !isEqual(prevProps.dragProps, this.props.dragProps)
+      !isEqual(prevProps.dragProps, this.props.dragProps) ||
+      !isEqual(prevProps.operationNameFilters, this.props.operationNameFilters)
     ) {
       this.cache.clearAll();
       listRef.current?.recomputeRowHeights();
@@ -190,6 +193,13 @@ class SpanTree extends Component<PropType> {
     // We will look specifically at the cells that need to have their heights recalculated, and clear
     // their respective slots in the cache.
     if (prevProps.spans.length !== this.props.spans.length) {
+      // If there are filters applied, it's difficult to find the exact positioning of the spans that
+      // changed. It's easier to just clear the cache instead
+      if (this.props.operationNameFilters) {
+        this.cache.clearAll();
+        listRef.current?.recomputeRowHeights();
+        return;
+      }
       // When the structure of the span tree is changed in an update, this can be due to the following reasons:
       // - A subtree was collapsed or expanded
       // - An autogroup was collapsed or expanded
