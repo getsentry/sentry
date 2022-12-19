@@ -351,7 +351,7 @@ def _process_symbolicator_results_for_sample(profile: Profile, stacktraces: List
 
             The sorting order is callee to caller (child to parent)
             """
-            inline_frame_ids[original_index].insert(0, len(original_frames))
+            inline_frame_ids[original_index].append(len(original_frames))
             original_frames.append(symbolicated_frame)
         else:
             inline_frame_ids[original_index] = [original_index]
@@ -390,6 +390,7 @@ def _process_symbolicator_results_for_sample(profile: Profile, stacktraces: List
     def merge_stack(stack: List[int]) -> List[int]:
         new_stack: List[int] = []
         for index in stack:
+            inline_frame_ids[index].reverse()
             # the new stack extends the older by replacing
             # a specific frame index with the indices of
             # the frames originated from the original frame
