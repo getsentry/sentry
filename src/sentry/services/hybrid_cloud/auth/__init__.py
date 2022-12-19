@@ -75,7 +75,7 @@ def _normalize_to_b64(input: str | bytes | None) -> str | None:
     return base64.b64encode(input).decode("utf8")
 
 
-class ApiAuthentication(BaseAuthentication):
+class ApiAuthentication(BaseAuthentication):  # type: ignore
     types: List[ApiAuthenticatorType]
 
     def __init__(self, types: List[ApiAuthenticatorType]):
