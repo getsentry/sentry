@@ -15,6 +15,11 @@
   color: '3E5E06'
   description: 'add to a merged PR to revert it (skips CI)'
 
+# Unito - notion.so/52d10dbfad474328850319e48b057a5b
+- name: "Sync: Jira"
+  color: 'A0CABD'
+  description: 'apply to auto-create a Jira shadow ticket'
+
 # Dependabot
 - name: dependencies
   color: 'ffffff'
@@ -188,6 +193,9 @@
 - name: 'Team: Design'
   color: '8D5494'
   description: ''
+- name: 'Team: Dev Infrastructure'
+  color: '8D5494'
+  description: dev-infra
 - name: 'Team: Ecosystem'
   color: '8D5494'
   description: ''
