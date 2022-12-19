@@ -807,11 +807,11 @@ class QueryBuilder(BaseQueryBuilder):
             orderby = [orderby]
 
         orderby_columns: List[str] = orderby if orderby else []
-        orderby_columns = [self.reverse_tag_resolver_map.get(o, o) for o in orderby_columns]
 
         resolved_orderby: Union[str, SelectType, None]
         for orderby in orderby_columns:
             bare_orderby = orderby.lstrip("-")
+            bare_orderby = self.reverse_tag_resolver_map.get(bare_orderby, bare_orderby)
             try:
                 # Allow ordering equations with the calculated alias (ie. equation[0])
                 if is_equation_alias(bare_orderby):
@@ -1439,7 +1439,7 @@ class QueryBuilder(BaseQueryBuilder):
                 # Ensure all columns in the result have types.
                 if results["data"]:
                     for key in results["data"][0]:
-                        field_key = translated_columns.get(key, key)
+                        field_key = self.tag_resolver_map.get(key, translated_columns.get(key, key))
                         if field_key not in field_meta:
                             field_meta[field_key] = "string"
 
