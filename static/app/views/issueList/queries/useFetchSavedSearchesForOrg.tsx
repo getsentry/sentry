@@ -14,7 +14,7 @@ export const makeFetchSavedSearchesForOrgQueryKey = ({
 
 export const useFetchSavedSearchesForOrg = (
   {orgSlug}: FetchSavedSearchesForOrgParameters,
-  options: UseQueryOptions<FetchSavedSearchesForOrgResponse> = {}
+  options: Partial<UseQueryOptions<FetchSavedSearchesForOrgResponse>> = {}
 ) => {
   return useQuery<FetchSavedSearchesForOrgResponse>(
     makeFetchSavedSearchesForOrgQueryKey({orgSlug}),

@@ -20,7 +20,7 @@ const makeCommittersQueryKey = (
 
 function useCommitters(
   {eventId, projectSlug}: UseCommittersProps,
-  options: UseQueryOptions<CommittersResponse> = {}
+  options: Partial<UseQueryOptions<CommittersResponse>> = {}
 ) {
   const org = useOrganization();
   return useQuery<CommittersResponse>(
