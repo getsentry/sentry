@@ -39,6 +39,7 @@ import {
 } from 'sentry/utils/profiling/gl/utils';
 import {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
 import {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
+import {SpanTree} from 'sentry/utils/profiling/spanTree';
 import {formatTo, ProfilingFormatterUnit} from 'sentry/utils/profiling/units/units';
 import {useDevicePixelRatio} from 'sentry/utils/useDevicePixelRatio';
 import {useMemoWithPrevious} from 'sentry/utils/useMemoWithPrevious';
@@ -46,6 +47,7 @@ import {useMemoWithPrevious} from 'sentry/utils/useMemoWithPrevious';
 import {FlamegraphDrawer} from './flamegraphDrawer/flamegraphDrawer';
 import {FlamegraphWarnings} from './flamegraphOverlays/FlamegraphWarnings';
 import {FlamegraphLayout} from './flamegraphLayout';
+import {FlamegraphSpans} from './flamegraphSpans';
 
 function getTransactionConfigSpace(
   profileGroup: ProfileGroup,
@@ -70,6 +72,7 @@ const noopFormatDuration = () => '';
 interface FlamegraphProps {
   onImport: ProfileDragDropImportProps['onImport'];
   profiles: ProfileGroup;
+  spanTree: SpanTree | null;
 }
 
 function Flamegraph(props: FlamegraphProps): ReactElement {
@@ -399,6 +402,7 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
       </FlamegraphToolbar>
 
       <FlamegraphLayout
+        spans={props.spanTree ? <FlamegraphSpans spanTree={props.spanTree} /> : null}
         minimap={
           <FlamegraphZoomViewMinimap
             canvasPoolManager={canvasPoolManager}

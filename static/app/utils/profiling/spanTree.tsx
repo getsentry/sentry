@@ -53,6 +53,10 @@ class SpanTree {
     this.buildCollapsedSpanTree();
   }
 
+  static Empty(): SpanTree {
+    return new SpanTree([]);
+  }
+
   buildCollapsedSpanTree() {
     const spansSortedByStartTime = [...this.spans].sort((a, b) => {
       if (a.start_timestamp < b.start_timestamp) {

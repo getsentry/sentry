@@ -71,6 +71,12 @@ function ProfileGroupProvider(props: FlamegraphViewProps): React.ReactElement {
     type: 'initial',
   });
 
+  const profileTransaction = useSentryEvent<EventTransaction>(
+    params.orgId,
+    params.projectId,
+    profileGroupState.type === 'resolved' ? profileGroupState.data.transactionID : null
+  );
+
   useEffect(() => {
     if (!params.eventId || !params.projectId) {
       return undefined;
@@ -92,12 +98,6 @@ function ProfileGroupProvider(props: FlamegraphViewProps): React.ReactElement {
       api.clear();
     };
   }, [params.eventId, params.projectId, api, organization]);
-
-  const profileTransaction = useSentryEvent<EventTransaction>(
-    params.orgId,
-    params.projectId,
-    profileGroupState.type === 'resolved' ? profileGroupState.data.transactionID : null
-  );
 
   return (
     <ProfileGroupContext.Provider value={[profileGroupState, setProfileGroupState]}>

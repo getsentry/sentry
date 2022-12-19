@@ -7,6 +7,8 @@ import {Flamegraph} from 'sentry/components/profiling/flamegraph/flamegraph';
 import {ProfileDragDropImportProps} from 'sentry/components/profiling/flamegraph/flamegraphOverlays/profileDragDropImport';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
+import {EntryType} from 'sentry/types';
+import {EntrySpans, EventTransaction} from 'sentry/types/event';
 import {DeepPartial} from 'sentry/types/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {
@@ -23,11 +25,32 @@ import {
 import {FlamegraphThemeProvider} from 'sentry/utils/profiling/flamegraph/flamegraphThemeProvider';
 import {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
 import {Profile} from 'sentry/utils/profiling/profile/profile';
+import {SpanTree} from 'sentry/utils/profiling/spanTree';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
-import {useProfileGroup} from './profileGroupProvider';
+import {useProfileGroup, useProfileTransaction} from './profileGroupProvider';
+
+function collectAllSpanEntriesFromTransaction(
+  transaction: EventTransaction
+): EntrySpans['data'] {
+  if (!transaction.entries.length) {
+    return [];
+  }
+
+  const spans = transaction.entries.filter(
+    (e): e is EntrySpans => e.type === EntryType.SPANS
+  );
+
+  let allSpans: EntrySpans['data'] = [];
+
+  for (const span of spans) {
+    allSpans = allSpans.concat(span.data);
+  }
+
+  return allSpans;
+}
 
 const LoadingGroup: ProfileGroup = {
   name: 'Loading',
@@ -38,10 +61,21 @@ const LoadingGroup: ProfileGroup = {
   profiles: [Profile.Empty],
 };
 
+const LoadingSpanTree = SpanTree.Empty();
+
 function ProfileFlamegraph(): React.ReactElement {
   const location = useLocation();
   const organization = useOrganization();
   const [profileGroup, setProfileGroup] = useProfileGroup();
+  const profiledTransaction = useProfileTransaction();
+
+  const spanTree = useMemo(() => {
+    if (profiledTransaction.type === 'resolved' && profiledTransaction.data) {
+      return new SpanTree(collectAllSpanEntriesFromTransaction(profiledTransaction.data));
+    }
+
+    return LoadingSpanTree;
+  }, [profiledTransaction]);
 
   const [storedPreferences] = useLocalStorageState<DeepPartial<FlamegraphState>>(
     FLAMEGRAPH_LOCALSTORAGE_PREFERENCES_KEY,
@@ -94,13 +128,21 @@ function ProfileFlamegraph(): React.ReactElement {
               </Alert>
             ) : profileGroup.type === 'loading' ? (
               <Fragment>
-                <Flamegraph onImport={onImport} profiles={LoadingGroup} />
+                <Flamegraph
+                  onImport={onImport}
+                  profiles={LoadingGroup}
+                  spanTree={LoadingSpanTree}
+                />
                 <LoadingIndicatorContainer>
                   <LoadingIndicator />
                 </LoadingIndicatorContainer>
               </Fragment>
             ) : profileGroup.type === 'resolved' ? (
-              <Flamegraph onImport={onImport} profiles={profileGroup.data} />
+              <Flamegraph
+                onImport={onImport}
+                profiles={profileGroup.data}
+                spanTree={spanTree}
+              />
             ) : null}
           </FlamegraphContainer>
         </FlamegraphThemeProvider>
