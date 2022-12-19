@@ -75,7 +75,8 @@ outbox_managed_updates: Mapping[SiloMode, List[type]] = {
     SiloMode.REGION: [Organization],
 }
 
-# Specifically handles create, but not updates.
+# Specifically handles create, but not updates.  It assumes that the mapping of user <-> org doesn't change
+# after the fact for a given org member object.
 outbox_managed_creates: Mapping[SiloMode, List[type]] = {
     SiloMode.REGION: [OrganizationMember],
 }

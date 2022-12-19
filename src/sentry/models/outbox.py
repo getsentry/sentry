@@ -11,7 +11,6 @@ from sentry.db.models import (
     Model,
     sane_repr,
 )
-from sentry.models import OrganizationMapping
 from sentry.silo import SiloMode
 
 
@@ -31,6 +30,8 @@ class OutboxScope(IntEnum):
 class OutboxCategory(IntEnum):
     USER_UPDATE = 0
     WEBHOOK_PAYLOAD = 1
+    ORGANIZATION_UPDATE = 2
+    ORGANIZATION_MEMBER_UPDATE = 3
 
     @classmethod
     def as_choices(cls):
@@ -48,15 +49,16 @@ def _ensure_not_null(k: str, v: T) -> T:
 
 class OutboxBase(Model):
     sharding_index: Iterable[str]
+    coalesced_index: Iterable[str]
 
-    def coalesced_key(self) -> Mapping[str, Any]:
-        return {
-            k: _ensure_not_null(getattr(self, k))
-            for k in list(self.sharding_index) + ["category", "object_identifier"]
-        }
+    def key_from(self, attrs: Iterable[str]) -> Mapping[str, Any]:
+        return {k: _ensure_not_null(k, getattr(self, k)) for k in attrs}
+
+    def select_sharded_objects(self) -> models.QuerySet:
+        return self.objects.filter(**self.key_from(self.sharding_index))
 
     def select_coalesced_objects(self) -> models.QuerySet:
-        return self.objects.filter(**self.coalesced_key())
+        return self.objects.filter(**self.key_from(self.coalesced_index))
 
     class Meta:
         abstract = True
@@ -74,8 +76,9 @@ class OutboxBase(Model):
     # payload is used for webhook payloads.
     payload = JSONField(null=True)
 
-    # Tracks the back off state in failure modes.
-    last_attempt_duration = models.DurationField(null=True)
+    # The point at which this object was scheduled, used as a diff from scheduled_for
+    scheduled_from = models.DateTimeField(null=False, auto_now=True)
+    scheduled_for = models.DateTimeField(null=False, auto_now=True)
 
 
 OBJECT_IDENTIFIER_SEQUENCE_NAME = "sentry_outbox_object_identifier_seq"
@@ -85,6 +88,7 @@ MONOLITH_REGION_NAME = "--monolith--"
 # Outboxes bound from region silo -> control silo
 class RegionOutbox(OutboxBase):
     sharding_index = ("scope", "scope_identifier")
+    coalesced_index = ("scope", "scope_identifier", "category", "object_identifier")
 
     class Meta:
         app_label = "sentry"
@@ -102,15 +106,27 @@ class RegionOutbox(OutboxBase):
 
     @classmethod
     def for_model_update(cls, model_inst: Any) -> "RegionOutbox":
-        result = cls()
-        return result
+        from sentry.models import Organization, OrganizationMember
 
-    MANAGED_DELETES: List[type] = []
+        result = cls()
+        if isinstance(model_inst, Organization):
+            result.scope = OutboxScope.ORGANIZATION_SCOPE
+            result.scope_identifier = model_inst.id
+            result.category = OutboxCategory.ORGANIZATION_UPDATE
+            result.object_identifier = model_inst.id
+        elif isinstance(model_inst, OrganizationMember):
+            result.scope = OutboxScope.ORGANIZATION_SCOPE
+            result.scope_identifier = model_inst.organization_id
+            result.category = OutboxCategory.ORGANIZATION_MEMBER_UPDATE
+            result.object_identifier = model_inst.id
+        return result
 
 
 # Outboxes bound from region silo -> control silo
 class ControlOutbox(OutboxBase):
     sharding_index = ("region_name", "scope", "scope_identifier")
+    coalesced_index = ("region_name", "scope", "scope_identifier", "category", "object_identifier")
+
     region_name = models.CharField(max_length=48)
 
     class Meta:
@@ -157,6 +173,8 @@ def _find_orgs_for_user(user_id: int) -> Set[int]:
 
 
 def _find_regions_for_user(user_id: int) -> Set[str]:
+    from sentry.models import OrganizationMapping
+
     org_ids: Set[int]
     if "pytest" in sys.modules:
         from sentry.testutils.silo import exempt_from_silo_limits

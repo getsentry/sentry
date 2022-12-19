@@ -1,5 +1,8 @@
 import logging
+from typing import Type
 
+from sentry.models import ControlOutbox, OutboxBase, RegionOutbox, outbox_silo_modes
+from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task
 
 logger = logging.getLogger("sentry.scheduler")
@@ -7,6 +10,11 @@ logger = logging.getLogger("sentry.scheduler")
 
 @instrumented_task(name="sentry.tasks.enqueue_outbox_jobs")
 def enqueue_outbox_jobs(**kwargs):
+    for silo_mode in outbox_silo_modes():
+        outbox_model: Type[OutboxBase] = (
+            RegionOutbox if silo_mode == SiloMode.REGION else ControlOutbox
+        )
+        outbox_model.objects.filter()
     pass
 
 

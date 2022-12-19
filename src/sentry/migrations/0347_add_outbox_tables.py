@@ -60,7 +60,8 @@ class Migration(CheckedMigration):
                 ("category", sentry.db.models.fields.bounded.BoundedPositiveIntegerField()),
                 ("object_identifier", sentry.db.models.fields.bounded.BoundedBigIntegerField()),
                 ("payload", sentry.db.models.fields.jsonfield.JSONField(default=dict)),
-                ("last_attempt_duration", models.DurationField(null=True)),
+                ("next_run_after", models.DurationField(null=False)),
+                ("next_run_after", models.DurationField(null=False)),
                 ("region_name", models.CharField(max_length=48)),
             ],
             options={
