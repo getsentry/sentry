@@ -1,18 +1,13 @@
-import {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
+import {EntrySpans} from 'sentry/types/event';
 
-interface SpanChartNode {
-  depth: number;
-  end: number;
-  node: SpanTreeNode;
-  start: number;
-}
+export type Span = EntrySpans['data'][0];
 
 class SpanTreeNode {
   parent?: SpanTreeNode | null = null;
-  span: RawSpanType;
+  span: Span;
   children: SpanTreeNode[] = [];
 
-  constructor(span: RawSpanType, parent?: SpanTreeNode | null) {
+  constructor(span: Span, parent?: SpanTreeNode | null) {
     this.span = span;
     this.parent = parent;
   }
@@ -35,7 +30,7 @@ class SpanTreeNode {
     );
   }
 
-  contains(span: RawSpanType) {
+  contains(span: Span) {
     return (
       span.start_timestamp >= this.span.start_timestamp &&
       span.timestamp <= this.span.timestamp
@@ -44,11 +39,11 @@ class SpanTreeNode {
 }
 
 class SpanTree {
-  spans: RawSpanType[];
+  spans: Span[];
   spanTree: SpanTreeNode = SpanTreeNode.Root();
-  orphanedSpans: RawSpanType[] = [];
+  orphanedSpans: Span[] = [];
 
-  constructor(spans: RawSpanType[]) {
+  constructor(spans: Span[]) {
     this.spans = spans;
     this.buildCollapsedSpanTree();
   }
@@ -92,21 +87,6 @@ class SpanTree {
         continue;
       }
       parent.children.push(new SpanTreeNode(span, parent));
-    }
-  }
-
-  forEach(cb: (node: SpanChartNode) => void) {
-    const queue: SpanTreeNode[] = [...this.spanTree.children];
-    let depth = 0;
-
-    while (queue.length) {
-      let children_at_depth = queue.length;
-      while (children_at_depth-- !== 0) {
-        const node = queue.pop()!;
-        queue.push(...node.children);
-        cb({start: node.span.start_timestamp, end: node.span.timestamp, node, depth});
-      }
-      depth++;
     }
   }
 }

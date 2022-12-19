@@ -1,7 +1,5 @@
-import type {
-  RawSpanType,
-  TraceContextType,
-} from 'sentry/components/events/interfaces/spans/types';
+import type {TraceContextType} from 'sentry/components/events/interfaces/spans/types';
+import {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
 import type {SymbolicatorStatus} from 'sentry/components/events/interfaces/types';
 import type {PlatformKey} from 'sentry/data/platformCategories';
 import type {IssueType} from 'sentry/types';
