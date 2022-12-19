@@ -1,19 +1,40 @@
-import {createContext, useContext, useEffect} from 'react';
+import {createContext, useContext, useEffect, useMemo} from 'react';
 import * as Sentry from '@sentry/react';
 
+import {PageFilters} from 'sentry/types';
 import {useProfileEvents} from 'sentry/utils/profiling/hooks/useProfileEvents';
 
 const TransactionProfileContext = createContext<string | null | undefined>(undefined);
 
 interface TransactionToProfileIdProviderProps {
   children: React.ReactNode;
+  timestamp: string | undefined;
   transactionId: string | undefined;
 }
 
 export function TransactionProfileIdProvider({
+  timestamp,
   transactionId,
   children,
 }: TransactionToProfileIdProviderProps) {
+  // create a 24h timeframe relative from the transaction timestamp to use for
+  // the profile events query
+  const datetime: PageFilters['datetime'] | undefined = useMemo(() => {
+    if (!timestamp) {
+      return undefined;
+    }
+    const ts = new Date(timestamp);
+    const start = new Date(new Date(ts).setHours(ts.getHours() - 12));
+    const end = new Date(new Date(ts).setHours(ts.getHours() + 12));
+
+    return {
+      start,
+      end,
+      period: null,
+      utc: true,
+    };
+  }, [timestamp]);
+
   const {status, data, error} = useProfileEvents({
     fields: ['id'],
     referrer: 'transactionToProfileProvider',
@@ -24,6 +45,7 @@ export function TransactionProfileIdProvider({
     },
     query: `trace.transaction:${transactionId}`,
     enabled: Boolean(transactionId),
+    datetime,
   });
 
   useEffect(() => {

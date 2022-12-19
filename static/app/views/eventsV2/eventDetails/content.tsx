@@ -154,6 +154,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
     ) => (
       <TransactionProfileIdProvider
         transactionId={event.type === 'transaction' ? event.id : undefined}
+        timestamp={event.dateReceived}
       >
         <Layout.Header>
           <Layout.HeaderContent>

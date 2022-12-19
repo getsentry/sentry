@@ -416,7 +416,7 @@ describe('TraceView', () => {
       const waterfallModel = new WaterfallModel(builder.getEvent());
 
       render(
-        <TransactionProfileIdProvider transactionId={undefined}>
+        <TransactionProfileIdProvider transactionId={undefined} timestamp={undefined}>
           <AnchorLinkManager.Provider>
             <TraceView organization={data.organization} waterfallModel={waterfallModel} />
           </AnchorLinkManager.Provider>
@@ -444,7 +444,7 @@ describe('TraceView', () => {
       const waterfallModel = new WaterfallModel(builder.getEvent());
 
       render(
-        <TransactionProfileIdProvider transactionId={undefined}>
+        <TransactionProfileIdProvider transactionId={undefined} timestamp={undefined}>
           <AnchorLinkManager.Provider>
             <TraceView organization={data.organization} waterfallModel={waterfallModel} />
           </AnchorLinkManager.Provider>

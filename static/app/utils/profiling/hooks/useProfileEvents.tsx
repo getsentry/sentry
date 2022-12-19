@@ -3,6 +3,7 @@ import {useQuery} from '@tanstack/react-query';
 import {ResponseMeta} from 'sentry/api';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
+import {PageFilters} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {DURATION_UNITS, SIZE_UNITS} from 'sentry/utils/discover/fieldRenderers';
 import {FieldValueType} from 'sentry/utils/fields';
@@ -21,6 +22,7 @@ interface UseProfileEventsOptions<F> {
   referrer: string;
   sort: Sort<F>;
   cursor?: string;
+  datetime?: PageFilters['datetime'];
   enabled?: boolean;
   limit?: number;
   query?: string;
@@ -50,6 +52,7 @@ export function useProfileEvents<F extends string>({
   sort,
   cursor,
   enabled = true,
+  datetime,
 }: UseProfileEventsOptions<F>) {
   const api = useApi();
   const organization = useOrganization();
@@ -62,7 +65,7 @@ export function useProfileEvents<F extends string>({
       referrer,
       project: selection.projects,
       environment: selection.environments,
-      ...normalizeDateTimeParams(selection.datetime),
+      ...normalizeDateTimeParams(datetime ?? selection.datetime),
       field: fields,
       per_page: limit,
       query,
