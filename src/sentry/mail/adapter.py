@@ -70,7 +70,9 @@ class MailAdapter:
             def get_digest_option(key):
                 return ProjectOption.objects.get_value(project, get_digest_option_key("mail", key))
 
-            digest_key = unsplit_key(event.group.project, target_type, target_identifier)
+            digest_key = unsplit_key(
+                event.group.project, target_type, target_identifier, fallthrough_choice
+            )
             extra["digest_key"] = digest_key
             immediate_delivery = digests.add(
                 digest_key,
@@ -140,9 +142,12 @@ class MailAdapter:
         digest: Digest,
         target_type: ActionTargetType,
         target_identifier: Optional[int] = None,
+        fallthrough_choice: Optional[FallthroughChoiceType] = None,
     ) -> None:
         metrics.incr("mail_adapter.notify_digest")
-        return DigestNotification(project, digest, target_type, target_identifier).send()
+        return DigestNotification(
+            project, digest, target_type, target_identifier, fallthrough_choice
+        ).send()
 
     @staticmethod
     def notify_about_activity(activity):
