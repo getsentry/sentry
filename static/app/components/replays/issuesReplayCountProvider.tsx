@@ -1,11 +1,12 @@
-import {ReactNode, useMemo} from 'react';
+// import {ReactNode, useMemo} from 'react';
+import {ReactNode} from 'react';
 
 import ReplayCountContext from 'sentry/components/replays/replayCountContext';
 import useReplaysCount from 'sentry/components/replays/useReplaysCount';
 // import GroupStore from 'sentry/stores/groupStore';
 // import type {Group} from 'sentry/types';
 import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
+// import useProjects from 'sentry/utils/useProjects';
 
 type Props = {
   children: ReactNode;
@@ -24,12 +25,12 @@ type Props = {
  */
 export default function IssuesReplayCountProvider({children, groupIds}: Props) {
   const organization = useOrganization();
-  const {projects} = useProjects();
+  // const {projects} = useProjects();
 
-  const projectsById = useMemo(
-    () => projects.reduce((map, p) => map.set(p.id, p), new Map()),
-    [projects]
-  );
+  // const projectsById = useMemo(
+  //   () => projects.reduce((map, p) => map.set(p.id, p), new Map()),
+  //   [projects]
+  // );
 
   // Only ask for the groupIds where the project have sent one or more replays.
   // For projects that don't support replay the count will always be zero.
@@ -51,7 +52,7 @@ export default function IssuesReplayCountProvider({children, groupIds}: Props) {
 
   // const replayGroupIds = useMemo(() => groups.map(group => group.id), [groups]);
   const replayGroupIds = groupIds;
-  const projectIds = Object.keys(projectsById);
+  const projectIds = [];
 
   const counts = useReplaysCount({
     groupIds: replayGroupIds,
