@@ -31,7 +31,7 @@ class ConsecutiveDbDetectorTest(unittest.TestCase):
         run_detector_on_data(detector, event)
         return list(detector.stored_problems.values())
 
-    def test_detects_consecutive_db_spans(self):
+    def test_calls_detect_render_blocking_asset(self):
         render_blocking_asset_event = {
             "event_id": "a" * 16,
             "project": PROJECT_ID,
