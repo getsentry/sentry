@@ -148,6 +148,14 @@ class AuthenticationContext:
     auth: AuthenticatedToken | None = None
     user: APIUser | None = None
 
+    def get_user(self):
+        """
+        Helper function to avoid importing AnonymousUser when `applied_to_request` is run on startup
+        """
+        from django.contrib.auth.models import AnonymousUser
+
+        return self.user or AnonymousUser()
+
     @contextlib.contextmanager
     def applied_to_request(self, request: Any = None) -> Generator[None, None, None]:
         """
@@ -156,9 +164,7 @@ class AuthenticationContext:
         isolated, controlled way.  This method allows for a context handling an RPC or inter silo behavior to assume
         the correct user and auth context provided explicitly in a context.
         """
-        from django.contrib.auth import get_user
-
-        from sentry.env import env
+        from sentry.app import env
 
         if request is None:
             request = env.request
@@ -174,7 +180,7 @@ class AuthenticationContext:
 
         old_user = getattr(request, "user", None)
         old_auth = getattr(request, "auth", None)
-        request.user = self.user or get_user(request)
+        request.user = self.get_user()
         request.auth = self.auth
 
         try:
