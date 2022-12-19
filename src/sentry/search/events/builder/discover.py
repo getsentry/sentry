@@ -272,13 +272,17 @@ class QueryBuilder(BaseQueryBuilder):
         self.end = self.params.end
 
     def resolve_column_name(self, col: str) -> str:
+        original_column = self.tag_resolver_map.get(col, col)
         # TODO when utils/snuba.py becomes typed don't need this extra annotation
-        original_col = self.tag_resolver_map.get(col, col)
         column_resolver: Callable[[str], str] = resolve_column(self.dataset)
-        column_name = column_resolver(original_col)
-        if not col.startswith("tags[") and column_name.startswith("tags["):
-            self.tag_resolver_map[f"tags_{original_col}"] = original_col
-            self.reverse_tag_resolver_map[original_col] = f"tags_{original_col}"
+        column_name = column_resolver(original_column)
+
+        # If the original column was passed in as tag[X], then there won't be a conflict
+        # and there's no need to prefix the tag
+        if not original_column.startswith("tags[") and column_name.startswith("tags["):
+            self.tag_resolver_map[f"tags_{original_column}"] = original_column
+            self.reverse_tag_resolver_map[original_column] = f"tags_{original_column}"
+
         return column_name
 
     def resolve_query(
@@ -1511,7 +1515,6 @@ class TimeseriesQueryBuilder(UnresolvedQuery):
         functions_acl: Optional[List[str]] = None,
         limit: Optional[int] = 10000,
         has_metrics: bool = False,
-        transform_alias_to_input_format: bool = False,
         skip_tag_resolution: bool = False,
     ):
         super().__init__(
@@ -1524,7 +1527,6 @@ class TimeseriesQueryBuilder(UnresolvedQuery):
             functions_acl=functions_acl,
             equation_config={"auto_add": True, "aggregates_only": True},
             has_metrics=has_metrics,
-            transform_alias_to_input_format=transform_alias_to_input_format,
             skip_tag_resolution=skip_tag_resolution,
         )
 
@@ -1631,7 +1633,6 @@ class TopEventsQueryBuilder(TimeseriesQueryBuilder):
         equations: Optional[List[str]] = None,
         functions_acl: Optional[List[str]] = None,
         limit: Optional[int] = 10000,
-        transform_alias_to_input_format: bool = False,
         skip_tag_resolution: bool = False,
     ):
         selected_columns = [] if selected_columns is None else selected_columns
@@ -1647,7 +1648,6 @@ class TopEventsQueryBuilder(TimeseriesQueryBuilder):
             equations=list(set(equations + timeseries_equations)),
             functions_acl=functions_acl,
             limit=limit,
-            transform_alias_to_input_format=transform_alias_to_input_format,
             skip_tag_resolution=skip_tag_resolution,
         )
 
