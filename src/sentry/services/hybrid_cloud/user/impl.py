@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Iterable, List
+from typing import Any, Iterable, List, Optional
 
 from django.db.models import QuerySet
 
@@ -26,23 +26,53 @@ class DatabaseBackedUserService(UserService):
             )
         ]
 
+    def find_users(
+        self, username: str, with_valid_password: bool = True, is_active: bool | None = None
+    ) -> List[APIUser]:
+        qs = User.objects
+
+        if is_active is not None:
+            qs = qs.filter(is_active=is_active)
+
+        if with_valid_password:
+            qs = qs.exclude(password="!")
+
+        try:
+            # First, assume username is an iexact match for username
+            user = qs.get(username__iexact=username)
+            return [user]
+        except User.DoesNotExist:
+            # If not, we can take a stab at guessing it's an email address
+            if "@" in username:
+                # email isn't guaranteed unique
+                return list(qs.filter(email__iexact=username))
+        return []
+
     def serialize_users(
         self,
         user_ids: List[int],
         *,
         detailed: UserSerializeType = UserSerializeType.SIMPLE,
-        auth_context: AuthenticationContext | None = None,
+        auth_context: AuthenticationContext
+        | None = None,  # TODO: replace this with the as_user attribute
+        as_user: User | APIUser | None = None,
+        is_active: Optional[bool] = None,
     ) -> List[Any]:
-        api_user = auth_context.user if auth_context else None
+        if auth_context and not as_user:
+            as_user = auth_context.user
+
         serializer = UserSerializer()
         if detailed == UserSerializeType.DETAILED:
             serializer = DetailedUserSerializer()
         if detailed == UserSerializeType.SELF_DETAILED:
             serializer = DetailedSelfUserSerializer()
 
+        query = self.__base_user_query().filter(id__in=user_ids)
+        if is_active is not None:
+            query = query.filter(is_active=is_active)
         return serialize(  # type: ignore
-            list(self.__base_user_query().filter(id__in=user_ids)),
-            user=api_user,
+            list(query),
+            user=as_user,
             serializer=serializer,
         )
 
