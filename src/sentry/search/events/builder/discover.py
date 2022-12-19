@@ -179,6 +179,7 @@ class QueryBuilder(BaseQueryBuilder):
         has_metrics: bool = False,
         transform_alias_to_input_format: bool = False,
         use_metrics_layer: bool = False,
+        skip_tag_resolution: bool = False,
     ):
         self.dataset = dataset
 
@@ -204,6 +205,7 @@ class QueryBuilder(BaseQueryBuilder):
 
         self.tag_resolver_map = {}
         self.reverse_tag_resolver_map = {}
+        self.skip_tag_resolution = skip_tag_resolution
 
         # Function is a subclass of CurriedFunction
         self.where: List[WhereType] = []
@@ -1447,8 +1449,6 @@ class QueryBuilder(BaseQueryBuilder):
             def get_row(row: Dict[str, Any]) -> Dict[str, Any]:
                 transformed = {}
                 for key, value in row.items():
-                    new_key = self.tag_resolver_map.get(key, translated_columns.get(key, key))
-
                     if isinstance(value, float):
                         # 0 for nan, and none for inf were chosen arbitrarily, nan and inf are invalid json
                         # so needed to pick something valid to use instead
@@ -1456,12 +1456,17 @@ class QueryBuilder(BaseQueryBuilder):
                             value = 0
                         elif math.isinf(value):
                             value = None
-                    if new_key in self.value_resolver_map:
-                        new_value = self.value_resolver_map[new_key](value)
+                    if key in self.value_resolver_map:
+                        new_value = self.value_resolver_map[key](value)
                     else:
                         new_value = value
 
-                    transformed[new_key] = new_value
+                    resolved_key = (
+                        translated_columns.get(key, key)
+                        if self.skip_tag_resolution
+                        else self.tag_resolver_map.get(key, translated_columns.get(key, key))
+                    )
+                    transformed[resolved_key] = new_value
 
                 return transformed
 
@@ -1501,6 +1506,8 @@ class TimeseriesQueryBuilder(UnresolvedQuery):
         functions_acl: Optional[List[str]] = None,
         limit: Optional[int] = 10000,
         has_metrics: bool = False,
+        transform_alias_to_input_format: bool = False,
+        skip_tag_resolution: bool = False,
     ):
         super().__init__(
             dataset,
@@ -1512,6 +1519,8 @@ class TimeseriesQueryBuilder(UnresolvedQuery):
             functions_acl=functions_acl,
             equation_config={"auto_add": True, "aggregates_only": True},
             has_metrics=has_metrics,
+            transform_alias_to_input_format=transform_alias_to_input_format,
+            skip_tag_resolution=skip_tag_resolution,
         )
 
         self.granularity = Granularity(interval)
@@ -1617,6 +1626,8 @@ class TopEventsQueryBuilder(TimeseriesQueryBuilder):
         equations: Optional[List[str]] = None,
         functions_acl: Optional[List[str]] = None,
         limit: Optional[int] = 10000,
+        transform_alias_to_input_format: bool = False,
+        skip_tag_resolution: bool = False,
     ):
         selected_columns = [] if selected_columns is None else selected_columns
         timeseries_columns = [] if timeseries_columns is None else timeseries_columns
@@ -1631,6 +1642,8 @@ class TopEventsQueryBuilder(TimeseriesQueryBuilder):
             equations=list(set(equations + timeseries_equations)),
             functions_acl=functions_acl,
             limit=limit,
+            transform_alias_to_input_format=transform_alias_to_input_format,
+            skip_tag_resolution=skip_tag_resolution,
         )
 
         self.fields: List[str] = selected_columns if selected_columns is not None else []
@@ -1687,7 +1700,7 @@ class TopEventsQueryBuilder(TimeseriesQueryBuilder):
 
             values: Set[Any] = set()
             for event in top_events:
-                if field in event:
+                if not isinstance(resolved_field, Function) and field in event:
                     alias = field
                 elif self.is_column_function(resolved_field) and resolved_field.alias in event:
                     alias = resolved_field.alias
