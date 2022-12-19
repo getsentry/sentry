@@ -14,7 +14,8 @@ from sentry.models import (
     OrganizationMember,
 )
 from sentry.testutils import TestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.factories import Factories
+from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
 
 
 @region_silo_test
@@ -45,7 +46,8 @@ class AcceptInviteTest(TestCase):
         return reverse(url, args=[self.organization.slug] + args)
 
     def _require_2fa_for_organization(self):
-        self.organization.update(flags=F("flags").bitor(Organization.flags.require_2fa))
+        with exempt_from_silo_limits():
+            self.organization.update(flags=F("flags").bitor(Organization.flags.require_2fa))
         assert self.organization.flags.require_2fa.is_set
 
     def _assert_pending_invite_details_in_session(self, om):
@@ -69,7 +71,7 @@ class AcceptInviteTest(TestCase):
             assert resp.status_code == 400
 
     def test_invalid_token(self):
-        om = OrganizationMember.objects.create(
+        om = Factories.create_member(
             email="newuser@example.com", token="abc", organization=self.organization
         )
         for path in self._get_paths([om.id, 2]):
@@ -78,7 +80,7 @@ class AcceptInviteTest(TestCase):
 
     def test_invite_not_pending(self):
         user = self.create_user(email="test@gmail.com")
-        om = OrganizationMember.objects.create(
+        om = Factories.create_member(
             email="newuser@example.com", token="abc", organization=self.organization, user=user
         )
         for path in self._get_paths([om.id, om.token]):
@@ -86,7 +88,7 @@ class AcceptInviteTest(TestCase):
             assert resp.status_code == 400
 
     def test_invite_unapproved(self):
-        om = OrganizationMember.objects.create(
+        om = Factories.create_member(
             email="newuser@example.com",
             token="abc",
             organization=self.organization,
@@ -97,7 +99,7 @@ class AcceptInviteTest(TestCase):
             assert resp.status_code == 400
 
     def test_needs_authentication(self):
-        om = OrganizationMember.objects.create(
+        om = Factories.create_member(
             email="newuser@example.com", token="abc", organization=self.organization
         )
         for path in self._get_paths([om.id, om.token]):
@@ -108,7 +110,7 @@ class AcceptInviteTest(TestCase):
     def test_not_needs_authentication(self):
         self.login_as(self.user)
 
-        om = OrganizationMember.objects.create(
+        om = Factories.create_member(
             email="newuser@example.com", token="abc", organization=self.organization
         )
         for path in self._get_paths([om.id, om.token]):
@@ -122,7 +124,7 @@ class AcceptInviteTest(TestCase):
 
         self.login_as(self.user)
 
-        om = OrganizationMember.objects.create(
+        om = Factories.create_member(
             email="newuser@example.com", token="abc", organization=self.organization
         )
 
@@ -139,7 +141,7 @@ class AcceptInviteTest(TestCase):
 
         self.login_as(self.user)
 
-        om = OrganizationMember.objects.create(
+        om = Factories.create_member(
             email="newuser@example.com", token="abc", organization=self.organization
         )
         for path in self._get_paths([om.id, om.token]):
@@ -153,7 +155,7 @@ class AcceptInviteTest(TestCase):
         AuthProvider.objects.create(organization=self.organization, provider="google")
         self.login_as(self.user)
 
-        om = OrganizationMember.objects.create(
+        om = Factories.create_member(
             email="newuser@example.com", token="abc", organization=self.organization
         )
         for path in self._get_paths([om.id, om.token]):
@@ -170,7 +172,7 @@ class AcceptInviteTest(TestCase):
             user = self.create_user(f"boo{i}@example.com")
             self.login_as(user)
 
-            om = OrganizationMember.objects.create(
+            om = Factories.create_member(
                 email=user.email,
                 role="member",
                 token="abc",
@@ -196,7 +198,7 @@ class AcceptInviteTest(TestCase):
     def test_cannot_accept_expired(self):
         self.login_as(self.user)
 
-        om = OrganizationMember.objects.create(
+        om = Factories.create_member(
             email="newuser@example.com", token="abc", organization=self.organization
         )
         OrganizationMember.objects.filter(id=om.id).update(
@@ -214,7 +216,7 @@ class AcceptInviteTest(TestCase):
     def test_cannot_accept_unapproved_invite(self):
         self.login_as(self.user)
 
-        om = OrganizationMember.objects.create(
+        om = Factories.create_member(
             email="newuser@example.com",
             role="member",
             token="abc",
@@ -237,7 +239,7 @@ class AcceptInviteTest(TestCase):
             user = self.create_user(f"boo{i}@example.com")
             self.login_as(user)
 
-            om = OrganizationMember.objects.create(
+            om = Factories.create_member(
                 email=user.email,
                 role="member",
                 token="abc",
@@ -251,7 +253,7 @@ class AcceptInviteTest(TestCase):
             assert om.email is None
             assert om.user == user
 
-            om2 = OrganizationMember.objects.create(
+            om2 = Factories.create_member(
                 email="newuser3@example.com",
                 role="member",
                 token="abcd",
@@ -272,7 +274,7 @@ class AcceptInviteTest(TestCase):
 
             self.login_as(user)
 
-            om = OrganizationMember.objects.create(
+            om = Factories.create_member(
                 email="newuser" + str(i) + "@example.com",
                 role="member",
                 token="abc",
@@ -304,7 +306,7 @@ class AcceptInviteTest(TestCase):
 
         self.login_as(self.user)
 
-        om = OrganizationMember.objects.create(
+        om = Factories.create_member(
             email="newuser@example.com", role="member", token="abc", organization=self.organization
         )
         for path in self._get_paths([om.id, om.token]):
@@ -321,7 +323,7 @@ class AcceptInviteTest(TestCase):
 
             self.login_as(user)
 
-            om = OrganizationMember.objects.create(
+            om = Factories.create_member(
                 email="newuser" + str(i) + "@example.com",
                 role="member",
                 token="abc",
@@ -341,7 +343,7 @@ class AcceptInviteTest(TestCase):
     def test_mismatched_org_slug(self):
         self.login_as(self.user)
 
-        om = OrganizationMember.objects.create(
+        om = Factories.create_member(
             email="newuser@example.com",
             role="member",
             token="abc",
