@@ -333,6 +333,7 @@ def get_intervals(start: datetime, end: datetime, granularity: int, interval: Op
         assert interval > 0
         delta = timedelta(seconds=interval)
     start = datetime.fromtimestamp(int(start.timestamp() / interval) * interval, timezone.utc)
+    end = datetime.fromtimestamp(end.timestamp(), timezone.utc)
 
     while start < end:
         yield start
