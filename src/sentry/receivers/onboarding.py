@@ -35,7 +35,6 @@ from sentry.signals import (
 from sentry.utils.event import has_event_minified_stack_trace
 from sentry.utils.javascript import has_sourcemap
 
-logger = logging.getLogger(__name__)
 
 
 def try_mark_onboarding_complete(organization_id):
