@@ -443,7 +443,7 @@ def get_notification_group_title(
         transaction = get_performance_issue_alert_subtitle(event)
         title = f"{issue_type}: {transaction}"
         return (title[: max_length - 2] + "..") if len(title) > max_length else title
-    elif isinstance(event, GroupEvent) and event.occurrence is not None:
+    elif event.occurrence is not None:
         return event.occurrence.issue_title
     else:
         event_title: str = event.title
