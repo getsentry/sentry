@@ -6,6 +6,7 @@ import * as qs from 'query-string';
 import onboardingImg from 'sentry-images/spot/onboarding-preview.svg';
 
 import Button, {ButtonProps} from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
 import FeatureBadge from 'sentry/components/featureBadge';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -30,6 +31,7 @@ import withOrganization from 'sentry/utils/withOrganization';
 import withSentryRouter from 'sentry/utils/withSentryRouter';
 import AsyncView from 'sentry/views/asyncView';
 
+import CronsFeedbackButton from './cronsFeedbackButton';
 import MonitorIcon from './monitorIcon';
 import {Monitor} from './types';
 
@@ -105,7 +107,10 @@ class Monitors extends AsyncView<Props, State> {
             </HeaderTitle>
           </Layout.HeaderContent>
           <Layout.HeaderActions>
-            <NewMonitorButton size="sm">{t('Set Up Cron Monitor')}</NewMonitorButton>
+            <ButtonBar gap={1}>
+              <NewMonitorButton size="sm">{t('Set Up Cron Monitor')}</NewMonitorButton>
+              <CronsFeedbackButton />
+            </ButtonBar>
           </Layout.HeaderActions>
         </Layout.Header>
         <Layout.Body>
