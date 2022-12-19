@@ -200,7 +200,7 @@ def _get_tx_name_rule(pattern: str, seen_last: int) -> TransactionNameRule:
     return TransactionNameRule(
         pattern=pattern,
         expiry=expiry_at,
-        # Some more hardcoded fileds for future comptability. These are not
+        # Some more hardcoded fields for future compatibility. These are not
         # currently used.
         scope={"source": "url"},
         redaction={"method": "replace", "substitution": "*"},
