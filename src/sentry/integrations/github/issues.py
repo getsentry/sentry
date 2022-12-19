@@ -4,7 +4,7 @@ from typing import Any, Mapping, Sequence
 
 from django.urls import reverse
 
-from sentry.eventstore.models import Event
+from sentry.eventstore.models import Event, GroupEvent
 from sentry.integrations.mixins.issues import MAX_CHAR, IssueBasicMixin
 from sentry.models import ExternalIssue, Group, User
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
@@ -37,13 +37,29 @@ class GitHubIssueBasic(IssueBasicMixin):  # type: ignore
         body += f"| **Repeating Spans ({num_repeating_spans})** | {truncatechars(repeating_spans, MAX_CHAR)} |"
         return body
 
-    def get_group_description(self, group: Group, event: Event, **kwargs: Any) -> str:
+    def get_generic_issue_body(self, event: GroupEvent):
+        body = "|  |  |\n"
+        body += "| ------------- | --------------- |\n"
+
+        important = event.occurrence.important_evidence_display
+        if important:
+            body += f"| **{important.name}** | {truncatechars(important.value, MAX_CHAR)} |\n"
+
+        for evidence in event.occurrence.evidence_display:
+            if evidence.important is False:
+                body += f"| **{evidence.name}** | {truncatechars(evidence.value, MAX_CHAR)} |\n"
+
+        return body[:-2]
+
+    def get_group_description(self, group: Group, event: Event | GroupEvent, **kwargs: Any) -> str:
         output = self.get_group_link(group, **kwargs)
 
         if group.issue_category == GroupCategory.PERFORMANCE:
             body = self.get_performance_issue_body(event)
             output.extend([body])
-
+        elif isinstance(event, GroupEvent) and event.occurrence is not None:
+            body = self.get_generic_issue_body(event)
+            output.extend([body])
         else:
             body = self.get_group_body(group, event)
             if body:
