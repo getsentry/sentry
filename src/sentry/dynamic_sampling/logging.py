@@ -1,4 +1,5 @@
 import logging
+from collections import OrderedDict
 from typing import Dict, List, Union
 
 import sentry_sdk
@@ -66,7 +67,7 @@ def log_rules(org_id: int, project_id: int, rules: List[BaseRule]) -> None:
 def _format_rules(
     rules: List[BaseRule],
 ) -> Dict[str, Dict[str, Union[List[str], str, float, None]]]:
-    formatted_rules = {}
+    formatted_rules = OrderedDict()
 
     for rule in rules:
         rule_type = get_rule_type(rule)
@@ -76,16 +77,24 @@ def _format_rules(
             **_extract_info_from_rule(rule_type, rule),  # type:ignore
         }
 
-    return formatted_rules  # type:ignore
+    return dict(formatted_rules)  # type:ignore
 
 
 def _extract_info_from_rule(
     rule_type: RuleType, rule: BaseRule
 ) -> Dict[str, Union[List[str], str, None]]:
-    if rule_type == RuleType.BOOST_LATEST_RELEASES_RULE:
+    if rule_type == RuleType.BOOST_ENVIRONMENTS_RULE:
+        return {
+            "environments": rule["condition"]["inner"][0]["value"],
+        }
+    elif rule_type == RuleType.BOOST_LATEST_RELEASES_RULE:
         return {
             "release": rule["condition"]["inner"][0]["value"],
             "environment": rule["condition"]["inner"][1]["value"],
+        }
+    elif rule_type == RuleType.IGNORE_HEALTHCHECKS_RULE:
+        return {
+            "healthChecks": rule["condition"]["inner"][0]["value"],
         }
     elif rule_type == RuleType.BOOST_KEY_TRANSACTIONS_RULE:
         return {"transactions": rule["condition"]["inner"][0]["value"]}
