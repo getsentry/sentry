@@ -46,6 +46,7 @@ SessionsQueryFunction = Literal[
     "crash_rate(user)",
     "crash_free_rate(session)",
     "crash_free_rate(user)",
+    "anr_rate()",
 ]
 
 GroupByFieldName = Literal[
