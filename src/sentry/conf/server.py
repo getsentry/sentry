@@ -1,7 +1,6 @@
 """
 These settings act as the default (base) settings for the Sentry-provided web-server
 """
-
 import os
 import os.path
 import platform
@@ -1044,6 +1043,8 @@ SENTRY_FEATURES = {
     "organizations:transaction-name-normalize": False,
     # Try to derive normalization rules by clustering transaction names.
     "organizations:transaction-name-clusterer": False,
+    # Sanitize transaction names in the ingestion pipeline.
+    "organizations:transaction-name-sanitization": False,
     # Extraction metrics for transactions during ingestion.
     "organizations:transaction-metrics-extraction": False,
     # Allow performance alerts to be created on the metrics dataset. Allows UI to switch between
@@ -1906,7 +1907,6 @@ SENTRY_USE_PROFILING = False
 # This flag activates consuming issue platform occurrence data in the development environment
 SENTRY_USE_ISSUE_OCCURRENCE = False
 
-
 # This flag activates code paths that are specific for customer domains
 SENTRY_USE_CUSTOMER_DOMAINS = False
 
@@ -2074,6 +2074,9 @@ SENTRY_DEVSERVICES = {
                 "ENABLE_ISSUE_OCCURRENCE_CONSUMER": "1"
                 if settings.SENTRY_USE_ISSUE_OCCURRENCE
                 else "",
+                "ENABLE_AUTORUN_MIGRATION_SEARCH_ISSUES": os.environ.get(
+                    "ENABLE_AUTORUN_MIGRATION_SEARCH_ISSUES", ""
+                ),
             },
             "only_if": "snuba" in settings.SENTRY_EVENTSTREAM
             or "kafka" in settings.SENTRY_EVENTSTREAM,
@@ -2510,6 +2513,7 @@ KAFKA_INGEST_REPLAY_EVENTS = "ingest-replay-events"
 KAFKA_INGEST_REPLAYS_RECORDINGS = "ingest-replay-recordings"
 KAFKA_INGEST_OCCURRENCES = "ingest-occurrences"
 KAFKA_REGION_TO_CONTROL = "region-to-control"
+KAFKA_EVENTSTREAM_GENERIC = "generic-events"
 
 # topic for testing multiple indexer backends in parallel
 # in production. So far just testing backends for the perf data,
@@ -2560,6 +2564,7 @@ KAFKA_TOPICS = {
     KAFKA_SNUBA_GENERICS_METRICS_CS: {"cluster": "default"},
     # Region to Control Silo messaging - eg UserIp and AuditLog
     KAFKA_REGION_TO_CONTROL: {"cluster": "default"},
+    KAFKA_EVENTSTREAM_GENERIC: {"cluster": "default"},
 }
 
 

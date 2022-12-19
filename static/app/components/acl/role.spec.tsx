@@ -7,7 +7,7 @@ import ConfigStore from 'sentry/stores/configStore';
 
 describe('Role', function () {
   const organization = TestStubs.Organization({
-    role: 'admin',
+    orgRole: 'admin',
     orgRoleList: [
       {
         id: 'member',

@@ -5,6 +5,7 @@ from django.urls import reverse
 from django.utils.safestring import mark_safe
 
 from sentry.models import User, UserAvatar
+from sentry.services.hybrid_cloud.user import APIUser
 from sentry.utils.avatar import get_email_avatar, get_gravatar_url, get_letter_avatar
 from sentry.utils.http import absolute_uri
 
@@ -67,7 +68,7 @@ def avatar(user, size=36):
 @register.inclusion_tag("sentry/partial/avatar.html")
 def avatar_for_email(user, size=36):
     # user can be User or OrganizationMember
-    if isinstance(user, User):
+    if isinstance(user, User) or isinstance(user, APIUser):
         user_id = user.id
         email = user.email
     else:
