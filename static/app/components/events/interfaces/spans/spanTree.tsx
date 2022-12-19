@@ -22,6 +22,7 @@ import {Organization} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 
 import {DragManagerChildrenProps} from './dragManager';
+import {ActiveOperationFilter} from './filter';
 import {ScrollbarManagerChildrenProps, withScrollbarManager} from './scrollbarManager';
 import {ProfiledSpanBar} from './spanBar';
 import * as SpanContext from './spanContext';
@@ -49,6 +50,7 @@ import WaterfallModel from './waterfallModel';
 type PropType = ScrollbarManagerChildrenProps & {
   dragProps: DragManagerChildrenProps;
   filterSpans: FilterSpans | undefined;
+  operationNameFilters: ActiveOperationFilter;
   organization: Organization;
   spanContextProps: SpanContext.SpanContextProps;
   spans: EnhancedProcessedSpanType[];
@@ -178,7 +180,8 @@ class SpanTree extends Component<PropType> {
     // spans that we need to recalculate the heights for, so recompute them all
     if (
       !isEqual(prevProps.filterSpans, this.props.filterSpans) ||
-      !isEqual(prevProps.dragProps, this.props.dragProps)
+      !isEqual(prevProps.dragProps, this.props.dragProps) ||
+      !isEqual(prevProps.operationNameFilters, this.props.operationNameFilters)
     ) {
       this.cache.clearAll();
       listRef.current?.recomputeRowHeights();

@@ -122,6 +122,9 @@ function TraceView(props: Props) {
                                       })}
                                       focusedSpanIds={waterfallModel.focusedSpanIds}
                                       spanContextProps={spanContextProps}
+                                      operationNameFilters={
+                                        waterfallModel.operationNameFilters
+                                      }
                                     />
                                   )}
                                 </Observer>
