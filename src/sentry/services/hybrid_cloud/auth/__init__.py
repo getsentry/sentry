@@ -148,7 +148,7 @@ class AuthenticationContext:
     auth: AuthenticatedToken | None = None
     user: APIUser | None = None
 
-    def get_user(self):
+    def _get_user(self):
         """
         Helper function to avoid importing AnonymousUser when `applied_to_request` is run on startup
         """
@@ -180,7 +180,7 @@ class AuthenticationContext:
 
         old_user = getattr(request, "user", None)
         old_auth = getattr(request, "auth", None)
-        request.user = self.get_user()
+        request.user = self._get_user()
         request.auth = self.auth
 
         try:
