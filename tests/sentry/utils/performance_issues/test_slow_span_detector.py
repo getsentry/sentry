@@ -19,7 +19,7 @@ from sentry.utils.performance_issues.performance_detection import (
 
 @region_silo_test
 @pytest.mark.django_db
-class ConsecutiveDbDetectorTest(unittest.TestCase):
+class SlowSpanDetectorTest(unittest.TestCase):
     def setUp(self):
         super().setUp()
         self.settings = get_detection_settings()
