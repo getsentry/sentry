@@ -6,27 +6,6 @@ import useReplaysCount from './useReplaysCount';
 
 jest.mock('sentry/utils/useLocation');
 
-function getExpectedReqestParams({
-  field,
-  projectIds,
-  query,
-}: {
-  field: string[];
-  projectIds: Array<string | number>;
-  query: string;
-}) {
-  return expect.objectContaining({
-    query: {
-      environment: [],
-      field,
-      per_page: 50,
-      projectIds: projectIds.map(Number),
-      query,
-      statsPeriod: '14d',
-    },
-  });
-}
-
 describe('useReplaysCount', () => {
   const MockUseLocation = useLocation as jest.MockedFunction<typeof useLocation>;
 
@@ -95,7 +74,7 @@ describe('useReplaysCount', () => {
         query: {
           query: `issue.id:[${mockGroupIds.join(',')}]`,
           statsPeriod: '14d',
-          projectIds: [2],
+          projectIds: [], // [2],
         },
       })
     );
@@ -150,12 +129,17 @@ describe('useReplaysCount', () => {
     expect(result.current).toEqual({});
     expect(countRequest).toHaveBeenCalledWith(
       '/organizations/org-slug/events/',
-      getExpectedReqestParams({
-        field: ['count_unique(replayId)', 'transaction'],
-        projectIds,
-        query: `!replayId:"" event.type:transaction transaction:[${mockTransactionNames.join(
-          ','
-        )}]`,
+      expect.objectContaining({
+        query: {
+          environment: [],
+          field: ['count_unique(replayId)', 'transaction'],
+          per_page: 50,
+          project: projectIds.map(Number),
+          query: `!replayId:"" event.type:transaction transaction:[${mockTransactionNames.join(
+            ','
+          )}]`,
+          statsPeriod: '14d',
+        },
       })
     );
 
