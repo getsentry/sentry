@@ -118,7 +118,7 @@ class IssueOccurrence:
             ],
             GroupType(data["type"]),
             cast(datetime, parse_timestamp(data["detection_time"])),
-            data["level"],
+            data.get("level"),
         )
 
     @property
