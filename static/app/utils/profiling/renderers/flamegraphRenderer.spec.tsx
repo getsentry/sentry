@@ -185,10 +185,10 @@ describe('flamegraphRenderer', () => {
       theme
     );
 
-    expect(renderer.getHoveredNode(vec2.fromValues(-1, 0))).toBeNull();
-    expect(renderer.getHoveredNode(vec2.fromValues(-1, 0))).toBeNull();
-    expect(renderer.getHoveredNode(vec2.fromValues(0, 0))?.frame?.name).toBe('f0');
-    expect(renderer.getHoveredNode(vec2.fromValues(5, 2))?.frame?.name).toBe('f3');
+    expect(renderer.findHoveredNode(vec2.fromValues(-1, 0))).toBeNull();
+    expect(renderer.findHoveredNode(vec2.fromValues(-1, 0))).toBeNull();
+    expect(renderer.findHoveredNode(vec2.fromValues(0, 0))?.frame?.name).toBe('f0');
+    expect(renderer.findHoveredNode(vec2.fromValues(5, 2))?.frame?.name).toBe('f3');
   });
 
   describe('draw', () => {

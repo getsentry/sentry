@@ -139,7 +139,7 @@ function FlamegraphZoomView({
     if (!configSpaceCursor || !flamegraphRenderer) {
       return null;
     }
-    return flamegraphRenderer.getHoveredNode(configSpaceCursor);
+    return flamegraphRenderer.findHoveredNode(configSpaceCursor);
   }, [configSpaceCursor, flamegraphRenderer]);
 
   useEffect(() => {
