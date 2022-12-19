@@ -18,8 +18,6 @@ from sentry.utils.performance_issues.performance_detection import (
     run_detector_on_data,
 )
 
-SECOND = 1000
-
 
 @region_silo_test
 @pytest.mark.django_db
