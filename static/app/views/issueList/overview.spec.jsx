@@ -16,6 +16,7 @@ import StreamGroup from 'sentry/components/stream/group';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TagStore from 'sentry/stores/tagStore';
 import {SavedSearchVisibility} from 'sentry/types';
+import localStorageWrapper from 'sentry/utils/localStorage';
 import * as parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import IssueListWithStores, {IssueListOverview} from 'sentry/views/issueList/overview';
 
@@ -74,6 +75,7 @@ describe('IssueList', function () {
     // eslint-disable-next-line no-console
     jest.spyOn(console, 'error').mockImplementation(jest.fn());
 
+    localStorageWrapper.clear();
     MockApiClient.clearMockResponses();
 
     savedSearch = TestStubs.Search({
@@ -552,7 +554,7 @@ describe('IssueList', function () {
 
       await waitFor(() => {
         expect(createPin).toHaveBeenCalled();
-        expect(browserHistory.push).toHaveBeenLastCalledWith(
+        expect(browserHistory.replace).toHaveBeenLastCalledWith(
           expect.objectContaining({
             pathname: '/organizations/org-slug/issues/searches/666/',
             query: {
@@ -605,7 +607,7 @@ describe('IssueList', function () {
       });
 
       await waitFor(() => {
-        expect(browserHistory.push).toHaveBeenLastCalledWith(
+        expect(browserHistory.replace).toHaveBeenLastCalledWith(
           expect.objectContaining({
             pathname: '/organizations/org-slug/issues/',
           })
@@ -656,7 +658,7 @@ describe('IssueList', function () {
 
       await waitFor(() => {
         expect(createPin).toHaveBeenCalled();
-        expect(browserHistory.push).toHaveBeenLastCalledWith(
+        expect(browserHistory.replace).toHaveBeenLastCalledWith(
           expect.objectContaining({
             pathname: '/organizations/org-slug/issues/searches/789/',
           })
@@ -714,7 +716,7 @@ describe('IssueList', function () {
 
       await waitFor(() => {
         expect(createPin).toHaveBeenCalled();
-        expect(browserHistory.push).toHaveBeenLastCalledWith(
+        expect(browserHistory.replace).toHaveBeenLastCalledWith(
           expect.objectContaining({
             pathname: '/organizations/org-slug/issues/searches/666/',
             query: expect.objectContaining({
@@ -731,6 +733,7 @@ describe('IssueList', function () {
     it('unpinning search should keep project selected', async function () {
       const localSavedSearch = {
         ...savedSearch,
+        id: '666',
         isPinned: true,
         query: 'assigned:me level:fatal',
       };
@@ -778,7 +781,7 @@ describe('IssueList', function () {
 
       await waitFor(() => {
         expect(deletePin).toHaveBeenCalled();
-        expect(browserHistory.push).toHaveBeenLastCalledWith(
+        expect(browserHistory.replace).toHaveBeenLastCalledWith(
           expect.objectContaining({
             pathname: '/organizations/org-slug/issues/',
             query: expect.objectContaining({

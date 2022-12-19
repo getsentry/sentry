@@ -82,7 +82,7 @@ class CronJobValidator(serializers.Serializer):
 
 
 class MonitorValidator(serializers.Serializer):
-    project = ProjectField()
+    project = ProjectField(scope="project:read")
     name = serializers.CharField()
     status = serializers.ChoiceField(
         choices=list(zip(MONITOR_STATUSES.keys(), MONITOR_STATUSES.keys())), default="active"

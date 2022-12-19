@@ -676,24 +676,14 @@ urlpatterns = [
         include(
             [
                 url(
-                    r"^(?P<monitor_id>[^\/]+)/checkins/$",
-                    MonitorCheckInsEndpoint.as_view(),
-                    name="sentry-api-0-monitor-check-in-index",
-                ),
-                url(
-                    r"^(?P<organization_slug>[^\/]+)/(?P<monitor_id>[^\/]+)/checkins/$",
-                    MonitorCheckInsEndpoint.as_view(),
-                    name="sentry-api-0-monitor-check-in-index-with-org",
-                ),
-                url(
                     r"^(?P<monitor_id>[^\/]+)/$",
                     MonitorDetailsEndpoint.as_view(),
                     name="sentry-api-0-monitor-details",
                 ),
                 url(
-                    r"^(?P<organization_slug>[^\/]+)/(?P<monitor_id>[^\/]+)/$",
-                    MonitorDetailsEndpoint.as_view(),
-                    name="sentry-api-0-monitor-details-with-org",
+                    r"^(?P<monitor_id>[^\/]+)/checkins/$",
+                    MonitorCheckInsEndpoint.as_view(),
+                    name="sentry-api-0-monitor-check-in-index",
                 ),
                 url(
                     r"^(?P<monitor_id>[^\/]+)/checkins/(?P<checkin_id>[^\/]+)/$",
@@ -704,6 +694,21 @@ urlpatterns = [
                     r"^(?P<monitor_id>[^\/]+)/stats/$",
                     MonitorStatsEndpoint.as_view(),
                     name="sentry-api-0-monitor-stats",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/(?P<monitor_id>[^\/]+)/$",
+                    MonitorDetailsEndpoint.as_view(),
+                    name="sentry-api-0-monitor-details-with-org",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/(?P<monitor_id>[^\/]+)/checkins/$",
+                    MonitorCheckInsEndpoint.as_view(),
+                    name="sentry-api-0-monitor-check-in-index-with-org",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/(?P<monitor_id>[^\/]+)/stats/$",
+                    MonitorStatsEndpoint.as_view(),
+                    name="sentry-api-0-monitor-stats-with-org",
                 ),
             ]
         ),

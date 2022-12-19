@@ -3,6 +3,7 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import {SavedSearchType, SavedSearchVisibility} from 'sentry/types';
 import IssueListSetAsDefault from 'sentry/views/issueList/issueListSetAsDefault';
+import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
 describe('IssueListSetAsDefault', () => {
   const organization = TestStubs.Organization();
@@ -16,13 +17,20 @@ describe('IssueListSetAsDefault', () => {
 
   const defaultProps = {
     organization,
-    savedSearch: null,
-    query: 'is:unresolved',
-    sort: 'date',
+    query: 'browser:firefox',
+    sort: IssueSortOptions.DATE,
     ...routerProps,
   };
 
+  beforeEach(() => {
+    MockApiClient.clearMockResponses();
+  });
+
   it('can set a search as default', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/searches/',
+      body: [],
+    });
     const mockPinSearch = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/pinned-searches/',
       method: 'PUT',
@@ -32,7 +40,7 @@ describe('IssueListSetAsDefault', () => {
       }),
     });
 
-    render(<IssueListSetAsDefault {...defaultProps} />);
+    render(<IssueListSetAsDefault {...defaultProps} />, {organization});
 
     userEvent.click(screen.getByRole('button', {name: /set as default/i}));
 
@@ -40,26 +48,25 @@ describe('IssueListSetAsDefault', () => {
       expect(mockPinSearch).toHaveBeenCalledWith(
         expect.anything(),
         expect.objectContaining({
-          data: {query: 'is:unresolved', sort: 'date', type: SavedSearchType.ISSUE},
+          data: {query: 'browser:firefox', sort: 'date', type: SavedSearchType.ISSUE},
         })
       );
     });
   });
 
   it('can remove a default search', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/searches/',
+      body: [TestStubs.Search({isPinned: true, query: 'browser:firefox'})],
+    });
     const mockUnpinSearch = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/pinned-searches/',
       method: 'DELETE',
     });
 
-    render(
-      <IssueListSetAsDefault
-        {...defaultProps}
-        savedSearch={TestStubs.Search({isPinned: true})}
-      />
-    );
+    render(<IssueListSetAsDefault {...defaultProps} />, {organization});
 
-    userEvent.click(screen.getByRole('button', {name: /remove default/i}));
+    userEvent.click(await screen.findByRole('button', {name: /remove default/i}));
 
     await waitFor(() => {
       expect(mockUnpinSearch).toHaveBeenCalledWith(
@@ -69,5 +76,31 @@ describe('IssueListSetAsDefault', () => {
         })
       );
     });
+  });
+
+  it('does not render anything when on default search and no pinned search', () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/searches/',
+      body: [TestStubs.Search({isPinned: false, query: 'browser:firefox'})],
+    });
+
+    render(<IssueListSetAsDefault {...defaultProps} query="is:unresolved" />, {
+      organization,
+    });
+
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
+  });
+
+  it('does render when on default search and existing pinned search', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/searches/',
+      body: [TestStubs.Search({isPinned: true, query: 'browser:firefox'})],
+    });
+
+    render(<IssueListSetAsDefault {...defaultProps} query="is:unresolved" />, {
+      organization,
+    });
+
+    await screen.findByRole('button', {name: /remove default/i});
   });
 });
