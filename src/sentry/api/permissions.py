@@ -92,7 +92,7 @@ class SentryPermission(ScopedPermission):
         from sentry.api.base import logger
 
         org_context = organization_service.get_organization_by_id(
-            id=organization.id, user_id=request.user.id
+            id=organization.id, user_id=request.user.id if request.user else None
         )
 
         if request.user and request.user.is_authenticated and request.auth:
