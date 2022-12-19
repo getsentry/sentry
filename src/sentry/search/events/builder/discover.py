@@ -269,7 +269,7 @@ class QueryBuilder(BaseQueryBuilder):
         original_col = self.tag_resolver_map.get(col, col)
         column_resolver: Callable[[str], str] = resolve_column(self.dataset)
         column_name = column_resolver(original_col)
-        if column_name.startswith("tags["):
+        if not col.startswith("tags[") and column_name.startswith("tags["):
             self.tag_resolver_map[f"tags_{original_col}"] = original_col
             self.reverse_tag_resolver_map[original_col] = f"tags_{original_col}"
         return column_name
