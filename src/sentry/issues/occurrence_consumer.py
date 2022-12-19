@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Dict, Mapping, Optional
+from typing import Any, Dict, Mapping, Optional, Tuple
 
 import rapidjson
 from arroyo import Topic
@@ -11,6 +11,7 @@ from arroyo.processing.strategies import ProcessingStrategy, ProcessingStrategyF
 from arroyo.types import Commit, Message, Partition
 from django.conf import settings
 
+from sentry.event_manager import GroupInfo
 from sentry.eventstore.models import Event
 from sentry.issues.ingest import save_issue_occurrence
 from sentry.issues.issue_occurrence import IssueOccurrence, IssueOccurrenceData
@@ -70,7 +71,7 @@ def save_event_from_occurrence(
 
 def process_event_and_issue_occurrence(
     occurrence_data: IssueOccurrenceData, event_data: Dict[str, Any]
-) -> Optional[IssueOccurrence]:
+) -> Optional[Tuple[IssueOccurrence, Optional[GroupInfo]]]:
     try:
         event = save_event_from_occurrence(event_data)
     except Exception:
@@ -124,7 +125,9 @@ def _get_kwargs(payload: Mapping[str, Any]) -> Optional[Mapping[str, Any]]:
         return None
 
 
-def _process_message(message: Mapping[str, Any]) -> Optional[IssueOccurrence]:
+def _process_message(
+    message: Mapping[str, Any]
+) -> Optional[Tuple[IssueOccurrence, Optional[GroupInfo]]]:
     kwargs = _get_kwargs(message)
     if not kwargs:
         return None

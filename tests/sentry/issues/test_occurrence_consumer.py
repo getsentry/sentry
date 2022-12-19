@@ -59,8 +59,9 @@ class IssueOccurrenceTestMessage(OccurrenceTestMixin, TestCase, SnubaTestCase): 
     @pytest.mark.django_db
     def test_occurrence_consumer_with_event(self) -> None:
         message = get_test_message(self.project.id)
-        occurrence = _process_message(message)
-        assert occurrence is not None
+        result = _process_message(message)
+        assert result is not None
+        occurrence = result[0]
 
         fetched_occurrence = IssueOccurrence.fetch(occurrence.id, self.project.id)
         assert fetched_occurrence is not None
