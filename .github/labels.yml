@@ -9,7 +9,7 @@
 
 # Getsentry workflow control
 - name: 'Trigger: getsentry tests'
-  alias: ['trigger-getsentry-external']
+  aliases: ['trigger-getsentry-external']
   color: 'A0CABD'
   description: 'once code is reviewed: apply label to PR to trigger getsentry tests'
 - name: 'Trigger: Revert'
