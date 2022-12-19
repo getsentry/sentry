@@ -205,7 +205,7 @@ def get_oldest_or_latest_event_for_environments(
         if group.issue_category == GroupCategory.ERROR:
             dataset = Dataset.Events
         else:
-            dataset = Dataset.IssuePlatformGeneric
+            dataset = Dataset.IssuePlatform
 
         _filter = eventstore.Filter(
             conditions=conditions, project_ids=[group.project_id], group_ids=[group.id]

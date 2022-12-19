@@ -136,7 +136,7 @@ DATASETS = {
     Dataset.Sessions: SESSIONS_SNUBA_MAP,
     Dataset.Metrics: METRICS_COLUMN_MAP,
     Dataset.PerformanceMetrics: METRICS_COLUMN_MAP,
-    Dataset.IssuePlatformGeneric: ISSUE_PLATFORM_MAP,
+    Dataset.IssuePlatform: ISSUE_PLATFORM_MAP,
 }
 
 # Store the internal field names to save work later on.
@@ -147,7 +147,7 @@ DATASET_FIELDS = {
     Dataset.Transactions: list(TRANSACTIONS_SNUBA_MAP.values()),
     Dataset.Discover: list(DISCOVER_COLUMN_MAP.values()),
     Dataset.Sessions: SESSIONS_FIELD_LIST,
-    Dataset.IssuePlatformGeneric: list(ISSUE_PLATFORM_MAP.values()),
+    Dataset.IssuePlatform: list(ISSUE_PLATFORM_MAP.values()),
 }
 
 SNUBA_OR = "or"
