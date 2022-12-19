@@ -47,6 +47,11 @@ type Props = {
 
 export function SetupSourceMapsAlert({projectId, event}: Props) {
   const organization = useOrganization();
+
+  if (!organization.features.includes('source-maps-cta')) {
+    return null;
+  }
+
   const eventPlatform = event.platform ?? 'other';
   const eventFromBrowserJavaScriptSDK = isEventFromBrowserJavaScriptSDK(
     event as EventTransaction
