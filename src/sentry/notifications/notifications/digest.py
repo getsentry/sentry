@@ -15,7 +15,7 @@ from sentry.digests.utils import (
 from sentry.eventstore.models import Event
 from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.notify import notify
-from sentry.notifications.types import ActionTargetType
+from sentry.notifications.types import ActionTargetType, FallthroughChoiceType
 from sentry.notifications.utils import (
     NotificationRuleDetails,
     get_email_link_extra_params,
@@ -49,11 +49,13 @@ class DigestNotification(ProjectNotification):
         digest: Digest,
         target_type: ActionTargetType,
         target_identifier: int | None = None,
+        fallthrough_choice: FallthroughChoiceType | None = None,
     ) -> None:
         super().__init__(project)
         self.digest = digest
         self.target_type = target_type
         self.target_identifier = target_identifier
+        self.fallthrough_choice = fallthrough_choice
 
     def get_unsubscribe_key(self) -> tuple[str, int, str | None] | None:
         return "project", self.project.id, "alert_digest"
@@ -139,7 +141,7 @@ class DigestNotification(ProjectNotification):
 
         if should_send_as_alert_notification(shared_context):
             return send_as_alert_notification(
-                shared_context, self.target_type, self.target_identifier
+                shared_context, self.target_type, self.target_identifier, self.fallthrough_choice
             )
 
         participants_by_provider_by_event = get_participants_by_event(
@@ -147,6 +149,7 @@ class DigestNotification(ProjectNotification):
             self.project,
             self.target_type,
             self.target_identifier,
+            self.fallthrough_choice,
         )
 
         # Get every actor ID for every provider as a set.

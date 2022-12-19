@@ -9,6 +9,7 @@ from sentry.models import ProjectOwnership, Rule
 from sentry.tasks.digests import deliver_digest
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.features import with_feature
 
 
 class DeliverDigestTest(TestCase):
@@ -39,6 +40,10 @@ class DeliverDigestTest(TestCase):
 
     def test_new_key(self):
         self.run_test(f"mail:p:{self.project.id}:IssueOwners:")
+
+    @with_feature("organizations:issue-alert-fallback-targeting")
+    def test_fallthrough_choice_key(self):
+        self.run_test(f"mail:p:{self.project.id}:IssueOwners::AllMembers")
 
     def test_member_key(self):
         self.run_test(f"mail:p:{self.project.id}:Member:{self.user.id}")

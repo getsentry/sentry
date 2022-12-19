@@ -161,13 +161,21 @@ class SplitKeyTestCase(TestCase):
 class UnsplitKeyTestCase(TestCase):
     def test_no_identifier(self):
         assert (
-            unsplit_key(self.project, ActionTargetType.ISSUE_OWNERS, None)
-            == f"mail:p:{self.project.id}:{ActionTargetType.ISSUE_OWNERS.value}:"
+            unsplit_key(self.project, ActionTargetType.ISSUE_OWNERS, None, None)
+            == f"mail:p:{self.project.id}:{ActionTargetType.ISSUE_OWNERS.value}::"
+        )
+
+    def test_no_fallthrough(self):
+        identifier = "123"
+        assert (
+            unsplit_key(self.project, ActionTargetType.ISSUE_OWNERS, identifier, None)
+            == f"mail:p:{self.project.id}:{ActionTargetType.ISSUE_OWNERS.value}:{identifier}:"
         )
 
     def test_identifier(self):
         identifier = "123"
+        fallthrough_choice = FallthroughChoiceType.ALL_MEMBERS
         assert (
-            unsplit_key(self.project, ActionTargetType.ISSUE_OWNERS, identifier)
-            == f"mail:p:{self.project.id}:{ActionTargetType.ISSUE_OWNERS.value}:{identifier}"
+            unsplit_key(self.project, ActionTargetType.ISSUE_OWNERS, identifier, fallthrough_choice)
+            == f"mail:p:{self.project.id}:{ActionTargetType.ISSUE_OWNERS.value}:{identifier}:{fallthrough_choice.value}"
         )
