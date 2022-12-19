@@ -328,11 +328,12 @@ def get_intervals(start: datetime, end: datetime, granularity: int, interval: Op
     if interval is None:
         assert granularity > 0
         delta = timedelta(seconds=granularity)
+        interval = granularity
     else:
-        start = datetime.fromtimestamp(int(start.timestamp() / interval) * interval, timezone.utc)
-        end = datetime.fromtimestamp(int(end.timestamp() / interval) * interval, timezone.utc)
         assert interval > 0
         delta = timedelta(seconds=interval)
+    start = datetime.fromtimestamp(int(start.timestamp() / interval) * interval, timezone.utc)
+
     while start < end:
         yield start
         start += delta
