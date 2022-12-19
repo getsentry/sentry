@@ -179,6 +179,9 @@ class QueryBuilder(BaseQueryBuilder):
         has_metrics: bool = False,
         transform_alias_to_input_format: bool = False,
         use_metrics_layer: bool = False,
+        # This skips converting tags back to their non-prefixed versions when processing the results
+        # Currently this is only used for avoiding conflicting values when doing the first query
+        # of a top events request
         skip_tag_resolution: bool = False,
     ):
         self.dataset = dataset
@@ -203,10 +206,6 @@ class QueryBuilder(BaseQueryBuilder):
             "columns": set(),
         }
 
-        self.tag_resolver_map = {}
-        self.reverse_tag_resolver_map = {}
-        self.skip_tag_resolution = skip_tag_resolution
-
         # Function is a subclass of CurriedFunction
         self.where: List[WhereType] = []
         self.having: List[WhereType] = []
@@ -223,6 +222,12 @@ class QueryBuilder(BaseQueryBuilder):
         self.value_resolver_map: Dict[str, Callable[[Any], Any]] = {}
         # value_resolver_map may change type
         self.meta_resolver_map: Dict[str, str] = {}
+
+        self.skip_tag_resolution = skip_tag_resolution
+        # prefixed tags: tag map for post-processing values
+        self.tag_resolver_map: Dict[str, str] = {}
+        # tag: prefixed tag map for post-processing values
+        self.reverse_tag_resolver_map: Dict[str, str] = {}
 
         self.auto_aggregations = auto_aggregations
         self.limit = self.resolve_limit(limit)

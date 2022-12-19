@@ -1143,28 +1143,21 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         assert other["order"] == 5
         assert [{"count": 3}] in [attrs for _, attrs in other["data"]]
 
-    def test_conflicting_tag_function_alias(self):
-        self.event_data = [
-            {
-                "data": {
-                    "message": "poof",
-                    "timestamp": iso_format(self.day_ago + timedelta(minutes=2)),
-                    "user": {"email": self.user.email},
-                    "tags": {"count": "9001"},
-                    "fingerprint": ["group1"],
-                },
-                "project": self.project2,
-                "count": 7,
+    def test_tag_with_conflicting_function_alias(self):
+        event_data = {
+            "data": {
+                "message": "poof",
+                "timestamp": iso_format(self.day_ago + timedelta(minutes=2)),
+                "user": {"email": self.user.email},
+                "tags": {"count": "9001"},
+                "fingerprint": ["group1"],
             },
-        ]
-        self.events = []
-        for index, event_data in enumerate(self.event_data):
-            data = event_data["data"].copy()
-            event = {}
-            for i in range(event_data["count"]):
-                data["event_id"] = f"{index}{i}" * 16
-                event = self.store_event(data, project_id=event_data["project"].id)
-            self.events.append(event)
+            "project": self.project2,
+            "count": 7,
+        }
+        for i in range(event_data["count"]):
+            event_data["data"]["event_id"] = f"a{i}" * 16
+            self.store_event(event_data["data"], project_id=event_data["project"].id)
 
         # Query for count and count()
         data = {
