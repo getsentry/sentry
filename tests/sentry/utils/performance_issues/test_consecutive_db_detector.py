@@ -41,11 +41,7 @@ class ConsecutiveDbDetectorTest(unittest.TestCase):
             create_span("db", span_duration, "SELECT `order`.`id` FROM `books_author`"),
             create_span("db", span_duration, "SELECT `product`.`id` FROM `products`"),
         ]
-        spans = list(
-            map(
-                lambda span: modify_span_start(span, span_duration * spans.index(span)), spans
-            )  # ensures spans don't overlap
-        )
+        spans = [modify_span_start(span, span_duration * spans.index(span)) for span in spans]
         event = create_event(spans, "a" * 16)
 
         problems = self.find_consecutive_db_problems(event)
