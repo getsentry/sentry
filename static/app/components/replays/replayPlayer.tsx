@@ -172,6 +172,10 @@ const PlayerRoot = styled(BasePlayerRoot)`
   .replayer-wrapper {
     user-select: none;
   }
+
+  .replayer-wrapper > .replayer-mouse {
+    pointer-events: none;
+  }
   .replayer-wrapper > .replayer-mouse-tail {
     position: absolute;
     pointer-events: none;
@@ -181,6 +185,9 @@ const PlayerRoot = styled(BasePlayerRoot)`
   .replayer-wrapper > iframe {
     border: none;
     background: white;
+
+    /* Set pointer-events to make it easier to right-click & inspect */
+    pointer-events: initial !important;
   }
 `;
 
