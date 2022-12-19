@@ -20,7 +20,7 @@ function getExpectedReqestParams({
       environment: [],
       field,
       per_page: 50,
-      project: projectIds.map(Number),
+      projectIds: projectIds.map(Number),
       query,
       statsPeriod: '14d',
     },
