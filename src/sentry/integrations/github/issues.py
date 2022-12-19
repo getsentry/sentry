@@ -37,7 +37,7 @@ class GitHubIssueBasic(IssueBasicMixin):  # type: ignore
         body += f"| **Repeating Spans ({num_repeating_spans})** | {truncatechars(repeating_spans, MAX_CHAR)} |"
         return body
 
-    def get_generic_issue_body(self, event: GroupEvent):
+    def get_generic_issue_body(self, event: GroupEvent) -> str:
         body = "|  |  |\n"
         body += "| ------------- | --------------- |\n"
 
