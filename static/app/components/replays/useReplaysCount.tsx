@@ -7,14 +7,13 @@ import {TableData} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {doDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
 import projectSupportsReplay from 'sentry/utils/replays/projectSupportsReplay';
-import toArray from 'sentry/utils/toArray';
 import useApi from 'sentry/utils/useApi';
 
 type Options = {
   organization: Organization;
   project: undefined | Project;
-  groupIds?: string | string[];
-  transactionNames?: string | string[];
+  groupIds?: string[];
+  transactionNames?: string[];
 };
 
 type CountState = Record<string, undefined | number>;
@@ -25,8 +24,8 @@ function useReplaysCount({groupIds, transactionNames, organization, project}: Op
   const [replayCounts, setReplayCounts] = useState<CountState>({});
 
   const zeroCounts = useMemo(() => {
-    const ids = toArray(groupIds || []);
-    const names = toArray(transactionNames || []);
+    const ids = groupIds || [];
+    const names = transactionNames || [];
     return [...ids, ...names].reduce<CountState>((record, key) => {
       record[key] = 0;
       return record;
@@ -45,15 +44,13 @@ function useReplaysCount({groupIds, transactionNames, organization, project}: Op
     if (groupIds && groupIds.length) {
       return {
         field: 'issue.id' as const,
-        conditions: `issue.id:[${toArray(groupIds).join(',')}]`,
+        conditions: `issue.id:[${groupIds.join(',')}]`,
       };
     }
     if (transactionNames && transactionNames.length) {
       return {
         field: 'transaction' as const,
-        conditions: `event.type:transaction transaction:[${toArray(transactionNames).join(
-          ','
-        )}]`,
+        conditions: `event.type:transaction transaction:[${transactionNames.join(',')}]`,
       };
     }
     return null;
