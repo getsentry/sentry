@@ -1568,20 +1568,40 @@ class OrganizationSessionsEndpointMetricsTest(
 
     @freeze_time(MOCK_DATETIME)
     def test_anr_rate(self):
+        def store_anr_session(user_id, mechanism):
+            self.store_session(
+                make_session(
+                    self.project2,
+                    distinct_id=user_id,
+                    errors=1,
+                    status="abnormal",
+                    abnormal_mechanism=mechanism,
+                )
+            )
+
         self.store_session(
             make_session(
                 self.project2,
-                distinct_id="'610c480b-3c47-4871-8c03-05ea04595eb0'",
+                distinct_id="610c480b-3c47-4871-8c03-05ea04595eb0",
                 started=SESSION_STARTED - 60 * 60,
             )
         )
+        store_anr_session("610c480b-3c47-4871-8c03-05ea04595eb0", "anr_foreground")
+
         self.store_session(
             make_session(
                 self.project2,
-                distinct_id="'610c480b-3c47-4871-8c03-05ea04595eb0'",
-                errors=1,
-                status="abnormal",
-                abnormal_mechanism="anr_foreground",
+                distinct_id="ac0b74a2-8ace-415a-82d2-0fdb0d81dec4",
+                started=SESSION_STARTED - 60 * 60,
+            )
+        )
+        store_anr_session("ac0b74a2-8ace-415a-82d2-0fdb0d81dec4", "anr_background")
+
+        self.store_session(
+            make_session(
+                self.project2,
+                distinct_id="5344c005-653b-48b7-bbaf-d362c2f268dd",
+                started=SESSION_STARTED - 60 * 60,
             )
         )
 
@@ -1611,6 +1631,7 @@ class OrganizationSessionsEndpointMetricsTest(
 
         # valid group by
         response = req(
+            field=["anr_rate()", "foreground_anr_rate()"],
             groupBy=["release", "environment"],
             orderBy=["anr_rate()"],
             query="release:foo@1.0.0",
@@ -1622,9 +1643,11 @@ class OrganizationSessionsEndpointMetricsTest(
                 "by": {"environment": "production", "release": "foo@1.0.0"},
                 "series": {
                     "anr_rate()": [0.5],
+                    "foreground_anr_rate()": [0.25],
                 },
                 "totals": {
                     "anr_rate()": 0.5,
+                    "foreground_anr_rate()": 0.25,
                 },
             },
         ]

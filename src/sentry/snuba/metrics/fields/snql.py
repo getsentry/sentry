@@ -257,6 +257,15 @@ def anr_users(org_id: int, metric_ids, alias=None):
     )
 
 
+def foreground_anr_users(org_id: int, metric_ids, alias=None):
+    return _aggregation_on_abnormal_mechanism_func_factory(
+        org_id,
+        abnormal_mechanism="anr_foreground",
+        metric_ids=metric_ids,
+        alias=alias,
+    )
+
+
 def errored_preaggr_sessions(org_id: int, metric_ids, alias=None):
     return _counter_sum_aggregation_on_session_status_factory(
         org_id, session_status="errored_preaggr", metric_ids=metric_ids, alias=alias

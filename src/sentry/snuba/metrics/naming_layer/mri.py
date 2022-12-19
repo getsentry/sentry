@@ -72,6 +72,8 @@ class SessionMRI(Enum):
     CRASH_FREE_USER_RATE = "e:sessions/user.crash_free_rate@ratio"
     ANR_USER = "e:sessions/user.anr@none"
     ANR_RATE = "e:sessions/user.anr_rate@ratio"
+    FOREGROUND_ANR_USER = "e:sessions/user.foreground_anr@none"
+    FOREGROUND_ANR_RATE = "e:sessions/user.foreground_anr_rate@ratio"
     DURATION = "d:sessions/duration.exited@second"
 
 
