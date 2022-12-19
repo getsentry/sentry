@@ -385,6 +385,8 @@ def record_event_with_first_minified_stack_trace_for_project(project, event, **k
             url=dict(event.tags).get("url", None),
         )
 
+        # we use signal for consistency with other places but would like to get rid of the signal
+        # since it doesn’t serve any purpose
         project.update(flags=F("flags").bitor(Project.flags.has_minified_stack_trace))
 
 
