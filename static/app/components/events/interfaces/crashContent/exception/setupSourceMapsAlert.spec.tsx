@@ -13,7 +13,9 @@ describe('SetupSourceMapsAlert', function () {
     });
 
     expect(
-      screen.queryByText('Get Sentry ready for your production environment')
+      screen.queryByText(
+        'Sentry can un-minify your code to show you more readable stack traces'
+      )
     ).not.toBeInTheDocument();
   });
 
@@ -26,10 +28,12 @@ describe('SetupSourceMapsAlert', function () {
     });
 
     expect(
-      screen.getByText('Get Sentry ready for your production environment')
+      screen.getByText(
+        'Sentry can un-minify your code to show you more readable stack traces'
+      )
     ).toBeInTheDocument();
 
-    expect(screen.getByRole('button', {name: 'Setup Source Maps'})).toHaveAttribute(
+    expect(screen.getByRole('button', {name: 'Upload Source Maps'})).toHaveAttribute(
       'href',
       'https://docs.sentry.io/platforms/javascript/sourcemaps/'
     );
@@ -46,10 +50,12 @@ describe('SetupSourceMapsAlert', function () {
     });
 
     expect(
-      screen.getByText('Get Sentry ready for your production environment')
+      screen.getByText(
+        'Sentry can un-minify your code to show you more readable stack traces'
+      )
     ).toBeInTheDocument();
 
-    expect(screen.getByRole('button', {name: 'Setup Source Maps'})).toHaveAttribute(
+    expect(screen.getByRole('button', {name: 'Upload Source Maps'})).toHaveAttribute(
       'href',
       'https://docs.sentry.io/platforms/javascript/guides/react/sourcemaps/'
     );
@@ -67,10 +73,12 @@ describe('SetupSourceMapsAlert', function () {
     });
 
     expect(
-      screen.getByText('Get Sentry ready for your production environment')
+      screen.getByText(
+        'Sentry can un-minify your code to show you more readable stack traces'
+      )
     ).toBeInTheDocument();
 
-    expect(screen.getByRole('button', {name: 'Setup Source Maps'})).toHaveAttribute(
+    expect(screen.getByRole('button', {name: 'Upload Source Maps'})).toHaveAttribute(
       'href',
       'https://docs.sentry.io/platforms/javascript/guides/react/sourcemaps/'
     );
@@ -87,10 +95,40 @@ describe('SetupSourceMapsAlert', function () {
     });
 
     expect(
-      screen.getByText('Get Sentry ready for your production environment')
+      screen.getByText(
+        'Sentry can un-minify your code to show you more readable stack traces'
+      )
     ).toBeInTheDocument();
 
-    expect(screen.getByRole('button', {name: 'Setup Source Maps'})).toHaveAttribute(
+    expect(screen.getByRole('button', {name: 'Upload Source Maps'})).toHaveAttribute(
+      'href',
+      'https://docs.sentry.io/platforms/javascript/sourcemaps/'
+    );
+  });
+
+  it('show localhost copy', function () {
+    const {project, organization} = initializeOrg();
+    const event = TestStubs.EventStacktraceException({
+      platform: 'unity',
+      tags: [
+        {
+          key: 'url',
+          value: 'http://localhost:3000',
+        },
+      ],
+    });
+
+    render(<SetupSourceMapsAlert projectId={project.id} event={event} />, {
+      organization,
+    });
+
+    expect(
+      screen.getByText(
+        'In production, you might have minified JS code that makes stack traces hard to read. Sentry can un-minify it for you'
+      )
+    ).toBeInTheDocument();
+
+    expect(screen.getByRole('button', {name: 'Upload Source Maps'})).toHaveAttribute(
       'href',
       'https://docs.sentry.io/platforms/javascript/sourcemaps/'
     );

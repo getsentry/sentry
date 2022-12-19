@@ -3,7 +3,7 @@ import Button from 'sentry/components/button';
 import {isEventFromBrowserJavaScriptSDK} from 'sentry/components/events/interfaces/spans/utils';
 import {PlatformKey, sourceMaps} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
-import {Event, EventTransaction, Project} from 'sentry/types';
+import {EntryType, Event, EventTransaction, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {eventHasSourceMaps} from 'sentry/utils/events';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -32,6 +32,14 @@ const sourceMapsDocLinksPerPlatform = {
     'https://docs.sentry.io/platforms/javascript/guides/svelte/sourcemaps/',
 };
 
+function isLocalhost(url?: string) {
+  if (!url) {
+    return false;
+  }
+
+  return url.includes('localhost') || url.includes('127.0.0.1');
+}
+
 type Props = {
   event: Event;
   projectId: Project['id'];
@@ -56,6 +64,10 @@ export function SetupSourceMapsAlert({projectId, event}: Props) {
   if (eventHasSourceMaps(event)) {
     return null;
   }
+
+  const url =
+    event.entries?.find(entry => entry.type === EntryType.REQUEST)?.data?.url ??
+    event.tags.find(tag => tag.key === 'url')?.value;
 
   const platform = eventFromBrowserJavaScriptSDK
     ? event.sdk?.name?.substring('sentry.javascript.'.length) ?? 'other'
@@ -88,11 +100,15 @@ export function SetupSourceMapsAlert({projectId, event}: Props) {
             );
           }}
         >
-          {t('Setup Source Maps')}
+          {t('Upload Source Maps')}
         </Button>
       }
     >
-      {t('Get Sentry ready for your production environment')}
+      {isLocalhost(url)
+        ? t(
+            'In production, you might have minified JS code that makes stack traces hard to read. Sentry can un-minify it for you'
+          )
+        : t('Sentry can un-minify your code to show you more readable stack traces')}
     </Alert>
   );
 }
