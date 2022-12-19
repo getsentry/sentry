@@ -128,11 +128,6 @@ export type EnhancedProcessedSpanType =
       type: 'span_group_siblings';
     } & SpanSiblingGroupProps);
 
-export type SpanEntry = {
-  data: Array<RawSpanType>;
-  type: 'spans';
-};
-
 // map span_id to children whose parent_span_id is equal to span_id
 export type SpanChildrenLookupType = {[span_id: string]: Array<SpanType>};
 

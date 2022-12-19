@@ -11,7 +11,7 @@ import {
   TOGGLE_BUTTON_MAX_WIDTH,
 } from 'sentry/components/performance/waterfall/treeConnector';
 import {Organization} from 'sentry/types';
-import {EntryType, EventTransaction} from 'sentry/types/event';
+import {EntrySpans, EntryType, EventTransaction} from 'sentry/types/event';
 import {assert} from 'sentry/types/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {WebVital} from 'sentry/utils/fields';
@@ -30,7 +30,6 @@ import {
   ParsedTraceType,
   ProcessedSpanType,
   RawSpanType,
-  SpanEntry,
   SpanType,
   TraceContextType,
   TreeDepthType,
@@ -312,7 +311,7 @@ export function getTraceContext(
 }
 
 export function parseTrace(event: Readonly<EventTransaction>): ParsedTraceType {
-  const spanEntry = event.entries.find((entry: SpanEntry | any): entry is SpanEntry => {
+  const spanEntry = event.entries.find((entry: EntrySpans | any): entry is EntrySpans => {
     return entry.type === EntryType.SPANS;
   });
 
