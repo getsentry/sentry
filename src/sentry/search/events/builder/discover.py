@@ -1433,7 +1433,7 @@ class QueryBuilder(BaseQueryBuilder):
             if "meta" in results:
                 for value in results["meta"]:
                     name = value["name"]
-                    key = translated_columns.get(name, name)
+                    key = self.tag_resolver_map.get(name, translated_columns.get(name, name))
                     field_type = fields.get_json_meta_type(key, value.get("type"), self)
                     field_meta[key] = field_type
                 # Ensure all columns in the result have types.
@@ -1447,7 +1447,7 @@ class QueryBuilder(BaseQueryBuilder):
             def get_row(row: Dict[str, Any]) -> Dict[str, Any]:
                 transformed = {}
                 for key, value in row.items():
-                    new_key = translated_columns.get(key, key)
+                    new_key = self.tag_resolver_map.get(key, translated_columns.get(key, key))
 
                     if isinstance(value, float):
                         # 0 for nan, and none for inf were chosen arbitrarily, nan and inf are invalid json
