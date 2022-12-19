@@ -18,6 +18,7 @@ from sentry.ingest.transaction_clusterer.rules import (
 from sentry.ingest.transaction_clusterer.tasks import cluster_projects, spawn_clusterers
 from sentry.ingest.transaction_clusterer.tree import TreeClusterer
 from sentry.models.project import Project
+from sentry.relay.config import get_project_config
 from sentry.testutils.helpers import Feature
 
 
@@ -188,3 +189,39 @@ def test_run_clusterer_task(cluster_projects_delay, default_organization):
             "/test/path/*/**",
             "/users/trans/*/**",
         }
+
+
+@pytest.mark.django_db
+def test_transaction_clusterer_generates_rules(default_project):
+    def _get_projconfig_tx_rules(project: Project):
+        return (
+            get_project_config(project, full_config=True).to_dict().get("config").get("txNameRules")
+        )
+
+    with Feature({"organizations:transaction-name-sanitization": False}):
+        assert _get_projconfig_tx_rules(default_project) is None
+    with Feature({"organizations:transaction-name-sanitization": True}):
+        assert _get_projconfig_tx_rules(default_project) is None
+
+    default_project.update_option(
+        "sentry:transaction_name_cluster_rules", [("/rule/*/0/**", 0), ("/rule/*/1/**", 1)]
+    )
+
+    with Feature({"organizations:transaction-name-sanitization": False}):
+        assert _get_projconfig_tx_rules(default_project) is None
+    with Feature({"organizations:transaction-name-sanitization": True}):
+        assert _get_projconfig_tx_rules(default_project) == [
+            # TTL is 90d, so three months to expire
+            {
+                "pattern": "/rule/*/0/**",
+                "expiry": "1970-04-01T00:00:00+00:00",
+                "scope": {"source": "url"},
+                "redaction": {"method": "replace", "substitution": "*"},
+            },
+            {
+                "pattern": "/rule/*/1/**",
+                "expiry": "1970-04-01T00:00:01+00:00",
+                "scope": {"source": "url"},
+                "redaction": {"method": "replace", "substitution": "*"},
+            },
+        ]
