@@ -12,8 +12,6 @@ from datetime import datetime, timedelta
 from typing import Any, Dict, Iterable, Mapping, Tuple
 from urllib.parse import urlparse
 
-import pytz
-
 import sentry
 from sentry.types.region import Region
 from sentry.utils.celery import crontab_with_minute_jitter
@@ -289,6 +287,7 @@ MIDDLEWARE = (
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "sentry.middleware.auth.AuthenticationMiddleware",
+    "sentry.middleware.integrations.IntegrationControlMiddleware",
     "sentry.middleware.customer_domain.CustomerDomainMiddleware",
     "sentry.middleware.user.UserActiveMiddleware",
     "sentry.middleware.sudo.SudoMiddleware",
@@ -1906,7 +1905,6 @@ SENTRY_USE_PROFILING = False
 # This flag activates consuming issue platform occurrence data in the development environment
 SENTRY_USE_ISSUE_OCCURRENCE = False
 
-
 # This flag activates code paths that are specific for customer domains
 SENTRY_USE_CUSTOMER_DOMAINS = False
 
@@ -2074,6 +2072,9 @@ SENTRY_DEVSERVICES = {
                 "ENABLE_ISSUE_OCCURRENCE_CONSUMER": "1"
                 if settings.SENTRY_USE_ISSUE_OCCURRENCE
                 else "",
+                "ENABLE_AUTORUN_MIGRATION_SEARCH_ISSUES": os.environ.get(
+                    "ENABLE_AUTORUN_MIGRATION_SEARCH_ISSUES", ""
+                ),
             },
             "only_if": "snuba" in settings.SENTRY_EVENTSTREAM
             or "kafka" in settings.SENTRY_EVENTSTREAM,
@@ -2510,6 +2511,7 @@ KAFKA_INGEST_REPLAY_EVENTS = "ingest-replay-events"
 KAFKA_INGEST_REPLAYS_RECORDINGS = "ingest-replay-recordings"
 KAFKA_INGEST_OCCURRENCES = "ingest-occurrences"
 KAFKA_REGION_TO_CONTROL = "region-to-control"
+KAFKA_EVENTSTREAM_GENERIC = "generic-events"
 
 # topic for testing multiple indexer backends in parallel
 # in production. So far just testing backends for the perf data,
@@ -2560,6 +2562,7 @@ KAFKA_TOPICS = {
     KAFKA_SNUBA_GENERICS_METRICS_CS: {"cluster": "default"},
     # Region to Control Silo messaging - eg UserIp and AuditLog
     KAFKA_REGION_TO_CONTROL: {"cluster": "default"},
+    KAFKA_EVENTSTREAM_GENERIC: {"cluster": "default"},
 }
 
 
@@ -2930,11 +2933,6 @@ SLICED_KAFKA_TOPICS: Mapping[Tuple[str, int], Mapping[str, Any]] = {}
 # Used by silo tests -- when requests pass through decorated endpoints, switch the server silo mode to match that
 # decorator.
 SINGLE_SERVER_SILO_MODE = False
-
-# Used to determine if we should or not record an analytic data for a first event of a project with a minified stack trace
-START_DATE_TRACKING_FIRST_EVENT_WITH_MINIFIED_STACK_TRACE_PER_PROJ = datetime(
-    2022, 12, 14, tzinfo=pytz.UTC
-)
 
 # Set the URL for signup page that we redirect to for the setup wizard if signup=1 is in the query params
 SENTRY_SIGNUP_URL = None

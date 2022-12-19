@@ -385,7 +385,7 @@ def record_event_with_first_minified_stack_trace_for_project(project, event, **k
             url=dict(event.tags).get("url", None),
         )
 
-    project.update(flags=F("flags").bitor(Project.flags.has_minified_stack_trace))
+        project.update(flags=F("flags").bitor(Project.flags.has_minified_stack_trace))
 
 
 transaction_processed.connect(record_user_context_received, weak=False)
