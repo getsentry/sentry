@@ -43,4 +43,27 @@ describe('SpanTree', () => {
     ]);
     expect(tree.orphanedSpans[0].span_id).toBe('2');
   });
+
+  it('iterates over all spans with depth', () => {
+    const tree = new SpanTree([
+      s({span_id: '1', timestamp: 1, start_timestamp: 0}),
+      s({span_id: '2', timestamp: 0.5, start_timestamp: 0}),
+      s({span_id: '3', timestamp: 0.2, start_timestamp: 0}),
+      s({span_id: '4', timestamp: 1, start_timestamp: 0.5}),
+    ]);
+
+    expect(tree.spanTree.children[0].children[1].span.span_id).toBe('4');
+
+    tree.forEach(span => {
+      if (span.node.span.span_id === '1') {
+        expect(span.depth).toBe(0);
+      } else if (span.node.span.span_id === '2') {
+        expect(span.depth).toBe(1);
+      } else if (span.node.span.span_id === '3') {
+        expect(span.depth).toBe(2);
+      } else if (span.node.span.span_id === '4') {
+        expect(span.depth).toBe(1);
+      }
+    });
+  });
 });
