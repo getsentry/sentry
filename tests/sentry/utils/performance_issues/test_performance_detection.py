@@ -215,42 +215,6 @@ class PerformanceDetectionTest(unittest.TestCase):
             perf_problems = _detect_performance_problems(n_plus_one_event, sdk_span_mock)
             assert_n_plus_one_db_problem(perf_problems)
 
-    def test_calls_detect_slow_span(self):
-        no_slow_span_event = create_event([create_span("db", 999.0)] * 1)
-        slow_span_event = create_event([create_span("db", 1001.0)] * 1)
-        slow_not_allowed_op_span_event = create_event([create_span("random", 1001.0, "example")])
-
-        sdk_span_mock = Mock()
-
-        _detect_performance_problems(no_slow_span_event, sdk_span_mock)
-        assert sdk_span_mock.containing_transaction.set_tag.call_count == 0
-
-        _detect_performance_problems(slow_not_allowed_op_span_event, sdk_span_mock)
-        assert sdk_span_mock.containing_transaction.set_tag.call_count == 0
-
-        _detect_performance_problems(slow_span_event, sdk_span_mock)
-        assert sdk_span_mock.containing_transaction.set_tag.call_count == 4
-        sdk_span_mock.containing_transaction.set_tag.assert_has_calls(
-            [
-                call(
-                    "_pi_all_issue_count",
-                    1,
-                ),
-                call(
-                    "_pi_sdk_name",
-                    "sentry.python",
-                ),
-                call(
-                    "_pi_transaction",
-                    "aaaaaaaaaaaaaaaa",
-                ),
-                call(
-                    "_pi_slow_span",
-                    "bbbbbbbbbbbbbbbb",
-                ),
-            ]
-        )
-
     def test_calls_partial_span_op_allowed(self):
         span_event = create_event(
             [create_span("db.query", 2001.0, "SELECT something FROM something_else")] * 1
@@ -280,20 +244,6 @@ class PerformanceDetectionTest(unittest.TestCase):
                 ),
             ]
         )
-
-    def test_calls_slow_span_threshold(self):
-        http_span_event = create_event(
-            [create_span("http.client", 1001.0, "http://example.com")] * 1
-        )
-        db_span_event = create_event([create_span("db.query", 1001.0)] * 1)
-
-        sdk_span_mock = Mock()
-
-        _detect_performance_problems(http_span_event, sdk_span_mock)
-        assert sdk_span_mock.containing_transaction.set_tag.call_count == 0
-
-        _detect_performance_problems(db_span_event, sdk_span_mock)
-        assert sdk_span_mock.containing_transaction.set_tag.call_count == 4
 
     def test_calls_detect_render_blocking_asset(self):
         render_blocking_asset_event = {
