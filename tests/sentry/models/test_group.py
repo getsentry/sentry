@@ -1,3 +1,4 @@
+import uuid
 from datetime import timedelta
 
 import pytest
@@ -5,7 +6,7 @@ from django.core.cache import cache
 from django.db.models import ProtectedError
 from django.utils import timezone
 
-from sentry.issues.ingest import save_issue_occurrence
+from sentry.issues.occurrence_consumer import process_event_and_issue_occurrence
 from sentry.models import (
     Group,
     GroupRedirect,
@@ -347,18 +348,21 @@ class GroupGetLatestEventTest(TestCase, OccurrenceTestMixin):
         assert group_event.occurrence is None
 
     def test_get_latest_event_occurrence(self):
-        event = self.store_event(
-            data={"event_id": "a" * 32, "fingerprint": ["group-1"], "timestamp": self.two_min_ago},
-            project_id=self.project.id,
-        )
-        occurrence_data = self.build_occurrence_data(event_id=event.event_id)
-        occurrence = save_issue_occurrence(occurrence_data, event)
+        occurrence_data = self.build_occurrence_data()
+        event_id = uuid.uuid4().hex
+        occurrence = process_event_and_issue_occurrence(
+            occurrence_data,
+            {
+                "event_id": event_id,
+                "fingerprint": ["group-1"],
+                "project_id": self.project.id,
+                "timestamp": before_now(minutes=1).isoformat(),
+            },
+        )[0]
 
         group = Group.objects.first()
         group.update(type=GroupType.PROFILE_BLOCKED_THREAD.value)
 
-        # TODO: Validate that this works once the clickhouse dataset is merged.
         group_event = group.get_latest_event()
-
-        assert group_event.event_id == "b" * 32
+        assert group_event.event_id == event_id
         self.assert_occurrences_identical(group_event.occurrence, occurrence)
