@@ -1,35 +1,14 @@
 import re
 import time
-import uuid
-from datetime import datetime
 from unittest import mock
 
 import responses
 
 from sentry.integrations.msteams import MsTeamsNotifyServiceAction
-from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.models import Integration
 from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase
-from sentry.types.issues import GroupType
+from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
 from sentry.utils import json
-from sentry.utils.dates import ensure_aware
-
-my_occurrence = IssueOccurrence(
-    uuid.uuid4().hex,
-    uuid.uuid4().hex,
-    ["some-fingerprint"],
-    "something bad happened",
-    "it was bad",
-    "1234",
-    {"Test": 123},
-    [
-        IssueEvidence("Attention", "Very important information!!!", True),
-        IssueEvidence("Evidence 2", "Not important", False),
-        IssueEvidence("Evidence 3", "Nobody cares about this", False),
-    ],
-    GroupType.PROFILE_BLOCKED_THREAD,
-    ensure_aware(datetime.now()),
-)
 
 
 class MsTeamsNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
@@ -90,7 +69,7 @@ class MsTeamsNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
     @responses.activate
     @mock.patch(
         "sentry.eventstore.models.GroupEvent.occurrence",
-        return_value=my_occurrence,
+        return_value=TEST_ISSUE_OCCURRENCE,
         new_callable=mock.PropertyMock,
     )
     def test_applies_correctly_generic_issue(self, occurrence):
@@ -124,9 +103,9 @@ class MsTeamsNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
 
         assert (
             title_card["text"]
-            == f"[{my_occurrence.issue_title}](http://testserver/organizations/{self.organization.slug}/issues/{event.group_id}/?referrer=msteams)"
+            == f"[{TEST_ISSUE_OCCURRENCE.issue_title}](http://testserver/organizations/{self.organization.slug}/issues/{event.group_id}/?referrer=msteams)"
         )
-        assert description["text"] == my_occurrence.evidence_display[0].value
+        assert description["text"] == TEST_ISSUE_OCCURRENCE.evidence_display[0].value
 
     @responses.activate
     def test_applies_correctly_performance_issue(self):
