@@ -5,8 +5,6 @@ import contextlib
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Dict, Generator, List, Mapping, Type
 
-from django.contrib.auth.models import AnonymousUser
-
 from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_delegation, stubbed
 from sentry.services.hybrid_cloud.organization import ApiOrganizationMember
 from sentry.services.hybrid_cloud.user import APIUser
@@ -158,7 +156,9 @@ class AuthenticationContext:
         isolated, controlled way.  This method allows for a context handling an RPC or inter silo behavior to assume
         the correct user and auth context provided explicitly in a context.
         """
-        from sentry.app import env
+        from django.contrib.auth import get_user
+
+        from sentry.env import env
 
         if request is None:
             request = env.request
@@ -174,7 +174,7 @@ class AuthenticationContext:
 
         old_user = getattr(request, "user", None)
         old_auth = getattr(request, "auth", None)
-        request.user = self.user or AnonymousUser()
+        request.user = self.user or get_user(request)
         request.auth = self.auth
 
         try:
