@@ -152,6 +152,7 @@ class Project(Model, PendingDeletionMixin, SnowflakeIdMixin):
                 "spike_protection_attachment_currently_active",
                 "spike_protection_attachment_currently_active",
             ),
+            ("has_minified_stack_trace", "This Project has event with minified stack trace"),
         ),
         default=10,
         null=True,
