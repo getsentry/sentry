@@ -1,14 +1,23 @@
 from __future__ import annotations
 
 import abc
+import base64
 import contextlib
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, Dict, Generator, List, Mapping, Type
+from enum import IntEnum
+from typing import TYPE_CHECKING, Any, Dict, Generator, List, Mapping, Tuple, Type
 
+from django.contrib.auth.models import AnonymousUser
+from rest_framework.authentication import BaseAuthentication, SessionAuthentication
+from rest_framework.request import Request
+
+from sentry.api.authentication import ApiKeyAuthentication, TokenAuthentication
+from sentry.relay.utils import get_header_relay_id, get_header_relay_signature
 from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_delegation, stubbed
 from sentry.services.hybrid_cloud.organization import ApiOrganizationMember
 from sentry.services.hybrid_cloud.user import APIUser
 from sentry.silo import SiloMode
+from sentry.utils.linksign import find_signature
 
 if TYPE_CHECKING:
     from django.contrib.auth.models import AnonymousUser
@@ -16,9 +25,82 @@ if TYPE_CHECKING:
     from sentry.models import OrganizationMember
 
 
+class ApiAuthenticatorType(IntEnum):
+    API_KEY_AUTHENTICATION = 0
+    TOKEN_AUTHENTICATION = 1
+    SESSION_AUTHENTICATION = 2
+
+    @classmethod
+    def from_authenticator(self, auth: Type[BaseAuthentication]) -> ApiAuthenticatorType | None:
+        if auth == ApiKeyAuthentication:
+            return ApiAuthenticatorType.API_KEY_AUTHENTICATION
+        if auth == TokenAuthentication:
+            return ApiAuthenticatorType.TOKEN_AUTHENTICATION
+        if auth == SessionAuthentication:
+            return ApiAuthenticatorType.SESSION_AUTHENTICATION
+        return None
+
+    def as_authenticator(self) -> BaseAuthentication:
+        if self == self.API_KEY_AUTHENTICATION:
+            return ApiKeyAuthentication()
+        if self == self.TOKEN_AUTHENTICATION:
+            return TokenAuthentication()
+        if self == self.SESSION_AUTHENTICATION:
+            return SessionAuthentication()
+        else:
+            raise ValueError(f"{self!r} has not authenticator associated with it.")
+
+
+def authentication_request_from(request: Request) -> AuthenticationRequest:
+    return AuthenticationRequest(
+        sentry_relay_id=get_header_relay_id(request),
+        sentry_relay_signature=get_header_relay_signature(request),
+        backend=request.session.get("_auth_user_backend", None),
+        user_id=request.session.get("_auth_user_id", None),
+        user_hash=request.session.get("_auth_user_hash", None),
+        nonce=request.session.get("_nonce", None),
+        remote_addr=request.META["REMOTE_ADDR"],
+        signature=find_signature(request),
+        absolute_url=request.build_absolute_uri(),
+        path=request.path,
+        authorization_b64=_normalize_to_b64(request.META.get("HTTP_AUTHORIZATION")),
+    )
+
+
+def _normalize_to_b64(input: str | bytes | None) -> str | None:
+    if input is None:
+        return None
+    if isinstance(input, str):
+        input = input.encode("utf8")
+    return base64.b64encode(input).decode("utf8")
+
+
+class ApiAuthentication(BaseAuthentication):
+    types: List[ApiAuthenticatorType]
+
+    def __init__(self, types: List[ApiAuthenticatorType]):
+        self.types = types
+
+    def authenticate(self, request: Request) -> Tuple[Any, Any] | None:
+        response = auth_service.authenticate_with(
+            request=authentication_request_from(request), authenticator_types=self.types
+        )
+
+        if response.user is not None:
+            return response.user, response.auth
+
+        return None
+
+
 class AuthService(InterfaceWithLifecycle):
     @abc.abstractmethod
-    def authenticate(self, *, request: AuthenticationRequest) -> AuthenticationResponse:
+    def authenticate(self, *, request: AuthenticationRequest) -> MiddlewareAuthenticationResponse:
+        pass
+
+    @abc.abstractmethod
+    def authenticate_with(
+        self, *, request: AuthenticationRequest, authenticator_types: List[ApiAuthenticatorType]
+    ) -> AuthenticationContext:
         pass
 
     @abc.abstractmethod
@@ -71,6 +153,10 @@ class ApiMemberSsoState:
 
 @dataclass
 class AuthenticationRequest:
+    # HTTP_X_SENTRY_RELAY_ID
+    sentry_relay_id: str | None = None
+    # HTTP_X_SENTRY_RELAY_SIGNATURE
+    sentry_relay_signature: str | None = None
     backend: str | None = None
     user_id: str | None = None
     user_hash: str | None = None
@@ -200,7 +286,7 @@ class AuthenticationContext:
 
 
 @dataclass
-class AuthenticationResponse(AuthenticationContext):
+class MiddlewareAuthenticationResponse(AuthenticationContext):
     expired: bool = False
     user_from_signed_request: bool = False
 
