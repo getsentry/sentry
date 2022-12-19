@@ -796,6 +796,7 @@ class Factories:
         return Factories.create_dif_file(file=file, object_name=object_name, **kwargs)
 
     @staticmethod
+    @exempt_from_silo_limits()
     def add_user_permission(user, permission):
         UserPermission.objects.create(user=user, permission=permission)
 

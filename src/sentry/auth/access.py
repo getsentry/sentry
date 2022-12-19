@@ -31,15 +31,13 @@ from sentry.models import (
     Team,
     TeamStatus,
     User,
-    UserPermission,
-    UserRole,
 )
 from sentry.roles import organization_roles
 from sentry.roles.manager import OrganizationRole, TeamRole
 from sentry.services.hybrid_cloud.app import app_service
 from sentry.services.hybrid_cloud.auth import ApiAuthState, ApiMemberSsoState, auth_service
 from sentry.services.hybrid_cloud.organization import ApiTeamMember, ApiUserOrganizationContext
-from sentry.services.hybrid_cloud.user import APIUser
+from sentry.services.hybrid_cloud.user import APIUser, user_service
 from sentry.utils import metrics
 from sentry.utils.request_cache import request_cache
 
@@ -50,8 +48,10 @@ def get_cached_organization_member(user_id: int, organization_id: int) -> Organi
 
 
 def get_permissions_for_user(user_id: int) -> FrozenSet[str]:
-    union = UserRole.permissions_for_user(user_id) | UserPermission.for_user(user_id)
-    return cast(FrozenSet[str], union)
+    user = user_service.get_user(user_id)
+    if user is None:
+        return FrozenSet()
+    return user.roles | user.permissions
 
 
 class Access(abc.ABC):

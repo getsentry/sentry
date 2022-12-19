@@ -9,7 +9,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.api.base import Endpoint, pending_silo_endpoint
+from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.assistant import manager
 from sentry.models import AssistantActivity
 
@@ -53,7 +53,7 @@ class AssistantSerializer(serializers.Serializer):
         return attrs
 
 
-@pending_silo_endpoint
+@control_silo_endpoint
 class AssistantEndpoint(Endpoint):
     permission_classes = (IsAuthenticated,)
 
@@ -91,7 +91,7 @@ class AssistantEndpoint(Endpoint):
 
         fields = {}
         if status == Status.RESTART.value:
-            AssistantActivity.objects.filter(user=request.user, guide_id=guide_id).delete()
+            AssistantActivity.objects.filter(user_id=request.user.id, guide_id=guide_id).delete()
         else:
             if useful is not None:
                 fields["useful"] = useful
@@ -101,7 +101,9 @@ class AssistantEndpoint(Endpoint):
                 fields["dismissed_ts"] = timezone.now()
 
             try:
-                AssistantActivity.objects.create(user=request.user, guide_id=guide_id, **fields)
+                AssistantActivity.objects.create(
+                    user_id=request.user.id, guide_id=guide_id, **fields
+                )
             except IntegrityError:
                 pass
 
