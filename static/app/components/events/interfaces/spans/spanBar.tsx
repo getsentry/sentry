@@ -1,6 +1,7 @@
 import 'intersection-observer'; // this is a polyfill
 
 import {Component, createRef, Fragment} from 'react';
+import {CellMeasurerCache, List as ReactVirtualizedList} from 'react-virtualized';
 import styled from '@emotion/styled';
 import {withProfiler} from '@sentry/react';
 
@@ -55,7 +56,6 @@ import {QuickTraceEvent, TraceError} from 'sentry/utils/performance/quickTrace/t
 import {isTraceFull} from 'sentry/utils/performance/quickTrace/utils';
 import {PerformanceInteraction} from 'sentry/utils/performanceForSentry';
 
-import * as AnchorLinkManager from './anchorLinkManager';
 import {
   MINIMAP_CONTAINER_HEIGHT,
   MINIMAP_SPAN_BAR_HEIGHT,
@@ -106,19 +106,25 @@ const INTERSECTION_THRESHOLDS: Array<number> = [
 
 export const MARGIN_LEFT = 0;
 
-type SpanBarProps = {
+export type SpanBarProps = {
+  addContentSpanBarRef: (instance: HTMLDivElement | null) => void;
+  addExpandedSpan: (span: Readonly<ProcessedSpanType>, callback?: () => void) => void;
+  cellMeasurerCache: CellMeasurerCache;
   continuingTreeDepths: Array<TreeDepthType>;
+  didAnchoredSpanMount: () => boolean;
   event: Readonly<EventTransaction>;
   fetchEmbeddedChildrenState: FetchEmbeddedChildrenState;
   generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
-  generateContentSpanBarRef: () => (instance: HTMLDivElement | null) => void;
+  getCurrentLeftPos: () => number;
   isEmbeddedTransactionTimeAdjusted: boolean;
-  markSpanInView: (spanId: string, treeDepth: number) => void;
-  markSpanOutOfView: (spanId: string) => void;
+  isSpanExpanded: (span: Readonly<ProcessedSpanType>) => boolean;
+  listRef: React.RefObject<ReactVirtualizedList>;
   numOfSpanChildren: number;
   numOfSpans: number;
   onWheel: (deltaX: number) => void;
   organization: Organization;
+  removeContentSpanBarRef: (instance: HTMLDivElement | null) => void;
+  removeExpandedSpan: (span: Readonly<ProcessedSpanType>, callback?: () => void) => void;
   showEmbeddedChildren: boolean;
   showSpanTree: boolean;
   span: Readonly<ProcessedSpanType>;
@@ -135,6 +141,8 @@ type SpanBarProps = {
   groupType?: GroupType;
   isLast?: boolean;
   isRoot?: boolean;
+  markAnchoredSpanIsMounted?: () => void;
+  measure?: () => void;
   spanBarColor?: string;
   spanBarType?: SpanBarType;
   toggleSiblingSpanGroup?: ((span: SpanType, occurrence: number) => void) | undefined;
@@ -161,6 +169,39 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
         passive: false,
       });
     }
+
+    // On mount, it is necessary to set the left styling of the content here due to the span tree being virtualized.
+    // If we rely on the scrollBarManager to set the styling, it happens too late and awkwardly applies an animation.
+    if (this.spanContentRef) {
+      this.props.addContentSpanBarRef(this.spanContentRef);
+      const left = -this.props.getCurrentLeftPos();
+      this.spanContentRef.style.transform = `translateX(${left}px)`;
+      this.spanContentRef.style.transformOrigin = 'left';
+    }
+
+    const {
+      span,
+      markAnchoredSpanIsMounted,
+      addExpandedSpan,
+      isSpanExpanded,
+      measure,
+      didAnchoredSpanMount,
+    } = this.props;
+
+    if (isGapSpan(span)) {
+      return;
+    }
+
+    if (spanTargetHash(span.span_id) === location.hash && !didAnchoredSpanMount()) {
+      this.scrollIntoView();
+      markAnchoredSpanIsMounted?.();
+      addExpandedSpan(span);
+      return;
+    }
+
+    if (isSpanExpanded(span)) {
+      this.setState({showDetail: true}, measure);
+    }
   }
 
   componentWillUnmount() {
@@ -172,15 +213,17 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
     }
 
     const {span} = this.props;
-    if ('type' in span) {
+    if (isGapSpan(span)) {
       return;
     }
 
-    this.props.markSpanOutOfView(span.span_id);
+    this.props.removeContentSpanBarRef(this.spanContentRef);
   }
 
   spanRowDOMRef = createRef<HTMLDivElement>();
   spanTitleRef = createRef<HTMLDivElement>();
+
+  spanContentRef: HTMLDivElement | null = null;
   intersectionObserver?: IntersectionObserver = void 0;
   zoomLevel: number = 1; // assume initial zoomLevel is 100%
   _mounted: boolean = false;
@@ -204,20 +247,36 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
   };
 
   toggleDisplayDetail = () => {
-    this.setState(state => ({
-      showDetail: !state.showDetail,
-    }));
+    this.setState(
+      state => ({
+        showDetail: !state.showDetail,
+      }),
+      () => {
+        const {measure, span, addExpandedSpan, removeExpandedSpan} = this.props;
+
+        this.state.showDetail
+          ? addExpandedSpan(span, measure)
+          : removeExpandedSpan(span, measure);
+      }
+    );
   };
 
   scrollIntoView = () => {
+    const {addExpandedSpan, span, measure} = this.props;
+
     const element = this.spanRowDOMRef.current;
     if (!element) {
       return;
     }
-    const boundingRect = element.getBoundingClientRect();
-    // The extra 1 pixel is necessary so that the span is recognized as in view by the IntersectionObserver
-    const offset = boundingRect.top + window.scrollY - MINIMAP_CONTAINER_HEIGHT - 1;
-    this.setState({showDetail: true}, () => window.scrollTo(0, offset));
+
+    this.setState({showDetail: true}, () => {
+      addExpandedSpan(span, measure);
+
+      const boundingRect = element.getBoundingClientRect();
+      // The extra 1 pixel is necessary so that the span is recognized as in view by the IntersectionObserver
+      const offset = boundingRect.top + window.scrollY - MINIMAP_CONTAINER_HEIGHT - 1;
+      window.scrollTo(0, offset);
+    });
   };
 
   renderDetail({
@@ -231,31 +290,21 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
   }) {
     const {span, organization, isRoot, trace, event} = this.props;
 
+    if (!this.state.showDetail || !isVisible) {
+      return null;
+    }
+
     return (
-      <AnchorLinkManager.Consumer>
-        {({registerScrollFn, scrollToHash}) => {
-          if (!isGapSpan(span)) {
-            registerScrollFn(spanTargetHash(span.span_id), this.scrollIntoView, false);
-          }
-
-          if (!this.state.showDetail || !isVisible) {
-            return null;
-          }
-
-          return (
-            <SpanDetail
-              span={span}
-              organization={organization}
-              event={event}
-              isRoot={!!isRoot}
-              trace={trace}
-              childTransactions={transactions}
-              relatedErrors={errors}
-              scrollToHash={scrollToHash}
-            />
-          );
-        }}
-      </AnchorLinkManager.Consumer>
+      <SpanDetail
+        span={span}
+        organization={organization}
+        event={event}
+        isRoot={!!isRoot}
+        trace={trace}
+        childTransactions={transactions}
+        relatedErrors={errors}
+        scrollToHash={this.scrollIntoView}
+      />
     );
   }
 
@@ -475,13 +524,15 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
   }
 
   renderTitle(errors: TraceError[] | null) {
-    const {generateContentSpanBarRef, spanBarType} = this.props;
     const {
       span,
+      spanBarType,
       treeDepth,
       groupOccurrence,
       toggleSpanGroup,
       toggleSiblingSpanGroup,
+      addContentSpanBarRef,
+      removeContentSpanBarRef,
       groupType,
     } = this.props;
 
@@ -531,7 +582,15 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
     return (
       <RowTitleContainer
         data-debug-id="SpanBarTitleContainer"
-        ref={generateContentSpanBarRef()}
+        ref={ref => {
+          if (!ref) {
+            removeContentSpanBarRef(this.spanContentRef);
+            return;
+          }
+
+          addContentSpanBarRef(ref);
+          this.spanContentRef = ref;
+        }}
       >
         {this.renderSpanTreeToggler({left, errored})}
         <RowTitle
@@ -666,16 +725,9 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
             relativeToMinimap.top > 0 && relativeToMinimap.bottom > 0;
 
           if (rectBelowMinimap) {
-            const {span, treeDepth} = this.props;
+            const {span} = this.props;
             if ('type' in span) {
               return;
-            }
-
-            // If isIntersecting is false, this means the span is out of view below the viewport
-            if (!entry.isIntersecting) {
-              this.props.markSpanOutOfView(span.span_id);
-            } else {
-              this.props.markSpanInView(span.span_id, treeDepth);
             }
 
             // if the first span is below the minimap, we scroll the minimap
@@ -694,8 +746,6 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
             if ('type' in span) {
               return;
             }
-
-            this.props.markSpanOutOfView(span.span_id);
 
             return;
           }

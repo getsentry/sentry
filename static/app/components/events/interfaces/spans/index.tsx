@@ -1,6 +1,6 @@
-import {useMemo} from 'react';
+import {Fragment, useMemo} from 'react';
+// eslint-disable-next-line no-restricted-imports
 import styled from '@emotion/styled';
-import {Location} from 'history';
 import {Observer} from 'mobx-react';
 
 import Alert from 'sentry/components/alert';
@@ -15,15 +15,13 @@ import {objectIsEmpty} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {QuickTraceContext} from 'sentry/utils/performance/quickTrace/quickTraceContext';
 import {TraceError} from 'sentry/utils/performance/quickTrace/types';
-import {useLocation} from 'sentry/utils/useLocation';
 import withOrganization from 'sentry/utils/withOrganization';
 
-import * as AnchorLinkManager from './anchorLinkManager';
 import Filter from './filter';
 import TraceErrorList from './traceErrorList';
 import TraceView from './traceView';
 import {ParsedTraceType} from './types';
-import {getCumulativeAlertLevelFromErrors, parseTrace, scrollToSpan} from './utils';
+import {getCumulativeAlertLevelFromErrors, parseTrace} from './utils';
 import WaterfallModel from './waterfallModel';
 
 type Props = {
@@ -36,13 +34,9 @@ function TraceErrorAlerts({
   isLoading,
   errors,
   parsedTrace,
-  location,
-  organization,
 }: {
   errors: TraceError[] | undefined;
   isLoading: boolean;
-  location: Location;
-  organization: Organization;
   parsedTrace: ParsedTraceType;
 }) {
   if (isLoading) {
@@ -68,24 +62,13 @@ function TraceErrorAlerts({
       <Alert type={getCumulativeAlertLevelFromErrors(errors)}>
         <ErrorLabel>{label}</ErrorLabel>
 
-        <AnchorLinkManager.Consumer>
-          {({scrollToHash}) => (
-            <TraceErrorList
-              trace={parsedTrace}
-              errors={errors}
-              onClickSpan={(event, spanId) => {
-                return scrollToSpan(spanId, scrollToHash, location, organization)(event);
-              }}
-            />
-          )}
-        </AnchorLinkManager.Consumer>
+        <TraceErrorList trace={parsedTrace} errors={errors} onClickSpan={() => {}} />
       </Alert>
     </AlertContainer>
   );
 }
 
 function SpansInterface({event, affectedSpanIds, organization}: Props) {
-  const location = useLocation();
   const parsedTrace = useMemo(() => parseTrace(event), [event]);
 
   const waterfallModel = useMemo(
@@ -105,13 +88,11 @@ function SpansInterface({event, affectedSpanIds, organization}: Props) {
     <Container hasErrors={!objectIsEmpty(event.errors)}>
       <QuickTraceContext.Consumer>
         {quickTrace => (
-          <AnchorLinkManager.Provider>
+          <Fragment>
             <TraceErrorAlerts
               isLoading={quickTrace?.isLoading ?? false}
               errors={quickTrace?.currentEvent?.errors}
               parsedTrace={parsedTrace}
-              organization={organization}
-              location={location}
             />
             <Observer>
               {() => {
@@ -147,7 +128,7 @@ function SpansInterface({event, affectedSpanIds, organization}: Props) {
                 <GuideAnchor target="span_tree" position="bottom" />
               </GuideAnchorWrapper>
             </Panel>
-          </AnchorLinkManager.Provider>
+          </Fragment>
         )}
       </QuickTraceContext.Consumer>
     </Container>
