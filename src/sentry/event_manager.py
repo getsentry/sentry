@@ -2261,8 +2261,6 @@ def _save_aggregate_performance(jobs: Sequence[PerformanceJob], projects: Projec
         event = job["event"]
         project = event.project
 
-        if not features.has("organizations:performance-issues-ingest", project.organization):
-            continue
         # General system-wide option
         rate = options.get("performance.issues.all.problem-creation") or 0
 

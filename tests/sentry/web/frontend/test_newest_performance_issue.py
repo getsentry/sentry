@@ -53,7 +53,6 @@ class DisabledMemberViewTest(TestCase):
         with mock.patch("sentry_sdk.tracing.Span.containing_transaction"), self.feature(
             {
                 "projects:performance-suspect-spans-ingestion": True,
-                "organizations:performance-issues-ingest": True,
             }
         ):
             latest_event_time = time()

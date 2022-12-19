@@ -1165,8 +1165,6 @@ SENTRY_FEATURES = {
     "organizations:native-stack-trace-v2": False,
     # Enable performance issues
     "organizations:performance-issues": False,
-    # Enable the creation of performance issues in the ingest pipeline. Turning this on will eventually make performance issues be created with default settings.
-    "organizations:performance-issues-ingest": False,
     # Enable performance issues dev options, includes changing detection thresholds and other parts of issues that we're using for development.
     "organizations:performance-issues-dev": False,
     # Enables updated all events tab in a performance issue

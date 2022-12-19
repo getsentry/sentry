@@ -91,7 +91,6 @@ class PagerDutyNotifyActionTest(RuleTestCase):
             }
         ), self.feature(
             [
-                "organizations:performance-issues-ingest",
                 "projects:performance-suspect-spans-ingestion",
             ]
         ):

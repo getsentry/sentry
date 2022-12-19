@@ -196,8 +196,6 @@ def pytest_configure(config):
 
     # Enables performance problem detection
     settings.SENTRY_OPTIONS["performance.issues.all.problem-creation"] = 1.0
-    # Enables performance issue detection and creation
-    settings.SENTRY_FEATURES["organizations:performance-issues-ingest"] = True
 
     # If a request hits the wrong silo, replace the 404 response with an error state
     settings.FAIL_ON_UNAVAILABLE_API_CALL = True

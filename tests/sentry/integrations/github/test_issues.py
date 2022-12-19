@@ -117,7 +117,6 @@ class GitHubIssueBasicTest(TestCase):
             }
         ), self.feature(
             [
-                "organizations:performance-issues-ingest",
                 "projects:performance-suspect-spans-ingestion",
             ]
         ):

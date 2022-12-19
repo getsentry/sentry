@@ -115,7 +115,6 @@ default_manager.add("organizations:performance-anomaly-detection-ui", Organizati
 default_manager.add("organizations:performance-chart-interpolation", OrganizationFeature, True)
 default_manager.add("organizations:performance-dry-run-mep", OrganizationFeature, True)
 default_manager.add("organizations:performance-issues", OrganizationFeature, True)
-default_manager.add("organizations:performance-issues-ingest", OrganizationFeature)
 default_manager.add("organizations:performance-issues-post-process-group", OrganizationFeature)
 default_manager.add("organizations:performance-issues-dev", OrganizationFeature, True)
 default_manager.add("organizations:performance-issues-all-events-tab", OrganizationFeature, True)

@@ -16,9 +16,9 @@ from urllib.parse import urlparse
 import sentry_sdk
 from symbolic import ProguardMapper  # type: ignore
 
-from sentry import features, nodestore, options, projectoptions
+from sentry import nodestore, options, projectoptions
 from sentry.eventstore.models import Event
-from sentry.models import Organization, Project, ProjectDebugFile, ProjectOption
+from sentry.models import Project, ProjectDebugFile, ProjectOption
 from sentry.types.issues import GROUP_TYPE_TO_TEXT, GroupType
 from sentry.utils import metrics
 from sentry.utils.event_frames import get_sdk_name
@@ -382,12 +382,6 @@ def run_detector_on_data(detector, data):
 
 # Uses options and flags to determine which orgs and which detectors automatically create performance issues.
 def get_allowed_issue_creation_detectors(project_id: str):
-    project = Project.objects.get_from_cache(id=project_id)
-    organization = Organization.objects.get_from_cache(id=project.organization_id)
-    if not features.has("organizations:performance-issues-ingest", organization):
-        # Only organizations with this non-flagr feature have performance issues created.
-        return {}
-
     allowed_detectors = set()
     for detector_type, system_option in DETECTOR_TYPE_ISSUE_CREATION_TO_SYSTEM_OPTION.items():
         rate = options.get(system_option)

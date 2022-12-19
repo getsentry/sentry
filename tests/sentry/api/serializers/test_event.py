@@ -400,11 +400,7 @@ class DetailedEventSerializerTest(TestCase):
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
     def test_performance_problem(self):
         self.project.update_option("sentry:performance_issue_creation_rate", 1.0)
-        with mock.patch("sentry_sdk.tracing.Span.containing_transaction"), self.feature(
-            {
-                "organizations:performance-issues-ingest": True,
-            }
-        ):
+        with mock.patch("sentry_sdk.tracing.Span.containing_transaction"):
             manager = EventManager(make_event(**EVENTS["n-plus-one-in-django-index-view"]))
             manager.normalize()
             event = manager.save(self.project.id)
@@ -440,10 +436,6 @@ class DetailedEventSerializerTest(TestCase):
         self.project.update_option("sentry:performance_issue_creation_rate", 1.0)
         with mock.patch("sentry_sdk.tracing.Span.containing_transaction"), mock.patch(
             "sentry.event_manager.EventPerformanceProblem"
-        ), self.feature(
-            {
-                "organizations:performance-issues-ingest": True,
-            }
         ):
             manager = EventManager(make_event(**EVENTS["n-plus-one-in-django-index-view"]))
             manager.normalize()

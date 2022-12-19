@@ -2224,11 +2224,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
     def test_perf_issue_creation(self):
         self.project.update_option("sentry:performance_issue_creation_rate", 1.0)
 
-        with mock.patch("sentry_sdk.tracing.Span.containing_transaction"), self.feature(
-            {
-                "organizations:performance-issues-ingest": True,
-            }
-        ):
+        with mock.patch("sentry_sdk.tracing.Span.containing_transaction"):
             manager = EventManager(make_event(**EVENTS["n-plus-one-in-django-index-view"]))
             manager.normalize()
             event = manager.save(self.project.id)
@@ -2309,11 +2305,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
     def test_perf_issue_update(self):
         self.project.update_option("sentry:performance_issue_creation_rate", 1.0)
 
-        with mock.patch("sentry_sdk.tracing.Span.containing_transaction"), self.feature(
-            {
-                "organizations:performance-issues-ingest": True,
-            }
-        ):
+        with mock.patch("sentry_sdk.tracing.Span.containing_transaction"):
             manager = EventManager(make_event(**EVENTS["n-plus-one-in-django-index-view"]))
             manager.normalize()
             event = manager.save(self.project.id)
@@ -2356,7 +2348,6 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
         with mock.patch("sentry_sdk.tracing.Span.containing_transaction"), self.feature(
             {
                 "projects:performance-suspect-spans-ingestion": True,
-                "organizations:performance-issues-ingest": True,
             }
         ):
             manager = EventManager(make_event(**EVENTS["n-plus-one-in-django-index-view"]))
@@ -2383,7 +2374,6 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
         with mock.patch("sentry_sdk.tracing.Span.containing_transaction"), self.feature(
             {
                 "projects:performance-suspect-spans-ingestion": True,
-                "organizations:performance-issues-ingest": True,
             }
         ):
             manager = EventManager(make_event())
@@ -2410,7 +2400,6 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
         with mock.patch("sentry_sdk.tracing.Span.containing_transaction"), self.feature(
             {
                 "projects:performance-suspect-spans-ingestion": True,
-                "organizations:performance-issues-ingest": True,
             }
         ):
             manager = EventManager(make_event(**EVENTS["n-plus-one-in-django-index-view"]))
@@ -2429,7 +2418,6 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
         with mock.patch("sentry_sdk.tracing.Span.containing_transaction"), self.feature(
             {
                 "projects:performance-suspect-spans-ingestion": True,
-                "organizations:performance-issues-ingest": True,
             }
         ):
             manager1 = EventManager(make_event(**EVENTS["n-plus-one-in-django-index-view"]))
