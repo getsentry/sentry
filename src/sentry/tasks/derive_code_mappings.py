@@ -98,7 +98,7 @@ def identify_stacktrace_paths(data: NodeData) -> List[str]:
             paths = {
                 frame["filename"]
                 for frame in frames
-                if frame.get("in_app") and frame.get("filename")
+                if frame and frame.get("in_app") and frame.get("filename")
             }
             stacktrace_paths.update(paths)
         except Exception:
