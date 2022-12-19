@@ -358,7 +358,7 @@ class GroupGetLatestEventTest(TestCase, OccurrenceTestMixin):
                 "project_id": self.project.id,
                 "timestamp": before_now(minutes=1).isoformat(),
             },
-        )[0]
+        )
 
         group = Group.objects.first()
         group.update(type=GroupType.PROFILE_BLOCKED_THREAD.value)
