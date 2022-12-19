@@ -12,10 +12,28 @@ export type QueryKey =
   | readonly [url: string]
   | readonly [url: string, options: QueryKeyEndpointOptions];
 
-type UseQueryOptions<TQueryFnData, TError = RequestError, TData = TQueryFnData> = Omit<
-  reactQuery.UseQueryOptions<TQueryFnData, TError, TData, QueryKey>,
-  'queryKey' | 'queryFn'
->;
+interface UseQueryOptions<TQueryFnData, TError = RequestError, TData = TQueryFnData>
+  extends Omit<
+    reactQuery.UseQueryOptions<TQueryFnData, TError, TData, QueryKey>,
+    'queryKey' | 'queryFn'
+  > {
+  /**
+   * staleTime is the amount of time (in ms) before cached data gets marked as stale.
+   * Once data is marked stale, it will be refreshed on the next refetch event, which by default is when:
+   * - The hook is mounted (configure with `refetchOnMount` option)
+   * - The window is refocused (configure with `refetchOnWindowFocus` option)
+   *
+   * Use `staleTime: 0` if you need your data to always be up to date and don't mind excess refetches.
+   * Be careful with this, especially if your hook is used at the root level or in multiple components.
+   *
+   * Use `staleTime: Infinity` if the data should never change, or changes very irregularly.
+   * Note that the cached entries are garbage collected after 5 minutes of being unused (configure with `cacheTime`).
+   *
+   * Otherwise, provide a reasonable number (in ms) for your use case. Remember that the cache
+   * can be updated or invalidated manually with QueryClient if you neeed to do so.
+   */
+  staleTime: number;
+}
 
 // We are not overriding any defaults options for stale time, retries, etc.
 // See https://tanstack.com/query/v4/docs/guides/important-defaults
@@ -39,25 +57,32 @@ function isQueryFn<TQueryFnData, TError, TData>(
  *
  * Example usage:
  *
- * const { data, isLoading, isError } = useQuery<EventsResponse>(['/events', { query: { limit: 50 }}])
+ * const {data, isLoading, isError} = useQuery<EventsResponse>(
+ *   ['/events', {query: {limit: 50}}],
+ *   {staleTime: 0}
+ * );
  */
 function useQuery<TQueryFnData, TError = RequestError, TData = TQueryFnData>(
   queryKey: QueryKey,
-  queryOptions?: UseQueryOptions<TQueryFnData, TError, TData>
+  queryOptions: UseQueryOptions<TQueryFnData, TError, TData>
 ): reactQuery.UseQueryResult<TData, TError>;
 /**
  * Example usage with custom query function:
  *
- * const { data, isLoading, isError } = useQuery<EventsResponse>(['events'], () => api.requestPromise(...))
+ * const { data, isLoading, isError } = useQuery<EventsResponse>(
+ *   ['events', {limit: 50}],
+ *   () => api.requestPromise({limit: 50}),
+ *   {staleTime: 0}
+ * )
  */
 function useQuery<TQueryFnData, TError = RequestError, TData = TQueryFnData>(
   queryKey: QueryKey,
-  queryFn?: reactQuery.QueryFunction<TQueryFnData, QueryKey>,
+  queryFn: reactQuery.QueryFunction<TQueryFnData, QueryKey>,
   queryOptions?: UseQueryOptions<TQueryFnData, TError, TData>
 ): reactQuery.UseQueryResult<TData, TError>;
 function useQuery<TQueryFnData, TError = RequestError, TData = TQueryFnData>(
   queryKey: QueryKey,
-  queryFnOrQueryOptions?:
+  queryFnOrQueryOptions:
     | reactQuery.QueryFunction<TQueryFnData, QueryKey>
     | UseQueryOptions<TQueryFnData, TError, TData>,
   queryOptions?: UseQueryOptions<TQueryFnData, TError, TData>
