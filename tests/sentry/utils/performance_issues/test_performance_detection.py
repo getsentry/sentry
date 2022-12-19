@@ -10,7 +10,6 @@ from sentry.testutils.helpers import override_options
 from sentry.testutils.performance_issues.event_generators import (
     EVENTS,
     PROJECT_ID,
-    create_event,
     create_span,
     modify_span_start,
 )
@@ -214,36 +213,6 @@ class PerformanceDetectionTest(unittest.TestCase):
         ):
             perf_problems = _detect_performance_problems(n_plus_one_event, sdk_span_mock)
             assert_n_plus_one_db_problem(perf_problems)
-
-    def test_calls_partial_span_op_allowed(self):
-        span_event = create_event(
-            [create_span("db.query", 2001.0, "SELECT something FROM something_else")] * 1
-        )
-
-        sdk_span_mock = Mock()
-
-        _detect_performance_problems(span_event, sdk_span_mock)
-        assert sdk_span_mock.containing_transaction.set_tag.call_count == 4
-        sdk_span_mock.containing_transaction.set_tag.assert_has_calls(
-            [
-                call(
-                    "_pi_all_issue_count",
-                    1,
-                ),
-                call(
-                    "_pi_sdk_name",
-                    "sentry.python",
-                ),
-                call(
-                    "_pi_transaction",
-                    "aaaaaaaaaaaaaaaa",
-                ),
-                call(
-                    "_pi_slow_span",
-                    "bbbbbbbbbbbbbbbb",
-                ),
-            ]
-        )
 
     def test_calls_detect_render_blocking_asset(self):
         render_blocking_asset_event = {
@@ -542,28 +511,6 @@ class PerformanceDetectionTest(unittest.TestCase):
         truncated_duplicates_event = EVENTS["n-plus-one-in-django-new-view-truncated-duplicates"]
         _detect_performance_problems(truncated_duplicates_event, Mock())
         incr_mock.assert_has_calls([call("performance.performance_issue.truncated_np1_db")])
-
-    def test_detects_slow_span_in_solved_n_plus_one_query(self):
-        n_plus_one_event = EVENTS["solved-n-plus-one-in-django-index-view"]
-        sdk_span_mock = Mock()
-
-        _detect_performance_problems(n_plus_one_event, sdk_span_mock)
-
-        assert sdk_span_mock.containing_transaction.set_tag.call_count == 4
-        sdk_span_mock.containing_transaction.set_tag.assert_has_calls(
-            [
-                call(
-                    "_pi_all_issue_count",
-                    1,
-                ),
-                call(
-                    "_pi_sdk_name",
-                    "",
-                ),
-                call("_pi_transaction", "4e7c82a05f514c93b6101d255ca14f89"),
-                call("_pi_slow_span", "a05754d3fde2db29"),
-            ]
-        )
 
     def test_detects_file_io_main_thread(self):
         file_io_event = EVENTS["file-io-on-main-thread"]
