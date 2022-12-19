@@ -84,18 +84,14 @@ def _extract_info_from_rule(
     rule_type: RuleType, rule: BaseRule
 ) -> Dict[str, Union[List[str], str, None]]:
     if rule_type == RuleType.BOOST_ENVIRONMENTS_RULE:
-        return {
-            "environments": rule["condition"]["inner"][0]["value"],
-        }
+        return {"environments": rule["condition"]["inner"][0]["value"]}
     elif rule_type == RuleType.BOOST_LATEST_RELEASES_RULE:
         return {
             "release": rule["condition"]["inner"][0]["value"],
             "environment": rule["condition"]["inner"][1]["value"],
         }
     elif rule_type == RuleType.IGNORE_HEALTHCHECKS_RULE:
-        return {
-            "healthChecks": rule["condition"]["inner"][0]["value"],
-        }
+        return {"healthChecks": rule["condition"]["inner"][0]["value"]}
     elif rule_type == RuleType.BOOST_KEY_TRANSACTIONS_RULE:
         return {"transactions": rule["condition"]["inner"][0]["value"]}
     else:
