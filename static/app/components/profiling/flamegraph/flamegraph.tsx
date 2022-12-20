@@ -297,9 +297,12 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
 
     const flamegraphObserver = watchForResize(
       [flamegraphCanvasRef, flamegraphOverlayCanvasRef],
-      () => {
-        const bounds = flamegraphCanvasRef.getBoundingClientRect();
-        setCanvasBounds(new Rect(bounds.x, bounds.y, bounds.width, bounds.height));
+      entries => {
+        const contentRect =
+          entries[0].contentRect ?? flamegraphCanvasRef.getBoundingClientRect();
+        setCanvasBounds(
+          new Rect(contentRect.x, contentRect.y, contentRect.width, contentRect.height)
+        );
 
         flamegraphCanvas.initPhysicalSpace();
         flamegraphView.resizeConfigSpace(flamegraphCanvas);

@@ -106,11 +106,11 @@ function onResize(entries: ResizeObserverEntry[]) {
 
 export const watchForResize = (
   canvas: HTMLCanvasElement[],
-  callback?: () => void
+  callback?: (entries: ResizeObserverEntry[], observer: ResizeObserver) => void
 ): ResizeObserver => {
-  const handler: ResizeObserverCallback = entries => {
+  const handler: ResizeObserverCallback = (entries, observer) => {
     onResize(entries);
-    callback?.();
+    callback?.(entries, observer);
   };
 
   for (const c of canvas) {
