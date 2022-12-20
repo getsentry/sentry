@@ -1,15 +1,17 @@
+import uuid
+from datetime import datetime
+
 import pytz
 import responses
 
-from sentry.event_manager import EventManager
 from sentry.integrations.pagerduty import PagerDutyNotifyServiceAction
+from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.models import Integration, OrganizationIntegration, PagerDutyService
-from sentry.testutils.cases import RuleTestCase
-from sentry.testutils.helpers import override_options
+from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.types.issues import GroupType
 from sentry.utils import json
-from sentry.utils.samples import load_data
+from sentry.utils.dates import ensure_aware
 
 event_time = before_now(days=3).replace(tzinfo=pytz.utc)
 # external_id is the account name in pagerduty
@@ -24,7 +26,7 @@ SERVICES = [
 ]
 
 
-class PagerDutyNotifyActionTest(RuleTestCase):
+class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
     rule_cls = PagerDutyNotifyServiceAction
 
     def setUp(self):
@@ -77,30 +79,8 @@ class PagerDutyNotifyActionTest(RuleTestCase):
 
     @responses.activate
     def test_applies_correctly_performance_issue(self):
-        event_data = load_data(
-            "transaction-n-plus-one",
-            timestamp=before_now(minutes=10),
-            fingerprint=[f"{GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value}-group1"],
-        )
-        perf_event_manager = EventManager(event_data)
-        perf_event_manager.normalize()
-        with override_options(
-            {
-                "performance.issues.all.problem-creation": 1.0,
-                "performance.issues.all.problem-detection": 1.0,
-                "performance.issues.n_plus_one_db.problem-creation": 1.0,
-            }
-        ), self.feature(
-            [
-                "organizations:performance-issues-ingest",
-                "projects:performance-suspect-spans-ingestion",
-            ]
-        ):
-            event = perf_event_manager.save(self.project.id)
-        event = event.for_group(event.groups[0])
-
+        event = self.create_performance_issue()
         rule = self.get_rule(data={"account": self.integration.id, "service": self.service.id})
-
         results = list(rule.after(event=event, state=self.get_state()))
         assert len(results) == 1
 
@@ -121,6 +101,56 @@ class PagerDutyNotifyActionTest(RuleTestCase):
         assert data["event_action"] == "trigger"
         assert data["payload"]["summary"] == perf_issue_title
         assert data["payload"]["custom_details"]["title"] == perf_issue_title
+
+    @responses.activate
+    def test_applies_correctly_generic_issue(self):
+        # TODO replace w/ TEST_ISSUE_OCCURRENCE
+        occurrence = IssueOccurrence(
+            uuid.uuid4().hex,
+            uuid.uuid4().hex,
+            ["some-fingerprint"],
+            "something bad happened",
+            "it was bad",
+            "1234",
+            {"Test": 123},
+            [
+                IssueEvidence("Attention", "Very important information!!!", True),
+                IssueEvidence("Evidence 2", "Not important", False),
+                IssueEvidence("Evidence 3", "Nobody cares about this", False),
+            ],
+            GroupType.PROFILE_BLOCKED_THREAD,
+            ensure_aware(datetime.now()),
+        )
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "oh no",
+                "timestamp": iso_format(before_now(minutes=1)),
+            },
+            project_id=self.project.id,
+        )
+        event = event.for_group(event.groups[0])
+        event.occurrence = occurrence
+
+        rule = self.get_rule(data={"account": self.integration.id, "service": self.service.id})
+        results = list(rule.after(event=event, state=self.get_state()))
+        assert len(results) == 1
+
+        responses.add(
+            method=responses.POST,
+            url="https://events.pagerduty.com/v2/enqueue/",
+            json={},
+            status=202,
+            content_type="application/json",
+        )
+
+        # Trigger rule callback
+        results[0].callback(event, futures=[])
+        data = json.loads(responses.calls[0].request.body)
+
+        assert data["event_action"] == "trigger"
+        assert data["payload"]["summary"] == event.occurrence.issue_title
+        assert data["payload"]["custom_details"]["title"] == event.occurrence.issue_title
 
     def test_render_label(self):
         rule = self.get_rule(data={"account": self.integration.id, "service": self.service.id})
