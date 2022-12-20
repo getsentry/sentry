@@ -29,6 +29,7 @@ class IssueOccurrenceData(TypedDict):
     evidence_display: Sequence[IssueEvidenceData]
     type: int
     detection_time: float
+    level: Optional[str]
 
 
 @dataclass(frozen=True)
@@ -77,6 +78,7 @@ class IssueOccurrence:
     evidence_display: Sequence[IssueEvidence]
     type: GroupType
     detection_time: datetime
+    level: Optional[str] = None
 
     def __post_init__(self) -> None:
         if not is_aware(self.detection_time):
@@ -96,6 +98,7 @@ class IssueOccurrence:
             "evidence_display": [evidence.to_dict() for evidence in self.evidence_display],
             "type": self.type.value,
             "detection_time": self.detection_time.timestamp(),
+            "level": self.level,
         }
 
     @classmethod
@@ -115,6 +118,7 @@ class IssueOccurrence:
             ],
             GroupType(data["type"]),
             cast(datetime, parse_timestamp(data["detection_time"])),
+            data.get("level"),
         )
 
     @property
