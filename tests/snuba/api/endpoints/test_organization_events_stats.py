@@ -1143,7 +1143,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         assert other["order"] == 5
         assert [{"count": 3}] in [attrs for _, attrs in other["data"]]
 
-    def test_tag_with_conflicting_function_alias(self):
+    def test_tag_with_conflicting_function_alias_simple(self):
         event_data = {
             "data": {
                 "message": "poof",
@@ -1163,7 +1163,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         data = {
             "start": iso_format(self.day_ago),
             "end": iso_format(self.day_ago + timedelta(hours=2)),
-            "interval": "90d",
+            "interval": "1h",
             "yAxis": "count()",
             "orderby": ["-count()"],
             "field": ["count()", "count"],
@@ -1174,6 +1174,102 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
             response = self.client.get(self.url, data, format="json")
             assert response.status_code == 200
             assert response.data["9001"]["data"][0][1] == [{"count": 7}]
+
+    def test_tag_with_conflicting_function_alias_with_other_single_grouping(self):
+        event_data = [
+            {
+                "data": {
+                    "message": "poof",
+                    "timestamp": iso_format(self.day_ago + timedelta(minutes=2)),
+                    "user": {"email": self.user.email},
+                    "tags": {"count": "9001"},
+                    "fingerprint": ["group1"],
+                },
+                "project": self.project2,
+                "count": 7,
+            },
+            {
+                "data": {
+                    "message": "poof2",
+                    "timestamp": iso_format(self.day_ago + timedelta(minutes=2)),
+                    "user": {"email": self.user.email},
+                    "tags": {"count": "abc"},
+                    "fingerprint": ["group1"],
+                },
+                "project": self.project2,
+                "count": 3,
+            },
+        ]
+        for index, event in enumerate(event_data):
+            for i in range(event["count"]):
+                event["data"]["event_id"] = f"{index}{i}" * 16
+                self.store_event(event["data"], project_id=event["project"].id)
+
+        # Query for count and count()
+        data = {
+            "start": iso_format(self.day_ago),
+            "end": iso_format(self.day_ago + timedelta(hours=1)),
+            "interval": "1h",
+            "yAxis": "count()",
+            "orderby": ["-count"],
+            "field": ["count()", "count"],
+            "topEvents": 2,
+            "partial": 1,
+        }
+        with self.feature(self.enabled_features):
+            response = self.client.get(self.url, data, format="json")
+            assert response.status_code == 200
+            assert response.data["9001"]["data"][0][1] == [{"count": 7}]
+            assert response.data["abc"]["data"][0][1] == [{"count": 3}]
+            assert response.data["Other"]["data"][0][1] == [{"count": 16}]
+
+    def test_tag_with_conflicting_function_alias_with_other_multiple_groupings(self):
+        event_data = [
+            {
+                "data": {
+                    "message": "abc",
+                    "timestamp": iso_format(self.day_ago + timedelta(minutes=2)),
+                    "user": {"email": self.user.email},
+                    "tags": {"count": "2"},
+                    "fingerprint": ["group1"],
+                },
+                "project": self.project2,
+                "count": 3,
+            },
+            {
+                "data": {
+                    "message": "def",
+                    "timestamp": iso_format(self.day_ago + timedelta(minutes=2)),
+                    "user": {"email": self.user.email},
+                    "tags": {"count": "9001"},
+                    "fingerprint": ["group1"],
+                },
+                "project": self.project2,
+                "count": 7,
+            },
+        ]
+        for index, event in enumerate(event_data):
+            for i in range(event["count"]):
+                event["data"]["event_id"] = f"{index}{i}" * 16
+                self.store_event(event["data"], project_id=event["project"].id)
+
+        # Query for count and count()
+        data = {
+            "start": iso_format(self.day_ago),
+            "end": iso_format(self.day_ago + timedelta(hours=2)),
+            "interval": "2d",
+            "yAxis": "count()",
+            "orderby": ["-count"],
+            "field": ["count()", "count", "message"],
+            "topEvents": 2,
+            "partial": 1,
+        }
+        with self.feature(self.enabled_features):
+            response = self.client.get(self.url, data, format="json")
+            assert response.status_code == 200
+            assert response.data["abc,2"]["data"][0][1] == [{"count": 3}]
+            assert response.data["def,9001"]["data"][0][1] == [{"count": 7}]
+            assert response.data["Other"]["data"][0][1] == [{"count": 25}]
 
     def test_top_events_limits(self):
         data = {

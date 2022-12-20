@@ -1700,7 +1700,7 @@ class TopEventsQueryBuilder(TimeseriesQueryBuilder):
                 self.where.append(Condition(self.column("project_id"), Op.IN, projects))
                 continue
 
-            resolved_field = self.resolve_column(field)
+            resolved_field = self.resolve_column(self.tag_resolver_map.get(field, field))
 
             values: Set[Any] = set()
             for event in top_events:
