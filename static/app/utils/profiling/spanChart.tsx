@@ -13,32 +13,33 @@ class SpanChart {
   spans: SpanChartNode[];
   spanTree: SpanTree;
 
-  formatter: (value: number) => string;
+  formatter = makeFormatter('miliseconds');
   configSpace: Rect = Rect.Empty();
   depth: number = 0;
 
-  constructor(spanTree: SpanTree) {
+  constructor(spanTree: SpanTree, {configSpace}: {configSpace?: Rect}) {
     this.spanTree = spanTree;
-    this.formatter = makeFormatter('miliseconds');
     this.spans = this.collectSpanNodes();
 
-    // if (this.profile.duration > 0) {
-    //   this.configSpace = new Rect(
-    //     configSpace ? configSpace.x : this.profile.startedAt,
-    //     0,
-    //     configSpace ? configSpace.width : this.profile.duration,
-    //     this.depth
-    //   );
-    // } else {
-    //   // If the profile duration is 0, set the flamegraph duration
-    //   // to 1 second so we can render a placeholder grid
-    //   this.configSpace = new Rect(
-    //     0,
-    //     0,
-    //     1e3, // milliseconds
-    //     0
-    //   );
-    // }
+    const duration =
+      spanTree.spanTree.span.timestamp - spanTree.spanTree.span.start_timestamp;
+
+    if (duration > 0) {
+      this.configSpace = new Rect(
+        configSpace ? configSpace.x : spanTree.spanTree.span.start_timestamp,
+        0,
+        configSpace ? configSpace.width : spanTree.spanTree.span.timestamp,
+        this.depth
+      );
+    } else {
+      // If the span duration is 0, set the flamegraph duration to 1 second as flamechart
+      this.configSpace = new Rect(
+        0,
+        0,
+        1e3, // milliseconds
+        0
+      );
+    }
   }
 
   forEachSpan(cb: (node: SpanChartNode) => void) {
@@ -65,7 +66,6 @@ class SpanChart {
     };
 
     this.forEachSpan(visit);
-
     return nodes;
   }
 }
