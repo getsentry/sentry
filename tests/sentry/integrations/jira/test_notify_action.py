@@ -1,17 +1,12 @@
-import uuid
-from datetime import datetime
-
 import responses
 
 from fixtures.integrations.mock_service import StubService
 from sentry.integrations.jira import JiraCreateTicketAction
-from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.models import ExternalIssue, GroupLink, Integration, Rule
 from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase
-from sentry.types.issues import GroupType
+from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
 from sentry.types.rules import RuleFuture
 from sentry.utils import json
-from sentry.utils.dates import ensure_aware
 
 
 class JiraCreateTicketActionTest(RuleTestCase, PerformanceIssueTestCase):
@@ -126,23 +121,7 @@ class JiraCreateTicketActionTest(RuleTestCase, PerformanceIssueTestCase):
     def test_creates_generic_issue(self):
         """Test that a generic issue properly creates a Jira ticket"""
 
-        # TODO replace w/ TEST_ISSUE_OCCURRENCE
-        occurrence = IssueOccurrence(
-            uuid.uuid4().hex,
-            uuid.uuid4().hex,
-            ["some-fingerprint"],
-            "something bad happened",
-            "it was bad",
-            "1234",
-            {"Test": 123},
-            [
-                IssueEvidence("Attention", "Very important information!!!", True),
-                IssueEvidence("Evidence 2", "Not important", False),
-                IssueEvidence("Evidence 3", "Nobody cares about this", False),
-            ],
-            GroupType.PROFILE_BLOCKED_THREAD,
-            ensure_aware(datetime.now()),
-        )
+        occurrence = TEST_ISSUE_OCCURRENCE
         event = self.get_event()
         event = event.for_group(event.groups[0])
         event.occurrence = occurrence
