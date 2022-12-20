@@ -13,6 +13,7 @@ from sentry.notifications.types import (
 )
 from sentry.notifications.utils.participants import (
     FALLTHROUGH_NOTIFICATION_LIMIT,
+    get_fallthrough_recipients,
     get_owner_reason,
     get_owners,
     get_release_committers,
@@ -596,6 +597,7 @@ class GetSendToFallthroughTest(TestCase):
 
     def test_feature_off_no_owner(self):
         event = self.store_event("empty.lol", self.project)
+        assert get_fallthrough_recipients(self.project, FallthroughChoiceType.ACTIVE_MEMBERS) == []
         assert self.get_send_to_fallthrough(event, self.project, None) == {}
 
     def test_feature_off_with_owner(self):
@@ -606,6 +608,12 @@ class GetSendToFallthroughTest(TestCase):
                 UserService.serialize_user(self.user2),
             },
         }
+
+    @with_feature("organizations:issue-alert-fallback-targeting")
+    def test_invalid_fallthrough_choice(self):
+        with pytest.raises(NotImplementedError) as e:
+            get_fallthrough_recipients(self.project, "invalid")
+            assert e.value.startswith("Invalid fallthrough choice: invalid")
 
     @with_feature("organizations:issue-alert-fallback-targeting")
     def test_fallthrough_setting_on(self):
