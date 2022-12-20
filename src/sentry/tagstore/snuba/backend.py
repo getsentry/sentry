@@ -21,6 +21,7 @@ from sentry.models import (
     ReleaseProject,
     ReleaseProjectEnvironment,
 )
+from sentry.replays.query import query_replays_dataset_tags
 from sentry.search.events.constants import (
     PROJECT_ALIAS,
     RELEASE_ALIAS,
@@ -1152,26 +1153,50 @@ class SnubaTagStorage(TagStorage):
                 ]
             )
 
-        results = snuba.query(
-            dataset=dataset,
-            start=start,
-            end=end,
-            groupby=[snuba_key],
-            filter_keys=filters,
-            aggregations=[
-                ["count()", "", "times_seen"],
-                ["min", "timestamp", "first_seen"],
-                ["max", "timestamp", "last_seen"],
-            ],
-            conditions=conditions,
-            orderby=order_by,
-            # TODO: This means they can't actually paginate all TagValues.
-            limit=1000,
-            # 1 mill chosen arbitrarily, based it on a query that was timing out, and took 8s once this was set
-            sample=1_000_000,
-            arrayjoin=snuba.get_arrayjoin(snuba_key),
-            referrer="tagstore.get_tag_value_paginator_for_projects",
-        )
+        if dataset == Dataset.Replays:
+            try:
+
+                results = query_replays_dataset_tags(
+                    project_ids=filters["project_id"],
+                    start=start,
+                    end=end,
+                    where=[],
+                    query=query,
+                    tag_key=key,
+                    # orderby=order_by,
+                )
+                results = {
+                    d["tag_value"]: {
+                        "times_seen": d["times_seen"],
+                        "first_seen": d["first_seen"],
+                        "last_seen": d["last_seen"],
+                    }
+                    for d in results["data"]
+                }
+            except Exception as e:
+                raise e
+
+        else:
+            results = snuba.query(
+                dataset=dataset,
+                start=start,
+                end=end,
+                groupby=[snuba_key],
+                filter_keys=filters,
+                aggregations=[
+                    ["count()", "", "times_seen"],
+                    ["min", "timestamp", "first_seen"],
+                    ["max", "timestamp", "last_seen"],
+                ],
+                conditions=conditions,
+                orderby=order_by,
+                # TODO: This means they can't actually paginate all TagValues.
+                limit=1000,
+                # 1 mill chosen arbitrarily, based it on a query that was timing out, and took 8s once this was set
+                sample=1_000_000,
+                arrayjoin=snuba.get_arrayjoin(snuba_key),
+                referrer="tagstore.get_tag_value_paginator_for_projects",
+            )
 
         if include_transactions:
             # With transaction_status we need to map the ids back to their names

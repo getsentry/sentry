@@ -1088,6 +1088,17 @@ class PerfTagStorageTest(TestCase, SnubaTestCase, PerfIssueTransactionTestMixin)
         }
 
 
+# class ReplayTagStoreTestCase(
+#     TestCase,
+#     SnubaTestCase,
+# ):
+#     def setUp(self):
+#         super().setUp()
+#         self.ts = SnubaTagStorage()
+
+#     def test_replay_tagstore_simple(self):
+
+
 class BaseSemverTest:
     KEY = None
 

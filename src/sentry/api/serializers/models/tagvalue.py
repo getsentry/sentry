@@ -38,4 +38,5 @@ class UserTagValueSerializer(Serializer):
                 "firstSeen": obj.first_seen,
             }
         )
+
         return result

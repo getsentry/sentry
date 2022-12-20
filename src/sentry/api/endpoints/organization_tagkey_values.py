@@ -47,7 +47,6 @@ class OrganizationTagKeyValuesEndpoint(OrganizationEventsEndpointBase):
                     include_sessions=request.GET.get("includeSessions") == "1",
                     include_replays=request.GET.get("includeReplays") == "1",
                 )
-
         return self.paginate(
             request=request,
             paginator=paginator,
