@@ -49,7 +49,7 @@ function NewMonitorButton(props: ButtonProps) {
   const organization = useOrganization();
   return (
     <Button
-      to={`/organizations/${organization.slug}/monitors/create/`}
+      to={`/organizations/${organization.slug}/crons/create/`}
       priority="primary"
       {...props}
     >
@@ -133,7 +133,7 @@ class Monitors extends AsyncView<Props, State> {
                       <MonitorName>
                         <MonitorIcon status={monitor.status} size={16} />
                         <StyledLink
-                          to={`/organizations/${organization.slug}/monitors/${monitor.id}/`}
+                          to={`/organizations/${organization.slug}/crons/${monitor.id}/`}
                         >
                           {monitor.name}
                         </StyledLink>
