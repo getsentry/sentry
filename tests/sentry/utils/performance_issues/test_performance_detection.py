@@ -7,12 +7,7 @@ from sentry import projectoptions
 from sentry.eventstore.models import Event
 from sentry.testutils import TestCase
 from sentry.testutils.helpers import override_options
-from sentry.testutils.performance_issues.event_generators import (
-    EVENTS,
-    create_event,
-    create_span,
-    modify_span_start,
-)
+from sentry.testutils.performance_issues.event_generators import EVENTS, create_event, create_span
 from sentry.testutils.silo import region_silo_test
 from sentry.types.issues import GroupType
 from sentry.utils.performance_issues.performance_detection import (
