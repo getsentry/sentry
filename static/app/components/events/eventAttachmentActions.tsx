@@ -1,17 +1,14 @@
 import {Component} from 'react';
 import styled from '@emotion/styled';
 
-import {Client} from 'sentry/api';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import Confirm from 'sentry/components/confirm';
 import {IconDelete, IconDownload, IconShow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import withApi from 'sentry/utils/withApi';
 
 type Props = {
-  api: Client;
   attachmentId: string;
   onDelete: (attachmentId: string) => void;
   url: string | null;
@@ -87,4 +84,4 @@ const DownloadButton = styled(Button)`
   margin-right: ${space(0.5)};
 `;
 
-export default withApi(EventAttachmentActions);
+export default EventAttachmentActions;

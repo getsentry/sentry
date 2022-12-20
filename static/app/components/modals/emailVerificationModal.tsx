@@ -1,15 +1,12 @@
 import {Fragment} from 'react';
 
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Client} from 'sentry/api';
 import Link from 'sentry/components/links/link';
 import {t, tct} from 'sentry/locale';
-import withApi from 'sentry/utils/withApi';
 import {EmailAddresses} from 'sentry/views/settings/account/accountEmails';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 type Props = Pick<ModalRenderProps, 'Body' | 'Header'> & {
-  api: Client;
   actionMessage?: string;
 };
 
@@ -38,5 +35,5 @@ function EmailVerificationModal({
   );
 }
 
-export default withApi(EmailVerificationModal);
+export default EmailVerificationModal;
 export {EmailVerificationModal};
