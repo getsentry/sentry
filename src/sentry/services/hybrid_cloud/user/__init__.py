@@ -84,9 +84,11 @@ class UserSerializeType(IntEnum):
 
 class UserService(InterfaceWithLifecycle):
     @abstractmethod
-    def get_many_by_email(self, email: str) -> List[APIUser]:
+    def get_many_by_email(
+        self, emails: List[str], is_active: bool = True, is_verified: bool = True
+    ) -> List[APIUser]:
         """
-        Return a list of active users with verified emails matching the parameter
+        Return a list of users matching the filters
         :param email:
         A case insensitive email to match
         :return:
@@ -94,7 +96,7 @@ class UserService(InterfaceWithLifecycle):
         pass
 
     @abstractmethod
-    def find_users(
+    def get_by_username(
         self, username: str, with_valid_password: bool = True, is_active: bool | None = None
     ) -> List[APIUser]:
         """
@@ -152,10 +154,16 @@ class UserService(InterfaceWithLifecycle):
     @abstractmethod
     def serialize_users(
         self,
-        user_ids: List[int],
         *,
         detailed: UserSerializeType = UserSerializeType.SIMPLE,
-        auth_context: AuthenticationContext | None = None,
+        auth_context: AuthenticationContext
+        | None = None,  # TODO: replace this with the as_user attribute
+        as_user: User | APIUser | None = None,
+        # Query filters:
+        user_ids: Optional[List[int]] = None,
+        is_active: Optional[bool] = None,
+        organization_id: Optional[int] = None,
+        emails: Optional[List[str]] = None,
     ) -> List[Any]:
         """
         It is crucial that the returned order matches the user_ids passed in so that no introspection is required

@@ -213,7 +213,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                     "activity": serialize(activity, request.user),
                     "seenBy": seen_by,
                     "participants": user_service.serialize_users(
-                        GroupSubscriptionManager.get_participating_user_ids(group),
+                        user_ids=GroupSubscriptionManager.get_participating_user_ids(group),
                         as_user=request.user,
                     ),
                     "pluginActions": action_list,
