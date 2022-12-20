@@ -1,3 +1,6 @@
+from celery.signals import task_postrun
+from django.core.signals import request_finished
+
 from sentry.services.hybrid_cloud import silo_mode_delegation, stubbed
 from sentry.silo import SiloMode
 
@@ -45,7 +48,8 @@ default_store: AbstractOptionsStore = silo_mode_delegation(
     }
 )
 
-default_store.connect_signals()
+task_postrun.connect(default_store.maybe_clean_local_cache)
+request_finished.connect(default_store.maybe_clean_local_cache)
 
 default_manager = OptionsManager(store=default_store)
 

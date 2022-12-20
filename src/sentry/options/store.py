@@ -57,7 +57,7 @@ class AbstractOptionsStore(InterfaceWithLifecycle, abc.ABC):
         pass
 
     @abc.abstractmethod
-    def connect_signals(self):
+    def maybe_clean_local_cache(self):
         pass
 
 
@@ -313,13 +313,6 @@ class OptionsStore(AbstractOptionsStore):
             return
         if random() < 0.25:
             self.clean_local_cache()
-
-    def connect_signals(self):
-        from celery.signals import task_postrun
-        from django.core.signals import request_finished
-
-        task_postrun.connect(self.maybe_clean_local_cache)
-        request_finished.connect(self.maybe_clean_local_cache)
 
     def close(self) -> None:
         self.clean_local_cache()
