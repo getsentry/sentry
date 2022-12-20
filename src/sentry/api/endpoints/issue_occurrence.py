@@ -18,7 +18,6 @@ from sentry.utils.kafka_config import get_kafka_producer_cluster_options
 class BasicEventSerializer(serializers.Serializer):
     event_id = serializers.CharField()
     project_id = serializers.IntegerField()
-    title = serializers.CharField()
     platform = serializers.CharField()
     tags = serializers.DictField()
     timestamp = serializers.DateTimeField()
@@ -62,7 +61,6 @@ class IssueOccurrenceEndpoint(Endpoint):
             event = {
                 "event_id": "44f1419e73884cd2b45c79918f4b6dc4",
                 "project_id": projects[0].id,
-                "title": "This is bad",
                 "platform": "python",
                 "tags": {"environment": "prod"},
                 "timestamp": ensure_aware(datetime.now()),

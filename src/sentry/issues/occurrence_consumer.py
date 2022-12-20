@@ -111,7 +111,6 @@ def _get_kwargs(payload: Mapping[str, Any]) -> Optional[Mapping[str, Any]]:
                 kwargs["event_data"] = {
                     "event_id": payload_event["event_id"],
                     "project_id": payload_event["project_id"],
-                    "title": payload_event["title"],
                     "platform": payload_event["platform"],
                     "tags": payload_event["tags"],
                     "timestamp": payload_event["timestamp"],
