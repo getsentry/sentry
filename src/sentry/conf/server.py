@@ -1165,7 +1165,7 @@ SENTRY_FEATURES = {
     "organizations:native-stack-trace-v2": False,
     # Enable performance issues
     "organizations:performance-issues": False,
-    # Enable performance issues dev options, includes changing detection thresholds and other parts of issues that we're using for development.
+    # [KEEP] Enable performance issues dev options, includes changing detection thresholds and other parts of issues that we're using for development.
     "organizations:performance-issues-dev": False,
     # Enables updated all events tab in a performance issue
     "organizations:performance-issues-all-events-tab": False,
