@@ -678,7 +678,7 @@ class Event(BaseEvent):
         for group in self.groups:
             yield GroupEvent.from_event(self, group)
 
-    def for_group(self, group: Group):
+    def for_group(self, group: Group) -> GroupEvent:
         return GroupEvent.from_event(self, group)
 
 
@@ -722,7 +722,7 @@ class GroupEvent(BaseEvent):
         self._data = value
 
     @classmethod
-    def from_event(cls, event: Event, group: Group):
+    def from_event(cls, event: Event, group: Group) -> GroupEvent:
         group_event = cls(
             project_id=event.project_id,
             event_id=event.event_id,
@@ -741,6 +741,16 @@ class GroupEvent(BaseEvent):
     @occurrence.setter
     def occurrence(self, value: IssueOccurrence) -> None:
         self._occurrence = value
+
+    @property
+    def occurrence_id(self) -> Optional[str]:
+        if self.occurrence:
+            return self.occurrence.id
+
+        column = self._get_column_name(Columns.OCCURRENCE_ID)
+        if column in self._snuba_data:
+            return cast(str, self._snuba_data[column])
+        return None
 
 
 class EventSubjectTemplate(string.Template):

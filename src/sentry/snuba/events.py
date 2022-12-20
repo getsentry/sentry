@@ -1,7 +1,16 @@
-from collections import namedtuple
+from dataclasses import dataclass
 from enum import Enum
+from typing import Optional
 
-Column = namedtuple("Column", "group_name event_name transaction_name discover_name alias")
+
+@dataclass
+class Column:
+    group_name: Optional[str]
+    event_name: Optional[str]
+    transaction_name: Optional[str]
+    discover_name: Optional[str]
+    alias: Optional[str]
+    issue_platform_name: Optional[str] = None
 
 
 class Columns(Enum):
@@ -17,6 +26,7 @@ class Columns(Enum):
         event_name="event_id",
         transaction_name="event_id",
         discover_name="event_id",
+        issue_platform_name="event_id",
         alias="id",
     )
     GROUP_ID = Column(
@@ -24,6 +34,7 @@ class Columns(Enum):
         event_name="group_id",
         transaction_name=None,
         discover_name="group_id",
+        issue_platform_name="group_id",
         alias="issue.id",
     )
     # This is needed to query transactions by group id
@@ -36,11 +47,20 @@ class Columns(Enum):
         discover_name="group_ids",
         alias="performance.issue_ids",
     )
+    OCCURRENCE_ID = Column(
+        group_name=None,
+        event_name="occurrence_id",
+        transaction_name=None,
+        discover_name=None,
+        issue_platform_name="occurrence_id",
+        alias="occurrence_id",
+    )
     PROJECT_ID = Column(
         group_name="events.project_id",
         event_name="project_id",
         transaction_name="project_id",
         discover_name="project_id",
+        issue_platform_name="project_id",
         alias="project.id",
     )
     TIMESTAMP = Column(
@@ -48,6 +68,7 @@ class Columns(Enum):
         event_name="timestamp",
         transaction_name="finish_ts",
         discover_name="timestamp",
+        issue_platform_name="timestamp",
         alias="timestamp",
     )
     TIME = Column(
