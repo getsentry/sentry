@@ -1704,7 +1704,7 @@ class TopEventsQueryBuilder(TimeseriesQueryBuilder):
 
             values: Set[Any] = set()
             for event in top_events:
-                if not isinstance(resolved_field, Function) and field in event:
+                if field in event:
                     alias = field
                 elif self.is_column_function(resolved_field) and resolved_field.alias in event:
                     alias = resolved_field.alias
