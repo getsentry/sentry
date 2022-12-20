@@ -1,6 +1,6 @@
 import hashlib
 from io import BytesIO
-from typing import List
+from typing import Any, Dict, List
 from zipfile import ZipFile
 
 import pytest
@@ -12,6 +12,7 @@ from sentry.testutils.performance_issues.event_generators import EVENTS
 from sentry.testutils.silo import region_silo_test
 from sentry.types.issues import GroupType
 from sentry.utils.performance_issues.performance_detection import (
+    DetectorType,
     FileIOMainThreadDetector,
     PerformanceProblem,
     get_detection_settings,
@@ -45,7 +46,12 @@ class NPlusOneAPICallsDetectorTest(TestCase):
             f.writestr(f"proguard/{uuid}.txt", PROGUARD_SOURCE)
             create_files_from_dif_zip(f, project=self.project)
 
-    def find_file_io_on_main_thread_problems(self, event: Event) -> List[PerformanceProblem]:
+    def find_file_io_on_main_thread_problems(
+        self, event: Event, setting_overides: Dict[str, Any] = None
+    ) -> List[PerformanceProblem]:
+        if setting_overides:
+            for option_name, value in setting_overides.items():
+                self.settings[DetectorType.FILE_IO_MAIN_THREAD][option_name] = value
         detector = FileIOMainThreadDetector(self.settings, event)
         run_detector_on_data(detector, event)
         return list(detector.stored_problems.values())
