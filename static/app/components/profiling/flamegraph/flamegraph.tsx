@@ -97,6 +97,8 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
   const [flamegraphMiniMapOverlayCanvasRef, setFlamegraphMiniMapOverlayCanvasRef] =
     useState<HTMLCanvasElement | null>(null);
 
+  const [spansCanvasRef, setSpansCanvasRef] = useState<HTMLCanvasElement | null>(null);
+
   const canvasPoolManager = useMemo(() => new CanvasPoolManager(), []);
   const scheduler = useMemo(() => new CanvasScheduler(), []);
 
@@ -146,6 +148,13 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
     }
     return new FlamegraphCanvas(flamegraphMiniMapCanvasRef, vec2.fromValues(0, 0));
   }, [flamegraphMiniMapCanvasRef]);
+
+  const spansCanvas = useMemo(() => {
+    if (!spansCanvasRef) {
+      return null;
+    }
+    return new FlamegraphCanvas(spansCanvasRef, vec2.fromValues(0, 0));
+  }, [spansCanvasRef]);
 
   const flamegraphView = useMemoWithPrevious<FlamegraphView | null>(
     previousView => {
@@ -411,7 +420,18 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
       </FlamegraphToolbar>
 
       <FlamegraphLayout
-        spans={spanChart ? <FlamegraphSpans spanChart={spanChart} /> : null}
+        spans={
+          spanChart ? (
+            <FlamegraphSpans
+              spanChart={spanChart}
+              spansCanvas={spansCanvas}
+              spansCanvasRef={spansCanvasRef}
+              setSpansCanvasRef={setSpansCanvasRef}
+              canvasPoolManager={canvasPoolManager}
+              flamegraphView={flamegraphView}
+            />
+          ) : null
+        }
         minimap={
           <FlamegraphZoomViewMinimap
             canvasPoolManager={canvasPoolManager}
@@ -428,10 +448,10 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
           <ProfileDragDropImport onImport={props.onImport}>
             <FlamegraphWarnings flamegraph={flamegraph} />
             <FlamegraphZoomView
-              flamegraphRenderer={flamegraphRenderer}
               canvasBounds={canvasBounds}
               canvasPoolManager={canvasPoolManager}
               flamegraph={flamegraph}
+              flamegraphRenderer={flamegraphRenderer}
               flamegraphCanvas={flamegraphCanvas}
               flamegraphCanvasRef={flamegraphCanvasRef}
               flamegraphOverlayCanvasRef={flamegraphOverlayCanvasRef}
@@ -444,10 +464,10 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
         flamegraphDrawer={
           <FlamegraphDrawer
             profileGroup={props.profiles}
-            flamegraph={flamegraph}
+            getFrameColor={getFrameColor}
             referenceNode={referenceNode}
             rootNodes={rootNodes}
-            getFrameColor={getFrameColor}
+            flamegraph={flamegraph}
             formatDuration={flamegraph ? flamegraph.formatter : noopFormatDuration}
             canvasPoolManager={canvasPoolManager}
             canvasScheduler={scheduler}
