@@ -3,6 +3,7 @@ from enum import IntEnum
 from typing import Any, Iterable, List, Mapping, Set, TypeVar
 
 from django.db import models
+from django.utils import timezone
 
 from sentry.db.models import (
     BoundedBigIntegerField,
@@ -48,17 +49,17 @@ def _ensure_not_null(k: str, v: T) -> T:
 
 
 class OutboxBase(Model):
-    sharding_index: Iterable[str]
-    coalesced_index: Iterable[str]
+    sharding_columns: Iterable[str]
+    coalesced_columns: Iterable[str]
 
     def key_from(self, attrs: Iterable[str]) -> Mapping[str, Any]:
         return {k: _ensure_not_null(k, getattr(self, k)) for k in attrs}
 
     def select_sharded_objects(self) -> models.QuerySet:
-        return self.objects.filter(**self.key_from(self.sharding_index))
+        return self.objects.filter(**self.key_from(self.sharding_columns))
 
     def select_coalesced_objects(self) -> models.QuerySet:
-        return self.objects.filter(**self.key_from(self.coalesced_index))
+        return self.objects.filter(**self.key_from(self.coalesced_columns))
 
     class Meta:
         abstract = True
@@ -77,8 +78,8 @@ class OutboxBase(Model):
     payload = JSONField(null=True)
 
     # The point at which this object was scheduled, used as a diff from scheduled_for
-    scheduled_from = models.DateTimeField(null=False, auto_now=True)
-    scheduled_for = models.DateTimeField(null=False, auto_now=True)
+    scheduled_from = models.DateTimeField(null=False, default=timezone.now)
+    scheduled_for = models.DateTimeField(null=False, default=timezone.now)
 
 
 OBJECT_IDENTIFIER_SEQUENCE_NAME = "sentry_outbox_object_identifier_seq"
@@ -87,8 +88,8 @@ MONOLITH_REGION_NAME = "--monolith--"
 
 # Outboxes bound from region silo -> control silo
 class RegionOutbox(OutboxBase):
-    sharding_index = ("scope", "scope_identifier")
-    coalesced_index = ("scope", "scope_identifier", "category", "object_identifier")
+    sharding_columns = ("scope", "scope_identifier")
+    coalesced_columns = ("scope", "scope_identifier", "category", "object_identifier")
 
     class Meta:
         app_label = "sentry"
@@ -124,8 +125,14 @@ class RegionOutbox(OutboxBase):
 
 # Outboxes bound from region silo -> control silo
 class ControlOutbox(OutboxBase):
-    sharding_index = ("region_name", "scope", "scope_identifier")
-    coalesced_index = ("region_name", "scope", "scope_identifier", "category", "object_identifier")
+    sharding_columns = ("region_name", "scope", "scope_identifier")
+    coalesced_columns = (
+        "region_name",
+        "scope",
+        "scope_identifier",
+        "category",
+        "object_identifier",
+    )
 
     region_name = models.CharField(max_length=48)
 
