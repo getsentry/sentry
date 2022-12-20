@@ -235,8 +235,8 @@ function Sidebar({location, organization}: Props) {
         {...sidebarItemProps}
         icon={<IconTimer size="md" />}
         label={t('Crons')}
-        to={`/organizations/${organization.slug}/monitors/`}
-        id="monitors"
+        to={`/organizations/${organization.slug}/crons/`}
+        id="crons"
         isBeta
       />
     </Feature>

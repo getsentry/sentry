@@ -28,7 +28,7 @@ const MonitorHeaderActions = ({monitor, orgId, onUpdate}: Props) => {
   const api = useApi();
 
   const handleDelete = () => {
-    const redirectPath = `/organizations/${orgId}/monitors/`;
+    const redirectPath = `/organizations/${orgId}/crons/`;
     addLoadingMessage(t('Deleting Monitor...'));
 
     api
@@ -71,7 +71,7 @@ const MonitorHeaderActions = ({monitor, orgId, onUpdate}: Props) => {
         <Button
           size="sm"
           icon={<IconEdit size="xs" />}
-          to={`/organizations/${orgId}/monitors/${monitor.id}/edit/`}
+          to={`/organizations/${orgId}/crons/${monitor.id}/edit/`}
         >
           {t('Edit')}
         </Button>
