@@ -33,32 +33,6 @@ SVGElement.prototype.getTotalLength ??= () => 1;
 configureRtl({testIdAttribute: 'data-test-id'});
 
 /**
- * Enzyme configuration
- *
- * TODO(epurkhiser): We're using @wojtekmaj's react-17 enzyme adapter, until
- * the official adapter has been released.
- *
- * https://github.com/enzymejs/enzyme/issues/2429
- */
-// eslint-disable-next-line
-const tsxTestsWithEnzyme = [
-  'eventsV2/savedQuery/index.spec.tsx',
-  'dataScrubbing/modals/edit.spec.tsx',
-  'eventsV2/homepage.spec.tsx',
-  'performance/table.spec.tsx',
-  'projectDebugFiles/index.spec.tsx',
-  'eventsV2/resultsChart.spec.tsx',
-];
-const testPath = expect.getState().testPath;
-
-const isJSXTest = testPath && testPath.endsWith('.jsx');
-if (isJSXTest || (testPath && tsxTestsWithEnzyme.some(e => testPath.endsWith(e)))) {
-  const EnzymeAdapter = require('@wojtekmaj/enzyme-adapter-react-17');
-  const enzyme = require('enzyme'); // eslint-disable-line no-restricted-imports
-  enzyme.configure({adapter: new EnzymeAdapter()});
-}
-
-/**
  * Mock (current) date to always be National Pasta Day
  * 2017-10-17T02:41:20.000Z
  */
