@@ -295,6 +295,7 @@ class PerformanceDetectionTest(unittest.TestCase):
         _detect_performance_problems(truncated_duplicates_event, Mock())
         incr_mock.assert_has_calls([call("performance.performance_issue.truncated_np1_db")])
 
+
 class PrepareProblemForGroupingTest(unittest.TestCase):
     def test(self):
         n_plus_one_event = EVENTS["n-plus-one-in-django-index-view"]
