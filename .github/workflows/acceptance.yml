@@ -136,7 +136,7 @@ jobs:
           echo "One of the dependent jobs have failed. You may need to re-run it." && exit 1
 
       - name: Diff snapshots
-        uses: getsentry/action-visual-snapshot@5811b6c34e1ec3b9fc30613d4b55ef740fec6086
+        uses: getsentry/action-visual-snapshot@53f958bf636a40334987f5045da4ba2d472bdb9f
         # Run this step only if there are acceptance related code changes
         # Forks are handled in visual-diff.yml
         if: needs.files-changed.outputs.acceptance == 'true' && github.event.pull_request.head.repo.full_name == 'getsentry/sentry'
