@@ -13,14 +13,16 @@ class SpanChart {
   spans: SpanChartNode[];
   spanTree: SpanTree;
 
-  formatter = makeFormatter('miliseconds');
+  formatter = makeFormatter('milliseconds');
   configSpace: Rect = Rect.Empty();
   depth: number = 0;
 
-  constructor(spanTree: SpanTree, {configSpace}: {configSpace?: Rect}) {
+  constructor(spanTree: SpanTree, {configSpace}: {configSpace?: Rect} = {}) {
     this.spanTree = spanTree;
     this.spans = this.collectSpanNodes();
 
+    // @TODO once we start taking orphaned spans into account here we will need to
+    // modify this to min(start_timestamp) max(end_timestamp)
     const duration =
       spanTree.spanTree.span.timestamp - spanTree.spanTree.span.start_timestamp;
 
