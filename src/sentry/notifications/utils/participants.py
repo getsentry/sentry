@@ -221,7 +221,7 @@ def get_owner_reason(
     # Describe why an issue owner was notified
     if fallthrough_choice == FallthroughChoiceType.ALL_MEMBERS:
         return f"We notified all members in the {project.get_full_name()} project of this issue"
-    if fallthrough_choice == FallthroughChoiceType.ADMIN_OR_RECENT:
+    if fallthrough_choice == FallthroughChoiceType.ACTIVE_MEMBERS:
         return f"We notified team admins and recently active members in the {project.get_full_name()} project of this issue"
 
     return None
@@ -363,8 +363,7 @@ def get_fallthrough_recipients(
     elif fallthrough_choice == FallthroughChoiceType.ALL_MEMBERS:
         return user_service.get_from_project(project.id)
 
-    # TODO(snigdha): Add the ADMIN logic once the team admin functionality is ready. For now, this fallback only applies to recent members.
-    elif fallthrough_choice == FallthroughChoiceType.ADMIN_OR_RECENT:
+    elif fallthrough_choice == FallthroughChoiceType.ACTIVE_MEMBERS:
         return user_service.get_many(
             project.member_set.order_by("-user__last_active").values_list("user_id", flat=True)
         )[:FALLTHROUGH_NOTIFICATION_LIMIT]

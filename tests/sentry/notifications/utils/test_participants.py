@@ -523,7 +523,7 @@ class GetOwnersCase(TestCase):
                 project=self.project,
                 event=event,
                 target_type=ActionTargetType.ISSUE_OWNERS,
-                fallthrough_choice=FallthroughChoiceType.ADMIN_OR_RECENT,
+                fallthrough_choice=FallthroughChoiceType.ACTIVE_MEMBERS,
             )
             assert (
                 owner_reason
@@ -710,7 +710,7 @@ class GetSendToFallthroughTest(TestCase):
             UserService.serialize_user(user) for user in [self.user, self.user2]
         }
         assert self.get_send_to_fallthrough(
-            event, self.project, FallthroughChoiceType.ADMIN_OR_RECENT
+            event, self.project, FallthroughChoiceType.ACTIVE_MEMBERS
         ) == {ExternalProviders.EMAIL: expected_notified_users}
 
     @with_feature("organizations:issue-alert-fallback-targeting")
@@ -734,7 +734,7 @@ class GetSendToFallthroughTest(TestCase):
         event = self.store_event("admin.lol", self.project)
         expected_notified_users = {UserService.serialize_user(user) for user in notified_users}
         notified_users = self.get_send_to_fallthrough(
-            event, self.project, FallthroughChoiceType.ADMIN_OR_RECENT
+            event, self.project, FallthroughChoiceType.ACTIVE_MEMBERS
         )[ExternalProviders.EMAIL]
 
         assert len(notified_users) == 12
@@ -761,7 +761,7 @@ class GetSendToFallthroughTest(TestCase):
         event = self.store_event("admin.lol", self.project)
         expected_notified_users = {UserService.serialize_user(user) for user in notified_users}
         notified_users = self.get_send_to_fallthrough(
-            event, self.project, FallthroughChoiceType.ADMIN_OR_RECENT
+            event, self.project, FallthroughChoiceType.ACTIVE_MEMBERS
         )[ExternalProviders.EMAIL]
 
         assert len(notified_users) == 20
