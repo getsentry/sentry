@@ -17,13 +17,13 @@ from sentry.ratelimits.sliding_windows import Quota
 from sentry.testutils import TestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.types.issues import GroupType
+from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 
 @region_silo_test
 class SaveIssueOccurrenceTest(OccurrenceTestMixin, TestCase):  # type: ignore
     def test(self) -> None:
-        # TODO: We should make this a platform event once we have one
         event = self.store_event(data={}, project_id=self.project.id)
         occurrence = self.build_occurrence(event_id=event.event_id)
         saved_occurrence = save_issue_occurrence(occurrence.to_dict(), event)
@@ -48,7 +48,8 @@ class SaveIssueOccurrenceTest(OccurrenceTestMixin, TestCase):  # type: ignore
 
     def test_different_ids(self) -> None:
         # TODO: We should make this a platform event once we have one
-        event = self.store_event(data={}, project_id=self.project.id)
+        event_data = load_data("generic-event")
+        event = self.store_event(data=event_data, project_id=self.project.id)
         occurrence = self.build_occurrence()
         with self.assertRaisesMessage(
             ValueError, "IssueOccurrence must have the same event_id as the passed Event"
@@ -183,8 +184,8 @@ class MaterializeMetadataTest(OccurrenceTestMixin, TestCase):  # type: ignore
 @region_silo_test
 class SaveIssueOccurrenceToEventstreamTest(OccurrenceTestMixin, TestCase):  # type: ignore
     def test(self) -> None:
-        # TODO: We should make this a platform event once we have one
-        event = self.store_event(data={}, project_id=self.project.id)
+        event_data = load_data("generic-event")
+        event = self.store_event(data=event_data, project_id=self.project.id)
         group_event = event.for_group(self.group)
         occurrence = self.build_occurrence(event_id=event.event_id)
         group_info = GroupInfo(event.group, True, False, None, False)

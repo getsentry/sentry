@@ -186,7 +186,8 @@ def load_data(
     timestamp = timestamp.replace(tzinfo=pytz.utc)
     data.setdefault("timestamp", to_timestamp(timestamp))
 
-    if data.get("type") == "transaction":
+    event_type = data.get("type")
+    if event_type == "transaction":
         if start_timestamp is None:
             start_timestamp = timestamp - timedelta(seconds=3)
         else:
@@ -248,6 +249,9 @@ def load_data(
                     )
 
             data["fingerprint"] = fingerprint
+    elif event_type == "generic":
+        # TODO add more info here
+        pass
 
     data["platform"] = platform
     # XXX: Message is a legacy alias for logentry. Do not overwrite if set.
