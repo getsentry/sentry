@@ -1,32 +1,10 @@
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
 
-import type {Project} from 'sentry/types';
 import {useLocation} from 'sentry/utils/useLocation';
 
 import useReplaysCount from './useReplaysCount';
 
 jest.mock('sentry/utils/useLocation');
-
-function getExpectedReqestParams({
-  field,
-  project,
-  query,
-}: {
-  field: string[];
-  project: Project;
-  query: string;
-}) {
-  return expect.objectContaining({
-    query: {
-      environment: [],
-      field,
-      per_page: 50,
-      project: [String(project.id)],
-      query,
-      statsPeriod: '14d',
-    },
-  });
-}
 
 describe('useReplaysCount', () => {
   const MockUseLocation = useLocation as jest.MockedFunction<typeof useLocation>;
@@ -255,12 +233,17 @@ describe('useReplaysCount', () => {
     expect(result.current).toEqual({});
     expect(countRequest).toHaveBeenCalledWith(
       '/organizations/org-slug/events/',
-      getExpectedReqestParams({
-        field: ['count_unique(replayId)', 'transaction'],
-        project,
-        query: `!replayId:"" event.type:transaction transaction:[${mockTransactionNames.join(
-          ','
-        )}]`,
+      expect.objectContaining({
+        query: {
+          environment: [],
+          field: ['count_unique(replayId)', 'transaction'],
+          per_page: 50,
+          project: [String(project.id)],
+          query: `!replayId:"" event.type:transaction transaction:[${mockTransactionNames.join(
+            ','
+          )}]`,
+          statsPeriod: '14d',
+        },
       })
     );
 

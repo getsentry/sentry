@@ -76,7 +76,7 @@ function useReplaysCount({
         version: 2,
         fields: ['count_unique(replayId)', String(query?.field)],
         query: `!replayId:"" ${query?.conditions}`,
-        projects: projectIds, // [Number(project?.id)],
+        projects: projectIds,
       }),
     [projectIds, query]
   );
@@ -94,7 +94,7 @@ function useReplaysCount({
             query: {
               query: query.conditions,
               statsPeriod: '14d',
-              project: projectIds, // [Number(project?.id)],
+              project: projectIds,
             },
           }
         );
