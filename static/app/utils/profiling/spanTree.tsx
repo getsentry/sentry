@@ -42,6 +42,11 @@ class SpanTree {
 
   constructor(spans: RawSpanType[]) {
     this.buildCollapsedSpanTree(spans);
+
+    this.spanTree.span.timestamp = this.spanTree.children.reduce(
+      (sum, c) => sum + c.span.timestamp - c.span.start_timestamp,
+      0
+    );
   }
 
   static Empty(): SpanTree {
