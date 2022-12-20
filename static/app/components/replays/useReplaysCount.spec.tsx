@@ -50,12 +50,13 @@ describe('useReplaysCount', () => {
   const project = TestStubs.Project({
     platform: 'javascript',
   });
+  const projectIds = [Number(project.id)];
 
   it('should throw if neither groupIds nor transactionNames is provided', () => {
     const {result} = reactHooks.renderHook(useReplaysCount, {
       initialProps: {
         organization,
-        project,
+        projectIds,
       },
     });
     expect(result.error).toBeTruthy();
@@ -65,7 +66,7 @@ describe('useReplaysCount', () => {
     const {result} = reactHooks.renderHook(useReplaysCount, {
       initialProps: {
         organization,
-        project,
+        projectIds,
         groupIds: [],
         transactionNames: [],
       },
@@ -83,7 +84,7 @@ describe('useReplaysCount', () => {
     const {result, waitForNextUpdate} = reactHooks.renderHook(useReplaysCount, {
       initialProps: {
         organization,
-        project,
+        projectIds,
         groupIds: mockGroupIds,
       },
     });
@@ -115,7 +116,7 @@ describe('useReplaysCount', () => {
     const {result, waitForNextUpdate} = reactHooks.renderHook(useReplaysCount, {
       initialProps: {
         organization,
-        project,
+        projectIds,
         groupIds: mockGroupIds,
       },
     });
@@ -141,7 +142,7 @@ describe('useReplaysCount', () => {
     const {result, waitForNextUpdate} = reactHooks.renderHook(useReplaysCount, {
       initialProps: {
         organization,
-        project,
+        projectIds,
         transactionNames: mockTransactionNames,
       },
     });
@@ -178,7 +179,7 @@ describe('useReplaysCount', () => {
     const {result, waitForNextUpdate} = reactHooks.renderHook(useReplaysCount, {
       initialProps: {
         organization,
-        project,
+        projectIds,
         transactionNames: mockTransactionNames,
       },
     });

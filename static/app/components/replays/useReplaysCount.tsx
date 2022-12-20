@@ -2,24 +2,28 @@ import {useCallback, useEffect, useMemo, useState} from 'react';
 import * as Sentry from '@sentry/react';
 import {Location} from 'history';
 
-import {Organization, Project} from 'sentry/types';
+import {Organization} from 'sentry/types';
 import {TableData} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {doDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
-import projectSupportsReplay from 'sentry/utils/replays/projectSupportsReplay';
 import toArray from 'sentry/utils/toArray';
 import useApi from 'sentry/utils/useApi';
 
 type Options = {
   organization: Organization;
-  project: undefined | Project;
+  projectIds: number[];
   groupIds?: string | string[];
   transactionNames?: string | string[];
 };
 
 type CountState = Record<string, undefined | number>;
 
-function useReplaysCount({groupIds, transactionNames, organization, project}: Options) {
+function useReplaysCount({
+  groupIds,
+  transactionNames,
+  organization,
+  projectIds,
+}: Options) {
   const api = useApi();
 
   const [replayCounts, setReplayCounts] = useState<CountState>({});
@@ -67,9 +71,9 @@ function useReplaysCount({groupIds, transactionNames, organization, project}: Op
         version: 2,
         fields: ['count_unique(replayId)', String(query?.field)],
         query: `!replayId:"" ${query?.conditions}`,
-        projects: [Number(project?.id)],
+        projects: projectIds, // [Number(project?.id)],
       }),
-    [project?.id, query]
+    [projectIds, query]
   );
 
   const fetchReplayCount = useCallback(async () => {
@@ -85,7 +89,7 @@ function useReplaysCount({groupIds, transactionNames, organization, project}: Op
             query: {
               query: query.conditions,
               statsPeriod: '14d',
-              project: [Number(project?.id)],
+              project: projectIds, // [Number(project?.id)],
             },
           }
         );
@@ -108,16 +112,14 @@ function useReplaysCount({groupIds, transactionNames, organization, project}: Op
     } catch (err) {
       Sentry.captureException(err);
     }
-  }, [api, organization.slug, query, zeroCounts, eventView, project]);
+  }, [api, organization.slug, query, zeroCounts, eventView, projectIds]);
 
   useEffect(() => {
-    const hasSessionReplay =
-      organization.features.includes('session-replay-ui') &&
-      projectSupportsReplay(project);
+    const hasSessionReplay = organization.features.includes('session-replay-ui');
     if (hasSessionReplay) {
       fetchReplayCount();
     }
-  }, [fetchReplayCount, organization, project]);
+  }, [fetchReplayCount, organization]);
 
   return replayCounts;
 }
