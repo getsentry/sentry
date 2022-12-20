@@ -846,6 +846,12 @@ CELERYBEAT_SCHEDULE = {
         "schedule": timedelta(hours=1),
         "options": {"expires": 3600},
     },
+    "dynamic-sampling-project-biases": {
+        "task": "sentry.dynamic_sampling.tasks.prioritize_by_project",
+        "schedule": timedelta(hours=1),
+        # TODO: (andrii) adjust defaults
+        "options": {"expires": 3600},
+    },
 }
 
 BGTASKS = {
