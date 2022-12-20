@@ -1,12 +1,5 @@
 import {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
 
-interface SpanChartNode {
-  depth: number;
-  end: number;
-  node: SpanTreeNode;
-  start: number;
-}
-
 class SpanTreeNode {
   parent?: SpanTreeNode | null = null;
   span: RawSpanType;
@@ -44,21 +37,19 @@ class SpanTreeNode {
 }
 
 class SpanTree {
-  spans: RawSpanType[];
   spanTree: SpanTreeNode = SpanTreeNode.Root();
   orphanedSpans: RawSpanType[] = [];
 
   constructor(spans: RawSpanType[]) {
-    this.spans = spans;
-    this.buildCollapsedSpanTree();
+    this.buildCollapsedSpanTree(spans);
   }
 
   static Empty(): SpanTree {
     return new SpanTree([]);
   }
 
-  buildCollapsedSpanTree() {
-    const spansSortedByStartTime = [...this.spans].sort((a, b) => {
+  buildCollapsedSpanTree(spans: RawSpanType[]) {
+    const spansSortedByStartTime = [...spans].sort((a, b) => {
       if (a.start_timestamp < b.start_timestamp) {
         return -1;
       }
@@ -96,21 +87,6 @@ class SpanTree {
         continue;
       }
       parent.children.push(new SpanTreeNode(span, parent));
-    }
-  }
-
-  forEach(cb: (node: SpanChartNode) => void) {
-    const queue: SpanTreeNode[] = [...this.spanTree.children];
-    let depth = 0;
-
-    while (queue.length) {
-      let children_at_depth = queue.length;
-      while (children_at_depth-- !== 0) {
-        const node = queue.pop()!;
-        queue.push(...node.children);
-        cb({start: node.span.start_timestamp, end: node.span.timestamp, node, depth});
-      }
-      depth++;
     }
   }
 }
