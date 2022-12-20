@@ -1,5 +1,5 @@
 import unittest
-from typing import List
+from typing import Any, Dict, List
 
 import pytest
 
@@ -24,7 +24,12 @@ class SlowSpanDetectorTest(unittest.TestCase):
         super().setUp()
         self.settings = get_detection_settings()
 
-    def find_slow_span_problems(self, event: Event) -> List[PerformanceProblem]:
+    def find_slow_span_problems(
+        self, event: Event, setting_overides: Dict[str, Any] = None
+    ) -> List[PerformanceProblem]:
+        if setting_overides:
+            for option_name, value in setting_overides.items():
+                self.settings[DetectorType.SLOW_SPAN][option_name] = value
         detector = SlowSpanDetector(self.settings, event)
         run_detector_on_data(detector, event)
         # The usage of "prepare_problem_for_grouping" is only needed because the slow db detector is using PerformanceSpanProblem,
@@ -53,6 +58,10 @@ class SlowSpanDetectorTest(unittest.TestCase):
             )
         ]
 
+    def test_skip_queries_without_select(self):
+        event = create_event([create_span("db", 100000.0, "DELETE FROM table WHERE id = %s")] * 1)
+        assert self.find_slow_span_problems(event) == []
+
     def test_calls_slow_span_threshold(self):
         http_span_event = create_event(
             [create_span("http.client", 1001.0, "http://example.com")] * 1
@@ -65,23 +74,6 @@ class SlowSpanDetectorTest(unittest.TestCase):
                 fingerprint="1-GroupType.PERFORMANCE_SLOW_SPAN-dff8b4c2cafa12af9b5a35f3b12f9f8c2d790170",
                 op="db.query",
                 desc="SELECT count() FROM table WHERE id = %s",
-                type=GroupType.PERFORMANCE_SLOW_SPAN,
-                parent_span_ids=None,
-                cause_span_ids=None,
-                offender_span_ids=["bbbbbbbbbbbbbbbb"],
-            )
-        ]
-
-    def test_calls_partial_span_op_allowed(self):
-        span_event = create_event(
-            [create_span("db.query", 2001.0, "SELECT something FROM something_else")] * 1
-        )
-
-        assert self.find_slow_span_problems(span_event) == [
-            PerformanceProblem(
-                fingerprint="1-GroupType.PERFORMANCE_SLOW_SPAN-dff8b4c2cafa12af9b5a35f3b12f9f8c2d790170",
-                op="db.query",
-                desc="SELECT something FROM something_else",
                 type=GroupType.PERFORMANCE_SLOW_SPAN,
                 parent_span_ids=None,
                 cause_span_ids=None,
