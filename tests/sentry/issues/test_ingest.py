@@ -47,7 +47,6 @@ class SaveIssueOccurrenceTest(OccurrenceTestMixin, TestCase):  # type: ignore
         # assert result["data"][0]["group_ids"] == [self.group.id]
 
     def test_different_ids(self) -> None:
-        # TODO: We should make this a platform event once we have one
         event_data = load_data("generic-event")
         event = self.store_event(data=event_data, project_id=self.project.id)
         occurrence = self.build_occurrence()
