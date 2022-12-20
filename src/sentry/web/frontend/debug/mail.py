@@ -402,6 +402,9 @@ def alert(request):
             "commits": json.loads(COMMIT_EXAMPLE),
             "environment": random.randint(0, 1) > 0 and "prod" or None,
             "notification_reason": notification_reason,
+            "notification_settings_link": absolute_uri(
+                "/settings/account/notifications/alerts/?referrer=alert_email"
+            ),
             "issue_type": GROUP_TYPE_TO_TEXT.get(group.issue_type, "Issue"),
         },
     ).render(request)

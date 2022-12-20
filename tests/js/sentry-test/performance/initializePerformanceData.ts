@@ -1,5 +1,6 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
+import {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
 import {EntryType, EventTransaction, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
@@ -199,19 +200,19 @@ export function generateSampleEvent(): EventTransaction {
         type: EntryType.SPANS,
       },
     ],
-  } as EventTransaction;
+  } as unknown as EventTransaction;
 
   return event;
 }
 
 export function generateSampleSpan(
-  description: string | null,
-  op: string | null,
+  description: string | undefined,
+  op: string | undefined,
   span_id: string,
   parent_span_id: string,
   event: EventTransaction
 ) {
-  const span = {
+  const span: RawSpanType = {
     start_timestamp: 1000,
     timestamp: 2000,
     description,
@@ -225,6 +226,10 @@ export function generateSampleSpan(
     },
     data: {},
   };
+
+  if (!Array.isArray(event.entries[0].data)) {
+    throw new Error('Event entries data is not an array');
+  }
 
   event.entries[0].data.push(span);
   return span;
