@@ -28,7 +28,7 @@ class CreateMonitor extends AsyncView<Props, AsyncView['state']> {
   }
 
   onSubmitSuccess = (data: Monitor) => {
-    const url = normalizeUrl(`/organizations/${this.orgSlug}/monitors/${data.id}/`);
+    const url = normalizeUrl(`/organizations/${this.orgSlug}/crons/${data.id}/`);
     browserHistory.push(url);
   };
 
