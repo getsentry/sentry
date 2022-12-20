@@ -9,6 +9,7 @@ from sentry.models.integrations.organization_integration import OrganizationInte
 from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.organization import OrganizationStatus
 from sentry.models.repository import Repository
+from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.tasks.derive_code_mappings import derive_code_mappings, identify_stacktrace_paths
 from sentry.testutils import TestCase
 from sentry.testutils.helpers import with_feature
@@ -25,6 +26,35 @@ class BaseDeriveCodeMappings(TestCase):
     def generate_data(self, frames: List[Dict[str, Union[str, bool]]], platform: str = ""):
         test_data = {"platform": platform or self.platform, "stacktrace": {"frames": frames}}
         return self.store_event(data=test_data, project_id=self.project.id).data
+
+
+class TestTaskBehavior(BaseDeriveCodeMappings):
+    """Test task behavior that is not language specific."""
+
+    def setUp(self):
+        super().setUp()
+        self.platform = "any"
+        self.event_data = self.generate_data(
+            [{"filename": "foo.py", "in_app": True}],
+            platform="any",
+        )
+        self.integration = self.create_integration(
+            organization=self.organization,
+            provider="github",
+            external_id=self.organization.id,
+            metadata={"domain_name": "github.com/Test-Org"},
+        )
+
+    @responses.activate
+    @with_feature("organizations:derive-code-mappings")
+    def test_api_error_installation_removed(self):
+        with patch(
+            "sentry.integrations.github.client.GitHubClientMixin.get_trees_for_org",
+            side_effect=ApiError(
+                '{"message":"Not Found","documentation_url":"https://docs.github.com/rest/reference/apps#create-an-installation-access-token-for-an-app"}'
+            ),
+        ):
+            assert derive_code_mappings(self.project.id, self.event_data) is None
 
 
 class TestJavascriptDeriveCodeMappings(BaseDeriveCodeMappings):
@@ -337,3 +367,48 @@ class TestPythonDeriveCodeMappings(BaseDeriveCodeMappings):
 
         # We should not create the code mapping for dry runs
         assert not RepositoryProjectPathConfig.objects.filter(project_id=self.project.id).exists()
+
+    @responses.activate
+    @with_feature("organizations:derive-code-mappings")
+    def test_derive_code_mappings_stack_and_source_root_do_not_match(self):
+        self.create_integration(
+            organization=self.organization,
+            provider="github",
+            external_id=self.organization.id,
+            metadata={"domain_name": "github.com/Test-Org"},
+        )
+        repo_name = "foo/bar"
+        with patch(
+            "sentry.integrations.github.client.GitHubClientMixin.get_trees_for_org"
+        ) as mock_get_trees_for_org:
+            mock_get_trees_for_org.return_value = {
+                repo_name: RepoTree(Repo(repo_name, "master"), ["src/sentry/models/release.py"])
+            }
+            derive_code_mappings(self.project.id, self.test_data)
+            code_mapping = RepositoryProjectPathConfig.objects.all().first()
+            # sentry/models/release.py -> models/release.py -> src/sentry/models/release.py
+            assert code_mapping.stack_root == "sentry/"
+            assert code_mapping.source_root == "src/sentry/"
+
+    @responses.activate
+    @with_feature("organizations:derive-code-mappings")
+    def test_derive_code_mappings_no_normalization(self):
+        self.create_integration(
+            organization=self.organization,
+            provider="github",
+            external_id=self.organization.id,
+            metadata={"domain_name": "github.com/Test-Org"},
+        )
+        repo_name = "foo/bar"
+        with patch(
+            "sentry.integrations.github.client.GitHubClientMixin.get_trees_for_org"
+        ) as mock_get_trees_for_org:
+            mock_get_trees_for_org.return_value = {
+                repo_name: RepoTree(Repo(repo_name, "master"), ["sentry/models/release.py"])
+            }
+            derive_code_mappings(self.project.id, self.test_data)
+            code_mapping = RepositoryProjectPathConfig.objects.all().first()
+            # sentry/models/release.py -> models/release.py -> sentry/models/release.py
+            # If the normalization code was used these would be the empty stack root
+            assert code_mapping.stack_root == "sentry/"
+            assert code_mapping.source_root == "sentry/"
