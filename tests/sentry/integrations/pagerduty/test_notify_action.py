@@ -86,7 +86,6 @@ class PagerDutyNotifyActionTest(RuleTestCase):
         perf_event_manager.normalize()
         with override_options(
             {
-                "performance.issues.all.problem-creation": 1.0,
                 "performance.issues.n_plus_one_db.problem-creation": 1.0,
             }
         ), self.feature(

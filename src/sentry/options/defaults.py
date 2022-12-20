@@ -558,8 +558,6 @@ register("sentry-metrics.releasehealth.abnormal-mechanism-extraction-rate", defa
 
 # Performance issue options to change both detection (which we can monitor with metrics),
 # and the creation of performance problems, which will eventually get turned into issues.
-register("performance.issues.all.problem-detection", default=0.0)
-register("performance.issues.all.problem-creation", default=0.0)
 register(
     "performance.issues.all.early-adopter-rollout", default=0.0
 )  # Only used for EA rollout, bound to the feature flag handler for performance-issue-ingest
