@@ -4,5 +4,6 @@
   "project_id": 1,
   "platform": "python",
   "tags": {"environment": "prod"},
-  "timestamp": 1562681591.0
+  "timestamp": 1562681591.0,
+  "type": "generic"
 }

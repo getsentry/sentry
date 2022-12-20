@@ -114,6 +114,7 @@ def load_data(
     spans=None,
     trace_context=None,
     fingerprint=None,
+    project_id=None,
 ):
     # NOTE: Before editing this data, make sure you understand the context
     # in which its being used. It is NOT only used for local development and
@@ -250,8 +251,8 @@ def load_data(
 
             data["fingerprint"] = fingerprint
     elif event_type == "generic":
-        # TODO add more info here
-        pass
+        if project_id is not None:
+            data["project_id"] = project_id
 
     data["platform"] = platform
     # XXX: Message is a legacy alias for logentry. Do not overwrite if set.
