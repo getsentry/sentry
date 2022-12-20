@@ -110,7 +110,7 @@ function TransactionHeader({
   const replaysCount = useReplaysCount({
     transactionNames: transactionName,
     organization,
-    project,
+    projectIds: project ? [Number(project.id)] : [],
   })[transactionName];
 
   return (

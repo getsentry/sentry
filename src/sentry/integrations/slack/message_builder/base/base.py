@@ -3,7 +3,7 @@ from __future__ import annotations
 from abc import ABC
 from typing import Any, Mapping, MutableMapping, Sequence
 
-from sentry.eventstore.models import Event
+from sentry.eventstore.models import Event, GroupEvent
 from sentry.integrations.message_builder import AbstractMessageBuilder
 from sentry.integrations.slack.message_builder import LEVEL_TO_COLOR, SlackBody
 from sentry.models import Group
@@ -36,13 +36,16 @@ class SlackMessageBuilder(AbstractMessageBuilder, ABC):
         """Abstract `build` method that all inheritors must implement."""
         raise NotImplementedError
 
-    def build_fallback_text(self, obj: Group | Event, project_slug: str) -> str:
+    def build_fallback_text(self, obj: Group | Event | GroupEvent, project_slug: str) -> str:
         """Fallback text is used in the message preview popup."""
         title = obj.title
         group = getattr(obj, "group", obj)
 
         if group.issue_category == GroupCategory.PERFORMANCE:
             title = GROUP_TYPE_TO_TEXT.get(group.issue_type, "Issue")
+
+        elif isinstance(obj, GroupEvent) and obj.occurrence is not None:
+            title = obj.occurrence.issue_title
 
         return f"[{project_slug}] {title}"
 

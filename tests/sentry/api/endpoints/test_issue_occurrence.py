@@ -19,13 +19,13 @@ class IssueOccurrenceTest(APITestCase):
         self.event = {
             "event_id": "44f1419e73884cd2b45c79918f4b6dc4",
             "project_id": project.id,
-            "title": "Meow meow",
             "platform": "python",
             "tags": {"environment": "prod"},
             "timestamp": ensure_aware(datetime.now()),
             "message_timestamp": ensure_aware(datetime.now()),
         }
         self.data = {
+            "id": "55f1419e73884cd2b45c79918f4b6dc5",
             "fingerprint": ["some-fingerprint"],
             "issue_title": "something bad happened",
             "subtitle": "it was bad",
