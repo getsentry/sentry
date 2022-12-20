@@ -2664,6 +2664,7 @@ SENTRY_REQUEST_METRIC_ALLOWED_PATHS = (
     "sentry.data_export.endpoints",
     "sentry.discover.endpoints",
     "sentry.incidents.endpoints",
+    "sentry.replays.endpoints",
 )
 SENTRY_MAIL_ADAPTER_BACKEND = "sentry.mail.adapter.MailAdapter"
 
