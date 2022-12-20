@@ -45,6 +45,8 @@ class OrganizationTagKeyValuesTest(OrganizationTagKeyTestCase, ReplaysSnubaTestC
     def test_simple(self):
 
         replay1_id = uuid.uuid4().hex
+        replay2_id = uuid.uuid4().hex
+        replay3_id = uuid.uuid4().hex
         seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=22)
         self.store_replays(
             mock_replay(
@@ -60,13 +62,31 @@ class OrganizationTagKeyValuesTest(OrganizationTagKeyTestCase, ReplaysSnubaTestC
                     "http://localhost:3000/login",
                 ],  # duplicate urls are okay,
                 tags={"fruit": "orange"},
-            )
+                segment_id=0,
+            ),
         )
         self.store_replays(
             mock_replay(
                 seq1_timestamp,
                 self.project.id,
                 replay1_id,
+                # NOTE: This is commented out due to a bug in CI.  This will not affect
+                # production use and have been verfied as working as of 08/10/2022.
+                #
+                # error_ids=[uuid.uuid4().hex, replay1_id],  # duplicate error-id
+                urls=[
+                    "http://localhost:3000/",
+                    "http://localhost:3000/login",
+                ],  # duplicate urls are okay,
+                tags={"fruit": "orange"},
+                segment_id=1,
+            ),
+        )
+        self.store_replays(
+            mock_replay(
+                seq1_timestamp,
+                self.project.id,
+                replay2_id,
                 urls=[
                     "http://localhost:3000/",
                     "http://localhost:3000/login",
@@ -78,7 +98,7 @@ class OrganizationTagKeyValuesTest(OrganizationTagKeyTestCase, ReplaysSnubaTestC
             mock_replay(
                 seq1_timestamp,
                 self.project.id,
-                replay1_id,
+                replay3_id,
                 urls=[
                     "http://localhost:3000/",
                     "http://localhost:3000/login",

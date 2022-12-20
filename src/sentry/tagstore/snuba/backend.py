@@ -1155,15 +1155,12 @@ class SnubaTagStorage(TagStorage):
 
         if dataset == Dataset.Replays:
             try:
-
                 results = query_replays_dataset_tags(
                     project_ids=filters["project_id"],
                     start=start,
                     end=end,
-                    where=[],
-                    query=query,
+                    environment=filters.get("environment"),
                     tag_key=key,
-                    # orderby=order_by,
                 )
                 results = {
                     d["tag_value"]: {

@@ -191,16 +191,15 @@ def query_replays_dataset_tags(
     project_ids: List[str],
     start: datetime,
     end: datetime,
-    where: List[Condition],
-    query: Any,
+    environment: str | None,
     tag_key: str,
 ):
-    # try:
-    #     search_filters = parse_search_query(query or "", config=replay_url_parser_config)
-    # except InvalidSearchQuery as e:
-    #     raise ParseError(str(e))
 
     query_options = {}
+
+    where = []
+    if environment:
+        where.append(Condition(Column("environment"), Op.IN, environment))
 
     query_options["limit"] = Limit(1000)
 
@@ -210,12 +209,12 @@ def query_replays_dataset_tags(
         query=Query(
             match=Entity("replays"),
             select=[
-                Function("count", "*", alias="times_seen"),
+                Function("uniq", parameters=[Column("replay_id")], alias="times_seen"),
                 Function("min", parameters=[Column("timestamp")], alias="first_seen"),
                 Function("max", parameters=[Column("timestamp")], alias="last_seen"),
                 Function(
                     "arrayJoin",
-                    parameters=[  # TODO: unique function
+                    parameters=[
                         Function(
                             "arrayFilter",
                             parameters=[
@@ -230,10 +229,14 @@ def query_replays_dataset_tags(
                                         Lambda(
                                             ["index", "key"],
                                             Function(
-                                                "equals", parameters=[Identifier("key"), tag_key]
+                                                "equals",
+                                                parameters=[Identifier("key"), tag_key],
                                             ),
                                         ),
-                                        Function("arrayEnumerate", parameters=[Column("tags.key")]),
+                                        Function(
+                                            "arrayEnumerate",
+                                            parameters=[Column("tags.key")],
+                                        ),
                                         Column("tags.key"),
                                     ],
                                 ),
@@ -250,20 +253,15 @@ def query_replays_dataset_tags(
                 Condition(Column("is_archived"), Op.IS_NULL),
                 *where,
             ],
-            having=[
-                # Must include the first sequence otherwise the replay is too old.
-                # Condition(Function("min", parameters=[Column("segment_id")]), Op.EQ, 0),
-                # Require non-archived replays.
-                # User conditions.
-                # *generate_valid_conditions(search_filters, query_config=ReplayQueryConfig()),
-            ],
             orderby=[OrderBy(Column("times_seen"), Direction.DESC)],
             groupby=[Column("tag_value")],
             granularity=Granularity(3600),
             **query_options,
         ),
     )
-    return raw_snql_query(snuba_request)
+    return raw_snql_query(
+        snuba_request, referrer="replays.query.query_replays_dataset_tags", use_cache=True
+    )
 
 
 # Select.
