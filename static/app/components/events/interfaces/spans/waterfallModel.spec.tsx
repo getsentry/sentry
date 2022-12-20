@@ -176,7 +176,7 @@ describe('WaterfallModel', () => {
         type: EntryType.SPANS,
       },
     ],
-  } as EventTransaction;
+  } as unknown as EventTransaction;
 
   const fullWaterfall: EnhancedProcessedSpanType[] = [
     {
