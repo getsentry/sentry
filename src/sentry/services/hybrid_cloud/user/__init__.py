@@ -6,7 +6,6 @@ from dataclasses import dataclass, fields
 from enum import IntEnum
 from typing import TYPE_CHECKING, Any, FrozenSet, Iterable, List, Optional
 
-from sentry.db.models import BaseQuerySet
 from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_delegation, stubbed
 from sentry.silo import SiloMode
 
@@ -180,6 +179,8 @@ class UserService(InterfaceWithLifecycle):
 
 
 def flatten(iter: Iterable[Any]) -> List[Any]:
+    from sentry.db.models import BaseQuerySet
+
     return (
         ((flatten(iter[0]) + flatten(iter[1:])) if len(iter) > 0 else [])
         if type(iter) is list or isinstance(iter, BaseQuerySet)

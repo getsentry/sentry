@@ -8,7 +8,6 @@ from rest_framework import status
 from rest_framework.exceptions import APIException
 
 from sentry.types.region import RegionContextError, get_local_region
-from sentry.utils import redis
 
 _TTL = timedelta(minutes=5)
 
@@ -104,6 +103,8 @@ def generate_snowflake_id(redis_key: str) -> int:
 
 
 def get_redis_cluster(redis_key: str):
+    from sentry.utils import redis
+
     return redis.clusters.get("default").get_local_client_for_key(redis_key)
 
 
