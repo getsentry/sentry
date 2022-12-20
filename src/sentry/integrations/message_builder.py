@@ -93,7 +93,7 @@ def build_attachment_text(group: Group, event: GroupEvent | None = None) -> Any 
     if not event:
         event = group.get_latest_event()
 
-    if event is not None and hasattr(event, "occurrence") and event.occurrence is not None:
+    if event and getattr(event, "occurrence", None) is not None:
         important = event.occurrence.important_evidence_display
         if important:
             return important.value
