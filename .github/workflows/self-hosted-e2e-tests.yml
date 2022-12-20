@@ -45,12 +45,24 @@ jobs:
               sleep 10
           done
           echo "sentry-test-image-name=$SENTRY_TEST_IMAGE" >> "$GITHUB_OUTPUT"
-
+      - name: Get short SHA for docker tag
+        id: short_sha
+        shell: bash
+        run: |
+          SHORT_SHA=$(git rev-parse --short "$GITHUB_SHA")
+          if [[ -z "$SHORT_SHA" ]]; then
+            echo "Short SHA empty? Re-running rev-parse."
+            git rev-parse --short "$GITHUB_SHA"
+          else
+            echo "sha=$SHORT_SHA" >> $GITHUB_OUTPUT
+          fi
       - name: Run Sentry self-hosted e2e CI
         if: steps.changes.outputs.backend_all == 'true'
-        uses: getsentry/action-self-hosted-e2e-tests@ethanhs/test-dockerhub-push
+        uses: getsentry/action-self-hosted-e2e-tests@c2ceda76ac951188056325d6670178592ecfa1e7
         with:
           project_name: sentry
           local_image: ${{ steps.image_pull.outputs.sentry-test-image-name }}
           docker_repo: docker.io/getsentry/sentry
           docker_password: ${{ secrets.DOCKER_HUB_RW_TOKEN }}
+          full_sha: ${GITHUB_SHA}
+          short_sha: ${{ steps.short_sha.outputs.sha }}
