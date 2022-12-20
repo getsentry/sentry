@@ -95,7 +95,6 @@ def _get_kwargs(payload: Mapping[str, Any]) -> Optional[Mapping[str, Any]]:
             kwargs = {
                 "occurrence_data": {
                     "id": payload["id"],
-                    "event_id": payload["event_id"],
                     "fingerprint": payload["fingerprint"],
                     "issue_title": payload["issue_title"],
                     "subtitle": payload["subtitle"],
@@ -106,6 +105,8 @@ def _get_kwargs(payload: Mapping[str, Any]) -> Optional[Mapping[str, Any]]:
                     "detection_time": payload["detection_time"],
                 }
             }
+            if "event_id" in payload:
+                kwargs["occurrence_data"]["event_id"] = payload["event_id"]
 
             if "event" in payload:
                 payload_event = payload["event"]
@@ -117,6 +118,7 @@ def _get_kwargs(payload: Mapping[str, Any]) -> Optional[Mapping[str, Any]]:
                     "timestamp": payload_event["timestamp"],
                     # TODO add other params as per the spec
                 }
+                kwargs["occurrence_data"]["event_id"] = payload_event["event_id"]
 
             return kwargs
 

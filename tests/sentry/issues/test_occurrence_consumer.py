@@ -17,12 +17,11 @@ logger = logging.getLogger(__name__)
 
 
 def get_test_message(
-    project_id: str, include_event: bool = True, **overrides: Any
+    project_id: int, include_event: bool = True, **overrides: Any
 ) -> Dict[str, Any]:
     now = datetime.datetime.now()
     payload = {
         "id": uuid.uuid4().hex,
-        "event_id": uuid.uuid4().hex,
         "fingerprint": ["touch-id"],
         "issue_title": "segfault",
         "subtitle": "buffer overflow",
@@ -71,6 +70,8 @@ class IssueOccurrenceTestMessage(OccurrenceTestMixin, TestCase, SnubaTestCase): 
             self.project.id, fetched_occurrence.event_id
         )
         assert fetched_event is not None
+        assert fetched_event.get_event_type() == "generic"
+
         assert Group.objects.filter(grouphash__hash=occurrence.fingerprint[0]).exists()
 
     def test_invalid_event_payload(self) -> None:
