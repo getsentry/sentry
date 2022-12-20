@@ -69,7 +69,7 @@ class SpanTree {
     });
 
     for (const span of spansSortedByStartTime) {
-      const queue = [...this.spanTree.children];
+      const queue = [this.spanTree];
       let parent: SpanTreeNode | null = null;
 
       // If this is the first span, just push it to the root

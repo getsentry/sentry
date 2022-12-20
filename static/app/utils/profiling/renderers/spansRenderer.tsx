@@ -1,6 +1,6 @@
 import {mat3} from 'gl-matrix';
 
-import {Rect} from 'sentry/utils/profiling/gl/utils';
+import {Rect, resizeCanvasToDisplaySize} from 'sentry/utils/profiling/gl/utils';
 import {SpanChart, SpanChartNode} from 'sentry/utils/profiling/spanChart';
 
 // Convert color component from 0-1 to 0-255 range
@@ -21,6 +21,7 @@ export class SpanChartRenderer2D {
     this.spanChart = spanChart;
 
     this.init();
+    resizeCanvasToDisplaySize(this.canvas);
   }
 
   init() {
