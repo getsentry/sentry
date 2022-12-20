@@ -10,6 +10,7 @@ from django.urls import reverse
 from django.utils.translation import ugettext as _
 
 from sentry import features
+from sentry.eventstore.models import GroupEvent
 from sentry.integrations import (
     FeatureDescription,
     IntegrationFeatures,
@@ -337,6 +338,16 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         body += f"| *Repeating Spans ({num_repeating_spans})* | {truncatechars(repeating_spans, MAX_CHAR)} |"
         return body
 
+    def get_generic_issue_body(self, event):
+        body = ""
+        important = event.occurrence.important_evidence_display
+        if important:
+            body = f"| *{important.name}* | {truncatechars(important.value, MAX_CHAR)} |\n"
+        for evidence in event.occurrence.evidence_display:
+            if evidence.important is False:
+                body += f"| *{evidence.name}* | {truncatechars(evidence.value, MAX_CHAR)} |\n"
+        return body[:-2]  # chop off final newline
+
     def get_group_description(self, group, event, **kwargs):
         output = [
             "Sentry Issue: [{}|{}]".format(
@@ -348,7 +359,9 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         if group.issue_category == GroupCategory.PERFORMANCE:
             body = self.get_performance_issue_body(event)
             output.extend([body])
-
+        elif isinstance(event, GroupEvent) and event.occurrence is not None:
+            body = self.get_generic_issue_body(event)
+            output.extend([body])
         else:
             body = self.get_group_body(group, event)
             if body:

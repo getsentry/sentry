@@ -23,6 +23,7 @@ from django.utils.safestring import mark_safe
 
 from sentry import integrations
 from sentry.api.serializers.models.event import get_entries, get_problems
+from sentry.eventstore.models import Event, GroupEvent
 from sentry.incidents.models import AlertRuleTriggerAction
 from sentry.integrations import IntegrationFeatures, IntegrationProvider
 from sentry.models import (
@@ -55,7 +56,6 @@ from sentry.utils.performance_issues.performance_detection import (
 from sentry.web.helpers import render_to_string
 
 if TYPE_CHECKING:
-    from sentry.eventstore.models import Event, GroupEvent
     from sentry.notifications.notifications.activity.base import ActivityNotification
     from sentry.notifications.notifications.user_report import UserReportNotification
 
@@ -436,13 +436,16 @@ def get_performance_issue_alert_subtitle(event: Event) -> str:
 
 
 def get_notification_group_title(
-    group: Group, event: Event, max_length: int = 255, **kwargs: str
+    group: Group, event: Event | GroupEvent, max_length: int = 255, **kwargs: str
 ) -> str:
     if group.issue_category == GroupCategory.PERFORMANCE:
         issue_type = GROUP_TYPE_TO_TEXT.get(group.issue_type, "Issue")
         transaction = get_performance_issue_alert_subtitle(event)
         title = f"{issue_type}: {transaction}"
         return (title[: max_length - 2] + "..") if len(title) > max_length else title
+    elif isinstance(event, GroupEvent) and event.occurrence is not None:
+        issue_title: str = event.occurrence.issue_title
+        return issue_title
     else:
         event_title: str = event.title
         return event_title
