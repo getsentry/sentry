@@ -1,13 +1,13 @@
 import {useRef} from 'react';
 import styled from '@emotion/styled';
 
-import {SpanTree} from 'sentry/utils/profiling/spanTree';
+import {SpanChart} from 'sentry/utils/profiling/spanChart';
 
 interface FlamegraphSpansProps {
-  spanTree: SpanTree;
+  spanChart: SpanChart;
 }
 
-export function FlamegraphSpans({spanTree: _spanTree}: FlamegraphSpansProps) {
+export function FlamegraphSpans({spanChart: _spanChart}: FlamegraphSpansProps) {
   const spansCanvasRef = useRef<HTMLCanvasElement>(null);
 
   return <Canvas ref={spansCanvasRef} />;
