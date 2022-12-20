@@ -82,7 +82,7 @@ function IssueList({projectId, replayId}: Props) {
   const counts = useReplaysCount({
     groupIds: state.issues.map(issue => issue.id),
     organization,
-    project,
+    projectIds: project ? [Number(project.id)] : [],
   });
 
   return (
