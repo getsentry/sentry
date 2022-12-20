@@ -174,8 +174,7 @@ class BuildGroupAttachmentTest(TestCase):
         have a latest event attached to it to mimic a specific edge case.
         """
         perf_group = self.create_group(type=GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value)
-        with self.feature("organizations:performance-issues"):
-            attachments = SlackIssuesMessageBuilder(perf_group).build()
+        attachments = SlackIssuesMessageBuilder(perf_group).build()
 
         assert attachments["color"] == "#2788CE"  # blue for info level
 

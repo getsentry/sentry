@@ -53,7 +53,7 @@ class SlackRegressionNotificationTest(SlackActivityNotificationTest, Performance
                 data={},
             )
         )
-        with self.feature("organizations:performance-issues"), self.tasks():
+        with self.tasks():
             notification.send()
 
         attachment, text = get_attachment()

@@ -72,16 +72,6 @@ class PerformanceDetectionTest(unittest.TestCase):
         self.organization_mock = patch_organization.start()
         self.addCleanup(patch_organization.stop)
 
-        # self.features = ["organizations:performance-issues-ingest"]
-
-        # def has_feature(feature, org):
-        #     return feature in self.features
-
-        # patch_features = patch("sentry.features.has")
-        # self.features_mock = patch_features.start()
-        # self.features_mock.side_effect = has_feature
-        # self.addCleanup(patch_features.stop)
-
     @override_options(BASE_DETECTOR_OPTIONS)
     def test_project_option_overrides_default(self):
         n_plus_one_event = EVENTS["n-plus-one-in-django-index-view"]

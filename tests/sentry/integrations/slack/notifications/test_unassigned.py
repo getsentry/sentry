@@ -52,7 +52,7 @@ class SlackUnassignedNotificationTest(SlackActivityNotificationTest, Performance
                 data={"assignee": ""},
             )
         )
-        with self.feature("organizations:performance-issues"), self.tasks():
+        with self.tasks():
             notification.send()
 
         attachment, text = get_attachment()

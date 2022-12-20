@@ -13,7 +13,6 @@ from sentry.utils import json
 
 FEATURES = {
     "projects:performance-suspect-spans-ingestion": True,
-    "organizations:performance-issues": True,
 }
 
 
