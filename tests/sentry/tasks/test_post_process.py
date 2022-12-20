@@ -30,7 +30,7 @@ from sentry.models.activity import ActivityIntegration
 from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema
 from sentry.rules import init_registry
 from sentry.tasks.merge import merge_groups
-from sentry.tasks.post_process import post_process_group
+from sentry.tasks.post_process import post_process_group, process_event
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.cases import BaseTestCase
 from sentry.testutils.helpers import apply_feature_flag_on_cls, with_feature
@@ -1146,7 +1146,7 @@ class PostProcessGroupPerformanceTest(
 ):
     def create_event(self, data, project_id):
         fingerprint = data["fingerprint"][0] if data.get("fingerprint") else "some_group"
-        fingerprint = f"{GroupType.PERFORMANCE_N_PLUS_ONE.value}-{fingerprint}"
+        fingerprint = f"{GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value}-{fingerprint}"
         # Store a performance event
         event = self.store_transaction(
             project_id=project_id,
@@ -1231,7 +1231,7 @@ class PostProcessGroupPerformanceTest(
             user_id=self.create_user(name="user1").name,
             fingerprint=[
                 f"{GroupType.PERFORMANCE_SLOW_SPAN.value}-group1",
-                f"{GroupType.PERFORMANCE_N_PLUS_ONE.value}-group2",
+                f"{GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value}-group2",
             ],
             environment=None,
             timestamp=min_ago,
@@ -1264,8 +1264,9 @@ class TransactionClustererTestCase(TestCase, SnubaTestCase):
         mock_store_transaction_name,
     ):
         min_ago = before_now(minutes=1).replace(tzinfo=pytz.utc)
-        event = self.store_event(
+        event = process_event(
             data={
+                "project": self.project.id,
                 "event_id": "b" * 32,
                 "transaction": "foo",
                 "start_timestamp": str(min_ago),
@@ -1276,7 +1277,7 @@ class TransactionClustererTestCase(TestCase, SnubaTestCase):
                 },
                 "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
             },
-            project_id=self.project.id,
+            group_id=0,
         )
         cache_key = write_event_to_cache(event)
         post_process_group(

@@ -2,8 +2,10 @@ from django.urls import reverse
 
 from sentry.models import ApiToken
 from sentry.testutils import APITestCase
+from sentry.testutils.silo import control_silo_test
 
 
+@control_silo_test(stable=True)
 class ApiTokensListTest(APITestCase):
     def test_simple(self):
         ApiToken.objects.create(user=self.user)
@@ -26,6 +28,7 @@ class ApiTokensListTest(APITestCase):
         assert response.get("cache-control") == "max-age=0, no-cache, no-store, must-revalidate"
 
 
+@control_silo_test(stable=True)
 class ApiTokensCreateTest(APITestCase):
     def test_no_scopes(self):
         self.login_as(self.user)
@@ -51,6 +54,7 @@ class ApiTokensCreateTest(APITestCase):
         assert response.get("cache-control") == "max-age=0, no-cache, no-store, must-revalidate"
 
 
+@control_silo_test(stable=True)
 class ApiTokensDeleteTest(APITestCase):
     def test_simple(self):
         token = ApiToken.objects.create(user=self.user)

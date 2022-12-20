@@ -1,10 +1,10 @@
+from functools import cached_property
 from unittest import mock
 from urllib.parse import urlencode
 
 from django.test import override_settings
 from django.urls import reverse
 from django.utils.http import urlquote
-from exam import fixture
 
 from sentry.auth.authenticators import RecoveryCodeInterface, TotpInterface
 from sentry.models import (
@@ -24,11 +24,11 @@ from sentry.utils import json
 # core auth_login
 @region_silo_test
 class OrganizationAuthLoginTest(AuthProviderTestCase):
-    @fixture
+    @cached_property
     def organization(self):
         return self.create_organization(name="foo", owner=self.user)
 
-    @fixture
+    @cached_property
     def path(self):
         return reverse("sentry-auth-organization", args=[self.organization.slug])
 

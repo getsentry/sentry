@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import functools
 import logging
-from typing import Callable, Mapping, Optional, Union
+from typing import Mapping, Optional, Union
 
 from arroyo.backends.kafka import KafkaConsumer, KafkaPayload
 from arroyo.commit import IMMEDIATE
@@ -11,7 +11,7 @@ from arroyo.processing.strategies import ProcessingStrategy
 from arroyo.processing.strategies import ProcessingStrategy as ProcessingStep
 from arroyo.processing.strategies import ProcessingStrategyFactory
 from arroyo.processing.strategies.transform import ParallelTransformStep
-from arroyo.types import Message, Partition, Position, Topic
+from arroyo.types import Commit, Message, Partition, Topic
 from django.conf import settings
 
 from sentry.sentry_metrics.configuration import (
@@ -112,7 +112,7 @@ class MetricsConsumerStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
 
     def create_with_partitions(
         self,
-        commit: Callable[[Mapping[Partition, Position]], None],
+        commit: Commit,
         partitions: Mapping[Partition, int],
     ) -> ProcessingStrategy[KafkaPayload]:
         parallel_strategy = ParallelTransformStep(

@@ -566,10 +566,12 @@ def ingest_consumer(consumer_types, all_consumer_types, **options):
 @run.command("occurrences-ingest-consumer")
 @configuration
 def occurrences_ingest_consumer():
+    from django.conf import settings
+
     from sentry.issues.occurrence_consumer import get_occurrences_ingest_consumer
     from sentry.utils import metrics
 
-    consumer_type = "ingest-occurrences"
+    consumer_type = settings.KAFKA_INGEST_OCCURRENCES
 
     with metrics.global_tags(ingest_consumer_types=consumer_type, _all_threads=True):
         get_occurrences_ingest_consumer(consumer_type).run()
@@ -597,47 +599,6 @@ def region_to_control_consumer(region_name, **kafka_options):
 
     with metrics.global_tags(region_name=region_name):
         get_region_to_control_consumer(**kafka_options).run()
-
-
-@run.command("ingest-metrics-consumer-2")
-@log_options()
-@click.option("--topic", default="ingest-metrics", help="Topic to get metrics data from.")
-@batching_kafka_options("ingest-metrics-consumer")
-@configuration
-@click.option(
-    "--processes",
-    default=1,
-    type=int,
-)
-@click.option("--input-block-size", type=int, default=DEFAULT_BLOCK_SIZE)
-@click.option("--output-block-size", type=int, default=DEFAULT_BLOCK_SIZE)
-@click.option("--factory-name", default="default")
-@click.option("--ingest-profile", required=True)
-@click.option("commit_max_batch_size", "--commit-max-batch-size", type=int, default=25000)
-@click.option("commit_max_batch_time", "--commit-max-batch-time-ms", type=int, default=10000)
-@click.option("--indexer-db", default="postgres")
-def metrics_streaming_consumer(**options):
-    import sentry_sdk
-
-    from sentry.sentry_metrics.configuration import IndexerStorage, UseCaseKey, get_ingest_config
-    from sentry.sentry_metrics.consumers.indexer.multiprocess import get_streaming_metrics_consumer
-    from sentry.utils.metrics import global_tags
-
-    use_case = UseCaseKey(options["ingest_profile"])
-    db_backend = IndexerStorage(options["indexer_db"])
-    sentry_sdk.set_tag("sentry_metrics.use_case_key", use_case.value)
-    ingest_config = get_ingest_config(use_case, db_backend)
-
-    streamer = get_streaming_metrics_consumer(indexer_profile=ingest_config, **options)
-
-    def handler(signum, frame):
-        streamer.signal_shutdown()
-
-    signal.signal(signal.SIGINT, handler)
-    signal.signal(signal.SIGTERM, handler)
-
-    with global_tags(_all_threads=True, pipeline=ingest_config.internal_metrics_tag):
-        streamer.run()
 
 
 @run.command("ingest-metrics-parallel-consumer")

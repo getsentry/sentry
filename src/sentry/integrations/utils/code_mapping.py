@@ -1,5 +1,5 @@
 import logging
-from typing import Dict, List, NamedTuple, Union
+from typing import Dict, List, NamedTuple, Tuple, Union
 
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
@@ -266,6 +266,24 @@ class CodeMappingTreesHelper:
             assert source_code_root.endswith("/")
         return source_code_root
 
+    def _normalized_stack_and_source_roots(
+        self, stacktrace_root: str, source_path: str
+    ) -> Tuple[str, str]:
+        # We have a one to one code mapping (e.g. "app/" & "app/")
+        if source_path == stacktrace_root:
+            stacktrace_root = ""
+            source_path = ""
+        # stacktrace_root starts with "./"
+        elif stacktrace_root.startswith("./"):
+            without = stacktrace_root.replace("./", "")
+            if source_path == without:
+                stacktrace_root = "./"
+                source_path = ""
+            elif source_path.rfind(f"/{without}"):
+                stacktrace_root = "./"
+                source_path = source_path.replace(f"/{without}", "/")
+        return (stacktrace_root, source_path)
+
     def _generate_code_mapping_from_tree(
         self,
         repo_tree: RepoTree,
@@ -276,21 +294,24 @@ class CodeMappingTreesHelper:
             for src_path in repo_tree.files
             if self._potential_match(src_path, frame_filename)
         ]
+        if len(matched_files) != 1:
+            return []
+
+        stacktrace_root = f"{frame_filename.root}/"
+        source_path = self._get_code_mapping_source_path(matched_files[0], frame_filename)
+        if frame_filename.frame_type() != "packaged":
+            stacktrace_root, source_path = self._normalized_stack_and_source_roots(
+                stacktrace_root, source_path
+            )
         # It is too risky generating code mappings when there's more
         # than one file potentially matching
-        return (
-            [
-                CodeMapping(
-                    repo=repo_tree.repo,
-                    stacktrace_root=f"{frame_filename.root}/",  # sentry
-                    source_path=self._get_code_mapping_source_path(
-                        matched_files[0], frame_filename
-                    ),
-                )
-            ]
-            if len(matched_files) == 1
-            else []
-        )
+        return [
+            CodeMapping(
+                repo=repo_tree.repo,
+                stacktrace_root=stacktrace_root,  # sentry/
+                source_path=source_path,  # src/sentry/
+            )
+        ]
 
     def _matches_current_code_mappings(self, src_file: str, frame_filename: FrameFilename) -> bool:
         # In some cases, once we have derived a code mapping we can exclude files that start with

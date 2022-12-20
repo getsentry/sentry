@@ -89,7 +89,6 @@ def submit_symbolicate(
     cache_key: str,
     event_id: Optional[str],
     start_time: Optional[int],
-    data: Optional[Event],
     queue_switches: int = 0,
     has_attachments: bool = False,
 ) -> None:
@@ -106,7 +105,6 @@ def submit_symbolicate(
         cache_key=cache_key,
         start_time=start_time,
         event_id=event_id,
-        data=data,
         queue_switches=queue_switches,
         has_attachments=has_attachments,
     )
@@ -164,7 +162,6 @@ def _do_symbolicate_event(
                 cache_key,
                 event_id,
                 start_time,
-                data,
                 queue_switches + 1,
                 has_attachments=has_attachments,
             )

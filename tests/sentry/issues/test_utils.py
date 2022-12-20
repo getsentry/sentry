@@ -2,9 +2,8 @@ import uuid
 from datetime import datetime
 from typing import Any
 
-from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
+from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence, IssueOccurrenceData
 from sentry.types.issues import GroupType
-from sentry.utils.dates import ensure_aware
 
 
 class OccurrenceTestMixin:
@@ -20,8 +19,8 @@ class OccurrenceTestMixin:
         assert o1.type == o2.type
         assert o1.detection_time == o2.detection_time
 
-    def build_occurrence(self, **overrides: Any) -> IssueOccurrence:
-        kwargs = {
+    def build_occurrence_data(self, **overrides: Any) -> IssueOccurrenceData:
+        kwargs: IssueOccurrenceData = {
             "id": uuid.uuid4().hex,
             "event_id": uuid.uuid4().hex,
             "fingerprint": ["some-fingerprint"],
@@ -30,11 +29,22 @@ class OccurrenceTestMixin:
             "resource_id": "1234",
             "evidence_data": {"Test": 123},
             "evidence_display": [
-                IssueEvidence("hi", "bye", True),
-                IssueEvidence("what", "where", False),
+                {"name": "hi", "value": "bye", "important": True},
+                {"name": "what", "value": "where", "important": False},
             ],
-            "type": GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
-            "detection_time": ensure_aware(datetime.now()),
+            "type": GroupType.PROFILE_BLOCKED_THREAD,
+            "detection_time": datetime.now().timestamp(),
+            "level": "warning",
         }
-        kwargs.update(overrides)
-        return IssueOccurrence(**kwargs)
+        kwargs.update(overrides)  # type: ignore
+        return kwargs
+
+    def build_occurrence(self, **overrides: Any) -> IssueOccurrence:
+        if "evidence_display" in overrides:
+            evidence_display = overrides["evidence_display"]
+            overrides["evidence_display"] = [
+                item.to_dict() if isinstance(item, IssueEvidence) else item
+                for item in evidence_display
+            ]
+
+        return IssueOccurrence.from_dict(self.build_occurrence_data(**overrides))
