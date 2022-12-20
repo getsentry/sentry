@@ -68,6 +68,7 @@ class ReleaseHealthMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                 "field": [
                     "session.errored",
                     "session.healthy",
+                    "session.anr_rate",
                 ],
                 "includeSeries": "0",
             }
@@ -82,6 +83,7 @@ class ReleaseHealthMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             [
                 {"name": "session.errored", "type": "Float64"},
                 {"name": "session.healthy", "type": "Float64"},
+                {"name": "session.anr_rate", "type": "Float64"},
             ],
             key=lambda elem: elem["name"],
         )
@@ -238,3 +240,51 @@ class ReleaseHealthMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                 limit=Limit(limit=51),
                 offset=Offset(offset=0),
             )
+
+    def test_anr_rate_operations(self):
+        for tag_value, count_value, has_anr in (
+            ("abnormal", 1, None),
+            ("abnormal", 2, "anr_background"),
+            ("abnormal", 3, "anr_foreground"),
+            ("init", 4, None),
+        ):
+            tags = {"session.status": tag_value}
+            if has_anr:
+                tags.update({"abnormal_mechanism": "anr_foreground"})
+
+            self.store_release_health_metric(
+                name=SessionMRI.USER.value,
+                tags=tags,
+                value=count_value,
+                minutes_before_now=4,
+            )
+
+        metrics_query = self.build_metrics_query(
+            before_now="6m",
+            granularity="1m",
+            select=[
+                MetricField(
+                    op=None,
+                    metric_mri=str(SessionMRI.ANR_RATE.value),
+                    alias="anr_alias",
+                ),
+            ],
+            limit=Limit(limit=51),
+            offset=Offset(offset=0),
+        )
+        data = get_series(
+            [self.project],
+            metrics_query=metrics_query,
+            include_meta=True,
+            use_case_id=UseCaseKey.RELEASE_HEALTH,
+        )
+        group = data["groups"][0]
+        assert group["totals"]["anr_alias"] == 0.5
+        assert group["series"]["anr_alias"] == [None, 0.5, None, None, None, None]
+        assert data["meta"] == sorted(
+            [
+                {"name": "anr_alias", "type": "Float64"},
+                {"name": "bucketed_time", "type": "DateTime('Universal')"},
+            ],
+            key=lambda elem: elem["name"],
+        )
