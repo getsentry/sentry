@@ -1,7 +1,10 @@
-import type {TraceContextType} from 'sentry/components/events/interfaces/spans/types';
+import type {
+  RawSpanType,
+  TraceContextType,
+} from 'sentry/components/events/interfaces/spans/types';
 import type {SymbolicatorStatus} from 'sentry/components/events/interfaces/types';
 import type {PlatformKey} from 'sentry/data/platformCategories';
-import {IssueType} from 'sentry/types';
+import type {IssueType} from 'sentry/types';
 
 import type {RawCrumb} from './breadcrumbs';
 import type {Image} from './debugImage';
@@ -292,8 +295,8 @@ type EntryStacktrace = {
   type: EntryType.STACKTRACE;
 };
 
-type EntrySpans = {
-  data: any;
+export type EntrySpans = {
+  data: RawSpanType[];
   type: EntryType.SPANS;
 };
 
