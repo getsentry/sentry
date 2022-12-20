@@ -1,17 +1,12 @@
-import uuid
-from datetime import datetime
-
 import pytz
 import responses
 
 from sentry.integrations.pagerduty import PagerDutyNotifyServiceAction
-from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.models import Integration, OrganizationIntegration, PagerDutyService
 from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.types.issues import GroupType
+from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
 from sentry.utils import json
-from sentry.utils.dates import ensure_aware
 
 event_time = before_now(days=3).replace(tzinfo=pytz.utc)
 # external_id is the account name in pagerduty
@@ -104,27 +99,10 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
 
     @responses.activate
     def test_applies_correctly_generic_issue(self):
-        # TODO replace w/ TEST_ISSUE_OCCURRENCE
-        occurrence = IssueOccurrence(
-            uuid.uuid4().hex,
-            uuid.uuid4().hex,
-            ["some-fingerprint"],
-            "something bad happened",
-            "it was bad",
-            "1234",
-            {"Test": 123},
-            [
-                IssueEvidence("Attention", "Very important information!!!", True),
-                IssueEvidence("Evidence 2", "Not important", False),
-                IssueEvidence("Evidence 3", "Nobody cares about this", False),
-            ],
-            GroupType.PROFILE_BLOCKED_THREAD,
-            ensure_aware(datetime.now()),
-        )
+        occurrence = TEST_ISSUE_OCCURRENCE
         event = self.store_event(
             data={
                 "event_id": "a" * 32,
-                "message": "oh no",
                 "timestamp": iso_format(before_now(minutes=1)),
             },
             project_id=self.project.id,
