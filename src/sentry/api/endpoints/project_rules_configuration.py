@@ -68,10 +68,7 @@ class ProjectRulesConfigurationEndpoint(ProjectEndpoint):
                 ):
                     condition_list.append(context)
             elif rule_type.startswith("filter/"):
-                if context["id"] not in {
-                    "sentry.rules.filters.issue_category.IssueCategoryFilter",
-                }:
-                    filter_list.append(context)
+                filter_list.append(context)
             elif rule_type.startswith("action/"):
                 action_list.append(context)
 
