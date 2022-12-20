@@ -244,7 +244,7 @@ class PerformanceDetectionTest(unittest.TestCase):
                 ),
             ]
         )
- 
+
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
     def test_detects_multiple_performance_issues_in_n_plus_one_query(self):
         n_plus_one_event = EVENTS["n-plus-one-in-django-index-view"]
