@@ -192,9 +192,15 @@ def get_oldest_or_latest_event_for_environments(
         conditions.append(["environment", "IN", environments])
 
     if (
-        features.has("organizations:performance-issues", group.organization)
+        not features.has("organizations:performance-issues", group.organization)
         and group.issue_category == GroupCategory.PERFORMANCE
     ):
+        # Generally we shouldn't arrive here, since if the feature flag is disabled we shouldn't
+        # be loading performance issues. Regardless, if the flag is disabled we should always return
+        # None here.
+        return None
+
+    if group.issue_category == GroupCategory.PERFORMANCE:
         apply_performance_conditions(conditions, group)
         _filter = eventstore.Filter(
             conditions=conditions,
