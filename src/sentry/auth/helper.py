@@ -34,7 +34,7 @@ from sentry.models import AuthIdentity, AuthProvider, Organization, Organization
 from sentry.pipeline import Pipeline, PipelineSessionStore
 from sentry.pipeline.provider import PipelineProvider
 from sentry.services.hybrid_cloud.audit import AuditLogMetadata, audit_log_service
-from sentry.services.hybrid_cloud.auth import ApiAuthIdentity, auth_service
+from sentry.services.hybrid_cloud.auth import ApiAuthIdentity, ApiAuthProvider, auth_service
 from sentry.services.hybrid_cloud.email import AmbiguousUserFromEmail, email_service
 from sentry.services.hybrid_cloud.organization import (
     ApiOrganization,
@@ -95,7 +95,7 @@ class AuthHelperSessionStore(PipelineSessionStore):
 class AuthIdentityHandler:
     # SSO auth handler
 
-    auth_provider: AuthProvider
+    auth_provider: ApiAuthProvider
     provider: Provider
     organization: ApiOrganization
     request: HttpRequest
@@ -251,60 +251,14 @@ class AuthIdentityHandler:
             return None
 
     @transaction.atomic  # type: ignore
-    def handle_attach_identity(self, member: OrganizationMember | None = None) -> AuthIdentity:
+    def handle_attach_identity(self, member: OrganizationMember | None = None) -> ApiAuthIdentity:
         """
         Given an already authenticated user, attach or re-attach an identity.
         """
-        # prioritize identifying by the SSO provider's user ID
-        auth_identity = self._get_auth_identity(ident=self.identity["id"])
-        if auth_identity is None:
-            # otherwise look for an already attached identity
-            # this can happen if the SSO provider's internal ID changes
-            auth_identity = self._get_auth_identity(user=self.user)
 
-        if auth_identity is None:
-            auth_is_new = True
-            auth_identity = AuthIdentity.objects.create(
-                auth_provider=self.auth_provider,
-                user=self.user,
-                ident=self.identity["id"],
-                data=self.identity.get("data", {}),
-            )
-        else:
-            auth_is_new = False
-
-            # TODO(dcramer): this might leave the user with duplicate accounts,
-            # and in that kind of situation its very reasonable that we could
-            # test email addresses + is_managed to determine if we can auto
-            # merge
-            if auth_identity.user != self.user:
-                wipe = self._wipe_existing_identity(auth_identity)
-            else:
-                wipe = None
-
-            now = timezone.now()
-            auth_identity.update(
-                user=self.user,
-                ident=self.identity["id"],
-                data=self.provider.update_identity(
-                    new_data=self.identity.get("data", {}), current_data=auth_identity.data
-                ),
-                last_verified=now,
-                last_synced=now,
-            )
-
-            logger.info(
-                "sso.login-pipeline.attach-existing-identity",
-                extra={
-                    "wipe_result": repr(wipe),
-                    "organization_id": self.organization.id,
-                    "user_id": self.user.id,
-                    "auth_identity_user_id": auth_identity.user.id,
-                    "auth_provider_id": self.auth_provider.id,
-                    "idp_identity_id": self.identity["id"],
-                    "idp_identity_email": self.identity.get("email"),
-                },
-            )
+        auth_is_new, auth_identity = auth_service.attach_identity(
+            self.user.id, self.auth_provider, self.provider, self.organization, self.identity
+        )
 
         if member is None:
             member = self._get_organization_member(auth_identity)

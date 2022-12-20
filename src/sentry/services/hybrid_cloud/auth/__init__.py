@@ -15,6 +15,7 @@ from sentry.silo import SiloMode
 if TYPE_CHECKING:
     from django.contrib.auth.models import AnonymousUser
 
+    from sentry.auth.provider import Provider
     from sentry.models import OrganizationMember
 
 
@@ -60,7 +61,14 @@ class AuthService(InterfaceWithLifecycle):
         pass
 
     @abc.abstractmethod
-    def attach_identity(self) -> ApiAuthIdentity:
+    def attach_identity(
+        self,
+        user_id: int,
+        auth_provider: ApiAuthProvider,
+        provider: Provider,
+        organization: ApiOrganization,
+        identity_attrs: Mapping[str, Any],
+    ) -> Tuple[bool, ApiAuthIdentity]:
         """Attach a new auth identity to an existing user."""
         pass
 

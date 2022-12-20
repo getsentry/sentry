@@ -2,12 +2,14 @@ from __future__ import annotations
 
 import base64
 import dataclasses
-from typing import Collection, List, Mapping, Tuple
+import logging
+from typing import TYPE_CHECKING, Collection, List, Mapping, Tuple
 from uuid import uuid4
 
 from django.contrib.auth.models import AnonymousUser
 from django.db import IntegrityError, transaction
 from django.db.models import Count, F
+from django.utils import timezone
 from rest_framework.request import Request
 
 from sentry import features, roles
@@ -48,6 +50,11 @@ from sentry.services.hybrid_cloud.user import APIUser, user_service
 from sentry.silo import SiloMode
 from sentry.utils.auth import AuthUserPasswordExpired
 from sentry.utils.types import Any
+
+if TYPE_CHECKING:
+    from sentry.auth.provider import Provider
+
+logger = logging.getLogger("sentry.auth")
 
 _SSO_BYPASS = ApiMemberSsoState(False, True)
 _SSO_NONMEMBER = ApiMemberSsoState(False, False)
@@ -281,8 +288,95 @@ class DatabaseBackedAuthService(AuthService):
         serial_auth_identity = self._serialize_auth_identity(auth_identity)
         return serial_user, serial_auth_identity
 
-    def attach_identity(self) -> ApiAuthIdentity:
-        pass
+    def attach_identity(
+        self,
+        user_id: int,
+        auth_provider: ApiAuthProvider,
+        provider: Provider,
+        organization: ApiOrganization,
+        identity_attrs: Mapping[str, Any],
+    ) -> Tuple[bool, ApiAuthIdentity]:
+        def lookup_auth_identity(**params: Any) -> AuthIdentity | None:
+            try:
+                return AuthIdentity.objects.get(auth_provider_id=auth_provider.id, **params)
+            except AuthIdentity.DoesNotExist:
+                return None
+
+        # prioritize identifying by the SSO provider's user ID
+        auth_identity = lookup_auth_identity(ident=identity_attrs["id"])
+        if auth_identity is None:
+            # otherwise look for an already attached identity
+            # this can happen if the SSO provider's internal ID changes
+            auth_identity = lookup_auth_identity(user_id=user_id)
+
+        def wipe_existing_identity() -> Any:
+            # it's possible the user has an existing identity, let's wipe it out
+            # so that the new identifier gets used (other we'll hit a constraint)
+            # violation since one might exist for (provider, user) as well as
+            # (provider, ident)
+            deletion_result = (
+                AuthIdentity.objects.exclude(id=auth_identity.id)
+                .filter(auth_provider_id=auth_provider.id, user_id=user_id)
+                .delete()
+            )
+
+            # since we've identified an identity which is no longer valid
+            # lets preemptively mark it as such
+            other_member = organization_service.check_membership_by_id(
+                organization_id=organization.id, user_id=auth_identity.user_id
+            )
+            if other_member is None:
+                return
+            other_member.flags.sso__invalid = True
+            other_member.flags.sso__linked = False
+            organization_service.update_membership_flags(organization_member=other_member)
+
+            return deletion_result
+
+        auth_is_new = auth_identity is None
+        if auth_is_new:
+            auth_identity = AuthIdentity.objects.create(
+                auth_provider_id=auth_provider.id,
+                user_id=user_id,
+                ident=identity_attrs["id"],
+                data=identity_attrs.get("data", {}),
+            )
+        else:
+            # TODO(dcramer): this might leave the user with duplicate accounts,
+            # and in that kind of situation its very reasonable that we could
+            # test email addresses + is_managed to determine if we can auto
+            # merge
+            if auth_identity.user.id != user_id:
+                wipe = wipe_existing_identity()
+            else:
+                wipe = None
+
+            logger.info(
+                "sso.login-pipeline.attach-existing-identity",
+                extra={
+                    "wipe_result": repr(wipe),
+                    "organization_id": organization.id,
+                    "user_id": user_id,
+                    "auth_identity_user_id": auth_identity.user.id,
+                    "auth_provider_id": auth_provider.id,
+                    "idp_identity_id": identity_attrs["id"],
+                    "idp_identity_email": identity_attrs.get("email"),
+                },
+            )
+
+            new_data = provider.update_identity(
+                new_data=identity_attrs.get("data", {}), current_data=auth_identity.data
+            )
+            now = timezone.now()
+            auth_identity.update(
+                user_id=user_id,
+                ident=identity_attrs["id"],
+                data=new_data,
+                last_verified=now,
+                last_synced=now,
+            )
+
+        return auth_is_new, auth_identity
 
     def handle_new_membership(
         self,

@@ -260,7 +260,10 @@ class HandleAttachIdentityTest(AuthIdentityHandlerTest):
         user, existing_identity = self.set_up_user_identity()
 
         returned_identity = self.handler.handle_attach_identity()
-        assert returned_identity == existing_identity
+        assert returned_identity.id == existing_identity.id
+        assert returned_identity.user_id == user.id
+        assert returned_identity.ident == self.identity["id"]
+
         assert not mock_messages.add_message.called
 
     def _test_with_identity_belonging_to_another_user(self, request_user):
@@ -273,9 +276,12 @@ class HandleAttachIdentityTest(AuthIdentityHandlerTest):
         OrganizationMember.objects.create(user=other_user, organization=self.organization)
 
         returned_identity = self.handler.handle_attach_identity()
-        assert returned_identity.user == request_user
+        assert returned_identity.user_id == request_user.id
         assert returned_identity.ident == self.identity["id"]
-        assert returned_identity.data == self.identity["data"]
+
+        persisted_auth_id = AuthIdentity.objects.get(id=returned_identity.id)
+        assert persisted_auth_id.ident == returned_identity.ident
+        assert persisted_auth_id.data == self.identity["data"]
 
         persisted_om = OrganizationMember.objects.get(
             user=other_user, organization=self.organization
