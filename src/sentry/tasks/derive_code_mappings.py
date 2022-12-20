@@ -13,7 +13,9 @@ from sentry.models.integrations.organization_integration import OrganizationInte
 from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
+from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.tasks.base import instrumented_task
+from sentry.utils.json import JSONData
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.safe import get_path
 
@@ -71,6 +73,12 @@ def derive_code_mappings(
     try:
         with lock.acquire():
             trees = installation.get_trees_for_org()
+    except ApiError as error:
+        json_data: JSONData = error.json
+        msg: str = json_data.get("message")
+        if msg == "Not Found":
+            logger.warning("The org has uninstalled the Sentry App.")
+            return
     except UnableToAcquireLock as error:
         extra["error"] = error
         logger.warning("derive_code_mappings.getting_lock_failed", extra=extra)
