@@ -1,7 +1,6 @@
 import {Component, Fragment} from 'react';
 
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Client} from 'sentry/api';
 import SentryAppExternalIssueForm from 'sentry/components/group/sentryAppExternalIssueForm';
 import NavTabs from 'sentry/components/navTabs';
 import {t, tct} from 'sentry/locale';
@@ -12,10 +11,8 @@ import {
   SentryAppInstallation,
 } from 'sentry/types';
 import {Event} from 'sentry/types/event';
-import withApi from 'sentry/utils/withApi';
 
 type Props = ModalRenderProps & {
-  api: Client;
   event: Event;
   group: Group;
   onSubmitSuccess: (externalIssue: PlatformExternalIssue) => void;
@@ -78,4 +75,4 @@ class SentryAppExternalIssueModal extends Component<Props, State> {
   }
 }
 
-export default withApi(SentryAppExternalIssueModal);
+export default SentryAppExternalIssueModal;
