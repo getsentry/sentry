@@ -16,7 +16,7 @@ FALLTHROUGH_RULE_ACTIONS = [
         "id": "sentry.mail.actions.NotifyEmailAction",
         "targetType": "IssueOwners",
         "targetIdentifier": None,
-        "fallthroughType": FallthroughChoiceType.ADMIN_OR_RECENT.value,
+        "fallthroughType": FallthroughChoiceType.ACTIVE_MEMBERS.value,
     }
 ]
 DEFAULT_RULE_DATA = {
@@ -31,9 +31,7 @@ def create_default_rules(project, default_rules=True, RuleModel=Rule, **kwargs):
         return
 
     rule_data = DEFAULT_RULE_DATA
-    if features.has(
-        "organizations:issue-alert-fallback-targeting", project.organization, actor=None
-    ):
+    if features.has("organizations:issue-alert-fallback-targeting", project.organization):
         rule_data = {**rule_data, "actions": FALLTHROUGH_RULE_ACTIONS}
     RuleModel.objects.create(project=project, label=DEFAULT_RULE_LABEL, data=rule_data)
 

@@ -120,8 +120,7 @@ class TeamProjectsCreateTest(APITestCase):
 
         rule = Rule.objects.filter(project=project).first()
         assert (
-            rule.data["actions"][0]["fallthroughType"]
-            == FallthroughChoiceType.ADMIN_OR_RECENT.value
+            rule.data["actions"][0]["fallthroughType"] == FallthroughChoiceType.ACTIVE_MEMBERS.value
         )
 
     def test_with_duplicate_explicit_slug(self):
