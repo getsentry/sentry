@@ -180,6 +180,7 @@ class UserService(InterfaceWithLifecycle):
         args["display_name"] = user.get_display_name()
         args["label"] = user.get_label()
         args["is_superuser"] = user.is_superuser
+        args["is_sentry_app"] = user.is_sentry_app
         args["password_usable"] = user.has_usable_password()
 
         # And process the _base_user_query special data additions
