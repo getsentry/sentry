@@ -63,6 +63,14 @@ const HIGH_THROUGHPUT_RATE_OPTION = {
 
 const performanceOptionDefinitions: Field[] = [
   {
+    key: 'performance.issues.all.problem-detection',
+    label: t('Performance problem detection rate'),
+    help: t(
+      'Controls the rate at which performance problems are detected across the entire system. A value of 0 will disable performance issue detection, and a value of 1.0 turns on detection for every ingested transaction.'
+    ),
+    ...HIGH_THROUGHPUT_RATE_OPTION,
+  },
+  {
     key: 'performance.issues.all.problem-creation',
     label: t('Performance problem creation rate'),
     help: t(

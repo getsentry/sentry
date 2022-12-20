@@ -17,6 +17,7 @@ const optionsAvailable = [
   'auth.user-rate-limit',
   'api.rate-limit.org-create',
   'beacon.anonymous',
+  'performance.issues.all.problem-detection',
   'performance.issues.all.problem-creation',
   'performance.issues.all.early-adopter-rollout',
   'performance.issues.all.general-availability-rollout',
@@ -101,6 +102,7 @@ export default class AdminSettings extends AsyncView<{}, State> {
           <Feature features={['organizations:performance-issues-dev']}>
             <Panel>
               <PanelHeader>Performance Issues - All</PanelHeader>
+              {fields['performance.issues.all.problem-detection']}
               {fields['performance.issues.all.problem-creation']}
               {fields['performance.issues.all.early-adopter-rollout']}
               {fields['performance.issues.all.general-availability-rollout']}
