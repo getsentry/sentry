@@ -59,4 +59,16 @@ describe('spanChart', () => {
     const chart = new SpanChart(tree);
     expect(chart.configSpace.equals(new Rect(0, 0, 1, 2))).toBe(true);
   });
+
+  it('tracks chart depth', () => {
+    const tree = new SpanTree([
+      s({span_id: '1', timestamp: 1, start_timestamp: 0}),
+      s({span_id: '2', timestamp: 0.5, start_timestamp: 0}),
+      s({span_id: '3', timestamp: 0.2, start_timestamp: 0}),
+      s({span_id: '4', timestamp: 0.1, start_timestamp: 0}),
+    ]);
+
+    const chart = new SpanChart(tree);
+    expect(chart.depth).toBe(3);
+  });
 });

@@ -44,6 +44,7 @@ class SpanChart {
     }
   }
 
+  // Bfs over the span tree while keeping track of level depth and calling the cb fn
   forEachSpan(cb: (node: SpanChartNode) => void) {
     const queue: SpanTree['spanTree'][] = [...this.spanTree.spanTree.children];
     let depth = 0;
