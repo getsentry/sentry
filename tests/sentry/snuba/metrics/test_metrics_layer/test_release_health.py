@@ -242,15 +242,15 @@ class ReleaseHealthMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             )
 
     def test_anr_rate_operations(self):
-        for tag_value, count_value, has_anr in (
+        for tag_value, count_value, anr_mechanism in (
             ("abnormal", 1, None),
             ("abnormal", 2, "anr_background"),
             ("abnormal", 3, "anr_foreground"),
             ("init", 4, None),
         ):
             tags = {"session.status": tag_value}
-            if has_anr:
-                tags.update({"abnormal_mechanism": "anr_foreground"})
+            if anr_mechanism:
+                tags.update({"abnormal_mechanism": anr_mechanism})
 
             self.store_release_health_metric(
                 name=SessionMRI.USER.value,
@@ -268,6 +268,11 @@ class ReleaseHealthMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                     metric_mri=str(SessionMRI.ANR_RATE.value),
                     alias="anr_alias",
                 ),
+                MetricField(
+                    op=None,
+                    metric_mri=str(SessionMRI.FOREGROUND_ANR_RATE.value),
+                    alias="foreground_anr_alias",
+                ),
             ],
             limit=Limit(limit=51),
             offset=Offset(offset=0),
@@ -280,11 +285,14 @@ class ReleaseHealthMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
         )
         group = data["groups"][0]
         assert group["totals"]["anr_alias"] == 0.5
+        assert group["totals"]["foreground_anr_alias"] == 0.25
         assert group["series"]["anr_alias"] == [None, 0.5, None, None, None, None]
+        assert group["series"]["foreground_anr_alias"] == [None, 0.25, None, None, None, None]
         assert data["meta"] == sorted(
             [
                 {"name": "anr_alias", "type": "Float64"},
                 {"name": "bucketed_time", "type": "DateTime('Universal')"},
+                {"name": "foreground_anr_alias", "type": "Float64"},
             ],
             key=lambda elem: elem["name"],
         )
