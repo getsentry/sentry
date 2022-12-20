@@ -56,7 +56,7 @@ jobs:
       fail-fast: false
       matrix:
         # XXX: When updating this, make sure you also update CI_NODE_TOTAL.
-        instance: [0, 1, 2, 3]
+        instance: [0]
 
     env:
       VISUAL_HTML_ENABLE: 1
@@ -81,11 +81,11 @@ jobs:
       fail-fast: false
       matrix:
         # XXX: When updating this, make sure you also update MATRIX_INSTANCE_TOTAL.
-        instance: [0, 1, 2, 3]
+        instance: [0]
         pg-version: ['9.6']
     env:
       # XXX: MATRIX_INSTANCE_TOTAL must be hardcoded to the length of strategy.matrix.instance.
-      MATRIX_INSTANCE_TOTAL: 4
+      MATRIX_INSTANCE_TOTAL: 1
       VISUAL_SNAPSHOT_ENABLE: 1
       TEST_GROUP_STRATEGY: roundrobin
 
