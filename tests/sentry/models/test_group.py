@@ -347,7 +347,9 @@ class GroupGetLatestEventTest(TestCase, OccurrenceTestMixin):
         assert group_event.event_id == "b" * 32
         assert group_event.occurrence is None
 
-    @pytest.skip("Skipping this for now until a pr that fixes saving generic events is merged.")
+    @pytest.mark.skip(
+        "Skipping this for now until a pr that fixes saving generic events is merged."
+    )
     def test_get_latest_event_occurrence(self):
         occurrence_data = self.build_occurrence_data()
         event_id = uuid.uuid4().hex
