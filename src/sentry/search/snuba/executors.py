@@ -40,9 +40,10 @@ from sentry.issues.search import (
     IntermediateSearchQueryPartial,
     MergeableRow,
     SearchQueryPartial,
+    _query_params_for_generic,
     group_categories_from,
 )
-from sentry.models import Environment, Group, Project
+from sentry.models import Environment, Group, Organization, Project
 from sentry.search.events.fields import DateArg
 from sentry.search.events.filter import convert_search_filter_to_snuba_query
 from sentry.search.utils import validate_cdc_search_filters
@@ -252,7 +253,8 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
             ),
         )
 
-        return SEARCH_STRATEGIES[group_category](
+        strategy = SEARCH_STRATEGIES.get(group_category, _query_params_for_generic)
+        return strategy(
             pinned_query_partial,
             selected_columns,
             aggregations,
@@ -322,6 +324,18 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         )
 
         group_categories = group_categories_from(search_filters)
+
+        if not group_categories:
+            group_categories = {
+                gc
+                for gc in SEARCH_STRATEGIES.keys()
+                if gc != GroupCategory.PROFILE
+                or features.has(
+                    # TODO: Remove this db call, just to make tests work
+                    "organizations:issue-platform",
+                    Organization.objects.get(id=organization_id),
+                )
+            }
         query_params_for_categories = [
             self._prepare_params_for_category(
                 gc,

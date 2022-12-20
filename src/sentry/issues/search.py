@@ -4,6 +4,7 @@ import functools
 from copy import deepcopy
 from typing import Any, Callable, Mapping, Optional, Protocol, Sequence, Set, TypedDict
 
+from sentry import features
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.models import Environment, Organization
 from sentry.search.events.filter import convert_search_filter_to_snuba_query
@@ -72,6 +73,7 @@ def group_categories_from(
     # if its unspecified, we have to query all datasources
     for search_filter in search_filters or ():
         if search_filter.key.name in ("issue.category", "issue.type"):
+            print("search filter", search_filter.key.name, search_filter.value.value)
             if search_filter.is_negation:
                 group_categories.update(
                     GROUP_TYPE_TO_CATEGORY[GroupType(value)]
@@ -189,9 +191,41 @@ def _query_params_for_perf(
     return None
 
 
+def _query_params_for_generic(
+    query_partial: SearchQueryPartial,
+    selected_columns: Sequence[Any],
+    aggregations: Sequence[Any],
+    organization_id: int,
+    project_ids: Sequence[int],
+    environments: Optional[Sequence[Environment]],
+    group_ids: Optional[Sequence[int]],
+    filters: Mapping[str, Sequence[int]],
+    conditions: Sequence[Any],
+) -> Optional[SnubaQueryParams]:
+    organization = Organization.objects.filter(id=organization_id).first()
+    if organization and features.has("organizations:issue-platform", organization=organization):
+        if group_ids:
+            filters = {"group_id": sorted(group_ids), **filters}
+
+        params = query_partial(
+            dataset=snuba.Dataset.IssuePlatform,
+            selected_columns=selected_columns,
+            filter_keys=filters,
+            conditions=[],
+            aggregations=aggregations,
+            condition_resolver=functools.partial(
+                snuba.get_snuba_column_name, dataset=snuba.Dataset.IssuePlatform
+            ),
+        )
+
+        return SnubaQueryParams(**params)
+    return None
+
+
 SEARCH_STRATEGIES: Mapping[GroupCategory, GroupSearchStrategy] = {
     GroupCategory.ERROR: _query_params_for_error,
     GroupCategory.PERFORMANCE: _query_params_for_perf,
+    GroupCategory.PROFILE: _query_params_for_generic,
 }
 
 
@@ -203,6 +237,7 @@ SEARCH_FILTER_UPDATERS: Mapping[GroupCategory, GroupSearchFilterUpdater] = {
         for sf in search_filters
         if sf.key.name != "message"
     ],
+    GroupCategory.PROFILE: lambda search_filters: search_filters,
 }
 
 
