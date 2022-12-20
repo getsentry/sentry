@@ -43,12 +43,6 @@ class TestTaskBehavior(BaseDeriveCodeMappings):
             [{"filename": "foo.py", "in_app": True}],
             platform="any",
         )
-        self.integration = self.create_integration(
-            organization=self.organization,
-            provider="github",
-            external_id=self.organization.id,
-            metadata={"domain_name": "github.com/Test-Org"},
-        )
 
     @responses.activate
     @with_feature("organizations:derive-code-mappings")
