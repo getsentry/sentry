@@ -5,7 +5,16 @@ import {FlamegraphFrame} from '../flamegraphFrame';
 import {selectNearestFrame} from './selectNearestFrame';
 
 function createFlamegraphFrame(frame?: DeepPartial<FlamegraphFrame>) {
-  const {depth = 0, parent = null, children = [], frame: _frame = {}} = frame ?? {};
+  const {
+    depth = 0,
+    parent = null,
+    children = [],
+    frame: _frame = {
+      isRoot() {
+        return false;
+      },
+    },
+  } = frame ?? {};
   return {
     frame: _frame,
     depth,
@@ -108,7 +117,9 @@ describe('selectNearestFrame', () => {
   it('does not allow selection of the "sentry root" virtual root node', () => {
     const root = createFlamegraphFrame({
       frame: {
-        key: 'sentry root',
+        isRoot() {
+          return true;
+        },
       },
     });
     const leftChild = addChildrenToDepth(root, 1);

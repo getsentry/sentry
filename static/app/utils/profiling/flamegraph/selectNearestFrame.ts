@@ -12,7 +12,7 @@ export function selectNearestFrame(frame: FlamegraphFrame, direction: Direction)
     const parent = frame.parent;
 
     // sentry root is a virtual root that should not be selectable
-    if (parent?.frame.key === 'sentry root') {
+    if (parent?.frame.isRoot()) {
       return frame;
     }
 
