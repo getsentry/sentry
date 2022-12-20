@@ -39,6 +39,7 @@ import {
 } from 'sentry/utils/profiling/gl/utils';
 import {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
 import {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
+import {SpanChart} from 'sentry/utils/profiling/spanChart';
 import {SpanTree} from 'sentry/utils/profiling/spanTree';
 import {formatTo, ProfilingFormatterUnit} from 'sentry/utils/profiling/units/units';
 import {useDevicePixelRatio} from 'sentry/utils/useDevicePixelRatio';
@@ -98,6 +99,14 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
 
   const canvasPoolManager = useMemo(() => new CanvasPoolManager(), []);
   const scheduler = useMemo(() => new CanvasScheduler(), []);
+
+  const spanChart = useMemo(() => {
+    if (!props.spanTree) {
+      return null;
+    }
+
+    return new SpanChart(props.spanTree);
+  }, [props.spanTree]);
 
   const flamegraph = useMemo(() => {
     if (typeof threadId !== 'number') {
@@ -402,7 +411,7 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
       </FlamegraphToolbar>
 
       <FlamegraphLayout
-        spans={props.spanTree ? <FlamegraphSpans spanTree={props.spanTree} /> : null}
+        spans={spanChart ? <FlamegraphSpans spanChart={spanChart} /> : null}
         minimap={
           <FlamegraphZoomViewMinimap
             canvasPoolManager={canvasPoolManager}
