@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from operator import attrgetter
 from typing import Any, Mapping, Sequence
 
 from django.urls import reverse
@@ -41,10 +42,9 @@ class GitHubIssueBasic(IssueBasicMixin):  # type: ignore
         body = "|  |  |\n"
         body += "| ------------- | --------------- |\n"
         for evidence in sorted(
-            enumerate(event.occurrence.evidence_display),
-            key=lambda evidence: (not evidence[1].important, evidence[0]),
+            event.occurrence.evidence_display, key=attrgetter("important"), reverse=True
         ):
-            body += f"| **{evidence[1].name}** | {truncatechars(evidence[1].value, MAX_CHAR)} |\n"
+            body += f"| **{evidence.name}** | {truncatechars(evidence.value, MAX_CHAR)} |\n"
 
         return body[:-2]
 
