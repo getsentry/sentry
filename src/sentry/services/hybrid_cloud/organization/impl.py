@@ -99,6 +99,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
             role=team_member.get_team_role(),
             team_id=team_member.team_id,
             project_ids=list(project_ids),
+            scopes=list(team_member.get_scopes()),
         )
 
         return result
