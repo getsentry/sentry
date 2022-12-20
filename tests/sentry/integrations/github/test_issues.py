@@ -1,5 +1,3 @@
-import uuid
-from datetime import datetime
 from functools import cached_property
 from unittest.mock import patch
 
@@ -8,15 +6,13 @@ from django.test import RequestFactory
 
 from sentry.integrations.github.integration import GitHubIntegration
 from sentry.integrations.github.issues import GitHubIssueBasic
-from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.models import ExternalIssue, Integration
 from sentry.testutils import TestCase
 from sentry.testutils.cases import PerformanceIssueTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
 from sentry.testutils.silo import region_silo_test
-from sentry.types.issues import GroupType
 from sentry.utils import json
-from sentry.utils.dates import ensure_aware
 
 
 @region_silo_test
@@ -117,23 +113,7 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase):
     def test_generic_issues_content(self):
         """Test that a GitHub issue created from a generic issue has the expected title and description"""
 
-        # TODO replace w/ TEST_ISSUE_OCCURRENCE
-        occurrence = IssueOccurrence(
-            uuid.uuid4().hex,
-            uuid.uuid4().hex,
-            ["some-fingerprint"],
-            "something bad happened",
-            "it was bad",
-            "1234",
-            {"Test": 123},
-            [
-                IssueEvidence("Attention", "Very important information!!!", True),
-                IssueEvidence("Evidence 2", "Not important", False),
-                IssueEvidence("Evidence 3", "Nobody cares about this", False),
-            ],
-            GroupType.PROFILE_BLOCKED_THREAD,
-            ensure_aware(datetime.now()),
-        )
+        occurrence = TEST_ISSUE_OCCURRENCE
         event = self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -147,6 +127,8 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase):
 
         description = GitHubIssueBasic().get_group_description(event.group, event)
         assert event.occurrence.evidence_display[0].value in description
+        assert event.occurrence.evidence_display[1].value in description
+        assert event.occurrence.evidence_display[2].value in description
         title = GitHubIssueBasic().get_group_title(event.group, event)
         assert title == event.occurrence.issue_title
 
