@@ -30,6 +30,7 @@ from sentry.plugins.base.structs import Notification
 from sentry.types.integrations import ExternalProviders
 from sentry.types.issues import GROUP_CATEGORIES_CUSTOM_EMAIL, GROUP_TYPE_TO_TEXT, GroupCategory
 from sentry.utils import metrics
+from sentry.utils.http import absolute_uri
 
 logger = logging.getLogger(__name__)
 
@@ -119,6 +120,9 @@ class AlertRuleNotification(ProjectNotification):
             "environment": environment,
             "slack_link": get_integration_link(self.organization, "slack"),
             "notification_reason": notification_reason,
+            "notification_settings_link": absolute_uri(
+                "/settings/account/notifications/alerts/?referrer=alert_email"
+            ),
             "has_alert_integration": has_alert_integration(self.project),
             "issue_type": GROUP_TYPE_TO_TEXT.get(self.group.issue_type, "Issue"),
             "subtitle": self.event.title,

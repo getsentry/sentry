@@ -1027,6 +1027,8 @@ SENTRY_FEATURES = {
     "organizations:issue-alert-preview": False,
     # Enable issue alert test notifications
     "organizations:issue-alert-test-notifications": False,
+    # Enable issue platform
+    "organizations:issue-platform": False,
     # Whether to allow issue only search on the issue list
     "organizations:issue-search-allow-postgres-only-search": False,
     # Flags for enabling CdcEventsDatasetSnubaSearchBackend in sentry.io. No effect in open-source
@@ -1182,6 +1184,8 @@ SENTRY_FEATURES = {
     # Enable SAML2 based SSO functionality. getsentry/sentry-auth-saml2 plugin
     # must be installed to use this functionality.
     "organizations:sso-saml2": True,
+    # Enable a banner on the issue details page guiding the user to setup source maps
+    "organizations:source-maps-cta": False,
     # Enable the new opinionated dynamic sampling
     "organizations:dynamic-sampling": False,
     # Enable View Hierarchies in issue details page
@@ -2660,6 +2664,7 @@ SENTRY_REQUEST_METRIC_ALLOWED_PATHS = (
     "sentry.data_export.endpoints",
     "sentry.discover.endpoints",
     "sentry.incidents.endpoints",
+    "sentry.replays.endpoints",
 )
 SENTRY_MAIL_ADAPTER_BACKEND = "sentry.mail.adapter.MailAdapter"
 

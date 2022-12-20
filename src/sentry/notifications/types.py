@@ -264,13 +264,13 @@ ACTION_CHOICES = [
 
 class FallthroughChoiceType(Enum):
     ALL_MEMBERS = "AllMembers"
-    ADMIN_OR_RECENT = "AdminOrRecent"
+    ACTIVE_MEMBERS = "ActiveMembers"
     NO_ONE = "NoOne"
 
 
 FALLTHROUGH_CHOICES = [
     (FallthroughChoiceType.ALL_MEMBERS.value, "All Project Members"),
-    (FallthroughChoiceType.ADMIN_OR_RECENT.value, "Team Admins or Most Recent Members"),
+    (FallthroughChoiceType.ACTIVE_MEMBERS.value, "Team Admins or Most Recent Members"),
     (FallthroughChoiceType.NO_ONE.value, "No One"),
 ]
 
