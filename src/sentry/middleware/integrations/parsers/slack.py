@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from rest_framework.request import Request
 from sentry_sdk import capture_exception
 
@@ -92,7 +92,7 @@ class SlackRequestParser(BaseRequestParser):
         first_region = regions[0]
         response_map = self.get_response_from_region_silos(regions=[first_region])
         result = response_map[first_region.name]
-        if type(result) is HttpResponse:
+        if type(result) in [HttpResponse, JsonResponse]:
             return result
         else:
             logger.error(

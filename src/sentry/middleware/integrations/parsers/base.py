@@ -25,7 +25,6 @@ class BaseRequestParser(abc.ABC):
     def provider() -> str:
         return "base"
 
-    @property
     def create_log_name(self, log_name: str) -> str:
         return f"request_parser.{self.provider}.{log_name}"
 
