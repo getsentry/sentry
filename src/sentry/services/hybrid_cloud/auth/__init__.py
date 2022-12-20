@@ -166,6 +166,7 @@ class AuthenticationRequest:
 class AuthenticatedToken:
     entity_id: int | None = None
     kind: str = "system"
+    user_id: int | None = None  # only relevant for ApiToken
     organization_id: int | None = None
     allowed_origins: List[str] = field(default_factory=list)
     audit_log_data: Dict[str, Any] = field(default_factory=dict)
@@ -188,6 +189,7 @@ class AuthenticatedToken:
         return cls(
             entity_id=getattr(token, "id", None),
             kind=kind,
+            user_id=getattr(token, "user_id", None),
             organization_id=getattr(token, "organization_id", None),
             allowed_origins=token.get_allowed_origins(),
             audit_log_data=token.get_audit_log_data(),
