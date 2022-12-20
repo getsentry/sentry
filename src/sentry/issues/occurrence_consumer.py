@@ -56,8 +56,7 @@ def save_event_from_occurrence(
 
     from sentry.event_manager import EventManager
 
-    event_type = "generic"
-    data["event_type"] = event_type
+    data["type"] = "generic"
 
     project_id = data.pop("project_id")
     data = CanonicalKeyDict(data)
