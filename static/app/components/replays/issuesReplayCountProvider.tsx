@@ -1,12 +1,17 @@
-import {ReactNode, useMemo} from 'react';
+import {Fragment, ReactNode, useMemo} from 'react';
 import first from 'lodash/first';
 
 import ReplayCountContext from 'sentry/components/replays/replayCountContext';
 import useReplaysCount from 'sentry/components/replays/useReplaysCount';
 import GroupStore from 'sentry/stores/groupStore';
-import type {Group} from 'sentry/types';
+import type {Group, Organization} from 'sentry/types';
 import projectSupportsReplay from 'sentry/utils/replays/projectSupportsReplay';
 import useOrganization from 'sentry/utils/useOrganization';
+
+type Props = {
+  children: ReactNode;
+  groupIds: string[];
+};
 
 /**
  * Component to make it easier to query for replay counts against a list of groups
@@ -18,15 +23,26 @@ import useOrganization from 'sentry/utils/useOrganization';
  * const count = useContext(ReplayCountContext)[groupId];
  * ```
  */
-export default function IssuesReplayCountProvider({
+export default function IssuesReplayCountProvider({children, groupIds}: Props) {
+  const organization = useOrganization();
+  const hasSessionReplay = organization.features.includes('session-replay-ui');
+
+  if (hasSessionReplay) {
+    return (
+      <Provider organization={organization} groupIds={groupIds}>
+        {children}
+      </Provider>
+    );
+  }
+
+  return <Fragment>{children}</Fragment>;
+}
+
+function Provider({
   children,
   groupIds,
-}: {
-  children: ReactNode;
-  groupIds: string[];
-}) {
-  const organization = useOrganization();
-
+  organization,
+}: Props & {organization: Organization}) {
   // Only ask for the groupIds where the project supports replay.
   // For projects that don't support replay the count will always be zero.
   const groups = useMemo(
