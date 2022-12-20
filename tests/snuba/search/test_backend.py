@@ -2310,8 +2310,6 @@ class EventsTransactionsSnubaSearchTest(SharedSnubaTest):
         results2 = self.make_query(search_filter_query="tea")
         assert set(results2) == {created_group}
 
-        assert not self.make_query(search_filter_query="issue.category:performance tea")
-
     def test_search_message_error_and_perf_issues(self):
         tx = self.store_event(
             data={
@@ -2352,7 +2350,10 @@ class EventsTransactionsSnubaSearchTest(SharedSnubaTest):
             error_issue,
         }
 
-        assert set(self.make_query(search_filter_query="/api/0/events")) == {error_issue}
+        assert set(self.make_query(search_filter_query="/api/0/events")) == {
+            error_issue,
+            perf_issue,
+        }
 
     def test_compound_message_negation(self):
         self.store_event(
@@ -2380,7 +2381,9 @@ class EventsTransactionsSnubaSearchTest(SharedSnubaTest):
             project_id=self.project.id,
         )
 
-        error_issues_only = self.make_query(search_filter_query="!message:else")
+        error_issues_only = self.make_query(
+            search_filter_query="!message:else group.category:error"
+        )
         error_and_perf_issues = self.make_query(search_filter_query="!message:else")
 
         assert set(error_and_perf_issues) > set(error_issues_only)
