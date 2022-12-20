@@ -47,9 +47,14 @@ function useReplaysCount({
       );
     }
     if (groupIds && groupIds.length) {
+      const groupsToFetch = toArray(groupIds).filter(gid => !(gid in replayCounts));
+      if (!groupsToFetch.length) {
+        return null;
+      }
+
       return {
         field: 'issue.id' as const,
-        conditions: `issue.id:[${toArray(groupIds).join(',')}]`,
+        conditions: `issue.id:[${groupsToFetch.join(',')}]`,
       };
     }
     if (transactionNames && transactionNames.length) {
@@ -61,7 +66,7 @@ function useReplaysCount({
       };
     }
     return null;
-  }, [groupIds, transactionNames]);
+  }, [replayCounts, groupIds, transactionNames]);
 
   const eventView = useMemo(
     () =>

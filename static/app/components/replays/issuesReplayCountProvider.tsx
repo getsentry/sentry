@@ -61,7 +61,7 @@ function Provider({
   const counts = useReplaysCount({
     groupIds,
     organization,
-    project,
+    projectIds: project ? [Number(project.id)] : [],
   });
 
   return (
