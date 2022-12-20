@@ -63,7 +63,9 @@ const getToggleTop = (p: StyleProps) => (p.size === 'sm' ? 1 : 3);
 const getTranslateX = (p: StyleProps) =>
   p.isActive ? getToggleTop(p) + getSize(p) * 0.875 : getToggleTop(p);
 
-const SwitchButton = styled('button')<StyleProps>`
+const SwitchButton = styled('button', {
+  shouldForwardProp: prop => prop !== 'disabled', // this was causing the tooltips to don’t close properly on Safari
+})<StyleProps>`
   display: inline-block;
   background: none;
   padding: 0;
@@ -74,10 +76,7 @@ const SwitchButton = styled('button')<StyleProps>`
   width: ${p => getSize(p) * 1.875}px;
   border-radius: ${getSize}px;
   transition: border 0.1s, box-shadow 0.1s;
-
-  &[disabled] {
-    cursor: not-allowed;
-  }
+  ${p => p.disabled && 'cursor: not-allowed;'}
 
   &:focus,
   &.focus-visible {
