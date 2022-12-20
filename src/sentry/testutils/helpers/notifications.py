@@ -1,11 +1,16 @@
 from __future__ import annotations
 
+import uuid
+from datetime import datetime
 from typing import Any, Iterable, Mapping
 
+from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.models import Team, User
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.services.hybrid_cloud.user import APIUser
 from sentry.types.integrations import ExternalProviders
+from sentry.types.issues import GroupType
+from sentry.utils.dates import ensure_aware
 
 
 class DummyNotification(BaseNotification):
@@ -63,3 +68,21 @@ class DummyNotificationWithMoreFields(DummyNotification):
         from sentry.integrations.message_builder import get_title_link
 
         return get_title_link(self.group, None, False, True, self)
+
+
+TEST_ISSUE_OCCURRENCE = IssueOccurrence(
+    uuid.uuid4().hex,
+    uuid.uuid4().hex,
+    ["some-fingerprint"],
+    "something bad happened",
+    "it was bad",
+    "1234",
+    {"Test": 123},
+    [
+        IssueEvidence("Attention", "Very important information!!!", True),
+        IssueEvidence("Evidence 2", "Not important", False),
+        IssueEvidence("Evidence 3", "Nobody cares about this", False),
+    ],
+    GroupType.PROFILE_BLOCKED_THREAD,
+    ensure_aware(datetime.now()),
+)

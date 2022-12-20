@@ -34,6 +34,7 @@ class OccurrenceTestMixin:
             ],
             "type": GroupType.PROFILE_BLOCKED_THREAD,
             "detection_time": datetime.now().timestamp(),
+            "level": "warning",
         }
         kwargs.update(overrides)  # type: ignore
         return kwargs
