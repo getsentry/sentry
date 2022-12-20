@@ -68,6 +68,23 @@ class APIUser:
     def class_name(self) -> str:
         return "User"
 
+    def get_option(
+        self,
+        key: str,
+        project_id: Optional[int] = None,
+        organization_id: Optional[int] = None,
+        default: Any = None,
+    ) -> Optional[str]:
+        opts = self.options
+        if project_id is not None:
+            opts = [o for o in opts if o.project_id == project_id]
+        if organization_id is not None:
+            opts = [o for o in opts if o.organization_id == organization_id]
+        for o in opts:
+            if o.key == key:
+                return o.value
+        return default
+
 
 @dataclass(frozen=True, eq=True)
 class APIAvatar:
@@ -141,6 +158,18 @@ class UserService(InterfaceWithLifecycle):
 
     @abstractmethod
     def get_by_actor_ids(self, *, actor_ids: List[int]) -> List[APIUser]:
+        pass
+
+    @abstractmethod
+    def set_option_value(
+        self,
+        *,
+        user: User,
+        key: str,
+        value: str,
+        project_id: Optional[int] = None,
+        organization_id: Optional[int] = None,
+    ) -> None:
         pass
 
     def get_user(self, user_id: int) -> Optional[APIUser]:

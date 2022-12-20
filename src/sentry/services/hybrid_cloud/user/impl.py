@@ -12,6 +12,7 @@ from sentry.api.serializers import (
 )
 from sentry.models import Project
 from sentry.models.group import Group
+from sentry.models.options.user_option import UserOption
 from sentry.models.user import User
 from sentry.services.hybrid_cloud.auth import AuthenticationContext
 from sentry.services.hybrid_cloud.user import APIUser, UserSerializeType, UserService
@@ -102,6 +103,19 @@ class DatabaseBackedUserService(UserService):
             UserService.serialize_user(u)
             for u in self.__base_user_query().filter(actor_id__in=actor_ids)
         ]
+
+    def set_option_value(
+        self,
+        *,
+        user: User,
+        key: str,
+        value: str,
+        project_id: Optional[int] = None,
+        organization_id: Optional[int] = None,
+    ) -> None:
+        UserOption.objects.set_value(
+            user=user, key=key, value=value, project_id=project_id, organization_id=organization_id
+        )
 
     def close(self) -> None:
         pass
