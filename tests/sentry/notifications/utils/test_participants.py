@@ -12,6 +12,7 @@ from sentry.notifications.types import (
     NotificationSettingTypes,
 )
 from sentry.notifications.utils.participants import (
+    FALLTHROUGH_NOTIFICATION_LIMIT,
     get_owner_reason,
     get_owners,
     get_release_committers,
@@ -743,7 +744,7 @@ class GetSendToFallthroughTest(TestCase):
     @with_feature("organizations:issue-alert-fallback-targeting")
     def test_fallthrough_admin_or_recent_over_20(self):
         notified_users = [self.user, self.user2]
-        for i in range(25):
+        for i in range(FALLTHROUGH_NOTIFICATION_LIMIT + 5):
             new_user = self.create_user(email=f"user_{i}@example.com", is_active=True)
             self.create_member(
                 user=new_user, organization=self.organization, role="owner", teams=[self.team2]
@@ -764,5 +765,5 @@ class GetSendToFallthroughTest(TestCase):
             event, self.project, FallthroughChoiceType.ACTIVE_MEMBERS
         )[ExternalProviders.EMAIL]
 
-        assert len(notified_users) == 20
+        assert len(notified_users) == FALLTHROUGH_NOTIFICATION_LIMIT
         assert notified_users.issubset(expected_notified_users)
