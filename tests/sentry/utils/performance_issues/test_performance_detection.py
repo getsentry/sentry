@@ -152,15 +152,6 @@ class PerformanceDetectionTest(unittest.TestCase):
 
         assert len(n_plus_one_problems)
 
-    @override_options(BASE_DETECTOR_OPTIONS)
-    def test_no_feature_flag_disables_creation(self):
-        self.features = []
-        n_plus_one_event = EVENTS["n-plus-one-in-django-index-view"]
-        sdk_span_mock = Mock()
-
-        perf_problems = _detect_performance_problems(n_plus_one_event, sdk_span_mock)
-        assert perf_problems == []
-
     @override_options(BASE_DETECTOR_OPTIONS_OFF)
     def test_system_option_disables_detector_issue_creation(self):
         n_plus_one_event = EVENTS["n-plus-one-in-django-index-view"]
