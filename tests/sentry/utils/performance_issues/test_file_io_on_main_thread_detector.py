@@ -44,7 +44,7 @@ class NPlusOneAPICallsDetectorTest(TestCase):
     def create_proguard(self, uuid):
         with ZipFile(BytesIO(), "w") as f:
             f.writestr(f"proguard/{uuid}.txt", PROGUARD_SOURCE)
-            create_files_from_dif_zip(f, psroject=self.project)
+            create_files_from_dif_zip(f, project=self.project)
 
     def find_file_io_on_main_thread_problems(
         self, event: Event, setting_overides: Dict[str, Any] = None
