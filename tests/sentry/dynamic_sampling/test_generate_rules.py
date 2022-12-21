@@ -478,6 +478,62 @@ def test_generate_rules_return_uniform_rules_and_latest_release_rule(
 
 
 @pytest.mark.django_db
+@freeze_time("2022-10-21 18:50:25+00:00")
+@patch("sentry.dynamic_sampling.rules_generator.quotas.get_blended_sample_rate")
+def test_generate_rules_does_not_return_rule_with_deleted_release(
+    get_blended_sample_rate, default_project, latest_release_only
+):
+    get_blended_sample_rate.return_value = 0.1
+
+    redis_client = get_redis_client_for_ds()
+
+    default_project.update(platform="python")
+    first_release = Factories.create_release(project=default_project, version="1.0")
+    second_release = Factories.create_release(project=default_project, version="2.0")
+
+    redis_client.hset(
+        f"ds::p:{default_project.id}:boosted_releases",
+        f"ds::r:{first_release.id}",
+        time.time(),
+    )
+    redis_client.hset(
+        f"ds::p:{default_project.id}:boosted_releases",
+        f"ds::r:{second_release.id}",
+        time.time(),
+    )
+
+    second_release.delete()
+
+    expected = [
+        {
+            "sampleRate": 0.5,
+            "type": "trace",
+            "active": True,
+            "condition": {
+                "op": "and",
+                "inner": [
+                    {"op": "eq", "name": "trace.release", "value": ["1.0"]},
+                    {"op": "eq", "name": "trace.environment", "value": None},
+                ],
+            },
+            "id": 1500,
+            "timeRange": {"start": "2022-10-21 18:50:25+00:00", "end": "2022-10-21 20:03:03+00:00"},
+        },
+        {
+            "active": True,
+            "condition": {"inner": [], "op": "and"},
+            "id": 1000,
+            "sampleRate": 0.1,
+            "type": "trace",
+        },
+    ]
+
+    assert generate_rules(default_project) == expected
+    config_str = json.dumps({"rules": generate_rules(default_project)})
+    validate_sampling_configuration(config_str)
+
+
+@pytest.mark.django_db
 @patch("sentry.dynamic_sampling.rules_generator.quotas.get_blended_sample_rate")
 def test_generate_rules_return_uniform_rule_with_100_rate_and_without_latest_release_rule(
     get_blended_sample_rate, default_project, latest_release_only
