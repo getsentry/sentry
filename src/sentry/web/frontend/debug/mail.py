@@ -27,6 +27,7 @@ from sentry.digests.notifications import Notification, build_digest
 from sentry.digests.utils import get_digest_metadata
 from sentry.event_manager import EventManager, get_event_type
 from sentry.http import get_server_hostname
+from sentry.issues.occurrence_consumer import process_event_and_issue_occurrence
 from sentry.mail.notifications import get_builder_args
 from sentry.models import (
     Activity,
@@ -45,6 +46,7 @@ from sentry.notifications.notifications.digest import DigestNotification
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.notifications.utils import get_group_settings_link, get_interface_list, get_rules
 from sentry.testutils.helpers import override_options
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
 from sentry.types.issues import GROUP_TYPE_TO_TEXT, GroupType
 from sentry.utils import json, loremipsum
@@ -207,23 +209,6 @@ def make_performance_event(project):
 
     perf_event = perf_event.for_group(perf_event.groups[0])
     return perf_event
-
-
-def add_occurrence(event, project_id):
-    import uuid
-    from datetime import datetime
-
-    from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
-    from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
-    from sentry.types.issues import GroupType
-    from sentry.utils.dates import ensure_aware
-
-    # need to already have an event, or make one
-    # event = event.for_group(event.groups[0])
-    occurrence = TEST_ISSUE_OCCURRENCE
-    occurrence.save(project_id)
-    event.occurrence = occurrence
-    event.group.type = GroupType.PROFILE_BLOCKED_THREAD
 
 
 def get_shared_context(rule, org, project, group, event):
@@ -508,10 +493,6 @@ def digest(request):
             event = eventstore.create_event(
                 event_id=uuid.uuid4().hex, group_id=group.id, project_id=project.id, data=data.data
             )
-            add_occurrence(event, project.id)
-
-            print("**?**", event.occurrence.issue_title)
-
             records.append(
                 Record(
                     event.event_id,
@@ -553,39 +534,20 @@ def digest(request):
         state["user_counts"][perf_group.id] = random.randint(10, 1e4)
 
     # add in generic issues
-    for i in range(random.randint(1, 30)):
-        # generic_event = make_error_event(request, project, "python")
-        # generic_event.for_group(generic_event.groups[0])
-        # occurrence = TEST_ISSUE_OCCURRENCE
-        # occurrence.save(project.id)
-        # generic_event.occurrence = occurrence
-        # # don't clobber error or perf issue ids
-        # generic_event.group.id = i + 200
-        # generic_group = generic_event.group
-        generic_event = make_error_event(request, project, "python")
-        generic_event = generic_event.for_group(generic_event.groups[0])
-        occurrence = TEST_ISSUE_OCCURRENCE
-        # occurrence = IssueOccurrence(
-        #     uuid.uuid4().hex,
-        #     uuid.uuid4().hex,
-        #     ["some-fingerprint"],
-        #     "something bad happened",
-        #     "it was bad",
-        #     "1234",
-        #     {"Test": 123},
-        #     [
-        #         IssueEvidence("Name 1", "Value 1", True),
-        #         IssueEvidence("Name 2", "Value 2", False),
-        #         IssueEvidence("Name 3", "Value 3", False),
-        #     ],
-        #     GroupType.PROFILE_BLOCKED_THREAD,
-        #     ensure_aware(datetime.now()),
-        # )
-        occurrence.save(project.id)
-        generic_event.occurrence = occurrence
-        generic_event.group.type = GroupType.PROFILE_BLOCKED_THREAD
-        generic_group = generic_event.group
-        # generic_group.title = occurrence.issue_title
+    for i in range(random.randint(1, 3)):
+        occurrence, group_info = process_event_and_issue_occurrence(
+            TEST_ISSUE_OCCURRENCE.to_dict(),
+            {
+                "event_id": uuid.uuid4().hex,
+                "fingerprint": ["group-1"],
+                "project_id": project.id,
+                "timestamp": before_now(minutes=1).isoformat(),
+            },
+        )
+        generic_group = group_info.group
+        generic_group.update(type=GroupType.PROFILE_BLOCKED_THREAD.value)
+        generic_event = generic_group.get_latest_event()
+        generic_group.id = i + 200  # don't clobber other issue ids
 
         records.append(
             Record(
