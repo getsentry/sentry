@@ -516,7 +516,7 @@ const SearchItemTitleWrapper = styled('div')<{hasSingleField?: boolean}>`
   display: flex;
   flex-grow: 1;
   flex-shrink: ${p => (p.hasSingleField ? '1' : '0')};
-  max-width: ${p => (p.hasSingleField ? '100%' : 'min(280px, 50%)')};
+  max-width: ${p => (p.hasSingleField ? '95%' : 'min(280px, 50%)')};
 
   color: ${p => p.theme.textColor};
   font-weight: normal;
