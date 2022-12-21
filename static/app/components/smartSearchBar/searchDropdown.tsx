@@ -304,13 +304,15 @@ const DropdownItem = ({
       <Fragment>
         <ItemTitle item={item} isChild={isChild} searchSubstring={searchSubstring} />
         {onIconClick && (
-          <IconOpen
-            onClick={e => {
-              // stop propagation so the item-level onClick doesn't get called
-              e.stopPropagation();
-              onIconClick(item.value);
-            }}
-          />
+          <IconOpenWrapper>
+            <IconOpen
+              onClick={e => {
+                // stop propagation so the item-level onClick doesn't get called
+                e.stopPropagation();
+                onIconClick(item.value);
+              }}
+            />
+          </IconOpenWrapper>
         )}
       </Fragment>
     );
@@ -516,7 +518,7 @@ const SearchItemTitleWrapper = styled('div')<{hasSingleField?: boolean}>`
   display: flex;
   flex-grow: 1;
   flex-shrink: ${p => (p.hasSingleField ? '1' : '0')};
-  max-width: ${p => (p.hasSingleField ? '95%' : 'min(280px, 50%)')};
+  max-width: ${p => (p.hasSingleField ? '100%' : 'min(280px, 50%)')};
 
   color: ${p => p.theme.textColor};
   font-weight: normal;
@@ -628,4 +630,8 @@ const Value = styled('span')<{hasDocs?: boolean}>`
   max-width: ${p => (p.hasDocs ? '280px' : 'none')};
 
   ${p => p.theme.overflowEllipsis};
+`;
+
+const IconOpenWrapper = styled('div')`
+  margin-left: ${space(1)};
 `;
