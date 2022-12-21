@@ -33,7 +33,6 @@ type TestStubFixtures = {
   DetailedEvents: SimpleStub;
   DiscoverSavedQuery: OverridableStub;
   DocIntegration: OverridableStub;
-  DynamicSamplingConfig: OverridableStub;
   Entries: SimpleStub;
   Environments: OverridableStub;
   Event: OverridableStub;
@@ -47,6 +46,7 @@ type TestStubFixtures = {
   Events: OverridableStubList;
   EventsStats: OverridableStub;
   ExceptionWithMeta: OverridableStubList;
+  ExceptionWithRawStackTrace: OverridableStub;
   GitHubIntegration: OverridableStub;
   GitHubIntegrationConfig: SimpleStub;
   GitHubIntegrationProvider: OverridableStub;

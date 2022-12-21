@@ -1,26 +1,173 @@
 from copy import deepcopy
+from typing import Dict, List, Union
 from unittest.mock import patch
 
-from sentry.integrations.utils.code_mapping import CodeMapping, Repo
+import responses
+
+from sentry.integrations.utils.code_mapping import CodeMapping, Repo, RepoTree
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.organization import OrganizationStatus
 from sentry.models.repository import Repository
+from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.tasks.derive_code_mappings import derive_code_mappings, identify_stacktrace_paths
 from sentry.testutils import TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
 
 
-class TestIdentfiyStacktracePaths(TestCase):
+class BaseDeriveCodeMappings(TestCase):
     def setUp(self):
         self.organization = self.create_organization(
             status=OrganizationStatus.ACTIVE,
         )
-        self.project = self.create_project(
-            organization=self.organization,
-            platform="python",
+        self.project = self.create_project(organization=self.organization)
+
+    def generate_data(self, frames: List[Dict[str, Union[str, bool]]], platform: str = ""):
+        test_data = {"platform": platform or self.platform, "stacktrace": {"frames": frames}}
+        return self.store_event(data=test_data, project_id=self.project.id).data
+
+
+class TestTaskBehavior(BaseDeriveCodeMappings):
+    """Test task behavior that is not language specific."""
+
+    def setUp(self):
+        super().setUp()
+        self.platform = "any"
+        self.event_data = self.generate_data(
+            [{"filename": "foo.py", "in_app": True}],
+            platform="any",
         )
+        self.integration = self.create_integration(
+            organization=self.organization,
+            provider="github",
+            external_id=self.organization.id,
+            metadata={"domain_name": "github.com/Test-Org"},
+        )
+
+    @responses.activate
+    @with_feature("organizations:derive-code-mappings")
+    def test_api_error_installation_removed(self):
+        with patch(
+            "sentry.integrations.github.client.GitHubClientMixin.get_trees_for_org",
+            side_effect=ApiError(
+                '{"message":"Not Found","documentation_url":"https://docs.github.com/rest/reference/apps#create-an-installation-access-token-for-an-app"}'
+            ),
+        ):
+            assert derive_code_mappings(self.project.id, self.event_data) is None
+
+
+class TestJavascriptDeriveCodeMappings(BaseDeriveCodeMappings):
+    def setUp(self):
+        super().setUp()
+        self.platform = "javascript"
+        self.event_data = self.generate_data(
+            [
+                {
+                    "filename": "../node_modules/@sentry/browser/node_modules/@sentry/core/esm/hub.js",
+                    "in_app": False,
+                },
+                {
+                    "filename": "./app/utils/handleXhrErrorResponse.tsx",
+                    "in_app": True,
+                },
+                {
+                    "filename": "some/path/Test.tsx",
+                    "in_app": True,
+                },
+            ]
+        )
+        self.integration = self.create_integration(
+            organization=self.organization,
+            provider="github",
+            external_id=self.organization.id,
+            metadata={"domain_name": "github.com/Test-Org"},
+        )
+
+    def test_find_stacktrace_paths_single_project(self):
+        stacktrace_paths = identify_stacktrace_paths(self.event_data)
+        assert set(stacktrace_paths) == {
+            "./app/utils/handleXhrErrorResponse.tsx",
+            "some/path/Test.tsx",
+        }
+
+    def test_find_stacktrace_empty(self):
+        data = self.generate_data([{}])
+        data["stacktrace"]["frames"] = [None]
+        stacktrace_paths = identify_stacktrace_paths(data)
+        assert stacktrace_paths == []
+
+    def test_find_stacktrace_paths_bad_data(self):
+        data = self.generate_data([{}])
+        data["stacktrace"]["frames"] = [
+            {
+                "abs_path": "https://example.com/static/chunks/foo.bar.js",
+                "data": {"sourcemap": "https://example.com/_next/static/chunks/foo.bar.js.map"},
+                "in_app": True,
+            }
+        ]
+        stacktrace_paths = identify_stacktrace_paths(data)
+        assert stacktrace_paths == []
+
+    @responses.activate
+    @with_feature("organizations:derive-code-mappings")
+    def test_derive_code_mappings_starts_with_period_slash(self):
+        repo_name = "foo/bar"
+        with patch(
+            "sentry.integrations.github.client.GitHubClientMixin.get_trees_for_org"
+        ) as mock_get_trees_for_org:
+            mock_get_trees_for_org.return_value = {
+                repo_name: RepoTree(
+                    Repo(repo_name, "master"), ["static/app/utils/handleXhrErrorResponse.tsx"]
+                )
+            }
+            derive_code_mappings(self.project.id, self.event_data)
+            code_mapping = RepositoryProjectPathConfig.objects.all()[0]
+            # ./app/foo.tsx -> app/foo.tsx -> static/app/foo.tsx
+            assert code_mapping.stack_root == "./"
+            assert code_mapping.source_root == "static/"
+            assert code_mapping.repository.name == repo_name
+
+    @responses.activate
+    @with_feature("organizations:derive-code-mappings")
+    def test_derive_code_mappings_starts_with_period_slash_no_containing_directory(self):
+        repo_name = "foo/bar"
+        with patch(
+            "sentry.integrations.github.client.GitHubClientMixin.get_trees_for_org"
+        ) as mock_get_trees_for_org:
+            mock_get_trees_for_org.return_value = {
+                repo_name: RepoTree(
+                    Repo(repo_name, "master"), ["app/utils/handleXhrErrorResponse.tsx"]
+                )
+            }
+            derive_code_mappings(self.project.id, self.event_data)
+            code_mapping = RepositoryProjectPathConfig.objects.all()[0]
+            # ./app/foo.tsx -> app/foo.tsx -> app/foo.tsx
+            assert code_mapping.stack_root == "./"
+            assert code_mapping.source_root == ""
+            assert code_mapping.repository.name == repo_name
+
+    @responses.activate
+    @with_feature("organizations:derive-code-mappings")
+    def test_derive_code_mappings_one_to_one_match(self):
+        repo_name = "foo/bar"
+        with patch(
+            "sentry.integrations.github.client.GitHubClientMixin.get_trees_for_org"
+        ) as mock_get_trees_for_org:
+            mock_get_trees_for_org.return_value = {
+                repo_name: RepoTree(Repo(repo_name, "master"), ["some/path/Test.tsx"])
+            }
+            derive_code_mappings(self.project.id, self.event_data)
+            code_mapping = RepositoryProjectPathConfig.objects.all()[0]
+            # some/path/Test.tsx -> Test.tsx -> some/path/Test.tsx
+            assert code_mapping.stack_root == ""
+            assert code_mapping.source_root == ""
+            assert code_mapping.repository.name == repo_name
+
+
+class TestPythonDeriveCodeMappings(BaseDeriveCodeMappings):
+    def setUp(self):
+        super().setUp()
         self.test_data = {
             "message": "Kaboom!",
             "platform": "python",
@@ -51,30 +198,18 @@ class TestIdentfiyStacktracePaths(TestCase):
     def test_finds_stacktrace_paths_single_project(self):
         event = self.store_event(data=self.test_data, project_id=self.project.id)
 
-        with self.tasks():
-            stacktrace_paths = identify_stacktrace_paths(event.data)
+        stacktrace_paths = identify_stacktrace_paths(event.data)
         assert sorted(stacktrace_paths) == [
             "sentry/models/release.py",
             "sentry/tasks.py",
         ]
-
-    def test_skips_nonpython_projects(self):
-        new_data = deepcopy(self.test_data)
-        new_data["platform"] = "javascript"
-        event = self.store_event(data=new_data, project_id=self.project.id)
-
-        with self.tasks():
-            stacktrace_paths = identify_stacktrace_paths(event.data)
-
-        assert sorted(stacktrace_paths) == []
 
     def test_handle_duplicate_filenames_in_stacktrace(self):
         data = deepcopy(self.test_data)
         data["stacktrace"]["frames"].append(self.test_data["stacktrace"]["frames"][0])
         event = self.store_event(data=data, project_id=self.project.id)
 
-        with self.tasks():
-            stacktrace_paths = identify_stacktrace_paths(event.data)
+        stacktrace_paths = identify_stacktrace_paths(event.data)
         assert sorted(stacktrace_paths) == [
             "sentry/models/release.py",
             "sentry/tasks.py",
@@ -133,6 +268,12 @@ class TestIdentfiyStacktracePaths(TestCase):
         code_mapping = RepositoryProjectPathConfig.objects.filter(project_id=self.project.id)
         assert code_mapping.exists()
         assert code_mapping.first().automatically_generated is True
+
+    def test_skips_supported_projects(self):
+        new_data = deepcopy(self.test_data)
+        new_data["platform"] = "elixir"
+        event = self.store_event(data=new_data, project_id=self.project.id)
+        assert derive_code_mappings(self.project.id, event.data) is None
 
     @patch("sentry.integrations.github.GitHubIntegration.get_trees_for_org")
     @patch(
@@ -226,3 +367,48 @@ class TestIdentfiyStacktracePaths(TestCase):
 
         # We should not create the code mapping for dry runs
         assert not RepositoryProjectPathConfig.objects.filter(project_id=self.project.id).exists()
+
+    @responses.activate
+    @with_feature("organizations:derive-code-mappings")
+    def test_derive_code_mappings_stack_and_source_root_do_not_match(self):
+        self.create_integration(
+            organization=self.organization,
+            provider="github",
+            external_id=self.organization.id,
+            metadata={"domain_name": "github.com/Test-Org"},
+        )
+        repo_name = "foo/bar"
+        with patch(
+            "sentry.integrations.github.client.GitHubClientMixin.get_trees_for_org"
+        ) as mock_get_trees_for_org:
+            mock_get_trees_for_org.return_value = {
+                repo_name: RepoTree(Repo(repo_name, "master"), ["src/sentry/models/release.py"])
+            }
+            derive_code_mappings(self.project.id, self.test_data)
+            code_mapping = RepositoryProjectPathConfig.objects.all().first()
+            # sentry/models/release.py -> models/release.py -> src/sentry/models/release.py
+            assert code_mapping.stack_root == "sentry/"
+            assert code_mapping.source_root == "src/sentry/"
+
+    @responses.activate
+    @with_feature("organizations:derive-code-mappings")
+    def test_derive_code_mappings_no_normalization(self):
+        self.create_integration(
+            organization=self.organization,
+            provider="github",
+            external_id=self.organization.id,
+            metadata={"domain_name": "github.com/Test-Org"},
+        )
+        repo_name = "foo/bar"
+        with patch(
+            "sentry.integrations.github.client.GitHubClientMixin.get_trees_for_org"
+        ) as mock_get_trees_for_org:
+            mock_get_trees_for_org.return_value = {
+                repo_name: RepoTree(Repo(repo_name, "master"), ["sentry/models/release.py"])
+            }
+            derive_code_mappings(self.project.id, self.test_data)
+            code_mapping = RepositoryProjectPathConfig.objects.all().first()
+            # sentry/models/release.py -> models/release.py -> sentry/models/release.py
+            # If the normalization code was used these would be the empty stack root
+            assert code_mapping.stack_root == "sentry/"
+            assert code_mapping.source_root == "sentry/"

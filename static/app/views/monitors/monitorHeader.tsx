@@ -25,11 +25,11 @@ const statusToLabel: Record<Status, string> = {
 const MonitorHeader = ({monitor, orgId, onUpdate}: Props) => {
   const crumbs = [
     {
-      label: t('Monitors'),
-      to: `/organizations/${orgId}/monitors`,
+      label: t('Crons'),
+      to: `/organizations/${orgId}/crons`,
     },
     {
-      label: t('Monitor Details'),
+      label: t('Cron Monitor Details'),
     },
   ];
 

@@ -23,6 +23,40 @@ import type {
   ReplaySpan,
 } from 'sentry/views/replays/types';
 
+// Errors if it is an interface
+// See https://github.com/microsoft/TypeScript/issues/15300
+type ReplayAttachmentsByTypeMap = {
+  breadcrumbs: ReplayCrumb[];
+
+  /**
+   * The flattened list of rrweb events. These are stored as multiple attachments on the root replay object: the `event` prop.
+   */
+  rrwebEvents: RecordingEvent[];
+  spans: ReplaySpan[];
+};
+
+export function mapRRWebAttachments(
+  unsortedReplayAttachments: any[]
+): ReplayAttachmentsByTypeMap {
+  const replayAttachments: ReplayAttachmentsByTypeMap = {
+    breadcrumbs: [],
+    rrwebEvents: [],
+    spans: [],
+  };
+
+  unsortedReplayAttachments.forEach(attachment => {
+    if (attachment.data?.tag === 'performanceSpan') {
+      replayAttachments.spans.push(attachment.data.payload);
+    } else if (attachment?.data?.tag === 'breadcrumb') {
+      replayAttachments.breadcrumbs.push(attachment.data.payload);
+    } else {
+      replayAttachments.rrwebEvents.push(attachment);
+    }
+  });
+
+  return replayAttachments;
+}
+
 export const isMemorySpan = (span: ReplaySpan): span is MemorySpanType => {
   return span.op === 'memory';
 };
@@ -72,7 +106,9 @@ export function mapResponseToReplayRecord(apiResponse: any): ReplayRecord {
     ...apiResponse,
     ...(apiResponse.startedAt ? {startedAt: new Date(apiResponse.startedAt)} : {}),
     ...(apiResponse.finishedAt ? {finishedAt: new Date(apiResponse.finishedAt)} : {}),
-    ...(apiResponse.duration ? {duration: duration(apiResponse.duration * 1000)} : {}),
+    ...(apiResponse.duration !== undefined
+      ? {duration: duration(apiResponse.duration * 1000)}
+      : {}),
     tags,
   };
 }
@@ -207,37 +243,4 @@ export function spansFactory(spans: ReplaySpan[]) {
       id: `${span.description ?? span.op}-${span.startTimestamp}-${span.endTimestamp}`,
       timestamp: span.startTimestamp * 1000,
     }));
-}
-
-/**
- * We need to figure out the real start and end timestamps based on when
- * first and last bits of data were collected. In milliseconds.
- *
- * @deprecated Once the backend returns the corrected timestamps, this is not needed.
- */
-export function replayTimestamps(
-  replayRecord: ReplayRecord,
-  rrwebEvents: RecordingEvent[],
-  rawCrumbs: ReplayCrumb[],
-  rawSpanData: ReplaySpan[]
-) {
-  const rrwebTimestamps = rrwebEvents.map(event => event.timestamp).filter(Boolean);
-  const breadcrumbTimestamps = (
-    rawCrumbs.map(rawCrumb => rawCrumb.timestamp).filter(Boolean) as number[]
-  )
-    .map(timestamp => +new Date(timestamp * 1000))
-    .filter(Boolean);
-  const spanStartTimestamps = rawSpanData.map(span => span.startTimestamp * 1000);
-  const spanEndTimestamps = rawSpanData.map(span => span.endTimestamp * 1000);
-
-  return {
-    startTimestampMs: Math.min(
-      replayRecord.startedAt.getTime(),
-      ...[...rrwebTimestamps, ...breadcrumbTimestamps, ...spanStartTimestamps]
-    ),
-    endTimestampMs: Math.max(
-      replayRecord.finishedAt.getTime(),
-      ...[...rrwebTimestamps, ...breadcrumbTimestamps, ...spanEndTimestamps]
-    ),
-  };
 }

@@ -3,11 +3,11 @@ import time
 from abc import ABC, abstractmethod
 from collections import deque
 from concurrent.futures import Future
-from typing import Any, Deque, MutableMapping, NamedTuple, Optional, Tuple
+from typing import Any, Deque, Mapping, MutableMapping, NamedTuple, Optional, Tuple
 
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.processing.strategies import ProcessingStrategy
-from arroyo.types import Commit, Message, Partition, Position, Topic
+from arroyo.types import Commit, Message, Partition, Topic
 from confluent_kafka import Producer
 
 logger = logging.getLogger(__name__)
@@ -86,8 +86,8 @@ class RoutingProducerStep(ProcessingStrategy[RoutingPayload]):
         self.__commit_function = commit_function
         self.__message_router = message_router
         self.__closed = False
-        self.__offsets_to_be_committed: MutableMapping[Partition, Position] = {}
-        self.__queue: Deque[Tuple[Partition, Position, Future[Message[KafkaPayload]]]] = deque()
+        self.__offsets_to_be_committed: MutableMapping[Partition, int] = {}
+        self.__queue: Deque[Tuple[Mapping[Partition, int], Future[Message[KafkaPayload]]]] = deque()
 
     def poll(self) -> None:
         """
@@ -98,7 +98,7 @@ class RoutingProducerStep(ProcessingStrategy[RoutingPayload]):
         which is not yet completed.
         """
         while self.__queue:
-            partition, position, future = self.__queue[0]
+            committable, future = self.__queue[0]
 
             if not future.done():
                 break
@@ -106,7 +106,7 @@ class RoutingProducerStep(ProcessingStrategy[RoutingPayload]):
             future.result()
 
             self.__queue.popleft()
-            self.__commit_function({partition: position})
+            self.__commit_function(committable)
 
     def submit(self, message: Message[RoutingPayload]) -> None:
         """
@@ -117,17 +117,11 @@ class RoutingProducerStep(ProcessingStrategy[RoutingPayload]):
         """
         assert not self.__closed
         producer, topic = self.__message_router.get_route_for_message(message)
-        output_message = Message(
-            partition=message.partition,
-            offset=message.offset,
-            timestamp=message.timestamp,
-            payload=message.payload.routing_message.value,
-        )
+        output_message = Message(message.value.replace(message.payload.routing_message.value))
 
         self.__queue.append(
             (
-                output_message.partition,
-                output_message.position_to_commit,
+                output_message.committable,
                 producer.produce(destination=topic, payload=output_message.payload),
             )
         )
@@ -154,9 +148,8 @@ class RoutingProducerStep(ProcessingStrategy[RoutingPayload]):
                 logger.warning(f"Timed out with {len(self.__queue)} futures in queue")
                 break
 
-            partition, position, future = self.__queue.popleft()
+            committable, future = self.__queue.popleft()
             future.result(remaining)
-            offset = {partition: position}
 
-            logger.info("Committing offset: %r", offset)
-            self.__commit_function(offset, force=True)
+            logger.info("Committing offset: %r", committable)
+            self.__commit_function(committable, force=True)

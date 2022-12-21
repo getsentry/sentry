@@ -47,8 +47,8 @@ import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metr
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {decodeInteger, decodeList, decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
-import {useParams} from 'sentry/utils/useParams';
-import {useRouteContext} from 'sentry/utils/useRouteContext';
+import {useLocation} from 'sentry/utils/useLocation';
+import useRouter from 'sentry/utils/useRouter';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import {DisplayType, Widget, WidgetType} from 'sentry/views/dashboardsV2/types';
 import {
@@ -168,8 +168,8 @@ function WidgetViewerModal(props: Props) {
     pageLinks: defaultPageLinks,
     seriesResultsType,
   } = props;
-  const {location, router, routes} = useRouteContext();
-  const params = useParams();
+  const location = useLocation();
+  const router = useRouter();
   const shouldShowSlider = organization.features.includes('widget-viewer-modal-minimap');
   // Get widget zoom from location
   // We use the start and end query params for just the initial state
@@ -371,8 +371,7 @@ function WidgetViewerModal(props: Props) {
   let columnOrder = decodeColumnOrder(
     fields.map(field => ({
       field,
-    })),
-    organization.features.includes('discover-frontend-use-events-endpoint')
+    }))
   );
   const columnSortBy = eventView.getSorts();
   columnOrder = columnOrder.map((column, index) => ({
@@ -832,9 +831,6 @@ function WidgetViewerModal(props: Props) {
             ) : (
               <MemoizedWidgetCardChartContainer
                 location={location}
-                router={router}
-                routes={routes}
-                params={params}
                 api={api}
                 organization={organization}
                 selection={modalChartSelection.current}

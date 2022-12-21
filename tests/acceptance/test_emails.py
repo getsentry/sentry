@@ -19,7 +19,7 @@ EMAILS = (
     ("/debug/mail/unable-to-fetch-commits/", "unable to fetch commits"),
     ("/debug/mail/unable-to-delete-repo/", "unable to delete repo"),
     ("/debug/mail/error-alert/", "alert"),
-    ("/debug/mail/performance-alert/", "performance"),
+    # ("/debug/mail/performance-alert/", "performance"), TODO: Flaky: GRW-778
     ("/debug/mail/digest/", "digest"),
     ("/debug/mail/invalid-identity/", "invalid identity"),
     ("/debug/mail/invitation/", "invitation"),
@@ -43,7 +43,7 @@ def read_txt_email_fixture(name: str) -> str:
 
 
 def build_url(path: str, format: str = "html") -> str:
-    return f"{path}?{urlencode({'format': format, 'seed': b'123'})}"
+    return f"{path}?{urlencode({'format': format, 'seed': b'123', 'is_test': True})}"
 
 
 class EmailTestCase(AcceptanceTestCase):

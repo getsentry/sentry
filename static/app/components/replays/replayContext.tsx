@@ -334,23 +334,6 @@ export function Provider({children, replay, initialTimeOffset = 0, value = {}}: 
     [events, theme.purple200, setReplayFinished, hasNewEvents]
   );
 
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.visibilityState !== 'visible') {
-        replayerRef.current?.pause();
-      }
-    };
-
-    if (replayerRef.current && events) {
-      initRoot(replayerRef.current.wrapper.parentElement as RootElem);
-      document.addEventListener('visibilitychange', handleVisibilityChange);
-    }
-
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, [initRoot, events]);
-
   const getCurrentTime = useCallback(
     () => (replayerRef.current ? Math.max(replayerRef.current.getCurrentTime(), 0) : 0),
     []
@@ -445,6 +428,23 @@ export function Provider({children, replay, initialTimeOffset = 0, value = {}}: 
     [getCurrentTime, config.user.email, organization]
   );
 
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState !== 'visible') {
+        togglePlayPause(false);
+      }
+    };
+
+    if (replayerRef.current && events) {
+      initRoot(replayerRef.current.wrapper.parentElement as RootElem);
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+    }
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [initRoot, events, togglePlayPause]);
+
   const restart = useCallback(() => {
     if (replayerRef.current) {
       replayerRef.current.play(0);
@@ -491,9 +491,11 @@ export function Provider({children, replay, initialTimeOffset = 0, value = {}}: 
       ? [true, buffer.target]
       : [false, currentPlayerTime];
 
-  if (!isBuffering && buffer.target !== -1) {
-    setBufferTime({target: -1, previous: -1});
-  }
+  useEffect(() => {
+    if (!isBuffering && buffer.target !== -1) {
+      setBufferTime({target: -1, previous: -1});
+    }
+  }, [isBuffering, buffer.target]);
 
   return (
     <ReplayPlayerContext.Provider

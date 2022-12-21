@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from typing import Any, Iterable, List, Optional
+from typing import Any, Iterable, List
+
+from django.db.models import QuerySet
 
 from sentry.api.serializers import (
     DetailedSelfUserSerializer,
@@ -19,7 +21,7 @@ class DatabaseBackedUserService(UserService):
     def get_many_by_email(self, email: str) -> List[APIUser]:
         return [
             UserService.serialize_user(user)
-            for user in User.objects.filter(
+            for user in self.__base_user_query().filter(
                 emails__is_verified=True, is_active=True, emails__email__iexact=email
             )
         ]
@@ -39,13 +41,15 @@ class DatabaseBackedUserService(UserService):
             serializer = DetailedSelfUserSerializer()
 
         return serialize(  # type: ignore
-            list(User.objects.filter(id__in=user_ids)), user=api_user, serializer=serializer
+            list(self.__base_user_query().filter(id__in=user_ids)),
+            user=api_user,
+            serializer=serializer,
         )
 
     def get_from_group(self, group: Group) -> List[APIUser]:
         return [
             UserService.serialize_user(u)
-            for u in User.objects.filter(
+            for u in self.__base_user_query().filter(
                 sentry_orgmember_set__organization=group.organization,
                 sentry_orgmember_set__teams__in=group.project.teams.all(),
                 is_active=True,
@@ -53,7 +57,7 @@ class DatabaseBackedUserService(UserService):
         ]
 
     def get_many(self, user_ids: Iterable[int]) -> List[APIUser]:
-        query = User.objects.filter(id__in=user_ids)
+        query = self.__base_user_query().filter(id__in=user_ids)
         return [UserService.serialize_user(u) for u in query]
 
     def get_from_project(self, project_id: int) -> List[APIUser]:
@@ -63,11 +67,24 @@ class DatabaseBackedUserService(UserService):
             return []
         return self.get_many(project.member_set.values_list("user_id", flat=True))
 
-    def get_by_actor_id(self, actor_id: int) -> Optional[APIUser]:
-        try:
-            return UserService.serialize_user(User.objects.get(actor_id=actor_id))
-        except User.DoesNotExist:
-            return None
+    def get_by_actor_ids(self, *, actor_ids: List[int]) -> List[APIUser]:
+        return [
+            UserService.serialize_user(u)
+            for u in self.__base_user_query().filter(actor_id__in=actor_ids)
+        ]
 
     def close(self) -> None:
         pass
+
+    def __base_user_query(self) -> QuerySet:
+        return User.objects.select_related("avatar").extra(
+            select={
+                "permissions": "select array_agg(permission) from sentry_userpermission where user_id=auth_user.id",
+                "roles": """
+                    SELECT array_agg(permissions)
+                    FROM sentry_userrole
+                    JOIN sentry_userrole_users
+                      ON sentry_userrole_users.role_id=sentry_userrole.id
+                   WHERE user_id=auth_user.id""",
+            }
+        )

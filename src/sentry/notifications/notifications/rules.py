@@ -8,9 +8,14 @@ import pytz
 from sentry.db.models import Model
 from sentry.models import Team, User, UserOption
 from sentry.notifications.notifications.base import ProjectNotification
-from sentry.notifications.types import ActionTargetType, NotificationSettingTypes
+from sentry.notifications.types import (
+    ActionTargetType,
+    FallthroughChoiceType,
+    NotificationSettingTypes,
+)
 from sentry.notifications.utils import (
     get_commits,
+    get_generic_data,
     get_group_settings_link,
     get_integration_link,
     get_interface_list,
@@ -20,11 +25,12 @@ from sentry.notifications.utils import (
     has_alert_integration,
     has_integrations,
 )
-from sentry.notifications.utils.participants import get_send_to
+from sentry.notifications.utils.participants import get_owner_reason, get_send_to
 from sentry.plugins.base.structs import Notification
 from sentry.types.integrations import ExternalProviders
-from sentry.types.issues import GROUP_TYPE_TO_TEXT, GroupCategory
+from sentry.types.issues import GROUP_CATEGORIES_CUSTOM_EMAIL, GROUP_TYPE_TO_TEXT, GroupCategory
 from sentry.utils import metrics
+from sentry.utils.http import absolute_uri
 
 logger = logging.getLogger(__name__)
 
@@ -40,6 +46,7 @@ class AlertRuleNotification(ProjectNotification):
         notification: Notification,
         target_type: ActionTargetType,
         target_identifier: int | None = None,
+        fallthrough_choice: FallthroughChoiceType | None = None,
     ) -> None:
         event = notification.event
         group = event.group
@@ -49,8 +56,13 @@ class AlertRuleNotification(ProjectNotification):
         self.event = event
         self.target_type = target_type
         self.target_identifier = target_identifier
+        self.fallthrough_choice = fallthrough_choice
         self.rules = notification.rules
-        self.template_path = f"sentry/emails/{event.group.issue_category.name.lower()}"
+        self.template_path = (
+            f"sentry/emails/{event.group.issue_category.name.lower()}"
+            if event.group.issue_category in GROUP_CATEGORIES_CUSTOM_EMAIL
+            else "sentry/emails/generic"
+        )
 
     def get_participants(self) -> Mapping[ExternalProviders, Iterable[Team | User]]:
         return get_send_to(
@@ -59,6 +71,7 @@ class AlertRuleNotification(ProjectNotification):
             target_identifier=self.target_identifier,
             event=self.event,
             notification_type=self.notification_setting_type,
+            fallthrough_choice=self.fallthrough_choice,
         )
 
     def get_subject(self, context: Mapping[str, Any] | None = None) -> str:
@@ -88,6 +101,13 @@ class AlertRuleNotification(ProjectNotification):
         environment = self.event.get_tag("environment")
         enhanced_privacy = self.organization.flags.enhanced_privacy
         rule_details = get_rules(self.rules, self.organization, self.project)
+        notification_reason = get_owner_reason(
+            project=self.project,
+            target_type=self.target_type,
+            event=self.event,
+            fallthrough_choice=self.fallthrough_choice,
+        )
+
         context = {
             "project_label": self.project.get_full_name(),
             "group": self.group,
@@ -99,8 +119,13 @@ class AlertRuleNotification(ProjectNotification):
             "commits": get_commits(self.project, self.event),
             "environment": environment,
             "slack_link": get_integration_link(self.organization, "slack"),
+            "notification_reason": notification_reason,
+            "notification_settings_link": absolute_uri(
+                "/settings/account/notifications/alerts/?referrer=alert_email"
+            ),
             "has_alert_integration": has_alert_integration(self.project),
             "issue_type": GROUP_TYPE_TO_TEXT.get(self.group.issue_type, "Issue"),
+            "subtitle": self.event.title,
         }
 
         # if the organization has enabled enhanced privacy controls we don't send
@@ -115,6 +140,14 @@ class AlertRuleNotification(ProjectNotification):
                     "subtitle": get_performance_issue_alert_subtitle(self.event),
                 },
             )
+        if self.group.issue_category not in GROUP_CATEGORIES_CUSTOM_EMAIL:
+            generic_issue_data_html = get_generic_data(self.event)
+            if generic_issue_data_html:
+                context.update(
+                    {
+                        "generic_issue_data": [("Issue Data", generic_issue_data_html, None)],
+                    }
+                )
 
         return context
 
@@ -147,6 +180,10 @@ class AlertRuleNotification(ProjectNotification):
                 "target_identifier": self.target_identifier,
                 "group": self.group.id,
                 "project_id": self.project.id,
+                "organization": self.organization.id,
+                "fallthrough_choice": self.fallthrough_choice.value
+                if self.fallthrough_choice
+                else None,
             },
         )
 

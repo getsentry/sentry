@@ -119,7 +119,6 @@ describe('WidgetBuilder', function () {
   };
 
   let eventsStatsMock: jest.Mock | undefined;
-  let eventsv2Mock: jest.Mock | undefined;
   let eventsMock: jest.Mock | undefined;
 
   beforeEach(function () {
@@ -136,16 +135,6 @@ describe('WidgetBuilder', function () {
       method: 'POST',
       statusCode: 200,
       body: [],
-    });
-
-    eventsv2Mock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/eventsv2/',
-      method: 'GET',
-      statusCode: 200,
-      body: {
-        meta: {},
-        data: [],
-      },
     });
 
     eventsMock = MockApiClient.addMockResponse({
@@ -236,6 +225,11 @@ describe('WidgetBuilder', function () {
       body: [],
     });
 
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/releases/',
+      body: [],
+    });
+
     TagStore.reset();
   });
 
@@ -245,7 +239,7 @@ describe('WidgetBuilder', function () {
     jest.useRealTimers();
   });
 
-  describe('with eventsv2 > Sort by selectors', function () {
+  describe('with events > Sort by selectors', function () {
     it('renders', async function () {
       renderTestComponent();
 
@@ -608,8 +602,8 @@ describe('WidgetBuilder', function () {
       expect(screen.queryByPlaceholderText('Enter Equation')).not.toBeInTheDocument();
 
       await waitFor(() => {
-        expect(eventsv2Mock).toHaveBeenCalledWith(
-          '/organizations/org-slug/eventsv2/',
+        expect(eventsMock).toHaveBeenCalledWith(
+          '/organizations/org-slug/events/',
           expect.objectContaining({
             query: expect.objectContaining({
               sort: ['-count()'],
@@ -854,85 +848,83 @@ describe('WidgetBuilder', function () {
     });
   });
 
-  describe('with events > Sort by selectors', function () {
-    it('ordering by column uses field form when selecting orderby', async function () {
-      const widget: Widget = {
-        id: '1',
-        title: 'Test Widget',
-        interval: '5m',
-        displayType: DisplayType.TABLE,
-        queries: [
-          {
-            name: 'errors',
-            conditions: 'event.type:error',
-            fields: ['count()'],
-            aggregates: ['count()'],
-            columns: ['project'],
-            orderby: '-project',
-          },
-        ],
-      };
-
-      const dashboard = mockDashboard({widgets: [widget]});
-
-      renderTestComponent({
-        orgFeatures: [...defaultOrgFeatures, 'discover-frontend-use-events-endpoint'],
-        dashboard,
-        params: {
-          widgetIndex: '0',
+  it('ordering by column uses field form when selecting orderby', async function () {
+    const widget: Widget = {
+      id: '1',
+      title: 'Test Widget',
+      interval: '5m',
+      displayType: DisplayType.TABLE,
+      queries: [
+        {
+          name: 'errors',
+          conditions: 'event.type:error',
+          fields: ['count()'],
+          aggregates: ['count()'],
+          columns: ['project'],
+          orderby: '-project',
         },
-      });
+      ],
+    };
 
-      const projectElements = screen.getAllByText('project');
-      await selectEvent.select(projectElements[projectElements.length - 1], 'count()');
+    const dashboard = mockDashboard({widgets: [widget]});
 
-      await waitFor(() => {
-        expect(eventsMock).toHaveBeenCalledWith(
-          '/organizations/org-slug/events/',
-          expect.objectContaining({
-            query: expect.objectContaining({
-              sort: ['-count()'],
-            }),
-          })
-        );
-      });
+    renderTestComponent({
+      orgFeatures: [...defaultOrgFeatures],
+      dashboard,
+      params: {
+        widgetIndex: '0',
+      },
     });
 
-    it('hides Custom Equation input and resets orderby when switching to table', async function () {
-      renderTestComponent({
-        orgFeatures: [...defaultOrgFeatures, 'discover-frontend-use-events-endpoint'],
-        query: {
-          source: DashboardWidgetSource.DASHBOARDS,
-          displayType: DisplayType.LINE,
-        },
-      });
+    const projectElements = screen.getAllByText('project');
+    await selectEvent.select(projectElements[projectElements.length - 1], 'count()');
 
-      await selectEvent.select(await screen.findByText('Select group'), 'project');
-      expect(screen.getAllByText('count()')).toHaveLength(2);
-      await selectEvent.select(screen.getAllByText('count()')[1], 'Custom Equation');
-      userEvent.paste(
-        screen.getByPlaceholderText('Enter Equation'),
-        'count_unique(user) * 2'
+    await waitFor(() => {
+      expect(eventsMock).toHaveBeenCalledWith(
+        '/organizations/org-slug/events/',
+        expect.objectContaining({
+          query: expect.objectContaining({
+            sort: ['-count()'],
+          }),
+        })
       );
-      userEvent.keyboard('{enter}');
+    });
+  });
 
-      // Switch the display type to Table
-      userEvent.click(screen.getByText('Line Chart'));
-      userEvent.click(screen.getByText('Table'));
+  it('hides Custom Equation input and resets orderby when switching to table', async function () {
+    renderTestComponent({
+      orgFeatures: [...defaultOrgFeatures],
+      query: {
+        source: DashboardWidgetSource.DASHBOARDS,
+        displayType: DisplayType.LINE,
+      },
+    });
 
-      expect(screen.getAllByText('count()')).toHaveLength(2);
-      expect(screen.queryByPlaceholderText('Enter Equation')).not.toBeInTheDocument();
+    await selectEvent.select(await screen.findByText('Select group'), 'project');
+    expect(screen.getAllByText('count()')).toHaveLength(2);
+    await selectEvent.select(screen.getAllByText('count()')[1], 'Custom Equation');
+    userEvent.paste(
+      screen.getByPlaceholderText('Enter Equation'),
+      'count_unique(user) * 2'
+    );
+    userEvent.keyboard('{enter}');
 
-      await waitFor(() => {
-        expect(eventsMock).toHaveBeenCalledWith(
-          '/organizations/org-slug/events/',
-          expect.objectContaining({
-            query: expect.objectContaining({
-              sort: ['-count()'],
-            }),
-          })
-        );
-      });
+    // Switch the display type to Table
+    userEvent.click(screen.getByText('Line Chart'));
+    userEvent.click(screen.getByText('Table'));
+
+    expect(screen.getAllByText('count()')).toHaveLength(2);
+    expect(screen.queryByPlaceholderText('Enter Equation')).not.toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(eventsMock).toHaveBeenCalledWith(
+        '/organizations/org-slug/events/',
+        expect.objectContaining({
+          query: expect.objectContaining({
+            sort: ['-count()'],
+          }),
+        })
+      );
     });
   });
 });

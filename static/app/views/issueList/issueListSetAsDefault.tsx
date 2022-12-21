@@ -1,37 +1,52 @@
-// eslint-disable-next-line no-restricted-imports
-import {browserHistory, withRouter, WithRouterProps} from 'react-router';
-import isNil from 'lodash/isNil';
+import {browserHistory} from 'react-router';
 
 import Button from 'sentry/components/button';
 import {removeSpace} from 'sentry/components/smartSearchBar/utils';
 import {IconBookmark} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {Organization, SavedSearch, SavedSearchType} from 'sentry/types';
+import {Organization, SavedSearchType} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 import {usePinSearch} from 'sentry/views/issueList/mutations/usePinSearch';
 import {useUnpinSearch} from 'sentry/views/issueList/mutations/useUnpinSearch';
+import {useFetchSavedSearchesForOrg} from 'sentry/views/issueList/queries/useFetchSavedSearchesForOrg';
+import {isDefaultIssueStreamSearch} from 'sentry/views/issueList/utils';
+import {useSelectedSavedSearch} from 'sentry/views/issueList/utils/useSelectedSavedSearch';
 
-interface IssueListSetAsDefaultProps extends WithRouterProps {
+interface IssueListSetAsDefaultProps {
   organization: Organization;
   query: string;
-  savedSearch: SavedSearch | null;
   sort: string;
 }
 
+const usePinnedSearch = () => {
+  const organization = useOrganization();
+  const {data: savedSearches} = useFetchSavedSearchesForOrg(
+    {orgSlug: organization.slug},
+    {notifyOnChangeProps: ['data']}
+  );
+
+  return savedSearches?.find(savedSearch => savedSearch.isPinned) ?? null;
+};
+
 const IssueListSetAsDefault = ({
-  location,
   organization,
-  savedSearch,
   sort,
   query,
 }: IssueListSetAsDefaultProps) => {
-  const pinnedSearch = savedSearch?.isPinned ? savedSearch : undefined;
-  const pinnedSearchActive = !isNil(pinnedSearch);
+  const location = useLocation();
+
+  const selectedSavedSearch = useSelectedSavedSearch();
+  const pinnedSearch = usePinnedSearch();
+  const pinnedSearchActive = selectedSavedSearch
+    ? pinnedSearch?.id === selectedSavedSearch?.id
+    : false;
 
   const {mutate: pinSearch, isLoading: isPinning} = usePinSearch({
     onSuccess: response => {
       const {cursor: _cursor, page: _page, ...currentQuery} = location.query;
-      browserHistory.push({
+      browserHistory.replace({
         ...location,
         pathname: `/organizations/${organization.slug}/issues/searches/${response.id}/`,
         query: {referrer: 'search-bar', ...currentQuery},
@@ -41,11 +56,13 @@ const IssueListSetAsDefault = ({
   const {mutate: unpinSearch, isLoading: isUnpinning} = useUnpinSearch({
     onSuccess: () => {
       const {cursor: _cursor, page: _page, ...currentQuery} = location.query;
-      browserHistory.push({
+      browserHistory.replace({
         ...location,
         pathname: `/organizations/${organization.slug}/issues/`,
         query: {
           referrer: 'search-bar',
+          query,
+          sort,
           ...currentQuery,
         },
       });
@@ -60,7 +77,7 @@ const IssueListSetAsDefault = ({
       query: pinnedSearch?.query ?? query,
     });
 
-    if (pinnedSearch) {
+    if (pinnedSearchActive) {
       unpinSearch({orgSlug: organization.slug, type: SavedSearchType.ISSUE});
     } else {
       pinSearch({
@@ -72,7 +89,12 @@ const IssueListSetAsDefault = ({
     }
   };
 
-  if (!organization.features.includes('issue-list-saved-searches-v2')) {
+  // Hide if we are already on the default search,
+  // except when the user has a different search pinned.
+  if (
+    isDefaultIssueStreamSearch({query, sort}) &&
+    (!pinnedSearch || isDefaultIssueStreamSearch(pinnedSearch))
+  ) {
     return null;
   }
 
@@ -88,4 +110,4 @@ const IssueListSetAsDefault = ({
   );
 };
 
-export default withRouter(IssueListSetAsDefault);
+export default IssueListSetAsDefault;

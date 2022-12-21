@@ -1,9 +1,7 @@
-import {useCallback, useEffect, useMemo, useState} from 'react';
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
-import {fetchOrgMembers} from 'sentry/actionCreators/members';
-import AssigneeSelector from 'sentry/components/assigneeSelector';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Badge from 'sentry/components/badge';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
@@ -27,12 +25,9 @@ import Tooltip from 'sentry/components/tooltip';
 import {IconChat} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Event, Group, IssueCategory, Organization, Project, User} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import {getUtcDateString} from 'sentry/utils/dates';
+import {Event, Group, IssueCategory, Organization, Project} from 'sentry/types';
 import {getMessage} from 'sentry/utils/events';
 import projectSupportsReplay from 'sentry/utils/replays/projectSupportsReplay';
-import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 
 import GroupActions from './actions';
@@ -49,32 +44,6 @@ type Props = {
   event?: Event;
 };
 
-type UseMemberlistProps = {
-  group: Group;
-  organization: Organization;
-};
-
-function useMembersList({group, organization}: UseMemberlistProps) {
-  const {project} = group;
-  const api = useApi();
-
-  const [membersList, setMembersList] = useState<User[]>();
-
-  const hasIssueDetailsOwners = organization.features.includes('issue-details-owners');
-  const loadMemberList = useCallback(async () => {
-    if (hasIssueDetailsOwners) {
-      return;
-    }
-
-    const members = await fetchOrgMembers(api, organization.slug, [project.id]);
-    setMembersList(members.map(member => member.user));
-  }, [api, organization.slug, project, hasIssueDetailsOwners]);
-
-  useEffect(() => void loadMemberList(), [loadMemberList]);
-
-  return membersList;
-}
-
 function GroupHeader({
   baseUrl,
   group,
@@ -88,31 +57,8 @@ function GroupHeader({
   const replaysCount = useReplaysCount({
     groupIds: group.id,
     organization,
-    project,
+    projectIds: [Number(project.id)],
   })[group.id];
-
-  const trackAssign: React.ComponentProps<typeof AssigneeSelector>['onAssign'] =
-    useCallback(
-      (_, __, suggestedAssignee) => {
-        const {alert_date, alert_rule_id, alert_type} = location.query;
-        trackAdvancedAnalyticsEvent('issue_details.action_clicked', {
-          organization,
-          project_id: parseInt(project.id, 10),
-          group_id: parseInt(group.id, 10),
-          issue_category: group.issueCategory,
-          action_type: 'assign',
-          assigned_suggestion_reason: suggestedAssignee?.suggestedReason,
-          // Alert properties track if the user came from email/slack alerts
-          alert_date:
-            typeof alert_date === 'string'
-              ? getUtcDateString(Number(alert_date))
-              : undefined,
-          alert_rule_id: typeof alert_rule_id === 'string' ? alert_rule_id : undefined,
-          alert_type: typeof alert_type === 'string' ? alert_type : undefined,
-        });
-      },
-      [group.id, group.issueCategory, project.id, organization, location.query]
-    );
 
   const disabledTabs = useMemo(() => {
     const hasReprocessingV2Feature = organization.features.includes('reprocessing-v2');
@@ -306,8 +252,6 @@ function GroupHeader({
     );
   }, [disabledTabs, group.numComments, baseUrl, location, eventRouteToObject]);
 
-  const membersList = useMembersList({group, organization});
-  const hasIssueDetailsOwners = organization.features.includes('issue-details-owners');
   const {userCount} = group;
 
   let className = 'group-detail';
@@ -385,7 +329,7 @@ function GroupHeader({
               <EventMessage message={message} />
             </StyledTagAndMessageWrapper>
           </TitleWrapper>
-          <StatsWrapper numItems={hasIssueDetailsOwners ? '2' : '3'}>
+          <StatsWrapper>
             <div className="count">
               <h6 className="nav-header">{t('Events')}</h6>
               <Link disabled={disableActions} to={eventRouteToObject}>
@@ -405,17 +349,6 @@ function GroupHeader({
                 <span>0</span>
               )}
             </div>
-            {!hasIssueDetailsOwners && (
-              <div data-test-id="assigned-to">
-                <h6 className="nav-header">{t('Assignee')}</h6>
-                <AssigneeSelector
-                  id={group.id}
-                  memberList={membersList}
-                  disabled={disableActions}
-                  onAssign={trackAssign}
-                />
-              </div>
-            )}
           </StatsWrapper>
         </HeaderRow>
         {hasIssueActionsV2 ? (
@@ -500,9 +433,9 @@ const StyledEventOrGroupTitle = styled(EventOrGroupTitle)`
   font-size: inherit;
 `;
 
-const StatsWrapper = styled('div')<{numItems: '2' | '3'}>`
+const StatsWrapper = styled('div')`
   display: grid;
-  grid-template-columns: repeat(${p => p.numItems}, min-content);
+  grid-template-columns: repeat(2, min-content);
   gap: calc(${space(3)} + ${space(3)});
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {

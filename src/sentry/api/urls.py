@@ -15,6 +15,7 @@ from sentry.api.endpoints.organization_sentry_function_details import (
     OrganizationSentryFunctionDetailsEndpoint,
 )
 from sentry.api.endpoints.project_grouping_configs import ProjectGroupingConfigsEndpoint
+from sentry.api.endpoints.project_transaction_names import ProjectTransactionNamesCluster
 from sentry.api.endpoints.project_transaction_threshold_override import (
     ProjectTransactionThresholdOverrideEndpoint,
 )
@@ -64,6 +65,9 @@ from sentry.incidents.endpoints.project_alert_rule_index import (
 )
 from sentry.incidents.endpoints.project_alert_rule_task_details import (
     ProjectAlertRuleTaskDetailsEndpoint,
+)
+from sentry.replays.endpoints.organization_issue_replay_count import (
+    OrganizationIssueReplayCountEndpoint,
 )
 from sentry.replays.endpoints.organization_replay_events_meta import (
     OrganizationReplayEventsMetaEndpoint,
@@ -206,6 +210,7 @@ from .endpoints.internal import (
     InternalStatsEndpoint,
     InternalWarningsEndpoint,
 )
+from .endpoints.issue_occurrence import IssueOccurrenceEndpoint
 from .endpoints.monitor_checkin_details import MonitorCheckInDetailsEndpoint
 from .endpoints.monitor_checkins import MonitorCheckInsEndpoint
 from .endpoints.monitor_details import MonitorDetailsEndpoint
@@ -656,6 +661,11 @@ urlpatterns = [
     ),
     # Organization invite
     url(
+        r"^accept-invite/(?P<organization_slug>[^\/]+)/(?P<member_id>[^\/]+)/(?P<token>[^\/]+)/$",
+        AcceptOrganizationInvite.as_view(),
+        name="sentry-api-0-accept-organization-invite-with-org",
+    ),
+    url(
         r"^accept-invite/(?P<member_id>[^\/]+)/(?P<token>[^\/]+)/$",
         AcceptOrganizationInvite.as_view(),
         name="sentry-api-0-accept-organization-invite",
@@ -684,6 +694,21 @@ urlpatterns = [
                     r"^(?P<monitor_id>[^\/]+)/stats/$",
                     MonitorStatsEndpoint.as_view(),
                     name="sentry-api-0-monitor-stats",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/(?P<monitor_id>[^\/]+)/$",
+                    MonitorDetailsEndpoint.as_view(),
+                    name="sentry-api-0-monitor-details-with-org",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/(?P<monitor_id>[^\/]+)/checkins/$",
+                    MonitorCheckInsEndpoint.as_view(),
+                    name="sentry-api-0-monitor-check-in-index-with-org",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/(?P<monitor_id>[^\/]+)/stats/$",
+                    MonitorStatsEndpoint.as_view(),
+                    name="sentry-api-0-monitor-stats-with-org",
                 ),
             ]
         ),
@@ -1564,6 +1589,11 @@ urlpatterns = [
                     name="sentry-api-0-organization-replay-index",
                 ),
                 url(
+                    r"^(?P<organization_slug>[^\/]+)/issue-replay-count/$",
+                    OrganizationIssueReplayCountEndpoint.as_view(),
+                    name="sentry-api-0-organization-issue-replay-count",
+                ),
+                url(
                     r"^(?P<organization_slug>[^\/]+)/replays-events-meta/$",
                     OrganizationReplayEventsMetaEndpoint.as_view(),
                     name="sentry-api-0-organization-replay-events-meta",
@@ -2205,6 +2235,11 @@ urlpatterns = [
                     name="sentry-api-0-project-plugin-details",
                 ),
                 url(
+                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/cluster-transaction-names/$",
+                    ProjectTransactionNamesCluster.as_view(),
+                    name="sentry-api-0-organization-project-cluster-transaction-names",
+                ),
+                url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/plugins?/",
                     include("sentry.plugins.base.project_api_urls"),
                 ),
@@ -2388,6 +2423,12 @@ urlpatterns = [
         r"^integration-features/$",
         IntegrationFeaturesEndpoint.as_view(),
         name="sentry-api-0-integration-features",
+    ),
+    # Issue Occurrences
+    url(
+        r"^issue-occurrence/$",
+        IssueOccurrenceEndpoint.as_view(),
+        name="sentry-api-0-issue-occurrence",
     ),
     # Grouping configs
     url(

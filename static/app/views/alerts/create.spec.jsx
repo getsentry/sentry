@@ -464,12 +464,17 @@ describe('ProjectAlertsCreate', function () {
     });
     it('valid preview table', async () => {
       const groups = TestStubs.Groups();
+      const date = new Date();
+      for (let i = 0; i < groups.length; i++) {
+        groups[i].lastTriggered = date;
+      }
       const mock = MockApiClient.addMockResponse({
         url: '/projects/org-slug/project-slug/rules/preview',
         method: 'POST',
         body: groups,
         headers: {
           'X-Hits': groups.length,
+          Endpoint: 'endpoint',
         },
       });
       createWrapper({organization});
@@ -483,18 +488,32 @@ describe('ProjectAlertsCreate', function () {
               filterMatch: 'all',
               filters: [],
               frequency: 60 * 24,
+              endpoint: null,
             },
           })
         );
       });
       expect(
-        screen.getByText(
-          "issues would have triggered this rule in the past 14 days approximately. If you're looking to reduce noise then make sure to"
-        )
+        screen.getByText('issues would have triggered this rule in the past 14 days')
       ).toBeInTheDocument();
       for (const group of groups) {
         expect(screen.getByText(group.shortId)).toBeInTheDocument();
       }
+      expect(screen.getAllByText('3mo ago')[0]).toBeInTheDocument();
+
+      await selectEvent.select(screen.getByText('Add optional trigger...'), [
+        'A new issue is created',
+      ]);
+      await waitFor(() => {
+        expect(mock).toHaveBeenLastCalledWith(
+          expect.any(String),
+          expect.objectContaining({
+            data: expect.objectContaining({
+              endpoint: 'endpoint',
+            }),
+          })
+        );
+      });
     });
 
     it('invalid preview alert', async () => {
@@ -507,7 +526,16 @@ describe('ProjectAlertsCreate', function () {
       await waitFor(() => {
         expect(mock).toHaveBeenCalled();
       });
-      expect(screen.getByText('No preview available')).toBeInTheDocument();
+      expect(
+        screen.getByText('Select a condition to generate a preview')
+      ).toBeInTheDocument();
+
+      await selectEvent.select(screen.getByText('Add optional trigger...'), [
+        'A new issue is created',
+      ]);
+      expect(
+        screen.getByText('Preview is not supported for these conditions')
+      ).toBeInTheDocument();
     });
 
     it('empty preview table', async () => {
@@ -517,6 +545,7 @@ describe('ProjectAlertsCreate', function () {
         body: [],
         headers: {
           'X-Hits': 0,
+          Endpoint: 'endpoint',
         },
       });
       createWrapper({organization});

@@ -83,6 +83,12 @@ TRANSACTIONS_SNUBA_MAP = {
     if col.value.transaction_name is not None
 }
 
+ISSUE_PLATFORM_MAP = {
+    col.value.alias: col.value.issue_platform_name
+    for col in Columns
+    if col.value.issue_platform_name is not None
+}
+
 SESSIONS_FIELD_LIST = [
     "release",
     "sessions",
@@ -130,6 +136,7 @@ DATASETS = {
     Dataset.Sessions: SESSIONS_SNUBA_MAP,
     Dataset.Metrics: METRICS_COLUMN_MAP,
     Dataset.PerformanceMetrics: METRICS_COLUMN_MAP,
+    Dataset.IssuePlatform: ISSUE_PLATFORM_MAP,
 }
 
 # Store the internal field names to save work later on.
@@ -140,6 +147,7 @@ DATASET_FIELDS = {
     Dataset.Transactions: list(TRANSACTIONS_SNUBA_MAP.values()),
     Dataset.Discover: list(DISCOVER_COLUMN_MAP.values()),
     Dataset.Sessions: SESSIONS_FIELD_LIST,
+    Dataset.IssuePlatform: list(ISSUE_PLATFORM_MAP.values()),
 }
 
 SNUBA_OR = "or"
@@ -532,6 +540,7 @@ def _prepare_query_params(query_params):
         Dataset.Sessions,
         Dataset.Transactions,
         Dataset.Replays,
+        Dataset.IssuePlatform,
     ]:
         (organization_id, params_to_update) = get_query_params_to_update_for_projects(
             query_params, with_org=query_params.dataset == Dataset.Sessions

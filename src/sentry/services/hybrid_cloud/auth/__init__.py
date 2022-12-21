@@ -5,20 +5,26 @@ import contextlib
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Dict, Generator, List, Mapping, Type
 
-from django.contrib.auth.models import AnonymousUser
-
 from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_delegation, stubbed
 from sentry.services.hybrid_cloud.organization import ApiOrganizationMember
 from sentry.services.hybrid_cloud.user import APIUser
 from sentry.silo import SiloMode
 
 if TYPE_CHECKING:
+    from django.contrib.auth.models import AnonymousUser
+
     from sentry.models import OrganizationMember
 
 
 class AuthService(InterfaceWithLifecycle):
     @abc.abstractmethod
     def authenticate(self, *, request: AuthenticationRequest) -> AuthenticationResponse:
+        pass
+
+    @abc.abstractmethod
+    def get_org_auth_config(
+        self, *, organization_ids: List[int]
+    ) -> List[ApiOrganizationAuthConfig]:
         pass
 
     @abc.abstractmethod
@@ -144,6 +150,14 @@ class AuthenticationContext:
     auth: AuthenticatedToken | None = None
     user: APIUser | None = None
 
+    def _get_user(self) -> APIUser | AnonymousUser:
+        """
+        Helper function to avoid importing AnonymousUser when `applied_to_request` is run on startup
+        """
+        from django.contrib.auth.models import AnonymousUser
+
+        return self.user or AnonymousUser()
+
     @contextlib.contextmanager
     def applied_to_request(self, request: Any = None) -> Generator[None, None, None]:
         """
@@ -168,26 +182,48 @@ class AuthenticationContext:
 
         old_user = getattr(request, "user", None)
         old_auth = getattr(request, "auth", None)
-        request.user = self.user or AnonymousUser()
+        request.user = self._get_user()
         request.auth = self.auth
 
-        yield
+        try:
+            yield
+        finally:
+            if has_user:
+                request.user = old_user
+            else:
+                delattr(request, "user")
 
-        if has_user:
-            request.user = old_user
-        else:
-            delattr(request, "user")
-
-        if has_auth:
-            request.auth = old_auth
-        else:
-            delattr(request, "auth")
+            if has_auth:
+                request.auth = old_auth
+            else:
+                delattr(request, "auth")
 
 
 @dataclass
 class AuthenticationResponse(AuthenticationContext):
     expired: bool = False
     user_from_signed_request: bool = False
+
+
+@dataclass(eq=True, frozen=True)
+class ApiAuthProviderFlags:
+    allow_unlinked: bool = False
+    scim_enabled: bool = False
+
+
+@dataclass(eq=True, frozen=True)
+class ApiAuthProvider:
+    id: int = -1
+    organization_id: int = -1
+    provider: str = ""
+    flags: ApiAuthProviderFlags = field(default_factory=lambda: ApiAuthProviderFlags())
+
+
+@dataclass(eq=True)
+class ApiOrganizationAuthConfig:
+    organization_id: int = -1
+    auth_provider: ApiAuthProvider | None = None
+    has_api_key: bool = False
 
 
 auth_service: AuthService = silo_mode_delegation(

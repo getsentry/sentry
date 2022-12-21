@@ -1,6 +1,5 @@
 import {Fragment} from 'react';
-// eslint-disable-next-line no-restricted-imports
-import {withRouter, WithRouterProps} from 'react-router';
+import {WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import {QRCodeCanvas} from 'qrcode.react';
 
@@ -27,6 +26,8 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Authenticator} from 'sentry/types';
 import getPendingInvite from 'sentry/utils/getPendingInvite';
+// eslint-disable-next-line no-restricted-imports
+import withSentryRouter from 'sentry/utils/withSentryRouter';
 import AsyncView from 'sentry/views/asyncView';
 import RemoveConfirm from 'sentry/views/settings/account/accountSecurity/components/removeConfirm';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
@@ -456,4 +457,4 @@ const StyledQRCode = styled(QRCodeCanvas)`
   padding: ${space(2)};
 `;
 
-export default withRouter(AccountSecurityEnroll);
+export default withSentryRouter(AccountSecurityEnroll);

@@ -9,7 +9,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.api.base import Endpoint, pending_silo_endpoint
+from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.assistant import manager
 from sentry.models import AssistantActivity
 
@@ -53,7 +53,7 @@ class AssistantSerializer(serializers.Serializer):
         return attrs
 
 
-@pending_silo_endpoint
+@control_silo_endpoint
 class AssistantEndpoint(Endpoint):
     permission_classes = (IsAuthenticated,)
 
@@ -61,7 +61,9 @@ class AssistantEndpoint(Endpoint):
         """Return all the guides with a 'seen' attribute if it has been 'viewed' or 'dismissed'."""
         guide_map = deepcopy(manager.all())
         seen_ids = set(
-            AssistantActivity.objects.filter(user=request.user).values_list("guide_id", flat=True)
+            AssistantActivity.objects.filter(user_id=request.user.id).values_list(
+                "guide_id", flat=True
+            )
         )
 
         return Response([{"guide": key, "seen": id in seen_ids} for key, id in guide_map.items()])
@@ -89,7 +91,7 @@ class AssistantEndpoint(Endpoint):
 
         fields = {}
         if status == Status.RESTART.value:
-            AssistantActivity.objects.filter(user=request.user, guide_id=guide_id).delete()
+            AssistantActivity.objects.filter(user_id=request.user.id, guide_id=guide_id).delete()
         else:
             if useful is not None:
                 fields["useful"] = useful
@@ -99,7 +101,9 @@ class AssistantEndpoint(Endpoint):
                 fields["dismissed_ts"] = timezone.now()
 
             try:
-                AssistantActivity.objects.create(user=request.user, guide_id=guide_id, **fields)
+                AssistantActivity.objects.create(
+                    user_id=request.user.id, guide_id=guide_id, **fields
+                )
             except IntegrityError:
                 pass
 

@@ -1,40 +1,35 @@
-import {duration} from 'moment';
-
 import type {Crumb} from 'sentry/types/breadcrumbs';
 import {
   breadcrumbFactory,
   getBreadcrumbsByCategory,
   isMemorySpan,
   isNetworkSpan,
-  replayTimestamps,
+  mapRRWebAttachments,
   rrwebEventListFactory,
   spansFactory,
 } from 'sentry/utils/replays/replayDataUtils';
 import type {
   MemorySpanType,
   RecordingEvent,
-  ReplayCrumb,
   ReplayError,
   ReplayRecord,
   ReplaySpan,
 } from 'sentry/views/replays/types';
 
 interface ReplayReaderParams {
-  breadcrumbs: ReplayCrumb[] | undefined;
+  /**
+   * Loaded segment data
+   *
+   * This is a mix of rrweb data, breadcrumbs and spans/transactions sorted by time
+   * All three types are mixed together.
+   */
+  attachments: unknown[] | undefined;
   errors: ReplayError[] | undefined;
 
   /**
    * The root Replay event, created at the start of the browser session.
    */
   replayRecord: ReplayRecord | undefined;
-
-  /**
-   * The captured data from rrweb.
-   * Saved as N attachments that belong to the root Replay event.
-   */
-  rrwebEvents: RecordingEvent[] | undefined;
-
-  spans: ReplaySpan[] | undefined;
 }
 
 type RequiredNotNull<T> = {
@@ -42,40 +37,20 @@ type RequiredNotNull<T> = {
 };
 
 export default class ReplayReader {
-  static factory({
-    breadcrumbs,
-    replayRecord,
-    errors,
-    rrwebEvents,
-    spans,
-  }: ReplayReaderParams) {
-    if (!breadcrumbs || !replayRecord || !rrwebEvents || !spans || !errors) {
+  static factory({attachments, replayRecord, errors}: ReplayReaderParams) {
+    if (!attachments || !replayRecord || !errors) {
       return null;
     }
 
-    return new ReplayReader({breadcrumbs, replayRecord, errors, rrwebEvents, spans});
+    return new ReplayReader({attachments, replayRecord, errors});
   }
 
   private constructor({
-    breadcrumbs,
+    attachments,
     replayRecord,
     errors,
-    rrwebEvents,
-    spans,
   }: RequiredNotNull<ReplayReaderParams>) {
-    // TODO(replays): We should get correct timestamps from the backend instead
-    // of having to fix them up here.
-    const {startTimestampMs, endTimestampMs} = replayTimestamps(
-      replayRecord,
-      rrwebEvents,
-      breadcrumbs,
-      spans
-    );
-    replayRecord.startedAt = new Date(startTimestampMs);
-    replayRecord.finishedAt = new Date(endTimestampMs);
-    replayRecord.duration = duration(
-      replayRecord.finishedAt.getTime() - replayRecord.startedAt.getTime()
-    );
+    const {breadcrumbs, rrwebEvents, spans} = mapRRWebAttachments(attachments);
 
     const sortedSpans = spansFactory(spans);
     this.networkSpans = sortedSpans.filter(isNetworkSpan);

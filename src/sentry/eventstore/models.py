@@ -17,6 +17,7 @@ from sentry import eventtypes
 from sentry.db.models import NodeData
 from sentry.grouping.result import CalculatedHashes
 from sentry.interfaces.base import Interface, get_interfaces
+from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models import EventDict
 from sentry.snuba.events import Column, Columns
 from sentry.spans.grouping.api import load_span_grouping_config
@@ -677,7 +678,7 @@ class Event(BaseEvent):
         for group in self.groups:
             yield GroupEvent.from_event(self, group)
 
-    def for_group(self, group: Group):
+    def for_group(self, group: Group) -> GroupEvent:
         return GroupEvent.from_event(self, group)
 
 
@@ -689,10 +690,12 @@ class GroupEvent(BaseEvent):
         group: Group,
         data: NodeData,
         snuba_data: Mapping[str, Any] | None = None,
+        occurrence: IssueOccurrence | None = None,
     ):
         super().__init__(project_id, event_id, snuba_data=snuba_data)
         self.group = group
         self.data = data
+        self._occurrence = occurrence
 
     def __eq__(self, other):
         if not isinstance(other, GroupEvent):
@@ -719,7 +722,7 @@ class GroupEvent(BaseEvent):
         self._data = value
 
     @classmethod
-    def from_event(cls, event: Event, group: Group):
+    def from_event(cls, event: Event, group: Group) -> GroupEvent:
         group_event = cls(
             project_id=event.project_id,
             event_id=event.event_id,
@@ -730,6 +733,24 @@ class GroupEvent(BaseEvent):
         if hasattr(event, "_project_cache"):
             group_event.project = event.project
         return group_event
+
+    @property
+    def occurrence(self) -> IssueOccurrence:
+        return self._occurrence
+
+    @occurrence.setter
+    def occurrence(self, value: IssueOccurrence) -> None:
+        self._occurrence = value
+
+    @property
+    def occurrence_id(self) -> Optional[str]:
+        if self.occurrence:
+            return self.occurrence.id
+
+        column = self._get_column_name(Columns.OCCURRENCE_ID)
+        if column in self._snuba_data:
+            return cast(str, self._snuba_data[column])
+        return None
 
 
 class EventSubjectTemplate(string.Template):
@@ -758,7 +779,11 @@ class EventSubjectTemplateData:
         elif name == "orgID":
             return cast(str, self.event.organization.slug)
         elif name == "title":
-            return self.event.title
+            return (
+                self.event.occurrence.issue_title
+                if getattr(self.event, "occurrence", None)
+                else self.event.title
+            )
         elif name == "issueType":
             return cast(str, GROUP_TYPE_TO_TEXT.get(self.event.group.issue_type, "Issue"))
         raise KeyError

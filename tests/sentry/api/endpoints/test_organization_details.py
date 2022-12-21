@@ -24,8 +24,9 @@ from sentry.models import (
     ScheduledDeletion,
 )
 from sentry.signals import project_created
+from sentry.silo import SiloMode
 from sentry.testutils import APITestCase, TwoFactorAPITestCase, pytest
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
 from sentry.utils import json
 
 # some relay keys
@@ -54,7 +55,7 @@ class OrganizationDetailsTestBase(APITestCase):
         self.login_as(self.user)
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class OrganizationDetailsTest(OrganizationDetailsTestBase):
     def test_simple(self):
         response = self.get_success_response(self.organization.slug)
@@ -130,15 +131,20 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
             status=ObjectStatus.PENDING_DELETION,
         )
 
-        # TODO(dcramer): We need to pare this down. Lots of duplicate queries for membership data.
-        expected_queries = 36
-
         # make sure options are not cached the first time to get predictable number of database queries
-        options.delete("system.rate-limit")
-        options.delete("store.symbolicate-event-lpq-always")
-        options.delete("store.symbolicate-event-lpq-never")
+        with exempt_from_silo_limits():
+            options.delete("system.rate-limit")
+            options.delete("store.symbolicate-event-lpq-always")
+            options.delete("store.symbolicate-event-lpq-never")
 
-        expected_queries += 2
+        # TODO(dcramer): We need to pare this down. Lots of duplicate queries for membership data.
+        if SiloMode.get_current_mode() == SiloMode.MONOLITH:
+            expected_queries = 38
+        else:
+            # In region mode, a number of auth related queries are batched considerably.
+            # TODO(hybrid-cloud): this branch looks unnecessary, but I'm fairly certain these values
+            # will change again. Revisit once we have a test region deployed
+            expected_queries = 38
 
         with self.assertNumQueries(expected_queries, using="default"):
             response = self.get_success_response(self.organization.slug)
@@ -189,7 +195,8 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
         assert response.data["onboardingTasks"][0]["task"] == "create_project"
 
     def test_trusted_relays_info(self):
-        AuditLogEntry.objects.filter(organization=self.organization).delete()
+        with exempt_from_silo_limits():
+            AuditLogEntry.objects.filter(organization=self.organization).delete()
 
         trusted_relays = [
             {
@@ -232,7 +239,8 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
         response = self.get_success_response(self.organization.slug)
         assert response.data["hasAuthProvider"] is False
 
-        AuthProvider.objects.create(organization=self.organization, provider="dummy")
+        with exempt_from_silo_limits():
+            AuthProvider.objects.create(organization=self.organization, provider="dummy")
 
         response = self.get_success_response(self.organization.slug)
         assert response.data["hasAuthProvider"] is True
