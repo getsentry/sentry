@@ -515,8 +515,8 @@ const SearchListItem = styled(ListItem)<{isDisabled?: boolean; isGrouped?: boole
 const SearchItemTitleWrapper = styled('div')<{hasSingleField?: boolean}>`
   display: flex;
   flex-grow: 1;
-  flex-shrink: 0;
-  max-width: ${p => (p.hasSingleField ? '75%' : 'min(280px, 50%)')};
+  flex-shrink: ${p => (p.hasSingleField ? '1' : '0')};
+  max-width: ${p => (p.hasSingleField ? '100%' : 'min(280px, 50%)')};
 
   color: ${p => p.theme.textColor};
   font-weight: normal;
