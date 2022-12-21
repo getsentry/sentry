@@ -2,6 +2,8 @@ import {EntrySpans, EventOrGroupType, EventTransaction} from 'sentry/types/event
 
 import {SpanTree} from './spanTree';
 
+import {SpanTree} from './spanTree';
+
 function s(partial: Partial<EntrySpans['data'][0]>): EntrySpans['data'][0] {
   return {
     timestamp: 0,

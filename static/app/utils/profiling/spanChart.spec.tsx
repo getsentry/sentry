@@ -1,3 +1,4 @@
+
 import {EntrySpans, EventOrGroupType, EventTransaction} from 'sentry/types/event';
 import {SpanChart} from 'sentry/utils/profiling/spanChart';
 import {SpanTree} from 'sentry/utils/profiling/spanTree';
