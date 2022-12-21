@@ -190,7 +190,8 @@ class GitHubClientMixin(ApiClient):  # type: ignore
                 trees[full_name] = RepoTree(Repo(full_name, branch), repo_files)
             logger.info("Using cached trees for Github org.", extra=extra)
         except ApiError as error:
-            # We will let the caller handle it
+            # The caller will have to handle the error, however, some of
+            # the caching will happen and save us work in the future
             raise error
         except Exception:
             # Reset the control cache in order to repopulate

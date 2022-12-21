@@ -619,16 +619,17 @@ class GitHubIntegrationTest(IntegrationTestCase):
             ],
             3600,
         )
-        trees = installation.get_trees_for_org()
-        key_prefix = "github:repo:Test-Organization"
-        bar_files = cache.get(f"{key_prefix}/bar:source-code")
-        assert bar_files == []
-        assert cache.get(f"{key_prefix}/xyz:source-code") is None  # Hit API rate limit
-        assert cache.get(f"{key_prefix}/foo:source-code") is None  # Never tried
-        assert len(trees.keys()) == 1
-        # Only the repos before the API rate limit will be in trees
-        assert trees["Test-Organization/bar"].files == []
-        assert "Test-Organization/foo" not in trees
+        with pytest.raises(ApiError):
+            trees = installation.get_trees_for_org()
+            key_prefix = "github:repo:Test-Organization"
+            bar_files = cache.get(f"{key_prefix}/bar:source-code")
+            assert bar_files == []
+            assert cache.get(f"{key_prefix}/xyz:source-code") is None  # Hit API rate limit
+            assert cache.get(f"{key_prefix}/foo:source-code") is None  # Never tried
+            assert len(trees.keys()) == 1
+            # Only the repos before the API rate limit will be in trees
+            assert trees["Test-Organization/bar"].files == []
+            assert "Test-Organization/foo" not in trees
 
     @responses.activate
     def test_get_trees_for_org(self):
