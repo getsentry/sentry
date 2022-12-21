@@ -62,6 +62,21 @@ class TestTaskBehavior(BaseDeriveCodeMappings):
 
         assert logger.warning.called_with("The org has uninstalled the Sentry App.")
 
+    def test_rate_limit_hit_does_not_raise(self):
+        # get_repositories is what get_trees_for_org calls first and then get_cached_repo_files
+        with patch(
+            "sentry.integrations.github.client.GitHubClientMixin.get_repositories",
+            return_value=[{"full_name": "foo", "default_branch": "bar"}],
+        ), patch(
+            "sentry.integrations.github.client.GitHubClientMixin.get_cached_repo_files",
+            side_effect=ApiError("API rate limit exceeded for installation"),
+        ), patch(
+            "sentry.integrations.utils.code_mapping.logger"
+        ) as logger:
+            assert derive_code_mappings(self.project.id, self.event_data) is None
+            # This logging reports an error to Sentry
+            assert logger.exception.called_with("API rate limit exceeded. We will not hit it.")
+
     def test_raises_other_api_errors(self):
         with patch(
             "sentry.integrations.github.client.GitHubClientMixin.get_trees_for_org",
