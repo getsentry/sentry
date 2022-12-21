@@ -616,7 +616,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
                 end=end,
                 project_ids=[p.id for p in projects],
                 environment_ids=environments and [environment.id for environment in environments],
-                organization_id=projects[0].organization,
+                organization=projects[0].organization,
                 sort_field=sort_field,
                 cursor=cursor,
                 group_ids=group_ids,

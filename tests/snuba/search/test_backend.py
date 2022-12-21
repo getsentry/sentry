@@ -2307,7 +2307,6 @@ class EventsGenericSnubaSearchTest(SharedSnubaTest, OccurrenceTestMixin):
         super().setUp()
         self.base_datetime = (datetime.utcnow() - timedelta(days=3)).replace(tzinfo=pytz.utc)
 
-        now = datetime.now()
         occurrence, group_info = process_event_and_issue_occurrence(
             self.build_occurrence_data(),
             {
