@@ -359,12 +359,6 @@ class TestPythonDeriveCodeMappings(BaseDeriveCodeMappings):
     @responses.activate
     @with_feature("organizations:derive-code-mappings")
     def test_derive_code_mappings_stack_and_source_root_do_not_match(self):
-        self.create_integration(
-            organization=self.organization,
-            provider="github",
-            external_id=self.organization.id,
-            metadata={"domain_name": "github.com/Test-Org"},
-        )
         repo_name = "foo/bar"
         with patch(
             "sentry.integrations.github.client.GitHubClientMixin.get_trees_for_org"
@@ -381,12 +375,6 @@ class TestPythonDeriveCodeMappings(BaseDeriveCodeMappings):
     @responses.activate
     @with_feature("organizations:derive-code-mappings")
     def test_derive_code_mappings_no_normalization(self):
-        self.create_integration(
-            organization=self.organization,
-            provider="github",
-            external_id=self.organization.id,
-            metadata={"domain_name": "github.com/Test-Org"},
-        )
         repo_name = "foo/bar"
         with patch(
             "sentry.integrations.github.client.GitHubClientMixin.get_trees_for_org"
