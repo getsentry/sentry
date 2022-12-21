@@ -1,4 +1,5 @@
-import {EntrySpans} from 'sentry/types/event';
+
+import {EntrySpans, EventOrGroupType, EventTransaction} from 'sentry/types/event';
 import {SpanChart} from 'sentry/utils/profiling/spanChart';
 import {SpanTree} from 'sentry/utils/profiling/spanTree';
 
@@ -20,16 +21,45 @@ function s(partial: Partial<EntrySpans['data'][0]>): EntrySpans['data'][0] {
   };
 }
 
+function txn(partial: Partial<EventTransaction>): EventTransaction {
+  return {
+    id: '',
+    projectID: '',
+    user: {},
+    contexts: {},
+    entries: [],
+    errors: [],
+    dateCreated: '',
+    startTimestamp: Date.now(),
+    endTimestamp: Date.now() + 1000,
+    title: '',
+    type: EventOrGroupType.TRANSACTION,
+    culprit: '',
+    dist: null,
+    eventID: '',
+    fingerprints: [],
+    dateReceived: new Date().toISOString(),
+    message: '',
+    metadata: {},
+    size: 0,
+    tags: [],
+    occurrence: null,
+    location: '',
+    crashFile: null,
+    ...partial,
+  };
+}
+
 describe('spanChart', () => {
   it('iterates over all spans with depth', () => {
-    const tree = new SpanTree([
+    const tree = new SpanTree(txn({startTimestamp: 0, endTimestamp: 1}), [
       s({span_id: '1', timestamp: 1, start_timestamp: 0}),
       s({span_id: '2', timestamp: 0.5, start_timestamp: 0}),
       s({span_id: '3', timestamp: 0.2, start_timestamp: 0}),
       s({span_id: '4', timestamp: 1, start_timestamp: 0.5}),
     ]);
 
-    expect(tree.spanTree.children[0].children[1].span.span_id).toBe('4');
+    expect(tree.root.children[0].children[1].span.span_id).toBe('4');
 
     const chart = new SpanChart(tree);
 
@@ -47,21 +77,21 @@ describe('spanChart', () => {
   });
 
   it('sets configView to duration of the spans', () => {
-    const tree = new SpanTree([
+    const tree = new SpanTree(txn({startTimestamp: 0, endTimestamp: 1}), [
       s({span_id: '1', timestamp: 1, start_timestamp: 0}),
       s({span_id: '2', timestamp: 0.5, start_timestamp: 0}),
       s({span_id: '3', timestamp: 0.2, start_timestamp: 0}),
       s({span_id: '4', timestamp: 1, start_timestamp: 0.5}),
     ]);
 
-    expect(tree.spanTree.children[0].children[1].span.span_id).toBe('4');
+    expect(tree.root.children[0].children[1].span.span_id).toBe('4');
 
     const chart = new SpanChart(tree);
     expect(chart.configSpace.equals(new Rect(0, 0, 1, 2))).toBe(true);
   });
 
   it('tracks chart depth', () => {
-    const tree = new SpanTree([
+    const tree = new SpanTree(txn({startTimestamp: 0, endTimestamp: 1}), [
       s({span_id: '1', timestamp: 1, start_timestamp: 0}),
       s({span_id: '2', timestamp: 0.5, start_timestamp: 0}),
       s({span_id: '3', timestamp: 0.2, start_timestamp: 0}),

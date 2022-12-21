@@ -1,5 +1,48 @@
 import {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
 
+import {EventOrGroupType, EventTransaction} from 'sentry/types';
+
+// Empty transaction to use as a default value with duration of 1 second
+const EmptyEventTransaction: EventTransaction = {
+  id: '',
+  projectID: '',
+  user: {},
+  contexts: {},
+  entries: [],
+  errors: [],
+  dateCreated: '',
+  startTimestamp: Date.now(),
+  endTimestamp: Date.now() + 1000,
+  title: '',
+  type: EventOrGroupType.TRANSACTION,
+  culprit: '',
+  dist: null,
+  eventID: '',
+  fingerprints: [],
+  dateReceived: new Date().toISOString(),
+  message: '',
+  metadata: {},
+  size: 0,
+  tags: [],
+  occurrence: null,
+  location: '',
+  crashFile: null,
+};
+
+function sortByStartTimeAndDuration(a: RawSpanType, b: RawSpanType) {
+  if (a.start_timestamp < b.start_timestamp) {
+    return -1;
+  }
+  // if the start times are the same, we want to sort by end time
+  if (a.start_timestamp === b.start_timestamp) {
+    if (a.timestamp < b.timestamp) {
+      return 1; // a is a child of b
+    }
+    return -1; // b is a child of a
+  }
+  return 1;
+}
+
 class SpanTreeNode {
   parent?: SpanTreeNode | null = null;
   span: RawSpanType;
@@ -10,7 +53,7 @@ class SpanTreeNode {
     this.parent = parent;
   }
 
-  static Root() {
+  static Root(partial: Partial<RawSpanType> = {}): SpanTreeNode {
     return new SpanTreeNode(
       {
         description: 'root',
@@ -20,9 +63,10 @@ class SpanTreeNode {
         timestamp: Number.MAX_SAFE_INTEGER,
         parent_span_id: '',
         data: {},
-        span_id: '',
+        span_id: '<root>',
         trace_id: '',
         hash: '',
+        ...partial,
       },
       null
     );
@@ -37,44 +81,35 @@ class SpanTreeNode {
 }
 
 class SpanTree {
-  spanTree: SpanTreeNode = SpanTreeNode.Root();
+  root: SpanTreeNode;
   orphanedSpans: RawSpanType[] = [];
 
-  constructor(spans: RawSpanType[]) {
+  constructor(transaction: EventTransaction, spans: RawSpanType[]) {
+    this.root = SpanTreeNode.Root({
+      description: transaction.title,
+      start_timestamp: transaction.startTimestamp,
+      timestamp: transaction.endTimestamp,
+      exclusive_time: transaction.contexts?.trace?.exclusive_time ?? undefined,
+      parent_span_id: undefined,
+      op: 'transaction',
+    });
     this.buildCollapsedSpanTree(spans);
-
-    this.spanTree.span.timestamp = this.spanTree.children.reduce(
-      (sum, c) => sum + c.span.timestamp - c.span.start_timestamp,
-      0
-    );
   }
 
   static Empty(): SpanTree {
-    return new SpanTree([]);
+    return new SpanTree(EmptyEventTransaction, []);
   }
 
   buildCollapsedSpanTree(spans: RawSpanType[]) {
-    const spansSortedByStartTime = [...spans].sort((a, b) => {
-      if (a.start_timestamp < b.start_timestamp) {
-        return -1;
-      }
-      // if the start times are the same, we want to sort by end time
-      if (a.start_timestamp === b.start_timestamp) {
-        if (a.timestamp < b.timestamp) {
-          return 1; // a is a child of b
-        }
-        return -1; // b is a child of a
-      }
-      return 1;
-    });
+    const spansSortedByStartTime = [...spans].sort(sortByStartTimeAndDuration);
 
     for (const span of spansSortedByStartTime) {
-      const queue = [...this.spanTree.children];
+      const queue = [...this.root.children];
       let parent: SpanTreeNode | null = null;
 
       // If this is the first span, just push it to the root
-      if (!this.spanTree.children.length) {
-        this.spanTree.children.push(new SpanTreeNode(span, this.spanTree));
+      if (!this.root.children.length) {
+        this.root.children.push(new SpanTreeNode(span, this.root));
         continue;
       }
 

@@ -129,7 +129,7 @@ const FlamegraphGrid = styled('div')<{
       : layout === 'table right'
       ? `
         'minimap    frame-stack'
-        'spans    frame-stack'
+        'spans     frame-stack'
         'flamegraph frame-stack'
       `
       : layout === 'table left'
