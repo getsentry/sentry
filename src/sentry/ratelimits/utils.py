@@ -75,7 +75,7 @@ def get_rate_limit_key(
     if is_system_auth(request_auth):
         return None
 
-    if is_api_token_auth(request.auth) and request_user:
+    if is_api_token_auth(request_auth) and request_user:
         if isinstance(request_auth, ApiToken):
             token_id = request_auth.id
         else:  # isinstance(request_auth, AuthenticatedToken) as asserted by the above check
