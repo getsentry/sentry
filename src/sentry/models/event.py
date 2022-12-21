@@ -21,6 +21,13 @@ class EventDict(CanonicalKeyDict):
 
         if not skip_renormalization and not is_renormalized:
             normalizer = StoreNormalizer(is_renormalize=True, enable_trimming=False)
-            data = normalizer.normalize_event(dict(data))
+            data = dict(data)
+            pre_normalize_type = data.get("type")
+            data = normalizer.normalize_event(data)
+            # XXX: This is a hack to make generic events work (for now?). I'm not sure whether we
+            # should include this in the rust normalizer, since we don't want people sending us
+            # these via the sdk.
+            if pre_normalize_type == "generic":
+                data["type"] = pre_normalize_type
 
         CanonicalKeyDict.__init__(self, data, **kwargs)

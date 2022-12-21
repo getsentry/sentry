@@ -98,8 +98,16 @@ class BoostedReleases:
         extended_boosted_releases = []
         expired_boosted_releases = []
         for boosted_release in self.boosted_releases:
+            release_model = models.get(boosted_release.id, None)
+            # In case we are unable to find the release in the database, it means that it has been deleted but
+            # it still present in Redis. For this reason, we will mark this as expired, in order to have it deleted
+            # during cleanup.
+            if release_model is None:
+                expired_boosted_releases.append(boosted_release.cache_key)
+                continue
+
             extended_boosted_release = boosted_release.extend(
-                release=models[boosted_release.id], project_id=project_id
+                release=release_model, project_id=project_id
             )
 
             if extended_boosted_release.is_active(current_timestamp):
