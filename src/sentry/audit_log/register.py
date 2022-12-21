@@ -301,44 +301,19 @@ default_manager.add(
         template='removed metric alert rule "{label}"',
     )
 )
-
 default_manager.add(
     AuditLogEvent(
-        event_id=180,
-        name="SAMPLING_RULE_REMOVE",
-        api_name="sampling.remove",
-        template="deleted server-side sampling rule",
+        event_id=163,
+        name="SAMPLING_BIAS_ENABLED",
+        api_name="sampling_priority.enabled",
+        template='enabled dynamic sampling priority "{name}"',
     )
 )
 default_manager.add(
     AuditLogEvent(
-        event_id=182,
-        name="SAMPLING_RULE_ADD",
-        api_name="sampling.add",
-        template="added server-side sampling rule",
-    )
-)
-default_manager.add(
-    AuditLogEvent(
-        event_id=183,
-        name="SAMPLING_RULE_EDIT",
-        api_name="sampling.edit",
-        template="edited server-side sampling rule",
-    )
-)
-default_manager.add(
-    AuditLogEvent(
-        event_id=184,
-        name="SAMPLING_RULE_ACTIVATE",
-        api_name="sampling.activate",
-        template="activated server-side sampling rule",
-    )
-)
-default_manager.add(
-    AuditLogEvent(
-        event_id=185,
-        name="SAMPLING_RULE_DEACTIVATE",
-        api_name="sampling.deactivate",
-        template="deactivated server-side sampling rule",
+        event_id=164,
+        name="SAMPLING_BIAS_DISABLED",
+        api_name="sampling_priority.disabled",
+        template='disabled dynamic sampling priority "{name}"',
     )
 )
