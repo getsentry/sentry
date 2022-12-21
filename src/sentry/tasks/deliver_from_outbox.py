@@ -1,11 +1,16 @@
-import logging
-from typing import Type
+from __future__ import annotations
 
-from sentry.models import ControlOutbox, OutboxBase, RegionOutbox, outbox_silo_modes
+from typing import Any, Mapping, Type
+
+from sentry.models import (
+    MONOLITH_REGION_NAME,
+    ControlOutbox,
+    OutboxBase,
+    RegionOutbox,
+    outbox_silo_modes,
+)
 from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task
-
-logger = logging.getLogger("sentry.scheduler")
 
 
 @instrumented_task(name="sentry.tasks.enqueue_outbox_jobs")
@@ -14,21 +19,30 @@ def enqueue_outbox_jobs(**kwargs):
         outbox_model: Type[OutboxBase] = (
             RegionOutbox if silo_mode == SiloMode.REGION else ControlOutbox
         )
-        outbox_model.objects.filter()
-    pass
+
+        row: Mapping[str, Any]
+        for row in outbox_model.find_scheduled_shards():
+            if next_outbox := outbox_model.prepare_next_from_shard(row):
+                drain_outbox_shard.delay(**(next_outbox.key_from(outbox_model.sharding_columns)))
 
 
-def enqueue_region_jobs():
-    pass
-    # RegionOutbox.objects.all().distinct("")
-    #
-    # with locks.get("scheduler.process", duration=60, name="scheduler_process").acquire():
-    #     job_list = list(ScheduledJob.objects.filter(date_scheduled__lte=timezone.now())[:101])
-    #
-    #     if len(job_list) > 100:
-    #         logger.debug("More than 100 ScheduledJobs found.")
-    #
-    #     for job in job_list:
-    #         logger.debug("Sending scheduled job %s with payload %r", job.name, job.payload)
-    #         app.send_task(job.name, kwargs=job.payload)
-    #         job.delete()
+@instrumented_task(name="sentry.tasks.drain_outbox_shard")
+def drain_outbox_shard(
+    scope: int,
+    scope_identifier: int,
+    region_name: str | None = None,
+):
+    if region_name is not None and region_name != MONOLITH_REGION_NAME:
+        raise NotImplementedError(
+            "System is not prepared to run in silo mode!  RPC client implementation required."
+        )
+
+    shard_outbox: OutboxBase
+    if region_name is not None:
+        shard_outbox = ControlOutbox(
+            scope=scope, scope_identifier=scope_identifier, region_name=region_name
+        )
+    else:
+        shard_outbox = RegionOutbox(scope=scope, scope_identifier=scope_identifier)
+
+    shard_outbox.drain_shard()
