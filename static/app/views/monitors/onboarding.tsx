@@ -10,7 +10,7 @@ const MonitorOnboarding = () => {
       <h3>{t('Learn how to instrument your cron monitor')}</h3>
       <p>
         {t(
-          "We'll tell you if your recurring jobs are running on schedule, failing, or succeeding."
+          "We'll tell you if this recurring job is running on schedule, failing, or succeeding."
         )}
       </p>
       <Button
