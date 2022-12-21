@@ -20,6 +20,8 @@ export class SpanChartRenderer2D {
     this.canvas = canvas;
     this.spanChart = spanChart;
 
+    this.spans = [...this.spanChart.spans];
+
     this.init();
     resizeCanvasToDisplaySize(this.canvas);
   }
@@ -44,9 +46,13 @@ export class SpanChartRenderer2D {
     for (let i = 0; i < this.spans.length; i++) {
       const span = this.spans[i];
 
-      const rect = new Rect(span.start, span.depth * 20, span.duration, 20).transformRect(
-        configViewToPhysicalSpace
-      );
+      const SPAN_HEIGHT_PX = 20;
+      const rect = new Rect(
+        span.start,
+        span.depth * SPAN_HEIGHT_PX,
+        span.duration,
+        SPAN_HEIGHT_PX
+      ).transformRect(configViewToPhysicalSpace);
 
       context.fillStyle = colorComponentsToRgba([1, 0, 0, 1]);
       context.fillRect(rect.x, rect.y, rect.width, rect.height);
