@@ -29,7 +29,7 @@ class DatabaseBackedUserService(UserService):
             query = query.filter(is_active=is_active)
         return [
             UserService.serialize_user(user)
-            for user in query.filter(emails__email__iexact__in=emails)
+            for user in query.filter(in_iexact("emails__email", emails))
         ]
 
     def get_by_username(
@@ -85,6 +85,7 @@ class DatabaseBackedUserService(UserService):
             query = query.filter(sentry_orgmember_set__organization_id=organization_id)
         if emails is not None:
             query = query.filter(in_iexact("emails__email", emails))
+
         return serialize(  # type: ignore
             list(query),
             user=as_user,

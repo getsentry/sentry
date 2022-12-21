@@ -7,7 +7,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
-from sentry.models.apitoken import is_api_token_auth
+from sentry.models.apitoken import ApiToken, is_api_token_auth
 from sentry.ratelimits.concurrent import ConcurrentRateLimiter
 from sentry.ratelimits.config import DEFAULT_RATE_LIMIT_CONFIG, RateLimitConfig
 from sentry.types.ratelimit import RateLimit, RateLimitCategory, RateLimitMeta, RateLimitType
@@ -16,7 +16,7 @@ from sentry.utils.hashlib import md5_text
 from . import backend as ratelimiter
 
 if TYPE_CHECKING:
-    from sentry.models import ApiToken, Organization, User
+    from sentry.models import Organization, User
     from sentry.services.hybrid_cloud.auth import AuthenticatedToken
 
 # TODO(mgaeta): It's not currently possible to type a Callable's args with kwargs.

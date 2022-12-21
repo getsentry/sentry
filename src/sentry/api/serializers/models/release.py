@@ -106,7 +106,10 @@ def get_users_for_authors(organization_id, authors, user=None) -> Mapping[str, U
             if lower_email not in users_by_email:
                 for u in users:
                     for match in u["emails"]:
-                        if match["email"] == email:
+                        if (
+                            match["email"].lower() == lower_email
+                            and lower_email not in users_by_email
+                        ):
                             users_by_email[lower_email] = u
 
         to_cache = {}
