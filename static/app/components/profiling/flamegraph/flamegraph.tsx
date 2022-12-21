@@ -102,13 +102,17 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
   const canvasPoolManager = useMemo(() => new CanvasPoolManager(), []);
   const scheduler = useMemo(() => new CanvasScheduler(), []);
 
+  const profile = useMemo(() => {
+    return props.profiles.profiles.find(p => p.threadId === threadId);
+  }, [props.profiles, threadId]);
+
   const spanChart = useMemo(() => {
-    if (!props.spanTree) {
+    if (!props.spanTree || !profile) {
       return null;
     }
 
-    return new SpanChart(props.spanTree);
-  }, [props.spanTree]);
+    return new SpanChart(props.spanTree, {unit: profile.unit});
+  }, [props.spanTree, profile]);
 
   const flamegraph = useMemo(() => {
     if (typeof threadId !== 'number') {
@@ -117,7 +121,6 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
 
     // This could happen if threadId was initialized from query string, but for some
     // reason the profile was removed from the list of profiles.
-    const profile = props.profiles.profiles.find(p => p.threadId === threadId);
     if (!profile) {
       return FALLBACK_FLAMEGRAPH;
     }
@@ -130,7 +133,7 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
           ? getTransactionConfigSpace(props.profiles, profile.startedAt, profile.unit)
           : undefined,
     });
-  }, [props.profiles, sorting, threadId, view, xAxis]);
+  }, [profile, props.profiles, sorting, threadId, view, xAxis]);
 
   const flamegraphCanvas = useMemo(() => {
     if (!flamegraphCanvasRef) {
