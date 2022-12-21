@@ -1189,6 +1189,69 @@ class TestProjectDetailsDynamicSamplingBase(APITestCase, ABC):
 
 
 @region_silo_test
+class TestProjectDetailsDynamicSamplingRules(TestProjectDetailsDynamicSamplingBase):
+    endpoint = "sentry-api-0-project-details"
+
+    def setUp(self):
+        super().setUp()
+        self.url = reverse(
+            "sentry-api-0-project-details",
+            kwargs={
+                "organization_slug": self.project.organization.slug,
+                "project_slug": self.project.slug,
+            },
+        )
+        self.login_as(user=self.user)
+        token = ApiToken.objects.create(user=self.user, scope_list=["project:write"])
+        self.authorization = f"Bearer {token.token}"
+
+    def test_get_dynamic_sampling_rules_for_stuff_user(self):
+        with Feature(
+            {
+                self.new_ds_flag: True,
+            }
+        ):
+            response = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                method="get",
+                includeDynamicSamplingRules=1,
+            )
+            assert len(response.data["dynamicSamplingRules"]) == 3
+
+    def test_get_dynamic_sampling_rules_disabled_if_no_feature_flag(self):
+        with Feature(
+            {
+                self.new_ds_flag: False,
+            }
+        ):
+            response = self.get_success_response(
+                self.organization.slug, self.project.slug, method="get"
+            )
+            assert response.data["dynamicSamplingRules"] is None
+
+    def test_non_stuff_user(self):
+        user = self.create_user(is_staff=False, is_superuser=False)
+        self.org = self.create_organization()
+        self.org.save()
+
+        team = self.create_team(organization=self.org)
+        self.project = self.create_project(name="foo", organization=self.org, teams=[team])
+
+        self.create_member(teams=[team], user=user, organization=self.org)
+        self.login_as(user=user)
+        with Feature(
+            {
+                self.new_ds_flag: True,
+            }
+        ):
+            response = self.get_success_response(
+                self.org.slug, self.project.slug, method="get", includeDynamicSamplingRules=1
+            )
+            assert "dynamicSamplingRules" not in response.data
+
+
+@region_silo_test
 class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingBase):
     endpoint = "sentry-api-0-project-details"
 
