@@ -1087,35 +1087,46 @@ export const DISCOVER_FIELDS = [
 ];
 
 enum ReplayFieldKey {
+  ACTIVITY = 'activity',
   BROWSER_NAME = 'browser.name',
   BROWSER_VERSION = 'browser.version',
   COUNT_ERRORS = 'count_errors',
   COUNT_SEGMENTS = 'count_segments',
-  // COUNT_URLS = 'count_urls',
-  DEVICE_MODEL = 'device.model',
+  COUNT_URLS = 'count_urls',
+  DEVICE_MODEL = 'device.model_id',
   DURATION = 'duration',
-  // ERROR_IDS = 'error_ids',
-  // LONGEST_TRANSACTION = 'longest_transaction',
+  ERROR_IDS = 'error_ids',
   OS_NAME = 'os.name',
   OS_VERSION = 'os.version',
   RELEASES = 'releases',
-  // TRACE_IDS = 'trace_ids',
+  TRACE_IDS = 'trace_ids',
   URLS = 'urls',
   USER_IP_ADDRESS = 'user.ip',
   USER_NAME = 'user.username',
 }
 
+/**
+ * Some fields inside the ReplayRecord type are intentionally omitted:
+ * `environment` -> Not backend support, omitted because we have a dropdown for it
+ * `finishedAt` -> No backend support, omitted because we StartDate dropdown and duration field support
+ * `startedAt` -> No backend support, Omitted because we have StartDate dropdown
+ * `longestTransaction` -> value is always zero
+ * `title` -> value is always the empty string
+ */
 export const REPLAY_FIELDS = [
+  ReplayFieldKey.ACTIVITY,
   ReplayFieldKey.BROWSER_NAME,
   ReplayFieldKey.BROWSER_VERSION,
   ReplayFieldKey.COUNT_ERRORS,
   ReplayFieldKey.COUNT_SEGMENTS,
+  ReplayFieldKey.COUNT_URLS,
   FieldKey.DEVICE_BRAND,
   FieldKey.DEVICE_FAMILY,
   ReplayFieldKey.DEVICE_MODEL,
   FieldKey.DEVICE_NAME,
   FieldKey.DIST,
   ReplayFieldKey.DURATION,
+  ReplayFieldKey.ERROR_IDS,
   FieldKey.ID,
   ReplayFieldKey.OS_NAME,
   ReplayFieldKey.OS_VERSION,
@@ -1123,6 +1134,7 @@ export const REPLAY_FIELDS = [
   ReplayFieldKey.RELEASES,
   FieldKey.SDK_NAME,
   FieldKey.SDK_VERSION,
+  ReplayFieldKey.TRACE_IDS,
   ReplayFieldKey.URLS,
   FieldKey.USER_EMAIL,
   FieldKey.USER_ID,
@@ -1131,6 +1143,13 @@ export const REPLAY_FIELDS = [
 ];
 
 const REPLAY_FIELD_DEFINITIONS: Record<ReplayFieldKey, FieldDefinition> = {
+  [ReplayFieldKey.ACTIVITY]: {
+    desc: t(
+      'Amount of activity in the replay from 0 to 10. Determined by number of errors, duration and UI events.'
+    ),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.INTEGER,
+  },
   [ReplayFieldKey.BROWSER_NAME]: {
     desc: t('Name of the brower'),
     kind: FieldKind.FIELD,
@@ -1151,6 +1170,11 @@ const REPLAY_FIELD_DEFINITIONS: Record<ReplayFieldKey, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.INTEGER,
   },
+  [ReplayFieldKey.COUNT_URLS]: {
+    desc: t('Number of urls visited within the replay'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.INTEGER,
+  },
   [ReplayFieldKey.DEVICE_MODEL]: {
     desc: t('Model of device'),
     kind: FieldKind.FIELD,
@@ -1160,6 +1184,11 @@ const REPLAY_FIELD_DEFINITIONS: Record<ReplayFieldKey, FieldDefinition> = {
     desc: t('Duration of the replay, in seconds'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.DURATION,
+  },
+  [ReplayFieldKey.ERROR_IDS]: {
+    desc: t('Error instance'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
   },
   [ReplayFieldKey.OS_NAME]: {
     desc: t('Name of the Operating System'),
@@ -1173,6 +1202,11 @@ const REPLAY_FIELD_DEFINITIONS: Record<ReplayFieldKey, FieldDefinition> = {
   },
   [ReplayFieldKey.RELEASES]: {
     desc: t('Releases this Replay spans across'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [ReplayFieldKey.TRACE_IDS]: {
+    desc: t('List of traces that are linked from the Replay'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
