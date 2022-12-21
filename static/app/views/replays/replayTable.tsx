@@ -17,6 +17,7 @@ import {IconArrow, IconCalendar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import type {Organization} from 'sentry/types';
+import EventView from 'sentry/utils/discover/eventView';
 import {spanOperationRelativeBreakdownRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {Sort} from 'sentry/utils/discover/fields';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
@@ -43,6 +44,7 @@ type TableProps = {
 };
 
 type RowProps = {
+  eventView: EventView;
   minWidthIsSmall: boolean;
   organization: Organization;
   referrer: string;
@@ -108,6 +110,7 @@ function ReplayTable({
   showSlowestTxColumn = false,
 }: Props) {
   const routes = useRoutes();
+  const location = useLocation();
   const referrer = getRouteStringFromRoutes(routes);
 
   const organization = useOrganization();
@@ -186,6 +189,8 @@ function ReplayTable({
     );
   }
 
+  const eventView = EventView.fromLocation(location);
+
   return (
     <StyledPanelTable
       isLoading={isFetching}
@@ -196,6 +201,7 @@ function ReplayTable({
     >
       {replays?.map(replay => (
         <ReplayTableRow
+          eventView={eventView}
           key={replay.id}
           minWidthIsSmall={minWidthIsSmall}
           organization={organization}
@@ -210,6 +216,7 @@ function ReplayTable({
 }
 
 function ReplayTableRow({
+  eventView,
   minWidthIsSmall,
   organization,
   referrer,
@@ -234,6 +241,7 @@ function ReplayTableRow({
               pathname: `/organizations/${organization.slug}/replays/${project?.slug}:${replay.id}/`,
               query: {
                 referrer,
+                ...eventView.generateQueryStringObject(),
               },
             }}
           >

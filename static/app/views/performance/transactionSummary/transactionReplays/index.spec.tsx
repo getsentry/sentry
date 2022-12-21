@@ -244,16 +244,18 @@ describe('TransactionReplays', () => {
     // Expect the table to have 2 rows
     expect(screen.getAllByText('testDisplayName')).toHaveLength(2);
 
+    const expectedQuery =
+      'project=1&query=&referrer=%2Forganizations%2F%3AorgId%2Fperformance%2Fsummary%2Freplays%2F&statsPeriod=14d&yAxis=count%28%29';
     // Expect the first row to have the correct href
     expect(screen.getAllByRole('link', {name: 'testDisplayName'})[0]).toHaveAttribute(
       'href',
-      '/organizations/org-slug/replays/project-slug:346789a703f6454384f1de473b8b9fcc/?referrer=%2Forganizations%2F%3AorgId%2Fperformance%2Fsummary%2Freplays%2F'
+      `/organizations/org-slug/replays/project-slug:346789a703f6454384f1de473b8b9fcc/?${expectedQuery}`
     );
 
     // Expect the second row to have the correct href
     expect(screen.getAllByRole('link', {name: 'testDisplayName'})[1]).toHaveAttribute(
       'href',
-      '/organizations/org-slug/replays/project-slug:b05dae9b6be54d21a4d5ad9f8f02b780/?referrer=%2Forganizations%2F%3AorgId%2Fperformance%2Fsummary%2Freplays%2F'
+      `/organizations/org-slug/replays/project-slug:b05dae9b6be54d21a4d5ad9f8f02b780/?${expectedQuery}`
     );
 
     // Expect the first row to have the correct duration
