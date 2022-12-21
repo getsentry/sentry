@@ -26,6 +26,7 @@ import {Organization, Project} from 'sentry/types';
 import Projects from 'sentry/utils/projects';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
+import {HeartbeatFooter} from 'sentry/views/projectInstall/heartbeatFooter';
 
 type Props = {
   api: Client;
@@ -86,7 +87,7 @@ class ProjectInstallPlatform extends Component<Props, State> {
   }
 
   render() {
-    const {params} = this.props;
+    const {params, organization} = this.props;
     const {orgId, projectId} = params;
 
     const platform = platforms.find(p => p.id === params.platform);
@@ -99,6 +100,8 @@ class ProjectInstallPlatform extends Component<Props, State> {
     const performanceOverviewLink = `/organizations/${orgId}/performance/`;
     const gettingStartedLink = `/organizations/${orgId}/projects/${projectId}/getting-started/`;
     const platformLink = platform.link ?? undefined;
+
+    organization.features = ['onboarding-heartbeat-footer'];
 
     return (
       <Fragment>
@@ -162,6 +165,31 @@ class ProjectInstallPlatform extends Component<Props, State> {
                   platform.id as PlatformKey
                 );
 
+                const actions = (
+                  <Fragment>
+                    <Button
+                      priority="primary"
+                      busy={projectsLoading}
+                      to={{
+                        pathname: issueStreamLink,
+                        query: projectFilter,
+                        hash: '#welcome',
+                      }}
+                    >
+                      {t('Take me to Issues')}
+                    </Button>
+                    <Button
+                      busy={projectsLoading}
+                      to={{
+                        pathname: performanceOverviewLink,
+                        query: projectFilter,
+                      }}
+                    >
+                      {t('Take me to Performance')}
+                    </Button>
+                  </Fragment>
+                );
+
                 return (
                   <Fragment>
                     {showPerformancePrompt && (
@@ -184,28 +212,14 @@ class ProjectInstallPlatform extends Component<Props, State> {
                       </Feature>
                     )}
 
-                    <StyledButtonBar gap={1}>
-                      <Button
-                        priority="primary"
-                        busy={projectsLoading}
-                        to={{
-                          pathname: issueStreamLink,
-                          query: projectFilter,
-                          hash: '#welcome',
-                        }}
-                      >
-                        {t('Take me to Issues')}
-                      </Button>
-                      <Button
-                        busy={projectsLoading}
-                        to={{
-                          pathname: performanceOverviewLink,
-                          query: projectFilter,
-                        }}
-                      >
-                        {t('Take me to Performance')}
-                      </Button>
-                    </StyledButtonBar>
+                    {organization.features?.includes('onboarding-heartbeat-footer') ? (
+                      <HeartbeatFooter
+                        project={{platform: platform.id, slug: platform.name}}
+                        actions={actions}
+                      />
+                    ) : (
+                      <StyledButtonBar gap={1}>{actions}</StyledButtonBar>
+                    )}
                   </Fragment>
                 );
               }}
