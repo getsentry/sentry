@@ -4,21 +4,19 @@ from unittest.mock import patch
 import responses
 from django.test import RequestFactory
 
-from sentry.event_manager import EventManager
 from sentry.integrations.github.integration import GitHubIntegration
 from sentry.integrations.github.issues import GitHubIssueBasic
 from sentry.models import ExternalIssue, Integration
 from sentry.testutils import TestCase
-from sentry.testutils.helpers import override_options
+from sentry.testutils.cases import PerformanceIssueTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
 from sentry.testutils.silo import region_silo_test
-from sentry.types.issues import GroupType
 from sentry.utils import json
-from sentry.utils.samples import load_data
 
 
 @region_silo_test
-class GitHubIssueBasicTest(TestCase):
+class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase):
     @cached_property
     def request(self):
         return RequestFactory()
@@ -101,30 +99,9 @@ class GitHubIssueBasicTest(TestCase):
         payload = json.loads(request.body)
         assert payload == {"body": "This is the description", "assignee": None, "title": "hello"}
 
-    def test_performance_issues_description(self):
-        """Test that a GitHub issue created from a performance issue has span evidence data in its description"""
-        event_data = load_data(
-            "transaction-n-plus-one",
-            timestamp=before_now(minutes=10),
-            fingerprint=[f"{GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value}-group1"],
-        )
-        perf_event_manager = EventManager(event_data)
-        perf_event_manager.normalize()
-        with override_options(
-            {
-                "performance.issues.all.problem-creation": 1.0,
-                "performance.issues.all.problem-detection": 1.0,
-                "performance.issues.n_plus_one_db.problem-creation": 1.0,
-            }
-        ), self.feature(
-            [
-                "organizations:performance-issues-ingest",
-                "projects:performance-suspect-spans-ingestion",
-            ]
-        ):
-            event = perf_event_manager.save(self.project.id)
-        event = event.for_group(event.groups[0])
-
+    def test_performance_issues_content(self):
+        """Test that a GitHub issue created from a performance issue has the expected title and description"""
+        event = self.create_performance_issue()
         description = GitHubIssueBasic().get_group_description(event.group, event)
         assert "db - SELECT `books_author`.`id`, `books_author" in description
         title = GitHubIssueBasic().get_group_title(event.group, event)
@@ -133,8 +110,30 @@ class GitHubIssueBasicTest(TestCase):
             == 'N+1 Query: SELECT "books_author"."id", "books_author"."name" FROM "books_author" WHERE "books_author"."id" = %s LIMIT 21'
         )
 
-    def test_error_issues_description(self):
-        """Test that a GitHub issue created from an error issue has message  data in its description"""
+    def test_generic_issues_content(self):
+        """Test that a GitHub issue created from a generic issue has the expected title and description"""
+
+        occurrence = TEST_ISSUE_OCCURRENCE
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "oh no",
+                "timestamp": iso_format(before_now(minutes=1)),
+            },
+            project_id=self.project.id,
+        )
+        event = event.for_group(event.groups[0])
+        event.occurrence = occurrence
+
+        description = GitHubIssueBasic().get_group_description(event.group, event)
+        assert event.occurrence.evidence_display[0].value in description
+        assert event.occurrence.evidence_display[1].value in description
+        assert event.occurrence.evidence_display[2].value in description
+        title = GitHubIssueBasic().get_group_title(event.group, event)
+        assert title == event.occurrence.issue_title
+
+    def test_error_issues_content(self):
+        """Test that a GitHub issue created from an error issue has the expected title and descriptionn"""
         event = self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -146,6 +145,8 @@ class GitHubIssueBasicTest(TestCase):
 
         description = GitHubIssueBasic().get_group_description(event.group, event)
         assert "oh no" in description
+        title = GitHubIssueBasic().get_group_title(event.group, event)
+        assert title == event.title
 
     @responses.activate
     @patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
