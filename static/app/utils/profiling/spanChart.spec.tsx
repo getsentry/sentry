@@ -89,6 +89,20 @@ describe('spanChart', () => {
     expect(chart.configSpace.equals(new Rect(0, 0, 1, 2))).toBe(true);
   });
 
+  it('remaps spans to start of benchmark', () => {
+    const tree = new SpanTree(txn({startTimestamp: 5, endTimestamp: 10}), [
+      s({span_id: '1', timestamp: 10, start_timestamp: 6}),
+      s({span_id: '2', timestamp: 9, start_timestamp: 8}),
+    ]);
+
+    const chart = new SpanChart(tree);
+    expect(chart.spans[0].start).toBe(1);
+    expect(chart.spans[0].end).toBe(5);
+
+    expect(chart.spans[1].start).toBe(3);
+    expect(chart.spans[1].end).toBe(4);
+  });
+
   it('tracks chart depth', () => {
     const tree = new SpanTree(txn({startTimestamp: 0, endTimestamp: 1}), [
       s({span_id: '1', timestamp: 1, start_timestamp: 0}),
