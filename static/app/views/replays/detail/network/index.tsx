@@ -50,9 +50,9 @@ function NetworkList({networkSpans, startTimestampMs}: Props) {
   const networkTableRef = useRef<HTMLDivElement>(null);
 
   const filterProps = useNetworkFilters({networkSpans: networkSpans || []});
-  const {items: fitems, searchTerm, setSearchTerm} = filterProps;
+  const {items: filteredItems, searchTerm, setSearchTerm} = filterProps;
   const clearSearchTerm = () => setSearchTerm('');
-  const {handleSort, items, sortConfig} = useSortNetwork({items: fitems});
+  const {handleSort, items, sortConfig} = useSortNetwork({items: filteredItems});
 
   const {handleMouseEnter, handleMouseLeave, handleClick} =
     useCrumbHandlers(startTimestampMs);
