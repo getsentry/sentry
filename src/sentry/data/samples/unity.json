@@ -3,13 +3,11 @@
   "message": "DivideByZeroException",
   "logger": "",
   "platform": "csharp",
-  "release": "1.1",
   "contexts": {
     "app": {
       "app_identifier": "",
       "app_start_time": "2018-10-25T13:02:58Z",
       "device_app_hash": "",
-      "build_type": "release",
       "app_name": "",
       "app_version": "",
       "app_build": ""

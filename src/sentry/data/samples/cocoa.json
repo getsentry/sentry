@@ -221,7 +221,6 @@
       }
     ]
   },
-  "release": "io.sentry.sentry-ios-cocoapods-1.0",
   "dist": "1",
   "tags": {"a": "b"},
   "breadcrumbs": [

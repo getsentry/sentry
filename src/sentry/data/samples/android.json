@@ -1,7 +1,6 @@
 {
   "type": "error",
   "level": "error",
-  "release": "io.sentry.sample-1.0",
   "dist": "1",
   "platform": "java",
   "contexts": {
@@ -35,9 +34,7 @@
       "free_storage": 508784640,
       "model": "Android SDK built for x86",
       "uuid": "abadcade-feed-dead-beef-baddadfeeded",
-      "archs": [
-        "x86"
-      ]
+      "archs": ["x86"]
     },
     "app": {
       "app_version": "1.0",
