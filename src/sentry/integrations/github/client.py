@@ -189,10 +189,11 @@ class GitHubClientMixin(ApiClient):  # type: ignore
                 repo_files = self.get_cached_repo_files(full_name, branch)
                 trees[full_name] = RepoTree(Repo(full_name, branch), repo_files)
             logger.info("Using cached trees for Github org.", extra=extra)
-        except ApiError as error:
-            # The caller will have to handle the error, however, some of
-            # the caching will happen and save us work in the future
-            raise error
+        except ApiError as e:
+            json_data: JSONData = e.json
+            msg: str = json_data.get("message")
+            if msg.startswith("API rate limit exceeded for installation"):
+                logger.exception("API rate limit exceeded. We will not hit it.")
         except Exception:
             # Reset the control cache in order to repopulate
             cache.delete(cache_key)

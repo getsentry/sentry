@@ -83,9 +83,6 @@ def derive_code_mappings(
         if msg == "Not Found":
             logger.warning("The org has uninstalled the Sentry App.", extra=extra)
             return
-        elif msg.startswith("API rate limit exceeded for installation"):
-            logger.exception("API rate limit exceeded. We will not hit it.")
-            return
 
         raise error  # Let's be report the issue
     except UnableToAcquireLock as error:
