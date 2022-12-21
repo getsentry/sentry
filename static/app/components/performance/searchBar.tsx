@@ -1,4 +1,4 @@
-import {useCallback, useState} from 'react';
+import {useCallback, useEffect, useRef, useState} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
@@ -35,6 +35,7 @@ function SearchBar(props: SearchBarProps) {
   const closeDropdown = () => setIsDropdownOpen(false);
   const [loading, setLoading] = useState(false);
   const [searchString, setSearchString] = useState(searchQuery);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const api = useApi();
   const eventView = _eventView.clone();
@@ -42,6 +43,22 @@ function SearchBar(props: SearchBarProps) {
   const url = `/organizations/${organization.slug}/events/`;
 
   const projectIdStrings = (eventView.project as Readonly<number>[])?.map(String);
+
+  useEffect(() => {
+    const handleBackgroundPointerUp = (e: PointerEvent) => {
+      if (containerRef.current?.contains(e.target as Node)) {
+        return;
+      }
+
+      closeDropdown();
+    };
+
+    document.addEventListener('pointerup', handleBackgroundPointerUp);
+
+    return () => {
+      document.removeEventListener('pointerup', handleBackgroundPointerUp);
+    };
+  }, [containerRef]);
 
   const handleSearchChange = query => {
     setSearchString(query);
@@ -210,7 +227,7 @@ function SearchBar(props: SearchBarProps) {
   };
 
   return (
-    <Container data-test-id="transaction-search-bar">
+    <Container data-test-id="transaction-search-bar" ref={containerRef}>
       <BaseSearchBar
         placeholder={t('Search Transactions')}
         onChange={handleSearchChange}
