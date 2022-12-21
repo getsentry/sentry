@@ -70,15 +70,15 @@ function ProfileFlamegraph(): React.ReactElement {
   const profiledTransaction = useProfileTransaction();
 
   const hasFlameChartSpans = useMemo(() => {
-    return (
-      // @TODO REMOVE TRUE
-      organization.features.includes('organizations:profiling-flamechart-spans') || true
-    );
+    return organization.features.includes('organizations:profiling-flamechart-spans');
   }, [organization.features]);
 
   const spanTree: SpanTree = useMemo(() => {
     if (profiledTransaction.type === 'resolved' && profiledTransaction.data) {
-      return new SpanTree(collectAllSpanEntriesFromTransaction(profiledTransaction.data));
+      return new SpanTree(
+        profiledTransaction.data,
+        collectAllSpanEntriesFromTransaction(profiledTransaction.data)
+      );
     }
 
     return LoadingSpanTree;

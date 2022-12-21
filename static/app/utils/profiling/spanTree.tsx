@@ -1,4 +1,32 @@
 import {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
+import {EventOrGroupType, EventTransaction} from 'sentry/types';
+
+// Empty transaction to use as a default value with duration of 1 second
+const EmptyEventTransaction: EventTransaction = {
+  id: '',
+  projectID: '',
+  user: {},
+  contexts: {},
+  entries: [],
+  errors: [],
+  dateCreated: '',
+  startTimestamp: Date.now(),
+  endTimestamp: Date.now() + 1000,
+  title: '',
+  type: EventOrGroupType.TRANSACTION,
+  culprit: '',
+  dist: null,
+  eventID: '',
+  fingerprints: [],
+  dateReceived: new Date().toISOString(),
+  message: '',
+  metadata: {},
+  size: 0,
+  tags: [],
+  occurrence: null,
+  location: '',
+  crashFile: null,
+};
 
 function sortByStartTimeAndDuration(a: RawSpanType, b: RawSpanType) {
   if (a.start_timestamp < b.start_timestamp) {
@@ -23,7 +51,7 @@ class SpanTreeNode {
     this.parent = parent;
   }
 
-  static Root() {
+  static Root(partial: Partial<RawSpanType> = {}): SpanTreeNode {
     return new SpanTreeNode(
       {
         description: 'root',
@@ -36,6 +64,7 @@ class SpanTreeNode {
         span_id: '<root>',
         trace_id: '',
         hash: '',
+        ...partial,
       },
       null
     );
@@ -50,15 +79,23 @@ class SpanTreeNode {
 }
 
 class SpanTree {
-  root: SpanTreeNode = SpanTreeNode.Root();
+  root: SpanTreeNode;
   orphanedSpans: RawSpanType[] = [];
 
-  constructor(spans: RawSpanType[]) {
+  constructor(transaction: EventTransaction, spans: RawSpanType[]) {
+    this.root = SpanTreeNode.Root({
+      description: transaction.title,
+      start_timestamp: transaction.startTimestamp,
+      timestamp: transaction.endTimestamp,
+      exclusive_time: transaction.contexts?.trace?.exclusive_time ?? undefined,
+      parent_span_id: undefined,
+      op: 'transaction',
+    });
     this.buildCollapsedSpanTree(spans);
   }
 
   static Empty(): SpanTree {
-    return new SpanTree([]);
+    return new SpanTree(EmptyEventTransaction, []);
   }
 
   buildCollapsedSpanTree(spans: RawSpanType[]) {
