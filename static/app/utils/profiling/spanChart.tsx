@@ -1,32 +1,8 @@
 import {Rect} from 'sentry/utils/profiling/gl/utils';
 import {SpanTree} from 'sentry/utils/profiling/spanTree';
-import {makeFormatter} from 'sentry/utils/profiling/units/units';
+import {makeFormatter, makeFormatTo} from 'sentry/utils/profiling/units/units';
 
 import {Profile} from './profile/profile';
-
-function msToUnit(unit: Profile['unit']): (value: number) => number {
-  let multiplier: number | null = null;
-
-  switch (unit) {
-    case 'milliseconds':
-      multiplier = 1;
-      break;
-    case 'microseconds':
-      multiplier = 1e3;
-      break;
-    case 'nanoseconds':
-      multiplier = 1e6;
-      break;
-    default: {
-      throw new Error(`Unknown unit : ${unit}`);
-    }
-  }
-
-  if (multiplier === null) {
-    throw new Error(`Unknown unit: ${unit} when converting span durations`);
-  }
-  return (value: number) => value * multiplier!;
-}
 
 export interface SpanChartNode {
   depth: number;
@@ -39,18 +15,18 @@ export interface SpanChartNode {
 class SpanChart {
   spans: SpanChartNode[];
   spanTree: SpanTree;
+  depth: number = 0;
 
-  toFinalUnit = msToUnit('milliseconds');
+  toFinalUnit = makeFormatTo('milliseconds', 'milliseconds');
   formatter = makeFormatter('milliseconds');
   configSpace: Rect = Rect.Empty();
-  depth: number = 0;
 
   constructor(
     spanTree: SpanTree,
     options: {unit: Profile['unit']; configSpace?: Rect} = {unit: 'milliseconds'}
   ) {
-    this.toFinalUnit = msToUnit(options.unit);
     this.spanTree = spanTree;
+    this.toFinalUnit = makeFormatTo('milliseconds', options.unit);
     this.spans = this.collectSpanNodes();
 
     const duration = spanTree.root.span.timestamp - spanTree.root.span.start_timestamp;

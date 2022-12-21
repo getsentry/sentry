@@ -9,6 +9,7 @@ function colorComponentsToRgba(color: number[]): string {
     color[2] * 255
   )}, ${color[3] ?? 1})`;
 }
+const SPAN_HEIGHT_PX = 20;
 
 export class SpanChartRenderer2D {
   canvas: HTMLCanvasElement | null;
@@ -46,7 +47,6 @@ export class SpanChartRenderer2D {
     for (let i = 0; i < this.spans.length; i++) {
       const span = this.spans[i];
 
-      const SPAN_HEIGHT_PX = 20;
       const rect = new Rect(
         span.start,
         span.depth * SPAN_HEIGHT_PX,
