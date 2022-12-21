@@ -218,8 +218,12 @@ class SnubaEventStorage(EventStorage):
                 raw_query_kwargs["conditions"] = [
                     ["timestamp", ">", datetime.fromtimestamp(random.randint(0, 1000000000))]
                 ]
+            dataset = (
+                Dataset.IssuePlatform if event.get_event_type() == "generic" else Dataset.Events
+            )
             try:
                 result = snuba.raw_query(
+                    dataset=dataset,
                     selected_columns=["group_id"],
                     start=event.datetime,
                     end=event.datetime + timedelta(seconds=1),
