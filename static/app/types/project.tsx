@@ -5,7 +5,7 @@ import type {SDKUpdatesSuggestion} from './event';
 import type {Plugin} from './integrations';
 import type {Organization, Team} from './organization';
 import type {Deploy, Release} from './release';
-import type {DynamicSamplingBias} from './sampling';
+import type {DynamicSamplingBias, DynamicSamplingRule} from './sampling';
 
 // Minimal project representation for use with avatars.
 export type AvatarProject = {
@@ -45,6 +45,7 @@ export type Project = {
   subjectTemplate: string;
   teams: Team[];
   builtinSymbolSources?: string[];
+  dynamicSamplingRules?: DynamicSamplingRule[];
   hasUserReports?: boolean;
   latestDeploys?: Record<string, Pick<Deploy, 'dateFinished' | 'version'>> | null;
   latestRelease?: Release;
