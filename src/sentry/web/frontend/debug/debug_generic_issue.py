@@ -13,7 +13,7 @@ from sentry.utils import json
 from sentry.utils.dates import ensure_aware
 
 from .mail import COMMIT_EXAMPLE, MailPreview, make_error_event
-
+from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
 
 class DebugGenericIssueEmailView(View):
     def get(self, request):
@@ -24,23 +24,8 @@ class DebugGenericIssueEmailView(View):
         event = make_error_event(request, project, platform)
         event = event.for_group(event.groups[0])
 
-        occurrence = IssueOccurrence(
-            uuid.uuid4().hex,
-            uuid.uuid4().hex,
-            ["some-fingerprint"],
-            "something bad happened",
-            "it was bad",
-            "1234",
-            {"Test": 123},
-            [
-                IssueEvidence("Name 1", "Value 1", True),
-                IssueEvidence("Name 2", "Value 2", False),
-                IssueEvidence("Name 3", "Value 3", False),
-            ],
-            GroupType.PROFILE_BLOCKED_THREAD,
-            ensure_aware(datetime.now()),
-        )
-        occurrence.save()
+        occurrence = TEST_ISSUE_OCCURRENCE
+        occurrence.save(project.id)
         event.occurrence = occurrence
         event.group.type = GroupType.PROFILE_BLOCKED_THREAD
 
