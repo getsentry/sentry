@@ -11,9 +11,7 @@ import {IssueType} from 'sentry/types';
 
 import {SpanEvidenceSection} from './spanEvidence';
 
-const {organization} = initializeData({
-  features: ['performance-issues'],
-});
+const {organization} = initializeData();
 
 describe('spanEvidence', () => {
   it('renders and highlights the correct data in the span evidence section', () => {
