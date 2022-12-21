@@ -2,6 +2,7 @@ from copy import deepcopy
 from typing import Dict, List, Union
 from unittest.mock import patch
 
+import pytest
 import responses
 
 from sentry.integrations.utils.code_mapping import CodeMapping, Repo, RepoTree
@@ -12,8 +13,9 @@ from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.tasks.derive_code_mappings import derive_code_mappings, identify_stacktrace_paths
 from sentry.testutils import TestCase
-from sentry.testutils.helpers import with_feature
+from sentry.testutils.helpers import apply_feature_flag_on_cls, with_feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.utils.locking import UnableToAcquireLock
 
 
 class BaseDeriveCodeMappings(TestCase):
@@ -28,8 +30,13 @@ class BaseDeriveCodeMappings(TestCase):
         return self.store_event(data=test_data, project_id=self.project.id).data
 
 
+@apply_feature_flag_on_cls("organizations:derive-code-mappings")
 class TestTaskBehavior(BaseDeriveCodeMappings):
     """Test task behavior that is not language specific."""
+
+    @pytest.fixture(autouse=True)
+    def inject_fixtures(self, caplog):
+        self._caplog = caplog
 
     def setUp(self):
         super().setUp()
@@ -45,16 +52,34 @@ class TestTaskBehavior(BaseDeriveCodeMappings):
             metadata={"domain_name": "github.com/Test-Org"},
         )
 
-    @responses.activate
-    @with_feature("organizations:derive-code-mappings")
-    def test_api_error_installation_removed(self):
+    def test_does_not_raise_installation_removed(self):
         with patch(
             "sentry.integrations.github.client.GitHubClientMixin.get_trees_for_org",
             side_effect=ApiError(
                 '{"message":"Not Found","documentation_url":"https://docs.github.com/rest/reference/apps#create-an-installation-access-token-for-an-app"}'
             ),
-        ):
+        ), patch("sentry.integrations.utils.code_mapping.logger") as logger:
             assert derive_code_mappings(self.project.id, self.event_data) is None
+
+        assert logger.warning.called_with("The org has uninstalled the Sentry App.")
+
+    def test_raises_other_api_errors(self):
+        with patch(
+            "sentry.integrations.github.client.GitHubClientMixin.get_trees_for_org",
+            side_effect=ApiError("foo"),
+        ):
+            with pytest.raises(ApiError):
+                derive_code_mappings(self.project.id, self.event_data)
+
+    def test_unable_to_get_lock(self):
+        with patch(
+            "sentry.integrations.github.client.GitHubClientMixin.get_trees_for_org",
+            side_effect=UnableToAcquireLock,
+        ), patch("sentry.integrations.utils.code_mapping.logger") as logger:
+            with pytest.raises(UnableToAcquireLock):
+                derive_code_mappings(self.project.id, self.event_data)
+
+            assert logger.warning.called_with("derive_code_mappings.getting_lock_failed")
 
 
 class TestJavascriptDeriveCodeMappings(BaseDeriveCodeMappings):
