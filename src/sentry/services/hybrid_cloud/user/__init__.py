@@ -183,6 +183,18 @@ class UserService(InterfaceWithLifecycle):
         else:
             return None
 
+    @abstractmethod
+    def query_users(
+        self,
+        user_ids: Optional[List[int]] = None,
+        is_active: Optional[bool] = None,
+        organization_id: Optional[int] = None,
+        project_ids: Optional[List[int]] = None,
+        is_active_memberteam: Optional[bool] = None,
+        emails: Optional[List[str]] = None,
+    ) -> List[User]:
+        pass
+
     # NOTE: In the future if this becomes RPC, we can avoid the double serialization problem by using a special type
     # with its own json serialization that allows pass through (ie, a string type that does not serialize into a string,
     # but rather validates itself as valid json and renders 'as is'.   Like "unescaped json text".
@@ -198,6 +210,9 @@ class UserService(InterfaceWithLifecycle):
         user_ids: Optional[List[int]] = None,
         is_active: Optional[bool] = None,
         organization_id: Optional[int] = None,
+        project_ids: Optional[List[int]] = None,
+        team_ids: Optional[List[int]] = None,
+        is_active_memberteam: Optional[bool] = None,
         emails: Optional[List[str]] = None,
     ) -> List[Any]:
         """
@@ -233,7 +248,7 @@ class UserService(InterfaceWithLifecycle):
             roles = frozenset(flatten(user.roles))
         args["roles"] = roles
 
-        options: FrozenSet[APIUserOption] = {}
+        options: FrozenSet[APIUserOption] = frozenset({})
         if hasattr(user, "options") and user.options is not None:
             options = frozenset(
                 [
