@@ -1306,7 +1306,7 @@ class EventsSnubaSearchTest(SharedSnubaTest):
             "groupby": ["group_id"],
             "conditions": [
                 [["hasAny", ["group_ids", ["array", [self.group1.id, self.group2.id]]]], "=", 1],
-                ["type", "!=", "transaction"],
+                ["type", "=", "transaction"],
             ],
             "selected_columns": [
                 [
