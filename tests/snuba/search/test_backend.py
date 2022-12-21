@@ -1,4 +1,3 @@
-import functools
 import uuid
 from datetime import datetime, timedelta
 from hashlib import md5
@@ -31,9 +30,8 @@ from sentry.search.snuba.backend import (
 from sentry.search.snuba.executors import InvalidQueryForExecutor
 from sentry.testutils import SnubaTestCase, TestCase, xfail_if_not_postgres
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.helpers.faux import Any
 from sentry.types.issues import GroupType
-from sentry.utils.snuba import SENTRY_SNUBA_MAP, Dataset, SnubaError, get_snuba_column_name
+from sentry.utils.snuba import SENTRY_SNUBA_MAP, SnubaError
 
 
 def date_to_query_format(date):
@@ -1282,110 +1280,6 @@ class EventsSnubaSearchTest(SharedSnubaTest):
             == []
         )
         assert query_mock.called
-
-    @mock.patch("sentry.issues.search.SnubaQueryParams")
-    @mock.patch("sentry.search.snuba.executors.bulk_raw_query")
-    def test_optimized_aggregates(self, bulk_raw_query_mock, snuba_query_params_mock):
-        # TODO this test is annoyingly fragile and breaks in hard-to-see ways
-        # any time anything about the snuba query changes
-        bulk_raw_query_mock.return_value = [{"data": [], "totals": {"total": 0}}]
-
-        DEFAULT_LIMIT = 100
-        chunk_growth = options.get("snuba.search.chunk-growth-rate")
-        limit = int(DEFAULT_LIMIT * chunk_growth)
-
-        common_args = {
-            "arrayjoin": None,
-            "dataset": Dataset.Discover,
-            "start": Any(datetime),
-            "end": Any(datetime),
-            "filter_keys": {
-                "project_id": [self.project.id],
-            },
-            "referrer": "search",
-            "groupby": ["group_id"],
-            "conditions": [
-                [["hasAny", ["group_ids", ["array", [self.group1.id, self.group2.id]]]], "=", 1],
-                ["type", "=", "transaction"],
-            ],
-            "selected_columns": [
-                [
-                    "arrayJoin",
-                    [
-                        [
-                            "arrayIntersect",
-                            [["array", [self.group1.id, self.group2.id]], "group_ids"],
-                        ]
-                    ],
-                    "group_id",
-                ]
-            ],
-            "limit": limit,
-            "offset": 0,
-            "totals": True,
-            "turbo": False,
-            "sample": 1,
-            "condition_resolver": functools.partial(
-                get_snuba_column_name, dataset=Dataset.Transactions
-            ),
-        }
-
-        self.make_query(search_filter_query="status:unresolved")
-        assert not snuba_query_params_mock.called
-
-        self.make_query(
-            search_filter_query="last_seen:>=%s foo" % date_to_query_format(timezone.now()),
-            sort_by="date",
-        )
-        assert snuba_query_params_mock.called
-        snuba_query_params_mock.call_args[1]["aggregations"].sort()
-        assert snuba_query_params_mock.call_args == mock.call(
-            orderby=["-last_seen", "group_id"],
-            aggregations=[
-                ["multiply(toUInt64(max(timestamp)), 1000)", "", "last_seen"],
-                ["uniq", "group_id", "total"],
-            ],
-            having=[["last_seen", ">=", Any(int)]],
-            **common_args,
-        )
-
-        self.make_query(search_filter_query="foo", sort_by="priority")
-        snuba_query_params_mock.call_args[1]["aggregations"].sort()
-        assert snuba_query_params_mock.call_args == mock.call(
-            orderby=["-priority", "group_id"],
-            aggregations=[
-                ["count()", "", "times_seen"],
-                ["multiply(toUInt64(max(timestamp)), 1000)", "", "last_seen"],
-                ["toUInt64(plus(multiply(log(times_seen), 600), last_seen))", "", "priority"],
-                ["uniq", "group_id", "total"],
-            ],
-            having=[],
-            **common_args,
-        )
-
-        self.make_query(search_filter_query="times_seen:5 foo", sort_by="freq")
-        snuba_query_params_mock.call_args[1]["aggregations"].sort()
-        assert snuba_query_params_mock.call_args == mock.call(
-            orderby=["-times_seen", "group_id"],
-            aggregations=[
-                ["count()", "", "times_seen"],
-                ["uniq", "group_id", "total"],
-            ],
-            having=[["times_seen", "=", 5]],
-            **common_args,
-        )
-
-        self.make_query(search_filter_query="foo", sort_by="user")
-        snuba_query_params_mock.call_args[1]["aggregations"].sort()
-        assert snuba_query_params_mock.call_args == mock.call(
-            orderby=["-user_count", "group_id"],
-            aggregations=[
-                ["uniq", "group_id", "total"],
-                ["uniq", "tags[sentry:user]", "user_count"],
-            ],
-            having=[],
-            **common_args,
-        )
 
     @mock.patch("sentry.search.snuba.executors.bulk_raw_query")
     def test_reduce_bulk_results_none_total(self, bulk_raw_query_mock):
