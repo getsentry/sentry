@@ -347,9 +347,6 @@ class GroupGetLatestEventTest(TestCase, OccurrenceTestMixin):
         assert group_event.event_id == "b" * 32
         assert group_event.occurrence is None
 
-    @pytest.mark.skip(
-        "Skipping this for now until a pr that fixes saving generic events is merged."
-    )
     def test_get_latest_event_occurrence(self):
         occurrence_data = self.build_occurrence_data()
         event_id = uuid.uuid4().hex
@@ -361,7 +358,7 @@ class GroupGetLatestEventTest(TestCase, OccurrenceTestMixin):
                 "project_id": self.project.id,
                 "timestamp": before_now(minutes=1).isoformat(),
             },
-        )
+        )[0]
 
         group = Group.objects.first()
         group.update(type=GroupType.PROFILE_BLOCKED_THREAD.value)
