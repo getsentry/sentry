@@ -318,7 +318,7 @@ def get_frames_for_symbolication(
         s_frame = dict(frame)
 
         if adjustment == "none":
-            s_frame["instruction_addr_needs_adjustment"] = False
+            s_frame["adjust_instruction_addr"] = False
 
         # validate and expand addressing modes.  If we can't validate and
         # expand it, we keep None which is absolute.  That's not great but
@@ -354,9 +354,9 @@ def get_frames_for_symbolication(
     if len(rv) > 0:
         first_frame = rv[0]
         if adjustment == "all":
-            first_frame["instruction_addr_needs_adjustment"] = True
+            first_frame["adjust_instruction_addr"] = True
         elif adjustment == "all_but_first":
-            first_frame["instruction_addr_needs_adjustment"] = False
+            first_frame["adjust_instruction_addr"] = False
 
     return rv
 
