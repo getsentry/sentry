@@ -152,10 +152,7 @@ function EventEntry({entry, projectSlug, event, organization, group, isShare}: P
         return null;
       }
 
-      if (
-        group?.issueCategory === IssueCategory.PERFORMANCE &&
-        organization?.features?.includes('performance-issues')
-      ) {
+      if (group?.issueCategory === IssueCategory.PERFORMANCE) {
         return (
           <SpanEvidenceSection
             issueType={group?.issueType}
