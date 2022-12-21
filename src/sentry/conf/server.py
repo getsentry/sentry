@@ -1137,8 +1137,6 @@ SENTRY_FEATURES = {
     "organizations:performance-mep-reintroduce-histograms": False,
     # Enable showing INP web vital in default views
     "organizations:performance-vitals-inp": False,
-    # Enable processing transactions in post_process_group
-    "organizations:performance-issues-post-process-group": False,
     # Enable internal view for bannerless MEP view
     "organizations:performance-mep-bannerless-ui": False,
     # Enable updated landing page widget designs
@@ -1165,10 +1163,6 @@ SENTRY_FEATURES = {
     "organizations:notification-all-recipients": False,
     # Enable the new native stack trace design
     "organizations:native-stack-trace-v2": False,
-    # Enable performance issues
-    "organizations:performance-issues": False,
-    # Enable the creation of performance issues in the ingest pipeline. Turning this on will eventually make performance issues be created with default settings.
-    "organizations:performance-issues-ingest": False,
     # Enable performance issues dev options, includes changing detection thresholds and other parts of issues that we're using for development.
     "organizations:performance-issues-dev": False,
     # Enables updated all events tab in a performance issue
