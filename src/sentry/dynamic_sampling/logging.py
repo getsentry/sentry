@@ -65,16 +65,19 @@ def log_rules(org_id: int, project_id: int, rules: List[BaseRule]) -> None:
 
 def _format_rules(
     rules: List[BaseRule],
-) -> Dict[str, Dict[str, Union[List[str], str, float, None]]]:
-    formatted_rules = {}
+) -> List[Dict[str, Union[List[str], str, float, None]]]:
+    formatted_rules = []
 
     for rule in rules:
         rule_type = get_rule_type(rule)
-        formatted_rules[str(rule["id"])] = {
-            "type": rule_type.value if rule_type else "unknown_rule_type",
-            "sample_rate": rule["sampleRate"],
-            **_extract_info_from_rule(rule_type, rule),  # type:ignore
-        }
+        formatted_rules.append(
+            {
+                "id": rule["id"],
+                "type": rule_type.value if rule_type else "unknown_rule_type",
+                "sample_rate": rule["sampleRate"],
+                **_extract_info_from_rule(rule_type, rule),  # type:ignore
+            }
+        )
 
     return formatted_rules  # type:ignore
 
@@ -82,11 +85,15 @@ def _format_rules(
 def _extract_info_from_rule(
     rule_type: RuleType, rule: BaseRule
 ) -> Dict[str, Union[List[str], str, None]]:
-    if rule_type == RuleType.BOOST_LATEST_RELEASES_RULE:
+    if rule_type == RuleType.BOOST_ENVIRONMENTS_RULE:
+        return {"environments": rule["condition"]["inner"][0]["value"]}
+    elif rule_type == RuleType.BOOST_LATEST_RELEASES_RULE:
         return {
             "release": rule["condition"]["inner"][0]["value"],
             "environment": rule["condition"]["inner"][1]["value"],
         }
+    elif rule_type == RuleType.IGNORE_HEALTHCHECKS_RULE:
+        return {"healthChecks": rule["condition"]["inner"][0]["value"]}
     elif rule_type == RuleType.BOOST_KEY_TRANSACTIONS_RULE:
         return {"transactions": rule["condition"]["inner"][0]["value"]}
     else:

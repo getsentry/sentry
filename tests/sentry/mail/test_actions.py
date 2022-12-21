@@ -90,7 +90,7 @@ class NotifyEmailFormTest(TestCase):
         # FallthroughChoice is only set for ActionTargetType.ISSUE_OWNERS
         form = self.form_from_values(
             ActionTargetType.TEAM.value,
-            fallthroughChoice=FallthroughChoiceType.ADMIN_OR_RECENT.value,
+            fallthroughChoice=FallthroughChoiceType.ACTIVE_MEMBERS.value,
         )
         assert not form.is_valid()
 
@@ -186,7 +186,6 @@ class NotifyEmailTest(RuleTestCase):
             "fallthroughType": "AllMembers",
         }
         condition_data = {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}
-
         Rule.objects.filter(project=event.project).delete()
         Rule.objects.create(
             project=event.project, data={"conditions": [condition_data], "actions": [action_data]}

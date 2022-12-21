@@ -1184,10 +1184,14 @@ SENTRY_FEATURES = {
     # Enable SAML2 based SSO functionality. getsentry/sentry-auth-saml2 plugin
     # must be installed to use this functionality.
     "organizations:sso-saml2": True,
+    # Enable a banner on the issue details page guiding the user to setup source maps
+    "organizations:source-maps-cta": False,
     # Enable the new opinionated dynamic sampling
     "organizations:dynamic-sampling": False,
     # Enable View Hierarchies in issue details page
     "organizations:mobile-view-hierarchies": False,
+    # Enable ANR rates in project details page
+    "organizations:anr-rate": False,
     # Enable deobfuscating exception values in Java issues
     "organizations:java-exception-value-deobfuscation": False,
     # Enable tag improvements in the issue details page
@@ -2662,6 +2666,7 @@ SENTRY_REQUEST_METRIC_ALLOWED_PATHS = (
     "sentry.data_export.endpoints",
     "sentry.discover.endpoints",
     "sentry.incidents.endpoints",
+    "sentry.replays.endpoints",
 )
 SENTRY_MAIL_ADAPTER_BACKEND = "sentry.mail.adapter.MailAdapter"
 
