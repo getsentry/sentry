@@ -1230,7 +1230,7 @@ class TestProjectDetailsDynamicSamplingRules(TestProjectDetailsDynamicSamplingBa
             )
             assert response.data["dynamicSamplingRules"] is None
 
-    def test_non_stuff_user(self):
+    def test_non_stuff_user_trying_to_access_dynamic_sampling_rules(self):
         user = self.create_user(is_staff=False, is_superuser=False)
         self.org = self.create_organization()
         self.org.save()
