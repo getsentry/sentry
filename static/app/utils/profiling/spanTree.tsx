@@ -92,6 +92,7 @@ class SpanTree {
       parent_span_id: undefined,
       op: 'transaction',
     });
+
     this.buildCollapsedSpanTree(spans);
   }
 
