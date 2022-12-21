@@ -68,6 +68,8 @@ class ReleaseCommitError(Exception):
     pass
 
 
+# TODO: implement check if there is a latest release boost. (Add a method in the booster class for efficiently
+#  verifying that).
 class ReleaseProjectModelManager(BaseManager):
     def post_save(self, instance, **kwargs):
         # this hook may be called from model hooks during an

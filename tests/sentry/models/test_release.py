@@ -1334,7 +1334,7 @@ class ClearCommitsTestCase(TestCase):
 
 @region_silo_test(stable=True)
 class ReleaseProjectManagerTestCase(TransactionTestCase):
-    def test_custom_manger(self):
+    def test_custom_manager(self):
         self.assertIsInstance(ReleaseProject.objects, ReleaseProjectModelManager)
 
     @receivers_raise_on_send()
@@ -1357,30 +1357,6 @@ class ReleaseProjectManagerTestCase(TransactionTestCase):
             }
         ):
             self.project = self.create_project(name="foo")
-
-            self.project.update_option(
-                "sentry:dynamic_sampling",
-                {
-                    "rules": [
-                        {
-                            "sampleRate": 0.7,
-                            "type": "trace",
-                            "active": True,
-                            "condition": {
-                                "op": "and",
-                                "inner": [
-                                    {
-                                        "op": "glob",
-                                        "name": "trace.release",
-                                        "value": ["latest"],
-                                    }
-                                ],
-                            },
-                            "id": 0,
-                        },
-                    ]
-                },
-            )
             self.datetime_now = timezone.now()
 
             self.release = Release.objects.create(
