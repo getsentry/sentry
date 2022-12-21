@@ -31,6 +31,10 @@ export type IssueEventParameters = {
     group?: string;
     platform?: string;
   };
+  'issue_group_details.stack_traces.setup_source_maps_alert.clicked': {
+    platform?: string;
+    project_id?: string;
+  };
   'issue_group_details.tab.clicked': {
     tab: string;
     browser?: string;
@@ -147,6 +151,8 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issues_stream.sort_changed': 'Changed Sort on Issues Stream',
   'issues_stream.paginate': 'Paginate Issues Stream',
   'issue.shared_publicly': 'Issue Shared Publicly',
+  'issue_group_details.stack_traces.setup_source_maps_alert.clicked':
+    'Issue Group Details: Setup Source Maps Alert Clicked',
   resolve_issue: 'Resolve Issue',
   'tag.clicked': 'Tag: Clicked',
   'issue.quick_trace_status': 'Issue Quick Trace Status',

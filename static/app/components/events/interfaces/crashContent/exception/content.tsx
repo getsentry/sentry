@@ -4,12 +4,13 @@ import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import Tooltip from 'sentry/components/tooltip';
 import {tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {ExceptionType} from 'sentry/types';
+import {ExceptionType, Project} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {STACK_TYPE} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
 
 import {Mechanism} from './mechanism';
+import {SetupSourceMapsAlert} from './setupSourceMapsAlert';
 import StackTrace from './stackTrace';
 
 type StackTraceProps = React.ComponentProps<typeof StackTrace>;
@@ -17,6 +18,7 @@ type StackTraceProps = React.ComponentProps<typeof StackTrace>;
 type Props = {
   event: Event;
   platform: StackTraceProps['platform'];
+  projectId: Project['id'];
   type: STACK_TYPE;
   meta?: Record<any, any>;
   newestFirst?: boolean;
@@ -37,6 +39,7 @@ export function Content({
   values,
   type,
   meta,
+  projectId,
 }: Props) {
   if (!values) {
     return null;
@@ -62,6 +65,7 @@ export function Content({
         {exc.mechanism && (
           <Mechanism data={exc.mechanism} meta={meta?.[excIdx]?.mechanism} />
         )}
+        <SetupSourceMapsAlert projectId={projectId} event={event} />
         <StackTrace
           data={
             type === STACK_TYPE.ORIGINAL
