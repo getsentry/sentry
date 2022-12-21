@@ -1,5 +1,5 @@
 import unittest
-from typing import Any, Dict, List
+from typing import List
 
 import pytest
 
@@ -24,12 +24,7 @@ class SlowSpanDetectorTest(unittest.TestCase):
         super().setUp()
         self.settings = get_detection_settings()
 
-    def find_slow_span_problems(
-        self, event: Event, setting_overides: Dict[str, Any] = None
-    ) -> List[PerformanceProblem]:
-        if setting_overides:
-            for option_name, value in setting_overides.items():
-                self.settings[DetectorType.SLOW_SPAN][option_name] = value
+    def find_slow_span_problems(self, event: Event) -> List[PerformanceProblem]:
         detector = SlowSpanDetector(self.settings, event)
         run_detector_on_data(detector, event)
         # The usage of "prepare_problem_for_grouping" is only needed because the slow db detector is using PerformanceSpanProblem,
