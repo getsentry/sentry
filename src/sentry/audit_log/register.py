@@ -305,7 +305,7 @@ default_manager.add(
     AuditLogEvent(
         event_id=163,
         name="SAMPLING_BIAS_ENABLED",
-        api_name="sampling_bias.enabled",
+        api_name="sampling_priority.enabled",
         template='enabled dynamic sampling priority "{name}"',
     )
 )
@@ -313,7 +313,7 @@ default_manager.add(
     AuditLogEvent(
         event_id=164,
         name="SAMPLING_BIAS_DISABLED",
-        api_name="sampling_bias.disabled",
+        api_name="sampling_priority.disabled",
         template='disabled dynamic sampling priority "{name}"',
     )
 )
