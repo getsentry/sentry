@@ -54,6 +54,57 @@ def _aggregation_on_session_status_func_factory(aggregate):
     return _snql_on_session_status_factory
 
 
+def _aggregation_on_abnormal_mechanism_func_factory(
+    org_id, abnormal_mechanism, metric_ids, alias=None
+):
+    if isinstance(abnormal_mechanism, list):
+        abnormal_mechanism_condition = Function(
+            "in",
+            [
+                Column(
+                    resolve_tag_key(
+                        UseCaseKey.RELEASE_HEALTH,
+                        org_id,
+                        "abnormal_mechanism",
+                    )
+                ),
+                [
+                    resolve_tag_value(UseCaseKey.RELEASE_HEALTH, org_id, mechanism)
+                    for mechanism in abnormal_mechanism
+                ],
+            ],
+        )
+    else:
+        abnormal_mechanism_condition = Function(
+            "equals",
+            [
+                Column(
+                    resolve_tag_key(
+                        UseCaseKey.RELEASE_HEALTH,
+                        org_id,
+                        "abnormal_mechanism",
+                    )
+                ),
+                resolve_tag_value(UseCaseKey.RELEASE_HEALTH, org_id, abnormal_mechanism),
+            ],
+        )
+
+    return Function(
+        "uniqIf",
+        [
+            Column("value"),
+            Function(
+                "and",
+                [
+                    abnormal_mechanism_condition,
+                    Function("in", [Column("metric_id"), list(metric_ids)]),
+                ],
+            ),
+        ],
+        alias,
+    )
+
+
 def _counter_sum_aggregation_on_session_status_factory(
     org_id: int, session_status, metric_ids, alias=None
 ):
@@ -194,6 +245,24 @@ def crashed_sessions(org_id: int, metric_ids, alias=None):
 def crashed_users(org_id: int, metric_ids, alias=None):
     return _set_uniq_aggregation_on_session_status_factory(
         org_id, session_status="crashed", metric_ids=metric_ids, alias=alias
+    )
+
+
+def anr_users(org_id: int, metric_ids, alias=None):
+    return _aggregation_on_abnormal_mechanism_func_factory(
+        org_id,
+        abnormal_mechanism=["anr_foreground", "anr_background"],
+        metric_ids=metric_ids,
+        alias=alias,
+    )
+
+
+def foreground_anr_users(org_id: int, metric_ids, alias=None):
+    return _aggregation_on_abnormal_mechanism_func_factory(
+        org_id,
+        abnormal_mechanism="anr_foreground",
+        metric_ids=metric_ids,
+        alias=alias,
     )
 
 
