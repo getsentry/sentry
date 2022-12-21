@@ -14,7 +14,8 @@ type Props = {
   viewHierarchies: EventAttachment[];
 };
 function EventViewHierarchy({viewHierarchies}: Props) {
-  const [selectedViewHierarchy, _] = useState(0);
+  const [selectedViewHierarchy] = useState(0);
+  const [selectedViewHierarchyWindow] = useState(0);
   const api = useApi();
   const {isLoading, data} = useQuery(
     [
@@ -49,7 +50,7 @@ function EventViewHierarchy({viewHierarchies}: Props) {
       title={tn('View Hierarchy', 'View Hierarchies', viewHierarchies.length)}
     >
       <RenderingSystem system={data.rendering_system} />
-      <ViewHierarchyTree hierarchy={data} />
+      <ViewHierarchyTree hierarchy={data.windows[selectedViewHierarchyWindow]} />
     </EventDataSection>
   );
 }
