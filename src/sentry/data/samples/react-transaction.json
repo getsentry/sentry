@@ -1,7 +1,6 @@
 {
     "event_id": "d279168a69b840e98d9cd0792f9f7e85",
     "project": 4288,
-    "release": "checkout-app@3.2",
     "dist": null,
     "platform": "other",
     "message": "",
@@ -29,10 +28,6 @@
       [
         "os.name",
         "Mac OS X"
-      ],
-      [
-        "release",
-        "checkout-app@3.2"
       ],
       [
         "user",
