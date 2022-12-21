@@ -22,7 +22,7 @@ class NPlusOneAPICallsDetectorTest(unittest.TestCase):
         super().setUp()
         self.settings = get_detection_settings()
 
-    def find_n_plus_one_api_call_problems(self, event: Event) -> List[PerformanceProblem]:
+    def find_problems(self, event: Event) -> List[PerformanceProblem]:
         detector = NPlusOneAPICallsDetector(self.settings, event)
         run_detector_on_data(detector, event)
         return list(detector.stored_problems.values())
@@ -30,8 +30,8 @@ class NPlusOneAPICallsDetectorTest(unittest.TestCase):
     def test_detects_problems_with_many_concurrent_calls_to_same_url(self):
         event = EVENTS["n-plus-one-api-calls/n-plus-one-api-calls-in-issue-stream"]
 
-        problems = self.find_n_plus_one_api_call_problems(event)
-        assert self.find_n_plus_one_api_call_problems(event) == [
+        problems = self.find_problems(event)
+        assert self.find_problems(event) == [
             PerformanceProblem(
                 fingerprint="1-GroupType.PERFORMANCE_N_PLUS_ONE_API_CALLS-3b2ee4021cd4e24acd32179932e10553e312786b",
                 op="http.client",
@@ -72,7 +72,7 @@ class NPlusOneAPICallsDetectorTest(unittest.TestCase):
 
     def test_does_not_detect_problem_with_concurrent_calls_to_different_urls(self):
         event = EVENTS["n-plus-one-api-calls/not-n-plus-one-api-calls"]
-        assert self.find_n_plus_one_api_call_problems(event) == []
+        assert self.find_problems(event) == []
 
 
 @pytest.mark.parametrize(

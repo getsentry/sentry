@@ -24,7 +24,7 @@ class MNPlusOneDBDetectorTest(unittest.TestCase):
         super().setUp()
         self.settings = get_detection_settings()
 
-    def find_m_n_plus_one_db_problems(self, event: Event) -> List[PerformanceProblem]:
+    def find_problems(self, event: Event) -> List[PerformanceProblem]:
         detector = MNPlusOneDBSpanDetector(self.settings, event)
         run_detector_on_data(detector, event)
         return list(detector.stored_problems.values())
@@ -32,7 +32,7 @@ class MNPlusOneDBDetectorTest(unittest.TestCase):
     def test_detects_parallel_m_n_plus_one(self):
         event = EVENTS["m-n-plus-one-db/m-n-plus-one-graphql"]
 
-        problems = self.find_m_n_plus_one_db_problems(event)
+        problems = self.find_problems(event)
         assert problems == [
             PerformanceProblem(
                 fingerprint="1-GroupType.PERFORMANCE_M_N_PLUS_ONE_DB_QUERIES-de75036b0dce394e0b23aaabf553ad9f8156f22b",
@@ -73,11 +73,11 @@ class MNPlusOneDBDetectorTest(unittest.TestCase):
 
     def test_does_not_detect_truncated_m_n_plus_one(self):
         event = EVENTS["m-n-plus-one-db/m-n-plus-one-graphql-truncated"]
-        assert self.find_m_n_plus_one_db_problems(event) == []
+        assert self.find_problems(event) == []
 
     def test_does_not_detect_n_plus_one(self):
         event = EVENTS["n-plus-one-in-django-index-view"]
-        assert self.find_m_n_plus_one_db_problems(event) == []
+        assert self.find_problems(event) == []
 
     def test_m_n_plus_one_detector_enabled(self):
         event = EVENTS["m-n-plus-one-db/m-n-plus-one-graphql"]

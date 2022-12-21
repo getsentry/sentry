@@ -24,7 +24,7 @@ class SlowSpanDetectorTest(unittest.TestCase):
         super().setUp()
         self.settings = get_detection_settings()
 
-    def find_slow_span_problems(self, event: Event) -> List[PerformanceProblem]:
+    def find_problems(self, event: Event) -> List[PerformanceProblem]:
         detector = SlowSpanDetector(self.settings, event)
         run_detector_on_data(detector, event)
         # The usage of "prepare_problem_for_grouping" is only needed because the slow db detector is using PerformanceSpanProblem,
@@ -39,9 +39,9 @@ class SlowSpanDetectorTest(unittest.TestCase):
         slow_not_allowed_op_span_event = create_event([create_span("random", 1001.0, "example")])
         slow_span_event = create_event([create_span("db", 1001.0)] * 1)
 
-        assert self.find_slow_span_problems(no_slow_span_event) == []
-        assert self.find_slow_span_problems(slow_not_allowed_op_span_event) == []
-        assert self.find_slow_span_problems(slow_span_event) == [
+        assert self.find_problems(no_slow_span_event) == []
+        assert self.find_problems(slow_not_allowed_op_span_event) == []
+        assert self.find_problems(slow_span_event) == [
             PerformanceProblem(
                 fingerprint="1-GroupType.PERFORMANCE_SLOW_SPAN-020e34d374ab4b5cd00a6a1b4f76f325209f7263",
                 op="db",
@@ -55,7 +55,7 @@ class SlowSpanDetectorTest(unittest.TestCase):
 
     def test_skip_queries_without_select(self):
         event = create_event([create_span("db", 100000.0, "DELETE FROM table WHERE id = %s")] * 1)
-        assert self.find_slow_span_problems(event) == []
+        assert self.find_problems(event) == []
 
     def test_calls_slow_span_threshold(self):
         http_span_event = create_event(
@@ -63,8 +63,8 @@ class SlowSpanDetectorTest(unittest.TestCase):
         )
         db_span_event = create_event([create_span("db.query", 1001.0)] * 1)
 
-        assert self.find_slow_span_problems(http_span_event) == []
-        assert self.find_slow_span_problems(db_span_event) == [
+        assert self.find_problems(http_span_event) == []
+        assert self.find_problems(db_span_event) == [
             PerformanceProblem(
                 fingerprint="1-GroupType.PERFORMANCE_SLOW_SPAN-dff8b4c2cafa12af9b5a35f3b12f9f8c2d790170",
                 op="db.query",
@@ -79,7 +79,7 @@ class SlowSpanDetectorTest(unittest.TestCase):
     def test_detects_slow_span_in_solved_n_plus_one_query(self):
         n_plus_one_event = EVENTS["solved-n-plus-one-in-django-index-view"]
 
-        assert self.find_slow_span_problems(n_plus_one_event) == [
+        assert self.find_problems(n_plus_one_event) == [
             PerformanceProblem(
                 fingerprint="1-GroupType.PERFORMANCE_SLOW_SPAN-8dbbcc64ef67d2d9d390327411669ebe29b0ea45",
                 op="db",

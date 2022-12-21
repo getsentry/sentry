@@ -26,7 +26,7 @@ class RenderBlockingAssetDetectorTest(unittest.TestCase):
         super().setUp()
         self.settings = get_detection_settings()
 
-    def find_render_blocking_asset_problems(self, event: Event) -> List[PerformanceProblem]:
+    def find_problems(self, event: Event) -> List[PerformanceProblem]:
         detector = RenderBlockingAssetSpanDetector(self.settings, event)
         run_detector_on_data(detector, event)
         return list(detector.stored_problems.values())
@@ -46,7 +46,7 @@ class RenderBlockingAssetDetectorTest(unittest.TestCase):
             ],
         }
 
-        assert self.find_render_blocking_asset_problems(event) == [
+        assert self.find_problems(event) == [
             PerformanceProblem(
                 fingerprint="6060649d4f8435d88735",
                 op="resource.script",
@@ -76,7 +76,7 @@ class RenderBlockingAssetDetectorTest(unittest.TestCase):
             ],
         }
 
-        assert self.find_render_blocking_asset_problems(event) == []
+        assert self.find_problems(event) == []
 
     def test_does_not_detect_with_no_fcp(self):
         event = {
@@ -93,7 +93,7 @@ class RenderBlockingAssetDetectorTest(unittest.TestCase):
             ],
         }
 
-        assert self.find_render_blocking_asset_problems(event) == []
+        assert self.find_problems(event) == []
 
     def test_does_not_detect_with_no_measurements(self):
         event = {
@@ -105,7 +105,7 @@ class RenderBlockingAssetDetectorTest(unittest.TestCase):
             ],
         }
 
-        assert self.find_render_blocking_asset_problems(event) == []
+        assert self.find_problems(event) == []
 
     def test_does_not_detect_with_short_render_blocking_asset(self):
         event = {
@@ -122,4 +122,4 @@ class RenderBlockingAssetDetectorTest(unittest.TestCase):
             ],
         }
 
-        assert self.find_render_blocking_asset_problems(event) == []
+        assert self.find_problems(event) == []
