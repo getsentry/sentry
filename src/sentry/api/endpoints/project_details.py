@@ -19,6 +19,7 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.project import DetailedProjectSerializer
 from sentry.api.serializers.rest_framework.list import EmptyListField, ListField
 from sentry.api.serializers.rest_framework.origin import OriginField
+from sentry.auth.superuser import is_active_superuser
 from sentry.constants import RESERVED_PROJECT_SLUGS
 from sentry.datascrubbing import validate_pii_config_update
 from sentry.dynamic_sampling.feature_multiplexer import DynamicSamplingFeatureMultiplexer
@@ -385,7 +386,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             data["dynamicSamplingBiases"] = ds_bias_serializer.data
 
             include_rules = request.GET.get("includeDynamicSamplingRules") == "1"
-            if include_rules and request.user.is_staff:
+            if include_rules and is_active_superuser(request):
                 data["dynamicSamplingRules"] = generate_rules(project)
         else:
             data["dynamicSamplingBiases"] = None
