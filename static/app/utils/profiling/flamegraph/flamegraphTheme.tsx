@@ -47,14 +47,7 @@ export interface FlamegraphTheme {
     LABEL_FONT_COLOR: string;
     MINIMAP_POSITION_OVERLAY_BORDER_COLOR: string;
     MINIMAP_POSITION_OVERLAY_COLOR: string;
-    REQUEST_2XX_RESPONSE: string;
-    REQUEST_4XX_RESPONSE: string;
-
-    REQUEST_DNS_TIME: string;
-    REQUEST_SSL_TIME: string;
-    REQUEST_TCP_TIME: string;
     // Nice color picker for GLSL colors - https://keiwando.com/color-picker/
-    REQUEST_WAIT_TIME: string;
     SAMPLE_TICK_COLOR: ColorChannels;
     SEARCH_RESULT_FRAME_COLOR: string;
     SELECTED_FRAME_BORDER_COLOR: string;
@@ -90,16 +83,7 @@ export interface FlamegraphTheme {
     LABEL_FONT_SIZE: number;
     MINIMAP_HEIGHT: number;
     MINIMAP_POSITION_OVERLAY_BORDER_WIDTH: number;
-    REQUEST_BAR_HEIGHT: number;
-    REQUEST_DEPTH_OFFSET: number;
-    REQUEST_FONT_SIZE: number;
-    // Request
-    REQUEST_TAIL_HEIGHT: number;
-
-    // Spans
-    SPANS_BAR_HEIGHT: number;
-    SPANS_DEPTH_OFFSET: number;
-    SPANS_FONT_SIZE: number;
+    SPANS_HEIGHT: number;
     TIMELINE_HEIGHT: number;
     TOOLTIP_FONT_SIZE: number;
   };
@@ -139,13 +123,7 @@ export const LightFlamegraphTheme: FlamegraphTheme = {
     LABEL_FONT_SIZE: 10,
     MINIMAP_HEIGHT: 100,
     MINIMAP_POSITION_OVERLAY_BORDER_WIDTH: 2,
-    REQUEST_BAR_HEIGHT: 14,
-    REQUEST_DEPTH_OFFSET: 4,
-    REQUEST_FONT_SIZE: 10,
-    REQUEST_TAIL_HEIGHT: 8,
-    SPANS_BAR_HEIGHT: 14,
-    SPANS_DEPTH_OFFSET: 4,
-    SPANS_FONT_SIZE: 10,
+    SPANS_HEIGHT: 100,
     TIMELINE_HEIGHT: 20,
     TOOLTIP_FONT_SIZE: 12,
   },
@@ -165,12 +143,6 @@ export const LightFlamegraphTheme: FlamegraphTheme = {
     LABEL_FONT_COLOR: '#1f233a',
     MINIMAP_POSITION_OVERLAY_BORDER_COLOR: 'rgba(0,0,0, 0.2)',
     MINIMAP_POSITION_OVERLAY_COLOR: 'rgba(0,0,0,0.1)',
-    REQUEST_2XX_RESPONSE: 'rgba(218, 231, 209, 1)',
-    REQUEST_4XX_RESPONSE: 'rgba(255,96, 96, 1)',
-    REQUEST_DNS_TIME: `rgba(57, 146, 152, 1)`,
-    REQUEST_SSL_TIME: `rgba(207,84,218, 1)`,
-    REQUEST_TCP_TIME: `rgba(242, 146,57,1)`,
-    REQUEST_WAIT_TIME: `rgba(253,252,224, 1)`,
     SAMPLE_TICK_COLOR: [255, 0, 0, 0.5],
     SEARCH_RESULT_FRAME_COLOR: 'vec4(0.99, 0.70, 0.35, 1.0)',
     SELECTED_FRAME_BORDER_COLOR: lightTheme.blue400,
@@ -202,13 +174,7 @@ export const DarkFlamegraphTheme: FlamegraphTheme = {
     LABEL_FONT_SIZE: 10,
     MINIMAP_HEIGHT: 100,
     MINIMAP_POSITION_OVERLAY_BORDER_WIDTH: 2,
-    REQUEST_BAR_HEIGHT: 14,
-    REQUEST_DEPTH_OFFSET: 4,
-    REQUEST_FONT_SIZE: 10,
-    REQUEST_TAIL_HEIGHT: 8,
-    SPANS_BAR_HEIGHT: 14,
-    SPANS_DEPTH_OFFSET: 4,
-    SPANS_FONT_SIZE: 10,
+    SPANS_HEIGHT: 100,
     TIMELINE_HEIGHT: 20,
     TOOLTIP_FONT_SIZE: 12,
   },
@@ -228,12 +194,6 @@ export const DarkFlamegraphTheme: FlamegraphTheme = {
     LABEL_FONT_COLOR: 'rgba(255, 255, 255, 0.8)',
     MINIMAP_POSITION_OVERLAY_BORDER_COLOR: 'rgba(255,255,255, 0.2)',
     MINIMAP_POSITION_OVERLAY_COLOR: 'rgba(255,255,255,0.1)',
-    REQUEST_2XX_RESPONSE: 'rgba(218, 231, 209, 1)',
-    REQUEST_4XX_RESPONSE: 'rgba(255,96, 96, 1)',
-    REQUEST_DNS_TIME: `rgba(57, 146, 152, 1)`,
-    REQUEST_SSL_TIME: `rgba(207,84,218, 1)`,
-    REQUEST_TCP_TIME: `rgba(242, 146,57,1)`,
-    REQUEST_WAIT_TIME: `rgba(253,252,224, 1)`,
     SAMPLE_TICK_COLOR: [255, 0, 0, 0.5],
     SEARCH_RESULT_FRAME_COLOR: 'vec4(0.99, 0.70, 0.35, 0.7)',
     SELECTED_FRAME_BORDER_COLOR: lightTheme.blue400,

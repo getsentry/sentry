@@ -20,7 +20,7 @@ export class Flamegraph {
   leftHeavy?: boolean = false;
 
   depth = 0;
-  configSpace: Rect = new Rect(0, 0, 0, 0);
+  configSpace: Rect = Rect.Empty();
   root: FlamegraphFrame = {
     key: -1,
     parent: null,
