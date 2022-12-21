@@ -78,8 +78,10 @@ def get_rate_limit_key(
     if is_api_token_auth(request_auth) and request_user:
         if isinstance(request_auth, ApiToken):
             token_id = request_auth.id
-        else:  # isinstance(request_auth, AuthenticatedToken) as asserted by the above check
+        elif isinstance(request_auth, AuthenticatedToken):
             token_id = request_auth.entity_id
+        else:
+            assert False  # Can't happen as asserted by is_api_token_auth check
 
         if request_user.is_sentry_app:
             category = "org"
