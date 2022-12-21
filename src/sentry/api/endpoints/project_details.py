@@ -22,6 +22,7 @@ from sentry.api.serializers.rest_framework.origin import OriginField
 from sentry.constants import RESERVED_PROJECT_SLUGS
 from sentry.datascrubbing import validate_pii_config_update
 from sentry.dynamic_sampling.feature_multiplexer import DynamicSamplingFeatureMultiplexer
+from sentry.dynamic_sampling.rules_generator import generate_rules
 from sentry.grouping.enhancer import Enhancements, InvalidEnhancerConfig
 from sentry.grouping.fingerprinting import FingerprintingRules, InvalidFingerprintingConfig
 from sentry.ingest.inbound_filters import FilterTypes
@@ -382,8 +383,14 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             if not ds_bias_serializer.is_valid():
                 return Response(ds_bias_serializer.errors, status=400)
             data["dynamicSamplingBiases"] = ds_bias_serializer.data
+
+            include_rules = request.GET.get("includeDynamicSamplingRules") == "1"
+            if include_rules and request.user.is_staff:
+                data["dynamicSamplingRules"] = generate_rules(project)
         else:
             data["dynamicSamplingBiases"] = None
+            data["dynamicSamplingRules"] = None
+
         return Response(data)
 
     def put(self, request: Request, project) -> Response:
