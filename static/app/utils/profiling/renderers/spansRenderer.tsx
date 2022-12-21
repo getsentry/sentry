@@ -40,28 +40,16 @@ export class SpanChartRenderer2D {
     }
 
     context.clearRect(0, 0, this.canvas.width, this.canvas.height);
-    const border = window.devicePixelRatio;
 
     for (let i = 0; i < this.spans.length; i++) {
       const span = this.spans[i];
 
-      const rect = new Rect(
-        span.start,
-        span.depth,
-        span.end - span.start,
-        1
-      ).transformRect(configViewToPhysicalSpace);
-
-      const colors = [1, 0, 0, 1];
-      const color = colorComponentsToRgba(colors);
-
-      context.fillStyle = color;
-      context.fillRect(
-        rect.x + border,
-        rect.y + border,
-        rect.width - border,
-        rect.height - border
+      const rect = new Rect(span.start, span.depth * 20, span.duration, 20).transformRect(
+        configViewToPhysicalSpace
       );
+
+      context.fillStyle = colorComponentsToRgba([1, 0, 0, 1]);
+      context.fillRect(rect.x, rect.y, rect.width, rect.height);
     }
   }
 }

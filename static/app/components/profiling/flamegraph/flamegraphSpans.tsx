@@ -48,6 +48,8 @@ export function FlamegraphSpans({
       spansRenderer.draw(flamegraphView.fromConfigSpace(spansCanvas.physicalSpace));
     };
 
+    drawSpans();
+
     scheduler.registerBeforeFrameCallback(drawSpans);
 
     return () => {

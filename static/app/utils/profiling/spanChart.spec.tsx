@@ -29,7 +29,7 @@ describe('spanChart', () => {
       s({span_id: '4', timestamp: 1, start_timestamp: 0.5}),
     ]);
 
-    expect(tree.spanTree.children[0].children[1].span.span_id).toBe('4');
+    expect(tree.root.children[0].children[1].span.span_id).toBe('4');
 
     const chart = new SpanChart(tree);
 
@@ -54,7 +54,7 @@ describe('spanChart', () => {
       s({span_id: '4', timestamp: 1, start_timestamp: 0.5}),
     ]);
 
-    expect(tree.spanTree.children[0].children[1].span.span_id).toBe('4');
+    expect(tree.root.children[0].children[1].span.span_id).toBe('4');
 
     const chart = new SpanChart(tree);
     expect(chart.configSpace.equals(new Rect(0, 0, 1, 2))).toBe(true);
