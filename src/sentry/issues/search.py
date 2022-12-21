@@ -73,7 +73,6 @@ def group_categories_from(
     # if its unspecified, we have to query all datasources
     for search_filter in search_filters or ():
         if search_filter.key.name in ("issue.category", "issue.type"):
-            print("search filter", search_filter.key.name, search_filter.value.value)
             if search_filter.is_negation:
                 group_categories.update(
                     GROUP_TYPE_TO_CATEGORY[GroupType(value)]
@@ -222,6 +221,7 @@ def _query_params_for_generic(
     return None
 
 
+# TODO: We need to add a way to make this dynamic for additional generic types
 SEARCH_STRATEGIES: Mapping[GroupCategory, GroupSearchStrategy] = {
     GroupCategory.ERROR: _query_params_for_error,
     GroupCategory.PERFORMANCE: _query_params_for_perf,
@@ -230,14 +230,12 @@ SEARCH_STRATEGIES: Mapping[GroupCategory, GroupSearchStrategy] = {
 
 
 SEARCH_FILTER_UPDATERS: Mapping[GroupCategory, GroupSearchFilterUpdater] = {
-    GroupCategory.ERROR: lambda search_filters: search_filters,
     GroupCategory.PERFORMANCE: lambda search_filters: [
         # need to remove this search filter, so we don't constrain the returned transactions
         sf
         for sf in search_filters
         if sf.key.name != "message"
     ],
-    GroupCategory.PROFILE: lambda search_filters: search_filters,
 }
 
 
