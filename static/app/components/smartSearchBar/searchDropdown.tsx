@@ -304,15 +304,13 @@ const DropdownItem = ({
       <Fragment>
         <ItemTitle item={item} isChild={isChild} searchSubstring={searchSubstring} />
         {onIconClick && (
-          <IconOpenWrapper>
-            <IconOpen
-              onClick={e => {
-                // stop propagation so the item-level onClick doesn't get called
-                e.stopPropagation();
-                onIconClick(item.value);
-              }}
-            />
-          </IconOpenWrapper>
+          <IconOpenWithMargin
+            onClick={e => {
+              // stop propagation so the item-level onClick doesn't get called
+              e.stopPropagation();
+              onIconClick(item.value);
+            }}
+          />
         )}
       </Fragment>
     );
@@ -632,6 +630,6 @@ const Value = styled('span')<{hasDocs?: boolean}>`
   ${p => p.theme.overflowEllipsis};
 `;
 
-const IconOpenWrapper = styled('div')`
+const IconOpenWithMargin = styled(IconOpen)`
   margin-left: ${space(1)};
 `;
