@@ -89,7 +89,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         notification = AlertRuleNotification(
             Notification(event=event, rule=self.rule), ActionTargetType.MEMBER, self.user.id
         )
-        with self.tasks():
+        with self.feature("organizations:performance-issues"), self.tasks():
             notification.send()
 
         attachment, text = get_attachment()

@@ -492,21 +492,24 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
                 .filter(last_seen__gte=start, last_seen__lte=end)
                 .order_by("-last_seen")
             )
-
-            for sf in search_filters or ():
-                # general search query:
-                if "message" == sf.key.name and isinstance(sf.value.raw_value, str):
-                    group_queryset = group_queryset.filter(
-                        Q(type=GroupType.ERROR.value)
-                        | (
-                            Q(type__in=PERFORMANCE_TYPES)
-                            and (
-                                ~Q(message__icontains=sf.value.raw_value)
-                                if sf.is_negation
-                                else Q(message__icontains=sf.value.raw_value)
+            if not features.has("organizations:performance-issues", projects[0].organization):
+                # Make sure we only see error issues if the performance issue feature is disabled
+                group_queryset = group_queryset.filter(type=GroupCategory.ERROR.value)
+            else:
+                for sf in search_filters or ():
+                    # general search query:
+                    if "message" == sf.key.name and isinstance(sf.value.raw_value, str):
+                        group_queryset = group_queryset.filter(
+                            Q(type=GroupType.ERROR.value)
+                            | (
+                                Q(type__in=PERFORMANCE_TYPES)
+                                and (
+                                    ~Q(message__icontains=sf.value.raw_value)
+                                    if sf.is_negation
+                                    else Q(message__icontains=sf.value.raw_value)
+                                )
                             )
                         )
-                    )
 
             paginator = DateTimePaginator(group_queryset, "-last_seen", **paginator_options)
             metrics.incr("snuba.search.postgres_only")

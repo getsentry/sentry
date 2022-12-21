@@ -143,13 +143,15 @@ def convert_category_value(
     environments: Optional[Sequence[Environment]],
 ) -> List[int]:
     """Convert a value like 'error' or 'performance' to the GroupType value for issue lookup"""
-    results = []
-    for category in value:
-        group_category = getattr(GroupCategory, category.upper(), None)
-        if not group_category:
-            raise InvalidSearchQuery(f"Invalid category value of '{category}'")
-        results.extend([type.value for type in GROUP_CATEGORY_TO_TYPES.get(group_category, [])])
-    return results
+    if features.has("organizations:performance-issues", projects[0].organization):
+        results = []
+        for category in value:
+            group_category = getattr(GroupCategory, category.upper(), None)
+            if not group_category:
+                raise InvalidSearchQuery(f"Invalid category value of '{category}'")
+            results.extend([type.value for type in GROUP_CATEGORY_TO_TYPES.get(group_category, [])])
+        return results
+    return []
 
 
 def convert_type_value(
@@ -159,13 +161,15 @@ def convert_type_value(
     environments: Optional[Sequence[Environment]],
 ) -> List[int]:
     """Convert a value like 'error' or 'performance_n_plus_one_db_queries' to the GroupType value for issue lookup"""
-    results = []
-    for type in value:
-        group_type = getattr(GroupType, type.upper(), None)
-        if not group_type:
-            raise InvalidSearchQuery(f"Invalid type value of '{type}'")
-        results.append(group_type.value)
-    return results
+    if features.has("organizations:performance-issues", projects[0].organization):
+        results = []
+        for type in value:
+            group_type = getattr(GroupType, type.upper(), None)
+            if not group_type:
+                raise InvalidSearchQuery(f"Invalid type value of '{type}'")
+            results.append(group_type.value)
+        return results
+    return []
 
 
 value_converters: Mapping[str, ValueConverter] = {

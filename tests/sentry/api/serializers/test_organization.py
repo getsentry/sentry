@@ -67,6 +67,7 @@ class OrganizationSerializerTest(TestCase):
             "sso-saml2",
             "symbol-sources",
             "team-insights",
+            "performance-issues-ingest",
         }
 
     @mock.patch("sentry.features.batch_has")

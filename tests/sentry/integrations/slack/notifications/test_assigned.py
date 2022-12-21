@@ -199,7 +199,7 @@ class SlackAssignedNotificationTest(SlackActivityNotificationTest, PerformanceIs
                 data={"assignee": self.user.id},
             )
         )
-        with self.tasks():
+        with self.feature("organizations:performance-issues"), self.tasks():
             notification.send()
 
         attachment, text = get_attachment()

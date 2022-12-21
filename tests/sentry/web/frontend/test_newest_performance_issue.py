@@ -45,6 +45,8 @@ class DisabledMemberViewTest(TestCase):
         self.login_as(self.user)
 
     @override_options({"store.use-ingest-performance-detection-only": 1.0})
+    @override_options({"performance.issues.all.problem-creation": 1.0})
+    @override_options({"performance.issues.all.problem-detection": 1.0})
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
     def test_simple(self):
         self.project1.update_option("sentry:performance_issue_creation_rate", 1.0)
@@ -52,6 +54,7 @@ class DisabledMemberViewTest(TestCase):
         with mock.patch("sentry_sdk.tracing.Span.containing_transaction"), self.feature(
             {
                 "projects:performance-suspect-spans-ingestion": True,
+                "organizations:performance-issues-ingest": True,
             }
         ):
             latest_event_time = time()

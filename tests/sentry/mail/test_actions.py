@@ -205,6 +205,7 @@ class NotifyEmailTest(RuleTestCase):
         assert sent.to == [self.user.email]
         assert "uh oh" in sent.subject
 
+    @with_feature("organizations:performance-issues-post-process-group")
     def test_full_integration_performance(self):
         event_data = load_data(
             "transaction",
