@@ -176,7 +176,6 @@ def make_error_event(request, project, platform):
         ("level", "error"),
         ("device", "Other"),
     ]
-    data["title"] = "meow"
     event_manager = EventManager(data)
     event_manager.normalize()
     data = event_manager.get_data()
