@@ -577,9 +577,9 @@ class OrganizationProjectResponse(
 class ProjectSummarySerializer(ProjectWithTeamSerializer):
     access: Access | None
 
-    def __init__(self, access: Access | None = None):
+    def __init__(self, access: Access | None = None, **kwargs):
         self.access = access
-        super().__init__()
+        super().__init__(**kwargs)
 
     def get_deploys_by_project(self, item_list):
         cursor = connection.cursor()

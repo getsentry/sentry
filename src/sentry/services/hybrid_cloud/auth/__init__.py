@@ -20,8 +20,6 @@ from sentry.silo import SiloMode
 from sentry.utils.linksign import find_signature
 
 if TYPE_CHECKING:
-    from django.contrib.auth.models import AnonymousUser
-
     from sentry.models import OrganizationMember
 
 
