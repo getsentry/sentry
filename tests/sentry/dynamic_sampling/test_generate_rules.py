@@ -489,6 +489,7 @@ def test_generate_rules_does_not_return_rule_with_deleted_release(
 
     default_project.update(platform="python")
     first_release = Factories.create_release(project=default_project, version="1.0")
+    second_release = Factories.create_release(project=default_project, version="2.0")
 
     redis_client.hset(
         f"ds::p:{default_project.id}:boosted_releases",
@@ -497,9 +498,11 @@ def test_generate_rules_does_not_return_rule_with_deleted_release(
     )
     redis_client.hset(
         f"ds::p:{default_project.id}:boosted_releases",
-        "ds::r:1234",
+        f"ds::r:{second_release.id}",
         time.time(),
     )
+
+    second_release.delete()
 
     expected = [
         {
