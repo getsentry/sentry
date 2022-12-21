@@ -1,5 +1,4 @@
 import {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
-
 import {EventOrGroupType, EventTransaction} from 'sentry/types';
 
 // Empty transaction to use as a default value with duration of 1 second
