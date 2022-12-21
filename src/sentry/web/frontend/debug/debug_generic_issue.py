@@ -1,19 +1,15 @@
-import uuid
-from datetime import datetime
-
 import pytz
 from django.utils.safestring import mark_safe
 from django.views.generic import View
 
-from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.models import Organization, Project, Rule
 from sentry.notifications.utils import get_generic_data, get_group_settings_link, get_rules
+from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
 from sentry.types.issues import GroupType
 from sentry.utils import json
-from sentry.utils.dates import ensure_aware
 
 from .mail import COMMIT_EXAMPLE, MailPreview, make_error_event
-from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
+
 
 class DebugGenericIssueEmailView(View):
     def get(self, request):
