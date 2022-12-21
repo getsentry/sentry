@@ -1190,6 +1190,8 @@ SENTRY_FEATURES = {
     "organizations:dynamic-sampling": False,
     # Enable View Hierarchies in issue details page
     "organizations:mobile-view-hierarchies": False,
+    # Enable ANR rates in project details page
+    "organizations:anr-rate": False,
     # Enable deobfuscating exception values in Java issues
     "organizations:java-exception-value-deobfuscation": False,
     # Enable tag improvements in the issue details page
