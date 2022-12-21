@@ -44,7 +44,7 @@ function getDisabledKeys(source: MenuItemProps[]): MenuItemProps['key'][] {
 }
 
 interface Props
-  extends Partial<MenuTriggerProps>,
+  extends Omit<Partial<MenuTriggerProps>, 'trigger'>,
     Partial<AriaMenuOptions<MenuItemProps>>,
     UseOverlayProps {
   /**
