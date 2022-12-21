@@ -210,6 +210,21 @@ def make_performance_event(project):
     return perf_event
 
 
+def make_generic_event(project):
+    occurrence, group_info = process_event_and_issue_occurrence(
+        TEST_ISSUE_OCCURRENCE.to_dict(),
+        {
+            "event_id": uuid.uuid4().hex,
+            "fingerprint": ["group-1"],
+            "project_id": project.id,
+            "timestamp": before_now(minutes=1).isoformat(),
+        },
+    )
+    generic_group = group_info.group
+    generic_group.update(type=GroupType.PROFILE_BLOCKED_THREAD.value)
+    return generic_group.get_latest_event()
+
+
 def get_shared_context(rule, org, project, group, event):
     return {
         "rule": rule,
@@ -534,18 +549,8 @@ def digest(request):
 
     # add in generic issues
     for i in range(random.randint(1, 3)):
-        occurrence, group_info = process_event_and_issue_occurrence(
-            TEST_ISSUE_OCCURRENCE.to_dict(),
-            {
-                "event_id": uuid.uuid4().hex,
-                "fingerprint": ["group-1"],
-                "project_id": project.id,
-                "timestamp": before_now(minutes=1).isoformat(),
-            },
-        )
-        generic_group = group_info.group
-        generic_group.update(type=GroupType.PROFILE_BLOCKED_THREAD.value)
-        generic_event = generic_group.get_latest_event()
+        generic_event = make_generic_event(project)
+        generic_group = generic_event.group
         generic_group.id = i + 200  # don't clobber other issue ids
 
         records.append(

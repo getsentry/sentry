@@ -4,27 +4,17 @@ from django.views.generic import View
 
 from sentry.models import Organization, Project, Rule
 from sentry.notifications.utils import get_generic_data, get_group_settings_link, get_rules
-from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
-from sentry.types.issues import GroupType
 from sentry.utils import json
 
-from .mail import COMMIT_EXAMPLE, MailPreview, make_error_event
+from .mail import COMMIT_EXAMPLE, MailPreview, make_generic_event
 
 
 class DebugGenericIssueEmailView(View):
     def get(self, request):
-        platform = request.GET.get("platform", "python")
         org = Organization(id=1, slug="example", name="Example")
         project = Project(id=1, slug="example", name="Example", organization=org)
 
-        event = make_error_event(request, project, platform)
-        event = event.for_group(event.groups[0])
-
-        occurrence = TEST_ISSUE_OCCURRENCE
-        occurrence.save(project.id)
-        event.occurrence = occurrence
-        event.group.type = GroupType.PROFILE_BLOCKED_THREAD
-
+        event = make_generic_event(project)
         group = event.group
 
         rule = Rule(id=1, label="An example rule")
