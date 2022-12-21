@@ -27,6 +27,7 @@ function useCommitters(
     makeCommittersQueryKey(org.slug, projectSlug, eventId),
     {
       staleTime: Infinity,
+      retry: false,
       ...options,
     }
   );
