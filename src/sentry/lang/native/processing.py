@@ -351,11 +351,12 @@ def get_frames_for_symbolication(
             s_frame["addr_mode"] = sanitized_addr_mode
         rv.append(s_frame)
 
-    first_frame = rv[0]
-    if adjustment == "all":
-        first_frame["instruction_addr_needs_adjustment"] = True
-    elif adjustment == "all_but_first":
-        first_frame["instruction_addr_needs_adjustment"] = False
+    if len(rv) > 0:
+        first_frame = rv[0]
+        if adjustment == "all":
+            first_frame["instruction_addr_needs_adjustment"] = True
+        elif adjustment == "all_but_first":
+            first_frame["instruction_addr_needs_adjustment"] = False
 
     return rv
 

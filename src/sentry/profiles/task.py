@@ -248,8 +248,9 @@ def _prepare_frames_from_profile(profile: Profile) -> Tuple[List[Any], List[Any]
         frames = [dict(frame) for frame in profile["profile"]["frames"]]
 
         for stack in profile["profile"]["stacks"]:
-            first_frame_idx = stack[0]
-            frames[first_frame_idx]["instruction_addr_needs_adjustment"] = False
+            if len(stack) > 0:
+                first_frame_idx = stack[0]
+                frames[first_frame_idx]["instruction_addr_needs_adjustment"] = False
 
         stacktraces = [{"registers": {}, "frames": frames}]
     # in the original format, we need to gather frames from all samples
@@ -258,7 +259,8 @@ def _prepare_frames_from_profile(profile: Profile) -> Tuple[List[Any], List[Any]
         for s in profile["sampled_profile"]["samples"]:
             frames = [dict(frame) for frame in s["frames"]]
 
-            frames[0]["instruction_addr_needs_adjustment"] = False
+            if len(frames) > 0:
+                frames[0]["instruction_addr_needs_adjustment"] = False
 
             stacktraces.append(
                 {
