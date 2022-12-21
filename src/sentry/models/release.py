@@ -28,7 +28,6 @@ from sentry.db.models import (
     region_silo_only_model,
     sane_repr,
 )
-from sentry.dynamic_sampling.feature_multiplexer import DynamicSamplingFeatureMultiplexer
 from sentry.exceptions import InvalidSearchQuery
 from sentry.locks import locks
 from sentry.models import (
@@ -69,28 +68,6 @@ class ReleaseCommitError(Exception):
     pass
 
 
-def ds_rules_contain_latest_release_rule(rules):
-    """
-    This function checks that one of the active rules
-    has value "latest" as release literal
-    """
-
-    # We don't have proper schema and type validate in rules object
-    try:
-        for rule in rules:
-            if rule.get("active"):
-                inner_rule = rule["condition"]["inner"]
-                if (
-                    inner_rule
-                    and inner_rule[0]["name"] == "trace.release"
-                    and inner_rule[0]["value"] == ["latest"]
-                ):
-                    return True
-    except Exception:
-        sentry_sdk.capture_exception()
-    return False
-
-
 class ReleaseProjectModelManager(BaseManager):
     def post_save(self, instance, **kwargs):
         # this hook may be called from model hooks during an
@@ -99,8 +76,9 @@ class ReleaseProjectModelManager(BaseManager):
         # task.
         #
         # If there is no transaction open, on_commit should run immediately.
+        from sentry.dynamic_sampling.feature_multiplexer import DynamicSamplingFeatureMultiplexer
+
         ds_feature_multiplexer = DynamicSamplingFeatureMultiplexer(instance.project)
-        # TODO: optimize by checking if a latest release rule is set.
         if ds_feature_multiplexer.is_on_dynamic_sampling:
             transaction.on_commit(
                 lambda: schedule_invalidate_project_config(
@@ -115,6 +93,8 @@ class ReleaseProjectModelManager(BaseManager):
         # task.
         #
         # If there is no transaction open, on_commit should run immediately.
+        from sentry.dynamic_sampling.feature_multiplexer import DynamicSamplingFeatureMultiplexer
+
         ds_feature_multiplexer = DynamicSamplingFeatureMultiplexer(instance.project)
         if ds_feature_multiplexer.is_on_dynamic_sampling:
             transaction.on_commit(
