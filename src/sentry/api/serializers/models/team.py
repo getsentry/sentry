@@ -22,6 +22,11 @@ from sentry import roles
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.types import SerializedAvatarFields
 from sentry.app import env
+from sentry.auth.access import (
+    Access,
+    SingularApiAccessOrgOptimization,
+    maybe_singular_api_access_org_context,
+)
 from sentry.auth.superuser import is_active_superuser
 from sentry.models import (
     ExternalActor,
@@ -46,10 +51,22 @@ if TYPE_CHECKING:
     from sentry.api.serializers.models.external_actor import ExternalActorResponse
 
 
-def _get_team_memberships(team_list: Sequence[Team], user: User) -> Mapping[int, str | None]:
+def _get_team_memberships(
+    team_list: Sequence[Team],
+    user: User,
+    optimization: SingularApiAccessOrgOptimization | None = None,
+) -> Mapping[int, str | None]:
     """Get memberships the user has in the provided team list"""
     if not user.is_authenticated:
         return {}
+
+    if optimization:
+        return {
+            member.team_id: member.role.name if member.role else None
+            for team in team_list
+            for member in [optimization.access.get_team_membership(team.id)]
+            if member is not None
+        }
 
     return {
         team_id: team_role
@@ -75,9 +92,18 @@ def get_member_totals(team_list: Sequence[Team], user: User) -> Mapping[str, int
     return {item["id"]: item["member_count"] for item in query}
 
 
-def get_org_roles(org_ids: Set[int], user: User) -> Mapping[int, str]:
+def get_org_roles(
+    org_ids: Set[int], user: User, optimization: SingularApiAccessOrgOptimization | None = None
+) -> Mapping[int, str]:
     """Get the role the user has in each org"""
     if not user.is_authenticated:
+        return {}
+
+    if optimization:
+        if optimization.access.role is not None:
+            return {
+                optimization.access.api_user_organization_context.organization.id: optimization.access.role
+            }
         return {}
 
     # map of org id to role
@@ -121,11 +147,19 @@ class TeamSerializerResponse(_TeamSerializerResponseOptional):
 
 @register(Team)
 class TeamSerializer(Serializer):  # type: ignore
+    expand: Sequence[str] | None
+    collapse: Sequence[str] | None
+    access: Access | None
+
     def __init__(
-        self, collapse: Optional[Sequence[str]] = None, expand: Optional[Sequence[str]] = None
+        self,
+        collapse: Sequence[str] | None = None,
+        expand: Sequence[str] | None = None,
+        access: Access | None = None,
     ):
         self.collapse = collapse
         self.expand = expand
+        self.access = access
 
     def _expand(self, key: str) -> bool:
         if self.expand is None:
@@ -143,11 +177,14 @@ class TeamSerializer(Serializer):  # type: ignore
     ) -> MutableMapping[Team, MutableMapping[str, Any]]:
         request = env.request
         org_ids = {t.organization_id for t in item_list}
+        optimization = (
+            maybe_singular_api_access_org_context(self.access, org_ids) if self.access else None
+        )
 
-        org_roles = get_org_roles(org_ids, user)
+        org_roles = get_org_roles(org_ids, user, optimization=optimization)
 
         member_totals = get_member_totals(item_list, user)
-        team_memberships = _get_team_memberships(item_list, user)
+        team_memberships = _get_team_memberships(item_list, user, optimization=optimization)
         access_requests = get_access_requests(item_list, user)
 
         avatars = {a.team_id: a for a in TeamAvatar.objects.filter(team__in=item_list)}
