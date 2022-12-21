@@ -2270,7 +2270,7 @@ GITHUB_ORGANIZATION = DEAD
 SUDO_URL = "sentry-sudo"
 
 # Endpoint to https://github.com/getsentry/sentry-release-registry, used for
-# alerting the user on outdated SDKs.
+# alerting the user of outdated SDKs.
 SENTRY_RELEASE_REGISTRY_BASEURL = None
 
 # Hardcoded SDK versions for SDKs that do not have an entry in the release
