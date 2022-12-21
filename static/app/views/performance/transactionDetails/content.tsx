@@ -16,6 +16,7 @@ import RootSpanStatus from 'sentry/components/events/rootSpanStatus';
 import FileSize from 'sentry/components/fileSize';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
+import {TransactionProfileIdProvider} from 'sentry/components/profiling/transactionProfileIdProvider';
 import {TransactionToProfileButton} from 'sentry/components/profiling/transactionToProfileButton';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {TagsTable} from 'sentry/components/tagsTable';
@@ -155,7 +156,10 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
         {metaResults => (
           <QuickTraceQuery event={event} location={location} orgSlug={organization.slug}>
             {results => (
-              <Fragment>
+              <TransactionProfileIdProvider
+                transactionId={event.type === 'transaction' ? event.id : undefined}
+                timestamp={event.dateReceived}
+              >
                 <Layout.Header>
                   <Layout.HeaderContent>
                     <Breadcrumb
@@ -185,11 +189,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                         </Button>
                       )}
                       {hasProfilingFeature && (
-                        <TransactionToProfileButton
-                          orgId={organization.slug}
-                          projectId={this.projectId}
-                          transactionId={event.eventID}
-                        />
+                        <TransactionToProfileButton projectSlug={this.projectId} />
                       )}
                     </ButtonBar>
                   </Layout.HeaderActions>
@@ -268,7 +268,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                     </Layout.Side>
                   )}
                 </Layout.Body>
-              </Fragment>
+              </TransactionProfileIdProvider>
             )}
           </QuickTraceQuery>
         )}
