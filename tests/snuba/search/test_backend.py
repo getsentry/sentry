@@ -1,3 +1,4 @@
+import functools
 import uuid
 from datetime import datetime, timedelta
 from hashlib import md5
@@ -1300,21 +1301,33 @@ class EventsSnubaSearchTest(SharedSnubaTest):
             "end": Any(datetime),
             "filter_keys": {
                 "project_id": [self.project.id],
-                "group_id": [self.group1.id, self.group2.id],
             },
             "referrer": "search",
             "groupby": ["group_id"],
             "conditions": [
-                [["positionCaseInsensitive", ["message", "'foo'"]], "!=", 0],
+                [["hasAny", ["group_ids", ["array", [self.group1.id, self.group2.id]]]], "=", 1],
                 ["type", "!=", "transaction"],
             ],
-            "selected_columns": [],
+            "selected_columns": [
+                [
+                    "arrayJoin",
+                    [
+                        [
+                            "arrayIntersect",
+                            [["array", [self.group1.id, self.group2.id]], "group_ids"],
+                        ]
+                    ],
+                    "group_id",
+                ]
+            ],
             "limit": limit,
             "offset": 0,
             "totals": True,
             "turbo": False,
             "sample": 1,
-            "condition_resolver": get_snuba_column_name,
+            "condition_resolver": functools.partial(
+                get_snuba_column_name, dataset=Dataset.Transactions
+            ),
         }
 
         self.make_query(search_filter_query="status:unresolved")

@@ -525,14 +525,10 @@ class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
             "regressed_in_release": QCallbackCondition(
                 functools.partial(regressed_in_release_filter, projects=projects)
             ),
+            "issue.category": QCallbackCondition(lambda categories: Q(type__in=categories)),
+            "issue.type": QCallbackCondition(lambda types: Q(type__in=types)),
         }
 
-        queryset_conditions.update(
-            {"issue.category": QCallbackCondition(lambda categories: Q(type__in=categories))}
-        )
-        queryset_conditions.update(
-            {"issue.type": QCallbackCondition(lambda types: Q(type__in=types))}
-        )
         message_filter = next((sf for sf in search_filters or () if "message" == sf.key.name), None)
         if message_filter:
 
