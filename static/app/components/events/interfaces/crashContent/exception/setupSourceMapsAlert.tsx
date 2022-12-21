@@ -48,7 +48,7 @@ type Props = {
 export function SetupSourceMapsAlert({projectId, event}: Props) {
   const organization = useOrganization();
 
-  if (!organization.features.includes('source-maps-cta')) {
+  if (!organization.features?.includes('source-maps-cta')) {
     return null;
   }
 
