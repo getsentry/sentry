@@ -16,9 +16,9 @@ from urllib.parse import urlparse
 import sentry_sdk
 from symbolic import ProguardMapper  # type: ignore
 
-from sentry import nodestore, options, projectoptions
+from sentry import features, nodestore, options, projectoptions
 from sentry.eventstore.models import Event
-from sentry.models import Project, ProjectDebugFile, ProjectOption
+from sentry.models import Organization, Project, ProjectDebugFile, ProjectOption
 from sentry.types.issues import GROUP_TYPE_TO_TEXT, GroupType
 from sentry.utils import metrics
 from sentry.utils.event_frames import get_sdk_name
@@ -202,12 +202,16 @@ PerformanceProblemsMap = Dict[str, Union[PerformanceProblem, PerformanceSpanProb
 # Facade in front of performance detection to limit impact of detection on our events ingestion
 def detect_performance_problems(data: Event) -> List[PerformanceProblem]:
     try:
-        # Add an experimental tag to be able to find these spans in production while developing. Should be removed later.
-        sentry_sdk.set_tag("_did_analyze_performance_issue", "true")
-        with metrics.timer(
-            "performance.detect_performance_issue", sample_rate=0.01
-        ), sentry_sdk.start_span(op="py.detect_performance_issue", description="none") as sdk_span:
-            return _detect_performance_problems(data, sdk_span)
+        rate = options.get("performance.issues.all.problem-detection")
+        if rate and rate > random.random():
+            # Add an experimental tag to be able to find these spans in production while developing. Should be removed later.
+            sentry_sdk.set_tag("_did_analyze_performance_issue", "true")
+            with metrics.timer(
+                "performance.detect_performance_issue", sample_rate=0.01
+            ), sentry_sdk.start_span(
+                op="py.detect_performance_issue", description="none"
+            ) as sdk_span:
+                return _detect_performance_problems(data, sdk_span)
     except Exception:
         logging.exception("Failed to detect performance problems")
     return []
@@ -382,6 +386,12 @@ def run_detector_on_data(detector, data):
 
 # Uses options and flags to determine which orgs and which detectors automatically create performance issues.
 def get_allowed_issue_creation_detectors(project_id: str):
+    project = Project.objects.get_from_cache(id=project_id)
+    organization = Organization.objects.get_from_cache(id=project.organization_id)
+    if not features.has("organizations:performance-issues-ingest", organization):
+        # Only organizations with this non-flagr feature have performance issues created.
+        return {}
+
     allowed_detectors = set()
     for detector_type, system_option in DETECTOR_TYPE_ISSUE_CREATION_TO_SYSTEM_OPTION.items():
         rate = options.get(system_option)

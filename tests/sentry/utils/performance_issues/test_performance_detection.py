@@ -16,6 +16,7 @@ from sentry.utils.performance_issues.performance_detection import (
     EventPerformanceProblem,
     PerformanceProblem,
     _detect_performance_problems,
+    detect_performance_problems,
     prepare_problem_for_grouping,
     total_span_time,
 )
@@ -71,6 +72,29 @@ class PerformanceDetectionTest(unittest.TestCase):
         patch_organization = patch("sentry.models.Organization.objects.get_from_cache")
         self.organization_mock = patch_organization.start()
         self.addCleanup(patch_organization.stop)
+
+        self.features = ["organizations:performance-issues-ingest"]
+
+        def has_feature(feature, org):
+            return feature in self.features
+
+        patch_features = patch("sentry.features.has")
+        self.features_mock = patch_features.start()
+        self.features_mock.side_effect = has_feature
+        self.addCleanup(patch_features.stop)
+
+    @patch("sentry.utils.performance_issues.performance_detection._detect_performance_problems")
+    def test_options_disabled(self, mock):
+        event = {}
+        detect_performance_problems(event)
+        assert mock.call_count == 0
+
+    @patch("sentry.utils.performance_issues.performance_detection._detect_performance_problems")
+    def test_options_enabled(self, mock):
+        event = {}
+        with override_options({"performance.issues.all.problem-detection": 1.0}):
+            detect_performance_problems(event)
+        assert mock.call_count == 1
 
     @override_options(BASE_DETECTOR_OPTIONS)
     def test_project_option_overrides_default(self):
@@ -141,6 +165,15 @@ class PerformanceDetectionTest(unittest.TestCase):
         n_plus_one_problems = _detect_performance_problems(n_plus_one_event, sdk_span_mock)
 
         assert len(n_plus_one_problems)
+
+    @override_options(BASE_DETECTOR_OPTIONS)
+    def test_no_feature_flag_disables_creation(self):
+        self.features = []
+        n_plus_one_event = EVENTS["n-plus-one-in-django-index-view"]
+        sdk_span_mock = Mock()
+
+        perf_problems = _detect_performance_problems(n_plus_one_event, sdk_span_mock)
+        assert perf_problems == []
 
     @override_options(BASE_DETECTOR_OPTIONS_OFF)
     def test_system_option_disables_detector_issue_creation(self):
