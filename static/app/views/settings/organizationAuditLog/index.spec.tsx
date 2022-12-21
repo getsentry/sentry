@@ -73,7 +73,7 @@ describe('OrganizationAuditLog', function () {
     expect(screen.getByText('17:29 PDT')).toBeInTheDocument();
   });
 
-  it.only('Displays pretty dynamic sampling logs', async function () {
+  it('Displays pretty dynamic sampling logs', async function () {
     const {routerContext, router, project, projects, organization} = initializeOrg({
       ...initializeOrg(),
       router: {
