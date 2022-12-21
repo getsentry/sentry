@@ -1,12 +1,14 @@
+from __future__ import annotations
+
 from django.db import transaction
 from django.utils import timezone
-from rest_framework import serializers
+from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
 from sentry.api.authentication import DSNAuthentication
-from sentry.api.base import Endpoint, pending_silo_endpoint
+from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.bases.project import ProjectPermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.fields.empty_integer import EmptyIntegerField
@@ -34,10 +36,16 @@ class CheckInSerializer(serializers.Serializer):
     duration = EmptyIntegerField(required=False, allow_null=True)
 
 
-@pending_silo_endpoint
+@region_silo_endpoint
 class MonitorCheckInDetailsEndpoint(Endpoint):
     authentication_classes = Endpoint.authentication_classes + (DSNAuthentication,)
     permission_classes = (ProjectPermission,)
+
+    @staticmethod
+    def respond_invalid() -> Response:
+        return Response(
+            status=status.HTTP_400_BAD_REQUEST, data={"details": "Invalid monitor checkin"}
+        )
 
     # TODO(dcramer): this code needs shared with other endpoints as its security focused
     # TODO(dcramer): this doesnt handle is_global roles
@@ -74,7 +82,9 @@ class MonitorCheckInDetailsEndpoint(Endpoint):
         kwargs.update({"checkin": checkin, "monitor": monitor, "project": project})
         return (args, kwargs)
 
-    def get(self, request: Request, project, monitor, checkin) -> Response:
+    def get(
+        self, request: Request, project, monitor, checkin, organization_slug: str | None = None
+    ) -> Response:
         """
         Retrieve a check-in
         ```````````````````
@@ -87,9 +97,15 @@ class MonitorCheckInDetailsEndpoint(Endpoint):
         if isinstance(request.auth, ProjectKey):
             return self.respond(status=401)
 
+        if organization_slug:
+            if project.organization.slug != organization_slug:
+                return self.respond_invalid()
+
         return self.respond(serialize(checkin, request.user))
 
-    def put(self, request: Request, project, monitor, checkin) -> Response:
+    def put(
+        self, request: Request, project, monitor, checkin, organization_slug: str | None = None
+    ) -> Response:
         """
         Update a check-in
         `````````````````
@@ -98,6 +114,10 @@ class MonitorCheckInDetailsEndpoint(Endpoint):
         :pparam string checkin_id: the id of the check-in.
         :auth: required
         """
+        if organization_slug:
+            if project.organization.slug != organization_slug:
+                return self.respond_invalid()
+
         if checkin.status in CheckInStatus.FINISHED_VALUES:
             return self.respond(status=400)
 
