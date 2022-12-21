@@ -1,8 +1,10 @@
 import unittest
+from typing import List
 from unittest.mock import Mock, call
 
 import pytest
 
+from sentry.eventstore.models import Event
 from sentry.testutils.performance_issues.event_generators import EVENTS
 from sentry.testutils.silo import region_silo_test
 from sentry.types.issues import GroupType
@@ -22,12 +24,15 @@ class MNPlusOneDBDetectorTest(unittest.TestCase):
         super().setUp()
         self.settings = get_detection_settings()
 
+    def find_problems(self, event: Event) -> List[PerformanceProblem]:
+        detector = MNPlusOneDBSpanDetector(self.settings, event)
+        run_detector_on_data(detector, event)
+        return list(detector.stored_problems.values())
+
     def test_detects_parallel_m_n_plus_one(self):
         event = EVENTS["m-n-plus-one-db/m-n-plus-one-graphql"]
 
-        detector = MNPlusOneDBSpanDetector(self.settings, event)
-        run_detector_on_data(detector, event)
-        problems = list(detector.stored_problems.values())
+        problems = self.find_problems(event)
         assert problems == [
             PerformanceProblem(
                 fingerprint="1-GroupType.PERFORMANCE_M_N_PLUS_ONE_DB_QUERIES-de75036b0dce394e0b23aaabf553ad9f8156f22b",
@@ -68,17 +73,11 @@ class MNPlusOneDBDetectorTest(unittest.TestCase):
 
     def test_does_not_detect_truncated_m_n_plus_one(self):
         event = EVENTS["m-n-plus-one-db/m-n-plus-one-graphql-truncated"]
-        detector = MNPlusOneDBSpanDetector(self.settings, event)
-        run_detector_on_data(detector, event)
-        problems = list(detector.stored_problems.values())
-        assert problems == []
+        assert self.find_problems(event) == []
 
     def test_does_not_detect_n_plus_one(self):
         event = EVENTS["n-plus-one-in-django-index-view"]
-        detector = MNPlusOneDBSpanDetector(self.settings, event)
-        run_detector_on_data(detector, event)
-        problems = list(detector.stored_problems.values())
-        assert problems == []
+        assert self.find_problems(event) == []
 
     def test_m_n_plus_one_detector_enabled(self):
         event = EVENTS["m-n-plus-one-db/m-n-plus-one-graphql"]

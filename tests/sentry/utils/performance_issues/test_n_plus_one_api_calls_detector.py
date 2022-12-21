@@ -1,7 +1,9 @@
 import unittest
+from typing import List
 
 import pytest
 
+from sentry.eventstore.models import Event
 from sentry.testutils.performance_issues.event_generators import EVENTS
 from sentry.testutils.silo import region_silo_test
 from sentry.types.issues import GroupType
@@ -20,13 +22,16 @@ class NPlusOneAPICallsDetectorTest(unittest.TestCase):
         super().setUp()
         self.settings = get_detection_settings()
 
+    def find_problems(self, event: Event) -> List[PerformanceProblem]:
+        detector = NPlusOneAPICallsDetector(self.settings, event)
+        run_detector_on_data(detector, event)
+        return list(detector.stored_problems.values())
+
     def test_detects_problems_with_many_concurrent_calls_to_same_url(self):
         event = EVENTS["n-plus-one-api-calls/n-plus-one-api-calls-in-issue-stream"]
 
-        detector = NPlusOneAPICallsDetector(self.settings, event)
-        run_detector_on_data(detector, event)
-        problems = list(detector.stored_problems.values())
-        assert problems == [
+        problems = self.find_problems(event)
+        assert self.find_problems(event) == [
             PerformanceProblem(
                 fingerprint="1-GroupType.PERFORMANCE_N_PLUS_ONE_API_CALLS-3b2ee4021cd4e24acd32179932e10553e312786b",
                 op="http.client",
@@ -67,11 +72,7 @@ class NPlusOneAPICallsDetectorTest(unittest.TestCase):
 
     def test_does_not_detect_problem_with_concurrent_calls_to_different_urls(self):
         event = EVENTS["n-plus-one-api-calls/not-n-plus-one-api-calls"]
-
-        detector = NPlusOneAPICallsDetector(self.settings, event)
-        run_detector_on_data(detector, event)
-        problems = list(detector.stored_problems.values())
-        assert problems == []
+        assert self.find_problems(event) == []
 
 
 @pytest.mark.parametrize(
