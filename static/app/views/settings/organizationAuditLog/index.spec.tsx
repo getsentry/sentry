@@ -1,7 +1,9 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import ConfigStore from 'sentry/stores/configStore';
+import ProjectsStore from 'sentry/stores/projectsStore';
 import {Config, User} from 'sentry/types';
 import OrganizationAuditLog from 'sentry/views/settings/organizationAuditLog';
 
@@ -69,5 +71,90 @@ describe('OrganizationAuditLog', function () {
     expect(screen.getByText('org.create')).toBeInTheDocument();
     expect(screen.getAllByText('127.0.0.1')).toHaveLength(2);
     expect(screen.getByText('17:29 PDT')).toBeInTheDocument();
+  });
+
+  it('Displays pretty dynamic sampling logs', async function () {
+    const {routerContext, router, project, projects, organization} = initializeOrg({
+      ...initializeOrg(),
+      router: {
+        params: {orgId: 'org-slug'},
+      },
+    });
+
+    ProjectsStore.loadInitialData(projects);
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/audit-logs/`,
+      method: 'GET',
+      body: {
+        rows: [
+          {
+            actor: TestStubs.User(),
+            event: 'sampling_priority.enabled',
+            ipAddress: '127.0.0.1',
+            id: '14',
+            note: 'enabled dynamic sampling priority "boostKeyTransactions"',
+            targetObject: 4504363022811136,
+            targetUser: null,
+            data: {
+              id: project.id,
+              name: 'boostKeyTransactions',
+              public: false,
+              slug: project.slug,
+              status: 0,
+            },
+          },
+          {
+            actor: TestStubs.User(),
+            event: 'sampling_priority.disabled',
+            ipAddress: '127.0.0.1',
+            id: '15',
+            note: 'disabled dynamic sampling priority "boostKeyTransactions"',
+            targetObject: 4504363022811136,
+            targetUser: null,
+            data: {
+              id: project.id,
+              name: 'boostKeyTransactions',
+              public: false,
+              slug: project.slug,
+              status: 0,
+            },
+          },
+        ],
+        options: TestStubs.AuditLogsApiEventNames(),
+      },
+    });
+
+    render(<OrganizationAuditLog location={router.location} />, {
+      context: routerContext,
+    });
+
+    // Enabled dynamic sampling priority
+    expect(await screen.findByText('sampling_priority.enabled')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        textWithMarkupMatcher(
+          `Enabled dynamic sampling priority "Prioritize key transactions" in project ${project.slug}`
+        )
+      )
+    ).toBeInTheDocument();
+
+    // Disabled dynamic sampling priority
+    expect(screen.getByText('sampling_priority.disabled')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        textWithMarkupMatcher(
+          `Disabled dynamic sampling priority "Prioritize key transactions" in project ${project.slug}`
+        )
+      )
+    ).toBeInTheDocument();
+
+    // Extra checks for the links to the project's settings
+    for (const link of screen.getAllByRole('link', {name: project.slug})) {
+      expect(link).toHaveAttribute(
+        'href',
+        `/settings/${organization.slug}/projects/${project.slug}/dynamic-sampling/`
+      );
+    }
   });
 });

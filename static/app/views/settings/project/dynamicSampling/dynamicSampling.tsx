@@ -33,7 +33,7 @@ type Props = {
   project: Project;
 };
 
-const knowBiases = {
+export const knowDynamicSamplingBiases = {
   [DynamicSamplingBiasType.BOOST_LATEST_RELEASES]: {
     label: t('Prioritize new releases'),
     help: t('Captures more transactions for your new releases as they are being adopted'),
@@ -140,7 +140,7 @@ export function DynamicSampling({project}: Props) {
         <Panel>
           <PanelHeader>{t('Sampling Priorities')}</PanelHeader>
           <PanelBody>
-            {Object.entries(knowBiases).map(([key, value]) => {
+            {Object.entries(knowDynamicSamplingBiases).map(([key, value]) => {
               const bias = biases.find(b => b.id === key);
 
               if (!bias) {
