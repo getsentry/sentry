@@ -345,6 +345,8 @@ const StyledFlex = styled('div')`
 `;
 
 const ActionsCheckbox = styled('div')<{isReprocessingQuery: boolean}>`
+  display: flex;
+  align-items: center;
   padding-left: ${space(2)};
   margin-bottom: 1px;
   ${p => p.isReprocessingQuery && 'flex: 1'};

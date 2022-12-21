@@ -20,7 +20,9 @@ interface Props extends Omit<CheckboxProps, 'checked' | 'size'> {
   size?: FormSize;
 }
 
-const checkboxSizeMap = {
+type CheckboxConfig = {borderRadius: string; box: string; icon: string};
+
+const checkboxSizeMap: Record<FormSize, CheckboxConfig> = {
   xs: {box: '12px', icon: '10px', borderRadius: '4px'},
   sm: {box: '16px', icon: '12px', borderRadius: '4px'},
   md: {box: '22px', icon: '16px', borderRadius: commonTheme.borderRadius},
@@ -71,6 +73,7 @@ const HiddenInput = styled('input')`
   width: 100%;
   top: 0;
   left: 0;
+  margin: 0;
   cursor: pointer;
 
   &.focus-visible + * {

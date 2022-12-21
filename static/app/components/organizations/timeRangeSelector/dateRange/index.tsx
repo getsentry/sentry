@@ -205,13 +205,7 @@ class BaseDateRange extends Component<Props, State> {
             />
             <UtcPicker>
               {t('Use UTC')}
-              <Checkbox
-                onChange={onChangeUtc}
-                checked={utc || false}
-                style={{
-                  margin: '0 0 0 0.5em',
-                }}
-              />
+              <Checkbox onChange={onChangeUtc} checked={utc || false} />
             </UtcPicker>
           </TimeAndUtcPicker>
         )}
@@ -240,6 +234,7 @@ const UtcPicker = styled('div')`
   align-items: center;
   justify-content: flex-end;
   flex: 1;
+  gap: ${space(1)};
 `;
 
 export default DateRange;
