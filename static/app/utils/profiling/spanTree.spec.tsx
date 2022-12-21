@@ -57,7 +57,6 @@ describe('SpanTree', () => {
     const tree = new SpanTree(transaction, []);
     expect(tree.root.span.start_timestamp).toBe(transaction.startTimestamp);
     expect(tree.root.span.timestamp).toBe(transaction.endTimestamp);
-    expect(tree.root.span.exclusive_time).toBe(1000);
   });
   it('appends to parent that contains span', () => {
     const tree = new SpanTree(

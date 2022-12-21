@@ -87,7 +87,7 @@ class SpanTree {
       description: transaction.title,
       start_timestamp: transaction.startTimestamp,
       timestamp: transaction.endTimestamp,
-      exclusive_time: transaction.endTimestamp - transaction.startTimestamp,
+      exclusive_time: transaction.contexts?.trace?.exclusive_time ?? undefined,
       parent_span_id: undefined,
       op: 'transaction',
     });
