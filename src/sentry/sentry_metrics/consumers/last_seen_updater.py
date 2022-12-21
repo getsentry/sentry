@@ -9,11 +9,12 @@ from arroyo.backends.kafka import KafkaConsumer, KafkaPayload
 from arroyo.commit import IMMEDIATE
 from arroyo.processing import StreamProcessor
 from arroyo.processing.strategies import ProcessingStrategy, ProcessingStrategyFactory
-from arroyo.processing.strategies.collect import CollectStep
 from arroyo.processing.strategies.commit import CommitOffsets
 from arroyo.processing.strategies.filter import FilterStep
+from arroyo.processing.strategies.reduce import Reduce
+from arroyo.processing.strategies.run_task import RunTask
 from arroyo.processing.strategies.transform import TransformStep
-from arroyo.types import Commit, Message, Partition, Topic
+from arroyo.types import BaseValue, Commit, Message, Partition, Topic
 from django.utils import timezone
 
 from sentry.sentry_metrics.configuration import MetricsIngestConfiguration, UseCaseKey
@@ -122,37 +123,6 @@ def _update_stale_last_seen(
     )
 
 
-class LastSeenUpdaterCollector(ProcessingStrategy[Set[int]]):
-    def __init__(self, metrics: Any, table: IndexerTable) -> None:
-        self.__seen_ints: Set[int] = set()
-        self.__metrics = metrics
-        self.__table = table
-
-    def submit(self, message: Message[Set[int]]) -> None:
-        self.__seen_ints.update(message.payload)
-
-    def poll(self) -> None:
-        pass
-
-    def terminate(self) -> None:
-        pass
-
-    def close(self) -> None:
-        pass
-
-    def join(self, timeout: Optional[float] = None) -> None:
-        keys_to_pass_to_update = len(self.__seen_ints)
-        logger.debug(f"{keys_to_pass_to_update} unique keys seen")
-        self.__metrics.incr(
-            "last_seen_updater.unique_update_candidate_keys", amount=keys_to_pass_to_update
-        )
-        with self.__metrics.timer("last_seen_updater.postgres_time"):
-            update_count = _update_stale_last_seen(self.__table, self.__seen_ints)
-        self.__metrics.incr("last_seen_updater.updated_rows_count", amount=update_count)
-        logger.debug(f"{update_count} keys updated")
-        self.__seen_ints = set()
-
-
 def retrieve_db_read_keys(message: Message[KafkaPayload]) -> Set[int]:
     try:
         parsed_message = json.loads(message.payload.value, use_rapid_json=True)
@@ -190,13 +160,32 @@ class LastSeenUpdaterStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         commit: Commit,
         partitions: Mapping[Partition, int],
     ) -> ProcessingStrategy[KafkaPayload]:
-        collect_step = CollectStep(
-            lambda: LastSeenUpdaterCollector(
-                metrics=self.__metrics, table=TABLE_MAPPING[self.__use_case_id]
-            ),
-            CommitOffsets(commit),
+        def accumulator(result: Set[int], value: BaseValue[Set[int]]) -> Set[int]:
+            result.update(value.payload)
+            return result
+
+        initial_value: Set[int] = set()
+
+        def do_update(message: Message[Set[int]]) -> None:
+            table = TABLE_MAPPING[self.__use_case_id]
+            seen_ints = message.payload
+
+            keys_to_pass_to_update = len(seen_ints)
+            logger.debug(f"{keys_to_pass_to_update} unique keys seen")
+            self.__metrics.incr(
+                "last_seen_updater.unique_update_candidate_keys", amount=keys_to_pass_to_update
+            )
+            with self.__metrics.timer("last_seen_updater.postgres_time"):
+                update_count = _update_stale_last_seen(table, seen_ints)
+            self.__metrics.incr("last_seen_updater.updated_rows_count", amount=update_count)
+            logger.debug(f"{update_count} keys updated")
+
+        collect_step = Reduce(
             self.__max_batch_size,
             self.__max_batch_time,
+            accumulator,
+            initial_value,
+            RunTask(do_update, CommitOffsets(commit)),
         )
 
         return FilterStep(self.__should_accept, TransformStep(retrieve_db_read_keys, collect_step))
