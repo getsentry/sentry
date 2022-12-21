@@ -75,7 +75,10 @@ function ProfileFlamegraph(): React.ReactElement {
 
   const spanTree: SpanTree = useMemo(() => {
     if (profiledTransaction.type === 'resolved' && profiledTransaction.data) {
-      return new SpanTree(collectAllSpanEntriesFromTransaction(profiledTransaction.data));
+      return new SpanTree(
+        profiledTransaction.data,
+        collectAllSpanEntriesFromTransaction(profiledTransaction.data)
+      );
     }
 
     return LoadingSpanTree;
