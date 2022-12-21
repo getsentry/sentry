@@ -239,18 +239,33 @@ def _normalize(profile: Profile, organization: Organization) -> None:
 def _prepare_frames_from_profile(profile: Profile) -> Tuple[List[Any], List[Any]]:
     modules = profile["debug_meta"]["images"]
 
+    # NOTE: the usage of `instruction_addr_needs_adjustment` assumes that all
+    # the profilers on all the platforms are walking stacks right from a
+    # suspended threads cpu context
+
     # in the sample format, we have a frames key containing all the frames
     if "version" in profile:
-        stacktraces = [{"registers": {}, "frames": profile["profile"]["frames"]}]
+        frames = [dict(frame) for frame in profile["profile"]["frames"]]
+
+        for stack in profile["profile"]["stacks"]:
+            first_frame_idx = stack[0]
+            frames[first_frame_idx]["instruction_addr_needs_adjustment"] = False
+
+        stacktraces = [{"registers": {}, "frames": frames}]
     # in the original format, we need to gather frames from all samples
     else:
-        stacktraces = [
-            {
-                "registers": {},
-                "frames": s["frames"],
-            }
-            for s in profile["sampled_profile"]["samples"]
-        ]
+        stacktraces = []
+        for s in profile["sampled_profile"]["samples"]:
+            frames = [dict(frame) for frame in s["frames"]]
+
+            frames[0]["instruction_addr_needs_adjustment"] = False
+
+            stacktraces.append(
+                {
+                    "registers": {},
+                    "frames": frames,
+                }
+            )
     return (modules, stacktraces)
 
 
