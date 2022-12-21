@@ -80,11 +80,9 @@ class SpanTreeNode {
 
 class SpanTree {
   root: SpanTreeNode;
-  transaction: EventTransaction;
   orphanedSpans: RawSpanType[] = [];
 
   constructor(transaction: EventTransaction, spans: RawSpanType[]) {
-    this.transaction = transaction;
     this.root = SpanTreeNode.Root({
       description: transaction.title,
       start_timestamp: transaction.startTimestamp,
