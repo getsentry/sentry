@@ -3,6 +3,7 @@ import keyBy from 'lodash/keyBy';
 
 import {t} from 'sentry/locale';
 import {
+  EntrySpans,
   EntryType,
   EventTransaction,
   IssueCategory,
@@ -10,7 +11,7 @@ import {
   PlatformType,
 } from 'sentry/types';
 
-import {RawSpanType, SpanEntry} from '../spans/types';
+import {RawSpanType} from '../spans/types';
 
 import {ResourceLink} from './resources';
 import {TraceContextSpanProxy} from './spanEvidence';
@@ -96,10 +97,13 @@ export function getSpanInfoFromTransactionEvent(
   }
 
   // Let's dive into the event to pick off the span evidence data by using the IDs we know
-  const spanEntry = event.entries.find((entry: SpanEntry | any): entry is SpanEntry => {
+  const spanEntry = event.entries.find((entry: EntrySpans | any): entry is EntrySpans => {
     return entry.type === EntryType.SPANS;
   });
-  const spans: Array<RawSpanType | TraceContextSpanProxy> = [...spanEntry?.data] ?? [];
+
+  const spans: Array<RawSpanType | TraceContextSpanProxy> = spanEntry?.data
+    ? [...spanEntry.data]
+    : [];
 
   if (event?.contexts?.trace && event?.contexts?.trace?.span_id) {
     // TODO: Fix this conditional and check if span_id is ever actually undefined.

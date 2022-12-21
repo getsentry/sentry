@@ -35,7 +35,6 @@ from sentry.auth.superuser import is_active_superuser
 from sentry.constants import LOG_LEVELS
 from sentry.models import (
     ActorTuple,
-    ApiToken,
     Commit,
     Environment,
     Group,
@@ -55,6 +54,7 @@ from sentry.models import (
     Team,
     User,
 )
+from sentry.models.apitoken import is_api_token_auth
 from sentry.models.organizationmember import OrganizationMember
 from sentry.notifications.helpers import (
     collect_groups_by_project,
@@ -236,7 +236,9 @@ class GroupSerializerBase(Serializer, ABC):
         actor_ids = {r[-1] for r in release_resolutions.values()}
         actor_ids.update(r.actor_id for r in ignore_items.values())
         if actor_ids:
-            serialized_users = user_service.serialize_users(actor_ids, as_user=user, is_active=True)
+            serialized_users = user_service.serialize_users(
+                user_ids=actor_ids, as_user=user, is_active=True
+            )
             actors = {id: u for id, u in zip(actor_ids, serialized_users)}
         else:
             actors = {}
@@ -684,7 +686,7 @@ class GroupSerializerBase(Serializer, ABC):
         if (
             request
             and getattr(request.user, "is_sentry_app", False)
-            and isinstance(request.auth, ApiToken)
+            and is_api_token_auth(request.auth)
         ):
             if SentryAppInstallationToken.objects.has_organization_access(
                 request.auth, organization_id

@@ -10,6 +10,7 @@ from sentry.api.serializers import (
     UserSerializer,
     serialize,
 )
+from sentry.db.models.query import in_iexact
 from sentry.models import Project
 from sentry.models.group import Group
 from sentry.models.options.user_option import UserOption
@@ -19,15 +20,20 @@ from sentry.services.hybrid_cloud.user import APIUser, UserSerializeType, UserSe
 
 
 class DatabaseBackedUserService(UserService):
-    def get_many_by_email(self, email: str) -> List[APIUser]:
+    def get_many_by_email(
+        self, emails: List[str], is_active: bool = True, is_verified: bool = True
+    ) -> List[APIUser]:
+        query = self.__base_user_query()
+        if is_verified:
+            query = query.filter(emails__is_verified=is_verified)
+        if is_active:
+            query = query.filter(is_active=is_active)
         return [
             UserService.serialize_user(user)
-            for user in self.__base_user_query().filter(
-                emails__is_verified=True, is_active=True, emails__email__iexact=email
-            )
+            for user in query.filter(in_iexact("emails__email", emails))
         ]
 
-    def find_users(
+    def get_by_username(
         self, username: str, with_valid_password: bool = True, is_active: bool | None = None
     ) -> List[APIUser]:
         qs = User.objects
@@ -51,13 +57,16 @@ class DatabaseBackedUserService(UserService):
 
     def serialize_users(
         self,
-        user_ids: List[int],
         *,
         detailed: UserSerializeType = UserSerializeType.SIMPLE,
         auth_context: AuthenticationContext
         | None = None,  # TODO: replace this with the as_user attribute
         as_user: User | APIUser | None = None,
+        # Query filters:
+        user_ids: Optional[List[int]] = None,
         is_active: Optional[bool] = None,
+        organization_id: Optional[int] = None,
+        emails: Optional[List[str]] = None,
     ) -> List[Any]:
         if auth_context and not as_user:
             as_user = auth_context.user
@@ -68,11 +77,18 @@ class DatabaseBackedUserService(UserService):
         if detailed == UserSerializeType.SELF_DETAILED:
             serializer = DetailedSelfUserSerializer()
 
-        query = self.__base_user_query().filter(id__in=user_ids)
+        query = self.__base_user_query()
+        if user_ids is not None:
+            query = query.filter(id__in=user_ids)
         if is_active is not None:
             query = query.filter(is_active=is_active)
+        if organization_id is not None:
+            query = query.filter(sentry_orgmember_set__organization_id=organization_id)
+        if emails is not None:
+            query = query.filter(in_iexact("emails__email", emails))
+
         return serialize(  # type: ignore
-            list(self.__base_user_query().filter(id__in=user_ids)),
+            list(query),
             user=as_user,
             serializer=serializer,
         )

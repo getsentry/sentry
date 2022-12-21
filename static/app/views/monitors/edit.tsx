@@ -32,7 +32,7 @@ class EditMonitor extends AsyncView<Props, State> {
     this.setState(state => ({monitor: {...state.monitor, ...data}}));
 
   onSubmitSuccess = (data: Monitor) =>
-    browserHistory.push(`/organizations/${this.orgSlug}/monitors/${data.id}/`);
+    browserHistory.push(`/organizations/${this.orgSlug}/crons/${data.id}/`);
 
   getTitle() {
     if (this.state.monitor) {

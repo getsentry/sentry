@@ -260,7 +260,6 @@ class AuthIndexEndpoint(Endpoint):
         Deauthenticate all active sessions for this user.
         """
         # For signals to work here, we must promote the request.user to a full user object
-        request.user = _promote_request_api_user(request)
         logout(request._request)
         request.user = AnonymousUser()
         return Response(status=status.HTTP_204_NO_CONTENT)

@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -8,6 +9,7 @@ import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
 import AsyncView from 'sentry/views/asyncView';
 
+import CronsFeedbackButton from './cronsFeedbackButton';
 import MonitorForm from './monitorForm';
 import {Monitor} from './types';
 
@@ -26,32 +28,45 @@ class CreateMonitor extends AsyncView<Props, AsyncView['state']> {
   }
 
   onSubmitSuccess = (data: Monitor) => {
-    const url = normalizeUrl(`/organizations/${this.orgSlug}/monitors/${data.id}/`);
+    const url = normalizeUrl(`/organizations/${this.orgSlug}/crons/${data.id}/`);
     browserHistory.push(url);
   };
 
   renderBody() {
     return (
-      <Layout.Body>
-        <Layout.Main fullWidth>
-          <h1>{t('Set Up Cron Monitor')}</h1>
-          <HelpText>
-            {t(
-              `Sentry will tell you if your recurring jobs are running on schedule, failing, or succeeding.`
-            )}
-          </HelpText>
-          <MonitorForm
-            apiMethod="POST"
-            apiEndpoint={`/organizations/${this.orgSlug}/monitors/`}
-            onSubmitSuccess={this.onSubmitSuccess}
-            submitLabel={t('Next Steps')}
-          />
-        </Layout.Main>
-      </Layout.Body>
+      <Fragment>
+        <Layout.Header>
+          <Layout.HeaderContent>
+            <HeaderTitle>{t('Set Up Cron Monitor')}</HeaderTitle>
+          </Layout.HeaderContent>
+          <Layout.HeaderActions>
+            <CronsFeedbackButton />
+          </Layout.HeaderActions>
+        </Layout.Header>
+        <Layout.Body>
+          <Layout.Main fullWidth>
+            <HelpText>
+              {t(
+                `Sentry will tell you if your recurring jobs are running on schedule, failing, or succeeding.`
+              )}
+            </HelpText>
+            <MonitorForm
+              apiMethod="POST"
+              apiEndpoint={`/organizations/${this.orgSlug}/monitors/`}
+              onSubmitSuccess={this.onSubmitSuccess}
+              submitLabel={t('Next Steps')}
+            />
+          </Layout.Main>
+        </Layout.Body>
+      </Fragment>
     );
   }
 }
 export default withOrganization(CreateMonitor);
+
+const HeaderTitle = styled(Layout.Title)`
+  margin-top: 0;
+`;
 
 const HelpText = styled('p')`
   color: ${p => p.theme.subText};
