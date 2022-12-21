@@ -13,8 +13,6 @@ from sentry.utils import json
 
 FEATURES = {
     "projects:performance-suspect-spans-ingestion": True,
-    "organizations:performance-issues": True,
-    "organizations:performance-issues-ingest": True,
 }
 
 
@@ -28,8 +26,6 @@ class PerformanceIssuesTest(AcceptanceTestCase, SnubaTestCase):
         self.project = self.create_project(organization=self.org, teams=[self.team], name="Bengal")
         self.login_as(self.user)
 
-        options.set("performance.issues.all.problem-detection", 1.0)
-        options.set("performance.issues.all.problem-creation", 1.0)
         options.set("performance.issues.n_plus_one_db.problem-creation", 1.0)
 
         self.page = IssueDetailsPage(self.browser, self.client)

@@ -27,8 +27,6 @@ class ProjectPerformanceIssueSettingsEndpoint(ProjectEndpoint):
     def has_feature(self, project, request) -> bool:
         return features.has(
             "organizations:performance-view", project.organization, actor=request.user
-        ) and features.has(
-            "organizations:performance-issues", project.organization, actor=request.user
         )
 
     def get(self, request: Request, project) -> Response:
