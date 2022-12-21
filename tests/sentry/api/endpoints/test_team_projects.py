@@ -1,7 +1,9 @@
 from django.urls import reverse
 
 from sentry.models import Project, Rule
+from sentry.notifications.types import FallthroughChoiceType
 from sentry.testutils import APITestCase
+from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import region_silo_test
 
 
@@ -100,6 +102,26 @@ class TeamProjectsCreateTest(APITestCase):
         assert project.slug
 
         assert not Rule.objects.filter(project=project).exists()
+
+    @with_feature("organizations:issue-alert-fallback-targeting")
+    def test_with_default_rule_fallback_targeting(self):
+        user = self.create_user()
+        org = self.create_organization(owner=user)
+        team1 = self.create_team(organization=org, name="foo")
+
+        path = f"/api/0/teams/{org.slug}/{team1.slug}/projects/"
+
+        self.login_as(user=user)
+
+        response = self.client.post(path, data={"name": "Test Project", "default_rules": True})
+
+        assert response.status_code == 201, response.content
+        project = Project.objects.get(id=response.data["id"])
+
+        rule = Rule.objects.filter(project=project).first()
+        assert (
+            rule.data["actions"][0]["fallthroughType"] == FallthroughChoiceType.ACTIVE_MEMBERS.value
+        )
 
     def test_with_duplicate_explicit_slug(self):
         user = self.create_user()
