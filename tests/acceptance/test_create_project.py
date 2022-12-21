@@ -49,7 +49,7 @@ class CreateProjectTest(AcceptanceTestCase):
         self.browser.element("[role='dialog'] form").submit()
 
         # After creating team, should end up in onboarding screen
-        self.browser.wait_until(xpath='//span[text()="#new-team"]')
+        self.browser.wait_until(xpath='//div[text()="#new-team"]')
         self.browser.snapshot(name="create project no teams - after create team")
 
     def test_many_teams(self):
