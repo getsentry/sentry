@@ -45,7 +45,8 @@ from sentry.notifications.notifications.digest import DigestNotification
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.notifications.utils import get_group_settings_link, get_interface_list, get_rules
 from sentry.testutils.helpers import override_options
-from sentry.types.issues import GROUP_TYPE_TO_TEXT
+from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
+from sentry.types.issues import GROUP_TYPE_TO_TEXT, GroupType
 from sentry.utils import json, loremipsum
 from sentry.utils.dates import to_datetime, to_timestamp
 from sentry.utils.email import MessageBuilder, inline_css
@@ -173,7 +174,7 @@ def make_error_event(request, project, platform):
         ("level", "error"),
         ("device", "Other"),
     ]
-
+    data["title"] = "meow"
     event_manager = EventManager(data)
     event_manager.normalize()
     data = event_manager.get_data()
@@ -207,13 +208,15 @@ def make_performance_event(project):
     perf_event = perf_event.for_group(perf_event.groups[0])
     return perf_event
 
+
 def add_occurrence(event, project_id):
     import uuid
-    from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
-    from sentry.utils.dates import ensure_aware
-    from sentry.types.issues import GroupType
     from datetime import datetime
+
+    from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
     from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
+    from sentry.types.issues import GroupType
+    from sentry.utils.dates import ensure_aware
 
     # need to already have an event, or make one
     # event = event.for_group(event.groups[0])
@@ -221,6 +224,7 @@ def add_occurrence(event, project_id):
     occurrence.save(project_id)
     event.occurrence = occurrence
     event.group.type = GroupType.PROFILE_BLOCKED_THREAD
+
 
 def get_shared_context(rule, org, project, group, event):
     return {
@@ -548,30 +552,57 @@ def digest(request):
         state["event_counts"][perf_group.id] = random.randint(10, 1e4)
         state["user_counts"][perf_group.id] = random.randint(10, 1e4)
 
-    # add in generic events w/ occurrences
-    # for i in range(random.randint(1, 3)):
-    #     generic_event = make_error_event(request, project, "python")
-    #     add_occurrence(generic_event, project.id)
-    #     # don't clobber error issue ids
-    #     generic_event.group.id = i + 100
-    #     generic_group = generic_event.group
+    # add in generic issues
+    for i in range(random.randint(1, 30)):
+        # generic_event = make_error_event(request, project, "python")
+        # generic_event.for_group(generic_event.groups[0])
+        # occurrence = TEST_ISSUE_OCCURRENCE
+        # occurrence.save(project.id)
+        # generic_event.occurrence = occurrence
+        # # don't clobber error or perf issue ids
+        # generic_event.group.id = i + 200
+        # generic_group = generic_event.group
+        generic_event = make_error_event(request, project, "python")
+        generic_event = generic_event.for_group(generic_event.groups[0])
+        occurrence = TEST_ISSUE_OCCURRENCE
+        # occurrence = IssueOccurrence(
+        #     uuid.uuid4().hex,
+        #     uuid.uuid4().hex,
+        #     ["some-fingerprint"],
+        #     "something bad happened",
+        #     "it was bad",
+        #     "1234",
+        #     {"Test": 123},
+        #     [
+        #         IssueEvidence("Name 1", "Value 1", True),
+        #         IssueEvidence("Name 2", "Value 2", False),
+        #         IssueEvidence("Name 3", "Value 3", False),
+        #     ],
+        #     GroupType.PROFILE_BLOCKED_THREAD,
+        #     ensure_aware(datetime.now()),
+        # )
+        occurrence.save(project.id)
+        generic_event.occurrence = occurrence
+        generic_event.group.type = GroupType.PROFILE_BLOCKED_THREAD
+        generic_group = generic_event.group
+        # generic_group.title = occurrence.issue_title
 
-    #     records.append(
-    #         Record(
-    #             generic_event.event_id,
-    #             Notification(
-    #                 generic_event,
-    #                 random.sample(
-    #                     list(state["rules"].keys()), random.randint(1, len(state["rules"]))
-    #                 ),
-    #             ),
-    #             # this is required for acceptance tests to pass as the EventManager won't accept a timestamp in the past
-    #             to_timestamp(datetime(2016, 6, 22, 16, 16, 0, tzinfo=timezone.utc)),
-    #         )
-    #     )
-    #     state["groups"][generic_group.id] = generic_group
-    #     state["event_counts"][generic_group.id] = random.randint(10, 1e4)
-    #     state["user_counts"][generic_group.id] = random.randint(10, 1e4)
+        records.append(
+            Record(
+                generic_event.event_id,
+                Notification(
+                    generic_event,
+                    random.sample(
+                        list(state["rules"].keys()), random.randint(1, len(state["rules"]))
+                    ),
+                ),
+                # this is required for acceptance tests to pass as the EventManager won't accept a timestamp in the past
+                to_timestamp(datetime(2016, 6, 22, 16, 16, 0, tzinfo=timezone.utc)),
+            )
+        )
+        state["groups"][generic_group.id] = generic_group
+        state["event_counts"][generic_group.id] = random.randint(10, 1e4)
+        state["user_counts"][generic_group.id] = random.randint(10, 1e4)
 
     digest = build_digest(project, records, state)[0]
     start, end, counts = get_digest_metadata(digest)
