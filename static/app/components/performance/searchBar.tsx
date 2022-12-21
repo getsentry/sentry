@@ -55,9 +55,7 @@ function SearchBar(props: SearchBarProps) {
 
     document.addEventListener('pointerup', handleBackgroundPointerUp);
 
-    return () => {
-      document.removeEventListener('pointerup', handleBackgroundPointerUp);
-    };
+    return () => document.removeEventListener('pointerup', handleBackgroundPointerUp);
   }, [containerRef]);
 
   const handleSearchChange = query => {
