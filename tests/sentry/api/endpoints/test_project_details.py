@@ -1205,7 +1205,19 @@ class TestProjectDetailsDynamicSamplingRules(TestProjectDetailsDynamicSamplingBa
         token = ApiToken.objects.create(user=self.user, scope_list=["project:write"])
         self.authorization = f"Bearer {token.token}"
 
-    def test_get_dynamic_sampling_rules_for_stuff_user(self):
+    @mock.patch("sentry.dynamic_sampling.rules_generator.quotas.get_blended_sample_rate")
+    def test_get_dynamic_sampling_rules_for_stuff_user(self, get_blended_sample_rate):
+        get_blended_sample_rate.return_value = 0.1
+        new_biases = [
+            {"id": "boostEnvironments", "active": True},
+            {
+                "id": "boostLatestRelease",
+                "active": False,
+            },
+            {"id": "ignoreHealthChecks", "active": False},
+            {"id": "boostKeyTransactions", "active": False},
+        ]
+        self.project.update_option("sentry:dynamic_sampling_biases", new_biases)
         with Feature(
             {
                 self.new_ds_flag: True,
@@ -1217,7 +1229,12 @@ class TestProjectDetailsDynamicSamplingRules(TestProjectDetailsDynamicSamplingBa
                 method="get",
                 includeDynamicSamplingRules=1,
             )
-            assert len(response.data["dynamicSamplingRules"]) == 3
+            # we expect 2 rules 1 for boostEnvironments and uniform rule
+            assert len(response.data["dynamicSamplingRules"]) == 2
+            # 1001 is dev bias rule id
+            assert response.data["dynamicSamplingRules"][0]["id"] == 1001
+            # 1000 uniform rule id
+            assert response.data["dynamicSamplingRules"][1]["id"] == 1000
 
     def test_get_dynamic_sampling_rules_disabled_if_no_feature_flag(self):
         with Feature(
