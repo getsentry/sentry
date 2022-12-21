@@ -1773,7 +1773,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
     def test_team_key_transaction_as_condition(self):
         now = timezone.now()
 
-        for idx, (transaction, value) in enumerate(
+        for minutes, (transaction, value) in enumerate(
             (("foo_transaction", 1), ("bar_transaction", 1), ("baz_transaction", 0.5))
         ):
             self.store_performance_metric(
@@ -1781,7 +1781,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                 name=TransactionMRI.DURATION.value,
                 tags={"transaction": transaction},
                 value=value,
-                minutes_before_now=idx,
+                minutes_before_now=minutes,
             )
 
         metrics_query = MetricsQuery(
