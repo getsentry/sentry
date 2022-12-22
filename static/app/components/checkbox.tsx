@@ -94,6 +94,7 @@ const StyledCheckbox = styled('div')<{
   display: flex;
   align-items: center;
   justify-content: center;
+  color: inherit;
   box-shadow: ${p => p.theme.dropShadowLight} inset;
   width: ${p => checkboxSizeMap[p.size].box};
   height: ${p => checkboxSizeMap[p.size].box};
