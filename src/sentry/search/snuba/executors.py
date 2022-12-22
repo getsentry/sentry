@@ -40,9 +40,10 @@ from sentry.issues.search import (
     IntermediateSearchQueryPartial,
     MergeableRow,
     SearchQueryPartial,
+    _query_params_for_generic,
     group_categories_from,
 )
-from sentry.models import Environment, Group, Project
+from sentry.models import Environment, Group, Organization, Project
 from sentry.search.events.fields import DateArg
 from sentry.search.events.filter import convert_search_filter_to_snuba_query
 from sentry.search.utils import validate_cdc_search_filters
@@ -208,8 +209,10 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         cursor: Optional[Cursor],
         get_sample: bool,
     ) -> SnubaQueryParams:
-        # remove filters not relevant to the group_category
-        search_filters = SEARCH_FILTER_UPDATERS[group_category](search_filters)
+
+        if group_category in SEARCH_FILTER_UPDATERS:
+            # remove filters not relevant to the group_category
+            search_filters = SEARCH_FILTER_UPDATERS[group_category](search_filters)
 
         # convert search_filters to snuba format
         converted_filters = self._convert_search_filters(
@@ -252,7 +255,8 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
             ),
         )
 
-        return SEARCH_STRATEGIES[group_category](
+        strategy = SEARCH_STRATEGIES.get(group_category, _query_params_for_generic)
+        return strategy(
             pinned_query_partial,
             selected_columns,
             aggregations,
@@ -271,7 +275,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         project_ids: Sequence[int],
         environment_ids: Optional[Sequence[int]],
         sort_field: str,
-        organization_id: int,
+        organization: Organization,
         cursor: Optional[Cursor] = None,
         group_ids: Optional[Sequence[int]] = None,
         limit: Optional[int] = None,
@@ -292,7 +296,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
             filters["environment"] = environment_ids
             environments = list(
                 Environment.objects.filter(
-                    organization_id=organization_id, id__in=environment_ids
+                    organization_id=organization.id, id__in=environment_ids
                 ).values_list("name", flat=True)
             )
 
@@ -322,11 +326,19 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         )
 
         group_categories = group_categories_from(search_filters)
+
+        if not group_categories:
+            group_categories = {
+                gc
+                for gc in SEARCH_STRATEGIES.keys()
+                if gc != GroupCategory.PROFILE
+                or features.has("organizations:issue-platform", organization)
+            }
         query_params_for_categories = [
             self._prepare_params_for_category(
                 gc,
                 query_partial,
-                organization_id,
+                organization.id,
                 project_ids,
                 environments,
                 group_ids,
@@ -338,7 +350,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
                 cursor,
                 get_sample,
             )
-            for gc in (SEARCH_STRATEGIES.keys() if not group_categories else group_categories)
+            for gc in group_categories
         ]
 
         query_params_for_categories = [
@@ -604,7 +616,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
                 end=end,
                 project_ids=[p.id for p in projects],
                 environment_ids=environments and [environment.id for environment in environments],
-                organization_id=projects[0].organization_id,
+                organization=projects[0].organization,
                 sort_field=sort_field,
                 cursor=cursor,
                 group_ids=group_ids,
@@ -752,7 +764,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
                 end=end,
                 project_ids=[p.id for p in projects],
                 environment_ids=environments and [environment.id for environment in environments],
-                organization_id=projects[0].organization_id,
+                organization=projects[0].organization,
                 sort_field=sort_field,
                 limit=sample_size,
                 offset=0,
