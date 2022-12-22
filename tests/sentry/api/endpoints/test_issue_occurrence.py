@@ -2,10 +2,12 @@ from datetime import datetime
 
 from sentry.models import OrganizationMemberTeam
 from sentry.testutils import APITestCase
+from sentry.testutils.silo import region_silo_test
 from sentry.types.issues import GroupType
 from sentry.utils.dates import ensure_aware
 
 
+@region_silo_test(stable=True)
 class IssueOccurrenceTest(APITestCase):
     def setUp(self):
         super().setUp()
