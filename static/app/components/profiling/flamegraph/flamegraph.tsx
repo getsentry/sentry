@@ -283,14 +283,14 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
         options: {
           inverted: false,
           minWidth: spanChart.minSpanDuration,
-          barHeight: 16,
+          barHeight: flamegraphTheme.SIZES.SPANS_BAR_HEIGHT,
           depthOffset: 0,
         },
       });
 
       return newView;
     },
-    [spanChart, spansCanvas]
+    [spanChart, spansCanvas, flamegraphTheme.SIZES.SPANS_BAR_HEIGHT]
   );
 
   useEffect(() => {
