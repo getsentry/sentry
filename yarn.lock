@@ -3968,7 +3968,7 @@
   dependencies:
     "@types/react" "*"
 
-"@types/react-dom@*", "@types/react-dom@>=16", "@types/react-dom@^16 || ^17", "@types/react-dom@~17.0.9":
+"@types/react-dom@*", "@types/react-dom@>=16", "@types/react-dom@~17.0.9":
   version "17.0.9"
   resolved "https://registry.yarnpkg.com/@types/react-dom/-/react-dom-17.0.9.tgz#441a981da9d7be117042e1a6fd3dac4b30f55add"
   integrity sha512-wIvGxLfgpVDSAMH5utdL9Ngm5Owu0VsGmldro3ORLXV8CShrL8awVj06NuEXFQ5xyaYfdca7Sgbk/50Ri1GdPg==
@@ -4029,7 +4029,7 @@
     "@types/prop-types" "*"
     "@types/react" "*"
 
-"@types/react@*", "@types/react@>=16", "@types/react@^16 || ^17", "@types/react@~17.0.14":
+"@types/react@*", "@types/react@>=16", "@types/react@~17.0.14":
   version "17.0.21"
   resolved "https://registry.yarnpkg.com/@types/react/-/react-17.0.21.tgz#069c43177cd419afaab5ce26bb4e9056549f7ea6"
   integrity sha512-GzzXCpOthOjXvrAUFQwU/svyxu658cwu00Q9ugujS4qc1zXgLFaO0kS2SLOaMWLt2Jik781yuHCWB7UcYdGAeQ==
@@ -11798,14 +11798,13 @@ platform@^1.3.3:
   resolved "https://registry.yarnpkg.com/platform/-/platform-1.3.6.tgz#48b4ce983164b209c2d45a107adb31f473a6e7a7"
   integrity sha512-fnWVljUchTro6RiCFvCXBbNhJc2NijN7oIQxbwsyL0buWJPG85v81ehlHI9fXrJsMNgTofEoWIQeClKpgxFLrg==
 
-platformicons@^5.2.3:
-  version "5.2.3"
-  resolved "https://registry.yarnpkg.com/platformicons/-/platformicons-5.2.3.tgz#180f85a0a973cad36dd9a8abe30b5f38461f3a6e"
-  integrity sha512-8bQtN1qWQJ0wI2p9+xpCOtjCupuJ9HeNzbabRVO5fmivjyvwRxQPDbOS3G5GmKZH1PvZaMyFxWG1mLawgWDGxQ==
+platformicons@^5.4.0:
+  version "5.4.0"
+  resolved "https://registry.yarnpkg.com/platformicons/-/platformicons-5.4.0.tgz#27ee813e4e1ce9e1bcf01a6e52c237520f4cc4e3"
+  integrity sha512-IzSW9Rn0lAqb6voHuaOtqNKaFHVO00Cm2cfLXOugye/em7xiFfAEL7mzeyYYZ1eTqiGSA+YO9ak+Psv+B6xAlg==
   dependencies:
     "@types/node" "*"
-    "@types/react" "^16 || ^17"
-    "@types/react-dom" "^16 || ^17"
+    "@types/react" "*"
 
 pnp-webpack-plugin@1.6.4:
   version "1.6.4"
