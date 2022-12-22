@@ -29,7 +29,10 @@ class DatabaseBackedIntegrationService(IntegrationService):
         self, oi: OrganizationIntegration
     ) -> APIOrganizationIntegration:
         return APIOrganizationIntegration(
-            id=oi.id, organization_id=oi.organization_id, integration_id=oi.integration_id
+            id=oi.id,
+            organization_id=oi.organization_id,
+            integration_id=oi.integration_id,
+            config=oi.config,
         )
 
     def get_by_provider_id(self, provider: str, external_id: str) -> APIIntegration | None:

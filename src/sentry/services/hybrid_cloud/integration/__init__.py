@@ -22,6 +22,7 @@ class APIOrganizationIntegration:
     id: int
     organization_id: int
     integration_id: int
+    config: Mapping[str, Any]
 
 
 class IntegrationService(InterfaceWithLifecycle):
