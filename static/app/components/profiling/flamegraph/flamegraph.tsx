@@ -278,18 +278,19 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
 
       const newView = new CanvasView({
         canvas: spansCanvas,
+        configSpace: spanChart.configSpace,
         model: spanChart,
         options: {
           inverted: false,
           minWidth: spanChart.minSpanDuration,
-          barHeight: flamegraphTheme.SIZES.SPANS_BAR_HEIGHT,
-          depthOffset: flamegraphTheme.SIZES.SPANS_DEPTH_OFFSET,
+          barHeight: 16,
+          depthOffset: 0,
         },
       });
 
       return newView;
     },
-    [spanChart, spansCanvas, flamegraphTheme.SIZES]
+    [spanChart, spansCanvas]
   );
 
   useEffect(() => {
