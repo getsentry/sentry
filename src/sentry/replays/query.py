@@ -302,7 +302,6 @@ class ReplayQueryConfig(QueryConfig):
     replay_id = String(field_alias="id")
     replay_type = String(field_alias="replayType", query_alias="replayType")
     platform = String()
-    agg_environment = String(field_alias="environment")
     releases = ListField()
     dist = String()
     error_ids = ListField(field_alias="errorIds", query_alias="error_ids", is_uuid=True)
@@ -327,6 +326,7 @@ class ReplayQueryConfig(QueryConfig):
     tags = Tag(field_alias="*")
 
     # Sort keys
+    agg_environment = String(field_alias="environment", is_filterable=False)
     started_at = String(name="startedAt", is_filterable=False)
     finished_at = String(name="finishedAt", is_filterable=False)
     # Dedicated url parameter should be used.
