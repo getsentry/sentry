@@ -5,14 +5,14 @@ import {IconQuestion} from 'sentry/icons';
 import type {Color, IconSize} from 'sentry/utils/theme';
 
 type ContainerProps = {
-  size: IconSize | string;
+  size: IconSize;
   className?: string;
 };
 
 const QuestionIconContainer = styled('span')<ContainerProps>`
   display: inline-block;
-  height: ${p => p.theme.iconSizes[p.size] ?? p.size};
-  line-height: ${p => p.theme.iconSizes[p.size] ?? p.size};
+  height: ${p => p.theme.iconSizes[p.size]};
+  line-height: ${p => p.theme.iconSizes[p.size]};
 
   & svg {
     transition: 120ms opacity;
@@ -26,7 +26,7 @@ const QuestionIconContainer = styled('span')<ContainerProps>`
 `;
 
 type QuestionProps = {
-  size: string;
+  size: IconSize;
   title: React.ReactNode;
   className?: string;
   color?: Color;

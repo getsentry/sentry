@@ -77,7 +77,7 @@ const SidebarDropdown = ({
       />
     ) : (
       <SentryLink to="/">
-        <IconSentry size="32px" />
+        <IconSentry size="xl" />
       </SentryLink>
     );
 

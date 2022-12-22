@@ -12,7 +12,6 @@ import {IconSettings, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {DataCategory, Project} from 'sentry/types';
-import theme from 'sentry/utils/theme';
 
 import {formatUsageWithUnits} from '../utils';
 
@@ -83,7 +82,7 @@ class UsageTable extends Component<Props> {
           />
         </Link>
         <SettingsIconLink to={stat.projectSettingsLink}>
-          <IconSettings size={theme.iconSizes.sm} />
+          <IconSettings size="sm" />
         </SettingsIconLink>
       </CellProject>,
       <CellStat key={1}>

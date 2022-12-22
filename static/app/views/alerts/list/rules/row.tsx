@@ -238,7 +238,7 @@ function RuleListRow({
     value: '',
     label: () => (
       <MenuItemWrapper>
-        <StyledIconUser size="20px" />
+        <StyledIconUser size="md" />
         {t('Unassigned')}
       </MenuItemWrapper>
     ),
@@ -293,7 +293,7 @@ function RuleListRow({
     />
   ) : (
     <Tooltip isHoverable skipWrapper title={t('Unassigned')}>
-      <StyledIconUser size="20px" color="gray400" />
+      <StyledIconUser size="md" color="gray400" />
     </Tooltip>
   );
 
