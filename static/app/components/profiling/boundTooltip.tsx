@@ -3,7 +3,8 @@ import styled from '@emotion/styled';
 import {vec2} from 'gl-matrix';
 
 import space from 'sentry/styles/space';
-import {FlamegraphView} from 'sentry/utils/profiling/canvasView';
+import {CanvasView} from 'sentry/utils/profiling/canvasView';
+import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
 import {Rect} from 'sentry/utils/profiling/gl/utils';
@@ -34,6 +35,8 @@ interface BoundTooltipProps {
   canvas: FlamegraphCanvas;
   canvasView: CanvasView<any>;
   cursor: vec2;
+  flamegraphCanvas: FlamegraphCanvas;
+  flamegraphView: CanvasView<Flamegraph>;
   children?: React.ReactNode;
 }
 
