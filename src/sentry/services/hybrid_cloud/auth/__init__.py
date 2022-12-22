@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 from enum import IntEnum
 from typing import TYPE_CHECKING, Any, Dict, Generator, List, Mapping, Tuple, Type
 
-from django.contrib.auth.models import AnonymousUser, User
+from django.contrib.auth.models import AnonymousUser
 from rest_framework.authentication import BaseAuthentication
 from rest_framework.request import Request
 
@@ -20,7 +20,7 @@ from sentry.silo import SiloMode
 from sentry.utils.linksign import find_signature
 
 if TYPE_CHECKING:
-    from sentry.models import OrganizationMember
+    from sentry.models import OrganizationMember, User
 
 
 class ApiAuthenticatorType(IntEnum):
