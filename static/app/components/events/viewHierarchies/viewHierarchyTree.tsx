@@ -1,4 +1,4 @@
-import {ReactNode} from 'react';
+import {ReactNode, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {IconAdd, IconSubtract} from 'sentry/icons';
@@ -10,9 +10,8 @@ type NodeProps = {
   children?: ReactNode[];
 };
 
-const isExpanded = true;
-
 function Node({type, children}: NodeProps) {
+  const [isExpanded, setIsExpanded] = useState(true);
   return (
     <NodeContents>
       <div>
@@ -22,6 +21,7 @@ function Node({type, children}: NodeProps) {
             isExpanded={isExpanded}
             onClick={evt => {
               evt.preventDefault();
+              setIsExpanded(!isExpanded);
             }}
           >
             {isExpanded ? (
@@ -33,7 +33,7 @@ function Node({type, children}: NodeProps) {
         )}
         {type}
       </div>
-      {children}
+      {isExpanded && children}
     </NodeContents>
   );
 }
