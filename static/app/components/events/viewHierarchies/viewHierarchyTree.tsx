@@ -46,7 +46,7 @@ function Tree({hierarchy}) {
   return (
     <Node type={hierarchy.type}>
       {hierarchy.children.map(element => (
-        <Tree key={element.type} hierarchy={element} />
+        <Tree key={element.id} hierarchy={element} />
       ))}
     </Node>
   );
@@ -55,7 +55,6 @@ function Tree({hierarchy}) {
 function ViewHierarchyContainer({hierarchy}) {
   return (
     <Container>
-      {/* <pre>{JSON.stringify(hierarchy, null, 2)}</pre> */}
       <Tree hierarchy={hierarchy} />
     </Container>
   );

@@ -372,13 +372,16 @@ const EventEntries = ({
       {event && !objectIsEmpty(event.context) && <EventExtraData event={event} />}
       {event && !objectIsEmpty(event.packages) && <EventPackageData event={event} />}
       {event && !objectIsEmpty(event.device) && <EventDevice event={event} />}
-      {hasEventAttachmentsFeature && (
-        <EventViewHierarchy
-          viewHierarchies={attachments.filter(
-            attachment => attachment.type === 'event.view_hierarchy'
-          )}
-        />
-      )}
+      {!isShare &&
+        organization.features?.includes('mobile-view-hierarchies') &&
+        hasEventAttachmentsFeature &&
+        attachments.filter(attachment => attachment.type === 'event.view_hierarchy') && (
+          <EventViewHierarchy
+            viewHierarchies={attachments.filter(
+              attachment => attachment.type === 'event.view_hierarchy'
+            )}
+          />
+        )}
       {!isShare && hasEventAttachmentsFeature && (
         <EventAttachments
           event={event}
