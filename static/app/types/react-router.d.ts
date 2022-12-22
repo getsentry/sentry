@@ -1,4 +1,4 @@
-import type {ComponentClass, ComponentType, StatelessComponent} from 'react';
+import type {ComponentClass, ComponentType, FunctionComponent} from 'react';
 import type {InjectedRouter, PlainRoute, WithRouterProps} from 'react-router';
 import type {Location} from 'history';
 
@@ -25,7 +25,7 @@ declare module 'react-router' {
 
   type ComponentConstructor<P> =
     | ComponentClass<P>
-    | StatelessComponent<P>
+    | FunctionComponent<P>
     | ComponentType<P>;
 
   declare function withRouter<P extends WithRouterProps>(
