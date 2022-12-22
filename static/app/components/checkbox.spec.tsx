@@ -26,7 +26,7 @@ describe('Checkbox', function () {
     });
 
     it('indeterminate state', async function () {
-      const {container} = render(<Checkbox {...defaultProps} checked />);
+      const {container} = render(<Checkbox {...defaultProps} checked="indeterminate" />);
 
       expect(await screen.findByRole('checkbox')).toBeInTheDocument();
       expect(container).toSnapshot();

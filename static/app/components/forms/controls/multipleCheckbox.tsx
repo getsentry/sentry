@@ -2,6 +2,7 @@ import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
 import Checkbox from 'sentry/components/checkbox';
+import space from 'sentry/styles/space';
 import {Choices} from 'sentry/types';
 import {defined} from 'sentry/utils';
 
@@ -21,7 +22,7 @@ const Label = styled('label')`
 `;
 
 const CheckboxLabel = styled('span')`
-  margin-left: 3px;
+  margin-left: ${space(1)};
 `;
 
 type SelectedValue = (string | number)[];

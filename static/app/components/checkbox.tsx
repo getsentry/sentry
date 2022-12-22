@@ -99,7 +99,7 @@ const StyledCheckbox = styled('div')<{
   width: ${p => checkboxSizeMap[p.size].box};
   height: ${p => checkboxSizeMap[p.size].box};
   border-radius: ${p => checkboxSizeMap[p.size].borderRadius};
-  background: ${p => (p.checked ? p.theme.active : 'transparent')};
+  background: ${p => (p.checked ? p.theme.active : p.theme.background)};
   border: 1px solid ${p => (p.checked ? p.theme.active : p.theme.gray200)};
   pointer-events: none;
 `;
