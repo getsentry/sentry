@@ -17,10 +17,8 @@ from sentry.utils.performance_issues.performance_detection import (
     PerformanceProblem,
     _detect_performance_problems,
     detect_performance_problems,
-    prepare_problem_for_grouping,
     total_span_time,
 )
-from sentry.utils.performance_issues.performance_span_issue import PerformanceSpanProblem
 
 BASE_DETECTOR_OPTIONS = {
     "performance.issues.n_plus_one_db.problem-creation": 1.0,
@@ -302,26 +300,6 @@ class PerformanceDetectionTest(unittest.TestCase):
         truncated_duplicates_event = EVENTS["n-plus-one-in-django-new-view-truncated-duplicates"]
         _detect_performance_problems(truncated_duplicates_event, Mock())
         incr_mock.assert_has_calls([call("performance.performance_issue.truncated_np1_db")])
-
-
-class PrepareProblemForGroupingTest(unittest.TestCase):
-    def test(self):
-        n_plus_one_event = EVENTS["n-plus-one-in-django-index-view"]
-        assert prepare_problem_for_grouping(
-            PerformanceSpanProblem(
-                "97b250f72d59f230", "http.client", ["b3fdeea42536dbf1", "b2d4826e7b618f1b"], "hello"
-            ),
-            n_plus_one_event,
-            DetectorType.N_PLUS_ONE_DB_QUERIES,
-        ) == PerformanceProblem(
-            fingerprint="1-GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES-562b149a55f0c195bd0a5fb5d7d9f9baea86ecea",
-            op="db",
-            type=GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
-            desc="SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21",
-            parent_span_ids=None,
-            cause_span_ids=None,
-            offender_span_ids=["b3fdeea42536dbf1", "b2d4826e7b618f1b"],
-        )
 
 
 @region_silo_test

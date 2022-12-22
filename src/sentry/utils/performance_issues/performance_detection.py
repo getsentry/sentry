@@ -354,10 +354,7 @@ def _detect_performance_problems(data: Event, sdk_span: Any) -> List[Performance
     metrics.incr("performance.performance_issue.pretruncated", len(detected_problems))
     metrics.incr("performance.performance_issue.truncated", len(truncated_problems))
 
-    performance_problems = [
-        prepare_problem_for_grouping(problem, data, detector_type)
-        for problem, detector_type in truncated_problems
-    ]
+    performance_problems = [problem for problem, _detector_type in truncated_problems]
 
     # Leans on Set to remove duplicate problems when extending a detector, since the new extended detector can overlap in terms of created issues.
     unique_performance_problems = set(performance_problems)
@@ -399,41 +396,6 @@ def get_allowed_issue_creation_detectors(project_id: str):
             allowed_detectors.add(detector_type)
 
     return allowed_detectors
-
-
-def prepare_problem_for_grouping(
-    problem: Union[PerformanceProblem, PerformanceSpanProblem],
-    data: Event,
-    detector_type: DetectorType,
-) -> PerformanceProblem:
-    # Don't transform if the caller has already done the work for us.
-    # (TBD: All detectors should get updated to just return PerformanceProblem directly)
-    if isinstance(problem, PerformanceProblem):
-        return problem
-
-    transaction_name = data.get("transaction")
-    spans_involved = problem.spans_involved
-    first_span_id = spans_involved[0]
-    spans = data.get("spans", [])
-    first_span = next((span for span in spans if span["span_id"] == first_span_id), None)
-    op = first_span["op"]
-    hash = first_span["hash"]
-    desc = first_span["description"]
-
-    group_type = DETECTOR_TYPE_TO_GROUP_TYPE[detector_type]
-    group_fingerprint = fingerprint_group(transaction_name, op, hash, group_type)
-
-    prepared_problem = PerformanceProblem(
-        fingerprint=group_fingerprint,
-        op=op,
-        desc=desc,
-        type=group_type,
-        parent_span_ids=None,
-        cause_span_ids=None,
-        offender_span_ids=spans_involved,
-    )
-
-    return prepared_problem
 
 
 def fingerprint_group(transaction_name, span_op, hash, problem_class):
