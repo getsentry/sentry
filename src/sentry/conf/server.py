@@ -1190,6 +1190,8 @@ SENTRY_FEATURES = {
     "organizations:dynamic-sampling": False,
     # Enable View Hierarchies in issue details page
     "organizations:mobile-view-hierarchies": False,
+    # Enable the onboarding heartbeat footer on the sdk setup page
+    "organizations:onboarding-heartbeat-footer": False,
     # Enable ANR rates in project details page
     "organizations:anr-rate": False,
     # Enable deobfuscating exception values in Java issues
@@ -2270,7 +2272,7 @@ GITHUB_ORGANIZATION = DEAD
 SUDO_URL = "sentry-sudo"
 
 # Endpoint to https://github.com/getsentry/sentry-release-registry, used for
-# alerting the user on outdated SDKs.
+# alerting the user of outdated SDKs.
 SENTRY_RELEASE_REGISTRY_BASEURL = None
 
 # Hardcoded SDK versions for SDKs that do not have an entry in the release

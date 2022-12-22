@@ -61,7 +61,7 @@ function Field({
   const helpElement = typeof help === 'function' ? help(props) : help;
   const shouldRenderLabel = !hideLabel && !!label;
 
-  const controlProps = {
+  const controlWrapperProps = {
     inline,
     alignRight,
     disabledReason,
@@ -75,9 +75,9 @@ function Field({
   // See comments in prop types
   const control =
     typeof children === 'function' ? (
-      children({...props, ...controlProps})
+      children({...props, ...controlWrapperProps})
     ) : (
-      <FieldControl {...controlProps}>{children}</FieldControl>
+      <FieldControl {...controlWrapperProps}>{children}</FieldControl>
     );
 
   // Provide an `aria-label` to the FieldDescription label if our label is a
