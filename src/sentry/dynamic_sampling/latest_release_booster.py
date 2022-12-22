@@ -148,7 +148,7 @@ class ProjectBoostedReleases:
         Checks whether a specific project has boosted releases.
         """
         cache_key = self._generate_cache_key_for_boosted_releases_hash()
-        return self.redis_client.exists(cache_key) == 1
+        return bool(self.redis_client.exists(cache_key) == 1)
 
     def add_boosted_release(self, release_id: int, environment: Optional[str]) -> None:
         """
