@@ -195,6 +195,7 @@ default_manager.add("organizations:integrations-issue-basic", OrganizationFeatur
 default_manager.add("organizations:integrations-issue-sync", OrganizationFeature)
 default_manager.add("organizations:integrations-stacktrace-link", OrganizationFeature)
 default_manager.add("organizations:integrations-ticket-rules", OrganizationFeature)
+default_manager.add("organizations:onboarding-heartbeat-footer", OrganizationFeature, True)
 default_manager.add("organizations:performance-view", OrganizationFeature)
 default_manager.add("organizations:relay", OrganizationFeature)
 default_manager.add("organizations:sso-basic", OrganizationFeature)

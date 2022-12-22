@@ -9,6 +9,7 @@ function colorComponentsToRgba(color: number[]): string {
     color[2] * 255
   )}, ${color[3] ?? 1})`;
 }
+const SPAN_HEIGHT_PX = 20;
 
 export class SpanChartRenderer2D {
   canvas: HTMLCanvasElement | null;
@@ -19,6 +20,8 @@ export class SpanChartRenderer2D {
   constructor(canvas: HTMLCanvasElement, spanChart: SpanChart) {
     this.canvas = canvas;
     this.spanChart = spanChart;
+
+    this.spans = [...this.spanChart.spans];
 
     this.init();
     resizeCanvasToDisplaySize(this.canvas);
@@ -44,9 +47,12 @@ export class SpanChartRenderer2D {
     for (let i = 0; i < this.spans.length; i++) {
       const span = this.spans[i];
 
-      const rect = new Rect(span.start, span.depth * 20, span.duration, 20).transformRect(
-        configViewToPhysicalSpace
-      );
+      const rect = new Rect(
+        span.start,
+        span.depth * SPAN_HEIGHT_PX,
+        span.duration,
+        SPAN_HEIGHT_PX
+      ).transformRect(configViewToPhysicalSpace);
 
       context.fillStyle = colorComponentsToRgba([1, 0, 0, 1]);
       context.fillRect(rect.x, rect.y, rect.width, rect.height);
