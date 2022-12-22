@@ -52,11 +52,11 @@ export type FormOptions = {
     change?: {new: FieldValue; old: FieldValue}
   ) => void;
   /**
-   * Should the form reset when an error occurs?
+   * Should the form reset its state when there are errors after submission.
    */
   resetOnError?: boolean;
   /**
-   * Should the form save on blur?
+   * Should fields save individually as they are blurred.
    */
   saveOnBlur?: boolean;
   /**
