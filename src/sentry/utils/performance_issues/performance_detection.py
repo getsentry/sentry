@@ -607,8 +607,19 @@ class SlowSpanDetector(PerformanceDetector):
             milliseconds=duration_threshold
         ) and not self.stored_problems.get(fingerprint, False):
             spans_involved = [span_id]
-            self.stored_problems[fingerprint] = PerformanceSpanProblem(
-                span_id, op_prefix, spans_involved
+
+            hash = span.get("hash", "")
+            type = DETECTOR_TYPE_TO_GROUP_TYPE[self.settings_key]
+            transaction_name = self._event.get("transaction")
+
+            self.stored_problems[fingerprint] = PerformanceProblem(
+                type=type,
+                fingerprint=fingerprint_group(transaction_name, op, hash, type),
+                op=op,
+                desc=description,
+                cause_span_ids=[],
+                parent_span_ids=[],
+                offender_span_ids=spans_involved,
             )
 
 
