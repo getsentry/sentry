@@ -3,7 +3,7 @@ from __future__ import annotations
 import abc
 import contextlib
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, Collection, Dict, Generator, List, Mapping, Tuple, Type
+from typing import TYPE_CHECKING, Any, Dict, Generator, List, Mapping, Tuple, Type
 
 from rest_framework.request import Request
 
@@ -78,7 +78,7 @@ class AuthService(InterfaceWithLifecycle):
         request: Request,
         organization: ApiOrganization,
         auth_identity: ApiAuthIdentity,
-        default_team_ids: Collection[int],
+        auth_provider: ApiAuthProvider,
     ) -> Tuple[APIUser, ApiOrganizationMember | None]:
         pass
 

@@ -284,10 +284,10 @@ class DatabaseBackedOrganizationService(OrganizationService):
         return self.serialize_member(member)
 
     def add_team_member(
-        self, *, team: ApiTeam, organization_member: ApiOrganizationMember
+        self, *, team_id: int, organization_member: ApiOrganizationMember
     ) -> ApiTeamMember:
         omt = OrganizationMemberTeam.objects.create(
-            team_id=team.id, organizationmember_id=organization_member.id
+            team_id=team_id, organizationmember_id=organization_member.id
         )
         project_ids = ()  # TODO?
         return self._serialize_team_member(omt, project_ids)

@@ -3,7 +3,7 @@ from __future__ import annotations
 import base64
 import dataclasses
 import logging
-from typing import TYPE_CHECKING, Collection, List, Mapping, Tuple
+from typing import TYPE_CHECKING, List, Mapping, Tuple
 from uuid import uuid4
 
 from django.contrib.auth.models import AnonymousUser
@@ -24,7 +24,6 @@ from sentry.models import (
     AuthProvider,
     Organization,
     OrganizationMember,
-    Team,
     User,
 )
 from sentry.services.hybrid_cloud.auth import (
@@ -383,7 +382,7 @@ class DatabaseBackedAuthService(AuthService):
         request: Request,
         organization: ApiOrganization,
         auth_identity: ApiAuthIdentity,
-        default_team_ids: Collection[int],
+        auth_provider: ApiAuthProvider,
     ) -> Tuple[APIUser, ApiOrganizationMember | None]:
         # TODO: Might be able to keep hold of the APIUser object whose ID was
         #  originally passed to construct the ApiAuthIdentity object
@@ -425,9 +424,12 @@ class DatabaseBackedAuthService(AuthService):
             flags=flags,
         )
 
-        default_teams = Team.objects.filter(id__in=default_team_ids)
-        for team in default_teams:
-            organization_service.add_team_member(team=team, organization_member=om)
+        # TODO: Combine into one query
+        provider_model = AuthProvider.objects.get(id=auth_provider.id)
+        default_team_ids = provider_model.default_teams.values_list("id", flat=True)
+
+        for team_id in default_team_ids:
+            organization_service.add_team_member(team_id=team_id, organization_member=om)
 
         return serial_user, om
 

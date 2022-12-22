@@ -224,9 +224,8 @@ class AuthIdentityHandler:
     def _handle_new_membership(
         self, auth_identity: ApiAuthIdentity
     ) -> ApiOrganizationMember | None:
-        default_team_ids = self.auth_provider.default_teams.values_list("id", flat=True)
         user, om = auth_service.handle_new_membership(
-            self.request, self.organization, auth_identity, default_team_ids
+            self.request, self.organization, auth_identity, self.auth_provider
         )
 
         if om is not None:
@@ -236,7 +235,7 @@ class AuthIdentityHandler:
                     actor=user,
                     ip_address=self.request.META["REMOTE_ADDR"],
                     target_object=om.id,
-                    target_user=om.user_id,
+                    target_user=user,
                     event=audit_log.get_event_id("MEMBER_ADD"),
                 ),
                 organization_member=om,
@@ -262,7 +261,8 @@ class AuthIdentityHandler:
 
         if member is None:
             member = self._get_organization_member(auth_identity)
-        self._set_linked_flag(member)
+        if member is not None:
+            self._set_linked_flag(member)
 
         if auth_is_new:
             audit_log_service.log_auth_identity(
@@ -280,7 +280,9 @@ class AuthIdentityHandler:
 
         return auth_identity
 
-    def _get_organization_member(self, auth_identity: ApiAuthIdentity) -> ApiOrganizationMember:
+    def _get_organization_member(
+        self, auth_identity: ApiAuthIdentity
+    ) -> ApiOrganizationMember | None:
         """
         Check to see if the user has a member associated, if not, create a new membership
         based on the auth_identity email.
@@ -467,7 +469,7 @@ class AuthIdentityHandler:
     @property
     def provider_name(self) -> str:
         if self.auth_provider:
-            return cast(str, self.auth_provider.provider_name)
+            return self.auth_provider.provider_name
         else:
             # A blank character is needed to prevent an HTML span from collapsing
             return " "

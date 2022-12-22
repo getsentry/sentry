@@ -108,7 +108,7 @@ class OrganizationService(InterfaceWithLifecycle):
 
     @abstractmethod
     def add_team_member(
-        self, *, team: ApiTeam, organization_member: ApiOrganizationMember
+        self, *, team_id: int, organization_member: ApiOrganizationMember
     ) -> ApiTeamMember:
         pass
 
