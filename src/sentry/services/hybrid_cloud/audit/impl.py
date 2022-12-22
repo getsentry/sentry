@@ -4,6 +4,7 @@ from typing import Any, Mapping
 
 from sentry.models import AuditLogEntry, AuthIdentity, AuthProvider, Team, User
 from sentry.services.hybrid_cloud.audit import AuditLogMetadata, AuditLogService
+from sentry.services.hybrid_cloud.auth import ApiAuthIdentity, ApiAuthProvider
 from sentry.services.hybrid_cloud.organization import ApiOrganizationMember
 from sentry.services.hybrid_cloud.user import APIUser, user_service
 
@@ -53,10 +54,14 @@ class DatabaseBackedAuditLogService(AuditLogService):
         }
         return self.write_audit_log(metadata=metadata, data=data)
 
-    def log_auth_provider(self, *, metadata: AuditLogMetadata, provider: AuthProvider) -> None:
-        data = provider.get_audit_log_data()  # TODO: Adapt to Api dataclass
+    def log_auth_provider(self, *, metadata: AuditLogMetadata, provider: ApiAuthProvider) -> None:
+        model = AuthProvider.objects.get(id=provider.id)
+        data = model.get_audit_log_data()
         return self.write_audit_log(metadata=metadata, data=data)
 
-    def log_auth_identity(self, *, metadata: AuditLogMetadata, auth_identity: AuthIdentity) -> None:
-        data = auth_identity.get_audit_log_data()  # TODO: Adapt to Api dataclass
+    def log_auth_identity(
+        self, *, metadata: AuditLogMetadata, auth_identity: ApiAuthIdentity
+    ) -> None:
+        model = AuthIdentity.objects.get(id=auth_identity.id)
+        data = model.get_audit_log_data()  # TODO: Adapt to Api dataclass
         return self.write_audit_log(metadata=metadata, data=data)

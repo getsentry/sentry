@@ -215,7 +215,9 @@ class HandleAttachIdentityTest(AuthIdentityHandlerTest):
 
         auth_identity = self.handler.handle_attach_identity()
         assert auth_identity.ident == self.identity["id"]
-        assert auth_identity.data == self.identity["data"]
+
+        persistent_auth_identity = AuthIdentity.objects.get(id=auth_identity.id)
+        assert persistent_auth_identity.data == self.identity["data"]
 
         assert OrganizationMember.objects.filter(
             organization=self.organization,
@@ -231,7 +233,7 @@ class HandleAttachIdentityTest(AuthIdentityHandlerTest):
             organization=self.organization,
             target_object=auth_identity.id,
             event=audit_log.get_event_id("SSO_IDENTITY_LINK"),
-            data=auth_identity.get_audit_log_data(),
+            data=persistent_auth_identity.get_audit_log_data(),
         ).exists()
 
         assert mock_messages.add_message.called_with(
@@ -245,7 +247,9 @@ class HandleAttachIdentityTest(AuthIdentityHandlerTest):
 
         auth_identity = self.handler.handle_attach_identity()
         assert auth_identity.ident == self.identity["id"]
-        assert auth_identity.data == self.identity["data"]
+
+        persistent_auth_identity = AuthIdentity.objects.get(id=auth_identity.id)
+        assert persistent_auth_identity.data == self.identity["data"]
 
         persisted_om = OrganizationMember.objects.get(id=existing_om.id)
         assert getattr(persisted_om.flags, "sso:linked")

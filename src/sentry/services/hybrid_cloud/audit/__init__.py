@@ -4,8 +4,8 @@ import abc
 from dataclasses import dataclass
 from typing import Any, Mapping
 
-from sentry.models import AuthIdentity, AuthProvider
 from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_delegation, stubbed
+from sentry.services.hybrid_cloud.auth import ApiAuthIdentity, ApiAuthProvider
 from sentry.services.hybrid_cloud.organization import ApiOrganization, ApiOrganizationMember
 from sentry.services.hybrid_cloud.user import APIUser
 from sentry.silo import SiloMode
@@ -46,7 +46,7 @@ class AuditLogService(InterfaceWithLifecycle):
         self,
         *,
         metadata: AuditLogMetadata,
-        provider: AuthProvider,  # TODO: Replace with Api dataclass
+        provider: ApiAuthProvider,
     ) -> None:
         raise NotImplementedError
 
@@ -55,7 +55,7 @@ class AuditLogService(InterfaceWithLifecycle):
         self,
         *,
         metadata: AuditLogMetadata,
-        auth_identity: AuthIdentity,  # TODO: Replace with Api dataclass
+        auth_identity: ApiAuthIdentity,
     ) -> None:
         raise NotImplementedError
 
