@@ -1,3 +1,4 @@
+import time
 from unittest.mock import call as mock_call
 from unittest.mock import patch
 
@@ -8,6 +9,7 @@ from freezegun import freeze_time
 
 from sentry.api.exceptions import InvalidRepository
 from sentry.api.release_search import INVALID_SEMVER_MESSAGE
+from sentry.dynamic_sampling.latest_release_booster import get_redis_client_for_ds
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models import (
     Commit,
@@ -1334,36 +1336,56 @@ class ClearCommitsTestCase(TestCase):
 
 @region_silo_test(stable=True)
 class ReleaseProjectManagerTestCase(TransactionTestCase):
+    def setUp(self):
+        self.redis_client = get_redis_client_for_ds()
+
     def test_custom_manager(self):
         self.assertIsInstance(ReleaseProject.objects, ReleaseProjectModelManager)
 
     @receivers_raise_on_send()
     def test_post_save_signal_runs_if_dynamic_sampling_is_disabled(self):
-        self.project = self.create_project(name="foo")
-        self.datetime_now = timezone.now()
+        project = self.create_project(name="foo")
+        release = Release.objects.create(organization_id=project.organization_id, version="42")
 
-        self.release = Release.objects.create(
-            organization_id=self.project.organization_id, version="42"
-        )
         with patch("sentry.models.release.schedule_invalidate_project_config") as mock_task:
-            self.release.add_project(self.project)
+            release.add_project(project)
             assert mock_task.mock_calls == []
 
     @receivers_raise_on_send()
-    def test_post_save_signal_runs_if_dynamic_sampling_is_enabled(self):
+    def test_post_save_signal_runs_if_dynamic_sampling_is_enabled_and_latest_release_rule_does_not_exist(
+        self,
+    ):
         with Feature(
             {
                 "organizations:dynamic-sampling": True,
             }
         ):
-            self.project = self.create_project(name="foo")
-            self.datetime_now = timezone.now()
+            project = self.create_project(name="foo")
+            release = Release.objects.create(organization_id=project.organization_id, version="42")
 
-            self.release = Release.objects.create(
-                organization_id=self.project.organization_id, version="42"
-            )
             with patch("sentry.models.release.schedule_invalidate_project_config") as mock_task:
-                self.release.add_project(self.project)
+                release.add_project(project)
+                assert mock_task.mock_calls == []
+
+    @receivers_raise_on_send()
+    def test_post_save_signal_runs_if_dynamic_sampling_is_enabled_and_latest_release_rule_exists(
+        self,
+    ):
+        with Feature(
+            {
+                "organizations:dynamic-sampling": True,
+            }
+        ):
+            project = self.create_project(name="foo")
+            release = Release.objects.create(organization_id=project.organization_id, version="42")
+
+            # We store a boosted release for this project.
+            self.redis_client.hset(
+                f"ds::p:{project.id}:boosted_releases", f"ds::r:{release.id}", time.time()
+            )
+
+            with patch("sentry.models.release.schedule_invalidate_project_config") as mock_task:
+                release.add_project(project)
                 assert mock_task.mock_calls == [
-                    mock_call(project_id=self.project.id, trigger="releaseproject.post_save")
+                    mock_call(project_id=project.id, trigger="releaseproject.post_save")
                 ]

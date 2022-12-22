@@ -68,42 +68,29 @@ class ReleaseCommitError(Exception):
     pass
 
 
-# TODO: implement check if there is a latest release boost. (Add a method in the booster class for efficiently
-#  verifying that).
 class ReleaseProjectModelManager(BaseManager):
-    def post_save(self, instance, **kwargs):
-        # this hook may be called from model hooks during an
-        # open transaction. In that case, wait until the current transaction has
-        # been committed or rolled back to ensure we don't read stale data in the
-        # task.
-        #
-        # If there is no transaction open, on_commit should run immediately.
+    @staticmethod
+    def _on_post(project, trigger):
         from sentry.dynamic_sampling.feature_multiplexer import DynamicSamplingFeatureMultiplexer
+        from sentry.dynamic_sampling.latest_release_booster import ProjectBoostedReleases
 
-        ds_feature_multiplexer = DynamicSamplingFeatureMultiplexer(instance.project)
-        if ds_feature_multiplexer.is_on_dynamic_sampling:
+        ds_feature_multiplexer = DynamicSamplingFeatureMultiplexer(project)
+        project_boosted_releases = ProjectBoostedReleases(project.id)
+        # We want to invalidate the project config only if dynamic sampling is enabled and there exists boosted releases
+        # in the project.
+        if (
+            ds_feature_multiplexer.is_on_dynamic_sampling
+            and project_boosted_releases.has_boosted_releases()
+        ):
             transaction.on_commit(
-                lambda: schedule_invalidate_project_config(
-                    project_id=instance.project.id, trigger="releaseproject.post_save"
-                )
+                lambda: schedule_invalidate_project_config(project_id=project.id, trigger=trigger)
             )
+
+    def post_save(self, instance, **kwargs):
+        self._on_post(project=instance.project, trigger="releaseproject.post_save")
 
     def post_delete(self, instance, **kwargs):
-        # this hook may be called from model hooks during an
-        # open transaction. In that case, wait until the current transaction has
-        # been committed or rolled back to ensure we don't read stale data in the
-        # task.
-        #
-        # If there is no transaction open, on_commit should run immediately.
-        from sentry.dynamic_sampling.feature_multiplexer import DynamicSamplingFeatureMultiplexer
-
-        ds_feature_multiplexer = DynamicSamplingFeatureMultiplexer(instance.project)
-        if ds_feature_multiplexer.is_on_dynamic_sampling:
-            transaction.on_commit(
-                lambda: schedule_invalidate_project_config(
-                    project_id=instance.project.id, trigger="releaseproject.post_delete"
-                )
-            )
+        self._on_post(project=instance.project, trigger="releaseproject.post_delete")
 
 
 @region_silo_only_model
