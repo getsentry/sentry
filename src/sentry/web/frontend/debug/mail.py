@@ -48,7 +48,7 @@ from sentry.notifications.utils import get_group_settings_link, get_interface_li
 from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
-from sentry.types.issues import GROUP_TYPE_TO_TEXT, GroupType
+from sentry.types.issues import GROUP_TYPE_TO_TEXT
 from sentry.utils import json, loremipsum
 from sentry.utils.dates import to_datetime, to_timestamp
 from sentry.utils.email import MessageBuilder, inline_css
@@ -215,13 +215,11 @@ def make_generic_event(project):
         TEST_ISSUE_OCCURRENCE.to_dict(),
         {
             "event_id": uuid.uuid4().hex,
-            "fingerprint": ["group-1"],
             "project_id": project.id,
             "timestamp": before_now(minutes=1).isoformat(),
         },
     )
     generic_group = group_info.group
-    generic_group.update(type=GroupType.PROFILE_BLOCKED_THREAD.value)
     return generic_group.get_latest_event()
 
 
