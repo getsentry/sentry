@@ -16,6 +16,9 @@ class SpanChart {
   spans: SpanChartNode[];
   spanTree: SpanTree;
   depth: number = 0;
+  minSpanDuration: number = Number.POSITIVE_INFINITY;
+
+  configSpace: Rect;
 
   toFinalUnit = makeFormatTo('milliseconds', 'milliseconds');
   formatter = makeFormatter('milliseconds');
@@ -27,6 +30,12 @@ class SpanChart {
     this.spanTree = spanTree;
     this.toFinalUnit = makeFormatTo('milliseconds', options.unit);
     this.spans = this.collectSpanNodes();
+
+    const duration = this.toFinalUnit(
+      this.spanTree.root.span.timestamp - this.spanTree.root.span.start_timestamp
+    );
+
+    this.configSpace = new Rect(0, 0, duration, this.depth);
   }
 
   // Bfs over the span tree while keeping track of level depth and calling the cb fn
@@ -64,6 +73,7 @@ class SpanChart {
 
     const visit = (node: SpanChartNode): void => {
       this.depth = Math.max(this.depth, node.depth);
+      this.minSpanDuration = Math.min(this.minSpanDuration, node.duration);
       nodes.push(node);
     };
 
