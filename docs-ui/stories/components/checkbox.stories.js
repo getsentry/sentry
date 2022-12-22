@@ -1,3 +1,4 @@
+import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import Checkbox from 'sentry/components/checkbox';
@@ -18,30 +19,48 @@ export default {
     disabled: {
       control: {type: 'boolean'},
     },
-    checked: {
-      control: {type: 'boolean'},
-    },
   },
 };
 
-export const Default = props => (
-  <div>
-    <Checkbox {...props} />
-  </div>
-);
+export const Default = props => {
+  const [checked, setChecked] = useState(true);
 
-export const WithLabel = props => (
-  <div>
-    <Label>
-      Label to left
-      <Checkbox {...props} />
-    </Label>
-    <Label>
-      <Checkbox {...props} />
-      Label to right
-    </Label>
-  </div>
-);
+  return (
+    <div>
+      <Checkbox
+        {...props}
+        checked={checked}
+        onChange={e => setChecked(e.target.checked)}
+      />
+    </div>
+  );
+};
+
+export const WithLabel = props => {
+  const [check1, setCheck1] = useState(true);
+  const [check2, setCheck2] = useState(false);
+
+  return (
+    <div>
+      <Label>
+        Label to left
+        <Checkbox
+          {...props}
+          checked={check1}
+          onChange={e => setCheck1(e.target.checked)}
+        />
+      </Label>
+      <Label>
+        <Checkbox
+          {...props}
+          checked={check2}
+          onChange={e => setCheck2(e.target.checked)}
+        />
+        Label to right
+      </Label>
+    </div>
+  );
+};
 
 const Label = styled('label')`
   display: flex;
