@@ -150,13 +150,13 @@ class UserService(InterfaceWithLifecycle):
     @abstractmethod
     def serialize_users(
         self,
+        user_ids: Optional[List[int]] = None,
         *,
         detailed: UserSerializeType = UserSerializeType.SIMPLE,
         auth_context: AuthenticationContext
         | None = None,  # TODO: replace this with the as_user attribute
         as_user: User | APIUser | None = None,
         # Query filters:
-        user_ids: Optional[List[int]] = None,
         is_active: Optional[bool] = None,
         organization_id: Optional[int] = None,
         emails: Optional[List[str]] = None,
