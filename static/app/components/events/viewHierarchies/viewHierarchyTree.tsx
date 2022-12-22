@@ -15,25 +15,23 @@ function Node({type, identifier, children}: NodeProps) {
   const [isExpanded, setIsExpanded] = useState(true);
   return (
     <NodeContents>
-      <div>
-        {children?.length && (
-          <IconWrapper
-            aria-label={isExpanded ? t('Collapse') : t('Expand')}
-            isExpanded={isExpanded}
-            onClick={evt => {
-              evt.preventDefault();
-              setIsExpanded(!isExpanded);
-            }}
-          >
-            {isExpanded ? (
-              <IconSubtract size="9px" color="white" />
-            ) : (
-              <IconAdd size="9px" color="white" />
-            )}
-          </IconWrapper>
-        )}
-        {identifier ? `${type} - ${identifier}` : type}
-      </div>
+      {children?.length && (
+        <IconWrapper
+          aria-label={isExpanded ? t('Collapse') : t('Expand')}
+          isExpanded={isExpanded}
+          onClick={evt => {
+            evt.preventDefault();
+            setIsExpanded(!isExpanded);
+          }}
+        >
+          {isExpanded ? (
+            <IconSubtract size="9px" color="white" />
+          ) : (
+            <IconAdd size="9px" color="white" />
+          )}
+        </IconWrapper>
+      )}
+      <NodeTitle>{identifier ? `${type} - ${identifier}` : type}</NodeTitle>
       {isExpanded && children}
     </NodeContents>
   );
@@ -82,6 +80,12 @@ const NodeContents = styled('div')`
     border-left: none;
     padding-left: 0;
   }
+`;
+
+// TODO: Clicking the title will open more information
+// about the node, currently this does nothing
+const NodeTitle = styled('span')`
+  cursor: pointer;
 `;
 
 const IconWrapper = styled('div')<{isExpanded: boolean}>`
