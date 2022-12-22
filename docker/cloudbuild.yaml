@@ -1,0 +1,113 @@
+steps:
+  - name: 'gcr.io/kaniko-project/executor:v1.5.1'
+    id: builder-image
+    args:
+      [
+        '--cache=true',
+        '--use-new-run',
+        '--build-arg',
+        'SOURCE_COMMIT=$COMMIT_SHA',
+        '--destination=us.gcr.io/$PROJECT_ID/sentry-builder:$COMMIT_SHA',
+        '-f',
+        './docker/builder.dockerfile',
+      ]
+    timeout: 180s
+  - name: 'us.gcr.io/$PROJECT_ID/sentry-builder:$COMMIT_SHA'
+    id: builder-run
+    env:
+      - 'SOURCE_COMMIT=$COMMIT_SHA'
+    timeout: 600s
+  - name: 'gcr.io/kaniko-project/executor:v1.5.1'
+    id: runtime-image
+    waitFor:
+      - builder-run
+    args:
+      [
+        '--cache=true',
+        '--use-new-run',
+        '--build-arg',
+        'SOURCE_COMMIT=$COMMIT_SHA',
+        '--destination=us.gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA',
+        '-f',
+        './docker/Dockerfile',
+      ]
+    timeout: 300s
+  - name: 'gcr.io/$PROJECT_ID/docker-compose'
+    id: get-self-hosted-repo
+    waitFor: ['-']
+    entrypoint: 'bash'
+    args:
+      - '-e'
+      - '-c'
+      - |
+        mkdir self-hosted && cd self-hosted
+        curl -L "https://github.com/getsentry/self-hosted/archive/master.tar.gz" | tar xzf - --strip-components=1
+        echo '{"version": "3.4", "networks":{"default":{"external":{"name":"cloudbuild"}}}}' > docker-compose.override.yml
+  - name: 'gcr.io/$PROJECT_ID/docker-compose'
+    id: e2e-test
+    waitFor:
+      - runtime-image
+      - get-self-hosted-repo
+    entrypoint: 'bash'
+    dir: self-hosted
+    env:
+      - 'REPORT_SELF_HOSTED_ISSUES=0'
+    args:
+      - '-e'
+      - '-c'
+      - |
+        ./install.sh
+        set +e
+        ./test.sh
+        test_return=$?
+        set -e
+        if [[ $test_return -ne 0 ]]; then
+          echo "Test failed.";
+          docker-compose ps;
+          docker-compose logs;
+          exit $test_return;
+        fi
+    timeout: 900s
+  - name: 'gcr.io/cloud-builders/docker'
+    id: docker-push
+    waitFor:
+      - e2e-test
+    secretEnv: ['DOCKER_PASSWORD']
+    entrypoint: 'bash'
+    args:
+      - '-e'
+      - '-c'
+      - |
+        # Only push to Docker Hub from master
+        [ "$BRANCH_NAME" != "master" ] && exit 0
+        # Need to pull the image first due to Kaniko
+        docker pull $$SENTRY_IMAGE
+        echo "$$DOCKER_PASSWORD" | docker login --username=sentrybuilder --password-stdin
+        docker tag $$SENTRY_IMAGE $$DOCKER_REPO:$SHORT_SHA
+        docker push $$DOCKER_REPO:$SHORT_SHA
+        docker tag $$SENTRY_IMAGE $$DOCKER_REPO:$COMMIT_SHA
+        docker push $$DOCKER_REPO:$COMMIT_SHA
+        docker tag $$SENTRY_IMAGE $$DOCKER_REPO:nightly
+        docker push $$DOCKER_REPO:nightly
+timeout: 2640s
+artifacts:
+  objects:
+    location: 'gs://sentryio-cloudbuild-opensource/getsentry/sentry/$COMMIT_SHA/'
+    paths: ['dist/*.whl']
+options:
+  # We need more memory for Webpack builds & e2e self-hosted tests
+  machineType: 'E2_HIGHCPU_8'
+  env:
+    - 'CI=1'
+    - 'SENTRY_IMAGE=us.gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA'
+    - 'DOCKER_REPO=getsentry/sentry'
+    - 'SENTRY_TEST_HOST=http://nginx'
+secrets:
+  - kmsKeyName: projects/sentryio/locations/global/keyRings/service-credentials/cryptoKeys/cloudbuild
+    secretEnv:
+      # This is a personal access token for the sentrybuilder account, encrypted using the
+      # short guide at http://bit.ly/2Pg6uw9
+      DOCKER_PASSWORD: |
+        CiQAE8gN7y3OMxn+a1kofmK4Bi8jQZtdRFj2lYYwaZHVeIIBUzMSTQA9tvn8XCv2vqj6u8CHoeSP
+        TVW9pLvSCorKoeNtOp0eb+6V1yNJW/+JC07DNO1KLbTbodbuza6jKJHU5xeAJ4kGQI78UY5Vu1Gp
+        QcMK
