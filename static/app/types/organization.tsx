@@ -167,7 +167,7 @@ export type AuditLog = {
   note: string;
   targetObject: number;
   targetUser: Actor | null;
-} | null;
+};
 
 export type AccessRequest = {
   id: string;
