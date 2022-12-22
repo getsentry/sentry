@@ -1,12 +1,14 @@
 from collections import defaultdict, namedtuple
 from typing import TYPE_CHECKING, List, Optional, Sequence, Type, Union
 
+from django.conf import settings
 from django.db import models
 from django.db.models.signals import pre_save
 from rest_framework import serializers
 
-from sentry.db.models import Model, region_silo_only_model
+from sentry.db.models import Model, control_and_region_silo_model
 from sentry.services.hybrid_cloud.user import APIUser, user_service
+from sentry.utils.snowflake import SnowflakeIdMixin
 
 if TYPE_CHECKING:
     from sentry.models import Team
@@ -63,8 +65,8 @@ def actor_type_to_string(type: int) -> Optional[str]:
     return None
 
 
-@region_silo_only_model
-class Actor(Model):
+@control_and_region_silo_model
+class Actor(Model, SnowflakeIdMixin):
     __include_in_export__ = True
 
     type = models.PositiveSmallIntegerField(
@@ -91,6 +93,18 @@ class Actor(Model):
         # Returns a string like "team:1"
         # essentially forwards request to ActorTuple.get_actor_identifier
         return self.get_actor_tuple().get_actor_identifier()
+
+    def save(self, *args, **kwargs):
+        use_snowflake = getattr(
+            settings, "SENTRY_USE_SNOWFLAKE", getattr(settings, "SENTRY_USE_ACTOR_SNOWFLAKE", False)
+        )
+        if use_snowflake:
+            snowflake_redis_key = "actor_snowflake_key"
+            self.save_with_snowflake_id(
+                snowflake_redis_key, lambda: super(Actor, self).save(*args, **kwargs)
+            )
+        else:
+            super().save(*args, **kwargs)
 
 
 class ActorTuple(namedtuple("Actor", "id type")):

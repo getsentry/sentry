@@ -22,6 +22,7 @@ __all__ = (
     "get_model_if_available",
     "control_silo_with_replication_model",
     "control_silo_only_model",
+    "control_and_region_silo_model",
     "region_silo_only_model",
 )
 
@@ -232,5 +233,8 @@ class ModelSiloLimit(SiloLimit):
 
 
 control_silo_only_model = ModelSiloLimit(SiloMode.CONTROL)
+# This applies models that exists in both control and region silos
+# but are not replicated or coordinated.
+control_and_region_silo_model = ModelSiloLimit(SiloMode.CONTROL, SiloMode.REGION)
 region_silo_only_model = ModelSiloLimit(SiloMode.REGION)
 control_silo_with_replication_model = control_silo_only_model
