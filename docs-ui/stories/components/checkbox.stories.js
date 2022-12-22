@@ -7,7 +7,7 @@ export default {
   title: 'Components/Forms/Controls/Checkbox',
   component: Checkbox,
   args: {
-    size: 'md',
+    size: 'sm',
     disabled: false,
     checked: true,
   },
