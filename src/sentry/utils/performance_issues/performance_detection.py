@@ -7,10 +7,9 @@ import random
 import re
 from abc import ABC, abstractmethod
 from collections import defaultdict, deque
-from dataclasses import dataclass
 from datetime import timedelta
 from enum import Enum
-from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
+from typing import Any, Dict, List, Optional, Sequence, Tuple
 from urllib.parse import urlparse
 
 import sentry_sdk
@@ -19,10 +18,12 @@ from symbolic import ProguardMapper  # type: ignore
 from sentry import features, nodestore, options, projectoptions
 from sentry.eventstore.models import Event
 from sentry.models import Organization, Project, ProjectDebugFile, ProjectOption
-from sentry.types.issues import GROUP_TYPE_TO_TEXT, GroupType
+from sentry.types.issues import GroupType
 from sentry.utils import metrics
 from sentry.utils.event_frames import get_sdk_name
 from sentry.utils.safe import get_path
+
+from .performance_problem import PerformanceProblem
 
 
 def join_regexes(regexes: Sequence[str]) -> str:
@@ -77,62 +78,6 @@ DETECTOR_TYPE_ISSUE_CREATION_TO_SYSTEM_OPTION = {
     DetectorType.N_PLUS_ONE_DB_QUERIES: "performance.issues.n_plus_one_db.problem-creation",
     DetectorType.N_PLUS_ONE_DB_QUERIES_EXTENDED: "performance.issues.n_plus_one_db_ext.problem-creation",
 }
-
-
-@dataclass
-class PerformanceProblem:
-    fingerprint: str
-    op: str
-    desc: str
-    type: GroupType
-    parent_span_ids: Optional[Sequence[str]]
-    # For related spans that caused the bad spans
-    cause_span_ids: Optional[Sequence[str]]
-    # The actual bad spans
-    offender_span_ids: Sequence[str]
-
-    def to_dict(
-        self,
-    ) -> Mapping[str, Any]:
-        return {
-            "fingerprint": self.fingerprint,
-            "op": self.op,
-            "desc": self.desc,
-            "type": self.type.value,
-            "parent_span_ids": self.parent_span_ids,
-            "cause_span_ids": self.cause_span_ids,
-            "offender_span_ids": self.offender_span_ids,
-        }
-
-    @property
-    def title(self) -> str:
-        return GROUP_TYPE_TO_TEXT.get(self.type, "N+1 Query")
-
-    @classmethod
-    def from_dict(cls, data: dict) -> PerformanceProblem:
-        return cls(
-            data["fingerprint"],
-            data["op"],
-            data["desc"],
-            GroupType(data["type"]),
-            data["parent_span_ids"],
-            data["cause_span_ids"],
-            data["offender_span_ids"],
-        )
-
-    def __eq__(self, other):
-        if not isinstance(other, PerformanceProblem):
-            return NotImplemented
-        return (
-            self.fingerprint == other.fingerprint
-            and self.offender_span_ids == other.offender_span_ids
-            and self.type == other.type
-        )
-
-    def __hash__(self):
-        # This will de-duplicate on fingerprint and type and only for offending span ids.
-        # Fingerprint should incorporate the 'uniqueness' enough that parent and span checks etc. are not required.
-        return hash((self.fingerprint, frozenset(self.offender_span_ids), self.type))
 
 
 class EventPerformanceProblem:
