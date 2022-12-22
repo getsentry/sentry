@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 from enum import IntEnum
 from typing import TYPE_CHECKING, Any, Dict, Generator, List, Mapping, Tuple, Type
 
-from django.contrib.auth.models import AnonymousUser
+from django.contrib.auth.models import AnonymousUser, User
 from rest_framework.authentication import BaseAuthentication
 from rest_framework.request import Request
 
@@ -317,3 +317,9 @@ auth_service: AuthService = silo_mode_delegation(
         ),  # this must eventually be purely RPC
     }
 )
+
+
+def promote_request_api_user(request: Any) -> User:
+    if not hasattr(request, "_promoted_user"):
+        setattr(request, "_promoted_user", User.objects.get(id=request.user.id))
+    return request._promoted_user
