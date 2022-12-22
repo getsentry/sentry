@@ -365,7 +365,7 @@ function TableView(props: TableViewProps) {
     const topResultsIndicator =
       isFirstPage && isTopEvents && rowIndex < topEvents && columnIndex === 0 ? (
         // Add one if we need to include Other in the series
-        (<TopResultsIndicator count={count} index={rowIndex} />)
+        <TopResultsIndicator count={count} index={rowIndex} />
       ) : null;
 
     const fieldName = columnKey;
