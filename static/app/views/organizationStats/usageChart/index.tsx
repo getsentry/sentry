@@ -1,5 +1,5 @@
 import {Component, Fragment} from 'react';
-import {withTheme} from '@emotion/react';
+import {Theme, withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import Color from 'color';
 import type {SeriesOption, TooltipComponentOption} from 'echarts';
@@ -19,7 +19,7 @@ import space from 'sentry/styles/space';
 import {DataCategory, IntervalPeriod, SelectValue} from 'sentry/types';
 import {parsePeriodToHours, statsPeriodToDays} from 'sentry/utils/dates';
 import getDynamicText from 'sentry/utils/getDynamicText';
-import commonTheme, {Theme} from 'sentry/utils/theme';
+import commonTheme from 'sentry/utils/theme';
 
 import {formatUsageWithUnits, GIGABYTE} from '../utils';
 

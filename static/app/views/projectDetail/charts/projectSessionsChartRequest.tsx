@@ -1,5 +1,5 @@
 import {Component} from 'react';
-import {withTheme} from '@emotion/react';
+import {Theme, withTheme} from '@emotion/react';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 
@@ -25,7 +25,6 @@ import {
   getSessionsInterval,
   initSessionsChart,
 } from 'sentry/utils/sessions';
-import {Theme} from 'sentry/utils/theme';
 import {getCrashFreePercent} from 'sentry/views/releases/utils';
 
 import {DisplayModes} from '../projectCharts';

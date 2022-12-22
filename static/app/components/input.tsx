@@ -1,9 +1,9 @@
 import {forwardRef} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
-import {css} from '@emotion/react';
+import {css, Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {FormSize, Theme} from 'sentry/utils/theme';
+import {FormSize} from 'sentry/utils/theme';
 
 export interface InputStylesProps {
   monospace?: boolean;
