@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import {CanvasPoolManager, CanvasScheduler} from 'sentry/utils/profiling/canvasScheduler';
 import {CanvasView} from 'sentry/utils/profiling/canvasView';
+import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
 import {SpanChartRenderer2D} from 'sentry/utils/profiling/renderers/spansRenderer';
 import {SpanChart} from 'sentry/utils/profiling/spanChart';
@@ -24,6 +25,7 @@ export function FlamegraphSpans({
   spansCanvasRef,
   setSpansCanvasRef,
 }: FlamegraphSpansProps) {
+  const flamegraphTheme = useFlamegraphTheme();
   const scheduler = useMemo(() => new CanvasScheduler(), []);
 
   const spansRenderer = useMemo(() => {
@@ -31,8 +33,8 @@ export function FlamegraphSpans({
       return null;
     }
 
-    return new SpanChartRenderer2D(spansCanvasRef, spanChart);
-  }, [spansCanvasRef, spanChart]);
+    return new SpanChartRenderer2D(spansCanvasRef, spanChart, flamegraphTheme);
+  }, [spansCanvasRef, spanChart, flamegraphTheme]);
 
   useEffect(() => {
     canvasPoolManager.registerScheduler(scheduler);
