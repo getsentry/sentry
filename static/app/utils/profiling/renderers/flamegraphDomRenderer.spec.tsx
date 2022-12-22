@@ -3,10 +3,7 @@ import {vec2} from 'gl-matrix';
 import {makeCanvasMock, makeFlamegraph} from 'sentry-test/profiling/utils';
 import {screen} from 'sentry-test/reactTestingLibrary';
 
-import {
-  LightFlamegraphTheme,
-  LightFlamegraphTheme as theme,
-} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
+import {LightFlamegraphTheme as theme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 import {FlamegraphDomRenderer} from 'sentry/utils/profiling/renderers/flamegraphDomRenderer';
 
 import {CanvasView} from '../canvasView';
@@ -44,10 +41,11 @@ describe('FlamegraphDomRenderer', () => {
     const flamegraphView = new CanvasView<Flamegraph>({
       canvas: flamegraphCanvas,
       model: flamegraph,
-      theme: LightFlamegraphTheme,
       options: {
         inverted: flamegraph.inverted,
         minWidth: flamegraph.profile.minFrameDuration,
+        barHeight: theme.SIZES.BAR_HEIGHT,
+        depthOffset: theme.SIZES.FLAMEGRAPH_DEPTH_OFFSET,
       },
       configSpace: flamegraph.configSpace,
     });
