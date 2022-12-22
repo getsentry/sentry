@@ -210,7 +210,7 @@ def _query_params_for_generic(
             dataset=snuba.Dataset.IssuePlatform,
             selected_columns=selected_columns,
             filter_keys=filters,
-            conditions=[],
+            conditions=conditions,
             aggregations=aggregations,
             condition_resolver=functools.partial(
                 snuba.get_snuba_column_name, dataset=snuba.Dataset.IssuePlatform
