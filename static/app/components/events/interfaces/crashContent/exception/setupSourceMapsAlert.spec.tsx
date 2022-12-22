@@ -5,14 +5,23 @@ import {SetupSourceMapsAlert} from './setupSourceMapsAlert';
 
 describe('SetupSourceMapsAlert', function () {
   it('NOT show alert if javascript platform and source maps found', function () {
-    const {project, organization} = initializeOrg({
+    const {organization, router} = initializeOrg({
       ...initializeOrg(),
       organization: {...initializeOrg().organization, features: ['source-maps-cta']},
+      router: {
+        ...initializeOrg().router,
+        location: {
+          ...initializeOrg().router.location,
+          query: {project: '1'},
+        },
+      },
     });
+
     const event = TestStubs.ExceptionWithRawStackTrace();
 
-    render(<SetupSourceMapsAlert projectId={project.id} event={event} />, {
+    render(<SetupSourceMapsAlert event={event} />, {
       organization,
+      router,
     });
 
     expect(
@@ -23,14 +32,23 @@ describe('SetupSourceMapsAlert', function () {
   });
 
   it('show alert if javascript platform and source maps not found', function () {
-    const {project, organization} = initializeOrg({
+    const {organization, router} = initializeOrg({
       ...initializeOrg(),
       organization: {...initializeOrg().organization, features: ['source-maps-cta']},
+      router: {
+        ...initializeOrg().router,
+        location: {
+          ...initializeOrg().router.location,
+          query: {project: '1'},
+        },
+      },
     });
+
     const event = TestStubs.EventStacktraceException({platform: 'javascript'});
 
-    render(<SetupSourceMapsAlert projectId={project.id} event={event} />, {
+    render(<SetupSourceMapsAlert event={event} />, {
       organization,
+      router,
     });
 
     expect(
@@ -46,16 +64,25 @@ describe('SetupSourceMapsAlert', function () {
   });
 
   it('show documentation for react according to the sdk name', function () {
-    const {project, organization} = initializeOrg({
+    const {organization, router} = initializeOrg({
       ...initializeOrg(),
       organization: {...initializeOrg().organization, features: ['source-maps-cta']},
+      router: {
+        ...initializeOrg().router,
+        location: {
+          ...initializeOrg().router.location,
+          query: {project: '1'},
+        },
+      },
     });
+
     const event = TestStubs.EventStacktraceException({
       sdk: {name: 'sentry.javascript.react'},
     });
 
-    render(<SetupSourceMapsAlert projectId={project.id} event={event} />, {
+    render(<SetupSourceMapsAlert event={event} />, {
       organization,
+      router,
     });
 
     expect(
@@ -71,17 +98,26 @@ describe('SetupSourceMapsAlert', function () {
   });
 
   it('show documentation for react according to the event platform', function () {
-    const {project, organization} = initializeOrg({
+    const {organization, router} = initializeOrg({
       ...initializeOrg(),
       organization: {...initializeOrg().organization, features: ['source-maps-cta']},
+      router: {
+        ...initializeOrg().router,
+        location: {
+          ...initializeOrg().router.location,
+          query: {project: '1'},
+        },
+      },
     });
+
     const event = TestStubs.EventStacktraceException({
       platform: 'react',
       sdk: {name: 'sentry.javascript.browser'},
     });
 
-    render(<SetupSourceMapsAlert projectId={project.id} event={event} />, {
+    render(<SetupSourceMapsAlert event={event} />, {
       organization,
+      router,
     });
 
     expect(
@@ -97,16 +133,25 @@ describe('SetupSourceMapsAlert', function () {
   });
 
   it('show generic documentation if doc link not available', function () {
-    const {project, organization} = initializeOrg({
+    const {organization, router} = initializeOrg({
       ...initializeOrg(),
       organization: {...initializeOrg().organization, features: ['source-maps-cta']},
+      router: {
+        ...initializeOrg().router,
+        location: {
+          ...initializeOrg().router.location,
+          query: {project: '1'},
+        },
+      },
     });
+
     const event = TestStubs.EventStacktraceException({
       platform: 'unity',
     });
 
-    render(<SetupSourceMapsAlert projectId={project.id} event={event} />, {
+    render(<SetupSourceMapsAlert event={event} />, {
       organization,
+      router,
     });
 
     expect(
@@ -122,9 +167,16 @@ describe('SetupSourceMapsAlert', function () {
   });
 
   it('show localhost copy', function () {
-    const {project, organization} = initializeOrg({
+    const {organization, router} = initializeOrg({
       ...initializeOrg(),
       organization: {...initializeOrg().organization, features: ['source-maps-cta']},
+      router: {
+        ...initializeOrg().router,
+        location: {
+          ...initializeOrg().router.location,
+          query: {project: '1'},
+        },
+      },
     });
     const event = TestStubs.EventStacktraceException({
       platform: 'unity',
@@ -136,8 +188,9 @@ describe('SetupSourceMapsAlert', function () {
       ],
     });
 
-    render(<SetupSourceMapsAlert projectId={project.id} event={event} />, {
+    render(<SetupSourceMapsAlert event={event} />, {
       organization,
+      router,
     });
 
     expect(

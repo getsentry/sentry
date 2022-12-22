@@ -3,10 +3,12 @@ import Button from 'sentry/components/button';
 import {isEventFromBrowserJavaScriptSDK} from 'sentry/components/events/interfaces/spans/utils';
 import {PlatformKey, sourceMaps} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
-import {EntryType, Event, EventTransaction, Project} from 'sentry/types';
+import {EntryType, Event, EventTransaction} from 'sentry/types';
+import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {eventHasSourceMaps} from 'sentry/utils/events';
 import useOrganization from 'sentry/utils/useOrganization';
+import useRouter from 'sentry/utils/useRouter';
 
 // This list must always be updated with the documentation.
 // Ideally it would be nice if we could send a request validating that this URL exists,
@@ -42,13 +44,19 @@ function isLocalhost(url?: string) {
 
 type Props = {
   event: Event;
-  projectId: Project['id'];
 };
 
-export function SetupSourceMapsAlert({projectId, event}: Props) {
+export function SetupSourceMapsAlert({event}: Props) {
   const organization = useOrganization();
+  const router = useRouter();
 
   if (!organization.features?.includes('source-maps-cta')) {
+    return null;
+  }
+
+  const projectId = router.location.query.project;
+
+  if (!defined(projectId)) {
     return null;
   }
 
