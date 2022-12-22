@@ -3,24 +3,23 @@ import styled from '@emotion/styled';
 
 import {CanvasPoolManager, CanvasScheduler} from 'sentry/utils/profiling/canvasScheduler';
 import {CanvasView} from 'sentry/utils/profiling/canvasView';
-import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
 import {SpanChartRenderer2D} from 'sentry/utils/profiling/renderers/spansRenderer';
 import {SpanChart} from 'sentry/utils/profiling/spanChart';
 
 interface FlamegraphSpansProps {
   canvasPoolManager: CanvasPoolManager;
-  flamegraphView: CanvasView<Flamegraph> | null;
   setSpansCanvasRef: React.Dispatch<React.SetStateAction<HTMLCanvasElement | null>>;
   spanChart: SpanChart;
   spansCanvas: FlamegraphCanvas | null;
   spansCanvasRef: HTMLCanvasElement | null;
+  spansView: CanvasView<SpanChart> | null;
 }
 
 export function FlamegraphSpans({
   spanChart,
   canvasPoolManager,
-  flamegraphView,
+  spansView,
   spansCanvas,
   spansCanvasRef,
   setSpansCanvasRef,
@@ -41,12 +40,12 @@ export function FlamegraphSpans({
   }, [canvasPoolManager, scheduler]);
 
   useEffect(() => {
-    if (!spansCanvas || !flamegraphView || !spansRenderer) {
+    if (!spansCanvas || !spansView || !spansRenderer) {
       return undefined;
     }
 
     const drawSpans = () => {
-      spansRenderer.draw(flamegraphView.fromConfigView(spansCanvas.physicalSpace));
+      spansRenderer.draw(spansView.fromConfigView(spansCanvas.physicalSpace));
     };
 
     drawSpans();
@@ -56,7 +55,7 @@ export function FlamegraphSpans({
     return () => {
       scheduler.unregisterBeforeFrameCallback(drawSpans);
     };
-  }, [spansCanvas, spansRenderer, scheduler, flamegraphView]);
+  }, [spansCanvas, spansRenderer, scheduler, spansView]);
 
   return <Canvas ref={ref => setSpansCanvasRef(ref)} />;
 }

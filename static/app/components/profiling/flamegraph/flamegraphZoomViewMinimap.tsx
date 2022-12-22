@@ -64,17 +64,11 @@ function FlamegraphZoomViewMinimap({
       return null;
     }
 
-    const BAR_HEIGHT =
-      flamegraphTheme.SIZES.MINIMAP_HEIGHT /
-      (flamegraph.depth + flamegraphTheme.SIZES.FLAMEGRAPH_DEPTH_OFFSET);
-
-    return new FlamegraphRenderer(flamegraphMiniMapCanvasRef, flamegraph, {
-      ...flamegraphTheme,
-      SIZES: {
-        ...flamegraphTheme.SIZES,
-        BAR_HEIGHT,
-      },
-    });
+    return new FlamegraphRenderer(
+      flamegraphMiniMapCanvasRef,
+      flamegraph,
+      flamegraphTheme
+    );
   }, [flamegraph, flamegraphMiniMapCanvasRef, flamegraphTheme]);
 
   const positionIndicatorRenderer: PositionIndicatorRenderer | null = useMemo(() => {

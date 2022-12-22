@@ -62,9 +62,6 @@ export interface FlamegraphTheme {
       colorMap: Map<Frame['key'], ColorChannels>;
     };
   };
-  CONFIG: {
-    HIGHLIGHT_RECURSION: boolean;
-  };
   FONTS: {
     FONT: string;
     FRAME_FONT: string;
@@ -83,6 +80,7 @@ export interface FlamegraphTheme {
     LABEL_FONT_SIZE: number;
     MINIMAP_HEIGHT: number;
     MINIMAP_POSITION_OVERLAY_BORDER_WIDTH: number;
+    SPANS_BAR_HEIGHT: number;
     SPANS_HEIGHT: number;
     TIMELINE_HEIGHT: number;
     TOOLTIP_FONT_SIZE: number;
@@ -105,28 +103,33 @@ export const LCH_DARK = {
   L_d: 0.1,
 };
 
+const SIZES: FlamegraphTheme['SIZES'] = {
+  BAR_FONT_SIZE: 11,
+  BAR_HEIGHT: 20,
+  BAR_PADDING: 4,
+  FLAMEGRAPH_DEPTH_OFFSET: 12,
+  FOCUSED_FRAME_BORDER_WIDTH: 2,
+  FRAME_BORDER_WIDTH: 2,
+  GRID_LINE_WIDTH: 2,
+  HOVERED_FRAME_BORDER_WIDTH: 1,
+  INTERNAL_SAMPLE_TICK_LINE_WIDTH: 1,
+  LABEL_FONT_PADDING: 6,
+  LABEL_FONT_SIZE: 10,
+  MINIMAP_HEIGHT: 100,
+  MINIMAP_POSITION_OVERLAY_BORDER_WIDTH: 2,
+  SPANS_HEIGHT: 100,
+  SPANS_BAR_HEIGHT: 16,
+  TIMELINE_HEIGHT: 20,
+  TOOLTIP_FONT_SIZE: 12,
+};
+
+const FONTS: FlamegraphTheme['FONTS'] = {
+  FONT: MONOSPACE_FONT,
+  FRAME_FONT,
+};
+
 export const LightFlamegraphTheme: FlamegraphTheme = {
-  CONFIG: {
-    HIGHLIGHT_RECURSION: false,
-  },
-  SIZES: {
-    BAR_FONT_SIZE: 11,
-    BAR_HEIGHT: 20,
-    BAR_PADDING: 4,
-    FLAMEGRAPH_DEPTH_OFFSET: 12,
-    FOCUSED_FRAME_BORDER_WIDTH: 2,
-    FRAME_BORDER_WIDTH: 2,
-    GRID_LINE_WIDTH: 2,
-    HOVERED_FRAME_BORDER_WIDTH: 1,
-    INTERNAL_SAMPLE_TICK_LINE_WIDTH: 1,
-    LABEL_FONT_PADDING: 6,
-    LABEL_FONT_SIZE: 10,
-    MINIMAP_HEIGHT: 100,
-    MINIMAP_POSITION_OVERLAY_BORDER_WIDTH: 2,
-    SPANS_HEIGHT: 100,
-    TIMELINE_HEIGHT: 20,
-    TOOLTIP_FONT_SIZE: 12,
-  },
+  SIZES,
   COLORS: {
     BAR_LABEL_FONT_COLOR: '#000',
     COLOR_BUCKET: makeColorBucketTheme(LCH_LIGHT),
@@ -150,34 +153,11 @@ export const LightFlamegraphTheme: FlamegraphTheme = {
     SPAN_FRAME_BORDER: 'rgba(200, 200, 200, 1)',
     STACK_TO_COLOR: makeStackToColor([0, 0, 0, 0.035]),
   },
-  FONTS: {
-    FONT: MONOSPACE_FONT,
-    FRAME_FONT,
-  },
+  FONTS,
 };
 
 export const DarkFlamegraphTheme: FlamegraphTheme = {
-  CONFIG: {
-    HIGHLIGHT_RECURSION: false,
-  },
-  SIZES: {
-    BAR_FONT_SIZE: 11,
-    BAR_HEIGHT: 20,
-    BAR_PADDING: 4,
-    FLAMEGRAPH_DEPTH_OFFSET: 12,
-    FOCUSED_FRAME_BORDER_WIDTH: 1,
-    FRAME_BORDER_WIDTH: 2,
-    GRID_LINE_WIDTH: 2,
-    HOVERED_FRAME_BORDER_WIDTH: 1,
-    INTERNAL_SAMPLE_TICK_LINE_WIDTH: 1,
-    LABEL_FONT_PADDING: 6,
-    LABEL_FONT_SIZE: 10,
-    MINIMAP_HEIGHT: 100,
-    MINIMAP_POSITION_OVERLAY_BORDER_WIDTH: 2,
-    SPANS_HEIGHT: 100,
-    TIMELINE_HEIGHT: 20,
-    TOOLTIP_FONT_SIZE: 12,
-  },
+  SIZES,
   COLORS: {
     BAR_LABEL_FONT_COLOR: 'rgb(255 255 255 / 80%)',
     COLOR_BUCKET: makeColorBucketTheme(LCH_DARK),
@@ -201,8 +181,5 @@ export const DarkFlamegraphTheme: FlamegraphTheme = {
     SPAN_FRAME_BORDER: '#57575b',
     STACK_TO_COLOR: makeStackToColor([1, 1, 1, 0.1]),
   },
-  FONTS: {
-    FONT: MONOSPACE_FONT,
-    FRAME_FONT,
-  },
+  FONTS,
 };
