@@ -2,14 +2,15 @@ import {useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {CanvasPoolManager, CanvasScheduler} from 'sentry/utils/profiling/canvasScheduler';
+import {CanvasView} from 'sentry/utils/profiling/canvasView';
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
-import {FlamegraphView} from 'sentry/utils/profiling/flamegraphView';
 import {SpanChartRenderer2D} from 'sentry/utils/profiling/renderers/spansRenderer';
 import {SpanChart} from 'sentry/utils/profiling/spanChart';
+import {SpanTree} from 'sentry/utils/profiling/spanTree';
 
 interface FlamegraphSpansProps {
   canvasPoolManager: CanvasPoolManager;
-  flamegraphView: FlamegraphView | null;
+  flamegraphView: CanvasView<SpanTree> | null;
   setSpansCanvasRef: React.Dispatch<React.SetStateAction<HTMLCanvasElement | null>>;
   spanChart: SpanChart;
   spansCanvas: FlamegraphCanvas | null;

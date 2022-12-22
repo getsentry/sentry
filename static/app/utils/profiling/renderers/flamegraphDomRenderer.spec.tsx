@@ -9,8 +9,9 @@ import {
 } from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 import {FlamegraphDomRenderer} from 'sentry/utils/profiling/renderers/flamegraphDomRenderer';
 
+import {CanvasView} from '../canvasView';
+import {Flamegraph} from '../flamegraph';
 import {FlamegraphCanvas} from '../flamegraphCanvas';
-import {FlamegraphView} from '../flamegraphView';
 
 const originalDpr = window.devicePixelRatio;
 
@@ -40,10 +41,15 @@ describe('FlamegraphDomRenderer', () => {
     const renderer = new FlamegraphDomRenderer(canvas, flamegraph, theme);
     const flamegraphCanvas = new FlamegraphCanvas(canvas, vec2.fromValues(0, 0));
 
-    const flamegraphView = new FlamegraphView({
+    const flamegraphView = new CanvasView<Flamegraph>({
       canvas: flamegraphCanvas,
-      flamegraph,
+      model: flamegraph,
       theme: LightFlamegraphTheme,
+      options: {
+        inverted: flamegraph.inverted,
+        minWidth: flamegraph.profile.minFrameDuration,
+      },
+      configSpace: flamegraph.configSpace,
     });
 
     renderer.draw(

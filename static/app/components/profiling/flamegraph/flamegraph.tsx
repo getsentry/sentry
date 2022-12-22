@@ -22,6 +22,7 @@ import {FlamegraphZoomView} from 'sentry/components/profiling/flamegraph/flamegr
 import {FlamegraphZoomViewMinimap} from 'sentry/components/profiling/flamegraph/flamegraphZoomViewMinimap';
 import {defined} from 'sentry/utils';
 import {CanvasPoolManager, CanvasScheduler} from 'sentry/utils/profiling/canvasScheduler';
+import {CanvasView} from 'sentry/utils/profiling/canvasView';
 import {Flamegraph as FlamegraphModel} from 'sentry/utils/profiling/flamegraph';
 import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphPreferences';
 import {useFlamegraphProfiles} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphProfiles';
@@ -30,7 +31,6 @@ import {useFlamegraphZoomPosition} from 'sentry/utils/profiling/flamegraph/hooks
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
-import {FlamegraphView} from 'sentry/utils/profiling/flamegraphView';
 import {
   computeConfigViewWithStrategy,
   formatColorForFrame,
@@ -159,16 +159,21 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
     return new FlamegraphCanvas(spansCanvasRef, vec2.fromValues(0, 0));
   }, [spansCanvasRef]);
 
-  const flamegraphView = useMemoWithPrevious<FlamegraphView | null>(
+  const flamegraphView = useMemoWithPrevious<CanvasView<FlamegraphModel> | null>(
     previousView => {
       if (!flamegraphCanvas) {
         return null;
       }
 
-      const newView = new FlamegraphView({
+      const newView = new CanvasView({
         canvas: flamegraphCanvas,
-        flamegraph,
         theme: flamegraphTheme,
+        configSpace: flamegraph.configSpace,
+        model: flamegraph,
+        options: {
+          inverted: flamegraph.inverted,
+          minWidth: flamegraph.profile.minFrameDuration,
+        },
       });
 
       if (
@@ -176,13 +181,13 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
         // want to persist the config view. This is to avoid a case where the new config space
         // is larger than the previous one, meaning the new view could now be zoomed in even
         // though the user did not fire any zoom events.
-        previousView?.flamegraph.profile === newView.flamegraph.profile &&
+        previousView?.model.profile === newView.model.profile &&
         previousView.configSpace.equals(newView.configSpace)
       ) {
         if (
           // if we're still looking at the same profile but only a preference other than
           // left heavy has changed, we do want to persist the config view
-          previousView.flamegraph.leftHeavy === newView.flamegraph.leftHeavy
+          previousView.model.leftHeavy === newView.model.leftHeavy
         ) {
           newView.setConfigView(
             previousView.configView.withHeight(newView.configView.height)
@@ -244,7 +249,7 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
       if (
         position.view &&
         !position.view.isEmpty() &&
-        previousView?.flamegraph === FALLBACK_FLAMEGRAPH
+        previousView?.model === FALLBACK_FLAMEGRAPH
       ) {
         newView.setConfigView(position.view);
       }
