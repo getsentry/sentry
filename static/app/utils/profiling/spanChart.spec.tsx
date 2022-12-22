@@ -2,8 +2,6 @@ import {EntrySpans, EventOrGroupType, EventTransaction} from 'sentry/types/event
 import {SpanChart} from 'sentry/utils/profiling/spanChart';
 import {SpanTree} from 'sentry/utils/profiling/spanTree';
 
-import {Rect} from './gl/utils';
-
 function s(partial: Partial<EntrySpans['data'][0]>): EntrySpans['data'][0] {
   return {
     timestamp: 0,
@@ -73,20 +71,6 @@ describe('spanChart', () => {
         expect(span.depth).toBe(2);
       }
     });
-  });
-
-  it('sets configView to duration of the spans', () => {
-    const tree = new SpanTree(txn({startTimestamp: 0, endTimestamp: 1}), [
-      s({span_id: '1', timestamp: 1, start_timestamp: 0}),
-      s({span_id: '2', timestamp: 0.5, start_timestamp: 0}),
-      s({span_id: '3', timestamp: 0.2, start_timestamp: 0}),
-      s({span_id: '4', timestamp: 1, start_timestamp: 0.5}),
-    ]);
-
-    expect(tree.root.children[0].children[1].span.span_id).toBe('4');
-
-    const chart = new SpanChart(tree);
-    expect(chart.configSpace.equals(new Rect(0, 0, 1, 3))).toBe(true);
   });
 
   it('remaps spans to start of benchmark', () => {

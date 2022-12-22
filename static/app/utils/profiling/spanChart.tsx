@@ -19,7 +19,6 @@ class SpanChart {
 
   toFinalUnit = makeFormatTo('milliseconds', 'milliseconds');
   formatter = makeFormatter('milliseconds');
-  configSpace: Rect = Rect.Empty();
 
   constructor(
     spanTree: SpanTree,
@@ -28,20 +27,6 @@ class SpanChart {
     this.spanTree = spanTree;
     this.toFinalUnit = makeFormatTo('milliseconds', options.unit);
     this.spans = this.collectSpanNodes();
-
-    const duration = spanTree.root.span.timestamp - spanTree.root.span.start_timestamp;
-
-    if (duration > 0) {
-      this.configSpace = new Rect(0, 0, this.toFinalUnit(duration), this.depth);
-    } else {
-      // If the span duration is 0, set the flamegraph duration to 1 second as flamechart
-      this.configSpace = new Rect(
-        0,
-        0,
-        1e3, // milliseconds
-        0
-      );
-    }
   }
 
   // Bfs over the span tree while keeping track of level depth and calling the cb fn

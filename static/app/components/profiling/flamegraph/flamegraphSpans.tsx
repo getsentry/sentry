@@ -45,7 +45,7 @@ export function FlamegraphSpans({
     }
 
     const drawSpans = () => {
-      spansRenderer.draw(flamegraphView.fromConfigSpace(spansCanvas.physicalSpace));
+      spansRenderer.draw(flamegraphView.fromConfigView(spansCanvas.physicalSpace));
     };
 
     drawSpans();

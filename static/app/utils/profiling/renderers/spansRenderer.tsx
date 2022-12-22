@@ -1,6 +1,10 @@
 import {mat3} from 'gl-matrix';
 
-import {Rect, resizeCanvasToDisplaySize} from 'sentry/utils/profiling/gl/utils';
+import {
+  getContext,
+  Rect,
+  resizeCanvasToDisplaySize,
+} from 'sentry/utils/profiling/gl/utils';
 import {SpanChart, SpanChartNode} from 'sentry/utils/profiling/spanChart';
 
 // Convert color component from 0-1 to 0-255 range
@@ -9,12 +13,12 @@ function colorComponentsToRgba(color: number[]): string {
     color[2] * 255
   )}, ${color[3] ?? 1})`;
 }
-const SPAN_HEIGHT_PX = 20;
 
 export class SpanChartRenderer2D {
   canvas: HTMLCanvasElement | null;
   spanChart: SpanChart;
 
+  context: CanvasRenderingContext2D;
   spans: ReadonlyArray<SpanChartNode> = [];
 
   constructor(canvas: HTMLCanvasElement, spanChart: SpanChart) {
@@ -22,6 +26,7 @@ export class SpanChartRenderer2D {
     this.spanChart = spanChart;
 
     this.spans = [...this.spanChart.spans];
+    this.context = getContext(this.canvas, '2d');
 
     this.init();
     resizeCanvasToDisplaySize(this.canvas);
@@ -36,26 +41,17 @@ export class SpanChartRenderer2D {
       throw new Error('No canvas to draw on');
     }
 
-    const context = this.canvas.getContext('2d');
-
-    if (!context) {
-      throw new Error('Could not get canvas 2d context');
-    }
-
-    context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    this.context.fillStyle = colorComponentsToRgba([1, 0, 0, 1]);
 
     for (let i = 0; i < this.spans.length; i++) {
       const span = this.spans[i];
 
-      const rect = new Rect(
-        span.start,
-        span.depth * SPAN_HEIGHT_PX,
-        span.duration,
-        SPAN_HEIGHT_PX
-      ).transformRect(configViewToPhysicalSpace);
+      const rect = new Rect(span.start, span.depth, span.duration, 1).transformRect(
+        configViewToPhysicalSpace
+      );
 
-      context.fillStyle = colorComponentsToRgba([1, 0, 0, 1]);
-      context.fillRect(rect.x, rect.y, rect.width, rect.height);
+      this.context.fillRect(rect.x, rect.y, rect.width, rect.height);
     }
   }
 }

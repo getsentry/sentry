@@ -344,16 +344,13 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
       }
     );
 
-    const spansCanvasObserver = spansCanvasRef
-      ? watchForResize(
-          [flamegraphMiniMapCanvasRef, flamegraphMiniMapOverlayCanvasRef],
-          () => {
-            flamegraphMiniMapCanvas.initPhysicalSpace();
-
+    const spansCanvasObserver =
+      spansCanvasRef && spansCanvas
+        ? watchForResize([spansCanvasRef], () => {
+            spansCanvas.initPhysicalSpace();
             canvasPoolManager.drawSync();
-          }
-        )
-      : null;
+          })
+        : null;
 
     return () => {
       flamegraphObserver.disconnect();
@@ -372,6 +369,7 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
     flamegraphOverlayCanvasRef,
     flamegraphView,
     spansCanvasRef,
+    spansCanvas,
   ]);
 
   const flamegraphRenderer = useMemo(() => {
