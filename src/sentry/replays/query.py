@@ -434,7 +434,6 @@ def _activity_score():
 
 FIELD_QUERY_ALIAS_MAP: Dict[str, List[str]] = {
     "id": ["replay_id"],
-    "title": ["title"],
     "replayType": ["replayType"],
     "projectId": ["projectId"],
     "platform": ["platform"],
@@ -481,7 +480,6 @@ FIELD_QUERY_ALIAS_MAP: Dict[str, List[str]] = {
 
 QUERY_ALIAS_COLUMN_MAP = {
     "replay_id": _strip_uuid_dashes("replay_id", Column("replay_id")),
-    "title": _grouped_unique_scalar_value(column_name="title"),
     "replayType": _grouped_unique_scalar_value(column_name="replay_type", alias="replayType"),
     "projectId": Function(
         "toString",
