@@ -200,7 +200,7 @@
     "jest-sentry-environment": "3.0.0",
     "postcss-jsx": "0.36.4",
     "postcss-syntax": "0.36.2",
-    "react-refresh": "0.13.0",
+    "react-refresh": "0.14.0",
     "react-test-renderer": "17.0.2",
     "size-limit": "^5.0.5",
     "storybook-dark-mode": "^1.1.2",
