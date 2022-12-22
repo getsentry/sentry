@@ -1,8 +1,19 @@
 import {Fragment} from 'react';
-import {BrowserClient} from '@sentry/react';
+import {
+  BrowserClient,
+  defaultIntegrations,
+  defaultStackParser,
+  makeFetchTransport,
+} from '@sentry/react';
+import * as Sentry from '@sentry/react';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {renderGlobalModal, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {
+  renderGlobalModal,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
 import * as indicators from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
@@ -30,8 +41,14 @@ function ComponentProviders({children}: {children: React.ReactNode}) {
 
 describe('FeatureFeedback', function () {
   describe('default', function () {
-    it('submits modal on click', function () {
+    it('submits modal on click', async function () {
       jest.spyOn(indicators, 'addSuccessMessage');
+
+      const feedbackClient = new Sentry.BrowserClient({
+        transport: makeFetchTransport,
+        stackParser: defaultStackParser,
+        integrations: defaultIntegrations,
+      });
 
       renderGlobalModal();
 
@@ -73,6 +90,16 @@ describe('FeatureFeedback', function () {
       expect(screen.getByRole('button', {name: 'Submit Feedback'})).toBeEnabled();
 
       userEvent.click(screen.getByRole('button', {name: 'Submit Feedback'}));
+
+      await waitFor(() =>
+        expect(feedbackClient.captureEvent).toHaveBeenCalledWith(
+          expect.objectContaining({
+            request: {
+              url: 'http://localhost/',
+            },
+          })
+        )
+      );
 
       expect(indicators.addSuccessMessage).toHaveBeenCalledWith(
         'Thanks for taking the time to provide us feedback!'
