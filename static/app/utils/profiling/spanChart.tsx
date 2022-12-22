@@ -36,7 +36,6 @@ class SpanChart {
 
   toFinalUnit = makeFormatTo('milliseconds', 'milliseconds');
   formatter = makeFormatter('milliseconds');
-  timelineFormatter: (value: number) => string;
 
   constructor(
     spanTree: SpanTree,
@@ -45,13 +44,6 @@ class SpanChart {
     this.spanTree = spanTree;
     this.toFinalUnit = makeFormatTo('seconds', options.unit);
     this.spans = this.collectSpanNodes();
-    this.timelineFormatter = makeTimelineFormatter(options.unit);
-
-    const duration = this.toFinalUnit(
-      this.spanTree.root.span.timestamp - this.spanTree.root.span.start_timestamp
-    );
-
-    this.configSpace = new Rect(0, 0, duration, this.depth);
   }
 
   // Bfs over the span tree while keeping track of level depth and calling the cb fn

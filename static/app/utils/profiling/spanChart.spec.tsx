@@ -2,8 +2,6 @@ import {EntrySpans, EventOrGroupType, EventTransaction} from 'sentry/types/event
 import {SpanChart} from 'sentry/utils/profiling/spanChart';
 import {SpanTree} from 'sentry/utils/profiling/spanTree';
 
-import {Rect} from './gl/utils';
-
 function s(partial: Partial<EntrySpans['data'][0]>): EntrySpans['data'][0] {
   return {
     timestamp: 0,
@@ -103,38 +101,29 @@ describe('spanChart', () => {
     });
   });
 
-  it('keeps track of shortest duration span', () => {
-    const start = Date.now();
-    const tree = new SpanTree(
-      txn({
-        contexts: {trace: {span_id: 'root'}},
-        startTimestamp: start + 0,
-        endTimestamp: start + 10,
-      }),
-      [
-        s({
-          span_id: '1',
-          parent_span_id: 'root',
-          timestamp: start + 10,
-          start_timestamp: start,
-        }),
-        s({
-          span_id: '2',
-          parent_span_id: '1',
-          timestamp: start + 5,
-          start_timestamp: start,
-        }),
-        s({
-          span_id: '3',
-          parent_span_id: '2',
-          timestamp: start + 1,
-          start_timestamp: start,
-        }),
-      ]
-    );
+  it('remaps spans to start of benchmark', () => {
+    const tree = new SpanTree(txn({startTimestamp: 5, endTimestamp: 10}), [
+      s({span_id: '1', timestamp: 10, start_timestamp: 6}),
+      s({span_id: '2', timestamp: 9, start_timestamp: 8}),
+    ]);
 
     const chart = new SpanChart(tree);
-    expect(chart.minSpanDuration).toBe(1 * 1e3);
+    expect(chart.spans[1].start).toBe(1);
+    expect(chart.spans[1].end).toBe(5);
+
+    expect(chart.spans[2].start).toBe(3);
+    expect(chart.spans[2].end).toBe(4);
+  });
+
+  it('converts durations to final unit', () => {
+    const tree = new SpanTree(txn({startTimestamp: 0, endTimestamp: 10}), [
+      s({span_id: '1', timestamp: 3, start_timestamp: 1}),
+    ]);
+
+    const chart = new SpanChart(tree, {unit: 'nanoseconds'});
+    expect(chart.spans[1].start).toBe(1 * 1e6);
+    expect(chart.spans[1].end).toBe(3 * 1e6);
+    expect(chart.spans[1].duration).toBe(2 * 1e6);
   });
 
   it('tracks chart depth', () => {
