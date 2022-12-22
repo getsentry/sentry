@@ -45,7 +45,7 @@ export type Project = {
   subjectTemplate: string;
   teams: Team[];
   builtinSymbolSources?: string[];
-  dynamicSamplingRules?: DynamicSamplingRule[];
+  dynamicSamplingRules?: DynamicSamplingRule[] | null;
   hasUserReports?: boolean;
   latestDeploys?: Record<string, Pick<Deploy, 'dateFinished' | 'version'>> | null;
   latestRelease?: Release;
