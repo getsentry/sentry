@@ -243,12 +243,6 @@ class AuthIdentityHandler:
 
         return om
 
-    def _get_auth_identity(self, **params: Any) -> AuthIdentity | None:
-        try:
-            return AuthIdentity.objects.get(auth_provider=self.auth_provider, **params)
-        except AuthIdentity.DoesNotExist:
-            return None
-
     @transaction.atomic  # type: ignore
     def handle_attach_identity(self, member: OrganizationMember | None = None) -> ApiAuthIdentity:
         """
