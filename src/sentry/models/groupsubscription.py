@@ -161,7 +161,7 @@ class GroupSubscriptionManager(BaseManager):  # type: ignore
 
         return list(
             GroupSubscription.objects.filter(group=group, is_active=True).values_list(
-                "id", flat=True
+                "user_id", flat=True
             )
         )
 
