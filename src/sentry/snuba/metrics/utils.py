@@ -32,6 +32,8 @@ __all__ = (
     "UNALLOWED_TAGS",
     "combine_dictionary_of_list_values",
     "get_intervals",
+    "get_num_intervals",
+    "to_intervals",
     "OP_REGEX",
     "CUSTOM_MEASUREMENT_DATASETS",
     "DATASET_COLUMNS",
@@ -361,9 +363,9 @@ def to_intervals(
 
 
 def get_num_intervals(
+    start: datetime,
     end: datetime,
     granularity: int,
-    start: Optional[datetime] = None,
     interval: Optional[int] = None,
 ) -> int:
     """
@@ -400,19 +402,3 @@ def get_intervals(
         yield start
         idx += 1
         start += interval_span
-
-
-def get_intervals_old(
-    start: datetime, end: datetime, granularity: int, interval: Optional[int] = None
-):
-    if interval is None:
-        assert granularity > 0
-        interval = granularity
-
-    start = datetime.fromtimestamp(int(start.timestamp() / interval) * interval, timezone.utc)
-    end = datetime.fromtimestamp(int(end.timestamp() / interval) * interval, timezone.utc)
-    assert interval > 0
-    delta = timedelta(seconds=interval)
-    while start < end:
-        yield start
-        start += delta
