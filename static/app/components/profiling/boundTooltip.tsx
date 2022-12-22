@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {vec2} from 'gl-matrix';
 
 import space from 'sentry/styles/space';
-import {CanvasView} from 'sentry/utils/profiling/canvasView';
+import {FlamegraphView} from 'sentry/utils/profiling/canvasView';
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
 import {Rect} from 'sentry/utils/profiling/gl/utils';

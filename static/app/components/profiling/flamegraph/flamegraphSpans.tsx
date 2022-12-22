@@ -6,23 +6,15 @@ import {BoundTooltip} from 'sentry/components/profiling/boundTooltip';
 import {t} from 'sentry/locale';
 import {CanvasPoolManager, CanvasScheduler} from 'sentry/utils/profiling/canvasScheduler';
 import {CanvasView} from 'sentry/utils/profiling/canvasView';
-import {useDispatchFlamegraphState} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphState';
-import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
-import {formatColorForSpan, Rect} from 'sentry/utils/profiling/gl/utils';
 import {SpanChartRenderer2D} from 'sentry/utils/profiling/renderers/spansRenderer';
-import {SpanChart, SpanChartNode} from 'sentry/utils/profiling/spanChart';
-import usePrevious from 'sentry/utils/usePrevious';
-
-import {
-  FlamegraphTooltipColorIndicator,
-  FlamegraphTooltipFrameMainInfo,
-  FlamegraphTooltipTimelineInfo,
-} from './flamegraphTooltip';
+import {SpanChart} from 'sentry/utils/profiling/spanChart';
+import {SpanTree} from 'sentry/utils/profiling/spanTree';
 
 interface FlamegraphSpansProps {
   canvasBounds: Rect;
   canvasPoolManager: CanvasPoolManager;
+  flamegraphView: CanvasView<SpanTree> | null;
   setSpansCanvasRef: React.Dispatch<React.SetStateAction<HTMLCanvasElement | null>>;
   spanChart: SpanChart;
   spansCanvas: FlamegraphCanvas | null;

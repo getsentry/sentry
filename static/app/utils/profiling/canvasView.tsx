@@ -1,5 +1,6 @@
 import {mat3, vec2} from 'gl-matrix';
 
+import {FlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
 import {
   computeClampedConfigView,
@@ -8,34 +9,31 @@ import {
 } from 'sentry/utils/profiling/gl/utils';
 
 export class CanvasView<T extends {configSpace: Rect}> {
+  theme: FlamegraphTheme;
+
   configView: Rect = Rect.Empty();
   configSpace: Readonly<Rect> = Rect.Empty();
 
   inverted: boolean;
   minWidth: number;
-  depthOffset: number;
-  barHeight: number;
   model: T;
 
   constructor({
     canvas,
+    theme,
     options,
     model,
   }: {
     canvas: FlamegraphCanvas;
+    configSpace: Rect;
     model: T;
-    options: {
-      barHeight: number;
-      depthOffset?: number;
-      inverted?: boolean;
-      minWidth?: number;
-    };
+    options: {inverted?: boolean; minWidth?: number};
+    theme: FlamegraphTheme;
   }) {
+    this.theme = theme;
     this.inverted = !!options.inverted;
     this.minWidth = options.minWidth ?? 0;
     this.model = model;
-    this.depthOffset = options.depthOffset ?? 0;
-    this.barHeight = options.barHeight ? options.barHeight * window.devicePixelRatio : 0;
     this.initConfigSpace(canvas);
   }
 
@@ -45,8 +43,8 @@ export class CanvasView<T extends {configSpace: Rect}> {
       0,
       this.model.configSpace.width,
       Math.max(
-        this.model.configSpace.height + this.depthOffset,
-        canvas.physicalSpace.height / this.barHeight
+        this.model.configSpace.height + this.theme.SIZES.FLAMEGRAPH_DEPTH_OFFSET,
+        canvas.physicalSpace.height / BAR_HEIGHT
       )
     );
   }

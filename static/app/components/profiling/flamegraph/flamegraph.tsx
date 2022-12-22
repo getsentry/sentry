@@ -174,12 +174,12 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
 
       const newView = new CanvasView({
         canvas: flamegraphCanvas,
+        theme: flamegraphTheme,
+        configSpace: flamegraph.configSpace,
         model: flamegraph,
         options: {
           inverted: flamegraph.inverted,
           minWidth: flamegraph.profile.minFrameDuration,
-          barHeight: flamegraphTheme.SIZES.BAR_HEIGHT,
-          depthOffset: flamegraphTheme.SIZES.FLAMEGRAPH_DEPTH_OFFSET,
         },
       });
 
