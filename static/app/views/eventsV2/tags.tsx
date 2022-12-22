@@ -1,6 +1,5 @@
 import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
-import * as Sentry from '@sentry/react';
 import {Location, LocationDescriptor} from 'history';
 
 import {fetchTagFacets, Tag, TagSegment} from 'sentry/actionCreators/events';
@@ -82,7 +81,6 @@ class Tags extends Component<Props, State> {
       );
       this.setState({loading: false, tags});
     } catch (err) {
-      Sentry.captureException(err);
       this.setState({loading: false, error: err});
     }
   };
