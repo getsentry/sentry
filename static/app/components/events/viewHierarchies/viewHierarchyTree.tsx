@@ -54,14 +54,23 @@ function Tree({hierarchy}) {
 
 function ViewHierarchyContainer({hierarchy}) {
   return (
-    <div style={{maxHeight: '500px', overflow: 'auto'}}>
+    <Container>
       {/* <pre>{JSON.stringify(hierarchy, null, 2)}</pre> */}
       <Tree hierarchy={hierarchy} />
-    </div>
+    </Container>
   );
 }
 
 export {ViewHierarchyContainer as ViewHierarchyTree};
+
+const Container = styled('div')`
+  max-height: 500px;
+  overflow: auto;
+  background-color: ${p => p.theme.surface100};
+  border: 1px solid ${p => p.theme.gray100};
+  border-radius: ${p => p.theme.borderRadius};
+  padding: 9.5px;
+`;
 
 const NodeContents = styled('div')`
   margin-left: ${space(0.5)};
