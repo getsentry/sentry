@@ -136,7 +136,7 @@ def has_releases(project: Project) -> bool:
 def get_action_text(
     text: str,
     actions: Sequence[Any],
-    identity: APIIdentity | None = None,
+    identity: APIIdentity,
 ) -> str:
     return (
         text
@@ -160,7 +160,7 @@ def build_actions(
     identity: APIIdentity | None = None,
 ) -> tuple[Sequence[MessageAction], str, str]:
     """Having actions means a button will be shown on the Slack message e.g. ignore, resolve, assign."""
-    if actions:
+    if actions and identity:
         text += get_action_text(text, actions, identity)
         return [], text, "_actioned_issue"
 

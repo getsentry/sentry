@@ -130,9 +130,10 @@ class SlackRequest:
         return self._identity
 
     def get_identity_user(self) -> APIUser | None:
-        if not self._identity:
-            self.get_identity()
-        return user_service.get_user(self._identity.user_id)
+        identity = self._identity if self._identity else self.get_identity()
+        if not identity:
+            return None
+        return user_service.get_user(identity.user_id)
 
     def _validate_data(self) -> None:
         try:

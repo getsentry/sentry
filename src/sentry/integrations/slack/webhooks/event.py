@@ -16,6 +16,8 @@ from sentry.integrations.slack.requests.event import COMMANDS, SlackEventRequest
 from sentry.integrations.slack.unfurl import LinkType, UnfurlableUrl, link_handlers, match_link
 from sentry.integrations.slack.views.link_identity import build_linking_url
 from sentry.models import Integration
+from sentry.services.hybrid_cloud.integration import integration_service
+from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import json
 from sentry.utils.urls import parse_link
@@ -134,7 +136,15 @@ class SlackEventEndpoint(SlackDMEndpoint):
             if link_type is None or args is None:
                 continue
 
-            organization = slack_request.integration.organizations.first()
+            organization_integrations = integration_service.get_organization_integrations(
+                slack_request.integration.id
+            )
+            organization_ids = [oi.organization_id for oi in organization_integrations]
+            organizations = organization_service.get_organizations(
+                user_id=None, scope=None, only_visible=True, organization_ids=organization_ids
+            )
+            organization = organizations[0] if len(organizations) else None
+
             if (
                 organization
                 and link_type == LinkType.DISCOVER

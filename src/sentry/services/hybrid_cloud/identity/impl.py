@@ -1,7 +1,11 @@
 from __future__ import annotations
 
-from sentry.models.identity import Identity, IdentityProvider
+from typing import TYPE_CHECKING
+
 from sentry.services.hybrid_cloud.identity import APIIdentity, APIIdentityProvider, IdentityService
+
+if TYPE_CHECKING:
+    from sentry.models.identity import Identity, IdentityProvider
 
 
 class DatabaseBackedIdentityService(IdentityService):

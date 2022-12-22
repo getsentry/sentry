@@ -3,20 +3,19 @@ from __future__ import annotations
 from abc import abstractmethod
 from dataclasses import dataclass
 
-from sentry.models.identity import Identity, IdentityProvider
 from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_delegation, stubbed
 from sentry.silo import SiloMode
 
 
 @dataclass(frozen=True)
-class APIIdentityProvider(IdentityProvider):
+class APIIdentityProvider:
     id: int
     type: str
     external_id: str
 
 
 @dataclass(frozen=True)
-class APIIdentity(Identity):
+class APIIdentity:
     id: int
     idp_id: int
     user_id: int

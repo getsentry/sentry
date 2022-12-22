@@ -2,27 +2,37 @@ from __future__ import annotations
 
 from abc import abstractmethod
 from dataclasses import dataclass
-from typing import Any, Mapping
+from typing import Any, Mapping, Sequence
 
-from sentry.constants import ObjectStatus
-from sentry.models.integrations import Integration
 from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_delegation, stubbed
 from sentry.silo import SiloMode
 
 
 @dataclass(frozen=True)
-class APIIntegration(Integration):
+class APIIntegration:
     id: int
     provider: str
     external_id: str
     name: str
     metadata: Mapping[str, Any]
-    status: ObjectStatus
+
+
+@dataclass(frozen=True)
+class APIOrganizationIntegration:
+    id: int
+    organization_id: int
+    integration_id: int
 
 
 class IntegrationService(InterfaceWithLifecycle):
     @abstractmethod
     def get_by_provider_id(self, provider: str, external_id: str) -> APIIntegration | None:
+        pass
+
+    @abstractmethod
+    def get_organization_integrations(
+        self, integration_id: int
+    ) -> Sequence[APIOrganizationIntegration]:
         pass
 
 

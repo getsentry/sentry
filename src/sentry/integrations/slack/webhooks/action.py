@@ -24,6 +24,7 @@ from sentry.integrations.slack.views.unlink_identity import build_unlinking_url
 from sentry.models import Group, InviteStatus, NotificationSetting, OrganizationMember
 from sentry.models.activity import ActivityIntegration
 from sentry.notifications.utils.actions import MessageAction
+from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.user import APIUser
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.types.integrations import ExternalProviders
@@ -146,7 +147,7 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
         if error.status_code == 403:
             text = UNLINK_IDENTITY_MESSAGE.format(
                 associate_url=build_unlinking_url(
-                    slack_request.integration.id,
+                    str(slack_request.integration.id),
                     slack_request.user_id,
                     slack_request.channel_id,
                     slack_request.response_url,
@@ -288,8 +289,10 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
             return self.respond(status=403)
 
         identity = slack_request.get_identity()
+        # Determine the acting user by Slack identity.
+        identity_user = slack_request.get_identity_user()
 
-        if not identity:
+        if not identity or not identity_user:
             associate_url = build_linking_url(
                 integration=slack_request.integration,
                 slack_id=slack_request.user_id,
@@ -297,9 +300,6 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
                 response_url=slack_request.response_url,
             )
             return self.respond_ephemeral(LINK_IDENTITY_MESSAGE.format(associate_url=associate_url))
-
-        # Determine the acting user by Slack identity.
-        identity_user = slack_request.get_identity_user()
 
         original_tags_from_request = slack_request.get_tags()
         # Handle status dialog submission
@@ -371,10 +371,12 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
         return self.respond(body)
 
     def handle_unfurl(self, slack_request: SlackActionRequest, action: str) -> Response:
-        organizations = slack_request.integration.organizations.all()
+        organization_integrations = integration_service.get_organization_integrations(
+            slack_request.integration.id
+        )
         analytics.record(
             "integrations.slack.chart_unfurl_action",
-            organization_id=organizations[0].id,
+            organization_id=organization_integrations[0].id,
             action=action,
         )
         payload = {"delete_original": "true"}

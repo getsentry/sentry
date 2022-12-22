@@ -78,7 +78,7 @@ class SlackDMEndpoint(Endpoint, abc.ABC):  # type: ignore
             raise SlackRequestError(status=status.HTTP_400_BAD_REQUEST)
 
         associate_url = build_unlinking_url(
-            integration_id=slack_request.integration.id,
+            integration_id=str(slack_request.integration.id),
             slack_id=slack_request.user_id,
             channel_id=slack_request.channel_id,
             response_url=slack_request.response_url,
