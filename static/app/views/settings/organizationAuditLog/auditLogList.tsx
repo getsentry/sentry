@@ -55,7 +55,13 @@ const addUsernameDisplay = (logEntryUser: User | undefined) => {
   return null;
 };
 
-function AuditNote({entry, orgSlug}: {entry: AuditLog; orgSlug: Organization['slug']}) {
+function AuditNote({
+  entry,
+  orgSlug,
+}: {
+  entry: NonNullable<AuditLog>;
+  orgSlug: Organization['slug'];
+}) {
   const {projects} = useProjects();
   const project = projects.find(p => p.id === String(entry.data.id));
 
@@ -208,7 +214,10 @@ const AuditLogList = ({
         emptyMessage={t('No audit entries available')}
         isLoading={isLoading}
       >
-        {entries?.map(entry => {
+        {(entries ?? []).map(entry => {
+          if (!entry) {
+            return null;
+          }
           return (
             <Fragment key={entry.id}>
               <UserInfo>
