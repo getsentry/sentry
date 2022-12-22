@@ -1,9 +1,9 @@
+import {Theme} from '@emotion/react';
 import {Location, Query} from 'history';
 
 import EventView from 'sentry/utils/discover/eventView';
 import {AnomalyConfidence} from 'sentry/utils/performance/anomalies/anomaliesQuery';
 import {decodeScalar} from 'sentry/utils/queryString';
-import {Theme} from 'sentry/utils/theme';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 
 export function generateAnomaliesRoute({orgSlug}: {orgSlug: string}): string {

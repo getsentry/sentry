@@ -1,3 +1,4 @@
+import {Theme} from '@emotion/react';
 import {Location} from 'history';
 import pick from 'lodash/pick';
 import round from 'lodash/round';
@@ -11,7 +12,6 @@ import {desktop, mobile, PlatformKey} from 'sentry/data/platformCategories';
 import {t, tct} from 'sentry/locale';
 import {Release, ReleaseStatus} from 'sentry/types';
 import {defined} from 'sentry/utils';
-import {Theme} from 'sentry/utils/theme';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 

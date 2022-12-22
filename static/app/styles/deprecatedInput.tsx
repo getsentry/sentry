@@ -1,6 +1,4 @@
-import {css} from '@emotion/react';
-
-import {Theme} from 'sentry/utils/theme';
+import {css, Theme} from '@emotion/react';
 
 /**
  * Inner padding for inputs. This is deprecated. If necessary, use the values

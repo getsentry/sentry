@@ -1,4 +1,4 @@
-import {css} from '@emotion/react';
+import {css, Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
@@ -6,7 +6,6 @@ import Tooltip from 'sentry/components/tooltip';
 import {PlatformKey} from 'sentry/data/platformCategories';
 import {tn} from 'sentry/locale';
 import getPlatformName from 'sentry/utils/getPlatformName';
-import {Theme} from 'sentry/utils/theme';
 
 type Props = {
   className?: string;

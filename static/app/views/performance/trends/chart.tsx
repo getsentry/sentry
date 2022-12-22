@@ -1,5 +1,5 @@
 import {browserHistory} from 'react-router';
-import {useTheme} from '@emotion/react';
+import {Theme, useTheme} from '@emotion/react';
 import type {LegendComponentOption} from 'echarts';
 
 import ChartZoom from 'sentry/components/charts/chartZoom';
@@ -23,7 +23,6 @@ import {
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {decodeList} from 'sentry/utils/queryString';
-import {Theme} from 'sentry/utils/theme';
 import {useLocation} from 'sentry/utils/useLocation';
 import useRouter from 'sentry/utils/useRouter';
 

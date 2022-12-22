@@ -1,4 +1,5 @@
 import {InjectedRouter} from 'react-router';
+import {Theme} from '@emotion/react';
 import {Query} from 'history';
 
 import ChartZoom from 'sentry/components/charts/chartZoom';
@@ -17,7 +18,6 @@ import {
   tooltipFormatter,
 } from 'sentry/utils/discover/charts';
 import getDynamicText from 'sentry/utils/getDynamicText';
-import {Theme} from 'sentry/utils/theme';
 
 import {transformEventStatsSmoothed} from '../../../trends/utils';
 

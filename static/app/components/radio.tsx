@@ -1,8 +1,7 @@
-import {css} from '@emotion/react';
+import {css, Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {growIn} from 'sentry/styles/animations';
-import {Theme} from 'sentry/utils/theme';
 
 interface CheckedProps extends React.InputHTMLAttributes<HTMLInputElement> {
   disabled?: boolean;

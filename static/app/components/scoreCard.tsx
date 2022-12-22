@@ -1,3 +1,4 @@
+import {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Panel} from 'sentry/components/panels';
@@ -5,7 +6,6 @@ import QuestionTooltip from 'sentry/components/questionTooltip';
 import TextOverflow from 'sentry/components/textOverflow';
 import space from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
-import {Theme} from 'sentry/utils/theme';
 
 type Props = {
   title: React.ReactNode;

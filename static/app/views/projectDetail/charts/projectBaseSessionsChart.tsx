@@ -1,6 +1,6 @@
 import {Component, Fragment} from 'react';
 import {InjectedRouter} from 'react-router';
-import {useTheme} from '@emotion/react';
+import {Theme, useTheme} from '@emotion/react';
 import type {LegendComponentOption} from 'echarts';
 import isEqual from 'lodash/isEqual';
 
@@ -21,7 +21,6 @@ import {Organization, PageFilters} from 'sentry/types';
 import {EChartEventHandler, Series} from 'sentry/types/echarts';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {MINUTES_THRESHOLD_TO_DISPLAY_SECONDS} from 'sentry/utils/sessions';
-import {Theme} from 'sentry/utils/theme';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import {displayCrashFreePercent} from 'sentry/views/releases/utils';
 import {sessionTerm} from 'sentry/views/releases/utils/sessionTerm';

@@ -1,4 +1,4 @@
-import {Theme} from 'sentry/utils/theme';
+import {Theme} from '@emotion/react';
 
 export const ROW_HEIGHT = 24;
 export const ROW_PADDING = 4;

@@ -1,7 +1,7 @@
 import 'focus-visible';
 import 'docs-ui/index.js';
 
-import {ThemeProvider} from '@emotion/react';
+import {Theme, ThemeProvider} from '@emotion/react';
 import {DocsContainer, Meta} from '@storybook/addon-docs';
 import {addDecorator, addParameters, DecoratorFn, Parameters} from '@storybook/react';
 import {themes} from '@storybook/theming';
@@ -14,7 +14,7 @@ import TableOfContents from 'docs-ui/components/tableOfContents';
 import {useDarkMode} from 'storybook-dark-mode';
 
 import GlobalStyles from 'sentry/styles/global';
-import {darkTheme, lightTheme, Theme} from 'sentry/utils/theme';
+import {darkTheme, lightTheme} from 'sentry/utils/theme';
 
 import {DocsGlobalStyles, StoryGlobalStyles} from './globalStyles';
 

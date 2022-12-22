@@ -1,7 +1,7 @@
+import {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import space from 'sentry/styles/space';
-import {Theme} from 'sentry/utils/theme';
 
 export const ErrorMessageTitle = styled('div')`
   display: flex;

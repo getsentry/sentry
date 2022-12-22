@@ -1,5 +1,5 @@
 import {ComponentType, Fragment} from 'react';
-import {css, withTheme} from '@emotion/react';
+import {css, Theme, withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 import round from 'lodash/round';
@@ -18,7 +18,7 @@ import {IconArrow} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
-import {ColorOrAlias, Theme} from 'sentry/utils/theme';
+import {ColorOrAlias} from 'sentry/utils/theme';
 import toArray from 'sentry/utils/toArray';
 
 import {ProjectBadge, ProjectBadgeContainer} from './styles';
