@@ -42,11 +42,18 @@ export class SpanChartRenderer2D {
     }
 
     this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
-    this.context.fillStyle = colorComponentsToRgba([1, 0, 0, 1]);
 
     for (let i = 0; i < this.spans.length; i++) {
       const span = this.spans[i];
 
+      const color = colorComponentsToRgba([
+        Math.random(),
+        Math.random(),
+        Math.random(),
+        1,
+      ]);
+
+      this.context.fillStyle = color;
       const rect = new Rect(span.start, span.depth, span.duration, 1).transformRect(
         configViewToPhysicalSpace
       );

@@ -73,8 +73,8 @@ class SpanTreeNode {
 
   contains(span: RawSpanType) {
     return (
-      span.start_timestamp >= this.span.start_timestamp &&
-      span.timestamp <= this.span.timestamp
+      this.span.start_timestamp <= span.start_timestamp &&
+      this.span.timestamp >= span.timestamp
     );
   }
 }
@@ -89,6 +89,7 @@ class SpanTree {
       start_timestamp: transaction.startTimestamp,
       timestamp: transaction.endTimestamp,
       exclusive_time: transaction.contexts?.trace?.exclusive_time ?? undefined,
+      span_id: transaction.contexts?.trace?.span_id ?? undefined,
       parent_span_id: undefined,
       op: 'transaction',
     });
@@ -103,30 +104,31 @@ class SpanTree {
   buildCollapsedSpanTree(spans: RawSpanType[]) {
     const spansSortedByStartTime = [...spans].sort(sortByStartTimeAndDuration);
 
-    for (const span of spansSortedByStartTime) {
-      const queue = [...this.root.children];
-      let parent: SpanTreeNode | null = null;
+    for (let i = 0; i < spansSortedByStartTime.length; i++) {
+      const span = spansSortedByStartTime[i];
+      let parent = this.root;
 
-      // If this is the first span, just push it to the root
-      if (!this.root.children.length) {
-        this.root.children.push(new SpanTreeNode(span, this.root));
-        continue;
-      }
-
-      while (queue.length > 0) {
-        const current = queue.pop()!;
-        if (current.contains(span)) {
-          parent = current;
-          queue.push(...current.children);
+      while (parent.contains(span)) {
+        let nextParent: SpanTreeNode | null = null;
+        for (let j = 0; j < parent.children.length; j++) {
+          const child = parent.children[j];
+          if (child.contains(span)) {
+            nextParent = child;
+            break;
+          }
         }
+        if (nextParent === null) {
+          break;
+        }
+        parent = nextParent;
       }
 
-      // if we didn't find a parent, we have an orphaned span
-      if (parent === null) {
-        this.orphanedSpans.push(span);
+      if (parent.span.span_id === span.parent_span_id) {
+        parent.children.push(new SpanTreeNode(span, parent));
         continue;
       }
-      parent.children.push(new SpanTreeNode(span, parent));
+
+      this.orphanedSpans.push(span);
     }
   }
 }
