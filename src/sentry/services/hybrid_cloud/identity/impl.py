@@ -41,7 +41,7 @@ class DatabaseBackedIdentityService(IdentityService):
     def get_by_external_ids(
         self, provider_type: str, provider_ext_id: str, identity_ext_id: str
     ) -> APIIdentity | None:
-        from sentry.models.identity import Identity
+        from sentry.models.identity import Identity, IdentityProvider
 
         idp = IdentityProvider.objects.filter(
             type=provider_type, external_id=provider_ext_id
