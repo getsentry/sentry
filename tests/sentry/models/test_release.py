@@ -8,10 +8,7 @@ from freezegun import freeze_time
 
 from sentry.api.exceptions import InvalidRepository
 from sentry.api.release_search import INVALID_SEMVER_MESSAGE
-from sentry.dynamic_sampling.latest_release_booster import (
-    ProjectBoostedReleases,
-    get_redis_client_for_ds,
-)
+from sentry.dynamic_sampling.latest_release_booster import ProjectBoostedReleases
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models import (
     Commit,
@@ -1338,9 +1335,6 @@ class ClearCommitsTestCase(TestCase):
 
 @region_silo_test(stable=True)
 class ReleaseProjectManagerTestCase(TransactionTestCase):
-    def setUp(self):
-        self.redis_client = get_redis_client_for_ds()
-
     def test_custom_manager(self):
         self.assertIsInstance(ReleaseProject.objects, ReleaseProjectModelManager)
 
