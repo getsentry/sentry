@@ -115,8 +115,8 @@ function SummaryContent({
     };
   }
 
-  function handleCellAction(column: TableColumn<React.ReactText>) {
-    return (action: Actions, value: React.ReactText) => {
+  function handleCellAction(column: TableColumn<number | string>) {
+    return (action: Actions, value: number | string) => {
       const searchConditions = normalizeSearchConditions(eventView.query);
 
       updateQuery(searchConditions, action, column, value);

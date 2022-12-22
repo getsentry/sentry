@@ -133,7 +133,7 @@ class Table extends Component<TableProps, TableState> {
     const {widths} = this.state;
     const columnOrder = eventView
       .getColumns()
-      .map((col: TableColumn<React.ReactText>, i: number) => {
+      .map((col: TableColumn<number | string>, i: number) => {
         if (typeof widths[i] === 'number') {
           return {...col, width: widths[i]};
         }

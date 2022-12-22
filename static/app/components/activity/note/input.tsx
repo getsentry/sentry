@@ -119,13 +119,13 @@ function NoteInput({
   );
 
   const handleAddMember = useCallback(
-    (id: React.ReactText, display: string) =>
+    (id: number | string, display: string) =>
       setMemberMentions(existing => [...existing, [`${id}`, display]]),
     []
   );
 
   const handleAddTeam = useCallback(
-    (id: React.ReactText, display: string) =>
+    (id: number | string, display: string) =>
       setTeamMentions(existing => [...existing, [`${id}`, display]]),
     []
   );

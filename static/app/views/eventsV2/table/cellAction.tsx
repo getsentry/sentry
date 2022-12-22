@@ -33,7 +33,7 @@ export function updateQuery(
   results: MutableSearch,
   action: Actions,
   column: TableColumn<keyof TableDataRow>,
-  value: React.ReactText | string[]
+  value: number | string | string[]
 ) {
   const key = column.name;
 
@@ -96,7 +96,7 @@ export function updateQuery(
 export function addToFilter(
   oldFilter: MutableSearch,
   key: string,
-  value: React.ReactText | string[]
+  value: number | string | string[]
 ) {
   // Remove exclusion if it exists.
   oldFilter.removeFilter(`!${key}`);
@@ -115,7 +115,7 @@ export function addToFilter(
 export function excludeFromFilter(
   oldFilter: MutableSearch,
   key: string,
-  value: React.ReactText | string[]
+  value: number | string | string[]
 ) {
   // Remove positive if it exists.
   oldFilter.removeFilter(key);
@@ -142,7 +142,7 @@ export function excludeFromFilter(
 type CellActionsOpts = {
   column: TableColumn<keyof TableDataRow>;
   dataRow: TableDataRow;
-  handleCellAction: (action: Actions, value: React.ReactText) => void;
+  handleCellAction: (action: Actions, value: number | string) => void;
   /**
    * allow list of actions to display on the context menu
    */

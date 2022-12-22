@@ -127,7 +127,7 @@ export class TagValueTable extends Component<Props, State> {
 
   handleCellAction = (
     column: TableColumn<TagsTableColumnKeys>,
-    tagValue: React.ReactText,
+    tagValue: number | string,
     actionRow: any
   ) => {
     return (action: Actions) => {

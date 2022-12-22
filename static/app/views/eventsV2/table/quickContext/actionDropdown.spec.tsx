@@ -35,7 +35,7 @@ const renderActionDropdown = (
   location: Location,
   eventView: EventView,
   queryKey: string,
-  value: React.ReactText | string[],
+  value: number | string | string[],
   contextValueType: ContextValueType
 ) => {
   const organization = TestStubs.Organization();

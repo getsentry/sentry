@@ -5,7 +5,7 @@ import GenericDiscoverQuery, {
 } from 'sentry/utils/discover/genericDiscoverQuery';
 
 export type TableDataRow = {
-  [key: string]: React.ReactText;
+  [key: string]: number | string;
   id: string;
 };
 

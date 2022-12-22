@@ -289,7 +289,7 @@ export class TagExplorer extends Component<Props> {
 
   handleCellAction = (
     column: TableColumn<ColumnKeys>,
-    tagValue: React.ReactText,
+    tagValue: number | string,
     actionRow: any
   ) => {
     return (action: Actions) => {

@@ -750,7 +750,7 @@ class EventView {
     return this.fields.length;
   }
 
-  getColumns(): TableColumn<React.ReactText>[] {
+  getColumns(): TableColumn<number | string>[] {
     return decodeColumnOrder(this.fields);
   }
 
@@ -1040,7 +1040,7 @@ class EventView {
     return newEventView;
   }
 
-  getSorts(): TableColumnSort<React.ReactText>[] {
+  getSorts(): TableColumnSort<number | string>[] {
     return this.sorts.map(
       sort =>
         ({

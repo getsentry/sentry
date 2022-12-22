@@ -102,8 +102,8 @@ type Props = {
    * The callback to generate a cell action handler for a column
    */
   handleCellAction?: (
-    c: TableColumn<React.ReactText>
-  ) => (a: Actions, v: React.ReactText) => void;
+    c: TableColumn<number | string>
+  ) => (a: Actions, v: number | string) => void;
   /**
    * The callback for when View All Events is clicked.
    */

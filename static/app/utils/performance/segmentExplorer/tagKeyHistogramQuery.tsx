@@ -9,7 +9,7 @@ import GenericDiscoverQuery, {
  * An individual row in a Segment explorer result
  */
 export type TableDataRow = {
-  [key: string]: React.ReactText;
+  [key: string]: number | string;
   count: number;
   tags_key: string;
   tags_value: string;
