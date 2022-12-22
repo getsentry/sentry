@@ -111,7 +111,9 @@ def handle_discard(
     return Response(status=204)
 
 
-def self_subscribe_and_assign_issue(acting_user: User | None, group: Group) -> ActorTuple | None:
+def self_subscribe_and_assign_issue(
+    acting_user: User | APIUser | None, group: Group
+) -> ActorTuple | None:
     # Used during issue resolution to assign to acting user
     # returns None if the user didn't elect to self assign on resolution
     # or the group is assigned already, otherwise returns Actor
@@ -492,7 +494,7 @@ def update_groups(
                         project=project_lookup[group.project_id],
                         group=group,
                         type=activity_type,
-                        user=acting_user,
+                        user_id=acting_user.id,
                         ident=resolution.id if resolution else None,
                         data=activity_data,
                     )
@@ -639,7 +641,7 @@ def update_groups(
                     project=project_lookup[group.project_id],
                     group=group,
                     type=activity_type,
-                    user=acting_user,
+                    user_id=acting_user.id,
                     data=activity_data,
                 )
                 record_group_history_from_activity_type(group, activity_type, actor=acting_user)
@@ -721,7 +723,8 @@ def update_groups(
                     had_to_deassign=True,
                 )
     is_member_map = {
-        project.id: project.member_set.filter(user=acting_user).exists() for project in projects
+        project.id: project.member_set.filter(user_id=acting_user.id).exists()
+        for project in projects
     }
     if result.get("hasSeen"):
         for group in group_list:
@@ -729,17 +732,17 @@ def update_groups(
                 instance, created = create_or_update(
                     GroupSeen,
                     group=group,
-                    user=acting_user,
+                    user_id=acting_user.id,
                     project=project_lookup[group.project_id],
                     values={"last_seen": timezone.now()},
                 )
     elif result.get("hasSeen") is False:
-        GroupSeen.objects.filter(group__in=group_ids, user=acting_user).delete()
+        GroupSeen.objects.filter(group__in=group_ids, user_id=acting_user.id).delete()
 
     if result.get("isBookmarked"):
         for group in group_list:
             GroupBookmark.objects.get_or_create(
-                project=project_lookup[group.project_id], group=group, user=acting_user
+                project=project_lookup[group.project_id], group=group, user_id=acting_user.id
             )
             GroupSubscription.objects.subscribe(
                 user=acting_user, group=group, reason=GroupSubscriptionReason.bookmark

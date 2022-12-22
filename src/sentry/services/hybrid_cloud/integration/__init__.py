@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from abc import abstractmethod
 from dataclasses import dataclass
-from typing import Any, Mapping, Sequence
+from typing import Any, Iterable, Mapping, Sequence
 
 from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_delegation, stubbed
 from sentry.silo import SiloMode
@@ -26,6 +26,12 @@ class APIOrganizationIntegration:
 
 
 class IntegrationService(InterfaceWithLifecycle):
+    @abstractmethod
+    def get_many(
+        self, *, integration_ids: Iterable[int] | None = None, organization_id: int | None = None
+    ):
+        pass
+
     @abstractmethod
     def get_by_provider_id(self, provider: str, external_id: str) -> APIIntegration | None:
         pass

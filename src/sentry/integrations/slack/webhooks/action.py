@@ -96,7 +96,7 @@ def get_group(slack_request: SlackActionRequest) -> Group | None:
     try:
         return Group.objects.select_related("project__organization").get(
             id=group_id,
-            project__organization__organizationintegration__integration=slack_request.integration,
+            project__organization__organizationintegration__integration_id=slack_request.integration.id,
         )
     except Group.DoesNotExist:
         logger.info(
@@ -147,7 +147,7 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
         if error.status_code == 403:
             text = UNLINK_IDENTITY_MESSAGE.format(
                 associate_url=build_unlinking_url(
-                    str(slack_request.integration.id),
+                    slack_request.integration.id,
                     slack_request.user_id,
                     slack_request.channel_id,
                     slack_request.response_url,
@@ -458,7 +458,7 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
 
         # row should exist because we have access
         member_of_approver = OrganizationMember.objects.get(
-            user=identity_user, organization=organization
+            user_id=identity_user.id, organization=organization
         )
         access = from_member(member_of_approver)
         if not access.has_scope("member:admin"):

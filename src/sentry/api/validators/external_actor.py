@@ -68,7 +68,7 @@ def validate_external_name(external_name: str) -> str:
 
 
 def validate_integration_id(integration_id: str, organization: Organization) -> str:
-    ois = integration_service.get_organization_integrations(integration_id=integration_id)
+    ois = integration_service.get_organization_integrations(integration_id=int(integration_id))
 
     if any(oi.organization_id == organization.id for oi in ois):
         return integration_id
