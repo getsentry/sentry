@@ -1,4 +1,3 @@
-import time
 from unittest.mock import call as mock_call
 from unittest.mock import patch
 
@@ -9,7 +8,10 @@ from freezegun import freeze_time
 
 from sentry.api.exceptions import InvalidRepository
 from sentry.api.release_search import INVALID_SEMVER_MESSAGE
-from sentry.dynamic_sampling.latest_release_booster import get_redis_client_for_ds
+from sentry.dynamic_sampling.latest_release_booster import (
+    ProjectBoostedReleases,
+    get_redis_client_for_ds,
+)
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models import (
     Commit,
@@ -1378,11 +1380,10 @@ class ReleaseProjectManagerTestCase(TransactionTestCase):
         ):
             project = self.create_project(name="foo")
             release = Release.objects.create(organization_id=project.organization_id, version="42")
-
+            project_boosted_releases = ProjectBoostedReleases(project.id)
             # We store a boosted release for this project.
-            self.redis_client.hset(
-                f"ds::p:{project.id}:boosted_releases", f"ds::r:{release.id}", time.time()
-            )
+            project_boosted_releases.add_boosted_release(release.id, None)
+            assert project_boosted_releases.has_boosted_releases
 
             with patch("sentry.models.release.schedule_invalidate_project_config") as mock_task:
                 release.add_project(project)

@@ -80,7 +80,7 @@ class ReleaseProjectModelManager(BaseManager):
         # in the project.
         if (
             ds_feature_multiplexer.is_on_dynamic_sampling
-            and project_boosted_releases.has_boosted_releases()
+            and project_boosted_releases.has_boosted_releases
         ):
             transaction.on_commit(
                 lambda: schedule_invalidate_project_config(project_id=project.id, trigger=trigger)

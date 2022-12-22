@@ -143,6 +143,7 @@ class ProjectBoostedReleases:
         self.project_id = project_id
         self.project_platform = _get_project_platform(self.project_id)
 
+    @property
     def has_boosted_releases(self) -> bool:
         """
         Checks whether a specific project has boosted releases.
