@@ -68,14 +68,14 @@ class APIUser:
         self,
         key: str,
         project_id: Optional[int] = None,
-        organization_id: Optional[int] = None,
+        organization_id: Optional[str] = None,
         default: Any = None,
-    ) -> Optional[str]:
+    ) -> Optional[Any]:
         opts = self.options
         if project_id is not None:
-            opts = [o for o in opts if o.project_id == project_id]
+            opts = frozenset([o for o in opts if o.project_id == project_id])
         if organization_id is not None:
-            opts = [o for o in opts if o.organization_id == organization_id]
+            opts = frozenset([o for o in opts if o.organization_id == organization_id])
         for o in opts:
             if o.key == key:
                 return o.value
@@ -190,6 +190,7 @@ class UserService(InterfaceWithLifecycle):
         is_active: Optional[bool] = None,
         organization_id: Optional[int] = None,
         project_ids: Optional[List[int]] = None,
+        team_ids: Optional[List[int]] = None,
         is_active_memberteam: Optional[bool] = None,
         emails: Optional[List[str]] = None,
     ) -> List[User]:
