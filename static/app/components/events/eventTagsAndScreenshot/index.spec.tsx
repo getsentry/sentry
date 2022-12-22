@@ -113,7 +113,7 @@ describe('EventTagsAndScreenshot', function () {
 
   const {organization, project, router} = initializeOrg({
     organization: {
-      role: 'member',
+      orgRole: 'member',
       attachmentsRole: 'member',
       orgRoleList: [
         {

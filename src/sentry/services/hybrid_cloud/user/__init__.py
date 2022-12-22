@@ -4,7 +4,7 @@ import datetime
 from abc import abstractmethod
 from dataclasses import dataclass, fields
 from enum import IntEnum
-from typing import TYPE_CHECKING, Any, Iterable, List, Optional
+from typing import TYPE_CHECKING, Any, FrozenSet, Iterable, List, Optional
 
 from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_delegation, stubbed
 from sentry.silo import SiloMode
@@ -23,6 +23,7 @@ class APIUser:
     username: str = ""
     actor_id: int = -1
     display_name: str = ""
+    label: str = ""
     is_superuser: bool = False
     is_authenticated: bool = False
     is_anonymous: bool = False
@@ -32,11 +33,18 @@ class APIUser:
     is_sentry_app: bool = False
     password_usable: bool = False
 
+    roles: FrozenSet[str] = frozenset()
+    permissions: FrozenSet[str] = frozenset()
+    avatar: Optional[APIAvatar] = None
+
     def has_usable_password(self) -> bool:
         return self.password_usable
 
     def get_display_name(self) -> str:  # API compatibility with ORM User
         return self.display_name
+
+    def get_label(self) -> str:  # API compatibility with ORM User
+        return self.label
 
     def get_full_name(self) -> str:
         return self.name
@@ -44,8 +52,21 @@ class APIUser:
     def get_short_name(self) -> str:
         return self.username
 
+    def get_avatar_type(self) -> str:
+        if self.avatar is not None:
+            return self.avatar.avatar_type
+        return "letter_avatar"
+
     def class_name(self) -> str:
         return "User"
+
+
+@dataclass(frozen=True, eq=True)
+class APIAvatar:
+    id: int = 0
+    file_id: int = 0
+    ident: str = ""
+    avatar_type: str = "letter_avatar"
 
 
 class UserSerializeType(IntEnum):
@@ -130,9 +151,41 @@ class UserService(InterfaceWithLifecycle):
         }
         args["pk"] = user.pk
         args["display_name"] = user.get_display_name()
+        args["label"] = user.get_label()
         args["is_superuser"] = user.is_superuser
         args["password_usable"] = user.has_usable_password()
+
+        # And process the _base_user_query special data additions
+        permissions: FrozenSet[str] = frozenset({})
+        if hasattr(user, "permissions") and user.permissions is not None:
+            permissions = frozenset(user.permissions)
+        args["permissions"] = permissions
+
+        roles: FrozenSet[str] = frozenset({})
+        if hasattr(user, "roles") and user.roles is not None:
+            roles = frozenset(flatten(user.roles))
+        args["roles"] = roles
+
+        avatar = user.avatar.first()
+        if avatar is not None:
+            avatar = APIAvatar(
+                id=avatar.id,
+                file_id=avatar.file_id,
+                ident=avatar.ident,
+                avatar_type=avatar.avatar_type,
+            )
+        args["avatar"] = avatar
         return APIUser(**args)
+
+
+def flatten(iter: Iterable[Any]) -> List[Any]:
+    from sentry.db.models import BaseQuerySet
+
+    return (
+        ((flatten(iter[0]) + flatten(iter[1:])) if len(iter) > 0 else [])
+        if type(iter) is list or isinstance(iter, BaseQuerySet)
+        else [iter]
+    )
 
 
 def impl_with_db() -> UserService:

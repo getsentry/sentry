@@ -5,7 +5,6 @@ import contextlib
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Collection, Dict, Generator, List, Mapping, Tuple, Type
 
-from django.contrib.auth.models import AnonymousUser
 from rest_framework.request import Request
 
 from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_delegation, stubbed
@@ -14,6 +13,8 @@ from sentry.services.hybrid_cloud.user import APIUser
 from sentry.silo import SiloMode
 
 if TYPE_CHECKING:
+    from django.contrib.auth.models import AnonymousUser
+
     from sentry.models import OrganizationMember
 
 
@@ -173,6 +174,14 @@ class AuthenticationContext:
     auth: AuthenticatedToken | None = None
     user: APIUser | None = None
 
+    def _get_user(self) -> APIUser | AnonymousUser:
+        """
+        Helper function to avoid importing AnonymousUser when `applied_to_request` is run on startup
+        """
+        from django.contrib.auth.models import AnonymousUser
+
+        return self.user or AnonymousUser()
+
     @contextlib.contextmanager
     def applied_to_request(self, request: Any = None) -> Generator[None, None, None]:
         """
@@ -197,7 +206,7 @@ class AuthenticationContext:
 
         old_user = getattr(request, "user", None)
         old_auth = getattr(request, "auth", None)
-        request.user = self.user or AnonymousUser()
+        request.user = self._get_user()
         request.auth = self.auth
 
         try:

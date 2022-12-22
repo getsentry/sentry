@@ -1,8 +1,6 @@
 import logging
-from datetime import datetime
 from typing import Dict, List, Union
 
-import pytz
 import sentry_sdk
 
 from sentry.dynamic_sampling.utils import BaseRule, RuleType, get_rule_hash, get_rule_type
@@ -48,16 +46,15 @@ def _delete_active_rule_if_limit(is_new_project: bool) -> None:
         active_rules.popitem()
 
 
-def log_rules(project_id: int, rules: List[BaseRule]) -> None:
+def log_rules(org_id: int, project_id: int, rules: List[BaseRule]) -> None:
     try:
         if should_log_rules_change(project_id, rules):
             logger.info(
                 "rules_generator.generate_rules",
                 extra={
+                    "org_id": org_id,
+                    "project_id": project_id,
                     "rules": _format_rules(rules),
-                    # We set the current date as creation timestamp, however, this is not indicating that Relay
-                    # did apply the rules at this time as there will be a non-deterministic delay before that happens.
-                    "creation_timestamp": datetime.now(tz=pytz.utc),
                 },
             )
     except Exception as e:
@@ -66,15 +63,17 @@ def log_rules(project_id: int, rules: List[BaseRule]) -> None:
         sentry_sdk.capture_exception(e)
 
 
-def _format_rules(rules: List[BaseRule]) -> List[Dict[str, Union[List[str], str, float, None]]]:
+def _format_rules(
+    rules: List[BaseRule],
+) -> List[Dict[str, Union[List[str], str, float, None]]]:
     formatted_rules = []
 
     for rule in rules:
         rule_type = get_rule_type(rule)
         formatted_rules.append(
             {
-                "type": rule_type.value if rule_type else "unknown_rule_type",
                 "id": rule["id"],
+                "type": rule_type.value if rule_type else "unknown_rule_type",
                 "sample_rate": rule["sampleRate"],
                 **_extract_info_from_rule(rule_type, rule),  # type:ignore
             }
@@ -86,11 +85,15 @@ def _format_rules(rules: List[BaseRule]) -> List[Dict[str, Union[List[str], str,
 def _extract_info_from_rule(
     rule_type: RuleType, rule: BaseRule
 ) -> Dict[str, Union[List[str], str, None]]:
-    if rule_type == RuleType.BOOST_LATEST_RELEASES_RULE:
+    if rule_type == RuleType.BOOST_ENVIRONMENTS_RULE:
+        return {"environments": rule["condition"]["inner"][0]["value"]}
+    elif rule_type == RuleType.BOOST_LATEST_RELEASES_RULE:
         return {
             "release": rule["condition"]["inner"][0]["value"],
             "environment": rule["condition"]["inner"][1]["value"],
         }
+    elif rule_type == RuleType.IGNORE_HEALTHCHECKS_RULE:
+        return {"healthChecks": rule["condition"]["inner"][0]["value"]}
     elif rule_type == RuleType.BOOST_KEY_TRANSACTIONS_RULE:
         return {"transactions": rule["condition"]["inner"][0]["value"]}
     else:
