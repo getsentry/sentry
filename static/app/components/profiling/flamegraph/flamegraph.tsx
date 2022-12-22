@@ -281,7 +281,7 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
       const newConfigView = computeConfigViewWithStrategy(
         strategy,
         flamegraphView.configView,
-        new Rect(frame.start, frame.depth, frame.end, 1)
+        new Rect(frame.start, frame.depth, frame.end - frame.start, 1)
       );
 
       flamegraphView.setConfigView(newConfigView);
