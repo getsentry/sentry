@@ -5,7 +5,7 @@ import {mergeProps} from '@react-aria/utils';
 
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {IconCheckmark, IconSubtract} from 'sentry/icons';
-import commonTheme, {FormSize} from 'sentry/utils/theme';
+import {FormSize} from 'sentry/utils/theme';
 
 type CheckboxProps = React.InputHTMLAttributes<HTMLInputElement>;
 
@@ -23,9 +23,9 @@ interface Props extends Omit<CheckboxProps, 'checked' | 'size'> {
 type CheckboxConfig = {borderRadius: string; box: string; icon: string};
 
 const checkboxSizeMap: Record<FormSize, CheckboxConfig> = {
-  xs: {box: '12px', icon: '10px', borderRadius: '4px'},
+  xs: {box: '12px', icon: '10px', borderRadius: '2px'},
   sm: {box: '16px', icon: '12px', borderRadius: '4px'},
-  md: {box: '22px', icon: '16px', borderRadius: commonTheme.borderRadius},
+  md: {box: '22px', icon: '16px', borderRadius: '6px'},
 };
 
 const Checkbox = ({checked = false, size = 'sm', ...props}: Props) => {
