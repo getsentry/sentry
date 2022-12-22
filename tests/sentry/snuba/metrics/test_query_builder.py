@@ -1,6 +1,6 @@
 import re
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from unittest import mock
 
 import pytest
@@ -79,7 +79,14 @@ class PseudoProject:
     id: int
 
 
-MOCK_NOW = datetime(2021, 8, 25, 23, 59, tzinfo=pytz.utc)
+MOCK_NOW = datetime(2021, 8, 25, 23, 59, tzinfo=timezone.utc)
+# the beginning of the 1h interval before MOCK_NOW
+BEG_1H_BEFORE_NOW = datetime(2021, 8, 25, 23, tzinfo=timezone.utc)
+# the beginning of the 12h interval before MOCK_NOW
+BEG_12H_BEFORE_NOW = datetime(2021, 8, 25, 12, tzinfo=timezone.utc)
+# the beginning of the 1d interval before MOCK_NOW
+BEG_1D_BEFORE_NOW = datetime(2021, 8, 25, 00, tzinfo=timezone.utc)
+
 ORG_ID = 1
 USE_CASE_ID = UseCaseKey.RELEASE_HEALTH
 
@@ -255,12 +262,28 @@ def test_parse_query(query_string, expected):
 @freeze_time("2018-12-11 03:21:00")
 def test_round_range():
     start, end, interval = get_date_range({"statsPeriod": "2d"})
-    assert start == datetime(2018, 12, 9, 4, tzinfo=pytz.utc)
-    assert end == datetime(2018, 12, 11, 4, tzinfo=pytz.utc)
+    assert start == datetime(2018, 12, 9, 3, tzinfo=timezone.utc)
+    assert end == datetime(2018, 12, 11, 3, tzinfo=timezone.utc)
 
     start, end, interval = get_date_range({"statsPeriod": "2d", "interval": "1d"})
-    assert start == datetime(2018, 12, 10, tzinfo=pytz.utc)
-    assert end == datetime(2018, 12, 12, 0, 0, tzinfo=pytz.utc)
+    assert start == datetime(2018, 12, 9, tzinfo=timezone.utc)
+    assert end == datetime(2018, 12, 11, tzinfo=timezone.utc)
+
+
+# @freeze_time("2018-12-11 03:21:00")
+# def test_round_range_new():
+#     start, end, interval = get_date_range({"statsPeriod": "2d"})
+#     # no interval passed, default 1h
+#     # beginning of the interval containing now :  2018-12-11 03:00:00
+#     # two days before the beginning of the interval 2018-11-09 03:00:00
+#     assert start == datetime(2018, 12, 9, 3, tzinfo=timezone.utc)
+#     # end of the interval that contains now 2018-12-11 04:00:00
+#     assert end == datetime(2018, 12, 11, 4, tzinfo=timezone.utc)
+#
+#     start, end, interval = get_date_range({"statsPeriod": "2d", "interval": "1d"})
+#     # the beginning of the one-day interval containing now 2018-12-11 00:00:00
+#     assert start == datetime(2018, 12, 9, 0, 0, tzinfo=timezone.utc)
+#     assert end == datetime(2018, 12, 12, 0, 0, tzinfo=timezone.utc)
 
 
 def test_invalid_interval():
@@ -275,8 +298,8 @@ def test_round_exact():
     start, end, interval = get_date_range(
         {"start": "2021-01-12T04:06:16", "end": "2021-01-17T08:26:13", "interval": "1d"},
     )
-    assert start == datetime(2021, 1, 12, tzinfo=pytz.utc)
-    assert end == datetime(2021, 1, 18, tzinfo=pytz.utc)
+    assert start == datetime(2021, 1, 12, tzinfo=timezone.utc)
+    assert end == datetime(2021, 1, 17, tzinfo=timezone.utc)
 
 
 def test_exclusive_end():
@@ -290,8 +313,8 @@ def test_exclusive_end():
 @freeze_time("2020-12-18T11:14:17.105Z")
 def test_timestamps():
     start, end, interval = get_date_range({"statsPeriod": "1d", "interval": "12h"})
-    assert start == datetime(2020, 12, 17, 12, tzinfo=pytz.utc)
-    assert end == datetime(2020, 12, 18, 12, tzinfo=pytz.utc)
+    assert start == datetime(2020, 12, 17, 0, tzinfo=timezone.utc)
+    assert end == datetime(2020, 12, 18, 0, tzinfo=timezone.utc)
     assert interval == 12 * 60 * 60
 
 
@@ -299,6 +322,9 @@ def test_timestamps():
 @mock.patch("sentry.api.utils.timezone.now", return_value=MOCK_NOW)
 def test_build_snuba_query(mock_now, mock_now2):
     # Your typical release health query querying everything
+    start = MOCK_NOW - timedelta(days=90)
+    end = MOCK_NOW
+    granularity = 3600
     query_definition = MetricsQuery(
         org_id=1,
         project_ids=[1],
@@ -307,9 +333,9 @@ def test_build_snuba_query(mock_now, mock_now2):
             MetricField("count_unique", SessionMRI.USER.value),
             MetricField("p95", SessionMRI.RAW_DURATION.value),
         ],
-        start=MOCK_NOW - timedelta(days=90),
-        end=MOCK_NOW,
-        granularity=Granularity(3600),
+        start=start,
+        end=end,
+        granularity=Granularity(granularity),
         where=[Condition(Column("release"), Op.EQ, "staging")],
         groupby=[MetricGroupByField("environment")],
     )
@@ -320,8 +346,19 @@ def test_build_snuba_query(mock_now, mock_now2):
     org_id = 1
     use_case_id = UseCaseKey.RELEASE_HEALTH
 
-    def expected_query(match, select, extra_groupby, metric_name):
+    def expected_query(match, select, is_series, metric_name):
         function, column, alias = select
+        limit = query_definition.get_default_limit()
+        if is_series:
+            # series queries are like the totals but with an additional group-by bucketed time
+            extra_groupby = [Column("bucketed_time")]
+            # for series we multiply the default limit (which is for totals)
+            # by the number of intervals max_total_groups * num_intervals = max_series_groups
+            limit = limit * len(list(get_intervals(start=start, end=end, granularity=granularity)))
+        else:
+            # totals don't have any extra group-by
+            extra_groupby = []
+
         return Query(
             match=Entity(match),
             select=[
@@ -349,12 +386,8 @@ def test_build_snuba_query(mock_now, mock_now2):
             where=[
                 Condition(Column("org_id"), Op.EQ, 1),
                 Condition(Column("project_id"), Op.IN, [1]),
-                Condition(
-                    Column("timestamp"), Op.GTE, datetime(2021, 5, 27, 23, 59, tzinfo=pytz.utc)
-                ),
-                Condition(
-                    Column("timestamp"), Op.LT, datetime(2021, 8, 25, 23, 59, tzinfo=pytz.utc)
-                ),
+                Condition(Column("timestamp"), Op.GTE, MOCK_NOW - timedelta(days=90)),
+                Condition(Column("timestamp"), Op.LT, MOCK_NOW),
                 Condition(
                     Column(resolve_tag_key(use_case_id, org_id, "release")),
                     Op.EQ,
@@ -366,9 +399,7 @@ def test_build_snuba_query(mock_now, mock_now2):
                     [resolve_weak(use_case_id, org_id, get_mri(metric_name))],
                 ),
             ],
-            # totals: MAX_POINTS // (90d * 24h)
-            # series: totals * (90d * 24h)
-            limit=Limit(4) if not extra_groupby else Limit(8640),
+            limit=Limit(limit),
             offset=Offset(0),
             granularity=query_definition.granularity,
         )
@@ -381,23 +412,23 @@ def test_build_snuba_query(mock_now, mock_now2):
     assert snuba_queries == {
         "metrics_counters": {
             "totals": expected_query(
-                "metrics_counters", ("sum", "value", "sum"), [], "sentry.sessions.session"
+                "metrics_counters", ("sum", "value", "sum"), False, "sentry.sessions.session"
             ),
             "series": expected_query(
                 "metrics_counters",
                 ("sum", "value", "sum"),
-                [Column("bucketed_time")],
+                True,
                 "sentry.sessions.session",
             ),
         },
         "metrics_sets": {
             "totals": expected_query(
-                "metrics_sets", ("uniq", "value", "count_unique"), [], "sentry.sessions.user"
+                "metrics_sets", ("uniq", "value", "count_unique"), False, "sentry.sessions.user"
             ),
             "series": expected_query(
                 "metrics_sets",
                 ("uniq", "value", "count_unique"),
-                [Column("bucketed_time")],
+                True,
                 "sentry.sessions.user",
             ),
         },
@@ -405,13 +436,13 @@ def test_build_snuba_query(mock_now, mock_now2):
             "totals": expected_query(
                 "metrics_distributions",
                 expected_percentile_select,
-                [],
+                False,
                 "sentry.sessions.session.duration",
             ),
             "series": expected_query(
                 "metrics_distributions",
                 expected_percentile_select,
-                [Column("bucketed_time")],
+                True,
                 "sentry.sessions.session.duration",
             ),
         },
@@ -525,12 +556,8 @@ def test_build_snuba_query_derived_metrics(mock_now, mock_now2):
                 where=[
                     Condition(Column("org_id"), Op.EQ, 1),
                     Condition(Column("project_id"), Op.IN, [1]),
-                    Condition(
-                        Column("timestamp"), Op.GTE, datetime(2021, 8, 24, 0, tzinfo=pytz.utc)
-                    ),
-                    Condition(
-                        Column("timestamp"), Op.LT, datetime(2021, 8, 26, 0, tzinfo=pytz.utc)
-                    ),
+                    Condition(Column("timestamp"), Op.GTE, BEG_1D_BEFORE_NOW - timedelta(days=2)),
+                    Condition(Column("timestamp"), Op.LT, BEG_1D_BEFORE_NOW),
                     Condition(
                         Column("metric_id"),
                         Op.IN,
@@ -556,10 +583,10 @@ def test_build_snuba_query_derived_metrics(mock_now, mock_now2):
                     Condition(Column("org_id"), Op.EQ, 1),
                     Condition(Column("project_id"), Op.IN, [1]),
                     Condition(
-                        Column("timestamp"), Op.GTE, datetime(2021, 8, 24, 0, tzinfo=pytz.utc)
+                        Column("timestamp"), Op.GTE, datetime(2021, 8, 23, 0, tzinfo=timezone.utc)
                     ),
                     Condition(
-                        Column("timestamp"), Op.LT, datetime(2021, 8, 26, 0, tzinfo=pytz.utc)
+                        Column("timestamp"), Op.LT, datetime(2021, 8, 25, 0, tzinfo=timezone.utc)
                     ),
                     Condition(
                         Column("metric_id"),
@@ -629,8 +656,8 @@ def test_build_snuba_query_orderby(mock_now, mock_now2):
         where=[
             Condition(Column("org_id"), Op.EQ, 1),
             Condition(Column("project_id"), Op.IN, [1]),
-            Condition(Column("timestamp"), Op.GTE, datetime(2021, 8, 25, 0, tzinfo=pytz.utc)),
-            Condition(Column("timestamp"), Op.LT, datetime(2021, 8, 26, 0, tzinfo=pytz.utc)),
+            Condition(Column("timestamp"), Op.GTE, BEG_1H_BEFORE_NOW - timedelta(days=1)),
+            Condition(Column("timestamp"), Op.LT, BEG_1H_BEFORE_NOW),
             Condition(
                 Column(resolve_tag_key(use_case_id, org_id, "release"), entity=None),
                 Op.IN,
@@ -657,8 +684,8 @@ def test_build_snuba_query_orderby(mock_now, mock_now2):
         where=[
             Condition(Column("org_id"), Op.EQ, 1),
             Condition(Column("project_id"), Op.IN, [1]),
-            Condition(Column("timestamp"), Op.GTE, datetime(2021, 8, 25, 0, tzinfo=pytz.utc)),
-            Condition(Column("timestamp"), Op.LT, datetime(2021, 8, 26, 0, tzinfo=pytz.utc)),
+            Condition(Column("timestamp"), Op.GTE, BEG_1H_BEFORE_NOW - timedelta(days=1)),
+            Condition(Column("timestamp"), Op.LT, BEG_1H_BEFORE_NOW),
             Condition(
                 Column(resolve_tag_key(use_case_id, org_id, "release"), entity=None),
                 Op.IN,
@@ -739,8 +766,8 @@ def test_build_snuba_query_with_derived_alias(mock_now, mock_now2):
         where=[
             Condition(Column("org_id"), Op.EQ, 1),
             Condition(Column("project_id"), Op.IN, [1]),
-            Condition(Column("timestamp"), Op.GTE, datetime(2021, 8, 25, 0, tzinfo=pytz.utc)),
-            Condition(Column("timestamp"), Op.LT, datetime(2021, 8, 26, 0, tzinfo=pytz.utc)),
+            Condition(Column("timestamp"), Op.GTE, BEG_1H_BEFORE_NOW - timedelta(days=1)),
+            Condition(Column("timestamp"), Op.LT, BEG_1H_BEFORE_NOW),
             Condition(
                 Column(resolve_tag_key(use_case_id, org_id, "release"), entity=None),
                 Op.IN,
@@ -768,8 +795,8 @@ def test_build_snuba_query_with_derived_alias(mock_now, mock_now2):
         where=[
             Condition(Column("org_id"), Op.EQ, 1),
             Condition(Column("project_id"), Op.IN, [1]),
-            Condition(Column("timestamp"), Op.GTE, datetime(2021, 8, 25, 0, tzinfo=pytz.utc)),
-            Condition(Column("timestamp"), Op.LT, datetime(2021, 8, 26, 0, tzinfo=pytz.utc)),
+            Condition(Column("timestamp"), Op.GTE, BEG_1H_BEFORE_NOW - timedelta(days=1)),
+            Condition(Column("timestamp"), Op.LT, BEG_1H_BEFORE_NOW),
             Condition(
                 Column(resolve_tag_key(use_case_id, org_id, "release"), entity=None),
                 Op.IN,

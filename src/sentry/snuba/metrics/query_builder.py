@@ -76,6 +76,7 @@ from sentry.snuba.metrics.utils import (
     MetricDoesNotExistException,
     get_intervals,
     require_rhs_condition_resolution,
+    to_intervals,
 )
 from sentry.snuba.sessions_v2 import finite_or_none
 from sentry.utils.dates import parse_stats_period, to_datetime
@@ -387,6 +388,25 @@ def get_date_range(params: Mapping) -> Tuple[datetime, datetime, int]:
     # caching is enabled on the snuba queries. Removed here for simplicity,
     # but we might want to reconsider once caching becomes an issue for metrics.
     return start, end, interval
+
+
+def get_date_range_new(params: Mapping) -> Tuple[datetime, datetime, int]:
+    """Get start, end, rollup for the given parameters.
+
+    Apply a similar logic as `sessions_v2.get_constrained_date_range`,
+    but with fewer constraints. More constraints may be added in the future.
+
+    Note that this function returns a right-exclusive date range [start, end),
+    contrary to the one used in sessions_v2.
+
+    """
+    interval = parse_stats_period(params.get("interval", "1h"))
+    interval = int(3600 if interval is None else interval.total_seconds())
+
+    start, end = get_date_range_from_params(params, default_stats_period=timedelta(days=1))
+    adjusted_start, adjusted_end, _num_intervals = to_intervals(start, end, interval)
+
+    return adjusted_start, adjusted_end, interval
 
 
 def parse_tag(use_case_id: UseCaseKey, org_id: int, tag_string: str) -> str:
