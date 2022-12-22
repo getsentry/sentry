@@ -1,7 +1,5 @@
 import {useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
-import {useHover, usePress} from '@react-aria/interactions';
-import {mergeProps} from '@react-aria/utils';
 
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {IconCheckmark, IconSubtract} from 'sentry/icons';
@@ -30,8 +28,6 @@ const checkboxSizeMap: Record<FormSize, CheckboxConfig> = {
 
 const Checkbox = ({checked = false, size = 'sm', ...props}: Props) => {
   const checkboxRef = useRef<HTMLInputElement>(null);
-  const {isPressed, pressProps} = usePress({isDisabled: props.disabled});
-  const {isHovered, hoverProps} = useHover({isDisabled: props.disabled});
 
   // Support setting the indeterminate value, which is only possible through
   // setting this attribute
@@ -42,28 +38,32 @@ const Checkbox = ({checked = false, size = 'sm', ...props}: Props) => {
   }, [checked]);
 
   return (
-    <Wrapper>
+    <Wrapper {...{checked, size}}>
       <HiddenInput
         checked={checked !== 'indeterminate' && checked}
         type="checkbox"
-        {...mergeProps({ref: checkboxRef}, pressProps, hoverProps, props)}
+        {...props}
       />
-      <StyledCheckbox aria-hidden checked={checked} size={size} {...pressProps}>
+      <StyledCheckbox aria-hidden checked={checked} size={size}>
         {checked === true && <IconCheckmark size={checkboxSizeMap[size].icon} />}
         {checked === 'indeterminate' && (
           <IconSubtract size={checkboxSizeMap[size].icon} />
         )}
-        <InteractionStateLayer {...{isPressed, isHovered}} />
       </StyledCheckbox>
+      <InteractionStateLayer
+        higherOpacity={checked === true || checked === 'indeterminate'}
+      />
     </Wrapper>
   );
 };
 
-const Wrapper = styled('div')`
+const Wrapper = styled('div')<{checked: Props['checked']; size: FormSize}>`
   position: relative;
   cursor: pointer;
   display: inline-flex;
   justify-content: flex-start;
+  color: ${p => (p.checked ? p.theme.white : p.theme.textColor)};
+  border-radius: ${p => checkboxSizeMap[p.size].borderRadius};
 `;
 
 const HiddenInput = styled('input')`
@@ -94,7 +94,6 @@ const StyledCheckbox = styled('div')<{
   display: flex;
   align-items: center;
   justify-content: center;
-  color: ${p => (p.checked ? p.theme.white : p.theme.textColor)};
   box-shadow: ${p => p.theme.dropShadowLight} inset;
   width: ${p => checkboxSizeMap[p.size].box};
   height: ${p => checkboxSizeMap[p.size].box};
