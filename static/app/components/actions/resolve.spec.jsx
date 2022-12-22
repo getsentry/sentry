@@ -1,7 +1,6 @@
 import selectEvent from 'react-select-event';
 
 import {
-  act,
   render,
   renderGlobalModal,
   screen,
@@ -162,7 +161,7 @@ describe('ResolveActions', function () {
     renderGlobalModal();
 
     userEvent.click(screen.getByLabelText('More resolve options'));
-    act(() => userEvent.click(screen.getByText('Another existing release…')));
+    userEvent.click(screen.getByText('Another existing release…'));
 
     selectEvent.openMenu(screen.getByText('e.g. 1.0.4'));
     expect(await screen.findByText('1.2.0')).toBeInTheDocument();

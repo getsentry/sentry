@@ -43,7 +43,7 @@ describe('Hovercard', () => {
     );
 
     userEvent.hover(screen.getByText('Hovercard Trigger'));
-    act(() => void jest.runAllTimers());
+    act(() => jest.runAllTimers());
 
     expect(screen.queryByText(/Hovercard Body/)).not.toBeInTheDocument();
     expect(screen.queryByText(/Hovercard Header/)).not.toBeInTheDocument();
@@ -82,7 +82,7 @@ describe('Hovercard', () => {
 
     userEvent.hover(screen.getByText('Hovercard Trigger'));
 
-    act(() => void jest.advanceTimersByTime(DISPLAY_TIMEOUT - 1));
+    act(() => jest.advanceTimersByTime(DISPLAY_TIMEOUT - 1));
 
     expect(screen.queryByText(/Hovercard Body/)).not.toBeInTheDocument();
     expect(screen.queryByText(/Hovercard Header/)).not.toBeInTheDocument();
@@ -107,14 +107,14 @@ describe('Hovercard', () => {
 
     userEvent.hover(screen.getByText('Hovercard Trigger'));
 
-    act(() => void jest.advanceTimersByTime(DISPLAY_TIMEOUT - 1));
+    act(() => jest.advanceTimersByTime(DISPLAY_TIMEOUT - 1));
 
     expect(screen.queryByText(/Hovercard Body/)).not.toBeInTheDocument();
     expect(screen.queryByText(/Hovercard Header/)).not.toBeInTheDocument();
 
     userEvent.unhover(screen.getByText('Hovercard Trigger'));
 
-    act(() => void jest.advanceTimersByTime(1));
+    act(() => jest.advanceTimersByTime(1));
 
     expect(screen.queryByText(/Hovercard Body/)).not.toBeInTheDocument();
     expect(screen.queryByText(/Hovercard Header/)).not.toBeInTheDocument();

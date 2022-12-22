@@ -80,9 +80,7 @@ describe('SearchBar', () => {
     userEvent.type(screen.getByRole('textbox'), 'proje');
     expect(screen.getByRole('textbox')).toHaveValue('proje');
 
-    act(() => {
-      jest.runAllTimers();
-    });
+    act(jest.runAllTimers);
 
     await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
 
@@ -116,9 +114,7 @@ describe('SearchBar', () => {
     userEvent.type(screen.getByRole('textbox'), 'proje');
     expect(screen.getByTestId('smart-search-dropdown')).toBeInTheDocument();
 
-    act(() => {
-      jest.runAllTimers();
-    });
+    act(jest.runAllTimers);
 
     await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
 
@@ -128,9 +124,7 @@ describe('SearchBar', () => {
     userEvent.type(screen.getByRole('textbox'), 'client');
     expect(screen.getByTestId('smart-search-dropdown')).toBeInTheDocument();
 
-    act(() => {
-      jest.runAllTimers();
-    });
+    act(jest.runAllTimers);
 
     await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
 
@@ -159,9 +153,7 @@ describe('SearchBar', () => {
     userEvent.paste(screen.getByRole('textbox'), 'client*');
     expect(screen.getByTestId('smart-search-dropdown')).toBeInTheDocument();
 
-    act(() => {
-      jest.runAllTimers();
-    });
+    act(jest.runAllTimers);
 
     await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
 

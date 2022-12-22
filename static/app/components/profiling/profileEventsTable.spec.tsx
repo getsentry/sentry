@@ -1,5 +1,5 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {act, render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {ProfileEventsTable} from 'sentry/components/profiling/profileEventsTable';
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -19,7 +19,7 @@ const project = TestStubs.Project({
 
 describe('ProfileEventsTable', function () {
   beforeEach(function () {
-    act(() => ProjectsStore.loadInitialData([project]));
+    ProjectsStore.loadInitialData([project]);
   });
 
   it('renders loading', function () {

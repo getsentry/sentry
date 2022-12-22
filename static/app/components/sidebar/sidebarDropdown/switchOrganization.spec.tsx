@@ -18,7 +18,7 @@ describe('SwitchOrganization', function () {
     );
 
     userEvent.hover(screen.getByTestId('sidebar-switch-org'));
-    act(() => void jest.advanceTimersByTime(500));
+    act(() => jest.advanceTimersByTime(500));
 
     expect(screen.getByRole('list')).toBeInTheDocument();
 
@@ -59,7 +59,7 @@ describe('SwitchOrganization', function () {
     );
 
     userEvent.hover(screen.getByTestId('sidebar-switch-org'));
-    act(() => void jest.advanceTimersByTime(500));
+    act(() => jest.advanceTimersByTime(500));
 
     expect(screen.getByRole('list')).toBeInTheDocument();
 
@@ -98,7 +98,7 @@ describe('SwitchOrganization', function () {
     );
 
     userEvent.hover(screen.getByTestId('sidebar-switch-org'));
-    act(() => void jest.advanceTimersByTime(500));
+    act(() => jest.advanceTimersByTime(500));
 
     expect(screen.getByRole('list')).toBeInTheDocument();
 
@@ -135,7 +135,7 @@ describe('SwitchOrganization', function () {
     );
 
     userEvent.hover(screen.getByTestId('sidebar-switch-org'));
-    act(() => void jest.advanceTimersByTime(500));
+    act(() => jest.advanceTimersByTime(500));
 
     expect(screen.getByRole('list')).toBeInTheDocument();
 
@@ -188,7 +188,7 @@ describe('SwitchOrganization', function () {
     );
 
     userEvent.hover(screen.getByTestId('sidebar-switch-org'));
-    act(() => void jest.advanceTimersByTime(500));
+    act(() => jest.advanceTimersByTime(500));
 
     expect(screen.getByRole('list')).toBeInTheDocument();
 
@@ -212,7 +212,7 @@ describe('SwitchOrganization', function () {
     });
 
     userEvent.hover(screen.getByTestId('sidebar-switch-org'));
-    act(() => void jest.advanceTimersByTime(500));
+    act(() => jest.advanceTimersByTime(500));
 
     expect(screen.getByTestId('sidebar-create-org')).toBeInTheDocument();
 
@@ -227,7 +227,7 @@ describe('SwitchOrganization', function () {
     render(<SwitchOrganization canCreateOrganization={false} organizations={[]} />);
 
     userEvent.hover(screen.getByTestId('sidebar-switch-org'));
-    act(() => void jest.advanceTimersByTime(500));
+    act(() => jest.advanceTimersByTime(500));
 
     expect(screen.queryByTestId('sidebar-create-org')).not.toBeInTheDocument();
     jest.useRealTimers();
@@ -250,7 +250,7 @@ describe('SwitchOrganization', function () {
     });
 
     userEvent.hover(screen.getByTestId('sidebar-switch-org'));
-    act(() => void jest.advanceTimersByTime(500));
+    act(() => jest.advanceTimersByTime(500));
 
     expect(screen.getByTestId('sidebar-create-org')).toBeInTheDocument();
 
@@ -275,7 +275,7 @@ describe('SwitchOrganization', function () {
     );
 
     userEvent.hover(screen.getByTestId('sidebar-switch-org'));
-    act(() => void jest.advanceTimersByTime(500));
+    act(() => jest.advanceTimersByTime(500));
 
     expect(screen.getByTestId('pending-deletion-icon')).toBeInTheDocument();
     jest.useRealTimers();
@@ -295,7 +295,7 @@ describe('SwitchOrganization', function () {
     );
 
     userEvent.hover(screen.getByTestId('sidebar-switch-org'));
-    act(() => void jest.advanceTimersByTime(500));
+    act(() => jest.advanceTimersByTime(500));
 
     expect(screen.getByRole('list')).toBeInTheDocument();
 

@@ -1,6 +1,6 @@
 import selectEvent from 'react-select-event';
 
-import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import ContextPickerModal from 'sentry/components/contextPickerModal';
 import ConfigStore from 'sentry/stores/configStore';
@@ -15,7 +15,7 @@ describe('ContextPickerModal', function () {
   const onFinish = jest.fn();
 
   beforeEach(function () {
-    act(() => ProjectsStore.reset());
+    ProjectsStore.reset();
     MockApiClient.clearMockResponses();
 
     project = TestStubs.Project();
@@ -27,8 +27,8 @@ describe('ContextPickerModal', function () {
     });
     project4 = TestStubs.Project({slug: 'project4', isMember: false});
 
-    act(() => OrganizationsStore.load([]));
-    act(() => OrganizationStore.reset());
+    OrganizationsStore.load([]);
+    OrganizationStore.reset();
 
     jest.clearAllMocks();
   });

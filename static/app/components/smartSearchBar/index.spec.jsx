@@ -326,9 +326,7 @@ describe('SmartSearchBar', function () {
     const textbox = screen.getByRole('textbox');
     userEvent.type(textbox, 'environment:');
 
-    act(() => {
-      jest.runOnlyPendingTimers();
-    });
+    act(jest.runOnlyPendingTimers);
 
     expect(getTagValuesMock).not.toHaveBeenCalled();
   });
@@ -349,9 +347,7 @@ describe('SmartSearchBar', function () {
     const textbox = screen.getByRole('textbox');
     userEvent.type(textbox, 'timesSeen:');
 
-    act(() => {
-      jest.runOnlyPendingTimers();
-    });
+    act(jest.runOnlyPendingTimers);
 
     expect(getTagValuesMock).not.toHaveBeenCalled();
   });
@@ -372,9 +368,7 @@ describe('SmartSearchBar', function () {
     const textbox = screen.getByRole('textbox');
     userEvent.type(textbox, 'browser:');
 
-    act(() => {
-      jest.runOnlyPendingTimers();
-    });
+    act(jest.runOnlyPendingTimers);
 
     expect(getTagValuesMock).toHaveBeenCalledTimes(1);
   });
@@ -398,17 +392,13 @@ describe('SmartSearchBar', function () {
     // Set cursor to beginning of "is" tag
     textbox.setSelectionRange(0, 0);
     userEvent.click(textbox);
-    act(() => {
-      jest.runAllTimers();
-    });
+    act(jest.runAllTimers);
     // Should show "Keys" section
     expect(await screen.findByText('Keys')).toBeInTheDocument();
 
     // Set cursor to middle of "is" tag
     userEvent.keyboard('{ArrowRight}');
-    act(() => {
-      jest.runAllTimers();
-    });
+    act(jest.runAllTimers);
     // Should show "Keys" and NOT "Operator Helpers" or "Values"
     expect(await screen.findByText('Keys')).toBeInTheDocument();
     expect(screen.queryByText('Operator Helpers')).not.toBeInTheDocument();
@@ -416,9 +406,7 @@ describe('SmartSearchBar', function () {
 
     // Set cursor to end of "is" tag
     userEvent.keyboard('{ArrowRight}');
-    act(() => {
-      jest.runAllTimers();
-    });
+    act(jest.runAllTimers);
     // Should show "Tags" and "Operator Helpers" but NOT "Values"
     expect(await screen.findByText('Keys')).toBeInTheDocument();
     expect(screen.getByText('Operator Helpers')).toBeInTheDocument();
@@ -426,9 +414,7 @@ describe('SmartSearchBar', function () {
 
     // Set cursor after the ":"
     userEvent.keyboard('{ArrowRight}');
-    act(() => {
-      jest.runAllTimers();
-    });
+    act(jest.runAllTimers);
     // Should show "Values" and "Operator Helpers" but NOT "Keys"
     expect(await screen.findByText('Values')).toBeInTheDocument();
     expect(await screen.findByText('Operator Helpers')).toBeInTheDocument();
@@ -436,9 +422,7 @@ describe('SmartSearchBar', function () {
 
     // Set cursor inside value
     userEvent.keyboard('{ArrowRight}');
-    act(() => {
-      jest.runAllTimers();
-    });
+    act(jest.runAllTimers);
     // Should show "Values" and NOT "Operator Helpers" or "Keys"
     expect(await screen.findByText('Values')).toBeInTheDocument();
     expect(screen.queryByText('Operator Helpers')).not.toBeInTheDocument();
@@ -534,16 +518,12 @@ describe('SmartSearchBar', function () {
     // Type key and start searching values
     userEvent.type(textbox, 'is:');
 
-    act(() => {
-      jest.advanceTimersByTime(200);
-    });
+    act(() => jest.advanceTimersByTime(200));
 
     // Before values have finished searching, clear the textbox
     userEvent.clear(textbox);
 
-    act(() => {
-      jest.runAllTimers();
-    });
+    act(jest.runAllTimers);
 
     // Should show keys, not values in dropdown
     expect(await screen.findByText('Keys')).toBeInTheDocument();
@@ -568,9 +548,7 @@ describe('SmartSearchBar', function () {
     const textbox = screen.getByRole('textbox');
     userEvent.type(textbox, 'browser:');
 
-    act(() => {
-      jest.runOnlyPendingTimers();
-    });
+    act(jest.runOnlyPendingTimers);
 
     const option = await screen.findByRole('option', {name: /Firefox/});
 
@@ -613,9 +591,7 @@ describe('SmartSearchBar', function () {
     );
     userEvent.click(textbox);
 
-    act(() => {
-      jest.runOnlyPendingTimers();
-    });
+    act(jest.runOnlyPendingTimers);
 
     const option = await screen.findByRole('option', {name: /Firefox/});
 
@@ -646,9 +622,7 @@ describe('SmartSearchBar', function () {
     const textbox = screen.getByRole('textbox');
     userEvent.type(textbox, 'user:');
 
-    act(() => {
-      jest.runOnlyPendingTimers();
-    });
+    act(jest.runOnlyPendingTimers);
 
     const option = await screen.findByRole('option', {name: /id:1/});
 
@@ -682,9 +656,7 @@ describe('SmartSearchBar', function () {
     const textbox = screen.getByRole('textbox');
     userEvent.type(textbox, 'predefined:');
 
-    act(() => {
-      jest.runOnlyPendingTimers();
-    });
+    act(jest.runOnlyPendingTimers);
 
     const option = await screen.findByRole('option', {
       name: /predefined tag with spaces/,
@@ -723,9 +695,7 @@ describe('SmartSearchBar', function () {
     const textbox = screen.getByRole('textbox');
     userEvent.type(textbox, 'predefined:');
 
-    act(() => {
-      jest.runOnlyPendingTimers();
-    });
+    act(jest.runOnlyPendingTimers);
 
     const option = await screen.findByRole('option', {
       name: /quotes/,
@@ -826,9 +796,7 @@ describe('SmartSearchBar', function () {
 
     userEvent.type(textbox, 'invalid:');
 
-    act(() => {
-      jest.runOnlyPendingTimers();
-    });
+    act(jest.runOnlyPendingTimers);
 
     expect(
       await screen.findByRole('option', {name: /the field invalid isn't supported here/i})
