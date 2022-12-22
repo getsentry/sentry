@@ -10,7 +10,7 @@ from collections import defaultdict, deque
 from dataclasses import dataclass
 from datetime import timedelta
 from enum import Enum
-from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple, Union
+from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
 from urllib.parse import urlparse
 
 import sentry_sdk
@@ -23,8 +23,6 @@ from sentry.types.issues import GROUP_TYPE_TO_TEXT, GroupType
 from sentry.utils import metrics
 from sentry.utils.event_frames import get_sdk_name
 from sentry.utils.safe import get_path
-
-from .performance_span_issue import PerformanceSpanProblem
 
 
 def join_regexes(regexes: Sequence[str]) -> str:
@@ -196,7 +194,7 @@ class EventPerformanceProblem:
 
 Span = Dict[str, Any]
 TransactionSpans = List[Span]
-PerformanceProblemsMap = Dict[str, Union[PerformanceProblem, PerformanceSpanProblem]]
+PerformanceProblemsMap = Dict[str, PerformanceProblem]
 
 
 # Facade in front of performance detection to limit impact of detection on our events ingestion
@@ -1523,16 +1521,13 @@ def report_metrics_for_detectors(
         if first_problem.fingerprint:
             set_tag(f"_pi_{detector_key}_fp", first_problem.fingerprint)
 
-        span_id = (
-            first_problem.span_id
-            if isinstance(first_problem, PerformanceSpanProblem)
-            else first_problem.offender_span_ids[0]
-        )
+        span_id = first_problem.offender_span_ids[0]
+
         set_tag(f"_pi_{detector_key}", span_id)
 
         op_tags = {}
         for problem in detected_problems.values():
-            op = problem.allowed_op if isinstance(problem, PerformanceSpanProblem) else problem.op
+            op = problem.op
             op_tags[f"op_{op}"] = True
         metrics.incr(
             f"performance.performance_issue.{detector_key}",
