@@ -8,9 +8,10 @@ import space from 'sentry/styles/space';
 type NodeProps = {
   type: string;
   children?: ReactNode[];
+  identifier?: string;
 };
 
-function Node({type, children}: NodeProps) {
+function Node({type, identifier, children}: NodeProps) {
   const [isExpanded, setIsExpanded] = useState(true);
   return (
     <NodeContents>
@@ -31,7 +32,7 @@ function Node({type, children}: NodeProps) {
             )}
           </IconWrapper>
         )}
-        {type}
+        {identifier ? `${type} - ${identifier}` : type}
       </div>
       {isExpanded && children}
     </NodeContents>
@@ -44,7 +45,7 @@ function Tree({hierarchy}) {
   }
 
   return (
-    <Node type={hierarchy.type}>
+    <Node type={hierarchy.type} identifier={hierarchy.identifier}>
       {hierarchy.children.map(element => (
         <Tree key={element.id} hierarchy={element} />
       ))}
