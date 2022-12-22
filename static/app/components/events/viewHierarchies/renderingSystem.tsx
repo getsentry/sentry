@@ -1,8 +1,14 @@
+import styled from '@emotion/styled';
+
+import Pill from 'sentry/components/pill';
 import {t} from 'sentry/locale';
 
 function RenderingSystem({system}) {
-  // TODO: i18n "Rendering System"
-  return <div>Rendering System: {system ?? t('Unknown')}</div>;
+  return <StyledPill name={t('Rendering System')} value={system ?? t('Unknown')} />;
 }
 
 export {RenderingSystem};
+
+const StyledPill = styled(Pill)`
+  width: max-content;
+`;
