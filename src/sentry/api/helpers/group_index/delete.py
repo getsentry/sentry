@@ -122,9 +122,9 @@ def delete_groups(
     if not group_list:
         return Response(status=204)
 
-    if any(group.issue_category == GroupCategory.PERFORMANCE for group in group_list):
+    if any(group.issue_category != GroupCategory.ERROR for group in group_list):
         raise rest_framework.exceptions.ValidationError(
-            detail="Cannot delete performance issues.", code=400
+            detail="Only error issues can be deleted.", code=400
         )
 
     groups_by_project_id = defaultdict(list)
