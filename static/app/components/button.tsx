@@ -488,9 +488,9 @@ const getIconMargin = ({size, hasChildren}: IconProps) => {
   switch (size) {
     case 'xs':
     case 'zero':
-      return '6px';
+      return space(0.75);
     default:
-      return '8px';
+      return space(1);
   }
 };
 
