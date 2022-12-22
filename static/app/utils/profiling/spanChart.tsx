@@ -32,6 +32,7 @@ class SpanChart {
   spanTree: SpanTree;
   depth: number = 0;
   minSpanDuration: number = Number.POSITIVE_INFINITY;
+
   configSpace: Rect;
 
   toFinalUnit = makeFormatTo('milliseconds', 'milliseconds');
@@ -44,6 +45,12 @@ class SpanChart {
     this.spanTree = spanTree;
     this.toFinalUnit = makeFormatTo('seconds', options.unit);
     this.spans = this.collectSpanNodes();
+
+    const duration = this.toFinalUnit(
+      this.spanTree.root.span.timestamp - this.spanTree.root.span.start_timestamp
+    );
+
+    this.configSpace = new Rect(0, 0, duration, this.depth);
   }
 
   // Bfs over the span tree while keeping track of level depth and calling the cb fn
