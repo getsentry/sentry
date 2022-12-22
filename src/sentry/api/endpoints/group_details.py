@@ -324,8 +324,8 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
         """
         from sentry.utils import snuba
 
-        if group.issue_category == GroupCategory.PERFORMANCE:
-            raise ValidationError(detail="Cannot delete performance issues.", code=400)
+        if group.issue_category != GroupCategory.ERROR:
+            raise ValidationError(detail="Only error issues can be deleted.", code=400)
 
         try:
             delete_group_list(request, group.project, [group], "delete")
