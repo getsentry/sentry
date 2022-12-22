@@ -423,6 +423,8 @@ class PerformanceDetector(ABC):
     Classes of this type have their visit functions called as the event is walked once and will store a performance issue if one is detected.
     """
 
+    type: DetectorType
+
     def __init__(self, settings: Dict[DetectorType, Any], event: Event):
         self.settings = settings[self.settings_key]
         self._event = event
@@ -483,6 +485,7 @@ class SlowSpanDetector(PerformanceDetector):
 
     __slots__ = "stored_problems"
 
+    type: DetectorType = DetectorType.SLOW_SPAN
     settings_key = DetectorType.SLOW_SPAN
 
     def init(self):
@@ -536,6 +539,7 @@ class SlowSpanDetector(PerformanceDetector):
 class RenderBlockingAssetSpanDetector(PerformanceDetector):
     __slots__ = ("stored_problems", "fcp", "transaction_start")
 
+    type: DetectorType = DetectorType.RENDER_BLOCKING_ASSET_SPAN
     settings_key = DetectorType.RENDER_BLOCKING_ASSET_SPAN
 
     def init(self):
@@ -613,6 +617,7 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
     """
 
     __slots__ = ["stored_problems"]
+    type: DetectorType = DetectorType.N_PLUS_ONE_API_CALLS
     settings_key: DetectorType = DetectorType.N_PLUS_ONE_API_CALLS
 
     HOST_DENYLIST = []
@@ -771,6 +776,7 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
 
     __slots__ = "stored_problems"
 
+    type: DetectorType = DetectorType.CONSECUTIVE_DB_OP
     settings_key = DetectorType.CONSECUTIVE_DB_OP
 
     def init(self):
@@ -919,6 +925,7 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
         "n_spans",
     )
 
+    type: DetectorType = DetectorType.N_PLUS_ONE_DB_QUERIES
     settings_key = DetectorType.N_PLUS_ONE_DB_QUERIES
 
     def init(self):
@@ -1107,6 +1114,8 @@ class NPlusOneDBSpanDetectorExtended(NPlusOneDBSpanDetector):
     - Extend N+1 DB Detector to make it compatible with more frameworks.
     """
 
+    type: DetectorType = DetectorType.N_PLUS_ONE_DB_QUERIES_EXTENDED
+
     __slots__ = (
         "stored_problems",
         "potential_parents",
@@ -1123,6 +1132,7 @@ class FileIOMainThreadDetector(PerformanceDetector):
 
     __slots__ = ("spans_involved", "stored_problems")
 
+    type: DetectorType = DetectorType.FILE_IO_MAIN_THREAD
     settings_key = DetectorType.FILE_IO_MAIN_THREAD
 
     def init(self):
@@ -1404,6 +1414,7 @@ class MNPlusOneDBSpanDetector(PerformanceDetector):
 
     __slots__ = ("stored_problems", "state")
 
+    type: DetectorType = DetectorType.M_N_PLUS_ONE_DB
     settings_key = DetectorType.M_N_PLUS_ONE_DB
 
     def init(self):
