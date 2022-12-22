@@ -1,6 +1,6 @@
 from typing import Any, Callable, List, Mapping
 
-from django.db.models.signals import post_delete, post_save
+from django.db.models.signals import post_save, pre_delete
 from django.dispatch import receiver
 
 from sentry.models import (
@@ -32,10 +32,10 @@ def add_to_control_outbox(instance: Any):
 
 
 @receiver(post_save)
-@receiver(post_delete)
+@receiver(pre_delete)
 def process_outbox(instance: Any, signal: Any, **kwargs: Any):
     for silo_mode in outbox_silo_modes():
-        if signal is post_delete:
+        if signal is pre_delete:
             if type(instance) not in outbox_managed_deletes.get(silo_mode, []):
                 continue
 

@@ -5,7 +5,7 @@ import contextlib
 import datetime
 import sys
 from enum import IntEnum
-from typing import Any, Iterable, List, Mapping, Set, TypeVar
+from typing import Any, Generator, Iterable, List, Mapping, Set, TypeVar
 
 from django.db import connections, models, router, transaction
 from django.db.models import Max
@@ -17,6 +17,8 @@ from sentry.db.models import (
     BoundedPositiveIntegerField,
     JSONField,
     Model,
+    control_silo_only_model,
+    region_silo_only_model,
     sane_repr,
 )
 from sentry.silo import SiloMode
@@ -50,6 +52,7 @@ class OutboxCategory(IntEnum):
 
 class WebhookProviderIdentifier(IntEnum):
     SLACK = 0
+    GITHUB = 1
 
 
 T = TypeVar("T")
@@ -68,7 +71,7 @@ class OutboxBase(Model):
     @classmethod
     def _unique_object_identifier(cls):
         with connections[router.db_for_write(cls)].cursor() as cursor:
-            cursor.execute("SELECT nextval(%s);", [OBJECT_IDENTIFIER_SEQUENCE_NAME])
+            cursor.execute("SELECT nextval(%s)", [f"{cls._meta.db_table}_id_seq"])
             return cursor.fetchone()[0]
 
     @classmethod
@@ -90,9 +93,15 @@ class OutboxBase(Model):
             if not next_outbox:
                 return None
 
-            # Reschedule in case processing fails
+            # We rely on 'proof of failure by remaining' to handle retries -- basically, by scheduling this shard, we
+            # expect all objects to be drained before the next schedule comes around, or else we will run again.
+            # We protect against rescheduling over a slow drain via 'heart beats' in the draining system,
+            # and an advisory redis lock.  NOTE however that this system does NOT protect fully against multiple
+            # sends, nor should it try too hard to do so: we do expect to eagerly drain some actions in an attempt to
+            # to support read after write workflows.
+            now = timezone.now()
             next_outbox.select_sharded_objects().update(
-                scheduled_for=next_outbox.next_schedule(), scheduled_from=timezone.now()
+                scheduled_for=next_outbox.next_schedule(now), scheduled_from=now
             )
 
             return next_outbox
@@ -128,19 +137,22 @@ class OutboxBase(Model):
     # the largest back off effectively applies to the entire 'shard' key.
     scheduled_for = models.DateTimeField(null=False, default=THE_PAST)
 
-    def duration(self) -> datetime.timedelta:
+    def last_delay(self) -> datetime.timedelta:
         return max(self.scheduled_for - self.scheduled_from, datetime.timedelta(seconds=1))
 
-    def next_schedule(self) -> datetime.datetime:
-        return timezone.now() + (self.duration() * 2)
+    def next_schedule(self, now: datetime.datetime) -> datetime.datetime:
+        return now + (self.last_delay() * 2)
 
     @contextlib.contextmanager
-    def process_serialized(self):
-        with transaction.atomic(savepoint=False):
-            coalesced: OutboxBase = self.select_coalesced_objects().select_for_update().last()
-            yield coalesced
-            if coalesced is not None:
-                self.select_coalesced_objects().delete()
+    def process_serialized(self) -> Generator[OutboxBase | None, None, None]:
+        # Do not, use a select for update here -- it is tempting, but a major performance issue.
+        # we should simply accept the occasional multiple sends than to introduce hard locking.
+        # so long as all objects sent are committed, and so long as any concurrent changes to data
+        # result in a future processing, we should always converge on non stale values.
+        coalesced: OutboxBase | None = self.select_coalesced_objects().last()
+        yield coalesced
+        if coalesced is not None:
+            self.select_coalesced_objects().filter(id__lte=coalesced.id).delete()
 
     def process(self) -> bool:
         with self.process_serialized() as coalesced:
@@ -165,11 +177,11 @@ class OutboxBase(Model):
         return self.select_sharded_objects().first() is not None
 
 
-OBJECT_IDENTIFIER_SEQUENCE_NAME = "sentry_outbox_object_identifier_seq"
 MONOLITH_REGION_NAME = "--monolith--"
 
 
 # Outboxes bound from region silo -> control silo
+@region_silo_only_model
 class RegionOutbox(OutboxBase):
     def send_signal(self):
         process_region_outbox.send(
@@ -227,6 +239,7 @@ class RegionOutbox(OutboxBase):
 
 
 # Outboxes bound from region silo -> control silo
+@control_silo_only_model
 class ControlOutbox(OutboxBase):
     sharding_columns = ("region_name", "scope", "scope_identifier")
     coalesced_columns = (
@@ -311,7 +324,8 @@ def _find_orgs_for_user(user_id: int) -> Set[int]:
     from sentry.models import OrganizationMember
 
     return {
-        m[0] for m in OrganizationMember.objects.filter(user_id=user_id).values("organization_id")
+        m["organization_id"]
+        for m in OrganizationMember.objects.filter(user_id=user_id).values("organization_id")
     }
 
 
@@ -333,7 +347,7 @@ def _find_regions_for_user(user_id: int) -> Set[str]:
         }
     else:
         return {
-            t[0]
+            t["region_name"]
             for t in OrganizationMapping.objects.filter(organization_id__in=org_ids).values(
                 "region_name"
             )

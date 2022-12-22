@@ -88,9 +88,4 @@ class Migration(CheckedMigration):
                 },
             },
         ),
-        migrations.RunSQL(
-            hints={"tables": ["sentry_controloutbox", "sentry_region_outbox"]},
-            sql="CREATE NEW SEQUENCE sentry_outbox_object_identifier_seq OWNED BY NONE",
-            reverse_sql="DROP SEQUENCE sentry_outbox_object_identifier_seq",
-        ),
     ]
