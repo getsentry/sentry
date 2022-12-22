@@ -262,42 +262,39 @@ def _detect_performance_problems(data: Event, sdk_span: Any) -> List[Performance
     project_id = data.get("project")
 
     detection_settings = get_detection_settings(project_id)
-    detectors = {
-        DetectorType.CONSECUTIVE_DB_OP: ConsecutiveDBSpanDetector(detection_settings, data),
-        DetectorType.SLOW_SPAN: SlowSpanDetector(detection_settings, data),
-        DetectorType.RENDER_BLOCKING_ASSET_SPAN: RenderBlockingAssetSpanDetector(
-            detection_settings, data
-        ),
-        DetectorType.N_PLUS_ONE_DB_QUERIES: NPlusOneDBSpanDetector(detection_settings, data),
-        DetectorType.N_PLUS_ONE_DB_QUERIES_EXTENDED: NPlusOneDBSpanDetectorExtended(
-            detection_settings, data
-        ),
-        DetectorType.FILE_IO_MAIN_THREAD: FileIOMainThreadDetector(detection_settings, data),
-        DetectorType.N_PLUS_ONE_API_CALLS: NPlusOneAPICallsDetector(detection_settings, data),
-        DetectorType.M_N_PLUS_ONE_DB: MNPlusOneDBSpanDetector(detection_settings, data),
-    }
+    detectors = [
+        ConsecutiveDBSpanDetector(detection_settings, data),
+        SlowSpanDetector(detection_settings, data),
+        RenderBlockingAssetSpanDetector(detection_settings, data),
+        NPlusOneDBSpanDetector(detection_settings, data),
+        NPlusOneDBSpanDetectorExtended(detection_settings, data),
+        FileIOMainThreadDetector(detection_settings, data),
+        NPlusOneAPICallsDetector(detection_settings, data),
+        MNPlusOneDBSpanDetector(detection_settings, data),
+    ]
 
-    for _, detector in detectors.items():
+    for detector in detectors:
         run_detector_on_data(detector, data)
 
     # Metrics reporting only for detection, not created issues.
     report_metrics_for_detectors(data, event_id, detectors, sdk_span)
 
     # Get list of detectors that are allowed to create issues.
-    allowed_perf_issue_detectors = get_allowed_issue_creation_detectors(project_id)
+    allowed_detector_types = get_allowed_issue_creation_detectors(project_id)
 
-    detected_problems = [
-        (i, detector_type)
-        for detector_type in allowed_perf_issue_detectors
-        for _, i in detectors[detector_type].stored_problems.items()
-    ]
+    detected_problems: List[PerformanceProblem] = []
+    for detector in detectors:
+        if detector.type not in allowed_detector_types:
+            continue
+
+        detected_problems.extend(detector.stored_problems.values())
 
     truncated_problems = detected_problems[:PERFORMANCE_GROUP_COUNT_LIMIT]
 
     metrics.incr("performance.performance_issue.pretruncated", len(detected_problems))
     metrics.incr("performance.performance_issue.truncated", len(truncated_problems))
 
-    performance_problems = [problem for problem, _detector_type in truncated_problems]
+    performance_problems = truncated_problems
 
     # Leans on Set to remove duplicate problems when extending a detector, since the new extended detector can overlap in terms of created issues.
     unique_performance_problems = set(performance_problems)
@@ -1433,9 +1430,9 @@ class MNPlusOneDBSpanDetector(PerformanceDetector):
 
 # Reports metrics and creates spans for detection
 def report_metrics_for_detectors(
-    event: Event, event_id: Optional[str], detectors: Dict[str, PerformanceDetector], sdk_span: Any
+    event: Event, event_id: Optional[str], detectors: Sequence[PerformanceDetector], sdk_span: Any
 ):
-    all_detected_problems = [i for _, d in detectors.items() for i in d.stored_problems]
+    all_detected_problems = [i for d in detectors for i in d.stored_problems]
     has_detected_problems = bool(all_detected_problems)
     sdk_name = get_sdk_name(event)
 
@@ -1464,8 +1461,8 @@ def report_metrics_for_detectors(
             integration_name in event_integrations
         )
 
-    for detector_enum, detector in detectors.items():
-        detector_key = detector_enum.value
+    for detector in detectors:
+        detector_key = detector.type.value
         detected_problems = detector.stored_problems
         detected_problem_keys = list(detected_problems.keys())
         detected_tags[detector_key] = bool(len(detected_problem_keys))
