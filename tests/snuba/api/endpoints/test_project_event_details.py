@@ -198,8 +198,7 @@ class ProjectEventDetailsTransactionTest(APITestCase, SnubaTestCase):
                 "organization_slug": self.cur_transaction_event.project.organization.slug,
             },
         )
-        with self.feature("organizations:performance-issues"):
-            response = self.client.get(url, format="json", data={"group_id": self.group.id})
+        response = self.client.get(url, format="json", data={"group_id": self.group.id})
 
         assert response.status_code == 200, response.content
         assert response.data["id"] == str(self.cur_transaction_event.event_id)
@@ -217,8 +216,7 @@ class ProjectEventDetailsTransactionTest(APITestCase, SnubaTestCase):
                 "organization_slug": self.prev_transaction_event.project.organization.slug,
             },
         )
-        with self.feature("organizations:performance-issues"):
-            response = self.client.get(url, format="json", data={"group_id": self.group.id})
+        response = self.client.get(url, format="json", data={"group_id": self.group.id})
 
         assert response.status_code == 200, response.content
         assert response.data["id"] == str(self.prev_transaction_event.event_id)
@@ -236,8 +234,7 @@ class ProjectEventDetailsTransactionTest(APITestCase, SnubaTestCase):
                 "organization_slug": self.next_transaction_event.project.organization.slug,
             },
         )
-        with self.feature("organizations:performance-issues"):
-            response = self.client.get(url, format="json", data={"group_id": self.group.id})
+        response = self.client.get(url, format="json", data={"group_id": self.group.id})
 
         assert response.status_code == 200, response.content
         assert response.data["id"] == str(self.next_transaction_event.event_id)
@@ -253,8 +250,7 @@ class ProjectEventDetailsTransactionTest(APITestCase, SnubaTestCase):
                 "organization_slug": self.cur_transaction_event.project.organization.slug,
             },
         )
-        with self.feature("organizations:performance-issues"):
-            response = self.client.get(url, format="json")
+        response = self.client.get(url, format="json")
 
         assert response.status_code == 200, response.content
         assert response.data["id"] == str(self.cur_transaction_event.event_id)

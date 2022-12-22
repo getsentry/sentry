@@ -4,7 +4,6 @@ import functools
 from copy import deepcopy
 from typing import Any, Callable, Mapping, Optional, Protocol, Sequence, Set, TypedDict
 
-from sentry import features
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.models import Environment, Organization
 from sentry.search.events.filter import convert_search_filter_to_snuba_query
@@ -139,7 +138,7 @@ def _query_params_for_perf(
     conditions: Sequence[Any],
 ) -> Optional[SnubaQueryParams]:
     organization = Organization.objects.filter(id=organization_id).first()
-    if organization and features.has("organizations:performance-issues", organization):
+    if organization:
         transaction_conditions = _updated_conditions(
             "event.type",
             "=",

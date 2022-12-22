@@ -389,8 +389,7 @@ class EventsSnubaSearchTest(SharedSnubaTest):
         )
 
     def test_category(self):
-        with self.feature("organizations:performance-issues"):
-            results = self.make_query(search_filter_query="issue.category:error")
+        results = self.make_query(search_filter_query="issue.category:error")
         assert set(results) == {self.group1, self.group2}
 
         event_3 = self.store_event(
@@ -403,30 +402,24 @@ class EventsSnubaSearchTest(SharedSnubaTest):
         )
         group_3 = event_3.group
         group_3.update(type=GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value)
-        with self.feature("organizations:performance-issues"):
-            results = self.make_query(search_filter_query="issue.category:performance")
+        results = self.make_query(search_filter_query="issue.category:performance")
         assert set(results) == {group_3}
 
-        with self.feature("organizations:performance-issues"):
-            results = self.make_query(search_filter_query="issue.category:[error, performance]")
+        results = self.make_query(search_filter_query="issue.category:[error, performance]")
         assert set(results) == {self.group1, self.group2, group_3}
 
         with pytest.raises(InvalidSearchQuery):
-            with self.feature("organizations:performance-issues"):
-                self.make_query(search_filter_query="issue.category:hellboy")
+            self.make_query(search_filter_query="issue.category:hellboy")
 
     def test_not_perf_category(self):
-        with self.feature("organizations:performance-issues"):
-            results = self.make_query(search_filter_query="issue.category:error foo")
+        results = self.make_query(search_filter_query="issue.category:error foo")
         assert set(results) == {self.group1}
 
-        with self.feature("organizations:performance-issues"):
-            not_results = self.make_query(search_filter_query="!issue.category:performance foo")
+        not_results = self.make_query(search_filter_query="!issue.category:performance foo")
         assert set(not_results) == {self.group1}
 
     def test_type(self):
-        with self.feature("organizations:performance-issues"):
-            results = self.make_query(search_filter_query="issue.type:error")
+        results = self.make_query(search_filter_query="issue.type:error")
         assert set(results) == {self.group1, self.group2}
 
         event_3 = self.store_event(
@@ -441,10 +434,9 @@ class EventsSnubaSearchTest(SharedSnubaTest):
         group_3 = event_3.group
         group_3.update(type=GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value)
 
-        with self.feature("organizations:performance-issues"):
-            results = self.make_query(
-                search_filter_query="issue.type:performance_n_plus_one_db_queries"
-            )
+        results = self.make_query(
+            search_filter_query="issue.type:performance_n_plus_one_db_queries"
+        )
         assert set(results) == {group_3}
 
         event_4 = self.store_event(
@@ -457,19 +449,16 @@ class EventsSnubaSearchTest(SharedSnubaTest):
         )
         group_4 = event_4.group
         group_4.update(type=GroupType.PERFORMANCE_SLOW_SPAN.value)
-        with self.feature("organizations:performance-issues"):
-            results = self.make_query(search_filter_query="issue.type:performance_slow_span")
+        results = self.make_query(search_filter_query="issue.type:performance_slow_span")
         assert set(results) == {group_4}
 
-        with self.feature("organizations:performance-issues"):
-            results = self.make_query(
-                search_filter_query="issue.type:[performance_slow_span, performance_n_plus_one_db_queries, error]"
-            )
+        results = self.make_query(
+            search_filter_query="issue.type:[performance_slow_span, performance_n_plus_one_db_queries, error]"
+        )
         assert set(results) == {self.group1, self.group2, group_3, group_4}
 
         with pytest.raises(InvalidSearchQuery):
-            with self.feature("organizations:performance-issues"):
-                self.make_query(search_filter_query="issue.type:performance_i_dont_exist")
+            self.make_query(search_filter_query="issue.type:performance_i_dont_exist")
 
     def test_status_with_environment(self):
         results = self.make_query(
@@ -2024,9 +2013,7 @@ class EventsSnubaSearchTest(SharedSnubaTest):
         )
 
         results = self.make_query(search_filter_query="!message:else")
-
-        with self.feature("organizations:performance-issues"):
-            results2 = self.make_query(search_filter_query="!message:else")
+        results2 = self.make_query(search_filter_query="!message:else")
 
         assert list(results) == list(results2)
 
@@ -2109,29 +2096,25 @@ class EventsTransactionsSnubaSearchTest(SharedSnubaTest):
         self.error_group_2 = error_event_2.group
 
     def test_performance_query(self):
-        with self.feature("organizations:performance-issues"):
-            results = self.make_query(search_filter_query="issue.category:performance my_tag:1")
+        results = self.make_query(search_filter_query="issue.category:performance my_tag:1")
         assert list(results) == [self.perf_group_1, self.perf_group_2]
 
-        with self.feature("organizations:performance-issues"):
-            results = self.make_query(
-                search_filter_query="issue.type:[performance_n_plus_one_db_queries, performance_slow_span] my_tag:1"
-            )
+        results = self.make_query(
+            search_filter_query="issue.type:[performance_n_plus_one_db_queries, performance_slow_span] my_tag:1"
+        )
         assert list(results) == [self.perf_group_1, self.perf_group_2]
 
     def test_error_performance_query(self):
-        with self.feature("organizations:performance-issues"):
-            results = self.make_query(search_filter_query="my_tag:1")
+        results = self.make_query(search_filter_query="my_tag:1")
         assert list(results) == [
             self.perf_group_1,
             self.perf_group_2,
             self.error_group_2,
             self.error_group_1,
         ]
-        with self.feature("organizations:performance-issues"):
-            results = self.make_query(
-                search_filter_query="issue.category:[performance, error] my_tag:1"
-            )
+        results = self.make_query(
+            search_filter_query="issue.category:[performance, error] my_tag:1"
+        )
         assert list(results) == [
             self.perf_group_1,
             self.perf_group_2,
@@ -2139,10 +2122,9 @@ class EventsTransactionsSnubaSearchTest(SharedSnubaTest):
             self.error_group_1,
         ]
 
-        with self.feature("organizations:performance-issues"):
-            results = self.make_query(
-                search_filter_query="issue.type:[performance_slow_span, error] my_tag:1"
-            )
+        results = self.make_query(
+            search_filter_query="issue.type:[performance_slow_span, error] my_tag:1"
+        )
         assert list(results) == [
             self.perf_group_1,
             self.perf_group_2,
@@ -2151,39 +2133,36 @@ class EventsTransactionsSnubaSearchTest(SharedSnubaTest):
         ]
 
     def test_cursor_performance_issues(self):
-        with self.feature("organizations:performance-issues"):
-            results = self.make_query(
-                projects=[self.project],
-                search_filter_query="issue.category:performance my_tag:1",
-                sort_by="date",
-                limit=1,
-                count_hits=True,
-            )
+        results = self.make_query(
+            projects=[self.project],
+            search_filter_query="issue.category:performance my_tag:1",
+            sort_by="date",
+            limit=1,
+            count_hits=True,
+        )
 
         assert list(results) == [self.perf_group_1]
         assert results.hits == 2
 
-        with self.feature("organizations:performance-issues"):
-            results = self.make_query(
-                projects=[self.project],
-                search_filter_query="issue.category:performance my_tag:1",
-                sort_by="date",
-                limit=1,
-                cursor=results.next,
-                count_hits=True,
-            )
+        results = self.make_query(
+            projects=[self.project],
+            search_filter_query="issue.category:performance my_tag:1",
+            sort_by="date",
+            limit=1,
+            cursor=results.next,
+            count_hits=True,
+        )
         assert list(results) == [self.perf_group_2]
         assert results.hits == 2
 
-        with self.feature("organizations:performance-issues"):
-            results = self.make_query(
-                projects=[self.project],
-                search_filter_query="issue.category:performance my_tag:1",
-                sort_by="date",
-                limit=1,
-                cursor=results.next,
-                count_hits=True,
-            )
+        results = self.make_query(
+            projects=[self.project],
+            search_filter_query="issue.category:performance my_tag:1",
+            sort_by="date",
+            limit=1,
+            cursor=results.next,
+            count_hits=True,
+        )
         assert list(results) == []
         assert results.hits == 2
 
@@ -2232,14 +2211,11 @@ class EventsTransactionsSnubaSearchTest(SharedSnubaTest):
         assert result["data"][0]["transaction_name"] == transaction_name
         assert result["data"][0]["group_ids"] == [created_group.id]
 
-        with self.feature("organizations:performance-issues"):
-            results = self.make_query(search_filter_query="issue.category:performance tea")
-            assert set(results) == {created_group}
+        results = self.make_query(search_filter_query="issue.category:performance tea")
+        assert set(results) == {created_group}
 
-            results2 = self.make_query(search_filter_query="tea")
-            assert set(results2) == {created_group}
-
-        assert not self.make_query(search_filter_query="issue.category:performance tea")
+        results2 = self.make_query(search_filter_query="tea")
+        assert set(results2) == {created_group}
 
     def test_search_message_error_and_perf_issues(self):
         tx = self.store_event(
@@ -2276,13 +2252,15 @@ class EventsTransactionsSnubaSearchTest(SharedSnubaTest):
 
         assert error_issue != perf_issue
 
-        with self.feature("organizations:performance-issues"):
-            assert set(self.make_query(search_filter_query="is:unresolved /api/0/events")) == {
-                perf_issue,
-                error_issue,
-            }
+        assert set(self.make_query(search_filter_query="is:unresolved /api/0/events")) == {
+            perf_issue,
+            error_issue,
+        }
 
-        assert set(self.make_query(search_filter_query="/api/0/events")) == {error_issue}
+        assert set(self.make_query(search_filter_query="/api/0/events")) == {
+            error_issue,
+            perf_issue,
+        }
 
     def test_compound_message_negation(self):
         self.store_event(
@@ -2310,10 +2288,10 @@ class EventsTransactionsSnubaSearchTest(SharedSnubaTest):
             project_id=self.project.id,
         )
 
-        error_issues_only = self.make_query(search_filter_query="!message:else")
-
-        with self.feature("organizations:performance-issues"):
-            error_and_perf_issues = self.make_query(search_filter_query="!message:else")
+        error_issues_only = self.make_query(
+            search_filter_query="!message:else group.category:error"
+        )
+        error_and_perf_issues = self.make_query(search_filter_query="!message:else")
 
         assert set(error_and_perf_issues) > set(error_issues_only)
 

@@ -11,12 +11,10 @@ from sentry.utils.samples import load_data
 
 @region_silo_test
 class OrganizationEventsSpansHistogramEndpointTest(APITestCase, SnubaTestCase):
-    FEATURES = ["organizations:performance-issues"]
     URL = "sentry-api-0-organization-events-spans-count-histogram"
 
     def setUp(self):
         super().setUp()
-        self.features = {}
         self.login_as(user=self.user)
         self.org = self.create_organization(owner=self.user)
         self.project = self.create_project(organization=self.org)
@@ -62,19 +60,8 @@ class OrganizationEventsSpansHistogramEndpointTest(APITestCase, SnubaTestCase):
 
         return self.store_event(data, project_id=self.project.id)
 
-    def do_request(self, query, with_feature=True):
-        features = self.FEATURES if with_feature else []
-        with self.feature(features):
-            return self.client.get(self.url, query, format="json")
-
-    def test_no_feature(self):
-        query = {
-            "projects": [-1],
-            "spanOp": "django.middleware",
-            "numBuckets": 50,
-        }
-        response = self.do_request(query, False)
-        assert response.status_code == 404
+    def do_request(self, query):
+        return self.client.get(self.url, query, format="json")
 
     def test_no_projects(self):
         query = {
