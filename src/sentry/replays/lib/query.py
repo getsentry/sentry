@@ -29,6 +29,7 @@ class Field:
         query_alias: Optional[str] = None,
         is_filterable: bool = True,
         is_sortable: bool = True,
+        is_uuid: bool = False,
         operators: Optional[list] = None,
         validators: Optional[list] = None,
     ) -> None:
@@ -37,6 +38,7 @@ class Field:
         self.query_alias = query_alias or name
         self.is_filterable = is_filterable
         self.is_sortable = is_sortable
+        self.is_uuid = is_uuid
         self.operators = operators or self._operators
         self.validators = validators or []
 
@@ -152,8 +154,13 @@ class ListField(Field):
         if isinstance(value, list):
             return self._has_any_condition(Op.IN if operator == Op.EQ else Op.NOT_IN, value)
 
+        if self.is_uuid:
+            v = Function("toUUIDOrZero", parameters=[value])
+        else:
+            v = value
+
         return Condition(
-            Function("has", parameters=[Column(self.query_alias or self.attribute_name), value]),
+            Function("has", parameters=[Column(self.query_alias or self.attribute_name), v]),
             Op.EQ,
             1 if operator == Op.EQ else 0,
         )
@@ -166,10 +173,13 @@ class ListField(Field):
         if not isinstance(values, list):
             return self._has_condition(Op.EQ if operator == Op.IN else Op.NEQ, values)
 
+        if self.is_uuid:
+            vs = [Function("toUUIDOrZero", parameters=[value]) for value in values]
+        else:
+            vs = values
+
         return Condition(
-            Function(
-                "hasAny", parameters=[Column(self.query_alias or self.attribute_name), values]
-            ),
+            Function("hasAny", parameters=[Column(self.query_alias or self.attribute_name), vs]),
             Op.EQ,
             1 if operator == Op.IN else 0,
         )
@@ -300,7 +310,12 @@ def filter_to_condition(search_filter: SearchFilter, query_config: QueryConfig) 
     """Coerce SearchFilter syntax to snuba Condition syntax."""
     # Validate field exists and is filterable.
     field_alias = search_filter.key.name
-    field = query_config.get(field_alias) or query_config.get("*")
+    field = query_config.get(field_alias)
+    is_tag = field is None
+
+    if is_tag:
+        field = query_config.get("*")
+
     if field is None:
         raise ParseError(f"Invalid field specified: {field_alias}.")
     if not field.is_filterable:
@@ -319,6 +334,9 @@ def filter_to_condition(search_filter: SearchFilter, query_config: QueryConfig) 
         raise ParseError(f"Invalid value specified: {field_alias}.")
 
     is_wildcard = search_filter.value.is_wildcard()
+
+    if is_tag and field_alias.startswith("tags[") and field_alias.endswith("]"):
+        field_alias = field_alias[5:-1]
 
     return field.as_condition(field_alias, operator, value, is_wildcard)
 

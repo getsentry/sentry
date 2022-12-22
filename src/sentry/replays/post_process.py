@@ -65,7 +65,6 @@ def generate_normalized_output(
         }
 
         item.pop("agg_urls", None)
-        item["countUrls"] = len(item.get("urls_sorted", []))
         item["urls"] = item.pop("urls_sorted", None)
 
         item.pop("isArchived")

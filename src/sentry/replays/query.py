@@ -286,7 +286,7 @@ def _sorted_aggregated_urls(agg_urls_column, alias):
 # Filter
 
 replay_url_parser_config = SearchConfig(
-    numeric_keys={"duration", "countErrors", "countSegments"},
+    numeric_keys={"duration", "countErrors", "countSegments", "countUrls", "activity"},
 )
 
 
@@ -295,14 +295,18 @@ class ReplayQueryConfig(QueryConfig):
     duration = Number()
     count_errors = Number(name="countErrors")
     count_segments = Number(name="countSegments")
+    count_urls = Number(name="countUrls")
     activity = Number()
 
     # String filters.
     replay_id = String(field_alias="id")
+    replay_type = String(field_alias="replayType", query_alias="replayType")
     platform = String()
     agg_environment = String(field_alias="environment")
     releases = ListField()
     dist = String()
+    error_ids = ListField(field_alias="errorIds", query_alias="error_ids", is_uuid=True)
+    trace_ids = ListField(field_alias="traceIds", query_alias="trace_ids", is_uuid=True)
     urls = ListField(field_alias="urls", query_alias="urls_sorted")
     user_id = String(field_alias="user.id", query_alias="user_id")
     user_email = String(field_alias="user.email", query_alias="user_email")
@@ -446,9 +450,9 @@ FIELD_QUERY_ALIAS_MAP: Dict[str, List[str]] = {
     "startedAt": ["startedAt"],
     "finishedAt": ["finishedAt"],
     "duration": ["duration", "startedAt", "finishedAt"],
-    "urls": ["urls_sorted"],
+    "urls": ["urls_sorted", "agg_urls"],
     "countErrors": ["countErrors"],
-    "countUrls": ["urls_sorted"],
+    "countUrls": ["countUrls", "urls_sorted", "agg_urls"],
     "countSegments": ["countSegments"],
     "isArchived": ["isArchived"],
     "activity": ["activity", "countErrors", "urls_sorted", "agg_urls"],
@@ -535,6 +539,11 @@ QUERY_ALIAS_COLUMN_MAP = {
         "uniqArray",
         parameters=[Column("error_ids")],
         alias="countErrors",
+    ),
+    "countUrls": Function(
+        "length",
+        parameters=[Column("urls_sorted")],
+        alias="countUrls",
     ),
     "isArchived": Function(
         "notEmpty",
