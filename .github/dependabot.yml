@@ -14,6 +14,10 @@ updates:
       - 'dependencies'
       - 'Scope: Frontend'
     ignore:
+      # For all packages, ignore all patch updates
+      - dependency-name: '*'
+        update-types: ['version-update:semver-patch']
+
       # Babel updates all really should happen in unison, so let's keep these
       # ignored for now and manually handle it
       #
@@ -70,6 +74,7 @@ updates:
       - dependency-name: 'reflux'
       - dependency-name: 'sprintf-js'
       - dependency-name: 'u2f-api'
+
   - package-ecosystem: pip
     open-pull-requests-limit: 10
     directory: '/'

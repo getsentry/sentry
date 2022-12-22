@@ -1,10 +1,22 @@
+import {DeepPartial} from 'sentry/types/utils';
+
 import {FlamegraphFrame} from '../flamegraphFrame';
 
 import {selectNearestFrame} from './selectNearestFrame';
 
-function createFlamegraphFrame(frame?: Partial<FlamegraphFrame>) {
-  const {depth = 0, parent = null, children = []} = frame ?? {};
+function createFlamegraphFrame(frame?: DeepPartial<FlamegraphFrame>) {
+  const {
+    depth = 0,
+    parent = null,
+    children = [],
+    frame: _frame = {
+      isRoot() {
+        return false;
+      },
+    },
+  } = frame ?? {};
   return {
+    frame: _frame,
     depth,
     parent,
     children,
@@ -100,5 +112,18 @@ describe('selectNearestFrame', () => {
     const rightGrandChild = addChildrenToDepth(root, 2);
     const next = selectNearestFrame(leftGrandChild as any, 'down');
     expect(next).toBe(rightGrandChild.parent);
+  });
+
+  it('does not allow selection of the "sentry root" virtual root node', () => {
+    const root = createFlamegraphFrame({
+      frame: {
+        isRoot() {
+          return true;
+        },
+      },
+    });
+    const leftChild = addChildrenToDepth(root, 1);
+    const next = selectNearestFrame(leftChild as any, 'up');
+    expect(next).toBe(leftChild);
   });
 });

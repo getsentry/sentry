@@ -270,7 +270,7 @@ class FallthroughChoiceType(Enum):
 
 FALLTHROUGH_CHOICES = [
     (FallthroughChoiceType.ALL_MEMBERS.value, "All Project Members"),
-    (FallthroughChoiceType.ACTIVE_MEMBERS.value, "Team Admins or Most Recent Members"),
+    (FallthroughChoiceType.ACTIVE_MEMBERS.value, "Recently Active Members"),
     (FallthroughChoiceType.NO_ONE.value, "No One"),
 ]
 

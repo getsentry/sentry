@@ -2,7 +2,6 @@ import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import {Client} from 'sentry/api';
 import AttachmentUrl from 'sentry/components/attachmentUrl';
 import ImageViewer from 'sentry/components/events/attachmentViewers/imageViewer';
 import JsonViewer from 'sentry/components/events/attachmentViewers/jsonViewer';
@@ -15,12 +14,10 @@ import {PanelTable} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
 import {IssueAttachment} from 'sentry/types';
 import {Event} from 'sentry/types/event';
-import withApi from 'sentry/utils/withApi';
 
 import EventAttachmentsCrashReportsNotice from './eventAttachmentsCrashReportsNotice';
 
 type Props = {
-  api: Client;
   attachments: IssueAttachment[];
   event: Event;
   location: Location;
@@ -170,7 +167,7 @@ class EventAttachments extends Component<Props, State> {
   }
 }
 
-export default withApi<Props>(EventAttachments);
+export default EventAttachments;
 
 const StyledPanelTable = styled(PanelTable)`
   grid-template-columns: 1fr auto auto;

@@ -23,7 +23,7 @@ class NPlusOneDbDetectorTest(unittest.TestCase):
         super().setUp()
         self.settings = get_detection_settings()
 
-    def find_n_plus_one_db_problems(
+    def find_problems(
         self, event: Event, setting_overides: Dict[str, Any] = None
     ) -> List[PerformanceProblem]:
         if setting_overides:
@@ -36,37 +36,37 @@ class NPlusOneDbDetectorTest(unittest.TestCase):
 
     def test_does_not_detect_issues_in_fast_transaction(self):
         event = EVENTS["no-issue-in-django-detail-view"]
-        assert self.find_n_plus_one_db_problems(event) == []
+        assert self.find_problems(event) == []
 
     def test_does_not_detect_n_plus_one_with_unparameterized_query_with_parameterized_detector(
         self,
     ):
         event = EVENTS["n-plus-one-in-django-index-view-unparameterized"]
-        assert self.find_n_plus_one_db_problems(event) == []
+        assert self.find_problems(event) == []
 
     def test_does_not_detect_n_plus_one_with_source_redis_query_with_noredis_detector(
         self,
     ):
         event = EVENTS["n-plus-one-in-django-index-view-source-redis"]
-        assert self.find_n_plus_one_db_problems(event) == []
+        assert self.find_problems(event) == []
 
     def test_does_not_detect_n_plus_one_with_repeating_redis_query_with_noredis_detector(
         self,
     ):
         event = EVENTS["n-plus-one-in-django-index-view-repeating-redis"]
-        assert self.find_n_plus_one_db_problems(event) == []
+        assert self.find_problems(event) == []
 
     def test_ignores_fast_n_plus_one(self):
         event = EVENTS["fast-n-plus-one-in-django-new-view"]
-        assert self.find_n_plus_one_db_problems(event) == []
+        assert self.find_problems(event) == []
 
     def test_detects_slow_span_but_not_n_plus_one_in_query_waterfall(self):
         event = EVENTS["query-waterfall-in-django-random-view"]
-        assert self.find_n_plus_one_db_problems(event) == []
+        assert self.find_problems(event) == []
 
     def test_finds_n_plus_one_with_db_dot_something_spans(self):
         event = EVENTS["n-plus-one-in-django-index-view-activerecord"]
-        assert self.find_n_plus_one_db_problems(event) == [
+        assert self.find_problems(event) == [
             PerformanceProblem(
                 fingerprint="1-GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES-8d86357da4d8a866b19c97670edee38d037a7bc8",
                 op="db",
@@ -95,8 +95,8 @@ class NPlusOneDbDetectorTest(unittest.TestCase):
         index_n_plus_one_event = EVENTS["n-plus-one-in-django-index-view"]
         new_n_plus_one_event = EVENTS["n-plus-one-in-django-new-view"]
 
-        index_problems = self.find_n_plus_one_db_problems(index_n_plus_one_event)
-        new_problems = self.find_n_plus_one_db_problems(new_n_plus_one_event)
+        index_problems = self.find_problems(index_n_plus_one_event)
+        new_problems = self.find_problems(new_n_plus_one_event)
 
         index_fingerprint = index_problems[0].fingerprint
         new_fingerprint = new_problems[0].fingerprint
@@ -108,7 +108,7 @@ class NPlusOneDbDetectorTest(unittest.TestCase):
     def test_detects_n_plus_one_with_multiple_potential_sources(self):
         event = EVENTS["n-plus-one-in-django-with-odd-db-sources"]
 
-        assert self.find_n_plus_one_db_problems(event, {"duration_threshold": 0}) == [
+        assert self.find_problems(event, {"duration_threshold": 0}) == [
             PerformanceProblem(
                 fingerprint="1-GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES-e55ea09e1cff0ca2369f287cf624700f98cf4b50",
                 op="db",

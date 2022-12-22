@@ -77,9 +77,9 @@ def handle_discard(
         if not features.has("projects:discard-groups", project, actor=user):
             return Response({"detail": ["You do not have that feature enabled"]}, status=400)
 
-    if any(group.issue_category == GroupCategory.PERFORMANCE for group in group_list):
+    if any(group.issue_category != GroupCategory.ERROR for group in group_list):
         raise rest_framework.exceptions.ValidationError(
-            detail="Cannot discard performance issues.", code=400
+            detail="Only error issues can be discarded.", code=400
         )
     # grouped by project_id
     groups_to_delete = defaultdict(list)
@@ -808,9 +808,9 @@ def update_groups(
         if len(projects) > 1:
             return Response({"detail": "Merging across multiple projects is not supported"})
 
-        if any([group.issue_category == GroupCategory.PERFORMANCE for group in group_list]):
+        if any([group.issue_category != GroupCategory.ERROR for group in group_list]):
             raise rest_framework.exceptions.ValidationError(
-                detail="Cannot merge performance issues.", code=400
+                detail="Only error issues can be merged.", code=400
             )
 
         group_list_by_times_seen = sorted(
