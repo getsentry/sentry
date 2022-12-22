@@ -529,7 +529,7 @@ class GetOwnersCase(TestCase):
             )
             assert (
                 owner_reason
-                == f"We notified team admins and recently active members in the {self.project.get_full_name()} project of this issue"
+                == f"We notified recently active members in the {self.project.get_full_name()} project of this issue"
             )
 
     def test_get_owner_reason_member(self):
