@@ -254,7 +254,7 @@ class ApiAuthProvider:
     def provider_name(self) -> str:
         from sentry.auth import manager
 
-        managed_provider = manager.get(self.provider)
+        managed_provider: Provider = manager.get(self.provider)
         return managed_provider.name
 
 

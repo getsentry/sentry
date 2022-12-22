@@ -280,31 +280,7 @@ class AuthIdentityHandler:
 
         return auth_identity
 
-    def _wipe_existing_identity(self, auth_identity: AuthIdentity) -> Any:
-        # it's possible the user has an existing identity, let's wipe it out
-        # so that the new identifier gets used (other we'll hit a constraint)
-        # violation since one might exist for (provider, user) as well as
-        # (provider, ident)
-        deletion_result = (
-            AuthIdentity.objects.exclude(id=auth_identity.id)
-            .filter(auth_provider=self.auth_provider, user=self.user)
-            .delete()
-        )
-
-        # since we've identified an identity which is no longer valid
-        # lets preemptively mark it as such
-        other_member = organization_service.check_membership_by_id(
-            organization_id=self.organization.id, user_id=auth_identity.user_id
-        )
-        if other_member is None:
-            return
-        other_member.flags.sso__invalid = True
-        other_member.flags.sso__linked = False
-        organization_service.update_membership_flags(organization_member=other_member)
-
-        return deletion_result
-
-    def _get_organization_member(self, auth_identity: AuthIdentity) -> ApiOrganizationMember:
+    def _get_organization_member(self, auth_identity: ApiAuthIdentity) -> ApiOrganizationMember:
         """
         Check to see if the user has a member associated, if not, create a new membership
         based on the auth_identity email.

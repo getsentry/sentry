@@ -314,6 +314,7 @@ class DatabaseBackedAuthService(AuthService):
             # so that the new identifier gets used (other we'll hit a constraint)
             # violation since one might exist for (provider, user) as well as
             # (provider, ident)
+            assert auth_identity is not None
             deletion_result = (
                 AuthIdentity.objects.exclude(id=auth_identity.id)
                 .filter(auth_provider_id=auth_provider.id, user_id=user_id)
@@ -333,8 +334,7 @@ class DatabaseBackedAuthService(AuthService):
 
             return deletion_result
 
-        auth_is_new = auth_identity is None
-        if auth_is_new:
+        if auth_is_new := auth_identity is None:
             auth_identity = AuthIdentity.objects.create(
                 auth_provider_id=auth_provider.id,
                 user_id=user_id,
@@ -376,7 +376,7 @@ class DatabaseBackedAuthService(AuthService):
                 last_synced=now,
             )
 
-        return auth_is_new, auth_identity
+        return auth_is_new, self._serialize_auth_identity(auth_identity)
 
     def handle_new_membership(
         self,
