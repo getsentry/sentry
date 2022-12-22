@@ -234,12 +234,13 @@ describe('flamegraphRenderer', () => {
       const flamegraphCanvas = new FlamegraphCanvas(canvas, vec2.fromValues(0, 0));
       const flamegraphView = new CanvasView<Flamegraph>({
         canvas: flamegraphCanvas,
-        theme,
         model: flamegraph,
         configSpace: flamegraph.configSpace,
         options: {
           inverted: flamegraph.inverted,
           minWidth: flamegraph.profile.minFrameDuration,
+          barHeight: theme.SIZES.BAR_HEIGHT,
+          depthOffset: theme.SIZES.FLAMEGRAPH_DEPTH_OFFSET,
         },
       });
       const renderer = new FlamegraphRenderer(canvas, flamegraph, theme);
@@ -295,12 +296,13 @@ describe('flamegraphRenderer', () => {
       const flamegraphCanvas = new FlamegraphCanvas(canvas, vec2.fromValues(0, 0));
       const flamegraphView = new CanvasView<Flamegraph>({
         canvas: flamegraphCanvas,
-        theme,
         model: flamegraph,
         configSpace: flamegraph.configSpace,
         options: {
           inverted: flamegraph.inverted,
           minWidth: flamegraph.profile.minFrameDuration,
+          barHeight: theme.SIZES.BAR_HEIGHT,
+          depthOffset: theme.SIZES.FLAMEGRAPH_DEPTH_OFFSET,
         },
       });
       const renderer = new FlamegraphRenderer(canvas, flamegraph, theme);

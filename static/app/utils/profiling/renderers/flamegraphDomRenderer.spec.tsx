@@ -41,10 +41,11 @@ describe('FlamegraphDomRenderer', () => {
     const flamegraphView = new CanvasView<Flamegraph>({
       canvas: flamegraphCanvas,
       model: flamegraph,
-      theme: LightFlamegraphTheme,
       options: {
         inverted: flamegraph.inverted,
         minWidth: flamegraph.profile.minFrameDuration,
+        barHeight: theme.SIZES.BAR_HEIGHT,
+        depthOffset: theme.SIZES.FLAMEGRAPH_DEPTH_OFFSET,
       },
       configSpace: flamegraph.configSpace,
     });

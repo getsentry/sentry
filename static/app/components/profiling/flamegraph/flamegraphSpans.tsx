@@ -6,15 +6,15 @@ import {BoundTooltip} from 'sentry/components/profiling/boundTooltip';
 import {t} from 'sentry/locale';
 import {CanvasPoolManager, CanvasScheduler} from 'sentry/utils/profiling/canvasScheduler';
 import {CanvasView} from 'sentry/utils/profiling/canvasView';
+import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
 import {SpanChartRenderer2D} from 'sentry/utils/profiling/renderers/spansRenderer';
 import {SpanChart} from 'sentry/utils/profiling/spanChart';
-import {SpanTree} from 'sentry/utils/profiling/spanTree';
 
 interface FlamegraphSpansProps {
   canvasBounds: Rect;
   canvasPoolManager: CanvasPoolManager;
-  flamegraphView: CanvasView<SpanTree> | null;
+  flamegraphView: CanvasView<Flamegraph> | null;
   setSpansCanvasRef: React.Dispatch<React.SetStateAction<HTMLCanvasElement | null>>;
   spanChart: SpanChart;
   spansCanvas: FlamegraphCanvas | null;
