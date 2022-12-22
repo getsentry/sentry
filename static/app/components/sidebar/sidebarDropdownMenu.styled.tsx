@@ -1,6 +1,4 @@
-import {css} from '@emotion/react';
-
-import {Theme} from 'sentry/utils/theme';
+import {css, Theme} from '@emotion/react';
 
 const SidebarDropdownMenu = (p: {theme: Theme}) => css`
   position: absolute;

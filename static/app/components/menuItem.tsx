@@ -1,9 +1,9 @@
+import {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
 import Link, {LinkProps} from 'sentry/components/links/link';
 import space from 'sentry/styles/space';
-import {Theme} from 'sentry/utils/theme';
 
 type MenuItemProps = {
   /**

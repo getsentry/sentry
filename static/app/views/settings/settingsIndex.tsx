@@ -1,6 +1,6 @@
 import {useEffect} from 'react';
 import {RouteComponentProps} from 'react-router';
-import {css} from '@emotion/react';
+import {css, Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {fetchOrganizationDetails} from 'sentry/actionCreators/organizations';
@@ -17,7 +17,6 @@ import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
-import {Theme} from 'sentry/utils/theme';
 import useApi from 'sentry/utils/useApi';
 import withLatestContext from 'sentry/utils/withLatestContext';
 import SettingsLayout from 'sentry/views/settings/components/settingsLayout';
