@@ -1,5 +1,6 @@
-import {Fragment, useEffect, useMemo} from 'react';
+import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
+import * as qs from 'query-string';
 
 import Alert from 'sentry/components/alert';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -27,7 +28,6 @@ import {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
 import {Profile} from 'sentry/utils/profiling/profile/profile';
 import {SpanTree} from 'sentry/utils/profiling/spanTree';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
-import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import {useProfileGroup, useProfileTransaction} from './profileGroupProvider';
@@ -64,7 +64,6 @@ const LoadingGroup: ProfileGroup = {
 const LoadingSpanTree = SpanTree.Empty();
 
 function ProfileFlamegraph(): React.ReactElement {
-  const location = useLocation();
   const organization = useOrganization();
   const [profileGroup, setProfileGroup] = useProfileGroup();
   const profiledTransaction = useProfileTransaction();
@@ -97,12 +96,17 @@ function ProfileFlamegraph(): React.ReactElement {
     });
   }, [organization]);
 
-  const onImport: ProfileDragDropImportProps['onImport'] = profiles => {
-    setProfileGroup({type: 'resolved', data: profiles});
-  };
+  const onImport: ProfileDragDropImportProps['onImport'] = useCallback(
+    profiles => {
+      setProfileGroup({type: 'resolved', data: profiles});
+    },
+    [setProfileGroup]
+  );
 
   const initialFlamegraphPreferencesState = useMemo((): DeepPartial<FlamegraphState> => {
-    const queryStringState = decodeFlamegraphStateFromQueryParams(location.query);
+    const queryStringState = decodeFlamegraphStateFromQueryParams(
+      qs.parse(window.location.search)
+    );
 
     return {
       ...queryStringState,

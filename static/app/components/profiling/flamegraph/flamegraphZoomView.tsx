@@ -33,6 +33,8 @@ import {TextRenderer} from 'sentry/utils/profiling/renderers/textRenderer';
 import usePrevious from 'sentry/utils/usePrevious';
 import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
 
+import {requestAnimationFrameTimeout} from '../../../views/profiling/utils';
+
 function isHighlightingAllOccurences(
   node: FlamegraphFrame | null,
   selectedNodes: FlamegraphFrame[] | null
@@ -669,10 +671,12 @@ function FlamegraphZoomView({
       return undefined;
     }
 
-    let wheelStopTimeoutId: number | undefined;
+    let wheelStopTimeoutId: {current: number | undefined} = {current: undefined};
     function onCanvasWheel(evt: WheelEvent) {
-      window.clearTimeout(wheelStopTimeoutId);
-      wheelStopTimeoutId = window.setTimeout(() => {
+      if (wheelStopTimeoutId.current !== undefined) {
+        window.cancelAnimationFrame(wheelStopTimeoutId.current);
+      }
+      wheelStopTimeoutId = requestAnimationFrameTimeout(() => {
         setLastInteraction(null);
       }, 300);
 
@@ -695,7 +699,9 @@ function FlamegraphZoomView({
     flamegraphCanvasRef.addEventListener('wheel', onCanvasWheel);
 
     return () => {
-      window.clearTimeout(wheelStopTimeoutId);
+      if (wheelStopTimeoutId.current !== undefined) {
+        window.cancelAnimationFrame(wheelStopTimeoutId.current);
+      }
       flamegraphCanvasRef.removeEventListener('wheel', onCanvasWheel);
     };
   }, [flamegraphCanvasRef, zoom, scroll]);

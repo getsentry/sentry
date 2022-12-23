@@ -1,4 +1,4 @@
-import {createContext, useContext, useEffect, useState} from 'react';
+import {createContext, useContext, useEffect, useMemo, useState} from 'react';
 import * as Sentry from '@sentry/react';
 
 import {Client} from 'sentry/api';
@@ -33,13 +33,11 @@ interface FlamegraphViewProps {
   children: React.ReactNode;
 }
 
-const ProfileGroupContext = createContext<
-  | [
-      RequestState<ProfileGroup>,
-      React.Dispatch<React.SetStateAction<RequestState<ProfileGroup>>>
-    ]
-  | null
->(null);
+type ProfileGroupContextValue = [
+  RequestState<ProfileGroup>,
+  React.Dispatch<React.SetStateAction<RequestState<ProfileGroup>>>
+];
+const ProfileGroupContext = createContext<ProfileGroupContextValue | null>(null);
 
 export function useProfileGroup() {
   const context = useContext(ProfileGroupContext);
@@ -99,8 +97,13 @@ function ProfileGroupProvider(props: FlamegraphViewProps): React.ReactElement {
     };
   }, [params.eventId, params.projectId, api, organization]);
 
+  const contextValue: ProfileGroupContextValue = useMemo(
+    () => [profileGroupState, setProfileGroupState],
+    [profileGroupState, setProfileGroupState]
+  );
+
   return (
-    <ProfileGroupContext.Provider value={[profileGroupState, setProfileGroupState]}>
+    <ProfileGroupContext.Provider value={contextValue}>
       <ProfileTransactionContext.Provider value={profileTransaction}>
         <ProfileHeader
           transaction={
