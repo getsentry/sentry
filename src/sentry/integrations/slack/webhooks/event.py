@@ -136,14 +136,14 @@ class SlackEventEndpoint(SlackDMEndpoint):
             if link_type is None or args is None:
                 continue
 
-            organization_integrations = integration_service.get_organization_integrations(
-                slack_request.integration.id
+            ois = integration_service.get_organization_integrations(slack_request.integration.id)
+            organization_id = ois[0].organization_id if ois else None
+            organization_context = (
+                organization_service.get_organization_by_id(id=organization_id, user_id=None)
+                if organization_id
+                else None
             )
-            organization_ids = [oi.organization_id for oi in organization_integrations]
-            organizations = organization_service.get_organizations(
-                user_id=None, scope=None, only_visible=True, organization_ids=organization_ids
-            )
-            organization = organizations[0] if len(organizations) else None
+            organization = organization_context.organization if organization_context else None
 
             if (
                 organization

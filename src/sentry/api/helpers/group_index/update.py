@@ -723,7 +723,7 @@ def update_groups(
                     had_to_deassign=True,
                 )
     is_member_map = {
-        project.id: project.member_set.filter(user_id=acting_user.id).exists()
+        project.id: acting_user and project.member_set.filter(user_id=acting_user.id).exists()
         for project in projects
     }
     if result.get("hasSeen"):
