@@ -3,7 +3,7 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class GroupEventsLatestEndpointTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()

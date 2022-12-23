@@ -34,7 +34,9 @@ class EventAttachmentDetailsPermission(ProjectPermission):
 
         try:
             current_role = (
-                OrganizationMember.objects.filter(organization=organization, user=request.user)
+                OrganizationMember.objects.filter(
+                    organization=organization, user_id=request.user.id
+                )
                 .values_list("role", flat=True)
                 .get()
             )

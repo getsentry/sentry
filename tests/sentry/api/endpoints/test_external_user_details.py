@@ -3,7 +3,7 @@ from sentry.testutils import APITestCase
 from sentry.testutils.silo import control_silo_test
 
 
-@control_silo_test
+@control_silo_test  # TODO(hybrid-cloud): blocked on org membership mapping
 class ExternalUserDetailsTest(APITestCase):
     endpoint = "sentry-api-0-organization-external-user-details"
     method = "put"

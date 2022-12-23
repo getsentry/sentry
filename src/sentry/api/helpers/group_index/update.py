@@ -492,7 +492,7 @@ def update_groups(
                         project=project_lookup[group.project_id],
                         group=group,
                         type=activity_type,
-                        user=acting_user,
+                        user_id=acting_user.id,
                         ident=resolution.id if resolution else None,
                         data=activity_data,
                     )
@@ -505,7 +505,7 @@ def update_groups(
 
             issue_resolved.send_robust(
                 organization_id=organization_id,
-                user=acting_user or user,
+                user=(acting_user or user),
                 group=group,
                 project=project_lookup[group.project_id],
                 resolution_type=res_type_str,
@@ -639,7 +639,7 @@ def update_groups(
                     project=project_lookup[group.project_id],
                     group=group,
                     type=activity_type,
-                    user=acting_user,
+                    user_id=acting_user.id,
                     data=activity_data,
                 )
                 record_group_history_from_activity_type(group, activity_type, actor=acting_user)
@@ -721,7 +721,10 @@ def update_groups(
                     had_to_deassign=True,
                 )
     is_member_map = {
-        project.id: project.member_set.filter(user=acting_user).exists() for project in projects
+        project.id: (
+            project.member_set.filter(user_id=acting_user.id).exists() if acting_user else False
+        )
+        for project in projects
     }
     if result.get("hasSeen"):
         for group in group_list:
@@ -729,23 +732,23 @@ def update_groups(
                 instance, created = create_or_update(
                     GroupSeen,
                     group=group,
-                    user=acting_user,
+                    user_id=acting_user.id,
                     project=project_lookup[group.project_id],
                     values={"last_seen": timezone.now()},
                 )
     elif result.get("hasSeen") is False:
-        GroupSeen.objects.filter(group__in=group_ids, user=acting_user).delete()
+        GroupSeen.objects.filter(group__in=group_ids, user_id=acting_user.id).delete()
 
     if result.get("isBookmarked"):
         for group in group_list:
             GroupBookmark.objects.get_or_create(
-                project=project_lookup[group.project_id], group=group, user=acting_user
+                project=project_lookup[group.project_id], group=group, user_id=acting_user.id
             )
             GroupSubscription.objects.subscribe(
                 user=acting_user, group=group, reason=GroupSubscriptionReason.bookmark
             )
     elif result.get("isBookmarked") is False:
-        GroupBookmark.objects.filter(group__in=group_ids, user=acting_user).delete()
+        GroupBookmark.objects.filter(group__in=group_ids, user_id=acting_user.id).delete()
 
     # TODO(dcramer): we could make these more efficient by first
     # querying for rich rows are present (if N > 2), flipping the flag
@@ -761,7 +764,7 @@ def update_groups(
             # assigned" just by clicking the "subscribe" button (and you
             # may no longer be assigned to the issue anyway.)
             GroupSubscription.objects.create_or_update(
-                user=acting_user,
+                user_id=acting_user.id,
                 group=group,
                 project=project_lookup[group.project_id],
                 values={"is_active": is_subscribed, "reason": GroupSubscriptionReason.unknown},
@@ -782,13 +785,13 @@ def update_groups(
                     project=project_lookup[group.project_id],
                     group=group,
                     type=ActivityType.SET_PRIVATE.value,
-                    user=acting_user,
+                    user_id=acting_user.id,
                 )
 
     if result.get("isPublic"):
         for group in group_list:
             share, created = GroupShare.objects.get_or_create(
-                project=project_lookup[group.project_id], group=group, user=acting_user
+                project=project_lookup[group.project_id], group=group, user_id=acting_user.id
             )
             if created:
                 result["shareId"] = share.uuid
@@ -796,7 +799,7 @@ def update_groups(
                     project=project_lookup[group.project_id],
                     group=group,
                     type=ActivityType.SET_PUBLIC.value,
-                    user=acting_user,
+                    user_id=acting_user.id,
                 )
 
     # XXX(dcramer): this feels a bit shady like it should be its own endpoint.
@@ -834,7 +837,7 @@ def update_groups(
             project=project_lookup[primary_group.project_id],
             group=primary_group,
             type=ActivityType.MERGE.value,
-            user=acting_user,
+            user_id=acting_user.id,
             data={"issues": [{"id": c.id} for c in groups_to_merge]},
         )
 

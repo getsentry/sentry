@@ -9,7 +9,7 @@ from sentry.utils import json
 from sentry.utils.samples import load_data
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class EventGroupingInfoEndpointTestCase(APITestCase):
     def setUp(self):
         self.login_as(user=self.user)

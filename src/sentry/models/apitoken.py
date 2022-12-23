@@ -74,3 +74,12 @@ class ApiToken(Model, HasApiScopes):
             expires_at = timezone.now() + DEFAULT_EXPIRATION
 
         self.update(token=generate_token(), refresh_token=generate_token(), expires_at=expires_at)
+
+
+def is_api_token_auth(auth: object) -> bool:
+    """:returns True when an API token is hitting the API."""
+    from sentry.services.hybrid_cloud.auth import AuthenticatedToken
+
+    if isinstance(auth, AuthenticatedToken):
+        return auth.kind == "api_token"
+    return isinstance(auth, ApiToken)

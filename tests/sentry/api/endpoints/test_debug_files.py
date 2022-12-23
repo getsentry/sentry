@@ -8,6 +8,7 @@ from django.urls import reverse
 from sentry.models import File, ProjectDebugFile, Release, ReleaseFile
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers.response import close_streaming_response
+from sentry.testutils.silo import region_silo_test
 
 # This is obviously a freely generated UUID and not the checksum UUID.
 # This is permissible if users want to send different UUIDs
@@ -20,6 +21,7 @@ org.slf4j.helpers.Util$ClassContextSecurityManager -> org.a.b.g$a:
 """
 
 
+@region_silo_test(stable=True)
 class DebugFilesUploadTest(APITestCase):
     def _upload_proguard(self, url, uuid):
         out = BytesIO()

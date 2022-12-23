@@ -6,7 +6,7 @@ from sentry.testutils import APITestCase
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class GroupEventAttachmentsTest(APITestCase):
     def create_attachment(self, type=None, event_id=None, file_name="hello.png"):
         if type is None:

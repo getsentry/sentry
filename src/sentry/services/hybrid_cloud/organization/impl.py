@@ -69,6 +69,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
             project_ids_by_team_id[pt.team_id].append(pt.project_id)
 
         for omt in omts:
+            omt.organizationmember = member
             api_member.member_teams.append(
                 self._serialize_team_member(omt, project_ids_by_team_id[omt.team_id])
             )
@@ -99,6 +100,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
             role=team_member.get_team_role(),
             team_id=team_member.team_id,
             project_ids=list(project_ids),
+            scopes=list(team_member.get_scopes()),
         )
 
         return result

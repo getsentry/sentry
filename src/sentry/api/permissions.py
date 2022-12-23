@@ -14,6 +14,7 @@ from sentry.api.exceptions import (
 from sentry.auth import access
 from sentry.auth.superuser import Superuser, is_active_superuser
 from sentry.auth.system import is_system_auth
+from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.utils import auth
 
 if TYPE_CHECKING:
@@ -90,17 +91,30 @@ class SentryPermission(ScopedPermission):
     def determine_access(self, request: Request, organization: Organization) -> None:
         from sentry.api.base import logger
 
+        org_context = organization_service.get_organization_by_id(
+            id=organization.id, user_id=request.user.id if request.user else None
+        )
+        if org_context is None:
+            assert False, "Failed to fetch organization in determine_access"
+
         if request.user and request.user.is_authenticated and request.auth:
-            request.access = access.from_request(
-                request, organization, scopes=request.auth.get_scopes()
+            request.access = access.from_request_org_and_scopes(
+                request=request,
+                api_user_org_context=org_context,
+                scopes=request.auth.get_scopes(),
             )
             return
 
         if request.auth:
-            request.access = access.from_auth(request.auth, organization)
+            request.access = access.from_api_auth(
+                auth=request.auth, api_user_org_context=org_context
+            )
             return
 
-        request.access = access.from_request(request, organization)
+        request.access = access.from_request_org_and_scopes(
+            request=request,
+            api_user_org_context=org_context,
+        )
 
         extra = {"organization_id": organization.id, "user_id": request.user.id}
 

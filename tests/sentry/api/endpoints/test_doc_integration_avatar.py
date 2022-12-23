@@ -4,8 +4,10 @@ from rest_framework import status
 
 from sentry.api.serializers.base import serialize
 from sentry.testutils import APITestCase
+from sentry.testutils.silo import control_silo_test
 
 
+@control_silo_test(stable=True)
 class DocIntegrationAvatarTest(APITestCase):
     endpoint = "sentry-api-0-doc-integration-avatar"
 
@@ -24,6 +26,7 @@ class DocIntegrationAvatarTest(APITestCase):
         }
 
 
+@control_silo_test(stable=True)
 class GetDocIntegrationAvatarTest(DocIntegrationAvatarTest):
     method = "GET"
 
@@ -52,6 +55,7 @@ class GetDocIntegrationAvatarTest(DocIntegrationAvatarTest):
             assert serialize(doc.avatar.get()) == response.data["avatar"]
 
 
+@control_silo_test()  # stable=True blocked on avatar File implementation
 class PutDocIntegrationAvatarTest(DocIntegrationAvatarTest):
     method = "PUT"
 

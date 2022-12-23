@@ -4,7 +4,7 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.api.base import pending_silo_endpoint
+from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.doc_integrations import DocIntegrationsBaseEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
@@ -15,7 +15,7 @@ from sentry.models import DocIntegration
 logger = logging.getLogger(__name__)
 
 
-@pending_silo_endpoint
+@control_silo_endpoint
 class DocIntegrationsEndpoint(DocIntegrationsBaseEndpoint):
     def get(self, request: Request):
         if is_active_superuser(request):

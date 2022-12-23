@@ -4,7 +4,7 @@ from sentry.testutils.silo import region_silo_test
 from sentry.types.activity import ActivityType
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class GroupActivitiesEndpointTest(APITestCase):
     def test_endpoint_with_no_group_activities(self):
         group = self.create_group(status=GroupStatus.UNRESOLVED)

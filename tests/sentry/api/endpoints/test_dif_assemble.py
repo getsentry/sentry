@@ -15,12 +15,15 @@ from sentry.tasks.assemble import (
     set_assemble_status,
 )
 from sentry.testutils import APITestCase
+from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
 
 
+@region_silo_test(stable=True)
 class DifAssembleEndpoint(APITestCase):
     def setUp(self):
         self.organization = self.create_organization(owner=self.user)
-        self.token = ApiToken.objects.create(user=self.user, scope_list=["project:write"])
+        with exempt_from_silo_limits():
+            self.token = ApiToken.objects.create(user=self.user, scope_list=["project:write"])
         self.team = self.create_team(organization=self.organization)
         self.project = self.create_project(
             teams=[self.team], organization=self.organization, name="foo"
