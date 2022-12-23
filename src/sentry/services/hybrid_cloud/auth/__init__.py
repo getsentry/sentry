@@ -20,7 +20,7 @@ from sentry.silo import SiloMode
 from sentry.utils.linksign import find_signature
 
 if TYPE_CHECKING:
-    from sentry.models import OrganizationMember, User
+    from sentry.models import OrganizationMember
 
 
 class ApiAuthenticatorType(IntEnum):
@@ -317,9 +317,3 @@ auth_service: AuthService = silo_mode_delegation(
         ),  # this must eventually be purely RPC
     }
 )
-
-
-def promote_request_api_user(request: Any) -> User:
-    if not hasattr(request, "_promoted_user"):
-        setattr(request, "_promoted_user", User.objects.get(id=request.user.id))
-    return request._promoted_user

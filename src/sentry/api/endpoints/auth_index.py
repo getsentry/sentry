@@ -18,7 +18,7 @@ from sentry.api.validators import AuthVerifyValidator
 from sentry.auth.authenticators.u2f import U2fInterface
 from sentry.auth.superuser import Superuser
 from sentry.models import Authenticator, Organization
-from sentry.services.hybrid_cloud.auth import promote_request_api_user
+from sentry.services.hybrid_cloud.auth.impl import promote_request_api_user
 from sentry.utils import auth, json, metrics
 from sentry.utils.auth import has_completed_sso, initiate_login
 from sentry.utils.settings import is_self_hosted
