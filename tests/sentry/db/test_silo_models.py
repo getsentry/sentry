@@ -11,7 +11,6 @@ from sentry.incidents.models import (
 )
 from sentry.models import (
     Activity,
-    Actor,
     ApiApplication,
     ApiAuthorization,
     ApiGrant,
@@ -34,7 +33,6 @@ from sentry.models import (
     IdentityProvider,
     MonitorCheckIn,
     MonitorLocation,
-    NotificationSetting,
     Organization,
     OrganizationAccessRequest,
     OrganizationMember,
@@ -114,7 +112,6 @@ fk_emeptions = {
     (SentryAppInstallationToken, ApiToken),
     (SentryAppInstallationToken, SentryAppInstallation),
     (MonitorCheckIn, MonitorLocation),
-    (NotificationSetting, Actor),
     (UserOption, Project),
     (UserOption, Organization),
     (OrganizationAccessRequest, User),
@@ -127,7 +124,6 @@ fk_emeptions = {
     (ServiceHook, ApiApplication),
     (ProjectTransactionThresholdOverride, User),
     (ProjectTransactionThreshold, User),
-    (User, Actor),
     (IncidentSeen, User),
     (IncidentSnapshot, TimeSeriesSnapshot),
     (IncidentActivity, User),

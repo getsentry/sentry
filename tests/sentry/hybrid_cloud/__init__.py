@@ -47,11 +47,13 @@ def validate_relation_does_not_cross_silo_foreign_keys(
     model: Type[Model],
     related: Type[Model],
 ):
-    for mode in model._meta.silo_limit.modes:
-        if mode not in related._meta.silo_limit.modes:
-            raise ValueError(
-                f"{model!r} runs in {mode}, but is related to {related!r} which does not.  Add this relationship pair as an exception or drop the foreign key."
-            )
+    model_modes = model._meta.silo_limit.modes
+    related_modes = related._meta.silo_limit.modes
+    overlap = model_modes.intersection(related_modes)
+    if not overlap:
+        raise ValueError(
+            f"{model!r} with modes {model_modes} has no overlap with related model {related!r} with modes {related_modes}. Add this relationship pair as an exception or drop the foreign key. "
+        )
 
 
 def validate_model_no_cross_silo_foreign_keys(
