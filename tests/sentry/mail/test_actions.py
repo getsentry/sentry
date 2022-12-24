@@ -186,6 +186,7 @@ class NotifyEmailTest(RuleTestCase):
             "fallthroughType": "AllMembers",
         }
         condition_data = {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}
+        Rule.objects.filter(project=event.project).delete()
         Rule.objects.create(
             project=event.project, data={"conditions": [condition_data], "actions": [action_data]}
         )
@@ -204,7 +205,6 @@ class NotifyEmailTest(RuleTestCase):
         assert sent.to == [self.user.email]
         assert "uh oh" in sent.subject
 
-    @with_feature("organizations:performance-issues-post-process-group")
     def test_full_integration_performance(self):
         event_data = load_data(
             "transaction",

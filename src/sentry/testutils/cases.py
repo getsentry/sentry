@@ -489,13 +489,10 @@ class PerformanceIssueTestCase(BaseTestCase):
         perf_event_manager.normalize()
         with override_options(
             {
-                "performance.issues.all.problem-creation": 1.0,
-                "performance.issues.all.problem-detection": 1.0,
                 "performance.issues.n_plus_one_db.problem-creation": 1.0,
             }
         ), self.feature(
             [
-                "organizations:performance-issues-ingest",
                 "projects:performance-suspect-spans-ingestion",
             ]
         ):
@@ -1148,6 +1145,8 @@ class BaseMetricsTestCase(SnubaTestCase):
             base_tags["release"] = session["release"]
         if session.get("environment") is not None:
             base_tags["environment"] = session["environment"]
+        if session.get("abnormal_mechanism") is not None:
+            base_tags["abnormal_mechanism"] = session["abnormal_mechanism"]
 
         # This check is not yet reflected in relay, see https://getsentry.atlassian.net/browse/INGEST-464
         user_is_nil = user is None or user == "00000000-0000-0000-0000-000000000000"

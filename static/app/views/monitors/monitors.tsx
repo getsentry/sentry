@@ -163,7 +163,12 @@ class Monitors extends AsyncView<Props, State> {
                     "We'll tell you if your recurring jobs are running on schedule, failing, or succeeding."
                   )}
                 </p>
-                <NewMonitorButton>{t('Set Up First Cron Monitor')}</NewMonitorButton>
+                <ButtonList gap={1}>
+                  <Button href="https://docs.sentry.io/product/crons" external>
+                    {t('View the Docs')}
+                  </Button>
+                  <NewMonitorButton>{t('Set Up First Cron Monitor')}</NewMonitorButton>
+                </ButtonList>
               </OnboardingPanel>
             )}
           </Layout.Main>
@@ -200,6 +205,10 @@ const MonitorName = styled('div')`
 
 const StyledPanelTable = styled(PanelTable)`
   grid-template-columns: 1fr max-content max-content;
+`;
+
+const ButtonList = styled(ButtonBar)`
+  grid-template-columns: repeat(auto-fit, minmax(130px, max-content));
 `;
 
 export default withRouteAnalytics(withSentryRouter(withOrganization(Monitors)));

@@ -7,13 +7,13 @@ import {
   useRef,
   useState,
 } from 'react';
-import {css} from '@emotion/react';
+import {css, Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import _TextArea, {TextAreaProps} from 'sentry/components/forms/controls/textarea';
 import _Input, {InputProps} from 'sentry/components/input';
 import space from 'sentry/styles/space';
-import {FormSize, Theme} from 'sentry/utils/theme';
+import {FormSize} from 'sentry/utils/theme';
 
 interface InputContext {
   /**
