@@ -8,7 +8,7 @@ from sentry.models import (
 )
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.testutils import APITestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
 from sentry.types.activity import ActivityType
 
 
@@ -182,7 +182,8 @@ class GroupNoteCreateTest(APITestCase):
         )
 
         self.user.name = "Sentry Admin"
-        self.user.save()
+        with exempt_from_silo_limits():
+            self.user.save()
         self.login_as(user=self.user)
 
         url = f"/api/0/issues/{group.id}/comments/"
