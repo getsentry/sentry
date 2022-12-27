@@ -26,6 +26,7 @@ from sentry.models import (
     OrganizationIntegration,
     User,
 )
+from sentry.services.hybrid_cloud.user import APIUser
 from sentry.shared_integrations.exceptions import (
     ApiError,
     ApiHostError,
@@ -876,7 +877,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
     def sync_assignee_outbound(
         self,
         external_issue: ExternalIssue,
-        user: Optional[User],
+        user: Optional[APIUser],
         assign: bool = True,
         **kwargs: Any,
     ) -> None:
