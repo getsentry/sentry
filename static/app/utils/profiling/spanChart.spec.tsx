@@ -134,7 +134,7 @@ describe('spanChart', () => {
     );
 
     const chart = new SpanChart(tree);
-    expect(chart.minSpanDuration).toBe(1);
+    expect(chart.minSpanDuration).toBe(1 * 1e3);
   });
 
   it('tracks chart depth', () => {
@@ -208,7 +208,7 @@ describe('spanChart', () => {
     );
 
     const chart = new SpanChart(tree);
-    expect(chart.configSpace.equals(new Rect(0, 0, 10, 3))).toBe(true);
+    expect(chart.configSpace.equals(new Rect(0, 0, 10 * 1e3, 3))).toBe(true);
   });
 
   it('remaps spans to start of benchmark', () => {
@@ -236,11 +236,11 @@ describe('spanChart', () => {
     );
 
     const chart = new SpanChart(tree);
-    expect(chart.spans[1].start).toBe(1);
-    expect(chart.spans[1].end).toBe(5);
+    expect(chart.spans[1].start).toBe(1 * 1e3);
+    expect(chart.spans[1].end).toBe(5 * 1e3);
 
-    expect(chart.spans[2].start).toBe(3);
-    expect(chart.spans[2].end).toBe(4);
+    expect(chart.spans[2].start).toBe(3 * 1e3);
+    expect(chart.spans[2].end).toBe(4 * 1e3);
   });
 
   it('converts durations to final unit', () => {
@@ -262,12 +262,12 @@ describe('spanChart', () => {
     );
 
     const chart = new SpanChart(tree, {unit: 'nanoseconds'});
-    expect(chart.spans[1].start).toBe(1 * 1e6);
-    expect(chart.spans[1].end).toBe(3 * 1e6);
-    expect(chart.spans[1].duration).toBe(2 * 1e6);
+    expect(chart.spans[1].start).toBe(1 * 1e9);
+    expect(chart.spans[1].end).toBe(3 * 1e9);
+    expect(chart.spans[1].duration).toBe(2 * 1e9);
 
     expect(chart.configSpace.height).toBe(1);
-    expect(chart.configSpace.width).toBe(10 * 1e6);
+    expect(chart.configSpace.width).toBe(10 * 1e9);
   });
 
   it('initializes configSpace', () => {
