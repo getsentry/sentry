@@ -77,10 +77,13 @@ class OutboxBase(Model):
     @classmethod
     def find_scheduled_shards(cls) -> Iterable[Mapping[str, Any]]:
         return (
-            cls.objects.filter(scheduled_for__lte=timezone.now())
-            .values(*cls.sharding_columns)
-            .annotate(scheduled_for=Max("scheduled_for"))
-            .order_by("scheduled_for")
+            cls.objects.values(*cls.sharding_columns)
+            .annotate(
+                scheduled_for=Max("scheduled_for"),
+                id=Max("id"),
+            )
+            .filter(scheduled_for__lte=timezone.now())
+            .order_by("scheduled_for", "id")
         )
 
     @classmethod
@@ -144,7 +147,7 @@ class OutboxBase(Model):
         return now + (self.last_delay() * 2)
 
     @contextlib.contextmanager
-    def process_serialized(self) -> Generator[OutboxBase | None, None, None]:
+    def process_coalesced(self) -> Generator[OutboxBase | None, None, None]:
         # Do not, use a select for update here -- it is tempting, but a major performance issue.
         # we should simply accept the occasional multiple sends than to introduce hard locking.
         # so long as all objects sent are committed, and so long as any concurrent changes to data
@@ -155,7 +158,7 @@ class OutboxBase(Model):
             self.select_coalesced_objects().filter(id__lte=coalesced.id).delete()
 
     def process(self) -> bool:
-        with self.process_serialized() as coalesced:
+        with self.process_coalesced() as coalesced:
             if coalesced is not None:
                 coalesced.send_signal()
                 return True
@@ -169,7 +172,7 @@ class OutboxBase(Model):
         runs = 0
         while max_updates_to_drain is None or runs < max_updates_to_drain:
             runs += 1
-            next_row: OutboxBase = self.select_sharded_objects().first()
+            next_row: OutboxBase | None = self.select_sharded_objects().first()
             if next_row is None:
                 return True
             next_row.process()
