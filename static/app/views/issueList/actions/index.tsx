@@ -90,13 +90,9 @@ function IssueListActions({
     SelectedGroupStore.deselectAll();
   }
 
-  // TODO: Remove this when merging/deleting performance issues is supported
+  // TODO: Remove issue.category:error filter when merging/deleting performance issues is supported
   // This silently avoids performance issues for bulk actions
-  const queryExcludingPerformanceIssues = organization.features.includes(
-    'performance-issues'
-  )
-    ? `${query ?? ''} issue.category:error`
-    : query;
+  const queryExcludingPerformanceIssues = `${query ?? ''} issue.category:error`;
 
   function handleDelete() {
     actionSelectedGroups(itemIds => {

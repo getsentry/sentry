@@ -1,4 +1,5 @@
 import {cloneElement, isValidElement} from 'react';
+import {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
@@ -10,7 +11,7 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import theme, {Color, Theme} from 'sentry/utils/theme';
+import theme, {Color} from 'sentry/utils/theme';
 
 const TAG_HEIGHT = '20px';
 

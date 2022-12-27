@@ -1,6 +1,6 @@
 import {forwardRef as reactForwardRef, useCallback} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
-import {css} from '@emotion/react';
+import {css, Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
@@ -10,7 +10,6 @@ import Tooltip from 'sentry/components/tooltip';
 import HookStore from 'sentry/stores/hookStore';
 import space from 'sentry/styles/space';
 import mergeRefs from 'sentry/utils/mergeRefs';
-import {Theme} from 'sentry/utils/theme';
 
 /**
  * The button can actually also be an anchor or React router Link (which seems
@@ -489,9 +488,9 @@ const getIconMargin = ({size, hasChildren}: IconProps) => {
   switch (size) {
     case 'xs':
     case 'zero':
-      return '6px';
+      return space(0.75);
     default:
-      return '8px';
+      return space(1);
   }
 };
 
