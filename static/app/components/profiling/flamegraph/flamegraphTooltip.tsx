@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {vec2} from 'gl-matrix';
 
+import {BoundTooltip} from 'sentry/components/profiling/boundTooltip';
 import {IconLightning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -13,8 +14,6 @@ import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {formatColorForFrame, Rect} from 'sentry/utils/profiling/gl/utils';
 import {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
-
-import {BoundTooltip} from '../boundTooltip';
 
 export function formatWeightToProfileDuration(
   frame: CallTreeNode,
@@ -51,42 +50,40 @@ export function FlamegraphTooltip(props: FlamegraphTooltipProps) {
     <BoundTooltip
       bounds={props.canvasBounds}
       cursor={props.configSpaceCursor}
-      flamegraphCanvas={props.flamegraphCanvas}
-      flamegraphView={props.flamegraphView}
+      canvas={props.flamegraphCanvas}
+      canvasView={props.flamegraphView}
     >
-      <Fragment>
-        <FlamegraphTooltipFrameMainInfo>
-          <FlamegraphTooltipColorIndicator
-            backgroundColor={formatColorForFrame(props.frame, props.flamegraphRenderer)}
-          />
-          {props.flamegraphRenderer.flamegraph.formatter(props.frame.node.totalWeight)}{' '}
-          {formatWeightToProfileDuration(
-            props.frame.node,
-            props.flamegraphRenderer.flamegraph
-          )}{' '}
-          {props.frame.frame.name}
-        </FlamegraphTooltipFrameMainInfo>
-        <FlamegraphTooltipTimelineInfo>
-          {defined(props.frame.frame.file) && (
-            <Fragment>
-              {t('source')}:{formatFileNameAndLineColumn(props.frame)}
-            </Fragment>
-          )}
-        </FlamegraphTooltipTimelineInfo>
-        <FlamegraphTooltipTimelineInfo>
-          {props.flamegraphRenderer.flamegraph.timelineFormatter(props.frame.start)}{' '}
-          {' \u2014 '}
-          {props.flamegraphRenderer.flamegraph.timelineFormatter(props.frame.end)}
-          {props.frame.frame.inline ? (
-            <FlamegraphInlineIndicator>
-              <IconLightning width={10} />
-              {t('inline frame')}
-            </FlamegraphInlineIndicator>
-          ) : (
-            ''
-          )}
-        </FlamegraphTooltipTimelineInfo>
-      </Fragment>
+      <FlamegraphTooltipFrameMainInfo>
+        <FlamegraphTooltipColorIndicator
+          backgroundColor={formatColorForFrame(props.frame, props.flamegraphRenderer)}
+        />
+        {props.flamegraphRenderer.flamegraph.formatter(props.frame.node.totalWeight)}{' '}
+        {formatWeightToProfileDuration(
+          props.frame.node,
+          props.flamegraphRenderer.flamegraph
+        )}{' '}
+        {props.frame.frame.name}
+      </FlamegraphTooltipFrameMainInfo>
+      <FlamegraphTooltipTimelineInfo>
+        {defined(props.frame.frame.file) && (
+          <Fragment>
+            {t('source')}:{formatFileNameAndLineColumn(props.frame)}
+          </Fragment>
+        )}
+      </FlamegraphTooltipTimelineInfo>
+      <FlamegraphTooltipTimelineInfo>
+        {props.flamegraphRenderer.flamegraph.timelineFormatter(props.frame.start)}{' '}
+        {' \u2014 '}
+        {props.flamegraphRenderer.flamegraph.timelineFormatter(props.frame.end)}
+        {props.frame.frame.inline ? (
+          <FlamegraphInlineIndicator>
+            <IconLightning width={10} />
+            {t('inline frame')}
+          </FlamegraphInlineIndicator>
+        ) : (
+          ''
+        )}
+      </FlamegraphTooltipTimelineInfo>
     </BoundTooltip>
   );
 }
