@@ -28,7 +28,7 @@ class SpanChart {
     options: {unit: Profile['unit']; configSpace?: Rect} = {unit: 'milliseconds'}
   ) {
     this.spanTree = spanTree;
-    this.toFinalUnit = makeFormatTo('milliseconds', options.unit);
+    this.toFinalUnit = makeFormatTo('seconds', options.unit);
     this.spans = this.collectSpanNodes();
 
     const duration = this.toFinalUnit(
