@@ -372,7 +372,7 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
 
     def handle_unfurl(self, slack_request: SlackActionRequest, action: str) -> Response:
         organization_integrations = integration_service.get_organization_integrations(
-            slack_request.integration.id
+            integration_id=slack_request.integration.id
         )
         if len(organization_integrations) > 0:
             analytics.record(

@@ -274,12 +274,10 @@ class IntegrationInstallation:
     @property
     def org_integration(self) -> OrganizationIntegration:
         if self._org_integration is None:
-            ois = integration_service.get_organization_integrations(
+            self._org_integration = integration_service.get_organization_integration(
                 integration_id=self.model.id,
                 organization_id=self.organization_id,
             )
-            if len(ois) > 0:
-                self._org_integration = ois[0]
         return self._org_integration
 
     def get_organization_config(self) -> Sequence[Any]:

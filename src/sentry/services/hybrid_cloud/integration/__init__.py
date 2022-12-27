@@ -8,6 +8,7 @@ from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_deleg
 from sentry.silo import SiloMode
 
 if TYPE_CHECKING:
+    from sentry.integrations.base import IntegrationFeatures
     from sentry.models.integrations import Integration, OrganizationIntegration
 
 
@@ -94,6 +95,14 @@ class IntegrationService(InterfaceWithLifecycle):
             if organization_integration
             else None
         )
+
+    @abstractmethod
+    def get_installation(self, integration_id: int, organization_id: int, **kwargs):
+        pass
+
+    @abstractmethod
+    def has_feature(self, provider: str, feature: IntegrationFeatures) -> bool | None:
+        pass
 
 
 def impl_with_db() -> IntegrationService:
