@@ -23,7 +23,6 @@ export class CanvasView<T extends {configSpace: Rect}> {
     model,
   }: {
     canvas: FlamegraphCanvas;
-    configSpace: Rect;
     model: T;
     options: {
       barHeight: number;
