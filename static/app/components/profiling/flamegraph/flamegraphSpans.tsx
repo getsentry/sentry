@@ -6,10 +6,19 @@ import {BoundTooltip} from 'sentry/components/profiling/boundTooltip';
 import {t} from 'sentry/locale';
 import {CanvasPoolManager, CanvasScheduler} from 'sentry/utils/profiling/canvasScheduler';
 import {CanvasView} from 'sentry/utils/profiling/canvasView';
+import {useDispatchFlamegraphState} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphState';
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
+import {formatColorForSpan, Rect} from 'sentry/utils/profiling/gl/utils';
 import {SpanChartRenderer2D} from 'sentry/utils/profiling/renderers/spansRenderer';
-import {SpanChart} from 'sentry/utils/profiling/spanChart';
+import {SpanChart, SpanChartNode} from 'sentry/utils/profiling/spanChart';
+import usePrevious from 'sentry/utils/usePrevious';
+
+import {
+  FlamegraphTooltipColorIndicator,
+  FlamegraphTooltipFrameMainInfo,
+  FlamegraphTooltipTimelineInfo,
+} from './flamegraphTooltip';
 
 interface FlamegraphSpansProps {
   canvasBounds: Rect;
@@ -24,11 +33,13 @@ interface FlamegraphSpansProps {
 export function FlamegraphSpans({
   spanChart,
   canvasPoolManager,
+  canvasBounds,
   spansView,
   spansCanvas,
   spansCanvasRef,
   setSpansCanvasRef,
 }: FlamegraphSpansProps) {
+  const dispatch = useDispatchFlamegraphState();
   const flamegraphTheme = useFlamegraphTheme();
   const scheduler = useMemo(() => new CanvasScheduler(), []);
 
@@ -48,6 +59,28 @@ export function FlamegraphSpans({
 
     return new SpanChartRenderer2D(spansCanvasRef, spanChart, flamegraphTheme);
   }, [spansCanvasRef, spanChart, flamegraphTheme]);
+
+  useEffect(() => {
+    if (!spansView) {
+      return;
+    }
+
+    // Check if we are starting a new interaction
+    if (previousInteraction === null && lastInteraction) {
+      beforeInteractionConfigView.current = spansView.configView.clone();
+      return;
+    }
+
+    if (
+      beforeInteractionConfigView.current &&
+      !beforeInteractionConfigView.current.equals(spansView.configView)
+    ) {
+      dispatch({
+        type: 'checkpoint',
+        payload: spansView.configView.clone(),
+      });
+    }
+  }, [lastInteraction, spansView, dispatch, previousInteraction]);
 
   useEffect(() => {
     canvasPoolManager.registerScheduler(scheduler);

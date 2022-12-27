@@ -404,7 +404,18 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
 
     const spansCanvasObserver =
       spansCanvasRef && spansCanvas
-        ? watchForResize([spansCanvasRef], () => {
+        ? watchForResize([spansCanvasRef], entries => {
+            const contentRect =
+              entries[0].contentRect ?? spansCanvasRef.getBoundingClientRect();
+
+            setSpansCanvasBounds(
+              new Rect(
+                contentRect.x,
+                contentRect.y,
+                contentRect.width,
+                contentRect.height
+              )
+            );
             spansCanvas.initPhysicalSpace();
             canvasPoolManager.drawSync();
           })
