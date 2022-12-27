@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Iterable, List, Sequence
+from typing import Iterable, List
 
 from sentry.services.hybrid_cloud.integration import (
     APIIntegration,
@@ -8,32 +8,10 @@ from sentry.services.hybrid_cloud.integration import (
     IntegrationService,
 )
 
-if TYPE_CHECKING:
-    from sentry.models.integrations import Integration, OrganizationIntegration
-
 
 class DatabaseBackedIntegrationService(IntegrationService):
     def close(self) -> None:
         pass
-
-    def _serialize_integration(self, integration: Integration) -> APIIntegration:
-        return APIIntegration(
-            id=integration.id,
-            provider=integration.provider,
-            external_id=integration.external_id,
-            name=integration.name,
-            metadata=integration.metadata,
-        )
-
-    def _serialize_organization_integration(
-        self, oi: OrganizationIntegration
-    ) -> APIOrganizationIntegration:
-        return APIOrganizationIntegration(
-            id=oi.id,
-            organization_id=oi.organization_id,
-            integration_id=oi.integration_id,
-            config=oi.config,
-        )
 
     def get_many(
         self, *, integration_ids: Iterable[int] | None = None, organization_id: int | None = None
@@ -56,20 +34,30 @@ class DatabaseBackedIntegrationService(IntegrationService):
             else []
         )
 
-    def get_by_provider_id(self, provider: str, external_id: str) -> APIIntegration | None:
+    def get_integration(
+        self,
+        integration_id: int | None = None,
+        provider: str | None = None,
+        external_id: str | None = None,
+    ) -> APIIntegration | None:
         from sentry.models.integrations import Integration
 
-        integration = Integration.objects.filter(provider=provider, external_id=external_id).first()
+        # If an integration_id is provided, use that -- otherwise, use the provider and external_id
+        integration_kwargs = (
+            {"integration_id": integration_id}
+            if integration_id
+            else {"provider": provider, "external_id": external_id}
+        )
 
-        if not integration:
-            return None
+        integration = Integration.objects.filter(**integration_kwargs).first()
 
-        return self._serialize_integration(integration)
+        return self._serialize_integration(integration) if integration else None
 
     def get_organization_integrations(
         self, integration_id: int
-    ) -> Sequence[APIOrganizationIntegration]:
+    ) -> List[APIOrganizationIntegration]:
         from sentry.models.integrations import OrganizationIntegration
 
         ois = OrganizationIntegration.objects.filter(integration_id=integration_id)
+
         return [self._serialize_organization_integration(oi) for oi in ois]
