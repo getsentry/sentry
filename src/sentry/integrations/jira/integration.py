@@ -885,20 +885,23 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         """
         client = self.get_client()
         jira_user = None
-        if user and user.is_authenticated and assign:  # idk if we need to check is_authenticated
-            possible_users = client.search_users_for_issue(external_issue.key, user.email)
-            for possible_user in possible_users:
-                email = possible_user.get("emailAddress")
-                # XXX: email is coming back as an empty string here
-                # pull email from API if we can use it
-                if not email and self.use_email_scope:
-                    account_id = possible_user.get("accountId")
-                    email = client.get_email(account_id)
-                # match on lowercase email
-                # TODO(steve): add check against display name when JIRA_USE_EMAIL_SCOPE is false
-                if email and email.lower() == user.email.lower():
-                    jira_user = possible_user
-
+        if user and assign:
+            for ue in user.emails:
+                try:
+                    possible_users = client.search_users_for_issue(external_issue.key, ue.email)
+                except (ApiUnauthorized, ApiError):
+                    continue
+                for possible_user in possible_users:
+                    email = possible_user.get("emailAddress")
+                    # pull email from API if we can use it
+                    if not email and self.use_email_scope:
+                        account_id = possible_user.get("accountId")
+                        email = client.get_email(account_id)
+                    # match on lowercase email
+                    # TODO(steve): add check against display name when JIRA_USE_EMAIL_SCOPE is false
+                    if email and email.lower() == ue.email.lower():
+                        jira_user = possible_user
+                        break
             if jira_user is None:
                 # TODO(jess): do we want to email people about these types of failures?
                 logger.info(

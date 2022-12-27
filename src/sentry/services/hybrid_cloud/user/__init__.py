@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import datetime
 from abc import abstractmethod
-from dataclasses import dataclass, fields
+from dataclasses import dataclass, field, fields
 from enum import IntEnum
-from typing import TYPE_CHECKING, Any, FrozenSet, Iterable, List, Optional
+from typing import TYPE_CHECKING, Any, FrozenSet, Iterable, List, Optional, Sequence
 
 from sentry.db.models import BaseQuerySet
 from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_delegation, stubbed
@@ -21,6 +21,7 @@ class APIUser:
     pk: int = -1
     name: str = ""
     email: str = ""
+    emails: Sequence[str] = field(default_factory=list)
     username: str = ""
     actor_id: int = -1
     display_name: str = ""
@@ -182,6 +183,9 @@ class UserService(InterfaceWithLifecycle):
         args["is_superuser"] = user.is_superuser
         args["is_sentry_app"] = user.is_sentry_app
         args["password_usable"] = user.has_usable_password()
+        args[
+            "emails"
+        ] = user.get_unverified_emails()  # should be verified, but can't verify my email locally
 
         # And process the _base_user_query special data additions
         permissions: FrozenSet[str] = frozenset({})
