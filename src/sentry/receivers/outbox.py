@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import Any, Callable, List, Mapping
 
 from django.db.models.signals import post_save, pre_delete
@@ -14,6 +16,7 @@ from sentry.models import (
     outbox_silo_modes,
     process_region_outbox,
 )
+from sentry.services.hybrid_cloud.tombstone import ApiTombstone, tombstone_service
 from sentry.silo import SiloMode
 
 
@@ -93,10 +96,32 @@ outbox_managed_creates = _ensure_silo_matches(
 )
 
 
+def _maybe_process_tombstone(model: Any, object_identifier: int) -> Any | None:
+    if instance := model.objects.filter(id=object_identifier).last():
+        return instance
+
+    tombstone_service.record_remote_tombstone(
+        ApiTombstone(table_name=model._meta.db_table, identifier=object_identifier)
+    )
+    return None
+
+
 @receiver(process_region_outbox, sender=OutboxCategory.USER_UPDATE)
 def process_user_updates(object_identifier: int, **kwds: Any):
-    try:
-        User.objects.get(id=object_identifier)
-    except User.DoesNotExist:
-        # Send tombstone!
-        pass
+    if (user := _maybe_process_tombstone(User, object_identifier)) is None:
+        return
+    user
+
+
+@receiver(process_region_outbox, sender=OutboxCategory.ORGANIZATION_UPDATE)
+def process_organization_updates(object_identifier: int, **kwds: Any):
+    if (org := _maybe_process_tombstone(User, object_identifier)) is None:
+        return
+    org
+
+
+@receiver(process_region_outbox, sender=OutboxCategory.ORGANIZATION_MEMBER_UPDATE)
+def process_organization_member_updates(object_identifier: int, **kwds: Any):
+    if (org_member := _maybe_process_tombstone(User, object_identifier)) is None:
+        return
+    org_member

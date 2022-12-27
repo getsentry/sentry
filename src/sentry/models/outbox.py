@@ -188,7 +188,9 @@ MONOLITH_REGION_NAME = "--monolith--"
 class RegionOutbox(OutboxBase):
     def send_signal(self):
         process_region_outbox.send(
-            sender=self.category, payload=self.payload, object_identifier=self.object_identifier
+            sender=OutboxCategory(self.category),
+            payload=self.payload,
+            object_identifier=self.object_identifier,
         )
 
     sharding_columns = ("scope", "scope_identifier")

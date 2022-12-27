@@ -180,7 +180,7 @@ def test_outbox_rescheduling(task_runner):
 
         def assert_called_for_org(org):
             mock_process_region_outbox.assert_called_with(
-                sender=OutboxCategory.ORGANIZATION_UPDATE.value,
+                sender=OutboxCategory.ORGANIZATION_UPDATE,
                 payload=None,
                 object_identifier=org.id,
             )

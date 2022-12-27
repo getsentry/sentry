@@ -106,6 +106,7 @@ from .search_common import *  # NOQA
 from .sentryfunction import *  # NOQA
 from .servicehook import *  # NOQA
 from .team import *  # NOQA
+from .tombstone import *  # NOQA
 from .transaction_threshold import *  # NOQA
 from .user import *  # NOQA
 from .useremail import *  # NOQA
