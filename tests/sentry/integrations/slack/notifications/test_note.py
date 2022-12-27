@@ -59,7 +59,7 @@ class SlackNoteNotificationTest(SlackActivityNotificationTest, PerformanceIssueT
                 data={"text": "text", "mentions": []},
             )
         )
-        with self.feature("organizations:performance-issues"), self.tasks():
+        with self.tasks():
             notification.send()
 
         attachment, text = get_attachment()

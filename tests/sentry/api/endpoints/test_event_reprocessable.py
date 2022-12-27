@@ -2,6 +2,7 @@ import pytest
 
 from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.silo import region_silo_test
 
 
 @pytest.fixture(autouse=True)
@@ -16,6 +17,7 @@ def auto_login(settings, client, default_user):
 
 
 @pytest.mark.django_db
+@region_silo_test(stable=True)
 def test_simple(client, factories, default_project):
     min_ago = iso_format(before_now(minutes=1))
     event1 = factories.store_event(

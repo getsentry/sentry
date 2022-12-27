@@ -1201,12 +1201,12 @@ class TestProjectDetailsDynamicSamplingRules(TestProjectDetailsDynamicSamplingBa
                 "project_slug": self.project.slug,
             },
         )
-        self.login_as(user=self.user)
+        self.login_as(user=self.user, superuser=True)
         token = ApiToken.objects.create(user=self.user, scope_list=["project:write"])
         self.authorization = f"Bearer {token.token}"
 
     @mock.patch("sentry.dynamic_sampling.rules_generator.quotas.get_blended_sample_rate")
-    def test_get_dynamic_sampling_rules_for_stuff_user(self, get_blended_sample_rate):
+    def test_get_dynamic_sampling_rules_for_superuser_user(self, get_blended_sample_rate):
         get_blended_sample_rate.return_value = 0.1
         new_biases = [
             {"id": "boostEnvironments", "active": True},
@@ -1247,7 +1247,7 @@ class TestProjectDetailsDynamicSamplingRules(TestProjectDetailsDynamicSamplingBa
             )
             assert response.data["dynamicSamplingRules"] is None
 
-    def test_non_stuff_user_trying_to_access_dynamic_sampling_rules(self):
+    def test_non_superuser_user_trying_to_access_dynamic_sampling_rules(self):
         user = self.create_user(is_staff=False, is_superuser=False)
         self.org = self.create_organization()
         self.org.save()

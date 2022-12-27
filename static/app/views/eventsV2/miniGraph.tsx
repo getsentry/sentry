@@ -1,5 +1,5 @@
 import {Component} from 'react';
-import {withTheme} from '@emotion/react';
+import {Theme, withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
@@ -23,7 +23,6 @@ import EventView from 'sentry/utils/discover/eventView';
 import {aggregateOutputType, PlotType} from 'sentry/utils/discover/fields';
 import {DisplayModes, TOP_N} from 'sentry/utils/discover/types';
 import {decodeScalar} from 'sentry/utils/queryString';
-import {Theme} from 'sentry/utils/theme';
 import withApi from 'sentry/utils/withApi';
 
 type Props = {
