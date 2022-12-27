@@ -82,6 +82,7 @@ export interface FlamegraphTheme {
     MINIMAP_HEIGHT: number;
     MINIMAP_POSITION_OVERLAY_BORDER_WIDTH: number;
     SPANS_BAR_HEIGHT: number;
+    SPANS_DEPTH_OFFSET: number;
     SPANS_HEIGHT: number;
     TIMELINE_HEIGHT: number;
     TOOLTIP_FONT_SIZE: number;
@@ -109,6 +110,7 @@ const SIZES: FlamegraphTheme['SIZES'] = {
   BAR_HEIGHT: 20,
   BAR_PADDING: 4,
   FLAMEGRAPH_DEPTH_OFFSET: 12,
+  SPANS_DEPTH_OFFSET: 3,
   FOCUSED_FRAME_BORDER_WIDTH: 2,
   FRAME_BORDER_WIDTH: 2,
   GRID_LINE_WIDTH: 2,
