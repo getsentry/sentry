@@ -887,9 +887,9 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         client = self.get_client()
         jira_user = None
         if user and assign:
-            for ue in user.emails:
+            for ue in user.emails.all():
                 try:
-                    possible_users = client.search_users_for_issue(external_issue.key, ue)
+                    possible_users = client.search_users_for_issue(external_issue.key, ue.email)
                 except (ApiUnauthorized, ApiError):
                     continue
                 for possible_user in possible_users:
@@ -900,7 +900,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
                         email = client.get_email(account_id)
                     # match on lowercase email
                     # TODO(steve): add check against display name when JIRA_USE_EMAIL_SCOPE is false
-                    if email and email.lower() == ue.lower():
+                    if email and email.lower() == ue.email.lower():
                         jira_user = possible_user
                         break
             if jira_user is None:
