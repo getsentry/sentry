@@ -1141,6 +1141,9 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             }
         ]
 
+    @pytest.mark.skip(
+        reason="test depends on a static date for data that has a 90-day TTL. TODO fix test"
+    )
     def test_throughput_epm_hour_rollup_offset_of_hour(self):
         # Each of these denotes how many events to create in each hour
         day_ago = before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0)
