@@ -39,7 +39,7 @@ class DatabaseBackedIdentityService(IdentityService):
         # If an user_id is provided, use that -- otherwise, use the external_id
         identity_kwargs = {"user_id": user_id} if user_id else {"external_id": identity_ext_id}
 
-        identity = Identity.objects.filter(**identity_kwargs, provider_id=provider_id).first()
+        identity = Identity.objects.filter(**identity_kwargs, idp_id=provider_id).first()
 
         return self._serialize_identity(identity) if identity else None
 

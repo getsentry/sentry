@@ -8,7 +8,7 @@ from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_deleg
 from sentry.silo import SiloMode
 
 if TYPE_CHECKING:
-    from sentry.integrations.base import IntegrationFeatures
+    from sentry.integrations.base import IntegrationFeatures, IntegrationInstallation
     from sentry.models.integrations import Integration, OrganizationIntegration
 
 
@@ -96,13 +96,34 @@ class IntegrationService(InterfaceWithLifecycle):
             else None
         )
 
-    @abstractmethod
-    def get_installation(self, integration_id: int, organization_id: int, **kwargs):
-        pass
+    def get_installation(
+        self, integration_id: int, organization_id: int, **kwargs
+    ) -> IntegrationInstallation:
+        """
+        Returns the IntegrationInstallation class for a given integration.
+        Intended to replace calls of `integration.get_installation`.
+        See src/sentry/models/integrations/integration.py
+        """
+        from sentry import integrations
 
-    @abstractmethod
+        # Validate the integration_id first, since we're not using instances
+        integration = self.get_integration(integration_id=integration_id)
+        if not integration:
+            return None
+
+        provider = integrations.get(integration.provider)
+        return provider.get_installation(integration, organization_id, **kwargs)
+
     def has_feature(self, provider: str, feature: IntegrationFeatures) -> bool | None:
-        pass
+        """
+        Returns True if the IntegrationProvider subclass contains a given feature
+        Intended to replace calls of `integration.has_feature`.
+        See src/sentry/models/integrations/integration.py
+        """
+        from sentry import integrations
+
+        provider = integrations.get(provider)
+        return feature in provider.features
 
 
 def impl_with_db() -> IntegrationService:

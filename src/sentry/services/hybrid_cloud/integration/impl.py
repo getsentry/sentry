@@ -12,7 +12,6 @@ from sentry.services.hybrid_cloud.user import APIUser
 from sentry.signals import integration_added
 
 if TYPE_CHECKING:
-    from sentry.integrations.base import IntegrationFeatures
     from sentry.models.user import User
 
 logger = logging.getLogger(__name__)
@@ -67,23 +66,6 @@ class DatabaseBackedIntegrationService(IntegrationService):
         ois = OrganizationIntegration.objects.filter(integration_id=integration_id)
 
         return [self._serialize_organization_integration(oi) for oi in ois]
-
-    # Instance methods
-
-    def get_installation(self, integration_id: int, organization_id: int, **kwargs):
-        from sentry import integrations
-
-        integration = self.get_integration(integration_id=integration_id)
-        if not integration:
-            return None
-        provider = integrations.get(integration.provider)
-        return provider.get_installation(integration, organization_id, **kwargs)
-
-    def has_feature(self, provider: str, feature: IntegrationFeatures) -> bool | None:
-        from sentry import integrations
-
-        provider = integrations.get(provider)
-        return feature in provider.features
 
     def add_organization(
         self,
