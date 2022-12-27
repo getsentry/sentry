@@ -137,7 +137,7 @@ class SlackEventEndpoint(SlackDMEndpoint):
                 continue
 
             ois = integration_service.get_organization_integrations(slack_request.integration.id)
-            organization_id = ois[0].organization_id if ois else None
+            organization_id = ois[0].organization_id if len(ois) > 0 else None
             organization_context = (
                 organization_service.get_organization_by_id(id=organization_id, user_id=None)
                 if organization_id

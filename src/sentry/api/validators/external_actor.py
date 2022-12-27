@@ -68,8 +68,11 @@ def validate_external_name(external_name: str) -> str:
 
 
 def validate_integration_id(integration_id: str, organization: Organization) -> str:
-    ois = integration_service.get_organization_integrations(integration_id=int(integration_id))
+    organization_integration = integration_service.get_organization_integration(
+        integration_id=int(integration_id), organization_id=organization.id
+    )
 
-    if any(oi.organization_id == organization.id for oi in ois):
+    if organization_integration:
         return integration_id
+
     raise serializers.ValidationError("Integration does not exist for this organization")

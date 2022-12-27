@@ -44,13 +44,11 @@ class DatabaseBackedIntegrationService(IntegrationService):
 
         # If an integration_id is provided, use that -- otherwise, use the provider and external_id
         integration_kwargs = (
-            {"integration_id": integration_id}
+            {"id": integration_id}
             if integration_id
             else {"provider": provider, "external_id": external_id}
         )
-
         integration = Integration.objects.filter(**integration_kwargs).first()
-
         return self._serialize_integration(integration) if integration else None
 
     def get_organization_integrations(

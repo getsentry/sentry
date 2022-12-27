@@ -53,8 +53,9 @@ def build_assigned_text(identity: APIIdentity, assignee: str) -> str | None:
     if actor.type == Team:
         assignee_text = f"#{assigned_actor.slug}"
     elif actor.type == User:
-        assignee_identity = identity_service.get_identity_by_provider(
-            user_id=assigned_actor.id, idp_id=identity.idp_id
+        assignee_identity = identity_service.get_identity(
+            provider_id=identity.idp_id,
+            user_id=assigned_actor.id,
         )
         assignee_text = (
             assigned_actor.get_display_name()

@@ -374,11 +374,12 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
         organization_integrations = integration_service.get_organization_integrations(
             slack_request.integration.id
         )
-        analytics.record(
-            "integrations.slack.chart_unfurl_action",
-            organization_id=organization_integrations[0].id,
-            action=action,
-        )
+        if len(organization_integrations) > 0:
+            analytics.record(
+                "integrations.slack.chart_unfurl_action",
+                organization_id=organization_integrations[0].id,
+                action=action,
+            )
         payload = {"delete_original": "true"}
         try:
             requests_.post(slack_request.response_url, json=payload)

@@ -124,8 +124,13 @@ class SlackRequest:
         return {k: v for k, v in data.items() if v}
 
     def get_identity(self) -> APIIdentity | None:
-        self._identity = identity_service.get_by_external_ids(
-            provider_type="slack", provider_ext_id=self.team_id, identity_ext_id=self.user_id
+        provider = identity_service.get_provider(
+            provider_type="slack", provider_ext_id=self.team_id
+        )
+        self._identity = (
+            identity_service.get_identity(provider_id=provider.id, identity_ext_id=self.user_id)
+            if provider
+            else None
         )
         return self._identity
 
@@ -172,7 +177,7 @@ class SlackRequest:
         return self.data.get("token") == verification_token
 
     def _validate_integration(self) -> None:
-        self._integration = integration_service.get_by_provider_id(
+        self._integration = integration_service.get_integration(
             provider="slack", external_id=self.team_id
         )
         if not self._integration:
