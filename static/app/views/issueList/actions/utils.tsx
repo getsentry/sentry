@@ -43,14 +43,13 @@ function getBulkConfirmMessage(action: string, queryCount: number) {
 
 function PerformanceIssueAlert({
   allInQuerySelected,
-  organization,
   children,
 }: {
   allInQuerySelected: boolean;
   children: string;
   organization: Organization;
 }) {
-  if (!allInQuerySelected || !organization.features.includes('performance-issues')) {
+  if (!allInQuerySelected) {
     return null;
   }
 

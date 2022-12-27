@@ -21,7 +21,7 @@ class Migration(CheckedMigration):
     is_dangerous = False
 
     dependencies = [
-        ("sentry", "0347_add_outbox_tables"),
+        ("sentry", "0348_add_outbox_tables"),
     ]
 
     operations = [

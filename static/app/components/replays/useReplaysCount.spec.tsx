@@ -1,32 +1,10 @@
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
 
-import type {Project} from 'sentry/types';
 import {useLocation} from 'sentry/utils/useLocation';
 
 import useReplaysCount from './useReplaysCount';
 
 jest.mock('sentry/utils/useLocation');
-
-function getExpectedReqestParams({
-  field,
-  project,
-  query,
-}: {
-  field: string[];
-  project: Project;
-  query: string;
-}) {
-  return expect.objectContaining({
-    query: {
-      environment: [],
-      field,
-      per_page: 50,
-      project: [String(project.id)],
-      query,
-      statsPeriod: '14d',
-    },
-  });
-}
 
 describe('useReplaysCount', () => {
   const MockUseLocation = useLocation as jest.MockedFunction<typeof useLocation>;
@@ -50,12 +28,13 @@ describe('useReplaysCount', () => {
   const project = TestStubs.Project({
     platform: 'javascript',
   });
+  const projectIds = [Number(project.id)];
 
   it('should throw if neither groupIds nor transactionNames is provided', () => {
     const {result} = reactHooks.renderHook(useReplaysCount, {
       initialProps: {
         organization,
-        project,
+        projectIds,
       },
     });
     expect(result.error).toBeTruthy();
@@ -65,7 +44,7 @@ describe('useReplaysCount', () => {
     const {result} = reactHooks.renderHook(useReplaysCount, {
       initialProps: {
         organization,
-        project,
+        projectIds,
         groupIds: [],
         transactionNames: [],
       },
@@ -83,7 +62,7 @@ describe('useReplaysCount', () => {
     const {result, waitForNextUpdate} = reactHooks.renderHook(useReplaysCount, {
       initialProps: {
         organization,
-        project,
+        projectIds,
         groupIds: mockGroupIds,
       },
     });
@@ -115,7 +94,7 @@ describe('useReplaysCount', () => {
     const {result, waitForNextUpdate} = reactHooks.renderHook(useReplaysCount, {
       initialProps: {
         organization,
-        project,
+        projectIds,
         groupIds: mockGroupIds,
       },
     });
@@ -131,6 +110,111 @@ describe('useReplaysCount', () => {
     });
   });
 
+  it('should request the count for a group only once', async () => {
+    const replayCountRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issue-replay-count/`,
+      method: 'GET',
+      body: {},
+    });
+
+    const {result, rerender, waitForNextUpdate} = reactHooks.renderHook(useReplaysCount, {
+      initialProps: {
+        organization,
+        projectIds,
+        groupIds: mockGroupIds,
+      },
+    });
+
+    await waitForNextUpdate();
+
+    expect(replayCountRequest).toHaveBeenCalledTimes(1);
+    expect(replayCountRequest).toHaveBeenCalledWith(
+      '/organizations/org-slug/issue-replay-count/',
+      expect.objectContaining({
+        query: {
+          query: `issue.id:[123,456]`,
+          statsPeriod: '14d',
+          project: [2],
+        },
+      })
+    );
+    expect(result.current).toEqual({
+      123: 0,
+      456: 0,
+    });
+
+    rerender({
+      organization,
+      projectIds,
+      groupIds: [...mockGroupIds, '789'],
+    });
+
+    await waitForNextUpdate();
+
+    expect(replayCountRequest).toHaveBeenCalledTimes(2);
+    expect(replayCountRequest).toHaveBeenCalledWith(
+      '/organizations/org-slug/issue-replay-count/',
+      expect.objectContaining({
+        query: {
+          query: `issue.id:[789]`,
+          statsPeriod: '14d',
+          project: [2],
+        },
+      })
+    );
+    expect(result.current).toEqual({
+      123: 0,
+      456: 0,
+      789: 0,
+    });
+  });
+
+  it('should not request anything if there are no new ids to query', async () => {
+    const replayCountRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issue-replay-count/`,
+      method: 'GET',
+      body: {},
+    });
+
+    const {result, rerender, waitForNextUpdate} = reactHooks.renderHook(useReplaysCount, {
+      initialProps: {
+        organization,
+        projectIds,
+        groupIds: mockGroupIds,
+      },
+    });
+
+    await waitForNextUpdate();
+
+    expect(replayCountRequest).toHaveBeenCalledTimes(1);
+    expect(replayCountRequest).toHaveBeenCalledWith(
+      '/organizations/org-slug/issue-replay-count/',
+      expect.objectContaining({
+        query: {
+          query: `issue.id:[123,456]`,
+          statsPeriod: '14d',
+          project: [2],
+        },
+      })
+    );
+    expect(result.current).toEqual({
+      123: 0,
+      456: 0,
+    });
+
+    rerender({
+      organization,
+      projectIds,
+      groupIds: mockGroupIds,
+    });
+
+    expect(replayCountRequest).toHaveBeenCalledTimes(1);
+    expect(result.current).toEqual({
+      123: 0,
+      456: 0,
+    });
+  });
+
   it('should query for transactionNames', async () => {
     const countRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
@@ -141,7 +225,7 @@ describe('useReplaysCount', () => {
     const {result, waitForNextUpdate} = reactHooks.renderHook(useReplaysCount, {
       initialProps: {
         organization,
-        project,
+        projectIds,
         transactionNames: mockTransactionNames,
       },
     });
@@ -149,12 +233,17 @@ describe('useReplaysCount', () => {
     expect(result.current).toEqual({});
     expect(countRequest).toHaveBeenCalledWith(
       '/organizations/org-slug/events/',
-      getExpectedReqestParams({
-        field: ['count_unique(replayId)', 'transaction'],
-        project,
-        query: `!replayId:"" event.type:transaction transaction:[${mockTransactionNames.join(
-          ','
-        )}]`,
+      expect.objectContaining({
+        query: {
+          environment: [],
+          field: ['count_unique(replayId)', 'transaction'],
+          per_page: 50,
+          project: [String(project.id)],
+          query: `!replayId:"" event.type:transaction transaction:[${mockTransactionNames.join(
+            ','
+          )}]`,
+          statsPeriod: '14d',
+        },
       })
     );
 
@@ -178,7 +267,7 @@ describe('useReplaysCount', () => {
     const {result, waitForNextUpdate} = reactHooks.renderHook(useReplaysCount, {
       initialProps: {
         organization,
-        project,
+        projectIds,
         transactionNames: mockTransactionNames,
       },
     });

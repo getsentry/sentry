@@ -12,6 +12,8 @@ from sentry.notifications.types import (
     NotificationSettingTypes,
 )
 from sentry.notifications.utils.participants import (
+    FALLTHROUGH_NOTIFICATION_LIMIT,
+    get_fallthrough_recipients,
     get_owner_reason,
     get_owners,
     get_release_committers,
@@ -501,28 +503,44 @@ class GetOwnersCase(TestCase):
 
         # Test feature flag
         owner_reason = get_owner_reason(
-            project=self.project, target_type=ActionTargetType.ISSUE_OWNERS, event=event
+            project=self.project,
+            event=event,
+            target_type=ActionTargetType.ISSUE_OWNERS,
+            fallthrough_choice=FallthroughChoiceType.ALL_MEMBERS,
         )
         assert owner_reason is None
 
-        with self.feature("organizations:issue-alert-fallback-message"):
+        with self.feature("organizations:issue-alert-fallback-targeting"):
             owner_reason = get_owner_reason(
-                project=self.project, target_type=ActionTargetType.ISSUE_OWNERS, event=event
+                project=self.project,
+                event=event,
+                target_type=ActionTargetType.ISSUE_OWNERS,
+                fallthrough_choice=FallthroughChoiceType.ALL_MEMBERS,
             )
             assert (
                 owner_reason
                 == f"We notified all members in the {self.project.get_full_name()} project of this issue"
             )
-
-    def test_get_owner_reason_assigned(self):
-        self.create_ownership(self.project, [], True)
-        event = self.create_event(self.project)
-        with self.feature("organizations:issue-alert-fallback-message"):
             owner_reason = get_owner_reason(
                 project=self.project,
-                target_type=ActionTargetType.ISSUE_OWNERS,
-                target_identifier=self.user_1,
                 event=event,
+                target_type=ActionTargetType.ISSUE_OWNERS,
+                fallthrough_choice=FallthroughChoiceType.ACTIVE_MEMBERS,
+            )
+            assert (
+                owner_reason
+                == f"We notified recently active members in the {self.project.get_full_name()} project of this issue"
+            )
+
+    def test_get_owner_reason_member(self):
+        self.create_ownership(self.project, [], True)
+        event = self.create_event(self.project)
+        with self.feature("organizations:issue-alert-fallback-targeting"):
+            owner_reason = get_owner_reason(
+                project=self.project,
+                target_type=ActionTargetType.MEMBER,
+                event=event,
+                fallthrough_choice=FallthroughChoiceType.ALL_MEMBERS,
             )
             assert owner_reason is None
 
@@ -579,6 +597,7 @@ class GetSendToFallthroughTest(TestCase):
 
     def test_feature_off_no_owner(self):
         event = self.store_event("empty.lol", self.project)
+        assert get_fallthrough_recipients(self.project, FallthroughChoiceType.ACTIVE_MEMBERS) == []
         assert self.get_send_to_fallthrough(event, self.project, None) == {}
 
     def test_feature_off_with_owner(self):
@@ -589,6 +608,12 @@ class GetSendToFallthroughTest(TestCase):
                 UserService.serialize_user(self.user2),
             },
         }
+
+    @with_feature("organizations:issue-alert-fallback-targeting")
+    def test_invalid_fallthrough_choice(self):
+        with pytest.raises(NotImplementedError) as e:
+            get_fallthrough_recipients(self.project, "invalid")
+            assert e.value.startswith("Invalid fallthrough choice: invalid")
 
     @with_feature("organizations:issue-alert-fallback-targeting")
     def test_fallthrough_setting_on(self):
@@ -672,9 +697,81 @@ class GetSendToFallthroughTest(TestCase):
         }
 
     @with_feature("organizations:issue-alert-fallback-targeting")
-    def test_fallthrough_admin_or_recent(self):
+    def test_fallthrough_admin_or_recent_inactive_users(self):
+        notified_users = [self.user, self.user2]
+        for i in range(2):
+            new_user = self.create_user(email=f"user_{i}@example.com", is_active=False)
+            notified_users.append(new_user)
+        new_team = self.create_team(organization=self.organization, members=notified_users)
+        self.project.add_team(new_team)
+
+        for user in notified_users:
+            NotificationSetting.objects.update_settings(
+                ExternalProviders.SLACK,
+                NotificationSettingTypes.ISSUE_ALERTS,
+                NotificationSettingOptionValues.NEVER,
+                user=user,
+            )
+
         event = self.store_event("admin.lol", self.project)
-        assert (
-            self.get_send_to_fallthrough(event, self.project, FallthroughChoiceType.ADMIN_OR_RECENT)
-            == {}
-        )
+        # Check that the notified users are only the 2 active users.
+        expected_notified_users = {
+            UserService.serialize_user(user) for user in [self.user, self.user2]
+        }
+        assert self.get_send_to_fallthrough(
+            event, self.project, FallthroughChoiceType.ACTIVE_MEMBERS
+        ) == {ExternalProviders.EMAIL: expected_notified_users}
+
+    @with_feature("organizations:issue-alert-fallback-targeting")
+    def test_fallthrough_admin_or_recent_under_20(self):
+        notified_users = [self.user, self.user2]
+        for i in range(10):
+            new_user = self.create_user(email=f"user_{i}@example.com", is_active=True)
+            self.create_member(
+                user=new_user, organization=self.organization, role="owner", teams=[self.team2]
+            )
+            notified_users.append(new_user)
+
+        for user in notified_users:
+            NotificationSetting.objects.update_settings(
+                ExternalProviders.SLACK,
+                NotificationSettingTypes.ISSUE_ALERTS,
+                NotificationSettingOptionValues.NEVER,
+                user=user,
+            )
+
+        event = self.store_event("admin.lol", self.project)
+        expected_notified_users = {UserService.serialize_user(user) for user in notified_users}
+        notified_users = self.get_send_to_fallthrough(
+            event, self.project, FallthroughChoiceType.ACTIVE_MEMBERS
+        )[ExternalProviders.EMAIL]
+
+        assert len(notified_users) == 12
+        assert notified_users == expected_notified_users
+
+    @with_feature("organizations:issue-alert-fallback-targeting")
+    def test_fallthrough_admin_or_recent_over_20(self):
+        notified_users = [self.user, self.user2]
+        for i in range(FALLTHROUGH_NOTIFICATION_LIMIT + 5):
+            new_user = self.create_user(email=f"user_{i}@example.com", is_active=True)
+            self.create_member(
+                user=new_user, organization=self.organization, role="owner", teams=[self.team2]
+            )
+            notified_users.append(new_user)
+
+        for user in notified_users:
+            NotificationSetting.objects.update_settings(
+                ExternalProviders.SLACK,
+                NotificationSettingTypes.ISSUE_ALERTS,
+                NotificationSettingOptionValues.NEVER,
+                user=user,
+            )
+
+        event = self.store_event("admin.lol", self.project)
+        expected_notified_users = {UserService.serialize_user(user) for user in notified_users}
+        notified_users = self.get_send_to_fallthrough(
+            event, self.project, FallthroughChoiceType.ACTIVE_MEMBERS
+        )[ExternalProviders.EMAIL]
+
+        assert len(notified_users) == FALLTHROUGH_NOTIFICATION_LIMIT
+        assert notified_users.issubset(expected_notified_users)

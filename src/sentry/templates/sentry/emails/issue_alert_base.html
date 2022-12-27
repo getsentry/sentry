@@ -215,7 +215,7 @@
     <p class="info-box">
         You are receiving this email due to matching rules:
         {% for rule in rules %}
-            <a href="{% absolute_uri rule.url %}">{{ rule.label }}</a>{% if not forloop.last %}, {% endif %}
+            <a href="{% absolute_uri rule.status_url %}">{{ rule.label }}</a>{% if not forloop.last %}, {% endif %}
         {% endfor %}
     </p>
 

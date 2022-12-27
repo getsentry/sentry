@@ -189,8 +189,6 @@ def make_error_event(request, project, platform):
 def make_performance_event(project):
     with override_options(
         {
-            "performance.issues.all.problem-creation": 1.0,
-            "performance.issues.all.problem-detection": 1.0,
             "performance.issues.n_plus_one_db.problem-creation": 1.0,
         }
     ):
@@ -404,6 +402,9 @@ def alert(request):
             "commits": json.loads(COMMIT_EXAMPLE),
             "environment": random.randint(0, 1) > 0 and "prod" or None,
             "notification_reason": notification_reason,
+            "notification_settings_link": absolute_uri(
+                "/settings/account/notifications/alerts/?referrer=alert_email"
+            ),
             "issue_type": GROUP_TYPE_TO_TEXT.get(group.issue_type, "Issue"),
         },
     ).render(request)

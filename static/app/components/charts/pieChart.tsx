@@ -1,9 +1,8 @@
 import {Component, createRef} from 'react';
-import {withTheme} from '@emotion/react';
+import {Theme, withTheme} from '@emotion/react';
 import type {PieSeriesOption} from 'echarts';
 
 import {ReactEchartsRef, Series} from 'sentry/types/echarts';
-import type {Theme} from 'sentry/utils/theme';
 
 import Legend from './components/legend';
 import PieSeries from './series/pieSeries';

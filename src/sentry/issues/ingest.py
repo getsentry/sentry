@@ -3,12 +3,13 @@ from __future__ import annotations
 import logging
 from datetime import datetime
 from hashlib import md5
-from typing import Any, Mapping, Optional, TypedDict, cast
+from typing import Any, Mapping, Optional, Tuple, TypedDict, cast
 
 import sentry_sdk
 from django.conf import settings
 from django.db import transaction
 
+from sentry import eventstream
 from sentry.constants import LOG_LEVELS_MAP
 from sentry.event_manager import (
     GroupInfo,
@@ -32,7 +33,9 @@ ISSUE_QUOTA = Quota(3600, 60, 5)
 logger = logging.getLogger(__name__)
 
 
-def save_issue_occurrence(occurrence_data: IssueOccurrenceData, event: Event) -> IssueOccurrence:
+def save_issue_occurrence(
+    occurrence_data: IssueOccurrenceData, event: Event
+) -> Tuple[IssueOccurrence, Optional[GroupInfo]]:
     process_occurrence_data(occurrence_data)
     # Convert occurrence data to `IssueOccurrence`
     occurrence = IssueOccurrence.from_dict(occurrence_data)
@@ -43,10 +46,12 @@ def save_issue_occurrence(occurrence_data: IssueOccurrenceData, event: Event) ->
     occurrence.save(event.project_id)
 
     # TODO: Pass release here
-    save_issue_from_occurrence(occurrence, event, None)
-    # TODO: Create group related releases here
-    # TODO: Write occurrence and event eventstream
-    return occurrence
+    group_info = save_issue_from_occurrence(occurrence, event, None)
+    if group_info:
+        send_issue_occurrence_to_eventstream(event, occurrence, group_info)
+        # TODO: Create group related releases here
+
+    return occurrence, group_info
 
 
 def process_occurrence_data(occurrence_data: IssueOccurrenceData) -> None:
@@ -189,3 +194,28 @@ def save_issue_from_occurrence(
         group_info = GroupInfo(group=group, is_new=is_new, is_regression=is_regression)
 
     return group_info
+
+
+def send_issue_occurrence_to_eventstream(
+    event: Event, occurrence: IssueOccurrence, group_info: GroupInfo
+) -> None:
+    group_event = event.for_group(group_info.group)
+    group_event.occurrence = occurrence
+
+    eventstream.insert(
+        event=group_event,
+        is_new=group_info.is_new,
+        is_regression=group_info.is_regression,
+        is_new_group_environment=group_info.is_new_group_environment,
+        primary_hash=occurrence.fingerprint[0],
+        received_timestamp=group_event.data.get("received") or group_event.datetime,
+        skip_consume=False,
+        group_states=[
+            {
+                "id": group_info.group.id,
+                "is_new": group_info.is_new,
+                "is_regression": group_info.is_regression,
+                "is_new_group_environment": group_info.is_new_group_environment,
+            }
+        ],
+    )

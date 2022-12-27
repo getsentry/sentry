@@ -31,10 +31,16 @@ class NotifyEmailAction(EventAction):
         if features.has(
             "organizations:issue-alert-fallback-targeting", self.project.organization, actor=None
         ):
-            NotifyEmailAction.label += (
-                " and if none can be found then send a notification to {fallthroughType}"
-            )
+            self.label = "Send a notification to {targetType} and if none can be found then send a notification to {fallthroughType}"
             self.form_fields["fallthroughType"] = {"type": "choice", "choices": FALLTHROUGH_CHOICES}
+
+    def render_label(self) -> str:
+        if self.data.get("fallthroughType", None) and features.has(
+            "organizations:issue-alert-fallback-targeting", self.project.organization, actor=None
+        ):
+            return self.label.format(**self.data)
+
+        return "Send a notification to {targetType}".format(**self.data)
 
     def after(self, event, state):
         group = event.group
@@ -51,9 +57,7 @@ class NotifyEmailAction(EventAction):
         ):
             fallthrough_choice = self.data.get("fallthroughType", None)
             fallthrough_type = (
-                FallthroughChoiceType(fallthrough_choice)
-                if fallthrough_choice is not None
-                else None
+                FallthroughChoiceType(fallthrough_choice) if fallthrough_choice else None
             )
 
         if not determine_eligible_recipients(

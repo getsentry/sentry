@@ -25,7 +25,7 @@ class Migration(CheckedMigration):
     is_dangerous = False
 
     dependencies = [
-        ("sentry", "0346_add_flags_field_to_team_model"),
+        ("sentry", "0347_add_project_has_minified_stack_trace_flag"),
     ]
 
     operations = [
