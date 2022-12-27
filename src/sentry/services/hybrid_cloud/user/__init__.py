@@ -183,9 +183,7 @@ class UserService(InterfaceWithLifecycle):
         args["is_superuser"] = user.is_superuser
         args["is_sentry_app"] = user.is_sentry_app
         args["password_usable"] = user.has_usable_password()
-        args[
-            "emails"
-        ] = user.get_unverified_emails()  # should be verified, but can't verify my email locally
+        args["emails"] = user.get_verified_emails()
 
         # And process the _base_user_query special data additions
         permissions: FrozenSet[str] = frozenset({})
