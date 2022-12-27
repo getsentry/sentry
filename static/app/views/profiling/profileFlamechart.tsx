@@ -30,7 +30,11 @@ import {SpanTree} from 'sentry/utils/profiling/spanTree';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
 
-import {useProfileGroup, useProfileTransaction} from './profileGroupProvider';
+import {
+  useProfileGroup,
+  useProfileTransaction,
+  useSetProfileGroup,
+} from './profileGroupProvider';
 
 function collectAllSpanEntriesFromTransaction(
   transaction: EventTransaction
@@ -65,7 +69,8 @@ const LoadingSpanTree = SpanTree.Empty();
 
 function ProfileFlamegraph(): React.ReactElement {
   const organization = useOrganization();
-  const [profileGroup, setProfileGroup] = useProfileGroup();
+  const profileGroup = useProfileGroup();
+  const setProfileGroup = useSetProfileGroup();
   const profiledTransaction = useProfileTransaction();
 
   const hasFlameChartSpans = useMemo(() => {

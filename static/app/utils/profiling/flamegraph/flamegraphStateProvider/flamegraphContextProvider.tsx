@@ -69,7 +69,7 @@ interface FlamegraphStateProviderProps {
 export function FlamegraphStateProvider(
   props: FlamegraphStateProviderProps
 ): React.ReactElement {
-  const [profileGroup] = useProfileGroup();
+  const profileGroup = useProfileGroup();
   const [state, dispatch, {nextState, previousState}] = useUndoableReducer(
     flamegraphStateReducer,
     {

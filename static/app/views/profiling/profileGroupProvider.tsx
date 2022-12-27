@@ -1,4 +1,4 @@
-import {createContext, useContext, useEffect, useMemo, useState} from 'react';
+import {createContext, useContext, useEffect, useState} from 'react';
 import * as Sentry from '@sentry/react';
 
 import {Client} from 'sentry/api';
@@ -33,16 +33,25 @@ interface FlamegraphViewProps {
   children: React.ReactNode;
 }
 
-type ProfileGroupContextValue = [
-  RequestState<ProfileGroup>,
-  React.Dispatch<React.SetStateAction<RequestState<ProfileGroup>>>
-];
+type ProfileGroupContextValue = RequestState<ProfileGroup>;
+type SetProfileGroupContextValue = React.Dispatch<
+  React.SetStateAction<RequestState<ProfileGroup>>
+>;
 const ProfileGroupContext = createContext<ProfileGroupContextValue | null>(null);
+const SetProfileGroupContext = createContext<SetProfileGroupContextValue | null>(null);
 
 export function useProfileGroup() {
   const context = useContext(ProfileGroupContext);
   if (!context) {
     throw new Error('useProfileGroup was called outside of ProfileGroupProvider');
+  }
+  return context;
+}
+
+export function useSetProfileGroup() {
+  const context = useContext(SetProfileGroupContext);
+  if (!context) {
+    throw new Error('useSetProfileGroup was called outside of SetProfileGroupProvider');
   }
   return context;
 }
@@ -97,21 +106,20 @@ function ProfileGroupProvider(props: FlamegraphViewProps): React.ReactElement {
     };
   }, [params.eventId, params.projectId, api, organization]);
 
-  const contextValue: ProfileGroupContextValue = useMemo(
-    () => [profileGroupState, setProfileGroupState],
-    [profileGroupState, setProfileGroupState]
-  );
-
   return (
-    <ProfileGroupContext.Provider value={contextValue}>
-      <ProfileTransactionContext.Provider value={profileTransaction}>
-        <ProfileHeader
-          transaction={
-            profileTransaction.type === 'resolved' ? profileTransaction.data : null
-          }
-        />
-        {props.children}
-      </ProfileTransactionContext.Provider>
+    <ProfileGroupContext.Provider value={profileGroupState}>
+      <SetProfileGroupContext.Provider value={setProfileGroupState}>
+        <ProfileTransactionContext.Provider value={profileTransaction}>
+          <ProfileHeader
+            eventId={params.eventId}
+            projectId={params.projectId}
+            transaction={
+              profileTransaction.type === 'resolved' ? profileTransaction.data : null
+            }
+          />
+          {props.children}
+        </ProfileTransactionContext.Provider>
+      </SetProfileGroupContext.Provider>
     </ProfileGroupContext.Provider>
   );
 }

@@ -5,7 +5,7 @@ import ButtonBar from 'sentry/components/buttonBar';
 import {t} from 'sentry/locale';
 import {FlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphPreferences';
 
-interface FlamegraphViewSelectMenuProps {
+export interface FlamegraphViewSelectMenuProps {
   onSortingChange: (sorting: FlamegraphViewSelectMenuProps['sorting']) => void;
   onViewChange: (view: FlamegraphViewSelectMenuProps['view']) => void;
   sorting: FlamegraphPreferences['sorting'];
