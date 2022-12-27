@@ -167,7 +167,6 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
 
       const newView = new CanvasView({
         canvas: flamegraphCanvas,
-        configSpace: flamegraph.configSpace,
         model: flamegraph,
         options: {
           inverted: flamegraph.inverted,
@@ -271,7 +270,6 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
 
       const newView = new CanvasView({
         canvas: spansCanvas,
-        configSpace: spanChart.configSpace,
         model: spanChart,
         options: {
           inverted: false,
