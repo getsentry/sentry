@@ -21,14 +21,12 @@ describe('groupEvents', () => {
   beforeEach(() => {
     browserHistory.push = jest.fn();
 
-    const org = initializeOrg({
+    ({organization, routerContext} = initializeOrg({
       organization: {
         features: ['event-attachments'],
       },
-    });
+    }));
     group = TestStubs.Group();
-    organization = org.organization;
-    routerContext = org.routerContext;
 
     requests.discover = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
