@@ -9,14 +9,14 @@ import {
   waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
 
-import {Organization} from 'sentry/types';
+import {Group, Organization} from 'sentry/types';
 import {GroupEvents} from 'sentry/views/organizationGroupDetails/groupEvents';
 
 let location: Location;
 
 describe('groupEvents', () => {
   const requests: {[requestName: string]: jest.Mock} = {};
-  const baseProps = {
+  const baseProps = Object.freeze({
     api: new MockApiClient(),
     params: {orgId: 'orgId', groupId: '1'},
     route: {},
@@ -24,8 +24,9 @@ describe('groupEvents', () => {
     router: {} as any,
     routes: [],
     location: {},
-    group: TestStubs.Group(),
-  };
+    group: TestStubs.Group() as Group,
+  });
+
   let organization: Organization;
   let routerContext;
 
