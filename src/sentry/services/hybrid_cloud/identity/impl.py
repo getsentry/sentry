@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import List
+from typing import Any, List
 
 from sentry.services.hybrid_cloud.identity import APIIdentity, APIIdentityProvider, IdentityService
 
@@ -18,7 +18,7 @@ class DatabaseBackedIdentityService(IdentityService):
         from sentry.models.identity import IdentityProvider
 
         # If an id is provided, use that -- otherwise, use the type and external_id
-        idp_kwargs = (
+        idp_kwargs: Any = (
             {"id": provider_id}
             if provider_id
             else {"type": provider_type, "external_id": provider_ext_id}
@@ -37,7 +37,7 @@ class DatabaseBackedIdentityService(IdentityService):
         from sentry.models.identity import Identity
 
         # If an user_id is provided, use that -- otherwise, use the external_id
-        identity_kwargs = {"user_id": user_id} if user_id else {"external_id": identity_ext_id}
+        identity_kwargs: Any = {"user_id": user_id} if user_id else {"external_id": identity_ext_id}
 
         identity = Identity.objects.filter(**identity_kwargs, idp_id=provider_id).first()
 
