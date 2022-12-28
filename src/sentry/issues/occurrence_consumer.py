@@ -1,6 +1,7 @@
 import logging
 from typing import Any, Dict, Mapping, Optional, Tuple
 
+import jsonschema
 import rapidjson
 from arroyo import Topic
 from arroyo.backends.kafka.configuration import build_kafka_consumer_configuration
@@ -15,6 +16,7 @@ from sentry.event_manager import GroupInfo
 from sentry.eventstore.models import Event
 from sentry.issues.ingest import save_issue_occurrence
 from sentry.issues.issue_occurrence import IssueOccurrence, IssueOccurrenceData
+from sentry.issues.json_schemas import EVENT_PAYLOAD_VERSIONS
 from sentry.utils import json, metrics
 from sentry.utils.canonical import CanonicalKeyDict
 from sentry.utils.kafka_config import get_kafka_consumer_cluster_options
@@ -112,10 +114,12 @@ def _get_kwargs(payload: Mapping[str, Any]) -> Optional[Mapping[str, Any]]:
                 payload_event = payload["event"]
                 kwargs["event_data"] = {
                     "event_id": payload_event["event_id"],
+                    "message_timestamp": payload_event["message_timestamp"],
                     "project_id": payload_event["project_id"],
                     "platform": payload_event["platform"],
                     "tags": payload_event["tags"],
                     "timestamp": payload_event["timestamp"],
+                    "title": payload_event["title"]
                     # TODO add other params as per the spec
                 }
                 kwargs["occurrence_data"]["event_id"] = payload_event["event_id"]
@@ -137,6 +141,30 @@ def _process_message(
     metrics.incr("occurrence_ingest.messages", sample_rate=1.0)
 
     if "event_data" in kwargs:
+
+        try:
+            schema_version: int = kwargs["event_data"].get("version", 0)
+
+            #     with metrics.timer("snuba_query_subscriber.parse_message_value"):
+            #         contents = self.parse_message_value(message.value())
+            #         with metrics.timer("snuba_query_subscriber.parse_message_value.json_validate_wrapper"):
+            jsonschema.validate(kwargs["event_data"], EVENT_PAYLOAD_VERSIONS[schema_version])
+        except jsonschema.ValidationError:
+            # metrics.incr("snuba_query_subscriber.message_wrapper_invalid")
+            raise Exception("Message wrapper does not match schema")
+        #
+        # except InvalidMessageError:
+        # If the message is in an invalid format, just log the error
+        # and continue
+        # logger.exception(
+        #     "Subscription update could not be parsed",
+        #     extra={
+        #         "offset": message.offset(),
+        #         "partition": message.partition(),
+        #         "value": message.value(),
+        #     },
+        # )
+        # return
         return process_event_and_issue_occurrence(**kwargs)  # returning this now for easier testing
     else:
         # all occurrences will have Event data, for now
