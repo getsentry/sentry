@@ -47,9 +47,7 @@ class GroupEvents extends Component<Props, State> {
     super(props);
 
     const queryParams = this.props.location.query;
-    const renderNewAllEventsTab =
-      !!this.props.group.id &&
-      this.props.organization.features.includes('performance-issues-all-events-tab');
+    const renderNewAllEventsTab = true; // TODO - remove this variable, and remove conditional code
 
     this.state = {
       eventList: [],
