@@ -6,7 +6,7 @@ from typing import Any, Iterable, Mapping, MutableMapping
 from sentry.constants import ObjectStatus
 from sentry.models import ExternalActor, Integration, Organization, Team, User
 from sentry.notifications.notifications.base import BaseNotification
-from sentry.services.hybrid_cloud.identity import identity_service
+from sentry.services.hybrid_cloud.identity import APIIdentity, APIIdentityProvider, identity_service
 from sentry.services.hybrid_cloud.user import APIUser
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 
@@ -42,8 +42,7 @@ def get_channel_and_integration_by_user(
         # recipients.
         return {}
 
-    # Mapping of identity id -> APIIdentityProvider
-    identity_id_to_idp = {
+    identity_id_to_idp: Mapping[APIIdentity.id, APIIdentityProvider | None] = {
         identity.id: identity_service.get_provider(provider_id=identity.idp_id)
         for identity in identities
     }
