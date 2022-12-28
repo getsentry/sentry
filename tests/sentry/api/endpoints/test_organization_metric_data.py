@@ -33,9 +33,12 @@ rh_indexer_record = partial(indexer_record, UseCaseKey.RELEASE_HEALTH)
 
 pytestmark = [pytest.mark.sentry_metrics]
 
+ONE_DAY_AGO = timezone.now() - timedelta(days=1)
+MOCK_DATETIME = ONE_DAY_AGO.replace(hour=10, minute=0)
+
 
 @region_silo_test
-@freeze_time("2022-09-29 10:00:00")
+@freeze_time(MOCK_DATETIME)
 class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
     endpoint = "sentry-api-0-organization-metrics-data"
 
@@ -54,7 +57,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
 
     @property
     def now(self):
-        return timezone.now()
+        return MOCK_DATETIME
 
     def test_missing_field(self):
         response = self.get_response(self.project.organization.slug)
@@ -497,13 +500,13 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
                 project_id=self.project.id,
                 # We decided to explicitly show - 1 seconds because this is a "trick" that we used for
                 # standardizing tests against flakiness. More explanations found in BaseMetricsLayerTestCase.
-                started=(self.now.replace(second=0) - timedelta(seconds=1)).timestamp(),
+                started=self.now.timestamp(),
             )
         )
         self.store_session(
             self.build_session(
                 project_id=self.project2.id,
-                started=(self.now.replace(second=0) - timedelta(seconds=1)).timestamp(),
+                started=self.now.timestamp(),
             )
         )
 
@@ -999,7 +1002,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
                 f"count_unique({TransactionMetricKey.USER.value})": [users],
             }
 
-    @freeze_time("2022-09-29 03:21:34")
+    # @freeze_time("2022-09-29 03:21:34")
     def test_orderby_percentile_with_many_fields_multiple_entities_with_paginator(self):
         """
         Test that ensures when transactions are ordered correctly when all the fields requested
@@ -1063,7 +1066,14 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
                 None,
                 5.0,
             ],
-            f"count_unique({TransactionMetricKey.USER.value})": [0, 0, 0, 6, 0, 5],
+            f"count_unique({TransactionMetricKey.USER.value})": [
+                0,
+                0,
+                0,
+                6,
+                5,
+                0,
+            ],  # [0, 0, 0, 6, 0, 5]
         }
 
         request_args["cursor"] = Cursor(0, 1)
@@ -1085,7 +1095,14 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
                 None,
                 11.0,
             ],
-            f"count_unique({TransactionMetricKey.USER.value})": [0, 0, 0, 3, 0, 1],
+            f"count_unique({TransactionMetricKey.USER.value})": [
+                0,
+                0,
+                0,
+                3,
+                1,
+                0,
+            ],  # [0, 0, 0, 3, 0, 1]
         }
 
     def test_series_are_limited_to_total_order_in_case_with_one_field_orderby(self):
@@ -1251,7 +1268,6 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
                 name=SessionMRI.SESSION.value,
                 tags={tag: tag_value},
                 value=10,
-                minutes_before_now=4,
             )
 
         for tag, tag_value, numbers in (
@@ -1348,14 +1364,14 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         self.store_session(
             self.build_session(
                 project_id=self.project2.id,
-                started=(self.now.replace(second=0) - timedelta(seconds=1)).timestamp(),
+                started=self.now.timestamp(),
             )
         )
         for _ in range(2):
             self.store_session(
                 self.build_session(
                     project_id=self.project.id,
-                    started=(self.now.replace(second=0) - timedelta(seconds=1)).timestamp(),
+                    started=self.now.timestamp(),
                 )
             )
 
@@ -1387,7 +1403,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         self.store_session(
             self.build_session(
                 project_id=self.project.id,
-                started=(self.now.replace(second=0) - timedelta(seconds=1)).timestamp(),
+                started=self.now.timestamp(),
             )
         )
 
@@ -1426,9 +1442,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             self.store_session(
                 self.build_session(
                     project_id=self.project.id,
-                    started=(
-                        self.now.replace(second=0) - timedelta(minutes=minute, seconds=1)
-                    ).timestamp(),
+                    started=(self.now - timedelta(minutes=minute)).timestamp(),
                 )
             )
         response = self.get_success_response(
@@ -1489,7 +1503,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         self.store_session(
             self.build_session(
                 project_id=self.project.id,
-                started=(self.now - timedelta(minutes=1)).timestamp(),
+                started=self.now.timestamp(),
             )
         )
         response = self.get_success_response(
@@ -1514,7 +1528,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         assert response.status_code == 400
 
 
-@freeze_time("2022-09-29 10:00:00")
+@freeze_time(MOCK_DATETIME)
 class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
     endpoint = "sentry-api-0-organization-metrics-data"
 
@@ -1540,7 +1554,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
 
     @property
     def now(self):
-        return timezone.now()
+        return MOCK_DATETIME
 
     @patch("sentry.snuba.metrics.fields.base.DERIVED_METRICS", MOCKED_DERIVED_METRICS)
     @patch("sentry.snuba.metrics.query.parse_mri")
@@ -1605,9 +1619,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                 self.store_session(
                     self.build_session(
                         project_id=self.project.id,
-                        started=(
-                            self.now.replace(second=0) - timedelta(minutes=minute, seconds=1)
-                        ).timestamp(),
+                        started=(self.now - timedelta(minutes=minute)).timestamp(),
                         status=status,
                     )
                 )
@@ -1629,9 +1641,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                 self.store_session(
                     self.build_session(
                         project_id=self.project.id,
-                        started=(
-                            self.now.replace(second=0) - timedelta(minutes=minute, seconds=1)
-                        ).timestamp(),
+                        started=(self.now - timedelta(minutes=minute)).timestamp(),
                         status=status,
                         release="foobar@1.0",
                     )
@@ -1640,9 +1650,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
             self.store_session(
                 self.build_session(
                     project_id=self.project.id,
-                    started=(
-                        self.now.replace(second=0) - timedelta(minutes=minute, seconds=1)
-                    ).timestamp(),
+                    started=(self.now - timedelta(minutes=minute)).timestamp(),
                     status="ok",
                     release="foobar@2.0",
                 )
@@ -1917,7 +1925,6 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                 name=SessionMRI.SESSION.value,
                 tags={"session.status": tag_value, "release": release_tag_value},
                 value=value,
-                seconds_before_now=second,
             )
 
         response = self.get_success_response(

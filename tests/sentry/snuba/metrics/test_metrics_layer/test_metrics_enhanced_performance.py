@@ -38,12 +38,15 @@ from sentry.testutils.helpers.datetime import before_now
 
 pytestmark = pytest.mark.sentry_metrics
 
+ONE_DAY_AGO = timezone.now() - timedelta(days=1)
+MOCK_DATETIME = ONE_DAY_AGO.replace(hour=10, minute=0)
 
-@freeze_time("2022-09-29 10:00:00")
+
+@freeze_time(MOCK_DATETIME)
 class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
     @property
     def now(self):
-        return timezone.now()
+        return MOCK_DATETIME
 
     def test_valid_filter_include_meta_derived_metrics(self):
         query_params = MultiValueDict(
@@ -1141,9 +1144,6 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             }
         ]
 
-    @pytest.mark.skip(
-        reason="test depends on a static date for data that has a 90-day TTL. TODO fix test"
-    )
     def test_throughput_epm_hour_rollup_offset_of_hour(self):
         # Each of these denotes how many events to create in each hour
         day_ago = before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0)
@@ -1190,15 +1190,18 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             use_case_id=UseCaseKey.PERFORMANCE,
         )
         assert data == {
-            "start": FakeDatetime(2022, 9, 28, 10, 30),
-            "end": FakeDatetime(2022, 9, 28, 16, 30),
+            "start": FakeDatetime(day_ago.year, day_ago.month, day_ago.day, 10, 30),
+            "end": FakeDatetime(day_ago.year, day_ago.month, day_ago.day, 16, 30),
             "intervals": [
-                FakeDatetime(2022, 9, 28, 10, 0, tzinfo=timezone.utc),
-                FakeDatetime(2022, 9, 28, 11, 0, tzinfo=timezone.utc),
-                FakeDatetime(2022, 9, 28, 12, 0, tzinfo=timezone.utc),
-                FakeDatetime(2022, 9, 28, 13, 0, tzinfo=timezone.utc),
-                FakeDatetime(2022, 9, 28, 14, 0, tzinfo=timezone.utc),
-                FakeDatetime(2022, 9, 28, 15, 0, tzinfo=timezone.utc),
+                FakeDatetime(
+                    day_ago.year,
+                    day_ago.month,
+                    day_ago.day,
+                    hour,
+                    0,
+                    tzinfo=timezone.utc,
+                )
+                for hour in range(10, 16)
             ],
             "groups": [
                 {
@@ -1427,15 +1430,16 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
         )
 
     def test_team_key_transactions_my_teams(self):
-        for minutes, (transaction, value) in enumerate(
-            (("foo_transaction", 1), ("bar_transaction", 1), ("baz_transaction", 0.5))
+        for transaction, value in (
+            ("foo_transaction", 1),
+            ("bar_transaction", 1),
+            ("baz_transaction", 0.5),
         ):
             self.store_performance_metric(
                 type="distribution",
                 name=TransactionMRI.DURATION.value,
                 tags={"transaction": transaction},
                 value=value,
-                minutes_before_now=minutes,
             )
 
         metrics_query = self.build_metrics_query(
