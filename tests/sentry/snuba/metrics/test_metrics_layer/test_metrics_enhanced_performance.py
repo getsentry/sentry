@@ -1430,15 +1430,16 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
         )
 
     def test_team_key_transactions_my_teams(self):
-        for minutes, (transaction, value) in enumerate(
-            (("foo_transaction", 1), ("bar_transaction", 1), ("baz_transaction", 0.5))
+        for transaction, value in (
+            ("foo_transaction", 1),
+            ("bar_transaction", 1),
+            ("baz_transaction", 0.5),
         ):
             self.store_performance_metric(
                 type="distribution",
                 name=TransactionMRI.DURATION.value,
                 tags={"transaction": transaction},
                 value=value,
-                minutes_before_now=-minutes,
             )
 
         metrics_query = self.build_metrics_query(
