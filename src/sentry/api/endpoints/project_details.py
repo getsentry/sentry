@@ -19,9 +19,11 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.project import DetailedProjectSerializer
 from sentry.api.serializers.rest_framework.list import EmptyListField, ListField
 from sentry.api.serializers.rest_framework.origin import OriginField
+from sentry.auth.superuser import is_active_superuser
 from sentry.constants import RESERVED_PROJECT_SLUGS
 from sentry.datascrubbing import validate_pii_config_update
 from sentry.dynamic_sampling.feature_multiplexer import DynamicSamplingFeatureMultiplexer
+from sentry.dynamic_sampling.rules_generator import generate_rules
 from sentry.grouping.enhancer import Enhancements, InvalidEnhancerConfig
 from sentry.grouping.fingerprinting import FingerprintingRules, InvalidFingerprintingConfig
 from sentry.ingest.inbound_filters import FilterTypes
@@ -382,8 +384,14 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             if not ds_bias_serializer.is_valid():
                 return Response(ds_bias_serializer.errors, status=400)
             data["dynamicSamplingBiases"] = ds_bias_serializer.data
+
+            include_rules = request.GET.get("includeDynamicSamplingRules") == "1"
+            if include_rules and is_active_superuser(request):
+                data["dynamicSamplingRules"] = generate_rules(project)
         else:
             data["dynamicSamplingBiases"] = None
+            data["dynamicSamplingRules"] = None
+
         return Response(data)
 
     def put(self, request: Request, project) -> Response:
@@ -408,6 +416,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         :auth: required
         """
 
+        old_data = serialize(project, request.user, DetailedProjectSerializer())
         has_project_write = request.access and request.access.has_scope("project:write")
 
         changed_proj_settings = {}
@@ -716,6 +725,17 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 if not project.copy_settings_from(result["copy_from_project"]):
                     return Response({"detail": ["Copy project settings failed."]}, status=409)
 
+            if "sentry:dynamic_sampling_biases" in changed_proj_settings:
+                self.dynamic_sampling_biases_audit_log(
+                    project,
+                    request,
+                    old_data.get("dynamicSamplingBiases"),
+                    result.get("dynamicSamplingBiases"),
+                )
+                if len(changed_proj_settings) == 1:
+                    data = serialize(project, request.user, DetailedProjectSerializer())
+                    return Response(data)
+
         self.create_audit_entry(
             request=request,
             organization=project.organization,
@@ -772,3 +792,39 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             project.rename_on_pending_deletion()
 
         return Response(status=204)
+
+    def dynamic_sampling_biases_audit_log(
+        self, project, request, old_raw_dynamic_sampling_biases, new_raw_dynamic_sampling_biases
+    ):
+        """
+        Compares the previous and next dynamic sampling biases object, triggering audit logs according to the changes.
+        We are currently verifying the following cases:
+
+        Enabling
+            We make a loop through the whole object, comparing next with previous biases.
+            If we detect that the current bias is disabled and the updated same bias is enabled, this is triggered
+
+        Disabling
+            We make a loop through the whole object, comparing next with previous biases.
+            If we detect that the current bias is enabled and the updated same bias is disabled, this is triggered
+
+
+        :old_raw_dynamic_sampling_biases: The dynamic sampling biases object before the changes
+        :new_raw_dynamic_sampling_biases: The updated dynamic sampling biases object
+        """
+
+        if old_raw_dynamic_sampling_biases is None:
+            return
+
+        for index, rule in enumerate(new_raw_dynamic_sampling_biases):
+            if rule["active"] != old_raw_dynamic_sampling_biases[index]["active"]:
+                self.create_audit_entry(
+                    request=request,
+                    organization=project.organization,
+                    target_object=project.id,
+                    event=audit_log.get_event_id(
+                        "SAMPLING_BIAS_ENABLED" if rule["active"] else "SAMPLING_BIAS_DISABLED"
+                    ),
+                    data={**project.get_audit_log_data(), "name": rule["id"]},
+                )
+                return

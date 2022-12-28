@@ -677,7 +677,7 @@ class GroupSerializerBase(Serializer, ABC):
         # If user is not logged in and member of the organization,
         # do not return the permalink which contains private information i.e. org name.
         request = env.request
-        if request and is_active_superuser(request) and request.user == user:
+        if request and is_active_superuser(request) and request.user.id == user.id:
             return True
 
         # If user is a sentry_app then it's a proxy user meaning we can't do a org lookup via `get_orgs()`

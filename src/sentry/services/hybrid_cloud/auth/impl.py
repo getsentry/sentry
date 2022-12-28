@@ -324,3 +324,9 @@ def _unwrap_b64(input: str | None) -> bytes | None:
 AuthenticatedToken.register_kind("system", SystemToken)
 AuthenticatedToken.register_kind("api_token", ApiToken)
 AuthenticatedToken.register_kind("api_key", ApiKey)
+
+
+def promote_request_api_user(request: Any) -> User:
+    if not hasattr(request, "_promoted_user"):
+        setattr(request, "_promoted_user", User.objects.get(id=request.user.id))
+    return request._promoted_user

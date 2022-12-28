@@ -111,6 +111,7 @@ class OrganizationMetricsIndexIntegrationTest(OrganizationMetricMetaIntegrationT
             {"name": "session.abnormal_user", "operations": [], "type": "numeric", "unit": "users"},
             {"name": "session.all", "type": "numeric", "operations": [], "unit": "sessions"},
             {"name": "session.all_user", "type": "numeric", "operations": [], "unit": "users"},
+            {"name": "session.anr_rate", "operations": [], "type": "numeric", "unit": "percentage"},
             {
                 "name": "session.crash_free_rate",
                 "type": "numeric",
@@ -142,6 +143,12 @@ class OrganizationMetricsIndexIntegrationTest(OrganizationMetricMetaIntegrationT
                 "type": "numeric",
                 "operations": [],
                 "unit": "users",
+            },
+            {
+                "name": "session.foreground_anr_rate",
+                "operations": [],
+                "type": "numeric",
+                "unit": "percentage",
             },
             {
                 "name": "session.healthy_user",

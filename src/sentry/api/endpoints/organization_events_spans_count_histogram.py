@@ -3,7 +3,6 @@ from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.snuba import discover
@@ -31,17 +30,12 @@ class SpansCountHistogramSerializer(serializers.Serializer):
         return spanOp
 
 
+# TODO(udameli): Remove the endpoint because it will not be used
 @region_silo_endpoint
 class OrganizationEventsSpansCountHistogramEndpoint(OrganizationEventsV2EndpointBase):
     private = True
 
-    def has_feature(self, organization, request):
-        return features.has("organizations:performance-issues", organization, actor=request.user)
-
     def get(self, request: Request, organization) -> Response:
-        if not self.has_feature(organization, request):
-            return Response(status=404)
-
         try:
             params = self.get_snuba_params(request, organization)
         except NoProjects:

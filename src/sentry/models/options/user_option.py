@@ -77,7 +77,7 @@ class UserOptionManager(OptionManager["User"]):
             raise NotImplementedError(option_scope_error)
 
         inst, created = self.get_or_create(
-            user=user,
+            user_id=user.id,
             project_id=project_id,
             organization_id=organization_id,
             key=key,

@@ -159,13 +159,13 @@ class DatabaseBackedUserService(UserService):
     def set_option_value(
         self,
         *,
-        user: User,
+        user: User | APIUser,
         key: str,
-        value: str,
+        value: Any,
         project_id: Optional[int] = None,
         organization_id: Optional[int] = None,
     ) -> None:
-        UserOption.objects.set_value(
+        UserOption.objects.set_value(  # type: ignore
             user=user, key=key, value=value, project_id=project_id, organization_id=organization_id
         )
 

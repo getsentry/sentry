@@ -39,6 +39,8 @@ import {
 } from 'sentry/utils/profiling/gl/utils';
 import {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
 import {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
+import {SpanChart} from 'sentry/utils/profiling/spanChart';
+import {SpanTree} from 'sentry/utils/profiling/spanTree';
 import {formatTo, ProfilingFormatterUnit} from 'sentry/utils/profiling/units/units';
 import {useDevicePixelRatio} from 'sentry/utils/useDevicePixelRatio';
 import {useMemoWithPrevious} from 'sentry/utils/useMemoWithPrevious';
@@ -46,6 +48,7 @@ import {useMemoWithPrevious} from 'sentry/utils/useMemoWithPrevious';
 import {FlamegraphDrawer} from './flamegraphDrawer/flamegraphDrawer';
 import {FlamegraphWarnings} from './flamegraphOverlays/FlamegraphWarnings';
 import {FlamegraphLayout} from './flamegraphLayout';
+import {FlamegraphSpans} from './flamegraphSpans';
 
 function getTransactionConfigSpace(
   profileGroup: ProfileGroup,
@@ -70,6 +73,7 @@ const noopFormatDuration = () => '';
 interface FlamegraphProps {
   onImport: ProfileDragDropImportProps['onImport'];
   profiles: ProfileGroup;
+  spanTree: SpanTree | null;
 }
 
 function Flamegraph(props: FlamegraphProps): ReactElement {
@@ -93,8 +97,22 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
   const [flamegraphMiniMapOverlayCanvasRef, setFlamegraphMiniMapOverlayCanvasRef] =
     useState<HTMLCanvasElement | null>(null);
 
+  const [spansCanvasRef, setSpansCanvasRef] = useState<HTMLCanvasElement | null>(null);
+
   const canvasPoolManager = useMemo(() => new CanvasPoolManager(), []);
   const scheduler = useMemo(() => new CanvasScheduler(), []);
+
+  const profile = useMemo(() => {
+    return props.profiles.profiles.find(p => p.threadId === threadId);
+  }, [props.profiles, threadId]);
+
+  const spanChart = useMemo(() => {
+    if (!props.spanTree || !profile) {
+      return null;
+    }
+
+    return new SpanChart(props.spanTree, {unit: profile.unit});
+  }, [props.spanTree, profile]);
 
   const flamegraph = useMemo(() => {
     if (typeof threadId !== 'number') {
@@ -103,7 +121,6 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
 
     // This could happen if threadId was initialized from query string, but for some
     // reason the profile was removed from the list of profiles.
-    const profile = props.profiles.profiles.find(p => p.threadId === threadId);
     if (!profile) {
       return FALLBACK_FLAMEGRAPH;
     }
@@ -116,7 +133,7 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
           ? getTransactionConfigSpace(props.profiles, profile.startedAt, profile.unit)
           : undefined,
     });
-  }, [props.profiles, sorting, threadId, view, xAxis]);
+  }, [profile, props.profiles, sorting, threadId, view, xAxis]);
 
   const flamegraphCanvas = useMemo(() => {
     if (!flamegraphCanvasRef) {
@@ -134,6 +151,13 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
     }
     return new FlamegraphCanvas(flamegraphMiniMapCanvasRef, vec2.fromValues(0, 0));
   }, [flamegraphMiniMapCanvasRef]);
+
+  const spansCanvas = useMemo(() => {
+    if (!spansCanvasRef) {
+      return null;
+    }
+    return new FlamegraphCanvas(spansCanvasRef, vec2.fromValues(0, 0));
+  }, [spansCanvasRef]);
 
   const flamegraphView = useMemoWithPrevious<FlamegraphView | null>(
     previousView => {
@@ -257,7 +281,7 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
       const newConfigView = computeConfigViewWithStrategy(
         strategy,
         flamegraphView.configView,
-        new Rect(frame.start, frame.depth, frame.end, 1)
+        new Rect(frame.start, frame.depth, frame.end - frame.start, 1)
       );
 
       flamegraphView.setConfigView(newConfigView);
@@ -297,9 +321,12 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
 
     const flamegraphObserver = watchForResize(
       [flamegraphCanvasRef, flamegraphOverlayCanvasRef],
-      () => {
-        const bounds = flamegraphCanvasRef.getBoundingClientRect();
-        setCanvasBounds(new Rect(bounds.x, bounds.y, bounds.width, bounds.height));
+      entries => {
+        const contentRect =
+          entries[0].contentRect ?? flamegraphCanvasRef.getBoundingClientRect();
+        setCanvasBounds(
+          new Rect(contentRect.x, contentRect.y, contentRect.width, contentRect.height)
+        );
 
         flamegraphCanvas.initPhysicalSpace();
         flamegraphView.resizeConfigSpace(flamegraphCanvas);
@@ -317,9 +344,23 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
       }
     );
 
+    const spansCanvasObserver = spansCanvasRef
+      ? watchForResize(
+          [flamegraphMiniMapCanvasRef, flamegraphMiniMapOverlayCanvasRef],
+          () => {
+            flamegraphMiniMapCanvas.initPhysicalSpace();
+
+            canvasPoolManager.drawSync();
+          }
+        )
+      : null;
+
     return () => {
       flamegraphObserver.disconnect();
       flamegraphMiniMapObserver.disconnect();
+      if (spansCanvasObserver) {
+        spansCanvasObserver.disconnect();
+      }
     };
   }, [
     canvasPoolManager,
@@ -330,6 +371,7 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
     flamegraphMiniMapOverlayCanvasRef,
     flamegraphOverlayCanvasRef,
     flamegraphView,
+    spansCanvasRef,
   ]);
 
   const flamegraphRenderer = useMemo(() => {
@@ -396,6 +438,18 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
       </FlamegraphToolbar>
 
       <FlamegraphLayout
+        spans={
+          spanChart ? (
+            <FlamegraphSpans
+              spanChart={spanChart}
+              spansCanvas={spansCanvas}
+              spansCanvasRef={spansCanvasRef}
+              setSpansCanvasRef={setSpansCanvasRef}
+              canvasPoolManager={canvasPoolManager}
+              flamegraphView={flamegraphView}
+            />
+          ) : null
+        }
         minimap={
           <FlamegraphZoomViewMinimap
             canvasPoolManager={canvasPoolManager}
@@ -412,10 +466,10 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
           <ProfileDragDropImport onImport={props.onImport}>
             <FlamegraphWarnings flamegraph={flamegraph} />
             <FlamegraphZoomView
-              flamegraphRenderer={flamegraphRenderer}
               canvasBounds={canvasBounds}
               canvasPoolManager={canvasPoolManager}
               flamegraph={flamegraph}
+              flamegraphRenderer={flamegraphRenderer}
               flamegraphCanvas={flamegraphCanvas}
               flamegraphCanvasRef={flamegraphCanvasRef}
               flamegraphOverlayCanvasRef={flamegraphOverlayCanvasRef}
@@ -428,10 +482,10 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
         flamegraphDrawer={
           <FlamegraphDrawer
             profileGroup={props.profiles}
-            flamegraph={flamegraph}
+            getFrameColor={getFrameColor}
             referenceNode={referenceNode}
             rootNodes={rootNodes}
-            getFrameColor={getFrameColor}
+            flamegraph={flamegraph}
             formatDuration={flamegraph ? flamegraph.formatter : noopFormatDuration}
             canvasPoolManager={canvasPoolManager}
             canvasScheduler={scheduler}
