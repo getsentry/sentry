@@ -500,13 +500,13 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
                 project_id=self.project.id,
                 # We decided to explicitly show - 1 seconds because this is a "trick" that we used for
                 # standardizing tests against flakiness. More explanations found in BaseMetricsLayerTestCase.
-                started=(self.now.replace(second=0) - timedelta(seconds=1)).timestamp(),
+                started=self.now.timestamp(),
             )
         )
         self.store_session(
             self.build_session(
                 project_id=self.project2.id,
-                started=(self.now.replace(second=0) - timedelta(seconds=1)).timestamp(),
+                started=self.now.timestamp(),
             )
         )
 
@@ -1268,7 +1268,6 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
                 name=SessionMRI.SESSION.value,
                 tags={tag: tag_value},
                 value=10,
-                minutes_before_now=4,
             )
 
         for tag, tag_value, numbers in (
@@ -1365,14 +1364,14 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         self.store_session(
             self.build_session(
                 project_id=self.project2.id,
-                started=(self.now.replace(second=0) - timedelta(seconds=1)).timestamp(),
+                started=self.now.timestamp(),
             )
         )
         for _ in range(2):
             self.store_session(
                 self.build_session(
                     project_id=self.project.id,
-                    started=(self.now.replace(second=0) - timedelta(seconds=1)).timestamp(),
+                    started=self.now.timestamp(),
                 )
             )
 
@@ -1404,7 +1403,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         self.store_session(
             self.build_session(
                 project_id=self.project.id,
-                started=(self.now.replace(second=0) - timedelta(seconds=1)).timestamp(),
+                started=self.now.timestamp(),
             )
         )
 
@@ -1443,9 +1442,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             self.store_session(
                 self.build_session(
                     project_id=self.project.id,
-                    started=(
-                        self.now.replace(second=0) - timedelta(minutes=minute, seconds=1)
-                    ).timestamp(),
+                    started=(self.now - timedelta(minutes=minute)).timestamp(),
                 )
             )
         response = self.get_success_response(
@@ -1506,7 +1503,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         self.store_session(
             self.build_session(
                 project_id=self.project.id,
-                started=(self.now - timedelta(minutes=1)).timestamp(),
+                started=self.now.timestamp(),
             )
         )
         response = self.get_success_response(
@@ -1622,9 +1619,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                 self.store_session(
                     self.build_session(
                         project_id=self.project.id,
-                        started=(
-                            self.now.replace(second=0) - timedelta(minutes=minute, seconds=1)
-                        ).timestamp(),
+                        started=(self.now - timedelta(minutes=minute)).timestamp(),
                         status=status,
                     )
                 )
@@ -1646,9 +1641,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                 self.store_session(
                     self.build_session(
                         project_id=self.project.id,
-                        started=(
-                            self.now.replace(second=0) - timedelta(minutes=minute, seconds=1)
-                        ).timestamp(),
+                        started=(self.now - timedelta(minutes=minute)).timestamp(),
                         status=status,
                         release="foobar@1.0",
                     )
@@ -1657,9 +1650,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
             self.store_session(
                 self.build_session(
                     project_id=self.project.id,
-                    started=(
-                        self.now.replace(second=0) - timedelta(minutes=minute, seconds=1)
-                    ).timestamp(),
+                    started=(self.now - timedelta(minutes=minute)).timestamp(),
                     status="ok",
                     release="foobar@2.0",
                 )
@@ -1934,7 +1925,6 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                 name=SessionMRI.SESSION.value,
                 tags={"session.status": tag_value, "release": release_tag_value},
                 value=value,
-                seconds_before_now=second,
             )
 
         response = self.get_success_response(
