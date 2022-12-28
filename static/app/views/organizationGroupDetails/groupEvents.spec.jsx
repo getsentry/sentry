@@ -162,7 +162,7 @@ describe('groupEvents', () => {
     );
   });
 
-  it('renders new events table for performance', () => {
+  it('renders events table for performance issue', () => {
     group.issueCategory = 'performance';
 
     render(
@@ -337,7 +337,7 @@ describe('groupEvents', () => {
     expect(requests.attachments).toHaveBeenCalled();
   });
 
-  it('renders new events table if error', () => {
+  it('renders events table for error', () => {
     render(
       <GroupEvents
         organization={organization}
