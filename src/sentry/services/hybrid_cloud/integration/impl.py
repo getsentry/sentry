@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Iterable, List
+from typing import TYPE_CHECKING, Any, Iterable, List, Mapping
 
 from sentry.services.hybrid_cloud.integration import (
     APIIntegration,
@@ -66,6 +66,20 @@ class DatabaseBackedIntegrationService(IntegrationService):
         ois = OrganizationIntegration.objects.filter(integration_id=integration_id)
 
         return [self._serialize_organization_integration(oi) for oi in ois]
+
+    def update_config(
+        self, org_integration_id: int, config: Mapping[str, Any], should_clear: bool = False
+    ) -> APIOrganizationIntegration | None:
+        from sentry.models.integrations import OrganizationIntegration
+
+        oi = OrganizationIntegration.objects.filter(id=org_integration_id).first()
+        if not oi:
+            return None
+        if should_clear:
+            oi.config.clear()
+        oi.config.update(config)
+        oi.save()
+        return oi
 
     def add_organization(
         self,

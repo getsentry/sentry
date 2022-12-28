@@ -24,9 +24,11 @@ class APIIntegration:
 @dataclass(frozen=True)
 class APIOrganizationIntegration:
     id: int
+    default_auth_id: int
     organization_id: int
     integration_id: int
     config: Mapping[str, Any]
+    status: int  # As ObjectStatus
 
 
 class IntegrationService(InterfaceWithLifecycle):
@@ -44,9 +46,11 @@ class IntegrationService(InterfaceWithLifecycle):
     ) -> APIOrganizationIntegration:
         return APIOrganizationIntegration(
             id=oi.id,
+            default_auth_id=oi.default_auth_id,
             organization_id=oi.organization_id,
             integration_id=oi.integration_id,
             config=oi.config,
+            status=oi.status,
         )
 
     @abstractmethod
@@ -95,6 +99,15 @@ class IntegrationService(InterfaceWithLifecycle):
             if organization_integration
             else None
         )
+
+    def update_config(
+        self, org_integration_id: int, config: Mapping[str, Any], should_clear: bool = False
+    ) -> APIOrganizationIntegration | None:
+        """
+        Returns an APIOrganizationIntegration if the associated org_integration.config value
+        was successfully updated, otherwise returns None.
+        If should_clear is True, runs dict.clear() first, otherwise just uses dict.update()
+        """
 
     def get_installation(
         self, integration_id: int, organization_id: int, **kwargs
