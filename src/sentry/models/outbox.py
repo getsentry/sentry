@@ -64,6 +64,10 @@ def _ensure_not_null(k: str, v: T) -> T:
     return v
 
 
+class OutboxFlushError(Exception):
+    pass
+
+
 class OutboxBase(Model):
     sharding_columns: Iterable[str]
     coalesced_columns: Iterable[str]
@@ -168,7 +172,7 @@ class OutboxBase(Model):
     def send_signal(self):
         pass
 
-    def drain_shard(self, max_updates_to_drain: int | None = 1) -> bool:
+    def drain_shard(self, max_updates_to_drain: int | None = None):
         runs = 0
         while max_updates_to_drain is None or runs < max_updates_to_drain:
             runs += 1
@@ -177,7 +181,10 @@ class OutboxBase(Model):
                 return True
             next_row.process()
 
-        return self.select_sharded_objects().first() is not None
+        if self.select_sharded_objects().first() is not None:
+            raise OutboxFlushError(
+                f"Could not flush items from shard {self.key_from(self.sharding_columns)!r}"
+            )
 
 
 MONOLITH_REGION_NAME = "--monolith--"
@@ -217,11 +224,11 @@ class RegionOutbox(OutboxBase):
     __repr__ = sane_repr("scope", "scope_identifier", "category", "object_identifier")
 
     @classmethod
-    def drain_for_model(cls, model_inst: Any, max_updates_to_drain: int | None = 1) -> bool:
+    def drain_for_model(cls, model_inst: Any, max_updates_to_drain: int | None = None) -> None:
         outbox = cls.for_model_update(model_inst)
         if outbox is None:
-            return False
-        return outbox.drain_shard(max_updates_to_drain)
+            return
+        outbox.drain_shard(max_updates_to_drain)
 
     @classmethod
     def for_model_update(cls, model_inst: Any) -> RegionOutbox:

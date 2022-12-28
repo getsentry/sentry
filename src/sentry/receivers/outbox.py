@@ -16,6 +16,10 @@ from sentry.models import (
     outbox_silo_modes,
     process_region_outbox,
 )
+from sentry.services.hybrid_cloud.organization_mapping import (
+    ApiOrganizationMappingUpdate,
+    organization_mapping_service,
+)
 from sentry.services.hybrid_cloud.tombstone import ApiTombstone, tombstone_service
 from sentry.silo import SiloMode
 
@@ -91,7 +95,7 @@ outbox_managed_updates = _ensure_silo_matches(
 # after the fact for a given org member object.
 outbox_managed_creates = _ensure_silo_matches(
     {
-        SiloMode.REGION: [OrganizationMember],
+        SiloMode.REGION: [OrganizationMember, Organization],
     }
 )
 
@@ -110,18 +114,20 @@ def _maybe_process_tombstone(model: Any, object_identifier: int) -> Any | None:
 def process_user_updates(object_identifier: int, **kwds: Any):
     if (user := _maybe_process_tombstone(User, object_identifier)) is None:
         return
-    user
+    user  # Currently we do not sync any other user changes, but if we did, you can use this variable.
 
 
 @receiver(process_region_outbox, sender=OutboxCategory.ORGANIZATION_UPDATE)
 def process_organization_updates(object_identifier: int, **kwds: Any):
-    if (org := _maybe_process_tombstone(User, object_identifier)) is None:
+    if (org := _maybe_process_tombstone(Organization, object_identifier)) is None:
         return
-    org
+
+    update = ApiOrganizationMappingUpdate.from_instance(org)
+    organization_mapping_service.update(update)
 
 
 @receiver(process_region_outbox, sender=OutboxCategory.ORGANIZATION_MEMBER_UPDATE)
 def process_organization_member_updates(object_identifier: int, **kwds: Any):
-    if (org_member := _maybe_process_tombstone(User, object_identifier)) is None:
+    if (org_member := _maybe_process_tombstone(OrganizationMember, object_identifier)) is None:
         return
-    org_member
+    org_member  # TODO: When we get the org member mapping table in place, here is where we'll sync it.

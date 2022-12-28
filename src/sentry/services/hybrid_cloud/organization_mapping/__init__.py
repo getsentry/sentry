@@ -1,7 +1,10 @@
+from __future__ import annotations
+
+import dataclasses
 from abc import abstractmethod
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Mapping, Optional
 
 from django.utils import timezone
 
@@ -9,16 +12,44 @@ from sentry.models.user import User
 from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_delegation, stubbed
 from sentry.silo import SiloMode
 
+if TYPE_CHECKING:
+    from sentry.models import Organization
+
 
 @dataclass(frozen=True, eq=True)
 class APIOrganizationMapping:
-    id: int = -1
     organization_id: int = -1
     slug: str = ""
     region_name: str = ""
     date_created: datetime = timezone.now()
     verified: bool = False
     customer_id: Optional[str] = None
+
+
+@dataclass
+class ApiOrganizationMappingUpdate:
+    organization_id: int = -1
+    name: str = ""
+    customer_id: str = ""
+    # Call out explicitly set attributes so that they can handle version drift -- ie, differentiate between an update
+    # to None and, not an update.
+    set_attributes: List[str] = dataclasses.field(default_factory=list)
+
+    def as_update(self) -> Mapping[str, Any]:
+        return {k: getattr(self, k) for k in self.set_attributes if hasattr(self, k)}
+
+    @classmethod
+    def from_instance(cls, inst: Organization):
+        set_attributes: List[str] = []
+        params: Dict[str, Any] = dict(set_attributes=set_attributes, organization_id=inst.id)
+        for field in dataclasses.fields(cls):
+            if hasattr(inst, field.name) and field.name not in {
+                "set_attributes",
+                "organization_id",
+            }:
+                params[field.name] = getattr(inst, field.name, None)
+                set_attributes.append(field.name)
+        return cls(**params)
 
 
 class OrganizationMappingService(InterfaceWithLifecycle):
@@ -53,7 +84,7 @@ class OrganizationMappingService(InterfaceWithLifecycle):
         pass
 
     @abstractmethod
-    def update_customer_id(self, organization_id: int, customer_id: str) -> Any:
+    def update(self, update: ApiOrganizationMappingUpdate) -> None:
         pass
 
 
