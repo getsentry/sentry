@@ -102,7 +102,7 @@ def get_group(slack_request: SlackActionRequest) -> Group | None:
     try:
         return Group.objects.select_related("project__organization").get(
             id=group_id,
-            project__organization__organizationintegration__integration=slack_request.integration,
+            project__organization__organizationintegration__integration_id=slack_request.integration.id,
         )
     except Group.DoesNotExist:
         logger.info(

@@ -43,7 +43,7 @@ def is_team_linked_to_channel(organization: Organization, slack_request: SlackDM
     # Explicitly typing to satisfy mypy.
     is_linked: bool = ExternalActor.objects.filter(
         organization=organization,
-        integration=slack_request.integration,
+        integration_id=slack_request.integration.id,
         provider=ExternalProviders.SLACK.value,
         external_name=slack_request.channel_name,
         external_id=slack_request.channel_id,
