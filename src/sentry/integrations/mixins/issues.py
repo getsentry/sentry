@@ -193,9 +193,7 @@ class IssueBasicMixin:
             user_defaults = {k: v for k, v in data.items() if k in user_persisted_fields}
             user_option_key = dict(user=user, key="issue:defaults", project=project)
             new_user_defaults = UserOption.objects.get_value(default={}, **user_option_key)
-            new_user_defaults.setdefault(self.org_integration.integration.provider, {}).update(
-                user_defaults
-            )
+            new_user_defaults.setdefault(self.model.provider, {}).update(user_defaults)
             UserOption.objects.set_value(value=new_user_defaults, **user_option_key)
 
     def get_defaults(self, project, user):
@@ -203,7 +201,7 @@ class IssueBasicMixin:
 
         user_option_key = dict(user=user, key="issue:defaults", project=project)
         user_defaults = UserOption.objects.get_value(default={}, **user_option_key).get(
-            self.org_integration.integration.provider, {}
+            self.model.provider, {}
         )
 
         defaults = {}

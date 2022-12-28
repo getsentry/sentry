@@ -26,6 +26,7 @@ from sentry.models import (
     OrganizationIntegration,
     User,
 )
+from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions import (
     ApiError,
     ApiHostError,
@@ -264,7 +265,9 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
             data[self.issues_ignored_fields_key] = ignored_fields_list
 
         config.update(data)
-        self.org_integration.update(config=config)
+        self.org_integration = integration_service.update_config(
+            org_integration_id=self.org_integration.id, config=config, should_clear=True
+        )
 
     def get_config_data(self):
         config = self.org_integration.config
@@ -372,7 +375,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         logging_context = {"org_id": self.organization_id}
 
         if self.organization_id is not None:
-            logging_context["integration_id"] = attrgetter("org_integration.integration.id")(self)
+            logging_context["integration_id"] = attrgetter("org_integration.integration_id")(self)
             logging_context["org_integration_id"] = attrgetter("org_integration.id")(self)
 
         return JiraCloudClient(

@@ -34,6 +34,7 @@ from sentry.models import (
     User,
 )
 from sentry.pipeline import PipelineView
+from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions import (
     ApiError,
     ApiHostError,
@@ -426,7 +427,9 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
             data[self.issues_ignored_fields_key] = ignored_fields_list
 
         config.update(data)
-        self.org_integration.update(config=config)
+        self.org_integration = integration_service.update_config(
+            org_integration_id=self.org_integration.id, config=config, should_clear=True
+        )
 
     def get_config_data(self):
         config = self.org_integration.config
