@@ -10,51 +10,20 @@ import {
 
 import {GroupEvents} from 'sentry/views/organizationGroupDetails/groupEvents';
 
-describe('groupEvents', function () {
-  let request;
-  let discoverRequest;
-  let attachmentsRequest;
+describe('groupEvents', () => {
+  const requests = {
+    discover: undefined,
+    attachments: undefined,
+    recentSearches: undefined,
+  };
 
   const {organization, routerContext} = initializeOrg();
 
-  beforeEach(function () {
-    request = MockApiClient.addMockResponse({
-      url: '/issues/1/events/',
-      body: [
-        TestStubs.Event({
-          eventID: '12345',
-          id: '1',
-          message: 'ApiException',
-          groupID: '1',
-        }),
-        TestStubs.Event({
-          crashFile: {
-            sha1: 'sha1',
-            name: 'name.dmp',
-            dateCreated: '2019-05-21T18:01:48.762Z',
-            headers: {'Content-Type': 'application/octet-stream'},
-            id: '12345',
-            size: 123456,
-            type: 'event.minidump',
-          },
-          culprit: '',
-          dateCreated: '2019-05-21T18:00:23Z',
-          'event.type': 'error',
-          eventID: '123456',
-          groupID: '1',
-          id: '98654',
-          location: 'main.js',
-          message: 'TestException',
-          platform: 'native',
-          projectID: '123',
-          tags: [{value: 'production', key: 'production'}],
-          title: 'TestException',
-        }),
-      ],
-    });
-
+  beforeEach(() => {
     browserHistory.push = jest.fn();
-    discoverRequest = MockApiClient.addMockResponse({
+    MockApiClient.clearMockResponses();
+
+    requests.discover = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
       headers: {
         Link: `<https://sentry.io/api/0/issues/1/events/?limit=50&cursor=0:0:1>; rel="previous"; results="true"; cursor="0:0:1", <https://sentry.io/api/0/issues/1/events/?limit=50&cursor=0:200:0>; rel="next"; results="true"; cursor="0:200:0"`,
@@ -102,8 +71,14 @@ describe('groupEvents', function () {
       },
     });
 
-    attachmentsRequest = MockApiClient.addMockResponse({
+    requests.attachments = MockApiClient.addMockResponse({
       url: '/api/0/issues/1/attachments/?per_page=50&types=event.minidump&event_id=id123',
+      body: [],
+    });
+
+    requests.recentSearches = MockApiClient.addMockResponse({
+      method: 'POST',
+      url: '/organizations/org-slug/recent-searches/',
       body: [],
     });
   });
@@ -113,7 +88,7 @@ describe('groupEvents', function () {
     jest.clearAllMocks();
   });
 
-  it('renders', function () {
+  it('renders', () => {
     const wrapper = render(
       <GroupEvents
         organization={organization}
@@ -128,7 +103,7 @@ describe('groupEvents', function () {
     expect(wrapper.container).toSnapshot();
   });
 
-  it('handles search', function () {
+  it('handles search', async () => {
     render(
       <GroupEvents
         organization={organization}
@@ -146,7 +121,8 @@ describe('groupEvents', function () {
       {searchTerm: 'environment:production test', expectedQuery: 'test'},
     ];
 
-    const input = screen.getByPlaceholderText('Search events by id, message, or tags');
+    await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
+    const input = screen.getByPlaceholderText('Search for events, users, tags, and more');
 
     for (const item of list) {
       userEvent.clear(input);
@@ -160,7 +136,7 @@ describe('groupEvents', function () {
     }
   });
 
-  it('handles environment filtering', function () {
+  it('handles environment filtering', () => {
     render(
       <GroupEvents
         organization={organization}
@@ -171,10 +147,10 @@ describe('groupEvents', function () {
       />,
       {context: routerContext, organization}
     );
-    expect(request).toHaveBeenCalledWith(
-      '/issues/1/events/',
+    expect(requests.discover).toHaveBeenCalledWith(
+      '/organizations/org-slug/events/',
       expect.objectContaining({
-        query: {limit: 50, query: '', environment: ['prod', 'staging']},
+        query: expect.objectContaining({environment: ['prod', 'staging']}),
       })
     );
   });
@@ -186,13 +162,13 @@ describe('groupEvents', function () {
     beforeEach(() => {
       org = initializeOrg({
         organization: {
-          features: ['performance-issues-all-events-tab', 'event-attachments'],
+          features: ['event-attachments'],
         },
       });
       group = TestStubs.Group();
     });
 
-    it('renders new events table for performance', function () {
+    it('renders new events table for performance', () => {
       group.issueCategory = 'performance';
 
       render(
@@ -205,7 +181,7 @@ describe('groupEvents', function () {
         />,
         {context: routerContext, organization}
       );
-      expect(discoverRequest).toHaveBeenCalledWith(
+      expect(requests.discover).toHaveBeenCalledWith(
         '/organizations/org-slug/events/',
         expect.objectContaining({
           query: expect.objectContaining({
@@ -215,7 +191,6 @@ describe('groupEvents', function () {
       );
       const perfEventsColumn = screen.getByText('transaction');
       expect(perfEventsColumn).toBeInTheDocument();
-      expect(request).not.toHaveBeenCalled();
     });
 
     it('renders event and trace link correctly', async () => {
@@ -241,11 +216,7 @@ describe('groupEvents', function () {
     });
 
     it('does not make attachments request, when feature not enabled', async () => {
-      org = initializeOrg({
-        organization: {
-          features: ['performance-issues-all-events-tab'],
-        },
-      });
+      org = initializeOrg();
 
       render(
         <GroupEvents
@@ -261,7 +232,7 @@ describe('groupEvents', function () {
 
       const attachmentsColumn = screen.queryByText('attachments');
       expect(attachmentsColumn).not.toBeInTheDocument();
-      expect(attachmentsRequest).not.toHaveBeenCalled();
+      expect(requests.attachments).not.toHaveBeenCalled();
     });
 
     it('does not display attachments column with no attachments', async () => {
@@ -279,7 +250,7 @@ describe('groupEvents', function () {
 
       const attachmentsColumn = screen.queryByText('attachments');
       expect(attachmentsColumn).not.toBeInTheDocument();
-      expect(attachmentsRequest).toHaveBeenCalled();
+      expect(requests.attachments).toHaveBeenCalled();
     });
 
     it('does not display minidump column with no minidumps', async () => {
@@ -300,7 +271,7 @@ describe('groupEvents', function () {
     });
 
     it('displays minidumps', async () => {
-      attachmentsRequest = MockApiClient.addMockResponse({
+      requests.attachments = MockApiClient.addMockResponse({
         url: '/api/0/issues/1/attachments/?per_page=50&types=event.minidump&event_id=id123',
         body: [
           {
@@ -335,7 +306,7 @@ describe('groupEvents', function () {
     });
 
     it('does not display attachments but displays minidump', async () => {
-      attachmentsRequest = MockApiClient.addMockResponse({
+      requests.attachments = MockApiClient.addMockResponse({
         url: '/api/0/issues/1/attachments/?per_page=50&types=event.minidump&event_id=id123',
         body: [
           {
@@ -369,10 +340,10 @@ describe('groupEvents', function () {
       const minidumpColumn = screen.queryByText('minidump');
       expect(attachmentsColumn).not.toBeInTheDocument();
       expect(minidumpColumn).toBeInTheDocument();
-      expect(attachmentsRequest).toHaveBeenCalled();
+      expect(requests.attachments).toHaveBeenCalled();
     });
 
-    it('renders new events table if error', function () {
+    it('renders new events table if error', () => {
       render(
         <GroupEvents
           organization={org.organization}
@@ -383,7 +354,7 @@ describe('groupEvents', function () {
         />,
         {context: routerContext, organization}
       );
-      expect(discoverRequest).toHaveBeenCalledWith(
+      expect(requests.discover).toHaveBeenCalledWith(
         '/organizations/org-slug/events/',
         expect.objectContaining({
           query: expect.objectContaining({
@@ -397,7 +368,7 @@ describe('groupEvents', function () {
       expect(perfEventsColumn).toBeInTheDocument();
     });
 
-    it('removes sort if unsupported by the events table', function () {
+    it('removes sort if unsupported by the events table', () => {
       render(
         <GroupEvents
           organization={org.organization}
@@ -408,13 +379,13 @@ describe('groupEvents', function () {
         />,
         {context: routerContext, organization}
       );
-      expect(discoverRequest).toHaveBeenCalledWith(
+      expect(requests.discover).toHaveBeenCalledWith(
         '/organizations/org-slug/events/',
         expect.objectContaining({query: expect.not.objectContaining({sort: 'user'})})
       );
     });
 
-    it('only request for a single projectId', function () {
+    it('only request for a single projectId', () => {
       render(
         <GroupEvents
           organization={org.organization}
@@ -431,7 +402,7 @@ describe('groupEvents', function () {
         />,
         {context: routerContext, organization}
       );
-      expect(discoverRequest).toHaveBeenCalledWith(
+      expect(requests.discover).toHaveBeenCalledWith(
         '/organizations/org-slug/events/',
         expect.objectContaining({
           query: expect.objectContaining({project: [group.project.id]}),
@@ -440,7 +411,7 @@ describe('groupEvents', function () {
     });
 
     it('shows discover query error message', async () => {
-      discoverRequest = MockApiClient.addMockResponse({
+      requests.discover = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/events/',
         statusCode: 500,
         body: {
@@ -479,7 +450,7 @@ describe('groupEvents', function () {
       );
 
       await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
-      expect(discoverRequest).toHaveBeenCalledWith(
+      expect(requests.discover).toHaveBeenCalledWith(
         '/organizations/org-slug/events/',
         expect.objectContaining({
           query: expect.objectContaining({
@@ -487,7 +458,7 @@ describe('groupEvents', function () {
           }),
         })
       );
-      expect(discoverRequest).toHaveBeenCalledWith(
+      expect(requests.discover).toHaveBeenCalledWith(
         '/organizations/org-slug/events/',
         expect.objectContaining({
           query: expect.objectContaining({
@@ -496,24 +467,5 @@ describe('groupEvents', function () {
         })
       );
     });
-  });
-
-  it('does not renders new events table if error', function () {
-    const org = initializeOrg();
-    const group = TestStubs.Group();
-
-    render(
-      <GroupEvents
-        organization={org.organization}
-        api={new MockApiClient()}
-        params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
-        group={group}
-        location={{query: {environment: ['prod', 'staging']}}}
-      />,
-      {context: routerContext, organization}
-    );
-
-    const perfEventsColumn = screen.queryByText('transaction');
-    expect(perfEventsColumn).not.toBeInTheDocument();
   });
 });
