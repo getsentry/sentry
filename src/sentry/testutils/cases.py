@@ -31,7 +31,6 @@ __all__ = (
     "ReplaysSnubaTestCase",
     "MonitorTestCase",
 )
-
 import hashlib
 import inspect
 import os.path
@@ -127,6 +126,7 @@ from sentry.snuba.metrics.datasource import get_series
 from sentry.tagstore.snuba import SnubaTagStorage
 from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
 from sentry.testutils.helpers.slack import install_slack
 from sentry.types.integrations import ExternalProviders
 from sentry.types.issues import GroupType
@@ -2061,6 +2061,29 @@ class SlackActivityNotificationTest(ActivityTestCase):
         )
         self.name = self.user.get_display_name()
         self.short_id = self.group.qualified_short_id
+
+    def assert_performance_issue_attachments(
+        self, attachment, project_slug, referrer, alert_type="workflow"
+    ):
+        assert attachment["title"] == "N+1 Query"
+        assert (
+            attachment["text"]
+            == "db - SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21"
+        )
+        assert (
+            attachment["footer"]
+            == f"{project_slug} | production | <http://testserver/settings/account/notifications/{alert_type}/?referrer={referrer}|Notification Settings>"
+        )
+
+    def assert_generic_issue_attachments(
+        self, attachment, project_slug, referrer, alert_type="workflow"
+    ):
+        assert attachment["title"] == TEST_ISSUE_OCCURRENCE.issue_title
+        assert attachment["text"] == TEST_ISSUE_OCCURRENCE.evidence_display[0].value
+        assert (
+            attachment["footer"]
+            == f"{project_slug} | <http://testserver/settings/account/notifications/{alert_type}/?referrer={referrer}|Notification Settings>"
+        )
 
 
 class MSTeamsActivityNotificationTest(ActivityTestCase):
