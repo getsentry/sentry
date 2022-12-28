@@ -1,4 +1,5 @@
 import {browserHistory} from 'react-router';
+import {Location} from 'history';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -8,15 +9,25 @@ import {
   waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
 
+import {Organization} from 'sentry/types';
 import {GroupEvents} from 'sentry/views/organizationGroupDetails/groupEvents';
 
+let location: Location;
+
 describe('groupEvents', () => {
-  const requests = {
-    discover: undefined,
-    attachments: undefined,
-    recentSearches: undefined,
+  const requests: {[requestName: string]: jest.Mock} = {};
+  const baseProps = {
+    api: new MockApiClient(),
+    params: {orgId: 'orgId', groupId: '1'},
+    route: {},
+    routeParams: {},
+    router: {} as any,
+    routes: [],
+    location: {},
+    group: TestStubs.Group(),
   };
-  let organization, routerContext, group;
+  let organization: Organization;
+  let routerContext;
 
   beforeEach(() => {
     browserHistory.push = jest.fn();
@@ -25,8 +36,19 @@ describe('groupEvents', () => {
       organization: {
         features: ['event-attachments'],
       },
-    }));
-    group = TestStubs.Group();
+    } as any));
+
+    location = {
+      pathname: '/organizations/org-slug/issues/123/events/',
+      search: '',
+      hash: '',
+      action: 'REPLACE',
+      key: 'okjkey',
+      state: '',
+      query: {
+        query: '',
+      },
+    };
 
     requests.discover = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
@@ -96,11 +118,9 @@ describe('groupEvents', () => {
   it('renders', () => {
     const wrapper = render(
       <GroupEvents
+        {...baseProps}
         organization={organization}
-        api={new MockApiClient()}
-        group={TestStubs.Group()}
-        params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
-        location={{query: {}}}
+        location={{...location, query: {}}}
       />,
       {context: routerContext, organization}
     );
@@ -111,11 +131,9 @@ describe('groupEvents', () => {
   it('handles search', async () => {
     render(
       <GroupEvents
+        {...baseProps}
         organization={organization}
-        api={new MockApiClient()}
-        params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
-        group={TestStubs.Group()}
-        location={{query: {}}}
+        location={{...location, query: {}}}
       />,
       {context: routerContext, organization}
     );
@@ -144,11 +162,9 @@ describe('groupEvents', () => {
   it('handles environment filtering', () => {
     render(
       <GroupEvents
+        {...baseProps}
         organization={organization}
-        api={new MockApiClient()}
-        params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
-        group={TestStubs.Group()}
-        location={{query: {environment: ['prod', 'staging']}}}
+        location={{...location, query: {environment: ['prod', 'staging']}}}
       />,
       {context: routerContext, organization}
     );
@@ -161,15 +177,15 @@ describe('groupEvents', () => {
   });
 
   it('renders events table for performance issue', () => {
+    const group = TestStubs.Group();
     group.issueCategory = 'performance';
 
     render(
       <GroupEvents
-        organization={organization}
-        api={new MockApiClient()}
-        params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
+        {...baseProps}
         group={group}
-        location={{query: {environment: ['prod', 'staging']}}}
+        organization={organization}
+        location={{...location, query: {environment: ['prod', 'staging']}}}
       />,
       {context: routerContext, organization}
     );
@@ -186,15 +202,15 @@ describe('groupEvents', () => {
   });
 
   it('renders event and trace link correctly', async () => {
+    const group = TestStubs.Group();
     group.issueCategory = 'performance';
 
     render(
       <GroupEvents
-        organization={organization}
-        api={new MockApiClient()}
-        params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
+        {...baseProps}
         group={group}
-        location={{query: {environment: ['prod', 'staging']}}}
+        organization={organization}
+        location={{...location, query: {environment: ['prod', 'staging']}}}
       />,
       {context: routerContext, organization}
     );
@@ -212,11 +228,9 @@ describe('groupEvents', () => {
 
     render(
       <GroupEvents
+        {...baseProps}
         organization={org.organization}
-        api={new MockApiClient()}
-        params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
-        group={group}
-        location={{query: {environment: ['prod', 'staging']}}}
+        location={{...location, query: {environment: ['prod', 'staging']}}}
       />,
       {context: routerContext, organization}
     );
@@ -230,11 +244,9 @@ describe('groupEvents', () => {
   it('does not display attachments column with no attachments', async () => {
     render(
       <GroupEvents
+        {...baseProps}
         organization={organization}
-        api={new MockApiClient()}
-        params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
-        group={group}
-        location={{query: {environment: ['prod', 'staging']}}}
+        location={{...location, query: {environment: ['prod', 'staging']}}}
       />,
       {context: routerContext, organization}
     );
@@ -248,11 +260,9 @@ describe('groupEvents', () => {
   it('does not display minidump column with no minidumps', async () => {
     render(
       <GroupEvents
+        {...baseProps}
         organization={organization}
-        api={new MockApiClient()}
-        params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
-        group={group}
-        location={{query: {environment: ['prod', 'staging']}}}
+        location={{...location, query: {environment: ['prod', 'staging']}}}
       />,
       {context: routerContext, organization}
     );
@@ -284,11 +294,9 @@ describe('groupEvents', () => {
 
     render(
       <GroupEvents
+        {...baseProps}
         organization={organization}
-        api={new MockApiClient()}
-        params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
-        group={group}
-        location={{query: {environment: ['prod', 'staging']}}}
+        location={{...location, query: {environment: ['prod', 'staging']}}}
       />,
       {context: routerContext, organization}
     );
@@ -319,11 +327,9 @@ describe('groupEvents', () => {
 
     render(
       <GroupEvents
+        {...baseProps}
         organization={organization}
-        api={new MockApiClient()}
-        params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
-        group={group}
-        location={{query: {environment: ['prod', 'staging']}}}
+        location={{...location, query: {environment: ['prod', 'staging']}}}
       />,
       {context: routerContext, organization}
     );
@@ -338,11 +344,9 @@ describe('groupEvents', () => {
   it('renders events table for error', () => {
     render(
       <GroupEvents
+        {...baseProps}
         organization={organization}
-        api={new MockApiClient()}
-        params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
-        group={group}
-        location={{query: {environment: ['prod', 'staging']}}}
+        location={{...location, query: {environment: ['prod', 'staging']}}}
       />,
       {context: routerContext, organization}
     );
@@ -363,11 +367,9 @@ describe('groupEvents', () => {
   it('removes sort if unsupported by the events table', () => {
     render(
       <GroupEvents
+        {...baseProps}
         organization={organization}
-        api={new MockApiClient()}
-        params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
-        group={group}
-        location={{query: {environment: ['prod', 'staging'], sort: 'user'}}}
+        location={{...location, query: {environment: ['prod', 'staging'], sort: 'user'}}}
       />,
       {context: routerContext, organization}
     );
@@ -378,13 +380,15 @@ describe('groupEvents', () => {
   });
 
   it('only request for a single projectId', () => {
+    const group = TestStubs.Group();
+
     render(
       <GroupEvents
-        organization={organization}
-        api={new MockApiClient()}
-        params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
+        {...baseProps}
         group={group}
+        organization={organization}
         location={{
+          ...location,
           query: {
             environment: ['prod', 'staging'],
             sort: 'user',
@@ -414,11 +418,9 @@ describe('groupEvents', () => {
 
     render(
       <GroupEvents
+        {...baseProps}
         organization={organization}
-        api={new MockApiClient()}
-        params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
-        group={group}
-        location={{query: {environment: ['prod', 'staging']}}}
+        location={{...location, query: {environment: ['prod', 'staging']}}}
       />,
       {context: routerContext, organization}
     );
@@ -429,14 +431,14 @@ describe('groupEvents', () => {
   });
 
   it('requests for backend columns if backend project', async () => {
+    const group = TestStubs.Group();
     group.project.platform = 'node-express';
     render(
       <GroupEvents
-        organization={organization}
-        api={new MockApiClient()}
-        params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
+        {...baseProps}
         group={group}
-        location={{query: {environment: ['prod', 'staging']}}}
+        organization={organization}
+        location={{...location, query: {environment: ['prod', 'staging']}}}
       />,
       {context: routerContext, organization}
     );
