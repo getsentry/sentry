@@ -42,15 +42,22 @@ def get_channel_and_integration_by_user(
         # recipients.
         return {}
 
+    # Mapping of identity id -> APIIdentityProvider
+    identity_id_to_idp = {
+        identity.id: identity_service.get_provider(provider_id=identity.idp_id)
+        for identity in identities
+    }
+
     integrations = Integration.objects.get_active_integrations(organization.id).filter(
         provider=EXTERNAL_PROVIDERS[provider],
-        external_id__in=[identity.idp.external_id for identity in identities],
+        external_id__in=[identity_id_to_idp[identity.id].external_id for identity in identities],
     )
 
     channels_to_integration = {}
     for identity in identities:
         for integration in integrations:
-            if identity.idp.external_id == integration.external_id:
+            idp = identity_id_to_idp[identity.id]
+            if idp and idp.external_id == integration.external_id:
                 channels_to_integration[identity.external_id] = integration
                 break
 
