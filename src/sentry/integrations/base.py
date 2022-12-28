@@ -9,17 +9,10 @@ from urllib.request import Request
 from sentry import audit_log
 from sentry.db.models.manager import M
 from sentry.exceptions import InvalidIdentity
-from sentry.models import (
-    ExternalActor,
-    Identity,
-    Integration,
-    Organization,
-    OrganizationIntegration,
-    Team,
-)
+from sentry.models import ExternalActor, Identity, Integration, Organization, Team
 from sentry.pipeline import PipelineProvider
 from sentry.pipeline.views.base import PipelineView
-from sentry.services.hybrid_cloud.integration import integration_service
+from sentry.services.hybrid_cloud.integration import APIOrganizationIntegration, integration_service
 from sentry.shared_integrations.constants import (
     ERR_INTERNAL,
     ERR_UNAUTHORIZED,
@@ -272,13 +265,17 @@ class IntegrationInstallation:
         self._org_integration = None
 
     @property
-    def org_integration(self) -> OrganizationIntegration:
+    def org_integration(self) -> APIOrganizationIntegration:
         if self._org_integration is None:
             self._org_integration = integration_service.get_organization_integration(
                 integration_id=self.model.id,
                 organization_id=self.organization_id,
             )
         return self._org_integration
+
+    @org_integration.setter
+    def org_integration(self, org_integration: APIOrganizationIntegration):
+        self._org_integration = org_integration
 
     def get_organization_config(self) -> Sequence[Any]:
         """

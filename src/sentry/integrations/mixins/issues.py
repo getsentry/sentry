@@ -3,6 +3,7 @@ from __future__ import annotations
 import enum
 import logging
 from collections import defaultdict
+from copy import deepcopy
 from typing import Any, Mapping, Sequence
 
 from sentry.integrations.utils import where_should_sync
@@ -14,6 +15,7 @@ from sentry.notifications.utils import (
     get_span_evidence_value,
     get_span_evidence_value_problem,
 )
+from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.tasks.integrations import sync_status_inbound as sync_status_inbound_task
 from sentry.utils.http import absolute_uri
@@ -177,10 +179,14 @@ class IssueBasicMixin:
         persisted_fields = self.get_persisted_default_config_fields()
         if persisted_fields:
             project_defaults = {k: v for k, v in data.items() if k in persisted_fields}
-            self.org_integration.config.setdefault("project_issue_defaults", {}).setdefault(
+            new_config = deepcopy(self.org_integration.config)
+            new_config.setdefault("project_issue_defaults", {}).setdefault(
                 str(project.id), {}
             ).update(project_defaults)
-            self.org_integration.save()
+            self.org_integration = integration_service.update_config(
+                org_integration_id=self.org_integration.id,
+                config=new_config,
+            )
 
         user_persisted_fields = self.get_persisted_user_default_config_fields()
         if user_persisted_fields:
