@@ -19,6 +19,7 @@ from sentry.models import (
 )
 from sentry.pipeline import PipelineProvider
 from sentry.pipeline.views.base import PipelineView
+from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.constants import (
     ERR_INTERNAL,
     ERR_UNAUTHORIZED,
@@ -273,8 +274,9 @@ class IntegrationInstallation:
     @property
     def org_integration(self) -> OrganizationIntegration:
         if self._org_integration is None:
-            self._org_integration = OrganizationIntegration.objects.get(
-                organization_id=self.organization_id, integration_id=self.model.id
+            self._org_integration = integration_service.get_organization_integration(
+                integration_id=self.model.id,
+                organization_id=self.organization_id,
             )
         return self._org_integration
 

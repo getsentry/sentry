@@ -34,7 +34,9 @@ from sentry.signals import member_invited
 from sentry.utils.http import absolute_uri
 
 if TYPE_CHECKING:
-    from sentry.models import Integration, Organization, User
+    from sentry.models import Organization
+    from sentry.services.hybrid_cloud.integration import APIIntegration
+    from sentry.services.hybrid_cloud.user import APIUser
 
 INVITE_DAYS_VALID = 30
 
@@ -75,10 +77,10 @@ class OrganizationMemberManager(BaseManager):
             email__exact=None
         ).exclude(organization_id__in=orgs_with_scim).delete()
 
-    def get_for_integration(self, integration: Integration, actor: User) -> QuerySet:
+    def get_for_integration(self, integration: APIIntegration, actor: APIUser) -> QuerySet:
         return self.filter(
-            user=actor,
-            organization__organizationintegration__integration=integration,
+            user_id=actor.id,
+            organization__organizationintegration__integration_id=integration.id,
         ).select_related("organization")
 
     def get_member_invite_query(self, id: int) -> QuerySet:

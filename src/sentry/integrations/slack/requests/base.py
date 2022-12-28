@@ -7,7 +7,8 @@ from rest_framework import status as status_
 from rest_framework.request import Request
 
 from sentry import options
-from sentry.models import Identity, IdentityProvider, Integration, User
+from sentry.models import Identity, IdentityProvider, User
+from sentry.services.hybrid_cloud.integration import APIIntegration, integration_service
 
 from ..utils import check_signing_secret, logger
 
@@ -53,7 +54,7 @@ class SlackRequest:
 
     def __init__(self, request: Request) -> None:
         self.request = request
-        self._integration: Integration | None = None
+        self._integration: APIIntegration | None = None
         self._data: MutableMapping[str, Any] = {}
 
     def validate(self) -> None:
@@ -76,7 +77,7 @@ class SlackRequest:
         return False
 
     @property
-    def integration(self) -> Integration:
+    def integration(self) -> APIIntegration:
         if not self._integration:
             raise RuntimeError
         return self._integration
@@ -169,9 +170,10 @@ class SlackRequest:
         return self.data.get("token") == verification_token
 
     def _validate_integration(self) -> None:
-        try:
-            self._integration = Integration.objects.get(provider="slack", external_id=self.team_id)
-        except Integration.DoesNotExist:
+        self._integration = integration_service.get_integration(
+            provider="slack", external_id=self.team_id
+        )
+        if not self._integration:
             self._info("slack.action.invalid-team-id")
             raise SlackRequestError(status=status_.HTTP_403_FORBIDDEN)
 

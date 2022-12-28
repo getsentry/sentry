@@ -111,7 +111,9 @@ def handle_discard(
     return Response(status=204)
 
 
-def self_subscribe_and_assign_issue(acting_user: User | None, group: Group) -> ActorTuple | None:
+def self_subscribe_and_assign_issue(
+    acting_user: User | APIUser | None, group: Group
+) -> ActorTuple | None:
     # Used during issue resolution to assign to acting user
     # returns None if the user didn't elect to self assign on resolution
     # or the group is assigned already, otherwise returns Actor
