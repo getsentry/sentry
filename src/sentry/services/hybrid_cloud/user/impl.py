@@ -159,7 +159,7 @@ class DatabaseBackedUserService(UserService):
     def set_option_value(
         self,
         *,
-        user: User,
+        user: User | APIUser,
         key: str,
         value: Any,
         project_id: Optional[int] = None,

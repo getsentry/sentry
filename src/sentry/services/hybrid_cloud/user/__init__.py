@@ -6,6 +6,7 @@ from dataclasses import dataclass, fields
 from enum import IntEnum
 from typing import TYPE_CHECKING, Any, FrozenSet, Iterable, List, Optional
 
+from django_picklefield.fields import dbsafe_decode
 from sentry.db.models import BaseQuerySet
 from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_delegation, stubbed
 from sentry.silo import SiloMode
@@ -162,7 +163,7 @@ class UserService(InterfaceWithLifecycle):
     def set_option_value(
         self,
         *,
-        user: User,
+        user: User | APIUser,
         key: str,
         value: str,
         project_id: Optional[int] = None,
@@ -258,7 +259,7 @@ class UserService(InterfaceWithLifecycle):
                         project_id=o["project_id"],
                         organization_id=o["organization_id"],
                         key=o["key"],
-                        value=o["value"],
+                        value=dbsafe_decode(o["value"]),
                     )
                     for o in user.options
                 ]

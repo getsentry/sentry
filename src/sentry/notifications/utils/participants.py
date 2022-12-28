@@ -67,7 +67,7 @@ def get_providers_from_which_to_remove_user(
         for provider, participants in participants_by_provider.items()
         if user.id in map(lambda p: int(p.id), participants)
     }
-    if providers and user.get_option(key="self_notifications", default="0"):
+    if providers and user.get_option(key="self_notifications", default="0") == "0":
         return providers
     return set()
 
