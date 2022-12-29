@@ -574,6 +574,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.commits",
     "sentry.tasks.commit_context",
     "sentry.tasks.deletion",
+    "sentry.tasks.deliver_from_outbox",
     "sentry.tasks.digests",
     "sentry.tasks.email",
     "sentry.tasks.files",
@@ -758,6 +759,11 @@ CELERYBEAT_SCHEDULE = {
         "task": "sentry.tasks.collect_project_platforms",
         "schedule": crontab_with_minute_jitter(hour=3),
         "options": {"expires": 3600 * 24},
+    },
+    "deliver-from-outbox": {
+        "task": "sentry.tasks.enqueue_outbox_jobs",
+        "schedule": timedelta(minutes=1),
+        "options": {"expires": 30},
     },
     "update-user-reports": {
         "task": "sentry.tasks.update_user_reports",
