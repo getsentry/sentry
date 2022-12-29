@@ -293,7 +293,9 @@ class IntegrationInstallation:
         """
         config = self.org_integration.config
         config.update(data)
-        self.org_integration.update(config=config)
+        self.org_integration = integration_service.update_config(
+            org_integration_id=self.org_integration.id, config=config, should_clear=True
+        )
 
     def get_config_data(self) -> Mapping[str, str]:
         # Explicitly typing to satisfy mypy.

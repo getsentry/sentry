@@ -1080,9 +1080,9 @@ class Factories:
 
     @staticmethod
     @exempt_from_silo_limits()
-    def create_integration_external_issue(group=None, integration=None, key=None):
+    def create_integration_external_issue(group=None, integration=None, key=None, **kwargs):
         external_issue = ExternalIssue.objects.create(
-            organization_id=group.organization.id, integration_id=integration.id, key=key
+            organization_id=group.organization.id, integration_id=integration.id, key=key, **kwargs
         )
 
         GroupLink.objects.create(
