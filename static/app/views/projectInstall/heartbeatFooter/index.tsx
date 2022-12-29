@@ -148,24 +148,18 @@ export function HeartbeatFooter({
         ) : firstErrorReceived ? (
           <Fragment>
             <Beat status={BeatStatus.COMPLETE}>
-              <PulsingIndicator>
-                <IconCheckmark size="xs" />
-              </PulsingIndicator>
+              <IconCheckmark size="16px" isCircled />
               {t('Server connection established')}
             </Beat>
             <Beat status={BeatStatus.COMPLETE}>
-              <PulsingIndicator>
-                <IconCheckmark size="xs" />
-              </PulsingIndicator>
+              <IconCheckmark size="16px" isCircled />
               {t('First error received')}
             </Beat>
           </Fragment>
         ) : serverConnected ? (
           <Fragment>
             <Beat status={BeatStatus.COMPLETE}>
-              <PulsingIndicator>
-                <IconCheckmark size="xs" />
-              </PulsingIndicator>
+              <IconCheckmark size="16px" isCircled />
               {t('Server connection established')}
             </Beat>
             <Beat status={BeatStatus.AWAITING}>
