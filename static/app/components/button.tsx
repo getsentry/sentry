@@ -220,6 +220,7 @@ function BaseButton({
     <StyledButton
       aria-label={screenReaderLabel}
       aria-disabled={disabled}
+      busy={busy}
       disabled={disabled}
       to={getUrl(to)}
       href={getUrl(href)}
