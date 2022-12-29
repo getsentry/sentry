@@ -17,7 +17,7 @@ class ApiTombstone:
 # of who owns what models changes independent of the rollout of logic.
 class TombstoneService(InterfaceWithLifecycle):
     @abstractmethod
-    def record_remote_tombstone(self, tombstone: ApiTombstone):
+    def record_remote_tombstone(self, tombstone: ApiTombstone) -> None:
         pass
 
 

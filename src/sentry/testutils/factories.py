@@ -259,13 +259,11 @@ class Factories:
     @staticmethod
     @exempt_from_silo_limits()
     def create_org_mapping(org, **kwds):
-        return OrganizationMapping.objects.create(
-            organization_id=kwds.get("organization_id", org.id),
-            slug=kwds.get("slug", org.slug),
-            name="",
-            idempotency_key=kwds.get("idempotency_key", uuid4().hex),
-            region_name=kwds.get("region_name", "test-region"),
-        )
+        kwds.setdefault("organization_id", org.id)
+        kwds.setdefault("slug", org.slug)
+        kwds.setdefault("idempotency_key", uuid4().hex)
+        kwds.setdefault("region_name", "test-region")
+        return OrganizationMapping.objects.create(**kwds)
 
     @staticmethod
     @exempt_from_silo_limits()

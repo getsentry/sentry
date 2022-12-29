@@ -39,7 +39,7 @@ class ApiOrganizationMappingUpdate:
         return {k: getattr(self, k) for k in self.set_attributes if hasattr(self, k)}
 
     @classmethod
-    def from_instance(cls, inst: Organization):
+    def from_instance(cls, inst: Organization) -> ApiOrganizationMappingUpdate:
         set_attributes: List[str] = []
         params: Dict[str, Any] = dict(set_attributes=set_attributes, organization_id=inst.id)
         for field in dataclasses.fields(cls):

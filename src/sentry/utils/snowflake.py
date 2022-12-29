@@ -22,8 +22,6 @@ class SnowflakeIdMixin:
         for _ in range(settings.MAX_REDIS_SNOWFLAKE_RETRY_COUNTER):
             if not self.id:
                 self.id = generate_snowflake_id(snowflake_redis_key)
-            else:
-                self.id = self.id
             try:
                 with transaction.atomic():
                     save_callback()

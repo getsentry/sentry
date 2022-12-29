@@ -58,7 +58,7 @@ class DatabaseBackedOrganizationMappingService(OrganizationMappingService):
 
     def update(self, update: ApiOrganizationMappingUpdate) -> None:
         with transaction.atomic():
-            return (
+            (
                 OrganizationMapping.objects.filter(organization_id=update.organization_id)
                 .select_for_update()
                 .update(**update.as_update())
