@@ -20,6 +20,16 @@ import {PerformanceLanding} from 'sentry/views/performance/landing';
 import {REACT_NATIVE_COLUMN_TITLES} from 'sentry/views/performance/landing/data';
 import {LandingDisplayField} from 'sentry/views/performance/landing/utils';
 
+const searchHanlderMock = jest.fn();
+
+const expectDiscoverQueryContaining = (query: string) => {
+  return expect.objectContaining({
+    query: expect.objectContaining({
+      query,
+    }),
+  });
+};
+
 const WrappedComponent = ({data, withStaticFilters = false}) => {
   const eventView = generatePerformanceEventView(data.router.location, data.projects, {
     withStaticFilters,
@@ -42,7 +52,7 @@ const WrappedComponent = ({data, withStaticFilters = false}) => {
             projects={data.projects}
             selection={eventView.getPageFilters()}
             onboardingProject={undefined}
-            handleSearch={() => {}}
+            handleSearch={searchHanlderMock}
             handleTrendsClick={() => {}}
             setError={() => {}}
             withStaticFilters={withStaticFilters}
@@ -54,8 +64,8 @@ const WrappedComponent = ({data, withStaticFilters = false}) => {
 };
 
 describe('Performance > Landing > Index', function () {
-  let eventStatsMock: any;
-  let eventsMock: any;
+  let eventStatsMock: jest.Mock;
+  let eventsMock: jest.Mock;
   let wrapper: any;
 
   act(() => void TeamStore.loadInitialData([], false, null));
@@ -132,6 +142,7 @@ describe('Performance > Landing > Index', function () {
 
   afterEach(function () {
     MockApiClient.clearMockResponses();
+    jest.resetAllMocks();
 
     // @ts-ignore no-console
     // eslint-disable-next-line no-console
@@ -307,6 +318,46 @@ describe('Performance > Landing > Index', function () {
   });
 
   describe('With transaction search feature', function () {
+    it('does not search for empty string transaction', async function () {
+      const data = initializeData({
+        features: [
+          'performance-transaction-name-only-search',
+          'performance-transaction-name-only-search-indexed',
+        ],
+      });
+
+      wrapper = render(
+        <WrappedComponent data={data} withStaticFilters />,
+        data.routerContext
+      );
+
+      await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
+      userEvent.type(screen.getByPlaceholderText('Search Transactions'), '{enter}');
+      expect(searchHanlderMock).toHaveBeenCalledWith('', 'transactionsOnly');
+    });
+
+    it('searches for events while typing', async function () {
+      const data = initializeData({
+        features: [
+          'performance-transaction-name-only-search',
+          'performance-transaction-name-only-search-indexed',
+        ],
+      });
+
+      wrapper = render(
+        <WrappedComponent data={data} withStaticFilters />,
+        data.routerContext
+      );
+
+      await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
+      userEvent.type(screen.getByPlaceholderText('Search Transactions'), 'test');
+      expect(eventsMock).toHaveBeenLastCalledWith(
+        '/organizations/org-slug/events/',
+        expectDiscoverQueryContaining('transaction:*test* event.type:transaction')
+      );
+      expect(searchHanlderMock).not.toHaveBeenCalled();
+    });
+
     it('renders the search bar', async function () {
       addMetricsDataMock();
 
