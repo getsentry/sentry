@@ -1,15 +1,10 @@
 from dataclasses import dataclass
-from datetime import datetime, timedelta
-from typing import Tuple
 
 from django.conf import settings
-from django.db import IntegrityError, transaction
 from rest_framework import status
 from rest_framework.exceptions import APIException
 
 from sentry.types.region import RegionContextError, get_local_region
-
-_TTL = timedelta(minutes=5)
 
 
 class MaxSnowflakeRetryError(APIException):
@@ -19,16 +14,9 @@ class MaxSnowflakeRetryError(APIException):
 
 class SnowflakeIdMixin:
     def save_with_snowflake_id(self, snowflake_redis_key, save_callback):
-        for _ in range(settings.MAX_REDIS_SNOWFLAKE_RETRY_COUNTER):
-            if not self.id:
-                self.id = generate_snowflake_id(snowflake_redis_key)
-            try:
-                with transaction.atomic():
-                    save_callback()
-                return
-            except IntegrityError:
-                self.id = None
-        raise MaxSnowflakeRetryError
+        if not self.id:
+            self.id = generate_snowflake_id()
+        save_callback()
 
 
 @dataclass(frozen=True, eq=True)
@@ -57,9 +45,6 @@ ID_VALIDATOR = SnowflakeBitSegment(
 )
 assert ID_VALIDATOR.length == 53
 
-MAX_AVAILABLE_REGION_SEQUENCES = 1 << REGION_SEQUENCE.length
-assert MAX_AVAILABLE_REGION_SEQUENCES > 0
-
 NULL_REGION_ID = 0
 
 
@@ -73,9 +58,10 @@ def msb_0_ordering(value, width):
     return int(msb_0_ordering, 2)
 
 
-def generate_snowflake_id(redis_key: str) -> int:
-    segment_values = {}
+def generate_snowflake_id(redis_key: str = "") -> int:
+    from sentry.models import SnowflakeSeq
 
+    segment_values = {}
     segment_values[VERSION_ID] = msb_0_ordering(settings.SNOWFLAKE_VERSION_ID, VERSION_ID.length)
 
     try:
@@ -83,16 +69,12 @@ def generate_snowflake_id(redis_key: str) -> int:
     except RegionContextError:  # expected if running in monolith mode
         segment_values[REGION_ID] = NULL_REGION_ID
 
-    current_time = datetime.now().timestamp()
+    sequence = SnowflakeSeq.next_seq()
     # supports up to 130 years
-    segment_values[TIME_DIFFERENCE] = int(current_time - settings.SENTRY_SNOWFLAKE_EPOCH_START)
+    segment_values[TIME_DIFFERENCE] = sequence >> REGION_SEQUENCE.length
+    segment_values[REGION_SEQUENCE] = sequence % (1 << REGION_SEQUENCE.length)
 
     snowflake_id = 0
-    (
-        segment_values[TIME_DIFFERENCE],
-        segment_values[REGION_SEQUENCE],
-    ) = get_sequence_value_from_redis(redis_key, segment_values[TIME_DIFFERENCE])
-
     for segment in BIT_SEGMENT_SCHEMA:
         segment.validate(segment_values[segment])
         snowflake_id = (snowflake_id << segment.length) | segment_values[segment]
@@ -100,35 +82,3 @@ def generate_snowflake_id(redis_key: str) -> int:
     ID_VALIDATOR.validate(snowflake_id)
 
     return snowflake_id
-
-
-def get_redis_cluster(redis_key: str):
-    from sentry.utils import redis
-
-    return redis.clusters.get("default").get_local_client_for_key(redis_key)
-
-
-def get_sequence_value_from_redis(redis_key: str, starting_timestamp: int) -> Tuple[int, int]:
-    cluster = get_redis_cluster(redis_key)
-
-    # this is the amount we want to lookback for previous timestamps
-    # the below is more of a safety net if starting_timestamp is ever
-    # below 5 minutes, then we will change the lookback window accordingly
-    time_range = min(starting_timestamp, int(_TTL.total_seconds()))
-
-    for i in range(time_range):
-        timestamp = starting_timestamp - i
-
-        # We are decreasing the value by 1 each time since the incr operation in redis
-        # initializes the counter at 1. For our region sequences, we want the value to
-        # be from 0-15 and not 1-16
-        sequence_value = cluster.incr(str(timestamp))
-        sequence_value -= 1
-
-        if sequence_value == 0:
-            cluster.expire(str(timestamp), int(_TTL.total_seconds()))
-
-        if sequence_value < MAX_AVAILABLE_REGION_SEQUENCES:
-            return timestamp, sequence_value
-
-    raise Exception("No available ID")
