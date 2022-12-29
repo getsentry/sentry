@@ -189,7 +189,7 @@ function SearchBar(props: SearchBarProps) {
   const handleSearch = (query: string) => {
     setSearchResults([]);
     setSearchString(query);
-    onSearch(`transaction:${query}`);
+    onSearch(query ? `transaction:${query}` : '');
     closeDropdown();
   };
 
