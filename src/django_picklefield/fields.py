@@ -39,7 +39,7 @@ class _ObjectWrapper:
 
     __slots__ = ("_obj",)
 
-    def __init__(self, obj):
+    def __init__(self, obj: Any) -> None:
         self._obj = obj
 
 
@@ -54,7 +54,7 @@ def get_default_protocol() -> Any:
 
 
 def dbsafe_encode(
-    value: Any, compress_object: bool = False, pickle_protocol: Any = None, copy: any = True
+    value: Any, compress_object: bool = False, pickle_protocol: Any = None, copy: bool = True
 ) -> Any:
     # We use deepcopy() here to avoid a problem with cPickle, where dumps
     # can generate different character streams for same lookup value if
@@ -139,7 +139,7 @@ class PickledObjectField(models.Field):  # type: ignore
         else:
             return []
 
-    def check(self, **kwargs) -> List[Any]:
+    def check(self, **kwargs: Any) -> Any:
         errors = super().check(**kwargs)
         errors.extend(self._check_default())
         return errors
@@ -175,14 +175,14 @@ class PickledObjectField(models.Field):  # type: ignore
                     return value._obj
         return value
 
-    def pre_save(self, model_instance: Any, add: Any):
+    def pre_save(self, model_instance: Any, add: Any) -> Any:
         value = super().pre_save(model_instance, add)
         return wrap_conflictual_object(value)
 
-    def from_db_value(self, value: Any, expression: Any, connection: Any):
+    def from_db_value(self, value: Any, expression: Any, connection: Any) -> Any:
         return self.to_python(value)
 
-    def get_db_prep_value(self, value: Any, connection: Any = None, prepared: bool = False) -> str:
+    def get_db_prep_value(self, value: Any, connection: Any = None, prepared: bool = False) -> Any:
         """
         Pickle and b64encode the object, optionally compressing it.
 
@@ -203,14 +203,14 @@ class PickledObjectField(models.Field):  # type: ignore
             value = force_str(dbsafe_encode(value, self.compress, self.protocol, self.copy))
         return value
 
-    def value_to_string(self, obj: Any) -> str:
+    def value_to_string(self, obj: Any) -> Any:
         value = self.value_from_object(obj)
         return self.get_db_prep_value(value)
 
     def get_internal_type(self) -> str:
         return "TextField"
 
-    def get_lookup(self, lookup_name: str) -> str:
+    def get_lookup(self, lookup_name: str) -> Any:
         """
         We need to limit the lookup types.
         """
