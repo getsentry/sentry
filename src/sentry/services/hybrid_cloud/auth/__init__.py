@@ -127,7 +127,7 @@ class AuthService(InterfaceWithLifecycle):
         pass
 
     @abc.abstractmethod
-    def get_auth_providers(self, organization_id) -> List[ApiAuthProvider]:
+    def get_auth_providers(self, organization_id: int) -> List[ApiAuthProvider]:
         """
         This method returns a list of auth providers for an org
         :return:
