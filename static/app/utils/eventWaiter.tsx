@@ -8,22 +8,6 @@ import withApi from 'sentry/utils/withApi';
 
 const DEFAULT_POLL_INTERVAL = 5000;
 
-type EventType = 'error' | 'transaction' | 'replay' | 'profile';
-
-type FirstEvents = {
-  error: 'string' | null;
-  profile: boolean;
-  replay: boolean;
-  transaction: boolean;
-};
-
-const defaultFirstEvents = {
-  error: null,
-  profile: false,
-  replay: false,
-  transaction: false,
-};
-
 const recordAnalyticsFirstEvent = ({
   key,
   organization,
@@ -44,53 +28,37 @@ const recordAnalyticsFirstEvent = ({
  * Or in the case of transactions & replay the value will be set to true.
  * The `group.id` value is used to generate links directly into the event.
  */
-type FirstEvent = null | boolean | Group;
-
-type EventWaiterState = {
-  firstIssue: FirstEvent;
-  firstPoll: boolean;
-  firstProfile: FirstEvent;
-  firstReplay: FirstEvent;
-  firstTransaction: FirstEvent;
-};
+type FirstIssue = null | boolean | Group;
 
 export interface EventWaiterProps {
   api: Client;
-  children: (props: EventWaiterState) => React.ReactNode;
-  eventTypes: EventType[];
+  children: (props: {firstIssue: FirstIssue}) => React.ReactNode;
+  eventType: 'error' | 'transaction' | 'replay' | 'profile';
   organization: Organization;
   project: Project;
   disabled?: boolean;
-  onIssueReceived?: (props: {firstIssue: FirstEvent}) => void;
-  onProfileReceived?: (props: {firstProfile: FirstEvent}) => void;
-  onReplayReceived?: (props: {firstReplay: FirstEvent}) => void;
-  onTransactionReceived?: (props: {firstTransaction: FirstEvent}) => void;
+  onIssueReceived?: (props: {firstIssue: FirstIssue}) => void;
+  onTransactionReceived?: (props: {firstIssue: FirstIssue}) => void;
   pollInterval?: number;
 }
 
-function getFirstEvents(eventTypes: EventType[], resp: Project) {
-  const firstEvents: FirstEvents = defaultFirstEvents;
+type EventWaiterState = {
+  firstIssue: FirstIssue;
+};
 
-  for (const eventType of eventTypes) {
-    if (eventType === 'error') {
-      firstEvents.error = resp.firstEvent;
-      continue;
-    }
-    if (eventType === 'transaction') {
-      firstEvents.transaction = resp.firstTransactionEvent;
-      continue;
-    }
-    if (eventType === 'replay') {
-      firstEvents.replay = resp.hasReplays;
-      continue;
-    }
-    if (eventType === 'profile') {
-      firstEvents.profile = resp.hasProfiles;
-      continue;
-    }
+function getFirstEvent(eventType: EventWaiterProps['eventType'], resp: Project) {
+  switch (eventType) {
+    case 'error':
+      return resp.firstEvent;
+    case 'transaction':
+      return resp.firstTransactionEvent;
+    case 'replay':
+      return resp.hasReplays;
+    case 'profile':
+      return resp.hasProfiles;
+    default:
+      return null;
   }
-
-  return firstEvents;
 }
 
 /**
@@ -100,10 +68,6 @@ function getFirstEvents(eventTypes: EventType[], resp: Project) {
 class EventWaiter extends Component<EventWaiterProps, EventWaiterState> {
   state: EventWaiterState = {
     firstIssue: null,
-    firstTransaction: null,
-    firstReplay: null,
-    firstProfile: null,
-    firstPoll: true,
   };
 
   componentDidMount() {
@@ -123,29 +87,16 @@ class EventWaiter extends Component<EventWaiterProps, EventWaiterState> {
   pollingInterval: number | null = null;
 
   pollHandler = async () => {
-    const {
-      api,
-      organization,
-      project,
-      onIssueReceived,
-      onTransactionReceived,
-      onReplayReceived,
-      onProfileReceived,
-    } = this.props;
-    let firstEvents: FirstEvents = defaultFirstEvents;
-    const newState = {...this.state};
-    const eventTypes = [...new Set(this.props.eventTypes)];
+    const {api, organization, project, eventType, onIssueReceived} = this.props;
+    let firstEvent: string | boolean | null = null;
+    let firstIssue: Group | boolean | null = null;
 
     try {
       const resp = await api.requestPromise(
         `/projects/${organization.slug}/${project.slug}/`
       );
-      firstEvents = getFirstEvents(eventTypes, resp);
-
-      this.setState(state => ({...state, firstPoll: false}));
+      firstEvent = getFirstEvent(eventType, resp);
     } catch (resp) {
-      this.setState(state => ({...state, firstPoll: false}));
-
       if (!resp) {
         return;
       }
@@ -162,16 +113,14 @@ class EventWaiter extends Component<EventWaiterProps, EventWaiterState> {
         status: resp.status,
         detail: resp.responseJSON?.detail,
       });
-      Sentry.captureException(
-        new Error(`Error polling for first ${eventTypes.join(', ')} event`)
-      );
+      Sentry.captureException(new Error(`Error polling for first ${eventType} event`));
     }
 
-    if (Object.values(firstEvents).every(event => event === null || event === false)) {
+    if (firstEvent === null || firstEvent === false) {
       return;
     }
 
-    if (eventTypes.includes('error')) {
+    if (eventType === 'error') {
       // Locate the projects first issue group. The project.firstEvent field will
       // *not* include sample events, while just looking at the issues list will.
       // We will wait until the project.firstEvent is set and then locate the
@@ -181,31 +130,22 @@ class EventWaiter extends Component<EventWaiterProps, EventWaiterState> {
       );
 
       // The event may have expired, default to true
-      newState.firstIssue =
-        issues.find((issue: Group) => issue.firstSeen === firstEvents.error) || true;
-
-      onIssueReceived?.({firstIssue: newState.firstIssue});
+      firstIssue = issues.find((issue: Group) => issue.firstSeen === firstEvent) || true;
 
       recordAnalyticsFirstEvent({
         key: 'first_event_recieved',
         organization,
         project,
       });
-    }
-
-    if (eventTypes.includes('transaction')) {
-      newState.firstTransaction = Boolean(firstEvents.transaction);
-      onTransactionReceived?.({firstTransaction: newState.firstTransaction});
+    } else if (eventType === 'transaction') {
+      firstIssue = Boolean(firstEvent);
       recordAnalyticsFirstEvent({
         key: 'first_transaction_recieved',
         organization,
         project,
       });
-    }
-
-    if (eventTypes.includes('replay')) {
-      newState.firstReplay = Boolean(firstEvents.replay);
-      onReplayReceived?.({firstReplay: newState.firstReplay});
+    } else if (eventType === 'replay') {
+      firstIssue = Boolean(firstEvent);
       recordAnalyticsFirstEvent({
         key: 'first_replay_recieved',
         organization,
@@ -213,13 +153,12 @@ class EventWaiter extends Component<EventWaiterProps, EventWaiterState> {
       });
     }
 
-    if (eventTypes.includes('profile')) {
-      newState.firstProfile = Boolean(firstEvents.profile);
-      onProfileReceived?.({firstProfile: newState.firstProfile});
+    if (onIssueReceived) {
+      onIssueReceived({firstIssue});
     }
 
     this.stopPolling();
-    this.setState(newState);
+    this.setState({firstIssue});
   };
 
   startPolling() {
@@ -247,7 +186,7 @@ class EventWaiter extends Component<EventWaiterProps, EventWaiterState> {
   }
 
   render() {
-    return this.props.children(this.state);
+    return this.props.children({firstIssue: this.state.firstIssue});
   }
 }
 

@@ -156,7 +156,7 @@ export function getOnboardingTasks({
             api={api}
             organization={organization}
             project={projects[0]}
-            eventTypes={['error']}
+            eventType="error"
             onIssueReceived={() => !taskIsDone(task) && onCompleteTask()}
           >
             {() => <EventWaitingIndicator />}
@@ -254,7 +254,7 @@ export function getOnboardingTasks({
             api={api}
             organization={organization}
             project={projects[0]}
-            eventTypes={['transaction']}
+            eventType="transaction"
             onTransactionReceived={() => !taskIsDone(task) && onCompleteTask()}
           >
             {() => <EventWaitingIndicator />}
@@ -295,8 +295,8 @@ export function getOnboardingTasks({
             api={api}
             organization={organization}
             project={projects[0]}
-            eventTypes={['replay']}
-            onReplayReceived={() => !taskIsDone(task) && onCompleteTask()}
+            eventType="replay"
+            onIssueReceived={() => !taskIsDone(task) && onCompleteTask()}
           >
             {() => <EventWaitingIndicator text={t('Waiting for user session')} />}
           </EventWaiter>

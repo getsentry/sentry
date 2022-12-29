@@ -255,8 +255,8 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
               api={api}
               organization={organization}
               project={currentProject}
-              eventTypes={['transaction']}
-              onTransactionReceived={() => {
+              eventType="transaction"
+              onIssueReceived={() => {
                 setReceived(true);
               }}
             >

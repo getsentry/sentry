@@ -100,7 +100,7 @@ export default function FirstEventFooter({
         {t('Skip Onboarding')}
       </SkipOnboardingLink>
       <EventWaiter
-        eventTypes={['error']}
+        eventType="error"
         onIssueReceived={handleFirstIssueReceived}
         {...{project, organization}}
       >
