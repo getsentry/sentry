@@ -6,7 +6,7 @@ from dataclasses import dataclass, fields
 from enum import IntEnum
 from typing import TYPE_CHECKING, Any, FrozenSet, Iterable, List, Optional
 
-from django_picklefield.fields import dbsafe_decode
+from django_picklefield.decode import dbsafe_decode
 from sentry.db.models import BaseQuerySet
 from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_delegation, stubbed
 from sentry.silo import SiloMode

@@ -1,7 +1,7 @@
-from base64 import b64decode, b64encode
+from base64 import b64encode
 from copy import deepcopy
-from pickle import dumps, loads
-from zlib import compress, decompress
+from pickle import dumps
+from zlib import compress
 
 from django.conf import settings
 from django.core import checks
@@ -9,6 +9,7 @@ from django.db import models
 from django.utils.encoding import force_str
 
 from .constants import DEFAULT_PROTOCOL
+from .decode import dbsafe_decode
 
 
 class PickledObject(str):
@@ -69,14 +70,6 @@ def dbsafe_encode(value, compress_object=False, pickle_protocol=None, copy=True)
         value = compress(value)
     value = b64encode(value).decode()  # decode bytes to str
     return PickledObject(value)
-
-
-def dbsafe_decode(value, compress_object=False):
-    value = value.encode()  # encode str to bytes
-    value = b64decode(value)
-    if compress_object:
-        value = decompress(value)
-    return loads(value)
 
 
 class PickledObjectField(models.Field):
