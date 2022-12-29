@@ -99,7 +99,7 @@ outbox_managed_updates = _ensure_silo_matches(
 # after the fact for a given org member object.
 outbox_managed_creates = _ensure_silo_matches(
     {
-        SiloMode.REGION: [OrganizationMember, Organization],
+        SiloMode.REGION: [OrganizationMember],
     }
 )
 

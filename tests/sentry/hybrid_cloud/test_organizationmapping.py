@@ -135,8 +135,11 @@ class OrganizationMappingTest(TransactionTestCase):
         assert mapping.organization_id == org_id
 
         org = self.create_organization(
-            id=mapping.organization_id, slug=mapping.slug, name="the-org-name", owner=user
+            id=mapping.organization_id, slug="", name="the-org-name", owner=user
         )
+        # Trigger update
+        org.slug = mapping.slug
+        org.save()
 
         assert org.id == mapping.organization_id
 
