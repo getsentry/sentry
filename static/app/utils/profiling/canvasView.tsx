@@ -10,6 +10,7 @@ import {
 export class CanvasView<T extends {configSpace: Rect}> {
   configView: Rect = Rect.Empty();
   configSpace: Readonly<Rect> = Rect.Empty();
+  configSpaceTransform: mat3 = mat3.create();
 
   inverted: boolean;
   minWidth: number;
@@ -26,6 +27,7 @@ export class CanvasView<T extends {configSpace: Rect}> {
     model: T;
     options: {
       barHeight: number;
+      configSpaceTransform?: Rect;
       depthOffset?: number;
       inverted?: boolean;
       minWidth?: number;
@@ -36,6 +38,24 @@ export class CanvasView<T extends {configSpace: Rect}> {
     this.model = model;
     this.depthOffset = options.depthOffset ?? 0;
     this.barHeight = options.barHeight ? options.barHeight * window.devicePixelRatio : 0;
+
+    // This is a transformation matrix that is applied to the configView, it allows us to
+    // transform an entire view and render it without having to recompute the models.
+    // This is useful for example when we want to offset a profile by some duration.
+    this.configSpaceTransform = options.configSpaceTransform
+      ? mat3.fromValues(
+          options.configSpaceTransform.width || 1,
+          0,
+          0,
+          0,
+          options.configSpaceTransform.height || 1,
+          0,
+          -options.configSpaceTransform.x || 0,
+          options.configSpaceTransform.y || 0,
+          1
+        )
+      : mat3.create();
+
     this.initConfigSpace(canvas);
   }
 
@@ -128,6 +148,32 @@ export class CanvasView<T extends {configSpace: Rect}> {
     return fromConfigView;
   }
 
+  fromTransformedConfigView(space: Rect): mat3 {
+    const fromConfigView = transformMatrixBetweenRect(
+      this.configView.transformRect(this.configSpaceTransform),
+      space
+    );
+
+    if (this.inverted) {
+      mat3.multiply(fromConfigView, space.invertYTransform(), fromConfigView);
+    }
+
+    return fromConfigView;
+  }
+
+  fromTransformedConfigSpace(space: Rect): mat3 {
+    const fromConfigView = transformMatrixBetweenRect(
+      this.configSpace.transformRect(this.configSpaceTransform),
+      space
+    );
+
+    if (this.inverted) {
+      mat3.multiply(fromConfigView, space.invertYTransform(), fromConfigView);
+    }
+
+    return fromConfigView;
+  }
+
   getConfigSpaceCursor(logicalSpaceCursor: vec2, canvas: FlamegraphCanvas): vec2 {
     const physicalSpaceCursor = vec2.transformMat3(
       vec2.create(),
@@ -142,6 +188,31 @@ export class CanvasView<T extends {configSpace: Rect}> {
     );
   }
 
+  getTransformedConfigSpaceCursor(
+    logicalSpaceCursor: vec2,
+    canvas: FlamegraphCanvas
+  ): vec2 {
+    const physicalSpaceCursor = vec2.transformMat3(
+      vec2.create(),
+      logicalSpaceCursor,
+      canvas.logicalToPhysicalSpace
+    );
+
+    const finalMatrix = mat3.multiply(
+      mat3.create(),
+      this.configSpaceTransform,
+      this.toConfigSpace(canvas.physicalSpace)
+    );
+
+    const configViewCursor = vec2.transformMat3(
+      vec2.create(),
+      physicalSpaceCursor,
+      finalMatrix
+    );
+
+    return configViewCursor;
+  }
+
   getConfigViewCursor(logicalSpaceCursor: vec2, canvas: FlamegraphCanvas): vec2 {
     const physicalSpaceCursor = vec2.transformMat3(
       vec2.create(),
@@ -154,5 +225,30 @@ export class CanvasView<T extends {configSpace: Rect}> {
       physicalSpaceCursor,
       this.toConfigView(canvas.physicalSpace)
     );
+  }
+
+  getTransformedConfigViewCursor(
+    logicalSpaceCursor: vec2,
+    canvas: FlamegraphCanvas
+  ): vec2 {
+    const physicalSpaceCursor = vec2.transformMat3(
+      vec2.create(),
+      logicalSpaceCursor,
+      canvas.logicalToPhysicalSpace
+    );
+
+    const finalMatrix = mat3.multiply(
+      mat3.create(),
+      this.configSpaceTransform,
+      this.toConfigView(canvas.physicalSpace)
+    );
+
+    const configViewCursor = vec2.transformMat3(
+      vec2.create(),
+      physicalSpaceCursor,
+      finalMatrix
+    );
+
+    return configViewCursor;
   }
 }

@@ -180,6 +180,10 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
           minWidth: flamegraph.profile.minFrameDuration,
           barHeight: flamegraphTheme.SIZES.BAR_HEIGHT,
           depthOffset: flamegraphTheme.SIZES.FLAMEGRAPH_DEPTH_OFFSET,
+          configSpaceTransform:
+            xAxis === 'transaction'
+              ? new Rect(flamegraph.profile.startedAt * 1e3, 0, 0, 0)
+              : Rect.Empty(),
         },
       });
 
@@ -266,7 +270,7 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
 
     // We skip position.view dependency because it will go into an infinite loop
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [flamegraph, flamegraphCanvas, flamegraphTheme, zoomIntoFrame]
+    [flamegraph, flamegraphCanvas, flamegraphTheme, zoomIntoFrame, xAxis]
   );
 
   const spansView = useMemoWithPrevious<CanvasView<SpanChart> | null>(

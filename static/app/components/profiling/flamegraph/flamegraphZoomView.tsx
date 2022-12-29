@@ -252,7 +252,7 @@ function FlamegraphZoomView({
 
     const drawRectangles = () => {
       flamegraphRenderer.draw(
-        flamegraphView.fromConfigView(flamegraphCanvas.physicalSpace)
+        flamegraphView.fromTransformedConfigView(flamegraphCanvas.physicalSpace)
       );
     };
 
@@ -280,8 +280,9 @@ function FlamegraphZoomView({
 
     const drawText = () => {
       textRenderer.draw(
-        flamegraphView.configView,
-        flamegraphView.fromConfigView(flamegraphCanvas.physicalSpace),
+        flamegraphView.configView.transformRect(flamegraphView.configSpaceTransform),
+        // flamegraphView.configView,
+        flamegraphView.fromTransformedConfigView(flamegraphCanvas.physicalSpace),
         flamegraphSearch.results
       );
     };
@@ -300,7 +301,7 @@ function FlamegraphZoomView({
         return;
       }
       sampleTickRenderer.draw(
-        flamegraphView.fromConfigView(flamegraphCanvas.physicalSpace),
+        flamegraphView.fromTransformedConfigView(flamegraphCanvas.physicalSpace),
         flamegraphView.configView
       );
     };
@@ -369,7 +370,7 @@ function FlamegraphZoomView({
             BORDER_COLOR: flamegraphTheme.COLORS.SELECTED_FRAME_BORDER_COLOR,
             BORDER_WIDTH: flamegraphTheme.SIZES.FRAME_BORDER_WIDTH,
           },
-          flamegraphView.fromConfigView(flamegraphCanvas.physicalSpace)
+          flamegraphView.fromTransformedConfigView(flamegraphCanvas.physicalSpace)
         );
       }
     };
@@ -412,7 +413,7 @@ function FlamegraphZoomView({
             BORDER_COLOR: flamegraphTheme.COLORS.HOVERED_FRAME_BORDER_COLOR,
             BORDER_WIDTH: flamegraphTheme.SIZES.HOVERED_FRAME_BORDER_WIDTH,
           },
-          flamegraphView.fromConfigView(flamegraphCanvas.physicalSpace)
+          flamegraphView.fromTransformedConfigView(flamegraphCanvas.physicalSpace)
         );
       }
     };
@@ -578,12 +579,12 @@ function FlamegraphZoomView({
         return;
       }
 
-      const configSpaceMouse = flamegraphView.getConfigViewCursor(
+      const newConfigSpaceCursor = flamegraphView.getTransformedConfigViewCursor(
         vec2.fromValues(evt.nativeEvent.offsetX, evt.nativeEvent.offsetY),
         flamegraphCanvas
       );
 
-      setConfigSpaceCursor(configSpaceMouse);
+      setConfigSpaceCursor(newConfigSpaceCursor);
 
       if (startPanVector) {
         onMouseDrag(evt);
@@ -610,13 +611,13 @@ function FlamegraphZoomView({
       const identity = mat3.identity(mat3.create());
       const scale = 1 - evt.deltaY * 0.01 * -1; // -1 to invert scale
 
-      const mouseInConfigView = flamegraphView.getConfigViewCursor(
+      const configSpaceMouse = flamegraphView.getConfigViewCursor(
         vec2.fromValues(evt.offsetX, evt.offsetY),
         flamegraphCanvas
       );
 
       const configCenter = vec2.fromValues(
-        mouseInConfigView[0],
+        configSpaceMouse[0],
         flamegraphView.configView.y
       );
 

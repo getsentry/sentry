@@ -94,7 +94,9 @@ function FlamegraphZoomViewMinimap({
 
     const drawRectangles = () => {
       flamegraphMiniMapRenderer.draw(
-        flamegraphMiniMapView.fromConfigSpace(flamegraphMiniMapCanvas.physicalSpace)
+        flamegraphMiniMapView.fromTransformedConfigSpace(
+          flamegraphMiniMapCanvas.physicalSpace
+        )
       );
     };
 
@@ -344,13 +346,13 @@ function FlamegraphZoomViewMinimap({
       const identity = mat3.identity(mat3.create());
       const scale = 1 - evt.deltaY * 0.001 * -1; // -1 to invert scale
 
-      const mouseInConfigSpace = flamegraphMiniMapView.getConfigSpaceCursor(
+      const cursorInConfigSpace = flamegraphMiniMapView.getTransformedConfigSpaceCursor(
         vec2.fromValues(evt.offsetX, evt.offsetY),
         flamegraphMiniMapCanvas
       );
 
       const configCenter = vec2.fromValues(
-        mouseInConfigSpace[0],
+        cursorInConfigSpace[0],
         flamegraphMiniMapView.configView.y
       );
 

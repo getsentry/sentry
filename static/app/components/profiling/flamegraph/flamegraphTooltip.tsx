@@ -46,6 +46,10 @@ export interface FlamegraphTooltipProps {
 }
 
 export function FlamegraphTooltip(props: FlamegraphTooltipProps) {
+  const start =
+    props.frame.start + Math.abs(props.flamegraphView.configSpaceTransform[6]);
+  const end = props.frame.end + Math.abs(props.flamegraphView.configSpaceTransform[6]);
+
   return (
     <BoundTooltip
       bounds={props.canvasBounds}
@@ -72,9 +76,8 @@ export function FlamegraphTooltip(props: FlamegraphTooltipProps) {
         )}
       </FlamegraphTooltipTimelineInfo>
       <FlamegraphTooltipTimelineInfo>
-        {props.flamegraphRenderer.flamegraph.timelineFormatter(props.frame.start)}{' '}
-        {' \u2014 '}
-        {props.flamegraphRenderer.flamegraph.timelineFormatter(props.frame.end)}
+        {props.flamegraphRenderer.flamegraph.timelineFormatter(start)} {' \u2014 '}
+        {props.flamegraphRenderer.flamegraph.timelineFormatter(end)}
         {props.frame.frame.inline ? (
           <FlamegraphInlineIndicator>
             <IconLightning width={10} />
