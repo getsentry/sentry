@@ -100,6 +100,15 @@ export function HeartbeatFooter({
   const actions = (
     <Fragment>
       <Button
+        busy={projectsLoading}
+        to={{
+          pathname: performanceOverviewLink,
+          query: {project: project?.id},
+        }}
+      >
+        {t('Go to Performance')}
+      </Button>
+      <Button
         priority="primary"
         busy={projectsLoading}
         to={{
@@ -108,16 +117,7 @@ export function HeartbeatFooter({
           hash: '#welcome',
         }}
       >
-        {t('Take me to Issues')}
-      </Button>
-      <Button
-        busy={projectsLoading}
-        to={{
-          pathname: performanceOverviewLink,
-          query: {project: project?.id},
-        }}
-      >
-        {t('Take me to Performance')}
+        {t('Go to Issues')}
       </Button>
     </Fragment>
   );
