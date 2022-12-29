@@ -248,7 +248,7 @@ const Beats = styled('div')`
     width: auto;
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
+  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
     grid-template-columns: repeat(2, 200px);
   }
 `;
