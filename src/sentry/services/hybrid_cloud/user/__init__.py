@@ -259,7 +259,7 @@ class UserService(InterfaceWithLifecycle):
                         project_id=o["project_id"],
                         organization_id=o["organization_id"],
                         key=o["key"],
-                        value=dbsafe_decode(o["value"]),  # type: ignore
+                        value=dbsafe_decode(o["value"]),
                     )
                     for o in user.options
                 ]
