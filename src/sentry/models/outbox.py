@@ -102,10 +102,8 @@ class OutboxBase(Model):
 
             # We rely on 'proof of failure by remaining' to handle retries -- basically, by scheduling this shard, we
             # expect all objects to be drained before the next schedule comes around, or else we will run again.
-            # We protect against rescheduling over a slow drain via 'heart beats' in the draining system,
-            # and an advisory redis lock.  NOTE however that this system does NOT protect fully against multiple
-            # sends, nor should it try too hard to do so: we do expect to eagerly drain some actions in an attempt to
-            # to support read after write workflows.
+            # Note that the system does not strongly protect against concurrent processing -- this is expected in the
+            # case of drains, for instance.
             now = timezone.now()
             next_outbox.select_sharded_objects().update(
                 scheduled_for=next_outbox.next_schedule(now), scheduled_from=now
