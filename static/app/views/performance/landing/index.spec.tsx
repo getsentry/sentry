@@ -22,14 +22,6 @@ import {LandingDisplayField} from 'sentry/views/performance/landing/utils';
 
 const searchHanlderMock = jest.fn();
 
-const expectDiscoverQueryContaining = (query: string) => {
-  return expect.objectContaining({
-    query: expect.objectContaining({
-      query,
-    }),
-  });
-};
-
 const WrappedComponent = ({data, withStaticFilters = false}) => {
   const eventView = generatePerformanceEventView(data.router.location, data.projects, {
     withStaticFilters,
@@ -326,36 +318,11 @@ describe('Performance > Landing > Index', function () {
         ],
       });
 
-      wrapper = render(
-        <WrappedComponent data={data} withStaticFilters />,
-        data.routerContext
-      );
+      render(<WrappedComponent data={data} withStaticFilters />, data.routerContext);
 
       await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
       userEvent.type(screen.getByPlaceholderText('Search Transactions'), '{enter}');
       expect(searchHanlderMock).toHaveBeenCalledWith('', 'transactionsOnly');
-    });
-
-    it('searches for events while typing', async function () {
-      const data = initializeData({
-        features: [
-          'performance-transaction-name-only-search',
-          'performance-transaction-name-only-search-indexed',
-        ],
-      });
-
-      wrapper = render(
-        <WrappedComponent data={data} withStaticFilters />,
-        data.routerContext
-      );
-
-      await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
-      userEvent.type(screen.getByPlaceholderText('Search Transactions'), 'test');
-      expect(eventsMock).toHaveBeenLastCalledWith(
-        '/organizations/org-slug/events/',
-        expectDiscoverQueryContaining('transaction:*test* event.type:transaction')
-      );
-      expect(searchHanlderMock).not.toHaveBeenCalled();
     });
 
     it('renders the search bar', async function () {
