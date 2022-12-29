@@ -115,18 +115,7 @@ export function HeartbeatFooter({
               {t('First error received')}
             </Beat>
           </Fragment>
-        ) : !sessionInProgress || !firstTransactionReceived ? (
-          <Fragment>
-            <Beat status={BeatStatus.AWAITING}>
-              <PulsingIndicator>1</PulsingIndicator>
-              {t('Awaiting server connection')}
-            </Beat>
-            <Beat status={BeatStatus.PENDING}>
-              <PulsingIndicator>2</PulsingIndicator>
-              {t('Awaiting first error')}
-            </Beat>
-          </Fragment>
-        ) : (
+        ) : sessionInProgress || firstTransactionReceived ? (
           <Fragment>
             <Beat status={BeatStatus.COMPLETE}>
               <PulsingIndicator>
@@ -135,6 +124,17 @@ export function HeartbeatFooter({
               {t('Server connection established')}
             </Beat>
             <Beat status={BeatStatus.AWAITING}>
+              <PulsingIndicator>2</PulsingIndicator>
+              {t('Awaiting first error')}
+            </Beat>
+          </Fragment>
+        ) : (
+          <Fragment>
+            <Beat status={BeatStatus.AWAITING}>
+              <PulsingIndicator>1</PulsingIndicator>
+              {t('Awaiting server connection')}
+            </Beat>
+            <Beat status={BeatStatus.PENDING}>
               <PulsingIndicator>2</PulsingIndicator>
               {t('Awaiting first error')}
             </Beat>
