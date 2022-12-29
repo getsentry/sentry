@@ -10,51 +10,25 @@ import {
 
 import {GroupEvents} from 'sentry/views/organizationGroupDetails/groupEvents';
 
-describe('groupEvents', function () {
-  let request;
-  let discoverRequest;
-  let attachmentsRequest;
+describe('groupEvents', () => {
+  const requests = {
+    discover: undefined,
+    attachments: undefined,
+    recentSearches: undefined,
+  };
+  let organization, routerContext, group;
 
-  const {organization, routerContext} = initializeOrg();
-
-  beforeEach(function () {
-    request = MockApiClient.addMockResponse({
-      url: '/issues/1/events/',
-      body: [
-        TestStubs.Event({
-          eventID: '12345',
-          id: '1',
-          message: 'ApiException',
-          groupID: '1',
-        }),
-        TestStubs.Event({
-          crashFile: {
-            sha1: 'sha1',
-            name: 'name.dmp',
-            dateCreated: '2019-05-21T18:01:48.762Z',
-            headers: {'Content-Type': 'application/octet-stream'},
-            id: '12345',
-            size: 123456,
-            type: 'event.minidump',
-          },
-          culprit: '',
-          dateCreated: '2019-05-21T18:00:23Z',
-          'event.type': 'error',
-          eventID: '123456',
-          groupID: '1',
-          id: '98654',
-          location: 'main.js',
-          message: 'TestException',
-          platform: 'native',
-          projectID: '123',
-          tags: [{value: 'production', key: 'production'}],
-          title: 'TestException',
-        }),
-      ],
-    });
-
+  beforeEach(() => {
     browserHistory.push = jest.fn();
-    discoverRequest = MockApiClient.addMockResponse({
+
+    ({organization, routerContext} = initializeOrg({
+      organization: {
+        features: ['event-attachments'],
+      },
+    }));
+    group = TestStubs.Group();
+
+    requests.discover = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
       headers: {
         Link: `<https://sentry.io/api/0/issues/1/events/?limit=50&cursor=0:0:1>; rel="previous"; results="true"; cursor="0:0:1", <https://sentry.io/api/0/issues/1/events/?limit=50&cursor=0:200:0>; rel="next"; results="true"; cursor="0:200:0"`,
@@ -102,8 +76,14 @@ describe('groupEvents', function () {
       },
     });
 
-    attachmentsRequest = MockApiClient.addMockResponse({
+    requests.attachments = MockApiClient.addMockResponse({
       url: '/api/0/issues/1/attachments/?per_page=50&types=event.minidump&event_id=id123',
+      body: [],
+    });
+
+    requests.recentSearches = MockApiClient.addMockResponse({
+      method: 'POST',
+      url: '/organizations/org-slug/recent-searches/',
       body: [],
     });
   });
@@ -113,7 +93,7 @@ describe('groupEvents', function () {
     jest.clearAllMocks();
   });
 
-  it('renders', function () {
+  it('renders', () => {
     const wrapper = render(
       <GroupEvents
         organization={organization}
@@ -128,7 +108,7 @@ describe('groupEvents', function () {
     expect(wrapper.container).toSnapshot();
   });
 
-  it('handles search', function () {
+  it('handles search', async () => {
     render(
       <GroupEvents
         organization={organization}
@@ -146,7 +126,8 @@ describe('groupEvents', function () {
       {searchTerm: 'environment:production test', expectedQuery: 'test'},
     ];
 
-    const input = screen.getByPlaceholderText('Search events by id, message, or tags');
+    await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
+    const input = screen.getByPlaceholderText('Search for events, users, tags, and more');
 
     for (const item of list) {
       userEvent.clear(input);
@@ -160,7 +141,7 @@ describe('groupEvents', function () {
     }
   });
 
-  it('handles environment filtering', function () {
+  it('handles environment filtering', () => {
     render(
       <GroupEvents
         organization={organization}
@@ -171,336 +152,63 @@ describe('groupEvents', function () {
       />,
       {context: routerContext, organization}
     );
-    expect(request).toHaveBeenCalledWith(
-      '/issues/1/events/',
+    expect(requests.discover).toHaveBeenCalledWith(
+      '/organizations/org-slug/events/',
       expect.objectContaining({
-        query: {limit: 50, query: '', environment: ['prod', 'staging']},
+        query: expect.objectContaining({environment: ['prod', 'staging']}),
       })
     );
   });
 
-  describe('When the performance flag is enabled', () => {
-    let org;
-    let group;
+  it('renders events table for performance issue', () => {
+    group.issueCategory = 'performance';
 
-    beforeEach(() => {
-      org = initializeOrg({
-        organization: {
-          features: ['performance-issues-all-events-tab', 'event-attachments'],
-        },
-      });
-      group = TestStubs.Group();
-    });
-
-    it('renders new events table for performance', function () {
-      group.issueCategory = 'performance';
-
-      render(
-        <GroupEvents
-          organization={org.organization}
-          api={new MockApiClient()}
-          params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
-          group={group}
-          location={{query: {environment: ['prod', 'staging']}}}
-        />,
-        {context: routerContext, organization}
-      );
-      expect(discoverRequest).toHaveBeenCalledWith(
-        '/organizations/org-slug/events/',
-        expect.objectContaining({
-          query: expect.objectContaining({
-            query: 'performance.issue_ids:1 event.type:transaction ',
-          }),
-        })
-      );
-      const perfEventsColumn = screen.getByText('transaction');
-      expect(perfEventsColumn).toBeInTheDocument();
-      expect(request).not.toHaveBeenCalled();
-    });
-
-    it('renders event and trace link correctly', async () => {
-      group.issueCategory = 'performance';
-
-      render(
-        <GroupEvents
-          organization={org.organization}
-          api={new MockApiClient()}
-          params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
-          group={group}
-          location={{query: {environment: ['prod', 'staging']}}}
-        />,
-        {context: routerContext, organization}
-      );
-      await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
-
-      const eventIdATag = screen.getByText('id123').closest('a');
-      expect(eventIdATag).toHaveAttribute(
-        'href',
-        '/organizations/org-slug/issues/1/events/id123/'
-      );
-    });
-
-    it('does not make attachments request, when feature not enabled', async () => {
-      org = initializeOrg({
-        organization: {
-          features: ['performance-issues-all-events-tab'],
-        },
-      });
-
-      render(
-        <GroupEvents
-          organization={org.organization}
-          api={new MockApiClient()}
-          params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
-          group={group}
-          location={{query: {environment: ['prod', 'staging']}}}
-        />,
-        {context: routerContext, organization}
-      );
-      await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
-
-      const attachmentsColumn = screen.queryByText('attachments');
-      expect(attachmentsColumn).not.toBeInTheDocument();
-      expect(attachmentsRequest).not.toHaveBeenCalled();
-    });
-
-    it('does not display attachments column with no attachments', async () => {
-      render(
-        <GroupEvents
-          organization={org.organization}
-          api={new MockApiClient()}
-          params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
-          group={group}
-          location={{query: {environment: ['prod', 'staging']}}}
-        />,
-        {context: routerContext, organization}
-      );
-      await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
-
-      const attachmentsColumn = screen.queryByText('attachments');
-      expect(attachmentsColumn).not.toBeInTheDocument();
-      expect(attachmentsRequest).toHaveBeenCalled();
-    });
-
-    it('does not display minidump column with no minidumps', async () => {
-      render(
-        <GroupEvents
-          organization={org.organization}
-          api={new MockApiClient()}
-          params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
-          group={group}
-          location={{query: {environment: ['prod', 'staging']}}}
-        />,
-        {context: routerContext, organization}
-      );
-      await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
-
-      const minidumpColumn = screen.queryByText('minidump');
-      expect(minidumpColumn).not.toBeInTheDocument();
-    });
-
-    it('displays minidumps', async () => {
-      attachmentsRequest = MockApiClient.addMockResponse({
-        url: '/api/0/issues/1/attachments/?per_page=50&types=event.minidump&event_id=id123',
-        body: [
-          {
-            id: 'id123',
-            name: 'dc42a8b9-fc22-4de1-8a29-45b3006496d8.dmp',
-            headers: {
-              'Content-Type': 'application/octet-stream',
-            },
-            mimetype: 'application/octet-stream',
-            size: 1294340,
-            sha1: '742127552a1191f71fcf6ba7bc5afa0a837350e2',
-            dateCreated: '2022-09-28T09:04:38.659307Z',
-            type: 'event.minidump',
-            event_id: 'd54cb9246ee241ffbdb39bf7a9fafbb7',
-          },
-        ],
-      });
-
-      render(
-        <GroupEvents
-          organization={org.organization}
-          api={new MockApiClient()}
-          params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
-          group={group}
-          location={{query: {environment: ['prod', 'staging']}}}
-        />,
-        {context: routerContext, organization}
-      );
-      await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
-      const minidumpColumn = screen.queryByText('minidump');
-      expect(minidumpColumn).toBeInTheDocument();
-    });
-
-    it('does not display attachments but displays minidump', async () => {
-      attachmentsRequest = MockApiClient.addMockResponse({
-        url: '/api/0/issues/1/attachments/?per_page=50&types=event.minidump&event_id=id123',
-        body: [
-          {
-            id: 'id123',
-            name: 'dc42a8b9-fc22-4de1-8a29-45b3006496d8.dmp',
-            headers: {
-              'Content-Type': 'application/octet-stream',
-            },
-            mimetype: 'application/octet-stream',
-            size: 1294340,
-            sha1: '742127552a1191f71fcf6ba7bc5afa0a837350e2',
-            dateCreated: '2022-09-28T09:04:38.659307Z',
-            type: 'event.minidump',
-            event_id: 'd54cb9246ee241ffbdb39bf7a9fafbb7',
-          },
-        ],
-      });
-
-      render(
-        <GroupEvents
-          organization={org.organization}
-          api={new MockApiClient()}
-          params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
-          group={group}
-          location={{query: {environment: ['prod', 'staging']}}}
-        />,
-        {context: routerContext, organization}
-      );
-      await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
-      const attachmentsColumn = screen.queryByText('attachments');
-      const minidumpColumn = screen.queryByText('minidump');
-      expect(attachmentsColumn).not.toBeInTheDocument();
-      expect(minidumpColumn).toBeInTheDocument();
-      expect(attachmentsRequest).toHaveBeenCalled();
-    });
-
-    it('renders new events table if error', function () {
-      render(
-        <GroupEvents
-          organization={org.organization}
-          api={new MockApiClient()}
-          params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
-          group={group}
-          location={{query: {environment: ['prod', 'staging']}}}
-        />,
-        {context: routerContext, organization}
-      );
-      expect(discoverRequest).toHaveBeenCalledWith(
-        '/organizations/org-slug/events/',
-        expect.objectContaining({
-          query: expect.objectContaining({
-            query: 'issue.id:1 ',
-            field: expect.not.arrayContaining(['attachments', 'minidump']),
-          }),
-        })
-      );
-
-      const perfEventsColumn = screen.getByText('transaction');
-      expect(perfEventsColumn).toBeInTheDocument();
-    });
-
-    it('removes sort if unsupported by the events table', function () {
-      render(
-        <GroupEvents
-          organization={org.organization}
-          api={new MockApiClient()}
-          params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
-          group={group}
-          location={{query: {environment: ['prod', 'staging'], sort: 'user'}}}
-        />,
-        {context: routerContext, organization}
-      );
-      expect(discoverRequest).toHaveBeenCalledWith(
-        '/organizations/org-slug/events/',
-        expect.objectContaining({query: expect.not.objectContaining({sort: 'user'})})
-      );
-    });
-
-    it('only request for a single projectId', function () {
-      render(
-        <GroupEvents
-          organization={org.organization}
-          api={new MockApiClient()}
-          params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
-          group={group}
-          location={{
-            query: {
-              environment: ['prod', 'staging'],
-              sort: 'user',
-              project: [group.project.id, '456'],
-            },
-          }}
-        />,
-        {context: routerContext, organization}
-      );
-      expect(discoverRequest).toHaveBeenCalledWith(
-        '/organizations/org-slug/events/',
-        expect.objectContaining({
-          query: expect.objectContaining({project: [group.project.id]}),
-        })
-      );
-    });
-
-    it('shows discover query error message', async () => {
-      discoverRequest = MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/events/',
-        statusCode: 500,
-        body: {
-          detail: 'Internal Error',
-          errorId: '69ab396e73704cdba9342ff8dcd59795',
-        },
-      });
-
-      render(
-        <GroupEvents
-          organization={org.organization}
-          api={new MockApiClient()}
-          params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
-          group={group}
-          location={{query: {environment: ['prod', 'staging']}}}
-        />,
-        {context: routerContext, organization}
-      );
-
-      await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
-
-      expect(screen.getByTestId('loading-error')).toHaveTextContent('Internal Error');
-    });
-
-    it('requests for backend columns if backend project', async () => {
-      group.project.platform = 'node-express';
-      render(
-        <GroupEvents
-          organization={org.organization}
-          api={new MockApiClient()}
-          params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
-          group={group}
-          location={{query: {environment: ['prod', 'staging']}}}
-        />,
-        {context: routerContext, organization}
-      );
-
-      await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
-      expect(discoverRequest).toHaveBeenCalledWith(
-        '/organizations/org-slug/events/',
-        expect.objectContaining({
-          query: expect.objectContaining({
-            field: expect.arrayContaining(['url', 'runtime']),
-          }),
-        })
-      );
-      expect(discoverRequest).toHaveBeenCalledWith(
-        '/organizations/org-slug/events/',
-        expect.objectContaining({
-          query: expect.objectContaining({
-            field: expect.not.arrayContaining(['browser']),
-          }),
-        })
-      );
-    });
+    render(
+      <GroupEvents
+        organization={organization}
+        api={new MockApiClient()}
+        params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
+        group={group}
+        location={{query: {environment: ['prod', 'staging']}}}
+      />,
+      {context: routerContext, organization}
+    );
+    expect(requests.discover).toHaveBeenCalledWith(
+      '/organizations/org-slug/events/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          query: 'performance.issue_ids:1 event.type:transaction ',
+        }),
+      })
+    );
+    const perfEventsColumn = screen.getByText('transaction');
+    expect(perfEventsColumn).toBeInTheDocument();
   });
 
-  it('does not renders new events table if error', function () {
+  it('renders event and trace link correctly', async () => {
+    group.issueCategory = 'performance';
+
+    render(
+      <GroupEvents
+        organization={organization}
+        api={new MockApiClient()}
+        params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
+        group={group}
+        location={{query: {environment: ['prod', 'staging']}}}
+      />,
+      {context: routerContext, organization}
+    );
+    await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
+
+    const eventIdATag = screen.getByText('id123').closest('a');
+    expect(eventIdATag).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/issues/1/events/id123/'
+    );
+  });
+
+  it('does not make attachments request, when feature not enabled', async () => {
     const org = initializeOrg();
-    const group = TestStubs.Group();
 
     render(
       <GroupEvents
@@ -512,8 +220,243 @@ describe('groupEvents', function () {
       />,
       {context: routerContext, organization}
     );
+    await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
-    const perfEventsColumn = screen.queryByText('transaction');
-    expect(perfEventsColumn).not.toBeInTheDocument();
+    const attachmentsColumn = screen.queryByText('attachments');
+    expect(attachmentsColumn).not.toBeInTheDocument();
+    expect(requests.attachments).not.toHaveBeenCalled();
+  });
+
+  it('does not display attachments column with no attachments', async () => {
+    render(
+      <GroupEvents
+        organization={organization}
+        api={new MockApiClient()}
+        params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
+        group={group}
+        location={{query: {environment: ['prod', 'staging']}}}
+      />,
+      {context: routerContext, organization}
+    );
+    await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
+
+    const attachmentsColumn = screen.queryByText('attachments');
+    expect(attachmentsColumn).not.toBeInTheDocument();
+    expect(requests.attachments).toHaveBeenCalled();
+  });
+
+  it('does not display minidump column with no minidumps', async () => {
+    render(
+      <GroupEvents
+        organization={organization}
+        api={new MockApiClient()}
+        params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
+        group={group}
+        location={{query: {environment: ['prod', 'staging']}}}
+      />,
+      {context: routerContext, organization}
+    );
+    await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
+
+    const minidumpColumn = screen.queryByText('minidump');
+    expect(minidumpColumn).not.toBeInTheDocument();
+  });
+
+  it('displays minidumps', async () => {
+    requests.attachments = MockApiClient.addMockResponse({
+      url: '/api/0/issues/1/attachments/?per_page=50&types=event.minidump&event_id=id123',
+      body: [
+        {
+          id: 'id123',
+          name: 'dc42a8b9-fc22-4de1-8a29-45b3006496d8.dmp',
+          headers: {
+            'Content-Type': 'application/octet-stream',
+          },
+          mimetype: 'application/octet-stream',
+          size: 1294340,
+          sha1: '742127552a1191f71fcf6ba7bc5afa0a837350e2',
+          dateCreated: '2022-09-28T09:04:38.659307Z',
+          type: 'event.minidump',
+          event_id: 'd54cb9246ee241ffbdb39bf7a9fafbb7',
+        },
+      ],
+    });
+
+    render(
+      <GroupEvents
+        organization={organization}
+        api={new MockApiClient()}
+        params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
+        group={group}
+        location={{query: {environment: ['prod', 'staging']}}}
+      />,
+      {context: routerContext, organization}
+    );
+    await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
+    const minidumpColumn = screen.queryByText('minidump');
+    expect(minidumpColumn).toBeInTheDocument();
+  });
+
+  it('does not display attachments but displays minidump', async () => {
+    requests.attachments = MockApiClient.addMockResponse({
+      url: '/api/0/issues/1/attachments/?per_page=50&types=event.minidump&event_id=id123',
+      body: [
+        {
+          id: 'id123',
+          name: 'dc42a8b9-fc22-4de1-8a29-45b3006496d8.dmp',
+          headers: {
+            'Content-Type': 'application/octet-stream',
+          },
+          mimetype: 'application/octet-stream',
+          size: 1294340,
+          sha1: '742127552a1191f71fcf6ba7bc5afa0a837350e2',
+          dateCreated: '2022-09-28T09:04:38.659307Z',
+          type: 'event.minidump',
+          event_id: 'd54cb9246ee241ffbdb39bf7a9fafbb7',
+        },
+      ],
+    });
+
+    render(
+      <GroupEvents
+        organization={organization}
+        api={new MockApiClient()}
+        params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
+        group={group}
+        location={{query: {environment: ['prod', 'staging']}}}
+      />,
+      {context: routerContext, organization}
+    );
+    await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
+    const attachmentsColumn = screen.queryByText('attachments');
+    const minidumpColumn = screen.queryByText('minidump');
+    expect(attachmentsColumn).not.toBeInTheDocument();
+    expect(minidumpColumn).toBeInTheDocument();
+    expect(requests.attachments).toHaveBeenCalled();
+  });
+
+  it('renders events table for error', () => {
+    render(
+      <GroupEvents
+        organization={organization}
+        api={new MockApiClient()}
+        params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
+        group={group}
+        location={{query: {environment: ['prod', 'staging']}}}
+      />,
+      {context: routerContext, organization}
+    );
+    expect(requests.discover).toHaveBeenCalledWith(
+      '/organizations/org-slug/events/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          query: 'issue.id:1 ',
+          field: expect.not.arrayContaining(['attachments', 'minidump']),
+        }),
+      })
+    );
+
+    const perfEventsColumn = screen.getByText('transaction');
+    expect(perfEventsColumn).toBeInTheDocument();
+  });
+
+  it('removes sort if unsupported by the events table', () => {
+    render(
+      <GroupEvents
+        organization={organization}
+        api={new MockApiClient()}
+        params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
+        group={group}
+        location={{query: {environment: ['prod', 'staging'], sort: 'user'}}}
+      />,
+      {context: routerContext, organization}
+    );
+    expect(requests.discover).toHaveBeenCalledWith(
+      '/organizations/org-slug/events/',
+      expect.objectContaining({query: expect.not.objectContaining({sort: 'user'})})
+    );
+  });
+
+  it('only request for a single projectId', () => {
+    render(
+      <GroupEvents
+        organization={organization}
+        api={new MockApiClient()}
+        params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
+        group={group}
+        location={{
+          query: {
+            environment: ['prod', 'staging'],
+            sort: 'user',
+            project: [group.project.id, '456'],
+          },
+        }}
+      />,
+      {context: routerContext, organization}
+    );
+    expect(requests.discover).toHaveBeenCalledWith(
+      '/organizations/org-slug/events/',
+      expect.objectContaining({
+        query: expect.objectContaining({project: [group.project.id]}),
+      })
+    );
+  });
+
+  it('shows discover query error message', async () => {
+    requests.discover = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      statusCode: 500,
+      body: {
+        detail: 'Internal Error',
+        errorId: '69ab396e73704cdba9342ff8dcd59795',
+      },
+    });
+
+    render(
+      <GroupEvents
+        organization={organization}
+        api={new MockApiClient()}
+        params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
+        group={group}
+        location={{query: {environment: ['prod', 'staging']}}}
+      />,
+      {context: routerContext, organization}
+    );
+
+    await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
+
+    expect(screen.getByTestId('loading-error')).toHaveTextContent('Internal Error');
+  });
+
+  it('requests for backend columns if backend project', async () => {
+    group.project.platform = 'node-express';
+    render(
+      <GroupEvents
+        organization={organization}
+        api={new MockApiClient()}
+        params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
+        group={group}
+        location={{query: {environment: ['prod', 'staging']}}}
+      />,
+      {context: routerContext, organization}
+    );
+
+    await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
+    expect(requests.discover).toHaveBeenCalledWith(
+      '/organizations/org-slug/events/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          field: expect.arrayContaining(['url', 'runtime']),
+        }),
+      })
+    );
+    expect(requests.discover).toHaveBeenCalledWith(
+      '/organizations/org-slug/events/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          field: expect.not.arrayContaining(['browser']),
+        }),
+      })
+    );
   });
 });
