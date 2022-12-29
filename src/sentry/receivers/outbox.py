@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+import random
+import sys
 from typing import Any, Callable, List, Mapping
 
 from django.db.models.signals import post_save, pre_delete
 from django.dispatch import receiver
 
+from sentry import options
 from sentry.models import (
     ControlOutbox,
     Organization,
@@ -26,7 +29,8 @@ from sentry.silo import SiloMode
 
 # This method is split out for test mocking convenience, and for future potential logging / metrics
 def _prepare_outbox(outbox: OutboxBase):
-    outbox.save()
+    if random.random() < float(options.get("hybrid_cloud.outbox_rate")) or "pytest" in sys.modules:
+        outbox.save()
 
 
 def add_to_region_outbox(instance: Any):
