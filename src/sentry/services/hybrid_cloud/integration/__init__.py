@@ -8,7 +8,11 @@ from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_deleg
 from sentry.silo import SiloMode
 
 if TYPE_CHECKING:
-    from sentry.integrations.base import IntegrationFeatures, IntegrationInstallation
+    from sentry.integrations.base import (
+        IntegrationFeatures,
+        IntegrationInstallation,
+        IntegrationProvider,
+    )
     from sentry.models.integrations import Integration, OrganizationIntegration
 
 
@@ -27,7 +31,7 @@ class APIOrganizationIntegration:
     default_auth_id: int
     organization_id: int
     integration_id: int
-    config: Mapping[str, Any]
+    config: dict[str, Any]
     status: int  # As ObjectStatus
 
 
@@ -110,8 +114,8 @@ class IntegrationService(InterfaceWithLifecycle):
         """
 
     def get_installation(
-        self, integration_id: int, organization_id: int, **kwargs
-    ) -> IntegrationInstallation:
+        self, integration_id: int, organization_id: int, **kwargs: Mapping[str, Any]
+    ) -> IntegrationInstallation | None:
         """
         Returns the IntegrationInstallation class for a given integration.
         Intended to replace calls of `integration.get_installation`.
@@ -125,7 +129,10 @@ class IntegrationService(InterfaceWithLifecycle):
             return None
 
         provider = integrations.get(integration.provider)
-        return provider.get_installation(integration, organization_id, **kwargs)
+        installation: IntegrationInstallation = provider.get_installation(
+            integration, organization_id, **kwargs
+        )
+        return installation
 
     def has_feature(self, provider: str, feature: IntegrationFeatures) -> bool | None:
         """
@@ -135,8 +142,8 @@ class IntegrationService(InterfaceWithLifecycle):
         """
         from sentry import integrations
 
-        provider = integrations.get(provider)
-        return feature in provider.features
+        int_provider: IntegrationProvider = integrations.get(provider)
+        return feature in int_provider.features
 
 
 def impl_with_db() -> IntegrationService:

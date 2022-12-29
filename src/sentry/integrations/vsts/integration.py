@@ -35,7 +35,7 @@ from sentry.models import (
     generate_token,
 )
 from sentry.pipeline import NestedPipelineView, Pipeline, PipelineView
-from sentry.services.hybrid_cloud.integration import integration_service
+from sentry.services.hybrid_cloud.integration import APIOrganizationIntegration, integration_service
 from sentry.shared_integrations.exceptions import (
     ApiError,
     IntegrationError,
@@ -118,6 +118,7 @@ class VstsIntegration(IntegrationInstallation, RepositoryMixin, VstsIssueSync): 
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
+        self.org_integration: APIOrganizationIntegration | None
         self.default_identity: Identity | None = None
 
     def reinstall(self) -> None:
@@ -267,6 +268,8 @@ class VstsIntegration(IntegrationInstallation, RepositoryMixin, VstsIssueSync): 
         return fields
 
     def update_organization_config(self, data: MutableMapping[str, Any]) -> None:
+        if not self.org_integration:
+            return
         if "sync_status_forward" in data:
             project_ids_and_statuses = data.pop("sync_status_forward")
             if any(
@@ -298,6 +301,8 @@ class VstsIntegration(IntegrationInstallation, RepositoryMixin, VstsIssueSync): 
         )
 
     def get_config_data(self) -> Mapping[str, Any]:
+        if not self.org_integration:
+            return {}
         config: MutableMapping[str, Any] = self.org_integration.config
         project_mappings = IntegrationExternalProject.objects.filter(
             organization_integration_id=self.org_integration.id

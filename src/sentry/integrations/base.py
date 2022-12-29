@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import abc
 import logging
 import sys
@@ -262,10 +264,10 @@ class IntegrationInstallation:
     def __init__(self, model: M, organization_id: int) -> None:
         self.model = model
         self.organization_id = organization_id
-        self._org_integration = None
+        self._org_integration: APIOrganizationIntegration | None = None
 
     @property
-    def org_integration(self) -> APIOrganizationIntegration:
+    def org_integration(self) -> APIOrganizationIntegration | None:
         if self._org_integration is None:
             self._org_integration = integration_service.get_organization_integration(
                 integration_id=self.model.id,
@@ -274,7 +276,7 @@ class IntegrationInstallation:
         return self._org_integration
 
     @org_integration.setter
-    def org_integration(self, org_integration: APIOrganizationIntegration):
+    def org_integration(self, org_integration: APIOrganizationIntegration) -> None:
         self._org_integration = org_integration
 
     def get_organization_config(self) -> Sequence[Any]:
@@ -291,6 +293,9 @@ class IntegrationInstallation:
         """
         Update the configuration field for an organization integration.
         """
+        if not self.org_integration:
+            return
+
         config = self.org_integration.config
         config.update(data)
         self.org_integration = integration_service.update_config(
@@ -299,6 +304,8 @@ class IntegrationInstallation:
 
     def get_config_data(self) -> Mapping[str, str]:
         # Explicitly typing to satisfy mypy.
+        if not self.org_integration:
+            return {}
         config_data: Mapping[str, str] = self.org_integration.config
         return config_data
 
@@ -309,8 +316,11 @@ class IntegrationInstallation:
         # Return the api client for a given provider
         raise NotImplementedError
 
-    def get_default_identity(self) -> Identity:
+    def get_default_identity(self) -> Identity | None:
         """For Integrations that rely solely on user auth for authentication."""
+
+        if not self.org_integration:
+            return None
         return Identity.objects.get(id=self.org_integration.default_auth_id)
 
     def error_message_from_json(self, data: Mapping[str, Any]) -> Any:

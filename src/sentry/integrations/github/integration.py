@@ -112,10 +112,14 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
         organization_context = organization_service.get_organization_by_id(
             id=self.org_integration.organization_id, user_id=None
         )
-        return self.get_client().get_trees_for_org(
-            cache_key=organization_context.organization.slug,
-            gh_org=gh_org,
-            cache_seconds=cache_seconds,
+        return (
+            self.get_client().get_trees_for_org(
+                cache_key=organization_context.organization.slug,
+                gh_org=gh_org,
+                cache_seconds=cache_seconds,
+            )
+            if organization_context
+            else {}
         )
 
     def get_repositories(

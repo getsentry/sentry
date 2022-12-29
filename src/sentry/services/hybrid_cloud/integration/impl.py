@@ -1,18 +1,13 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any, Iterable, List, Mapping
+from typing import Any, Iterable, List, Mapping
 
 from sentry.services.hybrid_cloud.integration import (
     APIIntegration,
     APIOrganizationIntegration,
     IntegrationService,
 )
-from sentry.services.hybrid_cloud.user import APIUser
-from sentry.signals import integration_added
-
-if TYPE_CHECKING:
-    from sentry.models.user import User
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +23,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
 
         queryset = None
         if integration_ids:
-            queryset = Integration.objects.filter(id__in=integration_ids)  # type: ignore
+            queryset = Integration.objects.filter(id__in=integration_ids)
         if organization_id is not None:
             queryset = (
                 queryset.filter(organizations=organization_id)
@@ -50,7 +45,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
         from sentry.models.integrations import Integration
 
         # If an integration_id is provided, use that -- otherwise, use the provider and external_id
-        integration_kwargs = (
+        integration_kwargs: Mapping[str, Any] = (
             {"id": integration_id}
             if integration_id
             else {"provider": provider, "external_id": external_id}
@@ -79,60 +74,4 @@ class DatabaseBackedIntegrationService(IntegrationService):
             oi.config.clear()
         oi.config.update(config)
         oi.save()
-        return oi
-
-    def add_organization(
-        self,
-        integration_id: int,
-        organization_id: int,
-        user: User | APIUser | None = None,
-        default_auth_id=None,
-    ):
-        """
-        Add an organization to this integration.
-
-        Returns False if the OrganizationIntegration was not created
-        """
-        from django.db import IntegrityError
-
-        from sentry.models.integrations import OrganizationIntegration
-
-        integration = self.get_integration(integration_id=integration_id)
-        if not integration:
-            logger.info(
-                "add-organization-invalid-integration",
-                extra={
-                    "organization_id": organization_id,
-                    "provided_integration_id": integration_id,
-                },
-            )
-            return False
-
-        try:
-            org_integration, created = OrganizationIntegration.objects.get_or_create(
-                organization_id=organization_id,
-                integration_id=integration.id,
-                defaults={"default_auth_id": default_auth_id, "config": {}},
-            )
-            # TODO(Steve): add audit log if created
-            if not created and default_auth_id:
-                org_integration.update(default_auth_id=default_auth_id)
-        except IntegrityError:
-            logger.info(
-                "add-organization-integrity-error",
-                extra={
-                    "organization_id": organization_id,
-                    "integration_id": integration.id,
-                    "default_auth_id": default_auth_id,
-                },
-            )
-            return False
-        else:
-            integration_added.send_robust(
-                integration=integration,
-                organization_id=organization_id,
-                user=user,
-                sender=integration.__class__,
-            )
-
-            return org_integration
+        return self._serialize_organization_integration(oi)
