@@ -10,11 +10,10 @@ import {t} from 'sentry/locale';
 import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
 import space from 'sentry/styles/space';
 import {Project} from 'sentry/types';
-import EventWaiter from 'sentry/utils/eventWaiter';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 
-import {SessionWaiter} from './sessionWaiter';
+import {useHeartbeat} from './useHeartbeat';
 
 enum BeatStatus {
   AWAITING = 'awaiting',
@@ -44,6 +43,14 @@ export function HeartbeatFooter({
 
   const project =
     !projectsLoading && !fetchError && projects.length ? projects[0] : undefined;
+
+  const {
+    sessionLoading,
+    eventLoading,
+    firstErrorReceived,
+    firstTransactionReceived,
+    sessionInProgress,
+  } = useHeartbeat({project});
 
   const actions = (
     <Fragment>
@@ -88,89 +95,50 @@ export function HeartbeatFooter({
         )}
       </PlatformIconAndName>
       <Beats>
-        {projectsLoading ? (
+        {projectsLoading || sessionLoading || eventLoading ? (
           <Fragment>
             <LoadingPlaceholder height="28px" />
             <LoadingPlaceholder height="28px" />
           </Fragment>
+        ) : firstErrorReceived ? (
+          <Fragment>
+            <Beat status={BeatStatus.COMPLETE}>
+              <PulsingIndicator>
+                <IconCheckmark size="xs" />
+              </PulsingIndicator>
+              {t('Server connection established')}
+            </Beat>
+            <Beat status={BeatStatus.COMPLETE}>
+              <PulsingIndicator>
+                <IconCheckmark size="xs" />
+              </PulsingIndicator>
+              {t('First error received')}
+            </Beat>
+          </Fragment>
+        ) : !sessionInProgress || !firstTransactionReceived ? (
+          <Fragment>
+            <Beat status={BeatStatus.AWAITING}>
+              <PulsingIndicator>1</PulsingIndicator>
+              {t('Awaiting server connection')}
+            </Beat>
+            <Beat status={BeatStatus.PENDING}>
+              <PulsingIndicator>2</PulsingIndicator>
+              {t('Awaiting first error')}
+            </Beat>
+          </Fragment>
         ) : (
-          project && (
-            <SessionWaiter project={project}>
-              {({sessionInProgress, loading: loadingSession}) => {
-                return (
-                  <EventWaiter
-                    eventTypes={['error', 'transaction']}
-                    organization={organization}
-                    project={project}
-                  >
-                    {({firstIssue, firstPoll, firstTransaction}) => {
-                      const firstIssueReceived = !!firstIssue;
-                      const firstTransactionReceived = !!firstTransaction;
-                      const loading = firstPoll || loadingSession;
-
-                      if (loading) {
-                        return (
-                          <Fragment>
-                            <LoadingPlaceholder height="28px" />
-                            <LoadingPlaceholder height="28px" />
-                          </Fragment>
-                        );
-                      }
-
-                      if (firstIssueReceived) {
-                        return (
-                          <Fragment>
-                            <Beat status={BeatStatus.COMPLETE}>
-                              <PulsingIndicator>
-                                <IconCheckmark size="xs" />
-                              </PulsingIndicator>
-                              {t('Server connection established')}
-                            </Beat>
-                            <Beat status={BeatStatus.COMPLETE}>
-                              <PulsingIndicator>
-                                <IconCheckmark size="xs" />
-                              </PulsingIndicator>
-                              {t('First error received')}
-                            </Beat>
-                          </Fragment>
-                        );
-                      }
-
-                      if (!sessionInProgress || !firstTransactionReceived) {
-                        return (
-                          <Fragment>
-                            <Beat status={BeatStatus.AWAITING}>
-                              <PulsingIndicator>1</PulsingIndicator>
-                              {t('Awaiting server connection')}
-                            </Beat>
-                            <Beat status={BeatStatus.PENDING}>
-                              <PulsingIndicator>2</PulsingIndicator>
-                              {t('Awaiting first error')}
-                            </Beat>
-                          </Fragment>
-                        );
-                      }
-
-                      return (
-                        <Fragment>
-                          <Beat status={BeatStatus.COMPLETE}>
-                            <PulsingIndicator>
-                              <IconCheckmark size="xs" />
-                            </PulsingIndicator>
-                            {t('Server connection established')}
-                          </Beat>
-                          <Beat status={BeatStatus.AWAITING}>
-                            <PulsingIndicator>2</PulsingIndicator>
-                            {t('Awaiting first error')}
-                          </Beat>
-                        </Fragment>
-                      );
-                    }}
-                  </EventWaiter>
-                );
-              }}
-            </SessionWaiter>
-          )
+          <Fragment>
+            <Beat status={BeatStatus.COMPLETE}>
+              <PulsingIndicator>
+                <IconCheckmark size="xs" />
+              </PulsingIndicator>
+              {t('Server connection established')}
+            </Beat>
+            <Beat status={BeatStatus.AWAITING}>
+              <PulsingIndicator>2</PulsingIndicator>
+              {t('Awaiting first error')}
+            </Beat>
+          </Fragment>
         )}
       </Beats>
       <Actions>{actions}</Actions>

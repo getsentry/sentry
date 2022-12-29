@@ -1,5 +1,3 @@
-import partition from 'lodash/partition';
-
 import {
   Project,
   SessionApiResponse,
@@ -11,16 +9,26 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 const DEFAULT_POLL_INTERVAL = 5000;
 
+import partition from 'lodash/partition';
+
 type Props = {
-  children: (props: {loading: boolean; sessionInProgress: boolean}) => React.ReactElement;
-  project: Project;
+  project?: Project;
 };
 
-export function SessionWaiter({project, children}: Props) {
+export function useHeartbeat({project}: Props) {
   const organization = useOrganization();
 
+  const {data: eventData, isLoading: eventLoading} = useQuery<Project>(
+    [`/projects/${organization.slug}/${project?.slug}/`],
+    {
+      staleTime: 0,
+      refetchInterval: DEFAULT_POLL_INTERVAL,
+      enabled: !!project, // Only fetch if project is available,
+    }
+  );
+
   // TODO(Priscila): Check if the query parameters are optimal
-  const {data, isLoading} = useQuery<SessionApiResponse>(
+  const {data: sessionData, isLoading: sessionLoading} = useQuery<SessionApiResponse>(
     [
       `/organizations/${organization.slug}/sessions/`,
       {
@@ -42,9 +50,9 @@ export function SessionWaiter({project, children}: Props) {
 
   // According to the docs https://develop.sentry.dev/sdk/sessions/#terminal-session-states, asession can exist in two states: in progress or terminated.
   // A terminated session must not receive further updates. 'exited', 'crashed' and 'abnormal' are all terminal states.
-  const [inProgressState, terminatedStates] = data
+  const [inProgressState, terminatedStates] = sessionData
     ? partition(
-        data.groups,
+        sessionData.groups,
         group => group.by['session.status'] === SessionStatus.HEALTHY
       )
     : [[], []];
@@ -57,5 +65,11 @@ export function SessionWaiter({project, children}: Props) {
   const sessionInProgress =
     !sessionTerminated && inProgressState[0]?.totals['sum(session)'] > 0;
 
-  return children({sessionInProgress, loading: isLoading});
+  return {
+    sessionInProgress,
+    firstErrorReceived: !!eventData?.firstEvent,
+    firstTransactionReceived: !!eventData?.firstTransactionEvent,
+    eventLoading,
+    sessionLoading,
+  };
 }
