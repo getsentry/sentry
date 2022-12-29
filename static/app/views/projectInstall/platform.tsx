@@ -104,6 +104,8 @@ class ProjectInstallPlatform extends Component<Props, State> {
       platform.id as PlatformKey
     );
 
+    organization.features = ['onboarding-heartbeat-footer'];
+
     return (
       <Fragment>
         <StyledPageHeader>
@@ -217,6 +219,8 @@ class ProjectInstallPlatform extends Component<Props, State> {
               projectSlug={projectId}
               issueStreamLink={issueStreamLink}
               performanceOverviewLink={performanceOverviewLink}
+              route={this.props.route}
+              router={this.props.router}
             />
           )}
       </Fragment>

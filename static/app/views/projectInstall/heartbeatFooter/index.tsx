@@ -1,7 +1,10 @@
-import {Fragment} from 'react';
+import {Fragment, useEffect} from 'react';
+import {RouteComponentProps} from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {Location} from 'history';
 
+import {openModal} from 'sentry/actionCreators/modal';
 import Button from 'sentry/components/button';
 import IdBadge from 'sentry/components/idBadge';
 import Placeholder from 'sentry/components/placeholder';
@@ -21,7 +24,21 @@ enum BeatStatus {
   COMPLETE = 'complete',
 }
 
-type Props = {
+async function openChangeRouteModal(
+  router: RouteComponentProps<{}, {}>['router'],
+  nextLocation: Location
+) {
+  const mod = await import(
+    'sentry/views/projectInstall/heartbeatFooter/changeRouteModal'
+  );
+  const {ChangeRouteModal} = mod;
+
+  openModal(deps => (
+    <ChangeRouteModal {...deps} router={router} nextLocation={nextLocation} />
+  ));
+}
+
+type Props = Pick<RouteComponentProps<{}, {}>, 'router' | 'route'> & {
   issueStreamLink: string;
   performanceOverviewLink: string;
   projectSlug: Project['slug'];
@@ -31,6 +48,8 @@ export function HeartbeatFooter({
   issueStreamLink,
   performanceOverviewLink,
   projectSlug,
+  router,
+  route,
 }: Props) {
   const organization = useOrganization();
 
@@ -51,6 +70,32 @@ export function HeartbeatFooter({
     firstTransactionReceived,
     sessionInProgress,
   } = useHeartbeat({project});
+
+  const serverConnected = sessionInProgress || firstTransactionReceived;
+
+  useEffect(() => {
+    const onUnload = (nextLocation?: Location) => {
+      if (serverConnected && firstErrorReceived) {
+        return true;
+      }
+
+      // Next Location is always available when user clicks on a item with a new route
+      if (nextLocation) {
+        const {query} = nextLocation;
+
+        if (query.setUpRemainingOnboardingTasksLater) {
+          return true;
+        }
+
+        openChangeRouteModal(router, nextLocation);
+        return false;
+      }
+
+      return true;
+    };
+
+    router.setRouteLeaveHook(route, onUnload);
+  }, [serverConnected, firstErrorReceived, route, router]);
 
   const actions = (
     <Fragment>
@@ -115,7 +160,7 @@ export function HeartbeatFooter({
               {t('First error received')}
             </Beat>
           </Fragment>
-        ) : sessionInProgress || firstTransactionReceived ? (
+        ) : serverConnected ? (
           <Fragment>
             <Beat status={BeatStatus.COMPLETE}>
               <PulsingIndicator>
