@@ -48,7 +48,11 @@ export default function FirstEventFooter({
     return null;
   };
 
-  const getPrimaryCta = ({firstIssue}: {firstIssue: null | boolean | Group}) => {
+  const getPrimaryCta = ({
+    firstIssue,
+  }: {
+    firstIssue: null | boolean | Group | undefined;
+  }) => {
     // if hasn't sent first event, allow creation of sample error
     if (!hasFirstEvent) {
       return (
@@ -96,7 +100,7 @@ export default function FirstEventFooter({
         {t('Skip Onboarding')}
       </SkipOnboardingLink>
       <EventWaiter
-        eventType="error"
+        eventTypes={['error']}
         onIssueReceived={handleFirstIssueReceived}
         {...{project, organization}}
       >

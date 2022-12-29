@@ -178,8 +178,8 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
               api={api}
               organization={organization}
               project={currentProject}
-              eventType="replay"
-              onIssueReceived={() => {
+              eventTypes={['replay']}
+              onReplayReceived={() => {
                 setReceived(true);
               }}
             >

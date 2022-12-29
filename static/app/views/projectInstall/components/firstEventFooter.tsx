@@ -27,7 +27,7 @@ export default function FirstEventFooter({
       <FirstEventIndicator
         organization={organization}
         project={project}
-        eventType="error"
+        eventTypes={['error']}
       >
         {({indicator, firstEventButton}) => (
           <CTAFooter>

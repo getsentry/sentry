@@ -100,6 +100,9 @@ class ProjectInstallPlatform extends Component<Props, State> {
     const performanceOverviewLink = `/organizations/${orgId}/performance/`;
     const gettingStartedLink = `/organizations/${orgId}/projects/${projectId}/getting-started/`;
     const platformLink = platform.link ?? undefined;
+    const showPerformancePrompt = performancePlatforms.includes(
+      platform.id as PlatformKey
+    );
 
     organization.features = ['onboarding-heartbeat-footer'];
 
@@ -145,87 +148,79 @@ class ProjectInstallPlatform extends Component<Props, State> {
             </Fragment>
           )}
 
-          {this.isGettingStarted && (
-            <Projects
-              key={`${orgId}-${projectId}`}
-              orgId={orgId}
-              slugs={[projectId]}
-              passthroughPlaceholderProject={false}
+          {this.isGettingStarted && showPerformancePrompt && (
+            <Feature
+              features={['performance-view']}
+              hookName="feature-disabled:performance-new-project"
             >
-              {({projects, initiallyLoaded, fetching, fetchError}) => {
-                const projectsLoading = !initiallyLoaded && fetching;
-                const projectFilter =
-                  !projectsLoading && !fetchError && projects.length
-                    ? {
-                        project: (projects[0] as Project).id,
-                      }
-                    : {};
-
-                const showPerformancePrompt = performancePlatforms.includes(
-                  platform.id as PlatformKey
-                );
-
-                const actions = (
-                  <Fragment>
-                    <Button
-                      priority="primary"
-                      busy={projectsLoading}
-                      to={{
-                        pathname: issueStreamLink,
-                        query: projectFilter,
-                        hash: '#welcome',
-                      }}
-                    >
-                      {t('Take me to Issues')}
-                    </Button>
-                    <Button
-                      busy={projectsLoading}
-                      to={{
-                        pathname: performanceOverviewLink,
-                        query: projectFilter,
-                      }}
-                    >
-                      {t('Take me to Performance')}
-                    </Button>
-                  </Fragment>
-                );
-
+              {({hasFeature}) => {
+                if (hasFeature) {
+                  return null;
+                }
                 return (
-                  <Fragment>
-                    {showPerformancePrompt && (
-                      <Feature
-                        features={['performance-view']}
-                        hookName="feature-disabled:performance-new-project"
-                      >
-                        {({hasFeature}) => {
-                          if (hasFeature) {
-                            return null;
-                          }
-                          return (
-                            <StyledAlert type="info" showIcon>
-                              {t(
-                                `Your selected platform supports performance, but your organization does not have performance enabled.`
-                              )}
-                            </StyledAlert>
-                          );
-                        }}
-                      </Feature>
+                  <StyledAlert type="info" showIcon>
+                    {t(
+                      `Your selected platform supports performance, but your organization does not have performance enabled.`
                     )}
-
-                    {organization.features?.includes('onboarding-heartbeat-footer') ? (
-                      <HeartbeatFooter
-                        project={{platform: platform.id, slug: platform.name}}
-                        actions={actions}
-                      />
-                    ) : (
-                      <StyledButtonBar gap={1}>{actions}</StyledButtonBar>
-                    )}
-                  </Fragment>
+                  </StyledAlert>
                 );
               }}
-            </Projects>
+            </Feature>
           )}
+
+          {this.isGettingStarted &&
+            !organization.features?.includes('onboarding-heartbeat-footer') && (
+              <Projects
+                key={`${orgId}-${projectId}`}
+                orgId={orgId}
+                slugs={[projectId]}
+                passthroughPlaceholderProject={false}
+              >
+                {({projects, initiallyLoaded, fetching, fetchError}) => {
+                  const projectsLoading = !initiallyLoaded && fetching;
+                  const projectFilter =
+                    !projectsLoading && !fetchError && projects.length
+                      ? {
+                          project: (projects[0] as Project).id,
+                        }
+                      : {};
+
+                  return (
+                    <StyledButtonBar gap={1}>
+                      <Button
+                        priority="primary"
+                        busy={projectsLoading}
+                        to={{
+                          pathname: issueStreamLink,
+                          query: projectFilter,
+                          hash: '#welcome',
+                        }}
+                      >
+                        {t('Take me to Issues')}
+                      </Button>
+                      <Button
+                        busy={projectsLoading}
+                        to={{
+                          pathname: performanceOverviewLink,
+                          query: projectFilter,
+                        }}
+                      >
+                        {t('Take me to Performance')}
+                      </Button>
+                    </StyledButtonBar>
+                  );
+                }}
+              </Projects>
+            )}
         </div>
+        {this.isGettingStarted &&
+          organization.features?.includes('onboarding-heartbeat-footer') && (
+            <HeartbeatFooter
+              projectSlug={projectId}
+              issueStreamLink={issueStreamLink}
+              performanceOverviewLink={performanceOverviewLink}
+            />
+          )}
       </Fragment>
     );
   }

@@ -291,8 +291,8 @@ function OnboardingContent({
         api={api}
         organization={organization}
         project={currentProject}
-        eventType="profile"
-        onIssueReceived={() => {
+        eventTypes={['profile']}
+        onProfileReceived={() => {
           trackAdvancedAnalyticsEvent('profiling_views.onboarding_action', {
             organization,
             action: 'done',
