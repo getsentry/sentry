@@ -296,7 +296,7 @@ export function getOnboardingTasks({
             organization={organization}
             project={projects[0]}
             eventType="replay"
-            onIssueReceived={() => !taskIsDone(task) && onCompleteTask()}
+            onTransactionReceived={() => !taskIsDone(task) && onCompleteTask()}
           >
             {() => <EventWaitingIndicator text={t('Waiting for user session')} />}
           </EventWaiter>

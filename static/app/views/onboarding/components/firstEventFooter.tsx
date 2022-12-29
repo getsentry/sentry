@@ -48,11 +48,7 @@ export default function FirstEventFooter({
     return null;
   };
 
-  const getPrimaryCta = ({
-    firstIssue,
-  }: {
-    firstIssue: null | boolean | Group | undefined;
-  }) => {
+  const getPrimaryCta = ({firstIssue}: {firstIssue: null | boolean | Group}) => {
     // if hasn't sent first event, allow creation of sample error
     if (!hasFirstEvent) {
       return (

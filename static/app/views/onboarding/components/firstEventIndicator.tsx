@@ -51,7 +51,7 @@ const FirstEventIndicator = ({children, ...props}: FirstEventIndicatorProps) => 
 );
 
 interface IndicatorProps extends Omit<EventWaiterProps, 'children' | 'api'> {
-  firstIssue: null | boolean | Group | undefined;
+  firstIssue: null | boolean | Group;
 }
 
 const Indicator = ({firstIssue}: IndicatorProps) => (
