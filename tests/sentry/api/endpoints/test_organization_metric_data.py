@@ -37,7 +37,7 @@ ONE_DAY_AGO = timezone.now() - timedelta(days=1)
 MOCK_DATETIME = ONE_DAY_AGO.replace(hour=10, minute=0)
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 @freeze_time(MOCK_DATETIME)
 class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
     endpoint = "sentry-api-0-organization-metrics-data"
