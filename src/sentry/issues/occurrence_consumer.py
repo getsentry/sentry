@@ -16,12 +16,16 @@ from sentry.event_manager import GroupInfo
 from sentry.eventstore.models import Event
 from sentry.issues.ingest import save_issue_occurrence
 from sentry.issues.issue_occurrence import IssueOccurrence, IssueOccurrenceData
-from sentry.issues.json_schemas import EVENT_PAYLOAD_VERSIONS
+from sentry.issues.json_schemas import EVENT_PAYLOAD_SCHEMA
 from sentry.utils import json, metrics
 from sentry.utils.canonical import CanonicalKeyDict
 from sentry.utils.kafka_config import get_kafka_consumer_cluster_options
 
 logger = logging.getLogger(__name__)
+
+
+class InvalidEventPayloadError(Exception):
+    pass
 
 
 def get_occurrences_ingest_consumer(
@@ -142,11 +146,10 @@ def _process_message(
     # only validating event data, for now
     if "event_data" in kwargs:
         try:
-            schema_version: int = kwargs["event_data"].get("version", 0)
-            jsonschema.validate(kwargs["event_data"], EVENT_PAYLOAD_VERSIONS[schema_version])
+            jsonschema.validate(kwargs["event_data"], EVENT_PAYLOAD_SCHEMA)
         except jsonschema.ValidationError:
-            metrics.incr("occurrence_ingest.message_wrapper_invalid")
-            raise Exception("Message wrapper does not match schema")
+            metrics.incr("occurrence_ingest.event_payload_invalid")
+            raise InvalidEventPayloadError("Event payload does not match schema")
 
         return process_event_and_issue_occurrence(**kwargs)  # returning for easier testing, for now
     else:
