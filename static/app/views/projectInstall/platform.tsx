@@ -26,7 +26,7 @@ import {Organization, Project} from 'sentry/types';
 import Projects from 'sentry/utils/projects';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
-import {HeartbeatFooter} from 'sentry/views/projectInstall/heartbeatFooter';
+import {HeartbeatFooter} from 'sentry/views/onboarding/components/heartbeatFooter';
 
 type Props = {
   api: Client;
@@ -167,60 +167,57 @@ class ProjectInstallPlatform extends Component<Props, State> {
           )}
 
           {this.isGettingStarted &&
-            !organization.features?.includes('onboarding-heartbeat-footer') && (
-              <Projects
-                key={`${orgId}-${projectId}`}
-                orgId={orgId}
-                slugs={[projectId]}
-                passthroughPlaceholderProject={false}
-              >
-                {({projects, initiallyLoaded, fetching, fetchError}) => {
-                  const projectsLoading = !initiallyLoaded && fetching;
-                  const projectFilter =
-                    !projectsLoading && !fetchError && projects.length
-                      ? {
-                          project: (projects[0] as Project).id,
-                        }
-                      : {};
+          !organization.features?.includes('onboarding-heartbeat-footer') ? (
+            <Projects
+              key={`${orgId}-${projectId}`}
+              orgId={orgId}
+              slugs={[projectId]}
+              passthroughPlaceholderProject={false}
+            >
+              {({projects, initiallyLoaded, fetching, fetchError}) => {
+                const projectsLoading = !initiallyLoaded && fetching;
+                const projectFilter =
+                  !projectsLoading && !fetchError && projects.length
+                    ? {
+                        project: (projects[0] as Project).id,
+                      }
+                    : {};
 
-                  return (
-                    <StyledButtonBar gap={1}>
-                      <Button
-                        priority="primary"
-                        busy={projectsLoading}
-                        to={{
-                          pathname: issueStreamLink,
-                          query: projectFilter,
-                          hash: '#welcome',
-                        }}
-                      >
-                        {t('Take me to Issues')}
-                      </Button>
-                      <Button
-                        busy={projectsLoading}
-                        to={{
-                          pathname: performanceOverviewLink,
-                          query: projectFilter,
-                        }}
-                      >
-                        {t('Take me to Performance')}
-                      </Button>
-                    </StyledButtonBar>
-                  );
-                }}
-              </Projects>
-            )}
-        </div>
-        {this.isGettingStarted &&
-          organization.features?.includes('onboarding-heartbeat-footer') && (
+                return (
+                  <StyledButtonBar gap={1}>
+                    <Button
+                      priority="primary"
+                      busy={projectsLoading}
+                      to={{
+                        pathname: issueStreamLink,
+                        query: projectFilter,
+                        hash: '#welcome',
+                      }}
+                    >
+                      {t('Take me to Issues')}
+                    </Button>
+                    <Button
+                      busy={projectsLoading}
+                      to={{
+                        pathname: performanceOverviewLink,
+                        query: projectFilter,
+                      }}
+                    >
+                      {t('Take me to Performance')}
+                    </Button>
+                  </StyledButtonBar>
+                );
+              }}
+            </Projects>
+          ) : (
             <HeartbeatFooter
               projectSlug={projectId}
-              issueStreamLink={issueStreamLink}
-              performanceOverviewLink={performanceOverviewLink}
               route={this.props.route}
               router={this.props.router}
+              location={this.props.location}
             />
           )}
+        </div>
       </Fragment>
     );
   }

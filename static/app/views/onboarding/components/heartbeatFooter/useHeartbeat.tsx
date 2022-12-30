@@ -1,4 +1,5 @@
 import {
+  Group,
   Project,
   SessionApiResponse,
   SessionFieldWithOperation,
@@ -65,11 +66,32 @@ export function useHeartbeat({project}: Props) {
   const sessionInProgress =
     !sessionTerminated && inProgressState[0]?.totals['sum(session)'] > 0;
 
+  // Locate the projects first issue group. The project.firstEvent field will
+  // *not* include sample events, while just looking at the issues list will.
+  // We will wait until the project.firstEvent is set and then locate the
+  // event given that event datetime
+  const {data: issuesData, isLoading: issuesLoading} = useQuery<Group[]>(
+    [`/projects/${organization.slug}/${project?.slug}/issues/`],
+    {
+      staleTime: Infinity,
+      enabled: !!eventData?.firstEvent, // Only fetch if firsEvent (issue) is available,
+    }
+  );
+
+  const firstErrorReceived =
+    eventData?.firstEvent && issuesData
+      ? issuesData.find((issue: Group) => issue.firstSeen === eventData.firstEvent) ||
+        true
+      : false;
+
+  const firstTransactionReceived = !!eventData?.firstTransactionEvent;
+
   return {
     sessionInProgress,
-    firstErrorReceived: !!eventData?.firstEvent,
-    firstTransactionReceived: !!eventData?.firstTransactionEvent,
+    firstErrorReceived,
+    firstTransactionReceived,
     eventLoading,
     sessionLoading,
+    issuesLoading,
   };
 }

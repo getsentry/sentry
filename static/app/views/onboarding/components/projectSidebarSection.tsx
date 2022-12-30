@@ -1,8 +1,10 @@
 import {Fragment} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {motion, Variants} from 'framer-motion';
 import {PlatformIcon} from 'platformicons';
 
+import Placeholder from 'sentry/components/placeholder';
 import {PlatformKey} from 'sentry/data/platformCategories';
 import platforms from 'sentry/data/platforms';
 import {IconCheckmark} from 'sentry/icons';
@@ -12,20 +14,81 @@ import space from 'sentry/styles/space';
 import {Project} from 'sentry/types';
 import testableTransition from 'sentry/utils/testableTransition';
 
+import {useHeartbeat} from './heartbeatFooter/useHeartbeat';
+
 type Props = {
   activeProject: Project | null;
   checkProjectHasFirstEvent: (project: Project) => boolean;
+  hasHeartbeatFooter: boolean;
   projects: Project[];
   selectProject: (newProjectId: string) => void;
   // A map from selected platform keys to the projects created by onboarding.
   selectedPlatformToProjectIdMap: {[key in PlatformKey]?: string};
 };
+
+function NewProjectSideBarSection({
+  project,
+  isActive,
+  platformOnCreate,
+  onClick,
+}: {
+  isActive: boolean;
+  onClick: (projectId: Project['id']) => void;
+  platformOnCreate: string;
+  project?: Project;
+}) {
+  const theme = useTheme();
+  const {
+    firstErrorReceived,
+    sessionInProgress,
+    firstTransactionReceived,
+    eventLoading,
+    sessionLoading,
+  } = useHeartbeat({project});
+
+  const loading = eventLoading || sessionLoading;
+  const serverConnected = sessionInProgress || firstTransactionReceived;
+
+  const platform = project ? project.platform || 'other' : platformOnCreate;
+  const platformName = platforms.find(p => p.id === platform)?.name ?? '';
+
+  return (
+    <ProjectWrapper
+      isActive={loading ? false : isActive}
+      onClick={() => project && onClick(project.id)}
+      disabled={!project}
+    >
+      <StyledPlatformIcon platform={platform} size={36} />
+      <MiddleWrapper>
+        <NameWrapper>{platformName}</NameWrapper>
+        {loading ? (
+          <Placeholder height="20px" />
+        ) : !project ? (
+          <Beat color={theme.pink400}>{t('Project deleted')}</Beat>
+        ) : firstErrorReceived ? (
+          <Beat color={theme.successText}>{t('DSN and error received')}</Beat>
+        ) : serverConnected ? (
+          <Beat color={theme.pink400}>{t('Awaiting first error')}</Beat>
+        ) : (
+          <Beat color={theme.pink400}>{t('Awaiting DSN response')}</Beat>
+        )}
+      </MiddleWrapper>
+      {firstErrorReceived ? (
+        <StyledIconCheckmark isCircled color="green400" />
+      ) : (
+        isActive && !loading && <WaitingIndicator />
+      )}
+    </ProjectWrapper>
+  );
+}
+
 function ProjectSidebarSection({
   projects,
   activeProject,
   selectProject,
   checkProjectHasFirstEvent,
   selectedPlatformToProjectIdMap,
+  hasHeartbeatFooter,
 }: Props) {
   const oneProject = (platformOnCreate: string, projectSlug: string) => {
     const project = projects.find(p => p.slug === projectSlug);
@@ -63,7 +126,22 @@ function ProjectSidebarSection({
     <Fragment>
       <Title>{t('Projects to Setup')}</Title>
       {Object.entries(selectedPlatformToProjectIdMap).map(
-        ([platformOnCreate, projectSlug]) => oneProject(platformOnCreate, projectSlug)
+        ([platformOnCreate, projectSlug]) => {
+          if (hasHeartbeatFooter) {
+            const project = projects.find(p => p.slug === projectSlug);
+            const isActive = !!project && activeProject?.id === project.id;
+            return (
+              <NewProjectSideBarSection
+                key={projectSlug}
+                isActive={isActive}
+                project={project}
+                onClick={selectProject}
+                platformOnCreate={platformOnCreate}
+              />
+            );
+          }
+          return oneProject(platformOnCreate, projectSlug);
+        }
       )}
     </Fragment>
   );
@@ -103,6 +181,9 @@ const ProjectWrapper = styled('div')<{disabled: boolean; isActive: boolean}>`
     ${SubHeader} {
       color: ${p.theme.gray400};
     }
+    ${Beat} {
+      color: ${p.theme.gray400};
+    }
     ${NameWrapper} {
       text-decoration-line: line-through;
     }
@@ -140,4 +221,8 @@ const NameWrapper = styled('div')`
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
+`;
+
+const Beat = styled('div')<{color: string}>`
+  color: ${p => p.color};
 `;
