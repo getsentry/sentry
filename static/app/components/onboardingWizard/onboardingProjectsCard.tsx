@@ -37,13 +37,12 @@ export default function OnboardingProjectsCard({
     .map(platform => onboardingState.platformToProjectIdMap[platform])
     .map(projectId => allProjects.find(p => p.slug === projectId))
     .filter(project => project && !project.firstEvent) as Project[];
-
   if (projects.length === 0) {
     return null;
   }
-
   return (
     <TaskCard key="onboarding-continue-card">
+      <Title>{t('Project to Setup')}</Title>
       <OnboardingTaskProjectList>
         {projects.slice(0, MAX_PROJECT_COUNT).map(p => (
           <OnboardingTaskProjectListItem
