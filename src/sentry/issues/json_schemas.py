@@ -8,9 +8,7 @@ EVENT_PAYLOAD_VERSIONS: Mapping[int, Mapping[str, Any]] = {
             "event_id": {"type": "string", "minLength": 1},
             "platform": {"type": "string", "minLength": 1},
             "project_id": {"type": "string", "minLength": 1},
-            "tags": {
-                "type": "object",
-            },  # TODO
+            "tags": {"type": "object"},
             "timestamp": {"type": "string", "format": "date-time"},
             "message_timestamp": {"type": "string", "format": "date-time"},
             # "title": {"type": "string", "minLength": 1}, leaving this out, for now
