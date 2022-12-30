@@ -4,45 +4,45 @@ EVENT_PAYLOAD_VERSIONS: Mapping[int, Mapping[str, Any]] = {
     0: {
         "type": "object",
         "properties": {
+            # required properties
             "event_id": {"type": "string", "minLength": 1},
-            "project_id": {"type": "string", "minLength": 1},
             "platform": {"type": "string", "minLength": 1},
+            "project_id": {"type": "string", "minLength": 1},
             "tags": {
                 "type": "object",
             },  # TODO
-            "message_timestamp": {"type": "string", "format": "date-time"},
             "timestamp": {"type": "string", "format": "date-time"},
-            # "result": {
-            #     "type": "object",
-            #     "properties": {
-            #         "data": {
-            #             "type": "array",
-            #             "minItems": 1,
-            #             "items": {
-            #                 "type": "object",
-            #                 "minProperties": 1,
-            #                 "additionalProperties": {"type": ["number", "null"]},
-            #             },
-            #         }
-            #     },
-            #     "required": ["data"],
-            # },
-            # "trace_id": {"type": "string", "minLength": 1},
-            # "transaction": {"type": "string", "minLength": 1},
-            # # "server_name": {"type": "string", "minLength": 1},
-            # "release": {"type": "string", "minLength": 1},
-            # "dist": {"type": "string", "minLength": 1},
-            # "environment": {"type": "string", "minLength": 1},
-            # "user": {"type": "string", "minLength": 1},
-            # "sdk": {"type": "string", "minLength": 1},
-            # "contexts": {"type": "string", "minLength": 1},
-            # "request": {"type": "string", "minLength": 1},
-            # "modules": {"type": "string", "minLength": 1},
-            # "extra": {"type": "string", "minLength": 1},
-            # "message": {"type": "string", "minLength": 1},
-            # "breadcrumbs": {"type": "string", "minLength": 1},
+            "message_timestamp": {"type": "string", "format": "date-time"},
+            # "title": {"type": "string", "minLength": 1}, leaving this out, for now
+            # non-required properties
+            "breadcrumbs": {"type": "object"},
+            "contexts": {"type": "object"},
+            "dist": {
+                "type": "object",
+                "properties": {
+                    "dist": {"type": "string", "minLength": 1},
+                    "release": {"type": "string", "minLength": 1},
+                },
+                "required": ["dist", "release"],
+            },
+            "environment": {"type": "string", "minLength": 1},
+            "extra": {"type": "object"},
+            "message": {"type": "object"},
+            "modules": {"type": "object"},
+            "release": {"type": "string", "minLength": 1},
+            "request": {"type": "object"},
+            "sdk": {"type": "object"},
+            "server_name": {"type": "string", "minLength": 1},
+            "trace_id": {"type": "string", "minLength": 1},
+            "transaction": {"type": "string", "minLength": 1},
+            "user": {"type": "object"},
         },
-        "required": ["event_id", "project_id", "title", "platform", "tags"],
+        "required": [
+            "event_id",
+            "platform",
+            "project_id",
+            "tags",
+        ],  # title will be required, if enabled
         "additionalProperties": False,
     },
 }
