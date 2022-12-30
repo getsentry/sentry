@@ -124,18 +124,19 @@ class SlackRequest:
         return {k: v for k, v in data.items() if v}
 
     def get_identity(self) -> APIIdentity | None:
-        provider = identity_service.get_provider(
-            provider_type="slack", provider_ext_id=self.team_id
-        )
-        self._identity = (
-            identity_service.get_identity(provider_id=provider.id, identity_ext_id=self.user_id)
-            if provider
-            else None
-        )
+        if not hasattr(self, "_identity"):
+            provider = identity_service.get_provider(
+                provider_type="slack", provider_ext_id=self.team_id
+            )
+            self._identity = (
+                identity_service.get_identity(provider_id=provider.id, identity_ext_id=self.user_id)
+                if provider
+                else None
+            )
         return self._identity
 
     def get_identity_user(self) -> APIUser | None:
-        identity = self._identity if self._identity else self.get_identity()
+        identity = self.get_identity()
         if not identity:
             return None
         return user_service.get_user(identity.user_id)
