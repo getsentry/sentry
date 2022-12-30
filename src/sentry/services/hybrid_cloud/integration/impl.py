@@ -3,6 +3,9 @@ from __future__ import annotations
 import logging
 from typing import Any, Iterable, List, Mapping
 
+from sentry.api.paginator import OffsetPaginator
+from sentry.models.integrations import Integration
+from sentry.services.hybrid_cloud import ApiPaginationArgs, ApiPaginationResult
 from sentry.services.hybrid_cloud.integration import (
     APIIntegration,
     APIOrganizationIntegration,
@@ -16,11 +19,26 @@ class DatabaseBackedIntegrationService(IntegrationService):
     def close(self) -> None:
         pass
 
+    def page_integration_ids(
+        self,
+        *,
+        provider_keys: List[str],
+        organization_id: int,
+        args: ApiPaginationArgs,
+    ) -> ApiPaginationResult:
+        return args.do_hybrid_cloud_pagination(
+            description="page_integration_ids",
+            paginator_cls=OffsetPaginator,
+            order_by="name",
+            queryset=Integration.objects.filter(
+                organizations=organization_id,
+                provider__in=provider_keys,
+            ),
+        )
+
     def get_many(
         self, *, integration_ids: Iterable[int] | None = None, organization_id: int | None = None
     ) -> List[APIIntegration]:
-        from sentry.models.integrations import Integration
-
         queryset = None
         if integration_ids:
             queryset = Integration.objects.filter(id__in=integration_ids)

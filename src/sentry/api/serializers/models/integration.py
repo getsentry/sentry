@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 from collections import defaultdict
 from typing import Any, Mapping, MutableMapping, Optional, Sequence
@@ -12,6 +14,7 @@ from sentry.models import (
     OrganizationIntegration,
     User,
 )
+from sentry.services.hybrid_cloud.integration import APIIntegration, integration_service
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.json import JSONData
 
@@ -204,7 +207,7 @@ class IntegrationIssueSerializer(IntegrationSerializer):
         self.group = group
 
     def get_attrs(
-        self, item_list: Sequence[Integration], user: User, **kwargs: Any
+        self, item_list: Sequence[Integration | APIIntegration], user: User, **kwargs: Any
     ) -> MutableMapping[Integration, MutableMapping[str, Any]]:
         external_issues = ExternalIssue.objects.filter(
             id__in=GroupLink.objects.get_group_issues(self.group).values_list(
@@ -214,29 +217,33 @@ class IntegrationIssueSerializer(IntegrationSerializer):
         )
 
         issues_by_integration = defaultdict(list)
-        ints_by_id = {i.id: i for i in item_list}
         for ei in external_issues:
             # TODO(jess): move into an external issue serializer?
-            installation = ints_by_id[ei.integration_id].get_installation(
-                self.group.organization.id
+            installation = integration_service.get_installation(
+                integration_id=ei.integration_id, organization_id=self.group.organization.id
             )
-            issues_by_integration[ei.integration_id].append(
-                {
-                    "id": str(ei.id),
-                    "key": ei.key,
-                    "url": installation.get_issue_url(ei.key),
-                    "title": ei.title,
-                    "description": ei.description,
-                    "displayName": installation.get_issue_display_name(ei),
-                }
-            )
+            if installation is None:
+                continue
+            if hasattr(installation, "get_issue_url") and hasattr(
+                installation, "get_issue_display_name"
+            ):
+                issues_by_integration[ei.integration_id].append(
+                    {
+                        "id": str(ei.id),
+                        "key": ei.key,
+                        "url": installation.get_issue_url(ei.key),  # type: ignore
+                        "title": ei.title,
+                        "description": ei.description,
+                        "displayName": installation.get_issue_display_name(ei),  # type: ignore
+                    }
+                )
 
         return {
             item: {"external_issues": issues_by_integration.get(item.id, [])} for item in item_list
         }
 
     def serialize(
-        self, obj: Integration, attrs: Mapping[str, Any], user: User, **kwargs: Any
+        self, obj: Integration | APIIntegration, attrs: Mapping[str, Any], user: User, **kwargs: Any
     ) -> MutableMapping[str, JSONData]:
         data = super().serialize(obj, attrs, user)
         data["externalIssues"] = attrs.get("external_issues", [])

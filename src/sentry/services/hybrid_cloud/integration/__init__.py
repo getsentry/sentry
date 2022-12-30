@@ -4,7 +4,14 @@ from abc import abstractmethod
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Iterable, List, Mapping
 
-from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_delegation, stubbed
+from sentry.constants import ObjectStatus
+from sentry.services.hybrid_cloud import (
+    ApiPaginationArgs,
+    ApiPaginationResult,
+    InterfaceWithLifecycle,
+    silo_mode_delegation,
+    stubbed,
+)
 from sentry.silo import SiloMode
 
 if TYPE_CHECKING:
@@ -23,6 +30,21 @@ class APIIntegration:
     external_id: str
     name: str
     metadata: Mapping[str, Any]
+    status: int
+
+    def __hash__(self) -> int:
+        return hash(self.id)
+
+    def get_provider(self) -> IntegrationProvider:
+        from sentry import integrations
+
+        return integrations.get(self.provider)  # type: ignore
+
+    def get_status_display(self) -> str:
+        for status_id, display in ObjectStatus.as_choices():
+            if status_id == self.status:
+                return display
+        return "disabled"
 
 
 @dataclass(frozen=True)
@@ -43,6 +65,7 @@ class IntegrationService(InterfaceWithLifecycle):
             external_id=integration.external_id,
             name=integration.name,
             metadata=integration.metadata,
+            status=integration.status,
         )
 
     def _serialize_organization_integration(
@@ -64,6 +87,16 @@ class IntegrationService(InterfaceWithLifecycle):
         """
         Returns a list of APIIntegrations filtered either by a list of integration ids, or a single organization id
         """
+        pass
+
+    @abstractmethod
+    def page_integration_ids(
+        self,
+        *,
+        provider_keys: List[str],
+        organization_id: int,
+        args: ApiPaginationArgs,
+    ) -> ApiPaginationResult:
         pass
 
     @abstractmethod
