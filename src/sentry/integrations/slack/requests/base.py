@@ -56,7 +56,7 @@ class SlackRequest:
     def __init__(self, request: Request) -> None:
         self.request = request
         self._integration: Integration | None = None
-        self._identity: APIIdentity | None = None
+        self._identity: APIIdentity | None
         self._data: MutableMapping[str, Any] = {}
 
     def validate(self) -> None:
