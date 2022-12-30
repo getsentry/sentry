@@ -2,7 +2,7 @@ import datetime
 import logging
 import uuid
 from copy import deepcopy
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 import pytest
 
@@ -95,8 +95,8 @@ class ParseEventPayloadTest(IssueOccurrenceTestMessage):
 
     def run_invalid_payload_test(
         self,
-        remove_event_fields: Dict[str, Any] | None = None,
-        update_event_fields: Dict[str, Any] | None = None,
+        remove_event_fields: Optional[Dict[str, Any]] = None,
+        update_event_fields: Optional[Dict[str, Any]] = None,
     ) -> None:
         message = deepcopy(get_test_message(self.project.id))
         if remove_event_fields:
