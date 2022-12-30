@@ -20,7 +20,7 @@ import {PerformanceLanding} from 'sentry/views/performance/landing';
 import {REACT_NATIVE_COLUMN_TITLES} from 'sentry/views/performance/landing/data';
 import {LandingDisplayField} from 'sentry/views/performance/landing/utils';
 
-const searchHanlderMock = jest.fn();
+const searchHandlerMock = jest.fn();
 
 const WrappedComponent = ({data, withStaticFilters = false}) => {
   const eventView = generatePerformanceEventView(data.router.location, data.projects, {
@@ -44,7 +44,7 @@ const WrappedComponent = ({data, withStaticFilters = false}) => {
             projects={data.projects}
             selection={eventView.getPageFilters()}
             onboardingProject={undefined}
-            handleSearch={searchHanlderMock}
+            handleSearch={searchHandlerMock}
             handleTrendsClick={() => {}}
             setError={() => {}}
             withStaticFilters={withStaticFilters}
@@ -322,7 +322,7 @@ describe('Performance > Landing > Index', function () {
 
       await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
       userEvent.type(screen.getByPlaceholderText('Search Transactions'), '{enter}');
-      expect(searchHanlderMock).toHaveBeenCalledWith('', 'transactionsOnly');
+      expect(searchHandlerMock).toHaveBeenCalledWith('', 'transactionsOnly');
     });
 
     it('renders the search bar', async function () {
