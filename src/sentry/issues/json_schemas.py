@@ -7,7 +7,7 @@ EVENT_PAYLOAD_VERSIONS: Mapping[int, Mapping[str, Any]] = {
             # required properties
             "event_id": {"type": "string", "minLength": 1},
             "platform": {"type": "string", "minLength": 1},
-            "project_id": {"type": "string", "minLength": 1},
+            "project_id": {"type": "integer"},
             "tags": {"type": "object"},
             "timestamp": {"type": "string", "format": "date-time"},
             "message_timestamp": {"type": "string", "format": "date-time"},
