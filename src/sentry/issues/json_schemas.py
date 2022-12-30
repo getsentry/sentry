@@ -6,7 +6,6 @@ EVENT_PAYLOAD_VERSIONS: Mapping[int, Mapping[str, Any]] = {
         "properties": {
             "event_id": {"type": "string", "minLength": 1},
             "project_id": {"type": "string", "minLength": 1},
-            "title": {"type": "string", "minLength": 1},
             "platform": {"type": "string", "minLength": 1},
             "tags": {
                 "type": "object",

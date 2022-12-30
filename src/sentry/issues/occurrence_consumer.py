@@ -119,7 +119,6 @@ def _get_kwargs(payload: Mapping[str, Any]) -> Optional[Mapping[str, Any]]:
                     "platform": payload_event["platform"],
                     "tags": payload_event["tags"],
                     "timestamp": payload_event["timestamp"],
-                    "title": payload_event["title"]
                     # TODO add other params as per the spec
                 }
                 kwargs["occurrence_data"]["event_id"] = payload_event["event_id"]
@@ -140,32 +139,16 @@ def _process_message(
 
     metrics.incr("occurrence_ingest.messages", sample_rate=1.0)
 
+    # only validating event data, for now
     if "event_data" in kwargs:
-
         try:
             schema_version: int = kwargs["event_data"].get("version", 0)
-
-            #     with metrics.timer("snuba_query_subscriber.parse_message_value"):
-            #         contents = self.parse_message_value(message.value())
-            #         with metrics.timer("snuba_query_subscriber.parse_message_value.json_validate_wrapper"):
             jsonschema.validate(kwargs["event_data"], EVENT_PAYLOAD_VERSIONS[schema_version])
         except jsonschema.ValidationError:
-            # metrics.incr("snuba_query_subscriber.message_wrapper_invalid")
+            metrics.incr("occurrence_ingest.message_wrapper_invalid")
             raise Exception("Message wrapper does not match schema")
-        #
-        # except InvalidMessageError:
-        # If the message is in an invalid format, just log the error
-        # and continue
-        # logger.exception(
-        #     "Subscription update could not be parsed",
-        #     extra={
-        #         "offset": message.offset(),
-        #         "partition": message.partition(),
-        #         "value": message.value(),
-        #     },
-        # )
-        # return
-        return process_event_and_issue_occurrence(**kwargs)  # returning this now for easier testing
+
+        return process_event_and_issue_occurrence(**kwargs)  # returning for easier testing, for now
     else:
         # all occurrences will have Event data, for now
         pass
