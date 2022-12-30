@@ -6,7 +6,7 @@ import {
   makeCloseButton,
   ModalBody,
   ModalFooter,
-} from 'sentry/components/globalModal/components';
+} from 'sentry/components/modal/components';
 import CommandPaletteModal from 'sentry/components/modals/commandPalette';
 import FormSearchStore from 'sentry/stores/formSearchStore';
 

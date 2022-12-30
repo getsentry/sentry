@@ -7,7 +7,7 @@ import {
   makeCloseButton,
   ModalBody,
   ModalFooter,
-} from 'sentry/components/globalModal/components';
+} from 'sentry/components/modal/components';
 import {ReprocessingEventModal} from 'sentry/components/modals/reprocessEventModal';
 
 const group = TestStubs.Group({

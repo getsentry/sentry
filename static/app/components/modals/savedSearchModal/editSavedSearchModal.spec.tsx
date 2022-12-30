@@ -7,7 +7,7 @@ import {
   makeCloseButton,
   ModalBody,
   ModalFooter,
-} from 'sentry/components/globalModal/components';
+} from 'sentry/components/modal/components';
 import {EditSavedSearchModal} from 'sentry/components/modals/savedSearchModal/editSavedSearchModal';
 import {SavedSearchType, SavedSearchVisibility} from 'sentry/types';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';

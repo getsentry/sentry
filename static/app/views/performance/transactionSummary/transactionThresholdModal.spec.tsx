@@ -7,7 +7,7 @@ import {
   makeCloseButton,
   ModalBody,
   ModalFooter,
-} from 'sentry/components/globalModal/components';
+} from 'sentry/components/modal/components';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {Organization} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';

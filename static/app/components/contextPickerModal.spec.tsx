@@ -8,7 +8,7 @@ import OrganizationsStore from 'sentry/stores/organizationsStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 
-import {makeCloseButton, ModalBody, ModalFooter} from './globalModal/components';
+import {makeCloseButton, ModalBody, ModalFooter} from './modal/components';
 
 describe('ContextPickerModal', function () {
   let project, project2, project4, org, org2;

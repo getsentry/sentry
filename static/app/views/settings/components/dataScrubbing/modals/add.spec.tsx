@@ -5,7 +5,7 @@ import {
   makeCloseButton,
   ModalBody,
   ModalFooter,
-} from 'sentry/components/globalModal/components';
+} from 'sentry/components/modal/components';
 import {convertRelayPiiConfig} from 'sentry/views/settings/components/dataScrubbing/convertRelayPiiConfig';
 import Add from 'sentry/views/settings/components/dataScrubbing/modals/add';
 import {MethodType, RuleType} from 'sentry/views/settings/components/dataScrubbing/types';
