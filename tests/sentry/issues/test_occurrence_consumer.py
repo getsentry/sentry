@@ -86,14 +86,18 @@ class IssueOccurrenceTestMessage(OccurrenceTestMixin, TestCase, SnubaTestCase): 
 
 
 class ParseEventPayloadTest(IssueOccurrenceTestMessage):
-    def run_test(self, message):
+    def run_test(self, message: Dict[str, Any]) -> None:
         _process_message(message)
 
-    def run_invalid_schema_test(self, message):
+    def run_invalid_schema_test(self, message: Dict[str, Any]) -> None:
         with pytest.raises(InvalidEventPayloadError):
             self.run_test(message)
 
-    def run_invalid_payload_test(self, remove_event_fields=None, update_event_fields=None):
+    def run_invalid_payload_test(
+        self,
+        remove_event_fields: Dict[str, Any] | None = None,
+        update_event_fields: Dict[str, Any] | None = None,
+    ) -> None:
         message = deepcopy(get_test_message(self.project.id))
         if remove_event_fields:
             for field in remove_event_fields:
@@ -102,7 +106,7 @@ class ParseEventPayloadTest(IssueOccurrenceTestMessage):
             message["event"].update(update_event_fields)
         self.run_invalid_schema_test(message)
 
-    def test_invalid_payload(self):
+    def test_invalid_payload(self) -> None:
         # self.run_invalid_payload_test(remove_event_fields=["event_id"])
         # self.run_invalid_payload_test(remove_event_fields=["project_id"])
         # self.run_invalid_payload_test(remove_event_fields=["timestamp"])
@@ -114,10 +118,10 @@ class ParseEventPayloadTest(IssueOccurrenceTestMessage):
         self.run_invalid_payload_test(update_event_fields={"platform": 0000})
         self.run_invalid_payload_test(update_event_fields={"tags": "tagged"})
 
-    def test_valid(self):
+    def test_valid(self) -> None:
         self.run_test(get_test_message(self.project.id))
 
-    def test_valid_nan(self):
+    def test_valid_nan(self) -> None:
         message = deepcopy(get_test_message(self.project.id))
         message["event"]["tags"]["nan-tag"] = float("nan")
         self.run_test(message)
