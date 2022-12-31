@@ -4,7 +4,7 @@ from django.urls import reverse
 
 from sentry.models import ApiKey
 from sentry.testutils import APITestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
 
 
 @region_silo_test(stable=True)
@@ -18,7 +18,8 @@ class OrganizationProjectsTestBase(APITestCase):
         ]
 
     def test_api_key(self):
-        key = ApiKey.objects.create(organization=self.organization, scope_list=["org:read"])
+        with exempt_from_silo_limits():
+            key = ApiKey.objects.create(organization=self.organization, scope_list=["org:read"])
 
         project = self.create_project(teams=[self.team])
 
