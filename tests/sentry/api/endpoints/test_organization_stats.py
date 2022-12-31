@@ -12,7 +12,7 @@ from sentry.testutils.silo import region_silo_test
 from sentry.utils.outcomes import Outcome
 
 
-@region_silo_test
+@region_silo_test  # TODO(hybrid-cloud): stable=True blocked on org members
 @freeze_time(before_now(days=1).replace(hour=1, minute=10))
 class OrganizationStatsTest(APITestCase, OutcomesSnubaTest):
     def test_simple(self):
