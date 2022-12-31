@@ -187,9 +187,9 @@ function Onboarding(props: Props) {
       </Header>
       <Container
         hasFooter={containerHasFooter}
-        hasHeartbeatFooter={organization?.features.includes(
-          'onboarding-heartbeat-footer'
-        )}
+        hasHeartbeatFooter={
+          !!organization?.features.includes('onboarding-heartbeat-footer')
+        }
       >
         <Back animate={stepIndex > 0 ? 'visible' : 'hidden'} onClick={handleGoBack} />
         <AnimatePresence exitBeforeEnter onExitComplete={updateAnimationState}>

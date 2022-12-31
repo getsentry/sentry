@@ -252,9 +252,9 @@ function SetupDocs({
     <Fragment>
       <Wrapper>
         <SidebarWrapper
-          hasHeartbeatFooter={organization.features?.includes(
-            'onboarding-heartbeat-footer'
-          )}
+          hasHeartbeatFooter={
+            !!organization?.features.includes('onboarding-heartbeat-footer')
+          }
         >
           <ProjectSidebarSection
             projects={projects}
@@ -266,9 +266,9 @@ function SetupDocs({
             )}
             activeProject={project}
             {...{checkProjectHasFirstEvent, selectProject}}
-            hasHeartbeatFooter={organization.features?.includes(
-              'onboarding-heartbeat-footer'
-            )}
+            hasHeartbeatFooter={
+              !!organization?.features.includes('onboarding-heartbeat-footer')
+            }
           />
         </SidebarWrapper>
         <MainContent>
@@ -293,7 +293,41 @@ function SetupDocs({
       </Wrapper>
 
       {project &&
-        (!organization.features?.includes('onboarding-heartbeat-footer') ? (
+        (organization.features?.includes('onboarding-heartbeat-footer') ? (
+          <HeartbeatFooter
+            projectSlug={project.slug}
+            nextProjectSlug={nextProject?.slug}
+            route={route}
+            router={router}
+            location={location}
+            onSetupNextProject={() => {
+              const orgIssuesURL = `/organizations/${organization.slug}/issues/?project=${project.id}&referrer=onboarding-setup-docs`;
+              trackAdvancedAnalyticsEvent(
+                'growth.onboarding_clicked_setup_platform_later',
+                {
+                  organization,
+                  platform: currentPlatform,
+                  project_index: projectIndex,
+                }
+              );
+              if (!project.platform || !clientState) {
+                browserHistory.push(orgIssuesURL);
+                return;
+              }
+              // if we have a next project, switch to that
+              if (nextProject) {
+                setNewProject(nextProject.id);
+              } else {
+                setClientState({
+                  ...clientState,
+                  state: 'finished',
+                });
+                browserHistory.push(orgIssuesURL);
+              }
+            }}
+            newOrg
+          />
+        ) : (
           <FirstEventFooter
             project={project}
             organization={organization}
@@ -328,40 +362,6 @@ function SetupDocs({
               const newHasFirstEventMap = {...hasFirstEventMap, [project.id]: true};
               setHasFirstEventMap(newHasFirstEventMap);
             }}
-          />
-        ) : (
-          <HeartbeatFooter
-            projectSlug={project.slug}
-            nextProjectSlug={nextProject?.slug}
-            route={route}
-            router={router}
-            location={location}
-            onSetupNextProject={() => {
-              const orgIssuesURL = `/organizations/${organization.slug}/issues/?project=${project.id}&referrer=onboarding-setup-docs`;
-              trackAdvancedAnalyticsEvent(
-                'growth.onboarding_clicked_setup_platform_later',
-                {
-                  organization,
-                  platform: currentPlatform,
-                  project_index: projectIndex,
-                }
-              );
-              if (!project.platform || !clientState) {
-                browserHistory.push(orgIssuesURL);
-                return;
-              }
-              // if we have a next project, switch to that
-              if (nextProject) {
-                setNewProject(nextProject.id);
-              } else {
-                setClientState({
-                  ...clientState,
-                  state: 'finished',
-                });
-                browserHistory.push(orgIssuesURL);
-              }
-            }}
-            newOrg
           />
         ))}
     </Fragment>

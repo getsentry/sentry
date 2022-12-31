@@ -167,7 +167,14 @@ class ProjectInstallPlatform extends Component<Props, State> {
           )}
 
           {this.isGettingStarted &&
-          !organization.features?.includes('onboarding-heartbeat-footer') ? (
+          !!organization?.features.includes('onboarding-heartbeat-footer') ? (
+            <HeartbeatFooter
+              projectSlug={projectId}
+              route={this.props.route}
+              router={this.props.router}
+              location={this.props.location}
+            />
+          ) : (
             <Projects
               key={`${orgId}-${projectId}`}
               orgId={orgId}
@@ -209,13 +216,6 @@ class ProjectInstallPlatform extends Component<Props, State> {
                 );
               }}
             </Projects>
-          ) : (
-            <HeartbeatFooter
-              projectSlug={projectId}
-              route={this.props.route}
-              router={this.props.router}
-              location={this.props.location}
-            />
           )}
         </div>
       </Fragment>
