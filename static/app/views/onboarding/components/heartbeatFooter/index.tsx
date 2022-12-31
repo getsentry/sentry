@@ -1,5 +1,6 @@
-import {useEffect} from 'react';
+import {Fragment, useEffect} from 'react';
 import {RouteComponentProps} from 'react-router';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
@@ -7,9 +8,12 @@ import {openModal} from 'sentry/actionCreators/modal';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import IdBadge from 'sentry/components/idBadge';
+import Placeholder from 'sentry/components/placeholder';
+import {IconCheckmark} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import PreferencesStore from 'sentry/stores/preferencesStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
+import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
 import space from 'sentry/styles/space';
 import {Project} from 'sentry/types';
 import getPlatformName from 'sentry/utils/getPlatformName';
@@ -18,8 +22,13 @@ import useProjects from 'sentry/utils/useProjects';
 
 import GenericFooter from '../genericFooter';
 
-import {Beats, LoadingPlaceholder} from './beats';
 import {useHeartbeat} from './useHeartbeat';
+
+enum BeatStatus {
+  AWAITING = 'awaiting',
+  PENDING = 'pending',
+  COMPLETE = 'complete',
+}
 
 async function openChangeRouteModal(
   router: RouteComponentProps<{}, {}>['router'],
@@ -80,6 +89,7 @@ export function HeartbeatFooter({
   } = useHeartbeat({project});
 
   const serverConnected = sessionInProgress || firstTransactionReceived;
+  const loading = projectsLoading || sessionLoading || eventLoading;
 
   useEffect(() => {
     const onUnload = (nextLocation?: Location) => {
@@ -125,122 +135,144 @@ export function HeartbeatFooter({
     router.setRouteLeaveHook(route, onUnload);
   }, [serverConnected, firstErrorReceived, route, router, organization.slug, location]);
 
-  const platformIconAndName = (
-    <PlatformIconAndName>
-      {projectsLoading ? (
-        <LoadingPlaceholder height="28px" width="276px" />
-      ) : (
-        <IdBadge
-          project={project}
-          displayPlatformName
-          avatarSize={28}
-          hideOverflow
-          disableLink
-        />
-      )}
-    </PlatformIconAndName>
-  );
-
-  const beats = (
-    <Beats
-      loading={projectsLoading || sessionLoading || eventLoading}
-      firstErrorReceived={firstErrorReceived}
-      serverConnected={serverConnected}
-    />
-  );
-
-  if (newOrg) {
-    return (
-      <NewOrgWrapper>
-        {platformIconAndName}
-        {beats}
-        <Actions>
-          <ButtonBar gap={1}>
-            {nextProject && (
-              <Button busy={projectsLoading} onClick={onSetupNextProject}>
-                {nextProject.platform
-                  ? t('Setup %s', getPlatformName(nextProject.platform))
-                  : t('Next Platform')}
-              </Button>
-            )}
-            {firstErrorReceived ? (
-              <Button
-                priority="primary"
-                busy={projectsLoading}
-                to={`/organizations/${organization.slug}/issues/${
-                  firstErrorReceived &&
-                  firstErrorReceived !== true &&
-                  'id' in firstErrorReceived
-                    ? `${firstErrorReceived.id}/`
-                    : ''
-                }?referrer=onboarding-first-event-footer`}
-              >
-                {t('Go to my error')}
-              </Button>
-            ) : (
-              <Button
-                priority="primary"
-                busy={projectsLoading}
-                to={`/organizations/${organization.slug}/issues/`} // TODO(Priscila): See what Jesse meant with 'explore sentry'. What should be the expected action?
-              >
-                {t('Explore Sentry')}
-              </Button>
-            )}
-          </ButtonBar>
-        </Actions>
-      </NewOrgWrapper>
-    );
-  }
-
   return (
-    <ExistingOrgWrapper sidebarCollapsed={!!preferences.collapsed}>
-      {platformIconAndName}
-      {beats}
+    <Wrapper newOrg={!!newOrg} sidebarCollapsed={!!preferences.collapsed}>
+      <PlatformIconAndName>
+        {projectsLoading ? (
+          <LoadingPlaceholder height="28px" width="276px" />
+        ) : (
+          <IdBadge
+            project={project}
+            displayPlatformName
+            avatarSize={28}
+            hideOverflow
+            disableLink
+          />
+        )}
+      </PlatformIconAndName>
+      <Beats>
+        {loading ? (
+          <Fragment>
+            <LoadingPlaceholder height="28px" />
+            <LoadingPlaceholder height="28px" />
+          </Fragment>
+        ) : firstErrorReceived ? (
+          <Fragment>
+            <Beat status={BeatStatus.COMPLETE}>
+              <IconCheckmark size="16px" isCircled />
+              {t('DSN response received')}
+            </Beat>
+            <Beat status={BeatStatus.COMPLETE}>
+              <IconCheckmark size="16px" isCircled />
+              {t('First error received')}
+            </Beat>
+          </Fragment>
+        ) : serverConnected ? (
+          <Fragment>
+            <Beat status={BeatStatus.COMPLETE}>
+              <IconCheckmark size="16px" isCircled />
+              {t('DSN response received')}
+            </Beat>
+            <Beat status={BeatStatus.AWAITING}>
+              <PulsingIndicator>2</PulsingIndicator>
+              {t('Awaiting first error')}
+            </Beat>
+          </Fragment>
+        ) : (
+          <Fragment>
+            <Beat status={BeatStatus.AWAITING}>
+              <PulsingIndicator>1</PulsingIndicator>
+              {t('Awaiting DSN response')}
+            </Beat>
+            <Beat status={BeatStatus.PENDING}>
+              <PulsingIndicator>2</PulsingIndicator>
+              {t('Awaiting first error')}
+            </Beat>
+          </Fragment>
+        )}
+      </Beats>
       <Actions>
         <ButtonBar gap={1}>
-          <Button
-            busy={projectsLoading}
-            to={{
-              pathname: `/organizations/${organization.slug}/performance/`,
-              query: {project: project?.id},
-            }}
-          >
-            {t('Go to Performance')}
-          </Button>
-          {firstErrorReceived ? (
-            <Button
-              priority="primary"
-              busy={projectsLoading}
-              to={`/organizations/${organization.slug}/issues/${
-                firstErrorReceived &&
-                firstErrorReceived !== true &&
-                'id' in firstErrorReceived
-                  ? `${firstErrorReceived.id}/`
-                  : ''
-              }`}
-            >
-              {t('Go to my error')}
-            </Button>
+          {newOrg ? (
+            <Fragment>
+              {nextProject && (
+                <Button busy={projectsLoading} onClick={onSetupNextProject}>
+                  {nextProject.platform
+                    ? t('Setup %s', getPlatformName(nextProject.platform))
+                    : t('Next Platform')}
+                </Button>
+              )}
+              {firstErrorReceived ? (
+                <Button
+                  priority="primary"
+                  busy={projectsLoading}
+                  to={`/organizations/${organization.slug}/issues/${
+                    firstErrorReceived &&
+                    firstErrorReceived !== true &&
+                    'id' in firstErrorReceived
+                      ? `${firstErrorReceived.id}/`
+                      : ''
+                  }?referrer=onboarding-first-event-footer`}
+                >
+                  {t('Go to my error')}
+                </Button>
+              ) : (
+                <Button
+                  priority="primary"
+                  busy={projectsLoading}
+                  to={`/organizations/${organization.slug}/issues/`} // TODO(Priscila): See what Jesse meant with 'explore sentry'. What should be the expected action?
+                >
+                  {t('Explore Sentry')}
+                </Button>
+              )}
+            </Fragment>
           ) : (
-            <Button
-              priority="primary"
-              busy={projectsLoading}
-              to={{
-                pathname: `/organizations/${organization.slug}/issues/`,
-                query: {project: project?.id},
-                hash: '#welcome',
-              }}
-            >
-              {t('Go to Issues')}
-            </Button>
+            <Fragment>
+              <Button
+                busy={projectsLoading}
+                to={{
+                  pathname: `/organizations/${organization.slug}/performance/`,
+                  query: {project: project?.id},
+                }}
+              >
+                {t('Go to Performance')}
+              </Button>
+              {firstErrorReceived ? (
+                <Button
+                  priority="primary"
+                  busy={projectsLoading}
+                  to={`/organizations/${organization.slug}/issues/${
+                    firstErrorReceived &&
+                    firstErrorReceived !== true &&
+                    'id' in firstErrorReceived
+                      ? `${firstErrorReceived.id}/`
+                      : ''
+                  }`}
+                >
+                  {t('Go to my error')}
+                </Button>
+              ) : (
+                <Button
+                  priority="primary"
+                  busy={projectsLoading}
+                  to={{
+                    pathname: `/organizations/${organization.slug}/issues/`,
+                    query: {project: project?.id},
+                    hash: '#welcome',
+                  }}
+                >
+                  {t('Go to Issues')}
+                </Button>
+              )}
+            </Fragment>
           )}
         </ButtonBar>
       </Actions>
-    </ExistingOrgWrapper>
+    </Wrapper>
   );
 }
 
-const NewOrgWrapper = styled(GenericFooter)`
+const Wrapper = styled(GenericFooter)<{newOrg: boolean; sidebarCollapsed: boolean}>`
   display: none;
   display: flex;
   flex-direction: row;
@@ -253,17 +285,18 @@ const NewOrgWrapper = styled(GenericFooter)`
     align-items: center;
     gap: ${space(3)};
   }
-`;
-
-const ExistingOrgWrapper = styled(NewOrgWrapper)<{sidebarCollapsed: boolean}>`
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
-    width: calc(
-      100% -
-        ${p => p.theme.sidebar[p.sidebarCollapsed ? 'collapsedWidth' : 'expandedWidth']}
-    );
-    right: 0;
-    left: auto;
-  }
+  ${p =>
+    !p.newOrg &&
+    css`
+      @media (min-width: ${p.theme.breakpoints.medium}) {
+        width: calc(
+          100% -
+            ${p.theme.sidebar[p.sidebarCollapsed ? 'collapsedWidth' : 'expandedWidth']}
+        );
+        right: 0;
+        left: auto;
+      }
+    `}
 `;
 
 const PlatformIconAndName = styled('div')`
@@ -275,6 +308,72 @@ const PlatformIconAndName = styled('div')`
     width: 100%;
     display: block;
   }
+`;
+
+const Beats = styled('div')`
+  display: none;
+
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
+    gap: ${space(2)};
+    display: grid;
+    grid-template-columns: repeat(2, max-content);
+    justify-content: center;
+    align-items: center;
+  }
+`;
+
+export const LoadingPlaceholder = styled(Placeholder)`
+  width: 100%;
+  max-width: ${p => p.width};
+`;
+
+const PulsingIndicator = styled('div')`
+  ${pulsingIndicatorStyles};
+  font-size: ${p => p.theme.fontSizeExtraSmall};
+  color: ${p => p.theme.white};
+  height: 16px;
+  width: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  :before {
+    top: auto;
+    left: auto;
+  }
+`;
+
+const Beat = styled('div')<{status: BeatStatus}>`
+  width: 160px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: ${space(0.5)};
+  font-size: ${p => p.theme.fontSizeSmall};
+  color: ${p => p.theme.pink300};
+
+  ${p =>
+    p.status === BeatStatus.PENDING &&
+    css`
+      color: ${p.theme.disabled};
+      ${PulsingIndicator} {
+        background: ${p.theme.disabled};
+        :before {
+          content: none;
+        }
+      }
+    `}
+
+  ${p =>
+    p.status === BeatStatus.COMPLETE &&
+    css`
+      color: ${p.theme.successText};
+      ${PulsingIndicator} {
+        background: ${p.theme.success};
+        :before {
+          content: none;
+        }
+      }
+    `}
 `;
 
 const Actions = styled('div')`
