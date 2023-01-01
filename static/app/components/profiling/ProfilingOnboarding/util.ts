@@ -5,6 +5,7 @@ import {Project} from 'sentry/types/project';
 
 export const supportedProfilingPlatforms = [
   'android',
+  'kotlin',
   'apple-ios',
   'node',
   'python',
@@ -20,6 +21,7 @@ const platformToDocsPlatform: Record<
   typeof supportedProfilingPlatforms[number]
 > = {
   android: 'android',
+  kotlin: 'kotlin',
   'apple-ios': 'apple-ios',
   node: 'node',
   'node-express': 'node',
