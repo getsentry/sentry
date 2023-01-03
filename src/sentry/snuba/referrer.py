@@ -1,7 +1,10 @@
+import logging
 from enum import Enum, unique
 from typing import Optional
 
 from sentry.utils import metrics
+
+logger = logging.getLogger("sentry.referrers")
 
 
 @unique
@@ -306,6 +309,234 @@ class Referrer(Enum):
     UNKNOWN = "unknown"
     UNMERGE = "unmerge"
 
+    API_ALERTS_ALERT_RULE_CHART_METRICS_ENHANCED = "api.alerts.alert-rule-chart.metrics-enhanced"
+    API_AUTH_TOKEN_EVENTS_METRICS_ENHANCED_PRIMARY = (
+        "api.auth-token.events.metrics-enhanced.primary"
+    )
+    API_DASHBOARDS_BIGNUMBERWIDGET_METRICS_ENHANCED_PRIMARY = (
+        "api.dashboards.bignumberwidget.metrics-enhanced.primary"
+    )
+    API_DASHBOARDS_TABLEWIDGET_METRICS_ENHANCED_SECONDARY = (
+        "api.dashboards.tablewidget.metrics-enhanced.secondary"
+    )
+    API_DASHBOARDS_WIDGET_BAR_CHART_METRICS_ENHANCED = (
+        "api.dashboards.widget.bar-chart.metrics-enhanced"
+    )
+    API_DASHBOARDS_WIDGET_LINE_CHART_METRICS_ENHANCED = (
+        "api.dashboards.widget.line-chart.metrics-enhanced"
+    )
+    API_DISCOVER_QUERY_TABLE_METRICS_ENHANCED_PRIMARY = (
+        "api.discover.query-table.metrics-enhanced.primary"
+    )
+    API_METRICS_SERIES = "api.metrics.series"
+    API_METRICS_SERIES_SECOND_QUERY = "api.metrics.series.second_query"
+    API_METRICS_TOTALS_INITIAL_QUERY = "api.metrics.totals.initial_query"
+    API_METRICS_TOTALS_SECOND_QUERY = "api.metrics.totals.second_query"
+    API_ORGANIZATION_EVENT_STATS_METRICS_ENHANCED = "api.organization-event-stats.metrics-enhanced"
+    API_ORGANIZATION_EVENTS_HISTOGRAM_MIN_MAX_METRICS_ENHANCED_PRIMARY = (
+        "api.organization-events-histogram-min-max.metrics-enhanced.primary"
+    )
+    API_ORGANIZATION_EVENTS_HISTOGRAM_PRIMARY = "api.organization-events-histogram.primary"
+    API_ORGANIZATION_EVENTS_METRICS_COMPATIBILITY_COMPATIBLE_METRICS_ENHANCED_PRIMARY = (
+        "api.organization-events-metrics-compatibility.compatible.metrics-enhanced.primary"
+    )
+    API_ORGANIZATION_EVENTS_METRICS_COMPATIBILITY_SUM_METRICS_METRICS_ENHANCED_PRIMARY = (
+        "api.organization-events-metrics-compatibility.sum_metrics.metrics-enhanced.primary"
+    )
+    API_ORGANIZATION_EVENTS_METRICS_ENHANCED_PRIMARY = (
+        "api.organization-events.metrics-enhanced.primary"
+    )
+    API_ORGANIZATION_EVENTS_METRICS_ENHANCED_SECONDARY = (
+        "api.organization-events.metrics-enhanced.secondary"
+    )
+    API_ORGANIZATION_ISSUE_REPLAY_COUNT = "api.organization-issue-replay-count"
+    API_ORGANIZATION_VITALS = "api.organization-vitals"
+    API_ORGANIZATION_VITALS_PER_PROJECT = "api.organization-vitals-per-project"
+    API_PERFORMANCE_GENERIC_WIDGET_CHART_APDEX_AREA_METRICS_ENHANCED = (
+        "api.performance.generic-widget-chart.apdex-area.metrics-enhanced"
+    )
+    API_PERFORMANCE_GENERIC_WIDGET_CHART_COLD_STARTUP_AREA_METRICS_ENHANCED = (
+        "api.performance.generic-widget-chart.cold-startup-area.metrics-enhanced"
+    )
+    API_PERFORMANCE_GENERIC_WIDGET_CHART_FAILURE_RATE_AREA_METRICS_ENHANCED = (
+        "api.performance.generic-widget-chart.failure-rate-area.metrics-enhanced"
+    )
+    API_PERFORMANCE_GENERIC_WIDGET_CHART_MOST_FROZEN_FRAMES_METRICS_ENHANCED = (
+        "api.performance.generic-widget-chart.most-frozen-frames.metrics-enhanced"
+    )
+    API_PERFORMANCE_GENERIC_WIDGET_CHART_MOST_SLOW_FRAMES_METRICS_ENHANCED = (
+        "api.performance.generic-widget-chart.most-slow-frames.metrics-enhanced"
+    )
+    API_PERFORMANCE_GENERIC_WIDGET_CHART_P50_DURATION_AREA_METRICS_ENHANCED = (
+        "api.performance.generic-widget-chart.p50-duration-area.metrics-enhanced"
+    )
+    API_PERFORMANCE_GENERIC_WIDGET_CHART_P75_DURATION_AREA_METRICS_ENHANCED = (
+        "api.performance.generic-widget-chart.p75-duration-area.metrics-enhanced"
+    )
+    API_PERFORMANCE_GENERIC_WIDGET_CHART_P75_LCP_AREA_METRICS_ENHANCED = (
+        "api.performance.generic-widget-chart.p75-lcp-area.metrics-enhanced"
+    )
+    API_PERFORMANCE_GENERIC_WIDGET_CHART_P95_DURATION_AREA_METRICS_ENHANCED = (
+        "api.performance.generic-widget-chart.p95-duration-area.metrics-enhanced"
+    )
+    API_PERFORMANCE_GENERIC_WIDGET_CHART_P99_DURATION_AREA_METRICS_ENHANCED = (
+        "api.performance.generic-widget-chart.p99-duration-area.metrics-enhanced"
+    )
+    API_PERFORMANCE_GENERIC_WIDGET_CHART_SLOW_BROWSER_OPS_METRICS_ENHANCED = (
+        "api.performance.generic-widget-chart.slow-browser-ops.metrics-enhanced"
+    )
+    API_PERFORMANCE_GENERIC_WIDGET_CHART_SLOW_DB_OPS_METRICS_ENHANCED = (
+        "api.performance.generic-widget-chart.slow-db-ops.metrics-enhanced"
+    )
+    API_PERFORMANCE_GENERIC_WIDGET_CHART_SLOW_FRAMES_AREA_METRICS_ENHANCED = (
+        "api.performance.generic-widget-chart.slow-frames-area.metrics-enhanced"
+    )
+    API_PERFORMANCE_GENERIC_WIDGET_CHART_SLOW_HTTP_OPS_METRICS_ENHANCED = (
+        "api.performance.generic-widget-chart.slow-http-ops.metrics-enhanced"
+    )
+    API_PERFORMANCE_GENERIC_WIDGET_CHART_SLOW_RESOURCE_OPS_METRICS_ENHANCED = (
+        "api.performance.generic-widget-chart.slow-resource-ops.metrics-enhanced"
+    )
+    API_PERFORMANCE_GENERIC_WIDGET_CHART_TPM_AREA_METRICS_ENHANCED = (
+        "api.performance.generic-widget-chart.tpm-area.metrics-enhanced"
+    )
+    API_PERFORMANCE_GENERIC_WIDGET_CHART_USER_MISERY_AREA_METRICS_ENHANCED = (
+        "api.performance.generic-widget-chart.user-misery-area.metrics-enhanced"
+    )
+    API_PERFORMANCE_GENERIC_WIDGET_CHART_WARM_STARTUP_AREA_METRICS_ENHANCED = (
+        "api.performance.generic-widget-chart.warm-startup-area.metrics-enhanced"
+    )
+    API_PERFORMANCE_GENERIC_WIDGET_CHART_WORST_FCP_VITALS_METRICS_ENHANCED = (
+        "api.performance.generic-widget-chart.worst-fcp-vitals.metrics-enhanced"
+    )
+    API_PERFORMANCE_GENERIC_WIDGET_CHART_WORST_FID_VITALS_METRICS_ENHANCED = (
+        "api.performance.generic-widget-chart.worst-fid-vitals.metrics-enhanced"
+    )
+    API_PERFORMANCE_GENERIC_WIDGET_CHART_WORST_LCP_VITALS_METRICS_ENHANCED = (
+        "api.performance.generic-widget-chart.worst-lcp-vitals.metrics-enhanced"
+    )
+    API_PERFORMANCE_LANDING_TABLE_METRICS_ENHANCED_PRIMARY = (
+        "api.performance.landing-table.metrics-enhanced.primary"
+    )
+    API_PERFORMANCE_LANDING_TABLE_METRICS_ENHANCED_SECONDARY = (
+        "api.performance.landing-table.metrics-enhanced.secondary"
+    )
+    API_PERFORMANCE_TRANSACTION_SUMMARY_SIDEBAR_CHART_METRICS_ENHANCED = (
+        "api.performance.transaction-summary.sidebar-chart.metrics-enhanced"
+    )
+    EVENTSTORE_GET_UNFETCHED_EVENTS = "eventstore.get_unfetched_events"
+    EVENTSTORE_GET_UNFETCHED_TRANSACTIONS = "eventstore.get_unfetched_transactions"
+    EXPORT_EVENTS = "export-events"
+    FETCH_EVENTS_FOR_DELETION = "fetch_events_for_deletion"
+    GETSENTRY_PROMOTION_MOBILE_PERFORMANCE_ADOPTION_CHECK_CONDITIONS = (
+        "getsentry.promotion.mobile_performance_adoption.check_conditions"
+    )
+    GETSENTRY_PROMOTION_MOBILE_PERFORMANCE_ADOPTION_CHECK_ELIGIBLE = (
+        "getsentry.promotion.mobile_performance_adoption.check_eligible"
+    )
+    INCIDENTS_GET_INCIDENT_AGGREGATES_PRIMARY = "incidents.get_incident_aggregates.primary"
+    PREVIEW_GET_EVENTS = "preview.get_events"
+    PREVIEW_GET_FREQUENCY_BUCKETS = "preview.get_frequency_buckets"
+    PREVIEW_GET_TOP_GROUPS = "preview.get_top_groups"
+    RELEASE_HEALTH_METRICS_CHECK_HAS_HEALTH_DATA = "release_health.metrics.check_has_health_data"
+    RELEASE_HEALTH_METRICS_CHECK_RELEASES_HAVE_HEALTH_DATA = (
+        "release_health.metrics.check_releases_have_health_data"
+    )
+    RELEASE_HEALTH_METRICS_CRASH_FREE_BREAKDOWN_SESSION = (
+        "release_health.metrics.crash-free-breakdown.session"
+    )
+    RELEASE_HEALTH_METRICS_CRASH_FREE_BREAKDOWN_USERS = (
+        "release_health.metrics.crash-free-breakdown.users"
+    )
+    RELEASE_HEALTH_METRICS_GET_ABNORMAL_AND_CRASHED_SESSIONS_FOR_OVERVIEW = (
+        "release_health.metrics.get_abnormal_and_crashed_sessions_for_overview"
+    )
+    RELEASE_HEALTH_METRICS_GET_CHANGED_PROJECT_RELEASE_MODEL_ADOPTIONS = (
+        "release_health.metrics.get_changed_project_release_model_adoptions"
+    )
+    RELEASE_HEALTH_METRICS_GET_CRASH_FREE_DATA = "release_health.metrics.get_crash_free_data"
+    RELEASE_HEALTH_METRICS_GET_ERRORED_SESSIONS_FOR_OVERVIEW = (
+        "release_health.metrics.get_errored_sessions_for_overview"
+    )
+    RELEASE_HEALTH_METRICS_GET_HEALTH_STATS_FOR_OVERVIEW = (
+        "release_health.metrics.get_health_stats_for_overview"
+    )
+    RELEASE_HEALTH_METRICS_GET_OLDEST_HEALTH_DATA_FOR_RELEASES = (
+        "release_health.metrics.get_oldest_health_data_for_releases"
+    )
+    RELEASE_HEALTH_METRICS_GET_PROJECT_RELEASE_STATS_DURATIONS = (
+        "release_health.metrics.get_project_release_stats_durations"
+    )
+    RELEASE_HEALTH_METRICS_GET_PROJECT_RELEASE_STATS_SESSIONS_ERROR_SERIES = (
+        "release_health.metrics.get_project_release_stats_sessions_error_series"
+    )
+    RELEASE_HEALTH_METRICS_GET_PROJECT_RELEASE_STATS_SESSIONS_SERIES = (
+        "release_health.metrics.get_project_release_stats_sessions_series"
+    )
+    RELEASE_HEALTH_METRICS_GET_PROJECT_RELEASE_STATS_USER_TOTALS = (
+        "release_health.metrics.get_project_release_stats_user_totals"
+    )
+    RELEASE_HEALTH_METRICS_GET_PROJECT_RELEASES_BY_STABILITY = (
+        "release_health.metrics.get_project_releases_by_stability"
+    )
+    RELEASE_HEALTH_METRICS_GET_PROJECT_RELEASES_COUNT = (
+        "release_health.metrics.get_project_releases_count"
+    )
+    RELEASE_HEALTH_METRICS_GET_PROJECT_SESSIONS_COUNT = (
+        "release_health.metrics.get_project_sessions_count"
+    )
+    RELEASE_HEALTH_METRICS_GET_RELEASE_ADOPTION_RELEASES_SESSIONS = (
+        "release_health.metrics.get_release_adoption.releases_sessions"
+    )
+    RELEASE_HEALTH_METRICS_GET_RELEASE_ADOPTION_RELEASES_USERS = (
+        "release_health.metrics.get_release_adoption.releases_users"
+    )
+    RELEASE_HEALTH_METRICS_GET_RELEASE_ADOPTION_TOTAL_SESSIONS = (
+        "release_health.metrics.get_release_adoption.total_sessions"
+    )
+    RELEASE_HEALTH_METRICS_GET_RELEASE_ADOPTION_TOTAL_USERS = (
+        "release_health.metrics.get_release_adoption.total_users"
+    )
+    RELEASE_HEALTH_METRICS_GET_RELEASE_SESSIONS_TIME_BOUNDS_INIT_SESSIONS = (
+        "release_health.metrics.get_release_sessions_time_bounds.init_sessions"
+    )
+    RELEASE_HEALTH_METRICS_GET_RELEASE_SESSIONS_TIME_BOUNDS_TERMINAL_SESSIONS = (
+        "release_health.metrics.get_release_sessions_time_bounds.terminal_sessions"
+    )
+    RELEASE_HEALTH_METRICS_GET_SESSION_DURATION_DATA_FOR_OVERVIEW = (
+        "release_health.metrics.get_session_duration_data_for_overview"
+    )
+    RELEASE_HEALTH_METRICS_GET_USERS_AND_CRASHED_USERS_FOR_OVERVIEW = (
+        "release_health.metrics.get_users_and_crashed_users_for_overview"
+    )
+    RELEASE_MONITOR_FETCH_PROJECT_RELEASE_HEALTH_TOTALS = (
+        "release_monitor.fetch_project_release_health_totals"
+    )
+    RELEASE_MONITOR_FETCH_PROJECTS_WITH_RECENT_SESSIONS = (
+        "release_monitor.fetch_projects_with_recent_sessions"
+    )
+    REPLAYS_QUERY_QUERY_REPLAYS_COUNT = "replays.query.query_replays_count"
+    REPLAYS_QUERY_QUERY_REPLAYS_DATASET = "replays.query.query_replays_dataset"
+    REPORTS_KEY_ERRORS = "reports.key_errors"
+    REPORTS_KEY_PERFORMANCE_ISSUES = "reports.key_performance_issues"
+    REPORTS_KEY_TRANSACTIONS = "reports.key_transactions"
+    REPORTS_KEY_TRANSACTIONS_P95 = "reports.key_transactions.p95"
+    REPORTS_OUTCOME_SERIES = "reports.outcome_series"
+    REPORTS_OUTCOMES = "reports.outcomes"
+    REPROCESSING2_REPROCESS_GROUP = "reprocessing2.reprocess_group"
+    REPROCESSING2_START_GROUP_REPROCESSING = "reprocessing2.start_group_reprocessing"
+    SNUBA_METRICS_META_GET_ENTITY_OF_METRIC_PERFORMANCE = (
+        "snuba.metrics.meta.get_entity_of_metric.performance"
+    )
+    SRC_SENTRY_INGEST_TRANSACTION_CLUSTERER = "src.sentry.ingest.transaction_clusterer"
+    TAGSTORE_GET_PERF_GROUP_LIST_TAG_VALUE = "tagstore.get_perf_group_list_tag_value"
+    TAGSTORE_GET_PERF_GROUPS_USER_COUNTS = "tagstore.get_perf_groups_user_counts"
+    TSDB_MODELID_10 = "tsdb-modelid:10"
+    TSDB_MODELID_302 = "tsdb-modelid:302"
+    WEEKLY_REPORTS_KEY_TRANSACTIONS_LAST_WEEK = "weekly_reports.key_transactions.last_week"
+    WEEKLY_REPORTS_KEY_TRANSACTIONS_THIS_WEEK = "weekly_reports.key_transactions.this_week"
+    WEEKLY_REPORTS_OUTCOMES = "weekly_reports.outcomes"
+
     # Referrers in tests
     API_METRICS_TOTALS = "api.metrics.totals"
     TESTING_GET_FACETS_TEST = "testing.get-facets-test"
@@ -317,7 +548,7 @@ class Referrer(Enum):
 def validate_referrer(referrer: Optional[str]):
     if not referrer:
         return
-
     referrers = {referrer.value for referrer in Referrer}
     if referrer not in referrers:
         metrics.incr("snql.sdk.api.new_referrers", tags={"referrer": referrer})
+        logger.warning(f"referrer {referrer} is not part of Referrer Enum")
