@@ -30,8 +30,6 @@ class LogExceptionStep(ProcessingStrategy[TPayload]):
     def poll(self) -> None:
         try:
             self.__next_step.poll()
-        except MessageRejected:
-            raise
         except Exception:
             self.__logger.exception(self.__exception_message)
 
