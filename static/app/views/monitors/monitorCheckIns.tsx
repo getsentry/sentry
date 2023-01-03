@@ -21,16 +21,21 @@ type CheckIn = {
 
 type Props = {
   monitor: Monitor;
+  orgId: string;
 };
 
 type State = {
   checkInList: CheckIn[];
 };
 
-const MonitorCheckIns = ({monitor}: Props) => {
+const MonitorCheckIns = ({monitor, orgId}: Props) => {
   const {data, hasError, renderComponent} = useApiRequests<State>({
     endpoints: [
-      ['checkInList', `/monitors/${monitor.id}/checkins/`, {query: {per_page: '10'}}],
+      [
+        'checkInList',
+        `/monitors/${orgId}/${monitor.id}/checkins/`,
+        {query: {per_page: '10'}},
+      ],
     ],
   });
 
