@@ -1,6 +1,7 @@
 import {useState} from 'react';
 import isEqual from 'lodash/isEqual';
 
+import {getAttachmentUrl} from 'sentry/components/events/attachmentViewers/utils';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {tn} from 'sentry/locale';
 import {EventAttachment} from 'sentry/types';
@@ -38,7 +39,12 @@ function EventViewHierarchy({projectSlug, viewHierarchies}: Props) {
   const hierarchyMeta = viewHierarchies[selectedViewHierarchy];
   const {isLoading, data} = useQuery(
     [
-      `/projects/${organization.slug}/${projectSlug}/events/${hierarchyMeta?.event_id}/attachments/${hierarchyMeta?.id}/?download`,
+      getAttachmentUrl({
+        attachment: hierarchyMeta,
+        eventId: hierarchyMeta.event_id,
+        orgId: organization.slug,
+        projectId: projectSlug,
+      }),
     ],
     async () => {
       if (!hierarchyMeta) {
@@ -46,7 +52,12 @@ function EventViewHierarchy({projectSlug, viewHierarchies}: Props) {
       }
 
       const response = await api.requestPromise(
-        `/projects/${organization.slug}/${projectSlug}/events/${hierarchyMeta?.event_id}/attachments/${hierarchyMeta?.id}/?download`,
+        getAttachmentUrl({
+          attachment: hierarchyMeta,
+          eventId: hierarchyMeta.event_id,
+          orgId: organization.slug,
+          projectId: projectSlug,
+        }),
         {
           method: 'GET',
         }
