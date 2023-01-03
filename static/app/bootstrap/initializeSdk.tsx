@@ -2,6 +2,7 @@ import {browserHistory, createRoutes, match} from 'react-router';
 import {ExtraErrorData} from '@sentry/integrations';
 import * as Sentry from '@sentry/react';
 import {Integrations} from '@sentry/tracing';
+import {Integration} from '@sentry/types';
 import {_browserPerformanceTimeOriginMode} from '@sentry/utils';
 
 import {SENTRY_RELEASE_VERSION, SPA_DSN} from 'sentry/constants';
@@ -32,7 +33,7 @@ function getSentryIntegrations(sentryConfig: Config['sentryConfig'], routes?: Fu
     tracingOrigins: ['localhost', /^\//, ...extraTracingOrigins],
   };
 
-  const integrations = [
+  const integrations: Integration[] = [
     new ExtraErrorData({
       // 6 is arbitrary, seems like a nice number
       depth: 6,
@@ -59,8 +60,7 @@ function getSentryIntegrations(sentryConfig: Config['sentryConfig'], routes?: Fu
   ];
 
   if (sentryConfig.replaysSessionSampleRate || sentryConfig.replaysOnErrorSampleRate) {
-    const {Replay} = require('@sentry/replay');
-    integrations.push(new Replay());
+    integrations.push(new Sentry.Replay());
   }
 
   return integrations;
