@@ -9,7 +9,11 @@ import {CanvasView} from 'sentry/utils/profiling/canvasView';
 import {useDispatchFlamegraphState} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphState';
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
-import {formatColorForSpan, Rect} from 'sentry/utils/profiling/gl/utils';
+import {
+  formatColorForSpan,
+  getPhysicalSpacePositionFromOffset,
+  Rect,
+} from 'sentry/utils/profiling/gl/utils';
 import {SelectedFrameRenderer} from 'sentry/utils/profiling/renderers/selectedFrameRenderer';
 import {SpanChartRenderer2D} from 'sentry/utils/profiling/renderers/spansRenderer';
 import {SpanChart, SpanChartNode} from 'sentry/utils/profiling/spanChart';
@@ -18,6 +22,8 @@ import usePrevious from 'sentry/utils/usePrevious';
 import {useDrawHoveredBorderEffect} from './interactions/useDrawHoveredBorderEffect';
 import {useDrawSelectedBorderEffect} from './interactions/useDrawSelectedBorderEffect';
 import {useInteractionViewCheckPoint} from './interactions/useInteractionViewCheckPoint';
+import {useCanvasScroll} from './interactions/useScroll';
+import {useWheelCenterZoom} from './interactions/useWheelCenterZoom';
 import {
   FlamegraphTooltipColorIndicator,
   FlamegraphTooltipFrameMainInfo,
@@ -137,15 +143,9 @@ export function FlamegraphSpans({
         return;
       }
 
-      const logicalMousePos = vec2.fromValues(
+      const physicalMousePos = getPhysicalSpacePositionFromOffset(
         evt.nativeEvent.offsetX,
         evt.nativeEvent.offsetY
-      );
-
-      const physicalMousePos = vec2.scale(
-        vec2.create(),
-        logicalMousePos,
-        window.devicePixelRatio
       );
 
       const physicalDelta = vec2.subtract(
@@ -213,69 +213,8 @@ export function FlamegraphSpans({
     setLastInteraction(null);
   }, []);
 
-  const onMinimapZoom = useCallback(
-    (evt: WheelEvent) => {
-      if (!spansCanvas || !spansView) {
-        return;
-      }
-
-      const identity = mat3.identity(mat3.create());
-      const scale = 1 - evt.deltaY * 0.001 * -1; // -1 to invert scale
-
-      const mouseInConfigSpace = spansView.getTransformedConfigViewCursor(
-        vec2.fromValues(evt.offsetX, evt.offsetY),
-        spansCanvas
-      );
-
-      const configCenter = vec2.fromValues(mouseInConfigSpace[0], spansView.configView.y);
-
-      const invertedConfigCenter = vec2.multiply(
-        vec2.create(),
-        vec2.fromValues(-1, -1),
-        configCenter
-      );
-
-      const translated = mat3.translate(mat3.create(), identity, configCenter);
-      const scaled = mat3.scale(mat3.create(), translated, vec2.fromValues(scale, 1));
-      const translatedBack = mat3.translate(mat3.create(), scaled, invertedConfigCenter);
-
-      canvasPoolManager.dispatch('transform config view', [translatedBack]);
-    },
-    [spansCanvas, spansView, canvasPoolManager]
-  );
-
-  const onMinimapScroll = useCallback(
-    (evt: WheelEvent) => {
-      if (!spansCanvas || !spansView) {
-        return;
-      }
-
-      {
-        const physicalDelta = vec2.fromValues(evt.deltaX * 0.8, evt.deltaY);
-        const physicalToConfig = mat3.invert(
-          mat3.create(),
-          spansView.fromConfigView(spansCanvas.physicalSpace)
-        );
-        const [m00, m01, m02, m10, m11, m12] = physicalToConfig;
-
-        const configDelta = vec2.transformMat3(vec2.create(), physicalDelta, [
-          m00,
-          m01,
-          m02,
-          m10,
-          m11,
-          m12,
-          0,
-          0,
-          0,
-        ]);
-
-        const translate = mat3.fromTranslation(mat3.create(), configDelta);
-        canvasPoolManager.dispatch('transform config view', [translate]);
-      }
-    },
-    [spansCanvas, spansView, canvasPoolManager]
-  );
+  const onWheelCenterZoom = useWheelCenterZoom(spansCanvas, spansView, canvasPoolManager);
+  const onCanvasScroll = useCanvasScroll(spansCanvas, spansView, canvasPoolManager);
 
   useDrawSelectedBorderEffect({
     scheduler,
@@ -320,10 +259,10 @@ export function FlamegraphSpans({
       setConfigSpaceCursor(null);
 
       if (evt.metaKey || evt.ctrlKey) {
-        onMinimapZoom(evt);
+        onWheelCenterZoom(evt);
         setLastInteraction('zoom');
       } else {
-        onMinimapScroll(evt);
+        onCanvasScroll(evt);
         setLastInteraction('scroll');
       }
     }
@@ -334,7 +273,7 @@ export function FlamegraphSpans({
       window.clearTimeout(wheelStopTimeoutId);
       spansCanvasRef.removeEventListener('wheel', onCanvasWheel);
     };
-  }, [spansCanvasRef, onMinimapZoom, onMinimapScroll]);
+  }, [spansCanvasRef, onWheelCenterZoom, onCanvasScroll]);
 
   useEffect(() => {
     window.addEventListener('mouseup', onMinimapCanvasMouseUp);

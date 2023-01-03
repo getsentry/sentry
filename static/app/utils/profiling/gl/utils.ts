@@ -1,10 +1,12 @@
 import Fuse from 'fuse.js';
 import {mat3, vec2} from 'gl-matrix';
 
+import {CanvasView} from 'sentry/utils/profiling/canvasView';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
 
 import {clamp} from '../colors/utils';
+import {FlamegraphCanvas} from '../flamegraphCanvas';
 import {SpanChartRenderer2D} from '../renderers/spansRenderer';
 import {SpanChartNode} from '../spanChart';
 
@@ -698,4 +700,37 @@ export function computeConfigViewWithStrategy(
   }
 
   return frame.withHeight(view.height);
+}
+
+// Compute the X and Y position based on offset and canvas resolution
+export function getPhysicalSpacePositionFromOffset(offsetX: number, offsetY: number) {
+  const logicalMousePos = vec2.fromValues(offsetX, offsetY);
+  return vec2.scale(vec2.create(), logicalMousePos, window.devicePixelRatio);
+}
+
+export function getCenterScaleMatrix(
+  scale: number,
+  offsetX: number,
+  offsetY: number,
+  view: CanvasView<any>,
+  canvas: FlamegraphCanvas
+): mat3 {
+  const configSpaceMouse = view.getConfigViewCursor(
+    vec2.fromValues(offsetX, offsetY),
+    canvas
+  );
+
+  const configCenter = vec2.fromValues(configSpaceMouse[0], view.configView.y);
+
+  const invertedConfigCenter = vec2.multiply(
+    vec2.create(),
+    vec2.fromValues(-1, -1),
+    configCenter
+  );
+
+  const centerScaleMatrix = mat3.create();
+  mat3.fromTranslation(centerScaleMatrix, configCenter);
+  mat3.scale(centerScaleMatrix, centerScaleMatrix, vec2.fromValues(scale, 1));
+  mat3.translate(centerScaleMatrix, centerScaleMatrix, invertedConfigCenter);
+  return centerScaleMatrix;
 }

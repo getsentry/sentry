@@ -22,7 +22,7 @@ import {
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
-import {Rect} from 'sentry/utils/profiling/gl/utils';
+import {getPhysicalSpacePositionFromOffset, Rect} from 'sentry/utils/profiling/gl/utils';
 import {useContextMenu} from 'sentry/utils/profiling/hooks/useContextMenu';
 import {useInternalFlamegraphDebugMode} from 'sentry/utils/profiling/hooks/useInternalFlamegraphDebugMode';
 import {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
@@ -36,6 +36,8 @@ import {requestAnimationFrameTimeout} from 'sentry/views/profiling/utils';
 import {useDrawHoveredBorderEffect} from './interactions/useDrawHoveredBorderEffect';
 import {useDrawSelectedBorderEffect} from './interactions/useDrawSelectedBorderEffect';
 import {useInteractionViewCheckPoint} from './interactions/useInteractionViewCheckPoint';
+import {useCanvasScroll} from './interactions/useScroll';
+import {useWheelCenterZoom} from './interactions/useWheelCenterZoom';
 
 function isHighlightingAllOccurences(
   node: FlamegraphFrame | null,
@@ -375,19 +377,10 @@ function FlamegraphZoomView({
   }, [canvasPoolManager, scheduler]);
 
   const onCanvasMouseDown = useCallback((evt: React.MouseEvent<HTMLCanvasElement>) => {
-    const logicalMousePos = vec2.fromValues(
-      evt.nativeEvent.offsetX,
-      evt.nativeEvent.offsetY
-    );
-
-    const physicalMousePos = vec2.scale(
-      vec2.create(),
-      logicalMousePos,
-      window.devicePixelRatio
-    );
-
     setLastInteraction('click');
-    setStartPanVector(physicalMousePos);
+    setStartPanVector(
+      getPhysicalSpacePositionFromOffset(evt.nativeEvent.offsetX, evt.nativeEvent.offsetY)
+    );
   }, []);
 
   const onCanvasMouseUp = useCallback(
@@ -436,15 +429,9 @@ function FlamegraphZoomView({
         return;
       }
 
-      const logicalMousePos = vec2.fromValues(
+      const physicalMousePos = getPhysicalSpacePositionFromOffset(
         evt.nativeEvent.offsetX,
         evt.nativeEvent.offsetY
-      );
-
-      const physicalMousePos = vec2.scale(
-        vec2.create(),
-        logicalMousePos,
-        window.devicePixelRatio
       );
 
       const physicalDelta = vec2.subtract(
@@ -490,12 +477,12 @@ function FlamegraphZoomView({
         return;
       }
 
-      const newConfigSpaceCursor = flamegraphView.getTransformedConfigViewCursor(
-        vec2.fromValues(evt.nativeEvent.offsetX, evt.nativeEvent.offsetY),
-        flamegraphCanvas
+      setConfigSpaceCursor(
+        flamegraphView.getTransformedConfigViewCursor(
+          vec2.fromValues(evt.nativeEvent.offsetX, evt.nativeEvent.offsetY),
+          flamegraphCanvas
+        )
       );
-
-      setConfigSpaceCursor(newConfigSpaceCursor);
 
       if (startPanVector) {
         onMouseDrag(evt);
@@ -513,69 +500,15 @@ function FlamegraphZoomView({
     setLastInteraction(null);
   }, []);
 
-  const zoom = useCallback(
-    (evt: WheelEvent) => {
-      if (!flamegraphCanvas || !flamegraphView) {
-        return;
-      }
-
-      const identity = mat3.identity(mat3.create());
-      const scale = 1 - evt.deltaY * 0.01 * -1; // -1 to invert scale
-
-      const configSpaceMouse = flamegraphView.getConfigViewCursor(
-        vec2.fromValues(evt.offsetX, evt.offsetY),
-        flamegraphCanvas
-      );
-
-      const configCenter = vec2.fromValues(
-        configSpaceMouse[0],
-        flamegraphView.configView.y
-      );
-
-      const invertedConfigCenter = vec2.multiply(
-        vec2.create(),
-        vec2.fromValues(-1, -1),
-        configCenter
-      );
-
-      const translated = mat3.translate(mat3.create(), identity, configCenter);
-      const scaled = mat3.scale(mat3.create(), translated, vec2.fromValues(scale, 1));
-      const translatedBack = mat3.translate(mat3.create(), scaled, invertedConfigCenter);
-
-      canvasPoolManager.dispatch('transform config view', [translatedBack]);
-    },
-    [flamegraphCanvas, flamegraphView, canvasPoolManager]
+  const onWheelCenterZoom = useWheelCenterZoom(
+    flamegraphCanvas,
+    flamegraphView,
+    canvasPoolManager
   );
-
-  const scroll = useCallback(
-    (evt: WheelEvent) => {
-      if (!flamegraphCanvas || !flamegraphView) {
-        return;
-      }
-
-      const physicalDelta = vec2.fromValues(evt.deltaX, evt.deltaY);
-      const physicalToConfig = mat3.invert(
-        mat3.create(),
-        flamegraphView.fromConfigView(flamegraphCanvas.physicalSpace)
-      );
-      const [m00, m01, m02, m10, m11, m12] = physicalToConfig;
-
-      const configDelta = vec2.transformMat3(vec2.create(), physicalDelta, [
-        m00,
-        m01,
-        m02,
-        m10,
-        m11,
-        m12,
-        0,
-        0,
-        0,
-      ]);
-
-      const translate = mat3.fromTranslation(mat3.create(), configDelta);
-      canvasPoolManager.dispatch('transform config view', [translate]);
-    },
-    [flamegraphCanvas, flamegraphView, canvasPoolManager]
+  const onCanvasScroll = useCanvasScroll(
+    flamegraphCanvas,
+    flamegraphView,
+    canvasPoolManager
   );
 
   useEffect(() => {
@@ -600,10 +533,10 @@ function FlamegraphZoomView({
 
       // pinch to zoom is recognized as `ctrlKey + wheelEvent`
       if (evt.metaKey || evt.ctrlKey) {
-        zoom(evt);
+        onWheelCenterZoom(evt);
         setLastInteraction('zoom');
       } else {
-        scroll(evt);
+        onCanvasScroll(evt);
         setLastInteraction('scroll');
       }
     }
@@ -616,7 +549,7 @@ function FlamegraphZoomView({
       }
       flamegraphCanvasRef.removeEventListener('wheel', onCanvasWheel);
     };
-  }, [flamegraphCanvasRef, zoom, scroll]);
+  }, [flamegraphCanvasRef, onWheelCenterZoom, onCanvasScroll]);
 
   const hoveredNodeOnContextMenuOpen = useRef<FlamegraphFrame | null>(null);
   const contextMenu = useContextMenu({container: flamegraphCanvasRef});

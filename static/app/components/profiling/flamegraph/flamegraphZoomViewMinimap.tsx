@@ -8,12 +8,15 @@ import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
 import {useDispatchFlamegraphState} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphState';
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
-import {Rect} from 'sentry/utils/profiling/gl/utils';
+import {getPhysicalSpacePositionFromOffset, Rect} from 'sentry/utils/profiling/gl/utils';
 import {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
 import {PositionIndicatorRenderer} from 'sentry/utils/profiling/renderers/positionIndicatorRenderer';
 import usePrevious from 'sentry/utils/usePrevious';
 
 import {requestAnimationFrameTimeout} from '../../../views/profiling/utils';
+
+import {useCanvasScroll} from './interactions/useScroll';
+import {useWheelCenterZoom} from './interactions/useWheelCenterZoom';
 
 interface FlamegraphZoomViewMinimapProps {
   canvasPoolManager: CanvasPoolManager;
@@ -193,14 +196,9 @@ function FlamegraphZoomViewMinimap({
         return;
       }
 
-      const logicalMousePos = vec2.fromValues(
+      const physicalMousePos = getPhysicalSpacePositionFromOffset(
         evt.nativeEvent.offsetX,
         evt.nativeEvent.offsetY
-      );
-      const physicalMousePos = vec2.scale(
-        vec2.create(),
-        logicalMousePos,
-        window.devicePixelRatio
       );
 
       const physicalDelta = vec2.subtract(
@@ -304,71 +302,16 @@ function FlamegraphZoomViewMinimap({
     ]
   );
 
-  const onMinimapScroll = useCallback(
-    (evt: WheelEvent) => {
-      if (!flamegraphMiniMapCanvas || !flamegraphMiniMapView) {
-        return;
-      }
-
-      {
-        const physicalDelta = vec2.fromValues(evt.deltaX * 0.8, evt.deltaY);
-        const physicalToConfig = mat3.invert(
-          mat3.create(),
-          flamegraphMiniMapView.fromConfigView(flamegraphMiniMapCanvas.physicalSpace)
-        );
-        const [m00, m01, m02, m10, m11, m12] = physicalToConfig;
-
-        const configDelta = vec2.transformMat3(vec2.create(), physicalDelta, [
-          m00,
-          m01,
-          m02,
-          m10,
-          m11,
-          m12,
-          0,
-          0,
-          0,
-        ]);
-
-        const translate = mat3.fromTranslation(mat3.create(), configDelta);
-        canvasPoolManager.dispatch('transform config view', [translate]);
-      }
-    },
-    [flamegraphMiniMapCanvas, flamegraphMiniMapView, canvasPoolManager]
+  const onWheelCenterZoom = useWheelCenterZoom(
+    flamegraphMiniMapCanvas,
+    flamegraphMiniMapView,
+    canvasPoolManager
   );
 
-  const onMinimapZoom = useCallback(
-    (evt: WheelEvent) => {
-      if (!flamegraphMiniMapCanvas || !flamegraphMiniMapView) {
-        return;
-      }
-
-      const identity = mat3.identity(mat3.create());
-      const scale = 1 - evt.deltaY * 0.001 * -1; // -1 to invert scale
-
-      const cursorInConfigSpace = flamegraphMiniMapView.getTransformedConfigSpaceCursor(
-        vec2.fromValues(evt.offsetX, evt.offsetY),
-        flamegraphMiniMapCanvas
-      );
-
-      const configCenter = vec2.fromValues(
-        cursorInConfigSpace[0],
-        flamegraphMiniMapView.configView.y
-      );
-
-      const invertedConfigCenter = vec2.multiply(
-        vec2.create(),
-        vec2.fromValues(-1, -1),
-        configCenter
-      );
-
-      const translated = mat3.translate(mat3.create(), identity, configCenter);
-      const scaled = mat3.scale(mat3.create(), translated, vec2.fromValues(scale, 1));
-      const translatedBack = mat3.translate(mat3.create(), scaled, invertedConfigCenter);
-
-      canvasPoolManager.dispatch('transform config view', [translatedBack]);
-    },
-    [flamegraphMiniMapCanvas, flamegraphMiniMapView, canvasPoolManager]
+  const onCanvasScroll = useCanvasScroll(
+    flamegraphMiniMapCanvas,
+    flamegraphMiniMapView,
+    canvasPoolManager
   );
 
   const onMinimapCanvasMouseDown = useCallback(
@@ -451,10 +394,10 @@ function FlamegraphZoomViewMinimap({
       setConfigSpaceCursor(null);
 
       if (evt.metaKey || evt.ctrlKey) {
-        onMinimapZoom(evt);
+        onWheelCenterZoom(evt);
         setLastInteraction('zoom');
       } else {
-        onMinimapScroll(evt);
+        onCanvasScroll(evt);
         setLastInteraction('scroll');
       }
     }
@@ -467,7 +410,7 @@ function FlamegraphZoomViewMinimap({
       }
       flamegraphMiniMapCanvasRef.removeEventListener('wheel', onCanvasWheel);
     };
-  }, [flamegraphMiniMapCanvasRef, onMinimapZoom, onMinimapScroll]);
+  }, [flamegraphMiniMapCanvasRef, onWheelCenterZoom, onCanvasScroll]);
 
   useEffect(() => {
     window.addEventListener('mouseup', onMinimapCanvasMouseUp);
