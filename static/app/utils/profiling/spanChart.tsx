@@ -1,71 +1,98 @@
 import {Rect} from 'sentry/utils/profiling/gl/utils';
-import {SpanTree} from 'sentry/utils/profiling/spanTree';
-import {makeFormatter} from 'sentry/utils/profiling/units/units';
+import {SpanTree, SpanTreeNode} from 'sentry/utils/profiling/spanTree';
+import {
+  makeFormatter,
+  makeFormatTo,
+  makeTimelineFormatter,
+} from 'sentry/utils/profiling/units/units';
+
+import {Profile} from './profile/profile';
 
 export interface SpanChartNode {
+  children: SpanChartNode[];
   depth: number;
   duration: number;
   end: number;
   node: SpanTree['root'];
+  parent: SpanChartNode | null;
   start: number;
 }
 
 class SpanChart {
   spans: SpanChartNode[];
+  root: SpanChartNode = {
+    parent: null,
+    node: SpanTreeNode.Root(),
+    duration: 0,
+    depth: -1,
+    start: 0,
+    end: 0,
+    children: [],
+  };
   spanTree: SpanTree;
-
-  formatter = makeFormatter('milliseconds');
-  configSpace: Rect = Rect.Empty();
   depth: number = 0;
+  minSpanDuration: number = Number.POSITIVE_INFINITY;
+  configSpace: Rect;
 
-  constructor(spanTree: SpanTree, _options: {configSpace?: Rect} = {}) {
+  toFinalUnit = makeFormatTo('milliseconds', 'milliseconds');
+  formatter = makeFormatter('milliseconds');
+  timelineFormatter: (value: number) => string;
+
+  constructor(
+    spanTree: SpanTree,
+    options: {unit: Profile['unit']; configSpace?: Rect} = {unit: 'milliseconds'}
+  ) {
     this.spanTree = spanTree;
+    this.toFinalUnit = makeFormatTo('seconds', options.unit);
     this.spans = this.collectSpanNodes();
+    this.timelineFormatter = makeTimelineFormatter(options.unit);
 
-    // @TODO once we start taking orphaned spans into account here we will need to
-    // modify this to min(start_timestamp) max(end_timestamp)
-    const minStart = Math.min(
-      ...this.spanTree.root.children.map(node => node.span.start_timestamp)
-    );
-    const maxEnd = Math.max(
-      ...this.spanTree.root.children.map(node => node.span.timestamp)
+    const duration = this.toFinalUnit(
+      this.spanTree.root.span.timestamp - this.spanTree.root.span.start_timestamp
     );
 
-    const duration = maxEnd - minStart;
-
-    if (duration > 0) {
-      this.configSpace = new Rect(0, 0, duration, this.depth);
-    } else {
-      // If the span duration is 0, set the flamegraph duration to 1 second as flamechart
-      this.configSpace = new Rect(
-        0,
-        0,
-        1e3, // milliseconds
-        0
-      );
-    }
+    this.configSpace = new Rect(0, 0, duration, this.depth);
   }
 
   // Bfs over the span tree while keeping track of level depth and calling the cb fn
   forEachSpan(cb: (node: SpanChartNode) => void) {
-    const minStart = Math.min(
-      ...this.spanTree.root.children.map(node => node.span.start_timestamp)
-    );
-    const queue: SpanTree['root'][] = [...this.spanTree.root.children];
+    const transactionStart = this.spanTree.root.span.start_timestamp;
+    const queue: [SpanChartNode | null, SpanTreeNode][] = [[null, this.spanTree.root]];
     let depth = 0;
 
     while (queue.length) {
       let children_at_depth = queue.length;
+
       while (children_at_depth-- !== 0) {
-        const node = queue.shift()!;
-        queue.push(...node.children);
-        cb({
-          duration: node.span.timestamp - node.span.start_timestamp,
-          start: node.span.start_timestamp - minStart,
-          end: node.span.timestamp,
+        const [parent, node] = queue.shift()!;
+
+        const duration = node.span.timestamp - node.span.start_timestamp;
+        const start = node.span.start_timestamp - transactionStart;
+        const end = start + duration;
+
+        const spanChartNode: SpanChartNode = {
+          duration: this.toFinalUnit(duration),
+          start: this.toFinalUnit(start),
+          end: this.toFinalUnit(end),
           node,
           depth,
-        });
+          parent,
+          children: [],
+        };
+
+        cb(spanChartNode);
+
+        if (parent) {
+          parent.children.push(spanChartNode);
+        } else {
+          this.root.children.push(spanChartNode);
+        }
+
+        const nodesWithParent = node.children.map(
+          // @todo use satisfies here when available
+          child => [spanChartNode, child] as [SpanChartNode, SpanTreeNode]
+        );
+        queue.push(...nodesWithParent);
       }
       depth++;
     }
@@ -76,6 +103,7 @@ class SpanChart {
 
     const visit = (node: SpanChartNode): void => {
       this.depth = Math.max(this.depth, node.depth);
+      this.minSpanDuration = Math.min(this.minSpanDuration, node.duration);
       nodes.push(node);
     };
 

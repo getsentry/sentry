@@ -7,6 +7,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.models.apitoken import ApiToken, is_api_token_auth
 from sentry.ratelimits.concurrent import ConcurrentRateLimiter
 from sentry.ratelimits.config import DEFAULT_RATE_LIMIT_CONFIG, RateLimitConfig
 from sentry.types.ratelimit import RateLimit, RateLimitCategory, RateLimitMeta, RateLimitType
@@ -15,7 +16,9 @@ from sentry.utils.hashlib import md5_text
 from . import backend as ratelimiter
 
 if TYPE_CHECKING:
-    from sentry.models import ApiToken, Organization, User
+    from sentry.models import Organization, User
+    from sentry.services.hybrid_cloud.auth import AuthenticatedToken
+
 # TODO(mgaeta): It's not currently possible to type a Callable's args with kwargs.
 EndpointFunction = Callable[..., Response]
 
@@ -60,22 +63,29 @@ def get_rate_limit_key(
         return None
 
     ip_address = request.META.get("REMOTE_ADDR")
-    request_auth = getattr(request, "auth", None)
+    request_auth: (AuthenticatedToken | ApiToken | None) = getattr(request, "auth", None)
     request_user = getattr(request, "user", None)
 
     from django.contrib.auth.models import AnonymousUser
 
     from sentry.auth.system import is_system_auth
-    from sentry.models import ApiKey, ApiToken
+    from sentry.models import ApiKey
 
     # Don't Rate Limit System Token Requests
     if is_system_auth(request_auth):
         return None
 
-    if isinstance(request_auth, ApiToken) and request_user:
+    if is_api_token_auth(request_auth) and request_user:
+        if isinstance(request_auth, ApiToken):
+            token_id = request_auth.id
+        elif isinstance(request_auth, AuthenticatedToken):
+            token_id = request_auth.entity_id
+        else:
+            assert False  # Can't happen as asserted by is_api_token_auth check
+
         if request_user.is_sentry_app:
             category = "org"
-            id = get_organization_id_from_token(request_auth.id)
+            id = get_organization_id_from_token(token_id)
         else:
             category = "user"
             id = request_auth.user_id
