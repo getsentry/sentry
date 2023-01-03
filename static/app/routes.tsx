@@ -1429,27 +1429,6 @@ function buildRoutes() {
     </Fragment>
   );
 
-  const activityRoutes = (
-    <Fragment>
-      {usingCustomerDomain ? (
-        <Route
-          path="/activity/"
-          component={withDomainRequired(
-            make(() => import('sentry/views/organizationActivity'))
-          )}
-          key="orgless-activity-route"
-        />
-      ) : null}
-      <Route
-        path="/organizations/:orgId/activity/"
-        component={withDomainRedirect(
-          make(() => import('sentry/views/organizationActivity'))
-        )}
-        key="org-activity"
-      />
-    </Fragment>
-  );
-
   const statsChildRoutes = ({forCustomerDomain}: {forCustomerDomain: boolean}) => {
     return (
       <Fragment>
@@ -2111,7 +2090,6 @@ function buildRoutes() {
       {cronsRoutes}
       {replayRoutes}
       {releasesRoutes}
-      {activityRoutes}
       {statsRoutes}
       {discoverRoutes}
       {performanceRoutes}
