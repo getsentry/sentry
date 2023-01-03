@@ -375,7 +375,8 @@ const EventEntries = ({
       {!isShare &&
         organization.features?.includes('mobile-view-hierarchies') &&
         hasEventAttachmentsFeature &&
-        attachments.filter(attachment => attachment.type === 'event.view_hierarchy') && (
+        attachments.filter(attachment => attachment.type === 'event.view_hierarchy')
+          .length && (
           <EventViewHierarchy
             projectSlug={projectSlug}
             viewHierarchies={attachments.filter(
