@@ -40,8 +40,8 @@ export type Project = {
   organization: Organization;
   plugins: Plugin[];
   processingIssues: number;
-
   relayPiiConfig: string;
+
   subjectTemplate: string;
   teams: Team[];
   builtinSymbolSources?: string[];
@@ -54,6 +54,7 @@ export type Project = {
    */
   name?: string;
   options?: Record<string, boolean | string>;
+  platforms?: PlatformKey[];
   sessionStats?: {
     currentCrashFreeRate: number | null;
     hasHealthData: boolean;
