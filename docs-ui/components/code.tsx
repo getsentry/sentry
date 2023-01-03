@@ -2,7 +2,7 @@
 import 'prismjs/themes/prism.css';
 
 import {useEffect, useRef, useState} from 'react';
-import {useTheme} from '@emotion/react';
+import {useTheme, Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import copy from 'copy-text-to-clipboard';
 import Prism from 'prismjs';
@@ -14,7 +14,6 @@ import 'prismjs/components/prism-jsx.min';
 
 import {IconCode} from 'sentry/icons';
 import space from 'sentry/styles/space';
-import {Theme} from 'sentry/utils/theme';
 
 type Props = {
   /**

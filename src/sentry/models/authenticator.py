@@ -35,7 +35,7 @@ class AuthenticatorManager(BaseManager):
         ifaces = [
             x.interface
             for x in Authenticator.objects.filter(
-                user=user,
+                user_id=user.id,
                 type__in=[a.type for a in available_authenticators(ignore_backup=ignore_backup)],
             )
         ]
@@ -65,7 +65,7 @@ class AuthenticatorManager(BaseManager):
         # or if it's missing, we'll need to set it.
         if not force:
             for authenticator in Authenticator.objects.filter(
-                user=user, type__in=[a.type for a in available_authenticators()]
+                user_id=user.id, type__in=[a.type for a in available_authenticators()]
             ):
                 iface = authenticator.interface
                 if iface.is_backup_interface:
@@ -87,14 +87,14 @@ class AuthenticatorManager(BaseManager):
         if interface is None or not interface.is_available:
             raise LookupError("No such interface %r" % interface_id)
         try:
-            return Authenticator.objects.get(user=user, type=interface.type).interface
+            return Authenticator.objects.get(user_id=user.id, type=interface.type).interface
         except Authenticator.DoesNotExist:
             return interface.generate(EnrollmentStatus.NEW)
 
-    def user_has_2fa(self, user):
+    def user_has_2fa(self, user_id):
         """Checks if the user has any 2FA configured."""
         return Authenticator.objects.filter(
-            user=user, type__in=[a.type for a in available_authenticators(ignore_backup=True)]
+            user_id=user_id, type__in=[a.type for a in available_authenticators(ignore_backup=True)]
         ).exists()
 
     def bulk_users_have_2fa(self, user_ids):

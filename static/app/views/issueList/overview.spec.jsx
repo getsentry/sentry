@@ -554,7 +554,7 @@ describe('IssueList', function () {
 
       await waitFor(() => {
         expect(createPin).toHaveBeenCalled();
-        expect(browserHistory.push).toHaveBeenLastCalledWith(
+        expect(browserHistory.replace).toHaveBeenLastCalledWith(
           expect.objectContaining({
             pathname: '/organizations/org-slug/issues/searches/666/',
             query: {
@@ -607,7 +607,7 @@ describe('IssueList', function () {
       });
 
       await waitFor(() => {
-        expect(browserHistory.push).toHaveBeenLastCalledWith(
+        expect(browserHistory.replace).toHaveBeenLastCalledWith(
           expect.objectContaining({
             pathname: '/organizations/org-slug/issues/',
           })
@@ -658,7 +658,7 @@ describe('IssueList', function () {
 
       await waitFor(() => {
         expect(createPin).toHaveBeenCalled();
-        expect(browserHistory.push).toHaveBeenLastCalledWith(
+        expect(browserHistory.replace).toHaveBeenLastCalledWith(
           expect.objectContaining({
             pathname: '/organizations/org-slug/issues/searches/789/',
           })
@@ -716,7 +716,7 @@ describe('IssueList', function () {
 
       await waitFor(() => {
         expect(createPin).toHaveBeenCalled();
-        expect(browserHistory.push).toHaveBeenLastCalledWith(
+        expect(browserHistory.replace).toHaveBeenLastCalledWith(
           expect.objectContaining({
             pathname: '/organizations/org-slug/issues/searches/666/',
             query: expect.objectContaining({
@@ -781,7 +781,7 @@ describe('IssueList', function () {
 
       await waitFor(() => {
         expect(deletePin).toHaveBeenCalled();
-        expect(browserHistory.push).toHaveBeenLastCalledWith(
+        expect(browserHistory.replace).toHaveBeenLastCalledWith(
           expect.objectContaining({
             pathname: '/organizations/org-slug/issues/',
             query: expect.objectContaining({

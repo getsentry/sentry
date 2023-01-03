@@ -7,6 +7,7 @@ import {FlamegraphContextMenu} from 'sentry/components/profiling/flamegraph/flam
 import {FlamegraphTooltip} from 'sentry/components/profiling/flamegraph/flamegraphTooltip';
 import {t} from 'sentry/locale';
 import {CanvasPoolManager, CanvasScheduler} from 'sentry/utils/profiling/canvasScheduler';
+import {CanvasView} from 'sentry/utils/profiling/canvasView';
 import {DifferentialFlamegraph} from 'sentry/utils/profiling/differentialFlamegraph';
 import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
 import {useFlamegraphSearch} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphSearch';
@@ -21,7 +22,6 @@ import {
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
-import {FlamegraphView} from 'sentry/utils/profiling/flamegraphView';
 import {Rect} from 'sentry/utils/profiling/gl/utils';
 import {useContextMenu} from 'sentry/utils/profiling/hooks/useContextMenu';
 import {useInternalFlamegraphDebugMode} from 'sentry/utils/profiling/hooks/useInternalFlamegraphDebugMode';
@@ -32,6 +32,8 @@ import {SelectedFrameRenderer} from 'sentry/utils/profiling/renderers/selectedFr
 import {TextRenderer} from 'sentry/utils/profiling/renderers/textRenderer';
 import usePrevious from 'sentry/utils/usePrevious';
 import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
+
+import {requestAnimationFrameTimeout} from '../../../views/profiling/utils';
 
 function isHighlightingAllOccurences(
   node: FlamegraphFrame | null,
@@ -53,7 +55,7 @@ interface FlamegraphZoomViewProps {
   flamegraphCanvasRef: HTMLCanvasElement | null;
   flamegraphOverlayCanvasRef: HTMLCanvasElement | null;
   flamegraphRenderer: FlamegraphRenderer | null;
-  flamegraphView: FlamegraphView | null;
+  flamegraphView: CanvasView<Flamegraph> | null;
   setFlamegraphCanvasRef: React.Dispatch<React.SetStateAction<HTMLCanvasElement | null>>;
   setFlamegraphOverlayCanvasRef: React.Dispatch<
     React.SetStateAction<HTMLCanvasElement | null>
@@ -73,7 +75,7 @@ function FlamegraphZoomView({
   setFlamegraphOverlayCanvasRef,
 }: FlamegraphZoomViewProps): React.ReactElement {
   const flamegraphTheme = useFlamegraphTheme();
-  const [profileGroup] = useProfileGroup();
+  const profileGroup = useProfileGroup();
   const flamegraphSearch = useFlamegraphSearch();
   const isInternalFlamegraphDebugModeEnabled = useInternalFlamegraphDebugMode();
 
@@ -139,7 +141,7 @@ function FlamegraphZoomView({
     if (!configSpaceCursor || !flamegraphRenderer) {
       return null;
     }
-    return flamegraphRenderer.getHoveredNode(configSpaceCursor);
+    return flamegraphRenderer.findHoveredNode(configSpaceCursor);
   }, [configSpaceCursor, flamegraphRenderer]);
 
   useEffect(() => {
@@ -669,10 +671,12 @@ function FlamegraphZoomView({
       return undefined;
     }
 
-    let wheelStopTimeoutId: number | undefined;
+    let wheelStopTimeoutId: {current: number | undefined} = {current: undefined};
     function onCanvasWheel(evt: WheelEvent) {
-      window.clearTimeout(wheelStopTimeoutId);
-      wheelStopTimeoutId = window.setTimeout(() => {
+      if (wheelStopTimeoutId.current !== undefined) {
+        window.cancelAnimationFrame(wheelStopTimeoutId.current);
+      }
+      wheelStopTimeoutId = requestAnimationFrameTimeout(() => {
         setLastInteraction(null);
       }, 300);
 
@@ -695,7 +699,9 @@ function FlamegraphZoomView({
     flamegraphCanvasRef.addEventListener('wheel', onCanvasWheel);
 
     return () => {
-      window.clearTimeout(wheelStopTimeoutId);
+      if (wheelStopTimeoutId.current !== undefined) {
+        window.cancelAnimationFrame(wheelStopTimeoutId.current);
+      }
       flamegraphCanvasRef.removeEventListener('wheel', onCanvasWheel);
     };
   }, [flamegraphCanvasRef, zoom, scroll]);
@@ -870,7 +876,7 @@ function handleFlamegraphKeyboardNavigation(
     direction = direction === 'up' ? 'down' : 'up';
   }
   const nextSelection = selectNearestFrame(currentFrame, direction);
-  if (!nextSelection) {
+  if (nextSelection === currentFrame) {
     return null;
   }
   evt.preventDefault();

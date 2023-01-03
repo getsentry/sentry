@@ -13,7 +13,9 @@ from sentry.models.integrations.organization_integration import OrganizationInte
 from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
+from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.tasks.base import instrumented_task
+from sentry.utils.json import JSONData
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.safe import get_path
 
@@ -50,9 +52,9 @@ def derive_code_mappings(
     }
     feat_key = "organizations:derive-code-mappings"
     # Check the feature flag again to ensure the feature is still enabled.
-    should_continue = features.has(feat_key, org) or features.has(f"{feat_key}-dry-run", org)
+    org_has_flag = features.has(feat_key, org) or features.has(f"{feat_key}-dry-run", org)
 
-    if not (dry_run or should_continue or data["platform"] not in SUPPORTED_LANGUAGES):
+    if not (dry_run or org_has_flag or data["platform"] not in SUPPORTED_LANGUAGES):
         logger.info("Event should not be processed.", extra=extra)
         return
 
@@ -71,6 +73,18 @@ def derive_code_mappings(
     try:
         with lock.acquire():
             trees = installation.get_trees_for_org()
+    except ApiError as error:
+        msg = error.text
+        if error.json:
+            json_data: JSONData = error.json
+            msg = json_data.get("message")
+        extra["error"] = msg
+
+        if msg == "Not Found":
+            logger.warning("The org has uninstalled the Sentry App.", extra=extra)
+            return
+
+        raise error  # Let's be report the issue
     except UnableToAcquireLock as error:
         extra["error"] = error
         logger.warning("derive_code_mappings.getting_lock_failed", extra=extra)
@@ -98,7 +112,7 @@ def identify_stacktrace_paths(data: NodeData) -> List[str]:
             paths = {
                 frame["filename"]
                 for frame in frames
-                if frame.get("in_app") and frame.get("filename")
+                if frame and frame.get("in_app") and frame.get("filename")
             }
             stacktrace_paths.update(paths)
         except Exception:
@@ -177,7 +191,7 @@ def set_project_codemappings(
         )
         if not created:
             logger.info(
-                "derive_code_mappings: code mapping already exists",
+                "Code mapping already exists",
                 extra={
                     "project": project,
                     "stacktrace_root": code_mapping.stacktrace_root,
@@ -202,12 +216,12 @@ def report_project_codemappings(
         "stacktrace_paths": stacktrace_paths,
     }
     if code_mappings:
-        msg = "derive_code_mappings: code mappings would have been created."
+        msg = "Code mappings would have been created."
     else:
-        msg = "derive_code_mappings: NO code mappings would have been created."
+        msg = "NO code mappings would have been created."
     existing_code_mappings = RepositoryProjectPathConfig.objects.filter(project=project)
     if existing_code_mappings.exists():
-        msg = "derive_code_mappings: code mappings already exist."
+        msg = "Code mappings already exist."
         extra["existing_code_mappings"] = existing_code_mappings
 
     logger.info(msg, extra=extra)
