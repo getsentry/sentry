@@ -4,6 +4,7 @@ import random
 import sys
 from typing import Any, Callable, List, Mapping
 
+from django.db import ProgrammingError, transaction
 from django.db.models.signals import post_save, pre_delete
 from django.dispatch import receiver
 
@@ -30,7 +31,15 @@ from sentry.silo import SiloMode
 # This method is split out for test mocking convenience, and for future potential logging / metrics
 def _prepare_outbox(outbox: OutboxBase):
     if random.random() < float(options.get("hybrid_cloud.outbox_rate")) or "pytest" in sys.modules:
-        outbox.save()
+        try:
+            with transaction.atomic():
+                outbox.save()
+        except ProgrammingError as e:
+            if "does not exist" not in str(e):
+                raise e
+            # If running migrations, it's possible that a model is created before the outbox migration has completed.
+            # Allow the outbox to fail, and use reconciliation process to later sync that change.
+            pass
 
 
 def add_to_region_outbox(instance: Any):
