@@ -47,6 +47,7 @@ class IdentityService(InterfaceWithLifecycle):
     @abstractmethod
     def get_provider(
         self,
+        *,
         provider_id: int | None = None,
         provider_type: str | None = None,
         provider_ext_id: str | None = None,
@@ -60,6 +61,7 @@ class IdentityService(InterfaceWithLifecycle):
     @abstractmethod
     def get_identity(
         self,
+        *,
         provider_id: int,
         user_id: int | None = None,
         identity_ext_id: str | None = None,
@@ -73,6 +75,7 @@ class IdentityService(InterfaceWithLifecycle):
     @abstractmethod
     def get_user_identities_by_provider_type(
         self,
+        *,
         user_id: int,
         provider_type: str,
         exclude_matching_external_ids: bool = False,
