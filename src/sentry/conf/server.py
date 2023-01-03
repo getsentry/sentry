@@ -587,7 +587,6 @@ CELERY_IMPORTS = (
     "sentry.tasks.process_buffer",
     "sentry.tasks.relay",
     "sentry.tasks.release_registry",
-    "sentry.tasks.release_summary",
     "sentry.tasks.weekly_reports",
     "sentry.tasks.reprocessing",
     "sentry.tasks.reprocessing2",
@@ -733,11 +732,6 @@ CELERYBEAT_SCHEDULE = {
         "task": "sentry.tasks.digests.schedule_digests",
         "schedule": timedelta(seconds=30),
         "options": {"expires": 30},
-    },
-    "schedule-digest-release-summary": {
-        "task": "sentry.tasks.digest.release_summary",
-        "schedule": timedelta(minutes=5),
-        "options": {"expires": 60 * 5},
     },
     "check-monitors": {
         "task": "sentry.tasks.check_monitors",
@@ -1049,11 +1043,6 @@ SENTRY_FEATURES = {
     "organizations:transaction-name-sanitization": False,
     # Extraction metrics for transactions during ingestion.
     "organizations:transaction-metrics-extraction": False,
-    # Allow performance alerts to be created on the metrics dataset. Allows UI to switch between
-    # sampled/unsampled performance data.
-    "organizations:metrics-performance-alerts": False,
-    # Enable switch metrics button on Performance, allowing switch to unsampled transaction metrics
-    "organizations:metrics-performance-ui": False,
     # True if release-health related queries should be run against both
     # backends (sessions and metrics dataset)
     "organizations:release-health-check-metrics": False,
@@ -1545,6 +1534,7 @@ SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE = 0.01
 # Which cluster to use. Example: {"cluster": "default"}
 SENTRY_METRICS_INDEXER_CARDINALITY_LIMITER_OPTIONS = {}
 SENTRY_METRICS_INDEXER_CARDINALITY_LIMITER_OPTIONS_PERFORMANCE = {}
+SENTRY_METRICS_INDEXER_ENABLE_SLICED_PRODUCER = False
 
 # Release Health
 SENTRY_RELEASE_HEALTH = "sentry.release_health.sessions.SessionsReleaseHealthBackend"
