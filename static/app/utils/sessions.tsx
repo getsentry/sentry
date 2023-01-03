@@ -1,3 +1,4 @@
+import {Theme} from '@emotion/react';
 import compact from 'lodash/compact';
 import mean from 'lodash/mean';
 import moment from 'moment';
@@ -12,7 +13,6 @@ import {
 import {SessionApiResponse, SessionFieldWithOperation, SessionStatus} from 'sentry/types';
 import {SeriesDataUnit} from 'sentry/types/echarts';
 import {defined, percent} from 'sentry/utils';
-import {Theme} from 'sentry/utils/theme';
 import {getCrashFreePercent, getSessionStatusPercent} from 'sentry/views/releases/utils';
 import {sessionTerm} from 'sentry/views/releases/utils/sessionTerm';
 

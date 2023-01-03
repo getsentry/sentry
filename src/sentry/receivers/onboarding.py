@@ -376,19 +376,23 @@ def record_event_with_first_minified_stack_trace_for_project(project, event, **k
         return
 
     # First, only enter this logic if we've never seen a minified stack trace before
-    # This guarantees us that this analytics event will only be ever sent once.
     if not project.flags.has_minified_stack_trace:
-        analytics.record(
-            "first_event_with_minified_stack_trace_for_project.sent",
-            user_id=user.id,
-            organization_id=project.organization_id,
-            project_id=project.id,
-            platform=event.platform,
-            url=dict(event.tags).get("url", None),
-        )
+        # Next, attempt to update the flag, but ONLY if the flag is currently not set.
+        # The number of affected rows tells us whether we succeeded or not. If we didn't, then skip sending the event.
+        # This guarantees us that this analytics event will only be ever sent once.
+        affected = Project.objects.filter(
+            id=project.id, flags=F("flags").bitand(~Project.flags.has_minified_stack_trace)
+        ).update(flags=F("flags").bitor(Project.flags.has_minified_stack_trace))
 
-        # We set the flag `has_minified_stack_trace` for the project
-        project.update(flags=F("flags").bitor(Project.flags.has_minified_stack_trace))
+        if affected:
+            analytics.record(
+                "first_event_with_minified_stack_trace_for_project.sent",
+                user_id=user.id,
+                organization_id=project.organization_id,
+                project_id=project.id,
+                platform=event.platform,
+                url=dict(event.tags).get("url", None),
+            )
 
 
 transaction_processed.connect(record_user_context_received, weak=False)

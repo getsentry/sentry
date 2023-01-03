@@ -10,21 +10,19 @@ from collections import defaultdict, deque
 from dataclasses import dataclass
 from datetime import timedelta
 from enum import Enum
-from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple, Union
+from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
 from urllib.parse import urlparse
 
 import sentry_sdk
 from symbolic import ProguardMapper  # type: ignore
 
-from sentry import features, nodestore, options, projectoptions
+from sentry import nodestore, options, projectoptions
 from sentry.eventstore.models import Event
-from sentry.models import Organization, Project, ProjectDebugFile, ProjectOption
+from sentry.models import Project, ProjectDebugFile, ProjectOption
 from sentry.types.issues import GROUP_TYPE_TO_TEXT, GroupType
 from sentry.utils import metrics
 from sentry.utils.event_frames import get_sdk_name
 from sentry.utils.safe import get_path
-
-from .performance_span_issue import PerformanceSpanProblem
 
 
 def join_regexes(regexes: Sequence[str]) -> str:
@@ -196,22 +194,18 @@ class EventPerformanceProblem:
 
 Span = Dict[str, Any]
 TransactionSpans = List[Span]
-PerformanceProblemsMap = Dict[str, Union[PerformanceProblem, PerformanceSpanProblem]]
+PerformanceProblemsMap = Dict[str, PerformanceProblem]
 
 
 # Facade in front of performance detection to limit impact of detection on our events ingestion
 def detect_performance_problems(data: Event) -> List[PerformanceProblem]:
     try:
-        rate = options.get("performance.issues.all.problem-detection")
-        if rate and rate > random.random():
-            # Add an experimental tag to be able to find these spans in production while developing. Should be removed later.
-            sentry_sdk.set_tag("_did_analyze_performance_issue", "true")
-            with metrics.timer(
-                "performance.detect_performance_issue", sample_rate=0.01
-            ), sentry_sdk.start_span(
-                op="py.detect_performance_issue", description="none"
-            ) as sdk_span:
-                return _detect_performance_problems(data, sdk_span)
+        # Add an experimental tag to be able to find these spans in production while developing. Should be removed later.
+        sentry_sdk.set_tag("_did_analyze_performance_issue", "true")
+        with metrics.timer(
+            "performance.detect_performance_issue", sample_rate=0.01
+        ), sentry_sdk.start_span(op="py.detect_performance_issue", description="none") as sdk_span:
+            return _detect_performance_problems(data, sdk_span)
     except Exception:
         logging.exception("Failed to detect performance problems")
     return []
@@ -354,10 +348,7 @@ def _detect_performance_problems(data: Event, sdk_span: Any) -> List[Performance
     metrics.incr("performance.performance_issue.pretruncated", len(detected_problems))
     metrics.incr("performance.performance_issue.truncated", len(truncated_problems))
 
-    performance_problems = [
-        prepare_problem_for_grouping(problem, data, detector_type)
-        for problem, detector_type in truncated_problems
-    ]
+    performance_problems = [problem for problem, _detector_type in truncated_problems]
 
     # Leans on Set to remove duplicate problems when extending a detector, since the new extended detector can overlap in terms of created issues.
     unique_performance_problems = set(performance_problems)
@@ -386,12 +377,6 @@ def run_detector_on_data(detector, data):
 
 # Uses options and flags to determine which orgs and which detectors automatically create performance issues.
 def get_allowed_issue_creation_detectors(project_id: str):
-    project = Project.objects.get_from_cache(id=project_id)
-    organization = Organization.objects.get_from_cache(id=project.organization_id)
-    if not features.has("organizations:performance-issues-ingest", organization):
-        # Only organizations with this non-flagr feature have performance issues created.
-        return {}
-
     allowed_detectors = set()
     for detector_type, system_option in DETECTOR_TYPE_ISSUE_CREATION_TO_SYSTEM_OPTION.items():
         rate = options.get(system_option)
@@ -399,41 +384,6 @@ def get_allowed_issue_creation_detectors(project_id: str):
             allowed_detectors.add(detector_type)
 
     return allowed_detectors
-
-
-def prepare_problem_for_grouping(
-    problem: Union[PerformanceProblem, PerformanceSpanProblem],
-    data: Event,
-    detector_type: DetectorType,
-) -> PerformanceProblem:
-    # Don't transform if the caller has already done the work for us.
-    # (TBD: All detectors should get updated to just return PerformanceProblem directly)
-    if isinstance(problem, PerformanceProblem):
-        return problem
-
-    transaction_name = data.get("transaction")
-    spans_involved = problem.spans_involved
-    first_span_id = spans_involved[0]
-    spans = data.get("spans", [])
-    first_span = next((span for span in spans if span["span_id"] == first_span_id), None)
-    op = first_span["op"]
-    hash = first_span["hash"]
-    desc = first_span["description"]
-
-    group_type = DETECTOR_TYPE_TO_GROUP_TYPE[detector_type]
-    group_fingerprint = fingerprint_group(transaction_name, op, hash, group_type)
-
-    prepared_problem = PerformanceProblem(
-        fingerprint=group_fingerprint,
-        op=op,
-        desc=desc,
-        type=group_type,
-        parent_span_ids=None,
-        cause_span_ids=None,
-        offender_span_ids=spans_involved,
-    )
-
-    return prepared_problem
 
 
 def fingerprint_group(transaction_name, span_op, hash, problem_class):
@@ -607,9 +557,25 @@ class SlowSpanDetector(PerformanceDetector):
             milliseconds=duration_threshold
         ) and not self.stored_problems.get(fingerprint, False):
             spans_involved = [span_id]
-            self.stored_problems[fingerprint] = PerformanceSpanProblem(
-                span_id, op_prefix, spans_involved
+
+            hash = span.get("hash", "")
+            type = DETECTOR_TYPE_TO_GROUP_TYPE[self.settings_key]
+            transaction_name = self._event.get("transaction")
+
+            self.stored_problems[fingerprint] = PerformanceProblem(
+                type=type,
+                fingerprint=self._fingerprint(transaction_name, op, hash, type),
+                op=op,
+                desc=description,
+                cause_span_ids=[],
+                parent_span_ids=[],
+                offender_span_ids=spans_involved,
             )
+
+    def _fingerprint(self, transaction_name, span_op, hash, problem_class):
+        signature = (str(transaction_name) + str(span_op) + str(hash)).encode("utf-8")
+        full_fingerprint = hashlib.sha1(signature).hexdigest()
+        return f"1-{problem_class}-{full_fingerprint}"
 
 
 class RenderBlockingAssetSpanDetector(PerformanceDetector):
@@ -1566,16 +1532,13 @@ def report_metrics_for_detectors(
         if first_problem.fingerprint:
             set_tag(f"_pi_{detector_key}_fp", first_problem.fingerprint)
 
-        span_id = (
-            first_problem.span_id
-            if isinstance(first_problem, PerformanceSpanProblem)
-            else first_problem.offender_span_ids[0]
-        )
+        span_id = first_problem.offender_span_ids[0]
+
         set_tag(f"_pi_{detector_key}", span_id)
 
         op_tags = {}
         for problem in detected_problems.values():
-            op = problem.allowed_op if isinstance(problem, PerformanceSpanProblem) else problem.op
+            op = problem.op
             op_tags[f"op_{op}"] = True
         metrics.incr(
             f"performance.performance_issue.{detector_key}",

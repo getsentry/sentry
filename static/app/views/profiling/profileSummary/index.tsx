@@ -102,6 +102,7 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
         query: {
           ...props.location.query,
           query: searchQuery || undefined,
+          cursor: undefined,
         },
       });
     },

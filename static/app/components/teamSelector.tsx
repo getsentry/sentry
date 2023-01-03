@@ -38,7 +38,7 @@ const unassignedOption = {
   value: null,
   label: (
     <UnassignedWrapper>
-      <StyledIconUser size="20px" />
+      <StyledIconUser size="md" />
       {t('Unassigned')}
     </UnassignedWrapper>
   ),

@@ -1,4 +1,5 @@
 import {browserHistory} from 'react-router';
+import {Theme} from '@emotion/react';
 import {Location} from 'history';
 import isNumber from 'lodash/isNumber';
 import isString from 'lodash/isString';
@@ -7,14 +8,13 @@ import set from 'lodash/set';
 import moment from 'moment';
 
 import {Organization} from 'sentry/types';
-import {EntryType, EventTransaction} from 'sentry/types/event';
+import {EntrySpans, EntryType, EventTransaction} from 'sentry/types/event';
 import {assert} from 'sentry/types/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {WebVital} from 'sentry/utils/fields';
 import {TraceError} from 'sentry/utils/performance/quickTrace/types';
 import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import {getPerformanceTransaction} from 'sentry/utils/performanceForSentry';
-import {Theme} from 'sentry/utils/theme';
 
 import {MERGE_LABELS_THRESHOLD_PERCENT} from './constants';
 import SpanTreeModel from './spanTreeModel';
@@ -26,7 +26,6 @@ import {
   ParsedTraceType,
   ProcessedSpanType,
   RawSpanType,
-  SpanEntry,
   SpanType,
   TraceContextType,
   TreeDepthType,
@@ -308,7 +307,7 @@ export function getTraceContext(
 }
 
 export function parseTrace(event: Readonly<EventTransaction>): ParsedTraceType {
-  const spanEntry = event.entries.find((entry: SpanEntry | any): entry is SpanEntry => {
+  const spanEntry = event.entries.find((entry: EntrySpans | any): entry is EntrySpans => {
     return entry.type === EntryType.SPANS;
   });
 

@@ -33,6 +33,8 @@ class APIUser:
     last_active: datetime.datetime | None = None
     is_sentry_app: bool = False
     password_usable: bool = False
+    is_password_expired: bool = False
+    session_nonce: str = ""
 
     roles: FrozenSet[str] = frozenset()
     permissions: FrozenSet[str] = frozenset()
@@ -78,11 +80,29 @@ class UserSerializeType(IntEnum):
 
 class UserService(InterfaceWithLifecycle):
     @abstractmethod
-    def get_many_by_email(self, email: str) -> List[APIUser]:
+    def get_many_by_email(
+        self, emails: List[str], is_active: bool = True, is_verified: bool = True
+    ) -> List[APIUser]:
         """
-        Return a list of active users with verified emails matching the parameter
+        Return a list of users matching the filters
         :param email:
         A case insensitive email to match
+        :return:
+        """
+        pass
+
+    @abstractmethod
+    def get_by_username(
+        self, username: str, with_valid_password: bool = True, is_active: bool | None = None
+    ) -> List[APIUser]:
+        """
+        Return a list of users that match a username and falling back to email
+        :param username:
+        A case insensitive username/email to match
+        :param with_valid_password:
+        filter to ensure a password is set
+        :param is_active:
+        filter for only active users
         :return:
         """
         pass
@@ -130,10 +150,16 @@ class UserService(InterfaceWithLifecycle):
     @abstractmethod
     def serialize_users(
         self,
-        user_ids: List[int],
+        user_ids: Optional[List[int]] = None,
         *,
         detailed: UserSerializeType = UserSerializeType.SIMPLE,
-        auth_context: AuthenticationContext | None = None,
+        auth_context: AuthenticationContext
+        | None = None,  # TODO: replace this with the as_user attribute
+        as_user: User | APIUser | None = None,
+        # Query filters:
+        is_active: Optional[bool] = None,
+        organization_id: Optional[int] = None,
+        emails: Optional[List[str]] = None,
     ) -> List[Any]:
         """
         It is crucial that the returned order matches the user_ids passed in so that no introspection is required
@@ -154,6 +180,7 @@ class UserService(InterfaceWithLifecycle):
         args["display_name"] = user.get_display_name()
         args["label"] = user.get_label()
         args["is_superuser"] = user.is_superuser
+        args["is_sentry_app"] = user.is_sentry_app
         args["password_usable"] = user.has_usable_password()
 
         # And process the _base_user_query special data additions

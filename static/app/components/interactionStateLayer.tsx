@@ -1,4 +1,5 @@
 import isPropValid from '@emotion/is-prop-valid';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {defined} from 'sentry/utils';
@@ -8,6 +9,18 @@ interface StateLayerProps extends React.HTMLAttributes<HTMLSpanElement> {
   higherOpacity?: boolean;
   isHovered?: boolean;
   isPressed?: boolean;
+}
+
+function getControlledOpacityValue(p: StateLayerProps) {
+  if (p.isPressed) {
+    return p.higherOpacity ? 0.12 : 0.09;
+  }
+
+  if (p.isHovered) {
+    return p.higherOpacity ? 0.085 : 0.06;
+  }
+
+  return null;
 }
 
 const InteractionStateLayer = styled(
@@ -32,32 +45,31 @@ const InteractionStateLayer = styled(
   opacity: 0;
 
   ${p =>
-    defined(p.isHovered)
-      ? `
-        *:not(.focus-visible) > & {
-          opacity: ${p.isHovered ? (p.higherOpacity ? 0.085 : 0.06) : 0};
-        }
-      `
-      : `
-        *:hover:not(.focus-visible) > & {
-          opacity: ${p.higherOpacity ? 0.085 : 0.06};
-        }
-      `}
+    !defined(p.isHovered)
+      ? css`
+          *:hover:not(.focus-visible) > & {
+            opacity: ${p.higherOpacity ? 0.085 : 0.06};
+          }
+        `
+      : ''}
 
   ${p =>
-    defined(p.isPressed)
-      ? `
-        && {
-          opacity: ${p.isPressed ? (p.higherOpacity ? 0.12 : 0.09) : 0};
-        }
-      `
-      : `
-        *:active > &&,
-        *[aria-expanded='true'] > &&,
-        *[aria-selected='true'] > && {
-          opacity: ${p.higherOpacity ? 0.12 : 0.09};
-        }
-      `}
+    !defined(p.isPressed)
+      ? css`
+          *:active > &&,
+          *[aria-expanded='true'] > &&,
+          *[aria-selected='true'] > && {
+            opacity: ${p.higherOpacity ? 0.12 : 0.09};
+          }
+        `
+      : ''}
+
+  ${p =>
+    getControlledOpacityValue(p)
+      ? css`
+          opacity: ${getControlledOpacityValue(p)};
+        `
+      : ''}
 
   *:disabled > && {
     opacity: 0;
