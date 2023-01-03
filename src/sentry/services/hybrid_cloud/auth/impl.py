@@ -27,6 +27,7 @@ from sentry.models import (
     User,
 )
 from sentry.services.hybrid_cloud.auth import (
+    ApiAuthenticatorType,
     ApiAuthIdentity,
     ApiAuthProvider,
     ApiAuthProviderFlags,
@@ -34,9 +35,10 @@ from sentry.services.hybrid_cloud.auth import (
     ApiMemberSsoState,
     ApiOrganizationAuthConfig,
     AuthenticatedToken,
+    AuthenticationContext,
     AuthenticationRequest,
-    AuthenticationResponse,
     AuthService,
+    MiddlewareAuthenticationResponse,
 )
 from sentry.services.hybrid_cloud.organization import (
     ApiOrganization,
@@ -173,7 +175,25 @@ class DatabaseBackedAuthService(AuthService):
             for oid in organization_ids
         ]
 
-    def authenticate(self, *, request: AuthenticationRequest) -> AuthenticationResponse:
+    def authenticate_with(
+        self, *, request: AuthenticationRequest, authenticator_types: List[ApiAuthenticatorType]
+    ) -> AuthenticationContext:
+        fake_request = FakeAuthenticationRequest(request)
+        user: User | None = None
+        token: Any = None
+
+        for authenticator_type in authenticator_types:
+            t = authenticator_type.as_authenticator().authenticate(fake_request)
+            if t is not None:
+                user, token = t
+                break
+
+        return AuthenticationContext(
+            auth=AuthenticatedToken.from_token(token) if token else None,
+            user=user_service.serialize_user(user) if user else None,
+        )
+
+    def authenticate(self, *, request: AuthenticationRequest) -> MiddlewareAuthenticationResponse:
         fake_request = FakeAuthenticationRequest(request)
         handler: Any = RequestAuthenticationMiddleware()
         expired_user: User | None = None
@@ -190,7 +210,7 @@ class DatabaseBackedAuthService(AuthService):
         if fake_request.auth is not None:
             auth = AuthenticatedToken.from_token(fake_request.auth)
 
-        result = AuthenticationResponse(
+        result = MiddlewareAuthenticationResponse(
             auth=auth, user_from_signed_request=fake_request.user_from_signed_request
         )
 
@@ -517,3 +537,9 @@ def _unwrap_b64(input: str | None) -> bytes | None:
 AuthenticatedToken.register_kind("system", SystemToken)
 AuthenticatedToken.register_kind("api_token", ApiToken)
 AuthenticatedToken.register_kind("api_key", ApiKey)
+
+
+def promote_request_api_user(request: Any) -> User:
+    if not hasattr(request, "_promoted_user"):
+        setattr(request, "_promoted_user", User.objects.get(id=request.user.id))
+    return request._promoted_user

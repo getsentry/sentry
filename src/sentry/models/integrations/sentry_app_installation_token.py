@@ -5,9 +5,10 @@ from typing import TYPE_CHECKING
 from django.db.models import QuerySet
 
 from sentry.db.models import BaseManager, FlexibleForeignKey, Model, region_silo_only_model
+from sentry.models import ApiToken
 
 if TYPE_CHECKING:
-    from sentry.models import ApiToken
+    from sentry.services.hybrid_cloud.auth import AuthenticatedToken
 
 
 class SentryAppInstallationTokenManager(BaseManager):
@@ -22,9 +23,10 @@ class SentryAppInstallationTokenManager(BaseManager):
 
         return sentry_app_installation_tokens[0].api_token.token
 
-    def _get_token(self, token: ApiToken) -> SentryAppInstallationToken | None:
+    def _get_token(self, token: ApiToken | AuthenticatedToken) -> SentryAppInstallationToken | None:
+        id = token.id if isinstance(token, ApiToken) else token.entity_id
         try:
-            return self.select_related("sentry_app_installation").get(api_token=token)
+            return self.select_related("sentry_app_installation").get(api_token_id=id)
         except SentryAppInstallationToken.DoesNotExist:
             pass
         return None

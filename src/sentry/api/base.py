@@ -4,7 +4,7 @@ import functools
 import logging
 import time
 from datetime import datetime, timedelta
-from typing import Any, Callable, Iterable, Mapping, Optional, Type
+from typing import Any, Callable, Iterable, List, Mapping, Optional, Type
 
 import sentry_sdk
 from django.conf import settings
@@ -13,7 +13,7 @@ from django.utils.http import urlquote
 from django.views.decorators.csrf import csrf_exempt
 from pytz import utc
 from rest_framework import status
-from rest_framework.authentication import SessionAuthentication
+from rest_framework.authentication import BaseAuthentication, SessionAuthentication
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -45,6 +45,8 @@ __all__ = [
     "region_silo_endpoint",
     "pending_silo_endpoint",
 ]
+
+from ..services.hybrid_cloud.auth import ApiAuthentication, ApiAuthenticatorType
 
 ONE_MINUTE = 60
 ONE_HOUR = ONE_MINUTE * 60
@@ -118,6 +120,32 @@ class Endpoint(APIView):
 
     rate_limits: RateLimitConfig = DEFAULT_RATE_LIMIT_CONFIG
     enforce_rate_limit: bool = settings.SENTRY_RATELIMITER_ENABLED
+
+    def get_authenticators(self) -> List[BaseAuthentication]:
+        """
+        Instantiates and returns the list of authenticators that this view can use.
+        Aggregates together authenticators that can be supported using HybridCloud.
+        """
+
+        # TODO: Increase test coverage and get this working for monolith mode.
+        if SiloMode.get_current_mode() == SiloMode.MONOLITH:
+            return super().get_authenticators()
+
+        last_api_authenticator = ApiAuthentication([])
+        result: List[BaseAuthentication] = []
+        for authenticator_cls in self.authentication_classes:
+            auth_type = ApiAuthenticatorType.from_authenticator(authenticator_cls)
+            if auth_type:
+                last_api_authenticator.types.append(auth_type)
+            else:
+                if last_api_authenticator.types:
+                    result.append(last_api_authenticator)
+                    last_api_authenticator = ApiAuthentication([])
+                result.append(authenticator_cls())
+
+        if last_api_authenticator.types:
+            result.append(last_api_authenticator)
+        return result
 
     def build_cursor_link(self, request: Request, name, cursor):
         querystring = None
