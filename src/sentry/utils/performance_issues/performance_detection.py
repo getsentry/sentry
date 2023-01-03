@@ -290,10 +290,8 @@ def _detect_performance_problems(data: Event, sdk_span: Any) -> List[Performance
     metrics.incr("performance.performance_issue.pretruncated", len(detected_problems))
     metrics.incr("performance.performance_issue.truncated", len(truncated_problems))
 
-    performance_problems = truncated_problems
-
     # Leans on Set to remove duplicate problems when extending a detector, since the new extended detector can overlap in terms of created issues.
-    unique_performance_problems = set(performance_problems)
+    unique_performance_problems = set(truncated_problems)
 
     if len(unique_performance_problems) > 0:
         metrics.incr(
