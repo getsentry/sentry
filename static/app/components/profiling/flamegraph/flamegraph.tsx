@@ -276,13 +276,13 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
           inverted: false,
           minWidth: spanChart.minSpanDuration,
           barHeight: flamegraphTheme.SIZES.SPANS_BAR_HEIGHT,
-          depthOffset: 0,
+          depthOffset: flamegraphTheme.SIZES.SPANS_DEPTH_OFFSET,
         },
       });
 
       return newView;
     },
-    [spanChart, spansCanvas, flamegraphTheme.SIZES.SPANS_BAR_HEIGHT]
+    [spanChart, spansCanvas, flamegraphTheme.SIZES]
   );
 
   useEffect(() => {
