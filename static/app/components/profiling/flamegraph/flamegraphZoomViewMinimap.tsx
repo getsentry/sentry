@@ -13,6 +13,8 @@ import {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegraphRen
 import {PositionIndicatorRenderer} from 'sentry/utils/profiling/renderers/positionIndicatorRenderer';
 import usePrevious from 'sentry/utils/usePrevious';
 
+import {requestAnimationFrameTimeout} from '../../../views/profiling/utils';
+
 interface FlamegraphZoomViewMinimapProps {
   canvasPoolManager: CanvasPoolManager;
   flamegraph: Flamegraph;
@@ -437,10 +439,13 @@ function FlamegraphZoomViewMinimap({
       return undefined;
     }
 
-    let wheelStopTimeoutId: number | undefined;
+    let wheelStopTimeoutId: {current: number | undefined} = {current: undefined};
+
     function onCanvasWheel(evt: WheelEvent) {
-      window.clearTimeout(wheelStopTimeoutId);
-      wheelStopTimeoutId = window.setTimeout(() => {
+      if (wheelStopTimeoutId.current !== undefined) {
+        window.cancelAnimationFrame(wheelStopTimeoutId.current);
+      }
+      wheelStopTimeoutId = requestAnimationFrameTimeout(() => {
         setLastInteraction(null);
       }, 300);
 
@@ -462,7 +467,9 @@ function FlamegraphZoomViewMinimap({
     flamegraphMiniMapCanvasRef.addEventListener('wheel', onCanvasWheel);
 
     return () => {
-      window.clearTimeout(wheelStopTimeoutId);
+      if (wheelStopTimeoutId.current !== undefined) {
+        window.cancelAnimationFrame(wheelStopTimeoutId.current);
+      }
       flamegraphMiniMapCanvasRef.removeEventListener('wheel', onCanvasWheel);
     };
   }, [flamegraphMiniMapCanvasRef, onMinimapZoom, onMinimapScroll]);
