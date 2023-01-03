@@ -85,9 +85,9 @@ export function FlamegraphLayout(props: FlamegraphLayoutProps) {
           </SpansContainer>
         ) : null}
         <ZoomViewContainer>{props.flamegraph}</ZoomViewContainer>
-        <FLAMEGRAPH_DRAWERContainer ref={flamegraphDrawerRef} layout={layout}>
+        <FlamegraphDrawerContainer ref={flamegraphDrawerRef} layout={layout}>
           {cloneElement(props.flamegraphDrawer, {onResize: onMouseDown})}
-        </FLAMEGRAPH_DRAWERContainer>
+        </FlamegraphDrawerContainer>
       </FlamegraphGrid>
     </FlamegraphLayoutContainer>
   );
@@ -165,7 +165,7 @@ const SpansContainer = styled('div')<{
   grid-area: spans;
 `;
 
-const FLAMEGRAPH_DRAWERContainer = styled('div')<{
+const FlamegraphDrawerContainer = styled('div')<{
   layout: FlamegraphPreferences['layout'];
 }>`
   grid-area: frame-stack;

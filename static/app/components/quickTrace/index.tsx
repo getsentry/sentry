@@ -1,4 +1,5 @@
 import {Component, Fragment} from 'react';
+import {Theme} from '@emotion/react';
 import {Location, LocationDescriptor} from 'history';
 
 import DropdownLink from 'sentry/components/dropdownLink';
@@ -28,7 +29,6 @@ import {
 } from 'sentry/utils/performance/quickTrace/types';
 import {parseQuickTrace} from 'sentry/utils/performance/quickTrace/utils';
 import Projects from 'sentry/utils/projects';
-import {Theme} from 'sentry/utils/theme';
 
 const FRONTEND_PLATFORMS: string[] = [...frontend, ...mobile];
 const BACKEND_PLATFORMS: string[] = [...backend, ...serverless];
