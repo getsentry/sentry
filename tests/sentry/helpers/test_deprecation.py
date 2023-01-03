@@ -2,7 +2,6 @@ from datetime import datetime, timedelta
 
 import isodate
 from croniter import croniter
-from django.conf import settings
 from freezegun import freeze_time
 from rest_framework.request import Request
 from rest_framework.response import Response
