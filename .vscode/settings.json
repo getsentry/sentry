@@ -9,7 +9,8 @@
     "htmlcov": true,
     "node_modules": true,
     "src/sentry/locale": true,
-    "src/sentry/static/sentry/dist/": true
+    "src/sentry/static/sentry/dist/": true,
+    "model-manifest.json": true,
   },
   "search.followSymlinks": false,
   "files.trimTrailingWhitespace": true,
