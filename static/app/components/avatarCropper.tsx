@@ -7,6 +7,12 @@ import {AVATAR_URL_MAP} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import {AvatarUser} from 'sentry/types';
 
+const ALLOWED_MIMETYPES = 'image/gif,image/jpeg,image/png';
+
+// These values must be synced with the avatar endpoint in backend.
+const MIN_DIMENSION = 256;
+const MAX_DIMENSION = 1024;
+
 export function getDiffNW(yDiff: number, xDiff: number) {
   return (yDiff - yDiff * 2 + (xDiff - xDiff * 2)) / 2;
 }
@@ -56,7 +62,7 @@ type State = {
   resizeDirection: Position | null;
 };
 
-export class AvatarCropper extends Component<Props, State> {
+class AvatarCropper extends Component<Props, State> {
   state: State = {
     file: null,
     objectURL: null,
@@ -74,13 +80,8 @@ export class AvatarCropper extends Component<Props, State> {
   image = createRef<HTMLImageElement>();
   cropContainer = createRef<HTMLDivElement>();
 
-  // These values must be synced with the avatar endpoint in backend.
-  MIN_DIMENSION = 256;
-  MAX_DIMENSION = 1024;
-  ALLOWED_MIMETYPES = 'image/gif,image/jpeg,image/png';
-
   onSelectFile = (ev: React.ChangeEvent<HTMLInputElement>) => {
-    const file = ev.target.files && ev.target.files[0];
+    const file = ev.target.files?.[0];
 
     // No file selected (e.g. user clicked "cancel")
     if (!file) {
@@ -211,20 +212,19 @@ export class AvatarCropper extends Component<Props, State> {
     });
   };
 
-  // Normalize diff across dimensions so that negative diffs are always making
-  // the cropper smaller and positive ones are making the cropper larger
-  getDiffNW = getDiffNW;
-
-  getDiffNE = getDiffNE;
-
-  getDiffSW = getDiffSW;
-
-  getDiffSE = getDiffSE;
-
   getNewDimensions = (container: HTMLDivElement, yDiff: number, xDiff: number) => {
     const {resizeDimensions: oldDimensions, resizeDirection} = this.state;
 
-    const diff = this['getDiff' + resizeDirection!.toUpperCase()](yDiff, xDiff);
+    // Normalize diff across dimensions so that negative diffs are always making
+    // the cropper smaller and positive ones are making the cropper larger
+    const helpers = {
+      getDiffNE,
+      getDiffNW,
+      getDiffSE,
+      getDiffSW,
+    } as const;
+
+    const diff = helpers['getDiff' + resizeDirection!.toUpperCase()](yDiff, xDiff);
 
     let height = container.clientHeight - oldDimensions.top;
     let width = container.clientWidth - oldDimensions.left;
@@ -278,14 +278,14 @@ export class AvatarCropper extends Component<Props, State> {
         newDimensions.left = newDimensions.left + newDimensions.size - maxSize;
       }
       newDimensions.size = maxSize;
-    } else if (newDimensions.size < this.MIN_DIMENSION) {
+    } else if (newDimensions.size < MIN_DIMENSION) {
       if (editingTop) {
-        newDimensions.top = newDimensions.top + newDimensions.size - this.MIN_DIMENSION;
+        newDimensions.top = newDimensions.top + newDimensions.size - MIN_DIMENSION;
       }
       if (editingLeft) {
-        newDimensions.left = newDimensions.left + newDimensions.size - this.MIN_DIMENSION;
+        newDimensions.left = newDimensions.left + newDimensions.size - MIN_DIMENSION;
       }
-      newDimensions.size = this.MIN_DIMENSION;
+      newDimensions.size = MIN_DIMENSION;
     }
 
     return {...oldDimensions, ...newDimensions};
@@ -298,15 +298,15 @@ export class AvatarCropper extends Component<Props, State> {
       return null;
     }
 
-    if (img.naturalWidth < this.MIN_DIMENSION || img.naturalHeight < this.MIN_DIMENSION) {
+    if (img.naturalWidth < MIN_DIMENSION || img.naturalHeight < MIN_DIMENSION) {
       return tct('Please upload an image larger than [size]px by [size]px.', {
-        size: this.MIN_DIMENSION - 1,
+        size: MIN_DIMENSION - 1,
       });
     }
 
-    if (img.naturalWidth > this.MAX_DIMENSION || img.naturalHeight > this.MAX_DIMENSION) {
+    if (img.naturalWidth > MAX_DIMENSION || img.naturalHeight > MAX_DIMENSION) {
       return tct('Please upload an image smaller than [size]px by [size]px.', {
-        size: this.MAX_DIMENSION,
+        size: MAX_DIMENSION,
       });
     }
 
@@ -420,7 +420,7 @@ export class AvatarCropper extends Component<Props, State> {
           <UploadInput
             ref={this.file}
             type="file"
-            accept={this.ALLOWED_MIMETYPES}
+            accept={ALLOWED_MIMETYPES}
             onChange={this.onSelectFile}
           />
         </div>
@@ -428,6 +428,8 @@ export class AvatarCropper extends Component<Props, State> {
     );
   }
 }
+
+export {AvatarCropper};
 
 const UploadInput = styled('input')`
   position: absolute;
