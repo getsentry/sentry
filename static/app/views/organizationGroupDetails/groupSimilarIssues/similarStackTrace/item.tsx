@@ -171,10 +171,6 @@ const Details = styled('div')`
   gap: ${space(1)};
   grid-template-columns: max-content auto max-content;
   margin-left: ${space(2)};
-
-  input[type='checkbox'] {
-    margin: 0;
-  }
 `;
 
 const StyledPanelItem = styled(PanelItem)`
