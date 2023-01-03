@@ -1,4 +1,4 @@
-import {useEffect} from 'react';
+import {useEffect, useMemo} from 'react';
 
 import {DeepPartial} from 'sentry/types/utils';
 import {defined} from 'sentry/utils';
@@ -14,6 +14,7 @@ import {
   FlamegraphState,
   FlamegraphStateDispatchContext,
   flamegraphStateReducer,
+  FlamegraphStateValue,
   FlamegraphStateValueContext,
 } from './flamegraphContext';
 
@@ -68,7 +69,7 @@ interface FlamegraphStateProviderProps {
 export function FlamegraphStateProvider(
   props: FlamegraphStateProviderProps
 ): React.ReactElement {
-  const [profileGroup] = useProfileGroup();
+  const profileGroup = useProfileGroup();
   const [state, dispatch, {nextState, previousState}] = useUndoableReducer(
     flamegraphStateReducer,
     {
@@ -201,8 +202,12 @@ export function FlamegraphStateProvider(
     state.profiles.highlightFrames,
   ]);
 
+  const flamegraphContextValue: FlamegraphStateValue = useMemo(() => {
+    return [state, {nextState, previousState}];
+  }, [state, nextState, previousState]);
+
   return (
-    <FlamegraphStateValueContext.Provider value={[state, {nextState, previousState}]}>
+    <FlamegraphStateValueContext.Provider value={flamegraphContextValue}>
       <FlamegraphStateDispatchContext.Provider value={dispatch}>
         {props.children}
       </FlamegraphStateDispatchContext.Provider>

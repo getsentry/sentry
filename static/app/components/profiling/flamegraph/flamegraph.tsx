@@ -15,9 +15,15 @@ import {
 } from 'sentry/components/profiling/flamegraph/flamegraphOverlays/profileDragDropImport';
 import {FlamegraphOptionsMenu} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphOptionsMenu';
 import {FlamegraphSearch} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphSearch';
-import {FlamegraphThreadSelector} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphThreadSelector';
+import {
+  FlamegraphThreadSelector,
+  FlamegraphThreadSelectorProps,
+} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphThreadSelector';
 import {FlamegraphToolbar} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphToolbar';
-import {FlamegraphViewSelectMenu} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphViewSelectMenu';
+import {
+  FlamegraphViewSelectMenu,
+  FlamegraphViewSelectMenuProps,
+} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphViewSelectMenu';
 import {FlamegraphZoomView} from 'sentry/components/profiling/flamegraph/flamegraphZoomView';
 import {FlamegraphZoomViewMinimap} from 'sentry/components/profiling/flamegraph/flamegraphZoomViewMinimap';
 import {defined} from 'sentry/utils';
@@ -410,28 +416,47 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
     return selectedRoot ? [selectedRoot] : flamegraph.root.children;
   }, [selectedRoot, flamegraph.root]);
 
+  const onSortingChange: FlamegraphViewSelectMenuProps['onSortingChange'] = useCallback(
+    newSorting => {
+      dispatch({type: 'set sorting', payload: newSorting});
+    },
+    [dispatch]
+  );
+
+  const onViewChange: FlamegraphViewSelectMenuProps['onViewChange'] = useCallback(
+    newView => {
+      dispatch({type: 'set view', payload: newView});
+    },
+    [dispatch]
+  );
+
+  const onThreadIdChange: FlamegraphThreadSelectorProps['onThreadIdChange'] = useCallback(
+    newThreadId => {
+      dispatch({type: 'set thread id', payload: newThreadId});
+    },
+    [dispatch]
+  );
+
+  // A bit unfortunate for now, but the search component accepts a list
+  // of model to search through. This will become useful as we  build
+  // differential flamecharts or start comparing different profiles/charts
+  const flamegraphs = useMemo(() => [flamegraph], [flamegraph]);
   return (
     <Fragment>
       <FlamegraphToolbar>
         <FlamegraphThreadSelector
           profileGroup={props.profiles}
           threadId={threadId}
-          onThreadIdChange={newThreadId =>
-            dispatch({type: 'set thread id', payload: newThreadId})
-          }
+          onThreadIdChange={onThreadIdChange}
         />
         <FlamegraphViewSelectMenu
           view={view}
           sorting={sorting}
-          onSortingChange={s => {
-            dispatch({type: 'set sorting', payload: s});
-          }}
-          onViewChange={v => {
-            dispatch({type: 'set view', payload: v});
-          }}
+          onSortingChange={onSortingChange}
+          onViewChange={onViewChange}
         />
         <FlamegraphSearch
-          flamegraphs={[flamegraph]}
+          flamegraphs={flamegraphs}
           canvasPoolManager={canvasPoolManager}
         />
         <FlamegraphOptionsMenu canvasPoolManager={canvasPoolManager} />
