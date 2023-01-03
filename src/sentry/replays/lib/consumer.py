@@ -1,6 +1,7 @@
 import logging
 from typing import Optional
 
+from arroyo.errors import MessageRejected
 from arroyo.processing.strategies.abstract import ProcessingStrategy
 from arroyo.types import Message, TPayload
 
@@ -22,6 +23,10 @@ class LogExceptionStep(ProcessingStrategy[TPayload]):
 
         try:
             self.__next_step.submit(message)
+        except MessageRejected:
+            # if we reject due to backpressure, we should not log an exception
+            # as this can cause an extreme amount of exceptions to be generated
+            return
         except Exception:
             self.__logger.exception(self.__exception_message)
 

@@ -45,7 +45,7 @@ class ProcessReplayRecordingStrategyFactory(ProcessingStrategyFactory[KafkaPaylo
         partitions: Mapping[Partition, int],
     ) -> Any:
         return LogExceptionStep(
-            message="Invalid recording specified.",
+            message="Error in Replay Recording Processor",
             logger=logger,
             next_step=TransformStep(
                 function=move_chunks_to_cache_or_skip,
