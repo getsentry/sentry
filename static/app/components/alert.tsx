@@ -1,5 +1,5 @@
 import {useRef, useState} from 'react';
-import {css} from '@emotion/react';
+import {css, Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useHover} from '@react-aria/interactions';
 import classNames from 'classnames';
@@ -8,7 +8,6 @@ import {IconCheckmark, IconChevron, IconInfo, IconNot, IconWarning} from 'sentry
 import space from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import PanelProvider from 'sentry/utils/panelProvider';
-import {Theme} from 'sentry/utils/theme';
 
 export interface AlertProps extends React.HTMLAttributes<HTMLDivElement> {
   expand?: React.ReactNode;

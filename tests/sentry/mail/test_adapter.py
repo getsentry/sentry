@@ -1,6 +1,7 @@
 import uuid
 from collections import Counter
 from datetime import datetime, timedelta
+from functools import cached_property
 from typing import Mapping, Sequence
 from unittest import mock
 
@@ -9,7 +10,6 @@ from django.contrib.auth.models import AnonymousUser
 from django.core import mail
 from django.db.models import F
 from django.utils import timezone
-from exam import fixture
 
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.userreport import UserReportWithGroupSerializer
@@ -67,7 +67,7 @@ from tests.sentry.mail import make_event_data, send_notification
 
 
 class BaseMailAdapterTest(TestCase):
-    @fixture
+    @cached_property
     def adapter(self):
         return mail_adapter
 
@@ -372,19 +372,16 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         event_data = load_data(
             "transaction-n-plus-one",
             timestamp=before_now(minutes=10),
-            fingerprint=[f"{GroupType.PERFORMANCE_N_PLUS_ONE.value}-group1"],
+            fingerprint=[f"{GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value}-group1"],
         )
         perf_event_manager = EventManager(event_data)
         perf_event_manager.normalize()
         with override_options(
             {
-                "performance.issues.all.problem-creation": 1.0,
-                "performance.issues.all.problem-detection": 1.0,
                 "performance.issues.n_plus_one_db.problem-creation": 1.0,
             }
         ), self.feature(
             [
-                "organizations:performance-issues-ingest",
                 "projects:performance-suspect-spans-ingestion",
             ]
         ):

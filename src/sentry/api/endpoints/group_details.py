@@ -27,6 +27,7 @@ from sentry.models.groupinbox import get_inbox_details
 from sentry.models.groupowner import get_owner_details
 from sentry.plugins.base import plugins
 from sentry.plugins.bases import IssueTrackingPlugin2
+from sentry.services.hybrid_cloud.user import user_service
 from sentry.types.issues import GroupCategory
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils import metrics
@@ -211,8 +212,9 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                 {
                     "activity": serialize(activity, request.user),
                     "seenBy": seen_by,
-                    "participants": serialize(
-                        GroupSubscriptionManager.get_participating_users(group), request.user
+                    "participants": user_service.serialize_users(
+                        user_ids=GroupSubscriptionManager.get_participating_user_ids(group),
+                        as_user=request.user,
                     ),
                     "pluginActions": action_list,
                     "pluginIssues": self._get_available_issue_plugins(request, group),
@@ -324,8 +326,8 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
         """
         from sentry.utils import snuba
 
-        if group.issue_category == GroupCategory.PERFORMANCE:
-            raise ValidationError(detail="Cannot delete performance issues.", code=400)
+        if group.issue_category != GroupCategory.ERROR:
+            raise ValidationError(detail="Only error issues can be deleted.", code=400)
 
         try:
             delete_group_list(request, group.project, [group], "delete")

@@ -6,7 +6,7 @@ from typing import Any, Mapping, MutableMapping, Optional
 from arroyo.backends.abstract import Producer as AbstractProducer
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.processing.strategies import ProcessingStrategy as ProcessingStep
-from arroyo.types import Commit, Message, Partition, Position
+from arroyo.types import Commit, Message, Partition
 from confluent_kafka import Producer
 from django.conf import settings
 
@@ -30,7 +30,7 @@ class SimpleProduceStep(ProcessingStep[KafkaPayload]):
         self.__commit_function = commit_function
 
         self.__closed = False
-        self.__produced_message_offsets: MutableMapping[Partition, Position] = {}
+        self.__produced_message_offsets: MutableMapping[Partition, int] = {}
         # TODO: Need to make these flags
         self.__producer_queue_max_size = 80000
         self.__producer_long_poll_timeout = 3.0
@@ -78,7 +78,7 @@ class SimpleProduceStep(ProcessingStep[KafkaPayload]):
             headers=message.payload.headers,
         )
 
-    def callback(self, error: Any, message: Any, committable: Mapping[Partition, Position]) -> None:
+    def callback(self, error: Any, message: Any, committable: Mapping[Partition, int]) -> None:
         if message and error is None:
             self.__produced_message_offsets.update(committable)
         if error is not None:

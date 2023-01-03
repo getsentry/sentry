@@ -139,7 +139,7 @@ function FlamegraphZoomView({
     if (!configSpaceCursor || !flamegraphRenderer) {
       return null;
     }
-    return flamegraphRenderer.getHoveredNode(configSpaceCursor);
+    return flamegraphRenderer.findHoveredNode(configSpaceCursor);
   }, [configSpaceCursor, flamegraphRenderer]);
 
   useEffect(() => {
@@ -194,8 +194,8 @@ function FlamegraphZoomView({
           selectedFramesRef.current?.[0],
           flamegraph.inverted
         );
+
         if (nextSelected) {
-          selectedFramesRef.current = [nextSelected];
           canvasPoolManager.dispatch('zoom at frame', [nextSelected, 'min']);
         }
       }
@@ -439,7 +439,10 @@ function FlamegraphZoomView({
       setConfigSpaceCursor(null);
     };
 
-    const onZoomIntoFrame = () => {
+    const onZoomIntoFrame = (frame: FlamegraphFrame, _strategy: 'min' | 'exact') => {
+      if (frame) {
+        selectedFramesRef.current = [frame];
+      }
       setConfigSpaceCursor(null);
     };
 
@@ -858,19 +861,19 @@ function handleFlamegraphKeyboardNavigation(
 
   const key = evt.shiftKey ? `Shift+${evt.key}` : evt.key;
   let direction = keyDirectionMap[key];
+
+  // if the key is not mapped, don't handle it
   if (!direction) {
-    return currentFrame;
+    return null;
   }
   if (inverted && (direction === 'up' || direction === 'down')) {
     direction = direction === 'up' ? 'down' : 'up';
   }
-
   const nextSelection = selectNearestFrame(currentFrame, direction);
-  if (!nextSelection) {
+  if (nextSelection === currentFrame) {
     return null;
   }
   evt.preventDefault();
-
   return nextSelection;
 }
 

@@ -121,6 +121,14 @@ def trim_line(line, column=0):
     return line
 
 
+def fetch_error_should_be_silienced(exc_data, filename):
+    # most people don't upload release artifacts for their third-party libraries,
+    # so ignore missing node_modules files or chrome extensions
+    return exc_data["type"] == EventError.JS_MISSING_SOURCE and (
+        "node_modules" in filename or (exc_data.get("url") or "").startswith("chrome-extension:")
+    )
+
+
 def get_source_context(source, lineno, context=LINES_OF_CONTEXT):
     if not source:
         return None, None, None
@@ -1255,13 +1263,8 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                     allow_scraping=self.allow_scraping,
                 )
         except http.BadSource as exc:
-            # most people don't upload release artifacts for their third-party libraries,
-            # so ignore missing node_modules files
-            if exc.data["type"] == EventError.JS_MISSING_SOURCE and "node_modules" in filename:
-                pass
-            else:
+            if not fetch_error_should_be_silienced(exc.data, filename):
                 cache.add_error(filename, exc.data)
-
             # either way, there's no more for us to do here, since we don't have
             # a valid file to cache
             return

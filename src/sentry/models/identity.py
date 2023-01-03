@@ -15,7 +15,7 @@ from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
-    control_silo_with_replication_model,
+    control_silo_only_model,
     region_silo_only_model,
 )
 from sentry.db.models.fields.jsonfield import JSONField
@@ -34,7 +34,7 @@ class IdentityStatus:
     INVALID = 2
 
 
-@control_silo_with_replication_model
+@control_silo_only_model
 class IdentityProvider(Model):
     """
     An IdentityProvider is an instance of a provider.

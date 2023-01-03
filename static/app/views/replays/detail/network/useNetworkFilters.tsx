@@ -2,7 +2,6 @@ import {useCallback, useMemo} from 'react';
 
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import useFiltersInLocationQuery from 'sentry/utils/replays/hooks/useFiltersInLocationQuery';
-import {UNKNOWN_STATUS} from 'sentry/views/replays/detail/network/utils';
 import {filterItems} from 'sentry/views/replays/detail/utils';
 import type {NetworkSpan} from 'sentry/views/replays/types';
 
@@ -15,6 +14,8 @@ export type FilterFields = {
 type Options = {
   networkSpans: NetworkSpan[];
 };
+
+const UNKNOWN_STATUS = 'unknown';
 
 type Return = {
   getResourceTypes: () => {label: string; value: string}[];

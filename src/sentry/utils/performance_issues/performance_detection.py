@@ -16,9 +16,9 @@ from urllib.parse import urlparse
 import sentry_sdk
 from symbolic import ProguardMapper  # type: ignore
 
-from sentry import features, nodestore, options, projectoptions
+from sentry import nodestore, options, projectoptions
 from sentry.eventstore.models import Event
-from sentry.models import Organization, Project, ProjectDebugFile, ProjectOption
+from sentry.models import Project, ProjectDebugFile, ProjectOption
 from sentry.types.issues import GROUP_TYPE_TO_TEXT, GroupType
 from sentry.utils import metrics
 from sentry.utils.event_frames import get_sdk_name
@@ -54,9 +54,7 @@ CONTAINS_PARAMETER_REGEX = re.compile(
 
 class DetectorType(Enum):
     SLOW_SPAN = "slow_span"
-    DUPLICATE_SPANS = "duplicates"
     RENDER_BLOCKING_ASSET_SPAN = "render_blocking_assets"
-    N_PLUS_ONE_SPANS = "n_plus_one"
     N_PLUS_ONE_DB_QUERIES = "n_plus_one_db"
     N_PLUS_ONE_DB_QUERIES_EXTENDED = "n_plus_one_db_ext"
     N_PLUS_ONE_API_CALLS = "n_plus_one_api_calls"
@@ -67,9 +65,7 @@ class DetectorType(Enum):
 
 DETECTOR_TYPE_TO_GROUP_TYPE = {
     DetectorType.SLOW_SPAN: GroupType.PERFORMANCE_SLOW_SPAN,
-    DetectorType.DUPLICATE_SPANS: GroupType.PERFORMANCE_DUPLICATE_SPANS,
     DetectorType.RENDER_BLOCKING_ASSET_SPAN: GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN,
-    DetectorType.N_PLUS_ONE_SPANS: GroupType.PERFORMANCE_N_PLUS_ONE,
     DetectorType.N_PLUS_ONE_DB_QUERIES: GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
     DetectorType.N_PLUS_ONE_DB_QUERIES_EXTENDED: GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
     DetectorType.N_PLUS_ONE_API_CALLS: GroupType.PERFORMANCE_N_PLUS_ONE_API_CALLS,
@@ -206,16 +202,12 @@ PerformanceProblemsMap = Dict[str, Union[PerformanceProblem, PerformanceSpanProb
 # Facade in front of performance detection to limit impact of detection on our events ingestion
 def detect_performance_problems(data: Event) -> List[PerformanceProblem]:
     try:
-        rate = options.get("performance.issues.all.problem-detection")
-        if rate and rate > random.random():
-            # Add an experimental tag to be able to find these spans in production while developing. Should be removed later.
-            sentry_sdk.set_tag("_did_analyze_performance_issue", "true")
-            with metrics.timer(
-                "performance.detect_performance_issue", sample_rate=0.01
-            ), sentry_sdk.start_span(
-                op="py.detect_performance_issue", description="none"
-            ) as sdk_span:
-                return _detect_performance_problems(data, sdk_span)
+        # Add an experimental tag to be able to find these spans in production while developing. Should be removed later.
+        sentry_sdk.set_tag("_did_analyze_performance_issue", "true")
+        with metrics.timer(
+            "performance.detect_performance_issue", sample_rate=0.01
+        ), sentry_sdk.start_span(op="py.detect_performance_issue", description="none") as sdk_span:
+            return _detect_performance_problems(data, sdk_span)
     except Exception:
         logging.exception("Failed to detect performance problems")
     return []
@@ -270,13 +262,6 @@ def get_detection_settings(project_id: Optional[str] = None) -> Dict[DetectorTyp
     )
 
     return {
-        DetectorType.DUPLICATE_SPANS: [
-            {
-                "count": 5,
-                "cumulative_duration": 500.0,  # ms
-                "allowed_span_ops": ["db", "http"],
-            }
-        ],
         DetectorType.SLOW_SPAN: [
             {
                 "duration_threshold": 1000.0,  # ms
@@ -288,13 +273,6 @@ def get_detection_settings(project_id: Optional[str] = None) -> Dict[DetectorTyp
             "fcp_maximum_threshold": settings["render_blocking_fcp_max"],  # ms
             "fcp_ratio_threshold": settings["render_blocking_fcp_ratio"],  # in the range [0, 1]
         },
-        DetectorType.N_PLUS_ONE_SPANS: [
-            {
-                "count": 3,
-                "start_time_threshold": 5.0,  # ms
-                "allowed_span_ops": ["http.client"],
-            }
-        ],
         DetectorType.N_PLUS_ONE_DB_QUERIES: {
             "count": settings["n_plus_one_db_count"],
             "duration_threshold": settings["n_plus_one_db_duration_threshold"],  # ms
@@ -339,12 +317,10 @@ def _detect_performance_problems(data: Event, sdk_span: Any) -> List[Performance
     detection_settings = get_detection_settings(project_id)
     detectors = {
         DetectorType.CONSECUTIVE_DB_OP: ConsecutiveDBSpanDetector(detection_settings, data),
-        DetectorType.DUPLICATE_SPANS: DuplicateSpanDetector(detection_settings, data),
         DetectorType.SLOW_SPAN: SlowSpanDetector(detection_settings, data),
         DetectorType.RENDER_BLOCKING_ASSET_SPAN: RenderBlockingAssetSpanDetector(
             detection_settings, data
         ),
-        DetectorType.N_PLUS_ONE_SPANS: NPlusOneSpanDetector(detection_settings, data),
         DetectorType.N_PLUS_ONE_DB_QUERIES: NPlusOneDBSpanDetector(detection_settings, data),
         DetectorType.N_PLUS_ONE_DB_QUERIES_EXTENDED: NPlusOneDBSpanDetectorExtended(
             detection_settings, data
@@ -406,12 +382,6 @@ def run_detector_on_data(detector, data):
 
 # Uses options and flags to determine which orgs and which detectors automatically create performance issues.
 def get_allowed_issue_creation_detectors(project_id: str):
-    project = Project.objects.get_from_cache(id=project_id)
-    organization = Organization.objects.get_from_cache(id=project.organization_id)
-    if not features.has("organizations:performance-issues-ingest", organization):
-        # Only organizations with this non-flagr feature have performance issues created.
-        return {}
-
     allowed_detectors = set()
     for detector_type, system_option in DETECTOR_TYPE_ISSUE_CREATION_TO_SYSTEM_OPTION.items():
         rate = options.get(system_option)
@@ -476,6 +446,15 @@ def fingerprint_span(span: Span):
     ]  # 80 bits. Not a cryptographic usage, we don't need all of the sha1 for collision detection
 
     return fingerprint
+
+
+def fingerprint_spans(spans: List[Span]):
+    span_hashes = []
+    for span in spans:
+        hash = span.get("hash", "") or ""
+        span_hashes.append(str(hash))
+    joined_hashes = "-".join(span_hashes)
+    return hashlib.sha1(joined_hashes.encode("utf8")).hexdigest()
 
 
 # Simple fingerprint for broader checks, using the span op.
@@ -580,52 +559,6 @@ class PerformanceDetector(ABC):
     @classmethod
     def is_event_eligible(cls, event):
         return True
-
-
-class DuplicateSpanDetector(PerformanceDetector):
-    """
-    Broadly check for duplicate spans.
-    """
-
-    __slots__ = ("cumulative_durations", "duplicate_spans_involved", "stored_problems")
-
-    settings_key = DetectorType.DUPLICATE_SPANS
-
-    def init(self):
-        self.cumulative_durations = {}
-        self.duplicate_spans_involved = {}
-        self.stored_problems = {}
-
-    def visit_span(self, span: Span):
-        settings_for_span = self.settings_for_span(span)
-        if not settings_for_span:
-            return
-        op, span_id, op_prefix, span_duration, settings = settings_for_span
-        duplicate_count_threshold = settings.get("count")
-        duplicate_duration_threshold = settings.get("cumulative_duration")
-
-        fingerprint = fingerprint_span(span)
-        if not fingerprint:
-            return
-
-        self.cumulative_durations[fingerprint] = (
-            self.cumulative_durations.get(fingerprint, timedelta(0)) + span_duration
-        )
-
-        if fingerprint not in self.duplicate_spans_involved:
-            self.duplicate_spans_involved[fingerprint] = []
-
-        self.duplicate_spans_involved[fingerprint] += [span_id]
-        duplicate_spans_counts = len(self.duplicate_spans_involved[fingerprint])
-
-        if not self.stored_problems.get(fingerprint, False):
-            if duplicate_spans_counts >= duplicate_count_threshold and self.cumulative_durations[
-                fingerprint
-            ] >= timedelta(milliseconds=duplicate_duration_threshold):
-                spans_involved = self.duplicate_spans_involved[fingerprint]
-                self.stored_problems[fingerprint] = PerformanceSpanProblem(
-                    span_id, op_prefix, spans_involved
-                )
 
 
 class SlowSpanDetector(PerformanceDetector):
@@ -736,71 +669,6 @@ class RenderBlockingAssetSpanDetector(PerformanceDetector):
         return span_duration / self.fcp > fcp_ratio_threshold
 
 
-class NPlusOneSpanDetector(PerformanceDetector):
-    """
-    Checks for multiple concurrent API calls.
-    N.B.1. Non-greedy! Returns the first N concurrent spans of a series of
-      concurrent spans, rather than all spans in a concurrent series.
-    N.B.2. Assumes that spans are passed in ascending order of `start_timestamp`
-    N.B.3. Only returns _the first_ set of concurrent calls of all possible.
-    """
-
-    __slots__ = ("spans_involved", "stored_problems")
-
-    settings_key = DetectorType.N_PLUS_ONE_SPANS
-
-    def init(self):
-        self.spans_involved = {}
-        self.most_recent_start_time = {}
-        self.most_recent_hash = {}
-        self.stored_problems = {}
-
-    def visit_span(self, span: Span):
-        settings_for_span = self.settings_for_span(span)
-        if not settings_for_span:
-            return
-
-        op, span_id, op_prefix, span_duration, settings = settings_for_span
-
-        start_time_threshold = timedelta(milliseconds=settings.get("start_time_threshold", 0))
-        count = settings.get("count", 10)
-
-        fingerprint = fingerprint_span_op(span)
-        if not fingerprint:
-            return
-
-        hash = span.get("hash", None)
-        if not hash:
-            return
-
-        if fingerprint not in self.spans_involved:
-            self.spans_involved[fingerprint] = []
-            self.most_recent_start_time[fingerprint] = 0
-            self.most_recent_hash[fingerprint] = ""
-
-        delta_to_previous_span_start_time = timedelta(
-            seconds=(span["start_timestamp"] - self.most_recent_start_time[fingerprint])
-        )
-
-        is_concurrent_with_previous_span = delta_to_previous_span_start_time < start_time_threshold
-        has_same_hash_as_previous_span = span["hash"] == self.most_recent_hash[fingerprint]
-
-        self.most_recent_start_time[fingerprint] = span["start_timestamp"]
-        self.most_recent_hash[fingerprint] = hash
-
-        if is_concurrent_with_previous_span and has_same_hash_as_previous_span:
-            self.spans_involved[fingerprint].append(span)
-        else:
-            self.spans_involved[fingerprint] = [span_id]
-            return
-
-        if not self.stored_problems.get(fingerprint, False):
-            if len(self.spans_involved[fingerprint]) >= count:
-                self.stored_problems[fingerprint] = PerformanceSpanProblem(
-                    span_id, op_prefix, self.spans_involved[fingerprint]
-                )
-
-
 class NPlusOneAPICallsDetector(PerformanceDetector):
     """
     Detect parallel network calls to the same endpoint.
@@ -815,6 +683,8 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
 
     __slots__ = ["stored_problems"]
     settings_key: DetectorType = DetectorType.N_PLUS_ONE_API_CALLS
+
+    HOST_DENYLIST = []
 
     def init(self):
         # TODO: Only store the span IDs and timestamps instead of entire span objects
@@ -877,14 +747,31 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         if "graphql" in description:
             return False
 
+        # Next.js infixes its data URLs with a build ID. (e.g.,
+        # /_next/data/<uuid>/some-endpoint) This causes a fingerprinting
+        # explosion, since every deploy would change this ID and create new
+        # fingerprints. Since we're not parameterizing URLs yet, we need to
+        # exclude them
+        if "_next/data" in description:
+            return False
+
         # Ignore anything that looks like an asset. Some frameworks (and apps)
         # fetch assets via XHR, which is not our concern
         data = span.get("data") or {}
         url = data.get("url") or ""
+        if not url:
+            # If data is missing, fall back to description
+            parts = description.split(" ", 1)
+            if len(parts) == 2:
+                url = parts[1]
+
         if type(url) is dict:
             url = url.get("pathname") or ""
 
         parsed_url = urlparse(str(url))
+
+        if parsed_url.netloc in cls.HOST_DENYLIST:
+            return False
 
         _pathname, extension = os.path.splitext(parsed_url.path)
         if extension and extension in [".js", ".css", ".svg", ".png", ".mp3"]:
@@ -1059,11 +946,9 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
         return is_db_op and is_query
 
     def _fingerprint(self) -> str:
-        """
-        TODO - improve fingerprinting
-        """
+        hashed_spans = fingerprint_spans(self.consecutive_db_spans)
         problem_class = GroupType.PERFORMANCE_CONSECUTIVE_DB_OP
-        return f"1-{problem_class}"
+        return f"1-{problem_class}-{hashed_spans}"
 
     def on_complete(self) -> None:
         self._validate_and_store_performance_problem()

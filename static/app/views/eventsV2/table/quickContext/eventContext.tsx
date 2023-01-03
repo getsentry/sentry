@@ -31,7 +31,7 @@ import {
   NoContextWrapper,
   Wrapper,
 } from './styles';
-import {BaseContextProps, ContextType, fiveMinutesInMs} from './utils';
+import {BaseContextProps, ContextType, tenSecondInMs} from './utils';
 
 interface EventContextProps extends BaseContextProps {
   eventView?: EventView;
@@ -46,7 +46,7 @@ function EventContext(props: EventContextProps) {
       `/organizations/${organization.slug}/events/${dataRow['project.name']}:${dataRow.id}/`,
     ],
     {
-      staleTime: fiveMinutesInMs,
+      staleTime: tenSecondInMs,
     }
   );
 

@@ -132,7 +132,9 @@ class UserSerializer(Serializer):  # type: ignore
         if not (env.request and is_active_superuser(env.request)):
             item_list = [x for x in item_list if x == user]
 
-        queryset = AuthIdentity.objects.filter(user__in=item_list).select_related(
+        queryset = AuthIdentity.objects.filter(
+            user_id__in=[i.id for i in item_list]
+        ).select_related(
             "auth_provider",
         )
 
@@ -142,11 +144,12 @@ class UserSerializer(Serializer):  # type: ignore
         return results
 
     def get_attrs(self, item_list: Sequence[User], user: User) -> MutableMapping[User, Any]:
-        avatars = {a.user_id: a for a in UserAvatar.objects.filter(user__in=item_list)}
+        user_ids = [i.id for i in item_list]
+        avatars = {a.user_id: a for a in UserAvatar.objects.filter(user_id__in=user_ids)}
         identities = self._get_identities(item_list, user)
 
-        emails = manytoone_to_dict(UserEmail.objects.filter(user__in=item_list), "user_id")
-        authenticators = Authenticator.objects.bulk_users_have_2fa([i.id for i in item_list])
+        emails = manytoone_to_dict(UserEmail.objects.filter(user_id__in=user_ids), "user_id")
+        authenticators = Authenticator.objects.bulk_users_have_2fa(user_ids)
 
         data = {}
         for item in item_list:
@@ -318,23 +321,24 @@ class DetailedSelfUserSerializer(UserSerializer):
 
     def get_attrs(self, item_list: Sequence[User], user: User) -> MutableMapping[User, Any]:
         attrs = super().get_attrs(item_list, user)
+        user_ids = [i.id for i in item_list]
 
         # ignore things that aren't user controlled (like recovery codes)
         authenticators = manytoone_to_dict(
-            Authenticator.objects.filter(user__in=item_list),
+            Authenticator.objects.filter(user_id__in=user_ids),
             "user_id",
             lambda x: not x.interface.is_backup_interface,
         )
 
         permissions = manytoone_to_dict(
-            UserPermission.objects.filter(user__in=item_list), "user_id"
+            UserPermission.objects.filter(user_id__in=user_ids), "user_id"
         )
         # XXX(dcramer): There is definitely a way to write this query using
         #  Django's awkward ORM magic to cache it using `UserRole` but at least
         #  someone can understand this direction of access/optimization.
         roles = {
             ur.user_id: ur.role.permissions
-            for ur in UserRoleUser.objects.filter(user__in=item_list).select_related("role")
+            for ur in UserRoleUser.objects.filter(user_id__in=user_ids).select_related("role")
         }
 
         for item in item_list:

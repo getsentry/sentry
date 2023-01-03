@@ -1,10 +1,10 @@
+from functools import cached_property
 from unittest import mock
 from unittest.mock import patch
 
 import pytest
 from django.conf import settings
 from django.urls import reverse
-from exam import fixture
 
 from sentry.testutils import TestCase
 
@@ -17,7 +17,7 @@ class JavaScriptSdkLoaderTest(TestCase):
             "https://s3.amazonaws.com/getsentry-cdn/@sentry/browser/%s/bundle.min.js"
         )
 
-    @fixture
+    @cached_property
     def path(self):
         return reverse("sentry-js-sdk-loader", args=[self.projectkey.public_key])
 

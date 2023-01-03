@@ -21,7 +21,7 @@ describe('queryClient', function () {
       });
 
       const TestComponent = () => {
-        const {data} = useQuery<ResponseData>(['/some/test/path/']);
+        const {data} = useQuery<ResponseData>(['/some/test/path/'], {staleTime: 0});
 
         if (!data) {
           return null;
@@ -44,10 +44,10 @@ describe('queryClient', function () {
       });
 
       const TestComponent = () => {
-        const {data} = useQuery<ResponseData>([
-          '/some/test/path/',
-          {query: {filter: 'red'}},
-        ]);
+        const {data} = useQuery<ResponseData>(
+          ['/some/test/path/', {query: {filter: 'red'}}],
+          {staleTime: 0}
+        );
 
         if (!data) {
           return null;
@@ -93,7 +93,9 @@ describe('queryClient', function () {
       jest.spyOn(api, 'requestPromise').mockRejectedValue(requestError);
 
       const TestComponent = () => {
-        const {isError, error} = useQuery<ResponseData>(['/some/test/path']);
+        const {isError, error} = useQuery<ResponseData>(['/some/test/path'], {
+          staleTime: 0,
+        });
 
         if (!isError) {
           return null;

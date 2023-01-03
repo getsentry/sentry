@@ -553,22 +553,8 @@ register("sentry-metrics.cardinality-limiter.limits.performance.per-org", defaul
 register("sentry-metrics.cardinality-limiter.limits.releasehealth.per-org", default=[])
 register("sentry-metrics.cardinality-limiter.orgs-rollout-rate", default=0.0)
 
-# Performance issue options to change both detection (which we can monitor with metrics),
-# and the creation of performance problems, which will eventually get turned into issues.
-register("performance.issues.all.problem-detection", default=0.0)
-register("performance.issues.all.problem-creation", default=0.0)
-register(
-    "performance.issues.all.early-adopter-rollout", default=0.0
-)  # Only used for EA rollout, bound to the feature flag handler for performance-issue-ingest
-register(
-    "performance.issues.all.general-availability-rollout", default=0.0
-)  # Only used for GA rollout, bound to the feature flag handler for performance-issue-ingest
-register(
-    "performance.issues.all.post-process-group-early-adopter-rollout", default=0.0
-)  # EA rollout for processing transactions in post_process_group
-register(
-    "performance.issues.all.post-process-group-ga-rollout", default=0.0
-)  # GA rollout for processing transactions in post_process_group
+# Flag to determine whether abnormal_mechanism tag should be extracted
+register("sentry-metrics.releasehealth.abnormal-mechanism-extraction-rate", default=0.0)
 
 # Individual system-wide options in case we need to turn off specific detectors for load concerns, ignoring the set project options.
 register("performance.issues.n_plus_one_db.problem-detection", default=0.0)
