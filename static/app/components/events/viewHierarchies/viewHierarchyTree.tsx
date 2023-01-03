@@ -39,7 +39,7 @@ function Node({type, identifier, children}: NodeProps) {
 
 function Tree({hierarchy}) {
   if (!hierarchy.children.length) {
-    return <Node type={hierarchy.type} />;
+    return <Node type={hierarchy.type} identifier={hierarchy.identifier} />;
   }
 
   return (

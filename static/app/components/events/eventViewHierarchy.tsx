@@ -13,6 +13,9 @@ import {RenderingSystem} from './viewHierarchies/renderingSystem';
 import {ViewHierarchyTree} from './viewHierarchies/viewHierarchyTree';
 import EventDataSection from './eventDataSection';
 
+const DEFAULT_RESPONSE = {rendering_system: '', windows: []};
+const FIVE_SECONDS_IN_MS = 5 * 1000;
+
 function fillWithUniqueIds(hierarchy) {
   return {
     ...hierarchy,
@@ -20,8 +23,6 @@ function fillWithUniqueIds(hierarchy) {
     children: hierarchy.children.map(fillWithUniqueIds),
   };
 }
-
-const DEFAULT_RESPONSE = {rendering_system: '', windows: []};
 
 type Props = {
   viewHierarchies: EventAttachment[];
@@ -63,7 +64,7 @@ function EventViewHierarchy({viewHierarchies}: Props) {
         windows: JSONdata.windows.map(fillWithUniqueIds),
       };
     },
-    {staleTime: 5 * 1000}
+    {staleTime: FIVE_SECONDS_IN_MS, refetchOnWindowFocus: false}
   );
 
   if (isLoading || !data || isEqual(DEFAULT_RESPONSE, data)) {
