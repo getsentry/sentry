@@ -97,7 +97,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             for minute in range(4):
                 self.build_and_store_session(
                     project_id=self.project.id,
-                    started=self.now - timedelta(minutes=minute),
+                    minutes_before_now=minute,
                     status=status,
                 )
 
@@ -117,7 +117,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             for minute in range(4):
                 self.build_and_store_session(
                     project_id=self.project.id,
-                    started=self.now - timedelta(minutes=minute),
+                    minutes_before_now=minute,
                     status=status,
                 )
 
@@ -232,21 +232,21 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         for minute in range(2):
             self.build_and_store_session(
                 project_id=self.project.id,
-                started=self.now - timedelta(minutes=minute),
+                minutes_before_now=minute,
                 status="ok",
             )
 
         for minute in range(3):
             self.build_and_store_session(
                 project_id=p.id,
-                started=self.now - timedelta(minutes=minute),
+                minutes_before_now=minute,
                 status="ok",
             )
 
         for minute in range(5):
             self.build_and_store_session(
                 project_id=p2.id,
-                started=self.now - timedelta(minutes=minute),
+                minutes_before_now=minute,
                 status="ok",
             )
 
@@ -274,21 +274,21 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         for minute in range(2):
             self.build_and_store_session(
                 project_id=self.project.id,
-                started=self.now - timedelta(minutes=minute),
+                minutes_before_now=minute,
                 status="ok",
             )
 
         for minute in range(3):
             self.build_and_store_session(
                 project_id=p.id,
-                started=self.now - timedelta(minutes=minute),
+                minutes_before_now=minute,
                 status="ok",
             )
 
         for minute in range(5):
             self.build_and_store_session(
                 project_id=p2.id,
-                started=self.now - timedelta(minutes=minute),
+                minutes_before_now=minute,
                 status="ok",
             )
 
@@ -315,14 +315,14 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         for minute in range(2):
             self.build_and_store_session(
                 project_id=self.project.id,
-                started=self.now - timedelta(minutes=minute),
+                minutes_before_now=minute,
                 status="ok",
             )
 
         for minute in range(3):
             self.build_and_store_session(
                 project_id=p.id,
-                started=self.now - timedelta(minutes=minute),
+                minutes_before_now=minute,
                 status="ok",
             )
 
@@ -349,14 +349,14 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         for minute in range(2):
             self.build_and_store_session(
                 project_id=self.project.id,
-                started=self.now - timedelta(minutes=minute),
+                minutes_before_now=minute,
                 status="ok",
             )
 
         for minute in range(3):
             self.build_and_store_session(
                 project_id=p.id,
-                started=self.now - timedelta(minutes=minute),
+                minutes_before_now=minute,
                 status="ok",
             )
 
@@ -384,21 +384,21 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         for minute in range(2):
             self.build_and_store_session(
                 project_id=self.project.id,
-                started=self.now - timedelta(minutes=minute),
+                minutes_before_now=minute,
                 status="ok",
             )
 
         for minute in range(3):
             self.build_and_store_session(
                 project_id=prj_foo.id,
-                started=self.now - timedelta(minutes=minute),
+                minutes_before_now=minute,
                 status="ok",
             )
 
         for minute in range(5):
             self.build_and_store_session(
                 project_id=prj_boo.id,
-                started=self.now - timedelta(minutes=minute),
+                minutes_before_now=minute,
                 status="ok",
             )
 
@@ -1078,15 +1078,12 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             for _ in range(minute + 1):
                 # One for each release
                 for release in ("foo", "bar", "baz"):
-                    self.store_session(
-                        self.build_session(
-                            project_id=self.project.id,
-                            started=(
-                                self.now - timedelta(minutes=3 - minute, seconds=1)
-                            ).timestamp(),
-                            release=release,
-                        )
+                    self.build_and_store_session(
+                        project_id=self.project.id,
+                        minutes_before_now=3 - minute,
+                        release=release,
                     )
+
         response = self.get_success_response(
             self.organization.slug,
             field="sum(sentry.sessions.session)",
@@ -1108,15 +1105,12 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             for _ in range(minute + 1):
                 # One for each release
                 for release in ("foo", "bar", "baz"):
-                    self.store_session(
-                        self.build_session(
-                            project_id=self.project.id,
-                            started=(
-                                self.now - timedelta(minutes=3 - minute, seconds=1)
-                            ).timestamp(),
-                            release=release,
-                        )
+                    self.build_and_store_session(
+                        project_id=self.project.id,
+                        minutes_before_now=3 - minute,
+                        release=release,
                     )
+
         response = self.get_success_response(
             self.organization.slug,
             field=[
@@ -1396,7 +1390,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         for minute in range(4):
             self.build_and_store_session(
                 project_id=self.project.id,
-                started=self.now - timedelta(minutes=minute),
+                minutes_before_now=minute,
             )
 
         response = self.get_success_response(
@@ -1412,7 +1406,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
     def test_unknown_filter(self):
         """Use a tag key/value in filter that does not exist in the indexer"""
         # Insert session metrics:
-        self.store_session(self.build_session(project_id=self.project.id))
+        self.build_and_store_session(project_id=self.project.id)
 
         response = self.get_response(
             self.organization.slug,
@@ -1527,7 +1521,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
             for minute in range(4):
                 self.build_and_store_session(
                     project_id=self.project.id,
-                    started=self.now - timedelta(minutes=minute),
+                    minutes_before_now=minute,
                     status=status,
                 )
 
@@ -1566,7 +1560,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
             for minute in range(4):
                 self.build_and_store_session(
                     project_id=self.project.id,
-                    started=self.now - timedelta(minutes=minute),
+                    minutes_before_now=minute,
                     status=status,
                 )
 
@@ -1587,7 +1581,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
             for minute in range(4):
                 self.build_and_store_session(
                     project_id=self.project.id,
-                    started=self.now - timedelta(minutes=minute),
+                    minutes_before_now=minute,
                     status=status,
                     release="foobar@1.0",
                 )
@@ -1595,7 +1589,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         for minute in range(4):
             self.build_and_store_session(
                 project_id=self.project.id,
-                started=self.now - timedelta(minutes=minute),
+                minutes_before_now=minute,
                 status="ok",
                 release="foobar@2.0",
             )
