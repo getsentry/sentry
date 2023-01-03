@@ -11,7 +11,7 @@ from sentry.services.hybrid_cloud.user import user_service
 
 @region_silo_endpoint
 class GroupParticipantsEndpoint(GroupEndpoint):
-    def get(self, request: Request, group) -> Response:
+    def get(self, request: Request, group, organization_slug: str | None = None) -> Response:
         participants = GroupSubscriptionManager.get_participating_user_ids(group)
 
         return Response(user_service.serialize_users(user_ids=participants, as_user=request.user))
