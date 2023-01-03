@@ -87,21 +87,22 @@ class OrganizationMappingTest(TransactionTestCase):
             ApiOrganizationMappingUpdate(
                 organization_id=self.organization.id,
                 customer_id="test",
-                name="does not set me",
-                set_attributes=["customer_id"],
             )
         )
         org_mapping = OrganizationMapping.objects.get(organization_id=self.organization.id)
         assert org_mapping.customer_id == "test"
-        assert org_mapping.name != "does not set me"
 
         organization_mapping_service.update(
-            ApiOrganizationMappingUpdate(
-                organization_id=self.organization.id, name="new name!", set_attributes=["name"]
-            )
+            ApiOrganizationMappingUpdate(organization_id=self.organization.id, name="new name!")
         )
         org_mapping = OrganizationMapping.objects.get(organization_id=self.organization.id)
         assert org_mapping.customer_id == "test"
+        assert org_mapping.name == "new name!"
+
+        organization_mapping_service.update(
+            ApiOrganizationMappingUpdate(organization_id=self.organization.id)
+        )
+        # Does not overwrite with empty value.
         assert org_mapping.name == "new name!"
 
     def test_create_org_with_name(self):
