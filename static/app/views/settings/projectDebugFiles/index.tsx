@@ -279,10 +279,7 @@ const Label = styled('label')`
   display: flex;
   margin-bottom: 0;
   white-space: nowrap;
-  input {
-    margin-top: 0;
-    margin-right: ${space(1)};
-  }
+  gap: ${space(1)};
 `;
 
 export default ProjectDebugSymbols;

@@ -12,7 +12,7 @@ import {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
 import {Profile} from 'sentry/utils/profiling/profile/profile';
 import {makeFormatter} from 'sentry/utils/profiling/units/units';
 
-interface FlamegraphThreadSelectorProps {
+export interface FlamegraphThreadSelectorProps {
   onThreadIdChange: (threadId: Profile['threadId']) => void;
   profileGroup: ProfileGroup;
   threadId: FlamegraphState['profiles']['threadId'];
