@@ -1518,7 +1518,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
         )
 
     def test_team_key_transactions_my_teams(self):
-        for idx, (transaction, value) in enumerate(
+        for minutes, (transaction, value) in enumerate(
             (("foo_transaction", 1), ("bar_transaction", 1), ("baz_transaction", 0.5))
         ):
             self.store_performance_metric(
@@ -1526,7 +1526,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                 name=TransactionMRI.DURATION.value,
                 tags={"transaction": transaction},
                 value=value,
-                minutes_before_now=idx,
+                minutes_before_now=minutes,
             )
 
         metrics_query = self.build_metrics_query(
@@ -1864,22 +1864,18 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                 use_case_id=UseCaseKey.PERFORMANCE,
             )
 
-    @freeze_time("2022-09-22 11:07:00")
     def test_team_key_transaction_as_condition(self):
         now = timezone.now()
 
-        for idx, (transaction, value) in enumerate(
+        for minutes, (transaction, value) in enumerate(
             (("foo_transaction", 1), ("bar_transaction", 1), ("baz_transaction", 0.5))
         ):
-            self.store_metric(
-                org_id=self.organization.id,
-                project_id=self.project.id,
+            self.store_performance_metric(
                 type="distribution",
                 name=TransactionMRI.DURATION.value,
                 tags={"transaction": transaction},
-                timestamp=(now - timedelta(minutes=idx)).timestamp(),
                 value=value,
-                use_case_id=UseCaseKey.PERFORMANCE,
+                minutes_before_now=minutes,
             )
 
         metrics_query = MetricsQuery(

@@ -1,10 +1,12 @@
+from __future__ import annotations
+
 from django.db import transaction
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.authentication import DSNAuthentication
-from sentry.api.base import pending_silo_endpoint
+from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.monitor import MonitorEndpoint
 from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.api.paginator import OffsetPaginator
@@ -23,11 +25,13 @@ class CheckInSerializer(serializers.Serializer):
     duration = EmptyIntegerField(required=False, allow_null=True)
 
 
-@pending_silo_endpoint
+@region_silo_endpoint
 class MonitorCheckInsEndpoint(MonitorEndpoint):
     authentication_classes = MonitorEndpoint.authentication_classes + (DSNAuthentication,)
 
-    def get(self, request: Request, project, monitor) -> Response:
+    def get(
+        self, request: Request, project, monitor, organization_slug: str | None = None
+    ) -> Response:
         """
         Retrieve check-ins for an monitor
         `````````````````````````````````
@@ -39,6 +43,10 @@ class MonitorCheckInsEndpoint(MonitorEndpoint):
         if isinstance(request.auth, ProjectKey):
             return self.respond(status=401)
 
+        if organization_slug:
+            if project.organization.slug != organization_slug:
+                return self.respond_invalid()
+
         queryset = MonitorCheckIn.objects.filter(monitor_id=monitor.id)
 
         return self.paginate(
@@ -49,7 +57,9 @@ class MonitorCheckInsEndpoint(MonitorEndpoint):
             paginator_cls=OffsetPaginator,
         )
 
-    def post(self, request: Request, project, monitor) -> Response:
+    def post(
+        self, request: Request, project, monitor, organization_slug: str | None = None
+    ) -> Response:
         """
         Create a new check-in for a monitor
         ```````````````````````````````````
@@ -57,6 +67,10 @@ class MonitorCheckInsEndpoint(MonitorEndpoint):
         :pparam string monitor_id: the id of the monitor.
         :auth: required
         """
+        if organization_slug:
+            if project.organization.slug != organization_slug:
+                return self.respond_invalid()
+
         if monitor.status in [MonitorStatus.PENDING_DELETION, MonitorStatus.DELETION_IN_PROGRESS]:
             return self.respond(status=404)
 

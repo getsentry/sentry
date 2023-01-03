@@ -1,5 +1,6 @@
+from functools import cached_property
+
 from django.utils import timezone
-from exam import fixture
 
 from sentry.api.serializers import serialize
 from sentry.models.savedsearch import SavedSearch, SortOptions, Visibility
@@ -12,7 +13,7 @@ from sentry.testutils.silo import region_silo_test
 class OrgLevelOrganizationSearchesListTest(APITestCase):
     endpoint = "sentry-api-0-organization-searches"
 
-    @fixture
+    @cached_property
     def user(self):
         return self.create_user("test@test.com")
 
@@ -127,13 +128,13 @@ class CreateOrganizationSearchesTest(APITestCase):
     endpoint = "sentry-api-0-organization-searches"
     method = "post"
 
-    @fixture
+    @cached_property
     def manager(self):
         user = self.create_user("test@test.com")
         self.create_member(organization=self.organization, user=user, role="manager")
         return user
 
-    @fixture
+    @cached_property
     def member(self):
         user = self.create_user("test@test.com")
         self.create_member(organization=self.organization, user=user)

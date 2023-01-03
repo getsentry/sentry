@@ -25,6 +25,7 @@ from typing import (
     cast,
 )
 
+import pytz
 import sentry_sdk
 from django.conf import settings
 from django.core.cache import cache
@@ -116,17 +117,23 @@ from sentry.quotas.base import index_data_category
 from sentry.ratelimits.sliding_windows import Quota, RedisSlidingWindowRateLimiter, RequestedQuota
 from sentry.reprocessing2 import is_reprocessed_event, save_unprocessed_event
 from sentry.shared_integrations.exceptions import ApiError
-from sentry.signals import first_event_received, first_transaction_received, issue_unresolved
+from sentry.signals import (
+    first_event_received,
+    first_event_with_minified_stack_trace_received,
+    first_transaction_received,
+    issue_unresolved,
+)
 from sentry.tasks.commits import fetch_commits
 from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.tasks.process_buffer import buffer_incr
 from sentry.tasks.relay import schedule_invalidate_project_config
 from sentry.types.activity import ActivityType
-from sentry.types.issues import GroupCategory
+from sentry.types.issues import GROUP_TYPE_TO_TEXT, GroupCategory, GroupType
 from sentry.utils import json, metrics, redis
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.canonical import CanonicalKeyDict
 from sentry.utils.dates import to_datetime, to_timestamp
+from sentry.utils.event import has_event_minified_stack_trace
 from sentry.utils.metrics import MutableTags
 from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.performance_issues.performance_detection import (
@@ -135,6 +142,12 @@ from sentry.utils.performance_issues.performance_detection import (
     detect_performance_problems,
 )
 from sentry.utils.safe import get_path, safe_execute, setdefault_path, trim
+
+# Used to determine if we should or not record an analytic data
+# for a first event of a project with a minified stack trace
+START_DATE_TRACKING_FIRST_EVENT_WITH_MINIFIED_STACK_TRACE_PER_PROJ = datetime(
+    2022, 12, 14, tzinfo=pytz.UTC
+)
 
 if TYPE_CHECKING:
     from sentry.eventstore.models import Event
@@ -150,7 +163,12 @@ issue_rate_limiter = RedisSlidingWindowRateLimiter(
     **settings.SENTRY_PERFORMANCE_ISSUES_RATE_LIMITER_OPTIONS
 )
 PERFORMANCE_ISSUE_QUOTA = Quota(3600, 60, 5)
-GROUPHASH_IGNORE_LIMIT = 3
+
+DEFAULT_GROUPHASH_IGNORE_LIMIT = 3
+GROUPHASH_IGNORE_LIMIT_MAP = {
+    GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES: 3,
+    GroupType.PERFORMANCE_SLOW_SPAN: 100,
+}
 
 
 @dataclass
@@ -372,7 +390,13 @@ class EventManager:
             **DEFAULT_STORE_NORMALIZER_ARGS,
         )
 
+        pre_normalize_type = self._data.get("type")
         self._data = CanonicalKeyDict(rust_normalizer.normalize_event(dict(self._data)))
+        # XXX: This is a hack to make generic events work (for now?). I'm not sure whether we should
+        # include this in the rust normalizer, since we don't want people sending us these via the
+        # sdk.
+        if pre_normalize_type == "generic":
+            self._data["type"] = pre_normalize_type
 
     def get_data(self) -> CanonicalKeyDict:
         return self._data
@@ -419,7 +443,8 @@ class EventManager:
 
         job = {"data": self._data, "project_id": project.id, "raw": raw, "start_time": start_time}
 
-        if self._data.get("type") == "transaction":
+        event_type = self._data.get("type")
+        if event_type == "transaction":
             job["data"]["project"] = project.id
             jobs = save_transaction_events([job], projects)
 
@@ -427,6 +452,11 @@ class EventManager:
                 first_transaction_received.send_robust(
                     project=project, event=jobs[0]["event"], sender=Project
                 )
+
+            return jobs[0]["event"]
+        elif event_type == "generic":
+            job["data"]["project"] = project.id
+            jobs = save_generic_events([job], projects)
 
             return jobs[0]["event"]
 
@@ -585,6 +615,18 @@ class EventManager:
             if not project.first_event:
                 project.update(first_event=job["event"].datetime)
                 first_event_received.send_robust(
+                    project=project, event=job["event"], sender=Project
+                )
+
+            if (
+                has_event_minified_stack_trace(job["event"])
+                and not project.flags.has_minified_stack_trace
+                # We only want to record events from projects created after 2022-12-14,
+                # otherwise amplitude would receive a large amount of data in a short period of time
+                and project.date_added
+                > START_DATE_TRACKING_FIRST_EVENT_WITH_MINIFIED_STACK_TRACE_PER_PROJ
+            ):
+                first_event_with_minified_stack_trace_received.send_robust(
                     project=project, event=job["event"], sender=Project
                 )
 
@@ -1148,7 +1190,7 @@ def _nodestore_save_many(jobs: Sequence[Job]) -> None:
 
         event = job["event"]
         # We only care about `unprocessed` for error events
-        if event.get_event_type() != "transaction" and job["groups"]:
+        if event.get_event_type() not in ("transaction", "generic") and job["groups"]:
             unprocessed = event_processing_store.get(
                 cache_key_for_event({"project": event.project_id, "event_id": event.event_id}),
                 unprocessed=True,
@@ -1366,7 +1408,7 @@ def get_culprit(data: Mapping[str, Any]) -> str:
 def _save_aggregate(
     event: Event,
     hashes: CalculatedHashes,
-    release: Release,
+    release: Optional[Release],
     metadata: dict[str, Any],
     received_timestamp: Union[int, float],
     **kwargs: dict[str, Any],
@@ -1651,7 +1693,7 @@ def _create_group(project: Project, event: Event, **kwargs: dict[str, Any]) -> G
     )
 
 
-def _handle_regression(group: Group, event: Event, release: Release) -> Optional[bool]:
+def _handle_regression(group: Group, event: Event, release: Optional[Release]) -> Optional[bool]:
     if not group.is_resolved():
         return None
 
@@ -1757,7 +1799,7 @@ def _handle_regression(group: Group, event: Event, release: Release) -> Optional
 
 
 def _process_existing_aggregate(
-    group: Group, event: Event, data: Mapping[str, Any], release: Release
+    group: Group, event: Event, data: Mapping[str, Any], release: Optional[Release]
 ) -> bool:
     date = max(event.datetime, group.last_seen)
     extra = {"last_seen": date, "data": data["data"]}
@@ -2267,7 +2309,8 @@ def _save_aggregate_performance(jobs: Sequence[PerformanceJob], projects: Projec
                     client = redis.redis_clusters.get(cluster_key)
 
                     for new_grouphash in new_grouphashes:
-                        if not should_create_group(client, new_grouphash):
+                        group_type = performance_problems_by_hash[new_grouphash].type
+                        if not should_create_group(client, new_grouphash, group_type):
                             groups_to_ignore.add(new_grouphash)
 
                     new_grouphashes = new_grouphashes - groups_to_ignore
@@ -2377,14 +2420,15 @@ def _save_aggregate_performance(jobs: Sequence[PerformanceJob], projects: Projec
 
 
 @metrics.wraps("performance.performance_issue.should_create_group", sample_rate=1.0)
-def should_create_group(client: Any, grouphash: str) -> bool:
+def should_create_group(client: Any, grouphash: str, type: GroupType) -> bool:
     times_seen = client.incr(f"grouphash:{grouphash}")
     metrics.incr(
         "performance.performance_issue.grouphash_counted",
-        tags={"times_seen": times_seen},
+        tags={"times_seen": times_seen, "group_type": GROUP_TYPE_TO_TEXT.get(type, "Unknown Type")},
         sample_rate=1.0,
     )
-    if times_seen >= GROUPHASH_IGNORE_LIMIT:
+
+    if times_seen >= GROUPHASH_IGNORE_LIMIT_MAP.get(type, DEFAULT_GROUPHASH_IGNORE_LIMIT):
         client.delete(grouphash)
         return True
     else:
@@ -2429,4 +2473,36 @@ def save_transaction_events(jobs: Sequence[Job], projects: ProjectsMapping) -> S
     _nodestore_save_many(jobs)
     _eventstream_insert_many(jobs)
     _track_outcome_accepted_many(jobs)
+    return jobs
+
+
+@metrics.wraps("event_manager.save_generic_events")
+def save_generic_events(jobs: Sequence[Job], projects: ProjectsMapping) -> Sequence[Job]:
+    with metrics.timer("event_manager.save_generic.ganization_ids"):
+        organization_ids = {project.organization_id for project in projects.values()}
+
+    with metrics.timer("event_manager.save_generic.fetch_organizations"):
+        organizations = {
+            o.id: o for o in Organization.objects.get_many_from_cache(organization_ids)
+        }
+
+    with metrics.timer("event_manager.save_generic.set_organization_cache"):
+        for project in projects.values():
+            try:
+                project.set_cached_field_value(
+                    "organization", organizations[project.organization_id]
+                )
+            except KeyError:
+                continue
+
+    _pull_out_data(jobs, projects)
+    _get_or_create_release_many(jobs, projects)
+    _get_event_user_many(jobs, projects)
+    _derive_plugin_tags_many(jobs, projects)
+    _derive_interface_tags_many(jobs)
+    _materialize_metadata_many(jobs)
+    _get_or_create_environment_many(jobs, projects)
+    _materialize_event_metrics(jobs)
+    _nodestore_save_many(jobs)
+
     return jobs

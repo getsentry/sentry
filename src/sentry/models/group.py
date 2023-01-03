@@ -31,6 +31,7 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.eventstore.models import GroupEvent
+from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.query import apply_performance_conditions
 from sentry.models.grouphistory import record_group_history_from_activity_type
 from sentry.snuba.dataset import Dataset
@@ -191,9 +192,15 @@ def get_oldest_or_latest_event_for_environments(
         conditions.append(["environment", "IN", environments])
 
     if (
-        features.has("organizations:performance-issues", group.organization)
+        not features.has("organizations:performance-issues", group.organization)
         and group.issue_category == GroupCategory.PERFORMANCE
     ):
+        # Generally we shouldn't arrive here, since if the feature flag is disabled we shouldn't
+        # be loading performance issues. Regardless, if the flag is disabled we should always return
+        # None here.
+        return None
+
+    if group.issue_category == GroupCategory.PERFORMANCE:
         apply_performance_conditions(conditions, group)
         _filter = eventstore.Filter(
             conditions=conditions,
@@ -201,10 +208,14 @@ def get_oldest_or_latest_event_for_environments(
         )
         dataset = Dataset.Transactions
     else:
+        if group.issue_category == GroupCategory.ERROR:
+            dataset = Dataset.Events
+        else:
+            dataset = Dataset.IssuePlatform
+
         _filter = eventstore.Filter(
             conditions=conditions, project_ids=[group.project_id], group_ids=[group.id]
         )
-        dataset = Dataset.Events
 
     events = eventstore.get_events(
         filter=_filter,
@@ -215,7 +226,16 @@ def get_oldest_or_latest_event_for_environments(
     )
 
     if events:
-        return events[0].for_group(group)
+        group_event = events[0].for_group(group)
+        occurrence_id = group_event.occurrence_id
+        if occurrence_id:
+            group_event.occurrence = IssueOccurrence.fetch(occurrence_id, group.project_id)
+            if group_event.occurrence is None:
+                logger.error(
+                    "Failed to fetch occurrence for event",
+                    extra={"group_id", group.id, "occurrence_id", occurrence_id},
+                )
+        return group_event
 
     return None
 
@@ -424,14 +444,12 @@ class Group(Model):
         default=GroupType.ERROR.value,
         choices=(
             (GroupType.ERROR.value, _("Error")),
-            (GroupType.PERFORMANCE_N_PLUS_ONE.value, _("N Plus One")),
             (GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value, _("N Plus One DB Queries")),
             (GroupType.PERFORMANCE_SLOW_SPAN.value, _("Slow Span")),
             (
                 GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN.value,
                 _("Render Blocking Asset Span"),
             ),
-            (GroupType.PERFORMANCE_DUPLICATE_SPANS.value, _("Duplicate Spans")),
             # TODO add more group types when detection starts outputting them
         ),
     )

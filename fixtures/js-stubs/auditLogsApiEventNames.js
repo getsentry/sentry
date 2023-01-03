@@ -27,6 +27,8 @@ export function AuditLogsApiEventNames(params = []) {
     'sso.disable',
     'sso.edit',
     'sso-identity.link',
+    'sampling_priority.disabled',
+    'sampling_priority.enabled',
     'alertrule.create',
     'alertrule.edit',
     'alertrule.remove',

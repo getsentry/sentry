@@ -14,7 +14,7 @@ from sentry.db.models import (
     BaseManager,
     FlexibleForeignKey,
     Model,
-    control_silo_with_replication_model,
+    control_silo_only_model,
     sane_repr,
 )
 from sentry.db.models.query import in_iexact
@@ -56,7 +56,7 @@ class UserEmailManager(BaseManager):
         }
 
 
-@control_silo_with_replication_model
+@control_silo_only_model
 class UserEmail(Model):
     __include_in_export__ = True
 

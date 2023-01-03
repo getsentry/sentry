@@ -37,7 +37,7 @@ import {Row, Tags, TransactionDetails, TransactionDetailsContainer} from './styl
 type Props = {
   location: Location;
   organization: Organization;
-  scrollToHash: (hash: string) => void;
+  scrollIntoView: () => void;
   transaction: TraceFullDetailed;
 };
 
@@ -160,7 +160,7 @@ class TransactionDetail extends Component<Props> {
 
       const hash = `#txn-${transactionId}`;
 
-      this.props.scrollToHash(hash);
+      this.props.scrollIntoView();
 
       // TODO(txiao): This is causing a rerender of the whole page,
       // which can be slow.

@@ -2397,7 +2397,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
 
             # sneakily make the group type wrong
             group = event.groups[0]
-            group.type = GroupType.PERFORMANCE_N_PLUS_ONE.value
+            group.type = GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value
             group.save()
             manager = EventManager(make_event())
             manager.normalize()
@@ -3192,6 +3192,65 @@ class DSLatestReleaseBoostTest(TestCase):
             assert (
                 ProjectBoostedReleases(project_id=project.id).get_extended_boosted_releases() == []
             )
+
+    @freeze_time("2022-11-03 10:00:00")
+    def test_release_not_boosted_with_deleted_release_after_event_received(self):
+        with self.options(
+            {
+                "dynamic-sampling:boost-latest-release": True,
+            }
+        ):
+            ts = time()
+
+            project = self.create_project(platform="python")
+            release_1 = Release.get_or_create(
+                project=project, version="1.0", date_added=datetime.now()
+            )
+            release_2 = Release.get_or_create(
+                project=project, version="2.0", date_added=datetime.now() + timedelta(hours=1)
+            )
+
+            self.make_release_transaction(
+                release_version=release_1.version,
+                environment_name=None,
+                project_id=project.id,
+                checksum="a" * 32,
+                timestamp=self.timestamp,
+            )
+            assert self.redis_client.get(f"ds::p:{project.id}:r:{release_1.id}") == "1"
+
+            self.make_release_transaction(
+                release_version=release_2.version,
+                environment_name=None,
+                project_id=project.id,
+                checksum="a" * 32,
+                timestamp=self.timestamp,
+            )
+            assert self.redis_client.get(f"ds::p:{project.id}:r:{release_2.id}") == "1"
+
+            # We simulate that the release_2 is deleted after the boost has been inserted.
+            release_2_id = release_2.id
+            release_2.delete()
+
+            # We expect the boosted release to be kept in Redis, if not queried by the ProjectBoostedReleases.
+            assert self.redis_client.hgetall(f"ds::p:{project.id}:boosted_releases") == {
+                f"ds::r:{release_1.id}": str(ts),
+                f"ds::r:{release_2_id}": str(ts),
+            }
+            # We expect to not see the release 2 because it will not be in the database anymore, thus we mark it as
+            # expired.
+            assert ProjectBoostedReleases(
+                project_id=project.id
+            ).get_extended_boosted_releases() == [
+                ExtendedBoostedRelease(
+                    id=release_1.id,
+                    timestamp=ts,
+                    environment=None,
+                    cache_key=f"ds::r:{release_1.id}",
+                    version=release_1.version,
+                    platform=Platform(project.platform),
+                ),
+            ]
 
     @freeze_time("2022-11-03 10:00:00")
     def test_get_boosted_releases_with_old_and_new_cache_keys(self):

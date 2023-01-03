@@ -23,7 +23,11 @@ function TimestampButton({
 }: Props) {
   return (
     <Tooltip title={<DateTime date={timestampMs} />}>
-      <StyledButton onClick={onClick} className={className}>
+      <StyledButton
+        as={onClick ? 'button' : 'span'}
+        onClick={onClick}
+        className={className}
+      >
         <IconPlay size="xs" />
         {showPlayerTime(timestampMs, startTimestampMs, format === 'mm:ss.SSS')}
       </StyledButton>

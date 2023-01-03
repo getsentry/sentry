@@ -7,10 +7,12 @@ from rest_framework.response import Response
 
 from fixtures.vercel import (
     DEPLOYMENT_WEBHOOK_NO_COMMITS,
-    EXAMPLE_DEPLOYMENT_WEBHOOK_RESPONSE,
+    EXAMPLE_DEPLOYMENT_WEBHOOK_RESPONSE_NEW,
+    EXAMPLE_DEPLOYMENT_WEBHOOK_RESPONSE_OLD,
     MINIMAL_WEBHOOK,
     SECRET,
     SIGNATURE,
+    SIGNATURE_NEW,
 )
 from sentry import VERSION
 from sentry.models import (
@@ -37,7 +39,7 @@ class SignatureVercelTest(APITestCase):
         with override_options({"vercel.client-secret": SECRET}):
             response = self.client.post(
                 path=self.webhook_url,
-                data=EXAMPLE_DEPLOYMENT_WEBHOOK_RESPONSE,
+                data=EXAMPLE_DEPLOYMENT_WEBHOOK_RESPONSE_OLD,
                 content_type="application/json",
                 HTTP_X_ZEIT_SIGNATURE="xxxinvalidsignaturexxx",
             )
@@ -109,7 +111,7 @@ class VercelReleasesTest(APITestCase):
         )
 
         with override_options({"vercel.client-secret": SECRET}):
-            response = self._get_response(EXAMPLE_DEPLOYMENT_WEBHOOK_RESPONSE, SIGNATURE)
+            response = self._get_response(EXAMPLE_DEPLOYMENT_WEBHOOK_RESPONSE_OLD, SIGNATURE)
 
             assert response.status_code == 201
 
@@ -134,6 +136,39 @@ class VercelReleasesTest(APITestCase):
             assert release_request.headers["User-Agent"] == f"sentry_vercel/{VERSION}"
 
     @responses.activate
+    def test_create_release_new(self):
+        responses.add(
+            responses.POST,
+            absolute_uri("/api/0/organizations/%s/releases/" % self.organization.slug),
+            json={},
+        )
+
+        with override_options({"vercel.client-secret": SECRET}):
+            response = self._get_response(EXAMPLE_DEPLOYMENT_WEBHOOK_RESPONSE_NEW, SIGNATURE_NEW)
+
+            assert response.status_code == 201
+
+            assert len(responses.calls) == 2
+            release_request = responses.calls[0].request
+            release_body = json.loads(release_request.body)
+            set_refs_body = json.loads(responses.calls[1].request.body)
+            assert release_body == {
+                "projects": [self.project.slug],
+                "version": "7488658dfcf24d9b735e015992b316e2a8340d93",
+            }
+            assert set_refs_body == {
+                "projects": [self.project.slug],
+                "version": "7488658dfcf24d9b735e015992b316e2a8340d93",
+                "refs": [
+                    {
+                        "commit": "7488658dfcf24d9b735e015992b316e2a8340d93",
+                        "repository": "MeredithAnya/nextjsblog-demo-new",
+                    }
+                ],
+            }
+            assert release_request.headers["User-Agent"] == f"sentry_vercel/{VERSION}"
+
+    @responses.activate
     def test_no_match(self):
         responses.add(
             responses.POST,
@@ -145,7 +180,7 @@ class VercelReleasesTest(APITestCase):
         self.org_integration.save()
 
         with override_options({"vercel.client-secret": SECRET}):
-            response = self._get_response(EXAMPLE_DEPLOYMENT_WEBHOOK_RESPONSE, SIGNATURE)
+            response = self._get_response(EXAMPLE_DEPLOYMENT_WEBHOOK_RESPONSE_OLD, SIGNATURE)
 
             assert len(responses.calls) == 0
             assert response.status_code == 204
@@ -160,7 +195,7 @@ class VercelReleasesTest(APITestCase):
         self.integration.delete()
 
         with override_options({"vercel.client-secret": SECRET}):
-            response = self._get_response(EXAMPLE_DEPLOYMENT_WEBHOOK_RESPONSE, SIGNATURE)
+            response = self._get_response(EXAMPLE_DEPLOYMENT_WEBHOOK_RESPONSE_OLD, SIGNATURE)
 
             assert len(responses.calls) == 0
             assert response.status_code == 404
@@ -176,7 +211,7 @@ class VercelReleasesTest(APITestCase):
         self.project.delete()
 
         with override_options({"vercel.client-secret": SECRET}):
-            response = self._get_response(EXAMPLE_DEPLOYMENT_WEBHOOK_RESPONSE, SIGNATURE)
+            response = self._get_response(EXAMPLE_DEPLOYMENT_WEBHOOK_RESPONSE_OLD, SIGNATURE)
 
             assert len(responses.calls) == 0
             assert response.status_code == 404
@@ -192,7 +227,7 @@ class VercelReleasesTest(APITestCase):
         self.installation_for_provider.delete()
 
         with override_options({"vercel.client-secret": SECRET}):
-            response = self._get_response(EXAMPLE_DEPLOYMENT_WEBHOOK_RESPONSE, SIGNATURE)
+            response = self._get_response(EXAMPLE_DEPLOYMENT_WEBHOOK_RESPONSE_OLD, SIGNATURE)
 
             assert len(responses.calls) == 0
             assert response.status_code == 404
@@ -209,7 +244,7 @@ class VercelReleasesTest(APITestCase):
         SentryAppInstallationToken.objects.filter().delete()
 
         with override_options({"vercel.client-secret": SECRET}):
-            response = self._get_response(EXAMPLE_DEPLOYMENT_WEBHOOK_RESPONSE, SIGNATURE)
+            response = self._get_response(EXAMPLE_DEPLOYMENT_WEBHOOK_RESPONSE_OLD, SIGNATURE)
 
             assert len(responses.calls) == 0
             assert response.status_code == 404
@@ -225,7 +260,7 @@ class VercelReleasesTest(APITestCase):
         )
 
         with override_options({"vercel.client-secret": SECRET}):
-            response = self._get_response(EXAMPLE_DEPLOYMENT_WEBHOOK_RESPONSE, SIGNATURE)
+            response = self._get_response(EXAMPLE_DEPLOYMENT_WEBHOOK_RESPONSE_OLD, SIGNATURE)
 
             assert len(responses.calls) == 1
             assert response.status_code == 400
@@ -245,7 +280,7 @@ class VercelReleasesTest(APITestCase):
         )
 
         with override_options({"vercel.client-secret": SECRET}):
-            response = self._get_response(EXAMPLE_DEPLOYMENT_WEBHOOK_RESPONSE, SIGNATURE)
+            response = self._get_response(EXAMPLE_DEPLOYMENT_WEBHOOK_RESPONSE_OLD, SIGNATURE)
 
             assert len(responses.calls) == 2
             assert response.status_code == 400
@@ -288,6 +323,6 @@ class VercelReleasesNewTest(VercelReleasesTest):
         )
 
         with override_options({"vercel.client-secret": SECRET}):
-            response = self._get_response(EXAMPLE_DEPLOYMENT_WEBHOOK_RESPONSE, SIGNATURE)
+            response = self._get_response(EXAMPLE_DEPLOYMENT_WEBHOOK_RESPONSE_OLD, SIGNATURE)
 
             assert response.status_code == 201

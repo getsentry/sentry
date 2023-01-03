@@ -1,3 +1,6 @@
+from unittest.mock import patch
+
+import pytest
 from django.utils import timezone
 
 from sentry.models import (
@@ -482,3 +485,141 @@ class OrganizationOnboardingTaskTest(TestCase):
             ).count()
             == 1
         )
+
+    @patch("sentry.analytics.record")
+    def test_first_event_without_minified_stack_trace_received(self, record_analytics):
+        """
+        Test that an analytics event is NOT recorded when
+        there no event with minified stack trace is received
+        """
+        now = timezone.now()
+        project = self.create_project(first_event=now)
+        project_created.send(project=project, user=self.user, sender=type(project))
+        data = load_data("javascript")
+        self.store_event(
+            data=data,
+            project_id=project.id,
+        )
+
+        with pytest.raises(AssertionError):
+            record_analytics.assert_called_with(
+                "first_event_with_minified_stack_trace_for_project.sent",
+                user_id=self.user.id,
+                organization_id=project.organization_id,
+                project_id=project.id,
+                platform="javascript",
+                url="http://localhost:3000",
+            )
+
+    @patch("sentry.analytics.record")
+    def test_first_event_with_minified_stack_trace_received(self, record_analytics):
+        """
+        Test that an analytics event is recorded when
+        a first event with minified stack trace is received
+        """
+        now = timezone.now()
+        project = self.create_project(first_event=now)
+        project_created.send(project=project, user=self.user, sender=type(project))
+        url = "http://localhost:3000"
+        data = load_data("javascript")
+        data["tags"] = [("url", url)]
+        data["exception"] = {
+            "values": [
+                {
+                    **data["exception"]["values"][0],
+                    "raw_stacktrace": {
+                        "frames": [
+                            {
+                                "function": "o",
+                                "filename": "/_static/dist/sentry/chunks/vendors-node_modules_emotion_is-prop-valid_node_modules_emotion_memoize_dist_memoize_browser_-4fe4bd.255071ceadabfb67483c.js",
+                                "abs_path": "https://s1.sentry-cdn.com/_static/dist/sentry/chunks/vendors-node_modules_emotion_is-prop-valid_node_modules_emotion_memoize_dist_memoize_browser_-4fe4bd.255071ceadabfb67483c.js",
+                                "lineno": 2,
+                                "colno": 37098,
+                                "pre_context": [
+                                    "/*! For license information please see vendors-node_modules_emotion_is-prop-valid_node_modules_emotion_memoize_dist_memoize_browser_-4fe4bd. {snip}"
+                                ],
+                                "context_line": "{snip} .apply(this,arguments);const i=o.map((e=>c(e,t)));return e.apply(this,i)}catch(e){throw l(),(0,i.$e)((n=>{n.addEventProcessor((e=>(t.mechani {snip}",
+                                "post_context": [
+                                    "//# sourceMappingURL=../sourcemaps/vendors-node_modules_emotion_is-prop-valid_node_modules_emotion_memoize_dist_memoize_browser_-4fe4bd.fe32 {snip}"
+                                ],
+                                "in_app": False,
+                            },
+                        ],
+                    },
+                }
+            ]
+        }
+
+        self.store_event(
+            project_id=project.id,
+            data=data,
+        )
+
+        record_analytics.assert_called_with(
+            "first_event_with_minified_stack_trace_for_project.sent",
+            user_id=self.user.id,
+            organization_id=project.organization_id,
+            project_id=project.id,
+            platform=data["platform"],
+            url=url,
+        )
+
+    @patch("sentry.analytics.record")
+    def test_analytic_triggered_only_once_if_multiple_events_with_minified_stack_trace_received(
+        self, record_analytics
+    ):
+        """
+        Test that an analytic event is triggered only once when
+        multiple events with minified stack trace are received
+        """
+        now = timezone.now()
+        project = self.create_project(first_event=now)
+        project_created.send(project=project, user=self.user, sender=type(project))
+        url = "http://localhost:3000"
+        event = load_data("javascript")
+        event["tags"] = [("url", url)]
+        event["exception"] = {
+            "values": [
+                {
+                    **event["exception"]["values"][0],
+                    "raw_stacktrace": {
+                        "frames": [
+                            {
+                                "function": "o",
+                                "filename": "/_static/dist/sentry/chunks/vendors-node_modules_emotion_is-prop-valid_node_modules_emotion_memoize_dist_memoize_browser_-4fe4bd.255071ceadabfb67483c.js",
+                                "abs_path": "https://s1.sentry-cdn.com/_static/dist/sentry/chunks/vendors-node_modules_emotion_is-prop-valid_node_modules_emotion_memoize_dist_memoize_browser_-4fe4bd.255071ceadabfb67483c.js",
+                                "lineno": 2,
+                                "colno": 37098,
+                                "pre_context": [
+                                    "/*! For license information please see vendors-node_modules_emotion_is-prop-valid_node_modules_emotion_memoize_dist_memoize_browser_-4fe4bd. {snip}"
+                                ],
+                                "context_line": "{snip} .apply(this,arguments);const i=o.map((e=>c(e,t)));return e.apply(this,i)}catch(e){throw l(),(0,i.$e)((n=>{n.addEventProcessor((e=>(t.mechani {snip}",
+                                "post_context": [
+                                    "//# sourceMappingURL=../sourcemaps/vendors-node_modules_emotion_is-prop-valid_node_modules_emotion_memoize_dist_memoize_browser_-4fe4bd.fe32 {snip}"
+                                ],
+                                "in_app": False,
+                            },
+                        ],
+                    },
+                }
+            ]
+        }
+
+        # Store first event
+        self.store_event(
+            project_id=project.id,
+            data=event,
+        )
+
+        # Store second event
+        self.store_event(
+            project_id=project.id,
+            data=event,
+        )
+
+        count = 0
+        for call_arg in record_analytics.call_args_list:
+            if "first_event_with_minified_stack_trace_for_project.sent" in call_arg[0]:
+                count += 1
+
+        assert count == 1
