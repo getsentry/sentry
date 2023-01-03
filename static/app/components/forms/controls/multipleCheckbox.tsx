@@ -1,6 +1,8 @@
 import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
+import Checkbox from 'sentry/components/checkbox';
+import space from 'sentry/styles/space';
 import {Choices} from 'sentry/types';
 import {defined} from 'sentry/utils';
 
@@ -10,6 +12,8 @@ const MultipleCheckboxWrapper = styled('div')`
 `;
 
 const Label = styled('label')`
+  display: inline-flex;
+  align-items: center;
   font-weight: normal;
   white-space: nowrap;
   margin-right: 10px;
@@ -18,7 +22,7 @@ const Label = styled('label')`
 `;
 
 const CheckboxLabel = styled('span')`
-  margin-left: 3px;
+  margin-left: ${space(1)};
 `;
 
 type SelectedValue = (string | number)[];
@@ -55,7 +59,7 @@ function MultipleCheckbox({choices, value, disabled, onChange}: Props) {
       {choices.map(([choiceValue, choiceLabel]) => (
         <LabelContainer key={choiceValue}>
           <Label>
-            <input
+            <Checkbox
               type="checkbox"
               value={choiceValue}
               onChange={e => handleChange(choiceValue, e)}

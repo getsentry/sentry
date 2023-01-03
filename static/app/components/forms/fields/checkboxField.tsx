@@ -88,10 +88,6 @@ const ControlWrapper = styled('span')`
   align-self: flex-start;
   display: flex;
   margin-right: ${space(1)};
-
-  & input {
-    margin: 0;
-  }
 `;
 
 const FieldLayout = styled('div')`
