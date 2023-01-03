@@ -5,6 +5,8 @@ import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
 
 import {clamp} from '../colors/utils';
+import {SpanChartRenderer2D} from '../renderers/spansRenderer';
+import {SpanChartNode} from '../spanChart';
 
 export function createShader(
   gl: WebGLRenderingContext,
@@ -496,6 +498,21 @@ export function findRangeBinarySearch(
       high = mid;
     }
   }
+}
+
+export function formatColorForSpan(
+  frame: SpanChartNode,
+  renderer: SpanChartRenderer2D
+): string {
+  const color = renderer.getColorForFrame(frame);
+  if (color.length === 4) {
+    return `rgba(${color
+      .slice(0, 3)
+      .map(n => n * 255)
+      .join(',')}, ${color[3]})`;
+  }
+
+  return `rgba(${color.map(n => n * 255).join(',')}, 1.0)`;
 }
 
 export function formatColorForFrame(

@@ -3,11 +3,11 @@ import styled from '@emotion/styled';
 import {mat3, vec2} from 'gl-matrix';
 
 import {CanvasPoolManager, CanvasScheduler} from 'sentry/utils/profiling/canvasScheduler';
+import {CanvasView} from 'sentry/utils/profiling/canvasView';
 import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
 import {useDispatchFlamegraphState} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphState';
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
-import {FlamegraphView} from 'sentry/utils/profiling/flamegraphView';
 import {Rect} from 'sentry/utils/profiling/gl/utils';
 import {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
 import {PositionIndicatorRenderer} from 'sentry/utils/profiling/renderers/positionIndicatorRenderer';
@@ -19,7 +19,7 @@ interface FlamegraphZoomViewMinimapProps {
   flamegraphMiniMapCanvas: FlamegraphCanvas | null;
   flamegraphMiniMapCanvasRef: HTMLCanvasElement | null;
   flamegraphMiniMapOverlayCanvasRef: HTMLCanvasElement | null;
-  flamegraphMiniMapView: FlamegraphView | null;
+  flamegraphMiniMapView: CanvasView<Flamegraph> | null;
   setFlamegraphMiniMapCanvasRef: React.Dispatch<
     React.SetStateAction<HTMLCanvasElement | null>
   >;
@@ -46,7 +46,6 @@ function FlamegraphZoomViewMinimap({
   const dispatch = useDispatchFlamegraphState();
 
   const [configSpaceCursor, setConfigSpaceCursor] = useState<vec2 | null>(null);
-
   const scheduler = useMemo(() => new CanvasScheduler(), []);
 
   const miniMapConfigSpaceBorderSize = useMemo(() => {
@@ -64,17 +63,11 @@ function FlamegraphZoomViewMinimap({
       return null;
     }
 
-    const BAR_HEIGHT =
-      flamegraphTheme.SIZES.MINIMAP_HEIGHT /
-      (flamegraph.depth + flamegraphTheme.SIZES.FLAMEGRAPH_DEPTH_OFFSET);
-
-    return new FlamegraphRenderer(flamegraphMiniMapCanvasRef, flamegraph, {
-      ...flamegraphTheme,
-      SIZES: {
-        ...flamegraphTheme.SIZES,
-        BAR_HEIGHT,
-      },
-    });
+    return new FlamegraphRenderer(
+      flamegraphMiniMapCanvasRef,
+      flamegraph,
+      flamegraphTheme
+    );
   }, [flamegraph, flamegraphMiniMapCanvasRef, flamegraphTheme]);
 
   const positionIndicatorRenderer: PositionIndicatorRenderer | null = useMemo(() => {
