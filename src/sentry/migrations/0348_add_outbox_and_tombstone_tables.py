@@ -72,8 +72,8 @@ class Migration(CheckedMigration):
                         primary_key=True, serialize=False
                     ),
                 ),
-                ("scope", sentry.db.models.fields.bounded.BoundedPositiveIntegerField()),
-                ("scope_identifier", sentry.db.models.fields.bounded.BoundedBigIntegerField()),
+                ("shard_scope", sentry.db.models.fields.bounded.BoundedPositiveIntegerField()),
+                ("shard_identifier", sentry.db.models.fields.bounded.BoundedBigIntegerField()),
                 ("category", sentry.db.models.fields.bounded.BoundedPositiveIntegerField()),
                 ("object_identifier", sentry.db.models.fields.bounded.BoundedBigIntegerField()),
                 ("payload", sentry.db.models.fields.jsonfield.JSONField(null=True)),
@@ -86,9 +86,9 @@ class Migration(CheckedMigration):
             options={
                 "db_table": "sentry_regionoutbox",
                 "index_together": {
-                    ("scope", "scope_identifier", "id"),
-                    ("scope", "scope_identifier", "scheduled_for"),
-                    ("scope", "scope_identifier", "category", "object_identifier"),
+                    ("shard_scope", "shard_identifier", "id"),
+                    ("shard_scope", "shard_identifier", "scheduled_for"),
+                    ("shard_scope", "shard_identifier", "category", "object_identifier"),
                 },
             },
         ),
@@ -101,8 +101,8 @@ class Migration(CheckedMigration):
                         primary_key=True, serialize=False
                     ),
                 ),
-                ("scope", sentry.db.models.fields.bounded.BoundedPositiveIntegerField()),
-                ("scope_identifier", sentry.db.models.fields.bounded.BoundedBigIntegerField()),
+                ("shard_scope", sentry.db.models.fields.bounded.BoundedPositiveIntegerField()),
+                ("shard_identifier", sentry.db.models.fields.bounded.BoundedBigIntegerField()),
                 ("category", sentry.db.models.fields.bounded.BoundedPositiveIntegerField()),
                 ("object_identifier", sentry.db.models.fields.bounded.BoundedBigIntegerField()),
                 ("payload", sentry.db.models.fields.jsonfield.JSONField(null=True)),
@@ -116,9 +116,15 @@ class Migration(CheckedMigration):
             options={
                 "db_table": "sentry_controloutbox",
                 "index_together": {
-                    ("region_name", "scope", "scope_identifier", "id"),
-                    ("region_name", "scope", "scope_identifier", "scheduled_for"),
-                    ("region_name", "scope", "scope_identifier", "category", "object_identifier"),
+                    ("region_name", "shard_scope", "shard_identifier", "id"),
+                    ("region_name", "shard_scope", "shard_identifier", "scheduled_for"),
+                    (
+                        "region_name",
+                        "shard_scope",
+                        "shard_identifier",
+                        "category",
+                        "object_identifier",
+                    ),
                 },
             },
         ),

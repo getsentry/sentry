@@ -71,17 +71,17 @@ def test_concurrent_coalesced_object_processing():
     try:
         ctx.__enter__()
         assert RegionOutbox.objects.count() == 3
-        assert outbox.select_coalesced_objects().count() == 2
+        assert outbox.select_coalesced_messages().count() == 2
 
         org1.name = "Newest org name"
         org1.save()
 
         assert RegionOutbox.objects.count() == 4
-        assert outbox.select_coalesced_objects().count() == 3
+        assert outbox.select_coalesced_messages().count() == 3
         ctx.__exit__(None, None, None)
 
         assert RegionOutbox.objects.count() == 2
-        assert outbox.select_coalesced_objects().count() == 1
+        assert outbox.select_coalesced_messages().count() == 1
     except Exception as e:
         ctx.__exit__(type(e), e, None)
         raise e

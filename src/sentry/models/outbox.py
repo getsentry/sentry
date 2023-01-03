@@ -97,7 +97,7 @@ class OutboxBase(Model):
         with transaction.atomic(savepoint=False):
             next_outbox: OutboxBase | None
             next_outbox = (
-                cls(**row).select_sharded_objects().order_by("id").select_for_update().first()
+                cls(**row).selected_messages_in_shard().order_by("id").select_for_update().first()
             )
             if not next_outbox:
                 return None
@@ -107,7 +107,7 @@ class OutboxBase(Model):
             # Note that the system does not strongly protect against concurrent processing -- this is expected in the
             # case of drains, for instance.
             now = timezone.now()
-            next_outbox.select_sharded_objects().update(
+            next_outbox.selected_messages_in_shard().update(
                 scheduled_for=next_outbox.next_schedule(now), scheduled_from=now
             )
 
@@ -116,10 +116,10 @@ class OutboxBase(Model):
     def key_from(self, attrs: Iterable[str]) -> Mapping[str, Any]:
         return {k: _ensure_not_null(k, getattr(self, k)) for k in attrs}
 
-    def select_sharded_objects(self) -> models.QuerySet:
+    def selected_messages_in_shard(self) -> models.QuerySet:
         return self.objects.filter(**self.key_from(self.sharding_columns))
 
-    def select_coalesced_objects(self) -> models.QuerySet:
+    def select_coalesced_messages(self) -> models.QuerySet:
         return self.objects.filter(**self.key_from(self.coalesced_columns))
 
     class Meta:
@@ -127,11 +127,11 @@ class OutboxBase(Model):
 
     __include_in_export__ = False
 
-    # Different scope, scope_identifier pairings of messages are always deliverable in parallel
-    scope = BoundedPositiveIntegerField(choices=OutboxScope.as_choices(), null=False)
-    scope_identifier = BoundedBigIntegerField(null=False)
+    # Different shard_scope, shard_identifier pairings of messages are always deliverable in parallel
+    shard_scope = BoundedPositiveIntegerField(choices=OutboxScope.as_choices(), null=False)
+    shard_identifier = BoundedBigIntegerField(null=False)
 
-    # Objects of equal scope, scope_identifier, category, and object_identifier are coalesced in processing.
+    # Objects of equal scope, shard_identifier, category, and object_identifier are coalesced in processing.
     category = BoundedPositiveIntegerField(choices=OutboxCategory.as_choices(), null=False)
     object_identifier = BoundedBigIntegerField(null=False)
 
@@ -156,10 +156,10 @@ class OutboxBase(Model):
         # we should simply accept the occasional multiple sends than to introduce hard locking.
         # so long as all objects sent are committed, and so long as any concurrent changes to data
         # result in a future processing, we should always converge on non stale values.
-        coalesced: OutboxBase | None = self.select_coalesced_objects().last()
+        coalesced: OutboxBase | None = self.select_coalesced_messages().last()
         yield coalesced
         if coalesced is not None:
-            self.select_coalesced_objects().filter(id__lte=coalesced.id).delete()
+            self.select_coalesced_messages().filter(id__lte=coalesced.id).delete()
 
     def process(self) -> bool:
         with self.process_coalesced() as coalesced:
@@ -176,12 +176,12 @@ class OutboxBase(Model):
         runs = 0
         while max_updates_to_drain is None or runs < max_updates_to_drain:
             runs += 1
-            next_row: OutboxBase | None = self.select_sharded_objects().first()
+            next_row: OutboxBase | None = self.selected_messages_in_shard().first()
             if next_row is None:
                 return True
             next_row.process()
 
-        if self.select_sharded_objects().first() is not None:
+        if self.selected_messages_in_shard().first() is not None:
             raise OutboxFlushError(
                 f"Could not flush items from shard {self.key_from(self.sharding_columns)!r}"
             )
@@ -200,28 +200,28 @@ class RegionOutbox(OutboxBase):
             object_identifier=self.object_identifier,
         )
 
-    sharding_columns = ("scope", "scope_identifier")
-    coalesced_columns = ("scope", "scope_identifier", "category", "object_identifier")
+    sharding_columns = ("shard_scope", "shard_identifier")
+    coalesced_columns = ("shard_scope", "shard_identifier", "category", "object_identifier")
 
     class Meta:
         app_label = "sentry"
         db_table = "sentry_regionoutbox"
         index_together = (
             (
-                "scope",
-                "scope_identifier",
+                "shard_scope",
+                "shard_identifier",
                 "category",
                 "object_identifier",
             ),
             (
-                "scope",
-                "scope_identifier",
+                "shard_scope",
+                "shard_identifier",
                 "scheduled_for",
             ),
-            ("scope", "scope_identifier", "id"),
+            ("shard_scope", "shard_identifier", "id"),
         )
 
-    __repr__ = sane_repr("scope", "scope_identifier", "category", "object_identifier")
+    __repr__ = sane_repr("shard_scope", "shard_identifier", "category", "object_identifier")
 
     @classmethod
     def drain_for_model(cls, model_inst: Any, max_updates_to_drain: int | None = None) -> None:
@@ -236,13 +236,13 @@ class RegionOutbox(OutboxBase):
 
         result = cls()
         if isinstance(model_inst, Organization):
-            result.scope = OutboxScope.ORGANIZATION_SCOPE
-            result.scope_identifier = model_inst.id
+            result.shard_scope = OutboxScope.ORGANIZATION_SCOPE
+            result.shard_identifier = model_inst.id
             result.category = OutboxCategory.ORGANIZATION_UPDATE
             result.object_identifier = model_inst.id
         elif isinstance(model_inst, OrganizationMember):
-            result.scope = OutboxScope.ORGANIZATION_SCOPE
-            result.scope_identifier = model_inst.organization_id
+            result.shard_scope = OutboxScope.ORGANIZATION_SCOPE
+            result.shard_identifier = model_inst.organization_id
             result.category = OutboxCategory.ORGANIZATION_MEMBER_UPDATE
             result.object_identifier = model_inst.id
         else:
@@ -253,11 +253,11 @@ class RegionOutbox(OutboxBase):
 # Outboxes bound from region silo -> control silo
 @control_silo_only_model
 class ControlOutbox(OutboxBase):
-    sharding_columns = ("region_name", "scope", "scope_identifier")
+    sharding_columns = ("region_name", "shard_scope", "shard_identifier")
     coalesced_columns = (
         "region_name",
-        "scope",
-        "scope_identifier",
+        "shard_scope",
+        "shard_identifier",
         "category",
         "object_identifier",
     )
@@ -278,22 +278,22 @@ class ControlOutbox(OutboxBase):
         index_together = (
             (
                 "region_name",
-                "scope",
-                "scope_identifier",
+                "shard_scope",
+                "shard_identifier",
                 "category",
                 "object_identifier",
             ),
             (
                 "region_name",
-                "scope",
-                "scope_identifier",
+                "shard_scope",
+                "shard_identifier",
                 "scheduled_for",
             ),
-            ("region_name", "scope", "scope_identifier", "id"),
+            ("region_name", "shard_scope", "shard_identifier", "id"),
         )
 
     __repr__ = sane_repr(
-        "region_name", "scope", "scope_identifier", "category", "object_identifier"
+        "region_name", "shard_scope", "shard_identifier", "category", "object_identifier"
     )
 
     @classmethod
@@ -303,9 +303,9 @@ class ControlOutbox(OutboxBase):
         if isinstance(model_inst, User):
             for region_name in _find_regions_for_user(model_inst.id):
                 result = cls()
-                result.scope = OutboxScope.USER_SCOPE
+                result.shard_scope = OutboxScope.USER_SCOPE
                 result.object_identifier = model_inst.id
-                result.scope_identifier = model_inst.id
+                result.shard_identifier = model_inst.id
                 result.category = OutboxCategory.USER_UPDATE
                 result.region_name = region_name
                 yield result
@@ -322,8 +322,8 @@ class ControlOutbox(OutboxBase):
     ) -> Iterable[ControlOutbox]:
         for region_name in region_names:
             result = cls()
-            result.scope = OutboxScope.WEBHOOK_SCOPE
-            result.scope_identifier = webhook_identifier.value
+            result.shard_scope = OutboxScope.WEBHOOK_SCOPE
+            result.shard_identifier = webhook_identifier.value
             result.object_identifier = cls._unique_object_identifier()
             result.category = OutboxCategory.WEBHOOK_PROXY
             result.region_name = region_name
