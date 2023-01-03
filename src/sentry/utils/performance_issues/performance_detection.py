@@ -278,30 +278,30 @@ def _detect_performance_problems(data: Event, sdk_span: Any) -> List[Performance
     # Get list of detectors that are allowed to create issues.
     allowed_detector_types = get_allowed_issue_creation_detectors(project_id)
 
-    detected_problems: List[PerformanceProblem] = []
+    problems: List[PerformanceProblem] = []
     for detector in detectors:
         if detector.type not in allowed_detector_types:
             continue
 
-        detected_problems.extend(detector.stored_problems.values())
+        problems.extend(detector.stored_problems.values())
 
-    truncated_problems = detected_problems[:PERFORMANCE_GROUP_COUNT_LIMIT]
+    truncated_problems = problems[:PERFORMANCE_GROUP_COUNT_LIMIT]
 
-    metrics.incr("performance.performance_issue.pretruncated", len(detected_problems))
+    metrics.incr("performance.performance_issue.pretruncated", len(problems))
     metrics.incr("performance.performance_issue.truncated", len(truncated_problems))
 
     # Leans on Set to remove duplicate problems when extending a detector, since the new extended detector can overlap in terms of created issues.
-    unique_performance_problems = set(truncated_problems)
+    unique_problems = set(truncated_problems)
 
-    if len(unique_performance_problems) > 0:
+    if len(unique_problems) > 0:
         metrics.incr(
             "performance.performance_issue.performance_problem_emitted",
-            len(unique_performance_problems),
+            len(unique_problems),
             sample_rate=1.0,
         )
 
     # TODO: Make sure upstream is all compatible with set before switching output type.
-    return list(unique_performance_problems)
+    return list(unique_problems)
 
 
 def run_detector_on_data(detector, data):
