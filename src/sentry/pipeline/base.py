@@ -14,7 +14,9 @@ from sentry.db.models import Model
 from sentry.utils.hashlib import md5_text
 from sentry.web.helpers import render_to_response
 
+from ..models import Organization
 from ..services.hybrid_cloud.organization import ApiOrganization, organization_service
+from ..services.hybrid_cloud.organization.impl import DatabaseBackedOrganizationService
 from . import PipelineProvider
 from .constants import PIPELINE_STATE_TTL
 from .store import PipelineSessionStore
@@ -93,16 +95,28 @@ class Pipeline(abc.ABC):
         provider: PipelineProvider = self.provider_manager.get(provider_key)
         return provider
 
+    @staticmethod
+    def _serialize_organization(
+        organization: Organization | ApiOrganization | None,
+    ) -> ApiOrganization | None:
+        if organization is None:
+            return None
+        if isinstance(organization, Organization):
+            return DatabaseBackedOrganizationService.serialize_organization(organization)
+        if isinstance(organization, ApiOrganization):
+            return organization
+        raise TypeError
+
     def __init__(
         self,
         request: Request,
         provider_key: str,
-        organization: ApiOrganization | None = None,
+        organization: Organization | ApiOrganization | None = None,
         provider_model: Model | None = None,
         config: Mapping[str, Any] | None = None,
     ) -> None:
         self.request = request
-        self.organization = organization
+        self.organization = self._serialize_organization(organization)
         self.state = self.session_store_cls(request, self.pipeline_name, ttl=PIPELINE_STATE_TTL)
         self.provider_model = provider_model
         self.provider = self.get_provider(provider_key)
