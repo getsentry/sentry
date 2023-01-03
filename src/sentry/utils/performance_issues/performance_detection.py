@@ -258,7 +258,7 @@ def _detect_performance_problems(data: Event, sdk_span: Any) -> List[Performance
     project_id = data.get("project")
 
     detection_settings = get_detection_settings(project_id)
-    detectors = [
+    detectors: List[PerformanceDetector] = [
         ConsecutiveDBSpanDetector(detection_settings, data),
         SlowSpanDetector(detection_settings, data),
         RenderBlockingAssetSpanDetector(detection_settings, data),
