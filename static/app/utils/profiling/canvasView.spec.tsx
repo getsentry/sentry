@@ -21,7 +21,6 @@ const makeCanvasAndView = (
   const canvasView = new CanvasView<Flamegraph>({
     canvas: flamegraphCanvas,
     model: flamegraph,
-    configSpace: flamegraph.configSpace,
     options: {
       inverted: flamegraph.inverted,
       minWidth: flamegraph.profile.minFrameDuration,

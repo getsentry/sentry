@@ -47,7 +47,6 @@ describe('FlamegraphDomRenderer', () => {
         barHeight: theme.SIZES.BAR_HEIGHT,
         depthOffset: theme.SIZES.FLAMEGRAPH_DEPTH_OFFSET,
       },
-      configSpace: flamegraph.configSpace,
     });
 
     renderer.draw(
