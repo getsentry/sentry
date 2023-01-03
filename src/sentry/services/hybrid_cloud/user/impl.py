@@ -119,11 +119,6 @@ class DatabaseBackedUserService(UserService):
             for u in self.__base_user_query().filter(actor_id__in=actor_ids)
         ]
 
-    def get_participating_users(self, group: Group) -> List[APIUser]:
-        return list(
-            User.objects.filter(groupsubscription__is_active=True, groupsubscription__group=group)
-        )
-
     def close(self) -> None:
         pass
 
