@@ -1,4 +1,4 @@
-import {act, fireEvent, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import WrappedDataExport from 'sentry/components/dataExport';
@@ -58,7 +58,7 @@ describe('DataExport', function () {
       context: mockRouterContext(mockAuthorizedOrg),
     });
 
-    fireEvent.click(screen.getByRole('button'));
+    userEvent.click(screen.getByRole('button'));
     expect(postDataExport).not.toHaveBeenCalled();
     expect(screen.getByRole('button')).toBeDisabled();
   });
@@ -73,9 +73,7 @@ describe('DataExport', function () {
       context: mockRouterContext(mockAuthorizedOrg),
     });
 
-    act(() => {
-      fireEvent.click(screen.getByRole('button'));
-    });
+    userEvent.click(screen.getByRole('button'));
 
     expect(postDataExport).toHaveBeenCalledWith(
       `/organizations/${mockAuthorizedOrg.slug}/data-export/`,
@@ -106,9 +104,7 @@ describe('DataExport', function () {
       context: mockRouterContext(mockAuthorizedOrg),
     });
 
-    act(() => {
-      fireEvent.click(screen.getByText(/Export All to CSV/));
-    });
+    userEvent.click(screen.getByText(/Export All to CSV/));
     await waitFor(() => {
       expect(screen.getByRole('button')).toBeDisabled();
     });
@@ -131,9 +127,7 @@ describe('DataExport', function () {
       context: mockRouterContext(mockAuthorizedOrg),
     });
 
-    act(() => {
-      fireEvent.click(screen.getByRole('button'));
-    });
+    userEvent.click(screen.getByRole('button'));
 
     await waitFor(() => {
       expect(addErrorMessage).toHaveBeenCalledWith(
@@ -158,9 +152,7 @@ describe('DataExport', function () {
       context: mockRouterContext(mockAuthorizedOrg),
     });
 
-    act(() => {
-      fireEvent.click(screen.getByRole('button'));
-    });
+    userEvent.click(screen.getByRole('button'));
 
     await waitFor(() => {
       expect(addErrorMessage).toHaveBeenCalledWith('uh oh');

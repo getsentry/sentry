@@ -1,7 +1,5 @@
 from collections import defaultdict
-from functools import reduce
-
-from exam import fixture
+from functools import cached_property, reduce
 
 from sentry.digests import Record
 from sentry.digests.notifications import (
@@ -15,17 +13,17 @@ from sentry.digests.notifications import (
     unsplit_key,
 )
 from sentry.models import Rule
-from sentry.notifications.types import ActionTargetType
+from sentry.notifications.types import ActionTargetType, FallthroughChoiceType
 from sentry.testutils import TestCase
 from sentry.testutils.silo import region_silo_test
 
 
 class RewriteRecordTestCase(TestCase):
-    @fixture
+    @cached_property
     def rule(self):
         return self.event.project.rule_set.all()[0]
 
-    @fixture
+    @cached_property
     def record(self):
         return event_to_record(self.event, (self.rule,))
 
@@ -63,7 +61,7 @@ class RewriteRecordTestCase(TestCase):
 
 @region_silo_test
 class GroupRecordsTestCase(TestCase):
-    @fixture
+    @cached_property
     def rule(self):
         return self.project.rule_set.all()[0]
 
@@ -129,6 +127,7 @@ class SplitKeyTestCase(TestCase):
             self.project,
             ActionTargetType.ISSUE_OWNERS,
             None,
+            None,
         )
 
     def test_new_style_key_no_identifier(self):
@@ -136,25 +135,47 @@ class SplitKeyTestCase(TestCase):
             self.project,
             ActionTargetType.ISSUE_OWNERS,
             None,
+            None,
         )
 
     def test_new_style_key_identifier(self):
         identifier = "123"
         assert split_key(
             f"mail:p:{self.project.id}:{ActionTargetType.ISSUE_OWNERS.value}:{identifier}"
-        ) == (self.project, ActionTargetType.ISSUE_OWNERS, identifier)
+        ) == (self.project, ActionTargetType.ISSUE_OWNERS, identifier, None)
+
+    def test_fallthrough_choice(self):
+        identifier = "123"
+        fallthrough_choice = FallthroughChoiceType.ALL_MEMBERS
+        assert split_key(
+            f"mail:p:{self.project.id}:{ActionTargetType.ISSUE_OWNERS.value}:{identifier}:{fallthrough_choice.value}"
+        ) == (self.project, ActionTargetType.ISSUE_OWNERS, identifier, fallthrough_choice)
+
+    def test_no_fallthrough_choice(self):
+        identifier = "123"
+        assert split_key(
+            f"mail:p:{self.project.id}:{ActionTargetType.ISSUE_OWNERS.value}:{identifier}:"
+        ) == (self.project, ActionTargetType.ISSUE_OWNERS, identifier, None)
 
 
 class UnsplitKeyTestCase(TestCase):
     def test_no_identifier(self):
         assert (
-            unsplit_key(self.project, ActionTargetType.ISSUE_OWNERS, None)
-            == f"mail:p:{self.project.id}:{ActionTargetType.ISSUE_OWNERS.value}:"
+            unsplit_key(self.project, ActionTargetType.ISSUE_OWNERS, None, None)
+            == f"mail:p:{self.project.id}:{ActionTargetType.ISSUE_OWNERS.value}::"
+        )
+
+    def test_no_fallthrough(self):
+        identifier = "123"
+        assert (
+            unsplit_key(self.project, ActionTargetType.ISSUE_OWNERS, identifier, None)
+            == f"mail:p:{self.project.id}:{ActionTargetType.ISSUE_OWNERS.value}:{identifier}:"
         )
 
     def test_identifier(self):
         identifier = "123"
+        fallthrough_choice = FallthroughChoiceType.ALL_MEMBERS
         assert (
-            unsplit_key(self.project, ActionTargetType.ISSUE_OWNERS, identifier)
-            == f"mail:p:{self.project.id}:{ActionTargetType.ISSUE_OWNERS.value}:{identifier}"
+            unsplit_key(self.project, ActionTargetType.ISSUE_OWNERS, identifier, fallthrough_choice)
+            == f"mail:p:{self.project.id}:{ActionTargetType.ISSUE_OWNERS.value}:{identifier}:{fallthrough_choice.value}"
         )

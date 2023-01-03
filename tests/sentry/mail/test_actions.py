@@ -4,7 +4,7 @@ from django.core import mail
 
 from sentry.mail.actions import NotifyEmailAction, NotifyEmailForm
 from sentry.models import OrganizationMember, OrganizationMemberTeam, ProjectOwnership, Rule
-from sentry.notifications.types import ActionTargetType
+from sentry.notifications.types import ActionTargetType, FallthroughChoiceType
 from sentry.tasks.post_process import post_process_group
 from sentry.testutils import TestCase
 from sentry.testutils.cases import RuleTestCase
@@ -17,6 +17,7 @@ from sentry.utils.samples import load_data
 
 class NotifyEmailFormTest(TestCase):
     TARGET_TYPE_KEY = "targetType"
+    FALLTHROUGH_CHOICE_KEY = "fallthroughChoice"
     TARGET_IDENTIFIER_KEY = "targetIdentifier"
 
     def setUp(self):
@@ -46,8 +47,8 @@ class NotifyEmailFormTest(TestCase):
     def form_from_json(self, json):
         return NotifyEmailForm(self.project, json)
 
-    def form_from_values(self, target_type_value, target_id=None):
-        json = {self.TARGET_TYPE_KEY: target_type_value}
+    def form_from_values(self, target_type_value, target_id=None, fallthroughChoice=None):
+        json = {self.TARGET_TYPE_KEY: target_type_value, "fallthroughChoice": fallthroughChoice}
         if target_id:
             json[self.TARGET_IDENTIFIER_KEY] = target_id
         return self.form_from_json(json)
@@ -71,6 +72,27 @@ class NotifyEmailFormTest(TestCase):
     def test_validate_issue_owners(self):
         form = self.form_from_values(ActionTargetType.ISSUE_OWNERS.value)
         assert form.is_valid()
+
+    def test_validate_fallthrough_choice(self):
+        form = self.form_from_values(
+            ActionTargetType.ISSUE_OWNERS.value,
+            fallthroughChoice=FallthroughChoiceType.NO_ONE.value,
+        )
+        assert form.is_valid()
+
+        form = self.form_from_values(
+            ActionTargetType.ISSUE_OWNERS.value,
+            fallthroughChoice=FallthroughChoiceType.ALL_MEMBERS.value,
+        )
+        assert form.is_valid()
+
+    def test_validate_invalid_fallthrough_choice(self):
+        # FallthroughChoice is only set for ActionTargetType.ISSUE_OWNERS
+        form = self.form_from_values(
+            ActionTargetType.TEAM.value,
+            fallthroughChoice=FallthroughChoiceType.ACTIVE_MEMBERS.value,
+        )
+        assert not form.is_valid()
 
     def test_validate_team(self):
         form = self.form_from_values(ActionTargetType.TEAM.value, self.team.id)
@@ -145,7 +167,44 @@ class NotifyEmailTest(RuleTestCase):
         assert sent.to == [self.user.email]
         assert "uh oh" in sent.subject
 
-    @with_feature("organizations:performance-issues-post-process-group")
+    @with_feature("organizations:issue-alert-fallback-targeting")
+    def test_full_integration_fallthrough(self):
+        one_min_ago = iso_format(before_now(minutes=1))
+        event = self.store_event(
+            data={
+                "message": "hello",
+                "exception": {"type": "Foo", "value": "uh oh"},
+                "level": "error",
+                "timestamp": one_min_ago,
+            },
+            project_id=self.project.id,
+            assert_no_errors=False,
+        )
+        action_data = {
+            "id": "sentry.mail.actions.NotifyEmailAction",
+            "targetType": "IssueOwners",
+            "fallthroughType": "AllMembers",
+        }
+        condition_data = {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}
+        Rule.objects.filter(project=event.project).delete()
+        Rule.objects.create(
+            project=event.project, data={"conditions": [condition_data], "actions": [action_data]}
+        )
+
+        with self.tasks():
+            post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=False,
+                cache_key=write_event_to_cache(event),
+                group_id=event.group_id,
+            )
+
+        assert len(mail.outbox) == 1
+        sent = mail.outbox[0]
+        assert sent.to == [self.user.email]
+        assert "uh oh" in sent.subject
+
     def test_full_integration_performance(self):
         event_data = load_data(
             "transaction",
@@ -248,3 +307,18 @@ class NotifyEmailTest(RuleTestCase):
         assert sent_out_to == sorted([self.user.email, gil_workflow.email, dan_workflow.email])
         for x in [out.subject for out in mail.outbox]:
             assert "uh oh" in x
+
+    @with_feature("organizations:issue-alert-fallback-targeting")
+    def test_render_label_fallback_none(self):
+        rule = self.get_rule(data={"targetType": ActionTargetType.ISSUE_OWNERS.value})
+        assert rule.render_label() == "Send a notification to IssueOwners"
+        rule = self.get_rule(
+            data={
+                "targetType": ActionTargetType.ISSUE_OWNERS.value,
+                "fallthroughType": FallthroughChoiceType.ALL_MEMBERS.value,
+            }
+        )
+        assert (
+            rule.render_label()
+            == "Send a notification to IssueOwners and if none can be found then send a notification to AllMembers"
+        )

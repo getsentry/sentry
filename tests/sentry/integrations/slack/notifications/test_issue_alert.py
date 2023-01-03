@@ -30,6 +30,7 @@ from sentry.ownership.grammar import dump_schema
 from sentry.plugins.base import Notification
 from sentry.tasks.digests import deliver_digest
 from sentry.testutils.cases import PerformanceIssueTestCase, SlackActivityNotificationTest
+from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
 from sentry.testutils.helpers.slack import get_attachment, send_notification
 from sentry.testutils.silo import region_silo_test
 from sentry.types.integrations import ExternalProviders
@@ -38,20 +39,14 @@ from sentry.utils import json
 
 @region_silo_test
 class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, PerformanceIssueTestCase):
-    @responses.activate
-    @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
-    def test_issue_alert_user(self, mock_func):
-        """Test that issue alerts are sent to a Slack user."""
-
-        event = self.store_event(
-            data={"message": "Hello world", "level": "error"}, project_id=self.project.id
-        )
+    def setUp(self):
+        super().setUp()
         action_data = {
             "id": "sentry.mail.actions.NotifyEmailAction",
             "targetType": "Member",
             "targetIdentifier": str(self.user.id),
         }
-        rule = Rule.objects.create(
+        self.rule = Rule.objects.create(
             project=self.project,
             label="ja rule",
             data={
@@ -60,8 +55,17 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
             },
         )
 
+    @responses.activate
+    @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
+    def test_issue_alert_user(self, mock_func):
+        """Test that issue alerts are sent to a Slack user."""
+
+        event = self.store_event(
+            data={"message": "Hello world", "level": "error"}, project_id=self.project.id
+        )
+
         notification = AlertRuleNotification(
-            Notification(event=event, rule=rule), ActionTargetType.MEMBER, self.user.id
+            Notification(event=event, rule=self.rule), ActionTargetType.MEMBER, self.user.id
         )
 
         with self.tasks():
@@ -82,24 +86,10 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
 
         event = self.create_performance_issue()
 
-        action_data = {
-            "id": "sentry.mail.actions.NotifyEmailAction",
-            "targetType": "Member",
-            "targetIdentifier": str(self.user.id),
-        }
-        rule = Rule.objects.create(
-            project=self.project,
-            label="ja rule",
-            data={
-                "match": "all",
-                "actions": [action_data],
-            },
-        )
-
         notification = AlertRuleNotification(
-            Notification(event=event, rule=rule), ActionTargetType.MEMBER, self.user.id
+            Notification(event=event, rule=self.rule), ActionTargetType.MEMBER, self.user.id
         )
-        with self.feature("organizations:performance-issues"), self.tasks():
+        with self.tasks():
             notification.send()
 
         attachment, text = get_attachment()
@@ -114,6 +104,34 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         )
 
     @responses.activate
+    @mock.patch(
+        "sentry.eventstore.models.GroupEvent.occurrence",
+        return_value=TEST_ISSUE_OCCURRENCE,
+        new_callable=mock.PropertyMock,
+    )
+    @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
+    def test_generic_issue_alert_user(self, mock_func, occurrence):
+        """Test that generic issue alerts are sent to a Slack user."""
+        event = self.store_event(
+            data={"message": "Hellboy's world", "level": "error"}, project_id=self.project.id
+        )
+        event = event.for_group(event.groups[0])
+
+        notification = AlertRuleNotification(
+            Notification(event=event, rule=self.rule), ActionTargetType.MEMBER, self.user.id
+        )
+        with self.tasks():
+            notification.send()
+
+        attachment, text = get_attachment()
+        assert attachment["title"] == TEST_ISSUE_OCCURRENCE.issue_title
+        assert attachment["text"] == TEST_ISSUE_OCCURRENCE.evidence_display[0].value
+        assert (
+            attachment["footer"]
+            == f"{self.project.slug} | <http://testserver/settings/account/notifications/alerts/?referrer=issue_alert-slack-user|Notification Settings>"
+        )
+
+    @responses.activate
     @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
     def test_disabled_org_integration_for_user(self, mock_func):
 
@@ -124,22 +142,9 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         event = self.store_event(
             data={"message": "Hello world", "level": "error"}, project_id=self.project.id
         )
-        action_data = {
-            "id": "sentry.mail.actions.NotifyEmailAction",
-            "targetType": "Member",
-            "targetIdentifier": str(self.user.id),
-        }
-        rule = Rule.objects.create(
-            project=self.project,
-            label="ja rule",
-            data={
-                "match": "all",
-                "actions": [action_data],
-            },
-        )
 
         notification = AlertRuleNotification(
-            Notification(event=event, rule=rule), ActionTargetType.MEMBER, self.user.id
+            Notification(event=event, rule=self.rule), ActionTargetType.MEMBER, self.user.id
         )
 
         with self.tasks():

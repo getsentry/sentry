@@ -16,7 +16,6 @@ from snuba_sdk.function import Function
 from snuba_sdk.orderby import Direction, OrderBy
 from snuba_sdk.query import Limit, Query
 
-from sentry import features
 from sentry.api.serializers.snuba import zerofill
 from sentry.constants import DataCategory
 from sentry.db.models.fields import PickledObjectField
@@ -382,16 +381,18 @@ def fetch_key_error_groups(ctx):
     for project_ctx in ctx.projects.values():
         # note Snuba might have groups that have since been deleted
         # we should just ignore those
-        project_ctx.key_errors = filter(
-            lambda x: x[0] is not None,
-            [
-                (
-                    group_id_to_group.get(group_id),
-                    group_id_to_group_history.get(group_id, None),
-                    count,
-                )
-                for group_id, count in project_ctx.key_errors
-            ],
+        project_ctx.key_errors = list(
+            filter(
+                lambda x: x[0] is not None,
+                [
+                    (
+                        group_id_to_group.get(group_id),
+                        group_id_to_group_history.get(group_id, None),
+                        count,
+                    )
+                    for group_id, count in project_ctx.key_errors
+                ],
+            )
         )
 
 
@@ -460,8 +461,6 @@ def project_key_transactions(ctx, project):
 
 def project_key_performance_issues(ctx, project):
     if not project.first_event:
-        return
-    if not features.has("organizations:performance-issues", ctx.organization):
         return
 
     with sentry_sdk.start_span(op="weekly_reports.project_key_performance_issues"):
@@ -766,15 +765,31 @@ def render_template_context(ctx, user):
         }
 
     def key_errors():
+        # TODO(Steve): Remove debug logging for Sentry
         def all_key_errors():
+            if ctx.organization.slug == "sentry":
+                logger.info(
+                    "render_template_context.all_key_errors.num_projects",
+                    extra={"user_id": user.id, "num_user_projects": len(user_projects)},
+                )
             for project_ctx in user_projects:
+                if ctx.organization.slug == "sentry":
+                    logger.info(
+                        "render_template_context.all_key_errors.project",
+                        extra={
+                            "user_id": user.id,
+                            "project_id": project_ctx.project.id,
+                        },
+                    )
                 for group, group_history, count in project_ctx.key_errors:
-                    # TODO(Steve): Remove debug logging for Sentry
                     if ctx.organization.slug == "sentry":
                         logger.info(
-                            "render_template_context.key_error: %s",
-                            group,
-                            extra={"group_id": group.id, "user_id": user.id},
+                            "render_template_context.all_key_errors.found_error",
+                            extra={
+                                "group_id": group.id,
+                                "user_id": user.id,
+                                "project_id": project_ctx.project.id,
+                            },
                         )
                     yield {
                         "count": count,

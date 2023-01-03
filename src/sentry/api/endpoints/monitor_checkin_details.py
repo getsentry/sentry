@@ -7,6 +7,7 @@ from rest_framework.response import Response
 from sentry import features
 from sentry.api.authentication import DSNAuthentication
 from sentry.api.base import Endpoint, pending_silo_endpoint
+from sentry.api.bases.monitor import MonitorEndpoint
 from sentry.api.bases.project import ProjectPermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.fields.empty_integer import EmptyIntegerField
@@ -36,7 +37,7 @@ class CheckInSerializer(serializers.Serializer):
 
 @pending_silo_endpoint
 class MonitorCheckInDetailsEndpoint(Endpoint):
-    authentication_classes = Endpoint.authentication_classes + (DSNAuthentication,)
+    authentication_classes = MonitorEndpoint.authentication_classes + (DSNAuthentication,)
     permission_classes = (ProjectPermission,)
 
     # TODO(dcramer): this code needs shared with other endpoints as its security focused
@@ -113,6 +114,10 @@ class MonitorCheckInDetailsEndpoint(Endpoint):
         params = {"date_updated": current_datetime}
         if "duration" in result:
             params["duration"] = result["duration"]
+        else:
+            duration = int((current_datetime - checkin.date_added).total_seconds() * 1000)
+            params["duration"] = duration
+
         if "status" in result:
             params["status"] = getattr(CheckInStatus, result["status"].upper())
 

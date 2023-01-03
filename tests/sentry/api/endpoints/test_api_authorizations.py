@@ -1,7 +1,9 @@
 from sentry.models import ApiApplication, ApiAuthorization, ApiToken
 from sentry.testutils import APITestCase
+from sentry.testutils.silo import control_silo_test
 
 
+@control_silo_test(stable=True)
 class ApiAuthorizationsTest(APITestCase):
     endpoint = "sentry-api-0-api-authorizations"
 
@@ -10,6 +12,7 @@ class ApiAuthorizationsTest(APITestCase):
         self.login_as(self.user)
 
 
+@control_silo_test(stable=True)
 class ApiAuthorizationsListTest(ApiAuthorizationsTest):
     def test_simple(self):
         app = ApiApplication.objects.create(name="test", owner=self.user)
@@ -23,6 +26,7 @@ class ApiAuthorizationsListTest(ApiAuthorizationsTest):
         assert response.data[0]["id"] == str(auth.id)
 
 
+@control_silo_test(stable=True)
 class ApiAuthorizationsDeleteTest(ApiAuthorizationsTest):
     method = "delete"
 

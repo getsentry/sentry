@@ -2,7 +2,6 @@ import {Component} from 'react';
 import styled from '@emotion/styled';
 import {Observer} from 'mobx-react';
 
-import {APIRequestMethod} from 'sentry/api';
 import Button, {ButtonProps} from 'sentry/components/button';
 import FormContext, {FormContextData} from 'sentry/components/forms/formContext';
 import FormModel, {FormOptions} from 'sentry/components/forms/model';
@@ -18,17 +17,19 @@ type RenderProps = {
 
 type RenderFunc = (props: RenderProps) => React.ReactNode;
 
-export type FormProps = {
+export interface FormProps
+  extends Pick<
+    FormOptions,
+    | 'allowUndo'
+    | 'resetOnError'
+    | 'saveOnBlur'
+    | 'apiEndpoint'
+    | 'apiMethod'
+    | 'onFieldChange'
+    | 'onSubmitError'
+    | 'onSubmitSuccess'
+  > {
   additionalFieldProps?: {[key: string]: any};
-  allowUndo?: boolean;
-  /**
-   * The URL to the API endpoint this form submits to.
-   */
-  apiEndpoint?: string;
-  /**
-   * The HTTP method to use.
-   */
-  apiMethod?: APIRequestMethod;
   cancelLabel?: string;
   children?: React.ReactNode | RenderFunc;
   className?: string;
@@ -66,15 +67,6 @@ export type FormProps = {
    */
   requireChanges?: boolean;
   /**
-   * Should the form reset its state when there are errors after submission.
-   */
-  resetOnError?: boolean;
-  /**
-   * Should fields save individually as they are blurred.
-   */
-  saveOnBlur?: boolean;
-
-  /**
    * If set to true, preventDefault is not called
    */
   skipPreventDefault?: boolean;
@@ -84,7 +76,7 @@ export type FormProps = {
   submitDisabled?: boolean;
   submitLabel?: string;
   submitPriority?: ButtonProps['priority'];
-} & Pick<FormOptions, 'onSubmitSuccess' | 'onSubmitError' | 'onFieldChange'>;
+}
 
 export default class Form extends Component<FormProps> {
   constructor(props: FormProps, context: FormContextData) {
