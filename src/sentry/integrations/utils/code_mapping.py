@@ -64,7 +64,7 @@ def should_include(file_path: str) -> bool:
     return include
 
 
-def get_straight_path_prefix_end_index(file_path):
+def get_straight_path_prefix_end_index(file_path: str) -> int:
     index = 0
     for regex in FILE_PATH_PREFIX_REGEX:
         match = re.match(regex, file_path)
@@ -74,7 +74,7 @@ def get_straight_path_prefix_end_index(file_path):
     return index
 
 
-def remove_straight_path_prefix(file_path):
+def remove_straight_path_prefix(file_path: str) -> str:
     return file_path[get_straight_path_prefix_end_index(file_path) :]
 
 
