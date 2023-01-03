@@ -22,6 +22,7 @@ import Pagination from 'sentry/components/pagination';
 import {Panel, PanelHeader} from 'sentry/components/panels';
 import {IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import TeamStore from 'sentry/stores/teamStore';
 import space from 'sentry/styles/space';
 import {Config, Member, Organization, Team, TeamMember} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
@@ -65,7 +66,14 @@ class TeamMembers extends AsyncView<Props, State> {
   componentDidMount() {
     // Initialize "add member" dropdown with data
     this.fetchMembersRequest('');
-    this.fetchTeamDetailsRequest();
+
+    const {teamId} = this.props.params;
+    const team = TeamStore.getBySlug(teamId);
+    if (team) {
+      this.setState({
+        team,
+      });
+    }
   }
 
   debouncedFetchMembersRequest = debounce(
@@ -73,26 +81,6 @@ class TeamMembers extends AsyncView<Props, State> {
       this.setState({dropdownBusy: true}, () => this.fetchMembersRequest(query)),
     200
   );
-
-  debounceFetchTeamDetailsRequest = debounce(() =>
-    this.setState(() => this.fetchTeamDetailsRequest())
-  );
-
-  fetchTeamDetailsRequest = async () => {
-    const {params, api} = this.props;
-    const {orgId, teamId} = params;
-
-    try {
-      const data = await api.requestPromise(`/teams/${orgId}/${teamId}/`);
-      this.setState({
-        team: data,
-      });
-    } catch (err) {
-      addErrorMessage(t('Unable to fetch team details'), {
-        duration: 2000,
-      });
-    }
-  };
 
   fetchMembersRequest = async (query: string) => {
     const {organization, api} = this.props;
@@ -140,7 +128,6 @@ class TeamMembers extends AsyncView<Props, State> {
 
     // Reset members list after adding member to team
     this.debouncedFetchMembersRequest('');
-    this.debounceFetchTeamDetailsRequest();
 
     joinTeam(
       this.props.api,

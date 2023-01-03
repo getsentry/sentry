@@ -217,7 +217,9 @@ class AllTeamsRow extends Component<Props, State> {
               disabled={team.idpProvisioned}
               title={
                 team.idpProvisioned
-                  ? t('You cannot leave this team as it has been idp-provisioned.')
+                  ? t(
+                      "Membership to this team is managed through your organization's identity provider."
+                    )
                   : undefined
               }
             >
