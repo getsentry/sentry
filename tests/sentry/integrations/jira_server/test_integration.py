@@ -18,6 +18,7 @@ from sentry.models import (
     OrganizationIntegration,
 )
 from sentry.services.hybrid_cloud.integration import integration_service
+from sentry.services.hybrid_cloud.user import user_service
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.testutils import APITestCase
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
@@ -630,7 +631,7 @@ class JiraServerIntegrationTest(APITestCase):
 
     @responses.activate
     def test_sync_assignee_outbound_case_insensitive(self):
-        self.user = self.create_user(email="bob@example.com")
+        user = user_service.serialize_user(self.create_user(email="bob@example.com"))
         issue_id = "APP-123"
         assign_issue_url = "https://jira.example.org/rest/api/2/issue/%s/assignee" % issue_id
         external_issue = ExternalIssue.objects.create(
@@ -644,7 +645,7 @@ class JiraServerIntegrationTest(APITestCase):
             json=[{"name": "Alive Tofu", "emailAddress": "Bob@example.com"}],
         )
         responses.add(responses.PUT, assign_issue_url, json={})
-        self.installation.sync_assignee_outbound(external_issue, self.user)
+        self.installation.sync_assignee_outbound(external_issue, user)
 
         assert len(responses.calls) == 2
 
@@ -656,7 +657,7 @@ class JiraServerIntegrationTest(APITestCase):
 
     @responses.activate
     def test_sync_assignee_outbound_no_email(self):
-        self.user = self.create_user(email="bob@example.com")
+        user = user_service.serialize_user(self.create_user(email="bob@example.com"))
         issue_id = "APP-123"
         external_issue = ExternalIssue.objects.create(
             organization_id=self.organization.id,
@@ -668,7 +669,7 @@ class JiraServerIntegrationTest(APITestCase):
             "https://jira.example.org/rest/api/2/user/assignable/search",
             json=[{"accountId": "deadbeef123", "displayName": "Dead Beef"}],
         )
-        self.installation.sync_assignee_outbound(external_issue, self.user)
+        self.installation.sync_assignee_outbound(external_issue, user)
 
         # No sync made as jira users don't have email addresses
         assert len(responses.calls) == 1

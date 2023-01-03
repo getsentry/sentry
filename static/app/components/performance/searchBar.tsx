@@ -1,4 +1,4 @@
-import {useCallback, useState} from 'react';
+import {useCallback, useRef, useState} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
@@ -12,6 +12,7 @@ import EventView from 'sentry/utils/discover/eventView';
 import {doDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useApi from 'sentry/utils/useApi';
+import useOnClickOutside from 'sentry/utils/useOnClickOutside';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
 import SearchDropdown from '../smartSearchBar/searchDropdown';
@@ -35,6 +36,8 @@ function SearchBar(props: SearchBarProps) {
   const closeDropdown = () => setIsDropdownOpen(false);
   const [loading, setLoading] = useState(false);
   const [searchString, setSearchString] = useState(searchQuery);
+  const containerRef = useRef<HTMLDivElement>(null);
+  useOnClickOutside(containerRef, useCallback(closeDropdown, []));
 
   const api = useApi();
   const eventView = _eventView.clone();
@@ -189,7 +192,7 @@ function SearchBar(props: SearchBarProps) {
   const handleSearch = (query: string) => {
     setSearchResults([]);
     setSearchString(query);
-    onSearch(`transaction:${query}`);
+    onSearch(query ? `transaction:${query}` : '');
     closeDropdown();
   };
 
@@ -210,7 +213,7 @@ function SearchBar(props: SearchBarProps) {
   };
 
   return (
-    <Container data-test-id="transaction-search-bar">
+    <Container data-test-id="transaction-search-bar" ref={containerRef}>
       <BaseSearchBar
         placeholder={t('Search Transactions')}
         onChange={handleSearchChange}

@@ -34,7 +34,7 @@ from sentry.signals import member_invited
 from sentry.utils.http import absolute_uri
 
 if TYPE_CHECKING:
-    from sentry.models import Organization
+    from sentry.models.organization import Organization
     from sentry.services.hybrid_cloud.integration import APIIntegration
     from sentry.services.hybrid_cloud.user import APIUser
 

@@ -20,6 +20,7 @@ from sentry.models import (
     OrganizationIntegration,
 )
 from sentry.services.hybrid_cloud.integration import integration_service
+from sentry.services.hybrid_cloud.user import user_service
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.testutils import APITestCase, IntegrationTestCase
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
@@ -571,7 +572,7 @@ class JiraIntegrationTest(APITestCase):
 
     @responses.activate
     def test_sync_assignee_outbound_case_insensitive(self):
-        self.user = self.create_user(email="bob@example.com")
+        user = user_service.serialize_user(self.create_user(email="bob@example.com"))
         issue_id = "APP-123"
         installation = self.integration.get_installation(self.organization.id)
         assign_issue_url = "https://example.atlassian.net/rest/api/2/issue/%s/assignee" % issue_id
@@ -584,7 +585,7 @@ class JiraIntegrationTest(APITestCase):
             json=[{"accountId": "deadbeef123", "emailAddress": "Bob@example.com"}],
         )
         responses.add(responses.PUT, assign_issue_url, json={})
-        installation.sync_assignee_outbound(external_issue, self.user)
+        installation.sync_assignee_outbound(external_issue, user)
 
         assert len(responses.calls) == 2
 
@@ -596,7 +597,7 @@ class JiraIntegrationTest(APITestCase):
 
     @responses.activate
     def test_sync_assignee_outbound_no_email(self):
-        self.user = self.create_user(email="bob@example.com")
+        user = user_service.serialize_user(self.create_user(email="bob@example.com"))
         issue_id = "APP-123"
         installation = self.integration.get_installation(self.organization.id)
         external_issue = ExternalIssue.objects.create(
@@ -607,7 +608,7 @@ class JiraIntegrationTest(APITestCase):
             "https://example.atlassian.net/rest/api/2/user/assignable/search",
             json=[{"accountId": "deadbeef123", "displayName": "Dead Beef"}],
         )
-        installation.sync_assignee_outbound(external_issue, self.user)
+        installation.sync_assignee_outbound(external_issue, user)
 
         # No sync made as jira users don't have email addresses
         assert len(responses.calls) == 1
@@ -615,7 +616,7 @@ class JiraIntegrationTest(APITestCase):
     @override_settings(JIRA_USE_EMAIL_SCOPE=True)
     @responses.activate
     def test_sync_assignee_outbound_use_email_api(self):
-        self.user = self.create_user(email="bob@example.com")
+        user = user_service.serialize_user(self.create_user(email="bob@example.com"))
         issue_id = "APP-123"
         installation = self.integration.get_installation(self.organization.id)
         assign_issue_url = "https://example.atlassian.net/rest/api/2/issue/%s/assignee" % issue_id
@@ -635,7 +636,7 @@ class JiraIntegrationTest(APITestCase):
         )
         responses.add(responses.PUT, assign_issue_url, json={})
 
-        installation.sync_assignee_outbound(external_issue, self.user)
+        installation.sync_assignee_outbound(external_issue, user)
 
         # extra call to get email address
         assert len(responses.calls) == 3
