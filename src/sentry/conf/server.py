@@ -1043,11 +1043,6 @@ SENTRY_FEATURES = {
     "organizations:transaction-name-sanitization": False,
     # Extraction metrics for transactions during ingestion.
     "organizations:transaction-metrics-extraction": False,
-    # Allow performance alerts to be created on the metrics dataset. Allows UI to switch between
-    # sampled/unsampled performance data.
-    "organizations:metrics-performance-alerts": False,
-    # Enable switch metrics button on Performance, allowing switch to unsampled transaction metrics
-    "organizations:metrics-performance-ui": False,
     # True if release-health related queries should be run against both
     # backends (sessions and metrics dataset)
     "organizations:release-health-check-metrics": False,
