@@ -148,7 +148,7 @@ class IntegrationService(InterfaceWithLifecycle):
         """
 
     def get_installation(
-        self, *, integration_id: int, organization_id: int, **kwargs: Mapping[str, Any]
+        self, *, integration_id: int, organization_id: int
     ) -> IntegrationInstallation | None:
         """
         Returns the IntegrationInstallation class for a given integration.
@@ -164,7 +164,8 @@ class IntegrationService(InterfaceWithLifecycle):
 
         provider = integrations.get(integration.provider)
         installation: IntegrationInstallation = provider.get_installation(
-            integration, organization_id, **kwargs
+            model=integration,
+            organization_id=organization_id,
         )
         return installation
 
