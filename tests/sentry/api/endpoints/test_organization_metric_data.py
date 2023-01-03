@@ -5,7 +5,6 @@ from unittest import mock
 from unittest.mock import patch
 
 import pytest
-from django.utils import timezone
 from freezegun import freeze_time
 
 from sentry.sentry_metrics import indexer
@@ -33,12 +32,9 @@ rh_indexer_record = partial(indexer_record, UseCaseKey.RELEASE_HEALTH)
 
 pytestmark = [pytest.mark.sentry_metrics]
 
-ONE_DAY_AGO = timezone.now() - timedelta(days=1)
-MOCK_DATETIME = ONE_DAY_AGO.replace(hour=0, minute=0, second=0, microsecond=0)
-
 
 @region_silo_test
-@freeze_time(MOCK_DATETIME)
+@freeze_time(MetricsAPIBaseTestCase.MOCK_DATETIME)
 class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
     endpoint = "sentry-api-0-organization-metrics-data"
 
@@ -57,7 +53,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
 
     @property
     def now(self):
-        return MOCK_DATETIME
+        return MetricsAPIBaseTestCase.MOCK_DATETIME
 
     def test_missing_field(self):
         response = self.get_response(self.project.organization.slug)
@@ -1473,7 +1469,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         assert response.status_code == 400
 
 
-@freeze_time(MOCK_DATETIME)
+@freeze_time(MetricsAPIBaseTestCase.MOCK_DATETIME)
 class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
     endpoint = "sentry-api-0-organization-metrics-data"
 
@@ -1499,7 +1495,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
 
     @property
     def now(self):
-        return MOCK_DATETIME
+        return MetricsAPIBaseTestCase.MOCK_DATETIME
 
     @patch("sentry.snuba.metrics.fields.base.DERIVED_METRICS", MOCKED_DERIVED_METRICS)
     @patch("sentry.snuba.metrics.query.parse_mri")

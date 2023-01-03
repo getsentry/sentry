@@ -1281,6 +1281,17 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
         "d": "distribution",
         "g": "gauge",
     }
+    # In order to avoid complexity and edge cases while working on tests, all children of this class should use
+    # this mocked time, except in case in which a specific time is required. This is suggested because working
+    # with time ranges in metrics is very error-prone and requires an in-depth knowledge of the underlying
+    # implementation.
+    #
+    # This time has been specifically chosen to be 10:00:00 so that all tests will automatically have the data inserted
+    # and queried with automatically inferred timestamps (e.g., usage of - 1 second, get_date_range()...) without
+    # incurring into problems.
+    MOCK_DATETIME = (timezone.now() - timedelta(days=1)).replace(
+        hour=10, minute=0, second=0, microsecond=0
+    )
 
     @property
     def now(self):
