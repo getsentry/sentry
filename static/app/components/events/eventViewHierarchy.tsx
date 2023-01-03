@@ -67,6 +67,7 @@ function EventViewHierarchy({viewHierarchies}: Props) {
     {staleTime: FIVE_SECONDS_IN_MS, refetchOnWindowFocus: false}
   );
 
+  // TODO(nar): This loading behaviour is subject to change
   if (isLoading || !data || isEqual(DEFAULT_RESPONSE, data)) {
     return <LoadingIndicator />;
   }

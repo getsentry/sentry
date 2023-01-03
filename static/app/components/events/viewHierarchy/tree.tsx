@@ -82,7 +82,7 @@ const NodeContents = styled('div')`
   }
 `;
 
-// TODO: Clicking the title will open more information
+// TODO(nar): Clicking the title will open more information
 // about the node, currently this does nothing
 const NodeTitle = styled('span')`
   cursor: pointer;
