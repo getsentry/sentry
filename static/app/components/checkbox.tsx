@@ -83,19 +83,8 @@ const HiddenInput = styled('input')`
   }
 
   &:disabled + * {
-    background: ${p => p.theme.backgroundSecondary};
-    border-color: ${p => p.theme.disabledBorder};
-  }
-
-  &:checked {
-    & + * {
-      border: 0;
-      background: ${p => p.theme.active};
-    }
-
-    &:disabled + * {
-      background: ${p => p.theme.disabled};
-    }
+    background: ${p => (p.checked ? p.theme.disabled : p.theme.backgroundSecondary)};
+    border-color: ${p => (p.checked ? p.theme.disabled : p.theme.disabledBorder)};
   }
 `;
 
@@ -112,7 +101,8 @@ const StyledCheckbox = styled('div')<{
   width: ${p => checkboxSizeMap[p.size].box};
   height: ${p => checkboxSizeMap[p.size].box};
   border-radius: ${p => checkboxSizeMap[p.size].borderRadius};
-  border: 1px solid ${p => p.theme.gray200};
+  background: ${p => (p.checked ? p.theme.active : p.theme.background)};
+  border: 1px solid ${p => (p.checked ? p.theme.active : p.theme.gray200)};
   pointer-events: none;
 `;
 
