@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useRef, useState} from 'react';
+import {useCallback, useRef, useState} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
@@ -12,6 +12,7 @@ import EventView from 'sentry/utils/discover/eventView';
 import {doDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useApi from 'sentry/utils/useApi';
+import useOnClickOutside from 'sentry/utils/useOnClickOutside';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
 import SearchDropdown from '../smartSearchBar/searchDropdown';
@@ -36,6 +37,7 @@ function SearchBar(props: SearchBarProps) {
   const [loading, setLoading] = useState(false);
   const [searchString, setSearchString] = useState(searchQuery);
   const containerRef = useRef<HTMLDivElement>(null);
+  useOnClickOutside(containerRef, closeDropdown);
 
   const api = useApi();
   const eventView = _eventView.clone();
@@ -43,20 +45,6 @@ function SearchBar(props: SearchBarProps) {
   const url = `/organizations/${organization.slug}/events/`;
 
   const projectIdStrings = (eventView.project as Readonly<number>[])?.map(String);
-
-  useEffect(() => {
-    const handleBackgroundPointerUp = (e: PointerEvent) => {
-      if (containerRef.current?.contains(e.target as Node)) {
-        return;
-      }
-
-      closeDropdown();
-    };
-
-    document.addEventListener('pointerup', handleBackgroundPointerUp);
-
-    return () => document.removeEventListener('pointerup', handleBackgroundPointerUp);
-  }, [containerRef]);
 
   const handleSearchChange = query => {
     setSearchString(query);
