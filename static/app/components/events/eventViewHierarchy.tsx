@@ -25,10 +25,11 @@ function fillWithUniqueIds(hierarchy) {
 }
 
 type Props = {
+  projectSlug: string;
   viewHierarchies: EventAttachment[];
 };
 
-function EventViewHierarchy({viewHierarchies}: Props) {
+function EventViewHierarchy({projectSlug, viewHierarchies}: Props) {
   const [selectedViewHierarchy] = useState(0);
   const [selectedViewHierarchyWindow] = useState(0);
   const api = useApi();
@@ -37,7 +38,7 @@ function EventViewHierarchy({viewHierarchies}: Props) {
   const hierarchyMeta = viewHierarchies[selectedViewHierarchy];
   const {isLoading, data} = useQuery(
     [
-      `/projects/${organization.slug}/sentry-cocoa/events/${hierarchyMeta?.event_id}/attachments/${hierarchyMeta?.id}/?download`,
+      `/projects/${organization.slug}/${projectSlug}/events/${hierarchyMeta?.event_id}/attachments/${hierarchyMeta?.id}/?download`,
     ],
     async () => {
       if (!hierarchyMeta) {
@@ -45,7 +46,7 @@ function EventViewHierarchy({viewHierarchies}: Props) {
       }
 
       const response = await api.requestPromise(
-        `/projects/${organization.slug}/sentry-cocoa/events/${hierarchyMeta?.event_id}/attachments/${hierarchyMeta?.id}/?download`,
+        `/projects/${organization.slug}/${projectSlug}/events/${hierarchyMeta?.event_id}/attachments/${hierarchyMeta?.id}/?download`,
         {
           method: 'GET',
         }

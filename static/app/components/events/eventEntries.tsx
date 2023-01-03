@@ -377,6 +377,7 @@ const EventEntries = ({
         hasEventAttachmentsFeature &&
         attachments.filter(attachment => attachment.type === 'event.view_hierarchy') && (
           <EventViewHierarchy
+            projectSlug={projectSlug}
             viewHierarchies={attachments.filter(
               attachment => attachment.type === 'event.view_hierarchy'
             )}
