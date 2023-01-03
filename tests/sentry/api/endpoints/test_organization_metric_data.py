@@ -34,7 +34,7 @@ rh_indexer_record = partial(indexer_record, UseCaseKey.RELEASE_HEALTH)
 pytestmark = [pytest.mark.sentry_metrics]
 
 ONE_DAY_AGO = timezone.now() - timedelta(days=1)
-MOCK_DATETIME = ONE_DAY_AGO.replace(hour=10, minute=0)
+MOCK_DATETIME = ONE_DAY_AGO.replace(hour=0, minute=0, second=0, microsecond=0)
 
 
 @region_silo_test
@@ -95,15 +95,12 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
     def test_groupby_session_status(self):
         for status in ["ok", "crashed"]:
             for minute in range(4):
-                self.store_session(
-                    self.build_session(
-                        project_id=self.project.id,
-                        started=(
-                            self.now.replace(second=0) - timedelta(minutes=minute)
-                        ).timestamp(),
-                        status=status,
-                    )
+                self.build_and_store_session(
+                    project_id=self.project.id,
+                    started=self.now - timedelta(minutes=minute),
+                    status=status,
                 )
+
         response = self.get_response(
             self.project.organization.slug,
             field="sum(sentry.sessions.session)",
@@ -118,15 +115,12 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
     def test_filter_session_status(self):
         for status in ["ok", "crashed"]:
             for minute in range(4):
-                self.store_session(
-                    self.build_session(
-                        project_id=self.project.id,
-                        started=(
-                            self.now.replace(second=0) - timedelta(minutes=minute)
-                        ).timestamp(),
-                        status=status,
-                    )
+                self.build_and_store_session(
+                    project_id=self.project.id,
+                    started=self.now - timedelta(minutes=minute),
+                    status=status,
                 )
+
         response = self.get_response(
             self.project.organization.slug,
             field="sum(sentry.sessions.session)",
@@ -236,28 +230,24 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         p2 = self.create_project(name="sentry3")
 
         for minute in range(2):
-            self.store_session(
-                self.build_session(
-                    project_id=self.project.id,
-                    started=(self.now.replace(second=0) - timedelta(minutes=minute)).timestamp(),
-                    status="ok",
-                )
+            self.build_and_store_session(
+                project_id=self.project.id,
+                started=self.now - timedelta(minutes=minute),
+                status="ok",
             )
+
         for minute in range(3):
-            self.store_session(
-                self.build_session(
-                    project_id=p.id,
-                    started=(self.now.replace(second=0) - timedelta(minutes=minute)).timestamp(),
-                    status="ok",
-                )
+            self.build_and_store_session(
+                project_id=p.id,
+                started=self.now - timedelta(minutes=minute),
+                status="ok",
             )
+
         for minute in range(5):
-            self.store_session(
-                self.build_session(
-                    project_id=p2.id,
-                    started=(self.now.replace(second=0) - timedelta(minutes=minute)).timestamp(),
-                    status="ok",
-                )
+            self.build_and_store_session(
+                project_id=p2.id,
+                started=self.now - timedelta(minutes=minute),
+                status="ok",
             )
 
         response = self.get_response(
@@ -282,28 +272,24 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         p2 = self.create_project(name="sentry3")
 
         for minute in range(2):
-            self.store_session(
-                self.build_session(
-                    project_id=self.project.id,
-                    started=(self.now.replace(second=0) - timedelta(minutes=minute)).timestamp(),
-                    status="ok",
-                )
+            self.build_and_store_session(
+                project_id=self.project.id,
+                started=self.now - timedelta(minutes=minute),
+                status="ok",
             )
+
         for minute in range(3):
-            self.store_session(
-                self.build_session(
-                    project_id=p.id,
-                    started=(self.now.replace(second=0) - timedelta(minutes=minute)).timestamp(),
-                    status="ok",
-                )
+            self.build_and_store_session(
+                project_id=p.id,
+                started=self.now - timedelta(minutes=minute),
+                status="ok",
             )
+
         for minute in range(5):
-            self.store_session(
-                self.build_session(
-                    project_id=p2.id,
-                    started=(self.now.replace(second=0) - timedelta(minutes=minute)).timestamp(),
-                    status="ok",
-                )
+            self.build_and_store_session(
+                project_id=p2.id,
+                started=self.now - timedelta(minutes=minute),
+                status="ok",
             )
 
         response = self.get_response(
@@ -327,20 +313,17 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         p = self.create_project(name="sentry2")
 
         for minute in range(2):
-            self.store_session(
-                self.build_session(
-                    project_id=self.project.id,
-                    started=(self.now.replace(second=0) - timedelta(minutes=minute)).timestamp(),
-                    status="ok",
-                )
+            self.build_and_store_session(
+                project_id=self.project.id,
+                started=self.now - timedelta(minutes=minute),
+                status="ok",
             )
+
         for minute in range(3):
-            self.store_session(
-                self.build_session(
-                    project_id=p.id,
-                    started=(self.now.replace(second=0) - timedelta(minutes=minute)).timestamp(),
-                    status="ok",
-                )
+            self.build_and_store_session(
+                project_id=p.id,
+                started=self.now - timedelta(minutes=minute),
+                status="ok",
             )
 
         response = self.get_response(
@@ -364,20 +347,17 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         p = self.create_project(name="sentry2")
 
         for minute in range(2):
-            self.store_session(
-                self.build_session(
-                    project_id=self.project.id,
-                    started=(self.now.replace(second=0) - timedelta(minutes=minute)).timestamp(),
-                    status="ok",
-                )
+            self.build_and_store_session(
+                project_id=self.project.id,
+                started=self.now - timedelta(minutes=minute),
+                status="ok",
             )
+
         for minute in range(3):
-            self.store_session(
-                self.build_session(
-                    project_id=p.id,
-                    started=(self.now.replace(second=0) - timedelta(minutes=minute)).timestamp(),
-                    status="ok",
-                )
+            self.build_and_store_session(
+                project_id=p.id,
+                started=self.now - timedelta(minutes=minute),
+                status="ok",
             )
 
         response = self.get_response(
@@ -402,28 +382,24 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         prj_boo = self.create_project(name="boo")
 
         for minute in range(2):
-            self.store_session(
-                self.build_session(
-                    project_id=self.project.id,
-                    started=(self.now.replace(second=0) - timedelta(minutes=minute)).timestamp(),
-                    status="ok",
-                )
+            self.build_and_store_session(
+                project_id=self.project.id,
+                started=self.now - timedelta(minutes=minute),
+                status="ok",
             )
+
         for minute in range(3):
-            self.store_session(
-                self.build_session(
-                    project_id=prj_foo.id,
-                    started=(self.now.replace(second=0) - timedelta(minutes=minute)).timestamp(),
-                    status="ok",
-                )
+            self.build_and_store_session(
+                project_id=prj_foo.id,
+                started=self.now - timedelta(minutes=minute),
+                status="ok",
             )
+
         for minute in range(5):
-            self.store_session(
-                self.build_session(
-                    project_id=prj_boo.id,
-                    started=(self.now.replace(second=0) - timedelta(minutes=minute)).timestamp(),
-                    status="ok",
-                )
+            self.build_and_store_session(
+                project_id=prj_boo.id,
+                started=self.now - timedelta(minutes=minute),
+                status="ok",
             )
 
         response = self.get_response(
@@ -495,19 +471,11 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
 
     def test_separate_projects(self):
         # Insert session metrics:
-        self.store_session(
-            self.build_session(
-                project_id=self.project.id,
-                # We decided to explicitly show - 1 seconds because this is a "trick" that we used for
-                # standardizing tests against flakiness. More explanations found in BaseMetricsLayerTestCase.
-                started=self.now.timestamp(),
-            )
+        self.build_and_store_session(
+            project_id=self.project.id,
         )
-        self.store_session(
-            self.build_session(
-                project_id=self.project2.id,
-                started=self.now.timestamp(),
-            )
+        self.build_and_store_session(
+            project_id=self.project2.id,
         )
 
         def count_sessions(project_id: Optional[int]) -> int:
@@ -1002,7 +970,6 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
                 f"count_unique({TransactionMetricKey.USER.value})": [users],
             }
 
-    # @freeze_time("2022-09-29 03:21:34")
     def test_orderby_percentile_with_many_fields_multiple_entities_with_paginator(self):
         """
         Test that ensures when transactions are ordered correctly when all the fields requested
@@ -1070,10 +1037,10 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
                 0,
                 0,
                 0,
+                0,
                 6,
                 5,
-                0,
-            ],  # [0, 0, 0, 6, 0, 5]
+            ],
         }
 
         request_args["cursor"] = Cursor(0, 1)
@@ -1099,10 +1066,10 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
                 0,
                 0,
                 0,
+                0,
                 3,
                 1,
-                0,
-            ],  # [0, 0, 0, 3, 0, 1]
+            ],
         }
 
     def test_series_are_limited_to_total_order_in_case_with_one_field_orderby(self):
@@ -1361,19 +1328,10 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
 
     # TODO: check whether we leave - 1 seconds or whether we will abstract build_session like store_*_metric.
     def test_groupby_project(self):
-        self.store_session(
-            self.build_session(
-                project_id=self.project2.id,
-                started=self.now.timestamp(),
-            )
-        )
+        self.build_and_store_session(project_id=self.project2.id)
+
         for _ in range(2):
-            self.store_session(
-                self.build_session(
-                    project_id=self.project.id,
-                    started=self.now.timestamp(),
-                )
-            )
+            self.build_and_store_session(project_id=self.project.id)
 
         response = self.get_response(
             self.organization.slug,
@@ -1400,11 +1358,8 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
     def test_unknown_groupby(self):
         """Use a tag name in groupby that does not exist in the indexer"""
         # Insert session metrics:
-        self.store_session(
-            self.build_session(
-                project_id=self.project.id,
-                started=self.now.timestamp(),
-            )
+        self.build_and_store_session(
+            project_id=self.project.id,
         )
 
         # "foo" is known by indexer, "bar" is not
@@ -1439,12 +1394,11 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         """Pagination args do not apply to series"""
         rh_indexer_record(self.organization.id, "session.status")
         for minute in range(4):
-            self.store_session(
-                self.build_session(
-                    project_id=self.project.id,
-                    started=(self.now - timedelta(minutes=minute)).timestamp(),
-                )
+            self.build_and_store_session(
+                project_id=self.project.id,
+                started=self.now - timedelta(minutes=minute),
             )
+
         response = self.get_success_response(
             self.organization.slug,
             field="sum(sentry.sessions.session)",
@@ -1500,11 +1454,8 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
 
     def test_include_series(self):
         rh_indexer_record(self.organization.id, "session.status")
-        self.store_session(
-            self.build_session(
-                project_id=self.project.id,
-                started=self.now.timestamp(),
-            )
+        self.build_and_store_session(
+            project_id=self.project.id,
         )
         response = self.get_success_response(
             self.organization.slug,
@@ -1574,15 +1525,12 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         mocked_parse_mri.return_value = ParsedMRI("e", "sessions", "crash_free_fake", "none")
         for status in ["ok", "crashed"]:
             for minute in range(4):
-                self.store_session(
-                    self.build_session(
-                        project_id=self.project.id,
-                        started=(
-                            self.now.replace(second=0) - timedelta(minutes=minute)
-                        ).timestamp(),
-                        status=status,
-                    )
+                self.build_and_store_session(
+                    project_id=self.project.id,
+                    started=self.now - timedelta(minutes=minute),
+                    status=status,
                 )
+
         response = self.get_response(
             self.organization.slug,
             field=["crash_free_fake"],
@@ -1616,13 +1564,12 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
     def test_crash_free_percentage(self):
         for status in ["ok", "crashed"]:
             for minute in range(4):
-                self.store_session(
-                    self.build_session(
-                        project_id=self.project.id,
-                        started=(self.now - timedelta(minutes=minute)).timestamp(),
-                        status=status,
-                    )
+                self.build_and_store_session(
+                    project_id=self.project.id,
+                    started=self.now - timedelta(minutes=minute),
+                    status=status,
                 )
+
         response = self.get_success_response(
             self.organization.slug,
             field=["session.crash_free_rate", "session.all", "session.crashed"],
@@ -1638,23 +1585,21 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
     def test_crash_free_percentage_with_orderby(self):
         for status in ["ok", "crashed"]:
             for minute in range(4):
-                self.store_session(
-                    self.build_session(
-                        project_id=self.project.id,
-                        started=(self.now - timedelta(minutes=minute)).timestamp(),
-                        status=status,
-                        release="foobar@1.0",
-                    )
-                )
-        for minute in range(4):
-            self.store_session(
-                self.build_session(
+                self.build_and_store_session(
                     project_id=self.project.id,
-                    started=(self.now - timedelta(minutes=minute)).timestamp(),
-                    status="ok",
-                    release="foobar@2.0",
+                    started=self.now - timedelta(minutes=minute),
+                    status=status,
+                    release="foobar@1.0",
                 )
+
+        for minute in range(4):
+            self.build_and_store_session(
+                project_id=self.project.id,
+                started=self.now - timedelta(minutes=minute),
+                status="ok",
+                release="foobar@2.0",
             )
+
         response = self.get_success_response(
             self.organization.slug,
             field=["session.crash_free_rate"],
@@ -1746,15 +1691,13 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         assert group["series"]["session.errored"] == [0, 4, 0, 0, 0, 3]
 
     def test_orderby_composite_entity_derived_metric(self):
-        self.store_session(
-            self.build_session(
-                project_id=self.project.id,
-                started=self.now.replace(second=0).timestamp(),
-                status="ok",
-                release="foobar@2.0",
-                errors=2,
-            )
+        self.build_and_store_session(
+            project_id=self.project.id,
+            status="ok",
+            release="foobar@2.0",
+            errors=2,
         )
+
         response = self.get_response(
             self.organization.slug,
             field=["session.errored"],

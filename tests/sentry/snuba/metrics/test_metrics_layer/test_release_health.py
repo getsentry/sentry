@@ -21,7 +21,7 @@ from sentry.testutils import BaseMetricsLayerTestCase, TestCase
 pytestmark = pytest.mark.sentry_metrics
 
 ONE_DAY_AGO = timezone.now() - timedelta(days=1)
-MOCK_DATETIME = ONE_DAY_AGO.replace(hour=10, minute=0)
+MOCK_DATETIME = ONE_DAY_AGO.replace(hour=10, minute=0, second=0, microsecond=0)
 
 
 @freeze_time(MOCK_DATETIME)
@@ -147,11 +147,11 @@ class ReleaseHealthMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             ("exited", [4, 5, 6, 1, 2, 3]),
             ("crashed", [7, 8, 9]),
         ):
-            for v in d_value:
+            for value in d_value:
                 self.store_release_health_metric(
                     name=SessionMRI.RAW_DURATION.value,
                     tags={"session.status": tag_value},
-                    value=v,
+                    value=value,
                 )
 
         metrics_query = self.build_metrics_query(

@@ -39,7 +39,7 @@ from sentry.testutils.helpers.datetime import before_now
 pytestmark = pytest.mark.sentry_metrics
 
 ONE_DAY_AGO = timezone.now() - timedelta(days=1)
-MOCK_DATETIME = ONE_DAY_AGO.replace(hour=10, minute=0)
+MOCK_DATETIME = ONE_DAY_AGO.replace(hour=10, minute=0, second=0, microsecond=0)
 
 
 @freeze_time(MOCK_DATETIME)
