@@ -12,7 +12,7 @@ import {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
 import {Profile} from 'sentry/utils/profiling/profile/profile';
 import {makeFormatter} from 'sentry/utils/profiling/units/units';
 
-interface FlamegraphThreadSelectorProps {
+export interface FlamegraphThreadSelectorProps {
   onThreadIdChange: (threadId: Profile['threadId']) => void;
   profileGroup: ProfileGroup;
   threadId: FlamegraphState['profiles']['threadId'];
@@ -29,7 +29,13 @@ function FlamegraphThreadSelector({
   ] = useMemo(() => {
     const profiles: SelectValue<number>[] = [];
     const emptyProfiles: SelectValue<number>[] = [];
-    const sortedProfiles = [...profileGroup.profiles].sort(compareProfiles);
+    const activeThreadId =
+      typeof profileGroup.activeProfileIndex === 'number'
+        ? profileGroup.profiles[profileGroup.activeProfileIndex]?.threadId
+        : undefined;
+    const sortedProfiles = [...profileGroup.profiles].sort(
+      compareProfiles(activeThreadId)
+    );
 
     sortedProfiles.forEach(profile => {
       const option = {
@@ -107,35 +113,38 @@ function ThreadLabelDetails(props: ThreadLabelDetailsProps) {
 }
 
 type ProfileLight = {
-  duration: Profile['duration'];
   name: Profile['name'];
   threadId: Profile['threadId'];
 };
 
-function compareProfiles(a: ProfileLight, b: ProfileLight): number {
-  if (!b.duration) {
-    return -1;
-  }
-  if (!a.duration) {
-    return 1;
-  }
+export function compareProfiles(activeThreadId?: number) {
+  return function (a: ProfileLight, b: ProfileLight): number {
+    // if one is the active thread id, it should be first
+    if (defined(activeThreadId)) {
+      if (a.threadId === activeThreadId) {
+        return -1;
+      }
+      if (b.threadId === activeThreadId) {
+        return 1;
+      }
+    }
 
-  if (a.name.startsWith('(tid') && b.name.startsWith('(tid')) {
-    return -1;
-  }
-  if (a.name.startsWith('(tid')) {
-    return -1;
-  }
-  if (b.name.startsWith('(tid')) {
-    return -1;
-  }
-  if (a.name.includes('main')) {
-    return -1;
-  }
-  if (b.name.includes('main')) {
-    return 1;
-  }
-  return a.name > b.name ? -1 : 1;
+    // if neither has a name, we use the thread id
+    if (!b.name && !a.name) {
+      return a.threadId > b.threadId ? 1 : -1;
+    }
+
+    // if one doesn't have a name, the other is first
+    if (!b.name) {
+      return -1;
+    }
+    if (!a.name) {
+      return 1;
+    }
+
+    // if both has a name, we use the name
+    return a.name > b.name ? 1 : -1;
+  };
 }
 
 const DetailsContainer = styled('div')`

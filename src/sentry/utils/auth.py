@@ -16,6 +16,7 @@ from django.utils.http import is_safe_url
 
 from sentry.models import Authenticator, Organization, User
 from sentry.services.hybrid_cloud.organization import ApiOrganization
+from sentry.services.hybrid_cloud.user import user_service
 from sentry.utils import metrics
 from sentry.utils.http import absolute_uri
 
@@ -240,24 +241,7 @@ def find_users(
     Return a list of users that match a username
     and falling back to email
     """
-    qs = User.objects
-
-    if is_active is not None:
-        qs = qs.filter(is_active=is_active)
-
-    if with_valid_password:
-        qs = qs.exclude(password="!")
-
-    try:
-        # First, assume username is an iexact match for username
-        user = qs.get(username__iexact=username)
-        return [user]
-    except User.DoesNotExist:
-        # If not, we can take a stab at guessing it's an email address
-        if "@" in username:
-            # email isn't guaranteed unique
-            return list(qs.filter(email__iexact=username))
-    return []
+    return user_service.get_by_username(username, with_valid_password, is_active)
 
 
 def login(
