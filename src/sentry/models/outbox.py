@@ -74,9 +74,11 @@ class OutboxBase(Model):
 
     @classmethod
     def _unique_object_identifier(cls):
-        with connections[router.db_for_write(cls)].cursor() as cursor:
-            cursor.execute("SELECT nextval(%s)", [f"{cls._meta.db_table}_id_seq"])
-            return cursor.fetchone()[0]
+        using = router.db_for_write(cls)
+        with transaction.atomic(using=using):
+            with connections[using].cursor() as cursor:
+                cursor.execute("SELECT nextval(%s)", [f"{cls._meta.db_table}_id_seq"])
+                return cursor.fetchone()[0]
 
     @classmethod
     def find_scheduled_shards(cls) -> Iterable[Mapping[str, Any]]:

@@ -1,7 +1,12 @@
 from django.db import IntegrityError, models, transaction
 from django.utils import timezone
 
-from sentry.db.models import BoundedBigIntegerField, Model
+from sentry.db.models import (
+    BoundedBigIntegerField,
+    Model,
+    control_silo_only_model,
+    region_silo_only_model,
+)
 
 
 class TombstoneBase(Model):
@@ -24,12 +29,14 @@ class TombstoneBase(Model):
             pass
 
 
+@region_silo_only_model
 class RegionTombstone(TombstoneBase):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_regiontombstone"
 
 
+@control_silo_only_model
 class ControlTombstone(TombstoneBase):
     class Meta:
         app_label = "sentry"

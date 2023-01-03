@@ -139,7 +139,8 @@ class OrganizationMappingTest(TransactionTestCase):
         )
         # Trigger update
         org.slug = mapping.slug
-        org.save()
+        with exempt_from_silo_limits():
+            org.save()
 
         assert org.id == mapping.organization_id
 
