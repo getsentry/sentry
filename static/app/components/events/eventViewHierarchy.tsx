@@ -9,8 +9,8 @@ import {useQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
-import {RenderingSystem} from './viewHierarchies/renderingSystem';
-import {ViewHierarchyTree} from './viewHierarchies/viewHierarchyTree';
+import {RenderingSystem} from './viewHierarchy/renderingSystem';
+import {ViewHierarchy} from './viewHierarchy/tree';
 import EventDataSection from './eventDataSection';
 
 const DEFAULT_RESPONSE = {rendering_system: '', windows: []};
@@ -77,7 +77,7 @@ function EventViewHierarchy({viewHierarchies}: Props) {
       title={tn('View Hierarchy', 'View Hierarchies', viewHierarchies.length)}
     >
       <RenderingSystem system={data.rendering_system} />
-      <ViewHierarchyTree hierarchy={data.windows[selectedViewHierarchyWindow]} />
+      <ViewHierarchy hierarchy={data.windows[selectedViewHierarchyWindow]} />
     </EventDataSection>
   );
 }
