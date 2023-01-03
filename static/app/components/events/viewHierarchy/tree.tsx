@@ -59,7 +59,7 @@ function ViewHierarchyContainer({hierarchy}) {
   );
 }
 
-export {ViewHierarchyContainer as ViewHierarchy};
+export {ViewHierarchyContainer as ViewHierarchyTree};
 
 const Container = styled('div')`
   max-height: 500px;
