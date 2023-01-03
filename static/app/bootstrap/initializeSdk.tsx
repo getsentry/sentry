@@ -60,7 +60,15 @@ function getSentryIntegrations(sentryConfig: Config['sentryConfig'], routes?: Fu
   ];
 
   if (sentryConfig.replaysSessionSampleRate || sentryConfig.replaysOnErrorSampleRate) {
-    integrations.push(new Sentry.Replay());
+    integrations.push(
+      new Sentry.Replay({
+        maskAllText: true,
+        _experiments: {
+          captureExceptions: true,
+          traceInternals: true,
+        },
+      })
+    );
   }
 
   return integrations;
