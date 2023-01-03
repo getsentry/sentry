@@ -451,6 +451,11 @@ const StyledButton = styled(
         return <a {...props} ref={ref} href={href} />;
       }
 
+      // The default `type` of a native button element is `submit` when inside
+      // of a form. This is typically not what we want, and if we do want it we
+      // should explicitly set type submit.
+      props.type ??= 'button';
+
       return <button {...props} ref={ref} disabled={disabled} />;
     }
   ),

@@ -1179,9 +1179,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                       header={t('Delete Rule')}
                       message={t('Are you sure you want to delete this rule?')}
                     >
-                      <Button priority="danger" type="button">
-                        {t('Delete Rule')}
-                      </Button>
+                      <Button priority="danger">{t('Delete Rule')}</Button>
                     </Confirm>
                   ) : null
                 }
@@ -1404,7 +1402,6 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                               >
                                 <TestButtonWrapper>
                                   <Button
-                                    type="button"
                                     onClick={this.testNotifications}
                                     disabled={
                                       sendingNotification ||
