@@ -301,8 +301,9 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
             )
         self.org_id = extra_fields["org_id"]
         self.time_window = time_window
-        # If we are using any metrics-based dataset, we will enable the use of metrics layer and also the snql
-        # generation through it.
+        # We are going to use this flag across the class and its subclasses to explicitly signal that we want to query
+        # metrics via the metrics layer. This flag and all of the connected conditions can be removed once we
+        # exclusively want to use the metrics layer.
         self.use_metrics_layer = self.dataset in {Dataset.Metrics, Dataset.PerformanceMetrics}
 
     @abstractmethod
@@ -323,24 +324,29 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
             "granularity": self.get_granularity(),
         }
 
-    def _get_environment_condition(self, environment_name: str) -> Condition:
-        # If we don't use the metrics layer we need to handle indexer resolution on our own. The metrics layer does
-        # this automatically.
-        environment_column = (
-            "environment"
-            if self.use_metrics_layer
-            else resolve_tag_key(UseCaseKey.RELEASE_HEALTH, self.org_id, "environment")
-        )
-        environment = (
-            environment_name
-            if self.use_metrics_layer
-            else resolve_tag_value(UseCaseKey.RELEASE_HEALTH, self.org_id, environment_name)
-        )
+    def resolve_tag_key_if_needed(self, string: str) -> str:
+        if self.use_metrics_layer:
+            return string
 
+        return resolve_tag_key(UseCaseKey.RELEASE_HEALTH, self.org_id, string)
+
+    def resolve_tag_value_if_needed(self, string: str) -> Union[str, int]:
+        if self.use_metrics_layer:
+            return string
+
+        return resolve_tag_value(UseCaseKey.RELEASE_HEALTH, self.org_id, string)
+
+    def resolve_tag_values_if_needed(self, strings: Sequence[str]) -> Sequence[Union[str, int]]:
+        if self.use_metrics_layer:
+            return strings
+
+        return resolve_tag_values(UseCaseKey.RELEASE_HEALTH, self.org_id, strings)
+
+    def _get_environment_condition(self, environment_name: str) -> Condition:
         return Condition(
-            Column(environment_column),
+            Column(self.resolve_tag_key_if_needed("environment")),
             Op.EQ,
-            environment,
+            self.resolve_tag_value_if_needed(environment_name),
         )
 
     def build_query_builder(
@@ -548,26 +554,13 @@ class MetricsCountersEntitySubscription(BaseCrashRateMetricsEntitySubscription):
     def get_snql_extra_conditions(self) -> List[Condition]:
         extra_conditions = super().get_snql_extra_conditions()
 
-        statuses = ["crashed", "init"]
-
-        session_status_column = (
-            "session.status"
-            if self.use_metrics_layer
-            else resolve_tag_key(UseCaseKey.RELEASE_HEALTH, self.org_id, "session.status")
-        )
-        session_statuses = (
-            statuses
-            if self.use_metrics_layer
-            else resolve_tag_values(UseCaseKey.RELEASE_HEALTH, self.org_id, statuses)
-        )
-
         # We keep this condition for optimization reasons because the where clause is executed before the select, thus
         # resulting in a smaller result set for the sumIf function(s).
         extra_conditions.append(
             Condition(
-                Column(session_status_column),
+                Column(self.resolve_tag_key_if_needed("session.status")),
                 Op.IN,
-                session_statuses,
+                self.resolve_tag_values_if_needed(["crashed", "init"]),
             )
         )
 
