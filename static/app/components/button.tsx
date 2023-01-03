@@ -170,8 +170,8 @@ function BaseButton({
 }: ButtonProps) {
   // Fallbacking aria-label to string children is not necessary as screen readers natively understand that scenario.
   // Leaving it here for a bunch of our tests that query by aria-label.
-  const screenReaderLabel =
-    ariaLabel || (typeof children === 'string' ? children : undefined);
+  const accessibleLabel =
+    ariaLabel ?? (typeof children === 'string' ? children : undefined);
 
   const useButtonTracking = HookStore.get('react-hook:use-button-tracking')[0];
   const buttonTracking = useButtonTracking?.({
@@ -182,7 +182,7 @@ function BaseButton({
       href,
       ...analyticsParams,
     },
-    'aria-label': screenReaderLabel || '',
+    'aria-label': accessibleLabel || '',
   });
 
   const handleClick = useCallback(
@@ -218,7 +218,7 @@ function BaseButton({
   // *Note* you must still handle tabindex manually.
   const button = (
     <StyledButton
-      aria-label={screenReaderLabel}
+      aria-label={accessibleLabel}
       aria-disabled={disabled}
       busy={busy}
       disabled={disabled}
@@ -420,7 +420,16 @@ export const getButtonStyles = ({theme, ...props}: StyledButtonProps) => {
 const StyledButton = styled(
   reactForwardRef<any, ButtonProps>(
     (
-      {forwardRef, size: _size, external, to, href, disabled, ...otherProps}: ButtonProps,
+      {
+        forwardRef,
+        size: _size,
+        title: _title,
+        external,
+        to,
+        href,
+        disabled,
+        ...props
+      }: ButtonProps,
       forwardRefAlt
     ) => {
       // XXX: There may be two forwarded refs here, one potentially passed from a
@@ -428,27 +437,21 @@ const StyledButton = styled(
 
       const ref = mergeRefs([forwardRef, forwardRefAlt]);
 
-      // only pass down title to child element if it is a string
-      const {title, ...props} = otherProps;
-      if (typeof title === 'string') {
-        props[title] = title;
-      }
-
       // Get component to use based on existence of `to` or `href` properties
       // Can be react-router `Link`, `a`, or `button`
       if (to) {
-        return <Link ref={ref} to={to} disabled={disabled} {...props} />;
+        return <Link {...props} ref={ref} to={to} disabled={disabled} />;
       }
 
-      if (!href) {
-        return <button ref={ref} disabled={disabled} {...props} />;
+      if (href && external) {
+        return <ExternalLink {...props} ref={ref} href={href} disabled={disabled} />;
       }
 
-      if (external && href) {
-        return <ExternalLink ref={ref} href={href} disabled={disabled} {...props} />;
+      if (href) {
+        return <a {...props} ref={ref} href={href} />;
       }
 
-      return <a ref={ref} {...props} href={href} />;
+      return <button {...props} ref={ref} disabled={disabled} />;
     }
   ),
   {
