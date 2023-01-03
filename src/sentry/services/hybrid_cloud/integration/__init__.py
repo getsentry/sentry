@@ -102,6 +102,7 @@ class IntegrationService(InterfaceWithLifecycle):
     @abstractmethod
     def get_integration(
         self,
+        *,
         integration_id: int | None = None,
         provider: str | None = None,
         external_id: str | None = None,
@@ -113,7 +114,7 @@ class IntegrationService(InterfaceWithLifecycle):
 
     @abstractmethod
     def get_organization_integrations(
-        self, integration_id: int
+        self, *, integration_id: int
     ) -> List[APIOrganizationIntegration]:
         """
         Returns all APIOrganizationIntegrations associated with a given integration.
@@ -138,7 +139,7 @@ class IntegrationService(InterfaceWithLifecycle):
         )
 
     def update_config(
-        self, org_integration_id: int, config: Mapping[str, Any], should_clear: bool = False
+        self, *, org_integration_id: int, config: Mapping[str, Any], should_clear: bool = False
     ) -> APIOrganizationIntegration | None:
         """
         Returns an APIOrganizationIntegration if the associated org_integration.config value
@@ -147,7 +148,7 @@ class IntegrationService(InterfaceWithLifecycle):
         """
 
     def get_installation(
-        self, integration_id: int, organization_id: int, **kwargs: Mapping[str, Any]
+        self, *, integration_id: int, organization_id: int, **kwargs: Mapping[str, Any]
     ) -> IntegrationInstallation | None:
         """
         Returns the IntegrationInstallation class for a given integration.
@@ -167,7 +168,7 @@ class IntegrationService(InterfaceWithLifecycle):
         )
         return installation
 
-    def has_feature(self, provider: str, feature: IntegrationFeatures) -> bool | None:
+    def has_feature(self, *, provider: str, feature: IntegrationFeatures) -> bool | None:
         """
         Returns True if the IntegrationProvider subclass contains a given feature
         Intended to replace calls of `integration.has_feature`.

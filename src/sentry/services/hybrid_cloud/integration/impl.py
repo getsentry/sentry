@@ -56,6 +56,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
 
     def get_integration(
         self,
+        *,
         integration_id: int | None = None,
         provider: str | None = None,
         external_id: str | None = None,
@@ -72,7 +73,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
         return self._serialize_integration(integration) if integration else None
 
     def get_organization_integrations(
-        self, integration_id: int
+        self, *, integration_id: int
     ) -> List[APIOrganizationIntegration]:
         from sentry.models.integrations import OrganizationIntegration
 
@@ -81,7 +82,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
         return [self._serialize_organization_integration(oi) for oi in ois]
 
     def update_config(
-        self, org_integration_id: int, config: Mapping[str, Any], should_clear: bool = False
+        self, *, org_integration_id: int, config: Mapping[str, Any], should_clear: bool = False
     ) -> APIOrganizationIntegration | None:
         from sentry.models.integrations import OrganizationIntegration
 
