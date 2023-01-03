@@ -233,8 +233,8 @@ class Organization(Model, SnowflakeIdMixin):
 
         return self == type(self).get_default()
 
-    def has_access(self, user, access=None):
-        queryset = self.member_set.filter(user=user)
+    def has_access(self, user: APIUser, access=None):
+        queryset = self.member_set.filter(user_id=user.id)
         if access is not None:
             queryset = queryset.filter(type__lte=access)
 
