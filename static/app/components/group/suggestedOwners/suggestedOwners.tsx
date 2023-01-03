@@ -9,6 +9,7 @@ import type {
   Project,
 } from 'sentry/types';
 import type {Event} from 'sentry/types/event';
+import {defined} from 'sentry/utils';
 import useCommitters from 'sentry/utils/useCommitters';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -189,6 +190,10 @@ function SuggestedOwnersWrapper(props: Omit<Props, 'committers' | 'organization'
     },
     {notifyOnChangeProps: ['data']}
   );
+
+  if (defined(props.group.assignedTo)) {
+    return null;
+  }
 
   return (
     <SuggestedOwners
