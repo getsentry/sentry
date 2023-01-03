@@ -1,4 +1,5 @@
 import logging
+import re
 from typing import Dict, List, NamedTuple, Tuple, Union
 
 from sentry.models.integrations.organization_integration import OrganizationIntegration
@@ -14,6 +15,16 @@ logger.setLevel(logging.INFO)
 # https://github.com/github/linguist/blob/master/lib/linguist/languages.yml
 # We only care about the ones that would show up in stacktraces after symbolication
 EXTENSIONS = ["js", "jsx", "tsx", "ts", "mjs", "py", "rb", "php", "go"]
+
+# List of file paths prefixes that should become stack trace roots
+FILE_PATH_PREFIX_REGEX = [
+    "app:///",
+    r"[a-zA-Z]:[\\\\]+Users[\\\\]+[a-zA-Z0-9_]+[\\\\]+",
+    r"[a-zA-Z]:[\\\\]+",
+    r"\./",
+    r"[\.\./]+",
+    "~/",
+]
 
 
 class Repo(NamedTuple):
@@ -53,6 +64,20 @@ def should_include(file_path: str) -> bool:
     return include
 
 
+def get_straight_path_prefix_end_index(file_path):
+    index = 0
+    for regex in FILE_PATH_PREFIX_REGEX:
+        match = re.match(regex, file_path)
+        if match:
+            index += match.span()[1]
+            file_path = file_path[index:]
+    return index
+
+
+def remove_straight_path_prefix(file_path):
+    return file_path[get_straight_path_prefix_end_index(file_path) :]
+
+
 def filter_source_code_files(files: List[str]) -> List[str]:
     """
     This takes the list of files of a repo and returns
@@ -81,8 +106,7 @@ class FrameFilename:
             not frame_file_path
             or frame_file_path[0] in ["[", "<", "/"]
             or frame_file_path.find(" ") > -1
-            or frame_file_path.find("\\") > -1  # Windows support
-            or frame_file_path.find("/") == -1
+            or (frame_file_path.find("/") == -1 and not frame_file_path.find("\\") > -1)
         ):
             raise UnsupportedFrameFilename("Either garbage or will need work to support.")
 
@@ -117,13 +141,25 @@ class FrameFilename:
         # - some/path/foo.tsx
         # - ./some/path/foo.tsx
         # - /some/path/foo.js
+        # - app:///some/path/foo.js
+        # - ../../../some/path/foo.js
+        # - C:\\Users\\Name\\some/path/foo.js
+        # - D:\\Users\\some/path/foo.js
+        # - app:///../some/path/foo.js
 
-        start_at_index = 2 if frame_file_path.startswith("./") else 0
+        start_at_index = get_straight_path_prefix_end_index(frame_file_path)
         backslash_index = frame_file_path.find("/", start_at_index)
+        # Windows support
+        if backslash_index == -1:
+            backslash_index = frame_file_path.find("\\", start_at_index)
+            dir_path, self.file_name = frame_file_path.rsplit("\\", 1)  # foo.tsx (both)
+        else:
+            dir_path, self.file_name = frame_file_path.rsplit("/", 1)  # foo.tsx (both)
         self.root = frame_file_path[0:backslash_index]  # some or .some
-        dir_path, self.file_name = frame_file_path.rsplit("/", 1)  # foo.tsx (both)
         self.dir_path = dir_path.replace(self.root, "")  # some/path/ (both)
-        self.file_and_dir_path = frame_file_path.replace("./", "")  # some/path/foo.tsx (both)
+        self.file_and_dir_path = remove_straight_path_prefix(
+            frame_file_path
+        )  # some/path/foo.tsx (both)
 
     def __repr__(self) -> str:
         return f"FrameFilename: {self.full_path}"
@@ -260,8 +296,7 @@ class CodeMappingTreesHelper:
         else:
             # static/app/foo.tsx (./app/foo.tsx) -> static/app/
             # static/app/foo.tsx (app/foo.tsx) -> static/app/
-            source_code_root = f'{src_file.replace(frame_filename.file_and_dir_path, frame_filename.root.replace("./", ""))}/'
-
+            source_code_root = f"{src_file.replace(frame_filename.file_and_dir_path, remove_straight_path_prefix(frame_filename.root))}/"
         if source_code_root:
             assert source_code_root.endswith("/")
         return source_code_root
@@ -273,14 +308,15 @@ class CodeMappingTreesHelper:
         if source_path == stacktrace_root:
             stacktrace_root = ""
             source_path = ""
-        # stacktrace_root starts with "./"
-        elif stacktrace_root.startswith("./"):
-            without = stacktrace_root.replace("./", "")
+        # stacktrace_root starts with a FILE_PATH_PREFIX_REGEX
+        elif (without := remove_straight_path_prefix(stacktrace_root)) != stacktrace_root:
+            start_index = get_straight_path_prefix_end_index(stacktrace_root)
+            starts_with = stacktrace_root[:start_index]
             if source_path == without:
-                stacktrace_root = "./"
+                stacktrace_root = starts_with
                 source_path = ""
             elif source_path.rfind(f"/{without}"):
-                stacktrace_root = "./"
+                stacktrace_root = starts_with
                 source_path = source_path.replace(f"/{without}", "/")
         return (stacktrace_root, source_path)
 
