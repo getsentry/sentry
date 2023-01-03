@@ -28,8 +28,8 @@ def enqueue_outbox_jobs(**kwargs):
 
 @instrumented_task(name="sentry.tasks.drain_outbox_shard")
 def drain_outbox_shard(
-    scope: int,
-    scope_identifier: int,
+    shard_scope: int,
+    shard_identifier: int,
     region_name: str | None = None,
 ):
     if region_name is not None and region_name != MONOLITH_REGION_NAME:
@@ -40,9 +40,9 @@ def drain_outbox_shard(
     shard_outbox: OutboxBase
     if region_name is not None:
         shard_outbox = ControlOutbox(
-            scope=scope, scope_identifier=scope_identifier, region_name=region_name
+            shard_scope=shard_scope, shard_identifier=shard_identifier, region_name=region_name
         )
     else:
-        shard_outbox = RegionOutbox(scope=scope, scope_identifier=scope_identifier)
+        shard_outbox = RegionOutbox(shard_scope=shard_scope, shard_identifier=shard_identifier)
 
     shard_outbox.drain_shard()

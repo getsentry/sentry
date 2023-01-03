@@ -102,7 +102,8 @@ def test_region_sharding_keys():
     Factories.create_member(organization=org2, user=user1)
 
     shards = {
-        (row["scope"], row["scope_identifier"]) for row in RegionOutbox.find_scheduled_shards()
+        (row["shard_scope"], row["shard_identifier"])
+        for row in RegionOutbox.find_scheduled_shards()
     }
     assert shards == {
         (OutboxScope.ORGANIZATION_SCOPE.value, org1.id),
@@ -139,7 +140,7 @@ def test_control_sharding_keys():
         inst.save()
 
     shards = {
-        (row["scope"], row["scope_identifier"], row["region_name"])
+        (row["shard_scope"], row["shard_identifier"], row["region_name"])
         for row in ControlOutbox.find_scheduled_shards()
     }
     assert shards == {
