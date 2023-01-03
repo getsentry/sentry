@@ -281,7 +281,7 @@ def get_detection_settings(project_id: Optional[str] = None) -> Dict[DetectorTyp
         },
         DetectorType.CONSECUTIVE_DB_OP: {
             # Minimum ratio of time saved/independent span durations
-            "cost_saving_ratio": 0.5,  # ms
+            "minimum_time_saved": 100,  # ms
             # Duration of all the independent spans in a set of consecutive spans
             "duration_threshold": 100,  # ms
             # The minimum duration of a single independent span in ms, used to prevent scenarios with a ton of small spans
@@ -905,22 +905,31 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
     def _calculate_cost(self, independent_spans: list[Span]) -> float:
         """
         Calculates the cost saved by running spans in parallel,
-        this is the fraction of time saved over the parallelizable spans duration
+        this is the maximum time saving of running the queries in parallel
         """
         consecutive_spans = self.consecutive_db_spans
         time_saved_array = [0]  # Each index maps to the time saved for each independent span
         idx = 0
 
         for consec_span in consecutive_spans:
+            time_saved = 0
             if consec_span == independent_spans[idx]:
+                independent_span_duration = (
+                    get_span_duration(independent_spans[idx]).total_seconds() * 1000
+                )
+                if independent_span_duration < time_saved:
+                    time_saved = independent_span_duration
+                time_saved_array[
+                    idx
+                ] += time_saved  # Time saved is the time saved from the previous query in parallel, plus the the time saved of the current query in parallel
                 if idx == len(independent_spans) - 1:
-                    return sum(time_saved_array) / self._sum_span_duration(independent_spans)
+                    return sum(time_saved_array)
                 time_saved_array.append(time_saved_array[idx])
                 idx += 1
 
-            time_saved_array[idx] += get_span_duration(consec_span).total_seconds() * 1000
+            time_saved += get_span_duration(consec_span).total_seconds() * 1000
 
-        return sum(time_saved_array) / self._sum_span_duration(independent_spans)
+        return sum(time_saved_array)
 
     def _overlaps_last_span(self, span: Span) -> bool:
         if len(self.consecutive_db_spans) == 0:
