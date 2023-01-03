@@ -45,6 +45,7 @@ class TestDeprecationDecorator(APITestCase):
     def setUp(self) -> None:
         super().setUp()
         settings.SENTRY_SELF_HOSTED = False
+        settings.SENTRY_OPTIONS = {}
 
     def assert_deprecation_metadata(self, request: Request, response: Response):
         assert "X-Sentry-Deprecation-Date" in response
