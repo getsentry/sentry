@@ -1,7 +1,7 @@
 import logging
 from typing import Optional
 
-from arroyo.processing.strategies.abstract import ProcessingStrategy
+from arroyo.processing.strategies.abstract import MessageRejected, ProcessingStrategy
 from arroyo.types import Message, TPayload
 
 
@@ -22,12 +22,16 @@ class LogExceptionStep(ProcessingStrategy[TPayload]):
 
         try:
             self.__next_step.submit(message)
+        except MessageRejected:
+            raise
         except Exception:
             self.__logger.exception(self.__exception_message)
 
     def poll(self) -> None:
         try:
             self.__next_step.poll()
+        except MessageRejected:
+            raise
         except Exception:
             self.__logger.exception(self.__exception_message)
 
