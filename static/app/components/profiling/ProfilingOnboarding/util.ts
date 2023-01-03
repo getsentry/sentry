@@ -8,6 +8,7 @@ export const supportedProfilingPlatforms = [
   'apple-ios',
   'node',
   'python',
+  'rust',
 ] as const;
 
 export type SupportedProfilingPlatform = Extract<
@@ -33,6 +34,7 @@ const platformToDocsPlatform: Record<
   'python-pylons': 'python',
   'python-pyramid': 'python',
   'python-tornado': 'python',
+  rust: 'rust',
 };
 
 export function isProfilingSupportedOrProjectHasProfiles(project: Project): boolean {
@@ -67,6 +69,7 @@ export const supportedPlatformExpectedDocKeys: Record<
   ],
   node: ['0-alert', '1-install', '2-configure-performance', '3-configure-profiling'],
   python: ['0-alert', '1-install', '2-configure-performance', '3-configure-profiling'],
+  rust: ['0-alert', '1-install', '2-configure-performance', '3-configure-profiling'],
 };
 
 function makeDocKey(platformId: PlatformKey, key: string) {
