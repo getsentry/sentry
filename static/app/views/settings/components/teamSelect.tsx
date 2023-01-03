@@ -11,6 +11,7 @@ import {TeamBadge} from 'sentry/components/idBadge/teamBadge';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'sentry/components/panels';
+import Tooltip from 'sentry/components/tooltip';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -92,18 +93,25 @@ function TeamSelect({
   };
 
   // Only show options that aren't selected in the dropdown
-  // and that aren't idp-provisioned
   const options = teams
-    .filter(
-      team =>
-        !selectedTeams.some(selectedTeam => selectedTeam.slug === team.slug) &&
-        !team.idpProvisioned
-    )
+    .filter(team => !selectedTeams.some(selectedTeam => selectedTeam.slug === team.slug))
     .map((team, index) => ({
       index,
       value: team.slug,
       searchKey: team.slug,
-      label: <DropdownTeamBadge avatarSize={18} team={team} />,
+      disabled: !team.idpProvisioned,
+      label: () => {
+        if (!team.idpProvisioned) {
+          return <DropdownTeamBadge avatarSize={18} team={team} />;
+        }
+        return (
+          <Tooltip
+            title={`Membership to this team is managed through your organization's identity provider.`}
+          >
+            <DropdownTeamBadgeDisabled avatarSize={18} team={team} />
+          </Tooltip>
+        );
+      },
     }));
 
   return (
@@ -182,6 +190,13 @@ const DropdownTeamBadge = styled(TeamBadge)`
   font-weight: normal;
   font-size: ${p => p.theme.fontSizeMedium};
   text-transform: none;
+`;
+
+const DropdownTeamBadgeDisabled = styled(TeamBadge)`
+  font-weight: normal;
+  font-size: ${p => p.theme.fontSizeMedium};
+  text-transform: none;
+  filter: grayscale(1);
 `;
 
 const TeamPanelItem = styled(PanelItem)`

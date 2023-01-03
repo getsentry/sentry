@@ -19,6 +19,7 @@ type Props = {
   disabled: boolean;
   enforceAllowed: boolean;
   enforceRetired: boolean;
+  isCurrentUser: boolean;
   roleList: OrgRole[];
   roleSelected: string;
   setSelected: (id: string) => void;
@@ -30,6 +31,7 @@ class OrganizationRoleSelect extends Component<Props> {
       disabled,
       enforceRetired,
       enforceAllowed,
+      isCurrentUser,
       roleList,
       roleSelected,
       setSelected,
@@ -41,7 +43,11 @@ class OrganizationRoleSelect extends Component<Props> {
           <div>
             {t('Organization Role')}{' '}
             <QuestionTooltip
-              title="You cannot change the organization role because it has been idp-provisioned."
+              title={
+                isCurrentUser
+                  ? "Your organization-level role is managed through your organization's identity provider."
+                  : "This member's organization-level role is managed through your organization's identity provider."
+              }
               size="xs"
             />
           </div>
