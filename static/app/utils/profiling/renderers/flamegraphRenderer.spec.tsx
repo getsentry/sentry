@@ -235,7 +235,6 @@ describe('flamegraphRenderer', () => {
       const flamegraphView = new CanvasView<Flamegraph>({
         canvas: flamegraphCanvas,
         model: flamegraph,
-        configSpace: flamegraph.configSpace,
         options: {
           inverted: flamegraph.inverted,
           minWidth: flamegraph.profile.minFrameDuration,
@@ -297,7 +296,6 @@ describe('flamegraphRenderer', () => {
       const flamegraphView = new CanvasView<Flamegraph>({
         canvas: flamegraphCanvas,
         model: flamegraph,
-        configSpace: flamegraph.configSpace,
         options: {
           inverted: flamegraph.inverted,
           minWidth: flamegraph.profile.minFrameDuration,
