@@ -10,6 +10,7 @@ import {useDispatchFlamegraphState} from 'sentry/utils/profiling/flamegraph/hook
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
 import {formatColorForSpan, Rect} from 'sentry/utils/profiling/gl/utils';
+import {SelectedFrameRenderer} from 'sentry/utils/profiling/renderers/selectedFrameRenderer';
 import {SpanChartRenderer2D} from 'sentry/utils/profiling/renderers/spansRenderer';
 import {SpanChart, SpanChartNode} from 'sentry/utils/profiling/spanChart';
 import usePrevious from 'sentry/utils/usePrevious';
@@ -19,6 +20,13 @@ import {
   FlamegraphTooltipFrameMainInfo,
   FlamegraphTooltipTimelineInfo,
 } from './flamegraphTooltip';
+
+export function formatWeightToTransactionDuration(
+  span: SpanChartNode,
+  spanChart: SpanChart
+) {
+  return `(${Math.round((span.duration / spanChart.root.duration) * 100)}%)`;
+}
 
 interface FlamegraphSpansProps {
   canvasBounds: Rect;
@@ -51,6 +59,7 @@ export function FlamegraphSpans({
 
   const previousInteraction = usePrevious(lastInteraction);
   const beforeInteractionConfigView = useRef<Rect | null>(null);
+  const selectedFramesRef = useRef<SpanChartNode[] | null>(null);
 
   const spansRenderer = useMemo(() => {
     if (!spansCanvasRef) {
@@ -59,6 +68,21 @@ export function FlamegraphSpans({
 
     return new SpanChartRenderer2D(spansCanvasRef, spanChart, flamegraphTheme);
   }, [spansCanvasRef, spanChart, flamegraphTheme]);
+
+  const selectedSpanRenderer = useMemo(() => {
+    if (!spansCanvasRef) {
+      return null;
+    }
+
+    return new SelectedFrameRenderer(spansCanvasRef);
+  }, [spansCanvasRef]);
+
+  const hoveredNode: SpanChartNode | null = useMemo(() => {
+    if (!configSpaceCursor || !spansRenderer) {
+      return null;
+    }
+    return spansRenderer.findHoveredNode(configSpaceCursor);
+  }, [configSpaceCursor, spansRenderer]);
 
   useEffect(() => {
     if (!spansView) {
@@ -105,12 +129,46 @@ export function FlamegraphSpans({
     };
   }, [spansCanvas, spansRenderer, scheduler, spansView]);
 
-  const hoveredNode: SpanChartNode | null = useMemo(() => {
-    if (!configSpaceCursor || !spansRenderer) {
-      return null;
+  useEffect(() => {
+    if (!spansCanvasRef || !spansView || !spansCanvas || !selectedSpanRenderer) {
+      return undefined;
     }
-    return spansRenderer.findHoveredNode(configSpaceCursor);
-  }, [configSpaceCursor, spansRenderer]);
+
+    const drawHoveredSpanBorder = () => {
+      if (hoveredNode) {
+        selectedSpanRenderer.draw(
+          [
+            new Rect(
+              hoveredNode.start,
+              hoveredNode.depth,
+              hoveredNode.end - hoveredNode.start,
+              1
+            ),
+          ],
+          {
+            BORDER_COLOR: flamegraphTheme.COLORS.HOVERED_FRAME_BORDER_COLOR,
+            BORDER_WIDTH: flamegraphTheme.SIZES.HOVERED_FRAME_BORDER_WIDTH,
+          },
+          spansView.fromTransformedConfigView(spansCanvas.physicalSpace)
+        );
+      }
+    };
+
+    scheduler.registerAfterFrameCallback(drawHoveredSpanBorder);
+    scheduler.draw();
+
+    return () => {
+      scheduler.unregisterAfterFrameCallback(drawHoveredSpanBorder);
+    };
+  }, [
+    spansCanvas,
+    spansView,
+    selectedSpanRenderer,
+    scheduler,
+    spansCanvasRef,
+    flamegraphTheme,
+    hoveredNode,
+  ]);
 
   const onMouseDrag = useCallback(
     (evt: React.MouseEvent<HTMLCanvasElement>) => {
@@ -172,7 +230,7 @@ export function FlamegraphSpans({
         return;
       }
 
-      const configSpaceMouse = spansView.getConfigViewCursor(
+      const configSpaceMouse = spansView.getTransformedConfigViewCursor(
         vec2.fromValues(evt.nativeEvent.offsetX, evt.nativeEvent.offsetY),
         spansCanvas
       );
@@ -203,7 +261,7 @@ export function FlamegraphSpans({
       const identity = mat3.identity(mat3.create());
       const scale = 1 - evt.deltaY * 0.001 * -1; // -1 to invert scale
 
-      const mouseInConfigSpace = spansView.getConfigSpaceCursor(
+      const mouseInConfigSpace = spansView.getTransformedConfigViewCursor(
         vec2.fromValues(evt.offsetX, evt.offsetY),
         spansCanvas
       );
@@ -259,6 +317,46 @@ export function FlamegraphSpans({
   );
 
   useEffect(() => {
+    if (!spansCanvas || !spansView || !selectedSpanRenderer) {
+      return undefined;
+    }
+
+    const onNodeHighlight = (
+      node: SpanChartNode[] | null,
+      mode: 'hover' | 'selected'
+    ) => {
+      if (mode === 'selected') {
+        selectedFramesRef.current = node;
+      }
+      scheduler.draw();
+    };
+
+    const drawSelectedFrameBorder = () => {
+      if (selectedFramesRef.current) {
+        selectedSpanRenderer.draw(
+          selectedFramesRef.current.map(frame => {
+            return new Rect(frame.start, frame.depth, frame.end - frame.start, 1);
+          }),
+          {
+            BORDER_COLOR: flamegraphTheme.COLORS.SELECTED_FRAME_BORDER_COLOR,
+            BORDER_WIDTH: flamegraphTheme.SIZES.FRAME_BORDER_WIDTH,
+          },
+          spansView.fromTransformedConfigView(spansCanvas.physicalSpace)
+        );
+      }
+    };
+
+    scheduler.on('highlight span', onNodeHighlight);
+    scheduler.registerAfterFrameCallback(drawSelectedFrameBorder);
+    scheduler.draw();
+
+    return () => {
+      scheduler.off('highlight span', onNodeHighlight);
+      scheduler.unregisterAfterFrameCallback(drawSelectedFrameBorder);
+    };
+  }, [spansCanvas, spansView, selectedSpanRenderer, scheduler, flamegraphTheme]);
+
+  useEffect(() => {
     if (!spansCanvasRef) {
       return undefined;
     }
@@ -301,9 +399,76 @@ export function FlamegraphSpans({
     };
   }, [onMinimapCanvasMouseUp]);
 
+  const onCanvasMouseLeave = useCallback(() => {
+    setConfigSpaceCursor(null);
+    setStartPanVector(null);
+    setLastInteraction(null);
+  }, []);
+
+  const onCanvasMouseDown = useCallback((evt: React.MouseEvent<HTMLCanvasElement>) => {
+    const logicalMousePos = vec2.fromValues(
+      evt.nativeEvent.offsetX,
+      evt.nativeEvent.offsetY
+    );
+
+    const physicalMousePos = vec2.scale(
+      vec2.create(),
+      logicalMousePos,
+      window.devicePixelRatio
+    );
+
+    setLastInteraction('click');
+    setStartPanVector(physicalMousePos);
+  }, []);
+
+  const onCanvasMouseUp = useCallback(
+    (evt: React.MouseEvent<HTMLCanvasElement>) => {
+      evt.preventDefault();
+      evt.stopPropagation();
+
+      if (!configSpaceCursor) {
+        setLastInteraction(null);
+        setStartPanVector(null);
+        return;
+      }
+
+      // Only dispatch the zoom action if the new clicked node is not the same as the old selected node.
+      // This essentially tracks double click action on a rectangle
+      if (lastInteraction === 'click') {
+        if (
+          hoveredNode &&
+          selectedFramesRef.current?.length === 1 &&
+          selectedFramesRef.current[0] === hoveredNode
+        ) {
+          selectedFramesRef.current = [hoveredNode];
+          // If double click is fired on a node, then zoom into it
+          canvasPoolManager.dispatch('set config view', [
+            // nextPosition.withHeight(flamegraphView.configView.height),
+            new Rect(hoveredNode.start, 0, hoveredNode.duration, 1),
+          ]);
+        }
+
+        canvasPoolManager.dispatch('highlight span', [
+          hoveredNode ? [hoveredNode] : null,
+          'selected',
+        ]);
+      }
+
+      setLastInteraction(null);
+      setStartPanVector(null);
+    },
+    [configSpaceCursor, hoveredNode, canvasPoolManager, lastInteraction]
+  );
+
   return (
     <Fragment>
-      <Canvas onMouseMove={onCanvasMouseMove} ref={ref => setSpansCanvasRef(ref)} />
+      <Canvas
+        ref={setSpansCanvasRef}
+        onMouseMove={onCanvasMouseMove}
+        onMouseLeave={onCanvasMouseLeave}
+        onMouseUp={onCanvasMouseUp}
+        onMouseDown={onCanvasMouseDown}
+      />
       {hoveredNode && spansRenderer && configSpaceCursor && spansCanvas && spansView ? (
         <BoundTooltip
           bounds={canvasBounds}
@@ -315,6 +480,8 @@ export function FlamegraphSpans({
             <FlamegraphTooltipColorIndicator
               backgroundColor={formatColorForSpan(hoveredNode, spansRenderer)}
             />
+            {spanChart.formatter(hoveredNode.duration)}{' '}
+            {formatWeightToTransactionDuration(hoveredNode, spanChart)}{' '}
             {hoveredNode.node.span.description}
           </FlamegraphTooltipFrameMainInfo>
           <FlamegraphTooltipTimelineInfo>

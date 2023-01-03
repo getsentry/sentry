@@ -32,8 +32,7 @@ import {SelectedFrameRenderer} from 'sentry/utils/profiling/renderers/selectedFr
 import {TextRenderer} from 'sentry/utils/profiling/renderers/textRenderer';
 import usePrevious from 'sentry/utils/usePrevious';
 import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
-
-import {requestAnimationFrameTimeout} from '../../../views/profiling/utils';
+import {requestAnimationFrameTimeout} from 'sentry/views/profiling/utils';
 
 function isHighlightingAllOccurences(
   node: FlamegraphFrame | null,
@@ -167,9 +166,7 @@ function FlamegraphZoomView({
             // because the height may have changed due to window resizing and
             // calling it with the old height may result in the flamegraph
             // being drawn into a very small or very large area.
-            canvasPoolManager.dispatch('set config view', [
-              previousPosition.withHeight(flamegraphView.configView.height),
-            ]);
+            canvasPoolManager.dispatch('set config view', [previousPosition]);
           }
         }
 
@@ -181,9 +178,7 @@ function FlamegraphZoomView({
             // because the height may have changed due to window resizing and
             // calling it with the old height may result in the flamegraph
             // being drawn into a very small or very large area.
-            canvasPoolManager.dispatch('set config view', [
-              nextPosition.withHeight(flamegraphView.configView.height),
-            ]);
+            canvasPoolManager.dispatch('set config view', [nextPosition]);
           }
         }
 

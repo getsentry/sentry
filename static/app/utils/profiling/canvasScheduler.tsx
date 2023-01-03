@@ -2,6 +2,7 @@ import {mat3} from 'gl-matrix';
 
 import {Rect} from './gl/utils';
 import {FlamegraphFrame} from './flamegraphFrame';
+import {SpanChartNode} from './spanChart';
 
 type DrawFn = () => void;
 type ArgumentTypes<F> = F extends (...args: infer A) => any ? A : never;
@@ -11,11 +12,13 @@ export interface FlamegraphEvents {
     frame: FlamegraphFrame[] | null,
     mode: 'hover' | 'selected'
   ) => void;
+  ['highlight span']: (frame: SpanChartNode[] | null, mode: 'hover' | 'selected') => void;
   ['reset zoom']: () => void;
   ['set config view']: (configView: Rect) => void;
   ['show in table view']: (frame: FlamegraphFrame) => void;
   ['transform config view']: (transform: mat3) => void;
   ['zoom at frame']: (frame: FlamegraphFrame, strategy: 'min' | 'exact') => void;
+  ['zoom at span']: (frame: SpanChartNode, strategy: 'min' | 'exact') => void;
 }
 
 type EventStore = {[K in keyof FlamegraphEvents]: Set<FlamegraphEvents[K]>};
@@ -31,9 +34,11 @@ export class CanvasScheduler {
     ['show in table view']: new Set<FlamegraphEvents['show in table view']>(),
     ['reset zoom']: new Set<FlamegraphEvents['reset zoom']>(),
     ['highlight frame']: new Set<FlamegraphEvents['highlight frame']>(),
+    ['highlight span']: new Set<FlamegraphEvents['highlight span']>(),
     ['set config view']: new Set<FlamegraphEvents['set config view']>(),
     ['transform config view']: new Set<FlamegraphEvents['transform config view']>(),
     ['zoom at frame']: new Set<FlamegraphEvents['zoom at frame']>(),
+    ['zoom at span']: new Set<FlamegraphEvents['zoom at span']>(),
   };
 
   onDispose(cb: () => void): void {

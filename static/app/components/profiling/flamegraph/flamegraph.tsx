@@ -301,9 +301,9 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
     }
 
     const onConfigViewChange = (rect: Rect) => {
-      flamegraphView.setConfigView(rect);
+      flamegraphView.setConfigView(rect.withHeight(flamegraphView.configView.height));
       if (spansView) {
-        spansView.setConfigView(rect);
+        spansView.setConfigView(rect.withHeight(spansView.configView.height));
       }
       canvasPoolManager.draw();
     };
