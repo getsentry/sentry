@@ -9,7 +9,7 @@ from sentry.utils import json
 from sentry.utils.samples import load_data
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class EventGroupingInfoEndpointTestCase(APITestCase):
     def setUp(self):
         self.login_as(user=self.user)
@@ -69,13 +69,10 @@ class EventGroupingInfoEndpointTestCase(APITestCase):
         perf_event_manager.normalize()
         with override_options(
             {
-                "performance.issues.all.problem-creation": 1.0,
-                "performance.issues.all.problem-detection": 1.0,
                 "performance.issues.n_plus_one_db.problem-creation": 1.0,
             }
         ), self.feature(
             [
-                "organizations:performance-issues-ingest",
                 "projects:performance-suspect-spans-ingestion",
             ]
         ):

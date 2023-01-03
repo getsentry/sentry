@@ -241,8 +241,10 @@ class QueryConfig:
             field = getattr(self, field_name)
             if isinstance(field, Field):
                 field.attribute_name = field_name
-                self.insert(field_name, field)
-                self.insert(field.field_alias, field)
+                if field.field_alias:
+                    self.insert(field.field_alias, field)
+                else:
+                    self.insert(field_name, field)
 
     def get(self, field_name: str, default=None) -> Field:
         return self.fields.get(field_name, default)

@@ -4,7 +4,7 @@ import * as Sentry from '@sentry/react';
 import {Client} from 'sentry/api';
 import {ProfileHeader} from 'sentry/components/profiling/profileHeader';
 import {t} from 'sentry/locale';
-import {Organization, Project} from 'sentry/types';
+import type {EventTransaction, Organization, Project} from 'sentry/types';
 import {RequestState} from 'sentry/types/core';
 import {useSentryEvent} from 'sentry/utils/profiling/hooks/useSentryEvent';
 import {importProfile, ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
@@ -41,13 +41,26 @@ const ProfileGroupContext = createContext<
   | null
 >(null);
 
-export const useProfileGroup = () => {
+export function useProfileGroup() {
   const context = useContext(ProfileGroupContext);
   if (!context) {
     throw new Error('useProfileGroup was called outside of ProfileGroupProvider');
   }
   return context;
-};
+}
+
+const ProfileTransactionContext =
+  createContext<RequestState<EventTransaction | null> | null>(null);
+
+export function useProfileTransaction() {
+  const context = useContext(ProfileTransactionContext);
+  if (!context) {
+    throw new Error(
+      'useProfileTransaction was called outside of ProfileTransactionContext'
+    );
+  }
+  return context;
+}
 
 function ProfileGroupProvider(props: FlamegraphViewProps): React.ReactElement {
   const api = useApi();
@@ -57,6 +70,12 @@ function ProfileGroupProvider(props: FlamegraphViewProps): React.ReactElement {
   const [profileGroupState, setProfileGroupState] = useState<RequestState<ProfileGroup>>({
     type: 'initial',
   });
+
+  const profileTransaction = useSentryEvent<EventTransaction>(
+    params.orgId,
+    params.projectId,
+    profileGroupState.type === 'resolved' ? profileGroupState.data.transactionID : null
+  );
 
   useEffect(() => {
     if (!params.eventId || !params.projectId) {
@@ -80,18 +99,16 @@ function ProfileGroupProvider(props: FlamegraphViewProps): React.ReactElement {
     };
   }, [params.eventId, params.projectId, api, organization]);
 
-  const transactionEvent = useSentryEvent(
-    params.orgId,
-    params.projectId,
-    profileGroupState.type === 'resolved' ? profileGroupState.data.transactionID : null
-  );
-
   return (
     <ProfileGroupContext.Provider value={[profileGroupState, setProfileGroupState]}>
-      <ProfileHeader
-        transaction={transactionEvent.type === 'resolved' ? transactionEvent.data : null}
-      />
-      {props.children}
+      <ProfileTransactionContext.Provider value={profileTransaction}>
+        <ProfileHeader
+          transaction={
+            profileTransaction.type === 'resolved' ? profileTransaction.data : null
+          }
+        />
+        {props.children}
+      </ProfileTransactionContext.Provider>
     </ProfileGroupContext.Provider>
   );
 }

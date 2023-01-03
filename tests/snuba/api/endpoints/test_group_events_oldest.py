@@ -65,7 +65,6 @@ class GroupEventsOldestTest(APITestCase, SnubaTestCase):
         )
         event = self.store_event(data=event_data, project_id=self.project.id)
         url = f"/api/0/issues/{event.groups[0].id}/events/latest/"
-        with self.feature("organizations:performance-issues"):
-            response = self.client.get(url, format="json")
+        response = self.client.get(url, format="json")
         assert response.status_code == 200
         assert response.data["eventID"] == event.event_id

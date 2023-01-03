@@ -29,12 +29,15 @@ import {
   unwrapTreeDepth,
 } from './utils';
 
-type Props = {
+export type SpanDescendantGroupBarProps = {
+  addContentSpanBarRef: (instance: HTMLDivElement | null) => void;
   continuingTreeDepths: Array<TreeDepthType>;
+  didAnchoredSpanMount: () => boolean;
   event: Readonly<EventTransaction>;
   generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
-  generateContentSpanBarRef: () => (instance: HTMLDivElement | null) => void;
+  getCurrentLeftPos: () => number;
   onWheel: (deltaX: number) => void;
+  removeContentSpanBarRef: (instance: HTMLDivElement | null) => void;
   span: Readonly<ProcessedSpanType>;
   spanGrouping: EnhancedSpan[];
   spanNumber: number;
@@ -42,17 +45,20 @@ type Props = {
   treeDepth: number;
 };
 
-export function SpanDescendantGroupBar(props: Props) {
+export function SpanDescendantGroupBar(props: SpanDescendantGroupBarProps) {
   const {
     continuingTreeDepths,
     event,
     generateBounds,
+    getCurrentLeftPos,
     span,
     spanGrouping,
     spanNumber,
     toggleSpanGroup,
     onWheel,
-    generateContentSpanBarRef,
+    addContentSpanBarRef,
+    removeContentSpanBarRef,
+    didAnchoredSpanMount,
   } = props;
 
   function renderGroupSpansTitle() {
@@ -161,7 +167,10 @@ export function SpanDescendantGroupBar(props: Props) {
       renderGroupSpansTitle={renderGroupSpansTitle}
       renderSpanRectangles={renderSpanRectangles}
       onWheel={onWheel}
-      generateContentSpanBarRef={generateContentSpanBarRef}
+      addContentSpanBarRef={addContentSpanBarRef}
+      removeContentSpanBarRef={removeContentSpanBarRef}
+      didAnchoredSpanMount={didAnchoredSpanMount}
+      getCurrentLeftPos={getCurrentLeftPos}
     />
   );
 }

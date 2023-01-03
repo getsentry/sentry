@@ -17,7 +17,7 @@ from django.utils import timezone
 from django.utils.http import urlencode, urlquote
 from django.utils.translation import ugettext_lazy as _
 
-from sentry import eventstore, eventtypes, features, tagstore
+from sentry import eventstore, eventtypes, tagstore
 from sentry.constants import DEFAULT_LOGGER_NAME, LOG_LEVELS, MAX_CULPRIT_LENGTH
 from sentry.db.models import (
     BaseManager,
@@ -31,6 +31,7 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.eventstore.models import GroupEvent
+from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.query import apply_performance_conditions
 from sentry.models.grouphistory import record_group_history_from_activity_type
 from sentry.snuba.dataset import Dataset
@@ -190,10 +191,7 @@ def get_oldest_or_latest_event_for_environments(
     if len(environments) > 0:
         conditions.append(["environment", "IN", environments])
 
-    if (
-        features.has("organizations:performance-issues", group.organization)
-        and group.issue_category == GroupCategory.PERFORMANCE
-    ):
+    if group.issue_category == GroupCategory.PERFORMANCE:
         apply_performance_conditions(conditions, group)
         _filter = eventstore.Filter(
             conditions=conditions,
@@ -201,10 +199,14 @@ def get_oldest_or_latest_event_for_environments(
         )
         dataset = Dataset.Transactions
     else:
+        if group.issue_category == GroupCategory.ERROR:
+            dataset = Dataset.Events
+        else:
+            dataset = Dataset.IssuePlatform
+
         _filter = eventstore.Filter(
             conditions=conditions, project_ids=[group.project_id], group_ids=[group.id]
         )
-        dataset = Dataset.Events
 
     events = eventstore.get_events(
         filter=_filter,
@@ -215,7 +217,16 @@ def get_oldest_or_latest_event_for_environments(
     )
 
     if events:
-        return events[0].for_group(group)
+        group_event = events[0].for_group(group)
+        occurrence_id = group_event.occurrence_id
+        if occurrence_id:
+            group_event.occurrence = IssueOccurrence.fetch(occurrence_id, group.project_id)
+            if group_event.occurrence is None:
+                logger.error(
+                    "Failed to fetch occurrence for event",
+                    extra={"group_id", group.id, "occurrence_id", occurrence_id},
+                )
+        return group_event
 
     return None
 

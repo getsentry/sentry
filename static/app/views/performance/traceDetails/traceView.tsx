@@ -2,7 +2,6 @@ import React, {createRef, useEffect} from 'react';
 import {RouteComponentProps} from 'react-router';
 import * as Sentry from '@sentry/react';
 
-import * as AnchorLinkManager from 'sentry/components/events/interfaces/spans/anchorLinkManager';
 import * as DividerHandlerManager from 'sentry/components/events/interfaces/spans/dividerHandlerManager';
 import * as ScrollbarManager from 'sentry/components/events/interfaces/spans/scrollbarManager';
 import {MessageRow} from 'sentry/components/performance/waterfall/messageRow';
@@ -293,30 +292,28 @@ export default function TraceView({
                   <DividerSpacer />
                 </TraceViewHeaderContainer>
                 <TraceViewContainer ref={traceViewRef}>
-                  <AnchorLinkManager.Provider>
-                    <TransactionGroup
-                      location={location}
-                      organization={organization}
-                      traceInfo={traceInfo}
-                      transaction={{
-                        traceSlug,
-                        generation: 0,
-                        'transaction.duration':
-                          traceInfo.endTimestamp - traceInfo.startTimestamp,
-                        children: traces,
-                        start_timestamp: traceInfo.startTimestamp,
-                        timestamp: traceInfo.endTimestamp,
-                      }}
-                      continuingDepths={[]}
-                      isOrphan={false}
-                      isLast={false}
-                      index={0}
-                      isVisible
-                      hasGuideAnchor={false}
-                      renderedChildren={transactionGroups}
-                      barColor={pickBarColor('')}
-                    />
-                  </AnchorLinkManager.Provider>
+                  <TransactionGroup
+                    location={location}
+                    organization={organization}
+                    traceInfo={traceInfo}
+                    transaction={{
+                      traceSlug,
+                      generation: 0,
+                      'transaction.duration':
+                        traceInfo.endTimestamp - traceInfo.startTimestamp,
+                      children: traces,
+                      start_timestamp: traceInfo.startTimestamp,
+                      timestamp: traceInfo.endTimestamp,
+                    }}
+                    continuingDepths={[]}
+                    isOrphan={false}
+                    isLast={false}
+                    index={0}
+                    isVisible
+                    hasGuideAnchor={false}
+                    renderedChildren={transactionGroups}
+                    barColor={pickBarColor('')}
+                  />
                   <TraceHiddenMessage
                     isVisible
                     numberOfHiddenTransactionsAbove={numberOfHiddenTransactionsAbove}

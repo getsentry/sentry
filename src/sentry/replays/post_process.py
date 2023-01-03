@@ -24,15 +24,20 @@ def generate_normalized_output(
 ) -> Generator[None, None, Dict[str, Any]]:
     """For each payload in the response strip "agg_" prefixes."""
     for item in response:
-        item["id"] = item.pop("replay_id")
+        item["id"] = item.pop("replay_id", None)
         item["longestTransaction"] = 0
-        item["environment"] = item.pop("agg_environment")
-        item["tags"] = dict_unique_list(zip(item.pop("tk") or [], item.pop("tv") or []))
+        item["environment"] = item.pop("agg_environment", None)
+        item["tags"] = dict_unique_list(
+            zip(
+                item.pop("tk", None) or [],
+                item.pop("tv", None) or [],
+            )
+        )
         item["user"] = {
-            "id": item.pop("user_id"),
-            "name": item.pop("user_name"),
-            "email": item.pop("user_email"),
-            "ip_address": item.pop("user_ipAddress"),
+            "id": item.pop("user_id", None),
+            "name": item.pop("user_name", None),
+            "email": item.pop("user_email", None),
+            "ip_address": item.pop("user_ipAddress", None),
         }
         item["user"]["displayName"] = (
             item["user"]["name"]
@@ -40,19 +45,28 @@ def generate_normalized_output(
             or item["user"]["ip_address"]
             or item["user"]["id"]
         )
-        item["sdk"] = {"name": item.pop("sdk_name"), "version": item.pop("sdk_version")}
-        item["os"] = {"name": item.pop("os_name"), "version": item.pop("os_version")}
-        item["browser"] = {"name": item.pop("browser_name"), "version": item.pop("browser_version")}
+        item["sdk"] = {
+            "name": item.pop("sdk_name", None),
+            "version": item.pop("sdk_version", None),
+        }
+        item["os"] = {
+            "name": item.pop("os_name", None),
+            "version": item.pop("os_version", None),
+        }
+        item["browser"] = {
+            "name": item.pop("browser_name", None),
+            "version": item.pop("browser_version", None),
+        }
         item["device"] = {
-            "name": item.pop("device_name"),
-            "brand": item.pop("device_brand"),
-            "model": item.pop("device_model"),
-            "family": item.pop("device_family"),
+            "name": item.pop("device_name", None),
+            "brand": item.pop("device_brand", None),
+            "model": item.pop("device_model", None),
+            "family": item.pop("device_family", None),
         }
 
-        item.pop("agg_urls")
-        item["countUrls"] = len(item["urls_sorted"])
-        item["urls"] = item.pop("urls_sorted")
+        item.pop("agg_urls", None)
+        item["countUrls"] = len(item.get("urls_sorted", []))
+        item["urls"] = item.pop("urls_sorted", None)
 
         item.pop("isArchived")
 

@@ -139,7 +139,7 @@ function FlamegraphZoomView({
     if (!configSpaceCursor || !flamegraphRenderer) {
       return null;
     }
-    return flamegraphRenderer.getHoveredNode(configSpaceCursor);
+    return flamegraphRenderer.findHoveredNode(configSpaceCursor);
   }, [configSpaceCursor, flamegraphRenderer]);
 
   useEffect(() => {
@@ -870,7 +870,7 @@ function handleFlamegraphKeyboardNavigation(
     direction = direction === 'up' ? 'down' : 'up';
   }
   const nextSelection = selectNearestFrame(currentFrame, direction);
-  if (!nextSelection) {
+  if (nextSelection === currentFrame) {
     return null;
   }
   evt.preventDefault();

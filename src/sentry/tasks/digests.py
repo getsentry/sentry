@@ -38,7 +38,7 @@ def deliver_digest(key, schedule_timestamp=None):
     from sentry.mail import mail_adapter
 
     try:
-        project, target_type, target_identifier = split_key(key)
+        project, target_type, target_identifier, fallthrough_choice = split_key(key)
     except Project.DoesNotExist as error:
         logger.info(f"Cannot deliver digest {key} due to error: {error}")
         digests.delete(key)
@@ -57,7 +57,13 @@ def deliver_digest(key, schedule_timestamp=None):
             return
 
         if digest:
-            mail_adapter.notify_digest(project, digest, target_type, target_identifier)
+            mail_adapter.notify_digest(
+                project,
+                digest,
+                target_type,
+                target_identifier,
+                fallthrough_choice=fallthrough_choice,
+            )
         else:
             logger.info(
                 "Skipped digest delivery due to empty digest",
@@ -66,5 +72,6 @@ def deliver_digest(key, schedule_timestamp=None):
                     "target_type": target_type.value,
                     "target_identifier": target_identifier,
                     "build_digest_logs": logs,
+                    "fallthrough_choice": fallthrough_choice.value if fallthrough_choice else None,
                 },
             )

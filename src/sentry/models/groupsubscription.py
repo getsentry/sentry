@@ -18,6 +18,7 @@ from sentry.notifications.helpers import (
     where_should_be_participating,
 )
 from sentry.notifications.types import GroupSubscriptionReason, NotificationSettingTypes
+from sentry.services.hybrid_cloud.notifications import notifications_service
 from sentry.services.hybrid_cloud.user import APIUser, user_service
 from sentry.types.integrations import ExternalProviders
 
@@ -117,16 +118,16 @@ class GroupSubscriptionManager(BaseManager):  # type: ignore
         Identify all users who are participating with a given issue.
         :param group: Group object
         """
-        from sentry.models import NotificationSetting
 
         all_possible_users = user_service.get_from_group(group)
         active_and_disabled_subscriptions = self.filter(
             group=group, user_id__in=[u.id for u in all_possible_users]
         )
-        notification_settings = NotificationSetting.objects.get_for_recipient_by_parent(
-            NotificationSettingTypes.WORKFLOW,
+
+        notification_settings = notifications_service.get_settings_for_recipient_by_parent(
+            type=NotificationSettingTypes.WORKFLOW,
             recipients=all_possible_users,
-            parent=group.project,
+            parent_id=group.project_id,
         )
         subscriptions_by_user_id = {
             subscription.user_id: subscription for subscription in active_and_disabled_subscriptions
@@ -155,12 +156,13 @@ class GroupSubscriptionManager(BaseManager):  # type: ignore
         return result
 
     @staticmethod
-    def get_participating_users(group: "Group") -> Sequence["User"]:
-        """Return the list of users participating in this issue."""
-        from sentry.models import User
+    def get_participating_user_ids(group: "Group") -> Sequence[int]:
+        """Return the list of user ids participating in this issue."""
 
         return list(
-            User.objects.filter(groupsubscription__is_active=True, groupsubscription__group=group)
+            GroupSubscription.objects.filter(group=group, is_active=True).values_list(
+                "user_id", flat=True
+            )
         )
 
 

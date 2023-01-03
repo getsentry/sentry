@@ -26,6 +26,7 @@ import OrganizationDetails from 'sentry/views/organizationDetails';
 import {Tab, TabPaths} from 'sentry/views/organizationGroupDetails/types';
 import OrganizationRoot from 'sentry/views/organizationRoot';
 import ProjectEventRedirect from 'sentry/views/projectEventRedirect';
+import redirectDeprecatedProjectRoute from 'sentry/views/projects/redirectDeprecatedProjectRoute';
 import RouteNotFound from 'sentry/views/routeNotFound';
 import SettingsWrapper from 'sentry/views/settings/components/settingsWrapper';
 
@@ -1280,15 +1281,13 @@ function buildRoutes() {
     </Fragment>
   );
 
-  const monitorsChildRoutes = ({forCustomerDomain}: {forCustomerDomain: boolean}) => {
+  const cronsChildRoutes = ({forCustomerDomain}: {forCustomerDomain: boolean}) => {
     return (
       <Fragment>
         <IndexRoute component={make(() => import('sentry/views/monitors/monitors'))} />
         <Route
           path={
-            forCustomerDomain
-              ? '/monitors/create/'
-              : '/organizations/:orgId/monitors/create/'
+            forCustomerDomain ? '/crons/create/' : '/organizations/:orgId/crons/create/'
           }
           component={make(() => import('sentry/views/monitors/create'))}
           key={forCustomerDomain ? 'orgless-monitors-create' : 'org-monitors-create'}
@@ -1296,8 +1295,8 @@ function buildRoutes() {
         <Route
           path={
             forCustomerDomain
-              ? '/monitors/:monitorId/'
-              : '/organizations/:orgId/monitors/:monitorId/'
+              ? '/crons/:monitorId/'
+              : '/organizations/:orgId/crons/:monitorId/'
           }
           component={make(() => import('sentry/views/monitors/details'))}
           key={
@@ -1307,8 +1306,8 @@ function buildRoutes() {
         <Route
           path={
             forCustomerDomain
-              ? '/monitors/:monitorId/edit/'
-              : '/organizations/:orgId/monitors/:monitorId/edit/'
+              ? '/crons/:monitorId/edit/'
+              : '/organizations/:orgId/crons/:monitorId/edit/'
           }
           component={make(() => import('sentry/views/monitors/edit'))}
           key={forCustomerDomain ? 'orgless-monitors-edit' : 'org-monitors-edit'}
@@ -1317,23 +1316,23 @@ function buildRoutes() {
     );
   };
 
-  const monitorsRoutes = (
+  const cronsRoutes = (
     <Fragment>
       {usingCustomerDomain ? (
         <Route
-          path="/monitors/"
+          path="/crons/"
           component={withDomainRequired(make(() => import('sentry/views/monitors')))}
           key="orgless-monitors-route"
         >
-          {monitorsChildRoutes({forCustomerDomain: true})}
+          {cronsChildRoutes({forCustomerDomain: true})}
         </Route>
       ) : null}
       <Route
-        path="/organizations/:orgId/monitors/"
+        path="/organizations/:orgId/crons/"
         component={withDomainRedirect(make(() => import('sentry/views/monitors')))}
         key="org-monitors"
       >
-        {monitorsChildRoutes({forCustomerDomain: false})}
+        {cronsChildRoutes({forCustomerDomain: false})}
       </Route>
     </Fragment>
   );
@@ -1695,103 +1694,37 @@ function buildRoutes() {
 
   // Once org issues is complete, these routes can be nested under
   // /organizations/:orgId/issues
-  const issueDetailsChildRoutes = (
-    <Fragment>
-      <IndexRoute
-        component={make(
-          () => import('sentry/views/organizationGroupDetails/groupEventDetails')
-        )}
-      />
-      <Route
-        path={TabPaths[Tab.REPLAYS]}
-        component={make(
-          () => import('sentry/views/organizationGroupDetails/groupReplays')
-        )}
-      />
-      <Route
-        path={TabPaths[Tab.ACTIVITY]}
-        component={make(
-          () => import('sentry/views/organizationGroupDetails/groupActivity')
-        )}
-      />
-      <Route
-        path={TabPaths[Tab.EVENTS]}
-        component={make(
-          () => import('sentry/views/organizationGroupDetails/groupEvents')
-        )}
-      />
-      <Route
-        path={TabPaths[Tab.TAGS]}
-        component={make(() => import('sentry/views/organizationGroupDetails/groupTags'))}
-      />
-      <Route
-        path={`${TabPaths[Tab.TAGS]}:tagKey/`}
-        component={make(
-          () => import('sentry/views/organizationGroupDetails/groupTagValues')
-        )}
-      />
-      <Route
-        path={TabPaths[Tab.USER_FEEDBACK]}
-        component={make(
-          () => import('sentry/views/organizationGroupDetails/groupUserFeedback')
-        )}
-      />
-      <Route
-        path={TabPaths[Tab.ATTACHMENTS]}
-        component={make(
-          () => import('sentry/views/organizationGroupDetails/groupEventAttachments')
-        )}
-      />
-      <Route
-        path={TabPaths[Tab.SIMILAR_ISSUES]}
-        component={make(
-          () => import('sentry/views/organizationGroupDetails/groupSimilarIssues')
-        )}
-      />
-      <Route
-        path={TabPaths[Tab.MERGED]}
-        component={make(
-          () => import('sentry/views/organizationGroupDetails/groupMerged')
-        )}
-      />
-      <Route
-        path={TabPaths[Tab.GROUPING]}
-        component={make(() => import('sentry/views/organizationGroupDetails/grouping'))}
-      />
-      <Route path={`${TabPaths[Tab.EVENTS]}:eventId/`}>
+  const issueTabs = ({forCustomerDomain}: {forCustomerDomain: boolean}) => {
+    const hoc = forCustomerDomain ? withDomainRequired : x => x;
+    return (
+      <Fragment>
         <IndexRoute
-          component={make(
-            () => import('sentry/views/organizationGroupDetails/groupEventDetails')
+          component={hoc(
+            make(() => import('sentry/views/organizationGroupDetails/groupEventDetails'))
           )}
         />
         <Route
           path={TabPaths[Tab.REPLAYS]}
-          component={make(
-            () => import('sentry/views/organizationGroupDetails/groupReplays')
+          component={hoc(
+            make(() => import('sentry/views/organizationGroupDetails/groupReplays'))
           )}
         />
         <Route
           path={TabPaths[Tab.ACTIVITY]}
-          component={make(
-            () => import('sentry/views/organizationGroupDetails/groupActivity')
+          component={hoc(
+            make(() => import('sentry/views/organizationGroupDetails/groupActivity'))
           )}
         />
         <Route
           path={TabPaths[Tab.EVENTS]}
-          component={make(
-            () => import('sentry/views/organizationGroupDetails/groupEvents')
-          )}
-        />
-        <Route
-          path={TabPaths[Tab.SIMILAR_ISSUES]}
-          component={make(
-            () => import('sentry/views/organizationGroupDetails/groupSimilarIssues')
+          component={hoc(
+            make(() => import('sentry/views/organizationGroupDetails/groupEvents'))
           )}
         />
         <Route
           path={TabPaths[Tab.TAGS]}
-          component={make(
-            () => import('sentry/views/organizationGroupDetails/groupTags')
+          component={hoc(
+            make(() => import('sentry/views/organizationGroupDetails/groupTags'))
           )}
         />
         <Route
@@ -1802,26 +1735,45 @@ function buildRoutes() {
         />
         <Route
           path={TabPaths[Tab.USER_FEEDBACK]}
-          component={make(
-            () => import('sentry/views/organizationGroupDetails/groupUserFeedback')
+          component={hoc(
+            make(() => import('sentry/views/organizationGroupDetails/groupUserFeedback'))
           )}
         />
         <Route
           path={TabPaths[Tab.ATTACHMENTS]}
-          component={make(
-            () => import('sentry/views/organizationGroupDetails/groupEventAttachments')
+          component={hoc(
+            make(
+              () => import('sentry/views/organizationGroupDetails/groupEventAttachments')
+            )
+          )}
+        />
+        <Route
+          path={TabPaths[Tab.SIMILAR_ISSUES]}
+          component={hoc(
+            make(() => import('sentry/views/organizationGroupDetails/groupSimilarIssues'))
           )}
         />
         <Route
           path={TabPaths[Tab.MERGED]}
-          component={make(
-            () => import('sentry/views/organizationGroupDetails/groupMerged')
+          component={hoc(
+            make(() => import('sentry/views/organizationGroupDetails/groupMerged'))
           )}
         />
         <Route
           path={TabPaths[Tab.GROUPING]}
-          component={make(() => import('sentry/views/organizationGroupDetails/grouping'))}
+          component={hoc(
+            make(() => import('sentry/views/organizationGroupDetails/grouping'))
+          )}
         />
+      </Fragment>
+    );
+  };
+
+  const issueDetailsChildRoutes = ({forCustomerDomain}: {forCustomerDomain: boolean}) => (
+    <Fragment>
+      {issueTabs({forCustomerDomain})}
+      <Route path={`${TabPaths[Tab.EVENTS]}:eventId/`}>
+        {issueTabs({forCustomerDomain})}
       </Route>
     </Fragment>
   );
@@ -1834,7 +1786,7 @@ function buildRoutes() {
         )}
         key="org-issues-group-id"
       >
-        {issueDetailsChildRoutes}
+        {issueDetailsChildRoutes({forCustomerDomain: false})}
       </Route>
       {usingCustomerDomain ? (
         <Route
@@ -1844,7 +1796,7 @@ function buildRoutes() {
           )}
           key="orgless-issues-group-id-route"
         >
-          {issueDetailsChildRoutes}
+          {issueDetailsChildRoutes({forCustomerDomain: true})}
         </Route>
       ) : null}
     </Fragment>
@@ -2015,6 +1967,94 @@ function buildRoutes() {
     </Fragment>
   );
 
+  // Support for deprecated URLs (pre-Sentry 10). We just redirect users to new
+  // canonical URLs.
+  //
+  // XXX(epurkhiser): Can these be moved over to the legacyOrgRedirects routes,
+  // or do these need to be nested into the OrganizationDetails tree?
+  const legacyOrgRedirects = (
+    <Route path="/:orgId/:projectId/">
+      <IndexRoute
+        component={errorHandler(
+          redirectDeprecatedProjectRoute(
+            ({orgId, projectId}) => `/organizations/${orgId}/issues/?project=${projectId}`
+          )
+        )}
+      />
+      <Route
+        path="issues/"
+        component={errorHandler(
+          redirectDeprecatedProjectRoute(
+            ({orgId, projectId}) => `/organizations/${orgId}/issues/?project=${projectId}`
+          )
+        )}
+      />
+      <Route
+        path="dashboard/"
+        component={errorHandler(
+          redirectDeprecatedProjectRoute(
+            ({orgId, projectId}) =>
+              `/organizations/${orgId}/dashboards/?project=${projectId}`
+          )
+        )}
+      />
+      <Route
+        path="user-feedback/"
+        component={errorHandler(
+          redirectDeprecatedProjectRoute(
+            ({orgId, projectId}) =>
+              `/organizations/${orgId}/user-feedback/?project=${projectId}`
+          )
+        )}
+      />
+      <Route
+        path="releases/"
+        component={errorHandler(
+          redirectDeprecatedProjectRoute(
+            ({orgId, projectId}) =>
+              `/organizations/${orgId}/releases/?project=${projectId}`
+          )
+        )}
+      />
+      <Route
+        path="releases/:version/"
+        component={errorHandler(
+          redirectDeprecatedProjectRoute(
+            ({orgId, projectId, router}) =>
+              `/organizations/${orgId}/releases/${router.params.version}/?project=${projectId}`
+          )
+        )}
+      />
+      <Route
+        path="releases/:version/new-events/"
+        component={errorHandler(
+          redirectDeprecatedProjectRoute(
+            ({orgId, projectId, router}) =>
+              `/organizations/${orgId}/releases/${router.params.version}/new-events/?project=${projectId}`
+          )
+        )}
+      />
+      <Route
+        path="releases/:version/all-events/"
+        component={errorHandler(
+          redirectDeprecatedProjectRoute(
+            ({orgId, projectId, router}) =>
+              `/organizations/${orgId}/releases/${router.params.version}/all-events/?project=${projectId}`
+          )
+        )}
+      />
+      <Route
+        path="releases/:version/commits/"
+        component={errorHandler(
+          redirectDeprecatedProjectRoute(
+            ({orgId, projectId, router}) =>
+              `/organizations/${orgId}/releases/${router.params.version}/commits/?project=${projectId}`
+          )
+        )}
+      />
+    </Route>
+  );
+
   const profilingChildRoutes = (
     <Fragment>
       <IndexRoute component={make(() => import('sentry/views/profiling/content'))} />
@@ -2068,7 +2108,7 @@ function buildRoutes() {
       {issueListRoutes}
       {issueDetailsRoutes}
       {alertRoutes}
-      {monitorsRoutes}
+      {cronsRoutes}
       {replayRoutes}
       {releasesRoutes}
       {activityRoutes}
@@ -2079,6 +2119,7 @@ function buildRoutes() {
       {adminManageRoutes}
       {gettingStartedRoutes}
       {legacyOrganizationRootRoutes}
+      {legacyOrgRedirects}
     </Route>
   );
 
