@@ -15,6 +15,9 @@ import {SpanChartRenderer2D} from 'sentry/utils/profiling/renderers/spansRendere
 import {SpanChart, SpanChartNode} from 'sentry/utils/profiling/spanChart';
 import usePrevious from 'sentry/utils/usePrevious';
 
+import {useDrawHoveredBorderEffect} from './interactions/useDrawHoveredBorderEffect';
+import {useDrawSelectedBorderEffect} from './interactions/useDrawSelectedBorderEffect';
+import {useInteractionViewCheckPoint} from './interactions/useInteractionViewCheckPoint';
 import {
   FlamegraphTooltipColorIndicator,
   FlamegraphTooltipFrameMainInfo,
@@ -59,7 +62,7 @@ export function FlamegraphSpans({
 
   const previousInteraction = usePrevious(lastInteraction);
   const beforeInteractionConfigView = useRef<Rect | null>(null);
-  const selectedFramesRef = useRef<SpanChartNode[] | null>(null);
+  const selectedSpansRef = useRef<SpanChartNode[] | null>(null);
 
   const spansRenderer = useMemo(() => {
     if (!spansCanvasRef) {
@@ -121,54 +124,12 @@ export function FlamegraphSpans({
     };
 
     drawSpans();
-
     scheduler.registerBeforeFrameCallback(drawSpans);
 
     return () => {
       scheduler.unregisterBeforeFrameCallback(drawSpans);
     };
   }, [spansCanvas, spansRenderer, scheduler, spansView]);
-
-  useEffect(() => {
-    if (!spansCanvasRef || !spansView || !spansCanvas || !selectedSpanRenderer) {
-      return undefined;
-    }
-
-    const drawHoveredSpanBorder = () => {
-      if (hoveredNode) {
-        selectedSpanRenderer.draw(
-          [
-            new Rect(
-              hoveredNode.start,
-              hoveredNode.depth,
-              hoveredNode.end - hoveredNode.start,
-              1
-            ),
-          ],
-          {
-            BORDER_COLOR: flamegraphTheme.COLORS.HOVERED_FRAME_BORDER_COLOR,
-            BORDER_WIDTH: flamegraphTheme.SIZES.HOVERED_FRAME_BORDER_WIDTH,
-          },
-          spansView.fromTransformedConfigView(spansCanvas.physicalSpace)
-        );
-      }
-    };
-
-    scheduler.registerAfterFrameCallback(drawHoveredSpanBorder);
-    scheduler.draw();
-
-    return () => {
-      scheduler.unregisterAfterFrameCallback(drawHoveredSpanBorder);
-    };
-  }, [
-    spansCanvas,
-    spansView,
-    selectedSpanRenderer,
-    scheduler,
-    spansCanvasRef,
-    flamegraphTheme,
-    hoveredNode,
-  ]);
 
   const onMouseDrag = useCallback(
     (evt: React.MouseEvent<HTMLCanvasElement>) => {
@@ -316,45 +277,29 @@ export function FlamegraphSpans({
     [spansCanvas, spansView, canvasPoolManager]
   );
 
-  useEffect(() => {
-    if (!spansCanvas || !spansView || !selectedSpanRenderer) {
-      return undefined;
-    }
+  useDrawSelectedBorderEffect({
+    scheduler,
+    selectedRef: selectedSpansRef,
+    canvas: spansCanvas,
+    view: spansView,
+    eventKey: 'highlight span',
+    theme: flamegraphTheme,
+    renderer: selectedSpanRenderer,
+  });
 
-    const onNodeHighlight = (
-      node: SpanChartNode[] | null,
-      mode: 'hover' | 'selected'
-    ) => {
-      if (mode === 'selected') {
-        selectedFramesRef.current = node;
-      }
-      scheduler.draw();
-    };
+  useDrawHoveredBorderEffect({
+    scheduler,
+    hoveredNode,
+    canvas: spansCanvas,
+    view: spansView,
+    theme: flamegraphTheme,
+    renderer: selectedSpanRenderer,
+  });
 
-    const drawSelectedFrameBorder = () => {
-      if (selectedFramesRef.current) {
-        selectedSpanRenderer.draw(
-          selectedFramesRef.current.map(frame => {
-            return new Rect(frame.start, frame.depth, frame.end - frame.start, 1);
-          }),
-          {
-            BORDER_COLOR: flamegraphTheme.COLORS.SELECTED_FRAME_BORDER_COLOR,
-            BORDER_WIDTH: flamegraphTheme.SIZES.FRAME_BORDER_WIDTH,
-          },
-          spansView.fromTransformedConfigView(spansCanvas.physicalSpace)
-        );
-      }
-    };
-
-    scheduler.on('highlight span', onNodeHighlight);
-    scheduler.registerAfterFrameCallback(drawSelectedFrameBorder);
-    scheduler.draw();
-
-    return () => {
-      scheduler.off('highlight span', onNodeHighlight);
-      scheduler.unregisterAfterFrameCallback(drawSelectedFrameBorder);
-    };
-  }, [spansCanvas, spansView, selectedSpanRenderer, scheduler, flamegraphTheme]);
+  useInteractionViewCheckPoint({
+    view: spansView,
+    lastInteraction,
+  });
 
   useEffect(() => {
     if (!spansCanvasRef) {
@@ -437,10 +382,10 @@ export function FlamegraphSpans({
       if (lastInteraction === 'click') {
         if (
           hoveredNode &&
-          selectedFramesRef.current?.length === 1 &&
-          selectedFramesRef.current[0] === hoveredNode
+          selectedSpansRef.current?.length === 1 &&
+          selectedSpansRef.current[0] === hoveredNode
         ) {
-          selectedFramesRef.current = [hoveredNode];
+          selectedSpansRef.current = [hoveredNode];
           // If double click is fired on a node, then zoom into it
           canvasPoolManager.dispatch('set config view', [
             // nextPosition.withHeight(flamegraphView.configView.height),

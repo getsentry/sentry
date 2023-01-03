@@ -30,9 +30,12 @@ import {GridRenderer} from 'sentry/utils/profiling/renderers/gridRenderer';
 import {SampleTickRenderer} from 'sentry/utils/profiling/renderers/sampleTickRenderer';
 import {SelectedFrameRenderer} from 'sentry/utils/profiling/renderers/selectedFrameRenderer';
 import {TextRenderer} from 'sentry/utils/profiling/renderers/textRenderer';
-import usePrevious from 'sentry/utils/usePrevious';
 import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
 import {requestAnimationFrameTimeout} from 'sentry/views/profiling/utils';
+
+import {useDrawHoveredBorderEffect} from './interactions/useDrawHoveredBorderEffect';
+import {useDrawSelectedBorderEffect} from './interactions/useDrawSelectedBorderEffect';
+import {useInteractionViewCheckPoint} from './interactions/useInteractionViewCheckPoint';
 
 function isHighlightingAllOccurences(
   node: FlamegraphFrame | null,
@@ -214,27 +217,10 @@ function FlamegraphZoomView({
     flamegraph.inverted,
   ]);
 
-  const previousInteraction = usePrevious(lastInteraction);
-  const beforeInteractionConfigView = useRef<Rect | null>(null);
-
-  useEffect(() => {
-    if (!flamegraphView) {
-      return;
-    }
-
-    // Check if we are starting a new interaction
-    if (previousInteraction === null && lastInteraction) {
-      beforeInteractionConfigView.current = flamegraphView.configView.clone();
-      return;
-    }
-
-    if (
-      beforeInteractionConfigView.current &&
-      !beforeInteractionConfigView.current.equals(flamegraphView.configView)
-    ) {
-      dispatch({type: 'checkpoint', payload: flamegraphView.configView.clone()});
-    }
-  }, [dispatch, lastInteraction, previousInteraction, flamegraphView]);
+  useInteractionViewCheckPoint({
+    view: flamegraphView,
+    lastInteraction,
+  });
 
   useEffect(() => {
     flamegraphRenderer?.setSearchResults(flamegraphSearch.results);
@@ -339,93 +325,24 @@ function FlamegraphZoomView({
     }
   }, [flamegraph, flamegraphState.profiles.highlightFrames]);
 
-  useEffect(() => {
-    if (!flamegraphCanvas || !flamegraphView || !selectedFrameRenderer) {
-      return undefined;
-    }
-
-    const onNodeHighlight = (
-      node: FlamegraphFrame[] | null,
-      mode: 'hover' | 'selected'
-    ) => {
-      if (mode === 'selected') {
-        selectedFramesRef.current = node;
-      }
-      scheduler.draw();
-    };
-
-    const drawSelectedFrameBorder = () => {
-      if (selectedFramesRef.current) {
-        selectedFrameRenderer.draw(
-          selectedFramesRef.current.map(frame => {
-            return new Rect(frame.start, frame.depth, frame.end - frame.start, 1);
-          }),
-          {
-            BORDER_COLOR: flamegraphTheme.COLORS.SELECTED_FRAME_BORDER_COLOR,
-            BORDER_WIDTH: flamegraphTheme.SIZES.FRAME_BORDER_WIDTH,
-          },
-          flamegraphView.fromTransformedConfigView(flamegraphCanvas.physicalSpace)
-        );
-      }
-    };
-
-    scheduler.on('highlight frame', onNodeHighlight);
-    scheduler.registerAfterFrameCallback(drawSelectedFrameBorder);
-    scheduler.draw();
-
-    return () => {
-      scheduler.off('highlight frame', onNodeHighlight);
-      scheduler.unregisterAfterFrameCallback(drawSelectedFrameBorder);
-    };
-  }, [
-    flamegraphView,
-    flamegraphCanvas,
+  useDrawSelectedBorderEffect({
     scheduler,
-    flamegraph,
-    flamegraphState.profiles.highlightFrames,
-    selectedFrameRenderer,
-    flamegraphTheme,
-  ]);
+    selectedRef: selectedFramesRef,
+    canvas: flamegraphCanvas,
+    view: flamegraphView,
+    eventKey: 'highlight frame',
+    theme: flamegraphTheme,
+    renderer: selectedFrameRenderer,
+  });
 
-  useEffect(() => {
-    if (!flamegraphCanvas || !flamegraphView || !selectedFrameRenderer) {
-      return undefined;
-    }
-
-    const drawHoveredFrameBorder = () => {
-      if (hoveredNode) {
-        selectedFrameRenderer.draw(
-          [
-            new Rect(
-              hoveredNode.start,
-              hoveredNode.depth,
-              hoveredNode.end - hoveredNode.start,
-              1
-            ),
-          ],
-          {
-            BORDER_COLOR: flamegraphTheme.COLORS.HOVERED_FRAME_BORDER_COLOR,
-            BORDER_WIDTH: flamegraphTheme.SIZES.HOVERED_FRAME_BORDER_WIDTH,
-          },
-          flamegraphView.fromTransformedConfigView(flamegraphCanvas.physicalSpace)
-        );
-      }
-    };
-
-    scheduler.registerAfterFrameCallback(drawHoveredFrameBorder);
-    scheduler.draw();
-
-    return () => {
-      scheduler.unregisterAfterFrameCallback(drawHoveredFrameBorder);
-    };
-  }, [
-    flamegraphView,
-    flamegraphCanvas,
+  useDrawHoveredBorderEffect({
     scheduler,
     hoveredNode,
-    selectedFrameRenderer,
-    flamegraphTheme,
-  ]);
+    canvas: flamegraphCanvas,
+    view: flamegraphView,
+    theme: flamegraphTheme,
+    renderer: selectedFrameRenderer,
+  });
 
   useEffect(() => {
     if (!flamegraphCanvas || !flamegraphView) {
