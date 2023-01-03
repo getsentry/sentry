@@ -46,7 +46,6 @@ function FlamegraphZoomViewMinimap({
   const dispatch = useDispatchFlamegraphState();
 
   const [configSpaceCursor, setConfigSpaceCursor] = useState<vec2 | null>(null);
-
   const scheduler = useMemo(() => new CanvasScheduler(), []);
 
   const miniMapConfigSpaceBorderSize = useMemo(() => {

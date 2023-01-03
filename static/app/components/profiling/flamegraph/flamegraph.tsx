@@ -78,6 +78,7 @@ interface FlamegraphProps {
 
 function Flamegraph(props: FlamegraphProps): ReactElement {
   const [canvasBounds, setCanvasBounds] = useState<Rect>(Rect.Empty());
+  const [spansCanvasBounds, setSpansCanvasBounds] = useState<Rect>(Rect.Empty());
   const devicePixelRatio = useDevicePixelRatio();
   const dispatch = useDispatchFlamegraphState();
 
@@ -275,13 +276,13 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
           inverted: false,
           minWidth: spanChart.minSpanDuration,
           barHeight: flamegraphTheme.SIZES.SPANS_BAR_HEIGHT,
-          depthOffset: 0,
+          depthOffset: flamegraphTheme.SIZES.SPANS_DEPTH_OFFSET,
         },
       });
 
       return newView;
     },
-    [spanChart, spansCanvas, flamegraphTheme.SIZES.SPANS_BAR_HEIGHT]
+    [spanChart, spansCanvas, flamegraphTheme.SIZES]
   );
 
   useEffect(() => {
@@ -383,7 +384,12 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
 
     const flamegraphMiniMapObserver = watchForResize(
       [flamegraphMiniMapCanvasRef, flamegraphMiniMapOverlayCanvasRef],
-      () => {
+      entries => {
+        const contentRect =
+          entries[0].contentRect ?? flamegraphCanvasRef.getBoundingClientRect();
+        setCanvasBounds(
+          new Rect(contentRect.x, contentRect.y, contentRect.width, contentRect.height)
+        );
         flamegraphMiniMapCanvas.initPhysicalSpace();
 
         canvasPoolManager.drawSync();
@@ -392,7 +398,18 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
 
     const spansCanvasObserver =
       spansCanvasRef && spansCanvas
-        ? watchForResize([spansCanvasRef], () => {
+        ? watchForResize([spansCanvasRef], entries => {
+            const contentRect =
+              entries[0].contentRect ?? spansCanvasRef.getBoundingClientRect();
+
+            setSpansCanvasBounds(
+              new Rect(
+                contentRect.x,
+                contentRect.y,
+                contentRect.width,
+                contentRect.height
+              )
+            );
             spansCanvas.initPhysicalSpace();
             canvasPoolManager.drawSync();
           })
@@ -485,6 +502,7 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
         spans={
           spanChart ? (
             <FlamegraphSpans
+              canvasBounds={spansCanvasBounds}
               spanChart={spanChart}
               spansCanvas={spansCanvas}
               spansCanvasRef={spansCanvasRef}
