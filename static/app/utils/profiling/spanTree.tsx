@@ -42,7 +42,7 @@ function sortByStartTimeAndDuration(a: RawSpanType, b: RawSpanType) {
   return 1;
 }
 
-class SpanTreeNode {
+export class SpanTreeNode {
   parent?: SpanTreeNode | null = null;
   span: RawSpanType;
   children: SpanTreeNode[] = [];

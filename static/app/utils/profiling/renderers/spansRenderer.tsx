@@ -1,4 +1,4 @@
-import {mat3} from 'gl-matrix';
+import {mat3, vec2} from 'gl-matrix';
 
 import {
   FlamegraphTheme,
@@ -45,8 +45,42 @@ export class SpanChartRenderer2D {
     resizeCanvasToDisplaySize(this.canvas);
   }
 
+  getColorForFrame(span: SpanChartNode): number[] {
+    return (
+      this.colors.get(span.node.span.span_id) ?? this.theme.COLORS.FRAME_FALLBACK_COLOR
+    );
+  }
+
   init() {
     this.spans = [...this.spanChart.spans];
+  }
+
+  findHoveredNode(configSpaceCursor: vec2): SpanChartNode | null {
+    let hoveredNode: SpanChartNode | null = null;
+    const queue = [...this.spanChart.root.children];
+
+    while (queue.length && !hoveredNode) {
+      const span = queue.pop()!;
+
+      // We treat entire span chart as a segment tree, this allows us to query in O(log n) time by
+      // only looking at the nodes that are relevant to the current cursor position. We discard any values
+      // on x axis that do not overlap the cursor, and descend until we find a node that overlaps at cursor y position
+      if (configSpaceCursor[0] < span.start || configSpaceCursor[0] > span.end) {
+        continue;
+      }
+
+      // If our frame depth overlaps cursor y position, we have found our node
+      if (configSpaceCursor[1] >= span.depth && configSpaceCursor[1] <= span.depth + 1) {
+        hoveredNode = span;
+        break;
+      }
+
+      // Descend into the rest of the children
+      for (let i = 0; i < span.children.length; i++) {
+        queue.push(span.children[i]);
+      }
+    }
+    return hoveredNode;
   }
 
   draw(configViewToPhysicalSpace: mat3) {
