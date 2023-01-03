@@ -1,7 +1,5 @@
 import {mat3, vec2} from 'gl-matrix';
 
-import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
-import {FlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
 import {
   computeClampedConfigView,
@@ -9,46 +7,53 @@ import {
   transformMatrixBetweenRect,
 } from 'sentry/utils/profiling/gl/utils';
 
-export class FlamegraphView {
-  flamegraph: Flamegraph;
-  theme: FlamegraphTheme;
-
+export class CanvasView<T extends {configSpace: Rect}> {
   configView: Rect = Rect.Empty();
-  configSpace: Rect = Rect.Empty();
+  configSpace: Readonly<Rect> = Rect.Empty();
+
+  inverted: boolean;
+  minWidth: number;
+  depthOffset: number;
+  barHeight: number;
+  model: T;
 
   constructor({
     canvas,
-    flamegraph,
-    theme,
+    options,
+    model,
   }: {
     canvas: FlamegraphCanvas;
-    flamegraph: Flamegraph;
-    theme: FlamegraphTheme;
+    model: T;
+    options: {
+      barHeight: number;
+      depthOffset?: number;
+      inverted?: boolean;
+      minWidth?: number;
+    };
   }) {
-    this.flamegraph = flamegraph;
-    this.theme = theme;
+    this.inverted = !!options.inverted;
+    this.minWidth = options.minWidth ?? 0;
+    this.model = model;
+    this.depthOffset = options.depthOffset ?? 0;
+    this.barHeight = options.barHeight ? options.barHeight * window.devicePixelRatio : 0;
     this.initConfigSpace(canvas);
   }
 
   private _initConfigSpace(canvas: FlamegraphCanvas): void {
-    const BAR_HEIGHT = this.theme.SIZES.BAR_HEIGHT * window.devicePixelRatio;
-
     this.configSpace = new Rect(
       0,
       0,
-      this.flamegraph.configSpace.width,
+      this.model.configSpace.width,
       Math.max(
-        this.flamegraph.depth + this.theme.SIZES.FLAMEGRAPH_DEPTH_OFFSET + 1,
-        canvas.physicalSpace.height / BAR_HEIGHT
+        this.model.configSpace.height + this.depthOffset,
+        canvas.physicalSpace.height / this.barHeight
       )
     );
   }
 
   private _initConfigView(canvas: FlamegraphCanvas, space: Rect): void {
-    const BAR_HEIGHT = this.theme.SIZES.BAR_HEIGHT * window.devicePixelRatio;
-
     this.configView = Rect.From(space).withHeight(
-      canvas.physicalSpace.height / BAR_HEIGHT
+      canvas.physicalSpace.height / this.barHeight
     );
   }
 
@@ -69,7 +74,7 @@ export class FlamegraphView {
   setConfigView(configView: Rect) {
     this.configView = computeClampedConfigView(configView, {
       width: {
-        min: this.flamegraph.profile.minFrameDuration,
+        min: this.minWidth,
         max: this.configSpace.width,
       },
       height: {
@@ -86,7 +91,7 @@ export class FlamegraphView {
   toConfigSpace(space: Rect): mat3 {
     const toConfigSpace = transformMatrixBetweenRect(space, this.configSpace);
 
-    if (this.flamegraph.inverted) {
+    if (this.inverted) {
       mat3.multiply(toConfigSpace, this.configSpace.invertYTransform(), toConfigSpace);
     }
 
@@ -96,7 +101,7 @@ export class FlamegraphView {
   toConfigView(space: Rect): mat3 {
     const toConfigView = transformMatrixBetweenRect(space, this.configView);
 
-    if (this.flamegraph.inverted) {
+    if (this.inverted) {
       mat3.multiply(toConfigView, this.configView.invertYTransform(), toConfigView);
     }
 
@@ -106,7 +111,7 @@ export class FlamegraphView {
   fromConfigSpace(space: Rect): mat3 {
     const fromConfigSpace = transformMatrixBetweenRect(this.configSpace, space);
 
-    if (this.flamegraph.inverted) {
+    if (this.inverted) {
       mat3.multiply(fromConfigSpace, space.invertYTransform(), fromConfigSpace);
     }
 
@@ -116,7 +121,7 @@ export class FlamegraphView {
   fromConfigView(space: Rect): mat3 {
     const fromConfigView = transformMatrixBetweenRect(this.configView, space);
 
-    if (this.flamegraph.inverted) {
+    if (this.inverted) {
       mat3.multiply(fromConfigView, space.invertYTransform(), fromConfigView);
     }
 

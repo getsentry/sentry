@@ -148,7 +148,7 @@ export class Flamegraph {
         return;
       }
 
-      frames.unshift(stackTop);
+      frames.push(stackTop);
       this.depth = Math.max(stackTop.depth, this.depth);
     };
 
@@ -162,7 +162,7 @@ export class Flamegraph {
 
     const sortTree = (node: CallTreeNode) => {
       node.children.sort((a, b) => -(a.totalWeight - b.totalWeight));
-      node.children.forEach(c => sortTree(c));
+      node.children.forEach(sortTree);
     };
 
     sortTree(profile.appendOrderTree);
@@ -218,7 +218,7 @@ export class Flamegraph {
       if (stackTop.end - stackTop.start === 0) {
         return;
       }
-      frames.unshift(stackTop);
+      frames.push(stackTop);
       this.depth = Math.max(stackTop.depth, this.depth);
     };
 

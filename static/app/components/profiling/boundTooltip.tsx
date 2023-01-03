@@ -3,9 +3,9 @@ import styled from '@emotion/styled';
 import {vec2} from 'gl-matrix';
 
 import space from 'sentry/styles/space';
+import {CanvasView} from 'sentry/utils/profiling/canvasView';
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
-import {FlamegraphView} from 'sentry/utils/profiling/flamegraphView';
 import {Rect} from 'sentry/utils/profiling/gl/utils';
 import theme from 'sentry/utils/theme';
 
@@ -31,17 +31,17 @@ function computeBestTooltipPlacement(
 
 interface BoundTooltipProps {
   bounds: Rect;
+  canvas: FlamegraphCanvas;
+  canvasView: CanvasView<any>;
   cursor: vec2;
-  flamegraphCanvas: FlamegraphCanvas;
-  flamegraphView: FlamegraphView;
   children?: React.ReactNode;
 }
 
 function BoundTooltip({
   bounds,
-  flamegraphCanvas,
+  canvas,
   cursor,
-  flamegraphView,
+  canvasView,
   children,
 }: BoundTooltipProps): React.ReactElement | null {
   const flamegraphTheme = useFlamegraphTheme();
@@ -49,13 +49,13 @@ function BoundTooltip({
   const physicalSpaceCursor = vec2.transformMat3(
     vec2.create(),
     cursor,
-    flamegraphView.fromConfigView(flamegraphCanvas.physicalSpace)
+    canvasView.fromConfigView(canvas.physicalSpace)
   );
 
   const logicalSpaceCursor = vec2.transformMat3(
     vec2.create(),
     physicalSpaceCursor,
-    flamegraphCanvas.physicalToLogicalSpace
+    canvas.physicalToLogicalSpace
   );
 
   const rafIdRef = useRef<number | undefined>();
