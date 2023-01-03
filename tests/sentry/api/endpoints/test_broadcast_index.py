@@ -1,7 +1,9 @@
 from sentry.models import Broadcast, BroadcastSeen
 from sentry.testutils import APITestCase
+from sentry.testutils.silo import control_silo_test
 
 
+@control_silo_test(stable=True)
 class BroadcastListTest(APITestCase):
     def test_simple(self):
         broadcast1 = Broadcast.objects.create(message="bar", is_active=True)

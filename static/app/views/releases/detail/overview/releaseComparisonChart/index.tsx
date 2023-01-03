@@ -10,6 +10,7 @@ import ErrorPanel from 'sentry/components/charts/errorPanel';
 import {ChartContainer} from 'sentry/components/charts/styles';
 import Count from 'sentry/components/count';
 import Duration from 'sentry/components/duration';
+import ErrorBoundary from 'sentry/components/errorBoundary';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import NotAvailable from 'sentry/components/notAvailable';
 import {Panel, PanelTable} from 'sentry/components/panels';
@@ -960,50 +961,52 @@ function ReleaseComparisonChart({
   return (
     <Fragment>
       <ChartPanel>
-        <ChartContainer>
-          {[
-            ReleaseComparisonChartType.ERROR_COUNT,
-            ReleaseComparisonChartType.TRANSACTION_COUNT,
-            ReleaseComparisonChartType.FAILURE_RATE,
-          ].includes(activeChart)
-            ? getDynamicText({
-                value: (
-                  <ReleaseEventsChart
-                    release={release}
-                    project={project}
-                    chartType={activeChart}
-                    period={period ?? undefined}
-                    start={start}
-                    end={end}
-                    utc={utc === 'true'}
-                    value={chart.thisRelease}
-                    diff={titleChartDiff}
-                  />
-                ),
-                fixed: 'Events Chart',
-              })
-            : getDynamicText({
-                value: (
-                  <ReleaseSessionsChart
-                    releaseSessions={releaseSessions}
-                    allSessions={allSessions}
-                    release={release}
-                    project={project}
-                    chartType={activeChart}
-                    platform={platform}
-                    period={period ?? undefined}
-                    start={start}
-                    end={end}
-                    utc={utc === 'true'}
-                    value={chart.thisRelease}
-                    diff={titleChartDiff}
-                    loading={loading}
-                    reloading={reloading}
-                  />
-                ),
-                fixed: 'Sessions Chart',
-              })}
-        </ChartContainer>
+        <ErrorBoundary mini>
+          <ChartContainer>
+            {[
+              ReleaseComparisonChartType.ERROR_COUNT,
+              ReleaseComparisonChartType.TRANSACTION_COUNT,
+              ReleaseComparisonChartType.FAILURE_RATE,
+            ].includes(activeChart)
+              ? getDynamicText({
+                  value: (
+                    <ReleaseEventsChart
+                      release={release}
+                      project={project}
+                      chartType={activeChart}
+                      period={period ?? undefined}
+                      start={start}
+                      end={end}
+                      utc={utc === 'true'}
+                      value={chart.thisRelease}
+                      diff={titleChartDiff}
+                    />
+                  ),
+                  fixed: 'Events Chart',
+                })
+              : getDynamicText({
+                  value: (
+                    <ReleaseSessionsChart
+                      releaseSessions={releaseSessions}
+                      allSessions={allSessions}
+                      release={release}
+                      project={project}
+                      chartType={activeChart}
+                      platform={platform}
+                      period={period ?? undefined}
+                      start={start}
+                      end={end}
+                      utc={utc === 'true'}
+                      value={chart.thisRelease}
+                      diff={titleChartDiff}
+                      loading={loading}
+                      reloading={reloading}
+                    />
+                  ),
+                  fixed: 'Sessions Chart',
+                })}
+          </ChartContainer>
+        </ErrorBoundary>
       </ChartPanel>
       <ChartTable
         headers={getTableHeaders(withExpanders)}
