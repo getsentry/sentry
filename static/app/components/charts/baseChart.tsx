@@ -4,7 +4,7 @@ import 'echarts/lib/component/toolbox';
 import 'zrender/lib/svg/svg';
 
 import {forwardRef, useMemo} from 'react';
-import {css, Global, useTheme} from '@emotion/react';
+import {css, Global, Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {
   AxisPointerComponentOption,
@@ -43,7 +43,6 @@ import {
   Series,
 } from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
-import type {Theme} from 'sentry/utils/theme';
 
 import Grid from './components/grid';
 import Legend from './components/legend';

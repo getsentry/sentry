@@ -75,12 +75,14 @@ function makeAllTheProviders({context, ...initializeOrgOptions}: ProviderOptions
 }
 
 /**
- * Migrating from enzyme?
- * Try avoiding unnecessary context and just mount your component. If it works, then you dont need anything else.
+ * Try avoiding unnecessary context and just mount your component. If it works,
+ * then you dont need anything else.
+ *
  * render(<TestedComponent />);
  *
- * If your component requires routerContext or organization to render, pass it via context options argument.
- * render(<TestedComponent />, {context: routerContext, organization});
+ * If your component requires routerContext or organization to render, pass it
+ * via context options argument. render(<TestedComponent />, {context:
+ * routerContext, organization});
  */
 function render(ui: React.ReactElement, options?: Options) {
   options = options ?? {};

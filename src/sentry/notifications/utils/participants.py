@@ -222,7 +222,7 @@ def get_owner_reason(
     if fallthrough_choice == FallthroughChoiceType.ALL_MEMBERS:
         return f"We notified all members in the {project.get_full_name()} project of this issue"
     if fallthrough_choice == FallthroughChoiceType.ACTIVE_MEMBERS:
-        return f"We notified team admins and recently active members in the {project.get_full_name()} project of this issue"
+        return f"We notified recently active members in the {project.get_full_name()} project of this issue"
 
     return None
 

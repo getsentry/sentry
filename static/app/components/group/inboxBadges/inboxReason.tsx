@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import DateTime from 'sentry/components/dateTime';
@@ -8,7 +9,6 @@ import {t, tct} from 'sentry/locale';
 import {InboxDetails} from 'sentry/types';
 import {getDuration} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
-import {Theme} from 'sentry/utils/theme';
 
 const GroupInboxReason = {
   NEW: 0,
