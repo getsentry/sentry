@@ -23,7 +23,7 @@ const mockUseProfileData: RequestState<ProfileGroup> = {
   type: 'resolved',
   data: importProfile(makeSentrySampledProfile(), ''),
 };
-useProfileGroupSpy.mockImplementation(() => [mockUseProfileData, () => {}]);
+useProfileGroupSpy.mockImplementation(() => mockUseProfileData);
 
 function assertTableHeaders(headerText: string[]) {
   const gridHeadRow = screen.getByTestId('grid-head-row');

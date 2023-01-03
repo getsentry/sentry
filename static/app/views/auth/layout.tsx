@@ -61,7 +61,7 @@ const AuthSidebar = styled('div')`
 const SentryButton = styled(
   (p: Omit<React.ComponentPropsWithoutRef<typeof Link>, 'to'>) => (
     <Link to="/" {...p}>
-      <IconSentry size="24px" />
+      <IconSentry size="lg" />
     </Link>
   )
 )`

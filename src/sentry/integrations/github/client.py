@@ -108,9 +108,12 @@ class GitHubClientMixin(ApiClient):  # type: ignore
                     f"The tree for {repo_full_name} has been truncated. Use different a approach for retrieving contents of tree."
                 )
             tree = contents["tree"]
-        except ApiError as e:
-            json_data: JSONData = e.json
-            msg: str = json_data.get("message")
+        except ApiError as error:
+            msg = error.text
+            if error.json:
+                json_data: JSONData = error.json
+                msg = json_data.get("message")
+
             # TODO: Add condition for  getsentry/DataForThePeople
             # e.g. getsentry/nextjs-sentry-example
             if msg == "Git Repository is empty.":
@@ -118,8 +121,8 @@ class GitHubClientMixin(ApiClient):  # type: ignore
             elif msg == "Not Found":
                 logger.warning(f"The Github App does not have access to {repo_full_name}.")
             else:
-                # Raise it so we can stop hammering the API
-                raise (e)
+                # Raise it so we stop hammering the API
+                raise error
 
         return tree
 
@@ -186,10 +189,13 @@ class GitHubClientMixin(ApiClient):  # type: ignore
                 repo_files = self.get_cached_repo_files(full_name, branch)
                 trees[full_name] = RepoTree(Repo(full_name, branch), repo_files)
             logger.info("Using cached trees for Github org.", extra=extra)
-        except ApiError as e:
-            json_data: JSONData = e.json
-            msg: str = json_data.get("message")
+        except ApiError as error:
+            msg = error.text
+            if error.json:
+                json_data: JSONData = error.json
+                msg = json_data.get("message")
             if msg.startswith("API rate limit exceeded for installation"):
+                # Report to Sentry; we will not continue
                 logger.exception("API rate limit exceeded. We will not hit it.")
         except Exception:
             # Reset the control cache in order to repopulate

@@ -1,6 +1,6 @@
 import {Component} from 'react';
 import {WithRouterProps} from 'react-router';
-import {withTheme} from '@emotion/react';
+import {Theme, withTheme} from '@emotion/react';
 import round from 'lodash/round';
 
 import {AreaChart, AreaChartProps} from 'sentry/components/charts/areaChart';
@@ -30,7 +30,6 @@ import {
   initSessionsChart,
   MINUTES_THRESHOLD_TO_DISPLAY_SECONDS,
 } from 'sentry/utils/sessions';
-import {Theme} from 'sentry/utils/theme';
 // eslint-disable-next-line no-restricted-imports
 import withSentryRouter from 'sentry/utils/withSentryRouter';
 import {displayCrashFreePercent, roundDuration} from 'sentry/views/releases/utils';

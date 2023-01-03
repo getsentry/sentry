@@ -8,7 +8,7 @@ from time import time
 from typing import List, Mapping, Optional, Sequence, Union
 
 import sentry_sdk
-from django.db import IntegrityError, models, router
+from django.db import IntegrityError, models, router, transaction
 from django.db.models import Case, F, Func, Q, Subquery, Sum, Value, When
 from django.db.models.signals import pre_save
 from django.utils import timezone
@@ -40,6 +40,7 @@ from sentry.models import (
 )
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.signals import issue_resolved
+from sentry.tasks.relay import schedule_invalidate_project_config
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.db import atomic_transaction
@@ -67,6 +68,31 @@ class ReleaseCommitError(Exception):
     pass
 
 
+class ReleaseProjectModelManager(BaseManager):
+    @staticmethod
+    def _on_post(project, trigger):
+        from sentry.dynamic_sampling.feature_multiplexer import DynamicSamplingFeatureMultiplexer
+        from sentry.dynamic_sampling.latest_release_booster import ProjectBoostedReleases
+
+        ds_feature_multiplexer = DynamicSamplingFeatureMultiplexer(project)
+        project_boosted_releases = ProjectBoostedReleases(project.id)
+        # We want to invalidate the project config only if dynamic sampling is enabled and there exists boosted releases
+        # in the project.
+        if (
+            ds_feature_multiplexer.is_on_dynamic_sampling
+            and project_boosted_releases.has_boosted_releases
+        ):
+            transaction.on_commit(
+                lambda: schedule_invalidate_project_config(project_id=project.id, trigger=trigger)
+            )
+
+    def post_save(self, instance, **kwargs):
+        self._on_post(project=instance.project, trigger="releaseproject.post_save")
+
+    def post_delete(self, instance, **kwargs):
+        self._on_post(project=instance.project, trigger="releaseproject.post_delete")
+
+
 @region_silo_only_model
 class ReleaseProject(Model):
     __include_in_export__ = False
@@ -78,6 +104,8 @@ class ReleaseProject(Model):
     adopted = models.DateTimeField(null=True, blank=True)
     unadopted = models.DateTimeField(null=True, blank=True)
     first_seen_transaction = models.DateTimeField(null=True, blank=True)
+
+    objects = ReleaseProjectModelManager()
 
     class Meta:
         app_label = "sentry"

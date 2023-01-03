@@ -96,7 +96,7 @@ const TimestampLink = ({date, link}: {date: moment.MomentInput; link?: string}) 
   link ? (
     <ExternalLink href={link}>
       <DateTime date={date} />
-      <StyledIconOpen size="12px" />
+      <StyledIconOpen size="xs" />
     </ExternalLink>
   ) : (
     <DateTime date={date} format={is24Hours ? 'MMM D, YYYY HH:mm:ss z' : 'll LTS z'} />

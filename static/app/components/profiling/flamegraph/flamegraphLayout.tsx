@@ -17,6 +17,7 @@ interface FlamegraphLayoutProps {
   flamegraph: React.ReactElement;
   flamegraphDrawer: React.ReactElement;
   minimap: React.ReactElement;
+  spans: React.ReactElement | null;
 }
 
 export function FlamegraphLayout(props: FlamegraphLayoutProps) {
@@ -78,10 +79,15 @@ export function FlamegraphLayout(props: FlamegraphLayoutProps) {
         <MinimapContainer height={flamegraphTheme.SIZES.MINIMAP_HEIGHT}>
           {props.minimap}
         </MinimapContainer>
+        {props.spans ? (
+          <SpansContainer height={flamegraphTheme.SIZES.SPANS_HEIGHT}>
+            {props.spans}
+          </SpansContainer>
+        ) : null}
         <ZoomViewContainer>{props.flamegraph}</ZoomViewContainer>
-        <FLAMEGRAPH_DRAWERContainer ref={flamegraphDrawerRef} layout={layout}>
+        <FlamegraphDrawerContainer ref={flamegraphDrawerRef} layout={layout}>
           {cloneElement(props.flamegraphDrawer, {onResize: onMouseDown})}
-        </FLAMEGRAPH_DRAWERContainer>
+        </FlamegraphDrawerContainer>
       </FlamegraphGrid>
     </FlamegraphLayoutContainer>
   );
@@ -99,10 +105,10 @@ const FlamegraphGrid = styled('div')<{
   width: 100%;
   grid-template-rows: ${({layout}) =>
     layout === 'table bottom'
-      ? 'auto 1fr'
+      ? 'auto auto 1fr'
       : layout === 'table right'
-      ? '100px auto'
-      : '100px auto'};
+      ? 'min-content'
+      : 'min-content'};
   grid-template-columns: ${({layout}) =>
     layout === 'table bottom'
       ? '100%'
@@ -116,17 +122,20 @@ const FlamegraphGrid = styled('div')<{
     layout === 'table bottom'
       ? `
         'minimap'
+        'spans'
         'flamegraph'
         'frame-stack'
         `
       : layout === 'table right'
       ? `
         'minimap    frame-stack'
+        'spans     frame-stack'
         'flamegraph frame-stack'
       `
       : layout === 'table left'
       ? `
         'frame-stack minimap'
+        'frame-stack spans'
         'frame-stack flamegraph'
     `
       : ''};
@@ -148,7 +157,15 @@ const ZoomViewContainer = styled('div')`
   position: relative;
 `;
 
-const FLAMEGRAPH_DRAWERContainer = styled('div')<{
+const SpansContainer = styled('div')<{
+  height: FlamegraphTheme['SIZES']['SPANS_HEIGHT'];
+}>`
+  position: relative;
+  height: ${p => p.height}px;
+  grid-area: spans;
+`;
+
+const FlamegraphDrawerContainer = styled('div')<{
   layout: FlamegraphPreferences['layout'];
 }>`
   grid-area: frame-stack;

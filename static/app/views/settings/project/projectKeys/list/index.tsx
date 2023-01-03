@@ -143,7 +143,6 @@ class ProjectKeys extends AsyncView<Props, State> {
       <Fragment>
         {this.state.keyList.map(key => (
           <KeyRow
-            api={this.api}
             access={access}
             key={key.id}
             orgId={orgId}

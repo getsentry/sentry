@@ -1,5 +1,4 @@
 import logging
-from collections import OrderedDict
 from typing import Dict, List, Union
 
 import sentry_sdk
@@ -66,18 +65,21 @@ def log_rules(org_id: int, project_id: int, rules: List[BaseRule]) -> None:
 
 def _format_rules(
     rules: List[BaseRule],
-) -> Dict[str, Dict[str, Union[List[str], str, float, None]]]:
-    formatted_rules = OrderedDict()
+) -> List[Dict[str, Union[List[str], str, float, None]]]:
+    formatted_rules = []
 
     for rule in rules:
         rule_type = get_rule_type(rule)
-        formatted_rules[str(rule["id"])] = {
-            "type": rule_type.value if rule_type else "unknown_rule_type",
-            "sample_rate": rule["sampleRate"],
-            **_extract_info_from_rule(rule_type, rule),  # type:ignore
-        }
+        formatted_rules.append(
+            {
+                "id": rule["id"],
+                "type": rule_type.value if rule_type else "unknown_rule_type",
+                "sample_rate": rule["sampleRate"],
+                **_extract_info_from_rule(rule_type, rule),  # type:ignore
+            }
+        )
 
-    return dict(formatted_rules)  # type:ignore
+    return formatted_rules  # type:ignore
 
 
 def _extract_info_from_rule(
