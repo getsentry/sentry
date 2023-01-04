@@ -144,5 +144,6 @@ const SuggestionRow = styled('div')`
 `;
 
 const StyledButton = styled(Button)`
-  padding-right: 0;
+  /* Matches button padding so the icon lines up with others in sidebar */
+  margin-right: -2px;
 `;
