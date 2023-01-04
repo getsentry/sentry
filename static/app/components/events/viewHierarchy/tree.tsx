@@ -119,7 +119,8 @@ const NodeTitle = styled('span')`
   cursor: pointer;
 `;
 
-const IconWrapper = styled('div')<{isExpanded: boolean}>`
+const IconWrapper = styled('button')<{isExpanded: boolean}>`
+  padding: 0;
   border-radius: 2px;
   display: inline-flex;
   align-items: center;
