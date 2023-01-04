@@ -28,9 +28,9 @@ describe('View Hierarchy Tree', function () {
   it('renders nested JSON', function () {
     render(<ViewHierarchyTree hierarchy={MOCK_DATA} />);
 
-    expect(screen.getByRole('listitem', {name: 'Container'})).toBeInTheDocument();
-    expect(screen.getByRole('listitem', {name: 'Nested Container'})).toBeInTheDocument();
-    expect(screen.getByRole('listitem', {name: 'Text'})).toBeInTheDocument();
+    expect(screen.getByRole('listitem', {name: 'Container'})).toBeVisible();
+    expect(screen.getByRole('listitem', {name: 'Nested Container'})).toBeVisible();
+    expect(screen.getByRole('listitem', {name: 'Text'})).toBeVisible();
   });
 
   it('can collapse and expand sections with children', function () {
@@ -41,12 +41,12 @@ describe('View Hierarchy Tree', function () {
         'Collapse'
       )
     );
-    expect(screen.queryByRole('listitem', {name: 'Text'})).not.toBeInTheDocument();
+    expect(screen.getByRole('listitem', {name: 'Text'})).not.toBeVisible();
     userEvent.click(
       within(screen.getByRole('listitem', {name: 'Nested Container'})).getByLabelText(
         'Expand'
       )
     );
-    expect(screen.queryByRole('listitem', {name: 'Text'})).toBeInTheDocument();
+    expect(screen.queryByRole('listitem', {name: 'Text'})).toBeVisible();
   });
 });
