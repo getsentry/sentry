@@ -287,16 +287,16 @@ def _detect_performance_problems(data: Event, sdk_span: Any) -> List[Performance
 
     problems: List[PerformanceProblem] = []
     for detector in detectors:
-        if not detector.is_creation_allowed_for_system():
+        if all(
+            [
+                detector.is_creation_allowed_for_system(),
+                detector.is_creation_allowed_for_organization(organization),
+                detector.is_creation_allowed_for_project(project),
+            ]
+        ):
+            problems.extend(detector.stored_problems.values())
+        else:
             continue
-
-        if not detector.is_creation_allowed_for_organization(organization):
-            continue
-
-        if not detector.is_creation_allowed_for_project(project):
-            continue
-
-        problems.extend(detector.stored_problems.values())
 
     truncated_problems = problems[:PERFORMANCE_GROUP_COUNT_LIMIT]
 
