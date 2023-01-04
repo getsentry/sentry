@@ -457,7 +457,7 @@ class ProjectCharts extends Component<Props, State> {
               {hasAnrRateFeature && displayMode === DisplayModes.ANR_RATE && (
                 <ProjectBaseSessionsChart
                   title={t('ANR Rate')}
-                  help="help text"
+                  help={getSessionTermDescription(SessionTerm.ANR_RATE, null)}
                   router={router}
                   api={api}
                   organization={organization}
@@ -469,7 +469,7 @@ class ProjectCharts extends Component<Props, State> {
               {hasAnrRateFeature && displayMode === DisplayModes.FOREGROUND_ANR_RATE && (
                 <ProjectBaseSessionsChart
                   title={t('Foreground ANR Rate')}
-                  help="help text"
+                  help={getSessionTermDescription(SessionTerm.FOREGROUND_ANR_RATE, null)}
                   router={router}
                   api={api}
                   organization={organization}
