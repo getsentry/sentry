@@ -4,7 +4,6 @@ from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.authentication import DSNAuthentication
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.bases.monitor import MonitorEndpoint
@@ -54,9 +53,6 @@ class MonitorCheckInDetailsEndpoint(Endpoint):
 
         if hasattr(request.auth, "project_id") and project.id != request.auth.project_id:
             return self.respond(status=400)
-
-        if not features.has("organizations:monitors", project.organization, actor=request.user):
-            raise ResourceDoesNotExist
 
         self.check_object_permissions(request, project)
 

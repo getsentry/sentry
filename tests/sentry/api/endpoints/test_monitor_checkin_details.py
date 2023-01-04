@@ -29,8 +29,7 @@ class UpdateMonitorCheckInTest(APITestCase):
             monitor=monitor, project_id=self.project.id, date_added=monitor.date_added
         )
 
-        with self.feature({"organizations:monitors": True}):
-            self.get_success_response(monitor.guid, checkin.guid, status="ok")
+        self.get_success_response(monitor.guid, checkin.guid, status="ok")
 
         checkin = MonitorCheckIn.objects.get(id=checkin.id)
         assert checkin.status == CheckInStatus.OK
@@ -53,8 +52,7 @@ class UpdateMonitorCheckInTest(APITestCase):
             monitor=monitor, project_id=self.project.id, date_added=monitor.date_added
         )
 
-        with self.feature({"organizations:monitors": True}):
-            self.get_success_response(monitor.guid, checkin.guid, status="error")
+        self.get_success_response(monitor.guid, checkin.guid, status="error")
 
         checkin = MonitorCheckIn.objects.get(id=checkin.id)
         assert checkin.status == CheckInStatus.ERROR

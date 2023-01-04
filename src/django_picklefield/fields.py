@@ -1,8 +1,8 @@
 from base64 import b64encode
 from copy import deepcopy
-from pickle import dumps
+from pickle import dumps, loads
 from typing import Any, List, Tuple
-from zlib import compress
+from zlib import compress, decompress
 
 from django.conf import settings
 from django.core import checks
@@ -11,6 +11,14 @@ from django.utils.encoding import force_str
 
 from .constants import DEFAULT_PROTOCOL
 from .decode import dbsafe_decode
+
+
+def dbsafe_decode(value: Any, compress_object: bool = False) -> Any:
+    value = value.encode()  # encode str to bytes
+    value = b64decode(value)
+    if compress_object:
+        value = decompress(value)
+    return loads(value)
 
 
 class PickledObject(str):
