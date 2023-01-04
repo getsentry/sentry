@@ -1,7 +1,10 @@
+import copy
 import datetime
 from io import BytesIO
+from unittest.mock import Mock
 from uuid import uuid4
 
+import pytest
 from django.urls import reverse
 
 from sentry.models import File
@@ -10,8 +13,19 @@ from sentry.replays.testutils import assert_expected_response, mock_expected_res
 from sentry.testutils import APITestCase, ReplaysSnubaTestCase
 from sentry.testutils.helpers import TaskRunner
 from sentry.testutils.silo import region_silo_test
+from sentry.utils import kafka_config, pubsub
 
 REPLAYS_FEATURES = {"organizations:session-replay": True}
+
+
+@pytest.fixture(autouse=True)
+def setup(monkeypatch, settings):
+    # Rely on the fact that the publisher is initialized lazily
+    monkeypatch.setattr(kafka_config, "get_kafka_producer_cluster_options", Mock())
+    monkeypatch.setattr(pubsub, "KafkaPublisher", Mock())
+
+    # Settings fixture does not restore nested mutable attributes
+    settings.KAFKA_TOPICS = copy.deepcopy(settings.KAFKA_TOPICS)
 
 
 @region_silo_test
