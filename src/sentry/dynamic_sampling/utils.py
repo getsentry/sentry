@@ -23,7 +23,7 @@ class RuleType(Enum):
     UNIFORM_RULE = "uniformRule"
     BOOST_ENVIRONMENTS_RULE = "boostEnvironments"
     BOOST_LATEST_RELEASES_RULE = "boostLatestRelease"
-    IGNORE_HEALTHCHECKS_RULE = "ignoreHealthChecks"
+    IGNORE_HEALTH_CHECKS_RULE = "ignoreHealthChecks"
     BOOST_KEY_TRANSACTIONS_RULE = "boostKeyTransactions"
 
 
@@ -33,13 +33,13 @@ DEFAULT_BIASES: List[Bias] = [
         "id": RuleType.BOOST_LATEST_RELEASES_RULE.value,
         "active": True,
     },
-    {"id": RuleType.IGNORE_HEALTHCHECKS_RULE.value, "active": True},
+    {"id": RuleType.IGNORE_HEALTH_CHECKS_RULE.value, "active": True},
     {"id": RuleType.BOOST_KEY_TRANSACTIONS_RULE.value, "active": True},
 ]
 RESERVED_IDS = {
     RuleType.UNIFORM_RULE: 1000,
     RuleType.BOOST_ENVIRONMENTS_RULE: 1001,
-    RuleType.IGNORE_HEALTHCHECKS_RULE: 1002,
+    RuleType.IGNORE_HEALTH_CHECKS_RULE: 1002,
     RuleType.BOOST_KEY_TRANSACTIONS_RULE: 1003,
     RuleType.BOOST_LATEST_RELEASES_RULE: 1500,
 }

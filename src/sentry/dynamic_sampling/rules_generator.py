@@ -1,16 +1,13 @@
 from datetime import datetime
 from typing import List, Optional, cast
 
-import sentry_sdk
 from pytz import UTC
 
-from sentry import quotas
 from sentry.dynamic_sampling.feature_multiplexer import DynamicSamplingFeatureMultiplexer
-from sentry.dynamic_sampling.key_transactions import get_key_transactions
 from sentry.dynamic_sampling.latest_release_booster import ProjectBoostedReleases
 from sentry.dynamic_sampling.logging import log_rules
+from sentry.dynamic_sampling.rules import DynamicSamplingRulesGenerator
 from sentry.dynamic_sampling.utils import (
-    HEALTH_CHECK_DROPPING_FACTOR,
     KEY_TRANSACTION_BOOST_FACTOR,
     RELEASE_BOOST_FACTOR,
     RESERVED_IDS,
@@ -19,20 +16,6 @@ from sentry.dynamic_sampling.utils import (
     RuleType,
 )
 from sentry.models import Project
-
-# https://kubernetes.io/docs/reference/using-api/health-checks/
-# Also it covers: livez, readyz
-HEALTH_CHECK_GLOBS = [
-    "*healthcheck*",
-    "*healthy*",
-    "*live*",
-    "*ready*",
-    "*heartbeat*",
-    "*/health",
-    "*/healthz",
-]
-
-ALL_ENVIRONMENTS = "*"
 
 
 def generate_uniform_rule(sample_rate: Optional[float]) -> BaseRule:
@@ -45,46 +28,6 @@ def generate_uniform_rule(sample_rate: Optional[float]) -> BaseRule:
             "inner": [],
         },
         "id": RESERVED_IDS[RuleType.UNIFORM_RULE],
-    }
-
-
-def generate_environment_rule() -> BaseRule:
-    return {
-        "sampleRate": 1,
-        "type": "trace",
-        "condition": {
-            "op": "or",
-            "inner": [
-                {
-                    "op": "glob",
-                    "name": "trace.environment",
-                    "value": ["*dev*", "*test*"],
-                    "options": {"ignoreCase": True},
-                }
-            ],
-        },
-        "active": True,
-        "id": RESERVED_IDS[RuleType.BOOST_ENVIRONMENTS_RULE],
-    }
-
-
-def generate_healthcheck_rule(sample_rate: float) -> BaseRule:
-    return {
-        "sampleRate": sample_rate / HEALTH_CHECK_DROPPING_FACTOR,
-        "type": "transaction",
-        "condition": {
-            "op": "or",
-            "inner": [
-                {
-                    "op": "glob",
-                    "name": "event.transaction",
-                    "value": HEALTH_CHECK_GLOBS,
-                    "options": {"ignoreCase": True},
-                }
-            ],
-        },
-        "active": True,
-        "id": RESERVED_IDS[RuleType.IGNORE_HEALTHCHECKS_RULE],
     }
 
 
@@ -157,46 +100,62 @@ def generate_boost_key_transaction_rule(
 
 
 def generate_rules(project: Project) -> List[BaseRule]:
-    """
-    This function handles generate rules logic or fallback empty list of rules
-    """
-    rules: List[BaseRule] = []
+    enabled_biases = DynamicSamplingFeatureMultiplexer.get_enabled_user_biases(
+        project.get_option("sentry:dynamic_sampling_biases", None)
+    )
 
-    sample_rate = quotas.get_blended_sample_rate(project)
+    generator = DynamicSamplingRulesGenerator.from_enabled_biases(project, enabled_biases)
+    if generator is not None:
+        rules = generator.generate()
+        # TODO: move logging to the generator.
+        log_rules(project.organization.id, project.id, rules)
+        return rules
 
-    if sample_rate is None:
-        try:
-            raise Exception("get_blended_sample_rate returns none")
-        except Exception:
-            sentry_sdk.capture_exception()
-    else:
-        if sample_rate < 1.0:
+    # In case we are not able to instantiate the rules generator, we fallback to returning no rules.
+    return []
 
-            enabled_biases = DynamicSamplingFeatureMultiplexer.get_enabled_user_biases(
-                project.get_option("sentry:dynamic_sampling_biases", None)
-            )
-            # Key Transaction boost
-            if RuleType.BOOST_KEY_TRANSACTIONS_RULE.value in enabled_biases:
-                key_transactions = get_key_transactions(project)
-                if key_transactions:
-                    rules.append(generate_boost_key_transaction_rule(sample_rate, key_transactions))
 
-            # Environments boost
-            if RuleType.BOOST_ENVIRONMENTS_RULE.value in enabled_biases:
-                rules.append(generate_environment_rule())
-
-            # Add Ignore health check rule
-            if RuleType.IGNORE_HEALTHCHECKS_RULE.value in enabled_biases:
-                rules.append(generate_healthcheck_rule(sample_rate))
-
-            # Latest releases
-            if RuleType.BOOST_LATEST_RELEASES_RULE.value in enabled_biases:
-                rules += generate_boost_release_rules(project.id, sample_rate)
-
-        rules.append(generate_uniform_rule(sample_rate))
-
-    # We log rules onto Google Cloud Logging in order to have more observability into dynamic sampling rules.
-    log_rules(project.organization.id, project.id, rules)
-
-    # We only return the rule and not its type.
-    return rules
+# def generate_rules(project: Project) -> List[BaseRule]:
+#     """
+#     This function handles generate rules logic or fallback empty list of rules
+#     """
+#     rules: List[BaseRule] = []
+#
+#     sample_rate = quotas.get_blended_sample_rate(project)
+#
+#     if sample_rate is None:
+#         try:
+#             raise Exception("get_blended_sample_rate returns none")
+#         except Exception:
+#             sentry_sdk.capture_exception()
+#     else:
+#         if sample_rate < 1.0:
+#
+#             enabled_biases = DynamicSamplingFeatureMultiplexer.get_enabled_user_biases(
+#                 project.get_option("sentry:dynamic_sampling_biases", None)
+#             )
+#             # Key Transaction boost
+#             if RuleType.BOOST_KEY_TRANSACTIONS_RULE.value in enabled_biases:
+#                 key_transactions = get_key_transactions(project)
+#                 if key_transactions:
+#                     rules.append(generate_boost_key_transaction_rule(sample_rate, key_transactions))
+#
+#             # Environments boost
+#             if RuleType.BOOST_ENVIRONMENTS_RULE.value in enabled_biases:
+#                 rules.append(generate_environment_rule())
+#
+#             # Add Ignore health check rule
+#             if RuleType.IGNORE_HEALTHCHECKS_RULE.value in enabled_biases:
+#                 rules.append(generate_healthcheck_rule(sample_rate))
+#
+#             # Latest releases
+#             if RuleType.BOOST_LATEST_RELEASES_RULE.value in enabled_biases:
+#                 rules += generate_boost_release_rules(project.id, sample_rate)
+#
+#         rules.append(generate_uniform_rule(sample_rate))
+#
+#     # We log rules onto Google Cloud Logging in order to have more observability into dynamic sampling rules.
+#     log_rules(project.organization.id, project.id, rules)
+#
+#     # We only return the rule and not its type.
+#     return rules

@@ -7,7 +7,8 @@ from sentry_relay.processing import validate_sampling_configuration
 
 from sentry.discover.models import TeamKeyTransaction
 from sentry.dynamic_sampling.latest_release_booster import get_redis_client_for_ds
-from sentry.dynamic_sampling.rules_generator import HEALTH_CHECK_GLOBS, generate_rules
+from sentry.dynamic_sampling.rules.biases.ignore_health_checks_bias import HEALTH_CHECK_GLOBS
+from sentry.dynamic_sampling.rules_generator import generate_rules
 from sentry.dynamic_sampling.utils import BOOSTED_KEY_TRANSACTION_LIMIT
 from sentry.models import ProjectTeam
 from sentry.testutils.factories import Factories
@@ -29,8 +30,8 @@ def latest_release_only(default_project):
     )
 
 
-@patch("sentry.dynamic_sampling.rules_generator.sentry_sdk")
-@patch("sentry.dynamic_sampling.rules_generator.quotas.get_blended_sample_rate")
+@patch("sentry.dynamic_sampling.rules.base.sentry_sdk")
+@patch("sentry.dynamic_sampling.rules.base._get_blended_sample_rate")
 def test_generate_rules_capture_exception(get_blended_sample_rate, sentry_sdk):
     get_blended_sample_rate.return_value = None
     # since we mock get_blended_sample_rate function
@@ -40,7 +41,7 @@ def test_generate_rules_capture_exception(get_blended_sample_rate, sentry_sdk):
     # Therefore no rules should be set.
     assert generate_rules(fake_project) == []
     get_blended_sample_rate.assert_called_with(fake_project)
-    sentry_sdk.capture_exception.assert_called_with()
+    sentry_sdk.capture_exception.assert_called()
     config_str = json.dumps({"rules": generate_rules(fake_project)})
     validate_sampling_configuration(config_str)
 

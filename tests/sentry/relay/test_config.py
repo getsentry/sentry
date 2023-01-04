@@ -73,7 +73,7 @@ DEFAULT_IGNORE_HEALTHCHECKS_RULE = {
         ],
     },
     "active": True,
-    "id": RESERVED_IDS[RuleType.IGNORE_HEALTHCHECKS_RULE],
+    "id": RESERVED_IDS[RuleType.IGNORE_HEALTH_CHECKS_RULE],
 }
 
 

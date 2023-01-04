@@ -92,7 +92,7 @@ def _extract_info_from_rule(
             "release": rule["condition"]["inner"][0]["value"],
             "environment": rule["condition"]["inner"][1]["value"],
         }
-    elif rule_type == RuleType.IGNORE_HEALTHCHECKS_RULE:
+    elif rule_type == RuleType.IGNORE_HEALTH_CHECKS_RULE:
         return {"healthChecks": rule["condition"]["inner"][0]["value"]}
     elif rule_type == RuleType.BOOST_KEY_TRANSACTIONS_RULE:
         return {"transactions": rule["condition"]["inner"][0]["value"]}
