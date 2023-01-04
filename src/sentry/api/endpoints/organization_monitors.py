@@ -1,11 +1,10 @@
 from django.db.models import Q
 
-from sentry import audit_log, features
+from sentry import audit_log
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects
 from sentry.api.bases.monitor import OrganizationMonitorPermission
 from sentry.api.bases.organization import OrganizationEndpoint
-from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.validators import MonitorValidator
@@ -39,9 +38,6 @@ class OrganizationMonitorsEndpoint(OrganizationEndpoint):
         :pparam string organization_slug: the slug of the organization
         :auth: required
         """
-        if not features.has("organizations:monitors", organization, actor=request.user):
-            raise ResourceDoesNotExist
-
         try:
             filter_params = self.get_filter_params(request, organization, date_filter_optional=True)
         except NoProjects:

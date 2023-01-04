@@ -24,8 +24,7 @@ class ListOrganizationMonitorsTest(OrganizationMonitorsTestBase):
             organization_id=self.organization.id,
             name="My Monitor",
         )
-        with self.feature({"organizations:monitors": True}):
-            response = self.get_success_response(self.organization.slug)
+        response = self.get_success_response(self.organization.slug)
         self.check_valid_response(response, [monitor])
 
 
@@ -34,14 +33,13 @@ class CreateOrganizationMonitorTest(OrganizationMonitorsTestBase):
     method = "post"
 
     def test_simple(self):
-        with self.feature({"organizations:monitors": True}):
-            data = {
-                "project": self.project.slug,
-                "name": "My Monitor",
-                "type": "cron_job",
-                "config": {"schedule_type": "crontab", "schedule": "@daily"},
-            }
-            response = self.get_success_response(self.organization.slug, **data)
+        data = {
+            "project": self.project.slug,
+            "name": "My Monitor",
+            "type": "cron_job",
+            "config": {"schedule_type": "crontab", "schedule": "@daily"},
+        }
+        response = self.get_success_response(self.organization.slug, **data)
 
         assert response.data["id"]
 
