@@ -188,7 +188,7 @@ function SuggestedOwnersWrapper(props: Omit<Props, 'committers' | 'organization'
       eventId: props.event.id,
       projectSlug: props.project.slug,
     },
-    {notifyOnChangeProps: ['data']}
+    {notifyOnChangeProps: ['data'], enabled: !defined(props.group.assignedTo)}
   );
 
   if (defined(props.group.assignedTo)) {
