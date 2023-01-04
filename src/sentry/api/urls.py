@@ -2334,6 +2334,11 @@ urlpatterns = [
         SharedGroupDetailsEndpoint.as_view(),
         name="sentry-api-0-shared-group-details",
     ),
+    url(
+        r"^shared/(?P<organization_slug>[^\/]+)/(?:issues|groups)/(?P<share_id>[^\/]+)/$",
+        SharedGroupDetailsEndpoint.as_view(),
+        name="sentry-api-0-shared-group-details-with-org",
+    ),
     # Sentry Apps
     url(r"^sentry-apps/$", SentryAppsEndpoint.as_view(), name="sentry-api-0-sentry-apps"),
     url(
