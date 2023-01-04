@@ -530,6 +530,8 @@ class SnubaTagStorage(TagStorage):
             if group.issue_category == GroupCategory.PERFORMANCE:
                 dataset = Dataset.Transactions
                 apply_performance_conditions(conditions, group)
+            elif group.issue_category == GroupCategory.ERROR: # set back to not, just forcing this for testing because the issue_category isn't being set properly
+                dataset = Dataset.IssuePlatform
             else:
                 filters["group_id"] = [group.id]
         return dataset, conditions, filters

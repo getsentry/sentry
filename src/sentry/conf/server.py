@@ -1909,7 +1909,7 @@ SENTRY_USE_CDC_DEV = False
 SENTRY_USE_PROFILING = False
 
 # This flag activates consuming issue platform occurrence data in the development environment
-SENTRY_USE_ISSUE_OCCURRENCE = False
+SENTRY_USE_ISSUE_OCCURRENCE = True
 
 # This flag activates code paths that are specific for customer domains
 SENTRY_USE_CUSTOMER_DOMAINS = False
