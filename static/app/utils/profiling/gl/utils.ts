@@ -1,10 +1,12 @@
 import Fuse from 'fuse.js';
 import {mat3, vec2} from 'gl-matrix';
 
+import {CanvasView} from 'sentry/utils/profiling/canvasView';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
 
 import {clamp} from '../colors/utils';
+import {FlamegraphCanvas} from '../flamegraphCanvas';
 import {SpanChartRenderer2D} from '../renderers/spansRenderer';
 import {SpanChartNode} from '../spanChart';
 
@@ -698,4 +700,137 @@ export function computeConfigViewWithStrategy(
   }
 
   return frame.withHeight(view.height);
+}
+
+// Compute the X and Y position based on offset and canvas resolution
+export function getPhysicalSpacePositionFromOffset(offsetX: number, offsetY: number) {
+  const logicalMousePos = vec2.fromValues(offsetX, offsetY);
+  return vec2.scale(vec2.create(), logicalMousePos, window.devicePixelRatio);
+}
+
+export function getCenterScaleMatrix(
+  scale: number,
+  offsetX: number,
+  offsetY: number,
+  view: CanvasView<any>,
+  canvas: FlamegraphCanvas
+): mat3 {
+  const configSpaceMouse = view.getConfigViewCursor(
+    vec2.fromValues(offsetX, offsetY),
+    canvas
+  );
+
+  const configCenter = vec2.fromValues(configSpaceMouse[0], view.configView.y);
+
+  const invertedConfigCenter = vec2.multiply(
+    vec2.create(),
+    vec2.fromValues(-1, -1),
+    configCenter
+  );
+
+  const centerScaleMatrix = mat3.create();
+  mat3.fromTranslation(centerScaleMatrix, configCenter);
+  mat3.scale(centerScaleMatrix, centerScaleMatrix, vec2.fromValues(scale, 1));
+  mat3.translate(centerScaleMatrix, centerScaleMatrix, invertedConfigCenter);
+  return centerScaleMatrix;
+}
+
+export function getConfigViewTranslationBetweenVectors(
+  offsetX: number,
+  offsetY: number,
+  start: vec2,
+  view: CanvasView<any>,
+  canvas: FlamegraphCanvas,
+  invert?: boolean
+): mat3 | null {
+  const physicalMousePos = getPhysicalSpacePositionFromOffset(offsetX, offsetY);
+  const physicalDelta = invert
+    ? vec2.subtract(vec2.create(), physicalMousePos, start)
+    : vec2.subtract(vec2.create(), start, physicalMousePos);
+
+  if (physicalDelta[0] === 0 && physicalDelta[1] === 0) {
+    return null;
+  }
+
+  const physicalToConfig = mat3.invert(
+    mat3.create(),
+    view.fromConfigView(canvas.physicalSpace)
+  );
+  const [m00, m01, m02, m10, m11, m12] = physicalToConfig;
+
+  const configDelta = vec2.transformMat3(vec2.create(), physicalDelta, [
+    m00,
+    m01,
+    m02,
+    m10,
+    m11,
+    m12,
+    0,
+    0,
+    0,
+  ]);
+
+  return mat3.fromTranslation(mat3.create(), configDelta);
+}
+
+export function getConfigSpaceTranslationBetweenVectors(
+  offsetX: number,
+  offsetY: number,
+  start: vec2,
+  view: CanvasView<any>,
+  canvas: FlamegraphCanvas,
+  invert?: boolean
+): mat3 | null {
+  const physicalMousePos = getPhysicalSpacePositionFromOffset(offsetX, offsetY);
+  const physicalDelta = invert
+    ? vec2.subtract(vec2.create(), physicalMousePos, start)
+    : vec2.subtract(vec2.create(), start, physicalMousePos);
+
+  if (physicalDelta[0] === 0 && physicalDelta[1] === 0) {
+    return null;
+  }
+
+  const physicalToConfig = mat3.invert(
+    mat3.create(),
+    view.fromConfigSpace(canvas.physicalSpace)
+  );
+  const [m00, m01, m02, m10, m11, m12] = physicalToConfig;
+  const configDelta = vec2.transformMat3(vec2.create(), physicalDelta, [
+    m00,
+    m01,
+    m02,
+    m10,
+    m11,
+    m12,
+    0,
+    0,
+    0,
+  ]);
+
+  return mat3.fromTranslation(mat3.create(), configDelta);
+}
+
+export function getMinimapCanvasCursor(
+  configView: Rect | undefined,
+  configSpaceCursor: vec2 | null,
+  borderWidth: number
+) {
+  if (!configView || !configSpaceCursor) {
+    return 'col-resize';
+  }
+
+  const nearestEdge = Math.min(
+    Math.abs(configView.left - configSpaceCursor[0]),
+    Math.abs(configView.right - configSpaceCursor[0])
+  );
+  const isWithinBorderSize = nearestEdge <= borderWidth;
+  if (isWithinBorderSize) {
+    return 'ew-resize';
+  }
+
+  if (configView.contains(configSpaceCursor)) {
+    return 'grab';
+  }
+
+  return 'col-resize';
 }
