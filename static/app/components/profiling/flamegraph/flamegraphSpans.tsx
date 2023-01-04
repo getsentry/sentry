@@ -2,6 +2,7 @@ import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react
 import styled from '@emotion/styled';
 import {vec2} from 'gl-matrix';
 
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {BoundTooltip} from 'sentry/components/profiling/boundTooltip';
 import {t} from 'sentry/locale';
 import {
@@ -20,6 +21,7 @@ import {
 import {SelectedFrameRenderer} from 'sentry/utils/profiling/renderers/selectedFrameRenderer';
 import {SpanChartRenderer2D} from 'sentry/utils/profiling/renderers/spansRenderer';
 import {SpanChart, SpanChartNode} from 'sentry/utils/profiling/spanChart';
+import {useProfileTransaction} from 'sentry/views/profiling/profileGroupProvider';
 
 import {useCanvasScroll} from './interactions/useCanvasScroll';
 import {useCanvasZoomOrScroll} from './interactions/useCanvasZoomOrScroll';
@@ -61,6 +63,7 @@ export function FlamegraphSpans({
 }: FlamegraphSpansProps) {
   const flamegraphTheme = useFlamegraphTheme();
   const scheduler = useCanvasScheduler(canvasPoolManager);
+  const profiledTransaction = useProfileTransaction();
 
   const [configSpaceCursor, setConfigSpaceCursor] = useState<vec2 | null>(null);
   const [startInteractionVector, setStartInteractionVector] = useState<vec2 | null>(null);
@@ -273,6 +276,17 @@ export function FlamegraphSpans({
         onMouseUp={onCanvasMouseUp}
         onMouseDown={onCanvasMouseDown}
       />
+      {/* transaction loads after profile, so we want to show loading even if it's in initial state */}
+      {profiledTransaction.type === 'loading' ||
+      profiledTransaction.type === 'initial' ? (
+        <LoadingIndicatorContainer>
+          <LoadingIndicator size={42} />
+        </LoadingIndicatorContainer>
+      ) : profiledTransaction.type === 'errored' ? (
+        <MessageContainer>{t('No associated transaction found')}</MessageContainer>
+      ) : profiledTransaction.type === 'resolved' && spanChart.spans.length <= 1 ? (
+        <MessageContainer>{t('Transaction has no spans')}</MessageContainer>
+      ) : null}
       {hoveredNode && spansRenderer && configSpaceCursor && spansCanvas && spansView ? (
         <BoundTooltip
           bounds={canvasBounds}
@@ -303,6 +317,26 @@ export function FlamegraphSpans({
     </Fragment>
   );
 }
+
+const MessageContainer = styled('p')`
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  width: 100%;
+  position: absolute;
+  color: ${p => p.theme.subText};
+`;
+
+const LoadingIndicatorContainer = styled('div')`
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+`;
 
 const Canvas = styled('canvas')`
   width: 100%;

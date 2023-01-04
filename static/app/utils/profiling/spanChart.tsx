@@ -93,11 +93,12 @@ class SpanChart {
           this.root.children.push(spanChartNode);
         }
 
-        const nodesWithParent = node.children.map(
-          // @todo use satisfies here when available
-          child => [spanChartNode, child] as [SpanChartNode, SpanTreeNode]
+        queue.push(
+          ...node.children.map(
+            // @todo use satisfies here when available
+            child => [spanChartNode, child] as [SpanChartNode, SpanTreeNode]
+          )
         );
-        queue.push(...nodesWithParent);
       }
       depth++;
     }
