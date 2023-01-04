@@ -341,7 +341,7 @@ function FlamegraphZoomViewMinimap({
         return;
       }
 
-      const identity = mat3.identity(mat3.create());
+      const identity = mat3.create();
       const scale = 1 - evt.deltaY * 0.001 * -1; // -1 to invert scale
 
       const mouseInConfigSpace = flamegraphMiniMapView.getConfigSpaceCursor(
