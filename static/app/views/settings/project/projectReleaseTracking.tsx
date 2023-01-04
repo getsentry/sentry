@@ -185,7 +185,7 @@ class ProjectReleaseTracking extends AsyncView<Props, State> {
                     'Are you sure you want to regenerate your token? Your current token will no longer be usable.'
                   )}
                 >
-                  <Button type="button" priority="danger" disabled={!hasWrite}>
+                  <Button priority="danger" disabled={!hasWrite}>
                     {t('Regenerate Token')}
                   </Button>
                 </Confirm>

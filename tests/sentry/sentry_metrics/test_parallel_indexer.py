@@ -58,6 +58,7 @@ def test_basic(request):
             cardinality_limiter_namespace=RELEASE_HEALTH_PG_NAMESPACE,
             index_tag_values_option_name="sentry-metrics.performance.index-tag-values",
         ),
+        slicing_router=None,
     )
 
     strategy = processing_factory.create_with_partitions(
