@@ -22,7 +22,6 @@ type Props = RouteComponentProps<RouteParams, {}> &
   AsyncView['props'] & {
     canEditRule: boolean;
     organization: Organization;
-    project: Project;
   };
 
 type State = AsyncView['state'] & {
@@ -40,16 +39,16 @@ class Settings extends AsyncView<Props, State> {
   }
 
   getProjectEndpoint() {
-    const {organization, project} = this.props;
-    return `/projects/${organization.slug}/${project.slug}/`;
+    const {organization, params} = this.props;
+    return `/projects/${organization.slug}/${params.projectId}/`;
   }
 
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
-    const {organization, project} = this.props;
+    const {organization, params} = this.props;
     const projectEndpoint = this.getProjectEndpoint();
     return [
       ['project', projectEndpoint],
-      ['pluginList', `/projects/${organization.slug}/${project.slug}/plugins/`],
+      ['pluginList', `/projects/${organization.slug}/${params.projectId}/plugins/`],
     ];
   }
 
