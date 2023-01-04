@@ -23,7 +23,6 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.models import LostPasswordHash
-from sentry.models.options.user_option import UserOption
 from sentry.services.hybrid_cloud.user import APIUser
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.utils.http import absolute_uri
@@ -392,10 +391,6 @@ class User(BaseModel, AbstractBaseUser):
         from sentry.models import Organization
 
         return Organization.objects.get_for_user_ids({self.id})
-
-    # A helper primarily here to make User/APIUser more compatible
-    def get_option(self, **kwargs):
-        return UserOption.objects.get_value(user=self, **kwargs)
 
     def get_projects(self):
         from sentry.models import Project
