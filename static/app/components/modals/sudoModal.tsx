@@ -229,7 +229,9 @@ class SudoModal extends Component<Props, State> {
               initialData={{isSuperuserModal: isSuperuser}}
               extraButton={
                 <BackWrapper>
-                  <Button onClick={this.handleSubmitCOPS}>{t('COPS/CSM')}</Button>
+                  <Button type="submit" onClick={this.handleSubmitCOPS}>
+                    {t('COPS/CSM')}
+                  </Button>
                 </BackWrapper>
               }
               resetOnError
