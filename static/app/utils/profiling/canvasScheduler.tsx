@@ -1,3 +1,4 @@
+import {useEffect, useMemo} from 'react';
 import {mat3} from 'gl-matrix';
 
 import {Rect} from './gl/utils';
@@ -176,4 +177,21 @@ export class CanvasPoolManager {
       scheduler.draw();
     }
   }
+}
+
+/**
+ * Creates a new instance of CanvasScheduler and registers it
+ * with the provided CanvasPoolManager.
+ * @param canvasPoolManager
+ * @returns
+ */
+export function useCanvasScheduler(canvasPoolManager: CanvasPoolManager) {
+  const scheduler = useMemo(() => new CanvasScheduler(), []);
+
+  useEffect(() => {
+    canvasPoolManager.registerScheduler(scheduler);
+    return () => canvasPoolManager.unregisterScheduler(scheduler);
+  }, [canvasPoolManager, scheduler]);
+
+  return scheduler;
 }
