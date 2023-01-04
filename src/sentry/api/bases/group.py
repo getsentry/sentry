@@ -33,7 +33,7 @@ class GroupPermission(ProjectPermission):
 class GroupEndpoint(Endpoint):
     permission_classes = (GroupPermission,)
 
-    def convert_args(self, request: Request, issue_id, organization_slug=None, *args, **kwargs):
+    def convert_args(self, request: Request, issue_id, organization_slug, *args, **kwargs):
         # TODO(tkaemming): Ideally, this would return a 302 response, rather
         # than just returning the data that is bound to the new group. (It
         # technically shouldn't be a 301, since the response could change again
@@ -44,17 +44,14 @@ class GroupEndpoint(Endpoint):
         # string replacement, or making the endpoint aware of the URL pattern
         # that caused it to be dispatched, and reversing it with the correct
         # `issue_id` keyword argument.
-        if organization_slug:
-            try:
-                organization = Organization.objects.get_from_cache(slug=organization_slug)
-            except Organization.DoesNotExist:
-                raise ResourceDoesNotExist
+        try:
+            organization = Organization.objects.get_from_cache(slug=organization_slug)
+        except Organization.DoesNotExist:
+            raise ResourceDoesNotExist
 
-            bind_organization_context(organization)
+        bind_organization_context(organization)
 
-            request._request.organization = organization
-        else:
-            organization = None
+        request._request.organization = organization
 
         try:
             group, _ = get_group_with_redirect(

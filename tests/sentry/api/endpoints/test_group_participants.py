@@ -11,24 +11,15 @@ class GroupParticipantsTest(APITestCase):
         super().setUp()
         self.login_as(self.user)
 
-    def _get_path_functions(self):
-        return (
-            lambda group: reverse("sentry-api-0-group-stats", args=[group.id]),
-            lambda group: reverse(
-                "sentry-api-0-group-stats-with-org", args=[self.organization.slug, group.id]
-            ),
-        )
-
     def test_simple(self):
         group = self.create_group()
         GroupSubscription.objects.create(
             user=self.user, group=group, project=group.project, is_active=True
         )
 
-        for path_func in self._get_path_functions():
-            path = path_func(group)
+        path = reverse("sentry-api-0-group-stats", args=[self.organization.slug, group.id])
 
-            response = self.client.get(path)
+        response = self.client.get(path)
 
-            assert len(response.data) == 1
-            assert response.data[0]["id"] == str(self.user.id)
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(self.user.id)

@@ -2322,11 +2322,6 @@ urlpatterns = [
     url(
         r"^issues/(?P<organization_slug>[^\/]+)/(?P<issue_id>[^\/]+)/participants/$",
         GroupParticipantsEndpoint.as_view(),
-        name="sentry-api-0-group-stats-with-org",
-    ),
-    url(
-        r"^issues/(?P<issue_id>[^\/]+)/participants/$",
-        GroupParticipantsEndpoint.as_view(),
         name="sentry-api-0-group-stats",
     ),
     url(
