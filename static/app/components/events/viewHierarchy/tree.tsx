@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 
 import {IconAdd, IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
 
 type ViewHierarchyWindow = {
   alpha: number;
@@ -51,7 +50,7 @@ function Node({type, identifier, children}: NodeProps) {
         </IconWrapper>
       )}
       <NodeTitle>{identifier ? `${type} - ${identifier}` : type}</NodeTitle>
-      {isExpanded && children}
+      {isExpanded && children && <StyledUl>{children}</StyledUl>}
     </NodeContents>
   );
 }
@@ -88,24 +87,29 @@ function ViewHierarchyContainer({hierarchy}: ViewHierarchyContainerProps) {
 
 export {ViewHierarchyContainer as ViewHierarchyTree};
 
-const Container = styled('div')`
+const StyledUl = styled('ul')`
+  border-left: 1px solid ${p => p.theme.gray200};
+  margin-left: 5px;
+`;
+
+const NodeContents = styled('li')`
+  padding-left: 0;
+  display: block;
+`;
+
+// TODO: box shadow styling
+const Container = styled('ul')`
   max-height: 500px;
   overflow: auto;
   background-color: ${p => p.theme.surface100};
   border: 1px solid ${p => p.theme.gray100};
   border-radius: ${p => p.theme.borderRadius};
-  padding: 9.5px;
-`;
+  padding: 9.5px 0;
+  display: block;
 
-const NodeContents = styled('div')`
-  margin-left: ${space(0.5)};
-  border-left: 1px solid ${p => p.theme.gray200};
-  padding-left: ${space(1.5)};
-
-  :first-child {
-    margin-left: 0;
+  ${StyledUl}:first-child {
     border-left: none;
-    padding-left: 0;
+    margin-left: 0px;
   }
 `;
 
