@@ -287,6 +287,9 @@ class ProfilesProcessTaskTest(TestCase):
                 ],
                 "samples": [
                     {"stack_id": 0},
+                    # a second sample with the same stack id, the stack should
+                    # not be processed a second time
+                    {"stack_id": 0},
                 ],
                 "stacks": [
                     [0, 1, 2],
@@ -299,14 +302,12 @@ class ProfilesProcessTaskTest(TestCase):
             {
                 "frames": [
                     {
-                        "status": "symbolicated",
                         "instruction_addr": "0x72ba053e168c",
                         "lang": "rust",
                         "function": "C_inline_1",
                         "original_index": 0,
                     },
                     {
-                        "status": "symbolicated",
                         "instruction_addr": "0x55bd050e168d",
                         "lang": "rust",
                         "function": "C",
@@ -314,7 +315,6 @@ class ProfilesProcessTaskTest(TestCase):
                         "original_index": 0,
                     },
                     {
-                        "status": "symbolicated",
                         "instruction_addr": "0x89bf050e178a",
                         "lang": "rust",
                         "function": "B",
@@ -322,21 +322,18 @@ class ProfilesProcessTaskTest(TestCase):
                         "original_index": 1,
                     },
                     {
-                        "status": "symbolicated",
                         "instruction_addr": "0x68fd050d127b",
-                        "lang": "rust",
-                        "function": "A_inline_2",
-                        "original_index": 2,
-                    },
-                    {
-                        "status": "symbolicated",
-                        "instruction_addr": "0x29ce061d168a",
                         "lang": "rust",
                         "function": "A_inline_1",
                         "original_index": 2,
                     },
                     {
-                        "status": "symbolicated",
+                        "instruction_addr": "0x29ce061d168a",
+                        "lang": "rust",
+                        "function": "A_inline_2",
+                        "original_index": 2,
+                    },
+                    {
                         "instruction_addr": "0x88ad050d167e",
                         "lang": "rust",
                         "function": "A",
@@ -349,4 +346,4 @@ class ProfilesProcessTaskTest(TestCase):
 
         _process_symbolicator_results_for_sample(profile, stacktraces)
 
-        assert profile["profile"]["stacks"][0] == [5, 0, 1, 4, 3, 2]
+        assert profile["profile"]["stacks"] == [[0, 1, 2, 3, 4, 5]]

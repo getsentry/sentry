@@ -1049,11 +1049,6 @@ SENTRY_FEATURES = {
     "organizations:transaction-name-sanitization": False,
     # Extraction metrics for transactions during ingestion.
     "organizations:transaction-metrics-extraction": False,
-    # Allow performance alerts to be created on the metrics dataset. Allows UI to switch between
-    # sampled/unsampled performance data.
-    "organizations:metrics-performance-alerts": False,
-    # Enable switch metrics button on Performance, allowing switch to unsampled transaction metrics
-    "organizations:metrics-performance-ui": False,
     # True if release-health related queries should be run against both
     # backends (sessions and metrics dataset)
     "organizations:release-health-check-metrics": False,
@@ -1141,6 +1136,8 @@ SENTRY_FEATURES = {
     "organizations:performance-mep-bannerless-ui": False,
     # Enable updated landing page widget designs
     "organizations:performance-new-widget-designs": False,
+    # Enable slow DB performance issue type
+    "organizations:performance-slow-db-issue": False,
     # Enable the new Related Events feature
     "organizations:related-events": False,
     # Enable populating suggested assignees with release committers
@@ -1545,6 +1542,7 @@ SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE = 0.01
 # Which cluster to use. Example: {"cluster": "default"}
 SENTRY_METRICS_INDEXER_CARDINALITY_LIMITER_OPTIONS = {}
 SENTRY_METRICS_INDEXER_CARDINALITY_LIMITER_OPTIONS_PERFORMANCE = {}
+SENTRY_METRICS_INDEXER_ENABLE_SLICED_PRODUCER = False
 
 # Release Health
 SENTRY_RELEASE_HEALTH = "sentry.release_health.sessions.SessionsReleaseHealthBackend"

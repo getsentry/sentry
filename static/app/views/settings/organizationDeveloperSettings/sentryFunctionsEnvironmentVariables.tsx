@@ -52,7 +52,6 @@ function SentryFunctionEnvironmentVariables(props: Props) {
         {t('Environment Variables')}
         <StyledAddButton
           size="sm"
-          type="button"
           icon={<IconAdd isCircled />}
           aria-label={t('Add Environment Variable')}
           onClick={addEnvVar}
@@ -88,7 +87,6 @@ function SentryFunctionEnvironmentVariables(props: Props) {
                 <StyledAddButton
                   size="sm"
                   icon={<IconDelete />}
-                  type="button"
                   aria-label={tct('Remove Environment Variable [i]', {i})}
                   onClick={() => removeEnvVar(i)}
                 />
