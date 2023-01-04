@@ -14,7 +14,6 @@ type Props = {
 } & RouteComponentProps<
   {
     keyId: string;
-    orgId: string;
     projectId: string;
   },
   {}

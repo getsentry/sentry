@@ -25,7 +25,7 @@ import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 type Props = {
   api: Client;
   organization: Organization;
-} & RouteComponentProps<{orgId: string; projectId: string}, {}>;
+} & RouteComponentProps<{projectId: string}, {}>;
 
 type State = {
   environments: null | Environment[];

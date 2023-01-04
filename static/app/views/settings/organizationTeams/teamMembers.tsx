@@ -32,7 +32,6 @@ import AsyncView from 'sentry/views/asyncView';
 import TeamMembersRow from './teamMembersRow';
 
 type RouteParams = {
-  orgId: string;
   teamId: string;
 };
 

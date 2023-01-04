@@ -16,7 +16,7 @@ import AsyncView from 'sentry/views/asyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 
-type RouteParams = {orgId: string; projectId: string};
+type RouteParams = {projectId: string};
 
 type Props = RouteComponentProps<RouteParams, {}> &
   AsyncView['props'] & {

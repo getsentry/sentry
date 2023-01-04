@@ -11,11 +11,7 @@ import AsyncView from 'sentry/views/asyncView';
 import OrganizationApiKeysList from './organizationApiKeysList';
 import {DeprecatedApiKey} from './types';
 
-type RouteParams = {
-  orgId: string;
-};
-
-type Props = RouteComponentProps<RouteParams, {}> & {
+type Props = RouteComponentProps<{}, {}> & {
   organization: Organization;
 };
 

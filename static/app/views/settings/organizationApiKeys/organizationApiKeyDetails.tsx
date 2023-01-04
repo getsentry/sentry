@@ -22,7 +22,6 @@ const API_CHOICES: Choices = API_ACCESS_SCOPES.map(s => [s, s]);
 
 type RouteParams = {
   apiKey: string;
-  orgId: string;
 };
 
 type Props = RouteComponentProps<RouteParams, {}> & {

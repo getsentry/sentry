@@ -17,7 +17,7 @@ import ProjectFiltersSettings from 'sentry/views/settings/project/projectFilters
 type Props = {
   organization: Organization;
   project: Project;
-} & RouteComponentProps<{filterType: string; orgId: string; projectId: string}, {}>;
+} & RouteComponentProps<{filterType: string; projectId: string}, {}>;
 
 function ProjectFilters(props: Props) {
   const {organization, project, params, location} = props;
@@ -41,7 +41,7 @@ function ProjectFilters(props: Props) {
       </TextBlock>
 
       <div>
-        <ProjectFiltersChart project={project} params={params} />
+        <ProjectFiltersChart project={project} organization={organization} />
 
         {features.has('discard-groups') && (
           <NavTabs underlined style={{paddingTop: '30px'}}>

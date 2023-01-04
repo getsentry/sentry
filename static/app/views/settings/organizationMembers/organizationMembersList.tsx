@@ -34,7 +34,7 @@ import OrganizationMemberRow from './organizationMemberRow';
 
 type Props = {
   organization: Organization;
-} & RouteComponentProps<{orgId: string}, {}>;
+} & RouteComponentProps<{}, {}>;
 
 type State = AsyncView['state'] & {
   inviteRequests: Member[];

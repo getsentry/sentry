@@ -18,7 +18,7 @@ import TeamSelect from 'sentry/views/settings/components/teamSelect';
 type Props = {
   organization: Organization;
   project: Project;
-} & RouteComponentProps<{orgId: string; projectId: string}, {}>;
+} & RouteComponentProps<{projectId: string}, {}>;
 
 type State = {
   projectTeams: null | Team[];
