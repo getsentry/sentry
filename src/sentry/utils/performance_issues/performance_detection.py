@@ -282,8 +282,6 @@ def get_detection_settings(project_id: Optional[str] = None) -> Dict[DetectorTyp
         DetectorType.CONSECUTIVE_DB_OP: {
             # Time saved by running all queries in parallel
             "cost_threshold": 50,  # ms
-            # Duration of all the independent spans in a set of consecutive spans
-            "duration_threshold": 100,  # ms
             # The minimum duration of a single independent span in ms, used to prevent scenarios with a ton of small spans
             "span_duration_threshold": 30,  # ms
             "consecutive_count_threshold": 2,
@@ -853,16 +851,8 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
         exceeds_cost_threshold = self._calculate_cost(independent_db_spans) > self.settings.get(
             "cost_threshold"
         )
-        exceeds_duration_threshold = self._sum_span_duration(
-            independent_db_spans
-        ) > self.settings.get("duration_threshold")
 
-        if (
-            exceeds_count_threshold
-            and exceeds_span_duration_threshold
-            and exceeds_cost_threshold
-            and exceeds_duration_threshold
-        ):
+        if exceeds_count_threshold and exceeds_span_duration_threshold and exceeds_cost_threshold:
             self._store_performance_problem()
 
     def _store_performance_problem(self) -> None:
