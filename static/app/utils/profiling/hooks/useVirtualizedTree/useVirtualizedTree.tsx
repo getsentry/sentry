@@ -88,7 +88,7 @@ export function useVirtualizedTree<T extends TreeLike>(
   );
 
   const flattenedHistory = useRef<ReadonlyArray<VirtualizedTreeNode<T>>>(tree.flattened);
-  const expandedHistory = useRef<Set<T>>(tree.getAllExpandedNodes(new Set()));
+  const expandedHistory = useRef<Set<T>>(new Set());
 
   // Keep a ref to latest state to avoid re-rendering
   const latestStateRef = useRef<typeof state>(state);
@@ -660,37 +660,14 @@ export function useVirtualizedTree<T extends TreeLike>(
     let rafId: number | undefined;
     const resizeObserver = new window.ResizeObserver(elements => {
       rafId = window.requestAnimationFrame(() => {
-        dispatch({
-          type: 'set scroll height',
-          payload: elements[0]?.contentRect?.height ?? 0,
-        });
-      });
-    });
-
-    resizeObserver.observe(props.scrollContainer);
-
-    return () => {
-      if (typeof rafId === 'number') {
-        window.cancelAnimationFrame(rafId);
-      }
-      resizeObserver.disconnect();
-    };
-  }, [props.scrollContainer, props.rowHeight]);
-
-  // Register a resize observer for when the scroll container is resized.
-  // When the container is resized, update the scroll height in our state.
-  // Similarly to handleScroll, we use requestAnimationFrame to avoid overupdating the UI
-  useEffect(() => {
-    if (!props.scrollContainer) {
-      return undefined;
-    }
-    let rafId: number | undefined;
-    const resizeObserver = new window.ResizeObserver(elements => {
-      rafId = window.requestAnimationFrame(() => {
-        dispatch({
-          type: 'set scroll height',
-          payload: elements[0]?.contentRect?.height ?? 0,
-        });
+        // We only care about changes to the height of the scroll container,
+        // if it has not changed then do not update the scroll height.
+        if (elements[0]?.contentRect?.height !== latestStateRef.current.scrollHeight) {
+          dispatch({
+            type: 'set scroll height',
+            payload: elements[0]?.contentRect?.height ?? 0,
+          });
+        }
       });
     });
 

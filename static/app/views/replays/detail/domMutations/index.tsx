@@ -1,23 +1,18 @@
-import {useEffect} from 'react';
+import {useRef} from 'react';
 import {
   AutoSizer,
   CellMeasurer,
-  CellMeasurerCache,
   List as ReactVirtualizedList,
   ListRowProps,
 } from 'react-virtualized';
 import styled from '@emotion/styled';
 
-import CompactSelect from 'sentry/components/compactSelect';
-import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import BreadcrumbIcon from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/type/icon';
 import HTMLCode from 'sentry/components/htmlCode';
 import Placeholder from 'sentry/components/placeholder';
 import {getDetails} from 'sentry/components/replays/breadcrumbs/utils';
-import PlayerRelativeTime from 'sentry/components/replays/playerRelativeTime';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {relativeTimeInMs} from 'sentry/components/replays/utils';
-import SearchBar from 'sentry/components/searchBar';
 import {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -25,51 +20,55 @@ import {getPrevReplayEvent} from 'sentry/utils/replays/getReplayEvent';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import useExtractedCrumbHtml from 'sentry/utils/replays/hooks/useExtractedCrumbHtml';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
+import DomFilters from 'sentry/views/replays/detail/domMutations/domFilters';
 import useDomFilters from 'sentry/views/replays/detail/domMutations/useDomFilters';
-import {getDomMutationsTypes} from 'sentry/views/replays/detail/domMutations/utils';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
+import NoRowRenderer from 'sentry/views/replays/detail/noRowRenderer';
+import TimestampButton from 'sentry/views/replays/detail/timestampButton';
+import useVirtualizedList from 'sentry/views/replays/detail/useVirtualizedList';
 
 type Props = {
-  replay: ReplayReader;
+  replay: null | ReplayReader;
+  startTimestampMs: number;
 };
 
-// The cache is used to measure the height of each row
-const cache = new CellMeasurerCache({
-  fixedWidth: true,
-  minHeight: 82,
-});
-
-function DomMutations({replay}: Props) {
-  const startTimestampMs = replay.getReplay().startedAt.getTime();
-  const {currentTime} = useReplayContext();
+function DomMutations({replay, startTimestampMs}: Props) {
+  const {currentTime, currentHoverTime} = useReplayContext();
   const {isLoading, actions} = useExtractedCrumbHtml({replay});
-  let listRef: ReactVirtualizedList | null = null;
 
-  const {
-    items,
-    type: filteredTypes,
-    searchTerm,
-    setType,
-    setSearchTerm,
-  } = useDomFilters({actions});
+  const filterProps = useDomFilters({actions: actions || []});
+  const {items, setSearchTerm} = filterProps;
+  const clearSearchTerm = () => setSearchTerm('');
 
-  const currentDomMutation = getPrevReplayEvent({
-    items: items.map(mutation => mutation.crumb),
+  const {handleMouseEnter, handleMouseLeave, handleClick} =
+    useCrumbHandlers(startTimestampMs);
+
+  const crumbs = items.map(mutation => mutation.crumb);
+  const current = getPrevReplayEvent({
+    items: crumbs,
     targetTimestampMs: startTimestampMs + currentTime,
     allowEqual: true,
     allowExact: true,
   });
 
-  const {handleMouseEnter, handleMouseLeave, handleClick} =
-    useCrumbHandlers(startTimestampMs);
+  const hovered = currentHoverTime
+    ? getPrevReplayEvent({
+        items: crumbs,
+        targetTimestampMs: startTimestampMs + currentHoverTime,
+        allowEqual: true,
+        allowExact: true,
+      })
+    : null;
 
-  useEffect(() => {
-    // Restart cache when items changes
-    if (listRef) {
-      cache.clearAll();
-      listRef?.forceUpdateGrid();
-    }
-  }, [items, listRef]);
+  const listRef = useRef<ReactVirtualizedList>(null);
+  const {cache} = useVirtualizedList({
+    cellMeasurer: {
+      fixedWidth: true,
+      minHeight: 82,
+    },
+    ref: listRef,
+    deps: [items],
+  });
 
   const renderRow = ({index, key, style, parent}: ListRowProps) => {
     const mutation = items[index];
@@ -91,7 +90,8 @@ function DomMutations({replay}: Props) {
           onMouseEnter={() => handleMouseEnter(crumb)}
           onMouseLeave={() => handleMouseLeave(crumb)}
           style={style}
-          isCurrent={crumb.id === currentDomMutation?.id}
+          isCurrent={crumb.id === current?.id}
+          isHovered={crumb.id === hovered?.id}
         >
           <IconWrapper color={crumb.color} hasOccurred={hasOccurred}>
             <BreadcrumbIcon type={crumb.type} />
@@ -104,12 +104,11 @@ function DomMutations({replay}: Props) {
                 </TitleContainer>
                 <MutationMessage>{crumb.message}</MutationMessage>
               </div>
-              <UnstyledButton onClick={() => handleClick(crumb)}>
-                <PlayerRelativeTime
-                  relativeTimeMs={startTimestampMs}
-                  timestamp={crumb.timestamp}
-                />
-              </UnstyledButton>
+              <TimestampButton
+                onClick={() => handleClick(crumb)}
+                startTimestampMs={startTimestampMs}
+                timestampMs={crumb.timestamp || ''}
+              />
             </MutationDetailsContainer>
             <CodeContainer>
               <HTMLCode code={html} />
@@ -122,69 +121,38 @@ function DomMutations({replay}: Props) {
 
   return (
     <MutationContainer>
-      <MutationFilters>
-        <CompactSelect
-          triggerProps={{prefix: t('Event Type')}}
-          triggerLabel={filteredTypes.length === 0 ? t('Any') : null}
-          multiple
-          options={getDomMutationsTypes(actions).map(value => ({value, label: value}))}
-          size="sm"
-          onChange={selected => setType(selected.map(_ => _.value))}
-          value={filteredTypes}
-        />
-        <SearchBar
-          size="sm"
-          onChange={setSearchTerm}
-          placeholder={t('Search DOM')}
-          query={searchTerm}
-        />
-      </MutationFilters>
-      {isLoading ? (
-        <Placeholder height="200px" />
-      ) : (
-        <MutationList>
+      <DomFilters actions={actions} {...filterProps} />
+      <MutationList>
+        {isLoading || !actions ? (
+          <Placeholder height="100%" />
+        ) : (
           <AutoSizer>
             {({width, height}) => (
               <ReactVirtualizedList
-                ref={(el: ReactVirtualizedList | null) => {
-                  listRef = el;
-                }}
+                ref={listRef}
                 deferredMeasurementCache={cache}
                 height={height}
                 overscanRowCount={5}
                 rowCount={items.length}
-                noRowsRenderer={() =>
-                  actions.length === 0 ? (
-                    <EmptyStateWarning withIcon={false} small>
-                      {t('No related DOM events recorded')}
-                    </EmptyStateWarning>
-                  ) : (
-                    <EmptyStateWarning withIcon small>
-                      {t('No results found')}
-                    </EmptyStateWarning>
-                  )
-                }
+                noRowsRenderer={() => (
+                  <NoRowRenderer
+                    unfilteredItems={actions}
+                    clearSearchTerm={clearSearchTerm}
+                  >
+                    {t('No DOM events recorded')}
+                  </NoRowRenderer>
+                )}
                 rowHeight={cache.rowHeight}
                 rowRenderer={renderRow}
                 width={width}
               />
             )}
           </AutoSizer>
-        </MutationList>
-      )}
+        )}
+      </MutationList>
     </MutationContainer>
   );
 }
-
-const MutationFilters = styled('div')`
-  display: grid;
-  gap: ${space(1)};
-  grid-template-columns: max-content 1fr;
-  margin-bottom: ${space(1)};
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
-    margin-top: ${space(1)};
-  }
-`;
 
 const MutationContainer = styled(FluidHeight)`
   height: 100%;
@@ -236,13 +204,16 @@ const IconWrapper = styled('div')<
   z-index: 2;
 `;
 
-const MutationListItem = styled('li')<{isCurrent?: boolean}>`
+const MutationListItem = styled('li')<{isCurrent: boolean; isHovered: boolean}>`
   display: flex;
   gap: ${space(1)};
   flex-grow: 1;
   padding: ${space(1)} ${space(1.5)};
   position: relative;
-  border-bottom: 1px solid ${p => (p.isCurrent ? p.theme.purple300 : 'transparent')};
+  border-bottom: 1px solid
+    ${p =>
+      p.isCurrent ? p.theme.purple300 : p.isHovered ? p.theme.purple200 : 'transparent'};
+
   &:hover {
     background-color: ${p => p.theme.backgroundSecondary};
   }
@@ -284,13 +255,6 @@ const Title = styled('span')<{hasOccurred?: boolean}>`
   color: ${p => (p.hasOccurred ? p.theme.gray400 : p.theme.gray300)};
   font-weight: bold;
   line-height: ${p => p.theme.text.lineHeightBody};
-`;
-
-const UnstyledButton = styled('button')`
-  background: none;
-  border: none;
-  padding: 0;
-  line-height: 0.75;
 `;
 
 const MutationMessage = styled('p')`

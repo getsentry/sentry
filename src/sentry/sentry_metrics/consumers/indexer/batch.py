@@ -17,11 +17,12 @@ from typing import (
 import rapidjson
 import sentry_sdk
 from arroyo.backends.kafka import KafkaPayload
-from arroyo.types import Message
+from arroyo.types import BrokerValue, Message
 from django.conf import settings
 
 from sentry.sentry_metrics.configuration import UseCaseKey
-from sentry.sentry_metrics.consumers.indexer.common import MessageBatch
+from sentry.sentry_metrics.consumers.indexer.common import IndexerOutputMessageBatch, MessageBatch
+from sentry.sentry_metrics.consumers.indexer.routing_producer import RoutingPayload
 from sentry.sentry_metrics.indexer.base import Metadata
 from sentry.utils import json, metrics
 
@@ -78,10 +79,12 @@ class IndexerBatch:
         use_case_id: UseCaseKey,
         outer_message: Message[MessageBatch],
         should_index_tag_values: bool,
+        is_output_sliced: bool,
     ) -> None:
         self.use_case_id = use_case_id
         self.outer_message = outer_message
         self.__should_index_tag_values = should_index_tag_values
+        self.is_output_sliced = is_output_sliced
 
         self._extract_messages()
 
@@ -91,7 +94,8 @@ class IndexerBatch:
         self.parsed_payloads_by_offset: MutableMapping[PartitionIdxOffset, InboundMessage] = {}
 
         for msg in self.outer_message.payload:
-            partition_offset = PartitionIdxOffset(msg.partition.index, msg.offset)
+            assert isinstance(msg.value, BrokerValue)
+            partition_offset = PartitionIdxOffset(msg.value.partition.index, msg.value.offset)
             try:
                 parsed_payload = json.loads(msg.payload.value.decode("utf-8"), use_rapid_json=True)
                 self.parsed_payloads_by_offset[partition_offset] = parsed_payload
@@ -205,17 +209,23 @@ class IndexerBatch:
         self,
         mapping: Mapping[int, Mapping[str, Optional[int]]],
         bulk_record_meta: Mapping[int, Mapping[str, Metadata]],
-    ) -> List[Message[KafkaPayload]]:
-        new_messages: List[Message[KafkaPayload]] = []
+    ) -> IndexerOutputMessageBatch:
+        new_messages: IndexerOutputMessageBatch = []
 
         for message in self.outer_message.payload:
             used_tags: Set[str] = set()
             output_message_meta: Mapping[str, MutableMapping[str, str]] = defaultdict(dict)
-            partition_offset = PartitionIdxOffset(message.partition.index, message.offset)
+            assert isinstance(message.value, BrokerValue)
+            partition_offset = PartitionIdxOffset(
+                message.value.partition.index, message.value.offset
+            )
             if partition_offset in self.skipped_offsets:
                 logger.info(
                     "process_message.offset_skipped",
-                    extra={"offset": message.offset, "partition": message.partition.index},
+                    extra={
+                        "offset": message.value.offset,
+                        "partition": message.value.partition.index,
+                    },
                 )
                 continue
             new_payload_value = cast(
@@ -340,7 +350,7 @@ class IndexerBatch:
 
             del new_payload_value["name"]
 
-            new_payload = KafkaPayload(
+            kafka_payload = KafkaPayload(
                 key=message.payload.key,
                 value=rapidjson.dumps(new_payload_value).encode(),
                 headers=[
@@ -349,13 +359,14 @@ class IndexerBatch:
                     ("metric_type", new_payload_value["type"]),
                 ],
             )
-            new_message = Message(
-                partition=message.partition,
-                offset=message.offset,
-                payload=new_payload,
-                timestamp=message.timestamp,
-            )
-            new_messages.append(new_message)
+            if self.is_output_sliced:
+                routing_payload = RoutingPayload(
+                    routing_header={"org_id": org_id},
+                    routing_message=kafka_payload,
+                )
+                new_messages.append(Message(message.value.replace(routing_payload)))
+            else:
+                new_messages.append(Message(message.value.replace(kafka_payload)))
 
         metrics.incr("metrics_consumer.process_message.messages_seen", amount=len(new_messages))
         return new_messages

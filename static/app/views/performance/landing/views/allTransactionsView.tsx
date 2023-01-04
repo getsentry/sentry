@@ -1,3 +1,4 @@
+import {canUseMetricsData} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {usePageError} from 'sentry/utils/performance/contexts/pageError';
 import {PerformanceDisplayProvider} from 'sentry/utils/performance/contexts/performanceDisplayContext';
 
@@ -9,9 +10,24 @@ import {PerformanceWidgetSetting} from '../widgets/widgetDefinitions';
 import {BasePerformanceViewProps} from './types';
 
 export function AllTransactionsView(props: BasePerformanceViewProps) {
+  const showSpanOperationsWidget =
+    props.organization.features.includes('performance-new-widget-designs') &&
+    canUseMetricsData(props.organization);
+
+  const doubleChartRowCharts = [
+    PerformanceWidgetSetting.MOST_RELATED_ISSUES,
+    PerformanceWidgetSetting.MOST_IMPROVED,
+    PerformanceWidgetSetting.MOST_REGRESSED,
+  ];
+
+  if (showSpanOperationsWidget) {
+    doubleChartRowCharts.unshift(PerformanceWidgetSetting.SPAN_OPERATIONS);
+  }
+
   return (
     <PerformanceDisplayProvider value={{performanceType: PROJECT_PERFORMANCE_TYPE.ANY}}>
       <div data-test-id="all-transactions-view">
+        <DoubleChartRow {...props} allowedCharts={doubleChartRowCharts} />
         <TripleChartRow
           {...props}
           allowedCharts={[
@@ -23,14 +39,6 @@ export function AllTransactionsView(props: BasePerformanceViewProps) {
             PerformanceWidgetSetting.P75_DURATION_AREA,
             PerformanceWidgetSetting.P95_DURATION_AREA,
             PerformanceWidgetSetting.P99_DURATION_AREA,
-          ]}
-        />
-        <DoubleChartRow
-          {...props}
-          allowedCharts={[
-            PerformanceWidgetSetting.MOST_RELATED_ISSUES,
-            PerformanceWidgetSetting.MOST_IMPROVED,
-            PerformanceWidgetSetting.MOST_REGRESSED,
           ]}
         />
         <Table {...props} setError={usePageError().setPageError} />

@@ -24,12 +24,11 @@ from sentry import audit_log, nodestore, tsdb
 from sentry.attachments import CachedAttachment, attachment_cache
 from sentry.constants import MAX_VERSION_LENGTH, DataCategory
 from sentry.dynamic_sampling.latest_release_booster import (
-    BOOSTED_RELEASE_TIMEOUT,
-    BoostedRelease,
-    BoostedReleases,
-    get_boosted_releases,
+    ExtendedBoostedRelease,
+    ProjectBoostedReleases,
     get_redis_client_for_ds,
 )
+from sentry.dynamic_sampling.latest_release_ttas import Platform
 from sentry.event_manager import (
     EventManager,
     EventUser,
@@ -77,6 +76,7 @@ from sentry.testutils import (
 )
 from sentry.testutils.helpers import apply_feature_flag_on_cls, override_options
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.performance_issues.event_generators import get_event
 from sentry.testutils.silo import region_silo_test
 from sentry.types.activity import ActivityType
 from sentry.types.issues import GroupCategory, GroupType
@@ -89,7 +89,6 @@ from sentry.utils.performance_issues.performance_detection import (
 )
 from sentry.utils.samples import load_data
 from tests.sentry.integrations.github.test_repository import stub_installation_token
-from tests.sentry.utils.performance_issues.test_performance_detection import EVENTS
 
 
 def make_event(**kwargs):
@@ -2220,18 +2219,12 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
             assert record.data["sentry:grouping_config"] == DEFAULT_GROUPING_CONFIG
             assert record.data["slug"] == self.project.slug
 
-    @override_options({"performance.issues.all.problem-creation": 1.0})
-    @override_options({"performance.issues.all.problem-detection": 1.0})
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
     def test_perf_issue_creation(self):
         self.project.update_option("sentry:performance_issue_creation_rate", 1.0)
 
-        with mock.patch("sentry_sdk.tracing.Span.containing_transaction"), self.feature(
-            {
-                "organizations:performance-issues-ingest": True,
-            }
-        ):
-            manager = EventManager(make_event(**EVENTS["n-plus-one-in-django-index-view"]))
+        with mock.patch("sentry_sdk.tracing.Span.containing_transaction"):
+            manager = EventManager(make_event(**get_event("n-plus-one-in-django-index-view")))
             manager.normalize()
             event = manager.save(self.project.id)
             data = event.data
@@ -2306,18 +2299,12 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
                 ],
             )
 
-    @override_options({"performance.issues.all.problem-creation": 1.0})
-    @override_options({"performance.issues.all.problem-detection": 1.0})
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
     def test_perf_issue_update(self):
         self.project.update_option("sentry:performance_issue_creation_rate", 1.0)
 
-        with mock.patch("sentry_sdk.tracing.Span.containing_transaction"), self.feature(
-            {
-                "organizations:performance-issues-ingest": True,
-            }
-        ):
-            manager = EventManager(make_event(**EVENTS["n-plus-one-in-django-index-view"]))
+        with mock.patch("sentry_sdk.tracing.Span.containing_transaction"):
+            manager = EventManager(make_event(**get_event("n-plus-one-in-django-index-view")))
             manager.normalize()
             event = manager.save(self.project.id)
             group = event.groups[0]
@@ -2333,7 +2320,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
             assert group.location() == "hi"
             assert group.title == "lol"
 
-            manager = EventManager(make_event(**EVENTS["n-plus-one-in-django-index-view"]))
+            manager = EventManager(make_event(**get_event("n-plus-one-in-django-index-view")))
             manager.normalize()
             with self.tasks():
                 manager.save(self.project.id)
@@ -2350,8 +2337,6 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
             assert group.message == "nope"
             assert group.culprit == "/books/"
 
-    @override_options({"performance.issues.all.problem-creation": 1.0})
-    @override_options({"performance.issues.all.problem-detection": 1.0})
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
     def test_error_issue_no_associate_perf_event(self):
         """Test that you can't associate a performance event with an error issue"""
@@ -2360,10 +2345,9 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
         with mock.patch("sentry_sdk.tracing.Span.containing_transaction"), self.feature(
             {
                 "projects:performance-suspect-spans-ingestion": True,
-                "organizations:performance-issues-ingest": True,
             }
         ):
-            manager = EventManager(make_event(**EVENTS["n-plus-one-in-django-index-view"]))
+            manager = EventManager(make_event(**get_event("n-plus-one-in-django-index-view")))
             manager.normalize()
             event = manager.save(self.project.id)
             assert len(event.groups) == 1
@@ -2372,14 +2356,12 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
             group = event.groups[0]
             group.type = GroupType.ERROR.value
             group.save()
-            manager = EventManager(make_event(**EVENTS["n-plus-one-in-django-index-view"]))
+            manager = EventManager(make_event(**get_event("n-plus-one-in-django-index-view")))
             manager.normalize()
             event = manager.save(self.project.id)
 
             assert len(event.groups) == 0
 
-    @override_options({"performance.issues.all.problem-creation": 1.0})
-    @override_options({"performance.issues.all.problem-detection": 1.0})
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
     def test_perf_issue_no_associate_error_event(self):
         """Test that you can't associate an error event with a performance issue"""
@@ -2388,7 +2370,6 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
         with mock.patch("sentry_sdk.tracing.Span.containing_transaction"), self.feature(
             {
                 "projects:performance-suspect-spans-ingestion": True,
-                "organizations:performance-issues-ingest": True,
             }
         ):
             manager = EventManager(make_event())
@@ -2398,7 +2379,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
 
             # sneakily make the group type wrong
             group = event.groups[0]
-            group.type = GroupType.PERFORMANCE_N_PLUS_ONE.value
+            group.type = GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value
             group.save()
             manager = EventManager(make_event())
             manager.normalize()
@@ -2406,8 +2387,6 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
 
             assert len(event.groups) == 0
 
-    @override_options({"performance.issues.all.problem-creation": 1.0})
-    @override_options({"performance.issues.all.problem-detection": 1.0})
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
     @override_settings(SENTRY_PERFORMANCE_ISSUES_REDUCE_NOISE=True)
     def test_perf_issue_creation_ignored(self):
@@ -2416,18 +2395,15 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
         with mock.patch("sentry_sdk.tracing.Span.containing_transaction"), self.feature(
             {
                 "projects:performance-suspect-spans-ingestion": True,
-                "organizations:performance-issues-ingest": True,
             }
         ):
-            manager = EventManager(make_event(**EVENTS["n-plus-one-in-django-index-view"]))
+            manager = EventManager(make_event(**get_event("n-plus-one-in-django-index-view")))
             manager.normalize()
             event = manager.save(self.project.id)
             data = event.data
             assert event.get_event_type() == "transaction"
             assert data["hashes"] == []
 
-    @override_options({"performance.issues.all.problem-creation": 1.0})
-    @override_options({"performance.issues.all.problem-detection": 1.0})
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
     @override_settings(SENTRY_PERFORMANCE_ISSUES_REDUCE_NOISE=True)
     def test_perf_issue_creation_over_ignored_threshold(self):
@@ -2436,12 +2412,11 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
         with mock.patch("sentry_sdk.tracing.Span.containing_transaction"), self.feature(
             {
                 "projects:performance-suspect-spans-ingestion": True,
-                "organizations:performance-issues-ingest": True,
             }
         ):
-            manager1 = EventManager(make_event(**EVENTS["n-plus-one-in-django-index-view"]))
-            manager2 = EventManager(make_event(**EVENTS["n-plus-one-in-django-index-view"]))
-            manager3 = EventManager(make_event(**EVENTS["n-plus-one-in-django-index-view"]))
+            manager1 = EventManager(make_event(**get_event("n-plus-one-in-django-index-view")))
+            manager2 = EventManager(make_event(**get_event("n-plus-one-in-django-index-view")))
+            manager3 = EventManager(make_event(**get_event("n-plus-one-in-django-index-view")))
             manager1.normalize()
             manager2.normalize()
             manager3.normalize()
@@ -2854,12 +2829,9 @@ class ReleaseIssueTest(TestCase):
 
 
 @region_silo_test
-@apply_feature_flag_on_cls("organizations:server-side-sampling")
 @apply_feature_flag_on_cls("organizations:dynamic-sampling")
 class DSLatestReleaseBoostTest(TestCase):
     def setUp(self):
-        self.project = self.create_project()
-        self.release = Release.get_or_create(self.project, "1.0")
         self.environment1 = Environment.get_or_create(self.project, "prod")
         self.environment2 = Environment.get_or_create(self.project, "staging")
         self.timestamp = float(int(time() - 300))
@@ -2901,53 +2873,153 @@ class DSLatestReleaseBoostTest(TestCase):
         return event
 
     @freeze_time("2022-11-03 10:00:00")
-    def test_boost_release_not_observed_release(self):
+    def test_boost_release_with_non_observed_release(self):
         with self.options(
             {
                 "dynamic-sampling:boost-latest-release": True,
             }
         ):
-            releases_and_envs = (
-                (Release.get_or_create(self.project, "1.0"), None),
-                (Release.get_or_create(self.project, "2.0"), "prod"),
-                (Release.get_or_create(self.project, "3.0"), "dev"),
+            ts = time()
+
+            project = self.create_project(platform="python")
+            release_1 = Release.get_or_create(
+                project=project, version="1.0", date_added=datetime.now()
+            )
+            release_2 = Release.get_or_create(
+                project=project, version="2.0", date_added=datetime.now() + timedelta(hours=1)
+            )
+            release_3 = Release.get_or_create(
+                project=project, version="3.0", date_added=datetime.now() + timedelta(hours=2)
             )
 
-            for release, environment in releases_and_envs:
+            for release, environment in (
+                (release_1, None),
+                (release_2, "prod"),
+                (release_3, "dev"),
+            ):
                 self.make_release_transaction(
                     release_version=release.version,
                     environment_name=environment,
-                    project_id=self.project.id,
+                    project_id=project.id,
                     checksum="a" * 32,
                     timestamp=self.timestamp,
                 )
 
                 env_postfix = f":e:{environment}" if environment is not None else ""
                 assert (
-                    self.redis_client.get(f"ds::p:{self.project.id}:r:{release.id}{env_postfix}")
-                    == "1"
+                    self.redis_client.get(f"ds::p:{project.id}:r:{release.id}{env_postfix}") == "1"
                 )
 
-            expected_boosted_releases = {}
-            for release, environment in releases_and_envs:
-                env_postfix = f":e:{environment}" if environment is not None else ""
-                expected_boosted_releases.update({f"ds::r:{release.id}{env_postfix}": str(time())})
-            assert (
-                self.redis_client.hgetall(f"ds::p:{self.project.id}:boosted_releases")
-                == expected_boosted_releases
-            )
+            assert self.redis_client.hgetall(f"ds::p:{project.id}:boosted_releases") == {
+                f"ds::r:{release_1.id}": str(ts),
+                f"ds::r:{release_2.id}:e:prod": str(ts),
+                f"ds::r:{release_3.id}:e:dev": str(ts),
+            }
+            assert ProjectBoostedReleases(
+                project_id=project.id
+            ).get_extended_boosted_releases() == [
+                ExtendedBoostedRelease(
+                    id=release_1.id,
+                    timestamp=ts,
+                    environment=None,
+                    cache_key=f"ds::r:{release_1.id}",
+                    version=release_1.version,
+                    platform=Platform(project.platform),
+                ),
+                ExtendedBoostedRelease(
+                    id=release_2.id,
+                    timestamp=ts,
+                    environment="prod",
+                    cache_key=f"ds::r:{release_2.id}:e:prod",
+                    version=release_2.version,
+                    platform=Platform(project.platform),
+                ),
+                ExtendedBoostedRelease(
+                    id=release_3.id,
+                    timestamp=ts,
+                    environment="dev",
+                    cache_key=f"ds::r:{release_3.id}:e:dev",
+                    version=release_3.version,
+                    platform=Platform(project.platform),
+                ),
+            ]
 
     @freeze_time("2022-11-03 10:00:00")
-    def test_boost_release_observed_release_different_environment(self):
+    def test_boost_release_boosts_only_latest_release(self):
         with self.options(
             {
                 "dynamic-sampling:boost-latest-release": True,
             }
         ):
+            ts = time()
+
+            project = self.create_project(platform="python")
+            release_1 = Release.get_or_create(
+                project=project, version="1.0", date_added=datetime.now()
+            )
+            release_2 = Release.get_or_create(
+                project=project,
+                version="2.0",
+                # We must make sure the new release_2.date_added > release_1.date_added.
+                date_added=datetime.now() + timedelta(hours=1),
+            )
+
+            # We add a transaction for latest release release_2.
             self.make_release_transaction(
-                release_version=self.release.version,
+                release_version=release_2.version,
                 environment_name=self.environment1.name,
-                project_id=self.project.id,
+                project_id=project.id,
+                checksum="a" * 32,
+                timestamp=self.timestamp,
+            )
+
+            # We add a transaction for release_1 which is not anymore the latest release, therefore we should skip this.
+            self.make_release_transaction(
+                release_version=release_1.version,
+                environment_name=self.environment1.name,
+                project_id=project.id,
+                checksum="a" * 32,
+                timestamp=self.timestamp,
+            )
+
+            assert (
+                self.redis_client.get(
+                    f"ds::p:{project.id}:r:{release_2.id}:e:{self.environment1.name}"
+                )
+                == "1"
+            )
+            assert self.redis_client.hgetall(f"ds::p:{project.id}:boosted_releases") == {
+                f"ds::r:{release_2.id}:e:{self.environment1.name}": str(ts),
+            }
+            assert ProjectBoostedReleases(
+                project_id=project.id
+            ).get_extended_boosted_releases() == [
+                ExtendedBoostedRelease(
+                    id=release_2.id,
+                    timestamp=ts,
+                    environment=self.environment1.name,
+                    cache_key=f"ds::r:{release_2.id}:e:{self.environment1.name}",
+                    version=release_2.version,
+                    platform=Platform(project.platform),
+                )
+            ]
+
+    @freeze_time("2022-11-03 10:00:00")
+    def test_boost_release_with_observed_release_and_different_environment(self):
+        with self.options(
+            {
+                "dynamic-sampling:boost-latest-release": True,
+            }
+        ):
+            project = self.create_project(platform="python")
+            release = Release.get_or_create(
+                project=project, version="1.0", date_added=datetime.now()
+            )
+
+            self.make_release_transaction(
+                release_version=release.version,
+                environment_name=self.environment1.name,
+                project_id=project.id,
                 checksum="a" * 32,
                 timestamp=self.timestamp,
             )
@@ -2956,21 +3028,33 @@ class DSLatestReleaseBoostTest(TestCase):
 
             assert (
                 self.redis_client.get(
-                    f"ds::p:{self.project.id}:r:{self.release.id}:e:{self.environment1.name}"
+                    f"ds::p:{project.id}:r:{release.id}:e:{self.environment1.name}"
                 )
                 == "1"
             )
-            assert self.redis_client.hgetall(f"ds::p:{self.project.id}:boosted_releases") == {
-                f"ds::r:{self.release.id}:e:{self.environment1.name}": str(ts_1)
+            assert self.redis_client.hgetall(f"ds::p:{project.id}:boosted_releases") == {
+                f"ds::r:{release.id}:e:{self.environment1.name}": str(ts_1)
             }
+            assert ProjectBoostedReleases(
+                project_id=project.id
+            ).get_extended_boosted_releases() == [
+                ExtendedBoostedRelease(
+                    id=release.id,
+                    timestamp=ts_1,
+                    environment=self.environment1.name,
+                    cache_key=f"ds::r:{release.id}:e:{self.environment1.name}",
+                    version=release.version,
+                    platform=Platform(project.platform),
+                )
+            ]
 
             # We simulate that a new transaction with same release but with a different environment value comes after
             # 30 minutes to show that we expect the entry for that release-env to be added to the boosted releases.
             with freeze_time("2022-11-03 10:30:00"):
                 self.make_release_transaction(
-                    release_version=self.release.version,
+                    release_version=release.version,
                     environment_name=self.environment2.name,
-                    project_id=self.project.id,
+                    project_id=project.id,
                     checksum="b" * 32,
                     timestamp=self.timestamp,
                 )
@@ -2979,34 +3063,82 @@ class DSLatestReleaseBoostTest(TestCase):
 
                 assert (
                     self.redis_client.get(
-                        f"ds::p:{self.project.id}:r:{self.release.id}:e:{self.environment2.name}"
+                        f"ds::p:{project.id}:r:{release.id}:e:{self.environment2.name}"
                     )
                     == "1"
                 )
-                assert self.redis_client.hgetall(f"ds::p:{self.project.id}:boosted_releases") == {
-                    f"ds::r:{self.release.id}:e:{self.environment1.name}": str(ts_1),
-                    f"ds::r:{self.release.id}:e:{self.environment2.name}": str(ts_2),
+                assert self.redis_client.hgetall(f"ds::p:{project.id}:boosted_releases") == {
+                    f"ds::r:{release.id}:e:{self.environment1.name}": str(ts_1),
+                    f"ds::r:{release.id}:e:{self.environment2.name}": str(ts_2),
                 }
+                assert ProjectBoostedReleases(
+                    project_id=project.id
+                ).get_extended_boosted_releases() == [
+                    ExtendedBoostedRelease(
+                        id=release.id,
+                        timestamp=ts_1,
+                        environment=self.environment1.name,
+                        cache_key=f"ds::r:{release.id}:e:{self.environment1.name}",
+                        version=release.version,
+                        platform=Platform(project.platform),
+                    ),
+                    ExtendedBoostedRelease(
+                        id=release.id,
+                        timestamp=ts_2,
+                        environment=self.environment2.name,
+                        cache_key=f"ds::r:{release.id}:e:{self.environment2.name}",
+                        version=release.version,
+                        platform=Platform(project.platform),
+                    ),
+                ]
 
             # We also test the case in which no environment is set, which can be the case as per
             # https://docs.sentry.io/platforms/javascript/configuration/options/#environment.
             with freeze_time("2022-11-03 11:00:00"):
                 self.make_release_transaction(
-                    release_version=self.release.version,
+                    release_version=release.version,
                     environment_name=None,
-                    project_id=self.project.id,
+                    project_id=project.id,
                     checksum="b" * 32,
                     timestamp=self.timestamp,
                 )
 
                 ts_3 = time()
 
-                assert self.redis_client.get(f"ds::p:{self.project.id}:r:{self.release.id}") == "1"
-                assert self.redis_client.hgetall(f"ds::p:{self.project.id}:boosted_releases") == {
-                    f"ds::r:{self.release.id}:e:{self.environment1.name}": str(ts_1),
-                    f"ds::r:{self.release.id}:e:{self.environment2.name}": str(ts_2),
-                    f"ds::r:{self.release.id}": str(ts_3),
+                assert self.redis_client.get(f"ds::p:{project.id}:r:{release.id}") == "1"
+                assert self.redis_client.hgetall(f"ds::p:{project.id}:boosted_releases") == {
+                    f"ds::r:{release.id}:e:{self.environment1.name}": str(ts_1),
+                    f"ds::r:{release.id}:e:{self.environment2.name}": str(ts_2),
+                    f"ds::r:{release.id}": str(ts_3),
                 }
+                assert ProjectBoostedReleases(
+                    project_id=project.id
+                ).get_extended_boosted_releases() == [
+                    ExtendedBoostedRelease(
+                        id=release.id,
+                        timestamp=ts_1,
+                        environment=self.environment1.name,
+                        cache_key=f"ds::r:{release.id}:e:{self.environment1.name}",
+                        version=release.version,
+                        platform=Platform(project.platform),
+                    ),
+                    ExtendedBoostedRelease(
+                        id=release.id,
+                        timestamp=ts_2,
+                        environment=self.environment2.name,
+                        cache_key=f"ds::r:{release.id}:e:{self.environment2.name}",
+                        version=release.version,
+                        platform=Platform(project.platform),
+                    ),
+                    ExtendedBoostedRelease(
+                        id=release.id,
+                        timestamp=ts_3,
+                        environment=None,
+                        cache_key=f"ds::r:{release.id}",
+                        version=release.version,
+                        platform=Platform(project.platform),
+                    ),
+                ]
 
     @freeze_time("2022-11-03 10:00:00")
     def test_release_not_boosted_with_observed_release_and_same_environment(self):
@@ -3015,20 +3147,86 @@ class DSLatestReleaseBoostTest(TestCase):
                 "dynamic-sampling:boost-latest-release": True,
             }
         ):
+            project = self.create_project(platform="python")
+            release = Release.get_or_create(
+                project=project, version="1.0", date_added=datetime.now()
+            )
+
             for environment in (self.environment1.name, self.environment2.name):
                 self.redis_client.set(
-                    f"ds::p:{self.project.id}:r:{self.release.id}:e:{environment}", 1, 60 * 60 * 24
+                    f"ds::p:{project.id}:r:{release.id}:e:{environment}", 1, 60 * 60 * 24
                 )
                 self.make_release_transaction(
-                    release_version=self.release.version,
+                    release_version=release.version,
                     environment_name=environment,
-                    project_id=self.project.id,
+                    project_id=project.id,
                     checksum="b" * 32,
                     timestamp=self.timestamp,
                 )
 
-            assert self.redis_client.hgetall(f"ds::p:{self.project.id}:boosted_releases") == {}
-            assert get_boosted_releases(self.project.id) == BoostedReleases([])
+            assert self.redis_client.hgetall(f"ds::p:{project.id}:boosted_releases") == {}
+            assert (
+                ProjectBoostedReleases(project_id=project.id).get_extended_boosted_releases() == []
+            )
+
+    @freeze_time("2022-11-03 10:00:00")
+    def test_release_not_boosted_with_deleted_release_after_event_received(self):
+        with self.options(
+            {
+                "dynamic-sampling:boost-latest-release": True,
+            }
+        ):
+            ts = time()
+
+            project = self.create_project(platform="python")
+            release_1 = Release.get_or_create(
+                project=project, version="1.0", date_added=datetime.now()
+            )
+            release_2 = Release.get_or_create(
+                project=project, version="2.0", date_added=datetime.now() + timedelta(hours=1)
+            )
+
+            self.make_release_transaction(
+                release_version=release_1.version,
+                environment_name=None,
+                project_id=project.id,
+                checksum="a" * 32,
+                timestamp=self.timestamp,
+            )
+            assert self.redis_client.get(f"ds::p:{project.id}:r:{release_1.id}") == "1"
+
+            self.make_release_transaction(
+                release_version=release_2.version,
+                environment_name=None,
+                project_id=project.id,
+                checksum="a" * 32,
+                timestamp=self.timestamp,
+            )
+            assert self.redis_client.get(f"ds::p:{project.id}:r:{release_2.id}") == "1"
+
+            # We simulate that the release_2 is deleted after the boost has been inserted.
+            release_2_id = release_2.id
+            release_2.delete()
+
+            # We expect the boosted release to be kept in Redis, if not queried by the ProjectBoostedReleases.
+            assert self.redis_client.hgetall(f"ds::p:{project.id}:boosted_releases") == {
+                f"ds::r:{release_1.id}": str(ts),
+                f"ds::r:{release_2_id}": str(ts),
+            }
+            # We expect to not see the release 2 because it will not be in the database anymore, thus we mark it as
+            # expired.
+            assert ProjectBoostedReleases(
+                project_id=project.id
+            ).get_extended_boosted_releases() == [
+                ExtendedBoostedRelease(
+                    id=release_1.id,
+                    timestamp=ts,
+                    environment=None,
+                    cache_key=f"ds::r:{release_1.id}",
+                    version=release_1.version,
+                    platform=Platform(project.platform),
+                ),
+            ]
 
     @freeze_time("2022-11-03 10:00:00")
     def test_get_boosted_releases_with_old_and_new_cache_keys(self):
@@ -3039,80 +3237,145 @@ class DSLatestReleaseBoostTest(TestCase):
         ):
             ts = time()
 
+            project = self.create_project(platform="python")
+
             # Old cache key
+            release_1 = Release.get_or_create(
+                project=project, version="1.0", date_added=datetime.now()
+            )
             self.redis_client.hset(
-                f"ds::p:{self.project.id}:boosted_releases",
-                f"{self.release.id}",
+                f"ds::p:{project.id}:boosted_releases",
+                f"{release_1.id}",
                 ts,
             )
 
             # New cache key
-            release_2 = Release.get_or_create(self.project, "2.0")
+            release_2 = Release.get_or_create(
+                project=project, version="2.0", date_added=datetime.now() + timedelta(hours=1)
+            )
             self.redis_client.hset(
-                f"ds::p:{self.project.id}:boosted_releases",
+                f"ds::p:{project.id}:boosted_releases",
                 f"ds::r:{release_2.id}",
                 ts,
             )
             self.redis_client.hset(
-                f"ds::p:{self.project.id}:boosted_releases",
+                f"ds::p:{project.id}:boosted_releases",
                 f"ds::r:{release_2.id}:e:{self.environment1.name}",
                 ts,
             )
             self.redis_client.hset(
-                f"ds::p:{self.project.id}:boosted_releases",
+                f"ds::p:{project.id}:boosted_releases",
                 f"ds::r:{release_2.id}:e:{self.environment2.name}",
                 ts,
             )
 
-            assert get_boosted_releases(self.project.id) == BoostedReleases(
-                [
-                    BoostedRelease(self.release.id, ts, None),
-                    BoostedRelease(release_2.id, ts, None),
-                    BoostedRelease(release_2.id, ts, self.environment1.name),
-                    BoostedRelease(release_2.id, ts, self.environment2.name),
-                ]
-            )
+            assert ProjectBoostedReleases(
+                project_id=project.id
+            ).get_extended_boosted_releases() == [
+                ExtendedBoostedRelease(
+                    id=release_1.id,
+                    timestamp=ts,
+                    environment=None,
+                    # This item has the old cache key.
+                    cache_key=f"{release_1.id}",
+                    version=release_1.version,
+                    platform=Platform(project.platform),
+                ),
+                ExtendedBoostedRelease(
+                    id=release_2.id,
+                    timestamp=ts,
+                    environment=None,
+                    cache_key=f"ds::r:{release_2.id}",
+                    version=release_2.version,
+                    platform=Platform(project.platform),
+                ),
+                ExtendedBoostedRelease(
+                    id=release_2.id,
+                    timestamp=ts,
+                    environment=self.environment1.name,
+                    cache_key=f"ds::r:{release_2.id}:e:{self.environment1.name}",
+                    version=release_2.version,
+                    platform=Platform(project.platform),
+                ),
+                ExtendedBoostedRelease(
+                    id=release_2.id,
+                    timestamp=ts,
+                    environment=self.environment2.name,
+                    cache_key=f"ds::r:{release_2.id}:e:{self.environment2.name}",
+                    version=release_2.version,
+                    platform=Platform(project.platform),
+                ),
+            ]
 
     @freeze_time("2022-11-03 10:00:00")
-    def test_evict_expired_boosted_releases(self):
-        release_2 = Release.get_or_create(self.project, "2.0")
-        release_3 = Release.get_or_create(self.project, "3.0")
+    def test_expired_boosted_releases_are_removed(self):
+        ts = time()
 
-        for release_id in (self.release.id, release_2.id):
-            for environment in (self.environment1.name, self.environment2.name):
+        # We want to test with multiple platforms.
+        for platform in ("python", "java", None):
+            project = self.create_project(platform=platform)
+
+            for index, (release_version, environment) in enumerate(
+                (
+                    (f"1.0-{platform}", self.environment1.name),
+                    (f"2.0-{platform}", self.environment2.name),
+                )
+            ):
+                release = Release.get_or_create(
+                    project=project,
+                    version=release_version,
+                    date_added=datetime.now() + timedelta(hours=index),
+                )
                 self.redis_client.set(
-                    f"ds::p:{self.project.id}:r:{release_id}:e:{environment}", 1, 60 * 60 * 24
+                    f"ds::p:{project.id}:r:{release.id}:e:{environment}", 1, 60 * 60 * 24
                 )
                 self.redis_client.hset(
-                    f"ds::p:{self.project.id}:boosted_releases",
-                    f"ds::r:{release_id}:e:{environment}",
-                    time() - BOOSTED_RELEASE_TIMEOUT * 2,
+                    f"ds::p:{project.id}:boosted_releases",
+                    f"ds::r:{release.id}:e:{environment}",
+                    # We set the creation time in order to expire it by 1 second.
+                    ts - Platform(platform).time_to_adoption - 1,
                 )
 
-        with self.options(
-            {
-                "dynamic-sampling:boost-latest-release": True,
-            }
-        ):
-            self.make_release_transaction(
-                release_version=release_3.version,
-                environment_name=self.environment1.name,
-                project_id=self.project.id,
-                checksum="b" * 32,
-                timestamp=self.timestamp,
+            # We add a new boosted release that is not expired.
+            release_3 = Release.get_or_create(
+                project=project,
+                version=f"3.0-{platform}",
+                date_added=datetime.now() + timedelta(hours=2),
             )
-            assert self.redis_client.hgetall(f"ds::p:{self.project.id}:boosted_releases") == {
-                f"ds::r:{release_3.id}:e:{self.environment1.name}": str(time())
-            }
-            assert (
-                self.redis_client.get(
-                    f"ds::p:{self.project.id}:r:{release_3.id}:e:{self.environment1.name}"
+            with self.options(
+                {
+                    "dynamic-sampling:boost-latest-release": True,
+                }
+            ):
+                self.make_release_transaction(
+                    release_version=release_3.version,
+                    environment_name=self.environment1.name,
+                    project_id=project.id,
+                    checksum="b" * 32,
+                    timestamp=self.timestamp,
                 )
-                == "1"
-            )
-            assert get_boosted_releases(self.project.id) == BoostedReleases(
-                [BoostedRelease(release_3.id, time(), self.environment1.name)]
-            )
+
+                assert (
+                    self.redis_client.get(
+                        f"ds::p:{project.id}:r:{release_3.id}:e:{self.environment1.name}"
+                    )
+                    == "1"
+                )
+                assert self.redis_client.hgetall(f"ds::p:{project.id}:boosted_releases") == {
+                    f"ds::r:{release_3.id}:e:{self.environment1.name}": str(ts)
+                }
+                assert ProjectBoostedReleases(
+                    project_id=project.id
+                ).get_extended_boosted_releases() == [
+                    ExtendedBoostedRelease(
+                        id=release_3.id,
+                        timestamp=ts,
+                        environment=self.environment1.name,
+                        cache_key=f"ds::r:{release_3.id}:e:{self.environment1.name}",
+                        version=release_3.version,
+                        platform=Platform(project.platform),
+                    )
+                ]
 
     @mock.patch("sentry.event_manager.schedule_invalidate_project_config")
     def test_project_config_invalidation_is_triggered_when_new_release_is_observed(
@@ -3136,45 +3399,171 @@ class DSLatestReleaseBoostTest(TestCase):
             )
 
     @freeze_time()
-    @mock.patch("sentry.dynamic_sampling.latest_release_booster.BOOSTED_RELEASES_LIMIT", 2)
-    def test_too_many_boosted_releases_do_not_boost_anymore(self):
-        """
-        Tests the case when we have already too many boosted releases, in this case we want to skip the
-        boosting of anymore releases.
-        """
-        releases = [Release.get_or_create(self.project, f"{x}.0") for x in range(1, 3)]
-        expected_releases = {}
-        for release in releases:
+    @mock.patch(
+        "sentry.dynamic_sampling.latest_release_booster.ProjectBoostedReleases.BOOSTED_RELEASES_LIMIT",
+        2,
+    )
+    def test_least_recently_boosted_release_is_removed_if_limit_is_exceeded(self):
+        ts = time()
+
+        project = self.create_project(platform="python")
+        release_1 = Release.get_or_create(
+            project=project,
+            version="1.0",
+            date_added=datetime.now(),
+        )
+        release_2 = Release.get_or_create(
+            project=project,
+            version="2.0",
+            date_added=datetime.now() + timedelta(hours=1),
+        )
+
+        # We boost with increasing timestamps, so that we know that the smallest will be evicted.
+        for release, boost_time in ((release_1, ts - 2), (release_2, ts - 1)):
             self.redis_client.set(
-                f"ds::p:{self.project.id}:r:{release.id}",
+                f"ds::p:{project.id}:r:{release.id}",
                 1,
                 60 * 60 * 24,
             )
             self.redis_client.hset(
-                f"ds::p:{self.project.id}:boosted_releases",
+                f"ds::p:{project.id}:boosted_releases",
                 f"ds::r:{release.id}",
-                time(),
+                boost_time,
             )
-            expected_releases.update({f"ds::r:{release.id}": str(time())})
 
         with self.options(
             {
                 "dynamic-sampling:boost-latest-release": True,
             }
         ):
-            new_release = Release.get_or_create(self.project, "3.0")
+            release_3 = Release.get_or_create(
+                project=project,
+                version="3.0",
+                date_added=datetime.now() + timedelta(hours=2),
+            )
             self.make_release_transaction(
-                release_version=new_release.version,
+                release_version=release_3.version,
                 environment_name=self.environment1.name,
-                project_id=self.project.id,
+                project_id=project.id,
                 checksum="b" * 32,
                 timestamp=self.timestamp,
             )
+
             assert (
-                self.redis_client.hgetall(f"ds::p:{self.project.id}:boosted_releases")
-                == expected_releases
+                self.redis_client.get(
+                    f"ds::p:{project.id}:r:{release_3.id}:e:{self.environment1.name}"
+                )
+                == "1"
             )
-            assert self.redis_client.get(f"ds::p:{self.project.id}:r:{new_release.id}") is None
+            assert self.redis_client.hgetall(f"ds::p:{project.id}:boosted_releases") == {
+                f"ds::r:{release_2.id}": str(ts - 1),
+                f"ds::r:{release_3.id}:e:{self.environment1.name}": str(ts),
+            }
+            assert ProjectBoostedReleases(
+                project_id=project.id
+            ).get_extended_boosted_releases() == [
+                ExtendedBoostedRelease(
+                    id=release_2.id,
+                    timestamp=ts - 1,
+                    environment=None,
+                    cache_key=f"ds::r:{release_2.id}",
+                    version=release_2.version,
+                    platform=Platform(project.platform),
+                ),
+                ExtendedBoostedRelease(
+                    id=release_3.id,
+                    timestamp=ts,
+                    environment=self.environment1.name,
+                    cache_key=f"ds::r:{release_3.id}:e:{self.environment1.name}",
+                    version=release_3.version,
+                    platform=Platform(project.platform),
+                ),
+            ]
+
+    @freeze_time()
+    @mock.patch(
+        "sentry.dynamic_sampling.latest_release_booster.ProjectBoostedReleases.BOOSTED_RELEASES_LIMIT",
+        2,
+    )
+    def test_removed_boost_not_added_again_if_limit_is_exceeded(self):
+        with self.options(
+            {
+                "dynamic-sampling:boost-latest-release": True,
+            }
+        ):
+            ts = time()
+
+            project = self.create_project(platform="python")
+            release_1 = Release.get_or_create(
+                project=project, version="1.0", date_added=datetime.now()
+            )
+
+            # We want to test that if we have the same release, but we send different environments that go over the
+            # limit, and we evict an environment, but then we send a transaction with the evicted environment.
+            #
+            # As an example suppose the following history of transactions received in the form (release, env):
+            # (1, production) -> (1, staging) -> (1, None) -> (1, production)
+            #
+            # Once we receive the first two, we have reached maximum capacity. Then we receive (1, None) and evict boost
+            # for (1, production) which results in the following boosts (1, staging), (1, None). After that we receive
+            # (1, production) again but in this case we don't want to remove (1, staging) because we will end up in an
+            # infinite loop. Instead, we expect to mark (1, production) as observed and only un-observe it if it does
+            # not receive transactions within the next 24 hours.
+            environments_sequence = [
+                self.environment1.name,
+                self.environment2.name,
+                None,
+                self.environment1.name,
+            ]
+            for environment in environments_sequence:
+                self.make_release_transaction(
+                    release_version=release_1.version,
+                    environment_name=environment,
+                    project_id=project.id,
+                    checksum="b" * 32,
+                    timestamp=self.timestamp,
+                )
+
+            # We assert that all environments have been observed.
+            assert (
+                self.redis_client.get(
+                    f"ds::p:{project.id}:r:{release_1.id}:e:{self.environment1.name}"
+                )
+                == "1"
+            )
+            assert (
+                self.redis_client.get(
+                    f"ds::p:{project.id}:r:{release_1.id}:e:{self.environment2.name}"
+                )
+                == "1"
+            )
+            assert self.redis_client.get(f"ds::p:{project.id}:r:{release_1.id}") == "1"
+
+            # We assert that only the last 2 unseen (release, env) pairs are boosted.
+            assert self.redis_client.hgetall(f"ds::p:{project.id}:boosted_releases") == {
+                f"ds::r:{release_1.id}:e:{self.environment2.name}": str(ts),
+                f"ds::r:{release_1.id}": str(ts),
+            }
+            assert ProjectBoostedReleases(
+                project_id=project.id
+            ).get_extended_boosted_releases() == [
+                ExtendedBoostedRelease(
+                    id=release_1.id,
+                    timestamp=ts,
+                    environment=self.environment2.name,
+                    cache_key=f"ds::r:{release_1.id}:e:{self.environment2.name}",
+                    version=release_1.version,
+                    platform=Platform(project.platform),
+                ),
+                ExtendedBoostedRelease(
+                    id=release_1.id,
+                    timestamp=ts,
+                    environment=None,
+                    cache_key=f"ds::r:{release_1.id}",
+                    version=release_1.version,
+                    platform=Platform(project.platform),
+                ),
+            ]
 
 
 class TestSaveGroupHashAndGroup(TransactionTestCase):

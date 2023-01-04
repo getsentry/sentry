@@ -51,7 +51,7 @@ import withSentryRouter from 'sentry/utils/withSentryRouter';
 import DropdownMenuControl from '../dropdownMenuControl';
 import {MenuItemProps} from '../dropdownMenuItem';
 
-import {ActionButton} from './actions';
+import {ActionButton} from './actionButton';
 import SearchBarDatePicker from './searchBarDatePicker';
 import SearchDropdown from './searchDropdown';
 import SearchHotkeysListener from './searchHotkeysListener';
@@ -1232,11 +1232,9 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
         value: searches.query,
         type: ItemType.RECENT_SEARCH,
       }));
-    } catch (e) {
-      Sentry.captureException(e);
+    } catch {
+      return [];
     }
-
-    return [];
   };
 
   getReleases = debounce(

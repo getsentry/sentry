@@ -352,6 +352,54 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
         ]
 
     @freeze_time(MOCK_DATETIME)
+    def test_anr_invalid_aggregates(self):
+        default_request = {
+            "project": [-1],
+            "statsPeriod": "1d",
+            "interval": "1d",
+            "field": ["anr_rate()", "crash_free_rate(user)"],
+        }
+
+        def req(**kwargs):
+            return self.do_request(dict(default_request, **kwargs))
+
+        response = req()
+        assert response.status_code == 200
+
+        from sentry.api.endpoints.organization_sessions import release_health
+
+        if release_health.is_metrics_based():
+            # Both these fields are supported by the metrics backend
+            assert response.data["groups"] == [
+                {
+                    "by": {},
+                    "totals": {"anr_rate()": 0.0, "crash_free_rate(user)": 1.0},
+                    "series": {"anr_rate()": [0.0], "crash_free_rate(user)": [1.0]},
+                }
+            ]
+        else:
+            # Both these fields are not supported by the sessions backend
+            assert response.data["groups"] == []
+
+        response = req(field=["anr_rate()", "sum(session)"])
+        assert response.status_code == 200
+
+        if release_health.is_metrics_based():
+            # Both these fields are supported by the metrics backend
+            assert response.data["groups"] == [
+                {
+                    "by": {},
+                    "totals": {"anr_rate()": 0.0, "sum(session)": 9},
+                    "series": {"anr_rate()": [0.0], "sum(session)": [9]},
+                }
+            ]
+        else:
+            # Only sum(session) is supported by the sessions backend
+            assert response.data["groups"] == [
+                {"by": {}, "totals": {"sum(session)": 9}, "series": {"sum(session)": [9]}}
+            ]
+
+    @freeze_time(MOCK_DATETIME)
     def test_filter_environment(self):
         response = self.do_request(
             {
@@ -1517,6 +1565,92 @@ class OrganizationSessionsEndpointMetricsTest(
         )
         assert response.status_code == 400, response.content
         assert response.data == {"detail": "Cannot order by sum(session) with the current filters"}
+
+    @freeze_time(MOCK_DATETIME)
+    def test_anr_rate(self):
+        def store_anr_session(user_id, mechanism):
+            self.store_session(
+                make_session(
+                    self.project2,
+                    distinct_id=user_id,
+                    errors=1,
+                    status="abnormal",
+                    abnormal_mechanism=mechanism,
+                )
+            )
+
+        self.store_session(
+            make_session(
+                self.project2,
+                distinct_id="610c480b-3c47-4871-8c03-05ea04595eb0",
+                started=SESSION_STARTED - 60 * 60,
+            )
+        )
+        store_anr_session("610c480b-3c47-4871-8c03-05ea04595eb0", "anr_foreground")
+
+        self.store_session(
+            make_session(
+                self.project2,
+                distinct_id="ac0b74a2-8ace-415a-82d2-0fdb0d81dec4",
+                started=SESSION_STARTED - 60 * 60,
+            )
+        )
+        store_anr_session("ac0b74a2-8ace-415a-82d2-0fdb0d81dec4", "anr_background")
+
+        self.store_session(
+            make_session(
+                self.project2,
+                distinct_id="5344c005-653b-48b7-bbaf-d362c2f268dd",
+                started=SESSION_STARTED - 60 * 60,
+            )
+        )
+
+        default_request = {
+            "project": [-1],
+            "statsPeriod": "1d",
+            "interval": "1d",
+            "field": ["anr_rate()"],
+        }
+
+        def req(**kwargs):
+            return self.do_request(dict(default_request, **kwargs))
+
+        # basic test case
+        response = req()
+        assert response.status_code == 200
+        assert response.data["groups"] == [
+            {"by": {}, "totals": {"anr_rate()": 0.5}, "series": {"anr_rate()": [0.5]}}
+        ]
+
+        # group by session.status
+        response = req(
+            groupBy="session.status",
+        )
+        assert response.status_code == 400, response.content
+        assert response.data == {"detail": "Cannot group field anr_rate() by session.status"}
+
+        # valid group by
+        response = req(
+            field=["anr_rate()", "foreground_anr_rate()"],
+            groupBy=["release", "environment"],
+            orderBy=["anr_rate()"],
+            query="release:foo@1.0.0",
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data["groups"] == [
+            {
+                "by": {"environment": "production", "release": "foo@1.0.0"},
+                "series": {
+                    "anr_rate()": [0.5],
+                    "foreground_anr_rate()": [0.25],
+                },
+                "totals": {
+                    "anr_rate()": 0.5,
+                    "foreground_anr_rate()": 0.25,
+                },
+            },
+        ]
 
     @freeze_time(MOCK_DATETIME)
     def test_crash_rate(self):

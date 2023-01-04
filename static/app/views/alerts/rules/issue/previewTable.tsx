@@ -13,7 +13,7 @@ import GroupStore from 'sentry/stores/groupStore';
 import {Group, Member} from 'sentry/types';
 
 type Props = {
-  error: boolean;
+  error: string | null;
   issueCount: number;
   loading: boolean;
   members: Member[] | undefined;
@@ -41,7 +41,7 @@ const PreviewTable = ({
     if (error || !members) {
       return (
         <EmptyStateWarning>
-          <p>{t('No preview available')}</p>
+          <p>{error ? error : t('No preview available')}</p>
         </EmptyStateWarning>
       );
     }
@@ -67,6 +67,7 @@ const PreviewTable = ({
           useFilteredStats
           withChart={false}
           canSelect={false}
+          showLastTriggered
         />
       );
     });
@@ -97,7 +98,7 @@ const PreviewTable = ({
   return (
     <IssuesReplayCountProvider groupIds={previewGroups || []}>
       <Panel>
-        <GroupListHeader withChart={false} />
+        <GroupListHeader withChart={false} showLastTriggered />
         <PanelBody>{renderBody()}</PanelBody>
       </Panel>
       {renderPagination()}

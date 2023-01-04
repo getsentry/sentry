@@ -19,7 +19,6 @@ from sentry.models import (
     Release,
     Team,
     User,
-    UserOption,
 )
 from sentry.notifications.helpers import (
     get_settings_by_provider,
@@ -29,6 +28,7 @@ from sentry.notifications.helpers import (
 from sentry.notifications.notify import notification_providers
 from sentry.notifications.types import (
     ActionTargetType,
+    FallthroughChoiceType,
     GroupSubscriptionReason,
     NotificationScopeType,
     NotificationSettingOptionValues,
@@ -49,6 +49,8 @@ AVAILABLE_PROVIDERS = {
     ExternalProviders.SLACK,
 }
 
+FALLTHROUGH_NOTIFICATION_LIMIT = 20
+
 
 def get_providers_from_which_to_remove_user(
     user: APIUser,
@@ -65,10 +67,7 @@ def get_providers_from_which_to_remove_user(
         for provider, participants in participants_by_provider.items()
         if user.id in map(lambda p: int(p.id), participants)
     }
-    if (
-        providers
-        and UserOption.objects.get_value(user, key="self_notifications", default="0") == "0"
-    ):
+    if providers and user.get_option(key="self_notifications", default="0") == "0":
         return providers
     return set()
 
@@ -147,7 +146,11 @@ def split_participants_and_context(
     }
 
 
-def get_owners(project: Project, event: Event | None = None) -> Sequence[Team | APIUser]:
+def get_owners(
+    project: Project,
+    event: Event | None = None,
+    fallthrough_choice: FallthroughChoiceType | None = None,
+) -> Sequence[Team | APIUser]:
     """
     Given a project and an event, decide which users and teams are the owners.
 
@@ -179,12 +182,45 @@ def get_owners(project: Project, event: Event | None = None) -> Sequence[Team | 
         "features.owners.send_to",
         tags={
             "organization": project.organization_id,
-            "outcome": outcome,
+            "outcome": outcome
+            if outcome == "match" or fallthrough_choice is None
+            else fallthrough_choice.value,
             "isUsingDefault": ProjectOwnership.get_ownership_cached(project.id) is None,
         },
         skip_internal=True,
     )
     return recipients
+
+
+def get_owner_reason(
+    project: Project,
+    target_type: ActionTargetType,
+    event: Event | None = None,
+    notification_type: NotificationSettingTypes = NotificationSettingTypes.ISSUE_ALERTS,
+    fallthrough_choice: FallthroughChoiceType | None = None,
+) -> str | None:
+    """
+    Provide a human readable reason for why a user is receiving a notification.
+    Currently only used to explain "issue owners" w/ fallthrough to everyone
+    """
+    if not features.has("organizations:issue-alert-fallback-targeting", project.organization):
+        return None
+
+    # Sent to a specific user or team
+    if target_type != ActionTargetType.ISSUE_OWNERS:
+        return None
+
+    # Not an issue alert
+    if event is None or notification_type != NotificationSettingTypes.ISSUE_ALERTS:
+        return None
+
+    # Describe why an issue owner was notified
+    if fallthrough_choice == FallthroughChoiceType.ALL_MEMBERS:
+        return f"We notified all members in the {project.get_full_name()} project of this issue"
+    if fallthrough_choice == FallthroughChoiceType.ACTIVE_MEMBERS:
+        return f"We notified recently active members in the {project.get_full_name()} project of this issue"
+
+    return None
 
 
 def disabled_users_from_project(project: Project) -> Mapping[ExternalProviders, set[User]]:
@@ -222,6 +258,7 @@ def determine_eligible_recipients(
     target_type: ActionTargetType,
     target_identifier: int | None = None,
     event: Event | None = None,
+    fallthrough_choice: FallthroughChoiceType | None = None,
 ) -> Iterable[Team | APIUser]:
     """
     Either get the individual recipient from the target type/id or the
@@ -243,8 +280,13 @@ def determine_eligible_recipients(
     elif target_type == ActionTargetType.RELEASE_MEMBERS:
         return get_release_committers(project, event)
 
-    else:
-        return get_owners(project, event)
+    elif target_type == ActionTargetType.ISSUE_OWNERS:
+        owners = get_owners(project, event, fallthrough_choice)
+        if owners:
+            return owners
+
+        if fallthrough_choice:
+            return get_fallthrough_recipients(project, fallthrough_choice)
 
     return set()
 
@@ -293,9 +335,36 @@ def get_send_to(
     target_identifier: int | None = None,
     event: Event | None = None,
     notification_type: NotificationSettingTypes = NotificationSettingTypes.ISSUE_ALERTS,
+    fallthrough_choice: FallthroughChoiceType | None = None,
 ) -> Mapping[ExternalProviders, set[Team | APIUser]]:
-    recipients = determine_eligible_recipients(project, target_type, target_identifier, event)
+    recipients = determine_eligible_recipients(
+        project, target_type, target_identifier, event, fallthrough_choice
+    )
     return get_recipients_by_provider(project, recipients, notification_type)
+
+
+def get_fallthrough_recipients(
+    project: Project, fallthrough_choice: FallthroughChoiceType
+) -> Iterable[APIUser]:
+    if not features.has(
+        "organizations:issue-alert-fallback-targeting",
+        project.organization,
+        actor=None,
+    ):
+        return []
+
+    if fallthrough_choice == FallthroughChoiceType.NO_ONE:
+        return []
+
+    elif fallthrough_choice == FallthroughChoiceType.ALL_MEMBERS:
+        return user_service.get_from_project(project.id)
+
+    elif fallthrough_choice == FallthroughChoiceType.ACTIVE_MEMBERS:
+        return user_service.get_many(
+            project.member_set.order_by("-user__last_active").values_list("user_id", flat=True)
+        )[:FALLTHROUGH_NOTIFICATION_LIMIT]
+
+    raise NotImplementedError(f"Unknown fallthrough choice: {fallthrough_choice}")
 
 
 def get_user_from_identifier(project: Project, target_identifier: str | int | None) -> User | None:

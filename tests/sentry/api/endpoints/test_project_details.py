@@ -2,14 +2,9 @@ from abc import ABC
 from time import time
 from unittest import mock
 
-import pytest
 from django.urls import reverse
 
 from sentry import audit_log
-from sentry.api.endpoints.project_details import (
-    DynamicSamplingConditionSerializer,
-    DynamicSamplingSerializer,
-)
 from sentry.constants import RESERVED_PROJECT_SLUGS
 from sentry.dynamic_sampling.utils import DEFAULT_BIASES
 from sentry.models import (
@@ -33,7 +28,6 @@ from sentry.models import (
     ScheduledDeletion,
 )
 from sentry.testutils import APITestCase
-from sentry.testutils.cases import BaseTestCase
 from sentry.testutils.helpers import Feature, faux
 from sentry.testutils.silo import region_silo_test
 from sentry.types.integrations import ExternalProviders
@@ -474,6 +468,7 @@ class ProjectUpdateTest(APITestCase):
             "sentry:token": "*",
             "sentry:token_header": "*",
             "sentry:verify_ssl": False,
+            "feedback:branding": False,
         }
         with self.feature("projects:custom-inbound-filters"):
             self.get_success_response(self.org_slug, self.proj_slug, options=options)
@@ -556,6 +551,10 @@ class ProjectUpdateTest(APITestCase):
             organization=project.organization, event=audit_log.get_event_id("PROJECT_EDIT")
         ).exists()
         assert project.get_option("sentry:verify_ssl", False) == options["sentry:verify_ssl"]
+        assert AuditLogEntry.objects.filter(
+            organization=project.organization, event=audit_log.get_event_id("PROJECT_EDIT")
+        ).exists()
+        assert project.get_option("feedback:branding") == "0"
         assert AuditLogEntry.objects.filter(
             organization=project.organization, event=audit_log.get_event_id("PROJECT_EDIT")
         ).exists()
@@ -1178,80 +1177,6 @@ class ProjectDeleteTest(APITestCase):
         ).exists()
 
 
-class TestDynamicSamplingSerializers(BaseTestCase):
-    @pytest.mark.parametrize(
-        "condition",
-        (
-            {"op": "and", "inner": []},
-            {"op": "and", "inner": [{"op": "and", "inner": []}]},
-            {"op": "or", "inner": []},
-            {"op": "or", "inner": [{"op": "or", "inner": []}]},
-            {"op": "not", "inner": {"op": "or", "inner": []}},
-            {"op": "eq", "ignoreCase": True, "name": "field1", "value": ["val"]},
-            {"op": "eq", "name": "field1", "value": ["val"]},
-            {"op": "glob", "name": "field1", "value": ["val"]},
-        ),
-    )
-    def test_condition_serializer_ok(self, condition):
-        serializer = DynamicSamplingConditionSerializer(data=condition)
-        assert serializer.is_valid()
-        assert serializer.validated_data == condition
-
-    @pytest.mark.parametrize(
-        "condition",
-        (
-            {"inner": []},
-            {"op": "and"},
-            {"op": "or"},
-            {"op": "eq", "value": ["val"]},
-            {"op": "eq", "name": "field1"},
-            {"op": "glob", "value": ["val"]},
-            {"op": "glob", "name": "field1"},
-        ),
-    )
-    def test_bad_condition_serialization(self, condition):
-        serializer = DynamicSamplingConditionSerializer(data=condition)
-        assert not serializer.is_valid()
-
-    @pytest.mark.django_db
-    def test_rule_config_serializer(self):
-        data = {
-            "rules": [
-                {
-                    "sampleRate": 0.7,
-                    "type": "trace",
-                    "active": False,
-                    "id": 1,
-                    "condition": {
-                        "op": "and",
-                        "inner": [
-                            {"op": "eq", "name": "field1", "value": ["val"]},
-                            {"op": "glob", "name": "field1", "value": ["val"]},
-                        ],
-                    },
-                },
-                {
-                    "sampleRate": 0.7,
-                    "type": "trace",
-                    "active": False,
-                    "id": 2,
-                    "condition": {
-                        "op": "and",
-                        "inner": [],
-                    },
-                },
-            ],
-            "next_id": 3,
-        }
-
-        serializer = DynamicSamplingSerializer(
-            data=data,
-            context={"project": self.create_project(), "request": self.make_request()},
-        )
-        assert serializer.is_valid()
-        assert data == serializer.validated_data
-
-
 class TestProjectDetailsDynamicSamplingBase(APITestCase, ABC):
     endpoint = "sentry-api-0-project-details"
     method = "put"
@@ -1260,412 +1185,95 @@ class TestProjectDetailsDynamicSamplingBase(APITestCase, ABC):
         self.org_slug = self.project.organization.slug
         self.proj_slug = self.project.slug
         self.login_as(user=self.user)
-        self.universal_ds_flag = "organizations:server-side-sampling"
-        self.old_ds_flag = "organizations:dynamic-sampling-deprecated"
         self.new_ds_flag = "organizations:dynamic-sampling"
 
 
 @region_silo_test
-class TestProjectDetailsDynamicSamplingDeprecated(TestProjectDetailsDynamicSamplingBase):
-    """
-    TODO (@andrii): Remove this class right after we remove feature flag
-    for now we just test that we can't update/delete `dynamicSampling` so user will get 403
-    only readOnly get will work.
-    """
-
-    endpoint = "sentry-api-0-project-details"
-    method = "put"
-
-    def test_with_dynamic_sampling_rules(self):
-        project = self.project  # force creation
-        project.update_option("sentry:dynamic_sampling", _dyn_sampling_data())
-
-        with Feature({self.universal_ds_flag: True, self.old_ds_flag: True}):
-            response = self.get_success_response(
-                project.organization.slug, project.slug, method="get"
-            )
-            assert response.data["dynamicSampling"] == _dyn_sampling_data()
-
-    def test_dynamic_sampling_requires_feature_enabled(self):
-        self.get_error_response(
-            self.org_slug, self.proj_slug, dynamicSampling=_dyn_sampling_data(), status_code=403
-        )
-
-    def test_dynamic_sampling_uniform_rule_deletion_fail(self):
-        """
-        Tests that when sending a request to delete a dynamic sampling uniform rule without the demo feature flag,
-        the rule will fail to delete
-        """
-        dynamic_sampling = _dyn_sampling_data()
-        project = self.project  # force creation
-
-        # Update project adding three rules
-        project.update_option("sentry:dynamic_sampling", dynamic_sampling)
-
-        self.login_as(self.user)
-
-        token = ApiToken.objects.create(user=self.user, scope_list=["project:write"])
-        authorization = f"Bearer {token.token}"
-
-        url = reverse(
-            "sentry-api-0-project-details",
-            kwargs={
-                "organization_slug": self.project.organization.slug,
-                "project_slug": self.project.slug,
-            },
-        )
-
-        data = {
-            "dynamicSampling": {
-                "rules": [],
-            }
-        }
-
-        with Feature({self.universal_ds_flag: True, self.old_ds_flag: True}):
-            response = self.client.put(
-                url, format="json", HTTP_AUTHORIZATION=authorization, data=data
-            )
-
-            assert response.status_code == 400, response.content
-
-    def test_dynamic_sampling_uniform_rule_deletion_success(self):
-        """
-        Tests that when sending a request to delete a dynamic sampling uniform rule with the demo feature flag,
-        the rule will be successfully deleted
-        """
-        dynamic_sampling = _dyn_sampling_data()
-        project = self.project  # force creation
-
-        # Update project adding three rules
-        project.update_option("sentry:dynamic_sampling", dynamic_sampling)
-
-        self.login_as(self.user)
-
-        token = ApiToken.objects.create(user=self.user, scope_list=["project:write"])
-        authorization = f"Bearer {token.token}"
-
-        url = reverse(
-            "sentry-api-0-project-details",
-            kwargs={
-                "organization_slug": self.project.organization.slug,
-                "project_slug": self.project.slug,
-            },
-        )
-
-        data = {
-            "dynamicSampling": {
-                "rules": [],
-            }
-        }
-
-        with Feature(
-            {
-                self.universal_ds_flag: True,
-                self.old_ds_flag: True,
-                "organizations:dynamic-sampling-demo": True,
-            }
-        ):
-
-            response = self.client.put(
-                url, format="json", HTTP_AUTHORIZATION=authorization, data=data
-            )
-
-            assert response.status_code == 403, response.content
-
-    def test_dynamic_sampling_rule_deletion(self):
-        """
-        Tests that when sending a request to delete a dynamic sampling rule,
-        the rule will be successfully deleted and that the audit log 'SAMPLING_RULE_REMOVE' will be triggered
-        """
-        dynamic_sampling = _dyn_sampling_data()
-        project = self.project  # force creation
-        # Update project adding three rules
-        project.update_option("sentry:dynamic_sampling", dynamic_sampling)
-
-        self.login_as(self.user)
-
-        token = ApiToken.objects.create(user=self.user, scope_list=["project:write"])
-        authorization = f"Bearer {token.token}"
-
-        url = reverse(
-            "sentry-api-0-project-details",
-            kwargs={
-                "organization_slug": self.project.organization.slug,
-                "project_slug": self.project.slug,
-            },
-        )
-
-        data = {
-            "dynamicSampling": {
-                "rules": [dynamic_sampling["rules"][2]],
-            }
-        }
-
-        with Feature({self.universal_ds_flag: True, self.old_ds_flag: True}):
-            resp = self.client.put(url, format="json", HTTP_AUTHORIZATION=authorization, data=data)
-            assert resp.status_code == 403
-
-            assert not AuditLogEntry.objects.filter(
-                organization=self.project.organization,
-                event=audit_log.get_event_id("SAMPLING_RULE_REMOVE"),
-            ).exists()
-
-            # Make sure that the early return logic worked, as only the above audit log was triggered
-            with pytest.raises(AuditLogEntry.DoesNotExist):
-                AuditLogEntry.objects.get(
-                    organization=self.organization,
-                    target_object=self.project.id,
-                    event=audit_log.get_event_id("PROJECT_EDIT"),
-                )
-
-    def test_dynamic_sampling_rule_activation(self):
-        """
-        Tests that when sending a request to activate a dynamic sampling rule,
-        the rule will be successfully activated and that the audit log 'SAMPLING_RULE_ACTIVATE' will be triggered
-        """
-        dynamic_sampling = _dyn_sampling_data()
-        project = self.project  # force creation
-        # Update project adding three rules
-        project.update_option(
-            "sentry:dynamic_sampling",
-            {
-                "rules": [
-                    {**dynamic_sampling["rules"][1], "active": False},
-                    {**dynamic_sampling["rules"][2], "active": False},
-                ]
-            },
-        )
-
-        self.login_as(self.user)
-
-        token = ApiToken.objects.create(user=self.user, scope_list=["project:write"])
-        authorization = f"Bearer {token.token}"
-
-        url = reverse(
-            "sentry-api-0-project-details",
-            kwargs={
-                "organization_slug": self.project.organization.slug,
-                "project_slug": self.project.slug,
-            },
-        )
-
-        data = {
-            "dynamicSampling": {
-                "rules": [
-                    {**dynamic_sampling["rules"][1], "active": False},
-                    {**dynamic_sampling["rules"][2], "active": True},
-                ]
-            }
-        }
-
-        with Feature({self.universal_ds_flag: True, self.old_ds_flag: True}):
-            resp = self.client.put(url, format="json", HTTP_AUTHORIZATION=authorization, data=data)
-            assert resp.status_code == 403
-
-            assert not AuditLogEntry.objects.filter(
-                organization=self.project.organization,
-                event=audit_log.get_event_id("SAMPLING_RULE_ACTIVATE"),
-            ).exists()
-
-            # Make sure that the early return logic worked, as only the above audit log was triggered
-            with pytest.raises(AuditLogEntry.DoesNotExist):
-                AuditLogEntry.objects.get(
-                    organization=self.organization,
-                    target_object=self.project.id,
-                    event=audit_log.get_event_id("PROJECT_EDIT"),
-                )
-
-    def test_dynamic_sampling_rule_deactivation(self):
-        """
-        Tests that when sending a request to deactivate a dynamic sampling rule,
-        the rule will be successfully deactivated and that the audit log 'SAMPLING_RULE_DEACTIVATE' will be triggered
-        """
-        dynamic_sampling = _dyn_sampling_data()
-        project = self.project  # force creation
-        # Update project adding three rules
-        project.update_option("sentry:dynamic_sampling", dynamic_sampling)
-
-        self.login_as(self.user)
-
-        token = ApiToken.objects.create(user=self.user, scope_list=["project:write"])
-        authorization = f"Bearer {token.token}"
-
-        url = reverse(
-            "sentry-api-0-project-details",
-            kwargs={
-                "organization_slug": self.project.organization.slug,
-                "project_slug": self.project.slug,
-            },
-        )
-
-        data = {
-            "dynamicSampling": {
-                "rules": [
-                    {**dynamic_sampling["rules"][0], "active": False},
-                    dynamic_sampling["rules"][1],
-                    dynamic_sampling["rules"][2],
-                ]
-            }
-        }
-
-        with Feature({self.universal_ds_flag: True, self.old_ds_flag: True}):
-            resp = self.client.put(url, format="json", HTTP_AUTHORIZATION=authorization, data=data)
-            assert resp.status_code == 403
-
-            assert not AuditLogEntry.objects.filter(
-                organization=self.project.organization,
-                event=audit_log.get_event_id("SAMPLING_RULE_DEACTIVATE"),
-            ).exists()
-
-            # Make sure that the early return logic worked, as only the above audit log was triggered
-            with pytest.raises(AuditLogEntry.DoesNotExist):
-                AuditLogEntry.objects.get(
-                    organization=self.organization,
-                    target_object=self.project.id,
-                    event=audit_log.get_event_id("PROJECT_EDIT"),
-                )
-
-    def test_dynamic_sampling_rule_edition(self):
-        """
-        Tests that when sending a request updating a dynamic sampling rule,
-        the rule will be successfully edited and that the audit log 'SAMPLING_RULE_EDIT' will be triggered
-        """
-        dynamic_sampling = _dyn_sampling_data()
-        project = self.project  # force creation
-        # Update project adding three rules
-        project.update_option("sentry:dynamic_sampling", dynamic_sampling)
-
-        self.login_as(self.user)
-
-        token = ApiToken.objects.create(user=self.user, scope_list=["project:write"])
-        authorization = f"Bearer {token.token}"
-
-        url = reverse(
-            "sentry-api-0-project-details",
-            kwargs={
-                "organization_slug": self.project.organization.slug,
-                "project_slug": self.project.slug,
-            },
-        )
-
-        data = {
-            "dynamicSampling": {
-                "rules": [
-                    {**dynamic_sampling["rules"][0], "sampleRate": 0.2},
-                    dynamic_sampling["rules"][1],
-                    dynamic_sampling["rules"][2],
-                ]
-            }
-        }
-
-        with Feature({self.universal_ds_flag: True, self.old_ds_flag: True}):
-            resp = self.client.put(url, format="json", HTTP_AUTHORIZATION=authorization, data=data)
-            assert resp.status_code == 403
-
-            assert not AuditLogEntry.objects.filter(
-                organization=self.project.organization,
-                event=audit_log.get_event_id("SAMPLING_RULE_EDIT"),
-            ).exists()
-
-            # Make sure that the early return logic worked, as only the above audit log was triggered
-            with pytest.raises(AuditLogEntry.DoesNotExist):
-                AuditLogEntry.objects.get(
-                    organization=self.organization,
-                    target_object=self.project.id,
-                    event=audit_log.get_event_id("PROJECT_EDIT"),
-                )
-
-    def test_setting_dynamic_sampling_rules_roundtrip(self):
-        """
-        Tests that we get the same dynamic sampling rules that previously set
-        """
-        data = _dyn_sampling_data()
-        with Feature({self.universal_ds_flag: True, self.old_ds_flag: True}):
-            self.get_error_response(
-                self.org_slug, self.proj_slug, dynamicSampling=data, status_code=403
-            )
-
-    def test_dynamic_sampling_rules_should_contain_single_uniform_rule(self):
-        """
-        Tests that ensures you can only have one uniform rule
-        """
-        with Feature({self.universal_ds_flag: True, self.old_ds_flag: True}):
-            response = self.get_response(
-                self.org_slug,
-                self.proj_slug,
-                dynamicSampling=_dyn_sampling_data(multiple_uniform_rules=True),
-            )
-            assert response.status_code == 400
-            assert (
-                response.json()["dynamicSampling"]["non_field_errors"][0] == "Uniform rule "
-                "must be in the last position only"
-            )
-
-    def test_dynamic_sampling_rules_single_uniform_rule_in_last_position(self):
-        """
-        Tests that ensures you can only have one uniform rule, and it is at the last position
-        """
-        with Feature({self.universal_ds_flag: True, self.old_ds_flag: True}):
-            response = self.get_response(
-                self.org_slug,
-                self.proj_slug,
-                dynamicSampling=_dyn_sampling_data(uniform_rule_last_position=False),
-            )
-            assert response.status_code == 400
-            assert (
-                response.json()["dynamicSampling"]["non_field_errors"][0]
-                == "Last rule is reserved for uniform rule which must have no conditions"
-            )
-
-    def test_dynamic_sampling_rules_should_contain_uniform_rule(self):
-        """
-        Tests that ensures that payload has a uniform rule i.e. guards against deletion of rule
-        """
-        with Feature({self.universal_ds_flag: True, self.old_ds_flag: True}):
-            response = self.get_response(
-                self.org_slug, self.proj_slug, dynamicSampling={"rules": []}
-            )
-            assert response.status_code == 400
-            assert (
-                response.json()["dynamicSampling"]["non_field_errors"][0]
-                == "Payload must contain a uniform dynamic sampling rule"
-            )
-
-
-@region_silo_test
-class TestProjectDetailsDynamicSampling(TestProjectDetailsDynamicSamplingBase):
+class TestProjectDetailsDynamicSamplingRules(TestProjectDetailsDynamicSamplingBase):
     endpoint = "sentry-api-0-project-details"
 
     def setUp(self):
         super().setUp()
-        self.dynamic_sampling_data = {
-            "rules": [
-                {
-                    "sampleRate": 0.7,
-                    "type": "trace",
-                    "active": True,
-                    "condition": {
-                        "op": "and",
-                        "inner": [
-                            {"op": "eq", "name": "field1", "value": ["val"]},
-                            {"op": "glob", "name": "field1", "value": ["val"]},
-                        ],
-                    },
-                    "id": 1,
-                },
-                {
-                    "sampleRate": 0.8,
-                    "type": "trace",
-                    "active": True,
-                    "condition": {
-                        "op": "and",
-                        "inner": [],
-                    },
-                    "id": 2,
-                },
-            ],
-            "next_id": 3,
-        }
+        self.url = reverse(
+            "sentry-api-0-project-details",
+            kwargs={
+                "organization_slug": self.project.organization.slug,
+                "project_slug": self.project.slug,
+            },
+        )
+        self.login_as(user=self.user, superuser=True)
+        token = ApiToken.objects.create(user=self.user, scope_list=["project:write"])
+        self.authorization = f"Bearer {token.token}"
+
+    @mock.patch("sentry.dynamic_sampling.rules_generator.quotas.get_blended_sample_rate")
+    def test_get_dynamic_sampling_rules_for_superuser_user(self, get_blended_sample_rate):
+        get_blended_sample_rate.return_value = 0.1
+        new_biases = [
+            {"id": "boostEnvironments", "active": True},
+            {
+                "id": "boostLatestRelease",
+                "active": False,
+            },
+            {"id": "ignoreHealthChecks", "active": False},
+            {"id": "boostKeyTransactions", "active": False},
+        ]
+        self.project.update_option("sentry:dynamic_sampling_biases", new_biases)
+        with Feature(
+            {
+                self.new_ds_flag: True,
+            }
+        ):
+            response = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                method="get",
+                includeDynamicSamplingRules=1,
+            )
+            # we expect 2 rules 1 for boostEnvironments and uniform rule
+            assert len(response.data["dynamicSamplingRules"]) == 2
+            # 1001 is dev bias rule id
+            assert response.data["dynamicSamplingRules"][0]["id"] == 1001
+            # 1000 uniform rule id
+            assert response.data["dynamicSamplingRules"][1]["id"] == 1000
+
+    def test_get_dynamic_sampling_rules_disabled_if_no_feature_flag(self):
+        with Feature(
+            {
+                self.new_ds_flag: False,
+            }
+        ):
+            response = self.get_success_response(
+                self.organization.slug, self.project.slug, method="get"
+            )
+            assert response.data["dynamicSamplingRules"] is None
+
+    def test_non_superuser_user_trying_to_access_dynamic_sampling_rules(self):
+        user = self.create_user(is_staff=False, is_superuser=False)
+        self.org = self.create_organization()
+        self.org.save()
+
+        team = self.create_team(organization=self.org)
+        self.project = self.create_project(name="foo", organization=self.org, teams=[team])
+
+        self.create_member(teams=[team], user=user, organization=self.org)
+        self.login_as(user=user)
+        with Feature(
+            {
+                self.new_ds_flag: True,
+            }
+        ):
+            response = self.get_success_response(
+                self.org.slug, self.project.slug, method="get", includeDynamicSamplingRules=1
+            )
+            assert "dynamicSamplingRules" not in response.data
+
+
+@region_silo_test
+class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingBase):
+    endpoint = "sentry-api-0-project-details"
+
+    def setUp(self):
+        super().setUp()
         self.url = reverse(
             "sentry-api-0-project-details",
             kwargs={
@@ -1677,49 +1285,37 @@ class TestProjectDetailsDynamicSampling(TestProjectDetailsDynamicSamplingBase):
         token = ApiToken.objects.create(user=self.user, scope_list=["project:write"])
         self.authorization = f"Bearer {token.token}"
 
-    def test_get_dynamic_sampling_after_migrating_to_new_plan_default_biases(self):
+    def test_get_dynamic_sampling_default_biases(self):
         """
-        Tests the case when an organization was in EA/LA and has setup previously Dynamic Sampling rules,
-        and now they have migrated to an AM2 plan, but haven't manipulated the bias toggles yet so they get the
-        default biases. This also ensures that they no longer receive the deprecated dynamic sampling rules.
+        Tests the case when organization on AM2 plan, but haven't manipulated the bias toggles
+        yet, so they get the default biases.
         """
-
-        self.project.update_option("sentry:dynamic_sampling", self.dynamic_sampling_data)
-
         with Feature(
             {
-                self.universal_ds_flag: True,
-                self.old_ds_flag: True,
                 self.new_ds_flag: True,
             }
         ):
             response = self.get_success_response(
                 self.organization.slug, self.project.slug, method="get"
             )
-            assert response.data["dynamicSampling"] is None
             assert response.data["dynamicSamplingBiases"] == DEFAULT_BIASES
 
-    def test_get_dynamic_sampling_after_migrating_to_new_plan_manually_set_biases(self):
+    def test_get_dynamic_sampling_biases_manually_set_biases(self):
         """
-        Tests the case when an organization was in EA/LA and has setup previously Dynamic Sampling rules,
-        and now they have migrated to an AM2 plan, and have manipulated the bias toggles, so they should get their
-        actual bias preferences. This also ensures that they no longer receive the deprecated dynamic sampling rules.
+        Tests the case when an organization on AM2 plan, and have manipulated the bias toggles,
+        so they should get their actual bias preferences.
         """
-        self.project.update_option("sentry:dynamic_sampling", self.dynamic_sampling_data)
 
         new_biases = [{"id": "boostEnvironments", "active": False}]
         self.project.update_option("sentry:dynamic_sampling_biases", new_biases)
         with Feature(
             {
-                self.universal_ds_flag: True,
-                self.old_ds_flag: True,
                 self.new_ds_flag: True,
             }
         ):
             response = self.get_success_response(
                 self.organization.slug, self.project.slug, method="get"
             )
-            assert response.data["dynamicSampling"] is None
             assert response.data["dynamicSamplingBiases"] == [
                 {"id": "boostEnvironments", "active": False},
                 {
@@ -1729,22 +1325,6 @@ class TestProjectDetailsDynamicSampling(TestProjectDetailsDynamicSamplingBase):
                 {"id": "ignoreHealthChecks", "active": True},
                 {"id": "boostKeyTransactions", "active": True},
             ]
-
-    def test_get_dynamic_sampling_old_before_migration_to_new_plan(self):
-        self.project.update_option("sentry:dynamic_sampling", self.dynamic_sampling_data)
-
-        self.login_as(user=self.user)
-        with Feature(
-            {
-                self.universal_ds_flag: True,
-                self.old_ds_flag: True,
-            }
-        ):
-            response = self.get_success_response(
-                self.organization.slug, self.project.slug, method="get"
-            )
-            assert response.data["dynamicSamplingBiases"] is None
-            assert response.data["dynamicSampling"] == self.dynamic_sampling_data
 
     def test_get_dynamic_sampling_biases_with_previously_assigned_biases(self):
         self.project.update_option(
@@ -1756,14 +1336,12 @@ class TestProjectDetailsDynamicSampling(TestProjectDetailsDynamicSamplingBase):
 
         with Feature(
             {
-                self.universal_ds_flag: True,
                 self.new_ds_flag: True,
             }
         ):
             response = self.get_success_response(
                 self.organization.slug, self.project.slug, method="get"
             )
-            assert response.data["dynamicSampling"] is None
             assert response.data["dynamicSamplingBiases"] == [
                 {"id": "boostEnvironments", "active": False},
                 {
@@ -1774,96 +1352,108 @@ class TestProjectDetailsDynamicSampling(TestProjectDetailsDynamicSamplingBase):
                 {"id": "boostKeyTransactions", "active": True},
             ]
 
+    def test_dynamic_sampling_bias_activation(self):
+        """
+        Tests that when sending a request to enable a dynamic sampling bias,
+        the bias will be successfully enabled and the audit log 'SAMPLING_BIAS_ENABLED' will be triggered
+        """
+
+        project = self.project  # force creation
+        project.update_option(
+            "sentry:dynamic_sampling_biases",
+            [
+                {"id": "boostEnvironments", "active": False},
+            ],
+        )
+        self.login_as(self.user)
+
+        token = ApiToken.objects.create(user=self.user, scope_list=["project:write"])
+        authorization = f"Bearer {token.token}"
+
+        url = reverse(
+            "sentry-api-0-project-details",
+            kwargs={
+                "organization_slug": self.project.organization.slug,
+                "project_slug": self.project.slug,
+            },
+        )
+
+        with Feature({self.new_ds_flag: True}):
+            self.client.put(
+                url,
+                format="json",
+                HTTP_AUTHORIZATION=authorization,
+                data={
+                    "dynamicSamplingBiases": [
+                        {"id": "boostEnvironments", "active": True},
+                    ]
+                },
+            )
+
+            assert AuditLogEntry.objects.filter(
+                organization=self.project.organization,
+                event=audit_log.get_event_id("SAMPLING_BIAS_ENABLED"),
+            ).exists()
+
+    def test_dynamic_sampling_bias_deactivation(self):
+        """
+        Tests that when sending a request to disable a dynamic sampling bias,
+        the bias will be successfully disabled and the audit log 'SAMPLING_BIAS_DISABLED' will be triggered
+        """
+
+        project = self.project  # force creation
+        project.update_option(
+            "sentry:dynamic_sampling_biases",
+            [
+                {"id": "boostEnvironments", "active": True},
+            ],
+        )
+        self.login_as(self.user)
+
+        token = ApiToken.objects.create(user=self.user, scope_list=["project:write"])
+        authorization = f"Bearer {token.token}"
+
+        url = reverse(
+            "sentry-api-0-project-details",
+            kwargs={
+                "organization_slug": self.project.organization.slug,
+                "project_slug": self.project.slug,
+            },
+        )
+
+        with Feature({self.new_ds_flag: True}):
+            self.client.put(
+                url,
+                format="json",
+                HTTP_AUTHORIZATION=authorization,
+                data={
+                    "dynamicSamplingBiases": [
+                        {"id": "boostEnvironments", "active": False},
+                    ]
+                },
+            )
+
+            assert AuditLogEntry.objects.filter(
+                organization=self.project.organization,
+                event=audit_log.get_event_id("SAMPLING_BIAS_DISABLED"),
+            ).exists()
+
     def test_put_dynamic_sampling_after_migrating_to_new_plan_default_biases_with_missing_flags(
         self,
     ):
         """
-        Test for case when a user is an old plan but tries to update dynamic sampling biases that is a feature of new
-        plans
+        Test for case when a user is an old plan but tries to update dynamic sampling biases that is a
+        feature of new plans
         """
-        with Feature(
-            {
-                self.universal_ds_flag: True,
-                self.old_ds_flag: True,
-            }
-        ):
-            response = self.client.put(
-                self.url,
-                format="json",
-                HTTP_AUTHORIZATION=self.authorization,
-                data={"dynamicSamplingBiases": DEFAULT_BIASES},
-            )
-            assert response.status_code == 403
-            assert response.json()["detail"] == ["dynamicSamplingBiases is not a valid field"]
 
-    def test_put_dynamic_sampling_old_with_missing_flags(self):
-        """
-        Test for case when a user is on a new plan but tries to update dynamic sampling that is a feature of old plans
-        """
-        with Feature(
-            {
-                self.universal_ds_flag: True,
-                self.new_ds_flag: True,
-            }
-        ):
-            response = self.client.put(
-                self.url,
-                format="json",
-                HTTP_AUTHORIZATION=self.authorization,
-                data={"dynamicSampling": self.dynamic_sampling_data},
-            )
-            assert response.status_code == 403
-            assert response.json()["detail"] == ["dynamicSampling is not a valid field"]
-
-    def test_put_dynamic_sampling_after_migrating_to_new_plan_default_biases_with_correct_flags_and_old_ds_payload(
-        self,
-    ):
-        """
-        Test for case when a user was on an old plan and now migrated to a new plan but is trying to update both
-        dynamic sampling features on new and old plan
-        """
-        self.login_as(user=self.user)
-        with Feature(
-            {
-                self.universal_ds_flag: True,
-                self.old_ds_flag: True,
-                self.new_ds_flag: True,
-            }
-        ):
-            response = self.client.put(
-                self.url,
-                format="json",
-                HTTP_AUTHORIZATION=self.authorization,
-                data={
-                    "dynamicSamplingBiases": DEFAULT_BIASES,
-                    "dynamicSampling": self.dynamic_sampling_data,
-                },
-            )
-            assert response.status_code == 403
-            assert response.json()["detail"] == ["dynamicSampling is not a valid field"]
-
-    def test_put_dynamic_sampling_after_migrating_to_new_plan_with_correct_flags_and_old_ds_payload(
-        self,
-    ):
-        """
-        Test when user was on an old plan and migrated to a new plan and is trying to update dynamic sampling
-        features of an old plan only
-        """
-        with Feature(
-            {
-                self.universal_ds_flag: True,
-                self.old_ds_flag: True,
-                self.new_ds_flag: True,
-            }
-        ):
-            response = self.client.put(
-                self.url,
-                format="json",
-                HTTP_AUTHORIZATION=self.authorization,
-                data={"dynamicSampling": self.dynamic_sampling_data},
-            )
-            assert response.status_code == 403
-            assert response.json()["detail"] == ["dynamicSampling is not a valid field"]
+        response = self.client.put(
+            self.url,
+            format="json",
+            HTTP_AUTHORIZATION=self.authorization,
+            data={"dynamicSamplingBiases": DEFAULT_BIASES},
+        )
+        assert response.status_code == 403
+        assert response.json()["detail"] == ["dynamicSamplingBiases is not a valid field"]
 
     def test_put_new_dynamic_sampling_rules_with_correct_flags(self):
         """
@@ -1880,7 +1470,6 @@ class TestProjectDetailsDynamicSampling(TestProjectDetailsDynamicSamplingBase):
         ]
         with Feature(
             {
-                self.universal_ds_flag: True,
                 self.new_ds_flag: True,
             }
         ):
@@ -1908,7 +1497,6 @@ class TestProjectDetailsDynamicSampling(TestProjectDetailsDynamicSamplingBase):
         new_biases = []
         with Feature(
             {
-                self.universal_ds_flag: True,
                 self.new_ds_flag: True,
             }
         ):
@@ -1935,7 +1523,6 @@ class TestProjectDetailsDynamicSampling(TestProjectDetailsDynamicSamplingBase):
         ]
         with Feature(
             {
-                self.universal_ds_flag: True,
                 self.new_ds_flag: True,
             }
         ):

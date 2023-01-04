@@ -17,43 +17,52 @@ function FocusArea({}: Props) {
     useReplayContext();
   const organization = useOrganization();
 
-  if (!replay) {
-    return <Placeholder height="150px" />;
-  }
-
-  const replayRecord = replay.getReplay();
-  const startTimestampMs = replayRecord.startedAt.getTime();
-
   switch (getActiveTab()) {
     case 'console':
       return (
         <Console
-          breadcrumbs={replay.getConsoleCrumbs()}
-          startTimestampMs={replayRecord.startedAt.getTime()}
+          breadcrumbs={replay?.getConsoleCrumbs()}
+          startTimestampMs={replay?.getReplay()?.startedAt?.getTime() || 0}
         />
       );
     case 'network':
       return (
         <NetworkList
-          replayRecord={replayRecord}
-          networkSpans={replay.getNetworkSpans()}
+          networkSpans={replay?.getNetworkSpans()}
+          startTimestampMs={replay?.getReplay()?.startedAt?.getTime() || 0}
         />
       );
     case 'trace':
-      return <Trace organization={organization} replayRecord={replayRecord} />;
+      if (!replay) {
+        return <Placeholder height="150px" />;
+      }
+      return <Trace organization={organization} replayRecord={replay.getReplay()} />;
     case 'issues':
-      return <IssueList replayId={replayRecord.id} projectId={replayRecord.projectId} />;
+      if (!replay) {
+        return <Placeholder height="150px" />;
+      }
+      return (
+        <IssueList
+          replayId={replay.getReplay()?.id}
+          projectId={replay.getReplay()?.projectId}
+        />
+      );
     case 'dom':
-      return <DomMutations replay={replay} />;
+      return (
+        <DomMutations
+          replay={replay}
+          startTimestampMs={replay?.getReplay()?.startedAt?.getTime() || 0}
+        />
+      );
     case 'memory':
       return (
         <MemoryChart
           currentTime={currentTime}
           currentHoverTime={currentHoverTime}
-          memorySpans={replay.getMemorySpans()}
+          memorySpans={replay?.getMemorySpans()}
           setCurrentTime={setCurrentTime}
           setCurrentHoverTime={setCurrentHoverTime}
-          startTimestampMs={startTimestampMs}
+          startTimestampMs={replay?.getReplay()?.startedAt?.getTime()}
         />
       );
     default:

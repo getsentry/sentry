@@ -6,6 +6,7 @@ from .alert_rule_trigger_action import *  # noqa: F401,F403
 from .apiapplication import *  # noqa: F401,F403
 from .apiauthorization import *  # noqa: F401,F403
 from .apikey import *  # noqa: F401,F403
+from .apiorganizationmapping import *  # noqa: F401,F403
 from .apitoken import *  # noqa: F401,F403
 from .app_platform_event import *  # noqa: F401,F403
 from .auditlogentry import *  # noqa: F401,F403
@@ -66,7 +67,6 @@ from .relay import *  # noqa: F401,F403
 from .relayusage import *  # noqa: F401,F403
 from .release import *  # noqa: F401,F403
 from .release_file import *  # noqa: F401,F403
-from .releaseactivity import *  # noqa: F401,F403
 from .repository import *  # noqa: F401,F403
 from .repository_project_path_config import *  # noqa: F401,F403
 from .role import *  # noqa: F401,F403

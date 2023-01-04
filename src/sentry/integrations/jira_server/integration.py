@@ -34,6 +34,7 @@ from sentry.models import (
     User,
 )
 from sentry.pipeline import PipelineView
+from sentry.services.hybrid_cloud.user import APIUser
 from sentry.shared_integrations.exceptions import (
     ApiError,
     ApiHostError,
@@ -933,13 +934,16 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
                         v = {"id": v}
                 cleaned_data[field_name] = v
 
-        if not (isinstance(cleaned_data["issuetype"], dict) and "id" in cleaned_data["issuetype"]):
+        if not (
+            isinstance(cleaned_data.get("issuetype"), dict)
+            and "id" in cleaned_data.get("issuetype", {})
+        ):
             # something fishy is going on with this field, working on some Jira
             # instances, and some not.
             # testing against 5.1.5 and 5.1.4 does not convert (perhaps is no longer included
             # in the projectmeta API call, and would normally be converted in the
             # above clean method.)
-            cleaned_data["issuetype"] = {"id": cleaned_data["issuetype"]}
+            cleaned_data["issuetype"] = {"id": issue_type}
 
         try:
             response = client.create_issue(cleaned_data)
@@ -956,7 +960,7 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
     def sync_assignee_outbound(
         self,
         external_issue: ExternalIssue,
-        user: Optional[User],
+        user: Optional[APIUser],
         assign: bool = True,
         **kwargs: Any,
     ) -> None:
@@ -967,9 +971,9 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
 
         jira_user = None
         if user and assign:
-            for ue in user.emails.filter(is_verified=True):
+            for ue in user.emails:
                 try:
-                    possible_users = client.search_users_for_issue(external_issue.key, ue.email)
+                    possible_users = client.search_users_for_issue(external_issue.key, ue)
                 except (ApiUnauthorized, ApiError):
                     continue
                 for possible_user in possible_users:
@@ -980,7 +984,7 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
                         email = client.get_email(account_id)
                     # match on lowercase email
                     # TODO(steve): add check against display name when JIRA_USE_EMAIL_SCOPE is false
-                    if email and email.lower() == ue.email.lower():
+                    if email and email.lower() == ue.lower():
                         jira_user = possible_user
                         break
             if jira_user is None:

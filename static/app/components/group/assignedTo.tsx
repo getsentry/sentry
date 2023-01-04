@@ -26,6 +26,19 @@ interface AssignedToProps {
   onAssign?: AssigneeSelectorDropdownProps['onAssign'];
 }
 
+export function getAssignedToDisplayName(group: Group, assignedTo?: Actor) {
+  if (assignedTo?.type === 'team') {
+    const team = TeamStore.getById(group.assignedTo.id);
+    return `#${team?.slug ?? group.assignedTo.name}`;
+  }
+  if (assignedTo?.type === 'user') {
+    const user = MemberListStore.getById(assignedTo.id);
+    return user?.name ?? group.assignedTo.name;
+  }
+
+  return group.assignedTo?.name ?? t('No-one');
+}
+
 function AssignedTo({group, projectId, disableDropdown = false}: AssignedToProps) {
   const organization = useOrganization();
   const api = useApi();
@@ -34,21 +47,8 @@ function AssignedTo({group, projectId, disableDropdown = false}: AssignedToProps
     fetchOrgMembers(api, organization.slug, [projectId]);
   }, [api, organization.slug, projectId]);
 
-  function getAssignedToDisplayName(assignedTo?: Actor) {
-    if (assignedTo?.type === 'team') {
-      const team = TeamStore.getById(group.assignedTo.id);
-      return `#${team?.slug ?? group.assignedTo.name}`;
-    }
-    if (assignedTo?.type === 'user') {
-      const user = MemberListStore.getById(assignedTo.id);
-      return user?.name ?? group.assignedTo.name;
-    }
-
-    return group.assignedTo?.name ?? t('No-one');
-  }
-
   return (
-    <SidebarSection.Wrap>
+    <SidebarSection.Wrap data-test-id="assigned-to">
       <SidebarSection.Title>{t('Assigned To')}</SidebarSection.Title>
       <StyledSidebarSectionContent>
         <AssigneeSelectorDropdown disabled={disableDropdown} id={group.id}>
@@ -69,7 +69,7 @@ function AssignedTo({group, projectId, disableDropdown = false}: AssignedToProps
                     <IconUser size="md" />
                   </IconWrapper>
                 )}
-                <ActorName>{getAssignedToDisplayName(assignedTo)}</ActorName>
+                <ActorName>{getAssignedToDisplayName(group, assignedTo)}</ActorName>
               </ActorWrapper>
               {!disableDropdown && (
                 <IconChevron

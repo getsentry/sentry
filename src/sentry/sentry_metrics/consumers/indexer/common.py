@@ -1,18 +1,20 @@
 import logging
 import time
-from typing import Any, List, MutableMapping, Optional
+from typing import Any, List, MutableMapping, MutableSequence, Optional, Union
 
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.backends.kafka.configuration import build_kafka_consumer_configuration
 from arroyo.processing.strategies import MessageRejected
 from arroyo.processing.strategies import ProcessingStrategy
 from arroyo.processing.strategies import ProcessingStrategy as ProcessingStep
-from arroyo.types import Message
+from arroyo.types import Message, Value
 from django.conf import settings
 
+from sentry.sentry_metrics.consumers.indexer.routing_producer import RoutingPayload
 from sentry.utils import kafka_config, metrics
 
 MessageBatch = List[Message[KafkaPayload]]
+IndexerOutputMessageBatch = MutableSequence[Message[Union[RoutingPayload, KafkaPayload]]]
 
 logger = logging.getLogger(__name__)
 
@@ -122,7 +124,7 @@ class BatchMessages(ProcessingStep[KafkaPayload]):
             return
         last = self.__batch.messages[-1]
 
-        new_message = Message(last.partition, last.offset, self.__batch.messages, last.timestamp)
+        new_message = Message(Value(self.__batch.messages, last.committable))
         if self.__batch_start is not None:
             elapsed_time = time.time() - self.__batch_start
             metrics.timing("batch_messages.build_time", elapsed_time)
@@ -147,7 +149,7 @@ class BatchMessages(ProcessingStep[KafkaPayload]):
         if self.__batch:
             last = self.__batch.messages[-1]
             logger.debug(
-                f"Abandoning batch of {len(self.__batch)} messages...latest offset: {last.offset}"
+                f"Abandoning batch of {len(self.__batch)} messages...latest offset: {last.committable}"
             )
 
         self.__next_step.close()

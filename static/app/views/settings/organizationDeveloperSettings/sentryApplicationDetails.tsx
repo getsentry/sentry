@@ -291,7 +291,6 @@ class SentryApplicationDetails extends AsyncView<Props, State> {
             size="sm"
             icon={<IconDelete />}
             data-test-id="token-delete"
-            type="button"
           >
             {t('Revoke')}
           </Button>
@@ -448,7 +447,6 @@ class SentryApplicationDetails extends AsyncView<Props, State> {
                   icon={<IconAdd size="xs" isCircled />}
                   onClick={evt => this.onAddToken(evt)}
                   data-test-id="token-add"
-                  type="button"
                 >
                   {t('New Token')}
                 </Button>

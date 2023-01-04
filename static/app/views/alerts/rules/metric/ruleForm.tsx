@@ -555,9 +555,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       }
       transaction.setData('actions', sanitizedTriggers);
 
-      const hasMetricDataset =
-        organization.features.includes('metrics-performance-alerts') ||
-        organization.features.includes('mep-rollout-flag');
+      const hasMetricDataset = organization.features.includes('mep-rollout-flag');
 
       this.setState({loading: true});
       const [data, , resp] = await addOrUpdateRule(
@@ -710,10 +708,11 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
 
   handleMEPAlertDataset = (data: EventsStats | MultiSeriesEventsStats | null) => {
     const {isMetricsData} = data ?? {};
+    const {organization} = this.props;
 
     if (
       isMetricsData === undefined ||
-      !this.props.organization.features.includes('metrics-performance-alerts')
+      !organization.features.includes('mep-rollout-flag')
     ) {
       return;
     }
@@ -886,9 +885,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
                         confirmText={t('Delete Rule')}
                         onConfirm={this.handleDeleteRule}
                       >
-                        <Button type="button" priority="danger">
-                          {t('Delete Rule')}
-                        </Button>
+                        <Button priority="danger">{t('Delete Rule')}</Button>
                       </Confirm>
                     ) : null
                   }

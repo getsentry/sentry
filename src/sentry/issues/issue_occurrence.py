@@ -3,13 +3,33 @@ from __future__ import annotations
 import hashlib
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Mapping, Optional, Sequence
+from typing import Any, Mapping, Optional, Sequence, TypedDict, cast
 
-from dateutil.parser import parse as parse_date
 from django.utils.timezone import is_aware
 
 from sentry import nodestore
 from sentry.types.issues import GroupType
+from sentry.utils.dates import parse_timestamp
+
+
+class IssueEvidenceData(TypedDict):
+    name: str
+    value: str
+    important: bool
+
+
+class IssueOccurrenceData(TypedDict):
+    id: str
+    event_id: str
+    fingerprint: Sequence[str]
+    issue_title: str
+    subtitle: str
+    resource_id: str | None
+    evidence_data: Mapping[str, Any]
+    evidence_display: Sequence[IssueEvidenceData]
+    type: int
+    detection_time: float
+    level: Optional[str]
 
 
 @dataclass(frozen=True)
@@ -22,7 +42,7 @@ class IssueEvidence:
 
     def to_dict(
         self,
-    ) -> Mapping[str, str | bool]:
+    ) -> IssueEvidenceData:
         return {
             "name": self.name,
             "value": self.value,
@@ -58,6 +78,7 @@ class IssueOccurrence:
     evidence_display: Sequence[IssueEvidence]
     type: GroupType
     detection_time: datetime
+    level: Optional[str] = None
 
     def __post_init__(self) -> None:
         if not is_aware(self.detection_time):
@@ -65,7 +86,7 @@ class IssueOccurrence:
 
     def to_dict(
         self,
-    ) -> Mapping[str, Any]:
+    ) -> IssueOccurrenceData:
         return {
             "id": self.id,
             "event_id": self.event_id,
@@ -76,13 +97,15 @@ class IssueOccurrence:
             "evidence_data": self.evidence_data,
             "evidence_display": [evidence.to_dict() for evidence in self.evidence_display],
             "type": self.type.value,
-            "detection_time": self.detection_time.isoformat(),
+            "detection_time": self.detection_time.timestamp(),
+            "level": self.level,
         }
 
     @classmethod
-    def from_dict(cls, data: Mapping[str, Any]) -> IssueOccurrence:
+    def from_dict(cls, data: IssueOccurrenceData) -> IssueOccurrence:
         return cls(
             data["id"],
+            # We'll always have an event id when loading an issue occurrence
             data["event_id"],
             data["fingerprint"],
             data["issue_title"],
@@ -94,7 +117,8 @@ class IssueOccurrence:
                 for evidence in data["evidence_display"]
             ],
             GroupType(data["type"]),
-            parse_date(data["detection_time"]),
+            cast(datetime, parse_timestamp(data["detection_time"])),
+            data.get("level"),
         )
 
     @property
@@ -116,21 +140,17 @@ class IssueOccurrence:
     def __hash__(self) -> int:
         return hash(self.id)
 
-    @property
-    def storage_identifier(self) -> str:
-        return self.build_storage_identifier(self.id)
-
     @classmethod
-    def build_storage_identifier(cls, id_: str) -> str:
-        identifier = hashlib.md5(f"{id_}".encode()).hexdigest()
+    def build_storage_identifier(cls, id_: str, project_id: int) -> str:
+        identifier = hashlib.md5(f"{id_}::{project_id}".encode()).hexdigest()
         return f"i-o:{identifier}"
 
-    def save(self) -> None:
-        nodestore.set(self.storage_identifier, self.to_dict())
+    def save(self, project_id: int) -> None:
+        nodestore.set(self.build_storage_identifier(self.id, project_id), self.to_dict())
 
     @classmethod
-    def fetch(cls, id_: str) -> Optional[IssueOccurrence]:
-        results = nodestore.get(cls.build_storage_identifier(id_))
+    def fetch(cls, id_: str, project_id: int) -> Optional[IssueOccurrence]:
+        results = nodestore.get(cls.build_storage_identifier(id_, project_id))
         if results:
             return IssueOccurrence.from_dict(results)
         return None

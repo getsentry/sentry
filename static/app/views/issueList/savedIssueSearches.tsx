@@ -1,5 +1,5 @@
 import {Fragment, useState} from 'react';
-import {css} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import orderBy from 'lodash/orderBy';
 
@@ -17,11 +17,13 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, SavedSearch, SavedSearchVisibility} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import useMedia from 'sentry/utils/useMedia';
+import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import {useDeleteSavedSearchOptimistic} from 'sentry/views/issueList/mutations/useDeleteSavedSearch';
 import {useFetchSavedSearchesForOrg} from 'sentry/views/issueList/queries/useFetchSavedSearchesForOrg';
+import {SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY} from 'sentry/views/issueList/utils';
 
 interface SavedIssueSearchesProps {
-  isOpen: boolean;
   onSavedSearchSelect: (savedSearch: SavedSearch) => void;
   organization: Organization;
   query: string;
@@ -158,23 +160,33 @@ function CreateNewSavedSearchButton({
   );
 }
 
-const SavedIssueSearchesContent = ({
+const SavedIssueSearches = ({
   organization,
-  isOpen,
   onSavedSearchSelect,
   query,
   sort,
 }: SavedIssueSearchesProps) => {
+  const theme = useTheme();
+  const [isOpen, setIsOpen] = useSyncedLocalStorageState(
+    SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY,
+    false
+  );
   const [showAll, setShowAll] = useState(false);
   const {
     data: savedSearches,
     isLoading,
     isError,
     refetch,
-  } = useFetchSavedSearchesForOrg(
-    {orgSlug: organization.slug},
-    {enabled: organization.features.includes('issue-list-saved-searches-v2')}
-  );
+  } = useFetchSavedSearchesForOrg({orgSlug: organization.slug});
+  const isAboveContent = useMedia(`(max-width: ${theme.breakpoints.small})`);
+  const onClickSavedSearch = (savedSearch: SavedSearch) => {
+    // On small screens, the sidebar appears above the issue list, so we
+    // will close it automatically for convenience.
+    if (isAboveContent) {
+      setIsOpen(false);
+    }
+    onSavedSearchSelect(savedSearch);
+  };
 
   if (!isOpen) {
     return null;
@@ -220,7 +232,7 @@ const SavedIssueSearchesContent = ({
             <SavedSearchItem
               key={item.id}
               organization={organization}
-              onSavedSearchSelect={onSavedSearchSelect}
+              onSavedSearchSelect={onClickSavedSearch}
               savedSearch={item}
             />
           ))}
@@ -249,7 +261,7 @@ const SavedIssueSearchesContent = ({
               <SavedSearchItem
                 key={item.id}
                 organization={organization}
-                onSavedSearchSelect={onSavedSearchSelect}
+                onSavedSearchSelect={onClickSavedSearch}
                 savedSearch={item}
               />
             ))}
@@ -258,14 +270,6 @@ const SavedIssueSearchesContent = ({
       )}
     </StyledSidebar>
   );
-};
-
-const SavedIssueSearches = (props: SavedIssueSearchesProps) => {
-  if (!props.organization.features.includes('issue-list-saved-searches-v2')) {
-    return null;
-  }
-
-  return <SavedIssueSearchesContent {...props} />;
 };
 
 const StyledSidebar = styled('aside')`

@@ -50,9 +50,10 @@ import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transac
 
 import {getExpandedResults, pushEventViewToLocation} from '../utils';
 
+import {QuickContextHoverWrapper} from './quickContext/quickContextWrapper';
+import {ContextType} from './quickContext/utils';
 import CellAction, {Actions, updateQuery} from './cellAction';
 import ColumnEditModal, {modalCss} from './columnEditModal';
-import {ContextType, QuickContextHoverWrapper} from './quickContext';
 import TableActions from './tableActions';
 import TopResultsIndicator from './topResultsIndicator';
 import {TableColumn} from './types';
@@ -281,11 +282,7 @@ function TableView(props: TableViewProps) {
     }
 
     const columnKey = String(column.key);
-    const fieldRenderer = getFieldRenderer(
-      columnKey,
-      tableData.meta,
-      !organization.features.includes('discover-frontend-use-events-endpoint')
-    );
+    const fieldRenderer = getFieldRenderer(columnKey, tableData.meta, false);
 
     const display = eventView.getDisplayMode();
     const isTopEvents =
@@ -583,11 +580,9 @@ function TableView(props: TableViewProps) {
     );
   }
 
-  const {isLoading, error, location, tableData, eventView, organization} = props;
+  const {isLoading, error, location, tableData, eventView} = props;
 
-  const columnOrder = eventView.getColumns(
-    organization.features.includes('discover-frontend-use-events-endpoint')
-  );
+  const columnOrder = eventView.getColumns();
   const columnSortBy = eventView.getSorts();
 
   const prependColumnWidths = eventView.hasAggregateField()

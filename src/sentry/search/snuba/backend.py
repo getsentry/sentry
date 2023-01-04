@@ -10,7 +10,7 @@ from django.db.models import Q, QuerySet
 from django.utils import timezone
 from django.utils.functional import SimpleLazyObject
 
-from sentry import features, quotas
+from sentry import quotas
 from sentry.api.event_search import SearchFilter
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models import (
@@ -39,7 +39,7 @@ from sentry.search.snuba.executors import (
     CdcPostgresSnubaQueryExecutor,
     PostgresSnubaQueryExecutor,
 )
-from sentry.types.issues import GroupType
+from sentry.types.issues import PERFORMANCE_TYPES, GroupType
 from sentry.utils.cursors import Cursor, CursorResult
 
 
@@ -525,32 +525,27 @@ class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
             "regressed_in_release": QCallbackCondition(
                 functools.partial(regressed_in_release_filter, projects=projects)
             ),
+            "issue.category": QCallbackCondition(lambda categories: Q(type__in=categories)),
+            "issue.type": QCallbackCondition(lambda types: Q(type__in=types)),
         }
 
-        if features.has("organizations:performance-issues", projects[0].organization):
-            queryset_conditions.update(
-                {"issue.category": QCallbackCondition(lambda categories: Q(type__in=categories))}
-            )
-            queryset_conditions.update(
-                {"issue.type": QCallbackCondition(lambda types: Q(type__in=types))}
-            )
+        message_filter = next((sf for sf in search_filters or () if "message" == sf.key.name), None)
+        if message_filter:
+
+            def _perf_issue_message_condition(query: str) -> Q:
+                return Q(type__in=PERFORMANCE_TYPES, message__icontains=query)
+
             queryset_conditions.update(
                 {
                     "message": QCallbackCondition(
                         lambda query: Q(type=GroupType.ERROR.value)
-                        | Q(
-                            type__in=(
-                                GroupType.PERFORMANCE_N_PLUS_ONE.value,
-                                GroupType.PERFORMANCE_SLOW_SPAN.value,
-                                GroupType.PERFORMANCE_SEQUENTIAL_SLOW_SPANS.value,
-                                GroupType.PERFORMANCE_LONG_TASK_SPANS.value,
-                                GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN.value,
-                                GroupType.PERFORMANCE_DUPLICATE_SPANS.value,
-                                GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value,
-                            ),
-                            message__icontains=query,
-                        )
+                        | _perf_issue_message_condition(query)
                     )
+                    # negation should only apply on the message search icontains, we have to include the
+                    # type filter(type=GroupType.ERROR) check since we don't wanna search on the message
+                    # column when type=GroupType.ERROR - we delegate that to snuba in that case
+                    if not message_filter.is_negation
+                    else QCallbackCondition(lambda query: _perf_issue_message_condition(query))
                 }
             )
 

@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import {
   AutoSizer,
   CellMeasurer,
@@ -8,32 +8,31 @@ import {
 } from 'react-virtualized';
 import styled from '@emotion/styled';
 
-import CompactSelect from 'sentry/components/compactSelect';
-import DateTime from 'sentry/components/dateTime';
-import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import FileSize from 'sentry/components/fileSize';
+import Placeholder from 'sentry/components/placeholder';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
-import {relativeTimeInMs, showPlayerTime} from 'sentry/components/replays/utils';
-import SearchBar from 'sentry/components/searchBar';
+import {relativeTimeInMs} from 'sentry/components/replays/utils';
 import Tooltip from 'sentry/components/tooltip';
-import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {getPrevReplayEvent} from 'sentry/utils/replays/getReplayEvent';
+import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
+import NetworkFilters from 'sentry/views/replays/detail/network/networkFilters';
+import NetworkHeaderCell, {
+  COLUMN_COUNT,
+  HEADER_HEIGHT,
+} from 'sentry/views/replays/detail/network/networkHeaderCell';
 import useNetworkFilters from 'sentry/views/replays/detail/network/useNetworkFilters';
-import {
-  getResourceTypes,
-  getStatusTypes,
-  ISortConfig,
-  sortNetwork,
-} from 'sentry/views/replays/detail/network/utils';
-import type {NetworkSpan, ReplayRecord} from 'sentry/views/replays/types';
+import useSortNetwork from 'sentry/views/replays/detail/network/useSortNetwork';
+import NoRowRenderer from 'sentry/views/replays/detail/noRowRenderer';
+import TimestampButton from 'sentry/views/replays/detail/timestampButton';
+import type {NetworkSpan} from 'sentry/views/replays/types';
 
 type Props = {
-  networkSpans: NetworkSpan[];
-  replayRecord: ReplayRecord;
+  networkSpans: undefined | NetworkSpan[];
+  startTimestampMs: number;
 };
 
 type SortDirection = 'asc' | 'desc';
@@ -43,66 +42,36 @@ const cache = new CellMeasurerCache({
   fixedHeight: true,
 });
 
-const headerRowHeight = 24;
+function NetworkList({networkSpans, startTimestampMs}: Props) {
+  const {currentTime, currentHoverTime} = useReplayContext();
 
-function NetworkList({replayRecord, networkSpans}: Props) {
-  const startTimestampMs = replayRecord.startedAt.getTime();
-  const {setCurrentHoverTime, setCurrentTime, currentTime} = useReplayContext();
-  const [sortConfig, setSortConfig] = useState<ISortConfig>({
-    by: 'startTimestamp',
-    asc: true,
-    getValue: row => row[sortConfig.by],
-  });
   const [scrollBarWidth, setScrollBarWidth] = useState(0);
   const multiGridRef = useRef<MultiGrid>(null);
   const networkTableRef = useRef<HTMLDivElement>(null);
 
-  const {
+  const filterProps = useNetworkFilters({networkSpans: networkSpans || []});
+  const {items: filteredItems, searchTerm, setSearchTerm} = filterProps;
+  const clearSearchTerm = () => setSearchTerm('');
+  const {handleSort, items, sortConfig} = useSortNetwork({items: filteredItems});
+
+  const {handleMouseEnter, handleMouseLeave, handleClick} =
+    useCrumbHandlers(startTimestampMs);
+
+  const current = getPrevReplayEvent({
     items,
-    status: selectedStatus,
-    type: selectedType,
-    searchTerm,
-    setStatus,
-    setType,
-    setSearchTerm,
-  } = useNetworkFilters({networkSpans});
-
-  const networkData = useMemo(() => sortNetwork(items, sortConfig), [items, sortConfig]);
-
-  const currentNetworkSpan = getPrevReplayEvent({
-    items: networkData,
     targetTimestampMs: startTimestampMs + currentTime,
     allowEqual: true,
     allowExact: true,
   });
 
-  const handleMouseEnter = useCallback(
-    (timestamp: number) => {
-      if (startTimestampMs) {
-        setCurrentHoverTime(relativeTimeInMs(timestamp, startTimestampMs));
-      }
-    },
-    [setCurrentHoverTime, startTimestampMs]
-  );
-
-  const handleMouseLeave = useCallback(() => {
-    setCurrentHoverTime(undefined);
-  }, [setCurrentHoverTime]);
-
-  const handleClick = useCallback(
-    (timestamp: number) => {
-      setCurrentTime(relativeTimeInMs(timestamp, startTimestampMs));
-    },
-    [setCurrentTime, startTimestampMs]
-  );
-
-  const getColumnHandlers = useCallback(
-    (startTime: number) => ({
-      onMouseEnter: () => handleMouseEnter(startTime),
-      onMouseLeave: handleMouseLeave,
-    }),
-    [handleMouseEnter, handleMouseLeave]
-  );
+  const hovered = currentHoverTime
+    ? getPrevReplayEvent({
+        items,
+        targetTimestampMs: startTimestampMs + currentHoverTime,
+        allowEqual: true,
+        allowExact: true,
+      })
+    : null;
 
   useEffect(() => {
     let observer: ResizeObserver | null;
@@ -122,85 +91,17 @@ function NetworkList({replayRecord, networkSpans}: Props) {
     };
   }, [networkTableRef, searchTerm]);
 
-  function handleSort(fieldName: keyof NetworkSpan): void;
-  function handleSort(key: string, getValue: (row: NetworkSpan) => any): void;
-  function handleSort(
-    fieldName: string | keyof NetworkSpan,
-    getValue?: (row: NetworkSpan) => any
-  ) {
-    const getValueFunction = getValue ? getValue : (row: NetworkSpan) => row[fieldName];
-
-    setSortConfig(prevSort => {
-      if (prevSort.by === fieldName) {
-        return {by: fieldName, asc: !prevSort.asc, getValue: getValueFunction};
-      }
-
-      return {by: fieldName, asc: true, getValue: getValueFunction};
-    });
-  }
-
-  const sortArrow = (sortedBy: string) => {
-    return sortConfig.by === sortedBy ? (
-      <IconArrow
-        color="gray300"
-        size="xs"
-        direction={sortConfig.by === sortedBy && !sortConfig.asc ? 'down' : 'up'}
-      />
-    ) : (
-      <IconArrow size="xs" style={{visibility: 'hidden'}} />
-    );
-  };
-
-  const columns = [
-    <SortItem key="status">
-      <UnstyledHeaderButton
-        onClick={() => handleSort('status', row => row.data.statusCode)}
-      >
-        {t('Status')} {sortArrow('status')}
-      </UnstyledHeaderButton>
-    </SortItem>,
-    <SortItem key="path">
-      <UnstyledHeaderButton onClick={() => handleSort('description')}>
-        {t('Path')} {sortArrow('description')}
-      </UnstyledHeaderButton>
-    </SortItem>,
-    <SortItem key="type">
-      <UnstyledHeaderButton onClick={() => handleSort('op')}>
-        {t('Type')} {sortArrow('op')}
-      </UnstyledHeaderButton>
-    </SortItem>,
-    <SortItem key="size">
-      <UnstyledHeaderButton onClick={() => handleSort('size', row => row.data.size)}>
-        {t('Size')} {sortArrow('size')}
-      </UnstyledHeaderButton>
-    </SortItem>,
-    <SortItem key="duration">
-      <UnstyledHeaderButton
-        onClick={() =>
-          handleSort('duration', row => {
-            return row.endTimestamp - row.startTimestamp;
-          })
-        }
-      >
-        {t('Duration')} {sortArrow('duration')}
-      </UnstyledHeaderButton>
-    </SortItem>,
-    <SortItem key="timestamp">
-      <UnstyledHeaderButton onClick={() => handleSort('startTimestamp')}>
-        {t('Timestamp')} {sortArrow('startTimestamp')}
-      </UnstyledHeaderButton>
-    </SortItem>,
-  ];
-
   const getNetworkColumnValue = (network: NetworkSpan, column: number) => {
     const networkStartTimestamp = network.startTimestamp * 1000;
     const networkEndTimestamp = network.endTimestamp * 1000;
     const statusCode = network.data.statusCode;
 
-    const columnHandlers = getColumnHandlers(networkStartTimestamp);
     const columnProps = {
+      onMouseEnter: () => handleMouseEnter(network),
+      onMouseLeave: () => handleMouseLeave(network),
       isStatusError: typeof statusCode === 'number' && statusCode >= 400,
-      isCurrent: currentNetworkSpan?.id === network.id,
+      isCurrent: network.id === current?.id,
+      isHovered: network.id === hovered?.id,
       hasOccurred:
         currentTime >= relativeTimeInMs(networkStartTimestamp, startTimestampMs),
       timestampSortDir:
@@ -210,10 +111,10 @@ function NetworkList({replayRecord, networkSpans}: Props) {
     };
 
     const columnValues = [
-      <Item key="statusCode" {...columnHandlers} {...columnProps}>
+      <Item key="statusCode" {...columnProps}>
         {statusCode ? statusCode : <EmptyText>---</EmptyText>}
       </Item>,
-      <Item key="description" {...columnHandlers} {...columnProps}>
+      <Item key="description" {...columnProps}>
         {network.description ? (
           <Tooltip
             title={network.description}
@@ -229,7 +130,7 @@ function NetworkList({replayRecord, networkSpans}: Props) {
           <EmptyText>({t('No value')})</EmptyText>
         )}
       </Item>,
-      <Item key="type" {...columnHandlers} {...columnProps}>
+      <Item key="type" {...columnProps}>
         <Tooltip
           title={network.op.replace('resource.', '')}
           isHoverable
@@ -241,22 +142,23 @@ function NetworkList({replayRecord, networkSpans}: Props) {
           <Text>{network.op.replace('resource.', '')}</Text>
         </Tooltip>
       </Item>,
-      <Item key="size" {...columnHandlers} {...columnProps} numeric>
+      <Item key="size" {...columnProps} numeric>
         {defined(network.data.size) ? (
           <FileSize bytes={network.data.size} />
         ) : (
           <EmptyText>({t('No value')})</EmptyText>
         )}
       </Item>,
-      <Item key="duration" {...columnHandlers} {...columnProps} numeric>
+      <Item key="duration" {...columnProps} numeric>
         {`${(networkEndTimestamp - networkStartTimestamp).toFixed(2)}ms`}
       </Item>,
-      <Item key="timestamp" {...columnHandlers} {...columnProps} numeric>
-        <Tooltip title={<DateTime date={networkStartTimestamp} seconds />}>
-          <UnstyledButton onClick={() => handleClick(networkStartTimestamp)}>
-            {showPlayerTime(networkStartTimestamp, startTimestampMs, true)}
-          </UnstyledButton>
-        </Tooltip>
+      <Item key="timestamp" {...columnProps} numeric>
+        <TimestampButton
+          format="mm:ss.SSS"
+          onClick={() => handleClick(network)}
+          startTimestampMs={startTimestampMs}
+          timestampMs={networkStartTimestamp}
+        />
       </Item>,
     ];
 
@@ -264,7 +166,7 @@ function NetworkList({replayRecord, networkSpans}: Props) {
   };
 
   const renderTableRow = ({columnIndex, rowIndex, key, style, parent}: GridCellProps) => {
-    const network = networkData[rowIndex - 1];
+    const network = items[rowIndex - 1];
 
     return (
       <CellMeasurer
@@ -275,9 +177,15 @@ function NetworkList({replayRecord, networkSpans}: Props) {
         rowIndex={rowIndex}
       >
         <div key={key} style={style}>
-          {rowIndex === 0
-            ? columns[columnIndex]
-            : getNetworkColumnValue(network, columnIndex)}
+          {rowIndex === 0 ? (
+            <NetworkHeaderCell
+              handleSort={handleSort}
+              index={columnIndex}
+              sortConfig={sortConfig}
+            />
+          ) : (
+            getNetworkColumnValue(network, columnIndex)
+          )}
         </div>
       </CellMeasurer>
     );
@@ -285,82 +193,57 @@ function NetworkList({replayRecord, networkSpans}: Props) {
 
   return (
     <NetworkContainer>
-      <NetworkFilters>
-        <CompactSelect
-          triggerProps={{prefix: t('Status')}}
-          triggerLabel={selectedStatus.length === 0 ? t('Any') : null}
-          multiple
-          options={getStatusTypes(networkSpans).map(value => ({value, label: value}))}
-          size="sm"
-          onChange={selected => setStatus(selected.map(_ => _.value))}
-          value={selectedStatus}
-        />
-        <CompactSelect
-          triggerProps={{prefix: t('Type')}}
-          triggerLabel={selectedType.length === 0 ? t('Any') : null}
-          multiple
-          options={getResourceTypes(networkSpans).map(value => ({value, label: value}))}
-          size="sm"
-          onChange={selected => setType(selected.map(_ => _.value))}
-          value={selectedType}
-        />
-        <SearchBar
-          size="sm"
-          onChange={setSearchTerm}
-          placeholder={t('Search Network...')}
-          query={searchTerm}
-        />
-      </NetworkFilters>
-
+      <NetworkFilters networkSpans={networkSpans} {...filterProps} />
       <NetworkTable ref={networkTableRef}>
-        <AutoSizer>
-          {({width, height}) => (
-            <MultiGrid
-              ref={multiGridRef}
-              columnCount={columns.length}
-              columnWidth={({index}) => {
-                if (index === 1) {
-                  return Math.max(
-                    columns.reduce(
-                      (remaining, _, i) =>
-                        i === 1 ? remaining : remaining - cache.columnWidth({index: i}),
-                      width - scrollBarWidth
-                    ),
-                    200
-                  );
-                }
+        {networkSpans ? (
+          <AutoSizer>
+            {({width, height}) => (
+              <MultiGrid
+                ref={multiGridRef}
+                columnCount={COLUMN_COUNT}
+                columnWidth={({index}) => {
+                  if (index === 1) {
+                    return Math.max(
+                      Array.from(new Array(COLUMN_COUNT)).reduce(
+                        (remaining, _, i) =>
+                          i === 1 ? remaining : remaining - cache.columnWidth({index: i}),
+                        width - scrollBarWidth
+                      ),
+                      200
+                    );
+                  }
 
-                return cache.columnWidth({index});
-              }}
-              deferredMeasurementCache={cache}
-              height={height}
-              overscanRowCount={5}
-              cellRenderer={renderTableRow}
-              rowCount={networkData.length + 1}
-              rowHeight={({index}) => (index === 0 ? headerRowHeight : 28)}
-              width={width}
-              fixedRowCount={1}
-              onScrollbarPresenceChange={({vertical, size}) => {
-                if (vertical) {
-                  setScrollBarWidth(size);
-                } else {
-                  setScrollBarWidth(0);
-                }
-              }}
-              noContentRenderer={() =>
-                networkSpans.length === 0 ? (
-                  <EmptyStateWarning withIcon={false} small>
-                    {t('No related network requests recorded')}
-                  </EmptyStateWarning>
-                ) : (
-                  <EmptyStateWarning withIcon small>
-                    {t('No results found')}
-                  </EmptyStateWarning>
-                )
-              }
-            />
-          )}
-        </AutoSizer>
+                  return cache.columnWidth({index});
+                }}
+                deferredMeasurementCache={cache}
+                height={height}
+                overscanRowCount={5}
+                cellRenderer={renderTableRow}
+                rowCount={items.length + 1}
+                rowHeight={({index}) => (index === 0 ? HEADER_HEIGHT : 28)}
+                width={width}
+                fixedRowCount={1}
+                onScrollbarPresenceChange={({vertical, size}) => {
+                  if (vertical) {
+                    setScrollBarWidth(size);
+                  } else {
+                    setScrollBarWidth(0);
+                  }
+                }}
+                noContentRenderer={() => (
+                  <NoRowRenderer
+                    unfilteredItems={networkSpans}
+                    clearSearchTerm={clearSearchTerm}
+                  >
+                    {t('No network requests recorded')}
+                  </NoRowRenderer>
+                )}
+              />
+            )}
+          </AutoSizer>
+        ) : (
+          <Placeholder height="100%" />
+        )}
       </NetworkTable>
     </NetworkContainer>
   );
@@ -368,17 +251,6 @@ function NetworkList({replayRecord, networkSpans}: Props) {
 
 const NetworkContainer = styled(FluidHeight)`
   height: 100%;
-`;
-
-const NetworkFilters = styled('div')`
-  display: grid;
-  gap: ${space(1)};
-  grid-template-columns: max-content max-content 1fr;
-  margin-bottom: ${space(1)};
-
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
-    margin-top: ${space(1)};
-  }
 `;
 
 const Text = styled('p')`
@@ -394,66 +266,58 @@ const EmptyText = styled(Text)`
   color: ${p => p.theme.subText};
 `;
 
-const fontColor = p => {
-  if (p.isStatusError) {
-    return p.hasOccurred || !p.timestampSortDir ? p.theme.red400 : p.theme.red200;
-  }
-  return p.hasOccurred || !p.timestampSortDir ? p.theme.gray400 : p.theme.gray300;
-};
+const fontColor = p =>
+  p.isStatusError
+    ? p.theme.alert.error.iconColor
+    : p.hasOccurred
+    ? 'inherit'
+    : p.theme.gray300;
 
 const Item = styled('div')<{
   hasOccurred: boolean;
   isCurrent: boolean;
+  isHovered: boolean;
   isStatusError: boolean;
   timestampSortDir: SortDirection | undefined;
   numeric?: boolean;
 }>`
   display: flex;
   align-items: center;
+  padding: ${space(0.75)} ${space(1.5)};
 
   font-size: ${p => p.theme.fontSizeSmall};
   max-height: 28px;
+  font-variant-numeric: tabular-nums;
+  ${p => (p.numeric ? 'justify-content: flex-end;' : '')};
+
+  background-color: ${p =>
+    p.isStatusError ? p.theme.alert.error.backgroundLight : 'inherit'};
+
+  border-bottom: 1px solid
+    ${p =>
+      p.timestampSortDir === 'asc'
+        ? p.isCurrent
+          ? p.theme.purple300
+          : p.isHovered
+          ? p.theme.purple200
+          : 'transparent'
+        : 'transparent'};
+
+  border-top: 1px solid
+    ${p =>
+      p.timestampSortDir === 'desc'
+        ? p.isCurrent
+          ? p.theme.purple300
+          : p.isHovered
+          ? p.theme.purple200
+          : 'transparent'
+        : 'transparent'};
+
   color: ${fontColor};
-  padding: ${space(0.75)} ${space(1.5)};
-  background-color: ${p => p.theme.background};
-  border-bottom: ${p => {
-    if (p.isCurrent && p.timestampSortDir === 'asc') {
-      return `1px solid ${p.theme.purple300} !important`;
-    }
-    return p.isStatusError
-      ? `1px solid ${p.theme.red100}`
-      : `1px solid ${p.theme.innerBorder}`;
-  }};
-
-  border-top: ${p => {
-    return p.isCurrent && p.timestampSortDir === 'desc'
-      ? `1px solid ${p.theme.purple300} !important`
-      : 0;
-  }};
-
-  border-right: 1px solid ${p => p.theme.innerBorder};
-
-  ${p => p.numeric && 'font-variant-numeric: tabular-nums; justify-content: flex-end;'};
 
   ${EmptyText} {
     color: ${fontColor};
   }
-`;
-
-const UnstyledButton = styled('button')`
-  border: 0;
-  background: none;
-  padding: 0;
-  text-transform: inherit;
-  width: 100%;
-  text-align: unset;
-`;
-
-const UnstyledHeaderButton = styled(UnstyledButton)`
-  padding: ${space(0.5)} ${space(1)} ${space(0.5)} ${space(1.5)};
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
 `;
 
 const NetworkTable = styled('div')`
@@ -465,30 +329,6 @@ const NetworkTable = styled('div')`
   border-radius: ${p => p.theme.borderRadius};
   padding-left: 0;
   margin-bottom: 0;
-`;
-
-const SortItem = styled('span')`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
-  font-weight: 600;
-  background: ${p => p.theme.backgroundSecondary};
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  width: 100%;
-
-  max-height: ${headerRowHeight}px;
-  line-height: 16px;
-  text-transform: uppercase;
-
-  border-radius: 0;
-  border-right: 1px solid ${p => p.theme.innerBorder};
-  border-bottom: 1px solid ${p => p.theme.innerBorder};
-
-  svg {
-    margin-left: ${space(0.25)};
-  }
 `;
 
 export default NetworkList;
