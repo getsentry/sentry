@@ -280,8 +280,8 @@ def get_detection_settings(project_id: Optional[str] = None) -> Dict[DetectorTyp
             "duration_threshold": settings["n_plus_one_db_duration_threshold"],  # ms
         },
         DetectorType.CONSECUTIVE_DB_OP: {
-            # Minimum ratio of time saved/independent span durations
-            "minimum_time_saved": 100,  # ms
+            # Time saved by running all queries in parallel
+            "cost_threshold": 50,  # ms
             # Duration of all the independent spans in a set of consecutive spans
             "duration_threshold": 100,  # ms
             # The minimum duration of a single independent span in ms, used to prevent scenarios with a ton of small spans
@@ -850,9 +850,9 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
             for span in independent_db_spans
         )
 
-        exceeds_cost_ratio_threshold = self._calculate_cost(
-            independent_db_spans
-        ) > self.settings.get("cost_saving_ratio")
+        exceeds_cost_threshold = self._calculate_cost(independent_db_spans) > self.settings.get(
+            "cost_threshold"
+        )
         exceeds_duration_threshold = self._sum_span_duration(
             independent_db_spans
         ) > self.settings.get("duration_threshold")
@@ -860,7 +860,7 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
         if (
             exceeds_count_threshold
             and exceeds_span_duration_threshold
-            and exceeds_cost_ratio_threshold
+            and exceeds_cost_threshold
             and exceeds_duration_threshold
         ):
             self._store_performance_problem()
@@ -905,31 +905,25 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
     def _calculate_cost(self, independent_spans: list[Span]) -> float:
         """
         Calculates the cost saved by running spans in parallel,
-        this is the maximum time saving of running the queries in parallel
+        this is the maximum time saved of running all independent queries in parallel
+        note, maximum means it does not account for db connection times and overhead associated with parallelization,
+        this is where thresholds come in
         """
         consecutive_spans = self.consecutive_db_spans
-        time_saved_array = [0]  # Each index maps to the time saved for each independent span
-        idx = 0
+        consecutive_total_duration = self._sum_span_duration(consecutive_spans)
+        parallel_total_duration = consecutive_total_duration
+        independent_span_durations = [
+            get_span_duration(span).total_seconds() * 1000 for span in independent_spans
+        ]
+        max_independent_span_duration = max(independent_span_durations)
 
-        for consec_span in consecutive_spans:
-            time_saved = 0
-            if consec_span == independent_spans[idx]:
-                independent_span_duration = (
-                    get_span_duration(independent_spans[idx]).total_seconds() * 1000
-                )
-                if independent_span_duration < time_saved:
-                    time_saved = independent_span_duration
-                time_saved_array[
-                    idx
-                ] += time_saved  # Time saved is the time saved from the previous query in parallel, plus the the time saved of the current query in parallel
-                if idx == len(independent_spans) - 1:
-                    return sum(time_saved_array)
-                time_saved_array.append(time_saved_array[idx])
-                idx += 1
+        for span_duration in independent_span_durations:
+            parallel_total_duration -= span_duration
 
-            time_saved += get_span_duration(consec_span).total_seconds() * 1000
+        if parallel_total_duration < max_independent_span_duration:
+            parallel_total_duration = max_independent_span_duration
 
-        return sum(time_saved_array)
+        return consecutive_total_duration - parallel_total_duration
 
     def _overlaps_last_span(self, span: Span) -> bool:
         if len(self.consecutive_db_spans) == 0:

@@ -157,8 +157,8 @@ class ConsecutiveDbDetectorTest(unittest.TestCase):
             )
         ]
 
-    def test_does_not_detect_consecutive_db_with_low_ratio(self):
-        span_duration = 200
+    def test_does_not_detect_consecutive_db_with_low_cost(self):
+        span_duration = 10
         spans = [
             create_span(
                 "db",
@@ -178,4 +178,37 @@ class ConsecutiveDbDetectorTest(unittest.TestCase):
 
         event = create_event(spans)
 
-        assert self.find_consecutive_db_problems(event) == []
+        assert self.find_problems(event) == []
+
+    def test_detects_consecutive_db_with_high_cost(self):
+        span_duration = 50
+        spans = [
+            create_span(
+                "db",
+                span_duration,
+                "SELECT `customer`.`id` FROM `customers` WHERE `customer`.`name` = $1",
+            ),
+            create_span(
+                "db",
+                span_duration,
+                "SELECT `order`.`id` FROM `books_author` WHERE `author`.`type` = $1",
+            ),
+            create_span("db", 900, "SELECT COUNT(*) FROM `products`"),
+        ]
+        spans = [
+            modify_span_start(span, span_duration * spans.index(span)) for span in spans
+        ]  # ensure spans don't overlap
+
+        event = create_event(spans)
+
+        assert self.find_problems(event) == [
+            PerformanceProblem(
+                fingerprint="1-GroupType.PERFORMANCE_CONSECUTIVE_DB_OP-e6a9fc04320a924f46c7c737432bb0389d9dd095",
+                op="db",
+                desc="consecutive db",
+                type=GroupType.PERFORMANCE_CONSECUTIVE_DB_OP,
+                parent_span_ids=None,
+                cause_span_ids=None,
+                offender_span_ids=["bbbbbbbbbbbbbbbb", "bbbbbbbbbbbbbbbb", "bbbbbbbbbbbbbbbb"],
+            )
+        ]
