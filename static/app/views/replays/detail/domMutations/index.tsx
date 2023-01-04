@@ -29,26 +29,36 @@ import useVirtualizedList from 'sentry/views/replays/detail/useVirtualizedList';
 
 type Props = {
   replay: null | ReplayReader;
+  startTimestampMs: number;
 };
 
-function DomMutations({replay}: Props) {
-  const startTimestampMs = replay?.getReplay()?.startedAt?.getTime() || 0;
-  const {currentTime} = useReplayContext();
+function DomMutations({replay, startTimestampMs}: Props) {
+  const {currentTime, currentHoverTime} = useReplayContext();
   const {isLoading, actions} = useExtractedCrumbHtml({replay});
 
   const filterProps = useDomFilters({actions: actions || []});
   const {items, setSearchTerm} = filterProps;
   const clearSearchTerm = () => setSearchTerm('');
 
-  const currentDomMutation = getPrevReplayEvent({
-    items: items.map(mutation => mutation.crumb),
+  const {handleMouseEnter, handleMouseLeave, handleClick} =
+    useCrumbHandlers(startTimestampMs);
+
+  const crumbs = items.map(mutation => mutation.crumb);
+  const current = getPrevReplayEvent({
+    items: crumbs,
     targetTimestampMs: startTimestampMs + currentTime,
     allowEqual: true,
     allowExact: true,
   });
 
-  const {handleMouseEnter, handleMouseLeave, handleClick} =
-    useCrumbHandlers(startTimestampMs);
+  const hovered = currentHoverTime
+    ? getPrevReplayEvent({
+        items: crumbs,
+        targetTimestampMs: startTimestampMs + currentHoverTime,
+        allowEqual: true,
+        allowExact: true,
+      })
+    : null;
 
   const listRef = useRef<ReactVirtualizedList>(null);
   const {cache} = useVirtualizedList({
@@ -80,7 +90,8 @@ function DomMutations({replay}: Props) {
           onMouseEnter={() => handleMouseEnter(crumb)}
           onMouseLeave={() => handleMouseLeave(crumb)}
           style={style}
-          isCurrent={crumb.id === currentDomMutation?.id}
+          isCurrent={crumb.id === current?.id}
+          isHovered={crumb.id === hovered?.id}
         >
           <IconWrapper color={crumb.color} hasOccurred={hasOccurred}>
             <BreadcrumbIcon type={crumb.type} />
@@ -193,13 +204,16 @@ const IconWrapper = styled('div')<
   z-index: 2;
 `;
 
-const MutationListItem = styled('li')<{isCurrent?: boolean}>`
+const MutationListItem = styled('li')<{isCurrent: boolean; isHovered: boolean}>`
   display: flex;
   gap: ${space(1)};
   flex-grow: 1;
   padding: ${space(1)} ${space(1.5)};
   position: relative;
-  border-bottom: 1px solid ${p => (p.isCurrent ? p.theme.purple300 : 'transparent')};
+  border-bottom: 1px solid
+    ${p =>
+      p.isCurrent ? p.theme.purple300 : p.isHovered ? p.theme.purple200 : 'transparent'};
+
   &:hover {
     background-color: ${p => p.theme.backgroundSecondary};
   }

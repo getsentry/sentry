@@ -1,3 +1,4 @@
+import {Theme} from '@emotion/react';
 import {Location, Query} from 'history';
 
 import MarkLine from 'sentry/components/charts/components/markLine';
@@ -11,7 +12,7 @@ import {aggregateOutputType, getAggregateAlias} from 'sentry/utils/discover/fiel
 import {WebVital} from 'sentry/utils/fields';
 import {Browser} from 'sentry/utils/performance/vitals/constants';
 import {decodeScalar} from 'sentry/utils/queryString';
-import {Color, Theme} from 'sentry/utils/theme';
+import {Color} from 'sentry/utils/theme';
 import {AlertType} from 'sentry/views/alerts/wizard/options';
 
 export function generateVitalDetailRoute({orgSlug}: {orgSlug: string}): string {

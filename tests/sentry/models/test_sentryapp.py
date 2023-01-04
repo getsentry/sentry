@@ -1,8 +1,10 @@
 from sentry.constants import SentryAppStatus
 from sentry.models import ApiApplication, SentryApp
 from sentry.testutils import TestCase
+from sentry.testutils.silo import control_silo_test
 
 
+@control_silo_test(stable=True)
 class SentryAppTest(TestCase):
     def setUp(self):
         self.user = self.create_user()

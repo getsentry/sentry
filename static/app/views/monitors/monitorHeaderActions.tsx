@@ -6,7 +6,6 @@ import {
   addLoadingMessage,
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
-import Access from 'sentry/components/acl/access';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import Confirm from 'sentry/components/confirm';
@@ -16,6 +15,7 @@ import space from 'sentry/styles/space';
 import {logException} from 'sentry/utils/logging';
 import useApi from 'sentry/utils/useApi';
 
+import CronsFeedbackButton from './cronsFeedbackButton';
 import {Monitor} from './types';
 
 type Props = {
@@ -24,15 +24,11 @@ type Props = {
   orgId: string;
 };
 
-const DISABLED_TOOLTIP_TEXT = t(
-  'These settings can only be edited by users with the organization owner, manager, or admin role.'
-);
-
 const MonitorHeaderActions = ({monitor, orgId, onUpdate}: Props) => {
   const api = useApi();
 
   const handleDelete = () => {
-    const redirectPath = `/organizations/${orgId}/monitors/`;
+    const redirectPath = `/organizations/${orgId}/crons/`;
     addLoadingMessage(t('Deleting Monitor...'));
 
     api
@@ -70,46 +66,29 @@ const MonitorHeaderActions = ({monitor, orgId, onUpdate}: Props) => {
     });
 
   return (
-    <Access access={['project:write']}>
-      {({hasAccess}) => (
-        <ButtonContainer>
-          <ButtonBar gap={1}>
-            <Button
-              size="sm"
-              icon={<IconEdit size="xs" />}
-              to={`/organizations/${orgId}/monitors/${monitor.id}/edit/`}
-            >
-              {hasAccess ? t('Edit') : t('View Config')}
-            </Button>
-            <Button
-              size="sm"
-              onClick={toggleStatus}
-              disabled={!hasAccess}
-              title={DISABLED_TOOLTIP_TEXT}
-              tooltipProps={{disabled: hasAccess}}
-            >
-              {monitor.status !== 'disabled' ? t('Pause') : t('Enable')}
-            </Button>
-            <Confirm
-              onConfirm={handleDelete}
-              message={t(
-                'Are you sure you want to permanently delete this cron monitor?'
-              )}
-              disabled={!hasAccess}
-            >
-              <Button
-                size="sm"
-                icon={<IconDelete size="xs" />}
-                title={DISABLED_TOOLTIP_TEXT}
-                tooltipProps={{disabled: hasAccess}}
-              >
-                {t('Delete')}
-              </Button>
-            </Confirm>
-          </ButtonBar>
-        </ButtonContainer>
-      )}
-    </Access>
+    <ButtonContainer>
+      <ButtonBar gap={1}>
+        <Button
+          size="sm"
+          icon={<IconEdit size="xs" />}
+          to={`/organizations/${orgId}/crons/${monitor.id}/edit/`}
+        >
+          {t('Edit')}
+        </Button>
+        <Button size="sm" onClick={toggleStatus}>
+          {monitor.status !== 'disabled' ? t('Pause') : t('Enable')}
+        </Button>
+        <Confirm
+          onConfirm={handleDelete}
+          message={t('Are you sure you want to permanently delete this cron monitor?')}
+        >
+          <Button size="sm" icon={<IconDelete size="xs" />}>
+            {t('Delete')}
+          </Button>
+        </Confirm>
+        <CronsFeedbackButton />
+      </ButtonBar>
+    </ButtonContainer>
   );
 };
 

@@ -7,9 +7,9 @@ import type {
   Group,
   Organization,
   Project,
-  ReleaseCommitter,
 } from 'sentry/types';
 import type {Event} from 'sentry/types/event';
+import {defined} from 'sentry/utils';
 import useCommitters from 'sentry/utils/useCommitters';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -24,7 +24,6 @@ type Props = {
   organization: Organization;
   project: Project;
   committers?: Committer[];
-  releaseCommitters?: ReleaseCommitter[];
 } & AsyncComponent['props'];
 
 type State = {
@@ -100,11 +99,9 @@ class SuggestedOwners extends AsyncComponent<Props, State> {
    */
   getOwnerList(): OwnerList {
     const committers = this.props.committers ?? [];
-    const releaseCommitters = this.props.releaseCommitters ?? [];
-    const owners: OwnerList = [...committers, ...releaseCommitters].map(commiter => ({
+    const owners: OwnerList = committers.map(commiter => ({
       actor: {...commiter.author, type: 'user'},
       commits: commiter.commits,
-      release: (commiter as ReleaseCommitter).release,
       source: 'suspectCommit',
     }));
 
@@ -186,16 +183,22 @@ class SuggestedOwners extends AsyncComponent<Props, State> {
 
 function SuggestedOwnersWrapper(props: Omit<Props, 'committers' | 'organization'>) {
   const organization = useOrganization();
-  const {committers, releaseCommitters} = useCommitters({
-    eventId: props.event.id,
-    projectSlug: props.project.slug,
-  });
+  const {data} = useCommitters(
+    {
+      eventId: props.event.id,
+      projectSlug: props.project.slug,
+    },
+    {notifyOnChangeProps: ['data'], enabled: !defined(props.group.assignedTo)}
+  );
+
+  if (defined(props.group.assignedTo)) {
+    return null;
+  }
 
   return (
     <SuggestedOwners
       organization={organization}
-      committers={committers}
-      releaseCommitters={releaseCommitters}
+      committers={data?.committers ?? []}
       {...props}
     />
   );

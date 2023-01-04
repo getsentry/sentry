@@ -1,7 +1,10 @@
-import type {TraceContextType} from 'sentry/components/events/interfaces/spans/types';
+import type {
+  RawSpanType,
+  TraceContextType,
+} from 'sentry/components/events/interfaces/spans/types';
 import type {SymbolicatorStatus} from 'sentry/components/events/interfaces/types';
 import type {PlatformKey} from 'sentry/data/platformCategories';
-import {IssueType} from 'sentry/types';
+import type {IssueType} from 'sentry/types';
 
 import type {RawCrumb} from './breadcrumbs';
 import type {Image} from './debugImage';
@@ -292,8 +295,8 @@ type EntryStacktrace = {
   type: EntryType.STACKTRACE;
 };
 
-type EntrySpans = {
-  data: any;
+export type EntrySpans = {
+  data: RawSpanType[];
   type: EntryType.SPANS;
 };
 
@@ -610,6 +613,34 @@ export type PerformanceDetectorData = {
   issueType?: IssueType;
 };
 
+type EventEvidenceDisplay = {
+  /**
+   * Used for alerting, probably not useful for the UI
+   */
+  important: boolean;
+  name: string;
+  value: string;
+};
+
+type EventOccurrence = {
+  detectionTime: string;
+  eventId: string;
+  /**
+   * Arbitrary data that vertical teams can pass to assist with rendering the page.
+   * This is intended mostly for use with customizing the UI, not in the generic UI.
+   */
+  evidenceData: Record<string, any>;
+  /**
+   * Data displayed in the evidence table. Used in all issue types besides errors.
+   */
+  evidenceDisplay: EventEvidenceDisplay[];
+  fingerprint: string[];
+  id: string;
+  issueTitle: string;
+  resourceId: string;
+  subtitle: string;
+};
+
 interface EventBase {
   contexts: EventContexts;
   crashFile: IssueAttachment | null;
@@ -624,6 +655,7 @@ interface EventBase {
   location: string | null;
   message: string;
   metadata: EventMetadata;
+  occurrence: EventOccurrence | null;
   projectID: string;
   size: number;
   tags: EventTag[];

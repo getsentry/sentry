@@ -1,7 +1,7 @@
 import {Component, Fragment} from 'react';
+import styled from '@emotion/styled';
 import {Observer} from 'mobx-react';
 
-import Access from 'sentry/components/acl/access';
 import Field from 'sentry/components/forms/field';
 import NumberField from 'sentry/components/forms/fields/numberField';
 import SelectField from 'sentry/components/forms/fields/selectField';
@@ -108,158 +108,167 @@ class MonitorForm extends Component<Props> {
       ? this.props.projects.find(p => p.id === selectedProjectId + '')
       : null;
     return (
-      <Access access={['project:write']}>
-        {({hasAccess}) => (
-          <Form
-            allowUndo
-            requireChanges
-            apiEndpoint={this.props.apiEndpoint}
-            apiMethod={this.props.apiMethod}
-            model={this.form}
-            initialData={
-              monitor
-                ? {
-                    name: monitor.name,
-                    type: monitor.type ?? DEFAULT_MONITOR_TYPE,
-                    project: monitor.project.slug,
-                    ...this.formDataFromConfig(monitor.type, monitor.config),
-                  }
-                : {
-                    project: selectedProject ? selectedProject.slug : null,
-                    type: DEFAULT_MONITOR_TYPE,
-                  }
-            }
-            onSubmitSuccess={this.props.onSubmitSuccess}
-            submitLabel={submitLabel}
-          >
-            <Panel>
-              <PanelHeader>{t('Details')}</PanelHeader>
+      <Form
+        allowUndo
+        requireChanges
+        apiEndpoint={this.props.apiEndpoint}
+        apiMethod={this.props.apiMethod}
+        model={this.form}
+        initialData={
+          monitor
+            ? {
+                name: monitor.name,
+                type: monitor.type ?? DEFAULT_MONITOR_TYPE,
+                project: monitor.project.slug,
+                ...this.formDataFromConfig(monitor.type, monitor.config),
+              }
+            : {
+                project: selectedProject ? selectedProject.slug : null,
+                type: DEFAULT_MONITOR_TYPE,
+              }
+        }
+        onSubmitSuccess={this.props.onSubmitSuccess}
+        submitLabel={submitLabel}
+      >
+        <Panel>
+          <PanelHeader>{t('Details')}</PanelHeader>
 
-              <PanelBody>
-                {monitor && (
-                  <Field label={t('ID')}>
-                    <div className="controls">
-                      <TextCopyInput>{monitor.id}</TextCopyInput>
-                    </div>
-                  </Field>
-                )}
-                <SelectField
-                  name="project"
-                  label={t('Project')}
-                  disabled={!hasAccess}
-                  options={this.props.projects
-                    .filter(p => p.isMember)
-                    .map(p => ({value: p.slug, label: p.slug}))}
-                  help={t(
-                    "Select the project which contains the recurring job you'd like to monitor."
-                  )}
-                  required
-                />
-                <TextField
-                  name="name"
-                  placeholder={t('My Cron Job')}
-                  label={t('Name your cron monitor')}
-                  disabled={!hasAccess}
-                  required
-                />
-              </PanelBody>
-            </Panel>
-            <Panel>
-              <PanelHeader>{t('Config')}</PanelHeader>
+          <PanelBody>
+            {monitor && (
+              <Field label={t('ID')}>
+                <div className="controls">
+                  <TextCopyInput>{monitor.id}</TextCopyInput>
+                </div>
+              </Field>
+            )}
+            <SelectField
+              name="project"
+              label={t('Project')}
+              options={this.props.projects
+                .filter(p => p.isMember)
+                .map(p => ({value: p.slug, label: p.slug}))}
+              help={t(
+                "Select the project which contains the recurring job you'd like to monitor."
+              )}
+              required
+            />
+            <TextField
+              name="name"
+              placeholder={t('My Cron Job')}
+              label={t('Name your cron monitor')}
+              required
+            />
+          </PanelBody>
+        </Panel>
+        <Panel>
+          <PanelHeader>{t('Config')}</PanelHeader>
 
-              <PanelBody>
-                <NumberField
-                  name="config.max_runtime"
-                  label={t('Max Runtime')}
-                  disabled={!hasAccess}
-                  help={t(
-                    "Set the number of minutes a recurring job is allowed to run before it's considered failed"
-                  )}
-                  placeholder="e.g. 30"
-                />
-                <SelectField
-                  name="config.schedule_type"
-                  label={t('Schedule Type')}
-                  disabled={!hasAccess}
-                  options={SCHEDULE_TYPES}
-                  required
-                />
-                <Observer>
-                  {() => {
-                    switch (this.form.getValue('config.schedule_type')) {
-                      case 'crontab':
-                        return (
-                          <Fragment>
-                            <TextField
-                              name="config.schedule"
-                              label={t('Schedule')}
-                              disabled={!hasAccess}
-                              placeholder="*/5 * * * *"
-                              required
-                              help={tct(
-                                'Any schedule changes will be applied to the next check-in. See [link:Wikipedia] for crontab syntax.',
-                                {
-                                  link: <a href="https://en.wikipedia.org/wiki/Cron" />,
-                                }
-                              )}
-                            />
-                            <NumberField
-                              name="config.checkin_margin"
-                              label={t('Check-in Margin')}
-                              disabled={!hasAccess}
-                              help={t(
-                                "The max error margin (in minutes) before a check-in is considered missed. If you don't expect your job to start immediately at the scheduled time, expand this margin to account for delays."
-                              )}
-                              placeholder="e.g. 30"
-                            />
-                          </Fragment>
-                        );
-                      case 'interval':
-                        return (
-                          <Fragment>
-                            <NumberField
-                              name="config.schedule.frequency"
-                              label={t('Frequency')}
-                              disabled={!hasAccess}
-                              placeholder="e.g. 1"
-                              help={t(
-                                'The amount of intervals that pass between executions of the cron job.'
-                              )}
-                              required
-                            />
-                            <SelectField
-                              name="config.schedule.interval"
-                              label={t('Interval')}
-                              disabled={!hasAccess}
-                              options={INTERVALS}
-                              help={t(
-                                'The interval on which the frequency will be applied. 1 time every X amount of (minutes, hours, days)'
-                              )}
-                              required
-                            />
-                            <NumberField
-                              name="config.checkin_margin"
-                              label={t('Check-in Margin')}
-                              disabled={!hasAccess}
-                              help={t(
-                                "The max error margin (in minutes) before a check-in is considered missed. If you don't expect your job to start immediately at the scheduled time, expand this margin to account for delays."
-                              )}
-                              placeholder="e.g. 30"
-                            />
-                          </Fragment>
-                        );
-                      default:
-                        return null;
-                    }
-                  }}
-                </Observer>
-              </PanelBody>
-            </Panel>
-          </Form>
-        )}
-      </Access>
+          <PanelBody>
+            <NumberField
+              name="config.max_runtime"
+              label={t('Max Runtime')}
+              help={t(
+                "Set the number of minutes a recurring job is allowed to run before it's considered failed"
+              )}
+              placeholder="e.g. 30"
+            />
+            <SelectField
+              name="config.schedule_type"
+              label={t('Schedule Type')}
+              options={SCHEDULE_TYPES}
+              required
+            />
+            <Observer>
+              {() => {
+                switch (this.form.getValue('config.schedule_type')) {
+                  case 'crontab':
+                    return (
+                      <Fragment>
+                        <TextField
+                          name="config.schedule"
+                          label={t('Schedule')}
+                          placeholder="*/5 * * * *"
+                          required
+                          help={tct(
+                            'Any schedule changes will be applied to the next check-in. See [link:Wikipedia] for crontab syntax.',
+                            {
+                              link: <a href="https://en.wikipedia.org/wiki/Cron" />,
+                            }
+                          )}
+                        />
+                        <NumberField
+                          name="config.checkin_margin"
+                          label={t('Check-in Margin')}
+                          help={t(
+                            "The max error margin (in minutes) before a check-in is considered missed. If you don't expect your job to start immediately at the scheduled time, expand this margin to account for delays."
+                          )}
+                          placeholder="e.g. 30"
+                        />
+                      </Fragment>
+                    );
+                  case 'interval':
+                    return (
+                      <Fragment>
+                        <FieldGroup>
+                          <Field
+                            label={t('Frequency')}
+                            help={t(
+                              'The amount of time between each job execution. Example, every 5 hours.'
+                            )}
+                            stacked
+                            required
+                          />
+                          <StyledNumberField
+                            name="config.schedule.frequency"
+                            label={t('Frequency')}
+                            placeholder="e.g. 1"
+                            hideLabel
+                            required
+                          />
+                          <StyledSelectField
+                            name="config.schedule.interval"
+                            label={t('Interval')}
+                            options={INTERVALS}
+                            hideLabel
+                            required
+                          />
+                        </FieldGroup>
+                        <NumberField
+                          name="config.checkin_margin"
+                          label={t('Check-in Margin')}
+                          help={t(
+                            "The max error margin (in minutes) before a check-in is considered missed. If you don't expect your job to start immediately at the scheduled time, expand this margin to account for delays."
+                          )}
+                          placeholder="e.g. 30"
+                        />
+                      </Fragment>
+                    );
+                  default:
+                    return null;
+                }
+              }}
+            </Observer>
+          </PanelBody>
+        </Panel>
+      </Form>
     );
   }
 }
+
+const FieldGroup = styled('div')`
+  display: grid;
+  grid-template-columns: 50% 1fr 1fr;
+  align-items: center;
+  border-bottom: 1px solid ${p => p.theme.innerBorder};
+`;
+
+const StyledNumberField = styled(NumberField)`
+  padding: 0;
+  border-bottom: none;
+`;
+
+const StyledSelectField = styled(SelectField)`
+  padding-left: 0;
+`;
 
 export default withPageFilters(withProjects(MonitorForm));

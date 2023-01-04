@@ -12,7 +12,9 @@ import {
 
 import GlobalModalContainer from 'sentry/components/globalModal';
 import {SavedSearchVisibility} from 'sentry/types';
+import localStorageWrapper from 'sentry/utils/localStorage';
 import SavedIssueSearches from 'sentry/views/issueList/savedIssueSearches';
+import {SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY} from 'sentry/views/issueList/utils';
 
 describe('SavedIssueSearches', function () {
   const organization = TestStubs.Organization();
@@ -50,7 +52,6 @@ describe('SavedIssueSearches', function () {
   });
 
   const defaultProps: ComponentProps<typeof SavedIssueSearches> = {
-    isOpen: true,
     organization,
     onSavedSearchSelect: jest.fn(),
     query: 'is:unresolved',
@@ -58,6 +59,7 @@ describe('SavedIssueSearches', function () {
   };
 
   beforeEach(() => {
+    localStorageWrapper.setItem(SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY, 'true');
     MockApiClient.clearMockResponses();
     jest.restoreAllMocks();
   });

@@ -2,7 +2,6 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import {Client} from 'sentry/api';
 import SuggestedOwners from 'sentry/components/group/suggestedOwners/suggestedOwners';
-import CommitterStore from 'sentry/stores/committerStore';
 import MemberListStore from 'sentry/stores/memberListStore';
 import TeamStore from 'sentry/stores/teamStore';
 
@@ -16,7 +15,6 @@ describe('SuggestedOwners', function () {
   const endpoint = `/projects/${organization.slug}/${project.slug}/events/${event.id}`;
 
   beforeEach(function () {
-    CommitterStore.init();
     TeamStore.init();
     MemberListStore.loadInitialData([user, TestStubs.CommitAuthor()]);
     Client.addMockResponse({
@@ -130,39 +128,6 @@ describe('SuggestedOwners', function () {
     );
   });
 
-  it('displays release committers', async function () {
-    const team1 = TestStubs.Team({slug: 'team-1', id: '1'});
-    const team2 = TestStubs.Team({slug: 'team-2', id: '2'});
-    TeamStore.loadInitialData([team1, team2], false, null);
-
-    Client.addMockResponse({
-      url: `${endpoint}/committers/`,
-      body: {
-        committers: [],
-        releaseCommitters: [
-          {
-            author: TestStubs.CommitAuthor(),
-            commits: [TestStubs.Commit()],
-            release: TestStubs.Release(),
-          },
-        ],
-      },
-    });
-
-    Client.addMockResponse({
-      url: `${endpoint}/owners/`,
-      body: {owners: [], rules: []},
-    });
-
-    render(<SuggestedOwners project={project} group={group} event={event} />, {
-      organization,
-    });
-    userEvent.hover(await screen.findByTestId('suggested-assignee'));
-
-    expect(await screen.findByText('Suspect Release')).toBeInTheDocument();
-    expect(screen.getByText('last committed')).toBeInTheDocument();
-  });
-
   it('hides when there are no suggestions', async () => {
     Client.addMockResponse({
       url: `${endpoint}/committers/`,
@@ -179,6 +144,23 @@ describe('SuggestedOwners', function () {
       {
         organization,
       }
+    );
+
+    await waitFor(() => {
+      expect(container).toBeEmptyDOMElement();
+    });
+  });
+
+  it('hides when there is already an assignee', async () => {
+    const {container} = render(
+      <SuggestedOwners
+        project={project}
+        event={event}
+        group={TestStubs.Group({
+          assignedTo: {type: 'team', id: '123', name: 'team-name'},
+        })}
+      />,
+      {organization}
     );
 
     await waitFor(() => {

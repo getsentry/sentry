@@ -16,6 +16,7 @@ from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.plugin import PluginSerializer
 from sentry.api.serializers.models.team import get_org_roles
 from sentry.app import env
+from sentry.auth.access import Access
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import StatsPeriod
 from sentry.digests import backend as digests
@@ -26,7 +27,6 @@ from sentry.lang.native.symbolicator import parse_sources, redact_source_secrets
 from sentry.lang.native.utils import convert_crashreport_count
 from sentry.models import (
     EnvironmentProject,
-    NotificationSetting,
     OrganizationMemberTeam,
     Project,
     ProjectAvatar,
@@ -46,6 +46,7 @@ from sentry.notifications.helpers import (
     transform_to_notification_settings_by_scope,
 )
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
+from sentry.services.hybrid_cloud.notifications import notifications_service
 from sentry.snuba import discover
 from sentry.tasks.symbolication import should_demote_symbolication
 from sentry.utils import json
@@ -273,10 +274,10 @@ class ProjectSerializer(Serializer):  # type: ignore
                 )
 
                 notification_settings_by_scope = transform_to_notification_settings_by_scope(
-                    NotificationSetting.objects.get_for_user_by_projects(
-                        NotificationSettingTypes.ISSUE_ALERTS,
-                        user,
-                        item_list,
+                    notifications_service.get_settings_for_user_by_projects(
+                        type=NotificationSettingTypes.ISSUE_ALERTS,
+                        user_id=user.id,
+                        parent_ids=project_ids,
                     )
                 )
             else:
@@ -574,6 +575,12 @@ class OrganizationProjectResponse(
 
 
 class ProjectSummarySerializer(ProjectWithTeamSerializer):
+    access: Access | None
+
+    def __init__(self, access: Access | None = None, **kwargs):
+        self.access = access
+        super().__init__(**kwargs)
+
     def get_deploys_by_project(self, item_list):
         cursor = connection.cursor()
         cursor.execute(

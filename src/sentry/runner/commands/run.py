@@ -10,6 +10,7 @@ import click
 from sentry.bgtasks.api import managed_bgtasks
 from sentry.ingest.types import ConsumerType
 from sentry.runner.decorators import configuration, log_options
+from sentry.sentry_metrics.consumers.indexer.slicing_router import get_slicing_router
 
 DEFAULT_BLOCK_SIZE = int(32 * 1e6)
 
@@ -566,10 +567,12 @@ def ingest_consumer(consumer_types, all_consumer_types, **options):
 @run.command("occurrences-ingest-consumer")
 @configuration
 def occurrences_ingest_consumer():
+    from django.conf import settings
+
     from sentry.issues.occurrence_consumer import get_occurrences_ingest_consumer
     from sentry.utils import metrics
 
-    consumer_type = "ingest-occurrences"
+    consumer_type = settings.KAFKA_INGEST_OCCURRENCES
 
     with metrics.global_tags(ingest_consumer_types=consumer_type, _all_threads=True):
         get_occurrences_ingest_consumer(consumer_type).run()
@@ -628,8 +631,11 @@ def metrics_parallel_consumer(**options):
     use_case = UseCaseKey(options["ingest_profile"])
     db_backend = IndexerStorage(options["indexer_db"])
     ingest_config = get_ingest_config(use_case, db_backend)
+    slicing_router = get_slicing_router(ingest_config)
 
-    streamer = get_parallel_metrics_consumer(indexer_profile=ingest_config, **options)
+    streamer = get_parallel_metrics_consumer(
+        indexer_profile=ingest_config, slicing_router=slicing_router, **options
+    )
 
     def handler(signum, frame):
         streamer.signal_shutdown()

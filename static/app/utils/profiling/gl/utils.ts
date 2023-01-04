@@ -5,6 +5,8 @@ import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
 
 import {clamp} from '../colors/utils';
+import {SpanChartRenderer2D} from '../renderers/spansRenderer';
+import {SpanChartNode} from '../spanChart';
 
 export function createShader(
   gl: WebGLRenderingContext,
@@ -106,11 +108,11 @@ function onResize(entries: ResizeObserverEntry[]) {
 
 export const watchForResize = (
   canvas: HTMLCanvasElement[],
-  callback?: () => void
+  callback?: (entries: ResizeObserverEntry[], observer: ResizeObserver) => void
 ): ResizeObserver => {
-  const handler: ResizeObserverCallback = entries => {
+  const handler: ResizeObserverCallback = (entries, observer) => {
     onResize(entries);
-    callback?.();
+    callback?.(entries, observer);
   };
 
   for (const c of canvas) {
@@ -498,6 +500,21 @@ export function findRangeBinarySearch(
   }
 }
 
+export function formatColorForSpan(
+  frame: SpanChartNode,
+  renderer: SpanChartRenderer2D
+): string {
+  const color = renderer.getColorForFrame(frame);
+  if (color.length === 4) {
+    return `rgba(${color
+      .slice(0, 3)
+      .map(n => n * 255)
+      .join(',')}, ${color[3]})`;
+  }
+
+  return `rgba(${color.map(n => n * 255).join(',')}, 1.0)`;
+}
+
 export function formatColorForFrame(
   frame: FlamegraphFrame,
   renderer: FlamegraphRenderer
@@ -646,21 +663,21 @@ export function computeConfigViewWithStrategy(
   }
 
   if (strategy === 'min') {
-    if (view.width <= frame.width) {
-      // If view width <= frame width, we need to zoom out, so the behavior is the
-      // same as if we were using 'exact'
-      return frame.withHeight(view.height);
-    }
-
+    // If frame is in view, do nothing
     if (view.containsRect(frame)) {
-      // If frame is in view, do nothing
       return view;
     }
 
+    // If view width <= frame width, we need to zoom out, so the behavior is the
+    // same as if we were using 'exact'
+    if (view.width <= frame.width) {
+      return frame.withHeight(view.height);
+    }
+
+    // If frame is to the left of the view, translate it left
+    // to frame.x so that start of the frame is in the view
     let offset = view.clone();
     if (frame.left < view.left) {
-      // If frame is to the left of the view, translate it left
-      // to frame.x so that start of the frame is in the view
       offset = offset.withX(frame.x);
     } else if (frame.right > view.right) {
       // If the right boundary of a frame is outside of the view, translate the view
@@ -668,8 +685,8 @@ export function computeConfigViewWithStrategy(
       offset = view.withX(offset.x + frame.right - offset.right);
     }
 
+    // If frame is above the view, translate view to top of frame
     if (frame.bottom < view.top) {
-      // If frame is above the view, translate view to top of frame
       offset = offset.withY(frame.top);
     } else if (frame.bottom > view.bottom) {
       // If frame is below the view, translate view by the difference

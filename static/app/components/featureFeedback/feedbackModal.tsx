@@ -88,6 +88,7 @@ export function FeedbackModal<T extends Data>({
   const {organization} = useLegacyStore(OrganizationStore);
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
   const location = useLocation();
+
   const theme = useTheme();
   const user = ConfigStore.get('user');
   const isSelfHosted = ConfigStore.get('isSelfHosted');
@@ -112,7 +113,7 @@ export function FeedbackModal<T extends Data>({
       const commonEventProps: Event = {
         message,
         request: {
-          url: location.pathname,
+          url: window.location.href, // gives the full url (origin + pathname)
         },
         extra: {
           orgFeatures: organization?.features ?? [],
@@ -150,7 +151,6 @@ export function FeedbackModal<T extends Data>({
       closeModal();
     },
     [
-      location.pathname,
       closeModal,
       organization?.features,
       organization?.access,

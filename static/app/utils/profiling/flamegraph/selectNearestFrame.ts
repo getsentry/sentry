@@ -10,6 +10,12 @@ export type Direction = DirectionY | DirectionX;
 export function selectNearestFrame(frame: FlamegraphFrame, direction: Direction) {
   if (direction === 'up') {
     const parent = frame.parent;
+
+    // sentry root is a virtual root that should not be selectable
+    if (parent?.frame.isRoot()) {
+      return frame;
+    }
+
     // if there is an immediate parent, goto parent
     if (parent) {
       return parent;

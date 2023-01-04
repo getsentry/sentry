@@ -28,29 +28,11 @@ jobs:
         with:
           token: ${{ github.token }}
           filters: .github/file-filters.yml
-
-      - name: Pull the test image
-        if: steps.changes.outputs.backend_all == 'true'
-        id: image_pull
-        env:
-          SENTRY_TEST_IMAGE: us.gcr.io/sentryio/sentry:${{ github.event.pull_request.head.sha || github.sha }} 
-        run: |
-          echo "We poll for the Sentry Docker image that the GCB build produces until it succeeds or this job times out."
-          if [[ -z "$SENTRY_TEST_IMAGE" ]]; then
-              echo "The SENTRY_TEST_IMAGE needs to be set" 1>&2
-              exit 1
-          fi
-          echo "Polling for $SENTRY_TEST_IMAGE"
-          until docker pull "$SENTRY_TEST_IMAGE" 2>/dev/null; do
-              sleep 10
-          done
-          echo "sentry-test-image-name=$SENTRY_TEST_IMAGE" >> "$GITHUB_OUTPUT"
-
-      # TODO: push the image here
       - name: Run Sentry self-hosted e2e CI
         if: steps.changes.outputs.backend_all == 'true'
-        uses: getsentry/action-self-hosted-e2e-tests@fa5b8240848f0e645ac2918c530e60ec8f50e4b8
+        uses: getsentry/action-self-hosted-e2e-tests@4ff2dbfdd5c986a4670efaa16d82e460598359eb
         with:
           project_name: sentry
-          local_image: ${{ steps.image_pull.outputs.sentry-test-image-name }}
-          docker_repo: docker.io/getsentry/sentry
+          image_url: us.gcr.io/sentryio/sentry:${{ github.event.pull_request.head.sha || github.sha }} 
+          docker_repo: getsentry/sentry
+          docker_password: ${{ secrets.DOCKER_HUB_RW_TOKEN }}

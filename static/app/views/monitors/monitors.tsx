@@ -5,8 +5,8 @@ import * as qs from 'query-string';
 
 import onboardingImg from 'sentry-images/spot/onboarding-preview.svg';
 
-import Access from 'sentry/components/acl/access';
 import Button, {ButtonProps} from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
 import FeatureBadge from 'sentry/components/featureBadge';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -31,6 +31,7 @@ import withOrganization from 'sentry/utils/withOrganization';
 import withSentryRouter from 'sentry/utils/withSentryRouter';
 import AsyncView from 'sentry/views/asyncView';
 
+import CronsFeedbackButton from './cronsFeedbackButton';
 import MonitorIcon from './monitorIcon';
 import {Monitor} from './types';
 
@@ -47,24 +48,13 @@ type State = AsyncView['state'] & {
 function NewMonitorButton(props: ButtonProps) {
   const organization = useOrganization();
   return (
-    <Access organization={organization} access={['project:write']}>
-      {({hasAccess}) => (
-        <Button
-          to={`/organizations/${organization.slug}/monitors/create/`}
-          priority="primary"
-          disabled={!hasAccess}
-          tooltipProps={{
-            disabled: hasAccess,
-          }}
-          title={t(
-            'You must be an organization owner, manager, or admin to set up a monitor'
-          )}
-          {...props}
-        >
-          {props.children}
-        </Button>
-      )}
-    </Access>
+    <Button
+      to={`/organizations/${organization.slug}/crons/create/`}
+      priority="primary"
+      {...props}
+    >
+      {props.children}
+    </Button>
   );
 }
 
@@ -117,7 +107,10 @@ class Monitors extends AsyncView<Props, State> {
             </HeaderTitle>
           </Layout.HeaderContent>
           <Layout.HeaderActions>
-            <NewMonitorButton size="sm">{t('Set Up Cron Monitor')}</NewMonitorButton>
+            <ButtonBar gap={1}>
+              <NewMonitorButton size="sm">{t('Set Up Cron Monitor')}</NewMonitorButton>
+              <CronsFeedbackButton />
+            </ButtonBar>
           </Layout.HeaderActions>
         </Layout.Header>
         <Layout.Body>
@@ -140,7 +133,7 @@ class Monitors extends AsyncView<Props, State> {
                       <MonitorName>
                         <MonitorIcon status={monitor.status} size={16} />
                         <StyledLink
-                          to={`/organizations/${organization.slug}/monitors/${monitor.id}/`}
+                          to={`/organizations/${organization.slug}/crons/${monitor.id}/`}
                         >
                           {monitor.name}
                         </StyledLink>
@@ -170,7 +163,12 @@ class Monitors extends AsyncView<Props, State> {
                     "We'll tell you if your recurring jobs are running on schedule, failing, or succeeding."
                   )}
                 </p>
-                <NewMonitorButton>{t('Set Up First Cron Monitor')}</NewMonitorButton>
+                <ButtonList gap={1}>
+                  <Button href="https://docs.sentry.io/product/crons" external>
+                    {t('View the Docs')}
+                  </Button>
+                  <NewMonitorButton>{t('Set Up First Cron Monitor')}</NewMonitorButton>
+                </ButtonList>
               </OnboardingPanel>
             )}
           </Layout.Main>
@@ -207,6 +205,10 @@ const MonitorName = styled('div')`
 
 const StyledPanelTable = styled(PanelTable)`
   grid-template-columns: 1fr max-content max-content;
+`;
+
+const ButtonList = styled(ButtonBar)`
+  grid-template-columns: repeat(auto-fit, minmax(130px, max-content));
 `;
 
 export default withRouteAnalytics(withSentryRouter(withOrganization(Monitors)));

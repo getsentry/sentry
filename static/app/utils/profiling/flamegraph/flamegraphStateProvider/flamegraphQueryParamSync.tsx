@@ -1,6 +1,7 @@
 import {useEffect} from 'react';
 import {browserHistory} from 'react-router';
 import {Query} from 'history';
+import * as qs from 'query-string';
 
 import {DeepPartial} from 'sentry/types/utils';
 import {useFlamegraphState} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphState';
@@ -64,7 +65,7 @@ function isXAxis(
 }
 
 export function decodeFlamegraphStateFromQueryParams(
-  query: Query
+  query: qs.ParsedQuery
 ): DeepPartial<FlamegraphState> {
   return {
     profiles: {

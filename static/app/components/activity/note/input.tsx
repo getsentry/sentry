@@ -1,6 +1,6 @@
 import {useCallback, useMemo, useState} from 'react';
 import {Mention, MentionsInput, MentionsInputProps} from 'react-mentions';
-import {useTheme} from '@emotion/react';
+import {Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
@@ -14,7 +14,6 @@ import textStyles from 'sentry/styles/text';
 import {NoteType} from 'sentry/types/alerts';
 import domId from 'sentry/utils/domId';
 import marked from 'sentry/utils/marked';
-import {Theme} from 'sentry/utils/theme';
 import useTeams from 'sentry/utils/useTeams';
 
 import mentionStyle from './mentionStyle';
@@ -213,7 +212,7 @@ function NoteInput({
         )}
         <div>
           {existingItem && (
-            <FooterButton priority="danger" type="button" onClick={handleCancel}>
+            <FooterButton priority="danger" onClick={handleCancel}>
               {t('Cancel')}
             </FooterButton>
           )}
