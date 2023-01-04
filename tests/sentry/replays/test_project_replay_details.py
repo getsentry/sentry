@@ -1,6 +1,6 @@
 import datetime
 from io import BytesIO
-from unittest.mock import Mock
+from unittest import mock
 from uuid import uuid4
 
 import pytest
@@ -19,10 +19,10 @@ REPLAYS_FEATURES = {"organizations:session-replay": True}
 
 
 @pytest.fixture(autouse=True)
-def setup(monkeypatch, settings):
-    # Rely on the fact that the publisher is initialized lazily
-    monkeypatch.setattr(kafka_config, "get_kafka_producer_cluster_options", Mock())
-    monkeypatch.setattr(tasks, "KafkaPublisher", Mock())
+def setup():
+    with mock.patch.object(kafka_config, "get_kafka_producer_cluster_options"):
+        with mock.patch.object(tasks, "KafkaPublisher"):
+            yield
 
 
 @region_silo_test
