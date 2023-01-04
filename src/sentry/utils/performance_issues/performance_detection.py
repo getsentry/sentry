@@ -7,10 +7,9 @@ import random
 import re
 from abc import ABC, abstractmethod
 from collections import defaultdict, deque
-from dataclasses import dataclass
 from datetime import timedelta
 from enum import Enum
-from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
+from typing import Any, Dict, List, Optional, Sequence, Tuple
 from urllib.parse import urlparse
 
 import sentry_sdk
@@ -19,10 +18,12 @@ from symbolic import ProguardMapper  # type: ignore
 from sentry import nodestore, options, projectoptions
 from sentry.eventstore.models import Event
 from sentry.models import Project, ProjectDebugFile, ProjectOption
-from sentry.types.issues import GROUP_TYPE_TO_TEXT, GroupType
+from sentry.types.issues import GroupType
 from sentry.utils import metrics
 from sentry.utils.event_frames import get_sdk_name
 from sentry.utils.safe import get_path
+
+from .performance_problem import PerformanceProblem
 
 
 def join_regexes(regexes: Sequence[str]) -> str:
@@ -77,62 +78,6 @@ DETECTOR_TYPE_ISSUE_CREATION_TO_SYSTEM_OPTION = {
     DetectorType.N_PLUS_ONE_DB_QUERIES: "performance.issues.n_plus_one_db.problem-creation",
     DetectorType.N_PLUS_ONE_DB_QUERIES_EXTENDED: "performance.issues.n_plus_one_db_ext.problem-creation",
 }
-
-
-@dataclass
-class PerformanceProblem:
-    fingerprint: str
-    op: str
-    desc: str
-    type: GroupType
-    parent_span_ids: Optional[Sequence[str]]
-    # For related spans that caused the bad spans
-    cause_span_ids: Optional[Sequence[str]]
-    # The actual bad spans
-    offender_span_ids: Sequence[str]
-
-    def to_dict(
-        self,
-    ) -> Mapping[str, Any]:
-        return {
-            "fingerprint": self.fingerprint,
-            "op": self.op,
-            "desc": self.desc,
-            "type": self.type.value,
-            "parent_span_ids": self.parent_span_ids,
-            "cause_span_ids": self.cause_span_ids,
-            "offender_span_ids": self.offender_span_ids,
-        }
-
-    @property
-    def title(self) -> str:
-        return GROUP_TYPE_TO_TEXT.get(self.type, "N+1 Query")
-
-    @classmethod
-    def from_dict(cls, data: dict) -> PerformanceProblem:
-        return cls(
-            data["fingerprint"],
-            data["op"],
-            data["desc"],
-            GroupType(data["type"]),
-            data["parent_span_ids"],
-            data["cause_span_ids"],
-            data["offender_span_ids"],
-        )
-
-    def __eq__(self, other):
-        if not isinstance(other, PerformanceProblem):
-            return NotImplemented
-        return (
-            self.fingerprint == other.fingerprint
-            and self.offender_span_ids == other.offender_span_ids
-            and self.type == other.type
-        )
-
-    def __hash__(self):
-        # This will de-duplicate on fingerprint and type and only for offending span ids.
-        # Fingerprint should incorporate the 'uniqueness' enough that parent and span checks etc. are not required.
-        return hash((self.fingerprint, frozenset(self.offender_span_ids), self.type))
 
 
 class EventPerformanceProblem:
@@ -313,55 +258,50 @@ def _detect_performance_problems(data: Event, sdk_span: Any) -> List[Performance
     project_id = data.get("project")
 
     detection_settings = get_detection_settings(project_id)
-    detectors = {
-        DetectorType.CONSECUTIVE_DB_OP: ConsecutiveDBSpanDetector(detection_settings, data),
-        DetectorType.SLOW_SPAN: SlowSpanDetector(detection_settings, data),
-        DetectorType.RENDER_BLOCKING_ASSET_SPAN: RenderBlockingAssetSpanDetector(
-            detection_settings, data
-        ),
-        DetectorType.N_PLUS_ONE_DB_QUERIES: NPlusOneDBSpanDetector(detection_settings, data),
-        DetectorType.N_PLUS_ONE_DB_QUERIES_EXTENDED: NPlusOneDBSpanDetectorExtended(
-            detection_settings, data
-        ),
-        DetectorType.FILE_IO_MAIN_THREAD: FileIOMainThreadDetector(detection_settings, data),
-        DetectorType.N_PLUS_ONE_API_CALLS: NPlusOneAPICallsDetector(detection_settings, data),
-        DetectorType.M_N_PLUS_ONE_DB: MNPlusOneDBSpanDetector(detection_settings, data),
-    }
+    detectors: List[PerformanceDetector] = [
+        ConsecutiveDBSpanDetector(detection_settings, data),
+        SlowSpanDetector(detection_settings, data),
+        RenderBlockingAssetSpanDetector(detection_settings, data),
+        NPlusOneDBSpanDetector(detection_settings, data),
+        NPlusOneDBSpanDetectorExtended(detection_settings, data),
+        FileIOMainThreadDetector(detection_settings, data),
+        NPlusOneAPICallsDetector(detection_settings, data),
+        MNPlusOneDBSpanDetector(detection_settings, data),
+    ]
 
-    for _, detector in detectors.items():
+    for detector in detectors:
         run_detector_on_data(detector, data)
 
     # Metrics reporting only for detection, not created issues.
     report_metrics_for_detectors(data, event_id, detectors, sdk_span)
 
     # Get list of detectors that are allowed to create issues.
-    allowed_perf_issue_detectors = get_allowed_issue_creation_detectors(project_id)
+    allowed_detector_types = get_allowed_issue_creation_detectors(project_id)
 
-    detected_problems = [
-        (i, detector_type)
-        for detector_type in allowed_perf_issue_detectors
-        for _, i in detectors[detector_type].stored_problems.items()
-    ]
+    problems: List[PerformanceProblem] = []
+    for detector in detectors:
+        if detector.type not in allowed_detector_types:
+            continue
 
-    truncated_problems = detected_problems[:PERFORMANCE_GROUP_COUNT_LIMIT]
+        problems.extend(detector.stored_problems.values())
 
-    metrics.incr("performance.performance_issue.pretruncated", len(detected_problems))
+    truncated_problems = problems[:PERFORMANCE_GROUP_COUNT_LIMIT]
+
+    metrics.incr("performance.performance_issue.pretruncated", len(problems))
     metrics.incr("performance.performance_issue.truncated", len(truncated_problems))
 
-    performance_problems = [problem for problem, _detector_type in truncated_problems]
-
     # Leans on Set to remove duplicate problems when extending a detector, since the new extended detector can overlap in terms of created issues.
-    unique_performance_problems = set(performance_problems)
+    unique_problems = set(truncated_problems)
 
-    if len(unique_performance_problems) > 0:
+    if len(unique_problems) > 0:
         metrics.incr(
             "performance.performance_issue.performance_problem_emitted",
-            len(unique_performance_problems),
+            len(unique_problems),
             sample_rate=1.0,
         )
 
     # TODO: Make sure upstream is all compatible with set before switching output type.
-    return list(unique_performance_problems)
+    return list(unique_problems)
 
 
 def run_detector_on_data(detector, data):
@@ -468,6 +408,8 @@ class PerformanceDetector(ABC):
     Classes of this type have their visit functions called as the event is walked once and will store a performance issue if one is detected.
     """
 
+    type: DetectorType
+
     def __init__(self, settings: Dict[DetectorType, Any], event: Event):
         self.settings = settings[self.settings_key]
         self._event = event
@@ -528,6 +470,7 @@ class SlowSpanDetector(PerformanceDetector):
 
     __slots__ = "stored_problems"
 
+    type: DetectorType = DetectorType.SLOW_SPAN
     settings_key = DetectorType.SLOW_SPAN
 
     def init(self):
@@ -594,6 +537,7 @@ class SlowSpanDetector(PerformanceDetector):
 class RenderBlockingAssetSpanDetector(PerformanceDetector):
     __slots__ = ("stored_problems", "fcp", "transaction_start")
 
+    type: DetectorType = DetectorType.RENDER_BLOCKING_ASSET_SPAN
     settings_key = DetectorType.RENDER_BLOCKING_ASSET_SPAN
 
     def init(self):
@@ -671,6 +615,7 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
     """
 
     __slots__ = ["stored_problems"]
+    type: DetectorType = DetectorType.N_PLUS_ONE_API_CALLS
     settings_key: DetectorType = DetectorType.N_PLUS_ONE_API_CALLS
 
     HOST_DENYLIST = []
@@ -829,6 +774,7 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
 
     __slots__ = "stored_problems"
 
+    type: DetectorType = DetectorType.CONSECUTIVE_DB_OP
     settings_key = DetectorType.CONSECUTIVE_DB_OP
 
     def init(self):
@@ -977,6 +923,7 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
         "n_spans",
     )
 
+    type: DetectorType = DetectorType.N_PLUS_ONE_DB_QUERIES
     settings_key = DetectorType.N_PLUS_ONE_DB_QUERIES
 
     def init(self):
@@ -1165,6 +1112,8 @@ class NPlusOneDBSpanDetectorExtended(NPlusOneDBSpanDetector):
     - Extend N+1 DB Detector to make it compatible with more frameworks.
     """
 
+    type: DetectorType = DetectorType.N_PLUS_ONE_DB_QUERIES_EXTENDED
+
     __slots__ = (
         "stored_problems",
         "potential_parents",
@@ -1181,6 +1130,7 @@ class FileIOMainThreadDetector(PerformanceDetector):
 
     __slots__ = ("spans_involved", "stored_problems")
 
+    type: DetectorType = DetectorType.FILE_IO_MAIN_THREAD
     settings_key = DetectorType.FILE_IO_MAIN_THREAD
 
     def init(self):
@@ -1462,6 +1412,7 @@ class MNPlusOneDBSpanDetector(PerformanceDetector):
 
     __slots__ = ("stored_problems", "state")
 
+    type: DetectorType = DetectorType.M_N_PLUS_ONE_DB
     settings_key = DetectorType.M_N_PLUS_ONE_DB
 
     def init(self):
@@ -1480,9 +1431,9 @@ class MNPlusOneDBSpanDetector(PerformanceDetector):
 
 # Reports metrics and creates spans for detection
 def report_metrics_for_detectors(
-    event: Event, event_id: Optional[str], detectors: Dict[str, PerformanceDetector], sdk_span: Any
+    event: Event, event_id: Optional[str], detectors: Sequence[PerformanceDetector], sdk_span: Any
 ):
-    all_detected_problems = [i for _, d in detectors.items() for i in d.stored_problems]
+    all_detected_problems = [i for d in detectors for i in d.stored_problems]
     has_detected_problems = bool(all_detected_problems)
     sdk_name = get_sdk_name(event)
 
@@ -1511,8 +1462,8 @@ def report_metrics_for_detectors(
             integration_name in event_integrations
         )
 
-    for detector_enum, detector in detectors.items():
-        detector_key = detector_enum.value
+    for detector in detectors:
+        detector_key = detector.type.value
         detected_problems = detector.stored_problems
         detected_problem_keys = list(detected_problems.keys())
         detected_tags[detector_key] = bool(len(detected_problem_keys))
