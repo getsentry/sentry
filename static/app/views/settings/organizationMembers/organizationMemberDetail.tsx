@@ -374,6 +374,7 @@ class OrganizationMemberDetail extends AsyncView<Props, State> {
               onAddTeam={this.handleAddTeam}
               onRemoveTeam={this.handleRemoveTeam}
               loadingTeams={!initiallyLoaded}
+              isProject={false}
             />
           )}
         </Teams>

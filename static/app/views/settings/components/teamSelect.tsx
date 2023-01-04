@@ -25,6 +25,12 @@ type Props = {
    */
   disabled: boolean;
   /**
+   * Is this component for a project
+   * and should adding a team be disabled based
+   * on whether the team is idpProvisioned
+   */
+  isProject: boolean;
+  /**
    * callback when teams are added
    */
   onAddTeam: (team: Team) => void;
@@ -54,6 +60,7 @@ type Props = {
 
 function TeamSelect({
   disabled,
+  isProject,
   selectedTeams,
   menuHeader,
   organization,
@@ -99,9 +106,9 @@ function TeamSelect({
       index,
       value: team.slug,
       searchKey: team.slug,
-      disabled: team.idpProvisioned,
+      disabled: !isProject && team.idpProvisioned,
       label: () => {
-        if (!team.idpProvisioned) {
+        if (isProject || !team.idpProvisioned) {
           return <DropdownTeamBadge avatarSize={18} team={team} />;
         }
         return (
