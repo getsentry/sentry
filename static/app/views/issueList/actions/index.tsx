@@ -90,13 +90,9 @@ function IssueListActions({
     SelectedGroupStore.deselectAll();
   }
 
-  // TODO: Remove this when merging/deleting performance issues is supported
+  // TODO: Remove issue.category:error filter when merging/deleting performance issues is supported
   // This silently avoids performance issues for bulk actions
-  const queryExcludingPerformanceIssues = organization.features.includes(
-    'performance-issues'
-  )
-    ? `${query ?? ''} issue.category:error`
-    : query;
+  const queryExcludingPerformanceIssues = `${query ?? ''} issue.category:error`;
 
   function handleDelete() {
     actionSelectedGroups(itemIds => {
@@ -349,12 +345,10 @@ const StyledFlex = styled('div')`
 `;
 
 const ActionsCheckbox = styled('div')<{isReprocessingQuery: boolean}>`
+  display: flex;
+  align-items: center;
   padding-left: ${space(2)};
   margin-bottom: 1px;
-  & input[type='checkbox'] {
-    margin: 0;
-    display: block;
-  }
   ${p => p.isReprocessingQuery && 'flex: 1'};
 `;
 

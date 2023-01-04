@@ -143,6 +143,14 @@ class ProjectBoostedReleases:
         self.project_id = project_id
         self.project_platform = _get_project_platform(self.project_id)
 
+    @property
+    def has_boosted_releases(self) -> bool:
+        """
+        Checks whether a specific project has boosted releases.
+        """
+        cache_key = self._generate_cache_key_for_boosted_releases_hash()
+        return bool(self.redis_client.exists(cache_key) == 1)
+
     def add_boosted_release(self, release_id: int, environment: Optional[str]) -> None:
         """
         Adds a release to the boosted releases hash with the boosting timestamp set to the current time, signaling that

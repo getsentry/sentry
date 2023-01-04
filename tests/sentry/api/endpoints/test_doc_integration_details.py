@@ -5,8 +5,10 @@ from sentry.api.serializers.base import serialize
 from sentry.models import DocIntegration, IntegrationFeature
 from sentry.models.integrations.integration_feature import IntegrationTypes
 from sentry.testutils import APITestCase
+from sentry.testutils.silo import control_silo_test
 
 
+@control_silo_test(stable=True)
 class DocIntegrationDetailsTest(APITestCase):
     endpoint = "sentry-api-0-doc-integration-details"
 
@@ -26,6 +28,7 @@ class DocIntegrationDetailsTest(APITestCase):
         )
 
 
+@control_silo_test(stable=True)
 class GetDocIntegrationDetailsTest(DocIntegrationDetailsTest):
     method = "GET"
 
@@ -68,6 +71,7 @@ class GetDocIntegrationDetailsTest(DocIntegrationDetailsTest):
         self.get_error_response(self.doc_1.slug, status_code=status.HTTP_403_FORBIDDEN)
 
 
+@control_silo_test(stable=True)
 class PutDocIntegrationDetailsTest(DocIntegrationDetailsTest):
     method = "PUT"
     payload = {
@@ -242,6 +246,7 @@ class PutDocIntegrationDetailsTest(DocIntegrationDetailsTest):
         assert serialize(avatar) == response.data["avatar"]
 
 
+@control_silo_test(stable=True)
 class DeleteDocIntegrationDetailsTest(DocIntegrationDetailsTest):
     method = "DELETE"
 

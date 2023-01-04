@@ -18,12 +18,11 @@ export type Project = {
   dateCreated: string;
   digestsMaxDelay: number;
   digestsMinDelay: number;
-  dynamicSamplingBiases: DynamicSamplingBias[];
+  dynamicSamplingBiases: DynamicSamplingBias[] | null;
   environments: string[];
   eventProcessing: {
     symbolicationDegraded: boolean;
   };
-
   features: string[];
   firstEvent: 'string' | null;
   firstTransactionEvent: boolean;
@@ -45,7 +44,7 @@ export type Project = {
   subjectTemplate: string;
   teams: Team[];
   builtinSymbolSources?: string[];
-  dynamicSamplingRules?: DynamicSamplingRule[];
+  dynamicSamplingRules?: DynamicSamplingRule[] | null;
   hasUserReports?: boolean;
   latestDeploys?: Record<string, Pick<Deploy, 'dateFinished' | 'version'>> | null;
   latestRelease?: Release;

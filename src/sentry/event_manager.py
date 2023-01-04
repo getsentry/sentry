@@ -390,7 +390,13 @@ class EventManager:
             **DEFAULT_STORE_NORMALIZER_ARGS,
         )
 
+        pre_normalize_type = self._data.get("type")
         self._data = CanonicalKeyDict(rust_normalizer.normalize_event(dict(self._data)))
+        # XXX: This is a hack to make generic events work (for now?). I'm not sure whether we should
+        # include this in the rust normalizer, since we don't want people sending us these via the
+        # sdk.
+        if pre_normalize_type == "generic":
+            self._data["type"] = pre_normalize_type
 
     def get_data(self) -> CanonicalKeyDict:
         return self._data
@@ -1184,7 +1190,7 @@ def _nodestore_save_many(jobs: Sequence[Job]) -> None:
 
         event = job["event"]
         # We only care about `unprocessed` for error events
-        if event.get_event_type() != "transaction" and job["groups"]:
+        if event.get_event_type() not in ("transaction", "generic") and job["groups"]:
             unprocessed = event_processing_store.get(
                 cache_key_for_event({"project": event.project_id, "event_id": event.event_id}),
                 unprocessed=True,
@@ -2261,14 +2267,9 @@ def _save_aggregate_performance(jobs: Sequence[PerformanceJob], projects: Projec
         event = job["event"]
         project = event.project
 
-        if not features.has("organizations:performance-issues-ingest", project.organization):
-            continue
-        # General system-wide option
-        rate = options.get("performance.issues.all.problem-creation") or 0
-
-        # More granular, per-project option
+        # Granular, per-project option
         per_project_rate = project.get_option("sentry:performance_issue_creation_rate", 1.0)
-        if rate > random.random() and per_project_rate > random.random():
+        if per_project_rate > random.random():
 
             kwargs = _create_kwargs(job)
             kwargs["culprit"] = job["culprit"]

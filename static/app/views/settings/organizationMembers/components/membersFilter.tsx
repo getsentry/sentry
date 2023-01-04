@@ -178,10 +178,6 @@ const FilterList = styled('div')`
     font-weight: normal;
     white-space: nowrap;
     height: ${space(2)};
-  }
-
-  input,
-  label {
     margin: 0;
   }
 `;

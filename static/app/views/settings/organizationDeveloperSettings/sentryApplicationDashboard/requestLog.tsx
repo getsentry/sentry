@@ -96,7 +96,7 @@ const TimestampLink = ({date, link}: {date: moment.MomentInput; link?: string}) 
   link ? (
     <ExternalLink href={link}>
       <DateTime date={date} />
-      <StyledIconOpen size="12px" />
+      <StyledIconOpen size="xs" />
     </ExternalLink>
   ) : (
     <DateTime date={date} format={is24Hours ? 'MMM D, YYYY HH:mm:ss z' : 'll LTS z'} />
@@ -325,11 +325,8 @@ const RequestLogFilters = styled('div')`
 `;
 
 const ErrorsOnlyCheckbox = styled('div')`
-  input {
-    margin: 0 ${space(1)} 0 0;
-  }
-
   display: flex;
+  gap: ${space(1)};
   align-items: center;
 `;
 

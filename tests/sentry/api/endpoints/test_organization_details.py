@@ -138,13 +138,7 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
             options.delete("store.symbolicate-event-lpq-never")
 
         # TODO(dcramer): We need to pare this down. Lots of duplicate queries for membership data.
-        if SiloMode.get_current_mode() == SiloMode.MONOLITH:
-            expected_queries = 38
-        else:
-            # In region mode, a number of auth related queries are batched considerably.
-            # TODO(hybrid-cloud): this branch looks unnecessary, but I'm fairly certain these values
-            # will change again. Revisit once we have a test region deployed
-            expected_queries = 38
+        expected_queries = 44 if SiloMode.get_current_mode() == SiloMode.MONOLITH else 45
 
         with self.assertNumQueries(expected_queries, using="default"):
             response = self.get_success_response(self.organization.slug)

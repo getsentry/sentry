@@ -73,7 +73,7 @@ function CustomResolutionModal(props: CustomResolutionModalProps) {
         />
       </Body>
       <Footer>
-        <Button type="button" css={{marginRight: space(1.5)}} onClick={props.closeModal}>
+        <Button css={{marginRight: space(1.5)}} onClick={props.closeModal}>
           {t('Cancel')}
         </Button>
         <Button type="submit" priority="primary">
