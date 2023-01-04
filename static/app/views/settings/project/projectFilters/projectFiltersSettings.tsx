@@ -146,7 +146,6 @@ class LegacyBrowserFilterRow extends Component<RowProps, RowState> {
             <BulkFilterLabel>{t('Filter')}:</BulkFilterLabel>
             <ButtonBar gap={1}>
               <Button
-                type="button"
                 priority="link"
                 borderless
                 onClick={this.handleToggleSubfilters.bind(this, true)}
@@ -154,7 +153,6 @@ class LegacyBrowserFilterRow extends Component<RowProps, RowState> {
                 {t('All')}
               </Button>
               <Button
-                type="button"
                 priority="link"
                 borderless
                 onClick={this.handleToggleSubfilters.bind(this, false)}

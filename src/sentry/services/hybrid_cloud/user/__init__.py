@@ -22,6 +22,7 @@ class APIUser:
     pk: int = -1
     name: str = ""
     email: str = ""
+    emails: FrozenSet[str] = frozenset()
     username: str = ""
     actor_id: int = -1
     display_name: str = ""
@@ -246,6 +247,7 @@ class UserService(InterfaceWithLifecycle):
         args["is_superuser"] = user.is_superuser
         args["is_sentry_app"] = user.is_sentry_app
         args["password_usable"] = user.has_usable_password()
+        args["emails"] = frozenset([email.email for email in user.get_verified_emails()])
 
         # And process the _base_user_query special data additions
         permissions: FrozenSet[str] = frozenset({})
