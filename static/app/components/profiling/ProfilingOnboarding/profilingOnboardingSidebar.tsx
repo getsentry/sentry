@@ -1,4 +1,4 @@
-import React, {Fragment, useEffect, useMemo, useState} from 'react';
+import React, {useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
@@ -213,21 +213,19 @@ function OnboardingContent({
 
   if (!currentPlatform) {
     return (
-      <Fragment>
-        <div>
+      <ContentContainer>
+        <p>
           {t(
             `Your project's platform has not been set. Please select your project's platform before proceeding.`
           )}
-        </div>
-        <div>
-          <Button
-            size="sm"
-            to={`/settings/${organization.slug}/projects/${currentProject.slug}/`}
-          >
-            {t('Go to Project Settings')}
-          </Button>
-        </div>
-      </Fragment>
+        </p>
+        <Button
+          size="sm"
+          to={`/settings/${organization.slug}/projects/${currentProject.slug}/`}
+        >
+          {t('Go to Project Settings')}
+        </Button>
+      </ContentContainer>
     );
   }
 
@@ -235,48 +233,44 @@ function OnboardingContent({
     // this content will only be presented if the org only has one project and its not supported
     // in these scenarios we will auto-select the unsupported project and render this message
     return (
-      <Fragment>
-        <div>
+      <ContentContainer>
+        <p>
           {tct(
             'Fiddlesticks. Profiling isn’t available for your [platform] project yet. Reach out to us on Discord for more information.',
             {platform: currentPlatform?.name || currentProject.slug}
           )}
-        </div>
-        <div>
-          <Button size="sm" href="https://discord.gg/zrMjKA4Vnz" external>
-            {t('Join Discord')}
-          </Button>
-        </div>
-      </Fragment>
+        </p>
+        <Button size="sm" href="https://discord.gg/zrMjKA4Vnz" external>
+          {t('Join Discord')}
+        </Button>
+      </ContentContainer>
     );
   }
 
   if (!docKeysMap || !hasOnboardingContents) {
     return (
-      <Fragment>
-        <div>
+      <ContentContainer>
+        <p>
           {tct(
             'Fiddlesticks. This checklist isn’t available for your [project] project yet, but for now, go to Sentry docs for installation details.',
             {project: currentProject.slug}
           )}
-        </div>
-        <div>
-          <Button
-            size="sm"
-            href="https://docs.sentry.io/product/profiling/getting-started/"
-            external
-          >
-            {t('Go to documentation')}
-          </Button>
-        </div>
-      </Fragment>
+        </p>
+        <Button
+          size="sm"
+          href="https://docs.sentry.io/product/profiling/getting-started/"
+          external
+        >
+          {t('Go to documentation')}
+        </Button>
+      </ContentContainer>
     );
   }
 
   const alertContent = docContents[docKeysMap['0-alert']];
 
   return (
-    <Fragment>
+    <ContentContainer>
       {alertContent && (
         <DocumentationWrapper dangerouslySetInnerHTML={{__html: alertContent}} />
       )}
@@ -322,7 +316,7 @@ function OnboardingContent({
       >
         {() => (received ? <EventReceivedIndicator /> : <EventWaitingIndicator />)}
       </EventWaiter>
-    </Fragment>
+    </ContentContainer>
   );
 }
 
@@ -352,4 +346,8 @@ const StyledIdBadge = styled(IdBadge)`
   overflow: hidden;
   white-space: nowrap;
   flex-shrink: 1;
+`;
+
+const ContentContainer = styled('div')`
+  margin: ${space(2)} 0;
 `;
