@@ -18,27 +18,35 @@ type NodeProps = {
 function Node({type, identifier, id, children, collapsible}: NodeProps) {
   const [isExpanded, setIsExpanded] = useState(true);
   return (
-    <NodeContents aria-labelledby={`${id}-title`}>
-      {collapsible && (
-        <IconWrapper
-          aria-label={isExpanded ? t('Collapse') : t('Expand')}
-          isExpanded={isExpanded}
-          onClick={evt => {
-            evt.preventDefault();
-            setIsExpanded(!isExpanded);
-          }}
-        >
-          {isExpanded ? (
-            <IconSubtract size="9px" color="white" />
-          ) : (
-            <IconAdd size="9px" color="white" />
-          )}
-        </IconWrapper>
-      )}
-      <NodeTitle id={`${id}-title`}>
-        {identifier ? `${type} - ${identifier}` : type}
-      </NodeTitle>
-      {isExpanded && children}
+    <NodeContents id={id} aria-labelledby={`${id}-title`}>
+      {
+        <details open={isExpanded} onClick={e => e.preventDefault()}>
+          <summary>
+            {collapsible && (
+              <IconWrapper
+                aria-controls={id}
+                aria-label={isExpanded ? t('Collapse') : t('Expand')}
+                aria-expanded={isExpanded}
+                isExpanded={isExpanded}
+                onClick={evt => {
+                  evt.preventDefault();
+                  setIsExpanded(!isExpanded);
+                }}
+              >
+                {isExpanded ? (
+                  <IconSubtract size="9px" color="white" />
+                ) : (
+                  <IconAdd size="9px" color="white" />
+                )}
+              </IconWrapper>
+            )}
+            <NodeTitle id={`${id}-title`}>
+              {identifier ? `${type} - ${identifier}` : type}
+            </NodeTitle>
+          </summary>
+          {children}
+        </details>
+      }
     </NodeContents>
   );
 }
