@@ -150,4 +150,21 @@ describe('SuggestedOwners', function () {
       expect(container).toBeEmptyDOMElement();
     });
   });
+
+  it('hides when there is already an assignee', async () => {
+    const {container} = render(
+      <SuggestedOwners
+        project={project}
+        event={event}
+        group={TestStubs.Group({
+          assignedTo: {type: 'team', id: '123', name: 'team-name'},
+        })}
+      />,
+      {organization}
+    );
+
+    await waitFor(() => {
+      expect(container).toBeEmptyDOMElement();
+    });
+  });
 });
