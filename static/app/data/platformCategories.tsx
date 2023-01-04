@@ -233,7 +233,9 @@ export const profiling = [
   'python-pylons',
   'python-pyramid',
   'python-tornado',
-];
+  // rust
+  'rust',
+] as const;
 
 export const releaseHealth: PlatformKey[] = [
   // frontend
