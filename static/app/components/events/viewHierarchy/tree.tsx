@@ -49,21 +49,15 @@ type TreeProps = {
 };
 
 function Tree({hierarchy, isRoot}: TreeProps) {
-  if (!hierarchy.children?.length) {
-    return (
-      <Node type={hierarchy.type} identifier={hierarchy.identifier} id={hierarchy.id} />
-    );
+  const {type, identifier, id, children} = hierarchy;
+  if (!children?.length) {
+    return <Node type={type} identifier={identifier} id={id} />;
   }
 
   const treeNode = (
-    <Node
-      type={hierarchy.type}
-      identifier={hierarchy.identifier}
-      id={hierarchy.id}
-      collapsible
-    >
+    <Node type={type} identifier={identifier} id={id} collapsible>
       <ChildList>
-        {hierarchy.children.map(element => (
+        {children.map(element => (
           <Tree key={element.id} hierarchy={element} />
         ))}
       </ChildList>
