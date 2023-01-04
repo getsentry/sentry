@@ -11,10 +11,10 @@ import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import {RenderingSystem} from './viewHierarchy/renderingSystem';
-import {ViewHierarchyTree} from './viewHierarchy/tree';
+import {ViewHierarchy, ViewHierarchyTree} from './viewHierarchy/tree';
 import EventDataSection from './eventDataSection';
 
-const DEFAULT_RESPONSE = {rendering_system: '', windows: []};
+const DEFAULT_RESPONSE: ViewHierarchy = {rendering_system: '', windows: []};
 const FIVE_SECONDS_IN_MS = 5 * 1000;
 
 function fillWithUniqueIds(hierarchy) {
@@ -37,7 +37,7 @@ function EventViewHierarchy({projectSlug, viewHierarchies}: Props) {
   const organization = useOrganization();
 
   const hierarchyMeta = viewHierarchies[selectedViewHierarchy];
-  const {isLoading, data} = useQuery(
+  const {isLoading, data} = useQuery<ViewHierarchy>(
     [
       getAttachmentUrl({
         attachment: hierarchyMeta,

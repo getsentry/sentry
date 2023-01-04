@@ -5,6 +5,25 @@ import {IconAdd, IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 
+type ViewHierarchyWindow = {
+  alpha: number;
+  height: number;
+  id: string;
+  type: string;
+  visible: boolean;
+  width: number;
+  x: number;
+  y: number;
+  children?: ViewHierarchyWindow[];
+  depth?: number;
+  identifier?: string;
+};
+
+export type ViewHierarchy = {
+  rendering_system: string;
+  windows: ViewHierarchyWindow[];
+};
+
 type NodeProps = {
   type: string;
   children?: ReactNode[];
@@ -37,8 +56,12 @@ function Node({type, identifier, children}: NodeProps) {
   );
 }
 
-function Tree({hierarchy}) {
-  if (!hierarchy.children.length) {
+type TreeProps = {
+  hierarchy: ViewHierarchyWindow;
+};
+
+function Tree({hierarchy}: TreeProps) {
+  if (!hierarchy.children?.length) {
     return <Node type={hierarchy.type} identifier={hierarchy.identifier} />;
   }
 
@@ -51,7 +74,11 @@ function Tree({hierarchy}) {
   );
 }
 
-function ViewHierarchyContainer({hierarchy}) {
+type ViewHierarchyContainerProps = {
+  hierarchy: ViewHierarchyWindow;
+};
+
+function ViewHierarchyContainer({hierarchy}: ViewHierarchyContainerProps) {
   return (
     <Container>
       <Tree hierarchy={hierarchy} />
