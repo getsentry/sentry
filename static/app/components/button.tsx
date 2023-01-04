@@ -1,6 +1,6 @@
 import {forwardRef as reactForwardRef, useCallback} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
-import {css} from '@emotion/react';
+import {css, Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
@@ -10,7 +10,6 @@ import Tooltip from 'sentry/components/tooltip';
 import HookStore from 'sentry/stores/hookStore';
 import space from 'sentry/styles/space';
 import mergeRefs from 'sentry/utils/mergeRefs';
-import {Theme} from 'sentry/utils/theme';
 
 /**
  * The button can actually also be an anchor or React router Link (which seems
@@ -171,8 +170,8 @@ function BaseButton({
 }: ButtonProps) {
   // Fallbacking aria-label to string children is not necessary as screen readers natively understand that scenario.
   // Leaving it here for a bunch of our tests that query by aria-label.
-  const screenReaderLabel =
-    ariaLabel || (typeof children === 'string' ? children : undefined);
+  const accessibleLabel =
+    ariaLabel ?? (typeof children === 'string' ? children : undefined);
 
   const useButtonTracking = HookStore.get('react-hook:use-button-tracking')[0];
   const buttonTracking = useButtonTracking?.({
@@ -183,7 +182,7 @@ function BaseButton({
       href,
       ...analyticsParams,
     },
-    'aria-label': screenReaderLabel || '',
+    'aria-label': accessibleLabel || '',
   });
 
   const handleClick = useCallback(
@@ -219,8 +218,9 @@ function BaseButton({
   // *Note* you must still handle tabindex manually.
   const button = (
     <StyledButton
-      aria-label={screenReaderLabel}
+      aria-label={accessibleLabel}
       aria-disabled={disabled}
+      busy={busy}
       disabled={disabled}
       to={getUrl(to)}
       href={getUrl(href)}
@@ -420,7 +420,16 @@ export const getButtonStyles = ({theme, ...props}: StyledButtonProps) => {
 const StyledButton = styled(
   reactForwardRef<any, ButtonProps>(
     (
-      {forwardRef, size: _size, external, to, href, disabled, ...otherProps}: ButtonProps,
+      {
+        forwardRef,
+        size: _size,
+        title: _title,
+        external,
+        to,
+        href,
+        disabled,
+        ...props
+      }: ButtonProps,
       forwardRefAlt
     ) => {
       // XXX: There may be two forwarded refs here, one potentially passed from a
@@ -428,27 +437,26 @@ const StyledButton = styled(
 
       const ref = mergeRefs([forwardRef, forwardRefAlt]);
 
-      // only pass down title to child element if it is a string
-      const {title, ...props} = otherProps;
-      if (typeof title === 'string') {
-        props[title] = title;
-      }
-
       // Get component to use based on existence of `to` or `href` properties
       // Can be react-router `Link`, `a`, or `button`
       if (to) {
-        return <Link ref={ref} to={to} disabled={disabled} {...props} />;
+        return <Link {...props} ref={ref} to={to} disabled={disabled} />;
       }
 
-      if (!href) {
-        return <button ref={ref} disabled={disabled} {...props} />;
+      if (href && external) {
+        return <ExternalLink {...props} ref={ref} href={href} disabled={disabled} />;
       }
 
-      if (external && href) {
-        return <ExternalLink ref={ref} href={href} disabled={disabled} {...props} />;
+      if (href) {
+        return <a {...props} ref={ref} href={href} />;
       }
 
-      return <a ref={ref} {...props} href={href} />;
+      // The default `type` of a native button element is `submit` when inside
+      // of a form. This is typically not what we want, and if we do want it we
+      // should explicitly set type submit.
+      props.type ??= 'button';
+
+      return <button {...props} ref={ref} disabled={disabled} />;
     }
   ),
   {
@@ -489,9 +497,9 @@ const getIconMargin = ({size, hasChildren}: IconProps) => {
   switch (size) {
     case 'xs':
     case 'zero':
-      return '6px';
+      return space(0.75);
     default:
-      return '8px';
+      return space(1);
   }
 };
 

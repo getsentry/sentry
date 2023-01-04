@@ -35,7 +35,13 @@ class MonitorDetails extends AsyncView<Props, State> {
 
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {params, location} = this.props;
-    return [['monitor', `/monitors/${params.monitorId}/`, {query: location.query}]];
+    return [
+      [
+        'monitor',
+        `/monitors/${this.orgSlug}/${params.monitorId}/`,
+        {query: location.query},
+      ],
+    ];
   }
 
   getTitle() {
@@ -60,21 +66,25 @@ class MonitorDetails extends AsyncView<Props, State> {
         <MonitorHeader monitor={monitor} orgId={this.orgSlug} onUpdate={this.onUpdate} />
         <Layout.Body>
           <Layout.Main fullWidth>
-            {!monitor.lastCheckIn && <MonitorOnboarding monitor={monitor} />}
+            {!monitor.lastCheckIn ? (
+              <MonitorOnboarding />
+            ) : (
+              <Fragment>
+                <StyledPageFilterBar condensed>
+                  <DatePageFilter alignDropdown="left" />
+                </StyledPageFilterBar>
 
-            <StyledPageFilterBar condensed>
-              <DatePageFilter alignDropdown="left" />
-            </StyledPageFilterBar>
+                <MonitorStats monitor={monitor} orgId={this.orgSlug} />
 
-            <MonitorStats monitor={monitor} />
+                <MonitorIssues monitor={monitor} orgId={this.orgSlug} />
 
-            <MonitorIssues monitor={monitor} orgId={this.orgSlug} />
+                <Panel>
+                  <PanelHeader>{t('Recent Check-ins')}</PanelHeader>
 
-            <Panel>
-              <PanelHeader>{t('Recent Check-ins')}</PanelHeader>
-
-              <MonitorCheckIns monitor={monitor} />
-            </Panel>
+                  <MonitorCheckIns monitor={monitor} orgId={this.orgSlug} />
+                </Panel>
+              </Fragment>
+            )}
           </Layout.Main>
         </Layout.Body>
       </Fragment>

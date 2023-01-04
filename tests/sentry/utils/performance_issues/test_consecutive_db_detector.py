@@ -5,9 +5,9 @@ import pytest
 
 from sentry.eventstore.models import Event
 from sentry.testutils.performance_issues.event_generators import (
-    EVENTS,
     create_event,
     create_span,
+    get_event,
     modify_span_start,
 )
 from sentry.testutils.silo import region_silo_test
@@ -29,7 +29,7 @@ class ConsecutiveDbDetectorTest(unittest.TestCase):
         super().setUp()
         self.settings = get_detection_settings()
 
-    def find_consecutive_db_problems(self, event: Event) -> List[PerformanceProblem]:
+    def find_problems(self, event: Event) -> List[PerformanceProblem]:
         detector = ConsecutiveDBSpanDetector(self.settings, event)
         run_detector_on_data(detector, event)
         return list(detector.stored_problems.values())
@@ -44,7 +44,7 @@ class ConsecutiveDbDetectorTest(unittest.TestCase):
         spans = [modify_span_start(span, span_duration * spans.index(span)) for span in spans]
         event = create_event(spans, "a" * 16)
 
-        problems = self.find_consecutive_db_problems(event)
+        problems = self.find_problems(event)
 
         assert problems == [
             PerformanceProblem(
@@ -72,7 +72,7 @@ class ConsecutiveDbDetectorTest(unittest.TestCase):
         spans = [modify_span_start(span, span_duration * spans.index(span)) for span in spans]
         event = create_event(spans, "a" * 16)
 
-        problems = self.find_consecutive_db_problems(event)
+        problems = self.find_problems(event)
 
         assert problems == []
 
@@ -110,7 +110,7 @@ class ConsecutiveDbDetectorTest(unittest.TestCase):
         spans = [modify_span_start(span, span_duration * spans.index(span)) for span in spans]
         event = create_event(spans, "a" * 16)
 
-        problems = self.find_consecutive_db_problems(event)
+        problems = self.find_problems(event)
 
         assert problems == []
 
@@ -136,14 +136,14 @@ class ConsecutiveDbDetectorTest(unittest.TestCase):
         spans = [modify_span_start(span, span_duration * spans.index(span)) for span in spans]
         event = create_event(spans, "a" * 16)
 
-        problems = self.find_consecutive_db_problems(event)
+        problems = self.find_problems(event)
 
         assert problems == []
 
     def test_detects_consecutive_db_in_query_waterfall_event(self):
-        event = EVENTS["query-waterfall-in-django-random-view"]
+        event = get_event("query-waterfall-in-django-random-view")
 
-        problems = self.find_consecutive_db_problems(event)
+        problems = self.find_problems(event)
 
         assert problems == [
             PerformanceProblem(

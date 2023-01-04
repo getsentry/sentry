@@ -43,6 +43,7 @@ class SentryLocaleMiddleware(LocaleMiddleware):
         options = user_option_service.get_many(
             user_ids=[request.user.id], keys=["language", "timezone"]
         )
+
         for option in options:
             if option.key == "language" and (language := option.value):
                 request.session[LANGUAGE_SESSION_KEY] = language

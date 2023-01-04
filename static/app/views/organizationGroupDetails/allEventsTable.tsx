@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {useEffect, useState} from 'react';
 import {Location} from 'history';
 
 import LoadingError from 'sentry/components/loadingError';
@@ -22,13 +22,16 @@ const AllEventsTable = (props: Props) => {
   const {location, organization, issueId, excludedTags, group} = props;
   const [error, setError] = useState<string>('');
   const routes = useRoutes();
-
   const {fields, columnTitles} = getColumns(group, organization);
 
   const eventView: EventView = EventView.fromLocation(props.location);
   eventView.fields = fields.map(fieldName => ({field: fieldName}));
 
   eventView.sorts = decodeSorts(location).filter(sort => fields.includes(sort.field));
+
+  useEffect(() => {
+    setError('');
+  }, [eventView.query]);
 
   if (!eventView.sorts.length) {
     eventView.sorts = [{field: 'timestamp', kind: 'desc'}];
@@ -43,7 +46,7 @@ const AllEventsTable = (props: Props) => {
   eventView.statsPeriod = '90d';
 
   if (error) {
-    return <LoadingError message={error} />;
+    return <LoadingError message={error} onRetry={() => setError('')} />;
   }
 
   const isReplayEnabled = organization.features.includes('session-replay-ui');

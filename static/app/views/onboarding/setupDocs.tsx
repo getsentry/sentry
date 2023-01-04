@@ -2,7 +2,7 @@ import 'prism-sentry/index.css';
 
 import {Fragment, useCallback, useEffect, useState} from 'react';
 import {browserHistory} from 'react-router';
-import {css} from '@emotion/react';
+import {css, Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 import * as qs from 'query-string';
@@ -15,11 +15,10 @@ import {PlatformKey} from 'sentry/data/platformCategories';
 import platforms from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization, Project} from 'sentry/types';
+import {Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {platformToIntegrationMap} from 'sentry/utils/integrationUtil';
-import {Theme} from 'sentry/utils/theme';
 import useApi from 'sentry/utils/useApi';
 import withProjects from 'sentry/utils/withProjects';
 
@@ -47,7 +46,6 @@ type Props = {
 function ProjecDocs(props: {
   hasError: boolean;
   onRetry: () => void;
-  organization: Organization;
   platform: PlatformKey | null;
   platformDocs: PlatformDoc | null;
   project: Project;
@@ -101,10 +99,7 @@ function ProjecDocs(props: {
   const currentPlatform = props.platform ?? props.project?.platform ?? 'other';
   return (
     <Fragment>
-      <FullIntroduction
-        currentPlatform={currentPlatform}
-        organization={props.organization}
-      />
+      <FullIntroduction currentPlatform={currentPlatform} />
       {getDynamicText({
         value: !props.hasError ? docs : loadingError,
         fixed: testOnlyAlert,
@@ -277,7 +272,6 @@ function SetupDocs({
           ) : (
             <ProjecDocs
               platform={loadedPlatform}
-              organization={organization}
               project={project}
               hasError={hasError}
               platformDocs={platformDocs}

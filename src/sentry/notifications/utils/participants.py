@@ -19,7 +19,6 @@ from sentry.models import (
     Release,
     Team,
     User,
-    UserOption,
 )
 from sentry.notifications.helpers import (
     get_settings_by_provider,
@@ -50,6 +49,8 @@ AVAILABLE_PROVIDERS = {
     ExternalProviders.SLACK,
 }
 
+FALLTHROUGH_NOTIFICATION_LIMIT = 20
+
 
 def get_providers_from_which_to_remove_user(
     user: APIUser,
@@ -66,10 +67,7 @@ def get_providers_from_which_to_remove_user(
         for provider, participants in participants_by_provider.items()
         if user.id in map(lambda p: int(p.id), participants)
     }
-    if (
-        providers
-        and UserOption.objects.get_value(user, key="self_notifications", default="0") == "0"
-    ):
+    if providers and user.get_option(key="self_notifications", default="0") == "0":
         return providers
     return set()
 
@@ -219,8 +217,8 @@ def get_owner_reason(
     # Describe why an issue owner was notified
     if fallthrough_choice == FallthroughChoiceType.ALL_MEMBERS:
         return f"We notified all members in the {project.get_full_name()} project of this issue"
-    if fallthrough_choice == FallthroughChoiceType.ADMIN_OR_RECENT:
-        return f"We notified team admins and recently active members in the {project.get_full_name()} project of this issue"
+    if fallthrough_choice == FallthroughChoiceType.ACTIVE_MEMBERS:
+        return f"We notified recently active members in the {project.get_full_name()} project of this issue"
 
     return None
 
@@ -355,20 +353,18 @@ def get_fallthrough_recipients(
     ):
         return []
 
-    # Case 1: No fallthrough
     if fallthrough_choice == FallthroughChoiceType.NO_ONE:
         return []
 
-    # Case 2: notify all members
     elif fallthrough_choice == FallthroughChoiceType.ALL_MEMBERS:
         return user_service.get_from_project(project.id)
 
-    # TODO(snigdhasharma): Handle this in a followup PR (WOR-2385)
-    # Case 3: Admin or recent
-    elif fallthrough_choice == FallthroughChoiceType.ADMIN_OR_RECENT:
-        return []
+    elif fallthrough_choice == FallthroughChoiceType.ACTIVE_MEMBERS:
+        return user_service.get_many(
+            project.member_set.order_by("-user__last_active").values_list("user_id", flat=True)
+        )[:FALLTHROUGH_NOTIFICATION_LIMIT]
 
-    return []
+    raise NotImplementedError(f"Unknown fallthrough choice: {fallthrough_choice}")
 
 
 def get_user_from_identifier(project: Project, target_identifier: str | int | None) -> User | None:

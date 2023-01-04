@@ -1,4 +1,5 @@
 import {browserHistory} from 'react-router';
+import {Theme} from '@emotion/react';
 import {Location} from 'history';
 import isNumber from 'lodash/isNumber';
 import isString from 'lodash/isString';
@@ -14,7 +15,6 @@ import {WebVital} from 'sentry/utils/fields';
 import {TraceError} from 'sentry/utils/performance/quickTrace/types';
 import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import {getPerformanceTransaction} from 'sentry/utils/performanceForSentry';
-import {Theme} from 'sentry/utils/theme';
 
 import {MERGE_LABELS_THRESHOLD_PERCENT} from './constants';
 import SpanTreeModel from './spanTreeModel';

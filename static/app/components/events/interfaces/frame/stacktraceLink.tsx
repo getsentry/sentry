@@ -98,7 +98,7 @@ function StacktraceLinkSetup({organization, project, event}: StacktraceLinkSetup
         <StyledIconWrapper>{getIntegrationIcon('github', 'sm')}</StyledIconWrapper>
         {t('Add the GitHub or GitLab integration to jump straight to your source code')}
       </StyledLink>
-      <CloseButton type="button" priority="link" onClick={dismissPrompt}>
+      <CloseButton priority="link" onClick={dismissPrompt}>
         <IconClose size="xs" aria-label={t('Close')} />
       </CloseButton>
     </CodeMappingButtonContainer>
@@ -261,7 +261,6 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
     return (
       <CodeMappingButtonContainer columnQuantity={2}>
         <FixMappingButton
-          type="button"
           priority="link"
           icon={
             sourceCodeProviders.length === 1

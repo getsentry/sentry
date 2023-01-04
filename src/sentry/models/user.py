@@ -23,6 +23,8 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.models import LostPasswordHash
+from sentry.models.options.user_option import UserOption
+from sentry.services.hybrid_cloud.user import APIUser
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.utils.http import absolute_uri
 
@@ -391,6 +393,10 @@ class User(BaseModel, AbstractBaseUser):
 
         return Organization.objects.get_for_user_ids({self.id})
 
+    # A helper primarily here to make User/APIUser more compatible
+    def get_option(self, **kwargs):
+        return UserOption.objects.get_value(user=self, **kwargs)
+
     def get_projects(self):
         from sentry.models import Project
 
@@ -421,3 +427,11 @@ def refresh_user_nonce(sender, request, user, **kwargs):
         return
     user.refresh_session_nonce()
     user.save(update_fields=["session_nonce"])
+
+
+@receiver(user_logged_out, sender=APIUser)
+def refresh_api_user_nonce(sender, request, user, **kwargs):
+    if user is None:
+        return
+    user = User.objects.get(id=user.id)
+    refresh_user_nonce(sender, request, user, **kwargs)

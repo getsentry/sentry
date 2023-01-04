@@ -12,7 +12,7 @@ from sentry.types.activity import ActivityType
 from sentry.utils.http import absolute_uri
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class GroupIntegrationDetailsTest(APITestCase):
     def setUp(self):
         super().setUp()

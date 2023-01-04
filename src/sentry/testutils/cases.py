@@ -163,7 +163,6 @@ from .skips import requires_snuba
 
 DEFAULT_USER_AGENT = "Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36"
 
-
 DETECT_TESTCASE_MISUSE = os.environ.get("SENTRY_DETECT_TESTCASE_MISUSE") == "1"
 SILENCE_MIXED_TESTCASE_MISUSE = os.environ.get("SENTRY_SILENCE_MIXED_TESTCASE_MISUSE") == "1"
 
@@ -489,13 +488,10 @@ class PerformanceIssueTestCase(BaseTestCase):
         perf_event_manager.normalize()
         with override_options(
             {
-                "performance.issues.all.problem-creation": 1.0,
-                "performance.issues.all.problem-detection": 1.0,
                 "performance.issues.n_plus_one_db.problem-creation": 1.0,
             }
         ), self.feature(
             [
-                "organizations:performance-issues-ingest",
                 "projects:performance-suspect-spans-ingestion",
             ]
         ):
@@ -1148,6 +1144,8 @@ class BaseMetricsTestCase(SnubaTestCase):
             base_tags["release"] = session["release"]
         if session.get("environment") is not None:
             base_tags["environment"] = session["environment"]
+        if session.get("abnormal_mechanism") is not None:
+            base_tags["abnormal_mechanism"] = session["abnormal_mechanism"]
 
         # This check is not yet reflected in relay, see https://getsentry.atlassian.net/browse/INGEST-464
         user_is_nil = user is None or user == "00000000-0000-0000-0000-000000000000"
@@ -1283,6 +1281,17 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
         "d": "distribution",
         "g": "gauge",
     }
+    # In order to avoid complexity and edge cases while working on tests, all children of this class should use
+    # this mocked time, except in case in which a specific time is required. This is suggested because working
+    # with time ranges in metrics is very error-prone and requires an in-depth knowledge of the underlying
+    # implementation.
+    #
+    # This time has been specifically chosen to be 10:00:00 so that all tests will automatically have the data inserted
+    # and queried with automatically inferred timestamps (e.g., usage of - 1 second, get_date_range()...) without
+    # incurring into problems.
+    MOCK_DATETIME = (timezone.now() - timedelta(days=1)).replace(
+        hour=10, minute=0, second=0, microsecond=0
+    )
 
     @property
     def now(self):
@@ -1329,33 +1338,50 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
             name=name,
             tags=tags,
             timestamp=(
-                self.now
-                - timedelta(
-                    days=days_before_now,
-                    hours=hours_before_now,
-                    minutes=minutes_before_now,
-                    # We subtract 1 second -(+1) in order to account for right non-inclusivity in the queries.
-                    #
-                    # E.g.: if we save at 10:00:00, and we have as "end" of the query that time, we must store our
-                    # value with a timestamp less than 10:00:00 so that irrespectively of the bucket we will have
-                    # the value in the query result set. This is because when we save 10:00:00 - 1 second in the db it
-                    # will be saved under different granularities as (09:59:59, 09:59:00, 09:00:00) and these are the
-                    # actual timestamps that will be compared to the bounds "start" and "end".
-                    # Supposing we store 09:59:59, and we have "start"=09:00:00 and "end"=10:00:00, and we want to query
-                    # by granularity (60 = minutes) then we look at entries with timestamp = 09:59:00 which is
-                    # >= "start" and < "end" thus all these records will be returned.
-                    # Of course this - 1 second "trick" is just to abstract away this complexity, but it can also be
-                    # avoided by being more mindful when it comes to using the "end" bound, however because we would
-                    # like our tests to be deterministic we would like to settle on this approach. This - 1 can also
-                    # be avoided by choosing specific frozen times depending on granularities and stored data but
-                    # as previously mentioned we would like to standardize the time we choose unless there are specific
-                    # cases.
-                    seconds=seconds_before_now + 1,
+                self.adjust_timestamp(
+                    self.now
+                    - timedelta(
+                        days=days_before_now,
+                        hours=hours_before_now,
+                        minutes=minutes_before_now,
+                        seconds=seconds_before_now,
+                    )
                 )
             ).timestamp(),
             value=value,
             use_case_id=use_case_id,
         )
+
+    @staticmethod
+    def adjust_timestamp(time: datetime) -> datetime:
+        # We subtract 1 second -(+1) in order to account for right non-inclusivity in the queries.
+        #
+        # E.g.: if we save at 10:00:00, and we have as "end" of the query that time, we must store our
+        # value with a timestamp less than 10:00:00 so that irrespectively of the bucket we will have
+        # the value in the query result set. This is because when we save 10:00:00 - 1 second in the db it
+        # will be saved under different granularities as (09:59:59, 09:59:00, 09:00:00) and these are the
+        # actual timestamps that will be compared to the bounds "start" and "end".
+        # Supposing we store 09:59:59, and we have "start"=09:00:00 and "end"=10:00:00, and we want to query
+        # by granularity (60 = minutes) then we look at entries with timestamp = 09:59:00 which is
+        # >= "start" and < "end" thus all these records will be returned.
+        # Of course this - 1 second "trick" is just to abstract away this complexity, but it can also be
+        # avoided by being more mindful when it comes to using the "end" bound, however because we would
+        # like our tests to be deterministic we would like to settle on this approach. This - 1 can also
+        # be avoided by choosing specific frozen times depending on granularities and stored data but
+        # as previously mentioned we would like to standardize the time we choose unless there are specific
+        # cases.
+        #
+        # This solution helps to abstract away this edge case but one needs to be careful to not use it with times
+        # between XX:00:00:000000 and XX:00:999999 because this will result in a time like (XX)-1:AA:BBBBBB which
+        # will mess up with the get_date_range function.
+        # E.g.: if we have time 10:00:00:567894 and we have statsPeriod = 1h and the interval=1h this will result in the
+        # interval being from 10:00:00:000000 to 11:00:00:000000 but the data being saved will be saved with date
+        # 09:59:59:567894 thus being outside the query range.
+        #
+        # All of these considerations must be done only if using directly the time managed by this abstraction, an
+        # alternative solution would be to avoid it at all, but for standardization purposes we would prefer to keep
+        # using it.
+        return time - timedelta(seconds=1)
 
     def store_performance_metric(
         self,
@@ -1425,6 +1451,7 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
         before_now: str = None,
         granularity: str = None,
     ):
+        # TODO: fix this method which gets the range after now instead of before now.
         (start, end, granularity_in_seconds) = get_date_range(
             {"statsPeriod": before_now, "interval": granularity}
         )
@@ -2113,7 +2140,26 @@ class MSTeamsActivityNotificationTest(ActivityTestCase):
 @apply_feature_flag_on_cls("organizations:metrics")
 @pytest.mark.usefixtures("reset_snuba")
 class MetricsAPIBaseTestCase(BaseMetricsLayerTestCase, APITestCase):
-    ...
+    def build_and_store_session(
+        self,
+        days_before_now: int = 0,
+        hours_before_now: int = 0,
+        minutes_before_now: int = 0,
+        seconds_before_now: int = 0,
+        **kwargs,
+    ):
+        # We perform also here the same - 1 seconds transformation as in the _store_metric() method.
+        kwargs["started"] = self.adjust_timestamp(
+            self.now
+            - timedelta(
+                days=days_before_now,
+                hours=hours_before_now,
+                minutes=minutes_before_now,
+                seconds=seconds_before_now,
+            )
+        ).timestamp()
+
+        self.store_session(self.build_session(**kwargs))
 
 
 class OrganizationMetricMetaIntegrationTestCase(MetricsAPIBaseTestCase):
