@@ -139,9 +139,7 @@ class ProjectGeneralSettings extends AsyncView<Props, State> {
             }
           >
             <div>
-              <Button type="button" priority="danger">
-                {t('Remove Project')}
-              </Button>
+              <Button priority="danger">{t('Remove Project')}</Button>
             </div>
           </Confirm>
         )}
@@ -214,9 +212,7 @@ class ProjectGeneralSettings extends AsyncView<Props, State> {
             )}
           >
             <div>
-              <Button type="button" priority="danger">
-                {t('Transfer Project')}
-              </Button>
+              <Button priority="danger">{t('Transfer Project')}</Button>
             </div>
           </Confirm>
         )}

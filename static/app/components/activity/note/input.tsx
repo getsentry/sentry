@@ -212,7 +212,7 @@ function NoteInput({
         )}
         <div>
           {existingItem && (
-            <FooterButton priority="danger" type="button" onClick={handleCancel}>
+            <FooterButton priority="danger" onClick={handleCancel}>
               {t('Cancel')}
             </FooterButton>
           )}

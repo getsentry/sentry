@@ -4,9 +4,9 @@ from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.authentication import DSNAuthentication
 from sentry.api.base import Endpoint, pending_silo_endpoint
+from sentry.api.bases.monitor import MonitorEndpoint
 from sentry.api.bases.project import ProjectPermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.fields.empty_integer import EmptyIntegerField
@@ -36,7 +36,7 @@ class CheckInSerializer(serializers.Serializer):
 
 @pending_silo_endpoint
 class MonitorCheckInDetailsEndpoint(Endpoint):
-    authentication_classes = Endpoint.authentication_classes + (DSNAuthentication,)
+    authentication_classes = MonitorEndpoint.authentication_classes + (DSNAuthentication,)
     permission_classes = (ProjectPermission,)
 
     # TODO(dcramer): this code needs shared with other endpoints as its security focused
@@ -53,9 +53,6 @@ class MonitorCheckInDetailsEndpoint(Endpoint):
 
         if hasattr(request.auth, "project_id") and project.id != request.auth.project_id:
             return self.respond(status=400)
-
-        if not features.has("organizations:monitors", project.organization, actor=request.user):
-            raise ResourceDoesNotExist
 
         self.check_object_permissions(request, project)
 

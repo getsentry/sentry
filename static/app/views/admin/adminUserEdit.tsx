@@ -189,7 +189,6 @@ class AdminUserEdit extends AsyncView<Props, State> {
           }}
           extraButton={
             <Button
-              type="button"
               onClick={openDeleteModal}
               style={{marginLeft: space(1)}}
               priority="danger"

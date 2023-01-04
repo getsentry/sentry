@@ -6,6 +6,7 @@ from dataclasses import dataclass, fields
 from enum import IntEnum
 from typing import TYPE_CHECKING, Any, FrozenSet, Iterable, List, Optional
 
+from django_picklefield.fields import dbsafe_decode
 from sentry.db.models import BaseQuerySet
 from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_delegation, stubbed
 from sentry.silo import SiloMode
@@ -21,6 +22,7 @@ class APIUser:
     pk: int = -1
     name: str = ""
     email: str = ""
+    emails: FrozenSet[str] = frozenset()
     username: str = ""
     actor_id: int = -1
     display_name: str = ""
@@ -39,6 +41,7 @@ class APIUser:
     roles: FrozenSet[str] = frozenset()
     permissions: FrozenSet[str] = frozenset()
     avatar: Optional[APIAvatar] = None
+    options: FrozenSet[APIUserOption] = frozenset()
 
     def has_usable_password(self) -> bool:
         return self.password_usable
@@ -63,6 +66,23 @@ class APIUser:
     def class_name(self) -> str:
         return "User"
 
+    def get_option(
+        self,
+        key: str,
+        project_id: Optional[int] = None,
+        organization_id: Optional[str] = None,
+        default: Any = None,
+    ) -> Optional[Any]:
+        opts = self.options
+        if project_id is not None:
+            opts = frozenset([o for o in opts if o.project_id == project_id])
+        if organization_id is not None:
+            opts = frozenset([o for o in opts if o.organization_id == organization_id])
+        for o in opts:
+            if o.key == key:
+                return o.value
+        return default
+
 
 @dataclass(frozen=True, eq=True)
 class APIAvatar:
@@ -70,6 +90,15 @@ class APIAvatar:
     file_id: int = 0
     ident: str = ""
     avatar_type: str = "letter_avatar"
+
+
+@dataclass(frozen=True, eq=True)
+class APIUserOption:
+    id: int = 0
+    project_id: int = 0
+    organization_id: str = ""
+    key: str = ""
+    value: Any = None
 
 
 class UserSerializeType(IntEnum):
@@ -131,6 +160,18 @@ class UserService(InterfaceWithLifecycle):
     def get_by_actor_ids(self, *, actor_ids: List[int]) -> List[APIUser]:
         pass
 
+    @abstractmethod
+    def set_option_value(
+        self,
+        *,
+        user: User | APIUser,
+        key: str,
+        value: str,
+        project_id: Optional[int] = None,
+        organization_id: Optional[int] = None,
+    ) -> None:
+        pass
+
     def get_user(self, user_id: int) -> Optional[APIUser]:
         """
         This method returns a User object given an ID
@@ -144,21 +185,37 @@ class UserService(InterfaceWithLifecycle):
         else:
             return None
 
+    @abstractmethod
+    def query_users(
+        self,
+        user_ids: Optional[List[int]] = None,
+        is_active: Optional[bool] = None,
+        organization_id: Optional[int] = None,
+        project_ids: Optional[List[int]] = None,
+        team_ids: Optional[List[int]] = None,
+        is_active_memberteam: Optional[bool] = None,
+        emails: Optional[List[str]] = None,
+    ) -> List[User]:
+        pass
+
     # NOTE: In the future if this becomes RPC, we can avoid the double serialization problem by using a special type
     # with its own json serialization that allows pass through (ie, a string type that does not serialize into a string,
     # but rather validates itself as valid json and renders 'as is'.   Like "unescaped json text".
     @abstractmethod
     def serialize_users(
         self,
-        user_ids: Optional[List[int]] = None,
         *,
         detailed: UserSerializeType = UserSerializeType.SIMPLE,
         auth_context: AuthenticationContext
         | None = None,  # TODO: replace this with the as_user attribute
         as_user: User | APIUser | None = None,
         # Query filters:
+        user_ids: Optional[List[int]] = None,
         is_active: Optional[bool] = None,
         organization_id: Optional[int] = None,
+        project_ids: Optional[List[int]] = None,
+        team_ids: Optional[List[int]] = None,
+        is_active_memberteam: Optional[bool] = None,
         emails: Optional[List[str]] = None,
     ) -> List[Any]:
         """
@@ -182,6 +239,7 @@ class UserService(InterfaceWithLifecycle):
         args["is_superuser"] = user.is_superuser
         args["is_sentry_app"] = user.is_sentry_app
         args["password_usable"] = user.has_usable_password()
+        args["emails"] = frozenset([email.email for email in user.get_verified_emails()])
 
         # And process the _base_user_query special data additions
         permissions: FrozenSet[str] = frozenset({})
@@ -193,6 +251,22 @@ class UserService(InterfaceWithLifecycle):
         if hasattr(user, "roles") and user.roles is not None:
             roles = frozenset(flatten(user.roles))
         args["roles"] = roles
+
+        options: FrozenSet[APIUserOption] = frozenset({})
+        if hasattr(user, "options") and user.options is not None:
+            options = frozenset(
+                [
+                    APIUserOption(
+                        id=o["id"],
+                        project_id=o["project_id"],
+                        organization_id=o["organization_id"],
+                        key=o["key"],
+                        value=dbsafe_decode(o["value"]),
+                    )
+                    for o in user.options
+                ]
+            )
+        args["options"] = options
 
         avatar = user.avatar.first()
         if avatar is not None:

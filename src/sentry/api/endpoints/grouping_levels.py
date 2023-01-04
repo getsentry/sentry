@@ -4,7 +4,7 @@ from snuba_sdk import Request as SnubaRequest
 from snuba_sdk.query import Column, Entity, Function, Query
 
 from sentry import features
-from sentry.api.base import pending_silo_endpoint
+from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import GroupEndpoint
 from sentry.api.endpoints.group_hashes_split import _construct_arraymax, _get_group_filters
 from sentry.api.exceptions import SentryAPIException, status
@@ -47,7 +47,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 
-@pending_silo_endpoint
+@region_silo_endpoint
 class GroupingLevelsEndpoint(GroupEndpoint):
     def get(self, request: Request, group: Group) -> Response:
         """
