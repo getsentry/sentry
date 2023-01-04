@@ -34,6 +34,7 @@ describe('ProjectAlertSettings', () => {
         canEditRule
         params={{orgId: organization.slug, projectId: project.slug}}
         organization={organization}
+        project={project}
         routes={[]}
       />
     );
