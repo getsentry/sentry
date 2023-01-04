@@ -5,7 +5,7 @@ from unittest.mock import Mock, call
 import pytest
 
 from sentry.eventstore.models import Event
-from sentry.testutils.performance_issues.event_generators import EVENTS
+from sentry.testutils.performance_issues.event_generators import get_event
 from sentry.testutils.silo import region_silo_test
 from sentry.types.issues import GroupType
 from sentry.utils.performance_issues.performance_detection import (
@@ -30,7 +30,7 @@ class MNPlusOneDBDetectorTest(unittest.TestCase):
         return list(detector.stored_problems.values())
 
     def test_detects_parallel_m_n_plus_one(self):
-        event = EVENTS["m-n-plus-one-db/m-n-plus-one-graphql"]
+        event = get_event("m-n-plus-one-db/m-n-plus-one-graphql")
 
         problems = self.find_problems(event)
         assert problems == [
@@ -72,15 +72,15 @@ class MNPlusOneDBDetectorTest(unittest.TestCase):
         assert problems[0].title == "MN+1 Query"
 
     def test_does_not_detect_truncated_m_n_plus_one(self):
-        event = EVENTS["m-n-plus-one-db/m-n-plus-one-graphql-truncated"]
+        event = get_event("m-n-plus-one-db/m-n-plus-one-graphql-truncated")
         assert self.find_problems(event) == []
 
     def test_does_not_detect_n_plus_one(self):
-        event = EVENTS["n-plus-one-in-django-index-view"]
+        event = get_event("n-plus-one-in-django-index-view")
         assert self.find_problems(event) == []
 
     def test_m_n_plus_one_detector_enabled(self):
-        event = EVENTS["m-n-plus-one-db/m-n-plus-one-graphql"]
+        event = get_event("m-n-plus-one-db/m-n-plus-one-graphql")
         sdk_span_mock = Mock()
         _detect_performance_problems(event, sdk_span_mock)
         sdk_span_mock.containing_transaction.set_tag.assert_has_calls(

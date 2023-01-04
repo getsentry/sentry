@@ -1,5 +1,7 @@
 import os
+from copy import deepcopy
 
+from sentry.eventstore.models import Event
 from sentry.testutils.factories import get_fixture_path
 from sentry.utils import json
 
@@ -28,6 +30,12 @@ for (dirpath, dirnames, filenames) in os.walk(_fixture_path):
             event["project"] = PROJECT_ID
 
         EVENTS[full_event_name] = event
+
+
+def get_event(event_name) -> Event:
+    # Create copy to avoid the risk of tests altering the event and affecting
+    # other tests.
+    return deepcopy(EVENTS[event_name])
 
 
 # Duration is in ms

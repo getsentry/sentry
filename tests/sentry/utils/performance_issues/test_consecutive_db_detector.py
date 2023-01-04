@@ -5,9 +5,9 @@ import pytest
 
 from sentry.eventstore.models import Event
 from sentry.testutils.performance_issues.event_generators import (
-    EVENTS,
     create_event,
     create_span,
+    get_event,
     modify_span_start,
 )
 from sentry.testutils.silo import region_silo_test
@@ -141,7 +141,7 @@ class ConsecutiveDbDetectorTest(unittest.TestCase):
         assert problems == []
 
     def test_detects_consecutive_db_in_query_waterfall_event(self):
-        event = EVENTS["query-waterfall-in-django-random-view"]
+        event = get_event("query-waterfall-in-django-random-view")
 
         problems = self.find_problems(event)
 
