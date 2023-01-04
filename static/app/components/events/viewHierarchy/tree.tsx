@@ -18,9 +18,9 @@ type NodeProps = {
 function Node({type, identifier, id, children, collapsible}: NodeProps) {
   const [isExpanded, setIsExpanded] = useState(true);
   return (
-    <NodeContents id={id} aria-labelledby={`${id}-title`}>
+    <NodeContents aria-labelledby={`${id}-title`}>
       {
-        <details open={isExpanded} onClick={e => e.preventDefault()}>
+        <details id={id} open={isExpanded} onClick={e => e.preventDefault()}>
           <summary>
             {collapsible && (
               <IconWrapper
