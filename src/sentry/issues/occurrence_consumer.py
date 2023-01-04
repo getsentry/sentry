@@ -116,17 +116,36 @@ def _get_kwargs(payload: Mapping[str, Any]) -> Optional[Mapping[str, Any]]:
                 kwargs["occurrence_data"]["event_id"] = payload["event_id"]
 
             if "event" in payload:
-                payload_event = payload["event"]
+                event_payload = payload["event"]
                 kwargs["event_data"] = {
-                    "event_id": payload_event.get("event_id"),
-                    "message_timestamp": payload_event.get("message_timestamp", timezone.now()),
-                    "project_id": payload_event.get("project_id"),
-                    "platform": payload_event.get("platform"),
-                    "tags": payload_event.get("tags"),
-                    "timestamp": payload_event.get("timestamp"),
-                    # TODO add other params as per the spec
+                    "event_id": event_payload.get("event_id"),
+                    "project_id": event_payload.get("project_id"),
+                    "platform": event_payload.get("platform"),
+                    "tags": event_payload.get("tags"),
+                    "timestamp": event_payload.get("timestamp"),
+                    "message_timestamp": event_payload.get("message_timestamp", timezone.now()),
                 }
-                kwargs["occurrence_data"]["event_id"] = payload_event.get("event_id")
+
+                optional_params = [
+                    "breadcrumbs",
+                    "contexts",
+                    "dist",
+                    "environment",
+                    "extra",
+                    "modules",
+                    "release",
+                    "request",
+                    "sdk",
+                    "server_name",
+                    "trace_id",
+                    "transaction",
+                    "user",
+                ]
+                for optional_param in optional_params:
+                    if optional_param in event_payload:
+                        kwargs["event_data"][optional_param] = event_payload.get(optional_param)
+
+                kwargs["occurrence_data"]["event_id"] = event_payload.get("event_id")
 
             _validate_kwargs(kwargs)
 
