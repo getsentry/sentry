@@ -80,26 +80,6 @@ def process_profile_task(
                 stacktraces=raw_stacktraces,
             )
 
-            try:
-                raw_counts = [len(stacktrace["frames"]) for stacktrace in raw_stacktraces]
-                counts = [len(stacktrace["frames"]) for stacktrace in stacktraces]
-                if len(raw_counts) != len(counts) or any(a > b for a, b in zip(raw_counts, counts)):
-                    with sentry_sdk.push_scope() as scope:
-                        scope.set_context(
-                            "profile_stacktraces",
-                            {
-                                "raw_stacktraces_count": raw_counts,
-                                "raw_stacktraces": raw_stacktraces,
-                                "stacktraces_count": counts,
-                                "stacktraces": stacktraces,
-                            },
-                        )
-                        sentry_sdk.capture_message(
-                            "Symbolicator returned less stacks than expected"
-                        )
-            except Exception as e:
-                sentry_sdk.capture_exception(e)
-
             _process_symbolicator_results(profile=profile, modules=modules, stacktraces=stacktraces)
     except Exception as e:
         sentry_sdk.capture_exception(e)
@@ -360,18 +340,18 @@ def _process_symbolicator_results_for_sample(profile: Profile, stacktraces: List
         def get_stack(stack: List[int]) -> List[int]:
             return stack
 
-    for sample in profile["profile"]["samples"]:
-        stack_id = sample["stack_id"]
-        stack = get_stack(profile["profile"]["stacks"][stack_id])
-        profile["profile"]["stacks"][stack_id] = stack
+    stacks = []
 
-        if len(stack) < 2:
-            continue
+    for stack in profile["profile"]["stacks"]:
+        stack = get_stack(stack)
 
-        # truncate some unneeded frames in the stack (related to the profiler itself or impossible to symbolicate)
-        profile["profile"]["stacks"][stack_id] = truncate_stack_needed(
-            profile["profile"]["frames"], stack
-        )
+        if len(stack) >= 2:
+            # truncate some unneeded frames in the stack (related to the profiler itself or impossible to symbolicate)
+            stack = truncate_stack_needed(profile["profile"]["frames"], stack)
+
+        stacks.append(stack)
+
+    profile["profile"]["stacks"] = stacks
 
 
 def _process_symbolicator_results_for_cocoa(profile: Profile, stacktraces: List[Any]) -> None:

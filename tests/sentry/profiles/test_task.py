@@ -287,6 +287,9 @@ class ProfilesProcessTaskTest(TestCase):
                 ],
                 "samples": [
                     {"stack_id": 0},
+                    # a second sample with the same stack id, the stack should
+                    # not be processed a second time
+                    {"stack_id": 0},
                 ],
                 "stacks": [
                     [0, 1, 2],
@@ -343,4 +346,4 @@ class ProfilesProcessTaskTest(TestCase):
 
         _process_symbolicator_results_for_sample(profile, stacktraces)
 
-        assert profile["profile"]["stacks"][0] == [0, 1, 2, 3, 4, 5]
+        assert profile["profile"]["stacks"] == [[0, 1, 2, 3, 4, 5]]
