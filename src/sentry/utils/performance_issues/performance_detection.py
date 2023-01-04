@@ -545,13 +545,11 @@ class SlowSpanDetector(PerformanceDetector):
         if not fingerprint:
             return
 
-        description = span.get("description", None)
-        if not description:
+        if not SlowSpanDetector.is_span_eligible(span):
             return
 
+        description = span.get("description", None)
         description = description.strip()
-        if description.strip()[:6].upper() != "SELECT":
-            return
 
         if span_duration >= timedelta(
             milliseconds=duration_threshold
@@ -571,6 +569,21 @@ class SlowSpanDetector(PerformanceDetector):
                 parent_span_ids=[],
                 offender_span_ids=spans_involved,
             )
+
+    @classmethod
+    def is_span_eligible(cls, span: Span) -> bool:
+        description = span.get("description", None)
+        if not description:
+            return False
+
+        description = description.strip()
+        if description[:6].upper() != "SELECT":
+            return False
+
+        if description.endswith("..."):
+            return False
+
+        return True
 
     def _fingerprint(self, transaction_name, span_op, hash, problem_class):
         signature = (str(transaction_name) + str(span_op) + str(hash)).encode("utf-8")
