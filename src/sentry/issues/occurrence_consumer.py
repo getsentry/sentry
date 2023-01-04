@@ -11,6 +11,7 @@ from arroyo.processing.processor import StreamProcessor
 from arroyo.processing.strategies import ProcessingStrategy, ProcessingStrategyFactory
 from arroyo.types import Commit, Message, Partition
 from django.conf import settings
+from django.utils import timezone
 
 from sentry.event_manager import GroupInfo
 from sentry.eventstore.models import Event
@@ -117,15 +118,17 @@ def _get_kwargs(payload: Mapping[str, Any]) -> Optional[Mapping[str, Any]]:
             if "event" in payload:
                 payload_event = payload["event"]
                 kwargs["event_data"] = {
-                    "event_id": payload_event["event_id"],
-                    "message_timestamp": payload_event["message_timestamp"],
-                    "project_id": payload_event["project_id"],
-                    "platform": payload_event["platform"],
-                    "tags": payload_event["tags"],
-                    "timestamp": payload_event["timestamp"],
+                    "event_id": payload_event.get("event_id"),
+                    "message_timestamp": payload_event.get("message_timestamp", timezone.now()),
+                    "project_id": payload_event.get("project_id"),
+                    "platform": payload_event.get("platform"),
+                    "tags": payload_event.get("tags"),
+                    "timestamp": payload_event.get("timestamp"),
                     # TODO add other params as per the spec
                 }
-                kwargs["occurrence_data"]["event_id"] = payload_event["event_id"]
+                kwargs["occurrence_data"]["event_id"] = payload_event.get("event_id")
+
+            _validate_kwargs(kwargs)
 
             return kwargs
 
@@ -134,23 +137,29 @@ def _get_kwargs(payload: Mapping[str, Any]) -> Optional[Mapping[str, Any]]:
         return None
 
 
+def _validate_kwargs(kwargs: Mapping[str, Any]) -> None:
+    # only validate event data, for now
+    try:
+        jsonschema.validate(kwargs["event_data"], EVENT_PAYLOAD_SCHEMA)
+    except jsonschema.exceptions.ValidationError:
+        metrics.incr("occurrence_ingest.event_payload_invalid")
+        raise InvalidEventPayloadError("Event payload does not match schema")
+
+
 def _process_message(
     message: Mapping[str, Any]
 ) -> Optional[Tuple[IssueOccurrence, Optional[GroupInfo]]]:
-    kwargs = _get_kwargs(message)
+    metrics.incr("occurrence_ingest.messages", sample_rate=1.0)
+
+    try:
+        kwargs = _get_kwargs(message)
+    except InvalidEventPayloadError:
+        kwargs = None
+
     if not kwargs:
         return None
 
-    metrics.incr("occurrence_ingest.messages", sample_rate=1.0)
-
-    # only validating event data, for now
     if "event_data" in kwargs:
-        try:
-            jsonschema.validate(kwargs["event_data"], EVENT_PAYLOAD_SCHEMA)
-        except jsonschema.ValidationError:
-            metrics.incr("occurrence_ingest.event_payload_invalid")
-            raise InvalidEventPayloadError("Event payload does not match schema")
-
         return process_event_and_issue_occurrence(**kwargs)  # returning for easier testing, for now
     else:
         # all occurrences will have Event data, for now

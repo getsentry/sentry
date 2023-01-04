@@ -2,13 +2,17 @@ import datetime
 import logging
 import uuid
 from copy import deepcopy
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Sequence
 
 import pytest
 
 from sentry.eventstore.snuba.backend import SnubaEventStorage
 from sentry.issues.issue_occurrence import IssueOccurrence
-from sentry.issues.occurrence_consumer import InvalidEventPayloadError, _process_message
+from sentry.issues.occurrence_consumer import (
+    InvalidEventPayloadError,
+    _get_kwargs,
+    _process_message,
+)
 from sentry.models import Group
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.types.issues import GroupType
@@ -87,7 +91,7 @@ class IssueOccurrenceTestMessage(OccurrenceTestMixin, TestCase, SnubaTestCase): 
 
 class ParseEventPayloadTest(IssueOccurrenceTestMessage):
     def run_test(self, message: Dict[str, Any]) -> None:
-        _process_message(message)
+        _get_kwargs(message)
 
     def run_invalid_schema_test(self, message: Dict[str, Any]) -> None:
         with pytest.raises(InvalidEventPayloadError):
@@ -95,7 +99,7 @@ class ParseEventPayloadTest(IssueOccurrenceTestMessage):
 
     def run_invalid_payload_test(
         self,
-        remove_event_fields: Optional[Dict[str, Any]] = None,
+        remove_event_fields: Optional[Sequence[str]] = None,
         update_event_fields: Optional[Dict[str, Any]] = None,
     ) -> None:
         message = deepcopy(get_test_message(self.project.id))
@@ -107,11 +111,11 @@ class ParseEventPayloadTest(IssueOccurrenceTestMessage):
         self.run_invalid_schema_test(message)
 
     def test_invalid_payload(self) -> None:
-        # self.run_invalid_payload_test(remove_event_fields=["event_id"])
-        # self.run_invalid_payload_test(remove_event_fields=["project_id"])
-        # self.run_invalid_payload_test(remove_event_fields=["timestamp"])
-        # self.run_invalid_payload_test(remove_event_fields=["platform"])
-        # self.run_invalid_payload_test(remove_event_fields=["tags"])
+        self.run_invalid_payload_test(remove_event_fields=["event_id"])
+        self.run_invalid_payload_test(remove_event_fields=["project_id"])
+        self.run_invalid_payload_test(remove_event_fields=["timestamp"])
+        self.run_invalid_payload_test(remove_event_fields=["platform"])
+        self.run_invalid_payload_test(remove_event_fields=["tags"])
         self.run_invalid_payload_test(update_event_fields={"event_id": 0000})
         self.run_invalid_payload_test(update_event_fields={"project_id": "p_id"})
         self.run_invalid_payload_test(update_event_fields={"timestamp": 0000})
