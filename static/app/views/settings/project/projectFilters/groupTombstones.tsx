@@ -55,7 +55,6 @@ function GroupTombstoneRow({data, disabled, onUndiscard}: RowProps) {
           disabled={disabled}
         >
           <Button
-            type="button"
             aria-label={t('Undiscard')}
             title={
               disabled

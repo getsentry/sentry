@@ -155,7 +155,6 @@ function UpgradeGrouping({
               onClick={handleOpenConfirmModal}
               disabled={!hasProjectWriteAccess || noUpdates}
               title={getButtonTitle()}
-              type="button"
               priority={priority}
             >
               {t('Upgrade Grouping Strategy')}
