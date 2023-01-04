@@ -663,13 +663,11 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
     keywords: ['error', 'performance'],
-    featureFlag: 'performance-issues',
   },
   [FieldKey.ISSUE_TYPE]: {
     desc: t('Type of problem the issue represents (i.e. N+1 Query)'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
-    featureFlag: 'performance-issues',
   },
   [FieldKey.LAST_SEEN]: {
     desc: t('Issues last seen at a given time'),
