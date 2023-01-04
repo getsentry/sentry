@@ -5,24 +5,7 @@ import {IconAdd, IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 
-type ViewHierarchyWindow = {
-  alpha: number;
-  height: number;
-  id: string;
-  type: string;
-  visible: boolean;
-  width: number;
-  x: number;
-  y: number;
-  children?: ViewHierarchyWindow[];
-  depth?: number;
-  identifier?: string;
-};
-
-export type ViewHierarchy = {
-  rendering_system: string;
-  windows: ViewHierarchyWindow[];
-};
+import {ViewHierarchyWindow} from '.';
 
 type NodeProps = {
   id: string;

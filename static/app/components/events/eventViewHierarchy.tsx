@@ -10,11 +10,10 @@ import {useQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
-import {RenderingSystem} from './viewHierarchy/renderingSystem';
-import {ViewHierarchy, ViewHierarchyTree} from './viewHierarchy/tree';
 import EventDataSection from './eventDataSection';
+import {ViewHierarchy, ViewHierarchyData} from './viewHierarchy';
 
-const DEFAULT_RESPONSE: ViewHierarchy = {rendering_system: '', windows: []};
+const DEFAULT_RESPONSE: ViewHierarchyData = {rendering_system: '', windows: []};
 const FIVE_SECONDS_IN_MS = 5 * 1000;
 
 function fillWithUniqueIds(hierarchy) {
@@ -37,7 +36,7 @@ function EventViewHierarchy({projectSlug, viewHierarchies}: Props) {
   const organization = useOrganization();
 
   const hierarchyMeta = viewHierarchies[selectedViewHierarchy];
-  const {isLoading, data} = useQuery<ViewHierarchy>(
+  const {isLoading, data} = useQuery<ViewHierarchyData>(
     [
       getAttachmentUrl({
         attachment: hierarchyMeta,
@@ -89,8 +88,7 @@ function EventViewHierarchy({projectSlug, viewHierarchies}: Props) {
       type="view_hierarchy"
       title={tn('View Hierarchy', 'View Hierarchies', viewHierarchies.length)}
     >
-      <RenderingSystem system={data.rendering_system} />
-      <ViewHierarchyTree hierarchy={data.windows[selectedViewHierarchyWindow]} />
+      <ViewHierarchy viewHierarchy={data} selectedWindow={selectedViewHierarchyWindow} />
     </EventDataSection>
   );
 }
