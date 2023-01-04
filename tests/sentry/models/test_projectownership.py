@@ -8,6 +8,10 @@ from sentry.testutils.silo import region_silo_test
 from sentry.utils.cache import cache
 
 
+def actor_key(actor):
+    return actor.id
+
+
 @region_silo_test
 class ProjectOwnershipTestCase(TestCase):
     def tearDown(self):
@@ -16,7 +20,10 @@ class ProjectOwnershipTestCase(TestCase):
         super().tearDown()
 
     def assert_ownership_equals(self, o1, o2):
-        assert sorted(o1[0]) == sorted(o2[0]) and sorted(o1[1]) == sorted(o2[1])
+        # Ensure actors match
+        assert sorted(o1[0], key=actor_key) == sorted(o2[0], key=actor_key)
+        # Ensure rules match
+        assert sorted(o1[1]) == sorted(o2[1])
 
     def test_get_owners_default(self):
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
