@@ -9,13 +9,12 @@ import {ViewHierarchyWindow} from '.';
 
 type NodeProps = {
   id: string;
-  type: string;
+  label: string;
   children?: ReactNode;
   collapsible?: boolean;
-  identifier?: string;
 };
 
-function Node({type, identifier, id, children, collapsible}: NodeProps) {
+function Node({label, id, children, collapsible}: NodeProps) {
   const [isExpanded, setIsExpanded] = useState(true);
   return (
     <NodeContents aria-labelledby={`${id}-title`}>
@@ -40,9 +39,7 @@ function Node({type, identifier, id, children, collapsible}: NodeProps) {
                 )}
               </IconWrapper>
             )}
-            <NodeTitle id={`${id}-title`}>
-              {identifier ? `${type} - ${identifier}` : type}
-            </NodeTitle>
+            <NodeTitle id={`${id}-title`}>{label}</NodeTitle>
           </summary>
           {children}
         </details>
@@ -51,22 +48,25 @@ function Node({type, identifier, id, children, collapsible}: NodeProps) {
   );
 }
 
-type TreeProps = {
-  hierarchy: ViewHierarchyWindow;
+type TreeData<T> = T & {id: string; children?: TreeData<T>[]};
+
+type TreeProps<T> = {
+  data: TreeData<T>;
+  getNodeLabel: (data: TreeData<T>) => string;
   isRoot?: boolean;
 };
 
-function Tree({hierarchy, isRoot}: TreeProps) {
-  const {type, identifier, id, children} = hierarchy;
+function Tree<T>({data, isRoot, getNodeLabel}: TreeProps<T>) {
+  const {id, children} = data;
   if (!children?.length) {
-    return <Node type={type} identifier={identifier} id={id} />;
+    return <Node label={getNodeLabel(data)} id={id} />;
   }
 
   const treeNode = (
-    <Node type={type} identifier={identifier} id={id} collapsible>
+    <Node label={getNodeLabel(data)} id={id} collapsible>
       <ChildList>
         {children.map(element => (
-          <Tree key={element.id} hierarchy={element} />
+          <Tree key={element.id} data={element} getNodeLabel={getNodeLabel} />
         ))}
       </ChildList>
     </Node>
@@ -80,9 +80,12 @@ type ViewHierarchyContainerProps = {
 };
 
 function ViewHierarchyContainer({hierarchy}: ViewHierarchyContainerProps) {
+  const getNodeLabel = ({identifier, type}: ViewHierarchyWindow) => {
+    return identifier ? `${type} - ${identifier}` : type;
+  };
   return (
     <Container>
-      <Tree hierarchy={hierarchy} isRoot />
+      <Tree<ViewHierarchyWindow> data={hierarchy} getNodeLabel={getNodeLabel} isRoot />
     </Container>
   );
 }
