@@ -576,7 +576,8 @@ class SlowSpanDetector(PerformanceDetector):
         if not description:
             return False
 
-        if description.strip()[:6].upper() != "SELECT":
+        description = description.strip()
+        if description[:6].upper() != "SELECT":
             return False
 
         if description.endswith("..."):
