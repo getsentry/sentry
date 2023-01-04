@@ -20,7 +20,7 @@ class OrganizationIssueReplayCountEndpointTest(APITestCase, SnubaTestCase, Repla
         self.min_ago = before_now(minutes=1)
         self.login_as(user=self.user)
         self.url = reverse(
-            "sentry-api-0-organization-issue-replay-count",
+            "sentry-api-0-organization-replay-count",
             kwargs={"organization_slug": self.project.organization.slug},
         )
         self.features = {"organizations:session-replay": True}
@@ -184,6 +184,37 @@ class OrganizationIssueReplayCountEndpointTest(APITestCase, SnubaTestCase, Repla
         assert response.status_code == 200, response.content
         assert response.data == expected
 
+    def test_simple_transaction(self):
+        event_id_a = "a" * 32
+        replay1_id = uuid.uuid4().hex
+
+        self.store_replays(
+            mock_replay(
+                datetime.datetime.now() - datetime.timedelta(seconds=22),
+                self.project.id,
+                replay1_id,
+            )
+        )
+        event_a = self.store_event(
+            data={
+                "event_id": event_id_a,
+                "timestamp": iso_format(self.min_ago),
+                "tags": {"replayId": replay1_id},
+                "transaction": "t-1",
+            },
+            project_id=self.project.id,
+        )
+
+        query = {"query": f"transaction:[{event_a.transaction}]"}
+        with self.feature(self.features):
+            response = self.client.get(self.url, query, format="json")
+
+        expected = {
+            event_a.transaction: 1,
+        }
+        assert response.status_code == 200, response.content
+        assert response.data == expected
+
     def test_max_51(self):
         replay_ids = [uuid.uuid4().hex for _ in range(100)]
         for replay_id in replay_ids:
@@ -219,7 +250,7 @@ class OrganizationIssueReplayCountEndpointTest(APITestCase, SnubaTestCase, Repla
         with self.feature(self.features):
             response = self.client.get(self.url, query, format="json")
             assert response.status_code == 400
-            assert response.data["detail"] == "Must provide at least one issue id"
+            assert response.data["detail"] == "Must provide at least one issue.id or transaction"
 
     def test_invalid_params_max_issue_id(self):
         issue_ids = ",".join(str(i) for i in range(26))
@@ -229,4 +260,13 @@ class OrganizationIssueReplayCountEndpointTest(APITestCase, SnubaTestCase, Repla
         with self.feature(self.features):
             response = self.client.get(self.url, query, format="json")
             assert response.status_code == 400
-            assert response.data["detail"] == "Too many issues ids provided"
+            assert response.data["detail"] == "Too many values provided"
+
+    def test_invalid_params_only_one_of_issue_and_transaction(self):
+
+        query = {"query": "issue.id:[1] transaction:[2]"}
+
+        with self.feature(self.features):
+            response = self.client.get(self.url, query, format="json")
+            assert response.status_code == 400
+            assert response.data["detail"] == "Must provide only one of: issue.id, transaction"
