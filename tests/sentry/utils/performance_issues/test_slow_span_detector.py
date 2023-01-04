@@ -7,12 +7,10 @@ from sentry.eventstore.models import Event
 from sentry.testutils.performance_issues.event_generators import EVENTS, create_event, create_span
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.performance_issues.performance_detection import (
-    DetectorType,
     GroupType,
     PerformanceProblem,
     SlowSpanDetector,
     get_detection_settings,
-    prepare_problem_for_grouping,
     run_detector_on_data,
 )
 
@@ -27,12 +25,7 @@ class SlowSpanDetectorTest(unittest.TestCase):
     def find_problems(self, event: Event) -> List[PerformanceProblem]:
         detector = SlowSpanDetector(self.settings, event)
         run_detector_on_data(detector, event)
-        # The usage of "prepare_problem_for_grouping" is only needed because the slow db detector is using PerformanceSpanProblem,
-        # TODO - refactor slow span detector to use PerformanceProblem
-        return [
-            prepare_problem_for_grouping(problem, event, DetectorType.SLOW_SPAN)
-            for problem in detector.stored_problems.values()
-        ]
+        return list(detector.stored_problems.values())
 
     def test_calls_detect_slow_span(self):
         no_slow_span_event = create_event([create_span("db", 999.0)] * 1)
