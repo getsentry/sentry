@@ -28,7 +28,8 @@ type State = {
  */
 class OrganizationApiKeys extends AsyncView<Props, State> {
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
-    return [['keys', `/organizations/${this.props.params.orgId}/api-keys/`]];
+    const {organization} = this.props;
+    return [['keys', `/organizations/${organization.slug}/api-keys/`]];
   }
 
   getTitle() {
@@ -36,6 +37,7 @@ class OrganizationApiKeys extends AsyncView<Props, State> {
   }
 
   handleRemove = async (id: string) => {
+    const {organization} = this.props;
     const oldKeys = [...this.state.keys];
 
     this.setState(state => ({
@@ -44,7 +46,7 @@ class OrganizationApiKeys extends AsyncView<Props, State> {
 
     try {
       await this.api.requestPromise(
-        `/organizations/${this.props.params.orgId}/api-keys/${id}/`,
+        `/organizations/${organization.slug}/api-keys/${id}/`,
         {
           method: 'DELETE',
           data: {},
@@ -60,10 +62,11 @@ class OrganizationApiKeys extends AsyncView<Props, State> {
     this.setState({
       busy: true,
     });
+    const {organization} = this.props;
 
     try {
       const data = await this.api.requestPromise(
-        `/organizations/${this.props.params.orgId}/api-keys/`,
+        `/organizations/${organization.slug}/api-keys/`,
         {
           method: 'POST',
           data: {},

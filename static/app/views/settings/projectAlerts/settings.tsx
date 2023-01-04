@@ -17,6 +17,7 @@ import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHea
 import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 
 type RouteParams = {orgId: string; projectId: string};
+
 type Props = RouteComponentProps<RouteParams, {}> &
   AsyncView['props'] & {
     canEditRule: boolean;
@@ -37,17 +38,18 @@ class Settings extends AsyncView<Props, State> {
       pluginList: [],
     };
   }
-  getProjectEndpoint({orgId, projectId}: RouteParams) {
-    return `/projects/${orgId}/${projectId}/`;
+
+  getProjectEndpoint() {
+    const {organization, project} = this.props;
+    return `/projects/${organization.slug}/${project.slug}/`;
   }
 
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
-    const {params} = this.props;
-    const {orgId, projectId} = params;
-    const projectEndpoint = this.getProjectEndpoint(params);
+    const {organization, project} = this.props;
+    const projectEndpoint = this.getProjectEndpoint();
     return [
       ['project', projectEndpoint],
-      ['pluginList', `/projects/${orgId}/${projectId}/plugins/`],
+      ['pluginList', `/projects/${organization.slug}/${project.slug}/plugins/`],
     ];
   }
 
@@ -85,15 +87,14 @@ class Settings extends AsyncView<Props, State> {
   }
 
   renderBody() {
-    const {canEditRule, organization, params} = this.props;
-    const {orgId} = params;
+    const {canEditRule, organization} = this.props;
     const {project, pluginList} = this.state;
 
     if (!project) {
       return null;
     }
 
-    const projectEndpoint = this.getProjectEndpoint(params);
+    const projectEndpoint = this.getProjectEndpoint();
 
     return (
       <Fragment>
@@ -102,7 +103,7 @@ class Settings extends AsyncView<Props, State> {
           action={
             <Button
               to={{
-                pathname: `/organizations/${orgId}/alerts/rules/`,
+                pathname: `/organizations/${organization.slug}/alerts/rules/`,
                 query: {project: project.id},
               }}
               size="sm"
