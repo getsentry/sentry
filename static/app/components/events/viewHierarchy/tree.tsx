@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import {IconAdd, IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
 
 type ViewHierarchyWindow = {
   alpha: number;
@@ -25,15 +26,16 @@ export type ViewHierarchy = {
 
 type NodeProps = {
   type: string;
-  children?: ReactNode[];
+  children?: ReactNode;
+  collapsible?: boolean;
   identifier?: string;
 };
 
-function Node({type, identifier, children}: NodeProps) {
+function Node({type, identifier, children, collapsible}: NodeProps) {
   const [isExpanded, setIsExpanded] = useState(true);
   return (
     <NodeContents>
-      {children?.length && (
+      {collapsible && (
         <IconWrapper
           aria-label={isExpanded ? t('Collapse') : t('Expand')}
           isExpanded={isExpanded}
@@ -50,27 +52,32 @@ function Node({type, identifier, children}: NodeProps) {
         </IconWrapper>
       )}
       <NodeTitle>{identifier ? `${type} - ${identifier}` : type}</NodeTitle>
-      {isExpanded && children && <StyledUl>{children}</StyledUl>}
+      {isExpanded && children}
     </NodeContents>
   );
 }
 
 type TreeProps = {
   hierarchy: ViewHierarchyWindow;
+  isRoot?: boolean;
 };
 
-function Tree({hierarchy}: TreeProps) {
+function Tree({hierarchy, isRoot}: TreeProps) {
   if (!hierarchy.children?.length) {
     return <Node type={hierarchy.type} identifier={hierarchy.identifier} />;
   }
 
-  return (
-    <Node type={hierarchy.type} identifier={hierarchy.identifier}>
-      {hierarchy.children.map(element => (
-        <Tree key={element.id} hierarchy={element} />
-      ))}
+  const treeNode = (
+    <Node type={hierarchy.type} identifier={hierarchy.identifier} collapsible>
+      <ChildList>
+        {hierarchy.children.map(element => (
+          <Tree key={element.id} hierarchy={element} />
+        ))}
+      </ChildList>
     </Node>
   );
+
+  return isRoot ? <ul>{treeNode}</ul> : treeNode;
 }
 
 type ViewHierarchyContainerProps = {
@@ -80,14 +87,14 @@ type ViewHierarchyContainerProps = {
 function ViewHierarchyContainer({hierarchy}: ViewHierarchyContainerProps) {
   return (
     <Container>
-      <Tree hierarchy={hierarchy} />
+      <Tree hierarchy={hierarchy} isRoot />
     </Container>
   );
 }
 
 export {ViewHierarchyContainer as ViewHierarchyTree};
 
-const StyledUl = styled('ul')`
+const ChildList = styled('ul')`
   border-left: 1px solid ${p => p.theme.gray200};
   margin-left: 5px;
 `;
@@ -97,19 +104,17 @@ const NodeContents = styled('li')`
   display: block;
 `;
 
-// TODO: box shadow styling
-const Container = styled('ul')`
+const Container = styled('div')`
   max-height: 500px;
   overflow: auto;
   background-color: ${p => p.theme.surface100};
   border: 1px solid ${p => p.theme.gray100};
   border-radius: ${p => p.theme.borderRadius};
-  padding: 9.5px 0;
+  padding: ${space(1.5)} 0;
   display: block;
 
-  ${StyledUl}:first-child {
-    border-left: none;
-    margin-left: 0px;
+  ul {
+    margin-bottom: 0;
   }
 `;
 
