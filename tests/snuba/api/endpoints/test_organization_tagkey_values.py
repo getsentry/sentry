@@ -1,10 +1,14 @@
+import datetime
+import uuid
 from datetime import timedelta
 from functools import cached_property
 
 from django.urls import reverse
 
+from sentry.replays.testutils import mock_replay
 from sentry.search.events.constants import RELEASE_ALIAS, SEMVER_ALIAS
 from sentry.testutils import APITestCase, SnubaTestCase
+from sentry.testutils.cases import ReplaysSnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.samples import load_data
@@ -555,3 +559,73 @@ class TransactionTagKeyValues(OrganizationTagKeyTestCase):
     def test_boolean_fields(self):
         self.run_test("error.handled", expected=[("true", None), ("false", None)])
         self.run_test("error.unhandled", expected=[("true", None), ("false", None)])
+
+
+@region_silo_test
+class ReplayOrganizationTagKeyValuesTest(OrganizationTagKeyTestCase, ReplaysSnubaTestCase):
+    def setUp(self):
+        super().setUp()
+        replay1_id = uuid.uuid4().hex
+        replay2_id = uuid.uuid4().hex
+        replay3_id = uuid.uuid4().hex
+        seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=22)
+        self.store_replays(
+            mock_replay(
+                seq1_timestamp,
+                self.project.id,
+                replay1_id,
+                urls=[
+                    "http://localhost:3000/",
+                    "http://localhost:3000/login",
+                ],  # duplicate urls are okay,
+                tags={"fruit": "orange"},
+                segment_id=0,
+            ),
+        )
+        self.store_replays(
+            mock_replay(
+                seq1_timestamp,
+                self.project.id,
+                replay1_id,
+                urls=[
+                    "http://localhost:3000/",
+                    "http://localhost:3000/login",
+                ],  # duplicate urls are okay,
+                tags={"fruit": "orange"},
+                segment_id=1,
+            ),
+        )
+        self.store_replays(
+            mock_replay(
+                seq1_timestamp,
+                self.project.id,
+                replay2_id,
+                urls=[
+                    "http://localhost:3000/",
+                    "http://localhost:3000/login",
+                ],  # duplicate urls are okay,
+                tags={"fruit": "orange"},
+            )
+        )
+        self.store_replays(
+            mock_replay(
+                seq1_timestamp,
+                self.project.id,
+                replay3_id,
+                urls=[
+                    "http://localhost:3000/",
+                    "http://localhost:3000/login",
+                ],
+                tags={"fruit": "apple", "drink": "water"},
+            )
+        )
+
+    def run_test(self, key, expected, **kwargs):
+        # all tests here require that we search in replays so make that the default here
+        qs_params = kwargs.get("qs_params", {})
+        qs_params["includeReplays"] = "1"
+        kwargs["qs_params"] = qs_params
+        super().run_test(key, expected, **kwargs)
+
+    def test_simple(self):
+        self.run_test("fruit", expected=[("orange", 2), ("apple", 1)])

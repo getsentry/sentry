@@ -21,7 +21,7 @@ from sentry.models import (
     ReleaseProject,
     ReleaseProjectEnvironment,
 )
-from sentry.replays.query import query_replays_dataset_tags
+from sentry.replays.query import query_replays_dataset_tagkey_values
 from sentry.search.events.constants import (
     PROJECT_ALIAS,
     RELEASE_ALIAS,
@@ -1154,24 +1154,21 @@ class SnubaTagStorage(TagStorage):
             )
 
         if dataset == Dataset.Replays:
-            try:
-                results = query_replays_dataset_tags(
-                    project_ids=filters["project_id"],
-                    start=start,
-                    end=end,
-                    environment=filters.get("environment"),
-                    tag_key=key,
-                )
-                results = {
-                    d["tag_value"]: {
-                        "times_seen": d["times_seen"],
-                        "first_seen": d["first_seen"],
-                        "last_seen": d["last_seen"],
-                    }
-                    for d in results["data"]
+            results = query_replays_dataset_tagkey_values(
+                project_ids=filters["project_id"],
+                start=start,
+                end=end,
+                environment=filters.get("environment"),
+                tag_key=key,
+            )
+            results = {
+                d["tag_value"]: {
+                    "times_seen": d["times_seen"],
+                    "first_seen": d["first_seen"],
+                    "last_seen": d["last_seen"],
                 }
-            except Exception as e:
-                raise e
+                for d in results["data"]
+            }
 
         else:
             results = snuba.query(

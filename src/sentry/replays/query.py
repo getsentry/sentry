@@ -28,6 +28,7 @@ from sentry.replays.lib.query import (
     QueryConfig,
     String,
     Tag,
+    all_values_for_tag_key,
     generate_valid_conditions,
     get_valid_sort_commands,
 )
@@ -105,7 +106,6 @@ def query_replays_dataset(
     where: List[Condition],
     fields: List[str],
     sorting: List[OrderBy],
-    environment: str | None,
     pagination: Optional[Paginators],
     search_filters: List[SearchFilter],
 ):
@@ -187,21 +187,24 @@ def query_replays_count(
     )
 
 
-def query_replays_dataset_tags(
+def query_replays_dataset_tagkey_values(
     project_ids: List[str],
     start: datetime,
     end: datetime,
     environment: str | None,
     tag_key: str,
 ):
+    """Query replay tagkey values. Note that this endpoint is not like our other tag endpoints,
+    and is somewhat limited, as it cannot take in conditions right now. This is because the standard replay
+    query is aggregated, and we cannot do the same aggregation here, as we need to aggregate on tags instead.
+    Most of our search conditions rely on this aggregation, so we cannot use them here.
+    However, this should be sufficient for most use cases."""
 
-    query_options = {}
-
+    query_options = {"limit": Limit(1000)}
     where = []
+
     if environment:
         where.append(Condition(Column("environment"), Op.IN, environment))
-
-    query_options["limit"] = Limit(1000)
 
     snuba_request = Request(
         dataset="replays",
@@ -215,33 +218,7 @@ def query_replays_dataset_tags(
                 Function(
                     "arrayJoin",
                     parameters=[
-                        Function(
-                            "arrayFilter",
-                            parameters=[
-                                Lambda(
-                                    ["key", "mask"],
-                                    Function("equals", parameters=[Identifier("mask"), 1]),
-                                ),
-                                Column("tags.value"),
-                                Function(
-                                    "arrayMap",
-                                    parameters=[
-                                        Lambda(
-                                            ["index", "key"],
-                                            Function(
-                                                "equals",
-                                                parameters=[Identifier("key"), tag_key],
-                                            ),
-                                        ),
-                                        Function(
-                                            "arrayEnumerate",
-                                            parameters=[Column("tags.key")],
-                                        ),
-                                        Column("tags.key"),
-                                    ],
-                                ),
-                            ],
-                        )
+                        all_values_for_tag_key(tag_key, Column("tags.key"), Column("tags.value"))
                     ],
                     alias="tag_value",
                 ),
@@ -260,11 +237,8 @@ def query_replays_dataset_tags(
         ),
     )
     return raw_snql_query(
-        snuba_request, referrer="replays.query.query_replays_dataset_tags", use_cache=True
+        snuba_request, referrer="replays.query.query_replays_dataset_tagkey_values", use_cache=True
     )
-
-
-# Select.
 
 
 def make_select_statement(
