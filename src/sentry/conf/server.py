@@ -1130,6 +1130,8 @@ SENTRY_FEATURES = {
     "organizations:performance-mep-bannerless-ui": False,
     # Enable updated landing page widget designs
     "organizations:performance-new-widget-designs": False,
+    # Enable consecutive db performance issue type
+    "organizations:performance-consecutive-db-issue": False,
     # Enable slow DB performance issue type
     "organizations:performance-slow-db-issue": False,
     # Enable the new Related Events feature
