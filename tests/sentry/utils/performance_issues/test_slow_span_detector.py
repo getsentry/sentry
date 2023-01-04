@@ -83,3 +83,24 @@ class SlowSpanDetectorTest(unittest.TestCase):
                 offender_span_ids=["a05754d3fde2db29"],
             )
         ]
+
+    def test_skips_truncated_queries(self):
+        slow_span_event_with_truncated_query = create_event(
+            [create_span("db", 1005, "SELECT `product`.`id` FROM `products` ...")] * 1
+        )
+        slow_span_event = create_event(
+            [create_span("db", 1005, "SELECT `product`.`id` FROM `products`")] * 1
+        )
+
+        assert self.find_problems(slow_span_event_with_truncated_query) == []
+        assert self.find_problems(slow_span_event) == [
+            PerformanceProblem(
+                fingerprint="1-GroupType.PERFORMANCE_SLOW_SPAN-020e34d374ab4b5cd00a6a1b4f76f325209f7263",
+                op="db",
+                desc="SELECT `product`.`id` FROM `products`",
+                type=GroupType.PERFORMANCE_SLOW_SPAN,
+                parent_span_ids=None,
+                cause_span_ids=None,
+                offender_span_ids=["bbbbbbbbbbbbbbbb"],
+            )
+        ]
