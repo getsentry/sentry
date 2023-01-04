@@ -1,6 +1,5 @@
 from sentry.api.serializers import serialize
 from sentry.models import GroupHash, GroupTombstone
-from sentry.services.hybrid_cloud.user import user_service
 from sentry.testutils import TestCase
 from sentry.testutils.silo import region_silo_test
 
@@ -8,9 +7,8 @@ from sentry.testutils.silo import region_silo_test
 @region_silo_test
 class GroupTombstoneSerializerTest(TestCase):
     def test_simple(self):
-        user = self.create_user("foo@example.com")
-        self.user = user_service.get_many(user_ids=[user.id])[0]
-        self.login_as(user=user)
+        self.user = self.create_user("foo@example.com")
+        self.login_as(user=self.user)
         org = self.create_organization(owner=self.user)
         project = self.create_project(organization=org, name="CoolProj")
         group = self.create_group(project=project)

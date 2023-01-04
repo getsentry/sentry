@@ -66,20 +66,14 @@ class UserOptionManager(OptionManager["User"]):
     def set_value(self, user: User, key: str, value: Value, **kwargs: Any) -> None:
         project = kwargs.get("project")
         organization = kwargs.get("organization")
-        project_id = kwargs.get("project_id", None)
-        organization_id = kwargs.get("organization_id", None)
-        if project is not None:
-            project_id = project.id
-        if organization is not None:
-            organization_id = organization.id
 
         if organization and project:
             raise NotImplementedError(option_scope_error)
 
         inst, created = self.get_or_create(
-            user_id=user.id,
-            project_id=project_id,
-            organization_id=organization_id,
+            user=user,
+            project=project,
+            organization=organization,
             key=key,
             defaults={"value": value},
         )

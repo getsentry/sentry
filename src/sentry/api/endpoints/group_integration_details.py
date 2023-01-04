@@ -40,7 +40,7 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
             project=group.project,
             group=group,
             type=ActivityType.CREATE_ISSUE.value,
-            user_id=request.user.id,
+            user=request.user,
             data=issue_information,
         )
 

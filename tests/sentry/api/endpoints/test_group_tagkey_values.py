@@ -4,7 +4,7 @@ from sentry.testutils.silo import region_silo_test
 from sentry.types.issues import GroupType
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class GroupTagKeyValuesTest(APITestCase, SnubaTestCase):
     def test_simple(self):
         key, value = "foo", "bar"
