@@ -25,16 +25,17 @@ export type ViewHierarchy = {
 };
 
 type NodeProps = {
+  id: string;
   type: string;
   children?: ReactNode;
   collapsible?: boolean;
   identifier?: string;
 };
 
-function Node({type, identifier, children, collapsible}: NodeProps) {
+function Node({type, identifier, id, children, collapsible}: NodeProps) {
   const [isExpanded, setIsExpanded] = useState(true);
   return (
-    <NodeContents>
+    <NodeContents aria-labelledby={`${id}-title`}>
       {collapsible && (
         <IconWrapper
           aria-label={isExpanded ? t('Collapse') : t('Expand')}
@@ -51,7 +52,9 @@ function Node({type, identifier, children, collapsible}: NodeProps) {
           )}
         </IconWrapper>
       )}
-      <NodeTitle>{identifier ? `${type} - ${identifier}` : type}</NodeTitle>
+      <NodeTitle id={`${id}-title`}>
+        {identifier ? `${type} - ${identifier}` : type}
+      </NodeTitle>
       {isExpanded && children}
     </NodeContents>
   );
@@ -64,11 +67,18 @@ type TreeProps = {
 
 function Tree({hierarchy, isRoot}: TreeProps) {
   if (!hierarchy.children?.length) {
-    return <Node type={hierarchy.type} identifier={hierarchy.identifier} />;
+    return (
+      <Node type={hierarchy.type} identifier={hierarchy.identifier} id={hierarchy.id} />
+    );
   }
 
   const treeNode = (
-    <Node type={hierarchy.type} identifier={hierarchy.identifier} collapsible>
+    <Node
+      type={hierarchy.type}
+      identifier={hierarchy.identifier}
+      id={hierarchy.id}
+      collapsible
+    >
       <ChildList>
         {hierarchy.children.map(element => (
           <Tree key={element.id} hierarchy={element} />
