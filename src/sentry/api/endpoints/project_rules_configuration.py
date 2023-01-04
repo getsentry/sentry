@@ -62,11 +62,7 @@ class ProjectRulesConfigurationEndpoint(ProjectEndpoint):
                 continue
 
             if rule_type.startswith("condition/"):
-                if (
-                    context["id"]
-                    != "sentry.rules.conditions.active_release.ActiveReleaseEventCondition"
-                ):
-                    condition_list.append(context)
+                condition_list.append(context)
             elif rule_type.startswith("filter/"):
                 filter_list.append(context)
             elif rule_type.startswith("action/"):
