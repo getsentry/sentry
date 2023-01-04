@@ -253,7 +253,7 @@ class Factories:
 
         org = Organization.objects.create(name=name, **kwargs)
         if owner:
-            Factories.create_member(organization=org, user=owner, role="owner")
+            Factories.create_member(organization=org, user_id=owner.id, role="owner")
         return org
 
     @staticmethod

@@ -13,6 +13,7 @@ from sentry.api.serializers import (
 from sentry.db.models.query import in_iexact
 from sentry.models import Project
 from sentry.models.group import Group
+from sentry.models.options.user_option import UserOption
 from sentry.models.user import User
 from sentry.services.hybrid_cloud.auth import AuthenticationContext
 from sentry.services.hybrid_cloud.user import APIUser, UserSerializeType, UserService
@@ -54,17 +55,54 @@ class DatabaseBackedUserService(UserService):
                 return list(qs.filter(email__iexact=username))
         return []
 
-    def serialize_users(
+    def query_users(
         self,
         user_ids: Optional[List[int]] = None,
+        is_active: Optional[bool] = None,
+        organization_id: Optional[int] = None,
+        project_ids: Optional[List[int]] = None,
+        team_ids: Optional[List[int]] = None,
+        is_active_memberteam: Optional[bool] = None,
+        emails: Optional[List[str]] = None,
+    ) -> List[User]:
+        query = self.__base_user_query()
+        if user_ids is not None:
+            query = query.filter(id__in=user_ids)
+        if is_active is not None:
+            query = query.filter(is_active=is_active)
+        if organization_id is not None:
+            query = query.filter(sentry_orgmember_set__organization_id=organization_id)
+        if is_active_memberteam is not None:
+            query = query.filter(
+                sentry_orgmember_set__organizationmemberteam__is_active=is_active_memberteam,
+            )
+        if project_ids is not None:
+            query = query.filter(
+                sentry_orgmember_set__organizationmemberteam__team__projectteam__project_id__in=project_ids
+            )
+        if team_ids is not None:
+            query = query.filter(
+                sentry_orgmember_set__organizationmemberteam__team_id__in=team_ids,
+            )
+        if emails is not None:
+            query = query.filter(in_iexact("emails__email", emails))
+
+        return list(query)
+
+    def serialize_users(
+        self,
         *,
         detailed: UserSerializeType = UserSerializeType.SIMPLE,
         auth_context: AuthenticationContext
         | None = None,  # TODO: replace this with the as_user attribute
         as_user: User | APIUser | None = None,
         # Query filters:
+        user_ids: Optional[List[int]] = None,
         is_active: Optional[bool] = None,
         organization_id: Optional[int] = None,
+        project_ids: Optional[List[int]] = None,
+        team_ids: Optional[List[int]] = None,
+        is_active_memberteam: Optional[bool] = None,
         emails: Optional[List[str]] = None,
     ) -> List[Any]:
         if auth_context and not as_user:
@@ -76,18 +114,17 @@ class DatabaseBackedUserService(UserService):
         if detailed == UserSerializeType.SELF_DETAILED:
             serializer = DetailedSelfUserSerializer()
 
-        query = self.__base_user_query()
-        if user_ids is not None:
-            query = query.filter(id__in=user_ids)
-        if is_active is not None:
-            query = query.filter(is_active=is_active)
-        if organization_id is not None:
-            query = query.filter(sentry_orgmember_set__organization_id=organization_id)
-        if emails is not None:
-            query = query.filter(in_iexact("emails__email", emails))
+        users = self.query_users(
+            user_ids=user_ids,
+            is_active=is_active,
+            organization_id=organization_id,
+            project_ids=project_ids,
+            is_active_memberteam=is_active_memberteam,
+            emails=emails,
+        )
 
         return serialize(  # type: ignore
-            list(query),
+            users,
             user=as_user,
             serializer=serializer,
         )
@@ -119,6 +156,19 @@ class DatabaseBackedUserService(UserService):
             for u in self.__base_user_query().filter(actor_id__in=actor_ids)
         ]
 
+    def set_option_value(
+        self,
+        *,
+        user: User | APIUser,
+        key: str,
+        value: Any,
+        project_id: Optional[int] = None,
+        organization_id: Optional[int] = None,
+    ) -> None:
+        UserOption.objects.set_value(  # type: ignore
+            user=user, key=key, value=value, project_id=project_id, organization_id=organization_id
+        )
+
     def close(self) -> None:
         pass
 
@@ -132,5 +182,6 @@ class DatabaseBackedUserService(UserService):
                     JOIN sentry_userrole_users
                       ON sentry_userrole_users.role_id=sentry_userrole.id
                    WHERE user_id=auth_user.id""",
+                "options": "select array_agg(row_to_json(sentry_useroption)) from sentry_useroption where user_id=auth_user.id",
             }
         )

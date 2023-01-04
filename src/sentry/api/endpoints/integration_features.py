@@ -5,7 +5,7 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.api.base import Endpoint, pending_silo_endpoint
+from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.api.bases.integration import PARANOID_GET
 from sentry.api.permissions import SentryPermission
 from sentry.api.serializers import serialize
@@ -19,7 +19,7 @@ class IntegrationFeaturesPermissions(SentryPermission):
     scope_map = {"GET": PARANOID_GET}
 
 
-@pending_silo_endpoint
+@control_silo_endpoint
 class IntegrationFeaturesEndpoint(Endpoint):
     permission_classes = (IntegrationFeaturesPermissions,)
 

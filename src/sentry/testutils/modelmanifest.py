@@ -126,7 +126,8 @@ class ModelManifest:
                 test_id = self.get_or_create_id(self.test_names, test_name)
                 self.connections[test_id] = set()
                 for key in list(self.connections.keys()):
-                    self.connections[key].remove(test_id)
+                    if test_id in self.connections[key]:
+                        self.connections[key].remove(test_id)
 
                 for entry in entries:
                     for model in entry.hits:
