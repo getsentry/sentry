@@ -99,7 +99,7 @@ function TeamSelect({
       index,
       value: team.slug,
       searchKey: team.slug,
-      disabled: !team.idpProvisioned,
+      disabled: team.idpProvisioned,
       label: () => {
         if (!team.idpProvisioned) {
           return <DropdownTeamBadge avatarSize={18} team={team} />;

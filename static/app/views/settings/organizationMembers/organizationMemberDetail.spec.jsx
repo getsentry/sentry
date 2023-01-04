@@ -182,13 +182,18 @@ describe('OrganizationMemberDetail', function () {
       );
     });
 
-    it('cannot join idp-provisioned team', function () {
+    it('cannot join idp-provisioned team', async function () {
       render(<OrganizationMemberDetail params={{memberId: member.id}} />, {
         context: routerContext,
       });
 
       userEvent.click(screen.getByText('Add Team'));
-      expect(screen.queryByText('#idp-team')).not.toBeInTheDocument();
+      userEvent.hover(screen.queryByText('#idp-team'));
+      expect(
+        await screen.findByText(
+          "Membership to this team is managed through your organization's identity provider."
+        )
+      ).toBeInTheDocument();
     });
 
     it('cannot change roles if member is idp-provisioned', function () {
