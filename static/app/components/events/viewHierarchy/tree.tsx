@@ -3,19 +3,15 @@ import styled from '@emotion/styled';
 
 import {IconAdd, IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
-
-import {ViewHierarchyWindow} from '.';
 
 type NodeProps = {
   id: string;
-  type: string;
+  label: string;
   children?: ReactNode;
   collapsible?: boolean;
-  identifier?: string;
 };
 
-function Node({type, identifier, id, children, collapsible}: NodeProps) {
+function Node({label, id, children, collapsible}: NodeProps) {
   const [isExpanded, setIsExpanded] = useState(true);
   return (
     <NodeContents aria-labelledby={`${id}-title`}>
@@ -28,10 +24,7 @@ function Node({type, identifier, id, children, collapsible}: NodeProps) {
                 aria-label={isExpanded ? t('Collapse') : t('Expand')}
                 aria-expanded={isExpanded}
                 isExpanded={isExpanded}
-                onClick={evt => {
-                  evt.preventDefault();
-                  setIsExpanded(!isExpanded);
-                }}
+                onClick={() => setIsExpanded(!isExpanded)}
               >
                 {isExpanded ? (
                   <IconSubtract size="9px" color="white" />
@@ -40,9 +33,7 @@ function Node({type, identifier, id, children, collapsible}: NodeProps) {
                 )}
               </IconWrapper>
             )}
-            <NodeTitle id={`${id}-title`}>
-              {identifier ? `${type} - ${identifier}` : type}
-            </NodeTitle>
+            <NodeTitle id={`${id}-title`}>{label}</NodeTitle>
           </summary>
           {children}
         </details>
@@ -51,43 +42,38 @@ function Node({type, identifier, id, children, collapsible}: NodeProps) {
   );
 }
 
-type TreeProps = {
-  hierarchy: ViewHierarchyWindow;
+type TreeData<T> = T & {id: string; children?: TreeData<T>[]};
+
+type TreeProps<T> = {
+  data: TreeData<T>;
+  getNodeLabel: (data: TreeData<T>) => string;
   isRoot?: boolean;
 };
 
-function Tree({hierarchy, isRoot}: TreeProps) {
-  const {type, identifier, id, children} = hierarchy;
+function Tree<T>({data, isRoot, getNodeLabel}: TreeProps<T>) {
+  const {id, children} = data;
   if (!children?.length) {
-    return <Node type={type} identifier={identifier} id={id} />;
+    return <Node label={getNodeLabel(data)} id={id} />;
   }
 
   const treeNode = (
-    <Node type={type} identifier={identifier} id={id} collapsible>
+    <Node label={getNodeLabel(data)} id={id} collapsible>
       <ChildList>
         {children.map(element => (
-          <Tree key={element.id} hierarchy={element} />
+          <Tree key={element.id} data={element} getNodeLabel={getNodeLabel} />
         ))}
       </ChildList>
     </Node>
   );
 
-  return isRoot ? <ul>{treeNode}</ul> : treeNode;
+  return isRoot ? <RootList>{treeNode}</RootList> : treeNode;
 }
 
-type ViewHierarchyContainerProps = {
-  hierarchy: ViewHierarchyWindow;
-};
+export {Tree};
 
-function ViewHierarchyContainer({hierarchy}: ViewHierarchyContainerProps) {
-  return (
-    <Container>
-      <Tree hierarchy={hierarchy} isRoot />
-    </Container>
-  );
-}
-
-export {ViewHierarchyContainer as ViewHierarchyTree};
+const RootList = styled('ul')`
+  margin-bottom: 0;
+`;
 
 const ChildList = styled('ul')`
   border-left: 1px solid ${p => p.theme.gray200};
@@ -97,20 +83,6 @@ const ChildList = styled('ul')`
 const NodeContents = styled('li')`
   padding-left: 0;
   display: block;
-`;
-
-const Container = styled('div')`
-  max-height: 500px;
-  overflow: auto;
-  background-color: ${p => p.theme.surface100};
-  border: 1px solid ${p => p.theme.gray100};
-  border-radius: ${p => p.theme.borderRadius};
-  padding: ${space(1.5)} 0;
-  display: block;
-
-  ul {
-    margin-bottom: 0;
-  }
 `;
 
 // TODO(nar): Clicking the title will open more information

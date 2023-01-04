@@ -31,7 +31,6 @@ type Props = {
 
 function EventViewHierarchy({projectSlug, viewHierarchies}: Props) {
   const [selectedViewHierarchy] = useState(0);
-  const [selectedViewHierarchyWindow] = useState(0);
   const api = useApi();
   const organization = useOrganization();
 
@@ -88,7 +87,7 @@ function EventViewHierarchy({projectSlug, viewHierarchies}: Props) {
       type="view_hierarchy"
       title={tn('View Hierarchy', 'View Hierarchies', viewHierarchies.length)}
     >
-      <ViewHierarchy viewHierarchy={data} selectedWindow={selectedViewHierarchyWindow} />
+      <ViewHierarchy viewHierarchy={data} />
     </EventDataSection>
   );
 }
