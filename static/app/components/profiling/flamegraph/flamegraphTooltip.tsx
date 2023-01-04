@@ -14,6 +14,7 @@ import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {formatColorForFrame, Rect} from 'sentry/utils/profiling/gl/utils';
 import {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
+import {useMemoWithPrevious} from 'sentry/utils/useMemoWithPrevious';
 
 export function formatWeightToProfileDuration(
   frame: CallTreeNode,
@@ -46,9 +47,16 @@ export interface FlamegraphTooltipProps {
 }
 
 export function FlamegraphTooltip(props: FlamegraphTooltipProps) {
-  const start =
-    props.frame.start + Math.abs(props.flamegraphView.configSpaceTransform[6]);
-  const end = props.frame.end + Math.abs(props.flamegraphView.configSpaceTransform[6]);
+  const frameInConfigSpace = useMemoWithPrevious<vec2>(
+    vec => {
+      return vec2.transformMat3(
+        vec || vec2.create(),
+        vec2.fromValues(props.frame.start, props.frame.end),
+        props.flamegraphView.configSpaceTransform
+      );
+    },
+    [props.flamegraphView, props.frame]
+  );
 
   return (
     <BoundTooltip
@@ -76,8 +84,9 @@ export function FlamegraphTooltip(props: FlamegraphTooltipProps) {
         )}
       </FlamegraphTooltipTimelineInfo>
       <FlamegraphTooltipTimelineInfo>
-        {props.flamegraphRenderer.flamegraph.timelineFormatter(start)} {' \u2014 '}
-        {props.flamegraphRenderer.flamegraph.timelineFormatter(end)}
+        {props.flamegraphRenderer.flamegraph.timelineFormatter(frameInConfigSpace[0])}{' '}
+        {' \u2014 '}
+        {props.flamegraphRenderer.flamegraph.timelineFormatter(frameInConfigSpace[1])}
         {props.frame.frame.inline ? (
           <FlamegraphInlineIndicator>
             <IconLightning width={10} />

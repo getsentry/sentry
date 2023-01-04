@@ -50,7 +50,7 @@ export class CanvasView<T extends {configSpace: Rect}> {
           0,
           options.configSpaceTransform.height || 1,
           0,
-          -options.configSpaceTransform.x || 0,
+          options.configSpaceTransform.x || 0,
           options.configSpaceTransform.y || 0,
           1
         )
@@ -149,9 +149,10 @@ export class CanvasView<T extends {configSpace: Rect}> {
   }
 
   fromTransformedConfigView(space: Rect): mat3 {
-    const fromConfigView = transformMatrixBetweenRect(
-      this.configView.transformRect(this.configSpaceTransform),
-      space
+    const fromConfigView = mat3.multiply(
+      mat3.create(),
+      transformMatrixBetweenRect(this.configView, space),
+      this.configSpaceTransform
     );
 
     if (this.inverted) {
@@ -162,9 +163,10 @@ export class CanvasView<T extends {configSpace: Rect}> {
   }
 
   fromTransformedConfigSpace(space: Rect): mat3 {
-    const fromConfigView = transformMatrixBetweenRect(
-      this.configSpace.transformRect(this.configSpaceTransform),
-      space
+    const fromConfigView = mat3.multiply(
+      mat3.create(),
+      transformMatrixBetweenRect(this.configSpace, space),
+      this.configSpaceTransform
     );
 
     if (this.inverted) {
@@ -200,7 +202,7 @@ export class CanvasView<T extends {configSpace: Rect}> {
 
     const finalMatrix = mat3.multiply(
       mat3.create(),
-      this.configSpaceTransform,
+      mat3.invert(mat3.create(), this.configSpaceTransform),
       this.toConfigSpace(canvas.physicalSpace)
     );
 
@@ -239,7 +241,7 @@ export class CanvasView<T extends {configSpace: Rect}> {
 
     const finalMatrix = mat3.multiply(
       mat3.create(),
-      this.configSpaceTransform,
+      mat3.invert(mat3.create(), this.configSpaceTransform),
       this.toConfigView(canvas.physicalSpace)
     );
 
@@ -250,5 +252,13 @@ export class CanvasView<T extends {configSpace: Rect}> {
     );
 
     return configViewCursor;
+  }
+
+  /**
+   * Applies the inverse of the config space transform to the given config space rect
+   * @returns Rect
+   */
+  toOriginConfigView(space: Rect): Rect {
+    return space.transformRect(mat3.invert(mat3.create(), this.configSpaceTransform));
   }
 }

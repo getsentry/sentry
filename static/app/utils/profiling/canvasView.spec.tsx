@@ -229,7 +229,7 @@ describe('CanvasView', () => {
       expect(
         mat3.exactEquals(
           view.configSpaceTransform,
-          mat3.fromValues(1, 0, 0, 0, 1, 0, -500, 0, 1)
+          mat3.fromValues(1, 0, 0, 0, 1, 0, 500, 0, 1)
         )
       ).toBe(true);
     });

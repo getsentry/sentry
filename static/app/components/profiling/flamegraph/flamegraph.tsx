@@ -182,7 +182,7 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
           depthOffset: flamegraphTheme.SIZES.FLAMEGRAPH_DEPTH_OFFSET,
           configSpaceTransform:
             xAxis === 'transaction'
-              ? new Rect(flamegraph.profile.startedAt * 1e3, 0, 0, 0)
+              ? new Rect(flamegraph.profile.startedAt, 0, 0, 0)
               : Rect.Empty(),
         },
       });
