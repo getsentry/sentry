@@ -475,21 +475,7 @@ class FlamegraphRenderer {
     this.gl.uniformMatrix3fv(this.uniforms.u_projection, false, projectionMatrix);
 
     // Model to projection
-    this.gl.uniformMatrix3fv(
-      this.uniforms.u_model,
-      false,
-      mat3.fromValues(
-        configViewToPhysicalSpace[0],
-        configViewToPhysicalSpace[1],
-        configViewToPhysicalSpace[2],
-        configViewToPhysicalSpace[3],
-        configViewToPhysicalSpace[4],
-        configViewToPhysicalSpace[5],
-        configViewToPhysicalSpace[6],
-        configViewToPhysicalSpace[7],
-        configViewToPhysicalSpace[8]
-      )
-    );
+    this.gl.uniformMatrix3fv(this.uniforms.u_model, false, configViewToPhysicalSpace);
 
     // Check if we should draw border
     this.gl.uniform1i(this.uniforms.u_draw_border, this.options.draw_border ? 1 : 0);
