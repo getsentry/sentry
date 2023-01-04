@@ -366,7 +366,7 @@ class TestRecordingsConsumerEndToEndDirect(TransactionTestCase):
     def test_basic_flow_compressed(self, mock_record, mock_onboarding_task):
         with override_settings(SENTRY_REPLAYS_DIRECT_FILESTORE_ORGS=[self.organization.id]):
             processing_strategy = self.processing_factory().create_with_partitions(
-                lambda x: None, None
+                lambda x, force=False: None, None
             )
             segment_id = 0
             consumer_messages = [
@@ -447,7 +447,7 @@ class TestRecordingsConsumerEndToEndDirect(TransactionTestCase):
         with override_settings(SENTRY_REPLAYS_DIRECT_FILESTORE_ORGS=[self.organization.id]):
 
             processing_strategy = self.processing_factory().create_with_partitions(
-                lambda x: None, None
+                lambda x, force=False: None, None
             )
             segment_id = 0
             consumer_messages = [
@@ -514,7 +514,7 @@ class TestRecordingsConsumerEndToEndDirect(TransactionTestCase):
         with override_settings(SENTRY_REPLAYS_DIRECT_FILESTORE_ORGS=[self.organization.id]):
 
             processing_strategy = self.processing_factory().create_with_partitions(
-                lambda x: None, None
+                lambda x, force=False: None, None
             )
             segment_id = 0
             consumer_messages = [
@@ -569,7 +569,7 @@ class TestRecordingsConsumerEndToEndDirect(TransactionTestCase):
     def test_nonchunked_basic_flow_compressed(self, mock_record, mock_onboarding_task):
         with override_settings(SENTRY_REPLAYS_DIRECT_FILESTORE_ORGS=[self.organization.id]):
             processing_strategy = self.processing_factory().create_with_partitions(
-                lambda x: None, None
+                lambda x, force=False: None, None
             )
             segment_id = 0
 
@@ -630,7 +630,7 @@ class TestRecordingsConsumerEndToEndDirect(TransactionTestCase):
     def test_nonchunked_basic_flow(self, mock_record, mock_onboarding_task):
         with override_settings(SENTRY_REPLAYS_DIRECT_FILESTORE_ORGS=[self.organization.id]):
             processing_strategy = self.processing_factory().create_with_partitions(
-                lambda x: None, None
+                lambda x, force=False: None, None
             )
             segment_id = 0
 
