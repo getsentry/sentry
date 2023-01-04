@@ -194,7 +194,6 @@ class ResolveActions extends Component<Props> {
         trigger={triggerProps => (
           <DropdownTrigger
             {...triggerProps}
-            type="button"
             size={size}
             priority={priority}
             aria-label={t('More resolve options')}
@@ -274,7 +273,6 @@ class ResolveActions extends Component<Props> {
       <Tooltip disabled={!projectFetchError} title={t('Error fetching project')}>
         <ButtonBar merged>
           <ResolveButton
-            type="button"
             priority={priority}
             size={size}
             title={t(

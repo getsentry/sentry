@@ -206,7 +206,6 @@ export function TraceEventDataSection({
                   >
                     <ButtonBar active={state.fullStackTrace ? 'full' : 'relevant'} merged>
                       <Button
-                        type="button"
                         size="xs"
                         barId="relevant"
                         onClick={() =>
@@ -220,7 +219,6 @@ export function TraceEventDataSection({
                         {t('Most Relevant')}
                       </Button>
                       <Button
-                        type="button"
                         size="xs"
                         barId="full"
                         priority={!hasAppOnlyFrames ? 'primary' : undefined}
