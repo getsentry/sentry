@@ -476,11 +476,11 @@ class PerformanceDetector(ABC):
 
     @classmethod
     def is_creation_allowed_for_organization(cls, organization: Organization) -> bool:
-        return False  # Creation is off by default. Instead, it should auto-generate the feature flag name, and check its value
+        return False  # Creation is off by default. Ideally, it should auto-generate the feature flag name, and check its value
 
     @classmethod
     def is_creation_allowed_for_project(cls, project: Project) -> bool:
-        return False  # Creation is off by default. Instead, it should auto-generate the project option name, and check its value
+        return False  # Creation is off by default. Ideally, it should auto-generate the project option name, and check its value
 
     @classmethod
     def is_event_eligible(cls, event):
@@ -969,12 +969,12 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
             self.potential_parents[root_span.get("span_id")] = root_span
 
     @classmethod
-    def is_creation_allowed_for_organization(cls, _organization: Optional[Organization]):
-        return True  # Fully rolled out
+    def is_creation_allowed_for_organization(cls, organization: Optional[Organization]):
+        return True  # This detector is fully rolled out
 
     @classmethod
-    def is_creation_allowed_for_project(cls, _project: Optional[Project]):
-        return True  # This should probably use the `n_plus_one_db.problem-creation` option
+    def is_creation_allowed_for_project(cls, project: Optional[Project]):
+        return True  # This should probably use the `n_plus_one_db.problem-creation` option, which is currently not in use
 
     def visit_span(self, span: Span) -> None:
         span_id = span.get("span_id", None)
