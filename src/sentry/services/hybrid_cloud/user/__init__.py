@@ -155,7 +155,17 @@ class UserService(InterfaceWithLifecycle):
         pass
 
     @abstractmethod
-    def get_many(self, user_ids: Iterable[int]) -> List[APIUser]:
+    def get_many(
+        self,
+        *,
+        user_ids: Optional[List[int]] = None,
+        is_active: Optional[bool] = None,
+        organization_id: Optional[int] = None,
+        project_ids: Optional[List[int]] = None,
+        team_ids: Optional[List[int]] = None,
+        is_active_memberteam: Optional[bool] = None,
+        emails: Optional[List[str]] = None,
+    ) -> List[APIUser]:
         """
         This method returns User objects given an iterable of IDs
         :param user_ids:
@@ -187,7 +197,7 @@ class UserService(InterfaceWithLifecycle):
         A user ID to fetch
         :return:
         """
-        users = self.get_many([user_id])
+        users = self.get_many(user_ids=[user_id])
         if len(users) > 0:
             return users[0]
         else:

@@ -13,6 +13,7 @@ from sentry.models import (
     actor_type_to_string,
 )
 from sentry.ownership.grammar import parse_code_owners
+from sentry.services.hybrid_cloud.user import user_service
 from sentry.types.integrations import ExternalProviders
 
 if TYPE_CHECKING:
@@ -27,7 +28,7 @@ def validate_association(
     raw_items_set = {str(item) for item in raw_items}
     if type == "emails":
         # associations are UserEmail objects
-        sentry_items = {item.email for item in associations}
+        sentry_items = {email for email in associations}
     else:
         # associations are ExternalActor objects
         sentry_items = {item.external_name for item in associations}
@@ -41,9 +42,10 @@ def validate_codeowners_associations(
     team_names, usernames, emails = parse_code_owners(codeowners)
 
     # Check if there exists Sentry users with the emails listed in CODEOWNERS
-    user_emails = UserEmail.objects.filter(
-        email__in=emails,
-        user__sentry_orgmember_set__organization=project.organization,
+    users_w_emails = (
+        user_service.get_many(organization_id=project.organization_id, emails=emails)
+        if len(emails) > 0
+        else []
     )
 
     # Check if the usernames/teamnames have an association
@@ -83,7 +85,8 @@ def validate_codeowners_associations(
             else:
                 teams_without_access.append(f"#{team.slug}")
 
-    emails_dict = {item.email: item.email for item in user_emails}
+    user_emails = [email for u in users_w_emails for email in u.emails]
+    emails_dict = {email: email for email in user_emails}
     associations = {**users_dict, **teams_dict, **emails_dict}
 
     errors = {

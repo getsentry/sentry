@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Iterable, List, Optional
+from typing import Any, List, Optional
 
 from django.db.models import QuerySet
 
@@ -119,6 +119,7 @@ class DatabaseBackedUserService(UserService):
             is_active=is_active,
             organization_id=organization_id,
             project_ids=project_ids,
+            team_ids=team_ids,
             is_active_memberteam=is_active_memberteam,
             emails=emails,
         )
@@ -139,16 +140,35 @@ class DatabaseBackedUserService(UserService):
             )
         ]
 
-    def get_many(self, user_ids: Iterable[int]) -> List[APIUser]:
-        query = self.__base_user_query().filter(id__in=user_ids)
-        return [UserService.serialize_user(u) for u in query]
+    def get_many(
+        self,
+        *,
+        user_ids: Optional[List[int]] = None,
+        is_active: Optional[bool] = None,
+        organization_id: Optional[int] = None,
+        project_ids: Optional[List[int]] = None,
+        team_ids: Optional[List[int]] = None,
+        is_active_memberteam: Optional[bool] = None,
+        emails: Optional[List[str]] = None,
+    ) -> List[APIUser]:
+
+        users = self.query_users(
+            user_ids=user_ids,
+            is_active=is_active,
+            organization_id=organization_id,
+            project_ids=project_ids,
+            team_ids=team_ids,
+            is_active_memberteam=is_active_memberteam,
+            emails=emails,
+        )
+        return [UserService.serialize_user(u) for u in users]
 
     def get_from_project(self, project_id: int) -> List[APIUser]:
         try:
             project = Project.objects.get(id=project_id)
         except Project.DoesNotExist:
             return []
-        return self.get_many(project.member_set.values_list("user_id", flat=True))
+        return self.get_many(user_ids=project.member_set.values_list("user_id", flat=True))
 
     def get_by_actor_ids(self, *, actor_ids: List[int]) -> List[APIUser]:
         return [

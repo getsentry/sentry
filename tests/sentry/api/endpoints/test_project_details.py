@@ -29,7 +29,7 @@ from sentry.models import (
 )
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import Feature, faux
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 
@@ -105,7 +105,7 @@ def first_symbol_source_id(sources_json):
     return sources[0]["id"]
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class ProjectDetailsTest(APITestCase):
     endpoint = "sentry-api-0-project-details"
 
@@ -179,18 +179,19 @@ class ProjectDetailsTest(APITestCase):
         response = self.get_success_response(
             project.organization.slug, project.slug, status_code=302
         )
-        assert (
-            AuditLogEntry.objects.get(
-                organization=project.organization, event=audit_log.get_event_id("PROJECT_EDIT")
-            ).data.get("old_slug")
-            == project.slug
-        )
-        assert (
-            AuditLogEntry.objects.get(
-                organization=project.organization, event=audit_log.get_event_id("PROJECT_EDIT")
-            ).data.get("new_slug")
-            == "foobar"
-        )
+        with exempt_from_silo_limits():
+            assert (
+                AuditLogEntry.objects.get(
+                    organization=project.organization, event=audit_log.get_event_id("PROJECT_EDIT")
+                ).data.get("old_slug")
+                == project.slug
+            )
+            assert (
+                AuditLogEntry.objects.get(
+                    organization=project.organization, event=audit_log.get_event_id("PROJECT_EDIT")
+                ).data.get("new_slug")
+                == "foobar"
+            )
         assert response.data["slug"] == "foobar"
         assert (
             response.data["detail"]["extra"]["url"]
@@ -215,7 +216,7 @@ class ProjectDetailsTest(APITestCase):
         self.get_error_response(other_org.slug, "old_slug", status_code=403)
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class ProjectUpdateTestTokenAuthenticated(APITestCase):
     endpoint = "sentry-api-0-project-details"
     method = "put"
@@ -233,7 +234,8 @@ class ProjectUpdateTestTokenAuthenticated(APITestCase):
             role="member",
         )
 
-        token = ApiToken.objects.create(user=self.user, scope_list=["project:read"])
+        with exempt_from_silo_limits():
+            token = ApiToken.objects.create(user=self.user, scope_list=["project:read"])
         authorization = f"Bearer {token.token}"
 
         url = reverse(
@@ -254,7 +256,8 @@ class ProjectUpdateTestTokenAuthenticated(APITestCase):
             role="member",
         )
 
-        token = ApiToken.objects.create(user=self.user, scope_list=["project:write"])
+        with exempt_from_silo_limits():
+            token = ApiToken.objects.create(user=self.user, scope_list=["project:write"])
         authorization = f"Bearer {token.token}"
 
         data = {"platform": "rust"}
@@ -277,7 +280,8 @@ class ProjectUpdateTestTokenAuthenticated(APITestCase):
             role="admin",
         )
 
-        token = ApiToken.objects.create(user=self.user, scope_list=["project:write"])
+        with exempt_from_silo_limits():
+            token = ApiToken.objects.create(user=self.user, scope_list=["project:write"])
         authorization = f"Bearer {token.token}"
 
         data = {"platform": "rust"}
@@ -301,7 +305,8 @@ class ProjectUpdateTestTokenAuthenticated(APITestCase):
         )
 
         # even though the user has the 'admin' role, they've issued a token with only a project:read scope
-        token = ApiToken.objects.create(user=self.user, scope_list=["project:read"])
+        with exempt_from_silo_limits():
+            token = ApiToken.objects.create(user=self.user, scope_list=["project:read"])
         authorization = f"Bearer {token.token}"
 
         data = {"platform": "rust"}
@@ -324,7 +329,8 @@ class ProjectUpdateTestTokenAuthenticated(APITestCase):
             role="member",
         )
 
-        token = ApiToken.objects.create(user=self.user, scope_list=[""])
+        with exempt_from_silo_limits():
+            token = ApiToken.objects.create(user=self.user, scope_list=[""])
         authorization = f"Bearer {token.token}"
 
         data = {"platform": "rust"}
@@ -942,7 +948,7 @@ class ProjectUpdateTest(APITestCase):
             assert project.get_option("sentry:symbol_sources", json.dumps([source1]))
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class CopyProjectSettingsTest(APITestCase):
     endpoint = "sentry-api-0-project-details"
     method = "put"
@@ -1137,7 +1143,7 @@ class CopyProjectSettingsTest(APITestCase):
         self.assert_other_project_settings_not_changed()
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class ProjectDeleteTest(APITestCase):
     endpoint = "sentry-api-0-project-details"
     method = "delete"
@@ -1172,9 +1178,10 @@ class ProjectDeleteTest(APITestCase):
         with self.settings(SENTRY_PROJECT=project.id):
             self.get_error_response(project.organization.slug, project.slug, status_code=403)
 
-        assert not ScheduledDeletion.objects.filter(
-            model_name="Project", object_id=project.id
-        ).exists()
+        with exempt_from_silo_limits():
+            assert not ScheduledDeletion.objects.filter(
+                model_name="Project", object_id=project.id
+            ).exists()
 
 
 class TestProjectDetailsDynamicSamplingBase(APITestCase, ABC):
@@ -1202,7 +1209,8 @@ class TestProjectDetailsDynamicSamplingRules(TestProjectDetailsDynamicSamplingBa
             },
         )
         self.login_as(user=self.user, superuser=True)
-        token = ApiToken.objects.create(user=self.user, scope_list=["project:write"])
+        with exempt_from_silo_limits():
+            token = ApiToken.objects.create(user=self.user, scope_list=["project:write"])
         self.authorization = f"Bearer {token.token}"
 
     @mock.patch("sentry.dynamic_sampling.rules_generator.quotas.get_blended_sample_rate")
@@ -1268,7 +1276,7 @@ class TestProjectDetailsDynamicSamplingRules(TestProjectDetailsDynamicSamplingBa
             assert "dynamicSamplingRules" not in response.data
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingBase):
     endpoint = "sentry-api-0-project-details"
 
@@ -1282,7 +1290,8 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
             },
         )
         self.login_as(user=self.user)
-        token = ApiToken.objects.create(user=self.user, scope_list=["project:write"])
+        with exempt_from_silo_limits():
+            token = ApiToken.objects.create(user=self.user, scope_list=["project:write"])
         self.authorization = f"Bearer {token.token}"
 
     def test_get_dynamic_sampling_default_biases(self):
@@ -1367,7 +1376,8 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
         )
         self.login_as(self.user)
 
-        token = ApiToken.objects.create(user=self.user, scope_list=["project:write"])
+        with exempt_from_silo_limits():
+            token = ApiToken.objects.create(user=self.user, scope_list=["project:write"])
         authorization = f"Bearer {token.token}"
 
         url = reverse(
@@ -1389,11 +1399,11 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
                     ]
                 },
             )
-
-            assert AuditLogEntry.objects.filter(
-                organization=self.project.organization,
-                event=audit_log.get_event_id("SAMPLING_BIAS_ENABLED"),
-            ).exists()
+            with exempt_from_silo_limits():
+                assert AuditLogEntry.objects.filter(
+                    organization=self.project.organization,
+                    event=audit_log.get_event_id("SAMPLING_BIAS_ENABLED"),
+                ).exists()
 
     def test_dynamic_sampling_bias_deactivation(self):
         """
@@ -1410,7 +1420,8 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
         )
         self.login_as(self.user)
 
-        token = ApiToken.objects.create(user=self.user, scope_list=["project:write"])
+        with exempt_from_silo_limits():
+            token = ApiToken.objects.create(user=self.user, scope_list=["project:write"])
         authorization = f"Bearer {token.token}"
 
         url = reverse(
@@ -1433,10 +1444,11 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
                 },
             )
 
-            assert AuditLogEntry.objects.filter(
-                organization=self.project.organization,
-                event=audit_log.get_event_id("SAMPLING_BIAS_DISABLED"),
-            ).exists()
+            with exempt_from_silo_limits():
+                assert AuditLogEntry.objects.filter(
+                    organization=self.project.organization,
+                    event=audit_log.get_event_id("SAMPLING_BIAS_DISABLED"),
+                ).exists()
 
     def test_put_dynamic_sampling_after_migrating_to_new_plan_default_biases_with_missing_flags(
         self,
