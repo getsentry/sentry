@@ -74,7 +74,7 @@ function CustomCommitsResolutionModal({
         />
       </Body>
       <Footer>
-        <Button type="button" css={{marginRight: space(1.5)}} onClick={closeModal}>
+        <Button css={{marginRight: space(1.5)}} onClick={closeModal}>
           {t('Cancel')}
         </Button>
         <Button type="submit" priority="primary">

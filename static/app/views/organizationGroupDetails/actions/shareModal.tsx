@@ -152,7 +152,6 @@ function ShareIssueModal({
       <Footer>
         {!loading && isShared && shareUrl ? (
           <Button
-            type="button"
             priority="primary"
             onClick={() => {
               navigator.clipboard.writeText(shareUrl);
@@ -163,7 +162,6 @@ function ShareIssueModal({
           </Button>
         ) : (
           <Button
-            type="button"
             priority="primary"
             onClick={() => {
               closeModal();

@@ -533,7 +533,6 @@ function RuleNode({
             <Button
               size="sm"
               icon={<IconSettings size="xs" />}
-              type="button"
               onClick={() =>
                 openModal(deps => (
                   <TicketRuleModal
@@ -556,7 +555,6 @@ function RuleNode({
             <Button
               size="sm"
               icon={<IconSettings size="xs" />}
-              type="button"
               disabled={Boolean(data.disabled) || disabled}
               onClick={() => {
                 openModal(
@@ -582,7 +580,6 @@ function RuleNode({
           disabled={disabled}
           aria-label={t('Delete Node')}
           onClick={handleDelete}
-          type="button"
           size="sm"
           icon={<IconDelete />}
         />

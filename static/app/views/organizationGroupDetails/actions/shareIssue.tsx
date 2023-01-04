@@ -39,7 +39,6 @@ function ShareIssue({
   return (
     <Tooltip title={disabledReason} disabled={!disabled}>
       <Button
-        type="button"
         size="xs"
         onClick={handleOpen}
         disabled={disabled}

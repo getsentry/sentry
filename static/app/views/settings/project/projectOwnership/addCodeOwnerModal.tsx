@@ -226,7 +226,7 @@ class AddCodeOwnerModal extends AsyncComponent<Props, State> {
                   {t('Install a GitHub or GitLab integration to use this feature.')}
                 </div>
                 <Container style={{paddingTop: space(2)}}>
-                  <Button type="button" priority="primary" size="sm" to={baseUrl}>
+                  <Button priority="primary" size="sm" to={baseUrl}>
                     Setup Integration
                   </Button>
                 </Container>
@@ -242,7 +242,6 @@ class AddCodeOwnerModal extends AsyncComponent<Props, State> {
                   {integrations.map(integration => (
                     <Button
                       key={integration.id}
-                      type="button"
                       to={`${baseUrl}/${integration.provider.key}/${integration.id}/?tab=codeMappings&referrer=add-codeowners`}
                     >
                       {getIntegrationIcon(integration.provider.key)}

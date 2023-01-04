@@ -166,7 +166,6 @@ export class RenderField extends Component<RenderProps, State> {
               onClick={() => handleDelete(index)}
               icon={<IconDelete color="gray300" />}
               size="sm"
-              type="button"
               aria-label={t('Delete')}
             />
           </DeleteButtonWrapper>
@@ -266,7 +265,6 @@ export class RenderField extends Component<RenderProps, State> {
           />
           <AddProjectWrapper>
             <Button
-              type="button"
               disabled={!selectedSentryProjectId || !selectedMappedValue}
               size="sm"
               priority="primary"
@@ -286,7 +284,6 @@ export class RenderField extends Component<RenderProps, State> {
             <NextButtonWrapper>
               {nextDescription ?? ''}
               <Button
-                type="button"
                 size="sm"
                 priority="primary"
                 icon={<IconOpen size="xs" />}

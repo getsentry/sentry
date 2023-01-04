@@ -170,7 +170,6 @@ class Form<
             </Button>
             {this.props.onCancel && (
               <Button
-                type="button"
                 disabled={isSaving}
                 onClick={this.props.onCancel}
                 style={{marginLeft: 5}}

@@ -44,7 +44,7 @@ const U2fEnrolledDetails = props => {
             />
           ))}
         <AddAnotherPanelItem>
-          <Button type="button" to="/settings/account/security/mfa/u2f/enroll/" size="sm">
+          <Button to="/settings/account/security/mfa/u2f/enroll/" size="sm">
             {t('Add Another Device')}
           </Button>
         </AddAnotherPanelItem>

@@ -972,7 +972,6 @@ function WidgetViewerModal(props: Props) {
                       <ButtonBar gap={1}>
                         {onEdit && widget.id && (
                           <Button
-                            type="button"
                             onClick={() => {
                               closeModal();
                               onEdit();
@@ -1053,7 +1052,6 @@ function OpenButton({
     <Button
       to={path}
       priority="primary"
-      type="button"
       onClick={() => {
         trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.open_source', {
           organization,
