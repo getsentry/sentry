@@ -182,7 +182,6 @@ function FlamegraphZoomView({
     const drawText = () => {
       textRenderer.draw(
         flamegraphView.configView.transformRect(flamegraphView.configSpaceTransform),
-        // flamegraphView.configView,
         flamegraphView.fromTransformedConfigView(flamegraphCanvas.physicalSpace),
         flamegraphSearch.results
       );

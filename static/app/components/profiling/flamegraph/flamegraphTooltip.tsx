@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 import {vec2} from 'gl-matrix';
 
@@ -14,7 +14,6 @@ import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {formatColorForFrame, Rect} from 'sentry/utils/profiling/gl/utils';
 import {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
-import {useMemoWithPrevious} from 'sentry/utils/useMemoWithPrevious';
 
 export function formatWeightToProfileDuration(
   frame: CallTreeNode,
@@ -47,16 +46,14 @@ export interface FlamegraphTooltipProps {
 }
 
 export function FlamegraphTooltip(props: FlamegraphTooltipProps) {
-  const frameInConfigSpace = useMemoWithPrevious<vec2>(
-    vec => {
-      return vec2.transformMat3(
-        vec || vec2.create(),
-        vec2.fromValues(props.frame.start, props.frame.end),
-        props.flamegraphView.configSpaceTransform
-      );
-    },
-    [props.flamegraphView, props.frame]
-  );
+  const frameInConfigSpace = useMemo<Rect>(() => {
+    return new Rect(
+      props.frame.start,
+      props.frame.end,
+      props.frame.end - props.frame.start,
+      1
+    ).transformRect(props.flamegraphView.configSpaceTransform);
+  }, [props.flamegraphView, props.frame]);
 
   return (
     <BoundTooltip
@@ -84,9 +81,9 @@ export function FlamegraphTooltip(props: FlamegraphTooltipProps) {
         )}
       </FlamegraphTooltipTimelineInfo>
       <FlamegraphTooltipTimelineInfo>
-        {props.flamegraphRenderer.flamegraph.timelineFormatter(frameInConfigSpace[0])}{' '}
+        {props.flamegraphRenderer.flamegraph.timelineFormatter(frameInConfigSpace.left)}{' '}
         {' \u2014 '}
-        {props.flamegraphRenderer.flamegraph.timelineFormatter(frameInConfigSpace[1])}
+        {props.flamegraphRenderer.flamegraph.timelineFormatter(frameInConfigSpace.right)}
         {props.frame.frame.inline ? (
           <FlamegraphInlineIndicator>
             <IconLightning width={10} />
