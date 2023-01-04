@@ -50,9 +50,11 @@ const Checkbox = ({checked = false, size = 'sm', ...props}: Props) => {
           <IconSubtract size={checkboxSizeMap[size].icon} />
         )}
       </StyledCheckbox>
-      <InteractionStateLayer
-        higherOpacity={checked === true || checked === 'indeterminate'}
-      />
+      {!props.disabled && (
+        <InteractionStateLayer
+          higherOpacity={checked === true || checked === 'indeterminate'}
+        />
+      )}
     </Wrapper>
   );
 };

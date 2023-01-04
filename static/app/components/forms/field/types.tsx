@@ -1,5 +1,5 @@
 /**
- * Props the control UI elements that are part of a Form Group
+ * Props that control UI elements that are part of a Form Group
  */
 export interface FieldGroupProps {
   /**
