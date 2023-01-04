@@ -734,3 +734,103 @@ export function getCenterScaleMatrix(
   mat3.translate(centerScaleMatrix, centerScaleMatrix, invertedConfigCenter);
   return centerScaleMatrix;
 }
+
+export function getConfigViewTranslationBetweenVectors(
+  offsetX: number,
+  offsetY: number,
+  start: vec2,
+  view: CanvasView<any>,
+  canvas: FlamegraphCanvas,
+  invert?: boolean
+): mat3 | null {
+  const physicalMousePos = getPhysicalSpacePositionFromOffset(offsetX, offsetY);
+  const physicalDelta = invert
+    ? vec2.subtract(vec2.create(), physicalMousePos, start)
+    : vec2.subtract(vec2.create(), start, physicalMousePos);
+
+  if (physicalDelta[0] === 0 && physicalDelta[1] === 0) {
+    return null;
+  }
+
+  const physicalToConfig = mat3.invert(
+    mat3.create(),
+    view.fromConfigView(canvas.physicalSpace)
+  );
+  const [m00, m01, m02, m10, m11, m12] = physicalToConfig;
+
+  const configDelta = vec2.transformMat3(vec2.create(), physicalDelta, [
+    m00,
+    m01,
+    m02,
+    m10,
+    m11,
+    m12,
+    0,
+    0,
+    0,
+  ]);
+
+  return mat3.fromTranslation(mat3.create(), configDelta);
+}
+
+export function getConfigSpaceTranslationBetweenVectors(
+  offsetX: number,
+  offsetY: number,
+  start: vec2,
+  view: CanvasView<any>,
+  canvas: FlamegraphCanvas,
+  invert?: boolean
+): mat3 | null {
+  const physicalMousePos = getPhysicalSpacePositionFromOffset(offsetX, offsetY);
+  const physicalDelta = invert
+    ? vec2.subtract(vec2.create(), physicalMousePos, start)
+    : vec2.subtract(vec2.create(), start, physicalMousePos);
+
+  if (physicalDelta[0] === 0 && physicalDelta[1] === 0) {
+    return null;
+  }
+
+  const physicalToConfig = mat3.invert(
+    mat3.create(),
+    view.fromConfigSpace(canvas.physicalSpace)
+  );
+  const [m00, m01, m02, m10, m11, m12] = physicalToConfig;
+  const configDelta = vec2.transformMat3(vec2.create(), physicalDelta, [
+    m00,
+    m01,
+    m02,
+    m10,
+    m11,
+    m12,
+    0,
+    0,
+    0,
+  ]);
+
+  return mat3.fromTranslation(mat3.create(), configDelta);
+}
+
+export function getMinimapCanvasCursor(
+  configView: Rect | undefined,
+  configSpaceCursor: vec2 | null,
+  borderWidth: number
+) {
+  if (!configView || !configSpaceCursor) {
+    return 'col-resize';
+  }
+
+  const nearestEdge = Math.min(
+    Math.abs(configView.left - configSpaceCursor[0]),
+    Math.abs(configView.right - configSpaceCursor[0])
+  );
+  const isWithinBorderSize = nearestEdge <= borderWidth;
+  if (isWithinBorderSize) {
+    return 'ew-resize';
+  }
+
+  if (configView.contains(configSpaceCursor)) {
+    return 'grab';
+  }
+
+  return 'col-resize';
+}
