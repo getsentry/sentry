@@ -885,9 +885,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
                         confirmText={t('Delete Rule')}
                         onConfirm={this.handleDeleteRule}
                       >
-                        <Button type="button" priority="danger">
-                          {t('Delete Rule')}
-                        </Button>
+                        <Button priority="danger">{t('Delete Rule')}</Button>
                       </Confirm>
                     ) : null
                   }

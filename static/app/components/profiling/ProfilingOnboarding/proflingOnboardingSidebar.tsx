@@ -211,6 +211,26 @@ function OnboardingContent({
     return <LoadingIndicator />;
   }
 
+  if (!currentPlatform) {
+    return (
+      <Fragment>
+        <div>
+          {t(
+            `Your project's platform has not been set. Please select your project's platform before proceeding.`
+          )}
+        </div>
+        <div>
+          <Button
+            size="sm"
+            to={`/settings/${organization.slug}/projects/${currentProject.slug}/`}
+          >
+            {t('Go to Project Settings')}
+          </Button>
+        </div>
+      </Fragment>
+    );
+  }
+
   if (!isSupported) {
     // this content will only be presented if the org only has one project and its not supported
     // in these scenarios we will auto-select the unsupported project and render this message
@@ -231,7 +251,7 @@ function OnboardingContent({
     );
   }
 
-  if (!currentPlatform || !docKeysMap || !hasOnboardingContents) {
+  if (!docKeysMap || !hasOnboardingContents) {
     return (
       <Fragment>
         <div>

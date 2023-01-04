@@ -27,6 +27,7 @@ from sentry.digests.notifications import Notification, build_digest
 from sentry.digests.utils import get_digest_metadata
 from sentry.event_manager import EventManager, get_event_type
 from sentry.http import get_server_hostname
+from sentry.issues.occurrence_consumer import process_event_and_issue_occurrence
 from sentry.mail.notifications import get_builder_args
 from sentry.models import (
     Activity,
@@ -45,6 +46,8 @@ from sentry.notifications.notifications.digest import DigestNotification
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.notifications.utils import get_group_settings_link, get_interface_list, get_rules
 from sentry.testutils.helpers import override_options
+from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
 from sentry.types.issues import GROUP_TYPE_TO_TEXT
 from sentry.utils import json, loremipsum
 from sentry.utils.dates import to_datetime, to_timestamp
@@ -173,7 +176,6 @@ def make_error_event(request, project, platform):
         ("level", "error"),
         ("device", "Other"),
     ]
-
     event_manager = EventManager(data)
     event_manager.normalize()
     data = event_manager.get_data()
@@ -206,6 +208,19 @@ def make_performance_event(project):
 
     perf_event = perf_event.for_group(perf_event.groups[0])
     return perf_event
+
+
+def make_generic_event(project):
+    occurrence, group_info = process_event_and_issue_occurrence(
+        TEST_ISSUE_OCCURRENCE.to_dict(),
+        {
+            "event_id": uuid.uuid4().hex,
+            "project_id": project.id,
+            "timestamp": before_now(minutes=1).isoformat(),
+        },
+    )
+    generic_group = group_info.group
+    return generic_group.get_latest_event()
 
 
 def get_shared_context(rule, org, project, group, event):
@@ -490,7 +505,6 @@ def digest(request):
             event = eventstore.create_event(
                 event_id=uuid.uuid4().hex, group_id=group.id, project_id=project.id, data=data.data
             )
-
             records.append(
                 Record(
                     event.event_id,
@@ -530,6 +544,29 @@ def digest(request):
         state["groups"][perf_group.id] = perf_group
         state["event_counts"][perf_group.id] = random.randint(10, 1e4)
         state["user_counts"][perf_group.id] = random.randint(10, 1e4)
+
+    # add in generic issues
+    for i in range(random.randint(1, 3)):
+        generic_event = make_generic_event(project)
+        generic_group = generic_event.group
+        generic_group.id = i + 200  # don't clobber other issue ids
+
+        records.append(
+            Record(
+                generic_event.event_id,
+                Notification(
+                    generic_event,
+                    random.sample(
+                        list(state["rules"].keys()), random.randint(1, len(state["rules"]))
+                    ),
+                ),
+                # this is required for acceptance tests to pass as the EventManager won't accept a timestamp in the past
+                to_timestamp(datetime(2016, 6, 22, 16, 16, 0, tzinfo=timezone.utc)),
+            )
+        )
+        state["groups"][generic_group.id] = generic_group
+        state["event_counts"][generic_group.id] = random.randint(10, 1e4)
+        state["user_counts"][generic_group.id] = random.randint(10, 1e4)
 
     digest = build_digest(project, records, state)[0]
     start, end, counts = get_digest_metadata(digest)
