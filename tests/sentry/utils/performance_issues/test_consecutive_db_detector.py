@@ -157,7 +157,7 @@ class ConsecutiveDbDetectorTest(unittest.TestCase):
             )
         ]
 
-    def test_does_not_detect_consecutive_db_with_low_cost(self):
+    def test_does_not_detect_consecutive_db_with_low_time_saving(self):
         span_duration = 10
         spans = [
             create_span(
@@ -180,7 +180,7 @@ class ConsecutiveDbDetectorTest(unittest.TestCase):
 
         assert self.find_problems(event) == []
 
-    def test_detects_consecutive_db_with_high_cost(self):
+    def test_detects_consecutive_db_with_high_time_saving(self):
         span_duration = 50
         spans = [
             create_span(
