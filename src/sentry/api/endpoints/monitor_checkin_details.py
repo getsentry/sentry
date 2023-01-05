@@ -5,7 +5,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.authentication import DSNAuthentication
-from sentry.api.base import Endpoint, pending_silo_endpoint
+from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.bases.monitor import MonitorEndpoint, ProjectMonitorPermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.fields.empty_integer import EmptyIntegerField
@@ -33,7 +33,7 @@ class CheckInSerializer(serializers.Serializer):
     duration = EmptyIntegerField(required=False, allow_null=True)
 
 
-@pending_silo_endpoint
+@region_silo_endpoint
 class MonitorCheckInDetailsEndpoint(Endpoint):
     authentication_classes = MonitorEndpoint.authentication_classes + (DSNAuthentication,)
     permission_classes = (ProjectMonitorPermission,)
