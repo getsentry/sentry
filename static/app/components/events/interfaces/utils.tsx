@@ -12,8 +12,11 @@ import {EntryRequest} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import {fileExtensionToPlatform, getFileExtension} from 'sentry/utils/fileExtension';
 
-export function escapeQuotes(v: string) {
-  return v.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+/**
+ * Attempts to escape a string from any bash double quote special characters.
+ */
+function escapeBashString(v: string) {
+  return v.replace(/(["$`\\])/g, '\\$1');
 }
 
 // TODO(dcramer): support cookies
@@ -39,24 +42,24 @@ export function getCurlCommand(data: EntryRequest['data']) {
     }) ?? [];
 
   for (const header of headers) {
-    result += ' \\\n -H "' + header[0] + ': ' + escapeQuotes(header[1] + '') + '"';
+    result += ' \\\n -H "' + header[0] + ': ' + escapeBashString(header[1] + '') + '"';
   }
 
   if (defined(data.data)) {
     switch (data.inferredContentType) {
       case 'application/json':
-        result += ' \\\n --data "' + escapeQuotes(JSON.stringify(data.data)) + '"';
+        result += ' \\\n --data "' + escapeBashString(JSON.stringify(data.data)) + '"';
         break;
       case 'application/x-www-form-urlencoded':
         result +=
           ' \\\n --data "' +
-          escapeQuotes(qs.stringify(data.data as {[key: string]: any})) +
+          escapeBashString(qs.stringify(data.data as {[key: string]: any})) +
           '"';
         break;
 
       default:
         if (isString(data.data)) {
-          result += ' \\\n --data "' + escapeQuotes(data.data) + '"';
+          result += ' \\\n --data "' + escapeBashString(data.data) + '"';
         } else if (Object.keys(data.data).length === 0) {
           // Do nothing with empty object data.
         } else {
@@ -107,7 +110,7 @@ export function getFullUrl(data: EntryRequest['data']): string | undefined {
     fullUrl += '#' + data.fragment;
   }
 
-  return fullUrl;
+  return escapeBashString(fullUrl);
 }
 
 /**
