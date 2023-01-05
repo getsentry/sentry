@@ -1,10 +1,10 @@
 from abc import ABC, abstractmethod
 from collections import namedtuple
-from typing import Any, Dict, List, Optional, Type
+from typing import Any, Dict, List, Type
 
 from sentry.dynamic_sampling.utils import BaseRule
 
-BiasData = Optional[Dict[str, Any]]
+BiasData = Dict[str, Any]
 BiasParams = namedtuple("BiasParams", "project base_sample_rate")
 
 

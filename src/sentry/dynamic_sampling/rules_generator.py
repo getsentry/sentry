@@ -3,10 +3,7 @@ from typing import List, Optional, cast
 
 from pytz import UTC
 
-from sentry.dynamic_sampling.feature_multiplexer import DynamicSamplingFeatureMultiplexer
 from sentry.dynamic_sampling.latest_release_booster import ProjectBoostedReleases
-from sentry.dynamic_sampling.logging import log_rules
-from sentry.dynamic_sampling.rules import DynamicSamplingRulesGenerator
 from sentry.dynamic_sampling.utils import (
     KEY_TRANSACTION_BOOST_FACTOR,
     RELEASE_BOOST_FACTOR,
@@ -15,7 +12,6 @@ from sentry.dynamic_sampling.utils import (
     ReleaseRule,
     RuleType,
 )
-from sentry.models import Project
 
 
 def generate_uniform_rule(sample_rate: Optional[float]) -> BaseRule:
@@ -97,22 +93,6 @@ def generate_boost_key_transaction_rule(
         "active": True,
         "id": RESERVED_IDS[RuleType.BOOST_KEY_TRANSACTIONS_RULE],
     }
-
-
-def generate_rules(project: Project) -> List[BaseRule]:
-    enabled_biases = DynamicSamplingFeatureMultiplexer.get_enabled_user_biases(
-        project.get_option("sentry:dynamic_sampling_biases", None)
-    )
-
-    generator = DynamicSamplingRulesGenerator.from_enabled_biases(project, enabled_biases)
-    if generator is not None:
-        rules = generator.generate()
-        # TODO: move logging to the generator.
-        log_rules(project.organization.id, project.id, rules)
-        return rules
-
-    # In case we are not able to instantiate the rules generator, we fallback to returning no rules.
-    return []
 
 
 # def generate_rules(project: Project) -> List[BaseRule]:
