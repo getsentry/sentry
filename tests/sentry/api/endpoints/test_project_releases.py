@@ -22,7 +22,7 @@ from sentry.testutils import APITestCase, ReleaseCommitPatchTest, TestCase
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class ProjectReleaseListTest(APITestCase):
     def test_simple(self):
         self.login_as(user=self.user)
@@ -114,7 +114,7 @@ class ProjectReleaseListTest(APITestCase):
         assert len(response.data) == 1
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class ProjectReleaseListEnvironmentsTest(APITestCase):
     def setUp(self):
         self.login_as(user=self.user)
@@ -316,7 +316,7 @@ class ProjectReleaseListEnvironmentsTest(APITestCase):
         )
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class ProjectReleaseCreateTest(APITestCase):
     def test_minimal(self):
         self.login_as(user=self.user)
@@ -489,7 +489,7 @@ class ProjectReleaseCreateTest(APITestCase):
             assert rc.organization_id
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class ProjectReleaseCreateCommitPatch(ReleaseCommitPatchTest):
     @cached_property
     def url(self):

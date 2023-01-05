@@ -11,6 +11,7 @@ from sentry.api.endpoints.project_release_file_details import (
 from sentry.models import File, Release, ReleaseFile
 from sentry.models.distribution import Distribution
 from sentry.testutils import APITestCase
+from sentry.testutils.silo import region_silo_test
 
 
 def test_closes_depnedent_files_is_iterable():
@@ -19,6 +20,7 @@ def test_closes_depnedent_files_is_iterable():
     assert list(f) == [b"hello\n", b"world\n"]
 
 
+@region_silo_test(stable=True)
 class ReleaseFileDetailsTest(APITestCase):
     def test_simple(self):
         self.login_as(user=self.user)
@@ -182,6 +184,7 @@ class ReleaseFileDetailsTest(APITestCase):
         assert response.data["id"] == id, urlsafe_b64decode(response.data["id"])
 
 
+@region_silo_test(stable=True)
 class ReleaseFileUpdateTest(APITestCase):
     def test_simple(self):
         self.login_as(user=self.user)
@@ -238,6 +241,7 @@ class ReleaseFileUpdateTest(APITestCase):
         assert response.data == {"detail": INVALID_UPDATE_MESSAGE}  # TODO: document this in apidocs
 
 
+@region_silo_test(stable=True)
 class ReleaseFileDeleteTest(APITestCase):
     def test_simple(self):
         self.login_as(user=self.user)

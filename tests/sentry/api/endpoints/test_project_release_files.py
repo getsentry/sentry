@@ -7,8 +7,10 @@ from sentry.models import File, Release, ReleaseFile
 from sentry.models.distribution import Distribution
 from sentry.models.releasefile import ARTIFACT_INDEX_FILENAME
 from sentry.testutils import APITestCase
+from sentry.testutils.silo import region_silo_test
 
 
+@region_silo_test(stable=True)
 class ReleaseFilesListTest(APITestCase):
     def test_simple(self):
         project = self.create_project(name="foo")
@@ -179,6 +181,7 @@ class ReleaseFilesListTest(APITestCase):
         assert response.data[0]["name"] == "~/index.js.map"
 
 
+@region_silo_test(stable=True)
 class ReleaseFileCreateTest(APITestCase):
     def test_simple(self):
         project = self.create_project(name="foo")

@@ -25,7 +25,7 @@ class BaseStacktraceLinkTest(APITestCase):
         return self.client.post(url, data={"sourceUrl": source_url, "stackPath": stack_path})
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class ProjectStacktraceLinkGithubTest(BaseStacktraceLinkTest):
     def setUp(self):
         super().setUp()
@@ -143,7 +143,7 @@ class ProjectStacktraceLinkGithubTest(BaseStacktraceLinkTest):
         assert resp.status_code == 200, resp.content
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class ProjectStacktraceLinkGitlabTest(BaseStacktraceLinkTest):
     def setUp(self):
         super().setUp()

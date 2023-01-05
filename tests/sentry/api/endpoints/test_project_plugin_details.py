@@ -17,7 +17,7 @@ class ProjectPluginDetailsTestBase(APITestCase):
         assert not AuditLogEntry.objects.filter(target_object=self.project.id).exists()
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class ProjectPluginDetailsTest(ProjectPluginDetailsTestBase):
     def test_simple(self):
         response = self.get_success_response(
@@ -42,7 +42,7 @@ class ProjectPluginDetailsTest(ProjectPluginDetailsTestBase):
         ]
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class UpdateProjectPluginTest(ProjectPluginDetailsTestBase):
     method = "put"
 
@@ -54,15 +54,14 @@ class UpdateProjectPluginTest(ProjectPluginDetailsTestBase):
             **{"urls": "http://example.com/foo"},
         )
 
-        audit = AuditLogEntry.objects.get(target_object=self.project.id)
-        assert audit.event == 111
+        self.assert_audit_log_created(self.user, 111, self.project.id, self.project.organization)
         assert (
             ProjectOption.objects.get(key="webhooks:urls", project=self.project).value
             == "http://example.com/foo"
         )
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class EnableProjectPluginTest(ProjectPluginDetailsTestBase):
     method = "post"
 
@@ -72,10 +71,8 @@ class EnableProjectPluginTest(ProjectPluginDetailsTestBase):
 
         self.get_success_response(self.project.organization.slug, self.project.slug, "webhooks")
 
-        audit = AuditLogEntry.objects.get(target_object=self.project.id)
-        assert audit.event == 110
+        self.assert_audit_log_created(self.user, 110, self.project.id, self.project.organization)
         assert ProjectOption.objects.get(key="webhooks:enabled", project=self.project).value is True
-        audit.delete()
 
         # Testing the Plugin
         self.get_success_response(
@@ -87,9 +84,8 @@ class EnableProjectPluginTest(ProjectPluginDetailsTestBase):
         response = self.get_success_response(
             self.project.organization.slug, self.project.slug, "webhooks", **{"reset": True}
         )
-        audit = AuditLogEntry.objects.get(target_object=self.project.id)
+        self.assert_audit_log_created(self.user, 111, self.project.id, self.project.organization)
         test_configuration.assert_called_once_with(self.project)
-        assert audit.event == 111
 
         configs = response.data.get("config")
 
@@ -97,7 +93,7 @@ class EnableProjectPluginTest(ProjectPluginDetailsTestBase):
             assert config.get("value") is None
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class DisableProjectPluginTest(ProjectPluginDetailsTestBase):
     method = "delete"
 
@@ -106,8 +102,7 @@ class DisableProjectPluginTest(ProjectPluginDetailsTestBase):
 
         self.get_success_response(self.project.organization.slug, self.project.slug, "webhooks")
 
-        audit = AuditLogEntry.objects.get(target_object=self.project.id)
-        assert audit.event == 112
+        self.assert_audit_log_created(self.user, 112, self.project.id, self.project.organization)
         assert (
             ProjectOption.objects.get(key="webhooks:enabled", project=self.project).value is False
         )

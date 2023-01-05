@@ -8,9 +8,11 @@ from sentry.api.endpoints.project_release_details import ReleaseSerializer
 from sentry.constants import MAX_VERSION_LENGTH
 from sentry.models import Activity, File, Release, ReleaseCommit, ReleaseFile, ReleaseProject
 from sentry.testutils import APITestCase
+from sentry.testutils.silo import region_silo_test
 from sentry.types.activity import ActivityType
 
 
+@region_silo_test(stable=True)
 class ReleaseDetailsTest(APITestCase):
     def test_simple(self):
         self.login_as(user=self.user)
@@ -39,6 +41,7 @@ class ReleaseDetailsTest(APITestCase):
         assert response.data["newGroups"] == 5
 
 
+@region_silo_test(stable=True)
 class UpdateReleaseDetailsTest(APITestCase):
     def test_simple(self):
         self.login_as(user=self.user)
@@ -158,6 +161,7 @@ class UpdateReleaseDetailsTest(APITestCase):
         assert activity.exists()
 
 
+@region_silo_test(stable=True)
 class ReleaseDeleteTest(APITestCase):
     def test_simple(self):
         self.login_as(user=self.user)
@@ -213,6 +217,7 @@ class ReleaseDeleteTest(APITestCase):
         assert Release.objects.filter(id=release.id).exists()
 
 
+@region_silo_test(stable=True)
 class ReleaseSerializerTest(unittest.TestCase):
     def setUp(self):
         super().setUp()

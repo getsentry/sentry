@@ -2,8 +2,10 @@ from unittest import mock
 
 from sentry.rules.actions.notify_event import NotifyEventAction
 from sentry.testutils import APITestCase
+from sentry.testutils.silo import region_silo_test
 
 
+@region_silo_test(stable=True)
 class ProjectRuleActionsEndpointTest(APITestCase):
     endpoint = "sentry-api-0-project-rule-actions"
     method = "POST"
