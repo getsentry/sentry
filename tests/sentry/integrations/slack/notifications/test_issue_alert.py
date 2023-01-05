@@ -93,14 +93,8 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
             notification.send()
 
         attachment, text = get_attachment()
-        assert attachment["title"] == "N+1 Query"
-        assert (
-            attachment["text"]
-            == "db - SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21"
-        )
-        assert (
-            attachment["footer"]
-            == f"{self.project.slug} | production | <http://testserver/settings/account/notifications/alerts/?referrer=issue_alert-slack-user|Notification Settings>"
+        self.assert_performance_issue_attachments(
+            attachment, self.project.slug, "issue_alert-slack-user", "alerts"
         )
 
     @responses.activate
@@ -124,11 +118,8 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
             notification.send()
 
         attachment, text = get_attachment()
-        assert attachment["title"] == TEST_ISSUE_OCCURRENCE.issue_title
-        assert attachment["text"] == TEST_ISSUE_OCCURRENCE.evidence_display[0].value
-        assert (
-            attachment["footer"]
-            == f"{self.project.slug} | <http://testserver/settings/account/notifications/alerts/?referrer=issue_alert-slack-user|Notification Settings>"
+        self.assert_generic_issue_attachments(
+            attachment, self.project.slug, "issue_alert-slack-user", "alerts"
         )
 
     @responses.activate
