@@ -136,9 +136,17 @@
                 {% else %}
                   <div class="event-type default">
                     <h3>
-                      <a href="{% absolute_uri link %}">{{ event.title|truncatechars:40 }}</a><br />
+                      {% if issue_title %}
+                      <a href="{% absolute_uri link %}">{{ issue_title|truncatechars:40 }}</a>
+                      {% else %}
+                      <a href="{% absolute_uri link %}">{{ event.title|truncatechars:40 }}</a>
+                      {% endif %}
                       {% if transaction %}
                         <span class="event-subtitle">{{ transaction }}</span>
+                      {% endif %}
+                      <br />
+                      {% if subtitle %}
+                      <small>{{ subtitle|truncatechars:40|soft_break:40 }}</small>
                       {% endif %}
                     </h3>
                   </div>
@@ -181,7 +189,7 @@
       </div>
       {% endif %}
 
-      {% block performance %}{% endblock %}
+      {% block table %}{% endblock %}
 
       {% block stacktrace %}{% endblock %}
 
@@ -207,7 +215,7 @@
     <p class="info-box">
         You are receiving this email due to matching rules:
         {% for rule in rules %}
-            <a href="{% absolute_uri rule.url %}">{{ rule.label }}</a>{% if not forloop.last %}, {% endif %}
+            <a href="{% absolute_uri rule.status_url %}">{{ rule.label }}</a>{% if not forloop.last %}, {% endif %}
         {% endfor %}
     </p>
 

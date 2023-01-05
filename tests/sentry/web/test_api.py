@@ -1,8 +1,8 @@
+from functools import cached_property
 from unittest import mock
 
 from django.conf import settings
 from django.urls import reverse
-from exam import fixture
 
 from sentry.auth import superuser
 from sentry.models import (
@@ -18,7 +18,7 @@ from sentry.utils import json
 
 
 class CrossDomainXmlTest(TestCase):
-    @fixture
+    @cached_property
     def path(self):
         return reverse("sentry-api-crossdomain-xml", kwargs={"project_id": self.project.id})
 
@@ -65,7 +65,7 @@ class CrossDomainXmlTest(TestCase):
 
 
 class RobotsTxtTest(TestCase):
-    @fixture
+    @cached_property
     def path(self):
         return reverse("sentry-api-robots-txt")
 
@@ -76,7 +76,7 @@ class RobotsTxtTest(TestCase):
 
 
 class ClientConfigViewTest(TestCase):
-    @fixture
+    @cached_property
     def path(self):
         return reverse("sentry-api-client-config")
 

@@ -74,8 +74,12 @@ class SuperuserAccessForm extends Component<Props, State> {
         superuserReason: suReason,
       });
     } else {
-      await api.requestPromise('/auth/', {method: 'PUT', data});
-      this.handleSuccess();
+      try {
+        await api.requestPromise('/auth/', {method: 'PUT', data});
+        this.handleSuccess();
+      } catch (err) {
+        this.handleError(err);
+      }
     }
   };
 
@@ -157,7 +161,9 @@ class SuperuserAccessForm extends Component<Props, State> {
           initialData={{isSuperuserModal: true}}
           extraButton={
             <BackWrapper>
-              <Button onClick={this.handleSubmitCOPS}>{t('COPS/CSM')}</Button>
+              <Button type="submit" onClick={this.handleSubmitCOPS}>
+                {t('COPS/CSM')}
+              </Button>
             </BackWrapper>
           }
           resetOnError

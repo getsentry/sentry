@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import Button from 'sentry/components/button';
 import SuggestedOwnerHovercard from 'sentry/components/group/suggestedOwnerHovercard';
+import Placeholder from 'sentry/components/placeholder';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import {IconCheckmark} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -24,6 +25,7 @@ type Props = {
   onAssign: (actor: Actor) => void;
   organization: Organization;
   owners: Array<Owner>;
+  loading?: boolean;
   projectId?: string;
 };
 
@@ -32,6 +34,7 @@ const SuggestedAssignees = ({
   owners,
   projectId,
   organization,
+  loading,
   onAssign,
 }: Props) => {
   const handleAssign = useCallback(
@@ -48,6 +51,21 @@ const SuggestedAssignees = ({
     },
     [onAssign, group.id, group.issueCategory, projectId, organization]
   );
+
+  if (loading) {
+    return (
+      <SidebarSection.Wrap>
+        <SidebarSection.Title>{t('Suggested Assignees')}</SidebarSection.Title>
+        <SidebarSection.Content>
+          <Placeholder />
+        </SidebarSection.Content>
+      </SidebarSection.Wrap>
+    );
+  }
+
+  if (!owners.length) {
+    return null;
+  }
 
   return (
     <SidebarSection.Wrap>
@@ -126,5 +144,6 @@ const SuggestionRow = styled('div')`
 `;
 
 const StyledButton = styled(Button)`
-  padding-right: 0;
+  /* Matches button padding so the icon lines up with others in sidebar */
+  margin-right: -2px;
 `;

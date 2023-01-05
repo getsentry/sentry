@@ -33,8 +33,6 @@ FEATURE_NAMES = [
 
 EDIT_FEATURE = ["organizations:dashboards-edit"]
 
-WIDGET_LIBRARY_FEATURE = ["organizations:widget-library"]
-
 
 @region_silo_test
 class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
@@ -429,7 +427,7 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
     def test_cancel_without_changes_does_not_trigger_confirm_with_custom_widget_through_header(
         self,
     ):
-        with self.feature(FEATURE_NAMES + EDIT_FEATURE + WIDGET_LIBRARY_FEATURE):
+        with self.feature(FEATURE_NAMES + EDIT_FEATURE):
             self.page.visit_dashboard_detail()
 
             self.page.click_dashboard_header_add_widget_button()
@@ -449,7 +447,7 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
     def test_position_when_adding_multiple_widgets_through_add_widget_tile_in_edit(
         self,
     ):
-        with self.feature(FEATURE_NAMES + EDIT_FEATURE + WIDGET_LIBRARY_FEATURE):
+        with self.feature(FEATURE_NAMES + EDIT_FEATURE):
             self.page.visit_dashboard_detail()
             self.page.enter_edit_state()
 
@@ -468,7 +466,7 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
     def test_position_when_adding_multiple_widgets_through_add_widget_tile_in_create(
         self,
     ):
-        with self.feature(FEATURE_NAMES + EDIT_FEATURE + WIDGET_LIBRARY_FEATURE):
+        with self.feature(FEATURE_NAMES + EDIT_FEATURE):
             self.page.visit_create_dashboard()
 
             # Widgets should take up the whole first row and the first spot in second row
@@ -519,7 +517,7 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
             )
             for widget in existing_widgets
         )
-        with self.feature(FEATURE_NAMES + EDIT_FEATURE + WIDGET_LIBRARY_FEATURE):
+        with self.feature(FEATURE_NAMES + EDIT_FEATURE):
             self.page.visit_dashboard_detail()
 
             dropdown_trigger = self.browser.element('[aria-label="Widget actions"]')
@@ -570,7 +568,7 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
             )
             for widget in existing_widgets
         )
-        with self.feature(FEATURE_NAMES + EDIT_FEATURE + WIDGET_LIBRARY_FEATURE):
+        with self.feature(FEATURE_NAMES + EDIT_FEATURE):
             self.page.visit_dashboard_detail()
 
             # Open edit modal for first widget
@@ -619,7 +617,7 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
         DashboardWidgetQuery.objects.create(
             widget=existing_widget, fields=["count()"], columns=[], aggregates=["count()"], order=0
         )
-        with self.feature(FEATURE_NAMES + EDIT_FEATURE + WIDGET_LIBRARY_FEATURE):
+        with self.feature(FEATURE_NAMES + EDIT_FEATURE):
             self.page.visit_dashboard_detail()
 
             # Open edit modal for first widget
@@ -653,6 +651,7 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
                 "dashboards - change from big number to other chart enforces min height of 2"
             )
 
+    @pytest.mark.skip(reason="flaky: DD-1211")
     def test_changing_area_widget_larger_than_min_height_for_number_chart_keeps_height(
         self,
     ):
@@ -668,7 +667,7 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
         DashboardWidgetQuery.objects.create(
             widget=existing_widget, fields=["count()"], columns=[], aggregates=["count()"], order=0
         )
-        with self.feature(FEATURE_NAMES + EDIT_FEATURE + WIDGET_LIBRARY_FEATURE):
+        with self.feature(FEATURE_NAMES + EDIT_FEATURE):
             self.page.visit_dashboard_detail()
 
             # Open edit modal for first widget

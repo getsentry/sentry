@@ -2,8 +2,9 @@ import {useCallback} from 'react';
 
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {relativeTimeInMs} from 'sentry/components/replays/utils';
-import {Crumb} from 'sentry/types/breadcrumbs';
+import {BreadcrumbType, Crumb} from 'sentry/types/breadcrumbs';
 import useActiveReplayTab from 'sentry/utils/replays/hooks/useActiveReplayTab';
+import type {NetworkSpan} from 'sentry/views/replays/types';
 
 function useCrumbHandlers(startTimestampMs: number = 0) {
   const {
@@ -16,7 +17,7 @@ function useCrumbHandlers(startTimestampMs: number = 0) {
   const {setActiveTab} = useActiveReplayTab();
 
   const handleMouseEnter = useCallback(
-    (item: Crumb) => {
+    (item: Crumb | NetworkSpan) => {
       if (startTimestampMs) {
         setCurrentHoverTime(relativeTimeInMs(item.timestamp ?? '', startTimestampMs));
       }
@@ -32,7 +33,7 @@ function useCrumbHandlers(startTimestampMs: number = 0) {
   );
 
   const handleMouseLeave = useCallback(
-    (item: Crumb) => {
+    (item: Crumb | NetworkSpan) => {
       setCurrentHoverTime(undefined);
 
       if (item.data && 'nodeId' in item.data) {
@@ -43,23 +44,23 @@ function useCrumbHandlers(startTimestampMs: number = 0) {
   );
 
   const handleClick = useCallback(
-    (crumb: Crumb) => {
+    (crumb: Crumb | NetworkSpan) => {
       if (crumb.timestamp !== undefined) {
         setCurrentTime(relativeTimeInMs(crumb.timestamp, startTimestampMs));
       }
 
-      switch (crumb.type) {
-        case 'navigation':
-        case 'debug':
-          setActiveTab('network');
-          break;
-        case 'ui':
-          setActiveTab('dom');
-          break;
-        case 'error':
-        default:
-          setActiveTab('console');
-          break;
+      if ('type' in crumb) {
+        switch (crumb.type) {
+          case BreadcrumbType.NAVIGATION:
+            setActiveTab('network');
+            break;
+          case BreadcrumbType.UI:
+            setActiveTab('dom');
+            break;
+          default:
+            setActiveTab('console');
+            break;
+        }
       }
     },
     [setCurrentTime, startTimestampMs, setActiveTab]

@@ -77,11 +77,7 @@ function EventsContentWrapper(props: ChildProps) {
   const spanOperationBreakdownFilter = decodeFilterFromLocation(location);
   const webVital = getWebVital(location);
 
-  const totalEventsView = eventView.clone();
   const percentilesView = getPercentilesEventView(eventView);
-
-  totalEventsView.sorts = [];
-  totalEventsView.fields = [{field: 'count()', width: -1}];
 
   const getFilteredEventView = (percentiles: PercentileValues) => {
     const filter = getEventsFilterOptions(spanOperationBreakdownFilter, percentiles)[
@@ -161,60 +157,39 @@ function EventsContentWrapper(props: ChildProps) {
 
   return (
     <DiscoverQuery
-      eventView={totalEventsView}
+      eventView={percentilesView}
       orgSlug={organization.slug}
       location={location}
-      setError={error => setError(error?.message)}
-      referrer="api.performance.transaction-summary"
-      cursor="0:0:0"
-      useEvents
+      referrer="api.performance.transaction-events"
     >
-      {({isLoading: isTotalEventsLoading, tableData: table}) => {
-        const totalEventCount: string =
-          table?.data[0]?.['count()']?.toLocaleString() || '';
+      {({isLoading, tableData}) => {
+        if (isLoading) {
+          return (
+            <Layout.Main fullWidth>
+              <LoadingIndicator />
+            </Layout.Main>
+          );
+        }
 
+        const percentileData = tableData?.data?.[0];
+        const percentiles = mapPercentileValues(percentileData);
+        const filteredEventView = getFilteredEventView(percentiles);
         return (
-          <DiscoverQuery
-            eventView={percentilesView}
-            orgSlug={organization.slug}
+          <EventsContent
             location={location}
-            referrer="api.performance.transaction-events"
-            useEvents
-          >
-            {({isLoading, tableData}) => {
-              if (isTotalEventsLoading || isLoading) {
-                return (
-                  <Layout.Main fullWidth>
-                    <LoadingIndicator />
-                  </Layout.Main>
-                );
-              }
-
-              const percentileData = tableData?.data?.[0];
-              const percentiles = mapPercentileValues(percentileData);
-              const filteredEventView = getFilteredEventView(percentiles);
-              return (
-                <EventsContent
-                  totalEventCount={totalEventCount}
-                  location={location}
-                  organization={organization}
-                  eventView={filteredEventView}
-                  transactionName={transactionName}
-                  spanOperationBreakdownFilter={spanOperationBreakdownFilter}
-                  onChangeSpanOperationBreakdownFilter={
-                    onChangeSpanOperationBreakdownFilter
-                  }
-                  eventsDisplayFilterName={eventsDisplayFilterName}
-                  onChangeEventsDisplayFilter={onChangeEventsDisplayFilter}
-                  percentileValues={percentiles}
-                  projectId={projectId}
-                  projects={projects}
-                  webVital={webVital}
-                  setError={setError}
-                />
-              );
-            }}
-          </DiscoverQuery>
+            organization={organization}
+            eventView={filteredEventView}
+            transactionName={transactionName}
+            spanOperationBreakdownFilter={spanOperationBreakdownFilter}
+            onChangeSpanOperationBreakdownFilter={onChangeSpanOperationBreakdownFilter}
+            eventsDisplayFilterName={eventsDisplayFilterName}
+            onChangeEventsDisplayFilter={onChangeEventsDisplayFilter}
+            percentileValues={percentiles}
+            projectId={projectId}
+            projects={projects}
+            webVital={webVital}
+            setError={setError}
+          />
         );
       }}
     </DiscoverQuery>

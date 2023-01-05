@@ -62,6 +62,12 @@ function mockRequests(orgSlug: Organization['slug']) {
       },
     },
   });
+
+  MockApiClient.addMockResponse({
+    url: '/organizations/org-slug/releases/',
+    body: [],
+  });
+
   return {eventsMock};
 }
 
@@ -120,7 +126,7 @@ describe('VisualizationStep', function () {
       jest.advanceTimersByTime(DEFAULT_DEBOUNCE_DURATION + 1);
     });
 
-    await waitFor(() => expect(eventsMock).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(eventsMock).toHaveBeenCalledTimes(1));
   });
 
   it('displays stored data alert', async function () {
@@ -161,11 +167,7 @@ describe('VisualizationStep', function () {
         context: routerContext,
         organization: {
           ...organization,
-          features: [
-            ...organization.features,
-            'server-side-sampling',
-            'mep-rollout-flag',
-          ],
+          features: [...organization.features, 'dynamic-sampling', 'mep-rollout-flag'],
         },
       }
     );
@@ -217,5 +219,47 @@ describe('VisualizationStep', function () {
         })
       )
     );
+  });
+
+  it('does not trigger an extra events request when adding a column', async function () {
+    const {eventsMock} = mockRequests(organization.slug);
+    render(
+      <WidgetBuilder
+        route={{}}
+        router={router}
+        routes={router.routes}
+        routeParams={router.params}
+        location={{
+          ...router.location,
+          query: {
+            ...router.location.query,
+            release: ['v1'],
+          },
+        }}
+        dashboard={{
+          id: 'new',
+          title: 'Dashboard',
+          createdBy: undefined,
+          dateCreated: '2020-01-01T00:00:00.000Z',
+          widgets: [],
+          projects: [],
+          filters: {},
+        }}
+        onSave={jest.fn()}
+        params={{
+          orgId: organization.slug,
+          dashboardId: 'new',
+        }}
+      />,
+      {
+        context: routerContext,
+        organization,
+      }
+    );
+
+    userEvent.click(screen.getByText('Add a Column'));
+
+    // Only called once on the initial render
+    await waitFor(() => expect(eventsMock).toHaveBeenCalledTimes(1));
   });
 });

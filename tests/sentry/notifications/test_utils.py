@@ -155,7 +155,7 @@ class NotificationHelpersTest(TestCase):
         assert get_subscription_from_attributes(attrs) == (False, {"disabled": True})
 
     def test_collect_groups_by_project(self):
-        assert collect_groups_by_project([self.group]) == {self.project: {self.group}}
+        assert collect_groups_by_project([self.group]) == {self.project.id: {self.group}}
 
     def test_get_settings_by_provider(self):
         settings = {

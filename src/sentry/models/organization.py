@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from datetime import timedelta
 from enum import IntEnum
-from typing import FrozenSet, Sequence
+from typing import FrozenSet, Optional, Sequence
 
 from django.conf import settings
 from django.db import IntegrityError, models, router, transaction
@@ -33,7 +33,7 @@ from sentry.locks import locks
 from sentry.models.organizationmember import OrganizationMember
 from sentry.roles.manager import Role
 from sentry.services.hybrid_cloud.user import APIUser, user_service
-from sentry.utils.http import absolute_uri, is_using_customer_domain
+from sentry.utils.http import is_using_customer_domain
 from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.snowflake import SnowflakeIdMixin
 
@@ -233,8 +233,8 @@ class Organization(Model, SnowflakeIdMixin):
 
         return self == type(self).get_default()
 
-    def has_access(self, user, access=None):
-        queryset = self.member_set.filter(user=user)
+    def has_access(self, user: APIUser, access=None):
+        queryset = self.member_set.filter(user_id=user.id)
         if access is not None:
             queryset = queryset.filter(type__lte=access)
 
@@ -470,12 +470,13 @@ class Organization(Model, SnowflakeIdMixin):
         from sentry.utils.email import MessageBuilder
 
         owners = self.get_owners()
+        url = self.absolute_url(reverse("sentry-restore-organization", args=[self.slug]))
 
         context = {
             "organization": self,
             "audit_log_entry": audit_log_entry,
             "eta": timezone.now() + timedelta(seconds=countdown),
-            "url": absolute_uri(reverse("sentry-restore-organization", args=[self.slug])),
+            "url": url,
         }
 
         MessageBuilder(
@@ -513,7 +514,10 @@ class Organization(Model, SnowflakeIdMixin):
             )
 
     @staticmethod
-    def get_url_viewname():
+    def get_url_viewname() -> str:
+        """
+        Get the default view name for an organization taking customer-domains into account.
+        """
         request = env.request
         if request and is_using_customer_domain(request):
             return "issues"
@@ -521,10 +525,55 @@ class Organization(Model, SnowflakeIdMixin):
 
     @staticmethod
     def get_url(slug: str) -> str:
+        """
+        Get a relative URL to the organization's issue list with `slug`
+        """
         try:
             return reverse(Organization.get_url_viewname(), args=[slug])
         except NoReverseMatch:
             return reverse(Organization.get_url_viewname())
+
+    __has_customer_domain: Optional[bool] = None
+
+    def _has_customer_domain(self) -> bool:
+        """
+        Check if the current organization is using or has access to customer domains.
+        """
+        if self.__has_customer_domain is not None:
+            return self.__has_customer_domain
+
+        request = env.request
+        if request and is_using_customer_domain(request):
+            self.__has_customer_domain = True
+            return True
+
+        self.__has_customer_domain = features.has("organizations:customer-domains", self)
+
+        return self.__has_customer_domain
+
+    def absolute_url(
+        self, path: str, query: Optional[str] = None, fragment: Optional[str] = None
+    ) -> str:
+        """
+        Get an absolute URL to `path` for this organization.
+
+        This method takes customer-domains into account and will update the path when
+        customer-domains are active.
+        """
+        # Avoid cycles.
+        from sentry.api.utils import customer_domain_path, generate_organization_url
+        from sentry.utils.http import absolute_uri
+
+        url_base = None
+        if self._has_customer_domain():
+            path = customer_domain_path(path)
+            url_base = generate_organization_url(self.slug)
+        uri = absolute_uri(path, url_prefix=url_base)
+        if query:
+            uri = f"{uri}?{query}"
+        if fragment:
+            uri = f"{uri}#{fragment}"
+        return uri
 
     def get_scopes(self, role: Role) -> FrozenSet[str]:
         if role.priority > 0:

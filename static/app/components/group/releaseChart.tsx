@@ -1,4 +1,4 @@
-import {useTheme} from '@emotion/react';
+import {Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import type {BarChartSeries} from 'sentry/components/charts/barChart';
@@ -9,7 +9,6 @@ import {t} from 'sentry/locale';
 import type {Group, Release, TimeseriesValue} from 'sentry/types';
 import {getFormattedDate} from 'sentry/utils/dates';
 import {formatVersion} from 'sentry/utils/formatters';
-import type {Theme} from 'sentry/utils/theme';
 
 /**
  * Stats are provided indexed by statsPeriod strings.

@@ -40,7 +40,7 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
             project=group.project,
             group=group,
             type=ActivityType.CREATE_ISSUE.value,
-            user=request.user,
+            user_id=request.user.id,
             data=issue_information,
         )
 
@@ -69,17 +69,27 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
                 {"detail": "This feature is not supported for this integration."}, status=400
             )
 
+        installation = integration.get_installation(organization_id)
+        config = None
         try:
-            return Response(
-                serialize(
-                    integration,
-                    request.user,
-                    IntegrationIssueConfigSerializer(group, action, params=request.GET),
-                    organization_id=organization_id,
+            if action == "link":
+                config = installation.get_link_issue_config(group, params=request.GET)
+
+            if action == "create":
+                config = installation.get_create_issue_config(
+                    group, request.user, params=request.GET
                 )
-            )
         except IntegrationError as e:
             return Response({"detail": str(e)}, status=400)
+
+        return Response(
+            serialize(
+                integration,
+                request.user,
+                IntegrationIssueConfigSerializer(group, action, config),
+                organization_id=organization_id,
+            )
+        )
 
     # was thinking put for link an existing issue, post for create new issue?
     def put(self, request: Request, group, integration_id) -> Response:

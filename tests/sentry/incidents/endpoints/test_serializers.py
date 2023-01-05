@@ -1,9 +1,9 @@
+from functools import cached_property
 from unittest.mock import patch
 
 import pytest
 import responses
 from django.test import override_settings
-from exam import fixture
 from rest_framework import serializers
 from rest_framework.exceptions import ErrorDetail
 
@@ -34,7 +34,7 @@ pytestmark = pytest.mark.sentry_metrics
 
 
 class TestAlertRuleSerializer(TestCase):
-    @fixture
+    @cached_property
     def valid_params(self):
         return {
             "name": "hello",
@@ -67,18 +67,18 @@ class TestAlertRuleSerializer(TestCase):
             "event_types": [SnubaQueryEventType.EventType.DEFAULT.name.lower()],
         }
 
-    @fixture
+    @cached_property
     def valid_transaction_params(self):
         params = self.valid_params.copy()
         params["dataset"] = Dataset.Transactions.value
         params["event_types"] = [SnubaQueryEventType.EventType.TRANSACTION.name.lower()]
         return params
 
-    @fixture
+    @cached_property
     def access(self):
         return from_user(self.user, self.organization)
 
-    @fixture
+    @cached_property
     def context(self):
         return {"organization": self.organization, "access": self.access, "user": self.user}
 
@@ -175,17 +175,6 @@ class TestAlertRuleSerializer(TestCase):
                 ]
             },
         )
-        with self.feature("organizations:metrics-performance-alerts"):
-            base_params = self.valid_params.copy()
-            base_params["queryType"] = SnubaQuery.Type.PERFORMANCE.value
-            base_params["eventTypes"] = [SnubaQueryEventType.EventType.TRANSACTION.name.lower()]
-            base_params["dataset"] = Dataset.PerformanceMetrics.value
-            base_params["query"] = ""
-            serializer = AlertRuleSerializer(context=self.context, data=base_params)
-            assert serializer.is_valid(), serializer.errors
-            alert_rule = serializer.save()
-            assert alert_rule.snuba_query.type == SnubaQuery.Type.PERFORMANCE.value
-            assert alert_rule.snuba_query.dataset == Dataset.PerformanceMetrics.value
 
         with self.feature("organizations:mep-rollout-flag"):
             base_params = self.valid_params.copy()
@@ -713,15 +702,15 @@ class TestAlertRuleSerializer(TestCase):
 
 
 class TestAlertRuleTriggerSerializer(TestCase):
-    @fixture
+    @cached_property
     def other_project(self):
         return self.create_project()
 
-    @fixture
+    @cached_property
     def alert_rule(self):
         return self.create_alert_rule(projects=[self.project, self.other_project])
 
-    @fixture
+    @cached_property
     def valid_params(self):
         return {
             "label": "something",
@@ -732,11 +721,11 @@ class TestAlertRuleTriggerSerializer(TestCase):
             "actions": [{"type": "email", "targetType": "team", "targetIdentifier": self.team.id}],
         }
 
-    @fixture
+    @cached_property
     def access(self):
         return from_user(self.user, self.organization)
 
-    @fixture
+    @cached_property
     def context(self):
         return {
             "organization": self.organization,
@@ -762,19 +751,19 @@ class TestAlertRuleTriggerSerializer(TestCase):
 
 
 class TestAlertRuleTriggerActionSerializer(TestCase):
-    @fixture
+    @cached_property
     def other_project(self):
         return self.create_project()
 
-    @fixture
+    @cached_property
     def alert_rule(self):
         return self.create_alert_rule(projects=[self.project, self.other_project])
 
-    @fixture
+    @cached_property
     def trigger(self):
         return create_alert_rule_trigger(self.alert_rule, "hello", 100)
 
-    @fixture
+    @cached_property
     def valid_params(self):
         return {
             "type": AlertRuleTriggerAction.get_registered_type(
@@ -784,11 +773,11 @@ class TestAlertRuleTriggerActionSerializer(TestCase):
             "target_identifier": "test@test.com",
         }
 
-    @fixture
+    @cached_property
     def access(self):
         return from_user(self.user, self.organization)
 
-    @fixture
+    @cached_property
     def context(self):
         return {
             "organization": self.organization,
@@ -798,7 +787,7 @@ class TestAlertRuleTriggerActionSerializer(TestCase):
             "trigger": self.trigger,
         }
 
-    @fixture
+    @cached_property
     def sentry_app(self):
         return self.create_sentry_app(
             organization=self.organization,
@@ -812,7 +801,7 @@ class TestAlertRuleTriggerActionSerializer(TestCase):
             },
         )
 
-    @fixture
+    @cached_property
     def sentry_app_installation(self):
         return self.create_sentry_app_installation(
             slug=self.sentry_app.slug, organization=self.organization, user=self.user

@@ -261,6 +261,11 @@ describe('WidgetBuilder', function () {
       },
     });
 
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/releases/',
+      body: [],
+    });
+
     TagStore.reset();
   });
 
@@ -851,7 +856,7 @@ describe('WidgetBuilder', function () {
           orgFeatures: [
             ...defaultOrgFeatures,
             'dashboards-mep',
-            'server-side-sampling',
+            'dynamic-sampling',
             'mep-rollout-flag',
           ],
         });
@@ -903,7 +908,7 @@ describe('WidgetBuilder', function () {
           orgFeatures: [
             ...defaultOrgFeatures,
             'dashboards-mep',
-            'server-side-sampling',
+            'dynamic-sampling',
             'mep-rollout-flag',
           ],
         });

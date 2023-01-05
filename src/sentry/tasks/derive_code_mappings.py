@@ -1,5 +1,4 @@
 import logging
-from datetime import timedelta
 from typing import Any, List, Mapping, Tuple
 
 from sentry_sdk import set_tag, set_user
@@ -7,18 +6,19 @@ from sentry_sdk import set_tag, set_user
 from sentry import features
 from sentry.db.models.fields.node import NodeData
 from sentry.integrations.utils.code_mapping import CodeMapping, CodeMappingTreesHelper
+from sentry.locks import locks
 from sentry.models import Project
 from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
+from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.tasks.base import instrumented_task
 from sentry.utils.json import JSONData
+from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.safe import get_path
 
-ACTIVE_PROJECT_THRESHOLD = timedelta(days=7)
-GROUP_ANALYSIS_RANGE = timedelta(days=14)
 SUPPORTED_LANGUAGES = ["javascript", "python"]
 
 logger = logging.getLogger(__name__)
@@ -27,7 +27,9 @@ logger = logging.getLogger(__name__)
 @instrumented_task(  # type: ignore
     name="sentry.tasks.derive_code_mappings.derive_code_mappings",
     queue="derive_code_mappings",
-    max_retries=0,  # if we don't backfill it this time, we'll get it the next time
+    default_retry_delay=60 * 10,
+    autoretry_for=(UnableToAcquireLock,),
+    max_retries=3,
 )
 def derive_code_mappings(
     project_id: int,
@@ -40,29 +42,55 @@ def derive_code_mappings(
     This task is queued at most once per hour per project, based on the ingested events.
     """
     project = Project.objects.get(id=project_id)
-    organization: Organization = Organization.objects.get(id=project.organization_id)
-    set_tag("organization.slug", organization.slug)
+    org: Organization = Organization.objects.get(id=project.organization_id)
+    set_tag("organization.slug", org.slug)
     # When you look at the performance page the user is a default column
-    set_user({"username": organization.slug})
+    set_user({"username": org.slug})
     set_tag("project.slug", project.slug)
-
+    extra = {
+        "organization.slug": org.slug,
+    }
+    feat_key = "organizations:derive-code-mappings"
     # Check the feature flag again to ensure the feature is still enabled.
-    should_continue = features.has(
-        "organizations:derive-code-mappings", organization
-    ) or features.has("organizations:derive-code-mappings-dry-run", organization)
-    if not (dry_run or should_continue):
-        logger.info(f"Event from {organization.slug} org should not be processed.")
+    org_has_flag = features.has(feat_key, org) or features.has(f"{feat_key}-dry-run", org)
+
+    if not (dry_run or org_has_flag or data["platform"] not in SUPPORTED_LANGUAGES):
+        logger.info("Event should not be processed.", extra=extra)
         return
 
     stacktrace_paths: List[str] = identify_stacktrace_paths(data)
     if not stacktrace_paths:
         return
 
-    installation, organization_integration = get_installation(organization)
+    installation, organization_integration = get_installation(org)
     if not installation:
         return
 
-    trees: JSONData = installation.get_trees_for_org()
+    trees = {}
+    # Acquire the lock for a maximum of 10 minutes
+    lock = locks.get(key=f"get_trees_for_org:{org.slug}", duration=60 * 10, name="process_pending")
+
+    try:
+        with lock.acquire():
+            trees = installation.get_trees_for_org()
+    except ApiError as error:
+        msg = error.text
+        if error.json:
+            json_data: JSONData = error.json
+            msg = json_data.get("message")
+        extra["error"] = msg
+
+        if msg == "Not Found":
+            logger.warning("The org has uninstalled the Sentry App.", extra=extra)
+            return
+
+        raise error  # Let's be report the issue
+    except UnableToAcquireLock as error:
+        extra["error"] = error
+        logger.warning("derive_code_mappings.getting_lock_failed", extra=extra)
+        # This will cause the auto-retry logic to try again
+        raise error
+
     trees_helper = CodeMappingTreesHelper(trees)
     code_mappings = trees_helper.generate_code_mappings(stacktrace_paths)
     if dry_run:
@@ -76,15 +104,15 @@ def identify_stacktrace_paths(data: NodeData) -> List[str]:
     """
     Get the stacktrace_paths from the event data.
     """
-    if data["platform"] not in SUPPORTED_LANGUAGES:
-        return []
-
     stacktraces = get_stacktrace(data)
     stacktrace_paths = set()
     for stacktrace in stacktraces:
         try:
+            frames = stacktrace["frames"]
             paths = {
-                frame["filename"] for frame in stacktrace["frames"] if frame.get("in_app") is True
+                frame["filename"]
+                for frame in frames
+                if frame and frame.get("in_app") and frame.get("filename")
             }
             stacktrace_paths.update(paths)
         except Exception:
@@ -163,7 +191,7 @@ def set_project_codemappings(
         )
         if not created:
             logger.info(
-                "derive_code_mappings: code mapping already exists",
+                "Code mapping already exists",
                 extra={
                     "project": project,
                     "stacktrace_root": code_mapping.stacktrace_root,
@@ -188,12 +216,12 @@ def report_project_codemappings(
         "stacktrace_paths": stacktrace_paths,
     }
     if code_mappings:
-        msg = "derive_code_mappings: code mappings would have been created."
+        msg = "Code mappings would have been created."
     else:
-        msg = "derive_code_mappings: NO code mappings would have been created."
+        msg = "NO code mappings would have been created."
     existing_code_mappings = RepositoryProjectPathConfig.objects.filter(project=project)
     if existing_code_mappings.exists():
-        msg = "derive_code_mappings: code mappings already exist."
+        msg = "Code mappings already exist."
         extra["existing_code_mappings"] = existing_code_mappings
 
     logger.info(msg, extra=extra)

@@ -4,10 +4,9 @@ from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.authentication import DSNAuthentication
 from sentry.api.base import Endpoint, pending_silo_endpoint
-from sentry.api.bases.project import ProjectPermission
+from sentry.api.bases.monitor import MonitorEndpoint, ProjectMonitorPermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.api.serializers import serialize
@@ -36,8 +35,8 @@ class CheckInSerializer(serializers.Serializer):
 
 @pending_silo_endpoint
 class MonitorCheckInDetailsEndpoint(Endpoint):
-    authentication_classes = Endpoint.authentication_classes + (DSNAuthentication,)
-    permission_classes = (ProjectPermission,)
+    authentication_classes = MonitorEndpoint.authentication_classes + (DSNAuthentication,)
+    permission_classes = (ProjectMonitorPermission,)
 
     # TODO(dcramer): this code needs shared with other endpoints as its security focused
     # TODO(dcramer): this doesnt handle is_global roles
@@ -53,9 +52,6 @@ class MonitorCheckInDetailsEndpoint(Endpoint):
 
         if hasattr(request.auth, "project_id") and project.id != request.auth.project_id:
             return self.respond(status=400)
-
-        if not features.has("organizations:monitors", project.organization, actor=request.user):
-            raise ResourceDoesNotExist
 
         self.check_object_permissions(request, project)
 
@@ -113,6 +109,10 @@ class MonitorCheckInDetailsEndpoint(Endpoint):
         params = {"date_updated": current_datetime}
         if "duration" in result:
             params["duration"] = result["duration"]
+        else:
+            duration = int((current_datetime - checkin.date_added).total_seconds() * 1000)
+            params["duration"] = duration
+
         if "status" in result:
             params["status"] = getattr(CheckInStatus, result["status"].upper())
 

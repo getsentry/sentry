@@ -12,8 +12,8 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NavTabs from 'sentry/components/navTabs';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
-import recreateRoute from 'sentry/utils/recreateRoute';
 import useApi from 'sentry/utils/useApi';
+import {useParams} from 'sentry/utils/useParams';
 import useTeams from 'sentry/utils/useTeams';
 
 type Props = {
@@ -22,9 +22,10 @@ type Props = {
 
 function TeamDetails({children, ...props}: Props) {
   const api = useApi();
+  const params = useParams();
   const [requesting, setRequesting] = useState(false);
-  const {teams, initiallyLoaded} = useTeams({slugs: [props.params.teamId]});
-  const team = teams.find(({slug}) => slug === props.params.teamId);
+  const {teams, initiallyLoaded} = useTeams({slugs: [params.teamId]});
+  const team = teams.find(({slug}) => slug === params.teamId);
 
   function handleRequestAccess(teamSlug: string) {
     setRequesting(true);
@@ -32,7 +33,7 @@ function TeamDetails({children, ...props}: Props) {
     joinTeam(
       api,
       {
-        orgId: props.params.orgId,
+        orgId: params.orgId,
         teamId: teamSlug,
       },
       {
@@ -56,13 +57,7 @@ function TeamDetails({children, ...props}: Props) {
     );
   }
 
-  // `/organizations/${orgId}/teams/${teamId}`;
-  const routePrefix = recreateRoute('', {
-    routes: props.routes,
-    params: props.params,
-    stepBack: -1,
-  });
-
+  const routePrefix = `/settings/${params.orgId}/teams/${params.teamId}/`;
   const navigationTabs = [
     <ListLink key={0} to={`${routePrefix}members/`}>
       {t('Members')}

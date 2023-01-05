@@ -1,4 +1,5 @@
 import ExternalLink from 'sentry/components/links/externalLink';
+import {DEFAULT_QUERY} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 
@@ -127,6 +128,12 @@ export enum IssueSortOptions {
   INBOX = 'inbox',
 }
 
+export const DEFAULT_ISSUE_STREAM_SORT = IssueSortOptions.DATE;
+
+export function isDefaultIssueStreamSearch({query, sort}: {query: string; sort: string}) {
+  return query === DEFAULT_QUERY && sort === DEFAULT_ISSUE_STREAM_SORT;
+}
+
 export function getSortLabel(key: string) {
   switch (key) {
     case IssueSortOptions.NEW:
@@ -161,3 +168,6 @@ export const DISCOVER_EXCLUSION_FIELDS: string[] = [
   'is',
   '__text',
 ];
+
+export const SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY =
+  'issue-stream-saved-searches-sidebar-open';

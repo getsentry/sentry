@@ -40,10 +40,8 @@ import {formatFloat, formatPercentage} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import Projects from 'sentry/utils/projects';
 import toArray from 'sentry/utils/toArray';
-import {
-  ContextType,
-  QuickContextHoverWrapper,
-} from 'sentry/views/eventsV2/table/quickContext';
+import {QuickContextHoverWrapper} from 'sentry/views/eventsV2/table/quickContext/quickContextWrapper';
+import {ContextType} from 'sentry/views/eventsV2/table/quickContext/utils';
 import {
   filterToLocationQuery,
   SpanOperationBreakdownFilter,
@@ -583,7 +581,7 @@ const SPECIAL_FIELDS: SpecialFields = {
             <NumberContainer>
               <Count value={count} />
             </NumberContainer>
-            <UserIcon size="20" />
+            <UserIcon size="md" />
           </FlexContainer>
         );
       }

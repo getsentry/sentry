@@ -17,4 +17,47 @@ describe('Frame', () => {
       ).toBe(true);
     });
   });
+  describe('pulls package from path for web|node platforms', () => {
+    it('file in node modules', () => {
+      expect(
+        new Frame(
+          {
+            key: 0,
+            name: 'Foo',
+            path: '/usr/code/node_modules/file.js',
+            line: undefined,
+            column: undefined,
+          },
+          'node'
+        ).image
+      ).toBe(undefined);
+    });
+    it.each([
+      ['/usr/code/node_modules/@sentry/profiling-node/file.js', '@sentry/profiling-node'],
+      ['/usr/code/node_modules/sentry/profiling-node/file.js', 'sentry'],
+      ['/usr/code/node_modules/sentry/file.js', 'sentry'],
+      [
+        'C:\\Program Files (x86)\\node_modules\\@sentry\\profiling-node\\file.js',
+        '@sentry/profiling-node',
+      ],
+      [
+        'C:\\Program Files (x86)\\node_modules\\sentry\\profiling-node\\file.js',
+        'sentry',
+      ],
+      ['C:\\Program Files (x86)\\node_modules\\sentry\\file.js', 'sentry'],
+    ])('%s -> %s', (path, expected) => {
+      expect(
+        new Frame(
+          {
+            key: 0,
+            name: 'Foo',
+            path,
+            line: undefined,
+            column: undefined,
+          },
+          'node'
+        ).image
+      ).toBe(expected);
+    });
+  });
 });

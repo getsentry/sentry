@@ -45,7 +45,6 @@ class OrganizationSerializerTest(TestCase):
             "data-forwarding",
             "dashboards-basic",
             "dashboards-edit",
-            "dashboards-top-level-filter",
             "discover-basic",
             "discover-query",
             "discover-query-builder-as-landing-page",
@@ -68,9 +67,6 @@ class OrganizationSerializerTest(TestCase):
             "sso-saml2",
             "symbol-sources",
             "team-insights",
-            "discover-frontend-use-events-endpoint",
-            "performance-frontend-use-events-endpoint",
-            "performance-issues-ingest",
         }
 
     @mock.patch("sentry.features.batch_has")

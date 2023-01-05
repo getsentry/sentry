@@ -2,9 +2,11 @@ import styled from '@emotion/styled';
 
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 import {SectionHeading} from 'sentry/components/charts/styles';
+import Clipboard from 'sentry/components/clipboard';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import TimeSince from 'sentry/components/timeSince';
+import {IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 
@@ -25,11 +27,11 @@ const statusToLabel: Record<Status, string> = {
 const MonitorHeader = ({monitor, orgId, onUpdate}: Props) => {
   const crumbs = [
     {
-      label: t('Monitors'),
-      to: `/organizations/${orgId}/monitors`,
+      label: t('Crons'),
+      to: `/organizations/${orgId}/crons`,
     },
     {
-      label: t('Monitor Details'),
+      label: t('Cron Monitor Details'),
     },
   ];
 
@@ -48,7 +50,11 @@ const MonitorHeader = ({monitor, orgId, onUpdate}: Props) => {
             {monitor.name}
           </MonitorName>
         </Layout.Title>
-        <MonitorId>{monitor.id}</MonitorId>
+        <Clipboard value={monitor.id}>
+          <MonitorId>
+            {monitor.id} <IconCopy size="xs" />
+          </MonitorId>
+        </Clipboard>
       </Layout.HeaderContent>
       <Layout.HeaderActions>
         <MonitorHeaderActions orgId={orgId} monitor={monitor} onUpdate={onUpdate} />
@@ -78,6 +84,7 @@ const MonitorName = styled('div')`
 const MonitorId = styled('div')`
   margin-top: ${space(1)};
   color: ${p => p.theme.subText};
+  cursor: pointer;
 `;
 
 const MonitorStats = styled('div')`
