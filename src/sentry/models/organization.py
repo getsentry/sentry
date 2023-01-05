@@ -31,6 +31,7 @@ from sentry.db.models import (
 from sentry.db.models.utils import slugify_instance
 from sentry.locks import locks
 from sentry.models.organizationmember import OrganizationMember
+from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox
 from sentry.roles.manager import Role
 from sentry.services.hybrid_cloud.user import APIUser, user_service
 from sentry.utils.http import is_using_customer_domain
@@ -230,6 +231,15 @@ class Organization(Model, SnowflakeIdMixin):
         NotificationSetting.objects.remove_for_organization(self)
 
         return super().delete(**kwargs)
+
+    @staticmethod
+    def outbox_for_update(org_id: int) -> RegionOutbox:
+        return RegionOutbox(
+            shard_scope=OutboxScope.ORGANIZATION_SCOPE,
+            shard_identifier=org_id,
+            category=OutboxCategory.ORGANIZATION_UPDATE,
+            object_identifier=org_id,
+        )
 
     @cached_property
     def is_default(self):

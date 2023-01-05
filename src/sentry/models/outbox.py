@@ -5,7 +5,7 @@ import contextlib
 import datetime
 import sys
 from enum import IntEnum
-from typing import Any, Generator, Iterable, List, Mapping, Set, TypeVar
+from typing import Any, Generator, Iterable, List, Mapping, Set
 
 from django.db import connections, models, router, transaction
 from django.db.models import Max
@@ -55,10 +55,7 @@ class WebhookProviderIdentifier(IntEnum):
     GITHUB = 1
 
 
-T = TypeVar("T")
-
-
-def _ensure_not_null(k: str, v: T) -> T:
+def _ensure_not_null(k: str, v: Any) -> Any:
     if v is None:
         raise ValueError(f"Attribute {k} was None, but it needed to be set!")
     return v
@@ -174,14 +171,15 @@ class OutboxBase(Model):
 
     def drain_shard(self, max_updates_to_drain: int | None = None):
         runs = 0
-        while max_updates_to_drain is None or runs < max_updates_to_drain:
+        next_row: OutboxBase | None = self.selected_messages_in_shard().first()
+        while next_row is not None and (
+            max_updates_to_drain is None or runs < max_updates_to_drain
+        ):
             runs += 1
-            next_row: OutboxBase | None = self.selected_messages_in_shard().first()
-            if next_row is None:
-                return True
             next_row.process()
+            next_row: OutboxBase | None = self.selected_messages_in_shard().first()
 
-        if self.selected_messages_in_shard().first() is not None:
+        if next_row is not None:
             raise OutboxFlushError(
                 f"Could not flush items from shard {self.key_from(self.sharding_columns)!r}"
             )
@@ -222,32 +220,6 @@ class RegionOutbox(OutboxBase):
         )
 
     __repr__ = sane_repr("shard_scope", "shard_identifier", "category", "object_identifier")
-
-    @classmethod
-    def drain_for_model(cls, model_inst: Any, max_updates_to_drain: int | None = None) -> None:
-        outbox = cls.for_model_update(model_inst)
-        if outbox is None:
-            return
-        outbox.drain_shard(max_updates_to_drain)
-
-    @classmethod
-    def for_model_update(cls, model_inst: Any) -> RegionOutbox:
-        from sentry.models import Organization, OrganizationMember
-
-        result = cls()
-        if isinstance(model_inst, Organization):
-            result.shard_scope = OutboxScope.ORGANIZATION_SCOPE
-            result.shard_identifier = model_inst.id
-            result.category = OutboxCategory.ORGANIZATION_UPDATE
-            result.object_identifier = model_inst.id
-        elif isinstance(model_inst, OrganizationMember):
-            result.shard_scope = OutboxScope.ORGANIZATION_SCOPE
-            result.shard_identifier = model_inst.organization_id
-            result.category = OutboxCategory.ORGANIZATION_MEMBER_UPDATE
-            result.object_identifier = model_inst.id
-        else:
-            raise ValueError(f"{model_inst!r} isn't supported for region silo model update!")
-        return result
 
 
 # Outboxes bound from region silo -> control silo
@@ -297,22 +269,6 @@ class ControlOutbox(OutboxBase):
     )
 
     @classmethod
-    def for_model_update(cls, model_inst: Any) -> Iterable[ControlOutbox]:
-        from sentry.models import User
-
-        if isinstance(model_inst, User):
-            for region_name in _find_regions_for_user(model_inst.id):
-                result = cls()
-                result.shard_scope = OutboxScope.USER_SCOPE
-                result.object_identifier = model_inst.id
-                result.shard_identifier = model_inst.id
-                result.category = OutboxCategory.USER_UPDATE
-                result.region_name = region_name
-                yield result
-        else:
-            raise ValueError(f"{model_inst!r} isn't supported for control silo model update!")
-
-    @classmethod
     def for_webhook_update(
         cls,
         *,
@@ -341,7 +297,7 @@ def _find_orgs_for_user(user_id: int) -> Set[int]:
     }
 
 
-def _find_regions_for_user(user_id: int) -> Set[str]:
+def find_regions_for_user(user_id: int) -> Set[str]:
     from sentry.models import OrganizationMapping
 
     org_ids: Set[int]
