@@ -1443,13 +1443,15 @@ class QueryBuilder(BaseQueryBuilder):
             if "meta" in results:
                 for value in results["meta"]:
                     name = value["name"]
-                    key = self.tag_resolver_map.get(name, translated_columns.get(name, name))
+                    key = translated_columns.get(name, name)
+                    key = self.tag_resolver_map.get(key, key)
                     field_type = fields.get_json_meta_type(key, value.get("type"), self)
                     field_meta[key] = field_type
                 # Ensure all columns in the result have types.
                 if results["data"]:
                     for key in results["data"][0]:
-                        field_key = self.tag_resolver_map.get(key, translated_columns.get(key, key))
+                        field_key = translated_columns.get(key, key)
+                        field_key = self.tag_resolver_map.get(field_key, field_key)
                         if field_key not in field_meta:
                             field_meta[field_key] = "string"
 
@@ -1469,11 +1471,9 @@ class QueryBuilder(BaseQueryBuilder):
                     else:
                         new_value = value
 
-                    resolved_key = (
-                        translated_columns.get(key, key)
-                        if self.skip_tag_resolution
-                        else self.tag_resolver_map.get(key, translated_columns.get(key, key))
-                    )
+                    resolved_key = translated_columns.get(key, key)
+                    if not self.skip_tag_resolution:
+                        resolved_key = self.tag_resolver_map.get(resolved_key, resolved_key)
                     transformed[resolved_key] = new_value
 
                 return transformed
