@@ -501,6 +501,7 @@ export default withOrganization(SentryApplicationDetails);
 
 const StyledPanelItem = styled(PanelItem)`
   display: flex;
+  align-items: center;
   justify-content: space-between;
 `;
 
