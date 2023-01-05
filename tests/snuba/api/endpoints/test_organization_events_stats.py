@@ -924,6 +924,41 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
         response = self.do_request(query, features={"organizations:profiling": True})
         assert response.status_code == 200, response.content
 
+    def test_tag_with_conflicting_function_alias_simple(self):
+        for _ in range(7):
+            self.store_event(
+                data={
+                    "timestamp": iso_format(self.day_ago + timedelta(minutes=2)),
+                    "tags": {"count": "9001"},
+                },
+                project_id=self.project2.id,
+            )
+
+        # Query for count and count()
+        data = {
+            "start": iso_format(self.day_ago),
+            "end": iso_format(self.day_ago + timedelta(minutes=3)),
+            "interval": "1h",
+            "yAxis": "count()",
+            "orderby": ["-count()"],
+            "field": ["count()", "count"],
+            "partial": 1,
+        }
+        response = self.client.get(self.url, data, format="json")
+        assert response.status_code == 200
+        # Expect a count of 8 because one event from setUp
+        assert response.data["data"][0][1] == [{"count": 8}]
+
+        data["query"] = "count:9001"
+        response = self.client.get(self.url, data, format="json")
+        assert response.status_code == 200
+        assert response.data["data"][0][1] == [{"count": 7}]
+
+        data["query"] = "count:abc"
+        response = self.client.get(self.url, data, format="json")
+        assert response.status_code == 200
+        assert all([interval[1][0]["count"] == 0 for interval in response.data["data"]])
+
 
 @region_silo_test
 class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
@@ -1174,6 +1209,18 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
             response = self.client.get(self.url, data, format="json")
             assert response.status_code == 200
             assert response.data["9001"]["data"][0][1] == [{"count": 7}]
+
+        data["query"] = "count:9001"
+        with self.feature(self.enabled_features):
+            response = self.client.get(self.url, data, format="json")
+            assert response.status_code == 200
+            assert response.data["9001"]["data"][0][1] == [{"count": 7}]
+
+        data["query"] = "count:abc"
+        with self.feature(self.enabled_features):
+            response = self.client.get(self.url, data, format="json")
+            assert response.status_code == 200
+            assert all([interval[1][0]["count"] == 0 for interval in response.data["data"]])
 
     def test_tag_with_conflicting_function_alias_with_other_single_grouping(self):
         event_data = [
