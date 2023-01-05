@@ -80,9 +80,13 @@ class Monitors extends AsyncView<Props, State> {
     return `Monitors - ${this.orgSlug}`;
   }
 
-  componentDidMount() {
+  onRequestSuccess(response): void {
     this.props.setEventNames('monitors.page_viewed', 'Monitors: Page Viewed');
+    this.props.setRouteAnalyticsParams({
+      empty_state: response.data.length === 0,
+    });
   }
+
   handleSearch = (query: string) => {
     const {location, router} = this.props;
     router.push({
