@@ -34,16 +34,19 @@ function KeyValueList({
     <Table className="table key-value" onClick={onClick} {...props}>
       <tbody>
         {keyValueData.map(
-          ({
-            key,
-            subject,
-            value = null,
-            meta,
-            subjectIcon,
-            subjectDataTestId,
-            actionButton,
-            isContextData: valueIsContextData,
-          }) => {
+          (
+            {
+              key,
+              subject,
+              value = null,
+              meta,
+              subjectIcon,
+              subjectDataTestId,
+              actionButton,
+              isContextData: valueIsContextData,
+            },
+            idx
+          ) => {
             const valueProps = {
               isContextData: valueIsContextData || isContextData,
               meta,
@@ -53,7 +56,7 @@ function KeyValueList({
             };
 
             return (
-              <tr key={`${key}.${value}`}>
+              <tr key={`${key}-${idx}`}>
                 <TableSubject className="key" wide={longKeys}>
                   {subject}
                 </TableSubject>
