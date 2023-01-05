@@ -91,7 +91,7 @@ def set_top_tags(
 
 def update_tags(
     scope: Scope,
-    result: Dict[str, str],
+    result: JSONData,
 ) -> None:
     current_config = result["config"]
     found: bool = result["sourceUrl"] is not None
