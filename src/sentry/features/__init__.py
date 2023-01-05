@@ -156,7 +156,6 @@ default_manager.add("organizations:transaction-name-normalize", OrganizationFeat
 default_manager.add("organizations:transaction-name-clusterer", OrganizationFeature)
 default_manager.add("organizations:transaction-name-sanitization", OrganizationFeature, False)
 default_manager.add("organizations:transaction-metrics-extraction", OrganizationFeature)
-default_manager.add("organizations:unified-span-view", OrganizationFeature, True)
 default_manager.add("organizations:use-metrics-layer", OrganizationFeature, True)
 default_manager.add("organizations:widget-viewer-modal-minimap", OrganizationFeature, True)
 default_manager.add("organizations:u2f-superuser-form", OrganizationFeature, True)
