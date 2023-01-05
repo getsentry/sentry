@@ -1,0 +1,184 @@
+#!/usr/bin/env python
+from sentry.runner import configure
+
+configure()
+
+import datetime
+import random
+from uuid import uuid4
+
+import click
+import requests
+from django.utils import timezone
+
+from sentry import options
+from sentry.models import Organization, Project, ProjectKey, Release
+from sentry.snuba.metrics.naming_layer.mri import SessionMRI
+from sentry.utils import json
+
+abnormal_mechanism_choices = (
+    "anr_background",
+    "anr_foreground",
+)
+
+session_status = ["ok", "exited", "crashed", "abnormal"]
+session_status_weights = [0.5, 0.05, 0.05, 0.40]
+
+type_map = {
+    "set": "s",
+    "counter": "c",
+    "distribution": "d",
+}
+
+
+def generate_session(
+    id: str,
+    user_id: str,
+    time: datetime.datetime,
+    env: str,
+    release: str,
+    init: bool,
+):
+    abnormal_mechanism = random.choice(abnormal_mechanism_choices)
+    status = random.choices(session_status, session_status_weights)[0]
+    return {
+        "sid": id,
+        "did": user_id,
+        "init": init,
+        "started": time.isoformat(),
+        "duration": random.randrange(10, 90),
+        "error": 1 if status == "abnormal" else 0,
+        "status": "ok" if init else status,
+        "abnormal_mechanism": abnormal_mechanism if status == "abnormal" else None,
+        "attrs": {
+            "environment": env,
+            "release": release,
+        },
+    }
+
+
+def send_session(session, project, project_key):
+    envelope = ["{}", '{"type":"session"}', json.dumps(session)]
+    payload = "\n".join(envelope)
+
+    host = "http://127.0.0.1:3001"
+
+    url = f"{host}/api/{project.id}/envelope/?sentry_key={project_key.public_key}&sentry_version=7&sentry_client=sentry.curl/1.1.1"
+    headers = {
+        "content-type": "application/json",
+    }
+    response = requests.post(url, payload, headers=headers)
+    return response
+
+
+def convert_session_to_metrics(organization: Organization, project: Project, session):
+    """
+    Convert a session to metrics
+    Shamelessly stolen from sentry.testutils.cases.BaseMetricsTestCase::store_session
+
+    Mimic relays behavior of always emitting a metric for a started session,
+    and emitting an additional one if the session is fatal
+
+    See https://github.com/getsentry/relay/blob/e3c064e213281c36bde5d2b6f3032c6d36e22520/relay-server/src/actors/envelopes.rs#L357
+    """
+    user = session.get("distinct_id")
+    base_tags = session.get("attrs")
+
+    # This check is not yet reflected in relay, see https://getsentry.atlassian.net/browse/INGEST-464
+    user_is_nil = user is None or user == "00000000-0000-0000-0000-000000000000"
+
+    def generate_metric(type, mri: str, tags, value):
+        short_type = type_map[type]
+        return {
+            "org_id": organization.id,
+            "project_id": project.id,
+            "type": short_type,
+            "name": mri,
+            "value": value,
+            "timestamp": session.get("started"),
+            "tags": {**tags, **base_tags},
+        }
+
+    if session["init"] is True:  # init
+        yield generate_metric("counter", SessionMRI.SESSION.value, {"session.status": "init"}, +1)
+
+    status = session["status"]
+
+    # Mark the session as errored, which includes fatal sessions.
+    if session.get("errors", 0) > 0 or status not in ("ok", "exited"):
+        yield generate_metric("set", SessionMRI.ERROR.value, {}, session["sid"])
+        if not user_is_nil:
+            yield generate_metric("set", SessionMRI.USER.value, {"session.status": "errored"}, user)
+    elif not user_is_nil:
+        yield generate_metric("set", SessionMRI.USER.value, {}, user)
+
+    if status in ("abnormal", "crashed"):  # fatal
+        yield generate_metric("counter", SessionMRI.SESSION.value, {"session.status": status}, +1)
+        if not user_is_nil:
+            yield generate_metric("set", SessionMRI.USER.value, {"session.status": status}, user)
+
+    if status == "exited":
+        if session["duration"] is not None:
+            yield generate_metric(
+                "distribution",
+                SessionMRI.RAW_DURATION.value,
+                {"session.status": status},
+                session["duration"],
+            )
+
+
+@click.command()
+@click.option("--project", type=str, help="Project slug to insert data into", default="internal")
+@click.option("--org", type=str, help="Organization slug to insert data into", default="sentry")
+@click.option(
+    "--release", type=str, help="Release name. Defaults to the most recent release in the project."
+)
+@click.option("--env", type=str, help="Environment to generate sessions for", default="dev")
+@click.option("--days", type=int, help="Number of days to generate data for", default=5)
+def main(project, org, env, days, release=None):
+    click.echo("Mocking sessions for {project} in {org}")
+    options.set("sentry-metrics.releasehealth.abnormal-mechanism-extraction-rate", 1.0)
+    try:
+        organization = Organization.objects.get(slug=org)
+    except Organization.DoesNotExist:
+        raise RuntimeError("! Organization does not exist")
+    try:
+        project = Project.objects.get(slug=project, organization=organization)
+    except Project.DoesNotExist:
+        raise RuntimeError("! Project does not exist")
+
+    project_key = ProjectKey.objects.filter(project=project)[0]
+    if not project_key:
+        raise RuntimeError(f"! Could not find a DSN for {project.slug}")
+
+    if release is None:
+        release = (
+            Release.objects.filter(projects=project, organization=organization)
+            .order_by("-date_added")[0]
+            .version
+        )
+    if not release:
+        release = Release.objects.create(
+            projects=project, organization=organization, version="session-data"
+        ).version
+
+    click.echo(f"> Generating sessions for {days} day(s)")
+    start = timezone.now()
+    end = start - datetime.timedelta(days=days)
+    current = start
+    while current >= end:
+        current = current - datetime.timedelta(hours=1)
+        id = str(uuid4().hex)
+        did = str(uuid4().hex)
+        session = generate_session(id, did, current, env, release, True)
+        response = send_session(session, project, project_key)
+        session = generate_session(id, did, current, env, release, False)
+        response = send_session(session, project, project_key)
+        if response.status_code != 200:
+            click.echo(f"Response failed {response}")
+
+    click.echo("> Complete! generated session records")
+
+
+if __name__ == "__main__":
+    main()
