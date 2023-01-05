@@ -226,7 +226,7 @@ class TestDerivedCodeMappings(TestCase):
         code_mappings = self.code_mapping_helper.generate_code_mappings(stacktraces)
         # The file appears in more than one repo, thus, we are unable to determine the code mapping
         assert code_mappings == []
-        assert logger.warning.called_with("More than one repo matched sentry/web/urls.py")
+        logger.warning.assert_called_with("More than one repo matched sentry/web/urls.py")
 
     def test_list_file_matches_single(self):
         frame_filename = FrameFilename("sentry_plugins/slack/client.py")

@@ -28,7 +28,7 @@ class NotificationTaskTests(TestCase):
     def test_call_task(self, mock_delay):
         register()(AnotherDummyNotification)
         async_send_notification(AnotherDummyNotification, self.organization, "some_value")
-        assert mock_delay.called_with(
+        mock_delay.assert_called_with(
             "AnotherDummyNotification",
             [
                 {
