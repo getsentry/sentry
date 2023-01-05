@@ -18,9 +18,7 @@ def set_issue_alert_fallback(rule, fallthrough_choice):
             action.update({"fallthroughType": fallthrough_choice})
             new_actions.append(action)
 
-    if actions != new_actions:
-        rule.data["actions"] = new_actions
-        rule.save()
+    rule.save()
 
 
 def migrate_project_ownership_to_issue_alert_fallback(project, ProjectOwnership, Rule):
@@ -51,7 +49,7 @@ def migrate_to_issue_alert_fallback(apps, schema_editor):
     # most part an org will see the changes all at once.
     for org in RangeQuerySetWrapperWithProgressBar(Organization.objects.filter(status=0)):
         # We only migrate projects that are not pending deletion.
-        for project in Project.objects.filter(organization=org, status_in=[0, 1]):
+        for project in Project.objects.filter(organization=org, status__in=[0, 1]):
             try:
                 migrate_project_ownership_to_issue_alert_fallback(project, ProjectOwnership, Rule)
             except Exception:
@@ -79,6 +77,8 @@ class Migration(CheckedMigration):
 
     operations = [
         migrations.RunPython(
-            migrate_to_issue_alert_fallback, reverse_code=migrations.RunPython.noop
+            migrate_to_issue_alert_fallback,
+            reverse_code=migrations.RunPython.noop,
+            hints={"tables": ["sentry_rule"]},
         )
     ]
