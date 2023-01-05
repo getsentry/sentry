@@ -44,7 +44,7 @@ class OrganizationRoleSelect extends Component<Props> {
       setSelected,
     } = this.props;
 
-    const tooltipText = () => {
+    const panelAlertText = () => {
       if (isCurrentUser) {
         return "Your organization-level role is managed through your organization's identity provider.";
       }
@@ -57,7 +57,7 @@ class OrganizationRoleSelect extends Component<Props> {
           <div>{t('Organization Role')} </div>
         </PanelHeader>
         {idpRoleRestricted && (
-          <PanelAlert>{tct('[text]', {text: tooltipText()})}</PanelAlert>
+          <PanelAlert>{tct('[text]', {text: panelAlertText()})}</PanelAlert>
         )}
 
         <PanelBody>

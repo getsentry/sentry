@@ -224,7 +224,7 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
               </Button>
             )}
 
-            {showLeaveButton && !memberCanLeave && flags['idp:provisioned'] && (
+            {showLeaveButton && !memberCanLeave && isIdpProvisioned && (
               <Button
                 size="sm"
                 icon={<IconClose size="xs" />}
