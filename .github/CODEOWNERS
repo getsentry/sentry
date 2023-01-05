@@ -400,3 +400,9 @@ yarn.lock                                                @getsentry/owners-js-de
 /tests/sentry/tasks/test_post_process.py            @getsentry/issue-platform
 /tests/snuba/search/                                @getsentry/issue-platform
 ## End of Issue Platform
+
+
+## Hybrid Cloud
+/src/sentry/silo/                     @getsentry/hybrid-cloud
+/src/sentry/services/hybrid_cloud/    @getsentry/hybrid-cloud
+## End of Hybrid Cloud
