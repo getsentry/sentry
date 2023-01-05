@@ -2,10 +2,8 @@
 Metrics Service Layer Tests for Release Health
 """
 import time
-from datetime import timedelta
 
 import pytest
-from django.utils import timezone
 from django.utils.datastructures import MultiValueDict
 from freezegun import freeze_time
 from snuba_sdk import Limit, Offset
@@ -20,15 +18,12 @@ from sentry.testutils import BaseMetricsLayerTestCase, TestCase
 
 pytestmark = pytest.mark.sentry_metrics
 
-ONE_DAY_AGO = timezone.now() - timedelta(days=1)
-MOCK_DATETIME = ONE_DAY_AGO.replace(hour=10, minute=0)
 
-
-@freeze_time(MOCK_DATETIME)
+@freeze_time(BaseMetricsLayerTestCase.MOCK_DATETIME)
 class ReleaseHealthMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
     @property
     def now(self):
-        return MOCK_DATETIME
+        return BaseMetricsLayerTestCase.MOCK_DATETIME
 
     def test_valid_filter_include_meta(self):
         self.create_release(version="foo", project=self.project)
@@ -147,11 +142,11 @@ class ReleaseHealthMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             ("exited", [4, 5, 6, 1, 2, 3]),
             ("crashed", [7, 8, 9]),
         ):
-            for v in d_value:
+            for value in d_value:
                 self.store_release_health_metric(
                     name=SessionMRI.RAW_DURATION.value,
                     tags={"session.status": tag_value},
-                    value=v,
+                    value=value,
                 )
 
         metrics_query = self.build_metrics_query(

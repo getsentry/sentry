@@ -71,7 +71,6 @@ function OwnedBy({group, project, organization}: OwnedByProps) {
         <ActionsWrapper>
           <Access access={['project:write']}>
             <Button
-              type="button"
               onClick={() => {
                 openCreateOwnershipRule({project, organization, issueId: group.id});
               }}
