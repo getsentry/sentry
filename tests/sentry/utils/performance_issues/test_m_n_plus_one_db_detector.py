@@ -97,5 +97,5 @@ class MNPlusOneDBDetectorTest(unittest.TestCase):
         )
 
     def test_m_n_plus_one_does_not_include_extra_span(self):
-        event = EVENTS["m-n-plus-one-db/m-n-plus-one-out-of-order"]
+        event = get_event["m-n-plus-one-db/m-n-plus-one-out-of-order"]
         assert self.find_problems(event) == []
