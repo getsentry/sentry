@@ -19,7 +19,6 @@ from sentry.models import (
     Release,
     Team,
     User,
-    UserOption,
 )
 from sentry.notifications.helpers import (
     get_settings_by_provider,
@@ -36,6 +35,7 @@ from sentry.notifications.types import (
     NotificationSettingTypes,
 )
 from sentry.services.hybrid_cloud.user import APIUser, user_service
+from sentry.services.hybrid_cloud.user_option import user_option_service
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import metrics
 
@@ -68,9 +68,12 @@ def get_providers_from_which_to_remove_user(
         for provider, participants in participants_by_provider.items()
         if user.id in map(lambda p: int(p.id), participants)
     }
+
     if (
-        providers
-        and UserOption.objects.get_value(user, key="self_notifications", default="0") == "0"
+        user_option_service.query_options(user_ids=[user.id], keys=["self_notifications"]).get_one(
+            default="0"
+        )
+        == "0"
     ):
         return providers
     return set()

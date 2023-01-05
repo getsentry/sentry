@@ -8,7 +8,7 @@ from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class GroupSuspectReleasesTest(APITestCase, SnubaTestCase):
     def test_no_suspect_releases(self):
         self.login_as(user=self.user)

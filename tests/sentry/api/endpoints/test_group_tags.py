@@ -4,7 +4,7 @@ from sentry.testutils.silo import region_silo_test
 from sentry.types.issues import GroupType
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class GroupTagsTest(APITestCase, SnubaTestCase):
     def test_simple(self):
         event1 = self.store_event(
