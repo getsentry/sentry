@@ -1,5 +1,4 @@
 import {Component, Fragment} from 'react';
-import {RouteComponentProps} from 'react-router';
 
 import {
   addErrorMessage,
@@ -29,17 +28,12 @@ type Props = {
   api: Client;
   data: ProjectKey;
   onRemove: () => void;
-} & Pick<
-  RouteComponentProps<
-    {
-      keyId: string;
-      orgId: string;
-      projectId: string;
-    },
-    {}
-  >,
-  'params'
->;
+  params: {
+    keyId: string;
+    orgId: string;
+    projectId: string;
+  };
+};
 
 type State = {
   error: boolean;
