@@ -17,14 +17,13 @@ import {Monitor, MonitorStat} from './types';
 
 type Props = {
   monitor: Monitor;
-  orgId: string;
 };
 
 type State = {
   stats: MonitorStat[] | null;
 };
 
-const MonitorStats = ({monitor, orgId}: Props) => {
+const MonitorStats = ({monitor}: Props) => {
   const {selection} = usePageFilters();
   const {start, end, period} = selection.datetime;
 
@@ -42,7 +41,7 @@ const MonitorStats = ({monitor, orgId}: Props) => {
     endpoints: [
       [
         'stats',
-        `/monitors/${orgId}/${monitor.id}/stats/`,
+        `/monitors/${monitor.id}/stats/`,
         {
           query: {
             since: since.toString(),

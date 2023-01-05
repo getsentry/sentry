@@ -154,8 +154,8 @@ const FlamegraphGrid = styled('div')<{
     layout === 'table bottom'
       ? 'auto auto 1fr'
       : layout === 'table right'
-      ? 'min-content'
-      : 'min-content'};
+      ? 'min-content min-content 1fr'
+      : 'min-content min-content 1fr'};
   grid-template-columns: ${({layout}) =>
     layout === 'table bottom'
       ? '100%'

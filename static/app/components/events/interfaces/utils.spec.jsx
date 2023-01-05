@@ -130,6 +130,32 @@ describe('components/interfaces/utils', function () {
           ' --data "{\\"a\\":\\"b\\\\\\"c\\"}" \\\n' +
           ' "http://example.com/foo"'
       );
+
+      // Escape strings with special bash characters
+      expect(
+        getCurlCommand({
+          url: 'http://example.com/foo${not_a_variable}',
+          headers: [
+            ['Referer', 'http://example.com'],
+            [
+              'User-Agent',
+              'Mozilla/5.0 ("Windows" NT 6.2; WOW64) $not_a_variable `test`',
+            ],
+            ['Content-Type', 'application/json'],
+          ],
+          fragment: '',
+          query: [],
+          data: '{"a$TEST":"b\\"c"}',
+          method: 'GET',
+        })
+      ).toEqual(
+        'curl \\\n' +
+          ' -H "Content-Type: application/json" \\\n' +
+          ' -H "Referer: http://example.com" \\\n' +
+          ' -H "User-Agent: Mozilla/5.0 (\\"Windows\\" NT 6.2; WOW64) \\$not_a_variable \\`test\\`" \\\n' +
+          ' --data "{\\"a\\$TEST\\":\\"b\\\\\\"c\\"}" \\\n' +
+          ' "http://example.com/foo\\${not_a_variable}"'
+      );
     });
 
     it('works with a Proxy', function () {

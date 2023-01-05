@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import Textarea from 'sentry/components/forms/controls/textarea';
-import Field from 'sentry/components/forms/field';
+import FieldGroup from 'sentry/components/forms/field';
 import FieldHelp from 'sentry/components/forms/field/fieldHelp';
 import Input from 'sentry/components/input';
 import TextCopyInput from 'sentry/components/textCopyInput';
@@ -55,7 +55,7 @@ const Form = ({
 
   return (
     <form onSubmit={handleSubmit} id="relay-form">
-      <Field
+      <FieldGroup
         flexibleControlStateSize
         label={t('Display Name')}
         error={errors.name}
@@ -72,14 +72,19 @@ const Form = ({
           onBlur={onValidate('name')}
           disabled={disables.name}
         />
-      </Field>
+      </FieldGroup>
 
       {disables.publicKey ? (
-        <Field flexibleControlStateSize label={t('Public Key')} inline={false} stacked>
+        <FieldGroup
+          flexibleControlStateSize
+          label={t('Public Key')}
+          inline={false}
+          stacked
+        >
           <TextCopyInput onCopy={onCopy(values.publicKey)}>
             {values.publicKey}
           </TextCopyInput>
-        </Field>
+        </FieldGroup>
       ) : (
         <FieldWrapper>
           <StyledField
@@ -106,7 +111,12 @@ const Form = ({
           </FieldHelp>
         </FieldWrapper>
       )}
-      <Field flexibleControlStateSize label={t('Description')} inline={false} stacked>
+      <FieldGroup
+        flexibleControlStateSize
+        label={t('Description')}
+        inline={false}
+        stacked
+      >
         <Textarea
           name="description"
           placeholder={t('Description')}
@@ -115,7 +125,7 @@ const Form = ({
           disabled={disables.description}
           autosize
         />
-      </Field>
+      </FieldGroup>
     </form>
   );
 };
@@ -126,6 +136,6 @@ const FieldWrapper = styled('div')`
   padding-bottom: ${space(2)};
 `;
 
-const StyledField = styled(Field)`
+const StyledField = styled(FieldGroup)`
   padding-bottom: 0;
 `;
