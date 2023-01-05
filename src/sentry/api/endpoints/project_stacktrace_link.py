@@ -210,7 +210,7 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                     derived = True
 
                 # Add tag if filepath is Windows
-                if filepath.find(":\\"):
+                if filepath.find(":\\") > -1:
                     scope.set_tag("stacktrace_link.windows", True)
 
                 outcome = {}
