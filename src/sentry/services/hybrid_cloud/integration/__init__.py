@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from abc import abstractmethod
 from dataclasses import dataclass
+from datetime import datetime
 from typing import TYPE_CHECKING, Any, Iterable, List, Mapping
 
 from sentry.constants import ObjectStatus
@@ -55,6 +56,7 @@ class APIOrganizationIntegration:
     integration_id: int
     config: dict[str, Any]
     status: int  # As ObjectStatus
+    grace_period_end: datetime
 
 
 class IntegrationService(InterfaceWithLifecycle):
@@ -78,16 +80,8 @@ class IntegrationService(InterfaceWithLifecycle):
             integration_id=oi.integration_id,
             config=oi.config,
             status=oi.status,
+            grace_period_end=oi.grace_period_end,
         )
-
-    @abstractmethod
-    def get_many(
-        self, *, integration_ids: Iterable[int] | None = None, organization_id: int | None = None
-    ) -> List[APIIntegration]:
-        """
-        Returns a list of APIIntegrations filtered either by a list of integration ids, or a single organization id
-        """
-        pass
 
     @abstractmethod
     def page_integration_ids(
@@ -97,6 +91,15 @@ class IntegrationService(InterfaceWithLifecycle):
         organization_id: int,
         args: ApiPaginationArgs,
     ) -> ApiPaginationResult:
+        pass
+
+    @abstractmethod
+    def get_integrations(
+        self, *, integration_ids: Iterable[int] | None = None, organization_id: int | None = None
+    ) -> List[APIIntegration]:
+        """
+        Returns a list of APIIntegrations filtered either by a list of integration ids, or a single organization id
+        """
         pass
 
     @abstractmethod
@@ -114,15 +117,23 @@ class IntegrationService(InterfaceWithLifecycle):
 
     @abstractmethod
     def get_organization_integrations(
-        self, *, integration_id: int
+        self,
+        *,
+        integration_id: int | None = None,
+        organization_id: int | None = None,
+        status: int | None = None,
+        providers: List[str] | None = None,
+        has_grace_period: bool | None = None,
     ) -> List[APIOrganizationIntegration]:
         """
-        Returns all APIOrganizationIntegrations associated with a given integration.
+        Returns all APIOrganizationIntegrations from the integration_id, organization_id and status.
+        If providers is set, it will also be filtered by the integration providers set in the list.
+        If has_grace_period is set, it will filter by whether the grace_period is null or not.
         """
         pass
 
     def get_organization_integration(
-        self, integration_id: int, organization_id: int
+        self, *, integration_id: int, organization_id: int
     ) -> APIOrganizationIntegration | None:
         """
         Returns an APIOrganizationIntegration from the integration and organization ids.
@@ -138,6 +149,7 @@ class IntegrationService(InterfaceWithLifecycle):
             else None
         )
 
+    @abstractmethod
     def update_config(
         self, *, org_integration_id: int, config: Mapping[str, Any], should_clear: bool = False
     ) -> APIOrganizationIntegration | None:
@@ -146,6 +158,30 @@ class IntegrationService(InterfaceWithLifecycle):
         was successfully updated, otherwise returns None.
         If should_clear is True, runs dict.clear() first, otherwise just uses dict.update()
         """
+        pass
+
+    @abstractmethod
+    def update_status(
+        self, *, org_integration_id: int, status: int
+    ) -> APIOrganizationIntegration | None:
+        """
+        Returns an APIOrganizationIntegration if the org_integration.status was updated,
+        otherwise returns None.
+        """
+        pass
+
+    @abstractmethod
+    def update_grace_period_end(
+        self,
+        *,
+        org_integration_id: int,
+        grace_period_end: datetime | None,
+    ) -> APIOrganizationIntegration | None:
+        """
+        Returns an APIOrganizationIntegration if the org_integration.grace_period_end was updated,
+        otherwise returns None.
+        """
+        pass
 
     def get_installation(
         self, *, integration_id: int, organization_id: int

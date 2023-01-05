@@ -39,7 +39,7 @@ class GroupIntegrationsEndpoint(GroupEndpoint):
 
         response = Response(
             serialize(
-                integration_service.get_many(integration_ids=result.ids),
+                integration_service.get_integrations(integration_ids=result.ids),
                 user=request.user,
                 serializer=IntegrationIssueSerializer(group),
             )

@@ -629,7 +629,7 @@ class GroupSerializerBase(Serializer, ABC):
 
         integration_annotations = []
         # find all the integration installs that have issue tracking
-        integrations = integration_service.get_many(organization_id=org_id)
+        integrations = integration_service.get_integrations(organization_id=org_id)
         for integration in integrations:
             if not (
                 integration_service.has_feature(
