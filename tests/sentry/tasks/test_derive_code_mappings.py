@@ -200,14 +200,6 @@ class TestNodeDeriveCodeMappings(BaseDeriveCodeMappings):
                     "in_app": True,
                 },
                 {
-                    "filename": "C:\\Users\\Donia\\AppData\\Roaming\\Adobe\\UXP\\Plugins\\External\\452f92d2_0.13.0\\main.js",
-                    "in_app": True,
-                },
-                {
-                    "filename": "D:\\projects\\tredz-vue\\server.js",
-                    "in_app": True,
-                },
-                {
                     "filename": "app:///../services/event/EventLifecycle/index.js",
                     "in_app": True,
                 },
@@ -219,8 +211,6 @@ class TestNodeDeriveCodeMappings(BaseDeriveCodeMappings):
         assert set(stacktrace_paths) == {
             "app:///utils/errors.js",
             "../../../../../../packages/api/src/response.ts",
-            "C:\\Users\\Donia\\AppData\\Roaming\\Adobe\\UXP\\Plugins\\External\\452f92d2_0.13.0\\main.js",
-            "D:\\projects\\tredz-vue\\server.js",
             "app:///../services/event/EventLifecycle/index.js",
         }
 
@@ -271,44 +261,6 @@ class TestNodeDeriveCodeMappings(BaseDeriveCodeMappings):
             derive_code_mappings(self.project.id, self.event_data)
             code_mapping = RepositoryProjectPathConfig.objects.all()[0]
             assert code_mapping.stack_root == "app:///../"
-            assert code_mapping.source_root == ""
-            assert code_mapping.repository.name == repo_name
-
-    @responses.activate
-    @with_feature("organizations:derive-code-mappings")
-    def test_derive_code_mappings_starts_with_drive_backslash(self):
-        repo_name = "foo/bar"
-        with patch(
-            "sentry.integrations.github.client.GitHubClientMixin.get_trees_for_org"
-        ) as mock_get_trees_for_org:
-            mock_get_trees_for_org.return_value = {
-                repo_name: RepoTree(
-                    Repo(repo_name, "master"),
-                    ["projects\\tredz-vue\\server.js"],
-                )
-            }
-            derive_code_mappings(self.project.id, self.event_data)
-            code_mapping = RepositoryProjectPathConfig.objects.all()[0]
-            assert code_mapping.stack_root == "D:\\"
-            assert code_mapping.source_root == ""
-            assert code_mapping.repository.name == repo_name
-
-    @responses.activate
-    @with_feature("organizations:derive-code-mappings")
-    def test_derive_code_mappings_starts_with_drive_backslash_users(self):
-        repo_name = "foo/bar"
-        with patch(
-            "sentry.integrations.github.client.GitHubClientMixin.get_trees_for_org"
-        ) as mock_get_trees_for_org:
-            mock_get_trees_for_org.return_value = {
-                repo_name: RepoTree(
-                    Repo(repo_name, "master"),
-                    ["AppData\\Roaming\\Adobe\\UXP\\Plugins\\External\\452f92d2_0.13.0\\main.js"],
-                )
-            }
-            derive_code_mappings(self.project.id, self.event_data)
-            code_mapping = RepositoryProjectPathConfig.objects.all()[0]
-            assert code_mapping.stack_root == "C:\\Users\\Donia\\"
             assert code_mapping.source_root == ""
             assert code_mapping.repository.name == repo_name
 

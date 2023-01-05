@@ -1,5 +1,4 @@
 import logging
-import re
 from typing import Dict, List, NamedTuple, Tuple, Union
 
 from sentry.models.integrations.organization_integration import OrganizationIntegration
@@ -17,14 +16,11 @@ logger.setLevel(logging.INFO)
 EXTENSIONS = ["js", "jsx", "tsx", "ts", "mjs", "py", "rb", "php", "go"]
 
 # List of file paths prefixes that should become stack trace roots
-FILE_PATH_PREFIX_REGEX = [
-    "app:///",
-    r"[a-zA-Z]:[\\\\]+Users[\\\\]+[a-zA-Z0-9_]+[\\\\]+",
-    r"[a-zA-Z]:[\\\\]+",
-    r"\./",
-    r"[\.\./]+",
-    "~/",
-]
+FILE_PATH_PREFIX_LENGTH = {
+    "app:///": 7,
+    "../": 3,
+    "./": 2,
+}
 
 
 class Repo(NamedTuple):
@@ -66,11 +62,10 @@ def should_include(file_path: str) -> bool:
 
 def get_straight_path_prefix_end_index(file_path: str) -> int:
     index = 0
-    for regex in FILE_PATH_PREFIX_REGEX:
-        match = re.match(regex, file_path)
-        if match:
-            index += match.span()[1]
-            file_path = file_path[index:]
+    for prefix in FILE_PATH_PREFIX_LENGTH:
+        while file_path.startswith(prefix):
+            index += FILE_PATH_PREFIX_LENGTH[prefix]
+            file_path = file_path[FILE_PATH_PREFIX_LENGTH[prefix] :]
     return index
 
 
@@ -106,7 +101,8 @@ class FrameFilename:
             not frame_file_path
             or frame_file_path[0] in ["[", "<", "/"]
             or frame_file_path.find(" ") > -1
-            or (frame_file_path.find("/") == -1 and not frame_file_path.find("\\") > -1)
+            or frame_file_path.find("\\") > -1  # Windows support
+            or frame_file_path.find("/") == -1
         ):
             raise UnsupportedFrameFilename("Either garbage or will need work to support.")
 
@@ -143,18 +139,11 @@ class FrameFilename:
         # - /some/path/foo.js
         # - app:///some/path/foo.js
         # - ../../../some/path/foo.js
-        # - C:\\Users\\Name\\some/path/foo.js
-        # - D:\\Users\\some/path/foo.js
         # - app:///../some/path/foo.js
 
         start_at_index = get_straight_path_prefix_end_index(frame_file_path)
         backslash_index = frame_file_path.find("/", start_at_index)
-        # Windows support
-        if backslash_index == -1:
-            backslash_index = frame_file_path.find("\\", start_at_index)
-            dir_path, self.file_name = frame_file_path.rsplit("\\", 1)  # foo.tsx (both)
-        else:
-            dir_path, self.file_name = frame_file_path.rsplit("/", 1)  # foo.tsx (both)
+        dir_path, self.file_name = frame_file_path.rsplit("/", 1)  # foo.tsx (both)
         self.root = frame_file_path[0:backslash_index]  # some or .some
         self.dir_path = dir_path.replace(self.root, "")  # some/path/ (both)
         self.file_and_dir_path = remove_straight_path_prefix(
