@@ -4,8 +4,10 @@ from django.utils import timezone
 
 from sentry.models import CheckInStatus, Monitor, MonitorCheckIn, MonitorStatus, MonitorType
 from sentry.testutils import APITestCase
+from sentry.testutils.silo import region_silo_test
 
 
+@region_silo_test(stable=True)
 class UpdateMonitorCheckInTest(APITestCase):
     endpoint = "sentry-api-0-monitor-check-in-details"
     method = "put"

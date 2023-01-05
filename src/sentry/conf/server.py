@@ -1134,6 +1134,8 @@ SENTRY_FEATURES = {
     "organizations:performance-consecutive-db-issue": False,
     # Enable slow DB performance issue type
     "organizations:performance-slow-db-issue": False,
+    # Enable N+1 API Calls performance issue type
+    "organizations:performance-n-plus-one-api-calls-detector": False,
     # Enable the new Related Events feature
     "organizations:related-events": False,
     # Enable populating suggested assignees with release committers
