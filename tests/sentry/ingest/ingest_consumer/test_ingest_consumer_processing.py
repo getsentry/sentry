@@ -195,7 +195,18 @@ def test_with_attachments(default_project, task_runner, missing_chunks, monkeypa
     "event_attachments", [True, False], ids=["with_feature", "without_feature"]
 )
 @pytest.mark.parametrize(
-    "chunks", [(b"Hello ", b"World!"), (b"",), ()], ids=["basic", "zerolen", "nochunks"]
+    "chunks",
+    [
+        {"payload": (b"Hello ", b"World!")},
+        {"payload": (b"",)},
+        {"payload": ()},
+        {
+            "type": "event.view_hierarchy",
+            "content-type": "application/json",
+            "payload": (b'{"rendering_system":"flutter","windows":[]}',),
+        },
+    ],
+    ids=["basic", "zerolen", "nochunks", "view_hierarchy"],
 )
 @pytest.mark.parametrize("with_group", [True, False], ids=["with_group", "without_group"])
 def test_individual_attachments(
@@ -216,7 +227,7 @@ def test_individual_attachments(
         group_id = event.group.id
         assert group_id, "this test requires a group to work"
 
-    for i, chunk in enumerate(chunks):
+    for i, chunk in enumerate(chunks["payload"]):
         process_attachment_chunk(
             {
                 "payload": chunk,
@@ -232,9 +243,9 @@ def test_individual_attachments(
         {
             "type": "attachment",
             "attachment": {
-                "attachment_type": "event.attachment",
-                "chunks": len(chunks),
-                "content_type": "application/octet-stream",
+                "attachment_type": chunks.get("type", "event.attachment"),
+                "chunks": len(chunks["payload"]),
+                "content_type": chunks.get("content-type", "application/octet-stream"),
                 "id": attachment_id,
                 "name": "foo.txt",
             },
@@ -251,11 +262,13 @@ def test_individual_attachments(
     else:
         (attachment,) = attachments
         file = File.objects.get(id=attachment.file_id)
-        assert file.type == "event.attachment"
-        assert file.headers == {"Content-Type": "application/octet-stream"}
+        assert file.type == chunks.get("type", "event.attachment")
+        assert file.headers == {
+            "Content-Type": chunks.get("content-type", "application/octet-stream")
+        }
         assert attachment.group_id == group_id
         file_contents = file.getfile()
-        assert file_contents.read() == b"".join(chunks)
+        assert file_contents.read() == b"".join(chunks["payload"])
         assert file_contents.name == "foo.txt"
 
 
