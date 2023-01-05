@@ -118,7 +118,7 @@ class SpansTextRenderer extends TextRenderer {
 
       const text = span.node.span.op
         ? span.node.span.op + '' + (span.node.span.description || '')
-        : span.node.span.description || '';
+        : span.node.span.description || '<unknown span>';
 
       const trim = trimTextCenter(
         text,

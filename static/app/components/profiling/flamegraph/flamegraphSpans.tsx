@@ -121,6 +121,14 @@ export function FlamegraphSpans({
     if (profiledTransaction.type !== 'resolved') {
       return undefined;
     }
+    const clearCanvas = () => {
+      spansTextRenderer.context.clearRect(
+        0,
+        0,
+        spansTextRenderer.canvas.width,
+        spansTextRenderer.canvas.height
+      );
+    };
 
     const drawSpans = () => {
       spansRenderer.draw(
@@ -137,11 +145,14 @@ export function FlamegraphSpans({
       );
     };
 
+    scheduler.registerBeforeFrameCallback(clearCanvas);
     scheduler.registerBeforeFrameCallback(drawSpans);
     scheduler.registerAfterFrameCallback(drawText);
 
     return () => {
       scheduler.unregisterBeforeFrameCallback(drawSpans);
+      scheduler.unregisterBeforeFrameCallback(clearCanvas);
+      scheduler.unregisterAfterFrameCallback(drawText);
     };
   }, [
     spansCanvas,
