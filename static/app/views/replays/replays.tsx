@@ -29,7 +29,7 @@ type Props = RouteComponentProps<{orgId: string}, {}, any, ReplayListLocationQue
 function Replays({location}: Props) {
   const organization = useOrganization();
   const theme = useTheme();
-  const minWidthIsSmall = useMedia(`(min-width: ${theme.breakpoints.small})`);
+  const hasRoomForColumns = useMedia(`(min-width: ${theme.breakpoints.small})`);
 
   const eventView = useMemo(() => {
     const query = decodeScalar(location.query.query, '');
@@ -72,11 +72,18 @@ function Replays({location}: Props) {
           {hasSentOneReplay ? (
             <Fragment>
               <ReplayTable
-                isFetching={isFetching}
                 fetchError={fetchError}
+                isFetching={isFetching}
                 replays={replays}
-                showProjectColumn={minWidthIsSmall}
                 sort={eventView.sorts[0]}
+                visibleColumns={{
+                  activity: true,
+                  countErrors: true,
+                  duration: true,
+                  projectId: hasRoomForColumns,
+                  session: true,
+                  startedAt: hasRoomForColumns,
+                }}
               />
               <Pagination
                 pageLinks={pageLinks}

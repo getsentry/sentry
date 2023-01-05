@@ -1,4 +1,5 @@
 import {browserHistory} from 'react-router';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 import first from 'lodash/first';
@@ -17,6 +18,7 @@ import space from 'sentry/styles/space';
 import type {Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
+import useMedia from 'sentry/utils/useMedia';
 import ReplayTable from 'sentry/views/replays/replayTable';
 import type {ReplayListLocationQuery} from 'sentry/views/replays/types';
 
@@ -53,6 +55,9 @@ function ReplaysContent({
   percentileValues,
 }: Props) {
   const query = location.query;
+
+  const theme = useTheme();
+  const hasRoomForColumns = useMedia(`(min-width: ${theme.breakpoints.small})`);
 
   const eventsFilterOptions = getEventsFilterOptions(
     spanOperationBreakdownFilter,
@@ -121,11 +126,18 @@ function ReplaysContent({
         />
       </FilterActions>
       <ReplayTable
+        fetchError={undefined}
         isFetching={isFetching}
         replays={replays}
-        showProjectColumn={false}
         sort={first(eventView.sorts) || {field: 'startedAt', kind: 'asc'}}
-        showSlowestTxColumn
+        visibleColumns={{
+          activity: true,
+          countErrors: true,
+          duration: true,
+          session: true,
+          slowestTransaction: hasRoomForColumns,
+          startedAt: hasRoomForColumns,
+        }}
       />
       <Pagination pageLinks={pageLinks} />
     </Layout.Main>
