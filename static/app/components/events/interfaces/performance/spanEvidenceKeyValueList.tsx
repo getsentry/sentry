@@ -40,6 +40,16 @@ export function SpanEvidenceKeyValueList({
     },
   ];
 
+  const problemParameters = getProblemParameters(offendingSpans);
+
+  if (problemParameters && issueType === IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS) {
+    data.push({
+      key: '3',
+      subject: t('Problem Parameter'),
+      value: getProblemParameters(offendingSpans),
+    });
+  }
+
   return <KeyValueList data={data} />;
 }
 
@@ -57,4 +67,28 @@ function getSpanEvidenceValue(span: RawSpanType | TraceContextSpanProxy | null) 
   }
 
   return `${span.op} - ${span.description}`;
+}
+
+function getProblemParameters(
+  offendingSpans: Array<RawSpanType | TraceContextSpanProxy>
+) {
+  const uniqueParameterPairs = new Set();
+
+  offendingSpans.forEach(span => {
+    // TODO: Look into the span data if possible, not just the description
+    // TODO: Find the unique parameter names and values in a better format
+
+    if (!span.description) {
+      return;
+    }
+
+    const [_method, url] = span.description.split(' ', 2);
+    const parsedURL = new URL(url);
+
+    for (const [key, value] of parsedURL.searchParams) {
+      uniqueParameterPairs.add(`${key}=${value}`);
+    }
+  });
+
+  return Array.from(uniqueParameterPairs);
 }
