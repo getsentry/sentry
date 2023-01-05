@@ -23,8 +23,8 @@ const Label = styled('label')`
 type Props = {
   disabled: boolean;
   enforceAllowed: boolean;
+  enforceIdpRestricted: boolean;
   enforceRetired: boolean;
-  idpRoleRestricted: boolean;
   isCurrentUser: boolean;
   roleList: OrgRole[];
   roleSelected: string;
@@ -39,25 +39,23 @@ class OrganizationRoleSelect extends Component<Props> {
       enforceAllowed,
       isCurrentUser,
       roleList,
-      idpRoleRestricted,
+      enforceIdpRestricted,
       roleSelected,
       setSelected,
     } = this.props;
-
-    const panelAlertText = () => {
-      if (isCurrentUser) {
-        return "Your organization-level role is managed through your organization's identity provider.";
-      }
-      return "This member's organization-level role is managed through your organization's identity provider.";
-    };
 
     return (
       <Panel>
         <PanelHeader>
           <div>{t('Organization Role')} </div>
         </PanelHeader>
-        {idpRoleRestricted && (
-          <PanelAlert>{tct('[text]', {text: panelAlertText()})}</PanelAlert>
+        {enforceIdpRestricted && (
+          <PanelAlert>
+            {tct(
+              "[person] organization-level role is managed through your organization's identity provider.",
+              {person: isCurrentUser ? 'Your' : "This member's"}
+            )}
+          </PanelAlert>
         )}
 
         <PanelBody>
@@ -66,7 +64,10 @@ class OrganizationRoleSelect extends Component<Props> {
 
             const isRetired = enforceRetired && roleRetired;
             const isDisabled =
-              disabled || isRetired || (enforceAllowed && !allowed) || idpRoleRestricted;
+              disabled ||
+              isRetired ||
+              (enforceAllowed && !allowed) ||
+              enforceIdpRestricted;
 
             return (
               <PanelItem

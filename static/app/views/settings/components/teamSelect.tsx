@@ -21,15 +21,14 @@ import useTeams from 'sentry/utils/useTeams';
 
 type Props = {
   /**
-   * Is this component for a project
-   * and should adding a team be disabled based
-   * on whether the team is idpProvisioned
-   */
-  addingTeamToProject: boolean;
-  /**
    * Should button be disabled
    */
   disabled: boolean;
+  /**
+   * Should adding a team be disabled based
+   * on whether the team is idpProvisioned
+   */
+  enforceIdpProvisioned: boolean;
   /**
    * callback when teams are added
    */
@@ -60,7 +59,7 @@ type Props = {
 
 function TeamSelect({
   disabled,
-  addingTeamToProject,
+  enforceIdpProvisioned,
   selectedTeams,
   menuHeader,
   organization,
@@ -95,6 +94,7 @@ function TeamSelect({
         onRemove={slug => onRemoveTeam(slug)}
         disabled={disabled}
         confirmMessage={confirmMessage}
+        enforceIdpProvisioned={enforceIdpProvisioned}
       />
     ));
   };
@@ -106,18 +106,18 @@ function TeamSelect({
       index,
       value: team.slug,
       searchKey: team.slug,
-      disabled: !addingTeamToProject && team.idpProvisioned,
+      disabled: enforceIdpProvisioned && team.idpProvisioned,
       label: () => {
-        if (addingTeamToProject || !team.idpProvisioned) {
-          return <DropdownTeamBadge avatarSize={18} team={team} />;
+        if (enforceIdpProvisioned && team.idpProvisioned) {
+          return (
+            <Tooltip
+              title={`Membership to this team is managed through your organization's identity provider.`}
+            >
+              <DropdownTeamBadgeDisabled avatarSize={18} team={team} />
+            </Tooltip>
+          );
         }
-        return (
-          <Tooltip
-            title={`Membership to this team is managed through your organization's identity provider.`}
-          >
-            <DropdownTeamBadgeDisabled avatarSize={18} team={team} />
-          </Tooltip>
-        );
+        return <DropdownTeamBadge avatarSize={18} team={team} />;
       },
     }));
 
@@ -159,12 +159,20 @@ function TeamSelect({
 type TeamRowProps = {
   confirmMessage: string | null;
   disabled: boolean;
+  enforceIdpProvisioned: boolean;
   onRemove: Props['onRemoveTeam'];
   orgId: string;
   team: Team;
 };
 
-const TeamRow = ({orgId, team, onRemove, disabled, confirmMessage}: TeamRowProps) => (
+const TeamRow = ({
+  orgId,
+  team,
+  onRemove,
+  disabled,
+  confirmMessage,
+  enforceIdpProvisioned,
+}: TeamRowProps) => (
   <TeamPanelItem data-test-id="team-row">
     <StyledLink to={`/settings/${orgId}/teams/${team.slug}/`}>
       <TeamBadge team={team} />
@@ -173,14 +181,14 @@ const TeamRow = ({orgId, team, onRemove, disabled, confirmMessage}: TeamRowProps
       message={confirmMessage}
       bypass={!confirmMessage}
       onConfirm={() => onRemove(team.slug)}
-      disabled={disabled || team.idpProvisioned}
+      disabled={disabled || (enforceIdpProvisioned && team.idpProvisioned)}
     >
       <Button
         size="xs"
         icon={<IconSubtract isCircled size="xs" />}
-        disabled={disabled || team.idpProvisioned}
+        disabled={disabled || (enforceIdpProvisioned && team.idpProvisioned)}
         title={
-          team.idpProvisioned
+          enforceIdpProvisioned && team.idpProvisioned
             ? t(
                 "Membership to this team is managed through your organization's identity provider."
               )

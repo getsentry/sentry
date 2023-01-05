@@ -359,7 +359,7 @@ class OrganizationMemberDetail extends AsyncView<Props, State> {
           enforceAllowed={false}
           enforceRetired={hasTeamRoles}
           isCurrentUser={isCurrentUser}
-          idpRoleRestricted={member.flags['idp:role-restricted']}
+          enforceIdpRestricted={member.flags['idp:role-restricted']}
           disabled={!canEdit}
           roleList={member.roles}
           roleSelected={member.role}
@@ -375,7 +375,7 @@ class OrganizationMemberDetail extends AsyncView<Props, State> {
               onAddTeam={this.handleAddTeam}
               onRemoveTeam={this.handleRemoveTeam}
               loadingTeams={!initiallyLoaded}
-              addingTeamToProject={false}
+              enforceIdpProvisioned
             />
           )}
         </Teams>
