@@ -80,6 +80,9 @@ def set_top_tags(
         scope.set_tag("stacktrace_link.platform", ctx["platform"])
         scope.set_tag("stacktrace_link.code_mappings", has_code_mappings)
         scope.set_tag("stacktrace_link.file", ctx["file"])
+        # Add tag if filepath is Windows
+        if ctx["file"].find(":\\") > -1:
+            scope.set_tag("stacktrace_link.windows", True)
         scope.set_tag("stacktrace_link.abs_path", ctx["abs_path"])
         if ctx["platform"] == "python":
             # This allows detecting a file that belongs to Python's 3rd party modules
@@ -208,10 +211,6 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                     and config.automatically_generated is True
                 ):
                     derived = True
-
-                # Add tag if filepath is Windows
-                if filepath.find(":\\") > -1:
-                    scope.set_tag("stacktrace_link.windows", True)
 
                 outcome = {}
                 munging_outcome = {}
