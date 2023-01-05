@@ -81,7 +81,7 @@ def set_top_tags(
         scope.set_tag("stacktrace_link.code_mappings", has_code_mappings)
         scope.set_tag("stacktrace_link.file", ctx["file"])
         # Add tag if filepath is Windows
-        if ctx["file"].find(":\\") > -1:
+        if ctx["file"] and ctx["file"].find(":\\") > -1:
             scope.set_tag("stacktrace_link.windows", True)
         scope.set_tag("stacktrace_link.abs_path", ctx["abs_path"])
         if ctx["platform"] == "python":
