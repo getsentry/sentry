@@ -39,7 +39,7 @@ describe('AccountClose', function () {
     });
   });
 
-  it('lists all orgs user is an owner of', function () {
+  it('lists all orgs user is an owner of', async function () {
     render(<AccountClose />);
     renderGlobalModal();
 
@@ -60,13 +60,16 @@ describe('AccountClose', function () {
     // Delete
     userEvent.click(screen.getByRole('button', {name: 'Close Account'}));
 
-    // First button is cancel, target Button at index 2
     expect(
       screen.getByText(
         'This is permanent and cannot be undone, are you really sure you want to do this?'
       )
     ).toBeInTheDocument();
     userEvent.click(screen.getByText('Confirm'));
+
+    await screen.findByText(
+      'Your account has been deactivated and scheduled for removal.'
+    );
 
     expect(deleteMock).toHaveBeenCalledWith(
       '/users/me/',

@@ -35,13 +35,7 @@ class MonitorDetails extends AsyncView<Props, State> {
 
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {params, location} = this.props;
-    return [
-      [
-        'monitor',
-        `/monitors/${this.orgSlug}/${params.monitorId}/`,
-        {query: location.query},
-      ],
-    ];
+    return [['monitor', `/monitors/${params.monitorId}/`, {query: location.query}]];
   }
 
   getTitle() {
@@ -74,14 +68,14 @@ class MonitorDetails extends AsyncView<Props, State> {
                   <DatePageFilter alignDropdown="left" />
                 </StyledPageFilterBar>
 
-                <MonitorStats monitor={monitor} orgId={this.orgSlug} />
+                <MonitorStats monitor={monitor} />
 
                 <MonitorIssues monitor={monitor} orgId={this.orgSlug} />
 
                 <Panel>
                   <PanelHeader>{t('Recent Check-ins')}</PanelHeader>
 
-                  <MonitorCheckIns monitor={monitor} orgId={this.orgSlug} />
+                  <MonitorCheckIns monitor={monitor} />
                 </Panel>
               </Fragment>
             )}

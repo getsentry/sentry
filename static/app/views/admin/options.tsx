@@ -174,6 +174,38 @@ const performanceOptionDefinitions: Field[] = [
     max: Number.MAX_SAFE_INTEGER,
     step: 1,
   },
+  {
+    key: 'performance.issues.n_plus_one_api_calls.problem-creation',
+    label: t('N+1 API Calls Problem Creation Rate'),
+    help: t(
+      'Controls the overall rate at which performance problems are detected by the N+1 API Calls detector.'
+    ),
+    ...HIGH_THROUGHPUT_RATE_OPTION,
+  },
+  {
+    key: 'performance.issues.n_plus_one_api_calls.la-rollout',
+    label: t('Limited Availability Detection Rate'),
+    help: t(
+      'Controls the rate at which performance problems are detected by the N+1 API Calls detector for LA organizations.'
+    ),
+    ...HIGH_THROUGHPUT_RATE_OPTION,
+  },
+  {
+    key: 'performance.issues.n_plus_one_api_calls.ea-rollout',
+    label: t('Early Adopter Detection Rate'),
+    help: t(
+      'Controls the rate at which performance problems are detected by the N+1 API Calls detector for EA organizations.'
+    ),
+    ...HIGH_THROUGHPUT_RATE_OPTION,
+  },
+  {
+    key: 'performance.issues.n_plus_one_api_calls.ga-rollout',
+    label: t('General Availability Detection Rate'),
+    help: t(
+      'Controls the rate at which performance problems are detected by the for N+1 API Calls detector for GA organizations.'
+    ),
+    ...HIGH_THROUGHPUT_RATE_OPTION,
+  },
 ];
 
 // This are ordered based on their display order visually
