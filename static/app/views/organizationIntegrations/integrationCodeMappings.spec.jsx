@@ -99,7 +99,7 @@ describe('IntegrationCodeMappings', function () {
       }),
     });
     render(<IntegrationCodeMappings organization={org} integration={integration} />);
-    renderGlobalModal();
+    const {waitForModalToHide} = renderGlobalModal();
 
     userEvent.click(screen.getByRole('button', {name: 'Add Code Mapping'}));
     expect(screen.getByRole('dialog')).toBeInTheDocument();
@@ -112,6 +112,8 @@ describe('IntegrationCodeMappings', function () {
     userEvent.clear(screen.getByRole('textbox', {name: 'Branch'}));
     userEvent.type(screen.getByRole('textbox', {name: 'Branch'}), defaultBranch);
     userEvent.click(screen.getByRole('button', {name: 'Save Changes'}));
+
+    await waitForModalToHide();
 
     expect(createMock).toHaveBeenCalledWith(
       url,
@@ -128,7 +130,7 @@ describe('IntegrationCodeMappings', function () {
     );
   });
 
-  it('edit existing config', () => {
+  it('edit existing config', async () => {
     const stackRoot = 'new/root';
     const sourceRoot = 'source/root';
     const defaultBranch = 'master';
@@ -146,12 +148,14 @@ describe('IntegrationCodeMappings', function () {
       }),
     });
     render(<IntegrationCodeMappings organization={org} integration={integration} />);
-    renderGlobalModal();
+    const {waitForModalToHide} = renderGlobalModal();
 
     userEvent.click(screen.getAllByRole('button', {name: 'edit'})[0]);
     userEvent.clear(screen.getByRole('textbox', {name: 'Stack Trace Root'}));
     userEvent.type(screen.getByRole('textbox', {name: 'Stack Trace Root'}), stackRoot);
     userEvent.click(screen.getByRole('button', {name: 'Save Changes'}));
+
+    await waitForModalToHide();
 
     expect(editMock).toHaveBeenCalledWith(
       url,

@@ -3,14 +3,12 @@ import {vec2} from 'gl-matrix';
 import {makeCanvasMock, makeFlamegraph} from 'sentry-test/profiling/utils';
 import {screen} from 'sentry-test/reactTestingLibrary';
 
-import {
-  LightFlamegraphTheme,
-  LightFlamegraphTheme as theme,
-} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
+import {LightFlamegraphTheme as theme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 import {FlamegraphDomRenderer} from 'sentry/utils/profiling/renderers/flamegraphDomRenderer';
 
+import {CanvasView} from '../canvasView';
+import {Flamegraph} from '../flamegraph';
 import {FlamegraphCanvas} from '../flamegraphCanvas';
-import {FlamegraphView} from '../flamegraphView';
 
 const originalDpr = window.devicePixelRatio;
 
@@ -40,10 +38,15 @@ describe('FlamegraphDomRenderer', () => {
     const renderer = new FlamegraphDomRenderer(canvas, flamegraph, theme);
     const flamegraphCanvas = new FlamegraphCanvas(canvas, vec2.fromValues(0, 0));
 
-    const flamegraphView = new FlamegraphView({
+    const flamegraphView = new CanvasView<Flamegraph>({
       canvas: flamegraphCanvas,
-      flamegraph,
-      theme: LightFlamegraphTheme,
+      model: flamegraph,
+      options: {
+        inverted: flamegraph.inverted,
+        minWidth: flamegraph.profile.minFrameDuration,
+        barHeight: theme.SIZES.BAR_HEIGHT,
+        depthOffset: theme.SIZES.FLAMEGRAPH_DEPTH_OFFSET,
+      },
     });
 
     renderer.draw(

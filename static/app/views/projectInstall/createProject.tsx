@@ -123,7 +123,6 @@ class CreateProject extends Component<Props, State> {
             <Button
               borderless
               data-test-id="create-team"
-              type="button"
               icon={<IconAdd isCircled />}
               onClick={() =>
                 openCreateTeamModal({
@@ -138,6 +137,7 @@ class CreateProject extends Component<Props, State> {
         </div>
         <div>
           <Button
+            type="submit"
             data-test-id="create-project"
             priority="primary"
             disabled={!this.canSubmitForm}

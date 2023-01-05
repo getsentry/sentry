@@ -1,6 +1,7 @@
 from base64 import b64decode, b64encode
 from copy import deepcopy
 from pickle import dumps, loads
+from typing import Any, List, Tuple
 from zlib import compress, decompress
 
 from django.conf import settings
@@ -9,6 +10,14 @@ from django.db import models
 from django.utils.encoding import force_str
 
 from .constants import DEFAULT_PROTOCOL
+
+
+def dbsafe_decode(value: Any, compress_object: bool = False) -> Any:
+    value = value.encode()  # encode str to bytes
+    value = b64decode(value)
+    if compress_object:
+        value = decompress(value)
+    return loads(value)
 
 
 class PickledObject(str):
@@ -37,21 +46,23 @@ class _ObjectWrapper:
 
     __slots__ = ("_obj",)
 
-    def __init__(self, obj):
+    def __init__(self, obj: Any) -> None:
         self._obj = obj
 
 
-def wrap_conflictual_object(obj):
+def wrap_conflictual_object(obj: Any) -> Any:
     if hasattr(obj, "prepare_database_save") or callable(obj):
         obj = _ObjectWrapper(obj)
     return obj
 
 
-def get_default_protocol():
+def get_default_protocol() -> Any:
     return getattr(settings, "PICKLEFIELD_DEFAULT_PROTOCOL", DEFAULT_PROTOCOL)
 
 
-def dbsafe_encode(value, compress_object=False, pickle_protocol=None, copy=True):
+def dbsafe_encode(
+    value: Any, compress_object: bool = False, pickle_protocol: Any = None, copy: bool = True
+) -> Any:
     # We use deepcopy() here to avoid a problem with cPickle, where dumps
     # can generate different character streams for same lookup value if
     # they are referenced differently.
@@ -71,15 +82,7 @@ def dbsafe_encode(value, compress_object=False, pickle_protocol=None, copy=True)
     return PickledObject(value)
 
 
-def dbsafe_decode(value, compress_object=False):
-    value = value.encode()  # encode str to bytes
-    value = b64decode(value)
-    if compress_object:
-        value = decompress(value)
-    return loads(value)
-
-
-class PickledObjectField(models.Field):
+class PickledObjectField(models.Field):  # type: ignore
     """
     A field that will accept *any* python object and store it in the
     database. PickledObjectField will optionally compress its values if
@@ -90,9 +93,9 @@ class PickledObjectField(models.Field):
     use the ``isnull`` lookup type correctly.
     """
 
-    empty_strings_allowed = False
+    empty_strings_allowed: bool = False
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         self.compress = kwargs.pop("compress", False)
         protocol = kwargs.pop("protocol", None)
         if protocol is None:
@@ -102,7 +105,7 @@ class PickledObjectField(models.Field):
         kwargs.setdefault("editable", False)
         super().__init__(*args, **kwargs)
 
-    def get_default(self):
+    def get_default(self) -> Any:
         """
         Returns the default value for this field.
 
@@ -121,7 +124,7 @@ class PickledObjectField(models.Field):
         # If the field doesn't have a default, then we punt to models.Field.
         return super().get_default()
 
-    def _check_default(self):
+    def _check_default(self) -> List[Any]:
         if self.has_default() and isinstance(self.default, (list, dict, set)):
             return [
                 checks.Warning(
@@ -143,12 +146,12 @@ class PickledObjectField(models.Field):
         else:
             return []
 
-    def check(self, **kwargs):
+    def check(self, **kwargs: Any) -> Any:
         errors = super().check(**kwargs)
         errors.extend(self._check_default())
         return errors
 
-    def deconstruct(self):
+    def deconstruct(self) -> Tuple[str, str, Any, Any]:
         name, path, args, kwargs = super().deconstruct()
         if self.compress:
             kwargs["compress"] = True
@@ -156,7 +159,7 @@ class PickledObjectField(models.Field):
             kwargs["protocol"] = self.protocol
         return name, path, args, kwargs
 
-    def to_python(self, value):
+    def to_python(self, value: Any) -> Any:
         """
         B64decode and unpickle the object, optionally decompressing it.
 
@@ -179,14 +182,14 @@ class PickledObjectField(models.Field):
                     return value._obj
         return value
 
-    def pre_save(self, model_instance, add):
+    def pre_save(self, model_instance: Any, add: Any) -> Any:
         value = super().pre_save(model_instance, add)
         return wrap_conflictual_object(value)
 
-    def from_db_value(self, value, expression, connection):
+    def from_db_value(self, value: Any, expression: Any, connection: Any) -> Any:
         return self.to_python(value)
 
-    def get_db_prep_value(self, value, connection=None, prepared=False):
+    def get_db_prep_value(self, value: Any, connection: Any = None, prepared: bool = False) -> Any:
         """
         Pickle and b64encode the object, optionally compressing it.
 
@@ -207,14 +210,14 @@ class PickledObjectField(models.Field):
             value = force_str(dbsafe_encode(value, self.compress, self.protocol, self.copy))
         return value
 
-    def value_to_string(self, obj):
+    def value_to_string(self, obj: Any) -> Any:
         value = self.value_from_object(obj)
         return self.get_db_prep_value(value)
 
-    def get_internal_type(self):
+    def get_internal_type(self) -> str:
         return "TextField"
 
-    def get_lookup(self, lookup_name):
+    def get_lookup(self, lookup_name: str) -> Any:
         """
         We need to limit the lookup types.
         """
