@@ -112,7 +112,17 @@ function render(ui: React.ReactElement, options?: Options) {
 const fireEvent = rtl.fireEvent;
 
 function renderGlobalModal(options?: Options) {
-  return render(<GlobalModal />, options);
+  const result = render(<GlobalModal />, options);
+
+  /**
+   * Helper that waits for the modal to be removed from the DOM. You may need to
+   * wait for the modal to be removed to avoid any act warnings.
+   */
+  function waitForModalToHide() {
+    return rtl.waitForElementToBeRemoved(() => rtl.screen.getByRole('dialog'));
+  }
+
+  return {...result, waitForModalToHide};
 }
 
 /**
