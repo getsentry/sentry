@@ -70,7 +70,7 @@ export function InputGroup({children, ...props}: React.HTMLAttributes<HTMLDivEle
   );
 }
 
-export {InputProps};
+export type {InputProps};
 export const Input = forwardRef<HTMLInputElement, InputProps>(
   ({size, disabled, ...props}, ref) => {
     const {leadingWidth, trailingWidth, setInputProps} = useContext(InputGroupContext);
@@ -92,7 +92,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
   }
 );
 
-export {TextAreaProps};
+export type {TextAreaProps};
 export const TextArea = forwardRef<HTMLTextAreaElement, TextAreaProps>(
   ({size, disabled, ...props}, ref) => {
     const {leadingWidth, trailingWidth, setInputProps} = useContext(InputGroupContext);
