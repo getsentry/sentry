@@ -107,31 +107,6 @@ function useOverlay({
   const triggerRef = useMemo(() => ({current: triggerElement}), [triggerElement]);
   const overlayRef = useMemo(() => ({current: overlayElement}), [overlayElement]);
 
-  // Get props for trigger button
-  const openState = useOverlayTriggerState({isOpen, defaultOpen, onOpenChange});
-  const {buttonProps} = useButton({onPress: openState.open}, triggerRef);
-  const {triggerProps, overlayProps: overlayTriggerProps} = useOverlayTrigger(
-    {type},
-    openState,
-    triggerRef
-  );
-
-  // Get props for overlay element
-  const {overlayProps} = useAriaOverlay(
-    {
-      onClose: () => {
-        onClose?.();
-        openState.close();
-      },
-      isOpen: openState.isOpen,
-      isDismissable,
-      shouldCloseOnBlur,
-      isKeyboardDismissDisabled,
-      shouldCloseOnInteractOutside,
-    },
-    overlayRef
-  );
-
   const modifiers = useMemo(
     () => [
       {
@@ -183,10 +158,42 @@ function useOverlay({
     ],
     [arrowElement, offset, preventOverflowOptions]
   );
-  const {styles: popperStyles, state: popperState} = usePopper(
-    triggerElement,
-    overlayElement,
-    {modifiers, placement: position}
+  const {
+    styles: popperStyles,
+    state: popperState,
+    update: popperUpdate,
+  } = usePopper(triggerElement, overlayElement, {modifiers, placement: position});
+
+  // Get props for trigger button
+  const openState = useOverlayTriggerState({
+    isOpen,
+    defaultOpen,
+    onOpenChange: open => {
+      onOpenChange?.(open);
+      open && popperUpdate?.();
+    },
+  });
+  const {buttonProps} = useButton({onPress: openState.open}, triggerRef);
+  const {triggerProps, overlayProps: overlayTriggerProps} = useOverlayTrigger(
+    {type},
+    openState,
+    triggerRef
+  );
+
+  // Get props for overlay element
+  const {overlayProps} = useAriaOverlay(
+    {
+      onClose: () => {
+        onClose?.();
+        openState.close();
+      },
+      isOpen: openState.isOpen,
+      isDismissable,
+      shouldCloseOnBlur,
+      isKeyboardDismissDisabled,
+      shouldCloseOnInteractOutside,
+    },
+    overlayRef
   );
 
   return {
