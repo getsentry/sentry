@@ -222,9 +222,7 @@ describe('TraceView', () => {
 
     // TODO: This test can be converted later to use the TransactionEventBuilder instead
     it('should allow expanding of embedded transactions', async () => {
-      const {organization, project, location} = initializeData({
-        features: ['unified-span-view'],
-      });
+      const {organization, project, location} = initializeData({});
 
       const event = generateSampleEvent();
       generateSampleSpan(
