@@ -8,7 +8,7 @@ import {TraceContextSpanProxy} from './spanEvidence';
 
 type SpanEvidenceKeyValueListProps = {
   issueType: IssueType | undefined;
-  offendingSpan: RawSpanType | TraceContextSpanProxy | null;
+  offendingSpans: Array<RawSpanType | TraceContextSpanProxy>;
   parentSpan: RawSpanType | TraceContextSpanProxy | null;
   transactionName: string;
 };
@@ -17,7 +17,7 @@ export function SpanEvidenceKeyValueList({
   issueType,
   transactionName,
   parentSpan,
-  offendingSpan,
+  offendingSpans,
 }: SpanEvidenceKeyValueListProps) {
   const data: KeyValueListData = [
     {
@@ -36,7 +36,7 @@ export function SpanEvidenceKeyValueList({
         issueType === IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES
           ? t('Repeating Span')
           : t('Offending Span'),
-      value: getSpanEvidenceValue(offendingSpan),
+      value: getSpanEvidenceValue(offendingSpans[0]),
     },
   ];
 

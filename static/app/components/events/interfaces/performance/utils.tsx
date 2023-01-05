@@ -114,14 +114,15 @@ export function getSpanInfoFromTransactionEvent(
   const parentSpan = event.perfProblem.parentSpanIds
     ? spansById[event.perfProblem.parentSpanIds[0]]
     : null;
-  const offendingSpan = event.perfProblem.offenderSpanIds
-    ? spansById[event.perfProblem.offenderSpanIds[0]]
-    : null;
+
+  const offendingSpans = (event?.perfProblem?.offenderSpanIds ?? []).map(
+    spanID => spansById[spanID]
+  );
 
   const affectedSpanIds = [...event.perfProblem.offenderSpanIds];
   if (parentSpan !== null) {
     affectedSpanIds.push(parentSpan.span_id);
   }
 
-  return {parentSpan, offendingSpan, affectedSpanIds};
+  return {parentSpan, offendingSpans, affectedSpanIds};
 }
