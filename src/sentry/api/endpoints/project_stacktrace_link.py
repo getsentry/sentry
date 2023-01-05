@@ -209,6 +209,10 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                 ):
                     derived = True
 
+                # Add tag if filepath is Windows
+                if filepath.find(":\\"):
+                    scope.set_tag("stacktrace_link.windows", True)
+
                 outcome = {}
                 munging_outcome = {}
                 # If the platform is a mobile language, get_link will never get the right URL without munging
