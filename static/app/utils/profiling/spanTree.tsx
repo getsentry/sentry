@@ -97,8 +97,10 @@ class SpanTree {
     this.buildCollapsedSpanTree(spans);
   }
 
-  static Empty(): SpanTree {
-    return new SpanTree(EmptyEventTransaction, []);
+  static Empty = new SpanTree(EmptyEventTransaction, []);
+
+  isEmpty(): boolean {
+    return this === SpanTree.Empty;
   }
 
   buildCollapsedSpanTree(spans: RawSpanType[]) {

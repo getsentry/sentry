@@ -139,3 +139,44 @@ function getSibling(frame: FlamegraphFrame, directionX: DirectionX) {
 
   return null;
 }
+
+// loosely based spreadsheet navigation
+const keyDirectionMap: Record<string, Direction> = {
+  ArrowUp: 'up',
+  ArrowDown: 'down',
+  ArrowLeft: 'left',
+  ArrowRight: 'right',
+  Tab: 'down',
+  'Shift+Tab': 'up',
+  w: 'up',
+  s: 'down',
+  a: 'left',
+  d: 'right',
+} as const;
+
+export function handleFlamegraphKeyboardNavigation(
+  evt: KeyboardEvent,
+  currentFrame: FlamegraphFrame | undefined,
+  inverted: boolean = false
+) {
+  if (!currentFrame) {
+    return null;
+  }
+
+  const key = evt.shiftKey ? `Shift+${evt.key}` : evt.key;
+  let direction = keyDirectionMap[key];
+
+  // if the key is not mapped, don't handle it
+  if (!direction) {
+    return null;
+  }
+  if (inverted && (direction === 'up' || direction === 'down')) {
+    direction = direction === 'up' ? 'down' : 'up';
+  }
+  const nextSelection = selectNearestFrame(currentFrame, direction);
+  if (nextSelection === currentFrame) {
+    return null;
+  }
+  evt.preventDefault();
+  return nextSelection;
+}

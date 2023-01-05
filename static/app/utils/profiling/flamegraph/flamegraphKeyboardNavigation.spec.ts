@@ -2,7 +2,7 @@ import {DeepPartial} from 'sentry/types/utils';
 
 import {FlamegraphFrame} from '../flamegraphFrame';
 
-import {selectNearestFrame} from './selectNearestFrame';
+import {selectNearestFrame} from './flamegraphKeyboardNavigation';
 
 function createFlamegraphFrame(frame?: DeepPartial<FlamegraphFrame>) {
   const {

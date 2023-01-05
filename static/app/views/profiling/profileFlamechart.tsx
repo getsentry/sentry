@@ -65,7 +65,7 @@ const LoadingGroup: ProfileGroup = {
   profiles: [Profile.Empty],
 };
 
-const LoadingSpanTree = SpanTree.Empty();
+const LoadingSpanTree = SpanTree.Empty;
 
 function ProfileFlamegraph(): React.ReactElement {
   const organization = useOrganization();

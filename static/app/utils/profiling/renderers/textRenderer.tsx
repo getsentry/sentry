@@ -90,8 +90,12 @@ class TextRenderer {
     while (frames.length > 0) {
       const frame = frames.pop()!;
 
-      // Check if our rect overlaps with the current viewport and skip it
+      // Check if our rect overlaps with the current viewport and skip rendering if it does not.
       if (frame.end < configView.left || frame.start > configView.right) {
+        continue;
+      }
+
+      if (frame.depth > BOTTOM_BOUNDARY) {
         continue;
       }
 
@@ -111,10 +115,6 @@ class TextRenderer {
 
       // Since children of a frame cannot be wider than the frame itself, we can exit early and discard the entire subtree
       if (paddedRectangleWidth <= MIN_WIDTH) {
-        continue;
-      }
-
-      if (frame.depth > BOTTOM_BOUNDARY) {
         continue;
       }
 

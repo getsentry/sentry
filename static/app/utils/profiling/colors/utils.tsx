@@ -133,10 +133,14 @@ function defaultFrameSort(a: FlamegraphFrame, b: FlamegraphFrame): number {
   return defaultFrameSortKey(a) > defaultFrameSortKey(b) ? 1 : -1;
 }
 
-export function makeColorBucketTheme(lch: LCH) {
-  return (t: number): ColorChannels => {
+export function makeColorBucketTheme(
+  lch: LCH,
+  spectrum = 360,
+  offset = 0
+): (t: number) => ColorChannels {
+  return t => {
     const x = triangle(30.0 * t);
-    const H = 360.0 * (0.9 * t);
+    const H = spectrum < 360 ? offset + spectrum * (0.9 * t) : spectrum * 0.9 * t;
     const C = lch.C_0 + lch.C_d * x;
     const L = lch.L_0 - lch.L_d * x;
     return fromLumaChromaHue(L, C, H);

@@ -15,6 +15,10 @@ import {
 
 import {fragment, vertex} from './shaders';
 
+// These are both mutable and are used to avoid unnecessary allocations during rendering.
+const PHYSICAL_SPACE_PX = new Rect(0, 0, 1, 1);
+const CONFIG_TO_PHYSICAL_SPACE = mat3.create();
+
 class FlamegraphRenderer {
   canvas: HTMLCanvasElement | null;
   flamegraph: Flamegraph;
@@ -479,9 +483,11 @@ class FlamegraphRenderer {
     // Tell webgl to convert clip space to px
     this.gl.viewport(0, 0, this.gl.canvas.width, this.gl.canvas.height);
 
-    const physicalSpacePixel = new Rect(0, 0, 1, 1);
-    const physicalToConfig = mat3.invert(mat3.create(), configViewToPhysicalSpace);
-    const configSpacePixel = physicalSpacePixel.transformRect(physicalToConfig);
+    const physicalToConfig = mat3.invert(
+      CONFIG_TO_PHYSICAL_SPACE,
+      configViewToPhysicalSpace
+    );
+    const configSpacePixel = PHYSICAL_SPACE_PX.transformRect(physicalToConfig);
 
     this.gl.uniform2f(
       this.uniforms.u_border_width,
