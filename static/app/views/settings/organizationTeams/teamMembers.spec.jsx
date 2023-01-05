@@ -18,9 +18,7 @@ describe('TeamMembers', function () {
 
   const organization = TestStubs.Organization();
   const team = TestStubs.Team({
-    flags: {
-      'idp:provisioned': false,
-    },
+    idpProvisioned: false,
   });
   const members = TestStubs.Members();
   const member = TestStubs.Member({
@@ -276,11 +274,9 @@ describe('TeamMembers', function () {
     expect(contributors).toHaveLength(2);
   });
 
-  it('cannot add or remove members if team is idp:provisioned', function () {
+  it('cannot add or remove members if team is idpProvisioned', function () {
     const team2 = TestStubs.Team({
-      flags: {
-        'idp:provisioned': true,
-      },
+      idpProvisioned: true,
     });
 
     const me = TestStubs.Member({
