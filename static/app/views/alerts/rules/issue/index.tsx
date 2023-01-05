@@ -21,7 +21,7 @@ import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
-import Field from 'sentry/components/forms/field';
+import FieldGroup from 'sentry/components/forms/field';
 import FieldHelp from 'sentry/components/forms/field/fieldHelp';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import Form, {FormProps} from 'sentry/components/forms/form';
@@ -1179,9 +1179,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                       header={t('Delete Rule')}
                       message={t('Are you sure you want to delete this rule?')}
                     >
-                      <Button priority="danger" type="button">
-                        {t('Delete Rule')}
-                      </Button>
+                      <Button priority="danger">{t('Delete Rule')}</Button>
                     </Confirm>
                   ) : null
                 }
@@ -1404,7 +1402,6 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                               >
                                 <TestButtonWrapper>
                                   <Button
-                                    type="button"
                                     onClick={this.testNotifications}
                                     disabled={
                                       sendingNotification ||
@@ -1673,7 +1670,7 @@ const SettingsContainer = styled('div')`
   gap: ${space(1)};
 `;
 
-const StyledField = styled(Field)`
+const StyledField = styled(FieldGroup)`
   border-bottom: none;
   padding: 0;
 

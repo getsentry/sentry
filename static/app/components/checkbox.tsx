@@ -1,4 +1,5 @@
 import {useEffect, useRef} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
@@ -50,9 +51,11 @@ const Checkbox = ({checked = false, size = 'sm', ...props}: Props) => {
           <IconSubtract size={checkboxSizeMap[size].icon} />
         )}
       </StyledCheckbox>
-      <InteractionStateLayer
-        higherOpacity={checked === true || checked === 'indeterminate'}
-      />
+      {!props.disabled && (
+        <InteractionStateLayer
+          higherOpacity={checked === true || checked === 'indeterminate'}
+        />
+      )}
     </Wrapper>
   );
 };
@@ -81,8 +84,15 @@ const HiddenInput = styled('input')`
   }
 
   &:disabled + * {
-    background: ${p => (p.checked ? p.theme.disabled : p.theme.backgroundSecondary)};
-    border-color: ${p => (p.checked ? p.theme.disabled : p.theme.disabledBorder)};
+    ${p =>
+      p.checked
+        ? css`
+            background: ${p.theme.disabled};
+          `
+        : css`
+            background: ${p.theme.backgroundSecondary};
+            border-color: ${p.theme.disabledBorder};
+          `}
   }
 `;
 
@@ -99,9 +109,18 @@ const StyledCheckbox = styled('div')<{
   width: ${p => checkboxSizeMap[p.size].box};
   height: ${p => checkboxSizeMap[p.size].box};
   border-radius: ${p => checkboxSizeMap[p.size].borderRadius};
-  background: ${p => (p.checked ? p.theme.active : p.theme.background)};
-  border: 1px solid ${p => (p.checked ? p.theme.active : p.theme.gray200)};
   pointer-events: none;
+
+  ${p =>
+    p.checked
+      ? css`
+          background: ${p.theme.active};
+          border: 0;
+        `
+      : css`
+          background: ${p.theme.background};
+          border: 1px solid ${p.theme.gray200};
+        `}
 `;
 
 export default Checkbox;

@@ -9,7 +9,7 @@ from snuba_sdk.orderby import Direction, OrderBy
 from snuba_sdk.query import Column, Entity, Function, Query
 
 from sentry import nodestore
-from sentry.api.base import pending_silo_endpoint
+from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import GroupEndpoint
 from sentry.api.endpoints.group_hashes_split import _get_group_filters
 from sentry.api.endpoints.grouping_levels import LevelsOverview, check_feature, get_levels_overview
@@ -22,7 +22,7 @@ from sentry.utils import snuba
 from sentry.utils.safe import get_path
 
 
-@pending_silo_endpoint
+@region_silo_endpoint
 class GroupingLevelNewIssuesEndpoint(GroupEndpoint):
     def get(self, request: Request, id: str, group: Group) -> Response:
         """

@@ -8,7 +8,7 @@ import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {sanitizeQuerySelector} from 'sentry/utils/sanitizeQuerySelector';
 
-import Field from '../field';
+import FieldGroup from '../field';
 import FieldControl from '../field/fieldControl';
 import {FieldGroupProps} from '../field/types';
 import FormContext from '../formContext';
@@ -319,7 +319,7 @@ class FormField extends Component<FormFieldProps> {
 
       return (
         <Fragment>
-          <Field
+          <FieldGroup
             id={id}
             className={className}
             flexibleControlStateSize={flexibleControlStateSize}
@@ -369,7 +369,7 @@ class FormField extends Component<FormFieldProps> {
                 </Observer>
               </FieldControl>
             )}
-          </Field>
+          </FieldGroup>
           {selectionInfoFunction && (
             <Observer>
               {() => {
@@ -404,13 +404,12 @@ class FormField extends Component<FormFieldProps> {
                     type={saveMessageAlertType}
                     trailingItems={
                       <Fragment>
-                        <Button onClick={this.handleCancelField} size="xs" type="button">
+                        <Button onClick={this.handleCancelField} size="xs">
                           {t('Cancel')}
                         </Button>
                         <Button
                           priority="primary"
                           size="xs"
-                          type="button"
                           onClick={this.handleSaveField}
                         >
                           {t('Save')}

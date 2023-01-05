@@ -197,7 +197,7 @@ def make_performance_event(project):
         perf_data = dict(
             load_data(
                 "transaction-n-plus-one",
-                timestamp=datetime(2022, 11, 11, 21, 39, 23, 30723),
+                timestamp=datetime(2017, 9, 6, 0, 0),
             )
         )
         perf_data["event_id"] = "44f1419e73884cd2b45c79918f4b6dc4"
@@ -205,6 +205,8 @@ def make_performance_event(project):
         perf_event_manager.normalize()
         perf_data = perf_event_manager.get_data()
         perf_event = perf_event_manager.save(project.id)
+        # Prevent CI screenshot from constantly changing
+        perf_event.data["timestamp"] = 1504656000.0  # datetime(2017, 9, 6, 0, 0)
 
     perf_event = perf_event.for_group(perf_event.groups[0])
     return perf_event
@@ -636,8 +638,8 @@ def invitation(request):
             "organization": org,
             "url": absolute_uri(
                 reverse(
-                    "sentry-accept-invite-with-org",
-                    kwargs={"organization_slug": org.slug, "member_id": om.id, "token": om.token},
+                    "sentry-accept-invite",
+                    kwargs={"member_id": om.id, "token": om.token},
                 )
             ),
         },

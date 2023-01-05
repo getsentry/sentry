@@ -36,7 +36,6 @@ function DropdownButton({
 }: DropdownButtonProps) {
   return (
     <StyledButton
-      type="button"
       aria-haspopup="true"
       aria-expanded={isOpen}
       hasPrefix={!!prefix}

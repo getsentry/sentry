@@ -6,7 +6,7 @@ import {installSentryApp} from 'sentry/actionCreators/sentryAppInstallations';
 import Alert from 'sentry/components/alert';
 import OrganizationAvatar from 'sentry/components/avatar/organizationAvatar';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
-import Field from 'sentry/components/forms/field';
+import FieldGroup from 'sentry/components/forms/field';
 import SentryAppDetailsModal from 'sentry/components/modals/sentryAppDetailsModal';
 import NarrowLayout from 'sentry/components/narrowLayout';
 import {t, tct} from 'sentry/locale';
@@ -237,7 +237,7 @@ export default class SentryAppExternalInstallation extends AsyncView<Props, Stat
             }
           )}
         </p>
-        <Field label={t('Organization')} inline={false} stacked required>
+        <FieldGroup label={t('Organization')} inline={false} stacked required>
           {() => (
             <SelectControl
               onChange={({value}) => this.onSelectOrg(value)}
@@ -246,7 +246,7 @@ export default class SentryAppExternalInstallation extends AsyncView<Props, Stat
               options={this.getOptions()}
             />
           )}
-        </Field>
+        </FieldGroup>
       </div>
     );
   }

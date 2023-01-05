@@ -246,9 +246,8 @@ class OrganizationMember(Model):
             return None
         return absolute_uri(
             reverse(
-                "sentry-accept-invite-with-org",
+                "sentry-accept-invite",
                 kwargs={
-                    "organization_slug": self.organization.slug,
                     "member_id": self.id,
                     "token": self.token or self.legacy_token,
                 },

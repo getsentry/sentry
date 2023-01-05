@@ -8,6 +8,7 @@ from typing import Any, Mapping, Sequence
 
 from sentry.integrations.utils import where_should_sync
 from sentry.models import ExternalIssue, GroupLink, User, UserOption
+from sentry.models.project import Project
 from sentry.notifications.utils import (
     get_notification_group_title,
     get_parent_and_repeating_spans,
@@ -16,6 +17,8 @@ from sentry.notifications.utils import (
     get_span_evidence_value_problem,
 )
 from sentry.services.hybrid_cloud.integration import integration_service
+from sentry.services.hybrid_cloud.user import APIUser
+from sentry.services.hybrid_cloud.user_option import user_option_service
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.tasks.integrations import sync_status_inbound as sync_status_inbound_task
 from sentry.utils.http import absolute_uri
@@ -161,7 +164,7 @@ class IssueBasicMixin:
         """
         return []
 
-    def store_issue_last_defaults(self, project, user, data):
+    def store_issue_last_defaults(self, project: Project, user: APIUser, data):
         """
         Stores the last used field defaults on a per-project basis. This
         accepts a dict of values that will be filtered to keys returned by
@@ -191,10 +194,16 @@ class IssueBasicMixin:
         user_persisted_fields = self.get_persisted_user_default_config_fields()
         if user_persisted_fields:
             user_defaults = {k: v for k, v in data.items() if k in user_persisted_fields}
-            user_option_key = dict(user=user, key="issue:defaults", project=project)
-            new_user_defaults = UserOption.objects.get_value(default={}, **user_option_key)
-            new_user_defaults.setdefault(self.model.provider, {}).update(user_defaults)
-            UserOption.objects.set_value(value=new_user_defaults, **user_option_key)
+            user_option_key = dict(key="issue:defaults", project_id=project.id)
+            options = user_option_service.query_options(user_ids=[user.id], **user_option_key)
+            new_user_defaults = options.get_one(default={})
+            new_user_defaults.setdefault(self.org_integration.integration.provider, {}).update(
+                user_defaults
+            )
+            if user_defaults != new_user_defaults:
+                user_option_service.set_option(
+                    user_id=user.id, value=new_user_defaults, **user_option_key
+                )
 
     def get_defaults(self, project, user):
         project_defaults = self.get_project_defaults(project.id)
