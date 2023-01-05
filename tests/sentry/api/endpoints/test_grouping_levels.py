@@ -5,6 +5,7 @@ import pytest
 from sentry.models import Group, GroupHash
 from sentry.models.project import Project
 from sentry.testutils.helpers import Feature
+from sentry.testutils.silo import region_silo_test
 from sentry.utils.json import prune_empty_keys
 
 
@@ -96,6 +97,7 @@ def test_error_no_events(client, default_project):
     assert response.data["detail"]["code"] == "no_events"
 
 
+@region_silo_test(stable=True)
 @pytest.mark.django_db
 @pytest.mark.snuba
 def test_error_not_hierarchical(client, default_project, reset_snuba, factories):
@@ -164,6 +166,7 @@ def _assert_tree_labels(event, functions):
 
 @pytest.mark.django_db
 @pytest.mark.snuba
+@region_silo_test(stable=True)
 def test_downwards(default_project, store_stacktrace, reset_snuba, _render_all_previews):
     events = [
         # store events with a common crashing frame `foo` and diverging threadbases
@@ -214,6 +217,7 @@ b0505d7461a2e36c4a8235bb6c310a3b: ZeroDivisionError | foo | bar2 | baz2 | bam (1
 
 @pytest.mark.django_db
 @pytest.mark.snuba
+@region_silo_test(stable=True)
 def test_upwards(default_project, store_stacktrace, reset_snuba, _render_all_previews):
     GroupHash.objects.create(
         project_id=default_project.id,
@@ -278,6 +282,7 @@ level 2*
 
 @pytest.mark.django_db
 @pytest.mark.snuba
+@region_silo_test(stable=True)
 def test_default_events(default_project, store_stacktrace, reset_snuba, _render_all_previews):
     # Would like to add tree labels to default event titles as well,
     # But leave as is for now.

@@ -250,11 +250,7 @@ class SentryAppDetailedView extends AbstractIntegrationDetailedView<
           onConfirming={this.recordUninstallClicked} // called when the confirm modal opens
           priority="danger"
         >
-          <StyledUninstallButton
-            size="sm"
-            data-test-id="sentry-app-uninstall"
-            type="button"
-          >
+          <StyledUninstallButton size="sm" data-test-id="sentry-app-uninstall">
             <IconSubtract isCircled style={{marginRight: space(0.75)}} />
             {t('Uninstall')}
           </StyledUninstallButton>
@@ -271,7 +267,6 @@ class SentryAppDetailedView extends AbstractIntegrationDetailedView<
           priority="primary"
           size="sm"
           style={{marginLeft: space(1)}}
-          type="button"
         >
           {t('Accept & Install')}
         </InstallButton>

@@ -69,6 +69,7 @@ from sentry.incidents.endpoints.project_alert_rule_task_details import (
 from sentry.replays.endpoints.organization_issue_replay_count import (
     OrganizationIssueReplayCountEndpoint,
 )
+from sentry.replays.endpoints.organization_replay_count import OrganizationReplayCountEndpoint
 from sentry.replays.endpoints.organization_replay_events_meta import (
     OrganizationReplayEventsMetaEndpoint,
 )
@@ -412,7 +413,6 @@ from .endpoints.project_profiling_profile import (
     ProjectProfilingRawProfileEndpoint,
     ProjectProfilingTransactionIDProfileIDEndpoint,
 )
-from .endpoints.project_release_activity import ProjectReleaseActivityEndpoint
 from .endpoints.project_release_commits import ProjectReleaseCommitsEndpoint
 from .endpoints.project_release_details import ProjectReleaseDetailsEndpoint
 from .endpoints.project_release_file_details import ProjectReleaseFileDetailsEndpoint
@@ -1594,6 +1594,11 @@ urlpatterns = [
                     name="sentry-api-0-organization-issue-replay-count",
                 ),
                 url(
+                    r"^(?P<organization_slug>[^\/]+)/replay-count/$",
+                    OrganizationReplayCountEndpoint.as_view(),
+                    name="sentry-api-0-organization-replay-count",
+                ),
+                url(
                     r"^(?P<organization_slug>[^\/]+)/replays-events-meta/$",
                     OrganizationReplayEventsMetaEndpoint.as_view(),
                     name="sentry-api-0-organization-replay-events-meta",
@@ -2034,11 +2039,6 @@ urlpatterns = [
                     name="sentry-api-0-project-release-details",
                 ),
                 url(
-                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/releases/(?P<version>[^/]+)/activity/$",
-                    ProjectReleaseActivityEndpoint.as_view(),
-                    name="sentry-api-0-project-release-activity",
-                ),
-                url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/releases/(?P<version>[^/]+)/commits/$",
                     ProjectReleaseCommitsEndpoint.as_view(),
                     name="sentry-api-0-project-release-commits",
@@ -2325,6 +2325,11 @@ urlpatterns = [
     ),
     # Groups
     url(r"^(?:issues|groups)/", include(GROUP_URLS)),
+    url(
+        r"^issues/(?P<organization_slug>[^\/]+)/(?P<issue_id>[^\/]+)/participants/$",
+        GroupParticipantsEndpoint.as_view(),
+        name="sentry-api-0-group-stats-with-org",
+    ),
     url(
         r"^issues/(?P<issue_id>[^\/]+)/participants/$",
         GroupParticipantsEndpoint.as_view(),
