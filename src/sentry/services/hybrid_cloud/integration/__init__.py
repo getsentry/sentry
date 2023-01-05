@@ -152,7 +152,7 @@ class IntegrationService(InterfaceWithLifecycle):
         integration_id: int | None = None,
         provider: str | None = None,
         external_id: str | None = None,
-    ) -> Tuple[APIIntegration, APIOrganizationIntegration]:
+    ) -> Tuple[APIIntegration | None, APIOrganizationIntegration | None]:
         """
         Returns a tuple of APIIntegration and APIOrganizationIntegration. The integration is selected
         by either integration_id, or a combination of provider and external_id.

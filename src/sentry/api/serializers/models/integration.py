@@ -220,11 +220,11 @@ class IntegrationIssueSerializer(IntegrationSerializer):
         for ei in external_issues:
             # TODO(jess): move into an external issue serializer?
             integration = integration_service.get_integration(integration_id=ei.integration_id)
+            if integration is None:
+                continue
             installation = integration_service.get_installation(
                 api_integration=integration, organization_id=self.group.organization.id
             )
-            if installation is None:
-                continue
             if hasattr(installation, "get_issue_url") and hasattr(
                 installation, "get_issue_display_name"
             ):

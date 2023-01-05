@@ -1,4 +1,3 @@
-from sentry.models import Integration
 from sentry.testutils import APITestCase
 from sentry.testutils.silo import region_silo_test
 
@@ -10,9 +9,12 @@ class OrganizationIntegrationsListTest(APITestCase):
     def setUp(self):
         super().setUp()
         self.login_as(user=self.user)
-
-        self.integration = Integration.objects.create(provider="example", name="Example")
-        self.integration.add_organization(self.organization, self.user)
+        self.integration = self.create_integration(
+            organization=self.organization,
+            provider="example",
+            name="Example",
+            external_id="example:1",
+        )
 
     def test_simple(self):
         response = self.get_success_response(self.organization.slug)
