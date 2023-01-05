@@ -2319,6 +2319,7 @@ urlpatterns = [
     ),
     # Groups
     url(r"^(?:issues|groups)/", include(GROUP_URLS)),
+    # TODO: include in the /organizations/ route tree + remove old dupe once hybrid cloud launches
     url(
         r"^organizations/(?P<organization_slug>[^\/]+)/issues/(?P<issue_id>[^\/]+)/participants/$",
         GroupParticipantsEndpoint.as_view(),
@@ -2329,15 +2330,16 @@ urlpatterns = [
         GroupParticipantsEndpoint.as_view(),
         name="sentry-api-0-group-stats",
     ),
-    url(
-        r"^shared/(?:issues|groups)/(?P<share_id>[^\/]+)/$",
-        SharedGroupDetailsEndpoint.as_view(),
-        name="sentry-api-0-shared-group-details",
-    ),
+    # TODO: include in the /organizations/ route tree + remove old dupe once hybrid cloud launches
     url(
         r"^organizations/(?P<organization_slug>[^\/]+)/shared/(?:issues|groups)/(?P<share_id>[^\/]+)/$",
         SharedGroupDetailsEndpoint.as_view(),
         name="sentry-api-0-shared-group-details-with-org",
+    ),
+    url(
+        r"^shared/(?:issues|groups)/(?P<share_id>[^\/]+)/$",
+        SharedGroupDetailsEndpoint.as_view(),
+        name="sentry-api-0-shared-group-details",
     ),
     # Sentry Apps
     url(r"^sentry-apps/$", SentryAppsEndpoint.as_view(), name="sentry-api-0-sentry-apps"),
