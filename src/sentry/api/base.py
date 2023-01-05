@@ -50,7 +50,7 @@ from ..utils.pagination_factory import (
     annotate_span_with_pagination_args,
     clamp_pagination_per_page,
     get_cursor,
-    get_paginatior,
+    get_paginator,
 )
 
 ONE_MINUTE = 60
@@ -378,7 +378,7 @@ class Endpoint(APIView):
                 description=type(self).__name__,
             ) as span:
                 annotate_span_with_pagination_args(span, per_page)
-                paginator = get_paginatior(paginator, paginator_cls, paginator_kwargs)
+                paginator = get_paginator(paginator, paginator_cls, paginator_kwargs)
                 result_args = dict(count_hits=count_hits) if count_hits is not None else dict()
                 cursor_result = paginator.get_result(
                     limit=per_page,

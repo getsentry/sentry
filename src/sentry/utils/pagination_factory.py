@@ -52,7 +52,7 @@ def get_cursor(cursor_name: str | None, cursor_cls: Type[Cursor] = Cursor) -> Cu
         raise ValueError("Invalid cursor parameter.")
 
 
-def get_paginatior(
+def get_paginator(
     paginator: PaginatorLike | None = None,
     paginator_cls: Type[PaginatorLike] | None = None,
     paginator_kwargs: Mapping[str, Any] | None = None,

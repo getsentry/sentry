@@ -3,7 +3,7 @@ from __future__ import annotations
 from abc import abstractmethod
 from dataclasses import dataclass
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Iterable, List, Mapping
+from typing import TYPE_CHECKING, Any, Iterable, List, Mapping, Tuple
 
 from sentry.constants import ObjectStatus
 from sentry.services.hybrid_cloud import (
@@ -124,6 +124,7 @@ class IntegrationService(InterfaceWithLifecycle):
         status: int | None = None,
         providers: List[str] | None = None,
         has_grace_period: bool | None = None,
+        limit: int | None = None,
     ) -> List[APIOrganizationIntegration]:
         """
         Returns all APIOrganizationIntegrations from the integration_id, organization_id and status.
@@ -138,16 +139,24 @@ class IntegrationService(InterfaceWithLifecycle):
         """
         Returns an APIOrganizationIntegration from the integration and organization ids.
         """
-        all_ois = self.get_organization_integrations(integration_id=integration_id)
-        organization_integration = next(
-            (oi for oi in all_ois if oi.organization_id == organization_id), None
+        ois = self.get_organization_integrations(
+            integration_id=integration_id, organization_id=organization_id, limit=1
         )
+        return self._serialize_organization_integration(ois[0]) if len(ois) > 0 else None
 
-        return (
-            self._serialize_organization_integration(organization_integration)
-            if organization_integration
-            else None
-        )
+    def get_organization_context(
+        self,
+        *,
+        organization_id: int,
+        integration_id: int | None = None,
+        provider: str | None = None,
+        external_id: str | None = None,
+    ) -> Tuple(APIIntegration, APIOrganizationIntegration):
+        """
+        Returns a tuple of APIIntegration and APIOrganizationIntegration. The integration is selected
+        by either integration_id, or a combination of provider and external_id.
+        """
+        pass
 
     @abstractmethod
     def update_config(
@@ -184,7 +193,7 @@ class IntegrationService(InterfaceWithLifecycle):
         pass
 
     def get_installation(
-        self, *, integration_id: int, organization_id: int
+        self, *, api_integration: APIIntegration, organization_id: int
     ) -> IntegrationInstallation | None:
         """
         Returns the IntegrationInstallation class for a given integration.
@@ -193,14 +202,9 @@ class IntegrationService(InterfaceWithLifecycle):
         """
         from sentry import integrations
 
-        # Validate the integration_id first, since we're not using instances
-        integration = self.get_integration(integration_id=integration_id)
-        if not integration:
-            return None
-
-        provider = integrations.get(integration.provider)
+        provider = integrations.get(api_integration.provider)
         installation: IntegrationInstallation = provider.get_installation(
-            model=integration,
+            model=api_integration,
             organization_id=organization_id,
         )
         return installation

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any, Iterable, List, Mapping
+from typing import TYPE_CHECKING, Any, Iterable, List, Mapping, Tuple
 
 from sentry.api.paginator import OffsetPaginator
 from sentry.models.integrations import Integration, OrganizationIntegration
@@ -82,6 +82,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
         status: int | None = None,
         providers: List[str] | None = None,
         has_grace_period: bool | None = None,
+        limit: int | None = None,
     ) -> List[APIOrganizationIntegration]:
         oi_kwargs: Mapping[str, Any] = {}
         if integration_id is not None:
@@ -97,7 +98,43 @@ class DatabaseBackedIntegrationService(IntegrationService):
 
         ois = OrganizationIntegration.objects.filter(**oi_kwargs)
 
+        if limit is not None:
+            ois = ois[:limit]
+
         return [self._serialize_organization_integration(oi) for oi in ois]
+
+    def get_organization_integration(
+        self, *, integration_id: int, organization_id: int
+    ) -> APIOrganizationIntegration | None:
+        organization_integration = OrganizationIntegration.objects.filter(
+            integration_id=integration_id, organization_id=organization_id
+        ).first()
+
+        return (
+            self._serialize_organization_integration(organization_integration)
+            if organization_integration
+            else None
+        )
+
+    def get_organization_context(
+        self,
+        *,
+        organization_id: int,
+        integration_id: int | None = None,
+        provider: str | None = None,
+        external_id: str | None = None,
+    ) -> Tuple(APIIntegration, APIOrganizationIntegration):
+        integration = self.get_integration(
+            integration_id=integration_id, provider=provider, external_id=external_id
+        )
+        organization_integration = self.get_organization_integration(
+            integration_id=integration.id,
+            organization_id=organization_id,
+        )
+        return (
+            self._serialize_integration(integration),
+            self._serialize_organization_integration(organization_integration),
+        )
 
     def update_config(
         self, *, org_integration_id: int, config: Mapping[str, Any], should_clear: bool = False

@@ -264,11 +264,11 @@ class IntegrationInstallation:
     def __init__(self, model: M, organization_id: int) -> None:
         self.model = model
         self.organization_id = organization_id
-        self._org_integration: APIOrganizationIntegration | None = None
+        self._org_integration: APIOrganizationIntegration | None
 
     @property
     def org_integration(self) -> APIOrganizationIntegration | None:
-        if self._org_integration is None:
+        if not hasattr(self, "_org_integration"):
             self._org_integration = integration_service.get_organization_integration(
                 integration_id=self.model.id,
                 organization_id=self.organization_id,

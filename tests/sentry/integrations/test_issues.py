@@ -122,7 +122,7 @@ class IssueDefaultTest(TestCase):
         )
 
         self.installation = integration_service.get_installation(
-            integration_id=integration.id, organization_id=self.group.organization.id
+            api_integration=integration, organization_id=self.group.organization.id
         )
 
     def test_get_repository_choices(self):

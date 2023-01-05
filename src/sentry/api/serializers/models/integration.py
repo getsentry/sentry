@@ -219,8 +219,9 @@ class IntegrationIssueSerializer(IntegrationSerializer):
         issues_by_integration = defaultdict(list)
         for ei in external_issues:
             # TODO(jess): move into an external issue serializer?
+            integration = integration_service.get_integration(integration_id=ei.integration_id)
             installation = integration_service.get_installation(
-                integration_id=ei.integration_id, organization_id=self.group.organization.id
+                api_integration=integration, organization_id=self.group.organization.id
             )
             if installation is None:
                 continue
