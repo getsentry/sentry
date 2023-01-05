@@ -29,7 +29,7 @@ from sentry.utils import json
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.cursors import Cursor
 from sentry.utils.dates import to_datetime
-from sentry.utils.http import absolute_uri, is_valid_origin, origin_from_request
+from sentry.utils.http import is_valid_origin, origin_from_request
 from sentry.utils.numbers import format_grouped_length
 from sentry.utils.sdk import capture_exception, set_measurement
 
@@ -52,7 +52,9 @@ ONE_MINUTE = 60
 ONE_HOUR = ONE_MINUTE * 60
 ONE_DAY = ONE_HOUR * 24
 
-LINK_HEADER = '<{uri}&cursor={cursor}>; rel="{name}"; results="{has_results}"; cursor="{cursor}"'
+CURSOR_LINK_HEADER = (
+    '<{uri}&cursor={cursor}>; rel="{name}"; results="{has_results}"; cursor="{cursor}"'
+)
 
 DEFAULT_AUTHENTICATION = (TokenAuthentication, ApiKeyAuthentication, SessionAuthentication)
 
@@ -147,7 +149,12 @@ class Endpoint(APIView):
             result.append(last_api_authenticator)
         return result
 
-    def build_cursor_link(self, request: Request, name, cursor):
+    def build_link_header(self, request: Request, path: str, rel: str):
+        # TODO(dcramer): it would be nice to expand this to support params to consolidate `build_cursor_link`
+        uri = request.build_absolute_uri(urlquote(path))
+        return f'<{uri}>; rel="{rel}">'
+
+    def build_cursor_link(self, request: Request, name: str, cursor: Cursor):
         querystring = None
         if request.GET.get("cursor") is None:
             querystring = request.GET.urlencode()
@@ -156,14 +163,14 @@ class Endpoint(APIView):
             mutable_query_dict.pop("cursor")
             querystring = mutable_query_dict.urlencode()
 
-        base_url = absolute_uri(urlquote(request.path))
+        base_url = request.build_absolute_uri(urlquote(request.path))
 
         if querystring is not None:
             base_url = f"{base_url}?{querystring}"
         else:
             base_url = base_url + "?"
 
-        return LINK_HEADER.format(
+        return CURSOR_LINK_HEADER.format(
             uri=base_url,
             cursor=str(cursor),
             name=name,

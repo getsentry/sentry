@@ -10,7 +10,7 @@ from rest_framework.request import Request
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
 
 from sentry import features, quotas
-from sentry.api.base import LINK_HEADER
+from sentry.api.base import CURSOR_LINK_HEADER
 from sentry.api.bases import NoProjects
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.helpers.mobile import get_readable_device_name
@@ -253,7 +253,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         else:
             base_url = base_url + "?"
 
-        return cast(str, LINK_HEADER).format(
+        return cast(str, CURSOR_LINK_HEADER).format(
             uri=base_url,
             cursor=str(cursor),
             name=name,
