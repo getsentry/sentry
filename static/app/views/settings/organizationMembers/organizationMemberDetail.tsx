@@ -138,8 +138,12 @@ class OrganizationMemberDetail extends AsyncView<Props, State> {
 
   handleAddTeam = (team: Team) => {
     const {member} = this.state;
-    if (!member!.teams.includes(team.slug)) {
-      member!.teams.push(team.slug);
+    if (!member) {
+      return;
+    }
+    const teams = member.teams;
+    if (!teams.includes(team.slug)) {
+      member.teams = [...teams, team.slug];
     }
     this.setState({member});
   };

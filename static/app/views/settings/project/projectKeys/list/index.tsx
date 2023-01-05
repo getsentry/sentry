@@ -136,7 +136,7 @@ class ProjectKeys extends AsyncView<Props, State> {
 
   renderResults() {
     const {location, organization, routes, params} = this.props;
-    const {orgId, projectId} = params;
+    const {projectId} = params;
     const access = new Set(organization.access);
 
     return (
@@ -145,7 +145,7 @@ class ProjectKeys extends AsyncView<Props, State> {
           <KeyRow
             access={access}
             key={key.id}
-            orgId={orgId}
+            orgId={organization.slug}
             projectId={`${projectId}`}
             data={key}
             onToggle={this.handleToggleKey}

@@ -17,6 +17,7 @@ function renderComponent(isHidden) {
         projectId: project.slug,
       }}
       location={{pathname}}
+      organization={org}
       routes={[]}
     />
   );
