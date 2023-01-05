@@ -1,6 +1,5 @@
 from unittest import mock
 
-from django.contrib import messages
 from django.contrib.auth.models import AnonymousUser
 from django.test import Client, RequestFactory
 
@@ -165,7 +164,7 @@ class HandleExistingIdentityTest(AuthIdentityHandlerTest):
         redirect = self.handler.handle_existing_identity(self.state, auth_identity)
 
         assert redirect.url == mock_auth.get_login_redirect.return_value
-        assert mock_auth.get_login_redirect.called_with(self.request)
+        mock_auth.get_login_redirect.assert_called_with(self.request)
 
         persisted_identity = AuthIdentity.objects.get(ident=auth_identity.ident)
         assert persisted_identity.data == self.identity["data"]
@@ -188,7 +187,7 @@ class HandleExistingIdentityTest(AuthIdentityHandlerTest):
             redirect = self.handler.handle_existing_identity(self.state, auth_identity)
 
             assert redirect.url == mock_auth.get_login_redirect.return_value
-            assert mock_auth.get_login_redirect.called_with(self.request)
+            mock_auth.get_login_redirect.assert_called_with(self.request)
 
             persisted_identity = AuthIdentity.objects.get(ident=auth_identity.ident)
             assert persisted_identity.data == self.identity["data"]
@@ -227,8 +226,8 @@ class HandleAttachIdentityTest(AuthIdentityHandlerTest):
             data=auth_identity.get_audit_log_data(),
         ).exists()
 
-        assert mock_messages.add_message.called_with(
-            self.request, messages.SUCCESS, OK_LINK_IDENTITY
+        mock_messages.add_message.assert_called_with(
+            self.request, mock_messages.SUCCESS, OK_LINK_IDENTITY
         )
 
     @mock.patch("sentry.auth.helper.messages")
@@ -244,8 +243,8 @@ class HandleAttachIdentityTest(AuthIdentityHandlerTest):
         assert getattr(persisted_om.flags, "sso:linked")
         assert not getattr(persisted_om.flags, "sso:invalid")
 
-        assert mock_messages.add_message.called_with(
-            self.request, messages.SUCCESS, OK_LINK_IDENTITY
+        mock_messages.add_message.assert_called_with(
+            self.request, mock_messages.SUCCESS, OK_LINK_IDENTITY
         )
 
     @mock.patch("sentry.auth.helper.messages")

@@ -51,6 +51,7 @@ export interface FlamegraphTheme {
     SAMPLE_TICK_COLOR: ColorChannels;
     SEARCH_RESULT_FRAME_COLOR: string;
     SELECTED_FRAME_BORDER_COLOR: string;
+    SPAN_COLOR_BUCKET: (t: number) => ColorChannels;
     SPAN_FALLBACK_COLOR: [number, number, number, number];
     SPAN_FRAME_BACKGROUND: string;
     SPAN_FRAME_BORDER: string;
@@ -136,6 +137,7 @@ export const LightFlamegraphTheme: FlamegraphTheme = {
   COLORS: {
     BAR_LABEL_FONT_COLOR: '#000',
     COLOR_BUCKET: makeColorBucketTheme(LCH_LIGHT),
+    SPAN_COLOR_BUCKET: makeColorBucketTheme(LCH_LIGHT, 60, 260),
     COLOR_MAP: makeColorMap,
     CURSOR_CROSSHAIR: '#bbbbbb',
     DIFFERENTIAL_DECREASE: [0.309, 0.2058, 0.98],
@@ -165,6 +167,7 @@ export const DarkFlamegraphTheme: FlamegraphTheme = {
   COLORS: {
     BAR_LABEL_FONT_COLOR: 'rgb(255 255 255 / 80%)',
     COLOR_BUCKET: makeColorBucketTheme(LCH_DARK),
+    SPAN_COLOR_BUCKET: makeColorBucketTheme(LCH_DARK, 120, 240),
     COLOR_MAP: makeColorMap,
     CURSOR_CROSSHAIR: '#828285',
     DIFFERENTIAL_DECREASE: [0.309, 0.2058, 0.98],

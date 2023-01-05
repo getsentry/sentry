@@ -5,9 +5,8 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.authentication import DSNAuthentication
-from sentry.api.base import Endpoint, region_silo_endpoint
-from sentry.api.bases.monitor import MonitorEndpoint
-from sentry.api.bases.project import ProjectPermission
+from sentry.api.base import Endpoint, pending_silo_endpoint
+from sentry.api.bases.monitor import MonitorEndpoint, ProjectMonitorPermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.api.serializers import serialize
@@ -37,7 +36,7 @@ class CheckInSerializer(serializers.Serializer):
 @region_silo_endpoint
 class MonitorCheckInDetailsEndpoint(Endpoint):
     authentication_classes = MonitorEndpoint.authentication_classes + (DSNAuthentication,)
-    permission_classes = (ProjectPermission,)
+    permission_classes = (ProjectMonitorPermission,)
 
     # TODO(dcramer): this code needs shared with other endpoints as its security focused
     # TODO(dcramer): this doesnt handle is_global roles
