@@ -5,7 +5,7 @@ import CheckboxFancy from 'sentry/components/checkboxFancy/checkboxFancy';
 import {FeatureFeedback} from 'sentry/components/featureFeedback';
 import {TextField} from 'sentry/components/forms';
 import Textarea from 'sentry/components/forms/controls/textarea';
-import Field from 'sentry/components/forms/field';
+import FieldGroup from 'sentry/components/forms/field';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import space from 'sentry/styles/space';
@@ -120,7 +120,7 @@ export function SamplingFeedback() {
           <Fragment>
             <Header>{t('Submit Feedback')}</Header>
             <Body showSelfHostedMessage={false}>
-              <Field
+              <FieldGroup
                 label={<Label>{t('What do you think about this feature?')}</Label>}
                 stacked
                 inline={false}
@@ -135,8 +135,8 @@ export function SamplingFeedback() {
                     onFieldChange('opinionAboutFeature', event.target.value)
                   }
                 />
-              </Field>
-              <Field
+              </FieldGroup>
+              <FieldGroup
                 label={
                   <Label>
                     {t(
@@ -187,7 +187,7 @@ export function SamplingFeedback() {
                     />
                   }
                 />
-              </Field>
+              </FieldGroup>
             </Body>
             <Footer
               primaryDisabledReason={

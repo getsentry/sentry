@@ -8,7 +8,7 @@ import {
 } from 'sentry/actionCreators/indicator';
 import Button from 'sentry/components/button';
 import EmptyMessage from 'sentry/components/emptyMessage';
-import Field from 'sentry/components/forms/field';
+import FieldGroup from 'sentry/components/forms/field';
 import Link from 'sentry/components/links/link';
 import {Panel, PanelAlert, PanelBody, PanelHeader} from 'sentry/components/panels';
 import Switch from 'sentry/components/switchButton';
@@ -29,7 +29,7 @@ type RowProps = {
 
 function ServiceHookRow({orgId, projectId, hook, onToggleActive}: RowProps) {
   return (
-    <Field
+    <FieldGroup
       label={
         <Link
           data-test-id="project-service-hook"
@@ -49,7 +49,7 @@ function ServiceHookRow({orgId, projectId, hook, onToggleActive}: RowProps) {
       }
     >
       <Switch isActive={hook.status === 'active'} size="lg" toggle={onToggleActive} />
-    </Field>
+    </FieldGroup>
   );
 }
 

@@ -7,7 +7,7 @@ import isEqual from 'lodash/isEqual';
 
 import {TableCell} from 'sentry/components/charts/simpleTableChart';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
-import Field from 'sentry/components/forms/field';
+import FieldGroup from 'sentry/components/forms/field';
 import {PanelAlert} from 'sentry/components/panels';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {t} from 'sentry/locale';
@@ -89,7 +89,7 @@ export function VisualizationStep({
         'This is a preview of how your widget will appear in the dashboard.'
       )}
     >
-      <Field error={error} inline={false} flexibleControlStateSize stacked>
+      <FieldGroup error={error} inline={false} flexibleControlStateSize stacked>
         <SelectControl
           name="displayType"
           options={displayOptions}
@@ -104,7 +104,7 @@ export function VisualizationStep({
             }),
           }}
         />
-      </Field>
+      </FieldGroup>
       <VisualizationWrapper displayType={displayType}>
         <WidgetCard
           organization={organization}

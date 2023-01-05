@@ -4,7 +4,7 @@ import {arrayMove, SortableContext, verticalListSortingStrategy} from '@dnd-kit/
 import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
-import Field from 'sentry/components/forms/field';
+import FieldGroup from 'sentry/components/forms/field';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -173,7 +173,7 @@ export function GroupBySelector({fieldOptions, columns = [], onChange}: Props) {
   );
 }
 
-const StyledField = styled(Field)`
+const StyledField = styled(FieldGroup)`
   padding-bottom: ${space(1)};
 `;
 

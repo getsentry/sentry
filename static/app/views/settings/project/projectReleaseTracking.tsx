@@ -5,7 +5,7 @@ import Alert from 'sentry/components/alert';
 import AutoSelectText from 'sentry/components/autoSelectText';
 import Button from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
-import Field from 'sentry/components/forms/field';
+import FieldGroup from 'sentry/components/forms/field';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
@@ -164,13 +164,13 @@ class ProjectReleaseTracking extends AsyncView<Props, State> {
         <Panel>
           <PanelHeader>{t('Deploy Token')}</PanelHeader>
           <PanelBody>
-            <Field
+            <FieldGroup
               label={t('Token')}
               help={t('A unique secret which is used to generate deploy hook URLs')}
             >
               <TextCopyInput>{token}</TextCopyInput>
-            </Field>
-            <Field
+            </FieldGroup>
+            <FieldGroup
               label={t('Regenerate Token')}
               help={t(
                 'If a service becomes compromised, you should regenerate the token and re-configure any deploy hooks with the newly generated URL.'
@@ -190,7 +190,7 @@ class ProjectReleaseTracking extends AsyncView<Props, State> {
                   </Button>
                 </Confirm>
               </div>
-            </Field>
+            </FieldGroup>
           </PanelBody>
         </Panel>
 

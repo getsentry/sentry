@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import trimStart from 'lodash/trimStart';
 
 import SelectControl from 'sentry/components/forms/controls/selectControl';
-import Field from 'sentry/components/forms/field';
+import FieldGroup from 'sentry/components/forms/field';
 import Tooltip from 'sentry/components/tooltip';
 import {t, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -90,7 +90,7 @@ export function SortByStep({
         title={disableSortReason}
         disabled={!(disableSortDirection && disableSort)}
       >
-        <Field inline={false} error={error} flexibleControlStateSize stacked>
+        <FieldGroup inline={false} error={error} flexibleControlStateSize stacked>
           {[DisplayType.AREA, DisplayType.BAR, DisplayType.LINE].includes(displayType) &&
             limit && (
               <ResultsLimitSelector
@@ -132,7 +132,7 @@ export function SortByStep({
             }}
             tags={tags}
           />
-        </Field>
+        </FieldGroup>
       </Tooltip>
     </BuildStep>
   );
