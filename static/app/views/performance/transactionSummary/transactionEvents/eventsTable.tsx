@@ -92,7 +92,6 @@ type Props = {
   issueId?: string;
   projectSlug?: string;
   referrer?: string;
-  totalEventCount?: string;
 };
 
 type State = {
@@ -342,19 +341,12 @@ class EventsTable extends Component<Props, State> {
   };
 
   render() {
-    const {
-      eventView,
-      organization,
-      location,
-      setError,
-      totalEventCount,
-      referrer,
-      showReplayCol,
-    } = this.props;
+    const {eventView, organization, location, setError, referrer, showReplayCol} =
+      this.props;
 
-    const totalTransactionsView = eventView.clone();
-    totalTransactionsView.sorts = [];
-    totalTransactionsView.fields = [{field: 'count()', width: -1}];
+    const totalEventsView = eventView.clone();
+    totalEventsView.sorts = [];
+    totalEventsView.fields = [{field: 'count()', width: -1}];
 
     const {widths} = this.state;
     const containsSpanOpsBreakdown = eventView
@@ -442,57 +434,75 @@ class EventsTable extends Component<Props, State> {
     return (
       <div data-test-id="events-table">
         <DiscoverQuery
-          eventView={eventView}
+          eventView={totalEventsView}
           orgSlug={organization.slug}
           location={location}
           setError={error => setError(error?.message)}
-          referrer={referrer || 'api.performance.transaction-events'}
+          referrer="api.performance.transaction-summary"
+          cursor="0:0:0"
         >
-          {({pageLinks, isLoading: isDiscoverQueryLoading, tableData}) => {
-            tableData ??= {data: []};
-            const parsedPageLinks = parseLinkHeader(pageLinks);
-            const cursor = parsedPageLinks?.next?.cursor;
-            const shouldFetchAttachments: boolean =
-              organization.features.includes('event-attachments') &&
-              !!this.props.issueId &&
-              !!cursor &&
-              this.state.lastFetchedCursor !== cursor; // Only fetch on issue details page
-            let currentEvent = cursor?.split(':')[1] ?? 0;
-            if (!parsedPageLinks?.next?.results && totalEventCount) {
-              currentEvent = totalEventCount;
-            }
+          {({isLoading: isTotalEventsLoading, tableData: table}) => {
+            const totalEventsCount = table?.data[0]?.['count()'] ?? 0;
 
-            const paginationCaption =
-              totalEventCount && currentEvent
-                ? tct('Showing [currentEvent] of [totalEventCount] events', {
-                    currentEvent,
-                    totalEventCount,
-                  })
-                : undefined;
-            if (shouldFetchAttachments) {
-              fetchAttachments(tableData, cursor);
-            }
-            joinCustomData(tableData);
             return (
-              <Fragment>
-                <GridEditable
-                  isLoading={isDiscoverQueryLoading || shouldFetchAttachments}
-                  data={tableData?.data ?? []}
-                  columnOrder={columnOrder}
-                  columnSortBy={eventView.getSorts()}
-                  grid={{
-                    onResizeColumn: this.handleResizeColumn,
-                    renderHeadCell: this.renderHeadCellWithMeta(tableData?.meta) as any,
-                    renderBodyCell: this.renderBodyCellWithData(tableData) as any,
-                  }}
-                  location={location}
-                />
-                <Pagination
-                  disabled={isDiscoverQueryLoading}
-                  caption={paginationCaption}
-                  pageLinks={pageLinks}
-                />
-              </Fragment>
+              <DiscoverQuery
+                eventView={eventView}
+                orgSlug={organization.slug}
+                location={location}
+                setError={error => setError(error?.message)}
+                referrer={referrer || 'api.performance.transaction-events'}
+              >
+                {({pageLinks, isLoading: isDiscoverQueryLoading, tableData}) => {
+                  tableData ??= {data: []};
+                  const pageEventsCount = tableData?.data?.length ?? 0;
+                  const parsedPageLinks = parseLinkHeader(pageLinks);
+                  const cursor = parsedPageLinks?.next?.cursor;
+                  const shouldFetchAttachments: boolean =
+                    organization.features.includes('event-attachments') &&
+                    !!this.props.issueId &&
+                    !!cursor &&
+                    this.state.lastFetchedCursor !== cursor; // Only fetch on issue details page
+
+                  const paginationCaption =
+                    totalEventsCount && pageEventsCount
+                      ? tct('Showing [pageEventsCount] of [totalEventsCount] events', {
+                          pageEventsCount: pageEventsCount.toLocaleString(),
+                          totalEventsCount: totalEventsCount.toLocaleString(),
+                        })
+                      : undefined;
+                  if (shouldFetchAttachments) {
+                    fetchAttachments(tableData, cursor);
+                  }
+                  joinCustomData(tableData);
+                  return (
+                    <Fragment>
+                      <GridEditable
+                        isLoading={
+                          isTotalEventsLoading ||
+                          isDiscoverQueryLoading ||
+                          shouldFetchAttachments
+                        }
+                        data={tableData?.data ?? []}
+                        columnOrder={columnOrder}
+                        columnSortBy={eventView.getSorts()}
+                        grid={{
+                          onResizeColumn: this.handleResizeColumn,
+                          renderHeadCell: this.renderHeadCellWithMeta(
+                            tableData?.meta
+                          ) as any,
+                          renderBodyCell: this.renderBodyCellWithData(tableData) as any,
+                        }}
+                        location={location}
+                      />
+                      <Pagination
+                        disabled={isDiscoverQueryLoading}
+                        caption={paginationCaption}
+                        pageLinks={pageLinks}
+                      />
+                    </Fragment>
+                  );
+                }}
+              </DiscoverQuery>
             );
           }}
         </DiscoverQuery>

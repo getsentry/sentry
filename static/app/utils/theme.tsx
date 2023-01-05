@@ -904,7 +904,8 @@ export const darkTheme: Theme = {
   sidebarBorder: darkAliases.border,
 };
 
-export type Theme = typeof lightTheme;
+type Theme = typeof lightTheme;
+
 export type Color = keyof typeof lightColors;
 export type Aliases = typeof lightAliases;
 export type ColorOrAlias = keyof Aliases | Color;
@@ -913,14 +914,15 @@ export type FormSize = keyof Theme['form'];
 
 export default commonTheme;
 
-type MyTheme = Theme;
+// Be clear about what the [@emotion/React].THeme is extending
+type SentryTheme = Theme;
 
 /**
  * Configure Emotion to use our theme
  */
 declare module '@emotion/react' {
   // eslint-disable-next-line @typescript-eslint/no-shadow
-  export interface Theme extends MyTheme {}
+  export interface Theme extends SentryTheme {}
 }
 
 // This should never be used directly (except in storybook)

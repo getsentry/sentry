@@ -90,7 +90,6 @@ describe('Performance GridEditable Table', function () {
     t('trace id'),
     t('timestamp'),
   ];
-  const totalEventCount = '100';
   let fields = EVENTS_TABLE_RESPONSE_FIELDS;
   const organization = TestStubs.Organization();
   const transactionName = 'transactionName';
@@ -116,6 +115,30 @@ describe('Performance GridEditable Table', function () {
     });
 
     data = MOCK_EVENTS_TABLE_DATA;
+
+    // Total events count response
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      headers: {
+        Link:
+          '<http://localhost/api/0/organizations/org-slug/events/?cursor=2:0:0>; rel="next"; results="true"; cursor="2:0:0",' +
+          '<http://localhost/api/0/organizations/org-slug/events/?cursor=1:0:0>; rel="previous"; results="false"; cursor="1:0:0"',
+      },
+      body: {
+        meta: {
+          fields: {
+            'count()': 'integer',
+          },
+        },
+        data: [{'count()': 100}],
+      },
+      match: [
+        (_url, options) => {
+          return options.query?.field?.includes('count()');
+        },
+      ],
+    });
+
     // Transaction list response
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
@@ -168,7 +191,6 @@ describe('Performance GridEditable Table', function () {
 
     render(
       <EventsTable
-        totalEventCount={totalEventCount}
         eventView={eventView}
         organization={organization}
         routes={initialData.router.routes}
@@ -223,7 +245,6 @@ describe('Performance GridEditable Table', function () {
 
     const {container} = render(
       <EventsTable
-        totalEventCount={totalEventCount}
         eventView={eventView}
         organization={organization}
         routes={initialData.router.routes}
@@ -260,7 +281,6 @@ describe('Performance GridEditable Table', function () {
 
     render(
       <EventsTable
-        totalEventCount={totalEventCount}
         eventView={eventView}
         organization={organization}
         routes={initialData.router.routes}
@@ -307,7 +327,6 @@ describe('Performance GridEditable Table', function () {
 
     const {container} = render(
       <EventsTable
-        totalEventCount={totalEventCount}
         eventView={eventView}
         organization={organization}
         routes={initialData.router.routes}
