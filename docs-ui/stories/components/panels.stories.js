@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 
 import Button from 'sentry/components/button';
-import Field from 'sentry/components/forms/field';
+import FieldGroup from 'sentry/components/forms/field';
 import {
   Panel,
   PanelAlert,
@@ -125,18 +125,18 @@ export const WithFields = ({...args}) => (
     <PanelHeader>Panel Header</PanelHeader>
 
     <PanelBody>
-      <Field label="Label" help="This is a helpful description for this form field">
+      <FieldGroup label="Label" help="This is a helpful description for this form field">
         <Button priority="danger">Remove</Button>
-      </Field>
+      </FieldGroup>
 
-      <Field
+      <FieldGroup
         label="Label"
         help="Control will fill up all available space, so wrap with a `<div>` to have it behave like an inline-block element."
       >
         <div>
           <Button priority="danger">Remove</Button>
         </div>
-      </Field>
+      </FieldGroup>
     </PanelBody>
   </Panel>
 );
