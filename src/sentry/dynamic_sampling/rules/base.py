@@ -62,6 +62,7 @@ class DynamicSamplingBiases:
                 # indistinguishable from disabled).
                 return base_sample_rate < 1.0
 
+            # TODO: try to think of a more extensible implementation that guarantees deterministic ordering.
             if RuleType.BOOST_KEY_TRANSACTIONS_RULE.value in enabled_biases:
                 combinator.combine_if(BOOST_KEY_TRANSACTIONS_BIAS, dynamic_sampling_enabled)
 
