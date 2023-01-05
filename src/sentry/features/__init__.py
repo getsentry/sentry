@@ -87,7 +87,6 @@ default_manager.add("organizations:issue-alert-fallback-targeting", Organization
 default_manager.add("organizations:issue-alert-incompatible-rules", OrganizationFeature, True)
 default_manager.add("organizations:issue-alert-preview", OrganizationFeature, True)
 default_manager.add("organizations:issue-alert-test-notifications", OrganizationFeature, True)
-default_manager.add("organizations:issue-details-owners", OrganizationFeature, True)
 default_manager.add("organizations:issue-details-tag-improvements", OrganizationFeature, True)
 default_manager.add("organizations:issue-list-removal-action", OrganizationFeature, True)
 default_manager.add("organizations:issue-list-trend-sort", OrganizationFeature, True)
