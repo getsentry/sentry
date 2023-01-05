@@ -8,13 +8,13 @@ import {initializeLocale} from '../../../bootstrap/initializeLocale';
 import {Flamegraph} from '../flamegraph';
 import {FlamegraphSearch} from '../flamegraph/flamegraphStateProvider/reducers/flamegraphSearch';
 import {LightFlamegraphTheme} from '../flamegraph/flamegraphTheme';
+import {FlamegraphFrame, getFlamegraphFrameSearchId} from '../flamegraphFrame';
 import {Rect, transformMatrixBetweenRect} from '../gl/utils';
 import androidTrace from '../profile/formats/android/trace.json';
 import ios from '../profile/formats/ios/trace.json';
 import typescriptTrace from '../profile/formats/typescript/trace.json';
 import {importProfile} from '../profile/importProfile';
 
-import {FlamegraphFrame, getFlamegraphFrameSearchId} from './../flamegraphFrame';
 import {FlamegraphTextRenderer} from './flamegraphTextRenderer';
 
 // This logs an error which is annoying to see in the outputs

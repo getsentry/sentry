@@ -28,6 +28,7 @@ import {
 } from 'sentry/utils/profiling/gl/utils';
 import {SelectedFrameRenderer} from 'sentry/utils/profiling/renderers/selectedFrameRenderer';
 import {SpanChartRenderer2D} from 'sentry/utils/profiling/renderers/spansRenderer';
+import {SpansTextRenderer} from 'sentry/utils/profiling/renderers/spansTextRenderer';
 import {SpanChart, SpanChartNode} from 'sentry/utils/profiling/spanChart';
 import {useProfileTransaction} from 'sentry/views/profiling/profileGroupProvider';
 
@@ -89,6 +90,14 @@ export function FlamegraphSpans({
     return new SpanChartRenderer2D(spansCanvasRef, spanChart, flamegraphTheme);
   }, [spansCanvasRef, spanChart, flamegraphTheme]);
 
+  const spansTextRenderer = useMemo(() => {
+    if (!spansCanvasRef) {
+      return null;
+    }
+
+    return new SpansTextRenderer(spansCanvasRef, flamegraphTheme, spanChart);
+  }, [spansCanvasRef, spanChart, flamegraphTheme]);
+
   const selectedSpanRenderer = useMemo(() => {
     if (!spansCanvasRef) {
       return null;
@@ -105,7 +114,7 @@ export function FlamegraphSpans({
   }, [configSpaceCursor, spansRenderer]);
 
   useEffect(() => {
-    if (!spansCanvas || !spansView || !spansRenderer) {
+    if (!spansCanvas || !spansView || !spansRenderer || !spansTextRenderer) {
       return undefined;
     }
 
@@ -120,13 +129,28 @@ export function FlamegraphSpans({
       );
     };
 
-    drawSpans();
+    const drawText = () => {
+      spansTextRenderer.draw(
+        spansView.configView.transformRect(spansView.configSpaceTransform),
+        spansView.fromTransformedConfigView(spansCanvas.physicalSpace)
+        // flamegraphSearch.results
+      );
+    };
+
     scheduler.registerBeforeFrameCallback(drawSpans);
+    scheduler.registerAfterFrameCallback(drawText);
 
     return () => {
       scheduler.unregisterBeforeFrameCallback(drawSpans);
     };
-  }, [spansCanvas, spansRenderer, scheduler, spansView, profiledTransaction.type]);
+  }, [
+    spansCanvas,
+    spansRenderer,
+    scheduler,
+    spansView,
+    spansTextRenderer,
+    profiledTransaction.type,
+  ]);
 
   const onMouseDrag = useCallback(
     (evt: React.MouseEvent<HTMLCanvasElement>) => {
