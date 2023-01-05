@@ -180,7 +180,7 @@ class AllTeamsRow extends Component<Props, State> {
   render() {
     const {team, openMembership, organization} = this.props;
     const urlPrefix = `/settings/${organization.slug}/teams/`;
-    const buttonHelpText = team.idpProvisioned
+    const buttonHelpText = team.flags['idp:provisioned']
       ? t(
           "Membership to this team is managed through your organization's identity provider."
         )
@@ -197,6 +197,8 @@ class AllTeamsRow extends Component<Props, State> {
     // You can only view team details if you have access to team -- this should account
     // for your role + org open membership
     const canViewTeam = team.hasAccess;
+
+    const idpProvisioned = team.flags['idp:provisioned'];
 
     return (
       <TeamPanelItem>
@@ -219,7 +221,7 @@ class AllTeamsRow extends Component<Props, State> {
             <Button
               size="sm"
               onClick={this.handleLeaveTeam}
-              disabled={team.idpProvisioned}
+              disabled={idpProvisioned}
               title={buttonHelpText}
             >
               {t('Leave Team')}
@@ -238,7 +240,7 @@ class AllTeamsRow extends Component<Props, State> {
             <Button
               size="sm"
               onClick={this.handleJoinTeam}
-              disabled={team.idpProvisioned}
+              disabled={idpProvisioned}
               title={buttonHelpText}
             >
               {t('Join Team')}
@@ -247,7 +249,7 @@ class AllTeamsRow extends Component<Props, State> {
             <Button
               size="sm"
               onClick={this.handleRequestAccess}
-              disabled={team.idpProvisioned}
+              disabled={idpProvisioned}
               title={buttonHelpText}
             >
               {t('Request Access')}

@@ -49,7 +49,13 @@ describe('OrganizationTeams', function () {
     });
 
     it('can join team and have link to details', function () {
-      const mockTeams = [TestStubs.Team({hasAccess: true, isMember: false})];
+      const mockTeams = [
+        TestStubs.Team({
+          flags: {'idp:provisioned': false},
+          hasAccess: true,
+          isMember: false,
+        }),
+      ];
       act(() => void TeamStore.loadInitialData(mockTeams, false, null));
       createWrapper({
         access: new Set([]),
@@ -61,7 +67,11 @@ describe('OrganizationTeams', function () {
     });
 
     it('reloads projects after joining a team', async function () {
-      const team = TestStubs.Team({hasAccess: true, isMember: false});
+      const team = TestStubs.Team({
+        flags: {'idp:provisioned': false},
+        hasAccess: true,
+        isMember: false,
+      });
       const getOrgMock = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/',
         body: TestStubs.Organization(),
@@ -83,7 +93,9 @@ describe('OrganizationTeams', function () {
     });
 
     it('cannot leave idp-provisioned team', function () {
-      const mockTeams = [TestStubs.Team({idpProvisioned: true, isMember: true})];
+      const mockTeams = [
+        TestStubs.Team({flags: {'idp:provisioned': true}, isMember: true}),
+      ];
       act(() => void TeamStore.loadInitialData(mockTeams, false, null));
       createWrapper();
 
@@ -91,7 +103,9 @@ describe('OrganizationTeams', function () {
     });
 
     it('cannot join idp-provisioned team', function () {
-      const mockTeams = [TestStubs.Team({idpProvisioned: true, isMember: false})];
+      const mockTeams = [
+        TestStubs.Team({flags: {'idp:provisioned': true}, isMember: false}),
+      ];
       act(() => void TeamStore.loadInitialData(mockTeams, false, null));
       createWrapper({
         access: new Set([]),
@@ -122,7 +136,13 @@ describe('OrganizationTeams', function () {
       );
 
     it('can request access to team and does not have link to details', function () {
-      const mockTeams = [TestStubs.Team({hasAccess: false, isMember: false})];
+      const mockTeams = [
+        TestStubs.Team({
+          flags: {'idp:provisioned': false},
+          hasAccess: false,
+          isMember: false,
+        }),
+      ];
       act(() => void TeamStore.loadInitialData(mockTeams, false, null));
       createWrapper({access: new Set([])});
 
@@ -133,7 +153,13 @@ describe('OrganizationTeams', function () {
     });
 
     it('can leave team when you are a member', function () {
-      const mockTeams = [TestStubs.Team({hasAccess: true, isMember: true})];
+      const mockTeams = [
+        TestStubs.Team({
+          flags: {'idp:provisioned': false},
+          hasAccess: true,
+          isMember: true,
+        }),
+      ];
       act(() => void TeamStore.loadInitialData(mockTeams, false, null));
       createWrapper({
         access: new Set([]),
@@ -143,7 +169,9 @@ describe('OrganizationTeams', function () {
     });
 
     it('cannot request to join idp-provisioned team', function () {
-      const mockTeams = [TestStubs.Team({idpProvisioned: true, isMember: false})];
+      const mockTeams = [
+        TestStubs.Team({flags: {'idp:provisioned': true}, isMember: false}),
+      ];
       act(() => void TeamStore.loadInitialData(mockTeams, false, null));
       createWrapper({
         access: new Set([]),
@@ -153,7 +181,9 @@ describe('OrganizationTeams', function () {
     });
 
     it('cannot leave idp-provisioned team', function () {
-      const mockTeams = [TestStubs.Team({idpProvisioned: true, isMember: true})];
+      const mockTeams = [
+        TestStubs.Team({flags: {'idp:provisioned': true}, isMember: true}),
+      ];
       act(() => void TeamStore.loadInitialData(mockTeams, false, null));
       createWrapper({
         access: new Set([]),

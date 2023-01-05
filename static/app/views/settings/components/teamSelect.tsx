@@ -106,9 +106,8 @@ function TeamSelect({
       index,
       value: team.slug,
       searchKey: team.slug,
-      disabled: enforceIdpProvisioned && team.idpProvisioned,
       label: () => {
-        if (enforceIdpProvisioned && team.idpProvisioned) {
+        if (enforceIdpProvisioned && team.flags['idp:provisioned']) {
           return (
             <Tooltip
               title={`Membership to this team is managed through your organization's identity provider.`}
@@ -119,6 +118,7 @@ function TeamSelect({
         }
         return <DropdownTeamBadge avatarSize={18} team={team} />;
       },
+      disabled: enforceIdpProvisioned && team.flags['idp:provisioned'],
     }));
 
   return (
@@ -181,14 +181,14 @@ const TeamRow = ({
       message={confirmMessage}
       bypass={!confirmMessage}
       onConfirm={() => onRemove(team.slug)}
-      disabled={disabled || (enforceIdpProvisioned && team.idpProvisioned)}
+      disabled={disabled || (enforceIdpProvisioned && team.flags['idp:provisioned'])}
     >
       <Button
         size="xs"
         icon={<IconSubtract isCircled size="xs" />}
-        disabled={disabled || (enforceIdpProvisioned && team.idpProvisioned)}
+        disabled={disabled || (enforceIdpProvisioned && team.flags['idp:provisioned'])}
         title={
-          enforceIdpProvisioned && team.idpProvisioned
+          enforceIdpProvisioned && team.flags['idp:provisioned']
             ? t(
                 "Membership to this team is managed through your organization's identity provider."
               )

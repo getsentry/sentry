@@ -75,9 +75,11 @@ export interface Organization extends OrganizationSummary {
 export type Team = {
   avatar: Avatar;
   externalTeams: ExternalTeam[];
+  flags: {
+    'idp:provisioned': boolean;
+  };
   hasAccess: boolean;
   id: string;
-  idpProvisioned: boolean;
   isMember: boolean;
   isPending: boolean;
   memberCount: number;

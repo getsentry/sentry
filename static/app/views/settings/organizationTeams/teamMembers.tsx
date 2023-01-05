@@ -264,14 +264,14 @@ class TeamMembers extends AsyncView<Props, State> {
         onChange={this.handleMemberFilterChange}
         busy={this.state.dropdownBusy}
         onClose={() => this.debouncedFetchMembersRequest('')}
-        disabled={team?.idpProvisioned}
+        disabled={team?.flags['idp:provisioned']}
       >
         {({isOpen}) => (
           <DropdownButton
             isOpen={isOpen}
             size="xs"
             data-test-id="add-member"
-            disabled={team?.idpProvisioned}
+            disabled={team?.flags['idp:provisioned']}
           >
             {t('Add Member')}
           </DropdownButton>
