@@ -1365,10 +1365,10 @@ class ContinuingMNPlusOne(MNPlusOneState):
         # We've broken the MN pattern, so return to the Searching state. If it
         # is a significant problem, also return a PerformanceProblem.
         times_occurred = int(len(self.spans) / len(self.pattern))
-        self.spans.append(span)
         start_index = len(self.pattern) * times_occurred
+        remaining_spans = self.spans[start_index:] + [span]
         return (
-            SearchingForMNPlusOne(self.settings, self.spans[start_index:]),
+            SearchingForMNPlusOne(self.settings, remaining_spans),
             self._maybe_performance_problem(),
         )
 
