@@ -4,8 +4,10 @@ from django.utils import timezone
 
 from sentry.models import CheckInStatus, Monitor, MonitorCheckIn, MonitorStatus, MonitorType
 from sentry.testutils import APITestCase
+from sentry.testutils.silo import region_silo_test
 
 
+@region_silo_test(stable=True)
 class UpdateMonitorCheckInTest(APITestCase):
     endpoint = "sentry-api-0-monitor-check-in-details"
     method = "put"
@@ -27,8 +29,7 @@ class UpdateMonitorCheckInTest(APITestCase):
             monitor=monitor, project_id=self.project.id, date_added=monitor.date_added
         )
 
-        with self.feature({"organizations:monitors": True}):
-            self.get_success_response(monitor.guid, checkin.guid, status="ok")
+        self.get_success_response(monitor.guid, checkin.guid, status="ok")
 
         checkin = MonitorCheckIn.objects.get(id=checkin.id)
         assert checkin.status == CheckInStatus.OK
@@ -51,8 +52,7 @@ class UpdateMonitorCheckInTest(APITestCase):
             monitor=monitor, project_id=self.project.id, date_added=monitor.date_added
         )
 
-        with self.feature({"organizations:monitors": True}):
-            self.get_success_response(monitor.guid, checkin.guid, status="error")
+        self.get_success_response(monitor.guid, checkin.guid, status="error")
 
         checkin = MonitorCheckIn.objects.get(id=checkin.id)
         assert checkin.status == CheckInStatus.ERROR

@@ -40,27 +40,18 @@ const roles = [
 describe('OrganizationMembersList', function () {
   const members = TestStubs.Members();
   const currentUser = members[1];
-  const defaultProps = {
-    orgId: 'org-slug',
-    orgName: 'Organization Name',
-    status: '',
-    router: {routes: []},
-    requireLink: false,
-    memberCanLeave: false,
-    canAddMembers: false,
-    canRemoveMembers: false,
-    currentUser,
-    onSendInvite: () => {},
-    onRemove: () => {},
-    onLeave: () => {},
-    location: {query: {}},
-  };
   const organization = TestStubs.Organization({
     access: ['member:admin', 'org:admin', 'member:write'],
     status: {
       id: 'active',
     },
   });
+  const defaultProps = {
+    organization,
+    params: {orgId: organization.slug},
+    router: {routes: []},
+    location: {query: {}},
+  };
 
   jest.spyOn(ConfigStore, 'get').mockImplementation(() => currentUser);
 
@@ -71,17 +62,17 @@ describe('OrganizationMembersList', function () {
   beforeEach(function () {
     Client.clearMockResponses();
     Client.addMockResponse({
-      url: '/organizations/org-id/members/me/',
+      url: '/organizations/org-slug/members/me/',
       method: 'GET',
       body: {roles},
     });
     Client.addMockResponse({
-      url: '/organizations/org-id/members/',
+      url: '/organizations/org-slug/members/',
       method: 'GET',
       body: TestStubs.Members(),
     });
     Client.addMockResponse({
-      url: '/organizations/org-id/access-requests/',
+      url: '/organizations/org-slug/access-requests/',
       method: 'GET',
       body: [
         {
@@ -102,7 +93,7 @@ describe('OrganizationMembersList', function () {
       ],
     });
     Client.addMockResponse({
-      url: '/organizations/org-id/auth-provider/',
+      url: '/organizations/org-slug/auth-provider/',
       method: 'GET',
       body: {
         ...TestStubs.AuthProvider(),
@@ -110,12 +101,12 @@ describe('OrganizationMembersList', function () {
       },
     });
     Client.addMockResponse({
-      url: '/organizations/org-id/teams/',
+      url: '/organizations/org-slug/teams/',
       method: 'GET',
       body: TestStubs.Team(),
     });
     Client.addMockResponse({
-      url: '/organizations/org-id/invite-requests/',
+      url: '/organizations/org-slug/invite-requests/',
       method: 'GET',
       body: [],
     });
@@ -125,11 +116,11 @@ describe('OrganizationMembersList', function () {
 
   it('can remove a member', async function () {
     const deleteMock = MockApiClient.addMockResponse({
-      url: `/organizations/org-id/members/${members[0].id}/`,
+      url: `/organizations/org-slug/members/${members[0].id}/`,
       method: 'DELETE',
     });
 
-    render(<OrganizationMembersList {...defaultProps} params={{orgId: 'org-id'}} />, {
+    render(<OrganizationMembersList {...defaultProps} />, {
       context: TestStubs.routerContext([{organization}]),
     });
 
@@ -147,12 +138,12 @@ describe('OrganizationMembersList', function () {
 
   it('displays error message when failing to remove member', async function () {
     const deleteMock = MockApiClient.addMockResponse({
-      url: `/organizations/org-id/members/${members[0].id}/`,
+      url: `/organizations/org-slug/members/${members[0].id}/`,
       method: 'DELETE',
       statusCode: 500,
     });
 
-    render(<OrganizationMembersList {...defaultProps} params={{orgId: 'org-id'}} />, {
+    render(<OrganizationMembersList {...defaultProps} />, {
       context: TestStubs.routerContext([{organization}]),
     });
 
@@ -170,11 +161,11 @@ describe('OrganizationMembersList', function () {
 
   it('can leave org', async function () {
     const deleteMock = Client.addMockResponse({
-      url: `/organizations/org-id/members/${members[1].id}/`,
+      url: `/organizations/org-slug/members/${members[1].id}/`,
       method: 'DELETE',
     });
 
-    render(<OrganizationMembersList {...defaultProps} params={{orgId: 'org-id'}} />, {
+    render(<OrganizationMembersList {...defaultProps} />, {
       context: TestStubs.routerContext([{organization}]),
     });
 
@@ -192,7 +183,7 @@ describe('OrganizationMembersList', function () {
 
   it('can redirect to remaining org after leaving', async function () {
     const deleteMock = Client.addMockResponse({
-      url: `/organizations/org-id/members/${members[1].id}/`,
+      url: `/organizations/org-slug/members/${members[1].id}/`,
       method: 'DELETE',
     });
     const secondOrg = TestStubs.Organization({
@@ -203,7 +194,7 @@ describe('OrganizationMembersList', function () {
     });
     OrganizationsStore.addOrReplace(secondOrg);
 
-    render(<OrganizationMembersList {...defaultProps} params={{orgId: 'org-id'}} />, {
+    render(<OrganizationMembersList {...defaultProps} />, {
       context: TestStubs.routerContext([{organization}]),
     });
 
@@ -222,12 +213,12 @@ describe('OrganizationMembersList', function () {
 
   it('displays error message when failing to leave org', async function () {
     const deleteMock = Client.addMockResponse({
-      url: `/organizations/org-id/members/${members[1].id}/`,
+      url: `/organizations/org-slug/members/${members[1].id}/`,
       method: 'DELETE',
       statusCode: 500,
     });
 
-    render(<OrganizationMembersList {...defaultProps} params={{orgId: 'org-id'}} />, {
+    render(<OrganizationMembersList {...defaultProps} />, {
       context: TestStubs.routerContext([{organization}]),
     });
 
@@ -245,14 +236,14 @@ describe('OrganizationMembersList', function () {
 
   it('can re-send SSO link to member', function () {
     const inviteMock = MockApiClient.addMockResponse({
-      url: `/organizations/org-id/members/${members[0].id}/`,
+      url: `/organizations/org-slug/members/${members[0].id}/`,
       method: 'PUT',
       body: {
         id: '1234',
       },
     });
 
-    render(<OrganizationMembersList {...defaultProps} params={{orgId: 'org-id'}} />, {
+    render(<OrganizationMembersList {...defaultProps} />, {
       context: TestStubs.routerContext([{organization}]),
     });
 
@@ -264,14 +255,14 @@ describe('OrganizationMembersList', function () {
 
   it('can re-send invite to member', function () {
     const inviteMock = MockApiClient.addMockResponse({
-      url: `/organizations/org-id/members/${members[1].id}/`,
+      url: `/organizations/org-slug/members/${members[1].id}/`,
       method: 'PUT',
       body: {
         id: '1234',
       },
     });
 
-    render(<OrganizationMembersList {...defaultProps} params={{orgId: 'org-id'}} />, {
+    render(<OrganizationMembersList {...defaultProps} />, {
       context: TestStubs.routerContext([{organization}]),
     });
 
@@ -283,20 +274,20 @@ describe('OrganizationMembersList', function () {
 
   it('can search organization members', function () {
     const searchMock = MockApiClient.addMockResponse({
-      url: '/organizations/org-id/members/',
+      url: '/organizations/org-slug/members/',
       body: [],
     });
 
     const routerContext = TestStubs.routerContext();
 
-    render(<OrganizationMembersList {...defaultProps} params={{orgId: 'org-id'}} />, {
+    render(<OrganizationMembersList {...defaultProps} />, {
       context: routerContext,
     });
 
     userEvent.type(screen.getByPlaceholderText('Search Members'), 'member');
 
     expect(searchMock).toHaveBeenLastCalledWith(
-      '/organizations/org-id/members/',
+      '/organizations/org-slug/members/',
       expect.objectContaining({
         method: 'GET',
         query: {
@@ -312,11 +303,11 @@ describe('OrganizationMembersList', function () {
 
   it('can filter members', function () {
     const searchMock = MockApiClient.addMockResponse({
-      url: '/organizations/org-id/members/',
+      url: '/organizations/org-slug/members/',
       body: [],
     });
     const routerContext = TestStubs.routerContext();
-    render(<OrganizationMembersList {...defaultProps} params={{orgId: 'org-id'}} />, {
+    render(<OrganizationMembersList {...defaultProps} />, {
       context: routerContext,
     });
 
@@ -324,7 +315,7 @@ describe('OrganizationMembersList', function () {
     userEvent.click(screen.getByRole('checkbox', {name: 'Member'}));
 
     expect(searchMock).toHaveBeenLastCalledWith(
-      '/organizations/org-id/members/',
+      '/organizations/org-slug/members/',
       expect.objectContaining({
         method: 'GET',
         query: {query: 'role:member'},
@@ -341,7 +332,7 @@ describe('OrganizationMembersList', function () {
       userEvent.click(screen.getByRole('checkbox', {name: `Enable ${label} filter`}));
 
       expect(searchMock).toHaveBeenLastCalledWith(
-        '/organizations/org-id/members/',
+        '/organizations/org-slug/members/',
         expect.objectContaining({
           method: 'GET',
           query: {query: `${filter}:true`},
@@ -351,7 +342,7 @@ describe('OrganizationMembersList', function () {
       userEvent.click(screen.getByRole('checkbox', {name: `Toggle ${label}`}));
 
       expect(searchMock).toHaveBeenLastCalledWith(
-        '/organizations/org-id/members/',
+        '/organizations/org-slug/members/',
         expect.objectContaining({
           method: 'GET',
           query: {query: `${filter}:false`},
@@ -387,20 +378,20 @@ describe('OrganizationMembersList', function () {
         },
       });
       MockApiClient.addMockResponse({
-        url: '/organizations/org-id/invite-requests/',
+        url: '/organizations/org-slug/invite-requests/',
         method: 'GET',
         body: [inviteRequest],
       });
       MockApiClient.addMockResponse({
-        url: `/organizations/org-id/invite-requests/${inviteRequest.id}/`,
+        url: `/organizations/org-slug/invite-requests/${inviteRequest.id}/`,
         method: 'PUT',
       });
 
       render(
         <OrganizationMembersList
           {...defaultProps}
-          params={{orgId: 'org-id'}}
           organization={org}
+          params={{orgId: org.slug}}
         />,
         {context: TestStubs.routerContext([{organization: org}])}
       );
@@ -417,23 +408,18 @@ describe('OrganizationMembersList', function () {
         },
       });
       MockApiClient.addMockResponse({
-        url: '/organizations/org-id/invite-requests/',
+        url: '/organizations/org-slug/invite-requests/',
         method: 'GET',
         body: [inviteRequest],
       });
       MockApiClient.addMockResponse({
-        url: `/organizations/org-id/invite-requests/${inviteRequest.id}/`,
+        url: `/organizations/org-slug/invite-requests/${inviteRequest.id}/`,
         method: 'PUT',
       });
 
-      render(
-        <OrganizationMembersList
-          {...defaultProps}
-          params={{orgId: 'org-id'}}
-          organization={org}
-        />,
-        {context: TestStubs.routerContext([{organization: org}])}
-      );
+      render(<OrganizationMembersList {...defaultProps} />, {
+        context: TestStubs.routerContext([{organization: org}]),
+      });
 
       expect(screen.getByText('Pending Members')).toBeInTheDocument();
 
@@ -462,23 +448,18 @@ describe('OrganizationMembersList', function () {
         },
       });
       MockApiClient.addMockResponse({
-        url: '/organizations/org-id/invite-requests/',
+        url: '/organizations/org-slug/invite-requests/',
         method: 'GET',
         body: [joinRequest],
       });
       MockApiClient.addMockResponse({
-        url: `/organizations/org-id/invite-requests/${joinRequest.id}/`,
+        url: `/organizations/org-slug/invite-requests/${joinRequest.id}/`,
         method: 'DELETE',
       });
 
-      render(
-        <OrganizationMembersList
-          {...defaultProps}
-          params={{orgId: 'org-id'}}
-          organization={org}
-        />,
-        {context: TestStubs.routerContext([{organization: org}])}
-      );
+      render(<OrganizationMembersList {...defaultProps} />, {
+        context: TestStubs.routerContext([{organization: org}]),
+      });
 
       expect(screen.getByText('Pending Members')).toBeInTheDocument();
 
@@ -501,24 +482,19 @@ describe('OrganizationMembersList', function () {
         },
       });
       MockApiClient.addMockResponse({
-        url: '/organizations/org-id/invite-requests/',
+        url: '/organizations/org-slug/invite-requests/',
         method: 'GET',
         body: [inviteRequest],
       });
 
       const updateWithApprove = MockApiClient.addMockResponse({
-        url: `/organizations/org-id/invite-requests/${inviteRequest.id}/`,
+        url: `/organizations/org-slug/invite-requests/${inviteRequest.id}/`,
         method: 'PUT',
       });
 
-      render(
-        <OrganizationMembersList
-          {...defaultProps}
-          params={{orgId: 'org-id'}}
-          organization={org}
-        />,
-        {context: TestStubs.routerContext([{organization: org}])}
-      );
+      render(<OrganizationMembersList {...defaultProps} />, {
+        context: TestStubs.routerContext([{organization: org}]),
+      });
 
       await selectEvent.select(screen.getAllByRole('textbox')[1], ['Admin']);
 
@@ -528,7 +504,7 @@ describe('OrganizationMembersList', function () {
       userEvent.click(screen.getByTestId('confirm-button'));
 
       expect(updateWithApprove).toHaveBeenCalledWith(
-        `/organizations/org-id/invite-requests/${inviteRequest.id}/`,
+        `/organizations/org-slug/invite-requests/${inviteRequest.id}/`,
         expect.objectContaining({data: expect.objectContaining({role: 'admin'})})
       );
     });
