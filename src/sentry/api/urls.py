@@ -698,6 +698,7 @@ urlpatterns = [
             ]
         ),
     ),
+    # TODO: include in the /organizations/ route tree + remove old dupes once hybrid cloud launches
     url(
         r"^organizations/(?P<organization_slug>[^\/]+)/monitors/",
         include(
