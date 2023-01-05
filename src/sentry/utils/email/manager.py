@@ -24,17 +24,17 @@ def get_email_addresses(
 
     if project:
         to_delete: List[ApiUserOption] = []
-        queryset = user_option_service.get_many(
-            user_ids=pending, project=project, keys=["mail:email"]
-        )
-        for option in (o for o in queryset if o.value and not is_fake_email(o.value)):
+        options = user_option_service.query_options(
+            user_ids=pending, project_id=project.id, keys=["mail:email"]
+        ).options
+        for option in (o for o in options if o.value and not is_fake_email(o.value)):
             if UserEmail.objects.filter(user_id=option.user_id, email=option.value).exists():
                 results[option.user_id] = option.value
                 pending.discard(option.user_id)
             else:
                 pending.discard(option.user_id)
                 to_delete.append(option)
-        user_option_service.delete_options(options=to_delete)
+        user_option_service.delete_options(option_ids=[o.id for o in to_delete])
 
     if pending:
         users = user_service.get_many(pending)

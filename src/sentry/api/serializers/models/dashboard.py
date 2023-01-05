@@ -3,7 +3,6 @@ from collections import defaultdict
 from django.db.models.query import prefetch_related_objects
 
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.api.serializers.models.user import UserSerializer
 from sentry.constants import ALL_ACCESS_PROJECTS
 from sentry.models import (
     Dashboard,
@@ -12,6 +11,7 @@ from sentry.models import (
     DashboardWidgetQuery,
     DashboardWidgetTypes,
 )
+from sentry.services.hybrid_cloud.user import user_service
 from sentry.utils import json
 from sentry.utils.dates import outside_retention_with_modified_start, parse_timestamp
 
@@ -98,13 +98,13 @@ class DashboardListSerializer(Serializer):
 
             result[dashboard]["widget_preview"].append(widget_preview)
 
-        user_serializer = UserSerializer()
         serialized_users = {
             user["id"]: user
-            for user in serialize(
-                [dashboard.created_by for dashboard in item_list if dashboard.created_by],
-                user=user,
-                serializer=user_serializer,
+            for user in user_service.serialize_users(
+                user_ids=[
+                    dashboard.created_by_id for dashboard in item_list if dashboard.created_by
+                ],
+                as_user=user,
             )
         }
 
@@ -153,7 +153,7 @@ class DashboardDetailsSerializer(Serializer):
             "id": str(obj.id),
             "title": obj.title,
             "dateCreated": obj.date_added,
-            "createdBy": serialize(obj.created_by, serializer=UserSerializer()),
+            "createdBy": user_service.serialize_users(user_ids=[obj.created_by_id])[0],
             "widgets": attrs["widgets"],
             "projects": [project.id for project in obj.projects.all()],
             "filters": {},

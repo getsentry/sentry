@@ -60,6 +60,7 @@ type Props = {
   isOrphan: boolean;
   isVisible: boolean;
   location: Location;
+  onWheel: (deltaX: number) => void;
   organization: Organization;
   removeContentSpanBarRef: (instance: HTMLDivElement | null) => void;
   toggleExpandedState: () => void;
@@ -86,9 +87,22 @@ class TransactionBar extends Component<Props, State> {
     ) {
       this.scrollIntoView();
     }
+
+    if (this.transactionTitleRef.current) {
+      this.transactionTitleRef.current.addEventListener('wheel', this.handleWheel, {
+        passive: false,
+      });
+    }
+  }
+
+  componentWillUnmount() {
+    if (this.transactionTitleRef.current) {
+      this.transactionTitleRef.current.removeEventListener('wheel', this.handleWheel);
+    }
   }
 
   transactionRowDOMRef = createRef<HTMLDivElement>();
+  transactionTitleRef = createRef<HTMLDivElement>();
   spanContentRef: HTMLDivElement | null = null;
 
   toggleDisplayDetail = () => {
@@ -106,6 +120,24 @@ class TransactionBar extends Component<Props, State> {
 
     return getOffset(generation);
   }
+
+  handleWheel = (event: WheelEvent) => {
+    // https://stackoverflow.com/q/57358640
+    // https://github.com/facebook/react/issues/14856
+    if (Math.abs(event.deltaY) > Math.abs(event.deltaX)) {
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (Math.abs(event.deltaY) === Math.abs(event.deltaX)) {
+      return;
+    }
+
+    const {onWheel} = this.props;
+    onWheel(event.deltaX);
+  };
 
   renderConnector(hasToggle: boolean) {
     const {continuingDepths, isExpanded, isOrphan, isLast, transaction} = this.props;
@@ -417,6 +449,7 @@ class TransactionBar extends Component<Props, State> {
           }}
           showDetail={showDetail}
           onClick={this.toggleDisplayDetail}
+          ref={this.transactionTitleRef}
         >
           <GuideAnchor target="trace_view_guide_row" disabled={!hasGuideAnchor}>
             {this.renderTitle(scrollbarManagerChildrenProps)}
