@@ -74,7 +74,9 @@ function ProfileFlamegraph(): React.ReactElement {
   const profiledTransaction = useProfileTransaction();
 
   const hasFlameChartSpans = useMemo(() => {
-    return organization.features.includes('organizations:profiling-flamechart-spans');
+    return (
+      organization.features.includes('organizations:profiling-flamechart-spans') || true
+    );
   }, [organization.features]);
 
   const spanTree: SpanTree = useMemo(() => {

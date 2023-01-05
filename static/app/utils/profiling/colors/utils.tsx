@@ -306,10 +306,7 @@ export function makeSpansColorMapByOpAndDescription(
 ): Map<SpanChartNode['node']['span']['span_id'], ColorChannels> {
   const colors = new Map<SpanChartNode['node']['span']['span_id'], ColorChannels>();
 
-  const uniqueSpans = uniqueBy(
-    spans,
-    s => s.node.span.op ?? '' + s.node.span.description ?? ''
-  );
+  const uniqueSpans = uniqueBy(spans, s => s.node.span.op ?? '');
 
   for (let i = 0; i < spans.length; i++) {
     colors.set(spans[i].node.span.span_id, colorBucket(i / uniqueSpans.length));
