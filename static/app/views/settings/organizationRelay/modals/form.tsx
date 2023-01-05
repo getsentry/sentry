@@ -75,7 +75,12 @@ const Form = ({
       </FieldGroup>
 
       {disables.publicKey ? (
-        <FieldGroup flexibleControlStateSize label={t('Public Key')} inline={false} stacked>
+        <FieldGroup
+          flexibleControlStateSize
+          label={t('Public Key')}
+          inline={false}
+          stacked
+        >
           <TextCopyInput onCopy={onCopy(values.publicKey)}>
             {values.publicKey}
           </TextCopyInput>
@@ -106,7 +111,12 @@ const Form = ({
           </FieldHelp>
         </FieldWrapper>
       )}
-      <FieldGroup flexibleControlStateSize label={t('Description')} inline={false} stacked>
+      <FieldGroup
+        flexibleControlStateSize
+        label={t('Description')}
+        inline={false}
+        stacked
+      >
         <Textarea
           name="description"
           placeholder={t('Description')}
