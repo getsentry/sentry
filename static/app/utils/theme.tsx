@@ -269,11 +269,6 @@ const generateAliases = (colors: BaseColors) => ({
   formText: colors.gray400,
 
   /**
-   * Form input border
-   */
-  formInputBorder: colors.gray200,
-
-  /**
    *
    */
   rowBackground: colors.surface300,
@@ -560,17 +555,6 @@ const generateButtonTheme = (colors: BaseColors, alias: Aliases) => ({
     borderTranslucent: alias.translucentInnerBorder,
     focusBorder: 'transparent',
     focusShadow: 'transparent',
-  },
-  form: {
-    color: alias.textColor,
-    colorActive: alias.textColor,
-    background: alias.background,
-    backgroundActive: alias.hover,
-    border: alias.formInputBorder,
-    borderActive: alias.formInputBorder,
-    borderTranslucent: alias.translucentBorder,
-    focusBorder: alias.focusBorder,
-    focusShadow: alias.focus,
   },
 });
 
