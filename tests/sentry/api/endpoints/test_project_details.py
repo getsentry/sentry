@@ -179,19 +179,21 @@ class ProjectDetailsTest(APITestCase):
         response = self.get_success_response(
             project.organization.slug, project.slug, status_code=302
         )
-        with exempt_from_silo_limits():
-            assert (
-                AuditLogEntry.objects.get(
-                    organization=project.organization, event=audit_log.get_event_id("PROJECT_EDIT")
-                ).data.get("old_slug")
-                == project.slug
-            )
-            assert (
-                AuditLogEntry.objects.get(
-                    organization=project.organization, event=audit_log.get_event_id("PROJECT_EDIT")
-                ).data.get("new_slug")
-                == "foobar"
-            )
+        self.assert_audit_log_created(
+            self.user,
+            audit_log.get_event_id("PROJECT_EDIT"),
+            project.id,
+            project.organization,
+            {
+                "new_slug": "foobar",
+                "old_slug": project.slug,
+                "id": project.id,
+                "slug": "foobar",
+                "name": project.name,
+                "status": 0,
+                "public": False,
+            },
+        )
         assert response.data["slug"] == "foobar"
         assert (
             response.data["detail"]["extra"]["url"]
@@ -1143,7 +1145,7 @@ class CopyProjectSettingsTest(APITestCase):
         self.assert_other_project_settings_not_changed()
 
 
-@region_silo_test(stable=True)
+@region_silo_test  # (stable=True) blocked on scheduled deletions
 class ProjectDeleteTest(APITestCase):
     endpoint = "sentry-api-0-project-details"
     method = "delete"
@@ -1399,56 +1401,58 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
                     ]
                 },
             )
-            with exempt_from_silo_limits():
-                assert AuditLogEntry.objects.filter(
-                    organization=self.project.organization,
-                    event=audit_log.get_event_id("SAMPLING_BIAS_ENABLED"),
-                ).exists()
+            self.assert_audit_log_created(
+                self.user,
+                audit_log.get_event_id("SAMPLING_BIAS_ENABLED"),
+                self.project.id,
+                self.project.organization,
+            )
 
     def test_dynamic_sampling_bias_deactivation(self):
         """
         Tests that when sending a request to disable a dynamic sampling bias,
         the bias will be successfully disabled and the audit log 'SAMPLING_BIAS_DISABLED' will be triggered
         """
+        with self.tasks():
+            project = self.project  # force creation
+            project.update_option(
+                "sentry:dynamic_sampling_biases",
+                [
+                    {"id": "boostEnvironments", "active": True},
+                ],
+            )
+            self.login_as(self.user)
 
-        project = self.project  # force creation
-        project.update_option(
-            "sentry:dynamic_sampling_biases",
-            [
-                {"id": "boostEnvironments", "active": True},
-            ],
-        )
-        self.login_as(self.user)
+            with exempt_from_silo_limits():
+                token = ApiToken.objects.create(user=self.user, scope_list=["project:write"])
+            authorization = f"Bearer {token.token}"
 
-        with exempt_from_silo_limits():
-            token = ApiToken.objects.create(user=self.user, scope_list=["project:write"])
-        authorization = f"Bearer {token.token}"
-
-        url = reverse(
-            "sentry-api-0-project-details",
-            kwargs={
-                "organization_slug": self.project.organization.slug,
-                "project_slug": self.project.slug,
-            },
-        )
-
-        with Feature({self.new_ds_flag: True}):
-            self.client.put(
-                url,
-                format="json",
-                HTTP_AUTHORIZATION=authorization,
-                data={
-                    "dynamicSamplingBiases": [
-                        {"id": "boostEnvironments", "active": False},
-                    ]
+            url = reverse(
+                "sentry-api-0-project-details",
+                kwargs={
+                    "organization_slug": self.project.organization.slug,
+                    "project_slug": self.project.slug,
                 },
             )
 
-            with exempt_from_silo_limits():
-                assert AuditLogEntry.objects.filter(
-                    organization=self.project.organization,
-                    event=audit_log.get_event_id("SAMPLING_BIAS_DISABLED"),
-                ).exists()
+            with Feature({self.new_ds_flag: True}):
+                self.client.put(
+                    url,
+                    format="json",
+                    HTTP_AUTHORIZATION=authorization,
+                    data={
+                        "dynamicSamplingBiases": [
+                            {"id": "boostEnvironments", "active": False},
+                        ]
+                    },
+                )
+
+                self.assert_audit_log_created(
+                    self.user,
+                    audit_log.get_event_id("SAMPLING_BIAS_DISABLED"),
+                    self.project.id,
+                    self.project.organization,
+                )
 
     def test_put_dynamic_sampling_after_migrating_to_new_plan_default_biases_with_missing_flags(
         self,

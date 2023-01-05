@@ -115,7 +115,7 @@ def project_stats_snuba_query(query, updated_start_time, updated_end_time, proje
     return snuba_query
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class ProjectDynamicSamplingDistributionTest(APITestCase):
     @property
     def endpoint(self):
@@ -185,7 +185,7 @@ class ProjectDynamicSamplingDistributionTest(APITestCase):
             }
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class ProjectDynamicSamplingDistributionQueryCallsTest(APITestCase):
     def generate_fetch_transactions_count_query(
         self,
@@ -799,6 +799,7 @@ class ProjectDynamicSamplingDistributionQueryCallsTest(APITestCase):
             ]
 
 
+@region_silo_test(stable=True)
 class ProjectDynamicSamplingDistributionIntegrationTest(SnubaTestCase, APITestCase):
     @property
     def endpoint(self):

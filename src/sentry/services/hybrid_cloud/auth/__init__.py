@@ -85,6 +85,12 @@ class ApiAuthentication(BaseAuthentication):  # type: ignore
 
         return None
 
+    # Not sure this is technically correct, but it maintains existing behavior
+    # this is required so that we properly return 401 vs 403 status codes required
+    # by the test suite. Reasonable arguments could be made that this should be changed
+    def authenticate_header(self, request):
+        return 'xBasic realm="api"'
+
 
 class AuthService(InterfaceWithLifecycle):
     @abc.abstractmethod

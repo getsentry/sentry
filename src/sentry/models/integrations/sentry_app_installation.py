@@ -16,9 +16,12 @@ from sentry.db.models import (
     ParanoidModel,
     control_silo_only_model,
 )
+from sentry.models import ApiToken
+from sentry.services.hybrid_cloud.app import app_service
 
 if TYPE_CHECKING:
-    from sentry.models import ApiToken, Project
+    from sentry.models import Project
+    from sentry.services.hybrid_cloud.auth import AuthenticatedToken
 
 
 def default_uuid():
@@ -39,22 +42,20 @@ class SentryAppInstallationForProviderManager(ParanoidManager):
     def get_by_api_token(self, token_id: str) -> QuerySet:
         return self.filter(status=SentryAppInstallationStatus.INSTALLED, api_token_id=token_id)
 
-    def get_projects(self, token: ApiToken) -> QuerySet[Project]:
+    def get_projects(self, token: ApiToken | AuthenticatedToken) -> QuerySet[Project]:
         from sentry.models import Project, SentryAppInstallationToken
 
-        try:
-            installation = self.get_by_api_token(token.id).get()
-        except SentryAppInstallation.DoesNotExist:
-            installation = None
+        token_id = token.id if isinstance(token, ApiToken) else token.entity_id
+        installations = app_service.get_many(api_token_id=token_id)
 
-        if not installation:
+        if len(installations) == 0:
             return Project.objects.none()
 
         # TODO(nisanthan): Right now, Internal Integrations can have multiple ApiToken, so we use the join table `SentryAppInstallationToken` to map the one to many relationship. However, for Public Integrations, we can only have 1 ApiToken per installation. So we currently don't use the join table for Public Integrations. We should update to make records in the join table for Public Integrations so that we can have a common abstraction for finding an installation by ApiToken.
-        if installation.sentry_app.status == SentryAppStatus.INTERNAL:
+        if installations[0].sentry_app.status == SentryAppStatus.INTERNAL:
             return SentryAppInstallationToken.objects.get_projects(token)
 
-        return Project.objects.filter(organization_id=installation.organization_id)
+        return Project.objects.filter(organization_id=installations[0].organization_id)
 
     def get_related_sentry_app_components(
         self,

@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import abc
+import datetime
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING, List, Optional
 
-from sentry.constants import SentryAppInstallationStatus
+from sentry.constants import SentryAppInstallationStatus, SentryAppStatus
 from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_delegation, stubbed
 from sentry.silo import SiloMode
 
@@ -20,10 +21,13 @@ class AppService(InterfaceWithLifecycle):
         pass
 
     @abc.abstractmethod
-    def get_installed_for_organization(
+    def get_many(
         self,
         *,
-        organization_id: int,
+        organization_id: Optional[int] = None,
+        status: SentryAppInstallationStatus = SentryAppInstallationStatus.INSTALLED,
+        date_deleted: Optional[datetime.datetime] = None,
+        api_token_id: Optional[int] = None,
     ) -> List[ApiSentryAppInstallation]:
         pass
 
@@ -38,6 +42,7 @@ class AppService(InterfaceWithLifecycle):
             slug=app.slug,
             uuid=app.uuid,
             events=app.events,
+            status=app.status,
         )
 
     def serialize_sentry_app_installation(
@@ -88,3 +93,4 @@ class ApiSentryApp:
     slug: str = ""
     uuid: str = ""
     events: List[str] = field(default_factory=list)
+    status: SentryAppStatus = SentryAppStatus.UNPUBLISHED

@@ -4,8 +4,10 @@ from rest_framework import status
 from sentry.models import Project, ProjectStatus, SentryAppInstallationToken
 from sentry.models.apitoken import ApiToken
 from sentry.testutils import APITestCase
+from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
 
 
+@region_silo_test(stable=True)
 class ProjectsListTest(APITestCase):
     endpoint = "sentry-api-0-projects"
 
@@ -186,7 +188,8 @@ class ProjectsListTest(APITestCase):
     def test_deleted_token_with_public_integration(self):
         token = self.get_installed_unpublished_sentry_app_access_token()
 
-        ApiToken.objects.all().delete()
+        with exempt_from_silo_limits():
+            ApiToken.objects.all().delete()
 
         self.get_error_response(
             extra_headers={"HTTP_AUTHORIZATION": f"Bearer {token}"},
