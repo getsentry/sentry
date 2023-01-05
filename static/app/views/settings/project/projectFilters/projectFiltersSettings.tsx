@@ -194,7 +194,6 @@ type Props = {
   features: Set<string>;
   organization: Organization;
   params: {
-    orgId: string;
     projectId: string;
   };
   project: Project;

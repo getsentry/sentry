@@ -73,7 +73,7 @@ class OrganizationApiKeys extends AsyncView<Props, State> {
         this.setState({busy: false});
         browserHistory.push(
           recreateRoute(`${data.id}/`, {
-            params: this.props.params,
+            params: {orgId: organization.slug},
             routes: this.props.routes,
           })
         );
@@ -89,14 +89,18 @@ class OrganizationApiKeys extends AsyncView<Props, State> {
   }
 
   renderBody() {
+    const {organization} = this.props;
+    const params = {orgId: organization.slug};
+
     return (
       <OrganizationApiKeysList
+        {...this.props}
+        params={params}
         loading={this.state.loading}
         busy={this.state.busy}
         keys={this.state.keys}
         onRemove={this.handleRemove}
         onAddApiKey={this.handleAddApiKey}
-        {...this.props}
       />
     );
   }
