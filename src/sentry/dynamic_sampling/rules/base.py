@@ -21,18 +21,13 @@ from sentry.dynamic_sampling.utils import BaseRule, RuleType
 from sentry.models import Project
 
 
-def _get_blended_sample_rate(project: Project) -> float:
-    # Function used for simplifying mocking in tests.
-    return quotas.get_blended_sample_rate(project)  # type:ignore
-
-
 def get_guarded_blended_sample_rate(project: Project) -> float:
-    sample_rate = _get_blended_sample_rate(project)
+    sample_rate = quotas.get_blended_sample_rate(project)
 
     if sample_rate is None:
         raise Exception("The method get_blended_sample_rate() returned None")
 
-    return sample_rate
+    return float(sample_rate)
 
 
 class CombinatorBuildType(Enum):

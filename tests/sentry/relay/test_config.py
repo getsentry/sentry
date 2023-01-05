@@ -246,7 +246,7 @@ def test_project_config_with_uniform_rules_based_on_plan_in_dynamic_sampling_rul
         }
     ):
         with mock.patch(
-            "sentry.dynamic_sampling.rules_generator.quotas.get_blended_sample_rate",
+            "sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate",
             return_value=0.1,
         ):
             cfg = get_project_config(default_project)
@@ -293,7 +293,7 @@ def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_r
         }
     ):
         with patch(
-            "sentry.dynamic_sampling.rules_generator.quotas.get_blended_sample_rate",
+            "sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate",
             return_value=0.1,
         ):
             cfg = get_project_config(default_project)
