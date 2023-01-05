@@ -223,11 +223,12 @@ class QueryBuilder(BaseQueryBuilder):
         # value_resolver_map may change type
         self.meta_resolver_map: Dict[str, str] = {}
 
+        # These maps let us convert from prefixed to original tag keys
+        # and vice versa to avoid collisions where tags and functions have
+        # similar aliases
+        self.prefixed_to_tag_map: Dict[str, str] = {}
+        self.tag_to_prefixed_map: Dict[str, str] = {}
         self.skip_tag_resolution = skip_tag_resolution
-        # prefixed tag: tag map for post-processing values
-        self.tag_resolver_map: Dict[str, str] = {}
-        # tag: prefixed tag map for post-processing values
-        self.reverse_tag_resolver_map: Dict[str, str] = {}
 
         self.auto_aggregations = auto_aggregations
         self.limit = self.resolve_limit(limit)
@@ -279,8 +280,8 @@ class QueryBuilder(BaseQueryBuilder):
         # If the original column was passed in as tag[X], then there won't be a conflict
         # and there's no need to prefix the tag
         if not col.startswith("tags[") and column_name.startswith("tags["):
-            self.tag_resolver_map[f"tags_{col}"] = col
-            self.reverse_tag_resolver_map[col] = f"tags_{col}"
+            self.prefixed_to_tag_map[f"tags_{col}"] = col
+            self.tag_to_prefixed_map[col] = f"tags_{col}"
 
         return column_name
 
@@ -821,7 +822,7 @@ class QueryBuilder(BaseQueryBuilder):
         resolved_orderby: Union[str, SelectType, None]
         for orderby in orderby_columns:
             bare_orderby = orderby.lstrip("-")
-            bare_orderby = self.reverse_tag_resolver_map.get(bare_orderby, bare_orderby)
+            bare_orderby = self.tag_to_prefixed_map.get(bare_orderby, bare_orderby)
             try:
                 # Allow ordering equations with the calculated alias (ie. equation[0])
                 if is_equation_alias(bare_orderby):
@@ -1081,7 +1082,7 @@ class QueryBuilder(BaseQueryBuilder):
         # If the expected aliases differs from the resolved snuba column,
         # make sure to alias the expression appropriately so we get back
         # the column with the correct names.
-        return AliasedExpression(column, self.reverse_tag_resolver_map.get(name, name))
+        return AliasedExpression(column, self.tag_to_prefixed_map.get(name, name))
 
     def column(self, name: str) -> Column:
         """Given an unresolved sentry name and return a snql column.
@@ -1444,14 +1445,14 @@ class QueryBuilder(BaseQueryBuilder):
                 for value in results["meta"]:
                     name = value["name"]
                     key = translated_columns.get(name, name)
-                    key = self.tag_resolver_map.get(key, key)
+                    key = self.prefixed_to_tag_map.get(key, key)
                     field_type = fields.get_json_meta_type(key, value.get("type"), self)
                     field_meta[key] = field_type
                 # Ensure all columns in the result have types.
                 if results["data"]:
                     for key in results["data"][0]:
                         field_key = translated_columns.get(key, key)
-                        field_key = self.tag_resolver_map.get(field_key, field_key)
+                        field_key = self.prefixed_to_tag_map.get(field_key, field_key)
                         if field_key not in field_meta:
                             field_meta[field_key] = "string"
 
@@ -1473,7 +1474,7 @@ class QueryBuilder(BaseQueryBuilder):
 
                     resolved_key = translated_columns.get(key, key)
                     if not self.skip_tag_resolution:
-                        resolved_key = self.tag_resolver_map.get(resolved_key, resolved_key)
+                        resolved_key = self.prefixed_to_tag_map.get(resolved_key, resolved_key)
                     transformed[resolved_key] = new_value
 
                 return transformed
@@ -1651,7 +1652,7 @@ class TopEventsQueryBuilder(TimeseriesQueryBuilder):
         )
 
         self.fields: List[str] = selected_columns if selected_columns is not None else []
-        self.fields = [self.reverse_tag_resolver_map.get(c, c) for c in selected_columns]
+        self.fields = [self.tag_to_prefixed_map.get(c, c) for c in selected_columns]
 
         if (conditions := self.resolve_top_event_conditions(top_events, other)) is not None:
             self.where.append(conditions)
@@ -1700,7 +1701,7 @@ class TopEventsQueryBuilder(TimeseriesQueryBuilder):
                 self.where.append(Condition(self.column("project_id"), Op.IN, projects))
                 continue
 
-            resolved_field = self.resolve_column(self.tag_resolver_map.get(field, field))
+            resolved_field = self.resolve_column(self.prefixed_to_tag_map.get(field, field))
 
             values: Set[Any] = set()
             for event in top_events:
