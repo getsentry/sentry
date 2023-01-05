@@ -33,7 +33,6 @@ function ProjectSessionsAnrRequest({
   const yAxis =
     displayMode === DisplayModes.ANR_RATE ? 'anr_rate()' : 'foreground_anr_rate()';
 
-  const [errored, setErrored] = useState(false);
   const [timeseriesData, setTimeseriesData] = useState<Series[] | null>(null);
   const [previousTimeseriesData, setPreviousTimeseriesData] = useState<Series | null>(
     null
@@ -80,7 +79,7 @@ function ProjectSessionsAnrRequest({
 
   const queryParams = getParams();
 
-  const {data, isReloading} = useApiRequests<State>({
+  const {data, isReloading, hasError} = useApiRequests<State>({
     endpoints: [
       [
         'sessionsData',
@@ -88,7 +87,6 @@ function ProjectSessionsAnrRequest({
         {query: queryParams},
       ],
     ],
-    onRequestError: () => setErrored(true),
   });
 
   useEffect(() => {
@@ -117,7 +115,7 @@ function ProjectSessionsAnrRequest({
         ? filteredResponse.groups.reduce(
             (acc, group) =>
               acc +
-              group.series[yAxis]
+              group.series['count_unique(user)']
                 .slice(0, dataMiddleIndex)
                 .reduce((value, groupAcc) => groupAcc + value, 0),
             0
@@ -134,7 +132,7 @@ function ProjectSessionsAnrRequest({
               const anrRate = filteredResponse.groups.reduce(
                 (acc, group) =>
                   acc +
-                  group.series[yAxis].slice(
+                  group.series[yAxis]?.slice(
                     shouldFetchWithPrevious ? dataMiddleIndex : 0
                   )[i],
                 0
@@ -162,7 +160,7 @@ function ProjectSessionsAnrRequest({
               .slice(0, dataMiddleIndex)
               .map((_interval, i) => {
                 const previousAnrRate = filteredResponse.groups.reduce(
-                  (acc, group) => acc + group.series[yAxis].slice(0, dataMiddleIndex)[i],
+                  (acc, group) => acc + group.series[yAxis]?.slice(0, dataMiddleIndex)[i],
                   0
                 );
 
@@ -196,7 +194,7 @@ function ProjectSessionsAnrRequest({
       {children({
         loading: timeseriesData === null,
         reloading: isReloading,
-        errored,
+        errored: hasError,
         totalSessions,
         previousTimeseriesData,
         timeseriesData: timeseriesData ?? [],

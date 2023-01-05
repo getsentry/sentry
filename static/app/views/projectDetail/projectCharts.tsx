@@ -89,10 +89,7 @@ class ProjectCharts extends Component<Props, State> {
     }
 
     if (hasSessions && !hasTransactions) {
-      if (
-        organization.features.includes('anr-rate') &&
-        project?.platforms?.includes('android')
-      ) {
+      if (organization.features.includes('anr-rate') && project?.platform === 'android') {
         return [DisplayModes.STABILITY, DisplayModes.FOREGROUND_ANR_RATE];
       }
       return [DisplayModes.STABILITY, DisplayModes.ERRORS];
@@ -102,10 +99,7 @@ class ProjectCharts extends Component<Props, State> {
       return [DisplayModes.FAILURE_RATE, DisplayModes.APDEX];
     }
 
-    if (
-      organization.features.includes('anr-rate') &&
-      project?.platforms?.includes('android')
-    ) {
+    if (organization.features.includes('anr-rate') && project?.platform === 'android') {
       return [DisplayModes.STABILITY, DisplayModes.FOREGROUND_ANR_RATE];
     }
 
@@ -218,10 +212,7 @@ class ProjectCharts extends Component<Props, State> {
       },
     ];
 
-    if (
-      organization.features.includes('anr-rate') &&
-      project?.platforms?.includes('android')
-    ) {
+    if (organization.features.includes('anr-rate') && project?.platform === 'android') {
       return [
         {
           value: DisplayModes.ANR_RATE,
@@ -334,8 +325,7 @@ class ProjectCharts extends Component<Props, State> {
     const hasDiscover = organization.features.includes('discover-basic');
     const displayMode = this.displayMode;
     const hasAnrRateFeature =
-      organization.features.includes('anr-rate') &&
-      project?.platforms?.includes('android');
+      organization.features.includes('anr-rate') && project?.platform === 'android';
 
     return (
       <Panel>

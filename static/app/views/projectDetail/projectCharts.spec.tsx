@@ -15,7 +15,7 @@ function renderProjectCharts(
       params: {orgId: 'org-slug', projectId: 'project-slug'},
       location: {
         pathname: '/organizations/org-slug/projects/project-slug/',
-        query: {chart1: chartDisplay ? chartDisplay : 'crash_free'},
+        query: {chart1: chartDisplay ?? 'crash_free'},
       },
     },
   } as Parameters<typeof initializeOrg>[0]);

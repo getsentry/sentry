@@ -53,7 +53,6 @@ export type Project = {
    */
   name?: string;
   options?: Record<string, boolean | string>;
-  platforms?: PlatformKey[];
   sessionStats?: {
     currentCrashFreeRate: number | null;
     hasHealthData: boolean;
