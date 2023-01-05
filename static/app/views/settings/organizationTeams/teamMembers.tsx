@@ -47,7 +47,6 @@ type State = {
   error: boolean;
   loading: boolean;
   orgMembers: Member[];
-  team: Team;
   teamMembers: TeamMember[];
 } & AsyncView['state'];
 
@@ -265,14 +264,14 @@ class TeamMembers extends AsyncView<Props, State> {
         onChange={this.handleMemberFilterChange}
         busy={this.state.dropdownBusy}
         onClose={() => this.debouncedFetchMembersRequest('')}
-        disabled={team?.idpProvisioned}
+        disabled={team.idpProvisioned}
       >
         {({isOpen}) => (
           <DropdownButton
             isOpen={isOpen}
             size="xs"
             data-test-id="add-member"
-            disabled={team?.idpProvisioned}
+            disabled={team.idpProvisioned}
           >
             {t('Add Member')}
           </DropdownButton>
