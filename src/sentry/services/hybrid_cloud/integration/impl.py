@@ -127,10 +127,14 @@ class DatabaseBackedIntegrationService(IntegrationService):
         integration = self.get_integration(
             integration_id=integration_id, provider=provider, external_id=external_id
         )
+        if not integration:
+            return (None, None)
         organization_integration = self.get_organization_integration(
             integration_id=integration.id,
             organization_id=organization_id,
         )
+        if not organization_integration:
+            return (integration, None)
         return (
             self._serialize_integration(integration),
             self._serialize_organization_integration(organization_integration),

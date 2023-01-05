@@ -144,6 +144,7 @@ class IntegrationService(InterfaceWithLifecycle):
         )
         return self._serialize_organization_integration(ois[0]) if len(ois) > 0 else None
 
+    @abstractmethod
     def get_organization_context(
         self,
         *,
@@ -151,7 +152,7 @@ class IntegrationService(InterfaceWithLifecycle):
         integration_id: int | None = None,
         provider: str | None = None,
         external_id: str | None = None,
-    ) -> Tuple(APIIntegration, APIOrganizationIntegration):
+    ) -> Tuple[APIIntegration, APIOrganizationIntegration]:
         """
         Returns a tuple of APIIntegration and APIOrganizationIntegration. The integration is selected
         by either integration_id, or a combination of provider and external_id.
@@ -194,7 +195,7 @@ class IntegrationService(InterfaceWithLifecycle):
 
     def get_installation(
         self, *, api_integration: APIIntegration, organization_id: int
-    ) -> IntegrationInstallation | None:
+    ) -> IntegrationInstallation:
         """
         Returns the IntegrationInstallation class for a given integration.
         Intended to replace calls of `integration.get_installation`.
@@ -209,7 +210,7 @@ class IntegrationService(InterfaceWithLifecycle):
         )
         return installation
 
-    def has_feature(self, *, provider: str, feature: IntegrationFeatures) -> bool | None:
+    def has_feature(self, *, provider: str, feature: IntegrationFeatures) -> bool:
         """
         Returns True if the IntegrationProvider subclass contains a given feature
         Intended to replace calls of `integration.has_feature`.

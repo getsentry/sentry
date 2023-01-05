@@ -197,9 +197,7 @@ class IssueBasicMixin:
             user_option_key = dict(key="issue:defaults", project_id=project.id)
             options = user_option_service.query_options(user_ids=[user.id], **user_option_key)
             new_user_defaults = options.get_one(default={})
-            new_user_defaults.setdefault(self.org_integration.integration.provider, {}).update(
-                user_defaults
-            )
+            new_user_defaults.setdefault(self.model.provider, {}).update(user_defaults)
             if user_defaults != new_user_defaults:
                 user_option_service.set_option(
                     user_id=user.id, value=new_user_defaults, **user_option_key
