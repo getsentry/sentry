@@ -7,6 +7,12 @@ from sentry import quotas
 from sentry.dynamic_sampling.feature_multiplexer import DynamicSamplingFeatureMultiplexer
 from sentry.dynamic_sampling.logging import log_rules
 from sentry.dynamic_sampling.rules.biases.boost_environments_bias import BOOST_ENVIRONMENTS_BIAS
+from sentry.dynamic_sampling.rules.biases.boost_key_transactions_bias import (
+    BOOST_KEY_TRANSACTIONS_BIAS,
+)
+from sentry.dynamic_sampling.rules.biases.boost_latest_releases_bias import (
+    BOOST_LATEST_RELEASES_BIAS,
+)
 from sentry.dynamic_sampling.rules.biases.ignore_health_checks_bias import IGNORE_HEALTH_CHECKS_BIAS
 from sentry.dynamic_sampling.rules.biases.uniform_bias import UNIFORM_BIAS
 from sentry.dynamic_sampling.rules.combinators.base import BiasesRulesCombinator
@@ -56,11 +62,17 @@ class DynamicSamplingBiases:
                 # indistinguishable from disabled).
                 return base_sample_rate < 1.0
 
+            if RuleType.BOOST_KEY_TRANSACTIONS_RULE.value in enabled_biases:
+                combinator.combine_if(BOOST_KEY_TRANSACTIONS_BIAS, dynamic_sampling_enabled)
+
             if RuleType.BOOST_ENVIRONMENTS_RULE.value in enabled_biases:
                 combinator.combine_if(BOOST_ENVIRONMENTS_BIAS, dynamic_sampling_enabled)
 
             if RuleType.IGNORE_HEALTH_CHECKS_RULE.value in enabled_biases:
                 combinator.combine_if(IGNORE_HEALTH_CHECKS_BIAS, dynamic_sampling_enabled)
+
+            if RuleType.BOOST_LATEST_RELEASES_RULE.value in enabled_biases:
+                combinator.combine_if(BOOST_LATEST_RELEASES_BIAS, dynamic_sampling_enabled)
 
             # Add the uniform bias as the last rule so that because we use an ordered combinator we know it will be
             # combined as last.

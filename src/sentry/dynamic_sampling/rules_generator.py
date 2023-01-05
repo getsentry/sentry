@@ -3,9 +3,8 @@ from typing import List, Optional, cast
 
 from pytz import UTC
 
-from sentry.dynamic_sampling.latest_release_booster import ProjectBoostedReleases
+from sentry.dynamic_sampling.rules.data.latest_releases import ProjectBoostedReleases
 from sentry.dynamic_sampling.utils import (
-    KEY_TRANSACTION_BOOST_FACTOR,
     RELEASE_BOOST_FACTOR,
     RESERVED_IDS,
     BaseRule,
@@ -71,28 +70,6 @@ def generate_boost_release_rules(project_id: int, sample_rate: float) -> List[Re
             for idx, boosted_release in enumerate(boosted_releases)
         ],
     )
-
-
-def generate_boost_key_transaction_rule(
-    sample_rate: float, key_transactions: List[str]
-) -> BaseRule:
-    return {
-        "sampleRate": min(1.0, sample_rate * KEY_TRANSACTION_BOOST_FACTOR),
-        "type": "transaction",
-        "condition": {
-            "op": "or",
-            "inner": [
-                {
-                    "op": "eq",
-                    "name": "event.transaction",
-                    "value": key_transactions,
-                    "options": {"ignoreCase": True},
-                }
-            ],
-        },
-        "active": True,
-        "id": RESERVED_IDS[RuleType.BOOST_KEY_TRANSACTIONS_RULE],
-    }
 
 
 # def generate_rules(project: Project) -> List[BaseRule]:

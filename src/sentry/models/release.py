@@ -72,7 +72,7 @@ class ReleaseProjectModelManager(BaseManager):
     @staticmethod
     def _on_post(project, trigger):
         from sentry.dynamic_sampling.feature_multiplexer import DynamicSamplingFeatureMultiplexer
-        from sentry.dynamic_sampling.latest_release_booster import ProjectBoostedReleases
+        from sentry.dynamic_sampling.rules.data.latest_releases import ProjectBoostedReleases
 
         ds_feature_multiplexer = DynamicSamplingFeatureMultiplexer(project)
         project_boosted_releases = ProjectBoostedReleases(project.id)

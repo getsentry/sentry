@@ -1,7 +1,7 @@
 from enum import Enum
 from typing import Any, Dict, List, Optional, TypedDict, Union
 
-from sentry.dynamic_sampling.latest_release_booster import ProjectBoostedReleases
+from sentry.dynamic_sampling.rules.data.latest_releases import ProjectBoostedReleases
 from sentry.utils import json
 
 BOOSTED_RELEASES_LIMIT = 10

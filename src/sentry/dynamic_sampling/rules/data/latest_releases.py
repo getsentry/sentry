@@ -7,7 +7,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 from django.conf import settings
 from pytz import UTC
 
-from sentry.dynamic_sampling.latest_release_ttas import Platform
+from sentry.dynamic_sampling.rules.data.time_to_adoptions import Platform
 from sentry.models import Project, Release
 from sentry.utils import redis
 

@@ -23,12 +23,12 @@ from fixtures.github import (
 from sentry import audit_log, nodestore, tsdb
 from sentry.attachments import CachedAttachment, attachment_cache
 from sentry.constants import MAX_VERSION_LENGTH, DataCategory
-from sentry.dynamic_sampling.latest_release_booster import (
+from sentry.dynamic_sampling.rules.data.latest_releases import (
     ExtendedBoostedRelease,
     ProjectBoostedReleases,
     get_redis_client_for_ds,
 )
-from sentry.dynamic_sampling.latest_release_ttas import Platform
+from sentry.dynamic_sampling.rules.data.time_to_adoptions import Platform
 from sentry.event_manager import (
     EventManager,
     EventUser,

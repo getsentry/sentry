@@ -54,7 +54,10 @@ from sentry.constants import (
 )
 from sentry.culprit import generate_culprit
 from sentry.dynamic_sampling.feature_multiplexer import DynamicSamplingFeatureMultiplexer
-from sentry.dynamic_sampling.latest_release_booster import LatestReleaseBias, LatestReleaseParams
+from sentry.dynamic_sampling.rules.data.latest_releases import (
+    LatestReleaseBias,
+    LatestReleaseParams,
+)
 from sentry.eventstore.processing import event_processing_store
 from sentry.eventtypes import (
     CspEvent,
