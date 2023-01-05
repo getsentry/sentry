@@ -10,9 +10,10 @@ from sentry import ratelimits as ratelimiter
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.validators import AllowedEmailField
-from sentry.models import AuthProvider, InviteStatus, OrganizationMember
+from sentry.models import InviteStatus, OrganizationMember
 from sentry.notifications.notifications.organization_request import JoinRequestNotification
 from sentry.notifications.utils.tasks import async_send_notification
+from sentry.services.hybrid_cloud.auth import auth_service
 from sentry.signals import join_request_created
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
@@ -61,7 +62,8 @@ class OrganizationJoinRequestEndpoint(OrganizationEndpoint):
 
         # users can already join organizations with SSO enabled without an invite
         # so they should join that way and not through a request to the admins
-        if AuthProvider.objects.filter(organization=organization).exists():
+        providers = auth_service.get_auth_providers(organization_id=organization.id)
+        if len(providers) != 0:
             return Response(status=403)
 
         ip_address = request.META["REMOTE_ADDR"]

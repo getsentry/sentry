@@ -61,7 +61,7 @@ class OrganizationPinnedSearchEndpoint(OrganizationEndpoint):
             return Response({"detail": "Invalid input for `type`. Error: %s" % str(e)}, status=400)
         SavedSearch.objects.filter(
             organization=organization,
-            owner=request.user,
+            owner_id=request.user.id,
             type=search_type.value,
             visibility=Visibility.OWNER_PINNED,
         ).delete()

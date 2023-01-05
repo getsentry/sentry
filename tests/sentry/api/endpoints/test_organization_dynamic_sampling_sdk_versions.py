@@ -212,7 +212,7 @@ def mocked_discover_query():
     }
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class OrganizationDynamicSamplingSDKVersionsTest(APITestCase):
     @property
     def endpoint(self):

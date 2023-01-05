@@ -10,7 +10,7 @@ from sentry.testutils.helpers.features import apply_feature_flag_on_cls
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 @apply_feature_flag_on_cls("organizations:derive-code-mappings")
 class OrganizationDeriveCodeMappingsTest(APITestCase):
     def setUp(self):
