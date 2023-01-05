@@ -165,16 +165,15 @@ function useOverlay({
   } = usePopper(triggerElement, overlayElement, {modifiers, placement: position});
 
   // Get props for trigger button
-  const openState = useOverlayTriggerState({isOpen, defaultOpen, onOpenChange});
-  const {buttonProps} = useButton(
-    {
-      onPress: () => {
-        openState.open();
-        popperUpdate?.();
-      },
+  const openState = useOverlayTriggerState({
+    isOpen,
+    defaultOpen,
+    onOpenChange: open => {
+      onOpenChange?.(open);
+      open && popperUpdate?.();
     },
-    triggerRef
-  );
+  });
+  const {buttonProps} = useButton({onPress: openState.open}, triggerRef);
   const {triggerProps, overlayProps: overlayTriggerProps} = useOverlayTrigger(
     {type},
     openState,
