@@ -89,31 +89,34 @@ def set_top_tags(
         logger.exception("We failed to set a tag.")
 
 
-def update_tags(
+def update_result_and_tags(
     scope: Scope,
+    config_and_outcome: JSONData,
     result: JSONData,
-) -> None:
-    current_config = result["config"]
+) -> Dict[str, str]:
+    new_result_values = {"config": config_and_outcome["config"]}
     found: bool = result["sourceUrl"] is not None
     scope.set_tag("stacktrace_link.found", found)
-    scope.set_tag("stacktrace_link.empty_root", result["config"]["stackRoot"] == "")
+    scope.set_tag("stacktrace_link.empty_root", config_and_outcome["config"]["stackRoot"] == "")
     scope.set_tag(
         "stacktrace_link.auto_derived",
-        result["config"]["automaticallyGenerated"] is True,
+        config_and_outcome["config"]["automaticallyGenerated"] is True,
     )
 
     if found:
         scope.set_tag("stacktrace_link.source_url", result["sourceUrl"])
     else:
-        result["error"] = current_config["outcome"]["error"]
+        new_result_values["error"] = config_and_outcome["outcome"]["error"]
         # When no code mapping have been matched we have not attempted a URL
-        if current_config["outcome"].get("attemptedUrl"):
-            result["attemptedUrl"] = current_config["outcome"]["attemptedUrl"]
+        if config_and_outcome["outcome"].get("attemptedUrl"):
+            result["attemptedUrl"] = config_and_outcome["outcome"]["attemptedUrl"]
             scope.set_tag("stacktrace_link.tried_url", result["attemptedUrl"])
         if result["error"] == "stack_root_mismatch":
             scope.set_tag("stacktrace_link.error", "stack_root_mismatch")
         else:
             scope.set_tag("stacktrace_link.error", "file_not_found")
+
+    return new_result_values
 
 
 def try_path_munging(
@@ -259,11 +262,7 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
 
             # Post-processing before exiting scope context
             if current_config:
-                result["config"] = current_config["config"]
-                try:
-                    update_tags(scope, result)
-                except Exception:
-                    logger.exception("We failed to updated the tags but did not fail the API.")
+                result.update(update_result_and_tags(scope, current_config, result))
 
         if result["config"]:
             analytics.record(
