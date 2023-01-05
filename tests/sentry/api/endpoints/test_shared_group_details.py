@@ -9,7 +9,7 @@ class SharedGroupDetailsTest(APITestCase):
     def _get_path_functions(self):
         return (
             lambda share_id: f"/api/0/shared/issues/{share_id}/",
-            lambda share_id: f"/api/0/shared/{self.organization.slug}/issues/{share_id}/",
+            lambda share_id: f"/api/0/organizations/{self.organization.slug}/shared/issues/{share_id}/",
         )
 
     def test_simple(self):

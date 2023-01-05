@@ -2335,7 +2335,7 @@ urlpatterns = [
         name="sentry-api-0-shared-group-details",
     ),
     url(
-        r"^shared/(?P<organization_slug>[^\/]+)/(?:issues|groups)/(?P<share_id>[^\/]+)/$",
+        r"^organizations/(?P<organization_slug>[^\/]+)/shared/(?:issues|groups)/(?P<share_id>[^\/]+)/$",
         SharedGroupDetailsEndpoint.as_view(),
         name="sentry-api-0-shared-group-details-with-org",
     ),
