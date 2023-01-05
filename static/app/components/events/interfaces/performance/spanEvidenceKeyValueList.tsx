@@ -40,9 +40,12 @@ export function SpanEvidenceKeyValueList({
     },
   ];
 
-  const problemParameters = getProblemParameters(offendingSpans);
+  let problemParameters;
+  if (issueType === IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS) {
+    problemParameters = getProblemParameters(offendingSpans);
+  }
 
-  if (problemParameters && issueType === IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS) {
+  if (problemParameters?.length > 0) {
     data.push({
       key: '3',
       subject: t('Problem Parameter'),
@@ -71,8 +74,8 @@ function getSpanEvidenceValue(span: RawSpanType | TraceContextSpanProxy | null) 
 
 function getProblemParameters(
   offendingSpans: Array<RawSpanType | TraceContextSpanProxy>
-) {
-  const uniqueParameterPairs = new Set();
+): string[] {
+  const uniqueParameterPairs = new Set<string>();
 
   offendingSpans.forEach(span => {
     // TODO: Look into the span data if possible, not just the description
@@ -83,10 +86,14 @@ function getProblemParameters(
     }
 
     const [_method, url] = span.description.split(' ', 2);
-    const parsedURL = new URL(url);
+    try {
+      const parsedURL = new URL(url);
 
-    for (const [key, value] of parsedURL.searchParams) {
-      uniqueParameterPairs.add(`${key}=${value}`);
+      for (const [key, value] of parsedURL.searchParams) {
+        uniqueParameterPairs.add(`${key}=${value}`);
+      }
+    } catch {
+      // Ignore error
     }
   });
 
