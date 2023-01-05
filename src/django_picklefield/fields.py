@@ -1,4 +1,4 @@
-from base64 import b64encode
+from base64 import b64decode, b64encode
 from copy import deepcopy
 from pickle import dumps, loads
 from typing import Any, List, Tuple
@@ -10,7 +10,6 @@ from django.db import models
 from django.utils.encoding import force_str
 
 from .constants import DEFAULT_PROTOCOL
-from .decode import dbsafe_decode
 
 
 def dbsafe_decode(value: Any, compress_object: bool = False) -> Any:
