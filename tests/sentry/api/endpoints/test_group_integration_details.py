@@ -241,9 +241,9 @@ class GroupIntegrationDetailsTest(APITestCase):
             response = self.client.post(path, data={"assignee": "foo@sentry.io"})
             assert response.status_code == 201
 
-            assert user_option_service.query_options(user_ids=[self.user.id]).get_one(
-                key="issue:defaults"
-            ) == {"example": {}}
+            assert user_option_service.query_options(
+                user_ids=[self.user.id], project_id=group.project_id
+            ).get_one(key="issue:defaults") == {"example": {}}
 
             external_issue = ExternalIssue.objects.get(
                 key="APP-123", integration_id=integration.id, organization_id=org.id

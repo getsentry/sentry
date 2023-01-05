@@ -70,7 +70,7 @@ def get_providers_from_which_to_remove_user(
     }
 
     if (
-        user_option_service.query_options(user_ids=[user.id], keys=["self_notification"]).get_one(
+        user_option_service.query_options(user_ids=[user.id], keys=["self_notifications"]).get_one(
             default="0"
         )
         == "0"
