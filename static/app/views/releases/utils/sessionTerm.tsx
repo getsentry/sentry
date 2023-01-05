@@ -64,12 +64,6 @@ export const mobileTermsDescription = {
   [SessionTerm.ABNORMAL]: t(
     'An unknown session exit. Like due to loss of power or killed by the operating system'
   ),
-  [SessionTerm.ANR_RATE]: t(
-    'Percentage of unique users that experienced an App Not Responding (ANR) error'
-  ),
-  [SessionTerm.FOREGROUND_ANR_RATE]: t(
-    'Percentage of unique users that experienced an App Not Responding (ANR) error when the app was running in the foreground'
-  ),
   [SessionTerm.HEALTHY]: t('A session without errors'),
   [SessionTerm.ERRORED]: t('A session with errors'),
   [SessionTerm.UNHANDLED]: t('Not handled by user code'),
@@ -170,6 +164,12 @@ function getTermDescriptions(platform: PlatformKey | null) {
         [SessionTerm.HEALTHY]: mobileTermsDescription.healthy,
         [SessionTerm.ERRORED]: mobileTermsDescription.errored,
         [SessionTerm.UNHANDLED]: mobileTermsDescription.unhandled,
+        [SessionTerm.ANR_RATE]: t(
+          'Percentage of unique users that experienced an App Not Responding (ANR) error'
+        ),
+        [SessionTerm.FOREGROUND_ANR_RATE]: t(
+          'Percentage of unique users that experienced an App Not Responding (ANR) error when the app was running in the foreground'
+        ),
       };
   }
 }

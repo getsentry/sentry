@@ -5,12 +5,12 @@ import ProjectCharts from 'sentry/views/projectDetail/projectCharts';
 
 function renderProjectCharts(
   features?: string[],
-  platforms?: string[],
+  platform?: string,
   chartDisplay?: string
 ) {
   const {organization, router, project} = initializeOrg({
     organization: TestStubs.Organization({features}),
-    projects: [{platforms}],
+    projects: [{platform}],
     router: {
       params: {orgId: 'org-slug', projectId: 'project-slug'},
       location: {
@@ -57,7 +57,7 @@ describe('ProjectDetail > ProjectCharts', () => {
   });
 
   it('renders ANR options', () => {
-    renderProjectCharts(['anr-rate'], ['python', 'android']);
+    renderProjectCharts(['anr-rate'], 'android');
 
     userEvent.click(screen.getByRole('button', {name: 'Display Crash Free Sessions'}));
 
@@ -66,7 +66,7 @@ describe('ProjectDetail > ProjectCharts', () => {
   });
 
   it('does not render ANR options for non-android platforms', () => {
-    renderProjectCharts(['anr-rate'], ['python']);
+    renderProjectCharts(['anr-rate'], 'python');
 
     userEvent.click(screen.getByRole('button', {name: 'Display Crash Free Sessions'}));
 
@@ -112,7 +112,7 @@ describe('ProjectDetail > ProjectCharts', () => {
       url: '/organizations/org-slug/sessions/',
       body: responseBody,
     });
-    renderProjectCharts(['anr-rate'], ['python', 'android'], 'anr_rate');
+    renderProjectCharts(['anr-rate'], 'android', 'anr_rate');
     expect(screen.getByText('ANR Rate')).toBeInTheDocument();
 
     await waitFor(() =>
