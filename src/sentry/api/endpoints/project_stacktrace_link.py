@@ -242,11 +242,14 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
             scope.set_tag("stacktrace_link.auto_derived", derived)
             if current_config:
                 result["config"] = current_config["config"]
-                if not found:
+                if found:
+                    scope.set_tag("stacktrace_link.source_url", result["sourceUrl"])
+                else:
                     result["error"] = current_config["outcome"]["error"]
                     # When no code mapping have been matched we have not attempted a URL
                     if current_config["outcome"].get("attemptedUrl"):
                         result["attemptedUrl"] = current_config["outcome"]["attemptedUrl"]
+                        scope.set_tag("stacktrace_link.tried_url", result["attemptedUrl"])
                     if result["error"] == "stack_root_mismatch":
                         scope.set_tag("stacktrace_link.error", "stack_root_mismatch")
                     else:
