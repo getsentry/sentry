@@ -54,8 +54,6 @@ export function createProgram(
 // Create a projection matrix with origins at 0,0 in top left corner, scaled to width/height
 export function makeProjectionMatrix(width: number, height: number): mat3 {
   const projectionMatrix = mat3.create();
-
-  mat3.identity(projectionMatrix);
   mat3.translate(projectionMatrix, projectionMatrix, vec2.fromValues(-1, 1));
   mat3.scale(
     projectionMatrix,
