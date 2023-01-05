@@ -1,10 +1,15 @@
 import {Component} from 'react';
 import styled from '@emotion/styled';
 
-import {Panel, PanelBody, PanelHeader, PanelItem} from 'sentry/components/panels';
-import QuestionTooltip from 'sentry/components/questionTooltip';
+import {
+  Panel,
+  PanelAlert,
+  PanelBody,
+  PanelHeader,
+  PanelItem,
+} from 'sentry/components/panels';
 import Radio from 'sentry/components/radio';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {OrgRole} from 'sentry/types';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
@@ -19,6 +24,7 @@ type Props = {
   disabled: boolean;
   enforceAllowed: boolean;
   enforceRetired: boolean;
+  idpRoleRestricted: boolean;
   isCurrentUser: boolean;
   roleList: OrgRole[];
   roleSelected: string;
@@ -33,32 +39,34 @@ class OrganizationRoleSelect extends Component<Props> {
       enforceAllowed,
       isCurrentUser,
       roleList,
+      idpRoleRestricted,
       roleSelected,
       setSelected,
     } = this.props;
 
+    const tooltipText = () => {
+      if (isCurrentUser) {
+        return "Your organization-level role is managed through your organization's identity provider.";
+      }
+      return "This member's organization-level role is managed through your organization's identity provider.";
+    };
+
     return (
       <Panel>
         <PanelHeader>
-          <div>
-            {t('Organization Role')}{' '}
-            <QuestionTooltip
-              title={
-                isCurrentUser
-                  ? "Your organization-level role is managed through your organization's identity provider."
-                  : "This member's organization-level role is managed through your organization's identity provider."
-              }
-              size="xs"
-            />
-          </div>
+          <div>{t('Organization Role')} </div>
         </PanelHeader>
+        {idpRoleRestricted && (
+          <PanelAlert>{tct('[text]', {text: tooltipText()})}</PanelAlert>
+        )}
 
         <PanelBody>
           {roleList.map(role => {
             const {desc, name, id, allowed, isRetired: roleRetired} = role;
 
             const isRetired = enforceRetired && roleRetired;
-            const isDisabled = disabled || isRetired || (enforceAllowed && !allowed);
+            const isDisabled =
+              disabled || isRetired || (enforceAllowed && !allowed) || idpRoleRestricted;
 
             return (
               <PanelItem

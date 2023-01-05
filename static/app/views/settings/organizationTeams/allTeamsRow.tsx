@@ -180,6 +180,11 @@ class AllTeamsRow extends Component<Props, State> {
   render() {
     const {team, openMembership, organization} = this.props;
     const urlPrefix = `/settings/${organization.slug}/teams/`;
+    const buttonHelpText = team.idpProvisioned
+      ? t(
+          "Membership to this team is managed through your organization's identity provider."
+        )
+      : undefined;
 
     const display = (
       <IdBadge
@@ -215,13 +220,7 @@ class AllTeamsRow extends Component<Props, State> {
               size="sm"
               onClick={this.handleLeaveTeam}
               disabled={team.idpProvisioned}
-              title={
-                team.idpProvisioned
-                  ? t(
-                      "Membership to this team is managed through your organization's identity provider."
-                    )
-                  : undefined
-              }
+              title={buttonHelpText}
             >
               {t('Leave Team')}
             </Button>
@@ -240,11 +239,7 @@ class AllTeamsRow extends Component<Props, State> {
               size="sm"
               onClick={this.handleJoinTeam}
               disabled={team.idpProvisioned}
-              title={
-                team.idpProvisioned
-                  ? t('You cannot join this team as it has been idp-provisioned.')
-                  : undefined
-              }
+              title={buttonHelpText}
             >
               {t('Join Team')}
             </Button>
@@ -253,13 +248,7 @@ class AllTeamsRow extends Component<Props, State> {
               size="sm"
               onClick={this.handleRequestAccess}
               disabled={team.idpProvisioned}
-              title={
-                team.idpProvisioned
-                  ? t(
-                      'You cannot request to join this team as it has been idp-provisioned.'
-                    )
-                  : undefined
-              }
+              title={buttonHelpText}
             >
               {t('Request Access')}
             </Button>

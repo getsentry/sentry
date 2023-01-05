@@ -22,7 +22,6 @@ import Pagination from 'sentry/components/pagination';
 import {Panel, PanelHeader} from 'sentry/components/panels';
 import {IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import TeamStore from 'sentry/stores/teamStore';
 import space from 'sentry/styles/space';
 import {Config, Member, Organization, Team, TeamMember} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
@@ -40,6 +39,7 @@ type Props = {
   api: Client;
   config: Config;
   organization: Organization;
+  team: Team;
 } & RouteComponentProps<RouteParams, {}>;
 
 type State = {
@@ -66,14 +66,6 @@ class TeamMembers extends AsyncView<Props, State> {
   componentDidMount() {
     // Initialize "add member" dropdown with data
     this.fetchMembersRequest('');
-
-    const {teamId} = this.props.params;
-    const team = TeamStore.getBySlug(teamId);
-    if (team) {
-      this.setState({
-        team,
-      });
-    }
   }
 
   debouncedFetchMembersRequest = debounce(
@@ -219,8 +211,8 @@ class TeamMembers extends AsyncView<Props, State> {
   };
 
   renderDropdown(hasWriteAccess: boolean) {
-    const {organization, params} = this.props;
-    const {orgMembers, team} = this.state;
+    const {organization, params, team} = this.props;
+    const {orgMembers} = this.state;
     const existingMembers = new Set(this.state.teamMembers.map(member => member.id));
 
     // members can add other members to a team if the `Open Membership` setting is enabled

@@ -21,15 +21,15 @@ import useTeams from 'sentry/utils/useTeams';
 
 type Props = {
   /**
-   * Should button be disabled
-   */
-  disabled: boolean;
-  /**
    * Is this component for a project
    * and should adding a team be disabled based
    * on whether the team is idpProvisioned
    */
-  isProject: boolean;
+  addingTeamToProject: boolean;
+  /**
+   * Should button be disabled
+   */
+  disabled: boolean;
   /**
    * callback when teams are added
    */
@@ -60,7 +60,7 @@ type Props = {
 
 function TeamSelect({
   disabled,
-  isProject,
+  addingTeamToProject,
   selectedTeams,
   menuHeader,
   organization,
@@ -106,9 +106,9 @@ function TeamSelect({
       index,
       value: team.slug,
       searchKey: team.slug,
-      disabled: !isProject && team.idpProvisioned,
+      disabled: !addingTeamToProject && team.idpProvisioned,
       label: () => {
-        if (isProject || !team.idpProvisioned) {
+        if (addingTeamToProject || !team.idpProvisioned) {
           return <DropdownTeamBadge avatarSize={18} team={team} />;
         }
         return (

@@ -230,7 +230,7 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
                 icon={<IconClose size="xs" />}
                 disabled
                 title={t(
-                  "Your organization-level role is managed through your organization's identity provider."
+                  "Membership to this organization is managed through your organization's identity provider."
                 )}
               >
                 {t('Leave')}

@@ -119,7 +119,9 @@ const RemoveButton = (props: {
         icon={<IconSubtract size="xs" isCircled />}
         onClick={onClick}
         aria-label={t('Remove')}
-        title={t('You cannot remove this member as their role has been idp-provisioned.')}
+        title={t(
+          "Membership to this team is managed through your organization's identity provider."
+        )}
       >
         {t('Remove')}
       </Button>

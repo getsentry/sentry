@@ -154,7 +154,7 @@ class ProjectTeams extends AsyncView<Props, State> {
           menuHeader={menuHeader}
           confirmLastTeamRemoveMessage={confirmRemove}
           disabled={!hasAccess}
-          isProject
+          addingTeamToProject
         />
       </div>
     );
