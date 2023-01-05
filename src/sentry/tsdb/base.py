@@ -20,6 +20,7 @@ class TSDBModel(Enum):
     project = 1
     group = 4
     release = 7
+    issue_platform = 8
 
     # number of transactions seen specific to a group
     group_performance = 10

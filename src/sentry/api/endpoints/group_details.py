@@ -124,7 +124,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
     def __group_hourly_daily_stats(group: Group, environment_ids: Sequence[int]):
         get_range = functools.partial(tsdb.get_range, environment_ids=environment_ids)
         # choose the model based off the group.category
-        model = ISSUE_TSDB_GROUP_MODELS[group.issue_category]
+        model = ISSUE_TSDB_GROUP_MODELS.get(group.issue_category, tsdb.models.issue_platform)
 
         now = timezone.now()
         hourly_stats = tsdb.rollup(
