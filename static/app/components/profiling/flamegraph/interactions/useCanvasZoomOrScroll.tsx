@@ -36,6 +36,9 @@ export function useCanvasZoomOrScroll({
         setLastInteraction(null);
       }, 300);
 
+      // We need to prevent the default behavior of the wheel event or we
+      // risk triggering back/forward browser navigation
+      evt.preventDefault();
       // When we zoom, we want to clear cursor so that any tooltips
       // rendered on the flamegraph are removed from the flamegraphView
       setConfigSpaceCursor(null);
@@ -50,14 +53,13 @@ export function useCanvasZoomOrScroll({
       }
     }
 
-    const options: AddEventListenerOptions & EventListenerOptions = {passive: true};
-    canvas.addEventListener('wheel', onCanvasWheel, options);
+    canvas.addEventListener('wheel', onCanvasWheel);
 
     return () => {
       if (wheelStopTimeoutId.current !== undefined) {
         window.cancelAnimationFrame(wheelStopTimeoutId.current);
       }
-      canvas.removeEventListener('wheel', onCanvasWheel, options);
+      canvas.removeEventListener('wheel', onCanvasWheel);
     };
   }, [
     canvas,
