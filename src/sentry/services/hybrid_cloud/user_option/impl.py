@@ -50,11 +50,11 @@ class DatabaseBackedUserOptionService(UserOptionService):
         project_id: Optional[int] = None,
         organization_id: Optional[int] = None,
     ) -> ApiUserOptionSet:
-        queryset = UserOption.objects.filter(
+        queryset = UserOption.objects.filter(  # type: ignore
             user_id__in=user_ids,
             project_id=project_id,
             organization_id=organization_id,
-        )  # type: ignore
+        )
         if keys is not None or key is not None:
             if keys is None:
                 keys = []
