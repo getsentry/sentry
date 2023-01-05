@@ -58,7 +58,7 @@ class MonitorDetails extends AsyncView<Props, State> {
       'Monitors: Details Page Viewed'
     );
     this.props.setRouteAnalyticsParams({
-      empty_state: response.data.length === 0,
+      empty_state: !response.data?.lastCheckIn,
     });
   }
 
