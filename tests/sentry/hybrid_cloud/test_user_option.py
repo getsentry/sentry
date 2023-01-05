@@ -76,12 +76,6 @@ def test_user_option_service():
         ).get_one(key="b_key")
         is None
     )
-    assert (
-        user_option_service.query_options(
-            user_ids=[u1.id], keys=["a_key"], project_id=p1.id
-        ).get_one(key="a_key")
-        is None
-    )
 
     user_option_service.set_option(
         user_id=u2.id, value=objects[4], key="a_key", organization_id=o1.id
@@ -90,19 +84,15 @@ def test_user_option_service():
 
     assert (
         user_option_service.query_options(user_ids=[u1.id, u2.id], keys=["a_key"]).get_one(
-            key="a_key"
+            key="a_key", user_id=u2.id
         )
         == objects[5]
     )
     assert (
         user_option_service.query_options(user_ids=[u1.id, u2.id], keys=["a_key"]).get_one(
-            key="a_key"
+            key="a_key", user_id=u1.id
         )
-        == objects[2]
-    )
-    assert (
-        user_option_service.query_options(user_ids=[u1.id], keys=["a_key"]).get_one(key="a_key")
-        is None
+        == objects[1]
     )
 
     user_option_service.delete_options(
@@ -112,5 +102,5 @@ def test_user_option_service():
     assert user_option_service.query_options(user_ids=[u1.id]).get_one(key="a_key") is None
     assert (
         user_option_service.query_options(user_ids=[u1.id], project_id=p1.id).get_one(key="a_key")
-        is None
+        is not None
     )

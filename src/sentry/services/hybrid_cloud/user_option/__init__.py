@@ -33,7 +33,7 @@ class ApiUserOptionSet:
         for option in self.options:
             if key is not None and option.key != key:
                 continue
-            if user_id is not None and option.user_id == user_id:
+            if user_id is not None and option.user_id != user_id:
                 continue
             return option.value
         return default
