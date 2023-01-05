@@ -28,7 +28,7 @@ from sentry.utils.pagination_factory import (
     PaginatorLike,
     annotate_span_with_pagination_args,
     get_cursor,
-    get_paginatior,
+    get_paginator,
 )
 
 logger = logging.getLogger(__name__)
@@ -212,7 +212,7 @@ class ApiPaginationArgs:
             description=description,
         ) as span:
             annotate_span_with_pagination_args(span, self.per_page)
-            paginator = get_paginatior(
+            paginator = get_paginator(
                 None, paginator_cls, dict(order_by=order_by, queryset=queryset.values("id"))
             )
             extra_args: Any = {}
