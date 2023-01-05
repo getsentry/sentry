@@ -138,7 +138,7 @@ class TeamSerializerResponse(_TeamSerializerResponseOptional):
     dateCreated: datetime
     isMember: bool
     teamRole: str
-    flags: dict
+    flags: dict[str, Any]
     hasAccess: bool
     isPending: bool
     memberCount: int
