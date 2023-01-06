@@ -3,6 +3,8 @@ from __future__ import annotations
 from collections import defaultdict
 from typing import Any, Iterable, Mapping, MutableMapping
 
+from django.conf import settings
+
 from sentry.constants import ObjectStatus
 from sentry.models import ExternalActor, Integration, Organization, Team, User
 from sentry.notifications.notifications.base import BaseNotification
@@ -67,10 +69,15 @@ def get_channel_and_integration_by_team(
     team: Team, organization: Organization, provider: ExternalProviders
 ) -> Mapping[str, Integration]:
     try:
+        if getattr(settings, "USE_EXTERNAL_ACTOR_ACTOR", True):
+            kwargs = {"actor_id": team.actor_id}
+        else:
+            kwargs = {"team_id": team.id}
+
         external_actor = (
             ExternalActor.objects.filter(
                 provider=provider.value,
-                actor_id=team.actor_id,
+                **kwargs,
                 organization=organization,
                 integration__status=ObjectStatus.ACTIVE,
                 integration__organizationintegration__status=ObjectStatus.ACTIVE,

@@ -298,5 +298,9 @@ class Team(Model):
         from sentry.models import ExternalActor
 
         # There is no foreign key relationship so we have to manually delete the ExternalActors
-        ExternalActor.objects.filter(actor_id=self.actor_id).delete()
+        if getattr(settings, "USE_EXTERNAL_ACTOR_ACTOR", True):
+            ExternalActor.objects.filter(actor_id=self.actor_id).delete()
+        else:
+            ExternalActor.objects.filter(team_id=self.id).delete()
+
         return super().delete(**kwargs)

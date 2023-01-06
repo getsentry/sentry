@@ -132,6 +132,7 @@ class SlackLinkTeamView(BaseView):
             defaults=dict(
                 external_name=channel_name,
                 external_id=channel_id,
+                team_id=team.id,
             ),
         )
 

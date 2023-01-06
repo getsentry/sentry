@@ -29,6 +29,7 @@ class ExternalActorSerializerTest(TestCase):
     def test_user(self):
         external_actor, _ = ExternalActor.objects.get_or_create(
             actor_id=self.user.actor_id,
+            user_id=self.user.id,
             organization=self.organization,
             integration=self.integration,
             provider=ExternalProviders.SLACK.value,
@@ -49,6 +50,7 @@ class ExternalActorSerializerTest(TestCase):
 
         external_actor, _ = ExternalActor.objects.get_or_create(
             actor_id=team.actor_id,
+            team_id=team.id,
             organization=self.organization,
             integration=self.integration,
             provider=ExternalProviders.SLACK.value,

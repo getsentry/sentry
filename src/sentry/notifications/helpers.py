@@ -3,6 +3,8 @@ from __future__ import annotations
 from collections import defaultdict
 from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping
 
+from django.conf import settings
+
 from sentry.notifications.defaults import NOTIFICATION_SETTING_DEFAULTS
 from sentry.notifications.types import (
     NOTIFICATION_SCOPE_TYPE,
@@ -592,12 +594,16 @@ def get_providers_for_recipient(recipient: User | Team) -> Iterable[ExternalProv
 
     possible_providers = NOTIFICATION_SETTING_DEFAULTS.keys()
     if isinstance(recipient, Team):
+        if getattr(settings, "USE_EXTERNAL_ACTOR_ACTOR", True):
+            kwargs = {"actor_id": recipient.actor_id}
+        else:
+            kwargs = {"team_id": recipient.id}
         return list(
             map(
                 get_provider_enum,
-                ExternalActor.objects.filter(
-                    actor_id=recipient.actor_id, provider__in=possible_providers
-                ).values_list("provider", flat=True),
+                ExternalActor.objects.filter(**kwargs, provider__in=possible_providers).values_list(
+                    "provider", flat=True
+                ),
             )
         )
 

@@ -419,7 +419,9 @@ class Fixtures:
 
     def create_group_history(self, *args, **kwargs):
         if "actor" not in kwargs:
-            kwargs["actor"] = self.user.actor
+            kwargs["actor"] = self.user.actor  # TODO:actor remove after migration
+        if "user" not in kwargs:
+            kwargs["user"] = self.user
         return Factories.create_group_history(*args, **kwargs)
 
     def create_comment(self, *args, **kwargs):

@@ -15,7 +15,10 @@ from sentry.api.validators.external_actor import (
     validate_integration_id,
 )
 from sentry.api.validators.integrations import validate_provider
-from sentry.models import ExternalActor, Organization, Team
+from sentry.models.integrations.external_actor import ExternalActor
+from sentry.models.organization import Organization
+from sentry.models.team import Team
+from sentry.models.user import User
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.services.hybrid_cloud.user import APIUser, user_service
 from sentry.types.integrations import ExternalProviders, get_provider_choices
@@ -62,14 +65,21 @@ class ExternalActorSerializerBase(CamelSnakeModelSerializer):  # type: ignore
         return int(provider.value)
 
     def get_actor_id(self, validated_data: MutableMapping[str, Any]) -> int:
-        return int(validated_data.pop(self._actor_key).actor_id)
+        return validated_data.pop(self._actor_key)
 
     def create(self, validated_data: MutableMapping[str, Any]) -> ExternalActor:
-        actor_id = self.get_actor_id(validated_data)
+        actor = self.get_actor_id(validated_data)  # returns team
+        kwargs = {}
+        if isinstance(actor, Team):
+            kwargs["team_id"] = actor.id
+        if isinstance(actor, User) or isinstance(actor, APIUser):
+            kwargs["user_id"] = actor.id
+
         return ExternalActor.objects.get_or_create(
             **validated_data,
-            actor_id=actor_id,
+            actor_id=actor.actor_id,
             organization=self.organization,
+            defaults=kwargs,
         )
 
     def update(

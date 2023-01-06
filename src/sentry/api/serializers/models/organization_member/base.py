@@ -1,6 +1,7 @@
 from collections import defaultdict
 from typing import Any, Mapping, MutableMapping, Optional, Sequence
 
+from django.conf import settings
 from django.db.models import prefetch_related_objects
 
 from sentry import roles
@@ -43,9 +44,13 @@ class OrganizationMemberSerializer(Serializer):  # type: ignore
 
         if "externalUsers" in self.expand:
             organization_id = get_organization_id(item_list)
+            if getattr(settings, "USE_EXTERNAL_ACTOR_ACTOR", True):
+                kwargs = {"actor_id__in": actor_ids}
+            else:
+                kwargs = {"user_id__in": users_set}
             external_actors = list(
                 ExternalActor.objects.filter(
-                    actor_id__in=actor_ids,
+                    **kwargs,
                     organization_id=organization_id,
                 )
             )

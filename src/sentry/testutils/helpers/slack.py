@@ -83,6 +83,7 @@ def link_user(user: User, idp: IdentityProvider, slack_id: str) -> None:
 def link_team(team: Team, integration: Integration, channel_name: str, channel_id: str) -> None:
     ExternalActor.objects.create(
         actor_id=team.actor_id,
+        team_id=team.id,
         organization=team.organization,
         integration=integration,
         provider=ExternalProviders.SLACK.value,

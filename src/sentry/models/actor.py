@@ -190,6 +190,6 @@ def handle_actor_pre_save(instance, **kwargs):
 pre_save.connect(
     handle_actor_pre_save, sender="sentry.Team", dispatch_uid="handle_actor_pre_save", weak=False
 )
-pre_save.connect(
+pre_save.connect(  # TODO:actor remove
     handle_actor_pre_save, sender="sentry.User", dispatch_uid="handle_actor_pre_save", weak=False
 )

@@ -1,5 +1,6 @@
 from typing import TYPE_CHECKING, Optional, Union
 
+from django.conf import settings
 from django.db import models
 from django.db.models import SET_NULL, Q
 from django.utils import timezone
@@ -138,7 +139,8 @@ class GroupHistory(Model):
     group = FlexibleForeignKey("sentry.Group", db_constraint=False)
     project = FlexibleForeignKey("sentry.Project", db_constraint=False)
     release = FlexibleForeignKey("sentry.Release", null=True, db_constraint=False)
-    actor = FlexibleForeignKey("sentry.Actor", null=True, on_delete=SET_NULL)
+    actor = FlexibleForeignKey("sentry.Actor", null=True, on_delete=SET_NULL)  # TODO:actor remove
+    user = FlexibleForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=SET_NULL)
 
     status = BoundedPositiveIntegerField(
         default=0,
@@ -220,7 +222,8 @@ def record_group_history(
         group=group,
         project=group.project,
         release=release,
-        actor_id=actor.actor_id if actor is not None else None,
+        actor_id=actor.actor_id if actor is not None else None,  # TODO:actor remove
+        user_id=actor.id if actor is not None else None,  # actor is always a user for Group History
         status=status,
         prev_history=prev_history,
         prev_history_date=prev_history.date_added if prev_history else None,

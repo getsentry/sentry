@@ -175,17 +175,31 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
                 elif key == "hasExternalUsers":
                     hasExternalUsers = "true" in value
                     if hasExternalUsers:
-                        queryset = queryset.filter(
-                            user__actor_id__in=ExternalActor.objects.filter(
-                                organization=organization
-                            ).values_list("actor_id")
-                        )
+                        if getattr(settings, "USE_EXTERNAL_ACTOR_ACTOR", True):
+                            queryset = queryset.filter(
+                                user__actor_id__in=ExternalActor.objects.filter(
+                                    organization=organization
+                                ).values_list("actor_id")
+                            )
+                        else:
+                            queryset = queryset.filter(
+                                user_id__in=ExternalActor.objects.filter(
+                                    organization=organization
+                                ).values_list("user_id")
+                            )
                     else:
-                        queryset = queryset.exclude(
-                            user__actor_id__in=ExternalActor.objects.filter(
-                                organization=organization
-                            ).values_list("actor_id")
-                        )
+                        if getattr(settings, "USE_EXTERNAL_ACTOR_ACTOR", True):
+                            queryset = queryset.exclude(
+                                user__actor_id__in=ExternalActor.objects.filter(
+                                    organization=organization
+                                ).values_list("actor_id")
+                            )
+                        else:
+                            queryset = queryset.exclude(
+                                user_id__in=ExternalActor.objects.filter(
+                                    organization=organization
+                                ).values_list("user_id")
+                            )
 
                 elif key == "query":
                     value = " ".join(value)

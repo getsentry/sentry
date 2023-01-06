@@ -87,7 +87,9 @@ class GroupAssigneeManager(BaseManager):
                 user=acting_user,
                 data=data,
             )
-            record_group_history(group, GroupHistoryStatus.ASSIGNED, actor=acting_user)
+            record_group_history(
+                group, GroupHistoryStatus.ASSIGNED, actor=acting_user
+            )  # acting_user is always User
 
             metrics.incr("group.assignee.change", instance="assigned", skip_internal=True)
             # sync Sentry assignee to external issues
@@ -108,7 +110,9 @@ class GroupAssigneeManager(BaseManager):
 
         if affected > 0:
             Activity.objects.create_group_activity(group, ActivityType.UNASSIGNED, user=acting_user)
-            record_group_history(group, GroupHistoryStatus.UNASSIGNED, actor=acting_user)
+            record_group_history(
+                group, GroupHistoryStatus.UNASSIGNED, actor=acting_user
+            )  # acting_user is always User
 
             metrics.incr("group.assignee.change", instance="deassigned", skip_internal=True)
             # sync Sentry assignee to external issues

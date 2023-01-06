@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.db import IntegrityError, transaction
 from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _
@@ -94,17 +95,31 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
                 if key == "hasExternalTeams":
                     has_external_teams = "true" in value
                     if has_external_teams:
-                        queryset = queryset.filter(
-                            actor_id__in=ExternalActor.objects.filter(
-                                organization=organization
-                            ).values_list("actor_id")
-                        )
+                        if getattr(settings, "USE_EXTERNAL_ACTOR_ACTOR", True):
+                            queryset = queryset.filter(
+                                actor_id__in=ExternalActor.objects.filter(
+                                    organization=organization
+                                ).values_list("actor_id")
+                            )
+                        else:
+                            queryset = queryset.filter(
+                                id__in=ExternalActor.objects.filter(
+                                    organization=organization
+                                ).values_list("team_id")
+                            )
                     else:
-                        queryset = queryset.exclude(
-                            actor_id__in=ExternalActor.objects.filter(
-                                organization=organization
-                            ).values_list("actor_id")
-                        )
+                        if getattr(settings, "USE_EXTERNAL_ACTOR_ACTOR", True):
+                            queryset = queryset.exclude(
+                                actor_id__in=ExternalActor.objects.filter(
+                                    organization=organization
+                                ).values_list("actor_id")
+                            )
+                        else:
+                            queryset = queryset.exclude(
+                                id__in=ExternalActor.objects.filter(
+                                    organization=organization
+                                ).values_list("team_id")
+                            )
 
                 elif key == "query":
                     value = " ".join(value)

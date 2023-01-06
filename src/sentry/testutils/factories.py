@@ -5,7 +5,7 @@ from binascii import hexlify
 from datetime import datetime
 from hashlib import sha1
 from importlib import import_module
-from typing import Any, List, Optional, Sequence
+from typing import Any, List, Optional, Sequence, Union
 from unittest import mock
 from uuid import uuid4
 
@@ -93,6 +93,7 @@ from sentry.models import (
 )
 from sentry.models.integrations.integration_feature import Feature, IntegrationTypes
 from sentry.models.releasefile import update_artifact_index
+from sentry.services.hybrid_cloud.user import APIUser
 from sentry.signals import project_created
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.silo import exempt_from_silo_limits
@@ -1242,7 +1243,7 @@ class Factories:
         kwargs.setdefault("provider", ExternalProviders.GITHUB.value)
         kwargs.setdefault("external_name", "")
 
-        return ExternalActor.objects.create(actor=user.actor, **kwargs)
+        return ExternalActor.objects.create(actor=user.actor, user_id=user.id, **kwargs)
 
     @staticmethod
     @exempt_from_silo_limits()
@@ -1250,7 +1251,7 @@ class Factories:
         kwargs.setdefault("provider", ExternalProviders.GITHUB.value)
         kwargs.setdefault("external_name", "@getsentry/ecosystem")
 
-        return ExternalActor.objects.create(actor=team.actor, **kwargs)
+        return ExternalActor.objects.create(actor=team.actor, team_id=team.id, **kwargs)
 
     @staticmethod
     @exempt_from_silo_limits()
@@ -1317,6 +1318,7 @@ class Factories:
         status: int,
         release: Optional[Release] = None,
         actor: Actor = None,
+        user: Union[User, APIUser] = None,
         prev_history: GroupHistory = None,
         date_added: datetime = None,
     ) -> GroupHistory:
@@ -1333,6 +1335,7 @@ class Factories:
             project=group.project,
             release=release,
             actor=actor,
+            user=user,
             status=status,
             prev_history=prev_history,
             prev_history_date=prev_history_date,

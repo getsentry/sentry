@@ -1,5 +1,6 @@
 import logging
 
+from django.conf import settings
 from django.db import models, transaction
 from django.db.models.signals import post_delete, post_save
 
@@ -19,6 +20,8 @@ class ExternalActor(DefaultFieldsModel):
     __include_in_export__ = False
 
     actor = FlexibleForeignKey("sentry.Actor", db_index=True, on_delete=models.CASCADE)
+    user = FlexibleForeignKey(settings.AUTH_USER_MODEL, null=True, db_index=True)
+    team = FlexibleForeignKey("sentry.Team", null=True, db_index=True)
     organization = FlexibleForeignKey("sentry.Organization")
     integration = FlexibleForeignKey("sentry.Integration")
     provider = BoundedPositiveIntegerField(

@@ -71,12 +71,12 @@ class SlackIntegrationLinkTeamTestBase(TestCase):
         )
 
     def get_linked_teams(
-        self, actor_ids: Optional[Sequence[int]] = None, organization: Optional[Organization] = None
+        self, team_ids: Optional[Sequence[int]] = None, organization: Optional[Organization] = None
     ) -> QuerySet:
-        actor_ids = actor_ids or [self.team.actor_id]
+        team_ids = team_ids or [self.team.id]
         organization = organization or self.organization
         return ExternalActor.objects.filter(
-            actor_id__in=actor_ids,
+            team_id__in=team_ids,
             organization=organization,
             integration=self.integration,
             provider=ExternalProviders.SLACK.value,
@@ -212,7 +212,7 @@ class SlackIntegrationUnlinkTeamTest(SlackIntegrationLinkTeamTestBase):
         team2 = self.create_team(organization=self.organization, name="Team Hellboy")
         self.link_team(team2)
 
-        external_actors = self.get_linked_teams([self.team.actor_id, team2.actor_id])
+        external_actors = self.get_linked_teams([self.team.id, team2.id])
         assert len(external_actors) == 2
 
         response = self.get_success_response()
@@ -221,7 +221,7 @@ class SlackIntegrationUnlinkTeamTest(SlackIntegrationLinkTeamTestBase):
         response = self.get_success_response(data={})
         self.assertTemplateUsed(response, "sentry/integrations/slack/unlinked-team.html")
 
-        external_actors = self.get_linked_teams([self.team.actor_id, team2.actor_id])
+        external_actors = self.get_linked_teams([self.team.id, team2.id])
         assert len(external_actors) == 0
 
         assert len(responses.calls) >= 1

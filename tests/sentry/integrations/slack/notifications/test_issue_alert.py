@@ -207,6 +207,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         # update the team's notification settings
         ExternalActor.objects.create(
             actor=self.team.actor,
+            team=self.team,
             organization=self.organization,
             integration=self.integration,
             provider=ExternalProviders.SLACK.value,
@@ -278,6 +279,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         # update the team's notification settings
         ExternalActor.objects.create(
             actor=self.team.actor,
+            team=self.team,
             organization=self.organization,
             integration=self.integration,
             provider=ExternalProviders.SLACK.value,
@@ -374,6 +376,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         # update the team's notification settings
         ExternalActor.objects.create(
             actor=self.team.actor,
+            team=self.team,
             organization=self.organization,
             integration=self.integration,
             provider=ExternalProviders.SLACK.value,
@@ -466,6 +469,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         # update the team's notification settings
         ExternalActor.objects.create(
             actor=self.team.actor,
+            team=self.team,
             organization=self.organization,
             integration=self.integration,
             provider=ExternalProviders.SLACK.value,
@@ -542,6 +546,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         # update the team's notification settings
         ExternalActor.objects.create(
             actor=self.team.actor,
+            team=self.team,
             organization=self.organization,
             integration=self.integration,
             provider=ExternalProviders.SLACK.value,
@@ -604,6 +609,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         # create the team's notification settings
         ExternalActor.objects.create(
             actor=self.team.actor,
+            team=self.team,
             organization=self.organization,
             integration=self.integration,
             provider=ExternalProviders.SLACK.value,
