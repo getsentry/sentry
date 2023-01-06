@@ -74,7 +74,9 @@ function ProfileFlamegraph(): React.ReactElement {
   const profiledTransaction = useProfileTransaction();
 
   const hasFlameChartSpans = useMemo(() => {
-    return organization.features.includes('organizations:profiling-flamechart-spans');
+    return (
+      organization.features.includes('organizations:profiling-flamechart-spans') || true
+    );
   }, [organization.features]);
 
   const spanTree: SpanTree = useMemo(() => {
@@ -118,6 +120,10 @@ function ProfileFlamegraph(): React.ReactElement {
       preferences: {
         ...storedPreferences.preferences,
         ...queryStringState.preferences,
+        timelines: {
+          ...DEFAULT_FLAMEGRAPH_STATE.preferences.timelines,
+          ...(storedPreferences?.preferences?.timelines ?? {}),
+        },
         layout:
           storedPreferences?.preferences?.layout ??
           queryStringState.preferences?.layout ??
