@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import moment from 'moment';
 
 import Button from 'sentry/components/button';
-import {IconQuestion} from 'sentry/icons';
+import {IconUpgrade} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import space from 'sentry/styles/space';
@@ -41,12 +41,8 @@ export default class AdminEnvironment extends AsyncView<{}, State> {
               {t('Server Version')}
               {version.upgradeAvailable && (
                 <Button
-                  title={t(
-                    "You're running an old version of Sentry, did you know %s is available?",
-                    version.latest
-                  )}
                   href="https://github.com/getsentry/sentry/releases"
-                  icon={<IconQuestion size="xs" />}
+                  icon={<IconUpgrade size="xs" />}
                   size="xs"
                   external
                 >
