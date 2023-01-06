@@ -24,7 +24,7 @@ class MonitorDetailsTest(MonitorTestCase):
 
     def test_mismatched_org_slugs(self):
         monitor = self._create_monitor()
-        path = f"/api/0/monitors/asdf/{monitor.guid}/"
+        path = f"/api/0/organizations/asdf/monitors/{monitor.guid}/"
         self.login_as(user=self.user)
 
         resp = self.client.get(path)
@@ -230,7 +230,7 @@ class UpdateMonitorTest(MonitorTestCase):
 
     def test_mismatched_org_slugs(self):
         monitor = self._create_monitor()
-        path = f"/api/0/monitors/asdf/{monitor.guid}/"
+        path = f"/api/0/organizations/asdf/monitors/{monitor.guid}/"
         self.login_as(user=self.user)
 
         resp = self.client.put(
@@ -267,7 +267,7 @@ class DeleteMonitorTest(MonitorTestCase):
 
     def test_mismatched_org_slugs(self):
         monitor = self._create_monitor()
-        path = f"/api/0/monitors/asdf/{monitor.guid}/"
+        path = f"/api/0/organizations/asdf/monitors/{monitor.guid}/"
         self.login_as(user=self.user)
 
         resp = self.client.delete(path)

@@ -269,11 +269,6 @@ const generateAliases = (colors: BaseColors) => ({
   formText: colors.gray400,
 
   /**
-   * Form input border
-   */
-  formInputBorder: colors.gray200,
-
-  /**
    *
    */
   rowBackground: colors.surface300,
@@ -560,17 +555,6 @@ const generateButtonTheme = (colors: BaseColors, alias: Aliases) => ({
     borderTranslucent: alias.translucentInnerBorder,
     focusBorder: 'transparent',
     focusShadow: 'transparent',
-  },
-  form: {
-    color: alias.textColor,
-    colorActive: alias.textColor,
-    background: alias.background,
-    backgroundActive: alias.hover,
-    border: alias.formInputBorder,
-    borderActive: alias.formInputBorder,
-    borderTranslucent: alias.translucentBorder,
-    focusBorder: alias.focusBorder,
-    focusShadow: alias.focus,
   },
 });
 
@@ -904,7 +888,8 @@ export const darkTheme: Theme = {
   sidebarBorder: darkAliases.border,
 };
 
-export type Theme = typeof lightTheme;
+type Theme = typeof lightTheme;
+
 export type Color = keyof typeof lightColors;
 export type Aliases = typeof lightAliases;
 export type ColorOrAlias = keyof Aliases | Color;
@@ -913,14 +898,15 @@ export type FormSize = keyof Theme['form'];
 
 export default commonTheme;
 
-type MyTheme = Theme;
+// Be clear about what the [@emotion/React].THeme is extending
+type SentryTheme = Theme;
 
 /**
  * Configure Emotion to use our theme
  */
 declare module '@emotion/react' {
   // eslint-disable-next-line @typescript-eslint/no-shadow
-  export interface Theme extends MyTheme {}
+  export interface Theme extends SentryTheme {}
 }
 
 // This should never be used directly (except in storybook)
