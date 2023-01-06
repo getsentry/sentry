@@ -24,4 +24,5 @@ class RepositoryProjectPathConfigSerializer(Serializer):
             "stackRoot": obj.stack_root,
             "sourceRoot": obj.source_root,
             "defaultBranch": obj.default_branch,
+            "automaticallyGenerated": obj.automatically_generated,
         }
