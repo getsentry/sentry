@@ -91,7 +91,7 @@ const DropdownBubble = styled(
   `
       : `
     top: calc(100% - 1px);
-    box-shadow: ${p.theme.dropShadowLight};
+    box-shadow: ${p.theme.dropShadowMedium};
   `};
 
   ${getMenuBorderRadius};

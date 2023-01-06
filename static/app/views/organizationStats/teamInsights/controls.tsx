@@ -242,7 +242,7 @@ const ControlsWrapper = styled('div')<{showEnvironment?: boolean}>`
 
 const StyledTeamSelector = styled(TeamSelector)`
   & > div {
-    box-shadow: ${p => p.theme.dropShadowLight};
+    box-shadow: ${p => p.theme.dropShadowMedium};
   }
 `;
 

@@ -97,7 +97,7 @@ const CheckWrap = styled('div')<{isMultiple: boolean; isSelected: boolean}>`
       border: solid 1px ${p.theme.border};
       background: ${p.theme.backgroundElevated};
       border-radius: 2px;
-      box-shadow: inset ${p.theme.dropShadowLight};
+      box-shadow: inset ${p.theme.dropShadowMedium};
       ${
         p.isSelected &&
         `

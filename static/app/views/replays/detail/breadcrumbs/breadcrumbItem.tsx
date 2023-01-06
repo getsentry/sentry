@@ -174,7 +174,7 @@ const IconWrapper = styled('div')<Required<Pick<SVGIconProps, 'color'>>>`
   border-radius: 50%;
   color: ${p => p.theme.white};
   background: ${p => p.theme[p.color] ?? p.color};
-  box-shadow: ${p => p.theme.dropShadowLightest};
+  box-shadow: ${p => p.theme.dropShadowLight};
   position: relative;
   z-index: ${p => p.theme.zIndex.initial};
 `;

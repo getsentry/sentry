@@ -58,7 +58,7 @@ const SearchInput = styled('input')`
   border-radius: 30px;
   height: 28px;
 
-  box-shadow: inset ${p => p.theme.dropShadowLight};
+  box-shadow: inset ${p => p.theme.dropShadowMedium};
 
   &:focus {
     outline: none;
