@@ -338,6 +338,9 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
         perf_issue_ids = [
             group.id for group in groups if GroupCategory.PERFORMANCE == group.issue_category
         ]
+        profile_issue_ids = [
+            group.id for group in groups if GroupCategory.PROFILE == group.issue_category
+        ]
         results = {}
         get_range = functools.partial(
             snuba_tsdb.get_range,
@@ -350,6 +353,10 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
         if perf_issue_ids:
             results.update(
                 get_range(model=snuba_tsdb.models.group_performance, keys=perf_issue_ids)
+            )
+        if profile_issue_ids:
+            results.update(
+                get_range(model=snuba_tsdb.models.group_profiling, keys=profile_issue_ids)
             )
         return results
 

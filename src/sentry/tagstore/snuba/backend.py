@@ -497,6 +497,35 @@ class SnubaTagStorage(TagStorage):
             for group_id, data in result.items()
         }
 
+    def get_issue_platform_group_list_tag_value(
+        self, project_ids, group_id_list, environment_ids, key, value
+    ):
+        filters = {"project_id": project_ids, "group_id": group_id_list}
+        if environment_ids:
+            filters["environment"] = environment_ids
+        conditions = [[f"tags[{key}]", "=", value]]
+        aggregations = [
+            ["count()", "", "times_seen"],
+            ["min", SEEN_COLUMN, "first_seen"],
+            ["max", SEEN_COLUMN, "last_seen"],
+        ]
+
+        result = snuba.query(
+            dataset=Dataset.IssuePlatform,
+            groupby=["group_id"],
+            conditions=conditions,
+            filter_keys=filters,
+            aggregations=aggregations,
+            referrer="tagstore.get_issue_platform_group_list_tag_value",
+        )
+
+        return {
+            group_id: GroupTagValue(
+                group_id=group_id, key=key, value=value, **fix_tag_value_data(data)
+            )
+            for group_id, data in result.items()
+        }
+
     def get_group_seen_values_for_environments(
         self, project_ids, group_id_list, environment_ids, start=None, end=None
     ):
@@ -773,6 +802,28 @@ class SnubaTagStorage(TagStorage):
                 if agg.get("user_counts")
             },
         )
+
+    def get_issue_platform_groups_user_counts(
+        self, project_ids, group_ids, environment_ids, start=None, end=None
+    ):
+        filters = {"project_id": project_ids, "group_id": group_ids}
+        if environment_ids:
+            filters["environment"] = environment_ids
+        aggregations = [["uniq", "tags[sentry:user]", "count"]]
+
+        result = snuba.query(
+            dataset=Dataset.IssuePlatform,
+            start=start,
+            end=end,
+            groupby=["group_id"],
+            conditions=None,
+            filter_keys=filters,
+            aggregations=aggregations,
+            orderby="-count",
+            referrer="tagstore.get_issue_platform_groups_user_counts",
+        )
+
+        return defaultdict(int, {k: v for k, v in result.items() if v})
 
     def get_tag_value_paginator(
         self,
