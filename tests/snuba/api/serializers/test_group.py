@@ -24,7 +24,7 @@ from sentry.testutils.performance_issues.store_transaction import PerfIssueTrans
 from sentry.testutils.silo import region_silo_test
 from sentry.types.integrations import ExternalProviders
 from sentry.types.issues import GroupType
-from tests.sentry.issues.store_search_issue import SearchIssueTestMixin
+from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
 
 @region_silo_test

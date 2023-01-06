@@ -23,7 +23,7 @@ from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import iso_format
 from sentry.testutils.performance_issues.store_transaction import PerfIssueTransactionTestMixin
 from sentry.types.issues import GroupType
-from tests.sentry.issues.store_search_issue import SearchIssueTestMixin
+from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
 exception = {
     "values": [
