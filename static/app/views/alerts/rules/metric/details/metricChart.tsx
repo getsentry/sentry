@@ -77,7 +77,6 @@ type Props = WithRouterProps & {
   api: Client;
   filter: string[] | null;
   interval: string;
-  orgId: string;
   organization: Organization;
   project: Project;
   query: string;
@@ -194,10 +193,10 @@ class MetricChart extends PureComponent<Props, State> {
     criticalDuration: number,
     warningDuration: number
   ) {
-    const {rule, orgId, project, timePeriod, query} = this.props;
+    const {rule, organization, project, timePeriod, query} = this.props;
 
     const {buttonText, ...props} = makeDefaultCta({
-      orgSlug: orgId,
+      orgSlug: organization.slug,
       projects: [project],
       rule,
       timePeriod,

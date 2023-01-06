@@ -27,7 +27,7 @@ describe('AlertWizard', () => {
         routes={router.routes}
         routeParams={router.params}
         location={router.location}
-        params={{orgId: organization.slug, projectId: project.slug}}
+        params={{projectId: project.slug}}
         projectId={project.slug}
       />,
       {context: routerContext, organization}

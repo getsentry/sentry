@@ -15,7 +15,6 @@ import MetricRulesEdit from 'sentry/views/alerts/rules/metric/edit';
 import {AlertRuleType} from 'sentry/views/alerts/types';
 
 type RouteParams = {
-  orgId: string;
   projectId: string;
   ruleId: string;
 };

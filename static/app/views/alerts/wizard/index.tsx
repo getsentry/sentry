@@ -32,7 +32,6 @@ import {AlertWizardPanelContent} from './panelContent';
 import RadioPanelGroup from './radioPanelGroup';
 
 type RouteParams = {
-  orgId: string;
   projectId?: string;
 };
 

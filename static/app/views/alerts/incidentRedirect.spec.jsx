@@ -9,7 +9,7 @@ import IncidentRedirect from 'sentry/views/alerts/incidentRedirect';
 jest.mock('sentry/utils/analytics/trackAdvancedAnalyticsEvent');
 
 describe('IncidentRedirect', () => {
-  const params = {orgId: 'org-slug', alertId: '123'};
+  const params = {alertId: '123'};
   const {organization, project, routerContext} = initializeOrg({
     router: {
       params,

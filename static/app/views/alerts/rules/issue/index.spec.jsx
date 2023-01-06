@@ -83,7 +83,6 @@ const projectAlertRuleDetailsRoutes = [
 const createWrapper = (props = {}) => {
   const {organization, project, routerContext, router} = initializeOrg(props);
   const params = {
-    orgId: organization.slug,
     projectId: project.slug,
     ruleId: router.location.query.createFromDuplicate ? undefined : '1',
   };

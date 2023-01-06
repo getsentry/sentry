@@ -27,7 +27,6 @@ import {
 import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
 
 type RouteParams = {
-  orgId: string;
   alertType?: AlertRuleType;
   projectId?: string;
 };

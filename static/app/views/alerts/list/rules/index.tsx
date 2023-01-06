@@ -25,7 +25,7 @@ import AlertHeader from '../header';
 
 import RuleListRow from './row';
 
-type Props = RouteComponentProps<{orgId: string}, {}> & {
+type Props = RouteComponentProps<{}, {}> & {
   organization: Organization;
   selection: PageFilters;
 };
@@ -37,7 +37,7 @@ type State = {
 
 class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state']> {
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
-    const {params, location} = this.props;
+    const {organization, location} = this.props;
     const {query} = location;
 
     query.expand = ['latestIncident', 'lastTriggered'];
@@ -50,7 +50,7 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
     return [
       [
         'ruleList',
-        `/organizations/${params && params.orgId}/combined-rules/`,
+        `/organizations/${organization.slug}/combined-rules/`,
         {
           query,
         },
@@ -93,9 +93,9 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
     rule: CombinedMetricIssueAlerts,
     ownerValue: string
   ) => {
-    const {orgId} = this.props.params;
+    const {organization} = this.props;
     const alertPath = rule.type === 'alert_rule' ? 'alert-rules' : 'rules';
-    const endpoint = `/projects/${orgId}/${projectId}/${alertPath}/${rule.id}/`;
+    const endpoint = `/projects/${organization.slug}/${projectId}/${alertPath}/${rule.id}/`;
     const updatedRule = {...rule, owner: ownerValue};
 
     this.api.request(endpoint, {
@@ -111,12 +111,12 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
   };
 
   handleDeleteRule = async (projectId: string, rule: CombinedMetricIssueAlerts) => {
-    const {orgId} = this.props.params;
+    const {organization} = this.props;
     const alertPath = isIssueAlert(rule) ? 'rules' : 'alert-rules';
 
     try {
       await this.api.requestPromise(
-        `/projects/${orgId}/${projectId}/${alertPath}/${rule.id}/`,
+        `/projects/${organization.slug}/${projectId}/${alertPath}/${rule.id}/`,
         {
           method: 'DELETE',
         }
@@ -132,12 +132,7 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
   }
 
   renderList() {
-    const {
-      params: {orgId},
-      location,
-      organization,
-      router,
-    } = this.props;
+    const {location, organization, router} = this.props;
     const {loading, ruleList = [], ruleListPageLinks} = this.state;
     const {query} = location;
     const hasEditAccess = organization.access.includes('alerts:write');
@@ -217,7 +212,7 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
                 isEmpty={ruleList?.length === 0}
                 emptyMessage={t('No alert rules found for the current query.')}
               >
-                <Projects orgId={orgId} slugs={this.projectsFromResults}>
+                <Projects orgId={organization.slug} slugs={this.projectsFromResults}>
                   {({initiallyLoaded, projects}) =>
                     ruleList?.map(rule => (
                       <RuleListRow
@@ -228,7 +223,7 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
                         projectsLoaded={initiallyLoaded}
                         projects={projects as Project[]}
                         rule={rule}
-                        orgId={orgId}
+                        orgId={organization.slug}
                         onOwnerChange={this.handleOwnerChange}
                         onDelete={this.handleDeleteRule}
                         userTeams={new Set(teams.map(team => team.id))}
@@ -261,11 +256,10 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
   }
 
   renderBody() {
-    const {params, router} = this.props;
-    const {orgId} = params;
+    const {organization, router} = this.props;
 
     return (
-      <SentryDocumentTitle title={t('Alerts')} orgSlug={orgId}>
+      <SentryDocumentTitle title={t('Alerts')} orgSlug={organization.slug}>
         <PageFiltersContainer>
           <AlertHeader router={router} activeTab="rules" />
           {this.renderList()}

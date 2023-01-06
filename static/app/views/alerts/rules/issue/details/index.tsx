@@ -5,8 +5,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 
-interface Props
-  extends RouteComponentProps<{orgId: string; projectId: string; ruleId: string}, {}> {
+interface Props extends RouteComponentProps<{projectId: string; ruleId: string}, {}> {
   children?: React.ReactNode;
 }
 

@@ -28,7 +28,7 @@ describe('AlertRulesList', () => {
     <OrganizationContext.Provider value={props.organization ?? organization}>
       <AlertRulesList
         organization={props.organization ?? organization}
-        params={{orgId: organization.slug}}
+        params={{}}
         location={{query: {}, search: ''}}
         router={router}
         {...props}
