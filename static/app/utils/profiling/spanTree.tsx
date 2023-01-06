@@ -129,6 +129,10 @@ class SpanTree {
       }
 
       if (parent.span.span_id === span.parent_span_id) {
+        // If the missing instrumentation threshold is exceeded, add a span to
+        // indicate that there is a gap in instrumentation. We can rely on this check
+        // because the spans are sorted by start time, so we know that we will not be
+        // updating anything before span.start_timestamp.
         if (
           parent.children.length > 0 &&
           span.timestamp - parent.children[parent.children.length - 1].span.timestamp >
@@ -149,6 +153,7 @@ class SpanTree {
             )
           );
         }
+        // Insert child span
         parent.children.push(new SpanTreeNode(span, parent));
         continue;
       }
