@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 
 import Textarea from 'sentry/components/forms/controls/textarea';
-import FieldGroup from 'sentry/components/forms/field';
-import FieldHelp from 'sentry/components/forms/field/fieldHelp';
+import FieldGroup from 'sentry/components/forms/fieldGroup';
+import FieldHelp from 'sentry/components/forms/fieldGroup/fieldHelp';
 import Input from 'sentry/components/input';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {t} from 'sentry/locale';
