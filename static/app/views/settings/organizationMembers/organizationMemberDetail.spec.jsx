@@ -16,11 +16,7 @@ jest.mock('sentry/actionCreators/members', () => ({
 describe('OrganizationMemberDetail', function () {
   let organization;
   let routerContext;
-  const team = TestStubs.Team({
-    flags: {
-      'idp:provisioned': false,
-    },
-  });
+  const team = TestStubs.Team();
   const idpTeam = TestStubs.Team({
     id: '4',
     slug: 'idp-member-team',
@@ -37,7 +33,6 @@ describe('OrganizationMemberDetail', function () {
       slug: 'new-team',
       name: 'New Team',
       isMember: false,
-      flags: {'idp:provisioned': false},
     }),
     TestStubs.Team({
       id: '3',

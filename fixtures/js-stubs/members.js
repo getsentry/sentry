@@ -14,6 +14,8 @@ export function Members(params = []) {
       pending: true,
       flags: {
         'sso:linked': false,
+        'idp:provisioned': false,
+        'idp:role-restricted': false,
       },
       user: null,
     },
@@ -28,6 +30,8 @@ export function Members(params = []) {
       pending: false,
       flags: {
         'sso:linked': true,
+        'idp:provisioned': false,
+        'idp:role-restricted': false,
       },
       user: {
         id: '3',
@@ -48,6 +52,8 @@ export function Members(params = []) {
       pending: false,
       flags: {
         'sso:linked': true,
+        'idp:provisioned': false,
+        'idp:role-restricted': false,
       },
       user: {
         id: '4',

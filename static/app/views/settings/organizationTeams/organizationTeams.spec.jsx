@@ -51,7 +51,6 @@ describe('OrganizationTeams', function () {
     it('can join team and have link to details', function () {
       const mockTeams = [
         TestStubs.Team({
-          flags: {'idp:provisioned': false},
           hasAccess: true,
           isMember: false,
         }),
@@ -68,7 +67,6 @@ describe('OrganizationTeams', function () {
 
     it('reloads projects after joining a team', async function () {
       const team = TestStubs.Team({
-        flags: {'idp:provisioned': false},
         hasAccess: true,
         isMember: false,
       });
@@ -138,7 +136,6 @@ describe('OrganizationTeams', function () {
     it('can request access to team and does not have link to details', function () {
       const mockTeams = [
         TestStubs.Team({
-          flags: {'idp:provisioned': false},
           hasAccess: false,
           isMember: false,
         }),
@@ -155,7 +152,6 @@ describe('OrganizationTeams', function () {
     it('can leave team when you are a member', function () {
       const mockTeams = [
         TestStubs.Team({
-          flags: {'idp:provisioned': false},
           hasAccess: true,
           isMember: true,
         }),

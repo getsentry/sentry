@@ -17,11 +17,7 @@ describe('TeamMembers', function () {
   let createMock;
 
   const organization = TestStubs.Organization();
-  const team = TestStubs.Team({
-    flags: {
-      'idp:provisioned': false,
-    },
-  });
+  const team = TestStubs.Team();
   const members = TestStubs.Members();
   const member = TestStubs.Member({
     id: '9',
@@ -56,7 +52,11 @@ describe('TeamMembers', function () {
   it('can add member to team with open membership', async function () {
     const org = TestStubs.Organization({access: [], openMembership: true});
     render(
-      <TeamMembers params={{orgId: org.slug, teamId: team.slug}} organization={org} />
+      <TeamMembers
+        params={{orgId: org.slug, teamId: team.slug}}
+        organization={org}
+        team={team}
+      />
     );
 
     userEvent.click((await screen.findAllByRole('button', {name: 'Add Member'}))[0]);
@@ -68,7 +68,11 @@ describe('TeamMembers', function () {
   it('can add member to team with team:admin permission', async function () {
     const org = TestStubs.Organization({access: ['team:admin'], openMembership: false});
     render(
-      <TeamMembers params={{orgId: org.slug, teamId: team.slug}} organization={org} />
+      <TeamMembers
+        params={{orgId: org.slug, teamId: team.slug}}
+        organization={org}
+        team={team}
+      />
     );
 
     userEvent.click((await screen.findAllByRole('button', {name: 'Add Member'}))[0]);
@@ -80,7 +84,11 @@ describe('TeamMembers', function () {
   it('can add member to team with org:write permission', async function () {
     const org = TestStubs.Organization({access: ['org:write'], openMembership: false});
     render(
-      <TeamMembers params={{orgId: org.slug, teamId: team.slug}} organization={org} />
+      <TeamMembers
+        params={{orgId: org.slug, teamId: team.slug}}
+        organization={org}
+        team={team}
+      />
     );
 
     userEvent.click((await screen.findAllByRole('button', {name: 'Add Member'}))[0]);
@@ -92,7 +100,11 @@ describe('TeamMembers', function () {
   it('can request access to add member to team without permission', async function () {
     const org = TestStubs.Organization({access: [], openMembership: false});
     render(
-      <TeamMembers params={{orgId: org.slug, teamId: team.slug}} organization={org} />
+      <TeamMembers
+        params={{orgId: org.slug, teamId: team.slug}}
+        organization={org}
+        team={team}
+      />
     );
 
     userEvent.click((await screen.findAllByRole('button', {name: 'Add Member'}))[0]);
@@ -109,7 +121,11 @@ describe('TeamMembers', function () {
       }),
     });
     render(
-      <TeamMembers params={{orgId: org.slug, teamId: team.slug}} organization={org} />,
+      <TeamMembers
+        params={{orgId: org.slug, teamId: team.slug}}
+        organization={org}
+        team={team}
+      />,
       {context: routerContext}
     );
 
@@ -127,7 +143,11 @@ describe('TeamMembers', function () {
       }),
     });
     render(
-      <TeamMembers params={{orgId: org.slug, teamId: team.slug}} organization={org} />,
+      <TeamMembers
+        params={{orgId: org.slug, teamId: team.slug}}
+        organization={org}
+        team={team}
+      />,
       {context: routerContext}
     );
 
@@ -142,7 +162,11 @@ describe('TeamMembers', function () {
       organization: TestStubs.Organization({access: [], openMembership: true}),
     });
     render(
-      <TeamMembers params={{orgId: org.slug, teamId: team.slug}} organization={org} />,
+      <TeamMembers
+        params={{orgId: org.slug, teamId: team.slug}}
+        organization={org}
+        team={team}
+      />,
       {context: routerContext}
     );
 
@@ -157,7 +181,11 @@ describe('TeamMembers', function () {
       organization: TestStubs.Organization({access: [], openMembership: false}),
     });
     render(
-      <TeamMembers params={{orgId: org.slug, teamId: team.slug}} organization={org} />,
+      <TeamMembers
+        params={{orgId: org.slug, teamId: team.slug}}
+        organization={org}
+        team={team}
+      />,
       {context: routerContext}
     );
 
@@ -176,6 +204,7 @@ describe('TeamMembers', function () {
       <TeamMembers
         params={{orgId: organization.slug, teamId: team.slug}}
         organization={organization}
+        team={team}
       />
     );
 
@@ -208,6 +237,7 @@ describe('TeamMembers', function () {
       <TeamMembers
         params={{orgId: organization.slug, teamId: team.slug}}
         organization={organizationMember}
+        team={team}
       />
     );
 
@@ -241,6 +271,7 @@ describe('TeamMembers', function () {
       <TeamMembers
         params={{orgId: organization.slug, teamId: team.slug}}
         organization={organization}
+        team={team}
       />
     );
 
@@ -268,6 +299,7 @@ describe('TeamMembers', function () {
       <TeamMembers
         params={{orgId: orgWithTeamRoles.slug, teamId: team.slug}}
         organization={orgWithTeamRoles}
+        team={team}
       />
     );
     const admins = screen.queryAllByText('Team Admin');
@@ -313,6 +345,7 @@ describe('TeamMembers', function () {
       <TeamMembers
         params={{orgId: organization.slug, teamId: team2.slug}}
         organization={organization}
+        team={team2}
       />
     );
 

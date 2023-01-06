@@ -12,8 +12,6 @@ describe('OrganizationMemberRow', function () {
     pending: false,
     flags: {
       'sso:linked': false,
-      'idp:provisioned': false,
-      'idp:role-restricted': false,
     },
     user: {
       id: '',
@@ -25,10 +23,6 @@ describe('OrganizationMemberRow', function () {
   const currentUser = {
     id: '2',
     email: 'currentUser@email.com',
-    flags: {
-      'idp:provisioned': false,
-      'idp:role-restricted': false,
-    },
   };
 
   const defaultProps = {

@@ -369,13 +369,13 @@ class OrganizationMemberDetail extends AsyncView<Props, State> {
         <Teams slugs={member.teams}>
           {({teams, initiallyLoaded}) => (
             <TeamSelect
+              enforceIdpProvisioned
               organization={organization}
               selectedTeams={teams}
               disabled={!canEdit}
               onAddTeam={this.handleAddTeam}
               onRemoveTeam={this.handleRemoveTeam}
               loadingTeams={!initiallyLoaded}
-              enforceIdpProvisioned
             />
           )}
         </Teams>
