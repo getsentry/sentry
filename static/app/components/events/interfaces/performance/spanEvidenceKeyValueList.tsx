@@ -49,7 +49,7 @@ export function SpanEvidenceKeyValueList({
     data.push({
       key: '3',
       subject: t('Problem Parameter'),
-      value: getProblemParameters(offendingSpans),
+      value: problemParameters,
     });
   }
 
