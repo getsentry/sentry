@@ -65,10 +65,14 @@ class ExternalActorSerializerBase(CamelSnakeModelSerializer):  # type: ignore
         return int(provider.value)
 
     def get_actor_id(self, validated_data: MutableMapping[str, Any]) -> int:
-        return validated_data.pop(self._actor_key)
+        actor = validated_data.pop(self._actor_key, None)
+        if actor is None:
+            actor = validated_data.pop(self._actor_key_id, None)
+        validated_data.pop(self._actor_key_id, None)
+        return actor
 
     def create(self, validated_data: MutableMapping[str, Any]) -> ExternalActor:
-        actor = self.get_actor_id(validated_data)  # returns team
+        actor = self.get_actor_id(validated_data)
         kwargs = {}
         if isinstance(actor, Team):
             kwargs["team_id"] = actor.id
@@ -89,8 +93,12 @@ class ExternalActorSerializerBase(CamelSnakeModelSerializer):  # type: ignore
         if "id" in validated_data:
             validated_data.pop("id")
 
-        if self._actor_key in validated_data:
-            validated_data["actor_id"] = self.get_actor_id({**validated_data})
+        if self._actor_key in validated_data or self._actor_key_id in validated_data:
+            actor = self.get_actor_id({**validated_data})
+            if isinstance(actor, int):
+                validated_data["actor_id"] = actor
+            else:
+                validated_data["actor_id"] = actor.actor_id
 
         for key, value in validated_data.items():
             setattr(self.instance, key, value)
@@ -104,7 +112,8 @@ class ExternalActorSerializerBase(CamelSnakeModelSerializer):  # type: ignore
 
 
 class ExternalUserSerializer(ExternalActorSerializerBase):
-    _actor_key = "user_id"
+    _actor_key = "user"
+    _actor_key_id = "user_id"
 
     user_id = serializers.IntegerField(required=True)
 
@@ -126,7 +135,8 @@ class ExternalUserSerializer(ExternalActorSerializerBase):
 
 
 class ExternalTeamSerializer(ExternalActorSerializerBase):
-    _actor_key = "team_id"
+    _actor_key = "team"
+    _actor_key_id = "team_id"
 
     team_id = serializers.IntegerField(required=True)
 
@@ -136,6 +146,13 @@ class ExternalTeamSerializer(ExternalActorSerializerBase):
             return Team.objects.get(id=team_id, organization=self.organization)
         except Team.DoesNotExist:
             raise serializers.ValidationError("This team does not exist.")
+
+    def to_internal_value(self, data):
+        internal_value = super().to_internal_value(data)
+        team_id = internal_value["team_id"]
+        if isinstance(team_id, Team):
+            internal_value["team"] = team_id
+        return internal_value
 
     class Meta:
         model = ExternalActor
