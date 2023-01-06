@@ -43,7 +43,7 @@ function PageFilterRow({
       onClick={e => e.stopPropagation()}
       onChange={multi ? onSelectedChange : undefined}
       aria-labelledby={rowId}
-      inputCss={checkboxInputStyles}
+      inputCss={multi && checkboxInputStyles}
     />
   );
 
@@ -52,7 +52,7 @@ function PageFilterRow({
       <Label id={rowId} multi={multi}>
         {children}
       </Label>
-      {renderCheckbox({checkbox, checked})}
+      <CheckboxContainer>{renderCheckbox({checkbox, checked})}</CheckboxContainer>
     </Container>
   );
 }
@@ -100,6 +100,13 @@ const Label = styled('div')<{multi: boolean}>`
   &:hover {
     text-decoration: ${p => (p.multi ? 'underline' : null)};
     color: ${p => (p.multi ? p.theme.linkColor : null)};
+  }
+`;
+
+const CheckboxContainer = styled('div')`
+  & > * {
+    display: flex;
+    align-items: center;
   }
 `;
 
