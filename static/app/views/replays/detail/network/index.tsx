@@ -1,4 +1,4 @@
-import {useRef, useState} from 'react';
+import {useRef} from 'react';
 import {AutoSizer, CellMeasurer, GridCellProps, MultiGrid} from 'react-virtualized';
 import styled from '@emotion/styled';
 
@@ -52,18 +52,20 @@ function NetworkList({networkSpans, startTimestampMs}: Props) {
       })
     : null;
 
-  const [scrollBarWidth, setScrollBarWidth] = useState(0);
   const gridRef = useRef<MultiGrid>(null);
-  const tableRef = useRef<HTMLDivElement>(null);
-  const {cache} = useVirtualizedGrid({
-    cellMeasurer: {
-      defaultWidth: 100,
-      fixedHeight: true,
-    },
-    ref: gridRef,
-    wrapperRef: tableRef,
-    deps: [items, searchTerm],
-  });
+  // const wrapperRef = useRef<HTMLDivElement>(null);
+  const {cache, getColumnWidth, onScrollbarPresenceChange, onWrapperResize} =
+    useVirtualizedGrid({
+      cellMeasurer: {
+        defaultWidth: 100,
+        fixedHeight: true,
+      },
+      gridRef,
+      // wrapperRef,
+      columnCount: COLUMN_COUNT,
+      dyanmicColumnIndex: 1,
+      deps: [items, searchTerm],
+    });
 
   const renderTableRow = ({columnIndex, rowIndex, key, style, parent}: GridCellProps) => {
     const network = items[rowIndex - 1];
@@ -104,30 +106,18 @@ function NetworkList({networkSpans, startTimestampMs}: Props) {
   return (
     <NetworkContainer>
       <NetworkFilters networkSpans={networkSpans} {...filterProps} />
-      <NetworkTable ref={tableRef}>
+      <NetworkTable>
         {networkSpans ? (
-          <AutoSizer>
+          <AutoSizer onResize={onWrapperResize}>
             {({width, height}) => (
               <MultiGrid
                 ref={gridRef}
                 columnCount={COLUMN_COUNT}
-                columnWidth={({index}) => {
-                  if (index === 1) {
-                    return Math.max(
-                      Array.from(new Array(COLUMN_COUNT)).reduce(
-                        (remaining, _, i) =>
-                          i === 1 ? remaining : remaining - cache.columnWidth({index: i}),
-                        width - scrollBarWidth
-                      ),
-                      200
-                    );
-                  }
-
-                  return cache.columnWidth({index});
-                }}
+                columnWidth={getColumnWidth(width)}
                 cellRenderer={renderTableRow}
                 deferredMeasurementCache={cache}
                 fixedRowCount={1}
+                headerHeight={HEADER_HEIGHT}
                 height={height}
                 noContentRenderer={() => (
                   <NoRowRenderer
@@ -137,13 +127,11 @@ function NetworkList({networkSpans, startTimestampMs}: Props) {
                     {t('No network requests recorded')}
                   </NoRowRenderer>
                 )}
-                onScrollbarPresenceChange={({vertical, size}) =>
-                  setScrollBarWidth(vertical ? size : 0)
-                }
+                onScrollbarPresenceChange={onScrollbarPresenceChange}
                 overscanColumnCount={COLUMN_COUNT}
                 overscanRowCount={5}
                 rowCount={items.length + 1}
-                rowHeight={({index}) => (index === 0 ? HEADER_HEIGHT : 28)}
+                rowHeight={28}
                 width={width}
               />
             )}

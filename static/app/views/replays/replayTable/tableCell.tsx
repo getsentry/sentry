@@ -19,18 +19,78 @@ import {spanOperationRelativeBreakdownRenderer} from 'sentry/utils/discover/fiel
 import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
 import type {ReplayListRecordWithTx} from 'sentry/views/performance/transactionSummary/transactionReplays/useReplaysFromTransaction';
+import {ReplayColumns} from 'sentry/views/replays/replayTable/types';
 import type {ReplayListRecord} from 'sentry/views/replays/types';
 
-type Props = {
+type BaseProps = {
   replay: ReplayListRecord | ReplayListRecordWithTx;
 };
 
-export function UserCell({
+type Props = BaseProps & {
+  column: keyof typeof ReplayColumns;
+  eventView: EventView;
+  organization: Organization;
+  referrer: string;
+};
+
+export default function TableCell({
+  column,
   eventView,
   organization,
   referrer,
   replay,
-}: Props & {eventView: EventView; organization: Organization; referrer: string}) {
+}: Props) {
+  switch (column) {
+    case 'user':
+      return (
+        <UserCell
+          key="user"
+          replay={replay}
+          eventView={eventView}
+          organization={organization}
+          referrer={referrer}
+        />
+      );
+
+    case 'session':
+      return (
+        <SessionCell
+          key="session"
+          replay={replay}
+          eventView={eventView}
+          organization={organization}
+          referrer={referrer}
+        />
+      );
+    case 'projectId':
+      return <ProjectCell key="projectId" replay={replay} />;
+    case 'slowestTransaction':
+      return (
+        <TransactionCell
+          key="slowestTransaction"
+          replay={replay}
+          organization={organization}
+        />
+      );
+    case 'startedAt':
+      return <StartedAtCell key="startedAt" replay={replay} />;
+    case 'duration':
+      return <DurationCell key="duration" replay={replay} />;
+    case 'countErrors':
+      return <ErrorCountCell key="countErrors" replay={replay} />;
+    case 'activity':
+      return <ActivityCell key="activity" replay={replay} />;
+    default:
+      return null;
+  }
+}
+
+function UserCell({
+  eventView,
+  organization,
+  referrer,
+  replay,
+}: BaseProps & {eventView: EventView; organization: Organization; referrer: string}) {
   const {projects} = useProjects();
   const project = projects.find(p => p.id === replay.projectId);
 
@@ -63,12 +123,12 @@ export function UserCell({
   );
 }
 
-export function SessionCell({
+function SessionCell({
   eventView,
   organization,
   referrer,
   replay,
-}: Props & {eventView: EventView; organization: Organization; referrer: string}) {
+}: BaseProps & {eventView: EventView; organization: Organization; referrer: string}) {
   const {projects} = useProjects();
   const project = projects.find(p => p.id === replay.projectId);
 
@@ -101,7 +161,7 @@ export function SessionCell({
   );
 }
 
-export function ProjectCell({replay}: Props) {
+function ProjectCell({replay}: BaseProps) {
   const {projects} = useProjects();
   const project = projects.find(p => p.id === replay.projectId);
 
@@ -110,10 +170,10 @@ export function ProjectCell({replay}: Props) {
   );
 }
 
-export function TransactionCell({
+function TransactionCell({
   organization,
   replay,
-}: Props & {organization: Organization}) {
+}: BaseProps & {organization: Organization}) {
   const location = useLocation();
 
   const hasTxEvent = 'txEvent' in replay;
@@ -135,7 +195,7 @@ export function TransactionCell({
   ) : null;
 }
 
-export function StartedAtCell({replay}: Props) {
+function StartedAtCell({replay}: BaseProps) {
   return (
     <Item>
       <IconCalendar color="gray500" size="sm" />
@@ -144,7 +204,7 @@ export function StartedAtCell({replay}: Props) {
   );
 }
 
-export function DurationCell({replay}: Props) {
+function DurationCell({replay}: BaseProps) {
   return (
     <Item>
       <Duration seconds={replay.duration.asSeconds()} exact abbreviation />
@@ -152,11 +212,11 @@ export function DurationCell({replay}: Props) {
   );
 }
 
-export function ErrorCountCell({replay}: Props) {
+function ErrorCountCell({replay}: BaseProps) {
   return <Item data-test-id="replay-table-count-errors">{replay.countErrors || 0}</Item>;
 }
 
-export function ActivityCell({replay}: Props) {
+function ActivityCell({replay}: BaseProps) {
   const scoreBarPalette = new Array(10).fill([CHART_PALETTE[0][0]]);
   return (
     <Item>

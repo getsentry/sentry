@@ -12,16 +12,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import type {ReplayListRecordWithTx} from 'sentry/views/performance/transactionSummary/transactionReplays/useReplaysFromTransaction';
 import HeaderCell from 'sentry/views/replays/replayTable/headerCell';
-import {
-  ActivityCell,
-  DurationCell,
-  ErrorCountCell,
-  ProjectCell,
-  SessionCell,
-  StartedAtCell,
-  TransactionCell,
-  UserCell,
-} from 'sentry/views/replays/replayTable/tableCell';
+import renderReplayCell from 'sentry/views/replays/replayTable/tableCell';
 import {ReplayColumns} from 'sentry/views/replays/replayTable/types';
 import type {ReplayListRecord} from 'sentry/views/replays/types';
 
@@ -73,51 +64,15 @@ function ReplayTable({fetchError, isFetching, replays, sort, visibleColumns}: Pr
       {replays?.map(replay => {
         return (
           <Fragment key={replay.id}>
-            {visibleColumns.map(column => {
-              switch (column) {
-                case 'user':
-                  return (
-                    <UserCell
-                      key="user"
-                      replay={replay}
-                      eventView={eventView}
-                      organization={organization}
-                      referrer={referrer}
-                    />
-                  );
-
-                case 'session':
-                  return (
-                    <SessionCell
-                      key="session"
-                      replay={replay}
-                      eventView={eventView}
-                      organization={organization}
-                      referrer={referrer}
-                    />
-                  );
-                case 'projectId':
-                  return <ProjectCell key="projectId" replay={replay} />;
-                case 'slowestTransaction':
-                  return (
-                    <TransactionCell
-                      key="slowestTransaction"
-                      replay={replay}
-                      organization={organization}
-                    />
-                  );
-                case 'startedAt':
-                  return <StartedAtCell key="startedAt" replay={replay} />;
-                case 'duration':
-                  return <DurationCell key="duration" replay={replay} />;
-                case 'countErrors':
-                  return <ErrorCountCell key="countErrors" replay={replay} />;
-                case 'activity':
-                  return <ActivityCell key="activity" replay={replay} />;
-                default:
-                  return null;
-              }
-            })}
+            {visibleColumns.map(column =>
+              renderReplayCell({
+                column,
+                eventView,
+                organization,
+                referrer,
+                replay,
+              })
+            )}
           </Fragment>
         );
       })}

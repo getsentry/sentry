@@ -1,3 +1,4 @@
+import {CSSProperties} from 'react';
 import styled from '@emotion/styled';
 
 import Link from 'sentry/components/links/link';
@@ -10,6 +11,7 @@ import type {ReplayListLocationQuery} from 'sentry/views/replays/types';
 
 type NotSortable = {
   label: string;
+  style?: CSSProperties;
   tooltip?: string;
 };
 
@@ -17,6 +19,7 @@ type Sortable = {
   fieldName: string;
   label: string;
   sort: undefined | Sort;
+  style?: CSSProperties;
   tooltip?: string;
 };
 
@@ -26,9 +29,9 @@ function SortableHeader(props: Props) {
   const location = useLocation<ReplayListLocationQuery>();
 
   if (!('sort' in props) || !props.sort) {
-    const {label, tooltip} = props;
+    const {label, style, tooltip} = props;
     return (
-      <Header>
+      <Header style={style}>
         {label}
         {tooltip ? (
           <StyledQuestionTooltip size="xs" position="top" title={tooltip} />
@@ -37,13 +40,13 @@ function SortableHeader(props: Props) {
     );
   }
 
-  const {fieldName, label, sort, tooltip} = props;
+  const {fieldName, label, sort, style, tooltip} = props;
 
   const arrowDirection = sort?.kind === 'asc' ? 'up' : 'down';
   const sortArrow = <IconArrow color="gray300" size="xs" direction={arrowDirection} />;
 
   return (
-    <Header>
+    <Header style={style}>
       <SortLink
         role="columnheader"
         aria-sort={
