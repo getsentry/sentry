@@ -17,7 +17,7 @@ import {Item, TabList} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
-import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView from 'sentry/utils/discover/eventView';
 import {MetricsCardinalityContext} from 'sentry/utils/performance/contexts/metricsCardinality';
 import HasMeasurementsQuery from 'sentry/utils/performance/vitals/hasMeasurementsQuery';
@@ -57,10 +57,8 @@ function TransactionHeader({
   hasWebVitals,
 }: Props) {
   function handleCreateAlertSuccess() {
-    trackAnalyticsEvent({
-      eventKey: 'performance_views.summary.create_alert_clicked',
-      eventName: 'Performance Views: Create alert clicked',
-      organization_id: organization.id,
+    trackAdvancedAnalyticsEvent('performance_views.summary.create_alert_clicked', {
+      organization,
     });
   }
 
