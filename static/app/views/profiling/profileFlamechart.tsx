@@ -74,9 +74,7 @@ function ProfileFlamegraph(): React.ReactElement {
   const profiledTransaction = useProfileTransaction();
 
   const hasFlameChartSpans = useMemo(() => {
-    return (
-      organization.features.includes('organizations:profiling-flamechart-spans') || true
-    );
+    return organization.features.includes('organizations:profiling-flamechart-spans');
   }, [organization.features]);
 
   const spanTree: SpanTree = useMemo(() => {
@@ -93,7 +91,10 @@ function ProfileFlamegraph(): React.ReactElement {
   const [storedPreferences] = useLocalStorageState<DeepPartial<FlamegraphState>>(
     FLAMEGRAPH_LOCALSTORAGE_PREFERENCES_KEY,
     {
-      preferences: {layout: DEFAULT_FLAMEGRAPH_STATE.preferences.layout},
+      preferences: {
+        layout: DEFAULT_FLAMEGRAPH_STATE.preferences.layout,
+        view: DEFAULT_FLAMEGRAPH_STATE.preferences.view,
+      },
     }
   );
 
