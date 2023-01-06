@@ -12,7 +12,7 @@ const SentryAppAvatar = ({isColor = true, sentryApp, isDefault, ...props}: Props
   const avatarDetails = sentryApp?.avatars?.find(({color}) => color === isColor);
   const defaultSentryAppAvatar = (
     <IconGeneric
-      size={`${props.size}`}
+      legacySize={`${props.size}`}
       className={props.className}
       data-test-id="default-sentry-app-avatar"
     />

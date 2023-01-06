@@ -387,7 +387,7 @@ export class AssigneeSelectorDropdown extends Component<
       >
         <MenuItemFooterWrapper>
           <IconContainer>
-            <IconAdd color="activeText" isCircled size="14px" />
+            <IconAdd color="activeText" isCircled legacySize="14px" />
           </IconContainer>
           <Label>{t('Invite Member')}</Label>
         </MenuItemFooterWrapper>
@@ -464,7 +464,7 @@ export class AssigneeSelectorDropdown extends Component<
             <div>
               <MenuItemFooterWrapper role="button" onClick={this.clearAssignTo} py={0}>
                 <IconContainer>
-                  <IconClose color="activeText" isCircled size="14px" />
+                  <IconClose color="activeText" isCircled legacySize="14px" />
                 </IconContainer>
                 <Label>{t('Clear Assignee')}</Label>
               </MenuItemFooterWrapper>

@@ -236,7 +236,7 @@ const Author = styled('div')`
 
 const DisabledNotice = styled(({reason, ...p}: {reason: React.ReactNode}) => (
   <div {...p}>
-    <IconFlag color="errorText" size="1.5em" />
+    <IconFlag color="errorText" size="md" />
     {reason}
   </div>
 ))`

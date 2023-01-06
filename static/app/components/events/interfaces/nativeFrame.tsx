@@ -330,7 +330,9 @@ function NativeFrame({
                 title={t('Toggle Context')}
                 aria-label={t('Toggle Context')}
                 tooltipProps={isHoverPreviewed ? {delay: SLOW_TOOLTIP_DELAY} : undefined}
-                icon={<IconChevron size="8px" direction={expanded ? 'up' : 'down'} />}
+                icon={
+                  <IconChevron legacySize="8px" direction={expanded ? 'up' : 'down'} />
+                }
               />
             )}
           </ExpandCell>

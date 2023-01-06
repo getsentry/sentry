@@ -17,7 +17,7 @@ function TemplateCard({title, description, onPreview, onAdd}: Props) {
   return (
     <StyledCard>
       <Header>
-        <IconGeneric size="48" />
+        <IconGeneric legacySize="48px" />
         <Title>
           {title}
           <Detail>{description}</Detail>

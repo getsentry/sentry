@@ -10,7 +10,7 @@ type Props = {
 const Divider = ({isHover, isLast}: Props) =>
   isLast ? null : (
     <StyledDivider>
-      <StyledIconChevron direction={isHover ? 'down' : 'right'} size="14px" />
+      <StyledIconChevron direction={isHover ? 'down' : 'right'} legacySize="14px" />
     </StyledDivider>
   );
 

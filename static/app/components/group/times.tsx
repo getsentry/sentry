@@ -21,7 +21,7 @@ const Times = ({lastSeen, firstSeen}: Props) => (
     <FlexWrapper>
       {lastSeen && (
         <Fragment>
-          <StyledIconClock size="11px" />
+          <StyledIconClock legacySize="11px" />
           <TimeSince date={lastSeen} suffix={t('ago')} />
         </Fragment>
       )}

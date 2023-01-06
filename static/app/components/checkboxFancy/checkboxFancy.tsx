@@ -35,8 +35,8 @@ const CheckboxFancy = styled(
       aria-checked={isIndeterminate ? 'mixed' : isChecked}
       {...props}
     >
-      {isIndeterminate && <IconSubtract size="70%" color="white" />}
-      {!isIndeterminate && isChecked && <IconCheckmark size="70%" color="white" />}
+      {isIndeterminate && <IconSubtract legacySize="70%" color="white" />}
+      {!isIndeterminate && isChecked && <IconCheckmark legacySize="70%" color="white" />}
     </div>
   )
 )`

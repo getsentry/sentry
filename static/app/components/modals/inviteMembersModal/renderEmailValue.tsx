@@ -27,8 +27,8 @@ function renderEmailValue<Option extends OptionTypeBase>(
         <EmailLabel>
           {children}
           {!status.sent && !status.error && <SendingIndicator />}
-          {status.error && <IconWarning size="10px" />}
-          {status.sent && <IconCheckmark size="10px" color="success" />}
+          {status.error && <IconWarning legacySize="10px" />}
+          {status.sent && <IconCheckmark legacySize="10px" color="success" />}
         </EmailLabel>
       </Tooltip>
     );

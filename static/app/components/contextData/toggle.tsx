@@ -34,9 +34,9 @@ function Toggle({highUp, wrapClassName, children}: Props) {
         }}
       >
         {isExpanded ? (
-          <IconSubtract size="9px" color="white" />
+          <IconSubtract legacySize="10px" color="white" />
         ) : (
-          <IconAdd size="9px" color="white" />
+          <IconAdd legacySize="10px" color="white" />
         )}
       </IconWrapper>
       {isExpanded && wrappedChildren}
