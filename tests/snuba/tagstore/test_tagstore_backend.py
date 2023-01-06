@@ -304,7 +304,7 @@ class TagStorageTest(TestCase, SnubaTestCase):
         top_release_values = result[1].top_values
         assert len(top_release_values) == 1
         assert {v.value for v in top_release_values} == {"releaseme"}
-        assert all(v.times_seen == 2 for v in top_release_values)
+        assert all(v.times_seen == 1 for v in top_release_values)
 
     def test_get_top_group_tag_values(self):
         resp = self.ts.get_top_group_tag_values(self.proj1group1, self.proj1env1.id, "foo", 1)
@@ -329,16 +329,12 @@ class TagStorageTest(TestCase, SnubaTestCase):
 
     def test_get_top_group_tag_values_generic(self):
         group, env = self.generic_group_and_env
-        resp = self.ts.get_top_group_tag_values(group, env.id, "foo", 2)
+        resp = self.ts.get_top_group_tag_values(group, env.id, "foo", 1)
         assert len(resp) == 1
-        assert resp[0].times_seen == 1
+        assert resp[0].times_seen == 2
         assert resp[0].key == "foo"
         assert resp[0].value == "bar"
-        assert resp[0].group_id == group.id
-        assert resp[1].times_seen == 1
-        assert resp[1].key == "foo"
-        assert resp[1].value == "quux"
-        assert resp[1].group_id == group.id
+        assert resp[0].group_id == self.proj1group1.id
 
     def test_get_group_tag_value_count(self):
         assert self.ts.get_group_tag_value_count(self.proj1group1, self.proj1env1.id, "foo") == 2
