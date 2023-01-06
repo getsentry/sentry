@@ -85,16 +85,13 @@ export class SpanChartRenderer2D {
       throw new Error('No canvas to draw on');
     }
 
-    this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
     const BORDER_WIDTH = 2 * window.devicePixelRatio;
+    this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
     for (let i = 0; i < this.spans.length; i++) {
       const span = this.spans[i];
-      const color = this.colors.get(span.node.span.span_id);
-
-      if (!color) {
-        throw new Error('Missing color for span');
-      }
+      const color =
+        this.colors.get(span.node.span.span_id) ?? this.theme.COLORS.SPAN_FALLBACK_COLOR;
 
       this.context.fillStyle = colorComponentsToRgba(color);
       const rect = new Rect(span.start, span.depth, span.duration, 1).transformRect(
