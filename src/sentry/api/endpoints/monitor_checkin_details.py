@@ -1,6 +1,6 @@
 from django.db import transaction
 from django.utils import timezone
-from rest_framework import serializers
+from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -8,8 +8,18 @@ from sentry.api.authentication import DSNAuthentication
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.bases.monitor import MonitorEndpoint, ProjectMonitorPermission
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.api.serializers import serialize
+from sentry.api.serializers.models.monitorcheckin import MonitorCheckInSerializerResponse
+from sentry.api.validators import MonitorCheckInValidator
+from sentry.apidocs.constants import (
+    RESPONSE_ALREADY_REPORTED,
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NOTFOUND,
+    RESPONSE_UNAUTHORIZED,
+)
+from sentry.apidocs.parameters import GLOBAL_PARAMS, MONITOR_PARAMS
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models import (
     CheckInStatus,
     Monitor,
@@ -22,21 +32,12 @@ from sentry.models import (
 from sentry.utils.sdk import bind_organization_context, configure_scope
 
 
-class CheckInSerializer(serializers.Serializer):
-    status = serializers.ChoiceField(
-        choices=(
-            ("ok", CheckInStatus.OK),
-            ("error", CheckInStatus.ERROR),
-            ("in_progress", CheckInStatus.IN_PROGRESS),
-        )
-    )
-    duration = EmptyIntegerField(required=False, allow_null=True)
-
-
 @region_silo_endpoint
+@extend_schema(tags=["Crons"])
 class MonitorCheckInDetailsEndpoint(Endpoint):
     authentication_classes = MonitorEndpoint.authentication_classes + (DSNAuthentication,)
     permission_classes = (ProjectMonitorPermission,)
+    public = {"GET", "PUT"}
 
     # TODO(dcramer): this code needs shared with other endpoints as its security focused
     # TODO(dcramer): this doesnt handle is_global roles
@@ -82,6 +83,23 @@ class MonitorCheckInDetailsEndpoint(Endpoint):
         kwargs.update({"checkin": checkin, "monitor": monitor, "project": project})
         return (args, kwargs)
 
+    @extend_schema(
+        operation_id="Retrieve a check-in",
+        parameters=[
+            GLOBAL_PARAMS.ORG_SLUG,
+            MONITOR_PARAMS.MONITOR_ID,
+            MONITOR_PARAMS.CHECKIN_ID,
+        ],
+        request=None,
+        responses={
+            201: inline_sentry_response_serializer(
+                "MonitorCheckIn", MonitorCheckInSerializerResponse
+            ),
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOTFOUND,
+        },
+    )
     def get(self, request: Request, project, monitor, checkin) -> Response:
         """
         Retrieve a check-in
@@ -100,6 +118,28 @@ class MonitorCheckInDetailsEndpoint(Endpoint):
 
         return self.respond(serialize(checkin, request.user))
 
+    @extend_schema(
+        operation_id="Update a check-in",
+        parameters=[
+            GLOBAL_PARAMS.ORG_SLUG,
+            MONITOR_PARAMS.MONITOR_ID,
+            MONITOR_PARAMS.CHECKIN_ID,
+        ],
+        request=MonitorCheckInValidator,
+        responses={
+            200: inline_sentry_response_serializer(
+                "MonitorCheckIn2", MonitorCheckInSerializerResponse
+            ),
+            208: RESPONSE_ALREADY_REPORTED,
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOTFOUND,
+        },
+        examples=[
+            # OpenApiExample()
+        ],
+    )
     def put(self, request: Request, project, monitor, checkin) -> Response:
         """
         Update a check-in
@@ -115,7 +155,7 @@ class MonitorCheckInDetailsEndpoint(Endpoint):
         if checkin.status in CheckInStatus.FINISHED_VALUES:
             return self.respond(status=400)
 
-        serializer = CheckInSerializer(
+        serializer = MonitorCheckInValidator(
             data=request.data, partial=True, context={"project": project, "request": request}
         )
         if not serializer.is_valid():
