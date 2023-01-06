@@ -4,7 +4,6 @@ from functools import cached_property
 import pytest
 from django.utils import timezone
 
-from sentry.issues.occurrence_consumer import process_event_and_issue_occurrence
 from sentry.models import Environment, EventUser, Release, ReleaseProjectEnvironment, ReleaseStages
 from sentry.search.events.constants import (
     RELEASE_STAGE_ALIAS,
@@ -22,9 +21,9 @@ from sentry.tagstore.snuba.backend import SnubaTagStorage
 from sentry.tagstore.types import GroupTagValue, TagValue
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import iso_format
-from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
 from sentry.testutils.performance_issues.store_transaction import PerfIssueTransactionTestMixin
 from sentry.types.issues import GroupType
+from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
 exception = {
     "values": [
@@ -47,7 +46,7 @@ exception = {
 }
 
 
-class TagStorageTest(TestCase, SnubaTestCase):
+class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin):
     def setUp(self):
         super().setUp()
 
@@ -172,20 +171,14 @@ class TagStorageTest(TestCase, SnubaTestCase):
     @cached_property
     def generic_group_and_env(self):
         env = Environment.objects.get(name="test")
-        occurrence, group_info = process_event_and_issue_occurrence(
-            TEST_ISSUE_OCCURRENCE.to_dict(),
-            {
-                "event_id": "a" * 32,
-                "project_id": self.project.id,
-                "timestamp": iso_format(self.now - timedelta(seconds=1)),
-                "start_timestamp": iso_format(self.now - timedelta(seconds=1)),
-                "tags": {"foo": "bar", "biz": "baz"},
-                "release": "releaseme",
-                "environment": env.name,
-            },
+        event, _, _ = self.store_search_issue(
+            self.project.id,
+            self.user.id,
+            [f"{GroupType.PROFILE_BLOCKED_THREAD.value}-group1"],
+            env.name,
+            timezone.now().replace(hour=0, minute=0, second=0) + timedelta(minutes=1),
         )
-        generic_group = group_info.group
-        return generic_group, env
+        return event.group, env
 
     def test_get_group_tag_keys_and_top_values(self):
         result = list(
