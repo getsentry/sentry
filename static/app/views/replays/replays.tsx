@@ -22,6 +22,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import ReplaysFilters from 'sentry/views/replays/filters';
 import ReplayOnboardingPanel from 'sentry/views/replays/list/replayOnboardingPanel';
 import ReplayTable from 'sentry/views/replays/replayTable';
+import {ReplayColumns} from 'sentry/views/replays/replayTable/types';
 import type {ReplayListLocationQuery} from 'sentry/views/replays/types';
 
 type Props = RouteComponentProps<{orgId: string}, {}, any, ReplayListLocationQuery>;
@@ -29,7 +30,7 @@ type Props = RouteComponentProps<{orgId: string}, {}, any, ReplayListLocationQue
 function Replays({location}: Props) {
   const organization = useOrganization();
   const theme = useTheme();
-  const minWidthIsSmall = useMedia(`(min-width: ${theme.breakpoints.small})`);
+  const hasRoomForColumns = useMedia(`(min-width: ${theme.breakpoints.small})`);
 
   const eventView = useMemo(() => {
     const query = decodeScalar(location.query.query, '');
@@ -72,11 +73,19 @@ function Replays({location}: Props) {
           {hasSentOneReplay ? (
             <Fragment>
               <ReplayTable
-                isFetching={isFetching}
                 fetchError={fetchError}
+                isFetching={isFetching}
                 replays={replays}
-                showProjectColumn={minWidthIsSmall}
                 sort={eventView.sorts[0]}
+                visibleColumns={[
+                  ReplayColumns.session,
+                  ...(hasRoomForColumns
+                    ? [ReplayColumns.projectId, ReplayColumns.startedAt]
+                    : []),
+                  ReplayColumns.duration,
+                  ReplayColumns.countErrors,
+                  ReplayColumns.activity,
+                ]}
               />
               <Pagination
                 pageLinks={pageLinks}
