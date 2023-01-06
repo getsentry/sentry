@@ -9,7 +9,7 @@ from sentry.api.serializers.models.group_stream import (
     StreamGroupSerializerSnuba,
 )
 from sentry.models import Environment
-from sentry.testutils import SnubaTestCase, TestCase
+from sentry.testutils import TestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import region_silo_test
 from sentry.types.issues import GroupCategory, GroupType

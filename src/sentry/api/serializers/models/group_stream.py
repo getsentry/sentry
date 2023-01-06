@@ -332,7 +332,6 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
     def query_tsdb(
         self, groups: Sequence[Group], query_params, conditions=None, environment_ids=None, **kwargs
     ):
-<<<<<<< HEAD
         error_issue_ids, perf_issue_ids, generic_issue_ids = [], [], []
         for group in groups:
             if GroupCategory.ERROR == group.issue_category:
@@ -342,17 +341,6 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
             elif group.issue_category not in (GroupCategory.ERROR, GroupCategory.PERFORMANCE):
                 generic_issue_ids.append(group.id)
 
-=======
-        error_issue_ids = [
-            group.id for group in groups if GroupCategory.ERROR == group.issue_category
-        ]
-        perf_issue_ids = [
-            group.id for group in groups if GroupCategory.PERFORMANCE == group.issue_category
-        ]
-        profile_issue_ids = [
-            group.id for group in groups if GroupCategory.PROFILE == group.issue_category
-        ]
->>>>>>> 37dc89594b (query search_issues dataset for issues-related stats)
         results = {}
         get_range = functools.partial(
             snuba_tsdb.get_range,
@@ -366,16 +354,9 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
             results.update(
                 get_range(model=snuba_tsdb.models.group_performance, keys=perf_issue_ids)
             )
-<<<<<<< HEAD
         if generic_issue_ids:
             results.update(get_range(model=snuba_tsdb.models.group_generic, keys=generic_issue_ids))
 
-=======
-        if profile_issue_ids:
-            results.update(
-                get_range(model=snuba_tsdb.models.group_profiling, keys=profile_issue_ids)
-            )
->>>>>>> 37dc89594b (query search_issues dataset for issues-related stats)
         return results
 
     def _seen_stats_error(
