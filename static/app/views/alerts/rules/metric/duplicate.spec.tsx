@@ -60,9 +60,7 @@ describe('Incident Rules Duplicate', function () {
         access: ['alerts:write'],
       },
       router: {
-        // we need this to be set to make sure org in context is same as
-        // current org in URL
-        params: {orgId: 'org-slug'},
+        params: {},
         location: {
           query: {
             createFromDuplicate: true,
@@ -83,7 +81,7 @@ describe('Incident Rules Duplicate', function () {
       <Fragment>
         <GlobalModal />
         <MetricRulesDuplicate
-          params={{orgId: organization.slug}}
+          params={{}}
           route={{}}
           routeParams={router.params}
           router={router}
