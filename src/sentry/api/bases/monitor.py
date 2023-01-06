@@ -2,7 +2,6 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.base import Endpoint
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.bases.project import ProjectPermission
@@ -52,9 +51,6 @@ class MonitorEndpoint(Endpoint):
 
         if hasattr(request.auth, "project_id") and project.id != request.auth.project_id:
             raise InvalidAuthProject
-
-        if not features.has("organizations:monitors", project.organization, actor=request.user):
-            raise ResourceDoesNotExist
 
         self.check_object_permissions(request, project)
 

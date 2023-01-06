@@ -9,7 +9,7 @@ from django.urls import reverse
 from sentry.event_manager import EventManager
 from sentry.testutils import TestCase
 from sentry.testutils.helpers import override_options
-from sentry.testutils.performance_issues.event_generators import EVENTS
+from sentry.testutils.performance_issues.event_generators import get_event
 
 
 def make_event(**kwargs):
@@ -23,7 +23,7 @@ def make_event(**kwargs):
     return result
 
 
-nplus_one_no_timestamp = {**EVENTS["n-plus-one-in-django-index-view"]}
+nplus_one_no_timestamp = {**get_event("n-plus-one-in-django-index-view")}
 del nplus_one_no_timestamp["timestamp"]
 
 

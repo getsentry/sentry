@@ -12,7 +12,7 @@ from sentry.notifications.types import (
     NotificationSettingTypes,
 )
 from sentry.notifications.utils.participants import (
-    FALLTHROUGH_NOTIFICATION_LIMIT,
+    FALLTHROUGH_NOTIFICATION_LIMIT_EA,
     get_fallthrough_recipients,
     get_owner_reason,
     get_owners,
@@ -572,6 +572,7 @@ class GetSendToFallthroughTest(TestCase):
             organization=self.organization, members=[self.user, self.user2]
         )
         self.project.add_team(self.team2)
+        self.organization.flags.early_adopter = True
 
         ProjectOwnership.objects.create(
             project_id=self.project.id,
@@ -724,15 +725,15 @@ class GetSendToFallthroughTest(TestCase):
 
     @with_feature("organizations:issue-alert-fallback-targeting")
     def test_fallthrough_admin_or_recent_under_20(self):
-        notified_users = [self.user, self.user2]
+        notifiable_users = [self.user, self.user2]
         for i in range(10):
             new_user = self.create_user(email=f"user_{i}@example.com", is_active=True)
             self.create_member(
                 user=new_user, organization=self.organization, role="owner", teams=[self.team2]
             )
-            notified_users.append(new_user)
+            notifiable_users.append(new_user)
 
-        for user in notified_users:
+        for user in notifiable_users:
             NotificationSetting.objects.update_settings(
                 ExternalProviders.SLACK,
                 NotificationSettingTypes.ISSUE_ALERTS,
@@ -741,7 +742,7 @@ class GetSendToFallthroughTest(TestCase):
             )
 
         event = self.store_event("admin.lol", self.project)
-        expected_notified_users = {user_service.get_user(user.id) for user in notified_users}
+        expected_notified_users = {user_service.get_user(user.id) for user in notifiable_users}
         notified_users = self.get_send_to_fallthrough(
             event, self.project, FallthroughChoiceType.ACTIVE_MEMBERS
         )[ExternalProviders.EMAIL]
@@ -751,15 +752,15 @@ class GetSendToFallthroughTest(TestCase):
 
     @with_feature("organizations:issue-alert-fallback-targeting")
     def test_fallthrough_admin_or_recent_over_20(self):
-        notified_users = [self.user, self.user2]
-        for i in range(FALLTHROUGH_NOTIFICATION_LIMIT + 5):
+        notifiable_users = [self.user, self.user2]
+        for i in range(FALLTHROUGH_NOTIFICATION_LIMIT_EA + 5):
             new_user = self.create_user(email=f"user_{i}@example.com", is_active=True)
             self.create_member(
                 user=new_user, organization=self.organization, role="owner", teams=[self.team2]
             )
-            notified_users.append(new_user)
+            notifiable_users.append(new_user)
 
-        for user in notified_users:
+        for user in notifiable_users:
             NotificationSetting.objects.update_settings(
                 ExternalProviders.SLACK,
                 NotificationSettingTypes.ISSUE_ALERTS,
@@ -768,10 +769,38 @@ class GetSendToFallthroughTest(TestCase):
             )
 
         event = self.store_event("admin.lol", self.project)
-        expected_notified_users = {user_service.get_user(user.id) for user in notified_users}
+        expected_notified_users = {user_service.get_user(user.id) for user in notifiable_users}
         notified_users = self.get_send_to_fallthrough(
             event, self.project, FallthroughChoiceType.ACTIVE_MEMBERS
         )[ExternalProviders.EMAIL]
 
-        assert len(notified_users) == FALLTHROUGH_NOTIFICATION_LIMIT
+        assert len(notified_users) == FALLTHROUGH_NOTIFICATION_LIMIT_EA
         assert notified_users.issubset(expected_notified_users)
+
+    @with_feature("organizations:issue-alert-fallback-targeting")
+    def test_fallthrough_ga_limit(self):
+        self.organization.flags.early_adopter = False
+
+        notifiable_users = [self.user, self.user2]
+        for i in range(FALLTHROUGH_NOTIFICATION_LIMIT_EA + 5):
+            new_user = self.create_user(email=f"user_{i}@example.com", is_active=True)
+            self.create_member(
+                user=new_user, organization=self.organization, role="owner", teams=[self.team2]
+            )
+            notifiable_users.append(new_user)
+
+        for user in notifiable_users:
+            NotificationSetting.objects.update_settings(
+                ExternalProviders.SLACK,
+                NotificationSettingTypes.ISSUE_ALERTS,
+                NotificationSettingOptionValues.NEVER,
+                user=user,
+            )
+
+        event = self.store_event("admin.lol", self.project)
+        notified_users = self.get_send_to_fallthrough(
+            event, self.project, FallthroughChoiceType.ACTIVE_MEMBERS
+        )[ExternalProviders.EMAIL]
+
+        # Check that we notify all possible folks with the GA limit.
+        assert len(notified_users) == len(notifiable_users)

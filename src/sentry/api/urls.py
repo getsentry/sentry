@@ -69,6 +69,7 @@ from sentry.incidents.endpoints.project_alert_rule_task_details import (
 from sentry.replays.endpoints.organization_issue_replay_count import (
     OrganizationIssueReplayCountEndpoint,
 )
+from sentry.replays.endpoints.organization_replay_count import OrganizationReplayCountEndpoint
 from sentry.replays.endpoints.organization_replay_events_meta import (
     OrganizationReplayEventsMetaEndpoint,
 )
@@ -694,18 +695,26 @@ urlpatterns = [
                     MonitorStatsEndpoint.as_view(),
                     name="sentry-api-0-monitor-stats",
                 ),
+            ]
+        ),
+    ),
+    # TODO: include in the /organizations/ route tree + remove old dupes once hybrid cloud launches
+    url(
+        r"^organizations/(?P<organization_slug>[^\/]+)/monitors/",
+        include(
+            [
                 url(
-                    r"^(?P<organization_slug>[^\/]+)/(?P<monitor_id>[^\/]+)/$",
+                    r"^(?P<monitor_id>[^\/]+)/$",
                     MonitorDetailsEndpoint.as_view(),
                     name="sentry-api-0-monitor-details-with-org",
                 ),
                 url(
-                    r"^(?P<organization_slug>[^\/]+)/(?P<monitor_id>[^\/]+)/checkins/$",
+                    r"^(?P<monitor_id>[^\/]+)/checkins/$",
                     MonitorCheckInsEndpoint.as_view(),
                     name="sentry-api-0-monitor-check-in-index-with-org",
                 ),
                 url(
-                    r"^(?P<organization_slug>[^\/]+)/(?P<monitor_id>[^\/]+)/stats/$",
+                    r"^(?P<monitor_id>[^\/]+)/stats/$",
                     MonitorStatsEndpoint.as_view(),
                     name="sentry-api-0-monitor-stats-with-org",
                 ),
@@ -1591,6 +1600,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/issue-replay-count/$",
                     OrganizationIssueReplayCountEndpoint.as_view(),
                     name="sentry-api-0-organization-issue-replay-count",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/replay-count/$",
+                    OrganizationReplayCountEndpoint.as_view(),
+                    name="sentry-api-0-organization-replay-count",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/replays-events-meta/$",
