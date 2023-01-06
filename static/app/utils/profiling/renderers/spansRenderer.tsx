@@ -1,9 +1,6 @@
 import {mat3, vec2} from 'gl-matrix';
 
-import {
-  FlamegraphTheme,
-  LCH_LIGHT,
-} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
+import {FlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 import {
   getContext,
   Rect,
@@ -11,7 +8,7 @@ import {
 } from 'sentry/utils/profiling/gl/utils';
 import {SpanChart, SpanChartNode} from 'sentry/utils/profiling/spanChart';
 
-import {makeColorBucketTheme, makeSpansColorMapByOpAndDescription} from '../colors/utils';
+import {makeSpansColorMapByOpAndDescription} from '../colors/utils';
 
 // Convert color component from 0-1 to 0-255 range
 function colorComponentsToRgba(color: number[]): string {
@@ -38,7 +35,7 @@ export class SpanChartRenderer2D {
     this.context = getContext(this.canvas, '2d');
     this.colors = makeSpansColorMapByOpAndDescription(
       this.spans,
-      makeColorBucketTheme(LCH_LIGHT)
+      this.theme.COLORS.SPAN_COLOR_BUCKET
     );
 
     this.init();

@@ -8,11 +8,11 @@ from sentry.models import (
 )
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.testutils import APITestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
 from sentry.types.activity import ActivityType
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class GroupNoteTest(APITestCase):
     def test_simple(self):
         group = self.group
@@ -34,7 +34,7 @@ class GroupNoteTest(APITestCase):
         assert response.data[0]["id"] == str(activity.id)
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class GroupNoteCreateTest(APITestCase):
     def test_simple(self):
         group = self.group
@@ -182,7 +182,8 @@ class GroupNoteCreateTest(APITestCase):
         )
 
         self.user.name = "Sentry Admin"
-        self.user.save()
+        with exempt_from_silo_limits():
+            self.user.save()
         self.login_as(user=self.user)
 
         url = f"/api/0/issues/{group.id}/comments/"

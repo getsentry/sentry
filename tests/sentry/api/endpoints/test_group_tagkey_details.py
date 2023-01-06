@@ -5,7 +5,7 @@ from sentry.testutils.silo import region_silo_test
 from sentry.types.issues import GroupType
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class GroupTagDetailsTest(APITestCase, SnubaTestCase):
     def test_simple(self):
         for i in range(3):

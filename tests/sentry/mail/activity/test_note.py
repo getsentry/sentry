@@ -42,7 +42,7 @@ class NoteTestCase(ActivityTestCase):
         ]
         assert len(participants) == 1
         assert participants == {
-            user_service.serialize_user(self.user): GroupSubscriptionReason.implicit,
+            user_service.get_user(self.user.id): GroupSubscriptionReason.implicit,
         }
 
     def test_disable_self_notifications(self):
