@@ -1,3 +1,4 @@
+import {useLayoutEffect, useState} from 'react';
 import Fuse from 'fuse.js';
 import {mat3, vec2} from 'gl-matrix';
 
@@ -5,6 +6,7 @@ import {CanvasView} from 'sentry/utils/profiling/canvasView';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
 
+import {CanvasPoolManager} from '../canvasScheduler';
 import {clamp} from '../colors/utils';
 import {FlamegraphCanvas} from '../flamegraphCanvas';
 import {SpanChartRenderer2D} from '../renderers/spansRenderer';
@@ -833,4 +835,44 @@ export function getMinimapCanvasCursor(
   }
 
   return 'col-resize';
+}
+
+export function useResizeCanvasObserver(
+  canvases: (HTMLCanvasElement | null)[],
+  canvasPoolManager: CanvasPoolManager,
+  canvas: FlamegraphCanvas | null,
+  view: CanvasView<any> | null
+): Rect {
+  const [bounds, setCanvasBounds] = useState<Rect>(Rect.Empty());
+
+  useLayoutEffect(() => {
+    if (!canvas || !canvases.length) {
+      return undefined;
+    }
+
+    if (canvases.some(c => c === null)) {
+      return undefined;
+    }
+
+    const observer = watchForResize(canvases as HTMLCanvasElement[], entries => {
+      const contentRect =
+        entries[0].contentRect ?? entries[0].target.getBoundingClientRect();
+
+      setCanvasBounds(
+        new Rect(contentRect.x, contentRect.y, contentRect.width, contentRect.height)
+      );
+
+      canvas.initPhysicalSpace();
+      if (view) {
+        view.resizeConfigSpace(canvas);
+      }
+      canvasPoolManager.drawSync();
+    });
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [canvases, canvas, view, canvasPoolManager]);
+
+  return bounds;
 }

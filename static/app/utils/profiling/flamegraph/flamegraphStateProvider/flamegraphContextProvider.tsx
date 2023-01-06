@@ -93,6 +93,10 @@ export function FlamegraphStateProvider(
           DEFAULT_FLAMEGRAPH_STATE.position.view) as Rect,
       },
       preferences: {
+        timelines: {
+          ...DEFAULT_FLAMEGRAPH_STATE.preferences.timelines,
+          ...(props.initialState?.preferences?.timelines ?? {}),
+        },
         layout:
           props.initialState?.preferences?.layout ??
           DEFAULT_FLAMEGRAPH_STATE.preferences.layout,

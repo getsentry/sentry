@@ -1,12 +1,4 @@
-import {
-  Fragment,
-  ReactElement,
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useMemo,
-  useState,
-} from 'react';
+import {Fragment, ReactElement, useCallback, useEffect, useMemo, useState} from 'react';
 import {mat3, vec2} from 'gl-matrix';
 
 import {
@@ -44,7 +36,7 @@ import {
   computeConfigViewWithStrategy,
   formatColorForFrame,
   Rect,
-  watchForResize,
+  useResizeCanvasObserver,
 } from 'sentry/utils/profiling/gl/utils';
 import {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
 import {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
@@ -86,8 +78,6 @@ interface FlamegraphProps {
 }
 
 function Flamegraph(props: FlamegraphProps): ReactElement {
-  const [canvasBounds, setCanvasBounds] = useState<Rect>(Rect.Empty());
-  const [spansCanvasBounds, setSpansCanvasBounds] = useState<Rect>(Rect.Empty());
   const devicePixelRatio = useDevicePixelRatio();
   const dispatch = useDispatchFlamegraphState();
 
@@ -361,87 +351,38 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
     spansView,
   ]);
 
-  useLayoutEffect(() => {
-    if (
-      !flamegraphView ||
-      !flamegraphCanvas ||
-      !flamegraphMiniMapCanvas ||
-      !flamegraphCanvasRef ||
-      !flamegraphOverlayCanvasRef ||
-      !flamegraphMiniMapCanvasRef ||
-      !flamegraphMiniMapOverlayCanvasRef
-    ) {
-      return undefined;
-    }
+  const minimapCanvases = useMemo(() => {
+    return [flamegraphMiniMapCanvasRef, flamegraphMiniMapOverlayCanvasRef];
+  }, [flamegraphMiniMapCanvasRef, flamegraphMiniMapOverlayCanvasRef]);
 
-    const flamegraphObserver = watchForResize(
-      [flamegraphCanvasRef, flamegraphOverlayCanvasRef],
-      entries => {
-        const contentRect =
-          entries[0].contentRect ?? flamegraphCanvasRef.getBoundingClientRect();
-        setCanvasBounds(
-          new Rect(contentRect.x, contentRect.y, contentRect.width, contentRect.height)
-        );
+  useResizeCanvasObserver(
+    minimapCanvases,
+    canvasPoolManager,
+    flamegraphMiniMapCanvas,
+    null
+  );
 
-        flamegraphCanvas.initPhysicalSpace();
-        flamegraphView.resizeConfigSpace(flamegraphCanvas);
+  const spansCanvases = useMemo(() => {
+    return [spansCanvasRef];
+  }, [spansCanvasRef]);
 
-        canvasPoolManager.drawSync();
-      }
-    );
+  const spansCanvasBounds = useResizeCanvasObserver(
+    spansCanvases,
+    canvasPoolManager,
+    spansCanvas,
+    spansView
+  );
 
-    const flamegraphMiniMapObserver = watchForResize(
-      [flamegraphMiniMapCanvasRef, flamegraphMiniMapOverlayCanvasRef],
-      entries => {
-        const contentRect =
-          entries[0].contentRect ?? flamegraphCanvasRef.getBoundingClientRect();
-        setCanvasBounds(
-          new Rect(contentRect.x, contentRect.y, contentRect.width, contentRect.height)
-        );
-        flamegraphMiniMapCanvas.initPhysicalSpace();
+  const flamegraphCanvases = useMemo(() => {
+    return [flamegraphCanvasRef, flamegraphOverlayCanvasRef];
+  }, [flamegraphCanvasRef, flamegraphOverlayCanvasRef]);
 
-        canvasPoolManager.drawSync();
-      }
-    );
-
-    const spansCanvasObserver =
-      spansCanvasRef && spansCanvas
-        ? watchForResize([spansCanvasRef], entries => {
-            const contentRect =
-              entries[0].contentRect ?? spansCanvasRef.getBoundingClientRect();
-
-            setSpansCanvasBounds(
-              new Rect(
-                contentRect.x,
-                contentRect.y,
-                contentRect.width,
-                contentRect.height
-              )
-            );
-            spansCanvas.initPhysicalSpace();
-            canvasPoolManager.drawSync();
-          })
-        : null;
-
-    return () => {
-      flamegraphObserver.disconnect();
-      flamegraphMiniMapObserver.disconnect();
-      if (spansCanvasObserver) {
-        spansCanvasObserver.disconnect();
-      }
-    };
-  }, [
+  const flamegraphCanvasBounds = useResizeCanvasObserver(
+    flamegraphCanvases,
     canvasPoolManager,
     flamegraphCanvas,
-    flamegraphCanvasRef,
-    flamegraphMiniMapCanvas,
-    flamegraphMiniMapCanvasRef,
-    flamegraphMiniMapOverlayCanvasRef,
-    flamegraphOverlayCanvasRef,
-    flamegraphView,
-    spansCanvasRef,
-    spansCanvas,
-  ]);
+    flamegraphView
+  );
 
   const flamegraphRenderer = useMemo(() => {
     if (!flamegraphCanvasRef) {
@@ -555,7 +496,7 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
           <ProfileDragDropImport onImport={props.onImport}>
             <FlamegraphWarnings flamegraph={flamegraph} />
             <FlamegraphZoomView
-              canvasBounds={canvasBounds}
+              canvasBounds={flamegraphCanvasBounds}
               canvasPoolManager={canvasPoolManager}
               flamegraph={flamegraph}
               flamegraphRenderer={flamegraphRenderer}

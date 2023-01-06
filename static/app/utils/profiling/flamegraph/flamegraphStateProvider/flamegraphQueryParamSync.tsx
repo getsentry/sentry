@@ -162,6 +162,7 @@ export function FlamegraphStateLocalStorageSync() {
     {
       preferences: {
         layout: DEFAULT_FLAMEGRAPH_STATE.preferences.layout,
+        timelines: DEFAULT_FLAMEGRAPH_STATE.preferences.timelines,
       },
     }
   );
@@ -170,11 +171,12 @@ export function FlamegraphStateLocalStorageSync() {
     setState({
       preferences: {
         layout: state.preferences.layout,
+        timelines: state.preferences.timelines,
       },
     });
     // We only want to sync the local storage when the state changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.preferences.layout]);
+  }, [state.preferences.layout, state.preferences.timelines]);
 
   return null;
 }
