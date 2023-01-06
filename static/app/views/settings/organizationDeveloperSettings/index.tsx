@@ -28,7 +28,7 @@ import SentryFunctionRow from './sentryFunctionRow';
 
 type Props = Omit<AsyncView['props'], 'params'> & {
   organization: Organization;
-} & RouteComponentProps<{orgId: string}, {}>;
+} & RouteComponentProps<{}, {}>;
 
 type Tab = 'public' | 'internal' | 'sentryfx';
 type State = AsyncView['state'] & {
@@ -59,18 +59,20 @@ class OrganizationDeveloperSettings extends AsyncView<Props, State> {
   }
 
   getTitle() {
-    const {orgId} = this.props.params;
-    return routeTitleGen(t('Developer Settings'), orgId, false);
+    const {organization} = this.props;
+    return routeTitleGen(t('Developer Settings'), organization.slug, false);
   }
 
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
-    const {orgId} = this.props.params;
     const {organization} = this.props;
     const returnValue: [string, string, any?, any?][] = [
-      ['applications', `/organizations/${orgId}/sentry-apps/`],
+      ['applications', `/organizations/${organization.slug}/sentry-apps/`],
     ];
     if (organization.features.includes('sentry-functions')) {
-      returnValue.push(['sentryFunctions', `/organizations/${orgId}/functions/`]);
+      returnValue.push([
+        'sentryFunctions',
+        `/organizations/${organization.slug}/functions/`,
+      ]);
     }
     return returnValue;
   }
