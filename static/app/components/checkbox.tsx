@@ -1,6 +1,6 @@
 import {useEffect, useRef} from 'react';
-import {css} from '@emotion/react';
-import styled from '@emotion/styled';
+import {css, Theme} from '@emotion/react';
+import styled, {Interpolation} from '@emotion/styled';
 
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {IconCheckmark, IconSubtract} from 'sentry/icons';
@@ -14,7 +14,11 @@ interface Props extends Omit<CheckboxProps, 'checked' | 'size'> {
    */
   checked?: CheckboxProps['checked'] | 'indeterminate';
   /**
-   *
+   * Styles to be applied to the hidden <input> element.
+   */
+  inputCss?: Interpolation<Theme>;
+  /**
+   * The size of the checkbox. Defaults to 'sm'.
    */
   size?: FormSize;
 }
@@ -27,7 +31,13 @@ const checkboxSizeMap: Record<FormSize, CheckboxConfig> = {
   md: {box: '22px', icon: '16px', borderRadius: '6px'},
 };
 
-const Checkbox = ({checked = false, size = 'sm', ...props}: Props) => {
+const Checkbox = ({
+  className,
+  inputCss,
+  checked = false,
+  size = 'sm',
+  ...props
+}: Props) => {
   const checkboxRef = useRef<HTMLInputElement>(null);
 
   // Support setting the indeterminate value, which is only possible through
@@ -39,8 +49,9 @@ const Checkbox = ({checked = false, size = 'sm', ...props}: Props) => {
   }, [checked]);
 
   return (
-    <Wrapper {...{checked, size}}>
+    <Wrapper {...{className, checked, size}}>
       <HiddenInput
+        css={inputCss}
         checked={checked !== 'indeterminate' && checked}
         type="checkbox"
         {...props}
@@ -72,10 +83,10 @@ const Wrapper = styled('div')<{checked: Props['checked']; size: FormSize}>`
 const HiddenInput = styled('input')`
   position: absolute;
   opacity: 0;
-  height: 100%;
-  width: 100%;
   top: 0;
   left: 0;
+  right: 0;
+  bottom: 0;
   margin: 0;
   cursor: pointer;
 
