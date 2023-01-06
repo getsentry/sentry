@@ -47,7 +47,7 @@ class OrganizationRoleSelect extends Component<Props> {
     return (
       <Panel>
         <PanelHeader>
-          <div>{t('Organization Role')} </div>
+          <div>{t('Organization Role')}</div>
         </PanelHeader>
         {enforceIdpRoleRestricted && (
           <PanelAlert>

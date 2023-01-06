@@ -110,7 +110,9 @@ function TeamSelect({
         if (enforceIdpProvisioned && team.flags['idp:provisioned']) {
           return (
             <Tooltip
-              title={`Membership to this team is managed through your organization's identity provider.`}
+              title={t(
+                "Membership to this team is managed through your organization's identity provider."
+              )}
             >
               <DropdownTeamBadgeDisabled avatarSize={18} team={team} />
             </Tooltip>
