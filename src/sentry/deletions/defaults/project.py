@@ -54,11 +54,19 @@ class ProjectDeletionTask(ModelDeletionTask):
                 for m in model_list
             ]
         )
-        relations.append(ModelRelation(models.Group, {"project_id": instance.id}))
+
+        model_list = (models.GroupMeta, models.GroupResolution, models.GroupSnooze)
+        relations.extend(
+            [
+                ModelRelation(m, {"group__project": instance.id}, ModelDeletionTask)
+                for m in model_list
+            ]
+        )
 
         # Release needs to handle deletes after Group is cleaned up as the foreign
         # key is protected
         model_list = (
+            models.Group,
             models.ReleaseProject,
             models.ReleaseProjectEnvironment,
             models.ProjectDebugFile,
