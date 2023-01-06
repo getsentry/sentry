@@ -116,9 +116,10 @@ function ReplayTable({fetchError, isFetching, replays, sort, visibleColumns}: Pr
 const StyledPanelTable = styled(PanelTable)<{
   visibleColumns: Array<keyof typeof ReplayColumns>;
 }>`
-  grid-template-columns: ${p.visibleColumns
-    .map(column => (column === 'session' ? 'minmax(100px, 1fr)' : 'max-content'))
-    .join(' ')};
+  grid-template-columns: ${p =>
+    p.visibleColumns
+      .map(column => (column === 'session' ? 'minmax(100px, 1fr)' : 'max-content'))
+      .join(' ')};
 `;
 
 const StyledAlert = styled(Alert)`
