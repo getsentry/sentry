@@ -5,6 +5,7 @@ import AsyncComponent from 'sentry/components/asyncComponent';
 import AutoSelectText from 'sentry/components/autoSelectText';
 import Button from 'sentry/components/button';
 import ExternalLink from 'sentry/components/links/externalLink';
+import Link from 'sentry/components/links/link';
 import PlatformPicker from 'sentry/components/platformPicker';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {PlatformKey} from 'sentry/data/platformCategories';
@@ -75,9 +76,7 @@ class ProjectInstallOverview extends AsyncComponent<Props, State> {
               <DsnValue>{keyList?.[0].dsn.public}</DsnValue>
             </DsnContainer>
 
-            <Button priority="primary" to={issueStreamLink}>
-              {t('Got it! Take me to the Issue Stream.')}
-            </Button>
+            <Link to={issueStreamLink}>{t('Got it! Take me to the Issue Stream.')}</Link>
           </DsnInfo>
         ) : (
           <p>
