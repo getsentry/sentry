@@ -259,7 +259,12 @@ class BaseGroupSidebar extends Component<Props, State> {
         )}
 
         <OwnedBy group={group} project={project} organization={organization} />
-        <AssignedTo group={group} projectId={project.id} onAssign={this.trackAssign} />
+        <AssignedTo
+          group={group}
+          event={event}
+          project={project}
+          onAssign={this.trackAssign}
+        />
 
         {event && <SuggestedOwners project={project} group={group} event={event} />}
 
