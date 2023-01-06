@@ -27,6 +27,7 @@ import {sessionTerm} from 'sentry/views/releases/utils/sessionTerm';
 
 import {DisplayModes} from '../projectCharts';
 
+import ProjectSessionsAnrRequest from './projectSessionsAnrRequest';
 import ProjectSessionsChartRequest from './projectSessionsChartRequest';
 
 type Props = {
@@ -34,6 +35,8 @@ type Props = {
   displayMode:
     | DisplayModes.SESSIONS
     | DisplayModes.STABILITY_USERS
+    | DisplayModes.ANR_RATE
+    | DisplayModes.FOREGROUND_ANR_RATE
     | DisplayModes.STABILITY;
   onTotalValuesChange: (value: number | null) => void;
   organization: Organization;
@@ -62,13 +65,19 @@ function ProjectBaseSessionsChart({
   const {projects, environments, datetime} = selection;
   const {start, end, period, utc} = datetime;
 
+  const Request = [DisplayModes.ANR_RATE, DisplayModes.FOREGROUND_ANR_RATE].includes(
+    displayMode
+  )
+    ? ProjectSessionsAnrRequest
+    : ProjectSessionsChartRequest;
+
   return (
     <Fragment>
       {getDynamicText({
         value: (
           <ChartZoom router={router} period={period} start={start} end={end} utc={utc}>
             {zoomRenderProps => (
-              <ProjectSessionsChartRequest
+              <Request
                 api={api}
                 selection={selection}
                 organization={organization}
@@ -131,7 +140,7 @@ function ProjectBaseSessionsChart({
                     }}
                   </ReleaseSeries>
                 )}
-              </ProjectSessionsChartRequest>
+              </Request>
             )}
           </ChartZoom>
         ),
@@ -145,7 +154,9 @@ type ChartProps = {
   displayMode:
     | DisplayModes.SESSIONS
     | DisplayModes.STABILITY
-    | DisplayModes.STABILITY_USERS;
+    | DisplayModes.STABILITY_USERS
+    | DisplayModes.ANR_RATE
+    | DisplayModes.FOREGROUND_ANR_RATE;
   releaseSeries: Series[];
   reloading: boolean;
   theme: Theme;
@@ -214,7 +225,12 @@ class Chart extends Component<ChartProps, ChartState> {
   get isCrashFree() {
     const {displayMode} = this.props;
 
-    return [DisplayModes.STABILITY, DisplayModes.STABILITY_USERS].includes(displayMode);
+    return [
+      DisplayModes.STABILITY,
+      DisplayModes.STABILITY_USERS,
+      DisplayModes.ANR_RATE,
+      DisplayModes.FOREGROUND_ANR_RATE,
+    ].includes(displayMode);
   }
 
   get legend(): LegendComponentOption {
