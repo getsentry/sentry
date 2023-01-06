@@ -3,15 +3,18 @@ import styled from '@emotion/styled';
 
 import {IconAdd, IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
 
 type NodeProps = {
   id: string;
   label: string;
   children?: ReactNode;
   collapsible?: boolean;
+  isSelected?: boolean;
+  onSelection?: () => void;
 };
 
-function Node({label, id, children, collapsible}: NodeProps) {
+function Node({label, id, children, collapsible, onSelection, isSelected}: NodeProps) {
   const [isExpanded, setIsExpanded] = useState(true);
   return (
     <NodeContents aria-labelledby={`${id}-title`}>
@@ -33,7 +36,9 @@ function Node({label, id, children, collapsible}: NodeProps) {
                 )}
               </IconWrapper>
             )}
-            <NodeTitle id={`${id}-title`}>{label}</NodeTitle>
+            <NodeTitle id={`${id}-title`} onClick={onSelection} selected={isSelected}>
+              {label}
+            </NodeTitle>
           </summary>
           {children}
         </details>
@@ -47,20 +52,48 @@ type TreeData<T> = T & {id: string; children?: TreeData<T>[]};
 type TreeProps<T> = {
   data: TreeData<T>;
   getNodeLabel: (data: TreeData<T>) => string;
+  selectedNodeId: string;
   isRoot?: boolean;
+  onNodeSelection?: (data: TreeData<T>) => void;
 };
 
-function Tree<T>({data, isRoot, getNodeLabel}: TreeProps<T>) {
+function Tree<T>({
+  data,
+  isRoot,
+  getNodeLabel,
+  onNodeSelection,
+  selectedNodeId,
+}: TreeProps<T>) {
   const {id, children} = data;
+  const isNodeSelected = selectedNodeId === id;
   if (!children?.length) {
-    return <Node label={getNodeLabel(data)} id={id} />;
+    return (
+      <Node
+        id={id}
+        label={getNodeLabel(data)}
+        onSelection={() => onNodeSelection?.(data)}
+        isSelected={isNodeSelected}
+      />
+    );
   }
 
   const treeNode = (
-    <Node label={getNodeLabel(data)} id={id} collapsible>
+    <Node
+      id={id}
+      label={getNodeLabel(data)}
+      onSelection={() => onNodeSelection?.(data)}
+      isSelected={isNodeSelected}
+      collapsible
+    >
       <ChildList>
         {children.map(element => (
-          <Tree key={element.id} data={element} getNodeLabel={getNodeLabel} />
+          <Tree
+            key={element.id}
+            data={element}
+            getNodeLabel={getNodeLabel}
+            onNodeSelection={onNodeSelection}
+            selectedNodeId={selectedNodeId}
+          />
         ))}
       </ChildList>
     </Node>
@@ -85,10 +118,15 @@ const NodeContents = styled('li')`
   display: block;
 `;
 
-// TODO(nar): Clicking the title will open more information
-// about the node, currently this does nothing
-const NodeTitle = styled('span')`
+const NodeTitle = styled('span')<{selected?: boolean}>`
   cursor: pointer;
+  ${({selected, theme}) =>
+    selected &&
+    `
+    background-color: ${theme.purple200};
+    padding: 0 ${space(0.5)};
+    border-radius: ${theme.borderRadius}
+  `}
 `;
 
 const IconWrapper = styled('button')<{isExpanded: boolean}>`

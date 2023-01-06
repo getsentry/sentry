@@ -3,8 +3,13 @@ import styled from '@emotion/styled';
 
 import space from 'sentry/styles/space';
 
+import {DetailsPanel} from './detailsPanel';
 import {RenderingSystem} from './renderingSystem';
 import {Tree} from './tree';
+
+function getNodeLabel({identifier, type}: ViewHierarchyWindow) {
+  return identifier ? `${type} - ${identifier}` : type;
+}
 
 export type ViewHierarchyWindow = {
   alpha: number;
@@ -31,18 +36,26 @@ type ViewHierarchyProps = {
 
 function ViewHierarchy({viewHierarchy}: ViewHierarchyProps) {
   const [selectedWindow] = useState(0);
+  const [selectedNode, setSelectedNode] = useState<null | ViewHierarchyWindow>(null);
   return (
     <Fragment>
       <RenderingSystem system={viewHierarchy.rendering_system} />
       <TreeContainer>
         <Tree<ViewHierarchyWindow>
           data={viewHierarchy.windows[selectedWindow]}
-          getNodeLabel={({identifier, type}) =>
-            identifier ? `${type} - ${identifier}` : type
-          }
+          getNodeLabel={getNodeLabel}
+          onNodeSelection={data => {
+            if (data !== selectedNode) {
+              setSelectedNode(data);
+            } else {
+              setSelectedNode(null);
+            }
+          }}
           isRoot
+          selectedNodeId={selectedNode?.id ?? ''}
         />
       </TreeContainer>
+      <DetailsPanel data={selectedNode} getTitle={getNodeLabel} />
     </Fragment>
   );
 }
