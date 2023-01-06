@@ -1,3 +1,5 @@
+import {uuid4} from '@sentry/utils';
+
 import {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
 import {EventOrGroupType, EventTransaction} from 'sentry/types';
 
@@ -105,6 +107,7 @@ class SpanTree {
 
   buildCollapsedSpanTree(spans: RawSpanType[]) {
     const spansSortedByStartTime = [...spans].sort(sortByStartTimeAndDuration);
+    const MISSING_INSTRUMENTATION_THRESHOLD_S = 0.1;
 
     for (let i = 0; i < spansSortedByStartTime.length; i++) {
       const span = spansSortedByStartTime[i];
@@ -114,7 +117,7 @@ class SpanTree {
         let nextParent: SpanTreeNode | null = null;
         for (let j = 0; j < parent.children.length; j++) {
           const child = parent.children[j];
-          if (child.contains(span)) {
+          if (child.span.op !== 'missing instrumentation' && child.contains(span)) {
             nextParent = child;
             break;
           }
@@ -126,6 +129,26 @@ class SpanTree {
       }
 
       if (parent.span.span_id === span.parent_span_id) {
+        if (
+          parent.children.length > 0 &&
+          span.timestamp - parent.children[parent.children.length - 1].span.timestamp >
+            MISSING_INSTRUMENTATION_THRESHOLD_S
+        ) {
+          parent.children.push(
+            new SpanTreeNode(
+              {
+                op: 'missing instrumentation',
+                start_timestamp:
+                  parent.children[parent.children.length - 1].span.timestamp,
+                timestamp: span.timestamp,
+                span_id: uuid4(),
+                data: {},
+                trace_id: span.trace_id,
+              },
+              parent
+            )
+          );
+        }
         parent.children.push(new SpanTreeNode(span, parent));
         continue;
       }
