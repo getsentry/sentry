@@ -72,6 +72,7 @@ from .organizationmapping import *  # NOQA
 from .organizationmember import *  # NOQA
 from .organizationmemberteam import *  # NOQA
 from .organizationonboardingtask import *  # NOQA
+from .outbox import *  # NOQA
 from .platformexternalissue import *  # NOQA
 from .processingissue import *  # NOQA
 from .project import *  # NOQA
@@ -105,6 +106,7 @@ from .search_common import *  # NOQA
 from .sentryfunction import *  # NOQA
 from .servicehook import *  # NOQA
 from .team import *  # NOQA
+from .tombstone import *  # NOQA
 from .transaction_threshold import *  # NOQA
 from .user import *  # NOQA
 from .useremail import *  # NOQA

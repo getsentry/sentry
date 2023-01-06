@@ -38,15 +38,12 @@ from sentry.testutils.helpers.datetime import before_now
 
 pytestmark = pytest.mark.sentry_metrics
 
-ONE_DAY_AGO = timezone.now() - timedelta(days=1)
-MOCK_DATETIME = ONE_DAY_AGO.replace(hour=10, minute=0)
 
-
-@freeze_time(MOCK_DATETIME)
+@freeze_time(BaseMetricsLayerTestCase.MOCK_DATETIME)
 class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
     @property
     def now(self):
-        return MOCK_DATETIME
+        return BaseMetricsLayerTestCase.MOCK_DATETIME
 
     def test_valid_filter_include_meta_derived_metrics(self):
         query_params = MultiValueDict(

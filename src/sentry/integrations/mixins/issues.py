@@ -15,7 +15,8 @@ from sentry.notifications.utils import (
     get_span_evidence_value,
     get_span_evidence_value_problem,
 )
-from sentry.services.hybrid_cloud.user import APIUser, user_service
+from sentry.services.hybrid_cloud.user import APIUser
+from sentry.services.hybrid_cloud.user_option import user_option_service
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.tasks.integrations import sync_status_inbound as sync_status_inbound_task
 from sentry.utils.http import absolute_uri
@@ -188,12 +189,15 @@ class IssueBasicMixin:
         if user_persisted_fields:
             user_defaults = {k: v for k, v in data.items() if k in user_persisted_fields}
             user_option_key = dict(key="issue:defaults", project_id=project.id)
-            new_user_defaults = user.get_option(default={}, **user_option_key)
+            options = user_option_service.query_options(user_ids=[user.id], **user_option_key)
+            new_user_defaults = options.get_one(default={})
             new_user_defaults.setdefault(self.org_integration.integration.provider, {}).update(
                 user_defaults
             )
             if user_defaults != new_user_defaults:
-                user_service.set_option_value(value=new_user_defaults, user=user, **user_option_key)
+                user_option_service.set_option(
+                    user_id=user.id, value=new_user_defaults, **user_option_key
+                )
 
     def get_defaults(self, project, user):
         project_defaults = self.get_project_defaults(project.id)

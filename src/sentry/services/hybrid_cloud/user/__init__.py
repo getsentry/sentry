@@ -6,7 +6,6 @@ from dataclasses import dataclass, fields
 from enum import IntEnum
 from typing import TYPE_CHECKING, Any, FrozenSet, Iterable, List, Optional
 
-from django_picklefield.decode import dbsafe_decode
 from sentry.db.models import BaseQuerySet
 from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_delegation, stubbed
 from sentry.silo import SiloMode
@@ -41,7 +40,6 @@ class APIUser:
     roles: FrozenSet[str] = frozenset()
     permissions: FrozenSet[str] = frozenset()
     avatar: Optional[APIAvatar] = None
-    options: FrozenSet[APIUserOption] = frozenset()
     useremails: FrozenSet[APIUserEmail] = frozenset()
 
     def has_usable_password(self) -> bool:
@@ -67,23 +65,6 @@ class APIUser:
     def class_name(self) -> str:
         return "User"
 
-    def get_option(
-        self,
-        key: str,
-        project_id: Optional[int] = None,
-        organization_id: Optional[str] = None,
-        default: Any = None,
-    ) -> Optional[Any]:
-        opts = self.options
-        if project_id is not None:
-            opts = frozenset([o for o in opts if o.project_id == project_id])
-        if organization_id is not None:
-            opts = frozenset([o for o in opts if o.organization_id == organization_id])
-        for o in opts:
-            if o.key == key:
-                return o.value
-        return default
-
 
 @dataclass(frozen=True, eq=True)
 class APIAvatar:
@@ -98,15 +79,6 @@ class APIUserEmail:
     id: int = 0
     email: str = ""
     is_verified: bool = False
-
-
-@dataclass(frozen=True, eq=True)
-class APIUserOption:
-    id: int = 0
-    project_id: int = 0
-    organization_id: str = ""
-    key: str = ""
-    value: Any = None
 
 
 class UserSerializeType(IntEnum):
@@ -176,18 +148,6 @@ class UserService(InterfaceWithLifecycle):
 
     @abstractmethod
     def get_by_actor_ids(self, *, actor_ids: List[int]) -> List[APIUser]:
-        pass
-
-    @abstractmethod
-    def set_option_value(
-        self,
-        *,
-        user: User | APIUser,
-        key: str,
-        value: str,
-        project_id: Optional[int] = None,
-        organization_id: Optional[int] = None,
-    ) -> None:
         pass
 
     def get_user(self, user_id: int) -> Optional[APIUser]:
@@ -283,23 +243,6 @@ class UserService(InterfaceWithLifecycle):
                 }
             )
         args["useremails"] = useremails
-
-        options: FrozenSet[APIUserOption] = frozenset({})
-        if hasattr(user, "options") and user.options is not None:
-            options = frozenset(
-                [
-                    APIUserOption(
-                        id=o["id"],
-                        project_id=o["project_id"],
-                        organization_id=o["organization_id"],
-                        key=o["key"],
-                        value=dbsafe_decode(o["value"]),
-                    )
-                    for o in user.options
-                ]
-            )
-        args["options"] = options
-
         avatar = user.avatar.first()
         if avatar is not None:
             avatar = APIAvatar(
