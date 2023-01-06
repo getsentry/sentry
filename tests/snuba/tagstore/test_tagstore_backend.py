@@ -4,6 +4,7 @@ from functools import cached_property
 import pytest
 from django.utils import timezone
 
+from sentry.issues.occurrence_consumer import process_event_and_issue_occurrence
 from sentry.models import Environment, EventUser, Release, ReleaseProjectEnvironment, ReleaseStages
 from sentry.search.events.constants import (
     RELEASE_STAGE_ALIAS,
@@ -21,9 +22,9 @@ from sentry.tagstore.snuba.backend import SnubaTagStorage
 from sentry.tagstore.types import GroupTagValue, TagValue
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import iso_format
+from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
 from sentry.testutils.performance_issues.store_transaction import PerfIssueTransactionTestMixin
 from sentry.types.issues import GroupType
-from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
 
 exception = {
     "values": [
@@ -171,22 +172,20 @@ class TagStorageTest(TestCase, SnubaTestCase):
     @cached_property
     def generic_group_and_env(self):
         env = Environment.objects.get(name="test")
-        event = self.store_event(
-            data={
+        occurrence, group_info = process_event_and_issue_occurrence(
+            TEST_ISSUE_OCCURRENCE.to_dict(),
+            {
                 "event_id": "a" * 32,
+                "project_id": self.project.id,
                 "timestamp": iso_format(self.now - timedelta(seconds=1)),
                 "start_timestamp": iso_format(self.now - timedelta(seconds=1)),
                 "tags": {"foo": "bar", "biz": "baz"},
                 "release": "releaseme",
                 "environment": env.name,
             },
-            project_id=self.project.id,
         )
-        event = event.for_group(event.groups[0])
-        occurrence = TEST_ISSUE_OCCURRENCE
-        occurrence.save(self.project.id)
-        event.occurrence = occurrence
-        return event.group, env
+        generic_group = group_info.group
+        return generic_group, env
 
     def test_get_group_tag_keys_and_top_values(self):
         result = list(
@@ -227,7 +226,6 @@ class TagStorageTest(TestCase, SnubaTestCase):
         assert len(top_release_values) == 2
         assert {v.value for v in top_release_values} == {"100", "200"}
         assert all(v.times_seen == 1 for v in top_release_values)
-        assert False
 
     def test_get_group_tag_keys_and_top_values_perf_issue(self):
         perf_group, env = self.perf_group_and_env
@@ -271,9 +269,7 @@ class TagStorageTest(TestCase, SnubaTestCase):
 
     def test_get_group_tag_keys_and_top_values_generic_issue(self):
         group, env = self.generic_group_and_env
-        result = list(
-            self.ts.get_group_tag_keys_and_top_values(group, [env.id])
-        )
+        result = list(self.ts.get_group_tag_keys_and_top_values(group, [env.id]))
         tags = [r.key for r in result]
         assert set(tags) == {"foo", "biz", "environment", "sentry:release", "level"}
 
@@ -283,7 +279,7 @@ class TagStorageTest(TestCase, SnubaTestCase):
         assert result[0].count == 1
 
         assert result[4].key == "sentry:release"
-        assert result[4].count == 2
+        assert result[4].count == 1
         top_release_values = result[4].top_values
         assert len(top_release_values) == 1
         assert {v.value for v in top_release_values} == {"releaseme"}
@@ -292,7 +288,7 @@ class TagStorageTest(TestCase, SnubaTestCase):
         # Now with only a specific set of keys,
         result = list(
             self.ts.get_group_tag_keys_and_top_values(
-                event.group,
+                group,
                 [env.id],
                 keys=["environment", "sentry:release"],
             )
@@ -309,7 +305,6 @@ class TagStorageTest(TestCase, SnubaTestCase):
         assert len(top_release_values) == 1
         assert {v.value for v in top_release_values} == {"releaseme"}
         assert all(v.times_seen == 2 for v in top_release_values)
-
 
     def test_get_top_group_tag_values(self):
         resp = self.ts.get_top_group_tag_values(self.proj1group1, self.proj1env1.id, "foo", 1)
@@ -335,15 +330,15 @@ class TagStorageTest(TestCase, SnubaTestCase):
     def test_get_top_group_tag_values_generic(self):
         group, env = self.generic_group_and_env
         resp = self.ts.get_top_group_tag_values(group, env.id, "foo", 2)
-        assert len(resp) == 2
+        assert len(resp) == 1
         assert resp[0].times_seen == 1
         assert resp[0].key == "foo"
         assert resp[0].value == "bar"
-        assert resp[0].group_id == event.group.id
+        assert resp[0].group_id == group.id
         assert resp[1].times_seen == 1
         assert resp[1].key == "foo"
         assert resp[1].value == "quux"
-        assert resp[1].group_id == event.group.id
+        assert resp[1].group_id == group.id
 
     def test_get_group_tag_value_count(self):
         assert self.ts.get_group_tag_value_count(self.proj1group1, self.proj1env1.id, "foo") == 2
@@ -356,7 +351,7 @@ class TagStorageTest(TestCase, SnubaTestCase):
     def test_get_group_tag_value_count_generic(self):
         group, env = self.generic_group_and_env
 
-        assert self.ts.get_group_tag_value_count(group, env.id, "foo") == 2
+        assert self.ts.get_group_tag_value_count(group, env.id, "foo") == 1
 
     def test_get_tag_keys(self):
         expected_keys = {
@@ -451,26 +446,26 @@ class TagStorageTest(TestCase, SnubaTestCase):
         assert set(keys) == {"biz", "environment", "foo", "sentry:release", "transaction", "level"}
 
     def test_get_group_tag_key_generic(self):
-        event, env = self.generic_group_and_env
+        group, env = self.generic_group_and_env
 
         with pytest.raises(GroupTagKeyNotFound):
             self.ts.get_group_tag_key(
-                group=perf_group,
+                group=group,
                 environment_id=env.id,
                 key="notreal",
             )
 
         assert (
             self.ts.get_group_tag_key(
-                group=perf_group,
+                group=group,
                 environment_id=self.proj1env1.id,
                 key="foo",
             ).key
             == "foo"
         )
 
-        keys = {k.key: k for k in self.ts.get_group_tag_keys(perf_group, [env.id])}
-        assert set(keys) == {"biz", "environment", "foo", "sentry:release", "transaction", "level"}
+        keys = {k.key: k for k in self.ts.get_group_tag_keys(group, [env.id])}
+        assert set(keys) == {"biz", "environment", "foo", "sentry:release", "level"}
 
     def test_get_group_tag_value(self):
         with pytest.raises(GroupTagValueNotFound):
