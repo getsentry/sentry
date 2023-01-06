@@ -126,7 +126,7 @@ describe('Organization Developer Settings', function () {
       expect(publishButton).toHaveAttribute('aria-disabled', 'false');
       userEvent.click(publishButton);
 
-      renderGlobalModal();
+      const {waitForModalToHide} = renderGlobalModal();
       const dialog = await screen.findByRole('dialog');
       expect(dialog).toBeInTheDocument();
       const questionnaire = [
@@ -157,6 +157,8 @@ describe('Organization Developer Settings', function () {
       expect(requestPublishButton).toHaveAttribute('aria-disabled', 'false');
 
       userEvent.click(requestPublishButton);
+
+      await waitForModalToHide();
 
       expect(mock).toHaveBeenCalledWith(
         `/sentry-apps/${sentryApp.slug}/publish-request/`,

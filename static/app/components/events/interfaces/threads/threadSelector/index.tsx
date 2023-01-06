@@ -66,6 +66,7 @@ const ThreadSelector = ({
     <ClassNames>
       {({css}) => (
         <StyledDropdownAutoComplete
+          detached
           data-test-id="thread-selector"
           items={getItems()}
           onSelect={item => {

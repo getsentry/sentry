@@ -40,6 +40,7 @@ class APIUser:
     roles: FrozenSet[str] = frozenset()
     permissions: FrozenSet[str] = frozenset()
     avatar: Optional[APIAvatar] = None
+    useremails: FrozenSet[APIUserEmail] = frozenset()
 
     def has_usable_password(self) -> bool:
         return self.password_usable
@@ -71,6 +72,13 @@ class APIAvatar:
     file_id: int = 0
     ident: str = ""
     avatar_type: str = "letter_avatar"
+
+
+@dataclass(frozen=True, eq=True)
+class APIUserEmail:
+    id: int = 0
+    email: str = ""
+    is_verified: bool = False
 
 
 class UserSerializeType(IntEnum):
@@ -212,6 +220,19 @@ class UserService(InterfaceWithLifecycle):
             roles = frozenset(flatten(user.roles))
         args["roles"] = roles
 
+        useremails: FrozenSet[APIUserEmail] = frozenset({})
+        if hasattr(user, "useremails") and user.useremails is not None:
+            useremails = frozenset(
+                {
+                    APIUserEmail(
+                        id=e["id"],
+                        email=e["email"],
+                        is_verified=e["is_verified"],
+                    )
+                    for e in user.useremails
+                }
+            )
+        args["useremails"] = useremails
         avatar = user.avatar.first()
         if avatar is not None:
             avatar = APIAvatar(
