@@ -159,6 +159,7 @@ class ArithmeticVisitor(NodeVisitor):
         "measurements.fid",
         "measurements.ttfb",
         "measurements.ttfb.requesttime",
+        "total_count",
     }
     function_allowlist = {
         "count",
@@ -294,6 +295,9 @@ def parse_arithmetic(
         )
     visitor = ArithmeticVisitor(max_operators, custom_measurements)
     result = visitor.visit(tree)
+    # total_count is the exception to the no mixing rule
+    if visitor.fields == {"total_count"} and len(visitor.functions) > 0:
+        return result, list(visitor.fields), list(visitor.functions)
     if len(visitor.fields) > 0 and len(visitor.functions) > 0:
         raise ArithmeticValidationError("Cannot mix functions and fields in arithmetic")
     if visitor.terms <= 1:
