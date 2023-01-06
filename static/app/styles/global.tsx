@@ -1,7 +1,6 @@
-import {css, Global} from '@emotion/react';
+import {css, Global, Theme} from '@emotion/react';
 
 import {IS_ACCEPTANCE_TEST} from 'sentry/constants';
-import {Theme} from 'sentry/utils/theme';
 
 const styles = (theme: Theme, isDark: boolean) => css`
   body {

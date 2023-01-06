@@ -15,7 +15,7 @@ from sentry.utils.samples import load_data
 
 # TODO(dcramer): These tests rely too much on implicit fixtures
 @apply_feature_flag_on_cls("organizations:release-committer-assignees")
-@region_silo_test
+@region_silo_test(stable=True)
 class EventCommittersTest(APITestCase):
     def test_simple(self):
         self.login_as(user=self.user)

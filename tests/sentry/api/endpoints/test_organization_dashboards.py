@@ -14,7 +14,7 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
     def setUp(self):
         super().setUp()

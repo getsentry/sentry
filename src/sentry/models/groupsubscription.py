@@ -156,12 +156,13 @@ class GroupSubscriptionManager(BaseManager):  # type: ignore
         return result
 
     @staticmethod
-    def get_participating_users(group: "Group") -> Sequence["User"]:
-        """Return the list of users participating in this issue."""
-        from sentry.models import User
+    def get_participating_user_ids(group: "Group") -> Sequence[int]:
+        """Return the list of user ids participating in this issue."""
 
         return list(
-            User.objects.filter(groupsubscription__is_active=True, groupsubscription__group=group)
+            GroupSubscription.objects.filter(group=group, is_active=True).values_list(
+                "user_id", flat=True
+            )
         )
 
 

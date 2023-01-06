@@ -49,7 +49,10 @@ class OrganizationOnboardingTaskEndpoint(OrganizationEndpoint):
             values["completion_seen"] = timezone.now()
 
         rows_affected, created = OrganizationOnboardingTask.objects.create_or_update(
-            organization=organization, task=task_id, values=values, defaults={"user": request.user}
+            organization=organization,
+            task=task_id,
+            values=values,
+            defaults={"user_id": request.user.id},
         )
 
         if rows_affected or created:

@@ -141,8 +141,8 @@ class ActorTuple(namedtuple("Actor", "id type")):
 
         try:
             return cls(find_users(actor_identifier)[0].id, User)
-        except IndexError:
-            raise serializers.ValidationError("Unable to resolve actor identifier")
+        except IndexError as e:
+            raise serializers.ValidationError(f"Unable to resolve actor identifier: {e}")
 
     def resolve(self) -> Union["Team", "APIUser"]:
         return fetch_actor_by_id(self.type, self.id)

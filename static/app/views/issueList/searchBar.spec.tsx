@@ -160,7 +160,9 @@ describe('IssueListSearchBar', function () {
       );
     });
 
-    it('cycles through keyboard navigation for selection', async function () {
+    // Flaky due to timeouts, see https://github.com/getsentry/sentry/issues/42898
+    // eslint-disable-next-line jest/no-disabled-tests
+    it.skip('cycles through keyboard navigation for selection', async function () {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/tags/device.orientation/values/',
         method: 'GET',

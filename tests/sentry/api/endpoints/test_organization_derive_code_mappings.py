@@ -10,7 +10,7 @@ from sentry.testutils.helpers.features import apply_feature_flag_on_cls
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 @apply_feature_flag_on_cls("organizations:derive-code-mappings")
 class OrganizationDeriveCodeMappingsTest(APITestCase):
     def setUp(self):
@@ -103,6 +103,7 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
         repo = Repository.objects.get(name="getsentry/codemap")
         assert response.status_code == 201, response.content
         assert response.data == {
+            "automaticallyGenerated": True,
             "id": str(response.data["id"]),
             "projectId": str(self.project.id),
             "projectSlug": self.project.slug,

@@ -116,9 +116,10 @@ class ProjectDataForwarding extends AsyncComponent<Props, State> {
   onDisablePlugin = (plugin: Plugin) => this.updatePlugin(plugin, false);
 
   renderBody() {
-    const {params, organization, project} = this.props;
+    const {organization, project} = this.props;
     const plugins = this.forwardingPlugins;
     const hasAccess = organization.access.includes('project:write');
+    const params = {...this.props.params, orgId: organization.slug};
 
     const pluginsPanel =
       plugins.length > 0 ? (

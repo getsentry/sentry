@@ -74,7 +74,7 @@ function FlamegraphOptionsMenu({
 }
 
 const X_AXIS: Record<FlamegraphPreferences['xAxis'], string> = {
-  standalone: t('Standalone'),
+  profile: t('Profile'),
   transaction: t('Transaction'),
 };
 

@@ -580,25 +580,26 @@ class IssueListOverview extends Component<Props, State> {
           return;
         }
 
-        const {orgId} = this.props.params;
         // If this is a direct hit, we redirect to the intended result directly.
         if (resp.getResponseHeader('X-Sentry-Direct-Hit') === '1') {
           let redirect: string;
           if (data[0] && data[0].matchingEventId) {
             const {id, matchingEventId} = data[0];
-            redirect = `/organizations/${orgId}/issues/${id}/events/${matchingEventId}/`;
+            redirect = `/organizations/${organization.slug}/issues/${id}/events/${matchingEventId}/`;
           } else {
             const {id} = data[0];
-            redirect = `/organizations/${orgId}/issues/${id}/`;
+            redirect = `/organizations/${organization.slug}/issues/${id}/`;
           }
 
-          browserHistory.replace({
-            pathname: redirect,
-            query: {
-              referrer: 'issue-list',
-              ...extractSelectionParameters(this.props.location.query),
-            },
-          });
+          browserHistory.replace(
+            normalizeUrl({
+              pathname: redirect,
+              query: {
+                referrer: 'issue-list',
+                ...extractSelectionParameters(this.props.location.query),
+              },
+            })
+          );
           return;
         }
 
@@ -718,15 +719,18 @@ class IssueListOverview extends Component<Props, State> {
   };
 
   get groupListEndpoint(): string {
-    return `/organizations/${this.props.params.orgId}/issues/`;
+    const {organization} = this.props;
+    return `/organizations/${organization.slug}/issues/`;
   }
 
   get groupCountsEndpoint(): string {
-    return `/organizations/${this.props.params.orgId}/issues-count/`;
+    const {organization} = this.props;
+    return `/organizations/${organization.slug}/issues-count/`;
   }
 
   get groupStatsEndpoint(): string {
-    return `/organizations/${this.props.params.orgId}/issues-stats/`;
+    const {organization} = this.props;
+    return `/organizations/${organization.slug}/issues-stats/`;
   }
 
   onRealtimeChange = (realtime: boolean) => {
@@ -1100,13 +1104,13 @@ class IssueListOverview extends Component<Props, State> {
   };
 
   tagValueLoader = (key: string, search: string) => {
-    const {orgId} = this.props.params;
+    const {organization} = this.props;
     const projectIds = this.getSelectedProjectIds();
     const endpointParams = this.getEndpointParams();
 
     return fetchTagValues({
       api: this.props.api,
-      orgSlug: orgId,
+      orgSlug: organization.slug,
       tagKey: key,
       search,
       projectIds,

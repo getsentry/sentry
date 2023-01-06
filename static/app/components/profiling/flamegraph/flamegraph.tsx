@@ -1,12 +1,4 @@
-import {
-  Fragment,
-  ReactElement,
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useMemo,
-  useState,
-} from 'react';
+import {Fragment, ReactElement, useCallback, useEffect, useMemo, useState} from 'react';
 import {mat3, vec2} from 'gl-matrix';
 
 import {
@@ -15,13 +7,23 @@ import {
 } from 'sentry/components/profiling/flamegraph/flamegraphOverlays/profileDragDropImport';
 import {FlamegraphOptionsMenu} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphOptionsMenu';
 import {FlamegraphSearch} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphSearch';
-import {FlamegraphThreadSelector} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphThreadSelector';
+import {
+  FlamegraphThreadSelector,
+  FlamegraphThreadSelectorProps,
+} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphThreadSelector';
 import {FlamegraphToolbar} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphToolbar';
-import {FlamegraphViewSelectMenu} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphViewSelectMenu';
+import {
+  FlamegraphViewSelectMenu,
+  FlamegraphViewSelectMenuProps,
+} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphViewSelectMenu';
 import {FlamegraphZoomView} from 'sentry/components/profiling/flamegraph/flamegraphZoomView';
 import {FlamegraphZoomViewMinimap} from 'sentry/components/profiling/flamegraph/flamegraphZoomViewMinimap';
 import {defined} from 'sentry/utils';
-import {CanvasPoolManager, CanvasScheduler} from 'sentry/utils/profiling/canvasScheduler';
+import {
+  CanvasPoolManager,
+  useCanvasScheduler,
+} from 'sentry/utils/profiling/canvasScheduler';
+import {CanvasView} from 'sentry/utils/profiling/canvasView';
 import {Flamegraph as FlamegraphModel} from 'sentry/utils/profiling/flamegraph';
 import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphPreferences';
 import {useFlamegraphProfiles} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphProfiles';
@@ -30,12 +32,11 @@ import {useFlamegraphZoomPosition} from 'sentry/utils/profiling/flamegraph/hooks
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
-import {FlamegraphView} from 'sentry/utils/profiling/flamegraphView';
 import {
   computeConfigViewWithStrategy,
   formatColorForFrame,
   Rect,
-  watchForResize,
+  useResizeCanvasObserver,
 } from 'sentry/utils/profiling/gl/utils';
 import {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
 import {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
@@ -77,7 +78,6 @@ interface FlamegraphProps {
 }
 
 function Flamegraph(props: FlamegraphProps): ReactElement {
-  const [canvasBounds, setCanvasBounds] = useState<Rect>(Rect.Empty());
   const devicePixelRatio = useDevicePixelRatio();
   const dispatch = useDispatchFlamegraphState();
 
@@ -100,7 +100,7 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
   const [spansCanvasRef, setSpansCanvasRef] = useState<HTMLCanvasElement | null>(null);
 
   const canvasPoolManager = useMemo(() => new CanvasPoolManager(), []);
-  const scheduler = useMemo(() => new CanvasScheduler(), []);
+  const scheduler = useCanvasScheduler(canvasPoolManager);
 
   const profile = useMemo(() => {
     return props.profiles.profiles.find(p => p.threadId === threadId);
@@ -159,16 +159,25 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
     return new FlamegraphCanvas(spansCanvasRef, vec2.fromValues(0, 0));
   }, [spansCanvasRef]);
 
-  const flamegraphView = useMemoWithPrevious<FlamegraphView | null>(
+  const flamegraphView = useMemoWithPrevious<CanvasView<FlamegraphModel> | null>(
     previousView => {
       if (!flamegraphCanvas) {
         return null;
       }
 
-      const newView = new FlamegraphView({
+      const newView = new CanvasView({
         canvas: flamegraphCanvas,
-        flamegraph,
-        theme: flamegraphTheme,
+        model: flamegraph,
+        options: {
+          inverted: flamegraph.inverted,
+          minWidth: flamegraph.profile.minFrameDuration,
+          barHeight: flamegraphTheme.SIZES.BAR_HEIGHT,
+          depthOffset: flamegraphTheme.SIZES.FLAMEGRAPH_DEPTH_OFFSET,
+          configSpaceTransform:
+            xAxis === 'transaction'
+              ? new Rect(flamegraph.profile.startedAt, 0, 0, 0)
+              : Rect.Empty(),
+        },
       });
 
       if (
@@ -176,13 +185,13 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
         // want to persist the config view. This is to avoid a case where the new config space
         // is larger than the previous one, meaning the new view could now be zoomed in even
         // though the user did not fire any zoom events.
-        previousView?.flamegraph.profile === newView.flamegraph.profile &&
+        previousView?.model.profile === newView.model.profile &&
         previousView.configSpace.equals(newView.configSpace)
       ) {
         if (
           // if we're still looking at the same profile but only a preference other than
           // left heavy has changed, we do want to persist the config view
-          previousView.flamegraph.leftHeavy === newView.flamegraph.leftHeavy
+          previousView.model.leftHeavy === newView.model.leftHeavy
         ) {
           newView.setConfigView(
             previousView.configView.withHeight(newView.configView.height)
@@ -244,7 +253,7 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
       if (
         position.view &&
         !position.view.isEmpty() &&
-        previousView?.flamegraph === FALLBACK_FLAMEGRAPH
+        previousView?.model === FALLBACK_FLAMEGRAPH
       ) {
         newView.setConfigView(position.view);
       }
@@ -254,7 +263,29 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
 
     // We skip position.view dependency because it will go into an infinite loop
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [flamegraph, flamegraphCanvas, flamegraphTheme, zoomIntoFrame]
+    [flamegraph, flamegraphCanvas, flamegraphTheme, zoomIntoFrame, xAxis]
+  );
+
+  const spansView = useMemoWithPrevious<CanvasView<SpanChart> | null>(
+    _previousView => {
+      if (!spansCanvas || !spanChart) {
+        return null;
+      }
+
+      const newView = new CanvasView({
+        canvas: spansCanvas,
+        model: spanChart,
+        options: {
+          inverted: false,
+          minWidth: spanChart.minSpanDuration,
+          barHeight: flamegraphTheme.SIZES.SPANS_BAR_HEIGHT,
+          depthOffset: flamegraphTheme.SIZES.SPANS_DEPTH_OFFSET,
+        },
+      });
+
+      return newView;
+    },
+    [spanChart, spansCanvas, flamegraphTheme.SIZES]
   );
 
   useEffect(() => {
@@ -263,17 +294,26 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
     }
 
     const onConfigViewChange = (rect: Rect) => {
-      flamegraphView.setConfigView(rect);
+      flamegraphView.setConfigView(rect.withHeight(flamegraphView.configView.height));
+      if (spansView) {
+        spansView.setConfigView(rect.withHeight(spansView.configView.height));
+      }
       canvasPoolManager.draw();
     };
 
     const onTransformConfigView = (mat: mat3) => {
       flamegraphView.transformConfigView(mat);
+      if (spansView) {
+        spansView.transformConfigView(mat);
+      }
       canvasPoolManager.draw();
     };
 
     const onResetZoom = () => {
       flamegraphView.resetConfigView(flamegraphCanvas);
+      if (spansView && spansCanvas) {
+        spansView.resetConfigView(spansCanvas);
+      }
       canvasPoolManager.draw();
     };
 
@@ -285,6 +325,9 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
       );
 
       flamegraphView.setConfigView(newConfigView);
+      if (spansView) {
+        spansView.setConfigView(newConfigView);
+      }
       canvasPoolManager.draw();
     };
 
@@ -299,80 +342,47 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
       scheduler.off('reset zoom', onResetZoom);
       scheduler.off('zoom at frame', onZoomIntoFrame);
     };
-  }, [canvasPoolManager, flamegraphCanvas, flamegraphView, scheduler]);
-
-  useEffect(() => {
-    canvasPoolManager.registerScheduler(scheduler);
-    return () => canvasPoolManager.unregisterScheduler(scheduler);
-  }, [canvasPoolManager, scheduler]);
-
-  useLayoutEffect(() => {
-    if (
-      !flamegraphView ||
-      !flamegraphCanvas ||
-      !flamegraphMiniMapCanvas ||
-      !flamegraphCanvasRef ||
-      !flamegraphOverlayCanvasRef ||
-      !flamegraphMiniMapCanvasRef ||
-      !flamegraphMiniMapOverlayCanvasRef
-    ) {
-      return undefined;
-    }
-
-    const flamegraphObserver = watchForResize(
-      [flamegraphCanvasRef, flamegraphOverlayCanvasRef],
-      entries => {
-        const contentRect =
-          entries[0].contentRect ?? flamegraphCanvasRef.getBoundingClientRect();
-        setCanvasBounds(
-          new Rect(contentRect.x, contentRect.y, contentRect.width, contentRect.height)
-        );
-
-        flamegraphCanvas.initPhysicalSpace();
-        flamegraphView.resizeConfigSpace(flamegraphCanvas);
-
-        canvasPoolManager.drawSync();
-      }
-    );
-
-    const flamegraphMiniMapObserver = watchForResize(
-      [flamegraphMiniMapCanvasRef, flamegraphMiniMapOverlayCanvasRef],
-      () => {
-        flamegraphMiniMapCanvas.initPhysicalSpace();
-
-        canvasPoolManager.drawSync();
-      }
-    );
-
-    const spansCanvasObserver = spansCanvasRef
-      ? watchForResize(
-          [flamegraphMiniMapCanvasRef, flamegraphMiniMapOverlayCanvasRef],
-          () => {
-            flamegraphMiniMapCanvas.initPhysicalSpace();
-
-            canvasPoolManager.drawSync();
-          }
-        )
-      : null;
-
-    return () => {
-      flamegraphObserver.disconnect();
-      flamegraphMiniMapObserver.disconnect();
-      if (spansCanvasObserver) {
-        spansCanvasObserver.disconnect();
-      }
-    };
   }, [
     canvasPoolManager,
     flamegraphCanvas,
-    flamegraphCanvasRef,
-    flamegraphMiniMapCanvas,
-    flamegraphMiniMapCanvasRef,
-    flamegraphMiniMapOverlayCanvasRef,
-    flamegraphOverlayCanvasRef,
     flamegraphView,
-    spansCanvasRef,
+    scheduler,
+    spansCanvas,
+    spansView,
   ]);
+
+  const minimapCanvases = useMemo(() => {
+    return [flamegraphMiniMapCanvasRef, flamegraphMiniMapOverlayCanvasRef];
+  }, [flamegraphMiniMapCanvasRef, flamegraphMiniMapOverlayCanvasRef]);
+
+  useResizeCanvasObserver(
+    minimapCanvases,
+    canvasPoolManager,
+    flamegraphMiniMapCanvas,
+    null
+  );
+
+  const spansCanvases = useMemo(() => {
+    return [spansCanvasRef];
+  }, [spansCanvasRef]);
+
+  const spansCanvasBounds = useResizeCanvasObserver(
+    spansCanvases,
+    canvasPoolManager,
+    spansCanvas,
+    spansView
+  );
+
+  const flamegraphCanvases = useMemo(() => {
+    return [flamegraphCanvasRef, flamegraphOverlayCanvasRef];
+  }, [flamegraphCanvasRef, flamegraphOverlayCanvasRef]);
+
+  const flamegraphCanvasBounds = useResizeCanvasObserver(
+    flamegraphCanvases,
+    canvasPoolManager,
+    flamegraphCanvas,
+    flamegraphView
+  );
 
   const flamegraphRenderer = useMemo(() => {
     if (!flamegraphCanvasRef) {
@@ -410,28 +420,47 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
     return selectedRoot ? [selectedRoot] : flamegraph.root.children;
   }, [selectedRoot, flamegraph.root]);
 
+  const onSortingChange: FlamegraphViewSelectMenuProps['onSortingChange'] = useCallback(
+    newSorting => {
+      dispatch({type: 'set sorting', payload: newSorting});
+    },
+    [dispatch]
+  );
+
+  const onViewChange: FlamegraphViewSelectMenuProps['onViewChange'] = useCallback(
+    newView => {
+      dispatch({type: 'set view', payload: newView});
+    },
+    [dispatch]
+  );
+
+  const onThreadIdChange: FlamegraphThreadSelectorProps['onThreadIdChange'] = useCallback(
+    newThreadId => {
+      dispatch({type: 'set thread id', payload: newThreadId});
+    },
+    [dispatch]
+  );
+
+  // A bit unfortunate for now, but the search component accepts a list
+  // of model to search through. This will become useful as we  build
+  // differential flamecharts or start comparing different profiles/charts
+  const flamegraphs = useMemo(() => [flamegraph], [flamegraph]);
   return (
     <Fragment>
       <FlamegraphToolbar>
         <FlamegraphThreadSelector
           profileGroup={props.profiles}
           threadId={threadId}
-          onThreadIdChange={newThreadId =>
-            dispatch({type: 'set thread id', payload: newThreadId})
-          }
+          onThreadIdChange={onThreadIdChange}
         />
         <FlamegraphViewSelectMenu
           view={view}
           sorting={sorting}
-          onSortingChange={s => {
-            dispatch({type: 'set sorting', payload: s});
-          }}
-          onViewChange={v => {
-            dispatch({type: 'set view', payload: v});
-          }}
+          onSortingChange={onSortingChange}
+          onViewChange={onViewChange}
         />
         <FlamegraphSearch
-          flamegraphs={[flamegraph]}
+          flamegraphs={flamegraphs}
           canvasPoolManager={canvasPoolManager}
         />
         <FlamegraphOptionsMenu canvasPoolManager={canvasPoolManager} />
@@ -441,12 +470,13 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
         spans={
           spanChart ? (
             <FlamegraphSpans
+              canvasBounds={spansCanvasBounds}
               spanChart={spanChart}
               spansCanvas={spansCanvas}
               spansCanvasRef={spansCanvasRef}
               setSpansCanvasRef={setSpansCanvasRef}
               canvasPoolManager={canvasPoolManager}
-              flamegraphView={flamegraphView}
+              spansView={spansView}
             />
           ) : null
         }
@@ -466,7 +496,7 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
           <ProfileDragDropImport onImport={props.onImport}>
             <FlamegraphWarnings flamegraph={flamegraph} />
             <FlamegraphZoomView
-              canvasBounds={canvasBounds}
+              canvasBounds={flamegraphCanvasBounds}
               canvasPoolManager={canvasPoolManager}
               flamegraph={flamegraph}
               flamegraphRenderer={flamegraphRenderer}

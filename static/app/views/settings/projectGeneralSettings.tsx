@@ -8,7 +8,7 @@ import {
 } from 'sentry/actionCreators/projects';
 import Button from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
-import Field from 'sentry/components/forms/field';
+import FieldGroup from 'sentry/components/forms/fieldGroup';
 import TextField from 'sentry/components/forms/fields/textField';
 import Form, {FormProps} from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
@@ -102,7 +102,7 @@ class ProjectGeneralSettings extends AsyncView<Props, State> {
     const {isInternal} = project;
 
     return (
-      <Field
+      <FieldGroup
         label={t('Remove Project')}
         help={tct(
           'Remove the [project] project and all related data. [linebreak] Careful, this action cannot be undone.',
@@ -139,13 +139,11 @@ class ProjectGeneralSettings extends AsyncView<Props, State> {
             }
           >
             <div>
-              <Button type="button" priority="danger">
-                {t('Remove Project')}
-              </Button>
+              <Button priority="danger">{t('Remove Project')}</Button>
             </div>
           </Confirm>
         )}
-      </Field>
+      </FieldGroup>
     );
   }
 
@@ -155,7 +153,7 @@ class ProjectGeneralSettings extends AsyncView<Props, State> {
     const {isInternal} = project;
 
     return (
-      <Field
+      <FieldGroup
         label={t('Transfer Project')}
         help={tct(
           'Transfer the [project] project and all related data. [linebreak] Careful, this action cannot be undone.',
@@ -214,13 +212,11 @@ class ProjectGeneralSettings extends AsyncView<Props, State> {
             )}
           >
             <div>
-              <Button type="button" priority="danger">
-                {t('Transfer Project')}
-              </Button>
+              <Button priority="danger">{t('Transfer Project')}</Button>
             </div>
           </Confirm>
         )}
-      </Field>
+      </FieldGroup>
     );
   }
 
