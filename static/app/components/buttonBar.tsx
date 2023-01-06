@@ -120,9 +120,8 @@ const MergedStyles = () => css`
 `;
 
 const ButtonGrid = styled('div')<{gap: ValidSize; merged: boolean}>`
-  display: grid;
-  grid-auto-flow: column;
-  grid-column-gap: ${p => space(p.gap)};
+  display: flex;
+  column-gap: ${p => space(p.gap)};
   align-items: center;
 
   ${p => p.merged && MergedStyles}
