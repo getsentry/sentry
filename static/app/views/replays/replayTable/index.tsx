@@ -113,19 +113,12 @@ function ReplayTable({fetchError, isFetching, replays, sort, visibleColumns}: Pr
   );
 }
 
-const gridTemplateColumns = (p: {visibleColumns: Array<keyof typeof ReplayColumns>}) => {
-  const columnCount = p.visibleColumns.length;
-
-  if (p.visibleColumns.includes('session')) {
-    return `minmax(0, 1fr) repeat(${columnCount - 1}, max-content)`;
-  }
-  return `repeat(${columnCount}, max-content)`;
-};
-
 const StyledPanelTable = styled(PanelTable)<{
   visibleColumns: Array<keyof typeof ReplayColumns>;
 }>`
-  grid-template-columns: ${gridTemplateColumns};
+  grid-template-columns: ${p.visibleColumns
+    .map(column => (column === 'session' ? 'minmax(100px, 1fr)' : 'max-content'))
+    .join(' ')};
 `;
 
 const StyledAlert = styled(Alert)`
