@@ -546,6 +546,10 @@ def validate_referrer(referrer: Optional[str]):
     if not referrer:
         return
     referrers = {referrer.value for referrer in Referrer}
-    if referrer not in referrers:
+    error_message = f"referrer {referrer} is not part of Referrer Enum"
+    try:
+        if referrer not in referrers:
+            raise Exception(error_message)
+    except Exception:
         metrics.incr("snql.sdk.api.new_referrers", tags={"referrer": referrer})
-        logger.warning(f"referrer {referrer} is not part of Referrer Enum")
+        logger.warning(error_message, exc_info=True)
