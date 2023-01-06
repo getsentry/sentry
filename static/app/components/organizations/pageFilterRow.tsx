@@ -104,6 +104,8 @@ const Label = styled('div')<{multi: boolean}>`
 `;
 
 const CheckboxContainer = styled('div')`
+  display: flex;
+  align-items: center;
   & > * {
     display: flex;
     align-items: center;
