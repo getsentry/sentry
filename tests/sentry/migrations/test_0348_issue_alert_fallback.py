@@ -24,6 +24,9 @@ class BackfillAlertRuleTypeTest(TestMigrations):
         return rule
 
     def setup_before_migration(self, apps):
+        self.project_no_alerts = Project.objects.create(
+            organization_id=self.organization.id, name="p0"
+        )
         project_no_fallback = Project.objects.create(
             organization_id=self.organization.id, name="p1"
         )
@@ -45,9 +48,8 @@ class BackfillAlertRuleTypeTest(TestMigrations):
             ]
         ]
 
-        Rule.objects.filter(id__in=[alert.id for alert in self.alerts])
-
     def test(self):
+        assert not Rule.objects.filter(project_id=self.project_no_alerts.id).exists()
         for alert, expected_type in zip(
             self.alerts,
             ["ActiveMembers", "AllMembers", "NoOne"],
@@ -55,4 +57,3 @@ class BackfillAlertRuleTypeTest(TestMigrations):
             alert = Rule.objects.get(id=alert.id)
             action = alert.data["actions"][0]
             assert action["fallthroughType"] == expected_type
-        assert True
