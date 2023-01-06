@@ -12,7 +12,7 @@ def actor_key(actor):
     return actor.id
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class ProjectOwnershipTestCase(TestCase):
     def tearDown(self):
         cache.delete(ProjectOwnership.get_cache_key(self.project.id))

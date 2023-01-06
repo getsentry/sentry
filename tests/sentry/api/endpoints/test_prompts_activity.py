@@ -3,6 +3,7 @@ from django.urls import reverse
 from sentry.testutils import APITestCase
 
 
+# TODO(hybrid-cloud): stable=True blocked on notification settings
 class PromptsActivityTest(APITestCase):
     def setUp(self):
         super().setUp()

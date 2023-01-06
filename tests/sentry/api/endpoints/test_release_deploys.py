@@ -4,8 +4,10 @@ from django.urls import reverse
 
 from sentry.models import Deploy, Environment, Release, ReleaseProjectEnvironment
 from sentry.testutils import APITestCase
+from sentry.testutils.silo import region_silo_test
 
 
+@region_silo_test(stable=True)
 class ReleaseDeploysListTest(APITestCase):
     def test_simple(self):
         project = self.create_project(name="foo")
@@ -45,6 +47,7 @@ class ReleaseDeploysListTest(APITestCase):
         assert response.data[1]["environment"] == "production"
 
 
+@region_silo_test(stable=True)
 class ReleaseDeploysCreateTest(APITestCase):
     def setUp(self):
         user = self.create_user(is_staff=False, is_superuser=False)

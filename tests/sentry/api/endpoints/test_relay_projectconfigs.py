@@ -10,6 +10,7 @@ from sentry.constants import ObjectStatus
 from sentry.models import Project
 from sentry.models.relay import Relay
 from sentry.testutils.helpers import Feature
+from sentry.testutils.silo import region_silo_test
 from sentry.utils import json, safe
 
 _date_regex = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z$")
@@ -101,6 +102,7 @@ def no_internal_networks(monkeypatch):
 
 
 @pytest.mark.django_db
+@region_silo_test(stable=True)
 def test_internal_relays_should_receive_minimal_configs_if_they_do_not_explicitly_ask_for_full_config(
     call_endpoint, default_project
 ):
@@ -118,6 +120,7 @@ def test_internal_relays_should_receive_minimal_configs_if_they_do_not_explicitl
 
 
 @pytest.mark.django_db
+@region_silo_test(stable=True)
 def test_internal_relays_should_receive_full_configs(
     call_endpoint, default_project, default_projectkey
 ):
@@ -166,6 +169,7 @@ def test_internal_relays_should_receive_full_configs(
 
 
 @pytest.mark.django_db
+@region_silo_test(stable=True)
 def test_relays_dyamic_sampling(client, call_endpoint, default_project, dyn_sampling_data):
     """
     Tests that dynamic sampling configuration set in project details are retrieved in relay configs
@@ -184,6 +188,7 @@ def test_relays_dyamic_sampling(client, call_endpoint, default_project, dyn_samp
 
 
 @pytest.mark.django_db
+@region_silo_test(stable=True)
 def test_trusted_external_relays_should_not_be_able_to_request_full_configs(
     add_org_key, call_endpoint, no_internal_networks
 ):
@@ -192,6 +197,7 @@ def test_trusted_external_relays_should_not_be_able_to_request_full_configs(
 
 
 @pytest.mark.django_db
+@region_silo_test(stable=True)
 def test_when_not_sending_full_config_info_into_a_internal_relay_a_restricted_config_is_returned(
     call_endpoint, default_project
 ):
@@ -205,6 +211,7 @@ def test_when_not_sending_full_config_info_into_a_internal_relay_a_restricted_co
 
 
 @pytest.mark.django_db
+@region_silo_test(stable=True)
 def test_when_not_sending_full_config_info_into_an_external_relay_a_restricted_config_is_returned(
     call_endpoint, add_org_key, relay, default_project
 ):
@@ -221,6 +228,7 @@ def test_when_not_sending_full_config_info_into_an_external_relay_a_restricted_c
 
 
 @pytest.mark.django_db
+@region_silo_test(stable=True)
 def test_trusted_external_relays_should_receive_minimal_configs(
     relay, add_org_key, call_endpoint, default_project, default_projectkey
 ):
@@ -259,6 +267,7 @@ def test_trusted_external_relays_should_receive_minimal_configs(
 
 
 @pytest.mark.django_db
+@region_silo_test(stable=True)
 def test_untrusted_external_relays_should_not_receive_configs(
     call_endpoint, default_project, no_internal_networks
 ):
@@ -280,6 +289,7 @@ def projectconfig_cache_set(monkeypatch):
 
 
 @pytest.mark.django_db
+@region_silo_test(stable=True)
 def test_relay_projectconfig_cache_minimal_config(
     call_endpoint, default_project, projectconfig_cache_set, task_runner
 ):
@@ -295,6 +305,7 @@ def test_relay_projectconfig_cache_minimal_config(
 
 
 @pytest.mark.django_db
+@region_silo_test(stable=True)
 def test_relay_projectconfig_cache_full_config(
     call_endpoint, default_project, projectconfig_cache_set, task_runner
 ):
@@ -320,6 +331,7 @@ def test_relay_projectconfig_cache_full_config(
 
 
 @pytest.mark.django_db
+@region_silo_test(stable=True)
 def test_relay_nonexistent_project(call_endpoint, projectconfig_cache_set, task_runner):
     wrong_id = max(p.id for p in Project.objects.all()) + 1
 
@@ -334,6 +346,7 @@ def test_relay_nonexistent_project(call_endpoint, projectconfig_cache_set, task_
 
 
 @pytest.mark.django_db
+@region_silo_test(stable=True)
 def test_relay_disabled_project(
     call_endpoint, default_project, projectconfig_cache_set, task_runner
 ):
