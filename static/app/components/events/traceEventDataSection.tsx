@@ -245,7 +245,7 @@ export function TraceEventDataSection({
                 )}
                 <CompactSelect
                   triggerProps={{
-                    icon: <IconSort />,
+                    icon: <IconSort size="xs" />,
                     size: 'xs',
                     title: sortByTooltip,
                   }}
