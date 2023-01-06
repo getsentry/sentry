@@ -13,7 +13,7 @@ logger.setLevel(logging.INFO)
 # Read this to learn about file extensions for different languages
 # https://github.com/github/linguist/blob/master/lib/linguist/languages.yml
 # We only care about the ones that would show up in stacktraces after symbolication
-EXTENSIONS = ["js", "jsx", "tsx", "ts", "mjs", "py", "rb", "php", "go"]
+EXTENSIONS = ["js", "jsx", "tsx", "ts", "mjs", "py", "rb", "rake", "php", "go"]
 
 
 class Repo(NamedTuple):
