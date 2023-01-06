@@ -1,4 +1,5 @@
 import {
+  act,
   render,
   renderGlobalModal,
   screen,
@@ -17,11 +18,11 @@ describe('GlobalModal', function () {
   it('uses actionCreators to open and close Modal', async function () {
     renderGlobalModal();
 
-    openModal(() => <div data-test-id="modal-test">Hi</div>);
+    act(() => openModal(() => <div data-test-id="modal-test">Hi</div>));
 
     expect(screen.getByTestId('modal-test')).toBeInTheDocument();
 
-    closeModal();
+    act(() => closeModal());
 
     await waitForElementToBeRemoved(screen.queryByTestId('modal-test'));
     expect(screen.queryByTestId('modal-test')).not.toBeInTheDocument();
@@ -31,13 +32,15 @@ describe('GlobalModal', function () {
     renderGlobalModal();
     const closeSpy = jest.fn();
 
-    openModal(
-      ({Header}) => (
-        <div id="modal-test">
-          <Header closeButton>Header</Header>Hi
-        </div>
-      ),
-      {onClose: closeSpy}
+    act(() =>
+      openModal(
+        ({Header}) => (
+          <div id="modal-test">
+            <Header closeButton>Header</Header>Hi
+          </div>
+        ),
+        {onClose: closeSpy}
+      )
     );
 
     userEvent.click(screen.getByRole('button', {name: 'Close Modal'}));
@@ -49,9 +52,11 @@ describe('GlobalModal', function () {
     renderGlobalModal();
     const closeSpy = jest.fn();
 
-    openModal(({closeModal: cm}) => <button onClick={cm}>Yo</button>, {
-      onClose: closeSpy,
-    });
+    act(() =>
+      openModal(({closeModal: cm}) => <button onClick={cm}>Yo</button>, {
+        onClose: closeSpy,
+      })
+    );
 
     userEvent.click(screen.getByRole('button', {name: 'Yo'}));
 
@@ -62,13 +67,15 @@ describe('GlobalModal', function () {
     renderGlobalModal();
     render(<div data-test-id="outside-test">Hello</div>);
 
-    openModal(
-      ({Header}) => (
-        <div data-test-id="modal-test">
-          <Header closeButton>Header</Header>Hi
-        </div>
-      ),
-      {allowClickClose: false}
+    act(() =>
+      openModal(
+        ({Header}) => (
+          <div data-test-id="modal-test">
+            <Header closeButton>Header</Header>Hi
+          </div>
+        ),
+        {allowClickClose: false}
+      )
     );
 
     expect(screen.getByTestId('modal-test')).toBeInTheDocument();

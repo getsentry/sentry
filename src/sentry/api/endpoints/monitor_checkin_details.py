@@ -5,7 +5,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.authentication import DSNAuthentication
-from sentry.api.base import Endpoint, pending_silo_endpoint
+from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.bases.monitor import MonitorEndpoint, ProjectMonitorPermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.fields.empty_integer import EmptyIntegerField
@@ -33,7 +33,7 @@ class CheckInSerializer(serializers.Serializer):
     duration = EmptyIntegerField(required=False, allow_null=True)
 
 
-@pending_silo_endpoint
+@region_silo_endpoint
 class MonitorCheckInDetailsEndpoint(Endpoint):
     authentication_classes = MonitorEndpoint.authentication_classes + (DSNAuthentication,)
     permission_classes = (ProjectMonitorPermission,)
@@ -60,10 +60,22 @@ class MonitorCheckInDetailsEndpoint(Endpoint):
 
         bind_organization_context(project.organization)
 
-        try:
-            checkin = MonitorCheckIn.objects.get(monitor=monitor, guid=checkin_id)
-        except MonitorCheckIn.DoesNotExist:
-            raise ResourceDoesNotExist
+        # we support the magic keyword of "latest" to grab the most recent check-in
+        # which is unfinished (thus still mutable)
+        if checkin_id == "latest":
+            checkin = (
+                MonitorCheckIn.objects.filter(monitor=monitor)
+                .exclude(status__in=CheckInStatus.FINISHED_VALUES)
+                .order_by("-date_added")
+                .first()
+            )
+            if not checkin:
+                raise ResourceDoesNotExist
+        else:
+            try:
+                checkin = MonitorCheckIn.objects.get(monitor=monitor, guid=checkin_id)
+            except MonitorCheckIn.DoesNotExist:
+                raise ResourceDoesNotExist
 
         request._request.organization = project.organization
 
@@ -78,6 +90,9 @@ class MonitorCheckInDetailsEndpoint(Endpoint):
         :pparam string monitor_id: the id of the monitor.
         :pparam string checkin_id: the id of the check-in.
         :auth: required
+
+        You may use `latest` for the `checkin_id` parameter in order to retrieve
+        the most recent (by creation date) check-in which is still mutable (not marked as finished).
         """
         # we don't allow read permission with DSNs
         if isinstance(request.auth, ProjectKey):
@@ -93,6 +108,9 @@ class MonitorCheckInDetailsEndpoint(Endpoint):
         :pparam string monitor_id: the id of the monitor.
         :pparam string checkin_id: the id of the check-in.
         :auth: required
+
+        You may use `latest` for the `checkin_id` parameter in order to retrieve
+        the most recent (by creation date) check-in which is still mutable (not marked as finished).
         """
         if checkin.status in CheckInStatus.FINISHED_VALUES:
             return self.respond(status=400)

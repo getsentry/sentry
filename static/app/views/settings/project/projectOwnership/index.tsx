@@ -346,17 +346,21 @@ tags.sku_class:enterprise #enterprise`;
                       ],
                       disabled,
                     },
-                    {
-                      name: 'fallthrough',
-                      type: 'boolean',
-                      label: t(
-                        'Send alert to project members if there’s no assigned owner'
-                      ),
-                      help: t(
-                        'Alerts will be sent to all users who have access to this project.'
-                      ),
-                      disabled,
-                    },
+                    ...(organization.features.includes('issue-alert-fallback-targeting')
+                      ? []
+                      : [
+                          {
+                            name: 'fallthrough',
+                            type: 'boolean' as const,
+                            label: t(
+                              'Send alert to project members if there’s no assigned owner'
+                            ),
+                            help: t(
+                              'Alerts will be sent to all users who have access to this project.'
+                            ),
+                            disabled,
+                          },
+                        ]),
                     {
                       name: 'codeownersAutoSync',
                       type: 'boolean',

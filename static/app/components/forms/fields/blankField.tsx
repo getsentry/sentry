@@ -1,5 +1,5 @@
-import Field from 'sentry/components/forms/field';
-import {FieldGroupProps} from 'sentry/components/forms/field/types';
+import FieldGroup from 'sentry/components/forms/fieldGroup';
+import {FieldGroupProps} from 'sentry/components/forms/fieldGroup/types';
 
 /**
  * This class is meant to hook into `fieldFromConfig`. Like the SeparatorField
@@ -7,7 +7,7 @@ import {FieldGroupProps} from 'sentry/components/forms/field/types';
  * forms more flexible.
  */
 function BlankField(props: FieldGroupProps) {
-  return <Field {...props} />;
+  return <FieldGroup {...props} />;
 }
 
 export default BlankField;
