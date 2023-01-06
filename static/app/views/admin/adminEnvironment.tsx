@@ -49,7 +49,7 @@ export default class AdminEnvironment extends AsyncView<{}, State> {
                     "You're running an old version of Sentry, did you know %s is available?",
                     version.latest
                   )}
-                  priority="link"
+                  borderless
                   href="https://github.com/getsentry/sentry/releases"
                   icon={<IconQuestion size="sm" />}
                   size="sm"
