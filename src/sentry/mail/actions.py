@@ -39,7 +39,7 @@ class NotifyEmailAction(EventAction):
             "organizations:issue-alert-fallback-targeting", self.project.organization, actor=None
         ):
             if "fallthroughType" not in self.data:
-                self.data["fallthroughType"] = "ActiveMembers"
+                self.data["fallthroughType"] = FallthroughChoiceType.ACTIVE_MEMBERS.value
             return self.label.format(**self.data)
 
         return "Send a notification to {targetType}".format(**self.data)
