@@ -222,13 +222,8 @@ def bulk_delete_objects(
             params.append(value)
 
     for column, value in filters.items():
-        if column.endswith("__in"):
-            column, _ = column.split("__")
-            query.append(f"{quote_name(column)} = ANY(%s)")
-            params.append(value)
-        else:
-            query.append(f"{quote_name(column)} = %s")
-            params.append(value)
+        query.append(f"{quote_name(column)} = %s")
+        params.append(value)
 
     query = """
         delete from %(table)s
