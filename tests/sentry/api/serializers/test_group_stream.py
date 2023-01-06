@@ -13,7 +13,7 @@ from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import region_silo_test
 from sentry.types.issues import GroupCategory, GroupType
-from tests.sentry.issues.store_search_issue import SearchIssueTestMixin
+from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
 
 @region_silo_test
