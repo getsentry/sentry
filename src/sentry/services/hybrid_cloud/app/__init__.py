@@ -25,7 +25,7 @@ class AppService(InterfaceWithLifecycle):
         self,
         *,
         organization_id: Optional[int] = None,
-        status: SentryAppInstallationStatus = SentryAppInstallationStatus.INSTALLED,
+        status: Optional[int] = SentryAppInstallationStatus.INSTALLED,
         date_deleted: Optional[datetime.datetime] = None,
         api_token_id: Optional[int] = None,
     ) -> List[ApiSentryAppInstallation]:
@@ -93,4 +93,4 @@ class ApiSentryApp:
     slug: str = ""
     uuid: str = ""
     events: List[str] = field(default_factory=list)
-    status: SentryAppStatus = SentryAppStatus.UNPUBLISHED
+    status: int = SentryAppStatus.UNPUBLISHED

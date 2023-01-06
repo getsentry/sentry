@@ -13,7 +13,7 @@ class DatabaseBackedAppService(AppService):
         self,
         *,
         organization_id: Optional[int] = None,
-        status: SentryAppInstallationStatus = SentryAppInstallationStatus.INSTALLED,
+        status: Optional[int] = SentryAppInstallationStatus.INSTALLED,
         date_deleted: Optional[datetime.datetime] = None,
         api_token_id: Optional[int] = None,
     ) -> List[ApiSentryAppInstallation]:

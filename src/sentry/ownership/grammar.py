@@ -542,14 +542,16 @@ def resolve_actors(owners: Iterable[Owner], project_id: int) -> Mapping[Owner, A
 
     actors = {}
     if users:
+        user_list = user_service.get_many(
+            project_ids=[project_id], is_active=True, emails=[o.identifier for o in users]
+        )
+        email_list = [(u, email) for u in user_list for email in u.useremails]
         actors.update(
             {
-                ("user", u.email.lower()): ActorTuple(u.id, User)
+                ("user", useremail.email.lower()): ActorTuple(u.id, User)
                 # This will need to be broken in hybrid cloud world, querying users from region silo won't be possible
                 # without an explicit service call.
-                for u in user_service.query_users(
-                    project_ids=[project_id], is_active=True, emails=[o.identifier for o in users]
-                )
+                for u, useremail in email_list
             }
         )
 

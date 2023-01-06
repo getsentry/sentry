@@ -332,7 +332,7 @@ def _get_release_committers(release: Release) -> Sequence[APIUser]:
 
     if features.has("organizations:active-release-notifications-enable", release.organization):
         user_ids: set[int] = {au["id"] for au in author_users.values() if au.get("id")}
-        return user_service.get_many(user_ids=user_ids)
+        return user_service.get_many(user_ids=list(user_ids))
     return []
 
 
@@ -441,7 +441,7 @@ def get_users_from_team_fall_back(
         # Fall back to notifying each subscribed user if there aren't team notification settings
         member_list = team.member_set.values_list("user_id", flat=True)
         user_ids |= set(member_list)
-    return user_service.get_many(user_ids=user_ids)
+    return user_service.get_many(user_ids=list(user_ids))
 
 
 def combine_recipients_by_provider(
