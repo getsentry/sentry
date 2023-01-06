@@ -204,7 +204,7 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
           color: theme.formText,
           background: theme.background,
           border: `1px solid ${theme.border}`,
-          boxShadow: theme.dropShadowLight,
+          boxShadow: theme.dropShadowMedium,
         },
         borderRadius: theme.borderRadius,
         transition: 'border 0.1s, box-shadow 0.1s',
