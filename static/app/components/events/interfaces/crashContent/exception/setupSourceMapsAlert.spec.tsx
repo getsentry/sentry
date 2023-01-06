@@ -57,7 +57,7 @@ describe('SetupSourceMapsAlert', function () {
       )
     ).toBeInTheDocument();
 
-    expect(screen.getByRole('button', {name: 'Upload Source Maps'})).toHaveAttribute(
+    expect(screen.getByRole('link', {name: 'Upload Source Maps'})).toHaveAttribute(
       'href',
       'https://docs.sentry.io/platforms/javascript/sourcemaps/'
     );
@@ -91,7 +91,7 @@ describe('SetupSourceMapsAlert', function () {
       )
     ).toBeInTheDocument();
 
-    expect(screen.getByRole('button', {name: 'Upload Source Maps'})).toHaveAttribute(
+    expect(screen.getByRole('link', {name: 'Upload Source Maps'})).toHaveAttribute(
       'href',
       'https://docs.sentry.io/platforms/javascript/guides/react/sourcemaps/'
     );
@@ -126,7 +126,7 @@ describe('SetupSourceMapsAlert', function () {
       )
     ).toBeInTheDocument();
 
-    expect(screen.getByRole('button', {name: 'Upload Source Maps'})).toHaveAttribute(
+    expect(screen.getByRole('link', {name: 'Upload Source Maps'})).toHaveAttribute(
       'href',
       'https://docs.sentry.io/platforms/javascript/guides/react/sourcemaps/'
     );
@@ -160,7 +160,7 @@ describe('SetupSourceMapsAlert', function () {
       )
     ).toBeInTheDocument();
 
-    expect(screen.getByRole('button', {name: 'Upload Source Maps'})).toHaveAttribute(
+    expect(screen.getByRole('link', {name: 'Upload Source Maps'})).toHaveAttribute(
       'href',
       'https://docs.sentry.io/platforms/javascript/sourcemaps/'
     );
@@ -199,7 +199,7 @@ describe('SetupSourceMapsAlert', function () {
       )
     ).toBeInTheDocument();
 
-    expect(screen.getByRole('button', {name: 'Upload Source Maps'})).toHaveAttribute(
+    expect(screen.getByRole('link', {name: 'Upload Source Maps'})).toHaveAttribute(
       'href',
       'https://docs.sentry.io/platforms/javascript/sourcemaps/'
     );
