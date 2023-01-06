@@ -7,7 +7,7 @@ from sentry.testutils import APITestCase
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class OrganizationProjectsTestBase(APITestCase):
     endpoint = "sentry-api-0-organization-projects"
 
@@ -30,7 +30,7 @@ class OrganizationProjectsTestBase(APITestCase):
         self.check_valid_response(response, [project])
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class OrganizationProjectsTest(OrganizationProjectsTestBase):
     def setUp(self):
         super().setUp()
@@ -222,7 +222,7 @@ class OrganizationProjectsTest(OrganizationProjectsTestBase):
         assert not response.data[1].get("options")
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class OrganizationProjectsCountTest(APITestCase):
     endpoint = "sentry-api-0-organization-projects-count"
 
