@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 
 import Button from 'sentry/components/button';
-import FieldGroup from 'sentry/components/forms/field';
+import FieldGroup from 'sentry/components/forms/fieldGroup';
 import {
   Panel,
   PanelAlert,
