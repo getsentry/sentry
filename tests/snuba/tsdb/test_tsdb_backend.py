@@ -875,7 +875,6 @@ class SnubaTSDBGroupProfilingTest(TestCase, SnubaTestCase, SearchIssueTestMixin)
                 (timestamp(dts[3]), 3),
             ],
         }
-
         assert self.db.get_range(TSDBModel.group_generic, [], dts[0], dts[-1], rollup=3600) == {}
 
     def test_get_distinct_counts_totals_users(self):

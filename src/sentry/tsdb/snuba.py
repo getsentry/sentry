@@ -8,6 +8,7 @@ from typing import Any, Optional, Sequence
 from sentry.constants import DataCategory
 from sentry.ingest.inbound_filters import FILTER_STAT_KEYS_TO_VALUES
 from sentry.tsdb.base import BaseTSDB, TSDBModel
+from sentry.types.issues import PROFILE_TYPES
 from sentry.utils import outcomes, snuba
 from sentry.utils.dates import to_datetime
 
@@ -64,6 +65,11 @@ class SnubaTSDB(BaseTSDB):
     # ``non_outcomes_query_settings`` are all the query settings for non outcomes based TSDB models.
     # Single tenant reads Snuba for these models, and writes to DummyTSDB. It reads and writes to Redis for all the
     # other models.
+    search_issues_profile_condition = [
+        "occurrence_type_id",
+        "IN",
+        PROFILE_TYPES,
+    ]
     non_outcomes_query_settings = {
         TSDBModel.project: SnubaModelQuerySettings(
             snuba.Dataset.Events, "project_id", None, [events_type_condition]
