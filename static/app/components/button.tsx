@@ -103,7 +103,7 @@ interface BaseButtonProps
    * contextually the primary action, `danger` if the button will do something
    * destructive, `link` for visual similarity to a link.
    */
-  priority?: 'default' | 'primary' | 'danger' | 'link' | 'form';
+  priority?: 'default' | 'primary' | 'danger' | 'link';
   /**
    * @deprecated Use `external`
    */

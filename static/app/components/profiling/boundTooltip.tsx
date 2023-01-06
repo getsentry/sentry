@@ -49,7 +49,7 @@ function BoundTooltip({
   const physicalSpaceCursor = vec2.transformMat3(
     vec2.create(),
     cursor,
-    canvasView.fromConfigView(canvas.physicalSpace)
+    canvasView.fromTransformedConfigView(canvas.physicalSpace)
   );
 
   const logicalSpaceCursor = vec2.transformMat3(
