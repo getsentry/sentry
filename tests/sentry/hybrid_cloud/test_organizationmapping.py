@@ -3,7 +3,7 @@ import time
 import pytest
 from django.db import IntegrityError
 
-from sentry.models import Organization, RegionOutbox
+from sentry.models import Organization
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.services.hybrid_cloud.organization_mapping import (
     ApiOrganizationMappingUpdate,
@@ -146,7 +146,9 @@ class OrganizationMappingTest(TransactionTestCase):
         assert org.id == mapping.organization_id
 
         with exempt_from_silo_limits():
-            RegionOutbox.drain_for_model(org)
+            outbox = Organization.outbox_for_update(org.id)
+            outbox.save()
+            outbox.drain_shard()
             # org_summary = organization_service.get_organizations(
             #     organization_ids=[org.id],
             #     only_visible=False,
