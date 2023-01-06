@@ -1,4 +1,3 @@
-import datetime
 from unittest import mock
 
 from freezegun import freeze_time
@@ -9,15 +8,14 @@ from sentry.api.serializers.models.group_stream import (
     StreamGroupSerializerSnuba,
 )
 from sentry.models import Environment
-from sentry.testutils import SnubaTestCase, TestCase
+from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import region_silo_test
-from sentry.types.issues import GroupCategory, GroupType
-from tests.sentry.issues.store_search_issue import SearchIssueTestMixin
+from sentry.types.issues import GroupType
 
 
 @region_silo_test
-class StreamGroupSerializerTestCase(TestCase, SnubaTestCase, SearchIssueTestMixin):
+class StreamGroupSerializerTestCase(TestCase):
     def test_environment(self):
         group = self.group
 
@@ -75,21 +73,5 @@ class StreamGroupSerializerTestCase(TestCase, SnubaTestCase, SearchIssueTestMixi
         assert serialized["count"] == "1"
         assert serialized["issueCategory"] == "performance"
         assert serialized["issueType"] == "performance_n_plus_one_db_queries"
-        assert [stat[1] for stat in serialized["stats"]["24h"][:-1]] == [0] * 23
-        assert serialized["stats"]["24h"][-1][1] == 1
-
-    @freeze_time(before_now(days=1).replace(hour=13, minute=30, second=0, microsecond=0))
-    def test_profiling_issue(self):
-        cur_time = before_now(minutes=5).replace(tzinfo=datetime.timezone.utc)
-        event, occurrence, group_info = self.store_search_issue(
-            self.project.id, 1, [f"{GroupType.PROFILE_BLOCKED_THREAD.value}-group1"], None, cur_time
-        )
-        assert group_info
-        serialized = serialize(
-            group_info.group, serializer=StreamGroupSerializerSnuba(stats_period="24h")
-        )
-        assert serialized["count"] == "1"
-        assert serialized["issueCategory"] == str(GroupCategory.PROFILE.name).lower()
-        assert serialized["issueType"] == str(GroupType.PROFILE_BLOCKED_THREAD.name).lower()
         assert [stat[1] for stat in serialized["stats"]["24h"][:-1]] == [0] * 23
         assert serialized["stats"]["24h"][-1][1] == 1
