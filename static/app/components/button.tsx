@@ -288,9 +288,9 @@ const getBoxShadow = ({
   }
 
   return `
-      box-shadow: ${translucentBorderString} ${theme.dropShadowLight};
+      box-shadow: ${translucentBorderString} ${theme.dropShadowMedium};
       &:active {
-        box-shadow: ${translucentBorderString} inset ${theme.dropShadowLight};
+        box-shadow: ${translucentBorderString} inset ${theme.dropShadowMedium};
       }
     `;
 };
