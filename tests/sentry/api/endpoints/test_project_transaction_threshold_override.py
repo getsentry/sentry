@@ -12,7 +12,7 @@ from sentry.testutils.silo import region_silo_test
 from sentry.utils.samples import load_data
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class ProjectTransactionThresholdOverrideTest(APITestCase):
     feature_name = "organizations:performance-view"
 

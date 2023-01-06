@@ -13,7 +13,7 @@ class ProjectTeamDetailsTest(APITestCase):
         self.login_as(self.user)
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class ProjectTeamDetailsPostTest(ProjectTeamDetailsTest):
     method = "post"
 
@@ -41,7 +41,7 @@ class ProjectTeamDetailsPostTest(ProjectTeamDetailsTest):
         )
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class ProjectTeamDetailsDeleteTest(ProjectTeamDetailsTest):
     method = "delete"
 

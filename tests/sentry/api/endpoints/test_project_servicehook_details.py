@@ -3,7 +3,7 @@ from sentry.testutils import APITestCase
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class ProjectServiceHookDetailsTest(APITestCase):
     def test_simple(self):
         project = self.create_project()
@@ -17,7 +17,7 @@ class ProjectServiceHookDetailsTest(APITestCase):
         assert response.data["id"] == hook.guid
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class UpdateProjectServiceHookTest(APITestCase):
     def setUp(self):
         super().setUp()
@@ -39,7 +39,7 @@ class UpdateProjectServiceHookTest(APITestCase):
         assert hook.events == ["event.alert", "event.created"]
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class DeleteProjectServiceHookTest(APITestCase):
     def setUp(self):
         super().setUp()

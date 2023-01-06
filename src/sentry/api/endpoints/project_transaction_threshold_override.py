@@ -117,7 +117,7 @@ class ProjectTransactionThresholdOverrideEndpoint(OrganizationEventsV2EndpointBa
                 defaults={
                     "threshold": data["threshold"],
                     "metric": data["metric"],
-                    "edited_by": request.user,
+                    "edited_by_id": request.user.id,
                 },
             )
 

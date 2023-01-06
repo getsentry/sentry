@@ -601,6 +601,7 @@ class EndpointSiloLimit(SiloLimit):
 
 control_silo_endpoint = EndpointSiloLimit(SiloMode.CONTROL)
 region_silo_endpoint = EndpointSiloLimit(SiloMode.REGION)
+all_silo_endpoint = EndpointSiloLimit(SiloMode.REGION, SiloMode.CONTROL)
 
 # Use this decorator to mark endpoints that still need to be marked as either
 # control_silo_endpoint or region_silo_endpoint. Marking a class with
