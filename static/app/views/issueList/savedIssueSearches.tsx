@@ -107,7 +107,6 @@ const SavedSearchItem = ({
         aria-label={savedSearch.name}
         onClick={() => onSavedSearchSelect(savedSearch)}
         borderless
-        align="left"
       >
         <TitleDescriptionWrapper>
           <SavedSearchItemTitle>{savedSearch.name}</SavedSearchItemTitle>
