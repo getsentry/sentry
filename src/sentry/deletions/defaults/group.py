@@ -47,6 +47,7 @@ class EventDataDeletionTask(BaseDeletionTask):
     Deletes nodestore data, EventAttachment and UserReports for group
     """
 
+    # Number of events fetched from eventstore per chunk() call.
     DEFAULT_CHUNK_SIZE = 10000
 
     def __init__(self, manager, groups, **kwargs):
@@ -110,6 +111,10 @@ class EventDataDeletionTask(BaseDeletionTask):
 
 
 class GroupDeletionTask(ModelDeletionTask):
+    # Delete groups in blocks of 1000. Using 1000 aims to
+    # balance the number of snuba replacements with memory limits.
+    DEFAULT_CHUNK_SIZE = 1000
+
     def delete_bulk(self, instance_list):
         """
         Group deletion operates as a quasi-bulk operation so that we don't flood

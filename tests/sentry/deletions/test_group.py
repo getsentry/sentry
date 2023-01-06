@@ -83,7 +83,7 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
         self.node_id3 = Event.generate_node_id(self.project.id, self.event_id3)
 
     def test_simple(self):
-        EventDataDeletionTask.EVENT_CHUNK_SIZE = 1  # test chunking logic
+        EventDataDeletionTask.DEFAULT_CHUNK_SIZE = 1  # test chunking logic
         group = self.event.group
         assert nodestore.get(self.node_id)
         assert nodestore.get(self.node_id2)
