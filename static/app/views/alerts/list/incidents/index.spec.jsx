@@ -26,11 +26,7 @@ describe('IncidentsList', () => {
     return {
       component: render(
         <AlertsContainer>
-          <IncidentsList
-            params={{orgId: org.slug}}
-            location={{query: {}, search: ''}}
-            router={router}
-          />
+          <IncidentsList params={{}} location={{query: {}, search: ''}} router={router} />
         </AlertsContainer>,
         {context: routerContext, organization: org}
       ),
