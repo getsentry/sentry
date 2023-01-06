@@ -16,150 +16,131 @@ import {spanOperationRelativeBreakdownRenderer} from 'sentry/utils/discover/fiel
 import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
 import type {ReplayListRecordWithTx} from 'sentry/views/performance/transactionSummary/transactionReplays/useReplaysFromTransaction';
-import type {VisibleColumns} from 'sentry/views/replays/replayTable/types';
 import type {ReplayListRecord} from 'sentry/views/replays/types';
 
 type Props = {
-  column: keyof VisibleColumns;
-  eventView: EventView;
-  organization: Organization;
-  referrer: string;
   replay: ReplayListRecord | ReplayListRecordWithTx;
 };
 
-function TableCell({column, eventView, organization, referrer, replay}: Props) {
-  const location = useLocation();
+export function SessionCell({
+  eventView,
+  organization,
+  referrer,
+  replay,
+}: Props & {eventView: EventView; organization: Organization; referrer: string}) {
   const {projects} = useProjects();
   const project = projects.find(p => p.id === replay.projectId);
 
-  switch (column) {
-    case 'session':
-      return (
-        <UserBadge
-          avatarSize={32}
-          displayName={
-            <Link
-              to={{
-                pathname: `/organizations/${organization.slug}/replays/${project?.slug}:${replay.id}/`,
-                query: {
-                  referrer,
-                  ...eventView.generateQueryStringObject(),
-                },
-              }}
-            >
-              {replay.user.displayName || ''}
-            </Link>
-          }
-          user={{
-            username: replay.user.displayName || '',
-            email: replay.user.email || '',
-            id: replay.user.id || '',
-            ip_address: replay.user.ip_address || '',
-            name: replay.user.name || '',
+  return (
+    <UserBadge
+      avatarSize={32}
+      displayName={
+        <Link
+          to={{
+            pathname: `/organizations/${organization.slug}/replays/${project?.slug}:${replay.id}/`,
+            query: {
+              referrer,
+              ...eventView.generateQueryStringObject(),
+            },
           }}
-          // this is the subheading for the avatar, so displayEmail in this case is a misnomer
-          displayEmail={<StringWalker urls={replay.urls} />}
-        />
-      );
+        >
+          {replay.user.displayName || ''}
+        </Link>
+      }
+      user={{
+        username: replay.user.displayName || '',
+        email: replay.user.email || '',
+        id: replay.user.id || '',
+        ip_address: replay.user.ip_address || '',
+        name: replay.user.name || '',
+      }}
+      // this is the subheading for the avatar, so displayEmail in this case is a misnomer
+      displayEmail={<StringWalker urls={replay.urls} />}
+    />
+  );
+}
 
-    case 'projectId':
-      return (
-        <Item>{project ? <ProjectBadge project={project} avatarSize={16} /> : null}</Item>
-      );
+export function ProjectCell({replay}: Props) {
+  const {projects} = useProjects();
+  const project = projects.find(p => p.id === replay.projectId);
 
-    case 'slowestTransaction': {
-      const hasTxEvent = 'txEvent' in replay;
-      const txDuration = hasTxEvent
-        ? replay.txEvent?.['transaction.duration']
-        : undefined;
-      return (
-        <Item>
-          {hasTxEvent ? (
-            <SpanOperationBreakdown>
-              {txDuration ? <TxDuration>{txDuration}ms</TxDuration> : null}
-              {spanOperationRelativeBreakdownRenderer(
-                replay.txEvent,
-                {
-                  organization,
-                  location,
-                },
-                {
-                  enableOnClick: false,
-                }
-              )}
-            </SpanOperationBreakdown>
-          ) : null}
-        </Item>
-      );
-    }
+  return (
+    <Item>{project ? <ProjectBadge project={project} avatarSize={16} /> : null}</Item>
+  );
+}
 
-    case 'startedAt':
-      return (
-        <Item>
-          <TimeSinceWrapper>
-            <StyledIconCalendarWrapper color="gray500" size="sm" />
-            <TimeSince date={replay.startedAt} />
-          </TimeSinceWrapper>
-        </Item>
-      );
+export function TransactionCell({
+  organization,
+  replay,
+}: Props & {organization: Organization}) {
+  const location = useLocation();
 
-    case 'duration':
-      return (
-        <Item>
-          <Duration seconds={replay.duration.asSeconds()} exact abbreviation />
-        </Item>
-      );
+  const hasTxEvent = 'txEvent' in replay;
+  const txDuration = hasTxEvent ? replay.txEvent?.['transaction.duration'] : undefined;
+  return hasTxEvent ? (
+    <SpanOperationBreakdown>
+      {txDuration ? <div>{txDuration}ms</div> : null}
+      {spanOperationRelativeBreakdownRenderer(
+        replay.txEvent,
+        {
+          organization,
+          location,
+        },
+        {
+          enableOnClick: false,
+        }
+      )}
+    </SpanOperationBreakdown>
+  ) : null;
+}
 
-    case 'countErrors':
-      return (
-        <Item data-test-id="replay-table-count-errors">{replay.countErrors || 0}</Item>
-      );
+export function StartedAtCell({replay}: Props) {
+  return (
+    <Item>
+      <IconCalendar color="gray500" size="sm" />
+      <TimeSince date={replay.startedAt} />
+    </Item>
+  );
+}
 
-    case 'activity': {
-      const scoreBarPalette = new Array(10).fill([CHART_PALETTE[0][0]]);
-      return (
-        <Item>
-          <ScoreBar
-            size={20}
-            score={replay?.activity ?? 1}
-            palette={scoreBarPalette}
-            radius={0}
-          />
-        </Item>
-      );
-    }
+export function DurationCell({replay}: Props) {
+  return (
+    <Item>
+      <Duration seconds={replay.duration.asSeconds()} exact abbreviation />
+    </Item>
+  );
+}
 
-    default:
-      return null;
-  }
+export function ErrorCountCell({replay}: Props) {
+  return <Item data-test-id="replay-table-count-errors">{replay.countErrors || 0}</Item>;
+}
+
+export function ActivityCell({replay}: Props) {
+  const scoreBarPalette = new Array(10).fill([CHART_PALETTE[0][0]]);
+  return (
+    <Item>
+      <ScoreBar
+        size={20}
+        score={replay?.activity ?? 1}
+        palette={scoreBarPalette}
+        radius={0}
+      />
+    </Item>
+  );
 }
 
 const Item = styled('div')`
   display: flex;
   align-items: center;
+  gap: ${space(1)};
 `;
 
 const SpanOperationBreakdown = styled('div')`
   width: 100%;
-  text-align: right;
-`;
-
-const TxDuration = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(0.5)};
   color: ${p => p.theme.gray500};
   font-size: ${p => p.theme.fontSizeMedium};
-  margin-bottom: ${space(0.5)};
+  text-align: right;
 `;
-
-const TimeSinceWrapper = styled('div')`
-  display: grid;
-  grid-template-columns: repeat(2, minmax(auto, max-content));
-  align-items: center;
-  gap: ${space(1)};
-`;
-
-const StyledIconCalendarWrapper = styled(IconCalendar)`
-  position: relative;
-  top: -1px;
-`;
-
-export default TableCell;

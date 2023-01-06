@@ -12,7 +12,15 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import type {ReplayListRecordWithTx} from 'sentry/views/performance/transactionSummary/transactionReplays/useReplaysFromTransaction';
 import HeaderCell from 'sentry/views/replays/replayTable/headerCell';
-import TableCell from 'sentry/views/replays/replayTable/tableCell';
+import {
+  ActivityCell,
+  DurationCell,
+  ErrorCountCell,
+  ProjectCell,
+  SessionCell,
+  StartedAtCell,
+  TransactionCell,
+} from 'sentry/views/replays/replayTable/tableCell';
 import type {VisibleColumns} from 'sentry/views/replays/replayTable/types';
 import type {ReplayListRecord} from 'sentry/views/replays/types';
 
@@ -71,39 +79,39 @@ function ReplayTable({fetchError, isFetching, replays, sort, visibleColumns}: Pr
       visibleColumns={visibleColumns}
     >
       {replays?.map(replay => {
-        const cellProps = {
-          eventView,
-          organization,
-          referrer,
-          replay,
-        };
         return (
           <Fragment key={replay.id}>
             {[
               visibleColumns.session ? (
-                <TableCell key="session" column="session" {...cellProps} />
+                <SessionCell
+                  key="session"
+                  replay={replay}
+                  eventView={eventView}
+                  organization={organization}
+                  referrer={referrer}
+                />
               ) : null,
               visibleColumns.projectId ? (
-                <TableCell key="projectId" column="projectId" {...cellProps} />
+                <ProjectCell key="projectId" replay={replay} />
               ) : null,
               visibleColumns.slowestTransaction ? (
-                <TableCell
+                <TransactionCell
                   key="slowestTransaction"
-                  column="slowestTransaction"
-                  {...cellProps}
+                  replay={replay}
+                  organization={organization}
                 />
               ) : null,
               visibleColumns.startedAt ? (
-                <TableCell key="startedAt" column="startedAt" {...cellProps} />
+                <StartedAtCell key="startedAt" replay={replay} />
               ) : null,
               visibleColumns.duration ? (
-                <TableCell key="duration" column="duration" {...cellProps} />
+                <DurationCell key="duration" replay={replay} />
               ) : null,
               visibleColumns.countErrors ? (
-                <TableCell key="countErrors" column="countErrors" {...cellProps} />
+                <ErrorCountCell key="countErrors" replay={replay} />
               ) : null,
               visibleColumns.activity ? (
-                <TableCell key="activity" column="activity" {...cellProps} />
+                <ActivityCell key="activity" replay={replay} />
               ) : null,
             ].filter(Boolean)}
           </Fragment>
