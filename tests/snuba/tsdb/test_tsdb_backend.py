@@ -13,7 +13,7 @@ from sentry.tsdb.snuba import SnubaTSDB
 from sentry.types.issues import GroupType
 from sentry.utils.dates import to_datetime, to_timestamp
 from sentry.utils.snuba import aliased_query
-from tests.sentry.issues.store_search_issue import SearchIssueTestMixin
+from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
 
 def timestamp(d):
