@@ -1,8 +1,6 @@
 import os
 from collections import defaultdict
 
-from more_itertools import flatten
-
 from sentry import eventstore, eventstream, models, nodestore
 from sentry.eventstore.models import Event
 
@@ -68,12 +66,12 @@ class EventDataDeletionTask(BaseDeletionTask):
                 ]
             )
 
+        group_ids = []
         project_groups = defaultdict(list)
         for group in self.groups:
             project_groups[group.project_id].append(group.id)
-
+            group_ids.append(group.id)
         project_ids = list(project_groups.keys())
-        group_ids = list(flatten(project_groups.values()))
 
         events = eventstore.get_unfetched_events(
             filter=eventstore.Filter(
