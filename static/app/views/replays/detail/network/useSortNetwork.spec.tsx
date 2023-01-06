@@ -6,6 +6,22 @@ import type {NetworkSpan} from 'sentry/views/replays/types';
 
 import useSortNetwork from './useSortNetwork';
 
+jest.mock('react-router');
+jest.mock('sentry/utils/useUrlParams', () => {
+  const map = new Map();
+  return (name, dflt) => {
+    if (!map.has(name)) {
+      map.set(name, dflt);
+    }
+    return {
+      getParamValue: () => map.get(name),
+      setParamValue: value => {
+        map.set(name, value);
+      },
+    };
+  };
+});
+
 const SPAN_0_NAVIGATE = {
   id: '0',
   timestamp: 1663131080555.4,
@@ -216,7 +232,7 @@ describe('useSortNetwork', () => {
     });
 
     act(() => {
-      result.current.handleSort('size', row => row.data.size);
+      result.current.handleSort('size');
     });
 
     rerender({items});
