@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import Field from 'sentry/components/forms/field';
+import FieldGroup from 'sentry/components/forms/field';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {QueryFieldValue} from 'sentry/utils/discover/fields';
@@ -35,7 +35,7 @@ export function ColumnFields({
   noFieldsMessage,
 }: Props) {
   return (
-    <Field
+    <FieldGroup
       inline={false}
       error={errors?.find(error => error?.fields)?.fields}
       flexibleControlStateSize
@@ -69,7 +69,7 @@ export function ColumnFields({
           noFieldsMessage={noFieldsMessage}
         />
       )}
-    </Field>
+    </FieldGroup>
   );
 }
 

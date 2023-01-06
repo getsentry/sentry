@@ -1101,8 +1101,6 @@ SENTRY_FEATURES = {
     "organizations:issue-actions-v2": False,
     # Enable new issue alert "issue owners" fallback
     "organizations:issue-alert-fallback-targeting": False,
-    # Enable "Owned By" and "Assigned To" on issue details
-    "organizations:issue-details-owners": False,
     # Enable removing issue from issue list if action taken.
     "organizations:issue-list-removal-action": False,
     # Prefix host with organization ID when giving users DSNs (can be
@@ -1150,6 +1148,8 @@ SENTRY_FEATURES = {
     "organizations:session-replay-sdk-errors-only": False,
     # Enable experimental session replay UI
     "organizations:session-replay-ui": False,
+    # Enable the new suggested assignees feature
+    "organizations:streamline-targeting-context": False,
     # Enable Session Stats down to a minute resolution
     "organizations:minute-resolution-sessions": True,
     # Notify all project members when fallthrough is disabled, instead of just the auto-assignee
