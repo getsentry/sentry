@@ -8,6 +8,7 @@ import IssueList from 'sentry/views/replays/detail/issueList';
 import MemoryChart from 'sentry/views/replays/detail/memoryChart';
 import NetworkList from 'sentry/views/replays/detail/network';
 import Trace from 'sentry/views/replays/detail/trace/index';
+import UserReplays from 'sentry/views/replays/detail/userReplays/index';
 
 type Props = {};
 
@@ -65,6 +66,8 @@ function FocusArea({}: Props) {
           startTimestampMs={replay?.getReplay()?.startedAt?.getTime()}
         />
       );
+    case 'user':
+      return <UserReplays user={replay?.getReplay()?.user} />;
     default:
       return null;
   }

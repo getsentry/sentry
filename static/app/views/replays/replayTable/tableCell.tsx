@@ -4,7 +4,10 @@ import Duration from 'sentry/components/duration';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import UserBadge from 'sentry/components/idBadge/userBadge';
 import Link from 'sentry/components/links/link';
-import {StringWalker} from 'sentry/components/replays/walker/urlWalker';
+import {
+  StringWalker,
+  StringWalkerSummary,
+} from 'sentry/components/replays/walker/urlWalker';
 import ScoreBar from 'sentry/components/scoreBar';
 import TimeSince from 'sentry/components/timeSince';
 import CHART_PALETTE from 'sentry/constants/chartPalette';
@@ -21,6 +24,44 @@ import type {ReplayListRecord} from 'sentry/views/replays/types';
 type Props = {
   replay: ReplayListRecord | ReplayListRecordWithTx;
 };
+
+export function UserCell({
+  eventView,
+  organization,
+  referrer,
+  replay,
+}: Props & {eventView: EventView; organization: Organization; referrer: string}) {
+  const {projects} = useProjects();
+  const project = projects.find(p => p.id === replay.projectId);
+
+  return (
+    <UserBadge
+      avatarSize={32}
+      displayName={
+        <Link
+          to={{
+            pathname: `/organizations/${organization.slug}/replays/${project?.slug}:${replay.id}/`,
+            query: {
+              referrer,
+              ...eventView.generateQueryStringObject(),
+            },
+          }}
+        >
+          {replay.user.displayName || ''}
+        </Link>
+      }
+      user={{
+        username: replay.user.displayName || '',
+        email: replay.user.email || '',
+        id: replay.user.id || '',
+        ip_address: replay.user.ip_address || '',
+        name: replay.user.name || '',
+      }}
+      // this is the subheading for the avatar, so displayEmail in this case is a misnomer
+      displayEmail={<StringWalkerSummary urls={replay.urls} />}
+    />
+  );
+}
 
 export function SessionCell({
   eventView,

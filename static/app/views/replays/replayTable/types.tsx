@@ -6,4 +6,5 @@ export enum ReplayColumns {
   session = 'session',
   slowestTransaction = 'slowestTransaction',
   startedAt = 'startedAt',
+  user = 'user',
 }

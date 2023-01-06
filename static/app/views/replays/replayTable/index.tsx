@@ -20,6 +20,7 @@ import {
   SessionCell,
   StartedAtCell,
   TransactionCell,
+  UserCell,
 } from 'sentry/views/replays/replayTable/tableCell';
 import {ReplayColumns} from 'sentry/views/replays/replayTable/types';
 import type {ReplayListRecord} from 'sentry/views/replays/types';
@@ -74,6 +75,17 @@ function ReplayTable({fetchError, isFetching, replays, sort, visibleColumns}: Pr
           <Fragment key={replay.id}>
             {visibleColumns.map(column => {
               switch (column) {
+                case 'user':
+                  return (
+                    <UserCell
+                      key="user"
+                      replay={replay}
+                      eventView={eventView}
+                      organization={organization}
+                      referrer={referrer}
+                    />
+                  );
+
                 case 'session':
                   return (
                     <SessionCell

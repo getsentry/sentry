@@ -10,6 +10,9 @@ type Props = {
 
 function HeaderCell({column, sort}: Props) {
   switch (column) {
+    case 'user':
+      return <SortableHeader label={t('User')} />;
+
     case 'session':
       return <SortableHeader label={t('Session')} />;
 

@@ -9,6 +9,7 @@ export enum TabKey {
   trace = 'trace',
   issues = 'issues',
   memory = 'memory',
+  user = 'user',
 }
 
 function isReplayTab(tab: string): tab is TabKey {
