@@ -15,7 +15,7 @@ describe('ProjectSourceMapsDetail', () => {
   const props = {
     organization,
     project,
-    params: {oprojectId: project.slug, name: archiveName},
+    params: {projectId: project.slug, name: archiveName},
     location: routerContext.context.location,
     router,
   };
