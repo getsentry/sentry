@@ -22,6 +22,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import ReplaysFilters from 'sentry/views/replays/filters';
 import ReplayOnboardingPanel from 'sentry/views/replays/list/replayOnboardingPanel';
 import ReplayTable from 'sentry/views/replays/replayTable';
+import {ReplayColumns} from 'sentry/views/replays/replayTable/types';
 import type {ReplayListLocationQuery} from 'sentry/views/replays/types';
 
 type Props = RouteComponentProps<{orgId: string}, {}, any, ReplayListLocationQuery>;
@@ -76,14 +77,15 @@ function Replays({location}: Props) {
                 isFetching={isFetching}
                 replays={replays}
                 sort={eventView.sorts[0]}
-                visibleColumns={{
-                  activity: true,
-                  countErrors: true,
-                  duration: true,
-                  projectId: hasRoomForColumns,
-                  session: true,
-                  startedAt: hasRoomForColumns,
-                }}
+                visibleColumns={[
+                  ReplayColumns.session,
+                  ...(hasRoomForColumns
+                    ? [ReplayColumns.projectId, ReplayColumns.startedAt]
+                    : []),
+                  ReplayColumns.duration,
+                  ReplayColumns.countErrors,
+                  ReplayColumns.activity,
+                ]}
               />
               <Pagination
                 pageLinks={pageLinks}

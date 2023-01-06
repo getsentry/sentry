@@ -1,9 +1,9 @@
-export type VisibleColumns = {
-  activity?: boolean;
-  countErrors?: boolean;
-  duration?: boolean;
-  projectId?: boolean;
-  session?: boolean;
-  slowestTransaction?: boolean;
-  startedAt?: boolean;
-};
+export enum ReplayColumns {
+  activity = 'activity',
+  countErrors = 'countErrors',
+  duration = 'duration',
+  projectId = 'projectId',
+  session = 'session',
+  slowestTransaction = 'slowestTransaction',
+  startedAt = 'startedAt',
+}

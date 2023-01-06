@@ -20,6 +20,7 @@ import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
 import useMedia from 'sentry/utils/useMedia';
 import ReplayTable from 'sentry/views/replays/replayTable';
+import {ReplayColumns} from 'sentry/views/replays/replayTable/types';
 import type {ReplayListLocationQuery} from 'sentry/views/replays/types';
 
 import type {SpanOperationBreakdownFilter} from '../filter';
@@ -130,14 +131,15 @@ function ReplaysContent({
         isFetching={isFetching}
         replays={replays}
         sort={first(eventView.sorts) || {field: 'startedAt', kind: 'asc'}}
-        visibleColumns={{
-          activity: true,
-          countErrors: true,
-          duration: true,
-          session: true,
-          slowestTransaction: hasRoomForColumns,
-          startedAt: hasRoomForColumns,
-        }}
+        visibleColumns={[
+          ReplayColumns.session,
+          ...(hasRoomForColumns
+            ? [ReplayColumns.slowestTransaction, ReplayColumns.startedAt]
+            : []),
+          ReplayColumns.duration,
+          ReplayColumns.countErrors,
+          ReplayColumns.activity,
+        ]}
       />
       <Pagination pageLinks={pageLinks} />
     </Layout.Main>

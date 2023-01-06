@@ -21,7 +21,7 @@ import {
   StartedAtCell,
   TransactionCell,
 } from 'sentry/views/replays/replayTable/tableCell';
-import type {VisibleColumns} from 'sentry/views/replays/replayTable/types';
+import {ReplayColumns} from 'sentry/views/replays/replayTable/types';
 import type {ReplayListRecord} from 'sentry/views/replays/types';
 
 type Props = {
@@ -29,27 +29,17 @@ type Props = {
   isFetching: boolean;
   replays: undefined | ReplayListRecord[] | ReplayListRecordWithTx[];
   sort: Sort | undefined;
-  visibleColumns: VisibleColumns;
+  visibleColumns: Array<keyof typeof ReplayColumns>;
 };
 
 function ReplayTable({fetchError, isFetching, replays, sort, visibleColumns}: Props) {
   const routes = useRoutes();
   const location = useLocation();
-  const referrer = getRouteStringFromRoutes(routes);
-
   const organization = useOrganization();
 
-  const tableHeaders = [
-    visibleColumns.session ? <HeaderCell column="session" sort={sort} /> : null,
-    visibleColumns.projectId ? <HeaderCell column="projectId" sort={sort} /> : null,
-    visibleColumns.slowestTransaction ? (
-      <HeaderCell column="slowestTransaction" sort={sort} />
-    ) : null,
-    visibleColumns.startedAt ? <HeaderCell column="startedAt" sort={sort} /> : null,
-    visibleColumns.duration ? <HeaderCell column="duration" sort={sort} /> : null,
-    visibleColumns.countErrors ? <HeaderCell column="countErrors" sort={sort} /> : null,
-    visibleColumns.activity ? <HeaderCell column="activity" sort={sort} /> : null,
-  ].filter(Boolean);
+  const tableHeaders = visibleColumns.map(column => (
+    <HeaderCell key={column} column={column} sort={sort} />
+  ));
 
   if (fetchError && !isFetching) {
     return (
@@ -69,6 +59,7 @@ function ReplayTable({fetchError, isFetching, replays, sort, visibleColumns}: Pr
     );
   }
 
+  const referrer = getRouteStringFromRoutes(routes);
   const eventView = EventView.fromLocation(location);
 
   return (
@@ -81,39 +72,40 @@ function ReplayTable({fetchError, isFetching, replays, sort, visibleColumns}: Pr
       {replays?.map(replay => {
         return (
           <Fragment key={replay.id}>
-            {[
-              visibleColumns.session ? (
-                <SessionCell
-                  key="session"
-                  replay={replay}
-                  eventView={eventView}
-                  organization={organization}
-                  referrer={referrer}
-                />
-              ) : null,
-              visibleColumns.projectId ? (
-                <ProjectCell key="projectId" replay={replay} />
-              ) : null,
-              visibleColumns.slowestTransaction ? (
-                <TransactionCell
-                  key="slowestTransaction"
-                  replay={replay}
-                  organization={organization}
-                />
-              ) : null,
-              visibleColumns.startedAt ? (
-                <StartedAtCell key="startedAt" replay={replay} />
-              ) : null,
-              visibleColumns.duration ? (
-                <DurationCell key="duration" replay={replay} />
-              ) : null,
-              visibleColumns.countErrors ? (
-                <ErrorCountCell key="countErrors" replay={replay} />
-              ) : null,
-              visibleColumns.activity ? (
-                <ActivityCell key="activity" replay={replay} />
-              ) : null,
-            ].filter(Boolean)}
+            {visibleColumns.map(column => {
+              switch (column) {
+                case 'session':
+                  return (
+                    <SessionCell
+                      key="session"
+                      replay={replay}
+                      eventView={eventView}
+                      organization={organization}
+                      referrer={referrer}
+                    />
+                  );
+                case 'projectId':
+                  return <ProjectCell key="projectId" replay={replay} />;
+                case 'slowestTransaction':
+                  return (
+                    <TransactionCell
+                      key="slowestTransaction"
+                      replay={replay}
+                      organization={organization}
+                    />
+                  );
+                case 'startedAt':
+                  return <StartedAtCell key="startedAt" replay={replay} />;
+                case 'duration':
+                  return <DurationCell key="duration" replay={replay} />;
+                case 'countErrors':
+                  return <ErrorCountCell key="countErrors" replay={replay} />;
+                case 'activity':
+                  return <ActivityCell key="activity" replay={replay} />;
+                default:
+                  return null;
+              }
+            })}
           </Fragment>
         );
       })}
@@ -121,16 +113,18 @@ function ReplayTable({fetchError, isFetching, replays, sort, visibleColumns}: Pr
   );
 }
 
-const gridTemplateColumns = (p: {visibleColumns: VisibleColumns}) => {
-  const columnCount = Object.values(p.visibleColumns).filter(Boolean).length;
+const gridTemplateColumns = (p: {visibleColumns: Array<keyof typeof ReplayColumns>}) => {
+  const columnCount = p.visibleColumns.length;
 
-  if (p.visibleColumns.session) {
+  if (p.visibleColumns.includes('session')) {
     return `minmax(0, 1fr) repeat(${columnCount - 1}, max-content)`;
   }
   return `repeat(${columnCount}, max-content)`;
 };
 
-const StyledPanelTable = styled(PanelTable)<{visibleColumns: VisibleColumns}>`
+const StyledPanelTable = styled(PanelTable)<{
+  visibleColumns: Array<keyof typeof ReplayColumns>;
+}>`
   grid-template-columns: ${gridTemplateColumns};
 `;
 
