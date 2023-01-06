@@ -714,6 +714,11 @@ urlpatterns = [
                     name="sentry-api-0-monitor-check-in-index-with-org",
                 ),
                 url(
+                    r"^(?P<monitor_id>[^\/]+)/checkins/(?P<checkin_id>[^\/]+)/$",
+                    MonitorCheckInDetailsEndpoint.as_view(),
+                    name="sentry-api-0-monitor-check-in-details-with-org",
+                ),
+                url(
                     r"^(?P<monitor_id>[^\/]+)/stats/$",
                     MonitorStatsEndpoint.as_view(),
                     name="sentry-api-0-monitor-stats-with-org",

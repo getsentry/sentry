@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from django.db import transaction
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema
@@ -41,7 +43,15 @@ class MonitorCheckInDetailsEndpoint(Endpoint):
 
     # TODO(dcramer): this code needs shared with other endpoints as its security focused
     # TODO(dcramer): this doesnt handle is_global roles
-    def convert_args(self, request: Request, monitor_id, checkin_id, *args, **kwargs):
+    def convert_args(
+        self,
+        request: Request,
+        monitor_id,
+        checkin_id,
+        organization_slug: str | None = None,
+        *args,
+        **kwargs,
+    ):
         try:
             monitor = Monitor.objects.get(guid=monitor_id)
         except Monitor.DoesNotExist:
@@ -50,6 +60,10 @@ class MonitorCheckInDetailsEndpoint(Endpoint):
         project = Project.objects.get_from_cache(id=monitor.project_id)
         if project.status != ProjectStatus.VISIBLE:
             raise ResourceDoesNotExist
+
+        if organization_slug:
+            if project.organization.slug != organization_slug:
+                return self.respond_invalid()
 
         if hasattr(request.auth, "project_id") and project.id != request.auth.project_id:
             return self.respond(status=400)
@@ -102,12 +116,7 @@ class MonitorCheckInDetailsEndpoint(Endpoint):
     )
     def get(self, request: Request, project, monitor, checkin) -> Response:
         """
-        Retrieve a check-in
-        ```````````````````
-
-        :pparam string monitor_id: the id of the monitor.
-        :pparam string checkin_id: the id of the check-in.
-        :auth: required
+        Retrieves details for a check-in.
 
         You may use `latest` for the `checkin_id` parameter in order to retrieve
         the most recent (by creation date) check-in which is still mutable (not marked as finished).
@@ -128,7 +137,7 @@ class MonitorCheckInDetailsEndpoint(Endpoint):
         request=MonitorCheckInValidator,
         responses={
             200: inline_sentry_response_serializer(
-                "MonitorCheckIn2", MonitorCheckInSerializerResponse
+                "MonitorCheckIn", MonitorCheckInSerializerResponse
             ),
             208: RESPONSE_ALREADY_REPORTED,
             400: RESPONSE_BAD_REQUEST,
@@ -136,18 +145,14 @@ class MonitorCheckInDetailsEndpoint(Endpoint):
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOTFOUND,
         },
-        examples=[
-            # OpenApiExample()
-        ],
     )
     def put(self, request: Request, project, monitor, checkin) -> Response:
         """
-        Update a check-in
-        `````````````````
+        Updates a check-in.
 
-        :pparam string monitor_id: the id of the monitor.
-        :pparam string checkin_id: the id of the check-in.
-        :auth: required
+        Once a check-in is finished (indicated via an `ok` or `error` status) it can no longer be changed.
+
+        If you simply wish to update that the task is still running, you can simply send an empty payload.
 
         You may use `latest` for the `checkin_id` parameter in order to retrieve
         the most recent (by creation date) check-in which is still mutable (not marked as finished).
@@ -165,14 +170,15 @@ class MonitorCheckInDetailsEndpoint(Endpoint):
 
         current_datetime = timezone.now()
         params = {"date_updated": current_datetime}
-        if "duration" in result:
-            params["duration"] = result["duration"]
-        else:
-            duration = int((current_datetime - checkin.date_added).total_seconds() * 1000)
-            params["duration"] = duration
-
         if "status" in result:
             params["status"] = getattr(CheckInStatus, result["status"].upper())
+
+        if "duration" in result:
+            params["duration"] = result["duration"]
+        # if a duration is not defined and we're at a finish state, calculate one
+        elif params.get("status", checkin.status) in CheckInStatus.FINISHED_VALUES:
+            duration = int((current_datetime - checkin.date_added).total_seconds() * 1000)
+            params["duration"] = duration
 
         with transaction.atomic():
             checkin.update(**params)
