@@ -49,9 +49,9 @@ class TeamSettings extends AsyncView<Props, State> {
   };
 
   handleRemoveTeam = async () => {
-    const {organization} = this.props;
+    const {organization, params} = this.props;
     try {
-      await removeTeam(this.api, this.props.params);
+      await removeTeam(this.api, {orgId: organization.slug, teamId: params.teamId});
       browserHistory.replace(normalizeUrl(`/settings/${organization.slug}/teams/`));
     } catch {
       // removeTeam already displays an error message
