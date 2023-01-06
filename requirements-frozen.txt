@@ -63,6 +63,7 @@ maxminddb==2.0.3
 milksnake==0.1.5
 mistune==2.0.4
 mmh3==3.0.0
+more-itertools==8.14.0
 msgpack==1.0.4
 natsort==8.1.0
 oauthlib==3.1.0
