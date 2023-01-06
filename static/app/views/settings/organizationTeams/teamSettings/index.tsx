@@ -5,7 +5,7 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {removeTeam, updateTeamSuccess} from 'sentry/actionCreators/teams';
 import Button from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
-import FieldGroup from 'sentry/components/forms/field';
+import FieldGroup from 'sentry/components/forms/fieldGroup';
 import Form, {FormProps} from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import {Panel, PanelHeader} from 'sentry/components/panels';

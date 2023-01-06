@@ -8,9 +8,9 @@ import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {sanitizeQuerySelector} from 'sentry/utils/sanitizeQuerySelector';
 
-import FieldGroup from '../field';
-import FieldControl from '../field/fieldControl';
-import {FieldGroupProps} from '../field/types';
+import FieldGroup from '../fieldGroup';
+import FieldControl from '../fieldGroup/fieldControl';
+import {FieldGroupProps} from '../fieldGroup/types';
 import FormContext from '../formContext';
 import FormModel, {MockModel} from '../model';
 import {FieldValue} from '../types';

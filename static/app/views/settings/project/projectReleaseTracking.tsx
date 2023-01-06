@@ -5,7 +5,7 @@ import Alert from 'sentry/components/alert';
 import AutoSelectText from 'sentry/components/autoSelectText';
 import Button from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
-import FieldGroup from 'sentry/components/forms/field';
+import FieldGroup from 'sentry/components/forms/fieldGroup';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';

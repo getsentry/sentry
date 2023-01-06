@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 
 import Alert from 'sentry/components/alert';
 import Textarea from 'sentry/components/forms/controls/textarea';
-import FieldGroup from 'sentry/components/forms/field';
+import FieldGroup from 'sentry/components/forms/fieldGroup';
 import Input from 'sentry/components/input';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';

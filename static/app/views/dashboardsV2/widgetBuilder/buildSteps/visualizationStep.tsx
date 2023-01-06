@@ -7,7 +7,7 @@ import isEqual from 'lodash/isEqual';
 
 import {TableCell} from 'sentry/components/charts/simpleTableChart';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
-import FieldGroup from 'sentry/components/forms/field';
+import FieldGroup from 'sentry/components/forms/fieldGroup';
 import {PanelAlert} from 'sentry/components/panels';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {t} from 'sentry/locale';

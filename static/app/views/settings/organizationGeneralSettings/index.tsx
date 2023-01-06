@@ -9,7 +9,7 @@ import {
 } from 'sentry/actionCreators/organizations';
 import Button from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
-import FieldGroup from 'sentry/components/forms/field';
+import FieldGroup from 'sentry/components/forms/fieldGroup';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {Panel, PanelHeader} from 'sentry/components/panels';

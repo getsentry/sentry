@@ -8,7 +8,7 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
-import FieldGroup from 'sentry/components/forms/field';
+import FieldGroup from 'sentry/components/forms/fieldGroup';
 import IdBadge from 'sentry/components/idBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NarrowLayout from 'sentry/components/narrowLayout';

@@ -6,7 +6,7 @@ import {installSentryApp} from 'sentry/actionCreators/sentryAppInstallations';
 import Alert from 'sentry/components/alert';
 import OrganizationAvatar from 'sentry/components/avatar/organizationAvatar';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
-import FieldGroup from 'sentry/components/forms/field';
+import FieldGroup from 'sentry/components/forms/fieldGroup';
 import SentryAppDetailsModal from 'sentry/components/modals/sentryAppDetailsModal';
 import NarrowLayout from 'sentry/components/narrowLayout';
 import {t, tct} from 'sentry/locale';

@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import FieldGroup from 'sentry/components/forms/field';
+import FieldGroup from 'sentry/components/forms/fieldGroup';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {QueryFieldValue} from 'sentry/utils/discover/fields';

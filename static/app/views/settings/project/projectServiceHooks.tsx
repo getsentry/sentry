@@ -8,7 +8,7 @@ import {
 } from 'sentry/actionCreators/indicator';
 import Button from 'sentry/components/button';
 import EmptyMessage from 'sentry/components/emptyMessage';
-import FieldGroup from 'sentry/components/forms/field';
+import FieldGroup from 'sentry/components/forms/fieldGroup';
 import Link from 'sentry/components/links/link';
 import {Panel, PanelAlert, PanelBody, PanelHeader} from 'sentry/components/panels';
 import Switch from 'sentry/components/switchButton';
