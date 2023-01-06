@@ -1,5 +1,12 @@
+from datetime import datetime
+from typing import Any
+
+from typing_extensions import TypedDict
+
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.models import Monitor, Project
+
+from .project import ProjectSerializerResponse
 
 
 @register(Monitor)
@@ -33,3 +40,15 @@ class MonitorSerializer(Serializer):
             "dateCreated": obj.date_added,
             "project": attrs["project"],
         }
+
+
+class MonitorSerializerResponse(TypedDict):
+    id: str
+    name: str
+    status: str
+    type: str
+    config: Any
+    dateCreated: datetime
+    lastCheckIn: datetime
+    nextCheckIn: datetime
+    project: ProjectSerializerResponse
