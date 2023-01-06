@@ -68,6 +68,8 @@ class SearchIssueTestMixin(OccurrenceTestMixin):
         fingerprints: Sequence[str],
         environment: Optional[str] = None,
         insert_time: Optional[datetime] = None,
+        tags: Optional[Sequence[Tuple[str, Any]]] = None,
+        release: Optional[str] = None,
     ) -> Tuple[Event, IssueOccurrence, Optional[GroupInfo]]:
         from sentry.utils import snuba
 
@@ -78,10 +80,16 @@ class SearchIssueTestMixin(OccurrenceTestMixin):
             "tags": [("sentry:user", user_id_val)],
             "timestamp": iso_format(insert_timestamp),
         }
+        if tags:
+            event_data["tags"].extend(tags)
 
         if environment:
             event_data["environment"] = environment
             event_data["tags"].extend([("environment", environment)])
+
+        if release:
+            event_data["release"] = release
+            event_data["tags"].extend([("release", release)])
 
         event = self.store_event(
             data=event_data,

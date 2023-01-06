@@ -953,12 +953,6 @@ def query(
     selected_columns = selected_columns or []
     groupby = groupby or []
 
-    print("dataset: ", dataset)
-    print("groupby: ", groupby)
-    print("conditions: ", conditions)
-    print("filter_keys: ", filter_keys)
-    print("aggregations: ", aggregations)
-    print("selected_columns: " , selected_columns)
     try:
         body = raw_query(
             dataset=dataset,
