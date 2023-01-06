@@ -20,10 +20,8 @@ class DatabaseBackedAppService(AppService):
         installations = SentryAppInstallation.objects.select_related("sentry_app")
         if organization_id is not None:
             installations = installations.filter(
-                {
-                    "organization_id": organization_id,
-                    "date_deleted": date_deleted,
-                }
+                organization_id=organization_id,
+                date_deleted=date_deleted,
             )
         if api_token_id is not None:
             installations = installations.filter(api_token_id=api_token_id)

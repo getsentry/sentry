@@ -62,7 +62,6 @@ class MentionsMixin:
                 project_ids=[p.id for p in projects],
             )
             user_ids = [u.id for u in users]
-
             if len(mentioned_user_ids) > len(user_ids):
                 raise serializers.ValidationError("Cannot mention a non team member")
 

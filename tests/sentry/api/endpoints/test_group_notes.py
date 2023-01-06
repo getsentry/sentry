@@ -77,7 +77,7 @@ class GroupNoteCreateTest(APITestCase):
         response = self.client.post(
             url,
             format="json",
-            data={"text": "**meredith@getsentry.com** is fun", "mentions": ["8"]},
+            data={"text": "**meredith@getsentry.com** is fun", "mentions": ["0"]},
         )
         assert response.status_code == 400, response.content
 
