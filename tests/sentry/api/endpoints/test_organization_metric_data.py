@@ -33,7 +33,7 @@ rh_indexer_record = partial(indexer_record, UseCaseKey.RELEASE_HEALTH)
 pytestmark = [pytest.mark.sentry_metrics]
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 @freeze_time(MetricsAPIBaseTestCase.MOCK_DATETIME)
 class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
     endpoint = "sentry-api-0-organization-metrics-data"

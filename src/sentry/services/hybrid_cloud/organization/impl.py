@@ -127,6 +127,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
             id=org.id,
             flags=self._serialize_flags(org),
             name=org.name,
+            status=org.status,
         )
 
         projects: List[Project] = Project.objects.filter(organization=org)

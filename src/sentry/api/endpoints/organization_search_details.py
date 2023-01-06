@@ -42,7 +42,7 @@ class OrganizationSearchDetailsEndpoint(OrganizationEndpoint):
         # Only allow users to delete their own personal searches OR
         # organization level searches
         org_search = Q(visibility=Visibility.ORGANIZATION)
-        personal_search = Q(owner=request.user, visibility=Visibility.OWNER)
+        personal_search = Q(owner_id=request.user.id, visibility=Visibility.OWNER)
 
         try:
             search = SavedSearch.objects.get(

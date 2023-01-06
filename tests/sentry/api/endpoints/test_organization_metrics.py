@@ -21,7 +21,7 @@ from sentry.snuba.metrics.naming_layer.mapping import get_public_name_from_mri
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI, TransactionMRI
 from sentry.testutils import APITestCase
 from sentry.testutils.cases import OrganizationMetricMetaIntegrationTestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
 
 MOCKED_DERIVED_METRICS = copy.deepcopy(DERIVED_METRICS)
 MOCKED_DERIVED_METRICS.update(
@@ -55,7 +55,7 @@ perf_indexer_record = partial(indexer_record, UseCaseKey.PERFORMANCE)
 rh_indexer_record = partial(indexer_record, UseCaseKey.RELEASE_HEALTH)
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class OrganizationMetricsPermissionTest(APITestCase):
 
     endpoints = (
@@ -72,20 +72,22 @@ class OrganizationMetricsPermissionTest(APITestCase):
 
     def test_permissions(self):
 
-        token = ApiToken.objects.create(user=self.user, scope_list=[])
+        with exempt_from_silo_limits():
+            token = ApiToken.objects.create(user=self.user, scope_list=[])
 
         for endpoint in self.endpoints:
             response = self.send_get_request(token, *endpoint)
             assert response.status_code == 403
 
-        token = ApiToken.objects.create(user=self.user, scope_list=["org:read"])
+        with exempt_from_silo_limits():
+            token = ApiToken.objects.create(user=self.user, scope_list=["org:read"])
 
         for endpoint in self.endpoints:
             response = self.send_get_request(token, *endpoint)
             assert response.status_code in (200, 400, 404)
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class OrganizationMetricsIndexIntegrationTest(OrganizationMetricMetaIntegrationTestCase):
 
     endpoint = "sentry-api-0-organization-metrics-index"

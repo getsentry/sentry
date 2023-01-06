@@ -16,6 +16,7 @@ from sentry.models import (
     User,
 )
 from sentry.plugins.base import bindings
+from sentry.services.hybrid_cloud.user import user_service
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.tasks.base import instrumented_task, retry
 from sentry.utils.email import MessageBuilder
@@ -77,7 +78,8 @@ def fetch_commits(release_id, user_id, refs, prev_release_id=None, **kwargs):
     set_tag("organization.slug", release.organization.slug)
     # TODO: Need a better way to error handle no user_id. We need the SDK to be able to call this without user context
     # to autoassociate commits to releases
-    user = User.objects.get(id=user_id) if user_id is not None else None
+    user = user_service.get_user(user_id) if user_id is not None else None
+    # user = User.objects.get(id=user_id) if user_id is not None else None
     prev_release = None
     if prev_release_id is not None:
         try:

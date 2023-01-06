@@ -4,7 +4,7 @@ from sentry.testutils import APITestCase
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class OrganizationOnboardingContinuation(APITestCase):
     endpoint = "sentry-api-0-organization-onboarding-continuation-email"
     method = "post"

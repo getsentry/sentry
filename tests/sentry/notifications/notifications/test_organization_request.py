@@ -28,8 +28,8 @@ class GetParticipantsTest(TestCase):
     def test_default_to_slack(self):
         notification = DummyRequestNotification(self.organization, self.user)
 
-        api_user = user_service.serialize_user(self.user)
-        api_user_2 = user_service.serialize_user(self.user2)
+        api_user = user_service.get_user(self.user.id)
+        api_user_2 = user_service.get_user(self.user2.id)
 
         assert notification.get_participants() == {
             ExternalProviders.EMAIL: {api_user, api_user_2},
@@ -53,8 +53,8 @@ class GetParticipantsTest(TestCase):
 
         notification = DummyRequestNotification(self.organization, self.user)
 
-        api_user = user_service.serialize_user(self.user)
-        api_user_2 = user_service.serialize_user(self.user2)
+        api_user = user_service.get_user(self.user.id)
+        api_user_2 = user_service.get_user(self.user2.id)
 
         assert notification.get_participants() == {
             ExternalProviders.EMAIL: {api_user, api_user_2},

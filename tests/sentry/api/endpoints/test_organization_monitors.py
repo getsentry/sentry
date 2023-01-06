@@ -11,7 +11,7 @@ class OrganizationMonitorsTestBase(APITestCase):
         self.login_as(self.user)
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class ListOrganizationMonitorsTest(OrganizationMonitorsTestBase):
     def check_valid_response(self, response, expected_monitors):
         assert [str(monitor.guid) for monitor in expected_monitors] == [
@@ -28,7 +28,7 @@ class ListOrganizationMonitorsTest(OrganizationMonitorsTestBase):
         self.check_valid_response(response, [monitor])
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class CreateOrganizationMonitorTest(OrganizationMonitorsTestBase):
     method = "post"
 

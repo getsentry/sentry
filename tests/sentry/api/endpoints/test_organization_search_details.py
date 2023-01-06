@@ -6,7 +6,7 @@ from sentry.testutils import APITestCase
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class DeleteOrganizationSearchTest(APITestCase):
     endpoint = "sentry-api-0-organization-search-details"
     method = "delete"
@@ -102,7 +102,7 @@ class DeleteOrganizationSearchTest(APITestCase):
         assert SavedSearch.objects.filter(id=search.id).exists()
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class PutOrganizationSearchTest(APITestCase):
     endpoint = "sentry-api-0-organization-search-details"
     method = "put"
