@@ -13,6 +13,8 @@ type SpanEvidenceKeyValueListProps = {
   transactionName: string;
 };
 
+const TEST_ID_NAMESPACE = 'span-evidence-key-value-list';
+
 export function SpanEvidenceKeyValueList({
   issueType,
   transactionName,
@@ -24,11 +26,13 @@ export function SpanEvidenceKeyValueList({
       key: '0',
       subject: t('Transaction'),
       value: transactionName,
+      subjectDataTestId: `${TEST_ID_NAMESPACE}.transaction-name`,
     },
     {
       key: '1',
       subject: t('Parent Span'),
       value: getSpanEvidenceValue(parentSpan),
+      subjectDataTestId: `${TEST_ID_NAMESPACE}.parent-name`,
     },
     {
       key: '2',
@@ -37,6 +41,7 @@ export function SpanEvidenceKeyValueList({
           ? t('Repeating Span')
           : t('Offending Span'),
       value: getSpanEvidenceValue(offendingSpans[0]),
+      subjectDataTestId: `${TEST_ID_NAMESPACE}.offending-spans`,
     },
   ];
 
@@ -50,6 +55,7 @@ export function SpanEvidenceKeyValueList({
       key: '3',
       subject: t('Problem Parameter'),
       value: problemParameters,
+      subjectDataTestId: `${TEST_ID_NAMESPACE}.problem-parameters`,
     });
   }
 
