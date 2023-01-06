@@ -69,7 +69,7 @@ const SwitchButton = styled('button')<StyleProps>`
   padding: 0;
   border: 1px solid ${p => p.theme.border};
   position: relative;
-  box-shadow: inset ${p => p.theme.dropShadowLight};
+  box-shadow: inset ${p => p.theme.dropShadowMedium};
   height: ${getSize}px;
   width: ${p => getSize(p) * 1.875}px;
   border-radius: ${getSize}px;

@@ -124,7 +124,7 @@ const BadgeContainer = styled('div')`
   background: ${p => p.theme.background};
   border-radius: 2.25rem;
   padding: ${space(0.75)} ${space(0.75)} ${space(0.75)} ${space(1)};
-  box-shadow: ${p => p.theme.dropShadowLightest};
+  box-shadow: ${p => p.theme.dropShadowLight};
   gap: 0 ${space(0.25)};
 `;
 

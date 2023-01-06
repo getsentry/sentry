@@ -105,7 +105,7 @@ const StyledCheckbox = styled('div')<{
   align-items: center;
   justify-content: center;
   color: inherit;
-  box-shadow: ${p => p.theme.dropShadowLight} inset;
+  box-shadow: ${p => p.theme.dropShadowMedium} inset;
   width: ${p => checkboxSizeMap[p.size].box};
   height: ${p => checkboxSizeMap[p.size].box};
   border-radius: ${p => checkboxSizeMap[p.size].borderRadius};

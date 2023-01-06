@@ -1937,7 +1937,7 @@ export {SmartSearchBar, Props as SmartSearchBarProps};
 const Container = styled('div')<{inputHasFocus: boolean}>`
   min-height: ${p => p.theme.form.md.height}px;
   border: 1px solid ${p => p.theme.border};
-  box-shadow: inset ${p => p.theme.dropShadowLight};
+  box-shadow: inset ${p => p.theme.dropShadowMedium};
   background: ${p => p.theme.background};
   padding: 6px ${space(1)};
   position: relative;
