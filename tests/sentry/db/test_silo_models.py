@@ -25,8 +25,10 @@ from sentry.models import (
     Broadcast,
     BroadcastSeen,
     Dashboard,
+    ExternalActor,
     GroupAssignee,
     GroupBookmark,
+    GroupHistory,
     GroupOwner,
     GroupSeen,
     GroupShare,
@@ -133,6 +135,8 @@ fk_emeptions = {
     (AlertRuleActivity, User),
     (DiscoverSavedQuery, User),
     (ExportedData, User),
+    (GroupHistory, User),
+    (ExternalActor, User),
 }
 
 

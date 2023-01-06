@@ -1,5 +1,4 @@
-from collections import OrderedDict
-from typing import Any, MutableMapping, Optional, Union
+from typing import Any, Mapping, MutableMapping, Optional, OrderedDict, Union
 
 from django.db import IntegrityError
 from django.http import Http404
@@ -77,14 +76,17 @@ class ExternalActorSerializerBase(CamelSnakeModelSerializer):  # type: ignore
     def create(self, validated_data: MutableMapping[str, Any]) -> ExternalActor:
         actor = self.get_actor_id(validated_data)
         kwargs = {}
+        actor_id = actor
         if isinstance(actor, Team):
             kwargs["team_id"] = actor.id
+            actor_id = actor.actor_id
         if isinstance(actor, User) or isinstance(actor, APIUser):
             kwargs["user_id"] = actor.id
+            actor_id = actor.actor_id
 
         return ExternalActor.objects.get_or_create(
             **validated_data,
-            actor_id=actor.actor_id,
+            actor_id=actor_id,
             organization=self.organization,
             defaults=kwargs,
         )
@@ -150,8 +152,8 @@ class ExternalTeamSerializer(ExternalActorSerializerBase):
         except Team.DoesNotExist:
             raise serializers.ValidationError("This team does not exist.")
 
-    def to_internal_value(self, data) -> OrderedDict:
-        internal_value = super().to_internal_value(data)
+    def to_internal_value(self, data: Mapping[str, Any]) -> OrderedDict[str, Any]:
+        internal_value: OrderedDict[str, Any] = super().to_internal_value(data)
         team_id = internal_value["team_id"]
         if isinstance(team_id, Team):
             internal_value["team"] = team_id
