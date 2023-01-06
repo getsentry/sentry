@@ -38,9 +38,9 @@ export type Project = {
   isMember: boolean;
   organization: Organization;
   plugins: Plugin[];
-
   processingIssues: number;
   relayPiiConfig: string;
+
   subjectTemplate: string;
   teams: Team[];
   builtinSymbolSources?: string[];
