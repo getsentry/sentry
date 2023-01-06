@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 
 import Alert from 'sentry/components/alert';
 import Confirm from 'sentry/components/confirm';
-import FieldGroup from 'sentry/components/forms/field';
+import FieldGroup from 'sentry/components/forms/fieldGroup';
 import Input from 'sentry/components/input';
 import {t} from 'sentry/locale';
 

@@ -1,6 +1,6 @@
 import {RouteComponentProps} from 'react-router';
 
-import FieldGroup from 'sentry/components/forms/field';
+import FieldGroup from 'sentry/components/forms/fieldGroup';
 import RangeField from 'sentry/components/forms/fields/rangeField';
 import Form from 'sentry/components/forms/form';
 import {Panel, PanelAlert, PanelBody, PanelHeader} from 'sentry/components/panels';
