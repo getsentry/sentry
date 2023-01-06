@@ -28,6 +28,7 @@ from sentry.db.models import (
 )
 from sentry.db.models.manager import BaseManager
 from sentry.exceptions import UnableToAcceptMemberInvitationException
+from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox
 from sentry.models.team import TeamStatus
 from sentry.roles import organization_roles
 from sentry.signals import member_invited
@@ -189,6 +190,15 @@ class OrganizationMember(Model):
     def regenerate_token(self):
         self.token = self.generate_token()
         self.refresh_expires_at()
+
+    @staticmethod
+    def outbox_for_update(org_id: int, org_member_id: int) -> RegionOutbox:
+        return RegionOutbox(
+            shard_scope=OutboxScope.ORGANIZATION_SCOPE,
+            shard_identifier=org_id,
+            category=OutboxCategory.ORGANIZATION_MEMBER_UPDATE,
+            object_identifier=org_member_id,
+        )
 
     def refresh_expires_at(self):
         now = timezone.now()
