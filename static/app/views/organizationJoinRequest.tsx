@@ -54,7 +54,7 @@ class OrganizationJoinRequest extends Component<Props, State> {
       return (
         <NarrowLayout maxWidth="550px">
           <SuccessModal>
-            <StyledIconMegaphone size="5em" />
+            <StyledIconMegaphone size="xxl" />
             <StyledHeader>{t('Request Sent')}</StyledHeader>
             <StyledText>{t('Your request to join has been sent.')}</StyledText>
             <ReceiveEmailMessage>
@@ -67,7 +67,7 @@ class OrganizationJoinRequest extends Component<Props, State> {
 
     return (
       <NarrowLayout maxWidth="650px">
-        <StyledIconMegaphone size="5em" />
+        <StyledIconMegaphone size="xxl" />
         <StyledHeader>{t('Request to Join')}</StyledHeader>
         <StyledText>
           {tct('Ask the admins if you can join the [orgId] organization.', {
