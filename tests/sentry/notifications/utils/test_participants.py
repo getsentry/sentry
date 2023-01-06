@@ -742,7 +742,7 @@ class GetSendToFallthroughTest(TestCase):
             )
 
         event = self.store_event("admin.lol", self.project)
-        expected_notified_users = {user_service.serialize_user(user) for user in notifiable_users}
+        expected_notified_users = {user_service.get_user(user.id) for user in notifiable_users}
         notified_users = self.get_send_to_fallthrough(
             event, self.project, FallthroughChoiceType.ACTIVE_MEMBERS
         )[ExternalProviders.EMAIL]
