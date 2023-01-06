@@ -51,6 +51,7 @@ const Checkbox = ({
   return (
     <Wrapper {...{className, checked, size}}>
       <HiddenInput
+        ref={checkboxRef}
         css={inputCss}
         checked={checked !== 'indeterminate' && checked}
         type="checkbox"
