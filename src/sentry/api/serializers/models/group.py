@@ -376,8 +376,8 @@ class GroupSerializerBase(Serializer, ABC):
         pass
 
     @abstractmethod
-    def _seen_stats_issue_platform(
-        self, issue_platform_issue_list: Sequence[Group], user
+    def _seen_stats_generic(
+        self, generic_issue_list: Sequence[Group], user
     ) -> Mapping[Group, SeenStats]:
         pass
 
@@ -466,19 +466,17 @@ class GroupSerializerBase(Serializer, ABC):
         perf_issues = [
             group for group in item_list if GroupCategory.PERFORMANCE == group.issue_category
         ]
-        issue_platform_issues = [
+        generic_issues = [
             group for group in item_list if GroupCategory.PROFILE == group.issue_category
         ]
 
         # bulk query for the seen_stats by type
         error_stats = (self._seen_stats_error(error_issues, user) if error_issues else {}) or {}
         perf_stats = (self._seen_stats_performance(perf_issues, user) if perf_issues else {}) or {}
-        issue_platform_stats = (
-            self._seen_stats_issue_platform(issue_platform_issues, user)
-            if issue_platform_issues
-            else {}
+        generic_stats = (
+            self._seen_stats_generic(generic_issues, user) if generic_issues else {}
         ) or {}
-        agg_stats = {**error_stats, **perf_stats, **issue_platform_stats}
+        agg_stats = {**error_stats, **perf_stats, **generic_stats}
         # combine results back
         return {group: agg_stats.get(group, {}) for group in item_list}
 
@@ -761,13 +759,13 @@ class GroupSerializer(GroupSerializerBase):
             tagstore.get_perf_group_list_tag_value,
         )
 
-    def _seen_stats_issue_platform(
-        self, issue_platform_issue_list: Sequence[Group], user
+    def _seen_stats_generic(
+        self, generic_issue_list: Sequence[Group], user
     ) -> Mapping[Group, SeenStats]:
         return self.__seen_stats_impl(
-            issue_platform_issue_list,
-            tagstore.get_issue_platform_groups_user_counts,
-            tagstore.get_issue_platform_group_list_tag_value,
+            generic_issue_list,
+            tagstore.get_generic_groups_user_counts,
+            tagstore.get_generic_group_list_tag_value,
         )
 
     def __seen_stats_impl(
@@ -941,18 +939,18 @@ class GroupSerializerSnuba(GroupSerializerBase):
             self.environment_ids,
         )
 
-    def _seen_stats_issue_platform(
-        self, issue_platform_issue_list: Sequence[Group], user
+    def _seen_stats_generic(
+        self, generic_issue_list: Sequence[Group], user
     ) -> Mapping[Group, SeenStats]:
         return self._parse_seen_stats_results(
-            self._execute_issue_platform_seen_stats_query(
-                item_list=issue_platform_issue_list,
+            self._execute_generic_seen_stats_query(
+                item_list=generic_issue_list,
                 start=self.start,
                 end=self.end,
                 conditions=self.conditions,
                 environment_ids=self.environment_ids,
             ),
-            issue_platform_issue_list,
+            generic_issue_list,
             bool(self.start or self.end or self.conditions),
             self.environment_ids,
         )
@@ -1014,7 +1012,7 @@ class GroupSerializerSnuba(GroupSerializerBase):
         )
 
     @staticmethod
-    def _execute_issue_platform_seen_stats_query(
+    def _execute_generic_seen_stats_query(
         item_list, start=None, end=None, conditions=None, environment_ids=None
     ):
         project_ids = list({item.project_id for item in item_list})
@@ -1036,7 +1034,7 @@ class GroupSerializerSnuba(GroupSerializerBase):
             conditions=conditions,
             filter_keys=filters,
             aggregations=aggregations,
-            referrer="serializers.GroupSerializerSnuba._execute_issue_platform_seen_stats_query",
+            referrer="serializers.GroupSerializerSnuba._execute_generic_seen_stats_query",
         )
 
     @staticmethod

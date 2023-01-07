@@ -497,7 +497,7 @@ class SnubaTagStorage(TagStorage):
             for group_id, data in result.items()
         }
 
-    def get_issue_platform_group_list_tag_value(
+    def get_generic_group_list_tag_value(
         self, project_ids, group_id_list, environment_ids, key, value
     ):
         filters = {"project_id": project_ids, "group_id": group_id_list}
@@ -516,7 +516,7 @@ class SnubaTagStorage(TagStorage):
             conditions=conditions,
             filter_keys=filters,
             aggregations=aggregations,
-            referrer="tagstore.get_issue_platform_group_list_tag_value",
+            referrer="tagstore.get_generic_group_list_tag_value",
         )
 
         return {
@@ -803,7 +803,7 @@ class SnubaTagStorage(TagStorage):
             },
         )
 
-    def get_issue_platform_groups_user_counts(
+    def get_generic_groups_user_counts(
         self, project_ids, group_ids, environment_ids, start=None, end=None
     ):
         filters = {"project_id": project_ids, "group_id": group_ids}
@@ -820,7 +820,7 @@ class SnubaTagStorage(TagStorage):
             filter_keys=filters,
             aggregations=aggregations,
             orderby="-count",
-            referrer="tagstore.get_issue_platform_groups_user_counts",
+            referrer="tagstore.get_generic_groups_user_counts",
         )
 
         return defaultdict(int, {k: v for k, v in result.items() if v})

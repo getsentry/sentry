@@ -1143,12 +1143,12 @@ class ProfilingTagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin):
             )
             second_group = group_info.group if group_info else None
 
-        assert self.ts.get_issue_platform_groups_user_counts(
+        assert self.ts.get_generic_groups_user_counts(
             [self.project.id],
             group_ids=[first_group.id, second_group.id],
             environment_ids=[self.environment.id],
         ) == {first_group.id: 2, second_group.id: 3}
-        assert self.ts.get_issue_platform_groups_user_counts(
+        assert self.ts.get_generic_groups_user_counts(
             [self.project.id], group_ids=[first_group.id, second_group.id], environment_ids=None
         ) == {first_group.id: 3, second_group.id: 3}
 
@@ -1173,7 +1173,7 @@ class ProfilingTagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin):
         )
         group = group_info.group if group_info else None
 
-        group_seen_stats = self.ts.get_issue_platform_group_list_tag_value(
+        group_seen_stats = self.ts.get_generic_group_list_tag_value(
             [group.project_id],
             [group.id],
             [self.environment.id],

@@ -41,11 +41,11 @@ class TagStorage(Service):
             "get_group_tag_values",
             "get_group_list_tag_value",
             "get_perf_group_list_tag_value",
-            "get_issue_platform_group_list_tag_value",
+            "get_generic_group_list_tag_value",
             "get_tag_keys_for_projects",
             "get_groups_user_counts",
             "get_perf_groups_user_counts",
-            "get_issue_platform_groups_user_counts",
+            "get_generic_groups_user_counts",
             "get_group_event_filter",
             "get_group_tag_value_count",
             "get_top_group_tag_values",
@@ -194,7 +194,7 @@ class TagStorage(Service):
     ):
         raise NotImplementedError
 
-    def get_issue_platform_group_list_tag_value(
+    def get_generic_group_list_tag_value(
         self, project_ids, group_id_list, environment_ids, key, value
     ):
         raise NotImplementedError
@@ -265,7 +265,7 @@ class TagStorage(Service):
     ):
         raise NotImplementedError
 
-    def get_issue_platform_groups_user_counts(
+    def get_generic_groups_user_counts(
         self, project_ids, group_ids, environment_ids, start=None, end=None
     ):
         raise NotImplementedError
