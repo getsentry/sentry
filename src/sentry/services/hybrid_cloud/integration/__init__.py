@@ -58,6 +58,15 @@ class APIOrganizationIntegration:
     status: int  # As ObjectStatus
     grace_period_end: datetime | None
 
+    def __hash__(self) -> int:
+        return hash(self.id)
+
+    def get_status_display(self) -> str:
+        for status_id, display in ObjectStatus.as_choices():
+            if status_id == self.status:
+                return display
+        return "disabled"
+
 
 class IntegrationService(InterfaceWithLifecycle):
     def _serialize_integration(self, integration: Integration) -> APIIntegration:
@@ -208,7 +217,9 @@ class IntegrationService(InterfaceWithLifecycle):
         )
         return installation
 
-    def has_feature(self, *, provider: str, feature: IntegrationFeatures) -> bool:
+    def has_feature(
+        self, *, provider: APIIntegration.provider, feature: IntegrationFeatures
+    ) -> bool:
         """
         Returns True if the IntegrationProvider subclass contains a given feature
         Intended to replace calls of `integration.has_feature`.

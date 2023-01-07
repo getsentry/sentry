@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections import defaultdict
-from typing import Any, Mapping, MutableMapping, Optional, Sequence
+from typing import Any, Dict, Mapping, MutableMapping, Optional, Sequence
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.integrations import IntegrationProvider
@@ -14,7 +14,11 @@ from sentry.models import (
     OrganizationIntegration,
     User,
 )
-from sentry.services.hybrid_cloud.integration import APIIntegration, integration_service
+from sentry.services.hybrid_cloud.integration import (
+    APIIntegration,
+    APIOrganizationIntegration,
+    integration_service,
+)
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.json import JSONData
 
@@ -61,7 +65,7 @@ class IntegrationConfigSerializer(IntegrationSerializer):
 
     def serialize(
         self,
-        obj: Integration,
+        obj: Integration | APIIntegration,
         attrs: Mapping[str, Any],
         user: User,
         include_config: bool = True,
@@ -75,7 +79,9 @@ class IntegrationConfigSerializer(IntegrationSerializer):
         data.update({"configOrganization": []})
 
         try:
-            install = obj.get_installation(organization_id=self.organization_id)
+            install = integration_service.get_installation(
+                integration=obj, organization_id=self.organization_id
+            )
         except NotImplementedError:
             # The integration may not implement a Installed Integration object
             # representation.
@@ -97,17 +103,33 @@ class OrganizationIntegrationSerializer(Serializer):  # type: ignore
     def __init__(self, params: Optional[Mapping[str, Any]] = None) -> None:
         self.params = params
 
+    def get_attrs(self, item_list, user, **kwargs):
+        integrations = integration_service.get_integrations(
+            integration_ids=[item.integration_id for item in item_list]
+        )
+        integrations_by_id: Dict[APIIntegration.id, APIIntegration] = {
+            i.id: i for i in integrations
+        }
+        return {
+            item: {"integration": integrations_by_id[item.integration_id]} for item in item_list
+        }
+
     def serialize(
-        self, obj: Integration, attrs: Mapping[str, Any], user: User, include_config: bool = True
+        self,
+        obj: APIOrganizationIntegration,
+        attrs: Mapping[str, Any],
+        user: User,
+        include_config: bool = True,
     ) -> MutableMapping[str, JSONData]:
         # XXX(epurkhiser): This is O(n) for integrations, especially since
         # we're using the IntegrationConfigSerializer which pulls in the
         # integration installation config object which very well may be making
         # API request for config options.
-        integration: MutableMapping[str, Any] = serialize(
-            objects=obj.integration,
+        integration: APIIntegration = attrs.get("integration")
+        serialized_integration: MutableMapping[str, Any] = serialize(
+            objects=integration,
             user=user,
-            serializer=IntegrationConfigSerializer(obj.organization.id, params=self.params),
+            serializer=IntegrationConfigSerializer(obj.organization_id, params=self.params),
             include_config=include_config,
         )
 
@@ -115,7 +137,9 @@ class OrganizationIntegrationSerializer(Serializer):  # type: ignore
         config_data = None
 
         try:
-            installation = obj.integration.get_installation(obj.organization_id)
+            installation = integration_service.get_installation(
+                integration=integration, organization_id=obj.organization_id
+            )
         except NotImplementedError:
             # slack doesn't have an installation implementation
             config_data = obj.config if include_config else None
@@ -129,29 +153,30 @@ class OrganizationIntegrationSerializer(Serializer):  # type: ignore
                 # If there is an ApiError from our 3rd party integration
                 # providers, assume there is an problem with the configuration
                 # and set it to disabled.
-                integration.update({"status": "disabled"})
+                serialized_integration.update({"status": "disabled"})
                 name = "sentry.serializers.model.organizationintegration"
                 log_info = {
                     "error": str(e),
-                    "integration_id": obj.integration.id,
-                    "integration_provider": obj.integration.provider,
+                    "integration_id": integration.id,
+                    "integration_provider": integration.provider,
                 }
                 logger.info(name, extra=log_info)
 
-        integration.update(
+        serialized_integration.update(
             {
                 "configData": config_data,
-                "externalId": obj.integration.external_id,
-                "organizationId": obj.organization.id,
+                "externalId": integration.external_id,
+                "organizationId": obj.organization_id,
                 "organizationIntegrationStatus": obj.get_status_display(),
                 "gracePeriodEnd": obj.grace_period_end,
             }
         )
 
         if dynamic_display_information:
-            integration.update({"dynamicDisplayInformation": dynamic_display_information})
-
-        return integration
+            serialized_integration.update(
+                {"dynamicDisplayInformation": dynamic_display_information}
+            )
+        return serialized_integration
 
 
 class IntegrationProviderSerializer(Serializer):  # type: ignore
@@ -223,7 +248,7 @@ class IntegrationIssueSerializer(IntegrationSerializer):
             if integration is None:
                 continue
             installation = integration_service.get_installation(
-                api_integration=integration, organization_id=self.group.organization.id
+                integration=integration, organization_id=self.group.organization.id
             )
             if hasattr(installation, "get_issue_url") and hasattr(
                 installation, "get_issue_display_name"

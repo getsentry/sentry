@@ -166,7 +166,9 @@ class DatabaseBackedIntegrationService(IntegrationService):
         status: int,
         grace_period_end: datetime | None,
     ) -> APIOrganizationIntegration | None:
-        organization_integration = Integration.objects.filter(id=org_integration_id).first()
+        organization_integration = OrganizationIntegration.objects.filter(
+            id=org_integration_id
+        ).first()
         if not organization_integration:
             return None
         organization_integration.update(

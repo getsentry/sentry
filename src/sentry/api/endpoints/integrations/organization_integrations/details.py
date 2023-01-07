@@ -53,9 +53,12 @@ class OrganizationIntegrationDetailsEndpoint(OrganizationIntegrationBaseEndpoint
                 metadata = integration.metadata
                 metadata["domain_name"] = data["domain"]
                 update_kwargs["metadata"] = metadata
-
-            integration.update(**update_kwargs)
-            integration.save()
+            integration_service.update_integration(
+                integration_id=integration.id,
+                name=update_kwargs.get("name", integration.name),
+                metadata=update_kwargs.get("metadata", integration.metadata),
+                status=integration.status,
+            )
 
             org_integration = self.get_organization_integration(organization, integration_id)
 
