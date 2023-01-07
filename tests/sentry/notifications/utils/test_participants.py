@@ -545,7 +545,6 @@ class GetOwnersCase(TestCase):
             assert owner_reason is None
 
 
-# @apply_feature_flag_on_cls("organizations:issue-alert-fallback-targeting")
 class GetSendToFallthroughTest(TestCase):
     def get_send_to_fallthrough(
         self,
