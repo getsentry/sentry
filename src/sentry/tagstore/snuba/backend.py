@@ -440,25 +440,35 @@ class SnubaTagStorage(TagStorage):
         )
         return set(key.top_values)
 
-    def get_group_list_tag_value(self, project_ids, group_id_list, environment_ids, key, value):
-        tag = f"tags[{key}]"
+    def __get_group_list_tag_value(
+        self,
+        project_ids,
+        group_id_list,
+        environment_ids,
+        key,
+        value,
+        dataset,
+        extra_conditions,
+        extra_aggregations,
+        referrer,
+    ):
         filters = {"project_id": project_ids, "group_id": group_id_list}
         if environment_ids:
             filters["environment"] = environment_ids
-        conditions = [[tag, "=", value], DEFAULT_TYPE_CONDITION]
-        aggregations = [
+        conditions = (extra_conditions if extra_conditions else []) + [[f"tags[{key}]", "=", value]]
+        aggregations = (extra_aggregations if extra_aggregations else []) + [
             ["count()", "", "times_seen"],
             ["min", SEEN_COLUMN, "first_seen"],
             ["max", SEEN_COLUMN, "last_seen"],
         ]
 
         result = snuba.query(
-            dataset=Dataset.Events,
+            dataset=dataset,
             groupby=["group_id"],
             conditions=conditions,
             filter_keys=filters,
             aggregations=aggregations,
-            referrer="tagstore.get_group_list_tag_value",
+            referrer=referrer,
         )
 
         return {
@@ -467,6 +477,19 @@ class SnubaTagStorage(TagStorage):
             )
             for group_id, data in result.items()
         }
+
+    def get_group_list_tag_value(self, project_ids, group_id_list, environment_ids, key, value):
+        return self.__get_group_list_tag_value(
+            project_ids,
+            group_id_list,
+            environment_ids,
+            key,
+            value,
+            Dataset.Events,
+            [DEFAULT_TYPE_CONDITION],
+            [],
+            "tagstore.get_group_list_tag_value",
+        )
 
     def get_perf_group_list_tag_value(
         self, project_ids, group_id_list, environment_ids, key, value
@@ -500,31 +523,17 @@ class SnubaTagStorage(TagStorage):
     def get_generic_group_list_tag_value(
         self, project_ids, group_id_list, environment_ids, key, value
     ):
-        filters = {"project_id": project_ids, "group_id": group_id_list}
-        if environment_ids:
-            filters["environment"] = environment_ids
-        conditions = [[f"tags[{key}]", "=", value]]
-        aggregations = [
-            ["count()", "", "times_seen"],
-            ["min", SEEN_COLUMN, "first_seen"],
-            ["max", SEEN_COLUMN, "last_seen"],
-        ]
-
-        result = snuba.query(
-            dataset=Dataset.IssuePlatform,
-            groupby=["group_id"],
-            conditions=conditions,
-            filter_keys=filters,
-            aggregations=aggregations,
-            referrer="tagstore.get_generic_group_list_tag_value",
+        return self.__get_group_list_tag_value(
+            project_ids,
+            group_id_list,
+            environment_ids,
+            key,
+            value,
+            Dataset.IssuePlatform,
+            [],
+            [],
+            "tagstore.get_generic_group_list_tag_value",
         )
-
-        return {
-            group_id: GroupTagValue(
-                group_id=group_id, key=key, value=value, **fix_tag_value_data(data)
-            )
-            for group_id, data in result.items()
-        }
 
     def get_group_seen_values_for_environments(
         self, project_ids, group_id_list, environment_ids, start=None, end=None
@@ -753,14 +762,27 @@ class SnubaTagStorage(TagStorage):
                 )
         return values
 
-    def get_groups_user_counts(self, project_ids, group_ids, environment_ids, start=None, end=None):
+    def __get_groups_user_counts(
+        self,
+        project_ids,
+        group_ids,
+        environment_ids,
+        start=None,
+        end=None,
+        dataset=Dataset.Events,
+        extra_aggregations=None,
+        referrer="tagstore.__get_groups_user_counts",
+    ):
         filters = {"project_id": project_ids, "group_id": group_ids}
         if environment_ids:
             filters["environment"] = environment_ids
-        aggregations = [["uniq", "tags[sentry:user]", "count"]]
+
+        aggregations = (extra_aggregations if extra_aggregations else []) + [
+            ["uniq", "tags[sentry:user]", "count"]
+        ]
 
         result = snuba.query(
-            dataset=Dataset.Events,
+            dataset=dataset,
             start=start,
             end=end,
             groupby=["group_id"],
@@ -768,10 +790,22 @@ class SnubaTagStorage(TagStorage):
             filter_keys=filters,
             aggregations=aggregations,
             orderby="-count",
-            referrer="tagstore.get_groups_user_counts",
+            referrer=referrer,
         )
 
         return defaultdict(int, {k: v for k, v in result.items() if v})
+
+    def get_groups_user_counts(self, project_ids, group_ids, environment_ids, start=None, end=None):
+        return self.__get_groups_user_counts(
+            project_ids,
+            group_ids,
+            environment_ids,
+            start,
+            end,
+            Dataset.Events,
+            [],
+            "tagstore.get_groups_user_counts",
+        )
 
     def get_perf_groups_user_counts(
         self, project_ids, group_ids, environment_ids, start=None, end=None
@@ -806,24 +840,16 @@ class SnubaTagStorage(TagStorage):
     def get_generic_groups_user_counts(
         self, project_ids, group_ids, environment_ids, start=None, end=None
     ):
-        filters = {"project_id": project_ids, "group_id": group_ids}
-        if environment_ids:
-            filters["environment"] = environment_ids
-        aggregations = [["uniq", "tags[sentry:user]", "count"]]
-
-        result = snuba.query(
-            dataset=Dataset.IssuePlatform,
-            start=start,
-            end=end,
-            groupby=["group_id"],
-            conditions=None,
-            filter_keys=filters,
-            aggregations=aggregations,
-            orderby="-count",
-            referrer="tagstore.get_generic_groups_user_counts",
+        return self.__get_groups_user_counts(
+            project_ids,
+            group_ids,
+            environment_ids,
+            start,
+            end,
+            Dataset.IssuePlatform,
+            [],
+            "tagstore.get_generic_groups_user_counts",
         )
-
-        return defaultdict(int, {k: v for k, v in result.items() if v})
 
     def get_tag_value_paginator(
         self,
