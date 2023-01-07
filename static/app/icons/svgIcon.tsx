@@ -12,8 +12,7 @@ export interface SVGIconProps extends React.SVGAttributes<SVGSVGElement> {
    * @deprecated
    */
   legacySize?: string;
-  // TODO: Remove once getsentry is fixed
-  size?: IconSize | string;
+  size?: IconSize;
 }
 
 export const SvgIcon = forwardRef<SVGSVGElement, SVGIconProps>(function SvgIcon(
@@ -28,7 +27,7 @@ export const SvgIcon = forwardRef<SVGSVGElement, SVGIconProps>(function SvgIcon(
 ) {
   const theme = useTheme();
   const color = theme[providedColor] ?? providedColor;
-  const size = legacySize ?? theme.iconSizes[providedSize] ?? providedSize;
+  const size = legacySize ?? theme.iconSizes[providedSize];
 
   return (
     <svg {...props} viewBox={viewBox} fill={color} height={size} width={size} ref={ref} />
