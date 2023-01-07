@@ -358,7 +358,12 @@ class ReleaseSerializer(Serializer):
                 issue_counts_by_release,
             ) = self.__get_release_data_with_environments(release_project_envs)
 
-        owners = {d["id"]: d for d in serialize({i.owner for i in item_list if i.owner_id}, user)}
+        owners = {
+            d["id"]: d
+            for d in user_service.serialize_users(
+                user_ids=[i.owner_id for i in item_list if i.owner_id], as_user=user
+            )
+        }
 
         release_metadata_attrs = self._get_commit_metadata(item_list, user)
         deploy_metadata_attrs = self._get_deploy_metadata(item_list, user)
