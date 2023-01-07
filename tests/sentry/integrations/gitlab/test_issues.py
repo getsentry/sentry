@@ -217,11 +217,13 @@ class GitlabIssuesTest(GitLabTestCase):
         )
         project_id = 10
         project_name = "This_is / a_project"
-        self.installation.org_integration = integration_service.update_config(
+        self.installation.org_integration = integration_service.update_organization_integration(
             org_integration_id=self.installation.org_integration.id,
             config={
                 "project_issue_defaults": {str(self.group.project_id): {"project": project_id}}
             },
+            status=self.installation.org_integration.status,
+            grace_period_end=self.installation.org_integration.grace_period_end,
         )
 
         responses.add(
@@ -283,11 +285,13 @@ class GitlabIssuesTest(GitLabTestCase):
         )
         project_id = 10
         project_name = "This_is / a_project"
-        self.installation.org_integration = integration_service.update_config(
+        self.installation.org_integration = integration_service.update_organization_integration(
             org_integration_id=self.installation.org_integration.id,
             config={
                 "project_issue_defaults": {str(self.group.project_id): {"project": project_id}}
             },
+            status=self.installation.org_integration.status,
+            grace_period_end=self.installation.org_integration.grace_period_end,
         )
 
         responses.add(

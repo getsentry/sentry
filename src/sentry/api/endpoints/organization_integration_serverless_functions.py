@@ -26,7 +26,7 @@ class OrganizationIntegrationServerlessFunctionsEndpoint(OrganizationIntegration
         integration = self.get_integration(organization, integration_id)
 
         install = integration_service.get_installation(
-            api_integration=integration, organization_id=organization.id
+            integration=integration, organization_id=organization.id
         )
 
         if not isinstance(install, ServerlessMixin):
@@ -42,7 +42,7 @@ class OrganizationIntegrationServerlessFunctionsEndpoint(OrganizationIntegration
     def post(self, request: Request, organization, integration_id) -> Response:
         integration = self.get_integration(organization, integration_id)
         install = integration_service.get_installation(
-            api_integration=integration, organization_id=organization.id
+            integration=integration, organization_id=organization.id
         )
 
         if not isinstance(install, ServerlessMixin):

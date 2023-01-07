@@ -306,11 +306,13 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase):
             data={"event_id": "a" * 32, "timestamp": self.min_ago}, project_id=self.project.id
         )
         group = event.group
-        integration_service.update_config(
+        integration_service.update_organization_integration(
             org_integration_id=self.integration.org_integration.id,
             config={
                 "project_issue_defaults": {str(group.project_id): {"repo": "getsentry/sentry"}}
             },
+            status=self.integration.org_integration.status,
+            grace_period_end=self.integration.org_integration.grace_period_end,
         )
         fields = self.integration.get_link_issue_config(group)
         for field in fields:
@@ -341,11 +343,13 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase):
             data={"event_id": "a" * 32, "timestamp": self.min_ago}, project_id=self.project.id
         )
         group = event.group
-        integration_service.update_config(
+        integration_service.update_organization_integration(
             org_integration_id=self.integration.org_integration.id,
             config={
                 "project_issue_defaults": {str(group.project_id): {"repo": "getsentry/sentry"}}
             },
+            status=self.integration.org_integration.status,
+            grace_period_end=self.integration.org_integration.grace_period_end,
         )
         fields = self.integration.get_create_issue_config(group, self.user)
         for field in fields:

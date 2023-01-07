@@ -642,7 +642,7 @@ class GroupSerializerBase(Serializer, ABC):
                 continue
 
             install = integration_service.get_installation(
-                api_integration=integration, organization_id=org_id
+                integration=integration, organization_id=org_id
             )
             local_annotations_by_group_id = (
                 safe_execute(

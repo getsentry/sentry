@@ -140,35 +140,38 @@ class DatabaseBackedIntegrationService(IntegrationService):
             self._serialize_organization_integration(organization_integration),
         )
 
-    def update_config(
-        self, *, org_integration_id: int, config: Mapping[str, Any], should_clear: bool = False
-    ) -> APIOrganizationIntegration | None:
-        oi = OrganizationIntegration.objects.filter(id=org_integration_id).first()
-        if not oi:
+    def update_integration(
+        self,
+        *,
+        integration_id: int,
+        name: str,
+        metadata: Dict[str, Any],
+        status: int,
+    ) -> APIIntegration | None:
+        integration = Integration.objects.filter(id=integration_id).first()
+        if not integration:
             return None
-        if should_clear:
-            oi.config.clear()
-        oi.config.update(config)
-        oi.save()
-        return self._serialize_organization_integration(oi)
+        integration.update(
+            name=name,
+            metadata=metadata,
+            status=status,
+        )
+        return self._serialize_integration(integration)
 
-    def update_status(
-        self, *, org_integration_id: int, status: int
-    ) -> APIOrganizationIntegration | None:
-        oi = OrganizationIntegration.objects.filter(id=org_integration_id).first()
-        if not oi:
-            return None
-        oi.update(status=status)
-        return self._serialize_organization_integration(oi)
-
-    def update_grace_period_end(
+    def update_organization_integration(
         self,
         *,
         org_integration_id: int,
+        config: Dict[str, Any],
+        status: int,
         grace_period_end: datetime | None,
     ) -> APIOrganizationIntegration | None:
-        oi = OrganizationIntegration.objects.filter(id=org_integration_id).first()
-        if not oi:
+        organization_integration = Integration.objects.filter(id=org_integration_id).first()
+        if not organization_integration:
             return None
-        oi.update(grace_period_end=grace_period_end)
-        return self._serialize_organization_integration(oi)
+        organization_integration.update(
+            config=config,
+            status=status,
+            grace_period_end=grace_period_end,
+        )
+        return self._serialize_organization_integration(organization_integration)

@@ -30,7 +30,7 @@ class OrganizationIntegrationReposEndpoint(OrganizationIntegrationBaseEndpoint):
             return self.respond(context)
 
         install = integration_service.get_installation(
-            api_integration=integration, organization_id=organization.id
+            integration=integration, organization_id=organization.id
         )
 
         if isinstance(install, RepositoryMixin):

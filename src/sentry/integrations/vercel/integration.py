@@ -247,10 +247,11 @@ class VercelIntegration(IntegrationInstallation):
                     vercel_client, vercel_project_id, env_var, details["value"], details["type"]
                 )
         config.update(data)
-        self.org_integration = integration_service.update_config(
+        self.org_integration = integration_service.update_organization_integration(
             org_integration_id=self.org_integration.id,
             config=config,
-            should_clear=True,
+            status=self.org_integration.status,
+            grace_period_end=self.org_integration.grace_period_end,
         )
 
     def create_env_var(self, client, vercel_project_id, key, value, type):

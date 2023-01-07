@@ -76,7 +76,7 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
             )
 
         installation = integration_service.get_installation(
-            api_integration=integration, organization_id=organization_id
+            integration=integration, organization_id=organization_id
         )
         config = None
         try:
@@ -121,7 +121,7 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
             )
 
         installation = integration_service.get_installation(
-            api_integration=integration, organization_id=organization_id
+            integration=integration, organization_id=organization_id
         )
         try:
             data = installation.get_issue(external_issue_id, data=request.data)
@@ -205,7 +205,7 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
             )
 
         installation = integration_service.get_installation(
-            api_integration=integration, organization_id=organization_id
+            integration=integration, organization_id=organization_id
         )
         try:
             data = installation.create_issue(request.data)

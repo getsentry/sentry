@@ -3,7 +3,7 @@ from __future__ import annotations
 from abc import abstractmethod
 from dataclasses import dataclass
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Iterable, List, Mapping, Tuple
+from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Tuple
 
 from sentry.constants import ObjectStatus
 from sentry.services.hybrid_cloud import (
@@ -24,13 +24,13 @@ if TYPE_CHECKING:
     from sentry.models.integrations import Integration, OrganizationIntegration
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, eq=True)
 class APIIntegration:
     id: int
     provider: str
     external_id: str
     name: str
-    metadata: Mapping[str, Any]
+    metadata: Dict[str, Any]
     status: int
 
     def __hash__(self) -> int:
@@ -48,15 +48,15 @@ class APIIntegration:
         return "disabled"
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, eq=True)
 class APIOrganizationIntegration:
     id: int
     default_auth_id: int
     organization_id: int
     integration_id: int
-    config: dict[str, Any]
+    config: Dict[str, Any]
     status: int  # As ObjectStatus
-    grace_period_end: datetime
+    grace_period_end: datetime | None
 
 
 class IntegrationService(InterfaceWithLifecycle):
@@ -160,41 +160,39 @@ class IntegrationService(InterfaceWithLifecycle):
         pass
 
     @abstractmethod
-    def update_config(
-        self, *, org_integration_id: int, config: Mapping[str, Any], should_clear: bool = False
-    ) -> APIOrganizationIntegration | None:
+    def update_integration(
+        self,
+        *,
+        integration_id: int,
+        name: str,
+        metadata: Dict[str, Any],
+        status: int,
+    ) -> APIIntegration | None:
         """
-        Returns an APIOrganizationIntegration if the associated org_integration.config value
-        was successfully updated, otherwise returns None.
-        If should_clear is True, runs dict.clear() first, otherwise just uses dict.update()
-        """
-        pass
-
-    @abstractmethod
-    def update_status(
-        self, *, org_integration_id: int, status: int
-    ) -> APIOrganizationIntegration | None:
-        """
-        Returns an APIOrganizationIntegration if the org_integration.status was updated,
-        otherwise returns None.
+        Returns an APIIntegration when the associated integration is updated.
+        Every field must be provided and will be updated, as no defaults are set.
         """
         pass
 
     @abstractmethod
-    def update_grace_period_end(
+    def update_organization_integration(
         self,
         *,
         org_integration_id: int,
+        config: Dict[str, Any],
+        status: int,
         grace_period_end: datetime | None,
     ) -> APIOrganizationIntegration | None:
         """
-        Returns an APIOrganizationIntegration if the org_integration.grace_period_end was updated,
-        otherwise returns None.
+        Returns an APIOrganizationIntegration when the associated org_integration is updated.
+        Every field must be provided and will be updated, as no defaults are set.
         """
         pass
 
+    # The following methods replace instance methods of the ORM objects!
+
     def get_installation(
-        self, *, api_integration: APIIntegration, organization_id: int
+        self, *, integration: APIIntegration | Integration, organization_id: int
     ) -> IntegrationInstallation:
         """
         Returns the IntegrationInstallation class for a given integration.
@@ -203,9 +201,9 @@ class IntegrationService(InterfaceWithLifecycle):
         """
         from sentry import integrations
 
-        provider = integrations.get(api_integration.provider)
+        provider = integrations.get(integration.provider)
         installation: IntegrationInstallation = provider.get_installation(
-            model=api_integration,
+            model=integration,
             organization_id=organization_id,
         )
         return installation

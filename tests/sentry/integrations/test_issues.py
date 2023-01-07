@@ -122,7 +122,7 @@ class IssueDefaultTest(TestCase):
         )
 
         self.installation = integration_service.get_installation(
-            api_integration=integration, organization_id=self.group.organization.id
+            integration=integration, organization_id=self.group.organization.id
         )
 
     def test_get_repository_choices(self):
@@ -137,9 +137,11 @@ class IssueDefaultTest(TestCase):
         assert repo_choice == []
 
     def test_get_repository_choices_default_repo(self):
-        self.installation.org_integration = integration_service.update_config(
+        self.installation.org_integration = integration_service.update_organization_integration(
             org_integration_id=self.installation.org_integration.id,
             config={"project_issue_defaults": {str(self.group.project_id): {"repo": "user/repo2"}}},
+            status=self.installation.org_integration.status,
+            grace_period_end=self.installation.org_integration.grace_period_end,
         )
         self.installation.get_repositories = lambda: [
             {"name": "repo1", "identifier": "user/repo1"},
