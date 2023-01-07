@@ -185,6 +185,60 @@ class TestJavascriptDeriveCodeMappings(BaseDeriveCodeMappings):
             assert code_mapping.repository.name == repo_name
 
 
+class TestRubyDeriveCodeMappings(BaseDeriveCodeMappings):
+    def setUp(self):
+        super().setUp()
+        self.platform = "ruby"
+        self.event_data = self.generate_data(
+            [
+                {
+                    "filename": "some/path/test.rb",
+                    "in_app": True,
+                },
+                {
+                    "filename": "lib/tasks/crontask.rake",
+                    "in_app": True,
+                },
+            ]
+        )
+
+    def test_find_stacktrace_paths_single_project(self):
+        stacktrace_paths = identify_stacktrace_paths(self.event_data)
+        assert set(stacktrace_paths) == {"some/path/test.rb", "lib/tasks/crontask.rake"}
+
+    @responses.activate
+    @with_feature("organizations:derive-code-mappings")
+    def test_derive_code_mappings_rb(self):
+        repo_name = "foo/bar"
+        with patch(
+            "sentry.integrations.github.client.GitHubClientMixin.get_trees_for_org"
+        ) as mock_get_trees_for_org:
+            mock_get_trees_for_org.return_value = {
+                repo_name: RepoTree(Repo(repo_name, "master"), ["some/path/test.rb"])
+            }
+            derive_code_mappings(self.project.id, self.event_data)
+            code_mapping = RepositoryProjectPathConfig.objects.all()[0]
+            assert code_mapping.stack_root == ""
+            assert code_mapping.source_root == ""
+            assert code_mapping.repository.name == repo_name
+
+    @responses.activate
+    @with_feature("organizations:derive-code-mappings")
+    def test_derive_code_mappings_rake(self):
+        repo_name = "foo/bar"
+        with patch(
+            "sentry.integrations.github.client.GitHubClientMixin.get_trees_for_org"
+        ) as mock_get_trees_for_org:
+            mock_get_trees_for_org.return_value = {
+                repo_name: RepoTree(Repo(repo_name, "master"), ["lib/tasks/crontask.rake"])
+            }
+            derive_code_mappings(self.project.id, self.event_data)
+            code_mapping = RepositoryProjectPathConfig.objects.all()[0]
+            assert code_mapping.stack_root == ""
+            assert code_mapping.source_root == ""
+            assert code_mapping.repository.name == repo_name
+
+
 class TestPythonDeriveCodeMappings(BaseDeriveCodeMappings):
     def setUp(self):
         super().setUp()

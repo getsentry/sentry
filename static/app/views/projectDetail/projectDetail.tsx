@@ -298,6 +298,7 @@ class ProjectDetail extends AsyncView<Props, State> {
                         hasTransactions={!!hasTransactions}
                         visibleCharts={visibleCharts}
                         query={query}
+                        project={project}
                       />
                     ))}
                     <ProjectIssues

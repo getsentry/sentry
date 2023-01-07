@@ -292,8 +292,7 @@ def determine_eligible_recipients(
         if owners:
             return owners
 
-        if fallthrough_choice:
-            return get_fallthrough_recipients(project, fallthrough_choice)
+        return get_fallthrough_recipients(project, fallthrough_choice)
 
     return set()
 
@@ -351,13 +350,17 @@ def get_send_to(
 
 
 def get_fallthrough_recipients(
-    project: Project, fallthrough_choice: FallthroughChoiceType
+    project: Project, fallthrough_choice: FallthroughChoiceType | None
 ) -> Iterable[APIUser]:
     if not features.has(
         "organizations:issue-alert-fallback-targeting",
         project.organization,
         actor=None,
     ):
+        return []
+
+    if not fallthrough_choice:
+        logger.warning(f"Missing fallthrough type in project: {project}")
         return []
 
     if fallthrough_choice == FallthroughChoiceType.NO_ONE:
