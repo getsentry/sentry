@@ -14,6 +14,8 @@ from sentry.auth.superuser import is_active_superuser
 from sentry.coreapi import APIError
 from sentry.middleware.stats import add_request_metric_tags
 from sentry.models import Organization, SentryApp, SentryAppInstallation
+from sentry.models.organization import OrganizationStatus
+from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.utils.sdk import configure_scope
 from sentry.utils.strings import to_single_line_str
 
@@ -299,7 +301,14 @@ class SentryAppInstallationPermission(SentryPermission):
         if request.user.is_sentry_app:
             return request.user == installation.sentry_app.proxy_user
 
-        if installation.organization not in request.user.get_orgs():
+        # TODO(hybrid-cloud): Replace this RPC with an org member lookup when that exists?
+        org_context = organization_service.get_organization_by_id(
+            id=installation.organization_id, user_id=request.user.id
+        )
+        if (
+            org_context.member is None
+            or org_context.organization.status != OrganizationStatus.VISIBLE
+        ):
             raise Http404
 
         return ensure_scoped_permission(request, self.scope_map.get(request.method))

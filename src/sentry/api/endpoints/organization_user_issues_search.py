@@ -23,7 +23,7 @@ class OrganizationUserIssuesSearchEndpoint(OrganizationEndpoint, EnvironmentMixi
         project_ids = list(
             Project.objects.filter(
                 teams__in=OrganizationMemberTeam.objects.filter(
-                    organizationmember__user=request.user,
+                    organizationmember__user_id=request.user.id,
                     organizationmember__organization=organization,
                     is_active=True,
                 ).values("team")
