@@ -78,6 +78,9 @@ class IntegrationConfigSerializer(IntegrationSerializer):
 
         data.update({"configOrganization": []})
 
+        if not self.organization_id:
+            return data
+
         try:
             install = integration_service.get_installation(
                 integration=obj, organization_id=self.organization_id
@@ -91,7 +94,8 @@ class IntegrationConfigSerializer(IntegrationSerializer):
 
             # Query param "action" only attached in TicketRuleForm modal.
             if self.params.get("action") == "create":
-                data["createIssueConfig"] = install.get_create_issue_config(
+                # This method comes from IssueBasicMixin within the integration's installation class
+                data["createIssueConfig"] = install.get_create_issue_config(  # type: ignore
                     None, user, params=self.params
                 )
 
@@ -103,13 +107,18 @@ class OrganizationIntegrationSerializer(Serializer):  # type: ignore
     def __init__(self, params: Optional[Mapping[str, Any]] = None) -> None:
         self.params = params
 
-    def get_attrs(self, item_list, user, **kwargs):
+    def get_attrs(
+        self,
+        item_list: Sequence[OrganizationIntegration | APIOrganizationIntegration],
+        user: User,
+        **kwargs: Any,
+    ) -> MutableMapping[
+        OrganizationIntegration | APIOrganizationIntegration, MutableMapping[str, Any]
+    ]:
         integrations = integration_service.get_integrations(
             integration_ids=[item.integration_id for item in item_list]
         )
-        integrations_by_id: Dict[APIIntegration.id, APIIntegration] = {
-            i.id: i for i in integrations
-        }
+        integrations_by_id: Dict[int, APIIntegration] = {i.id: i for i in integrations}
         return {
             item: {"integration": integrations_by_id[item.integration_id]} for item in item_list
         }
@@ -125,7 +134,7 @@ class OrganizationIntegrationSerializer(Serializer):  # type: ignore
         # we're using the IntegrationConfigSerializer which pulls in the
         # integration installation config object which very well may be making
         # API request for config options.
-        integration: APIIntegration = attrs.get("integration")
+        integration: APIIntegration = attrs.get("integration")  # type: ignore
         serialized_integration: MutableMapping[str, Any] = serialize(
             objects=integration,
             user=user,
@@ -147,7 +156,7 @@ class OrganizationIntegrationSerializer(Serializer):  # type: ignore
             try:
                 # just doing this to avoid querying for an object we already have
                 installation._org_integration = obj
-                config_data = installation.get_config_data() if include_config else None
+                config_data = installation.get_config_data() if include_config else None  # type: ignore
                 dynamic_display_information = installation.get_dynamic_display_information()
             except ApiError as e:
                 # If there is an ApiError from our 3rd party integration

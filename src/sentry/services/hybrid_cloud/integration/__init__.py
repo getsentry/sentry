@@ -217,9 +217,7 @@ class IntegrationService(InterfaceWithLifecycle):
         )
         return installation
 
-    def has_feature(
-        self, *, provider: APIIntegration.provider, feature: IntegrationFeatures
-    ) -> bool:
+    def has_feature(self, *, provider: str, feature: IntegrationFeatures) -> bool:
         """
         Returns True if the IntegrationProvider subclass contains a given feature
         Intended to replace calls of `integration.has_feature`.
