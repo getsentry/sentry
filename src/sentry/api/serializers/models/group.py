@@ -467,7 +467,10 @@ class GroupSerializerBase(Serializer, ABC):
             group for group in item_list if GroupCategory.PERFORMANCE == group.issue_category
         ]
         generic_issues = [
-            group for group in item_list if GroupCategory.PROFILE == group.issue_category
+            group
+            for group in item_list
+            if group.issue_category
+            and group.issue_category not in (GroupCategory.ERROR, GroupCategory.PERFORMANCE)
         ]
 
         # bulk query for the seen_stats by type
