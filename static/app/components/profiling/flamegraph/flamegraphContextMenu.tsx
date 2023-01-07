@@ -35,9 +35,9 @@ const FLAMEGRAPH_COLOR_CODINGS: FlamegraphColorCodings = [
   'by recursion',
   'by frequency',
 ];
-const FLAMEGRAPH_VIEW_OPTIONS: FlamegraphViewOptions = ['top down', 'bottom up'];
-const FLAMEGRAPH_SORTING_OPTIONS: FlamegraphSorting = ['left heavy', 'call order'];
-const FLAMEGRAPH_AXIS_OPTIONS: FlamegraphAxisOptions = ['standalone', 'transaction'];
+const FLAMEGRAPH_VIEW_OPTIONS: FlamegraphViewOptions[] = ['top down', 'bottom up'];
+const FLAMEGRAPH_SORTING_OPTIONS: FlamegraphSorting[] = ['left heavy', 'call order'];
+const FLAMEGRAPH_AXIS_OPTIONS: FlamegraphAxisOptions[] = ['profile', 'transaction'];
 
 interface FlamegraphContextMenuProps {
   contextMenu: ReturnType<typeof useContextMenu>;

@@ -154,6 +154,7 @@ def query(
     sample=None,
     has_metrics=False,
     use_metrics_layer=False,
+    skip_tag_resolution=False,
 ) -> EventsResponse:
     """
     High-level API for doing arbitrary user queries against events.
@@ -207,6 +208,7 @@ def query(
         sample_rate=sample,
         has_metrics=has_metrics,
         transform_alias_to_input_format=transform_alias_to_input_format,
+        skip_tag_resolution=skip_tag_resolution,
     )
     if conditions is not None:
         builder.add_conditions(conditions)
@@ -406,6 +408,7 @@ def top_events_timeseries(
                 auto_aggregations=True,
                 use_aggregate_conditions=True,
                 include_equation_fields=True,
+                skip_tag_resolution=True,
             )
 
     top_events_builder = TopEventsQueryBuilder(
@@ -419,6 +422,7 @@ def top_events_timeseries(
         timeseries_columns=timeseries_columns,
         equations=equations,
         functions_acl=functions_acl,
+        skip_tag_resolution=True,
     )
     if len(top_events["data"]) == limit and include_other:
         other_events_builder = TopEventsQueryBuilder(

@@ -19,7 +19,6 @@ import withSentryRouter from 'sentry/utils/withSentryRouter';
 type Props = AsyncComponent['props'] &
   DateTimeObject &
   WithRouterProps & {
-    orgId: string;
     organization: Organization;
     project: Project;
     rule: IssueAlertRule;

@@ -13,7 +13,6 @@ import {WizardRuleTemplate} from 'sentry/views/alerts/wizard/options';
 import RuleForm from './ruleForm';
 
 type RouteParams = {
-  orgId: string;
   projectId?: string;
   ruleId?: string;
 };
@@ -32,8 +31,7 @@ type Props = {
  */
 function MetricRulesCreate(props: Props) {
   function handleSubmitSuccess(data: any) {
-    const {router, project} = props;
-    const {orgId} = props.params;
+    const {organization, project, router} = props;
     const alertRuleId: string | undefined = data
       ? (data.id as string | undefined)
       : undefined;
@@ -41,9 +39,11 @@ function MetricRulesCreate(props: Props) {
     metric.endTransaction({name: 'saveAlertRule'});
     router.push(
       alertRuleId
-        ? {pathname: `/organizations/${orgId}/alerts/rules/details/${alertRuleId}/`}
+        ? {
+            pathname: `/organizations/${organization.slug}/alerts/rules/details/${alertRuleId}/`,
+          }
         : {
-            pathname: `/organizations/${orgId}/alerts/rules/`,
+            pathname: `/organizations/${organization.slug}/alerts/rules/`,
             query: {project: project.id},
           }
     );

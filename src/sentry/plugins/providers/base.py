@@ -106,7 +106,7 @@ class ProviderMixin:
         if not user.is_authenticated:
             return None
 
-        return UserSocialAuth.objects.filter(user=user, provider=self.auth_provider).first()
+        return UserSocialAuth.objects.filter(user_id=user.id, provider=self.auth_provider).first()
 
     def handle_api_error(self, e):
         context = {"error_type": "unknown"}
