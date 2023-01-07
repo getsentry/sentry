@@ -13,7 +13,7 @@ from sentry.auth.authenticators import RecoveryCodeInterface, SmsInterface, Totp
 from sentry.auth.authenticators.u2f import create_credential_object
 from sentry.models import Authenticator, Organization, User
 from sentry.testutils import APITestCase
-from sentry.testutils.silo import control_silo_test
+from sentry.testutils.silo import control_silo_test, exempt_from_silo_limits
 
 
 def get_auth(user: User) -> Authenticator:
@@ -106,10 +106,11 @@ class UserAuthenticatorDetailsTestBase(APITestCase):
 
     def _require_2fa_for_organization(self) -> None:
         organization = self.create_organization(name="test monkey", owner=self.user)
-        organization.update(flags=F("flags").bitor(Organization.flags.require_2fa))
+        with exempt_from_silo_limits():
+            organization.update(flags=F("flags").bitor(Organization.flags.require_2fa))
 
 
-@control_silo_test
+@control_silo_test  # (stable=True)
 class UserAuthenticatorDeviceDetailsTest(UserAuthenticatorDetailsTestBase):
     endpoint = "sentry-api-0-user-authenticator-device-details"
     method = "delete"
@@ -186,7 +187,7 @@ class UserAuthenticatorDeviceDetailsTest(UserAuthenticatorDetailsTestBase):
         )
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class UserAuthenticatorDetailsTest(UserAuthenticatorDetailsTestBase):
     endpoint = "sentry-api-0-user-authenticator-details"
 

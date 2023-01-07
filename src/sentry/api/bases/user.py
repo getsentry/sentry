@@ -5,14 +5,15 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.permissions import SentryPermission
 from sentry.auth.superuser import is_active_superuser
 from sentry.auth.system import is_system_auth
-from sentry.models import Organization, OrganizationStatus, User
+from sentry.models import User
+from sentry.services.hybrid_cloud.organization import organization_service
 
 
 class UserPermission(SentryPermission):
     def has_object_permission(self, request: Request, view, user=None):
         if user is None:
             user = request.user
-        if request.user == user:
+        if request.user.id == user.id:
             return True
         if is_system_auth(request.auth):
             return True
@@ -33,16 +34,15 @@ class OrganizationUserPermission(UserPermission):
         e.g. reset org member's 2FA
         """
 
-        try:
-            organization = Organization.objects.get(
-                status=OrganizationStatus.VISIBLE, member_set__user=user
-            )
-
-            self.determine_access(request, organization)
-            allowed_scopes = set(self.scope_map.get(request.method, []))
-            return any(request.access.has_scope(s) for s in allowed_scopes)
-        except (Organization.DoesNotExist, Organization.MultipleObjectsReturned):
+        organizations = organization_service.get_organizations(
+            user_id=user.id, scope=None, only_visible=True
+        )
+        if len(organizations) != 1:
             return False
+
+        self.determine_access(request, organizations[0])
+        allowed_scopes = set(self.scope_map.get(request.method, []))
+        return any(request.access.has_scope(s) for s in allowed_scopes)
 
     def has_object_permission(self, request: Request, view, user=None):
         if super().has_object_permission(request, view, user):

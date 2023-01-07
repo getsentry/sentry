@@ -2,6 +2,7 @@ import dataclasses
 from collections import defaultdict
 from typing import Iterable, List, MutableMapping, Optional, Set, cast
 
+from bitfield.models import BitField
 from sentry.models import (
     Organization,
     OrganizationMember,
@@ -197,12 +198,13 @@ class DatabaseBackedOrganizationService(OrganizationService):
         user_id: Optional[int],
         scope: Optional[str],
         only_visible: bool,
+        flags: Optional[BitField] = None,
         organization_ids: Optional[List[int]] = None,
     ) -> List[ApiOrganizationSummary]:
         # This needs to query the control tables for organization data and not the region ones, because spanning out
         # would be very expansive.
         if user_id is not None:
-            organizations = self._query_organizations(user_id, scope, only_visible)
+            organizations = self._query_organizations(user_id, scope, only_visible, flags)
         elif organization_ids is not None:
             qs = Organization.objects.filter(id__in=organization_ids)
             if only_visible:
@@ -213,25 +215,24 @@ class DatabaseBackedOrganizationService(OrganizationService):
         return [self._serialize_organization_summary(o) for o in organizations]
 
     def _query_organizations(
-        self, user_id: int, scope: Optional[str], only_visible: bool
+        self,
+        user_id: int,
+        scope: Optional[str],
+        only_visible: bool,
+        flags: Optional[BitField],
     ) -> List[Organization]:
         from django.conf import settings
 
-        if settings.SENTRY_PUBLIC and scope is None:
-            if only_visible:
-                return list(Organization.objects.filter(status=OrganizationStatus.ACTIVE))
-            else:
-                return list(Organization.objects.filter())
-
-        qs = OrganizationMember.objects.filter(user_id=user_id)
-
-        qs = qs.select_related("organization")
+        qs = Organization.objects
         if only_visible:
-            qs = qs.filter(organization__status=OrganizationStatus.ACTIVE)
-
-        results = list(qs)
+            qs = qs.filter(status=OrganizationStatus.ACTIVE)
+        if flags:
+            qs = qs.filter(flags=flags)
+        if not settings.SENTRY_PUBLIC:
+            qs = qs.filter(member_set__user_id=user_id)
 
         if scope is not None:
-            return [r.organization for r in results if scope in r.get_scopes()]
+            qs = qs.select_related("members")
+            return [o for o in qs if scope in o.members[0].get_scopes()]
 
-        return [r.organization for r in results]
+        return list(qs)

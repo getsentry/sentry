@@ -1,4 +1,4 @@
-from django.db import transaction
+from django.db import models, transaction
 from fido2.ctap2 import AuthenticatorData
 from rest_framework import status
 from rest_framework.request import Request
@@ -11,7 +11,9 @@ from sentry.api.serializers import serialize
 from sentry.auth.authenticators.u2f import decode_credential_id
 from sentry.auth.superuser import is_active_superuser
 from sentry.models import Authenticator
+from sentry.models.organization import Organization
 from sentry.security import capture_security_activity
+from sentry.services.hybrid_cloud.organization import organization_service
 
 
 @control_silo_endpoint
@@ -159,7 +161,18 @@ class UserAuthenticatorDetailsEndpoint(UserEndpoint):
                 user, ignore_backup=True
             )
             last_2fa_method = len(enrolled_methods) == 1
-            require_2fa = user.get_orgs_require_2fa().exists()
+            # TODO(hybrid-cloud): synchronize flags for org settings onto org mapping to make this RPC unnecessary?
+            require_2fa = (
+                len(
+                    organization_service.get_organizations(
+                        user_id=user.id,
+                        scope=None,
+                        flags=models.F("flags").bitor(Organization.flags.require_2fa),
+                        only_visible=True,
+                    )
+                )
+                > 0
+            )
 
             if require_2fa and last_2fa_method:
                 return Response(

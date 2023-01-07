@@ -1,9 +1,9 @@
 from sentry.models import InviteStatus
 from sentry.testutils import APITestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class TeamMembersTest(APITestCase):
     endpoint = "sentry-api-0-team-members"
 
@@ -52,7 +52,8 @@ class TeamMembersTest(APITestCase):
     def test_team_members_list_does_not_include_inactive_users(self):
         inactive_user = self.create_user()
         inactive_user.is_active = False
-        inactive_user.save()
+        with exempt_from_silo_limits():
+            inactive_user.save()
 
         inactive_member = self.create_member(
             email="inactive@example.com",

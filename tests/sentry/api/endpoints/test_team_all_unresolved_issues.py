@@ -17,7 +17,7 @@ from sentry.testutils.silo import region_silo_test
 
 
 @freeze_time(datetime(2021, 6, 24, 4, 00))
-@region_silo_test
+@region_silo_test(stable=True)
 class TeamIssueBreakdownTest(APITestCase):
     endpoint = "sentry-api-0-team-all-unresolved-issues"
 
