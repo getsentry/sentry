@@ -18,10 +18,6 @@ describe('SuggestedOwners', function () {
     TeamStore.init();
     MemberListStore.loadInitialData([user, TestStubs.CommitAuthor()]);
     Client.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/codeowners/`,
-      body: [],
-    });
-    Client.addMockResponse({
       url: `/prompts-activity/`,
       body: {},
     });

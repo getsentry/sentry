@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 
-import Button from 'sentry/components/button';
 import {Hovercard} from 'sentry/components/hovercard';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
+import Link from 'sentry/components/links/link';
 import ShortId from 'sentry/components/shortId';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -39,17 +39,10 @@ function ViewIssueLink({breadcrumb}: Props) {
         </ShortIdBreadrcumb>
       }
     >
-      <StyledButton to={to} priority="link">
-        {t('View Details')}
-      </StyledButton>
+      <Link to={to}>{t('View Details')}</Link>
     </StyledHovercard>
   );
 }
-
-const StyledButton = styled(Button)`
-  height: auto;
-  min-height: auto;
-`;
 
 const ShortIdBreadrcumb = styled('div')`
   display: flex;

@@ -174,7 +174,7 @@ class CreateMonitorCheckInTest(MonitorTestCase):
 
     def test_mismatched_org_slugs(self):
         monitor = self._create_monitor()
-        path = f"/api/0/monitors/asdf/{monitor.guid}/checkins/"
+        path = f"/api/0/organizations/asdf/monitors/{monitor.guid}/checkins/"
         self.login_as(user=self.user)
 
         resp = self.client.post(path)

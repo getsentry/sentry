@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import sortBy from 'lodash/sortBy';
 
 import Button from 'sentry/components/button';
-import FieldGroup from 'sentry/components/forms/field';
+import FieldGroup from 'sentry/components/forms/fieldGroup';
 import Input from 'sentry/components/input';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -205,7 +205,7 @@ const SourceGroup = styled('div')<{isExpanded: boolean}>`
     `
     border-radius: ${p.theme.borderRadius};
     border: 1px solid ${p.theme.border};
-    box-shadow: ${p.theme.dropShadowLight};
+    box-shadow: ${p.theme.dropShadowMedium};
     margin: ${space(2)} 0 ${space(3)} 0;
     padding: ${space(2)};
     height: 180px;
