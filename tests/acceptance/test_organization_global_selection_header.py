@@ -177,7 +177,7 @@ class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
 
             # clear environment prod
             self.browser.click('[data-test-id="page-filter-environment-selector"]')
-            self.browser.click('[data-test-id="environment-prod"] [role="checkbox"]')
+            self.browser.click('[data-test-id="environment-prod"] input[type="checkbox"]')
             self.browser.click('[data-test-id="page-filter-environment-selector"]')
             self.issues_list.wait_until_loaded()
             assert "environment=" not in self.browser.current_url
