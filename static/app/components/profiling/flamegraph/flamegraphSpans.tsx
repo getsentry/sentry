@@ -109,8 +109,15 @@ export function FlamegraphSpans({
       return undefined;
     }
 
+    if (profiledTransaction.type !== 'resolved') {
+      return undefined;
+    }
+
     const drawSpans = () => {
-      spansRenderer.draw(spansView.fromConfigView(spansCanvas.physicalSpace));
+      spansRenderer.draw(
+        spansView.configView.transformRect(spansView.configSpaceTransform),
+        spansView.fromConfigView(spansCanvas.physicalSpace)
+      );
     };
 
     drawSpans();
@@ -119,7 +126,7 @@ export function FlamegraphSpans({
     return () => {
       scheduler.unregisterBeforeFrameCallback(drawSpans);
     };
-  }, [spansCanvas, spansRenderer, scheduler, spansView]);
+  }, [spansCanvas, spansRenderer, scheduler, spansView, profiledTransaction.type]);
 
   const onMouseDrag = useCallback(
     (evt: React.MouseEvent<HTMLCanvasElement>) => {

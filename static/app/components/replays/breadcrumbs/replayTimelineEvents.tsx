@@ -173,7 +173,7 @@ const IconNode = styled('div')<{colors: Color[]; crumbCount: number}>`
   border-radius: 50%;
   color: ${p => p.theme.white};
   ${getBackgroundGradient}
-  box-shadow: ${p => p.theme.dropShadowLightest};
+  box-shadow: ${p => p.theme.dropShadowLight};
   user-select: none;
 `;
 

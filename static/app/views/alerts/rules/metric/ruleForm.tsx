@@ -29,6 +29,7 @@ import {metric} from 'sentry/utils/analytics';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import type EventView from 'sentry/utils/discover/eventView';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withProjects from 'sentry/utils/withProjects';
 import {IncompatibleAlertQuery} from 'sentry/views/alerts/rules/metric/incompatibleAlertQuery';
 import RuleNameOwnerForm from 'sentry/views/alerts/rules/metric/ruleNameOwnerForm';
@@ -86,7 +87,7 @@ type Props = {
   isDuplicateRule?: boolean;
   ruleId?: string;
   sessionId?: string;
-} & RouteComponentProps<{orgId: string; projectId?: string; ruleId?: string}, {}> & {
+} & RouteComponentProps<{projectId?: string; ruleId?: string}, {}> & {
     onSubmitSuccess?: FormProps['onSubmitSuccess'];
   } & AsyncComponent['props'];
 
@@ -185,21 +186,23 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
   }
 
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
-    const {orgId} = this.props.params;
-
+    const {organization} = this.props;
     // TODO(incidents): This is temporary until new API endpoints
     // We should be able to just fetch the rule if rule.id exists
 
     return [
-      ['availableActions', `/organizations/${orgId}/alert-rules/available-actions/`],
+      [
+        'availableActions',
+        `/organizations/${organization.slug}/alert-rules/available-actions/`,
+      ],
     ];
   }
 
   goBack() {
     const {router} = this.props;
-    const {orgId} = this.props.params;
+    const {organization} = this.props;
 
-    router.push(`/organizations/${orgId}/alerts/rules/`);
+    router.push(normalizeUrl(`/organizations/${organization.slug}/alerts/rules/`));
   }
 
   resetPollingState = (loadingSlackIndicator: Indicator) => {
@@ -681,12 +684,12 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
   };
 
   handleDeleteRule = async () => {
-    const {params} = this.props;
-    const {orgId, projectId, ruleId} = params;
+    const {organization, params} = this.props;
+    const {projectId, ruleId} = params;
 
     try {
       await this.api.requestPromise(
-        `/projects/${orgId}/${projectId}/alert-rules/${ruleId}/`,
+        `/projects/${organization.slug}/${projectId}/alert-rules/${ruleId}/`,
         {
           method: 'DELETE',
         }

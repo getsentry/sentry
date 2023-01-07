@@ -43,7 +43,7 @@ type Props = {
   project?: Project;
   rule?: MetricRule;
   selectedIncident?: Incident | null;
-} & RouteComponentProps<{orgId: string}, {}>;
+} & RouteComponentProps<{}, {}>;
 
 export default class DetailsBody extends Component<Props> {
   getTimeWindow(): React.ReactNode {
@@ -144,7 +144,6 @@ export default class DetailsBody extends Component<Props> {
       organization,
       timePeriod,
       selectedIncident,
-      params: {orgId},
     } = this.props;
 
     if (!rule || !project) {
@@ -195,7 +194,6 @@ export default class DetailsBody extends Component<Props> {
               interval={this.getInterval()}
               query={isCrashFreeAlert(dataset) ? query : queryWithTypeFilter}
               filter={this.getFilter()}
-              orgId={orgId}
             />
             <DetailWrapper>
               <ActivityWrapper>
