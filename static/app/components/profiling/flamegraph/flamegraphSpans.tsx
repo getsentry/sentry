@@ -138,7 +138,7 @@ export function FlamegraphSpans({
       return;
     }
 
-    const span_id = qs.parse(window.location.search).span_id;
+    const span_id = qs.parse(window.location.search).spanId;
     if (!span_id) {
       return;
     }
