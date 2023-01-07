@@ -363,7 +363,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
         self.instance = Dashboard.objects.create(
             organization=self.context.get("organization"),
             title=validated_data["title"],
-            created_by=self.context.get("request").user,
+            created_by_id=self.context.get("request").user.id,
         )
 
         if "widgets" in validated_data:

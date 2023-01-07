@@ -126,6 +126,14 @@ class AuthService(InterfaceWithLifecycle):
         """
         pass
 
+    @abc.abstractmethod
+    def get_auth_providers(self, organization_id: int) -> List[ApiAuthProvider]:
+        """
+        This method returns a list of auth providers for an org
+        :return:
+        """
+        pass
+
 
 def impl_with_db() -> AuthService:
     from sentry.services.hybrid_cloud.auth.impl import DatabaseBackedAuthService

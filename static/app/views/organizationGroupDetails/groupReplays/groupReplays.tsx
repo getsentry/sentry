@@ -1,4 +1,5 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {Location} from 'history';
@@ -16,8 +17,10 @@ import useReplayList from 'sentry/utils/replays/hooks/useReplayList';
 import useApi from 'sentry/utils/useApi';
 import useCleanQueryParamsOnRouteLeave from 'sentry/utils/useCleanQueryParamsOnRouteLeave';
 import {useLocation} from 'sentry/utils/useLocation';
+import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 import ReplayTable from 'sentry/views/replays/replayTable';
+import {ReplayColumns} from 'sentry/views/replays/replayTable/types';
 import type {ReplayListLocationQuery} from 'sentry/views/replays/types';
 
 type Props = {
@@ -28,6 +31,8 @@ function GroupReplays({group}: Props) {
   const api = useApi();
   const location = useLocation<ReplayListLocationQuery>();
   const organization = useOrganization();
+  const theme = useTheme();
+  const hasRoomForColumns = useMedia(`(min-width: ${theme.breakpoints.small})`);
 
   const [response, setResponse] = useState<{
     pageLinks: null | string;
@@ -90,11 +95,17 @@ function GroupReplays({group}: Props) {
     return (
       <StyledPageContent>
         <ReplayTable
+          fetchError={fetchError}
           isFetching
           replays={[]}
-          showProjectColumn={false}
           sort={undefined}
-          fetchError={fetchError}
+          visibleColumns={[
+            ReplayColumns.session,
+            ...(hasRoomForColumns ? [ReplayColumns.startedAt] : []),
+            ReplayColumns.duration,
+            ReplayColumns.countErrors,
+            ReplayColumns.activity,
+          ]}
         />
         <Pagination pageLinks={null} />
       </StyledPageContent>
@@ -119,6 +130,8 @@ const GroupReplaysTable = ({
   pageLinks: string | null;
 }) => {
   const location = useMemo(() => ({query: {}} as Location<ReplayListLocationQuery>), []);
+  const theme = useTheme();
+  const hasRoomForColumns = useMedia(`(min-width: ${theme.breakpoints.small})`);
 
   const {replays, isFetching, fetchError} = useReplayList({
     eventView,
@@ -129,11 +142,17 @@ const GroupReplaysTable = ({
   return (
     <StyledPageContent>
       <ReplayTable
+        fetchError={fetchError}
         isFetching={isFetching}
         replays={replays}
-        showProjectColumn={false}
         sort={first(eventView.sorts)}
-        fetchError={fetchError}
+        visibleColumns={[
+          ReplayColumns.session,
+          ...(hasRoomForColumns ? [ReplayColumns.startedAt] : []),
+          ReplayColumns.duration,
+          ReplayColumns.countErrors,
+          ReplayColumns.activity,
+        ]}
       />
       <Pagination pageLinks={pageLinks} />
     </StyledPageContent>

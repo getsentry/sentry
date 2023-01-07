@@ -9,12 +9,6 @@ import {Rect} from 'sentry/utils/profiling/gl/utils';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 
-import {
-  FlamegraphAxisOptions,
-  FlamegraphColorCodings,
-  FlamegraphSorting,
-  FlamegraphViewOptions,
-} from './reducers/flamegraphPreferences';
 import {DEFAULT_FLAMEGRAPH_STATE, FlamegraphState} from './flamegraphContext';
 
 // Intersect the types so we can properly guard
@@ -26,42 +20,53 @@ type PossibleQuery =
 function isColorCoding(
   value: PossibleQuery['colorCoding'] | FlamegraphState['preferences']['colorCoding']
 ): value is FlamegraphState['preferences']['colorCoding'] {
-  const values: FlamegraphColorCodings = [
-    'by symbol name',
-    'by system / application',
-    'by library',
-    'by recursion',
-    'by frequency',
-  ];
+  if (typeof value !== 'string') {
+    return false;
+  }
 
-  return values.includes(value as any);
+  return (
+    value === 'by symbol name' ||
+    value === 'by system / application' ||
+    value === 'by library' ||
+    value === 'by recursion' ||
+    value === 'by frequency'
+  );
 }
 
 function isLayout(
   value: PossibleQuery['colorCoding'] | FlamegraphState['preferences']['colorCoding']
 ): value is FlamegraphState['preferences']['layout'] {
+  if (typeof value !== 'string') {
+    return false;
+  }
   return value === 'table right' || value === 'table bottom' || value === 'table left';
 }
 
 function isSorting(
   value: PossibleQuery['sorting'] | FlamegraphState['preferences']['sorting']
 ): value is FlamegraphState['preferences']['sorting'] {
-  const values: FlamegraphSorting = ['left heavy', 'call order'];
-  return values.includes(value as any);
+  if (typeof value !== 'string') {
+    return false;
+  }
+  return value === 'left heavy' || value === 'call order';
 }
 
 function isView(
   value: PossibleQuery['view'] | FlamegraphState['preferences']['view']
 ): value is FlamegraphState['preferences']['view'] {
-  const values: FlamegraphViewOptions = ['top down', 'bottom up'];
-  return values.includes(value as any);
+  if (typeof value !== 'string') {
+    return false;
+  }
+  return value === 'top down' || value === 'bottom up';
 }
 
 function isXAxis(
   value: PossibleQuery['xAxis'] | FlamegraphState['preferences']['xAxis']
 ): value is FlamegraphState['preferences']['xAxis'] {
-  const values: FlamegraphAxisOptions = ['standalone', 'transaction'];
-  return values.includes(value as any);
+  if (typeof value !== 'string') {
+    return false;
+  }
+  return value === 'profile' || value === 'transaction' || value === 'standalone';
 }
 
 export function decodeFlamegraphStateFromQueryParams(
@@ -162,6 +167,7 @@ export function FlamegraphStateLocalStorageSync() {
     {
       preferences: {
         layout: DEFAULT_FLAMEGRAPH_STATE.preferences.layout,
+        timelines: DEFAULT_FLAMEGRAPH_STATE.preferences.timelines,
       },
     }
   );
@@ -170,11 +176,12 @@ export function FlamegraphStateLocalStorageSync() {
     setState({
       preferences: {
         layout: state.preferences.layout,
+        timelines: state.preferences.timelines,
       },
     });
     // We only want to sync the local storage when the state changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.preferences.layout]);
+  }, [state.preferences.layout, state.preferences.timelines]);
 
   return null;
 }

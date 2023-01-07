@@ -1,6 +1,6 @@
 import Alert from 'sentry/components/alert';
-import Button from 'sentry/components/button';
 import {isEventFromBrowserJavaScriptSDK} from 'sentry/components/events/interfaces/spans/utils';
+import ExternalLink from 'sentry/components/links/externalLink';
 import {PlatformKey, sourceMaps} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
 import {EntryType, Event, EventTransaction} from 'sentry/types';
@@ -97,11 +97,8 @@ export function SetupSourceMapsAlert({event}: Props) {
       type="info"
       showIcon
       trailingItems={
-        <Button
-          priority="link"
-          size="zero"
+        <ExternalLink
           href={docUrl}
-          external
           onClick={() => {
             trackAdvancedAnalyticsEvent(
               'issue_group_details.stack_traces.setup_source_maps_alert.clicked',
@@ -114,7 +111,7 @@ export function SetupSourceMapsAlert({event}: Props) {
           }}
         >
           {t('Upload Source Maps')}
-        </Button>
+        </ExternalLink>
       }
     >
       {isLocalhost(url)

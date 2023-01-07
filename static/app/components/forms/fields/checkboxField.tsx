@@ -3,10 +3,10 @@ import styled from '@emotion/styled';
 import Checkbox from 'sentry/components/checkbox';
 import space from 'sentry/styles/space';
 
-import FieldDescription from '../field/fieldDescription';
-import FieldHelp from '../field/fieldHelp';
-import FieldLabel from '../field/fieldLabel';
-import FieldRequiredBadge from '../field/fieldRequiredBadge';
+import FieldDescription from '../fieldGroup/fieldDescription';
+import FieldHelp from '../fieldGroup/fieldHelp';
+import FieldLabel from '../fieldGroup/fieldLabel';
+import FieldRequiredBadge from '../fieldGroup/fieldRequiredBadge';
 import FormField from '../formField';
 
 type FormFieldProps = Omit<

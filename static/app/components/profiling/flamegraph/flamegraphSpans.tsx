@@ -1,4 +1,12 @@
-import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {
+  CSSProperties,
+  Fragment,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import styled from '@emotion/styled';
 import {vec2} from 'gl-matrix';
 
@@ -101,8 +109,15 @@ export function FlamegraphSpans({
       return undefined;
     }
 
+    if (profiledTransaction.type !== 'resolved') {
+      return undefined;
+    }
+
     const drawSpans = () => {
-      spansRenderer.draw(spansView.fromConfigView(spansCanvas.physicalSpace));
+      spansRenderer.draw(
+        spansView.configView.transformRect(spansView.configSpaceTransform),
+        spansView.fromConfigView(spansCanvas.physicalSpace)
+      );
     };
 
     drawSpans();
@@ -111,7 +126,7 @@ export function FlamegraphSpans({
     return () => {
       scheduler.unregisterBeforeFrameCallback(drawSpans);
     };
-  }, [spansCanvas, spansRenderer, scheduler, spansView]);
+  }, [spansCanvas, spansRenderer, scheduler, spansView, profiledTransaction.type]);
 
   const onMouseDrag = useCallback(
     (evt: React.MouseEvent<HTMLCanvasElement>) => {
@@ -275,6 +290,7 @@ export function FlamegraphSpans({
         onMouseLeave={onCanvasMouseLeave}
         onMouseUp={onCanvasMouseUp}
         onMouseDown={onCanvasMouseDown}
+        cursor={lastInteraction === 'pan' ? 'grabbing' : 'default'}
       />
       {/* transaction loads after profile, so we want to show loading even if it's in initial state */}
       {profiledTransaction.type === 'loading' ||
@@ -338,11 +354,12 @@ const LoadingIndicatorContainer = styled('div')`
   height: 100%;
 `;
 
-const Canvas = styled('canvas')`
+const Canvas = styled('canvas')<{cursor?: CSSProperties['cursor']}>`
   width: 100%;
   height: 100%;
   position: absolute;
   left: 0;
   top: 0;
   user-select: none;
+  cursor: ${p => p.cursor};
 `;

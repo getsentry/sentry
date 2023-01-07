@@ -40,15 +40,15 @@ class SentryLocaleMiddleware(LocaleMiddleware):
         if not request.user.is_authenticated:
             return
 
-        options = user_option_service.get_many(
+        options = user_option_service.query_options(
             user_ids=[request.user.id], keys=["language", "timezone"]
         )
-        for option in options:
-            if option.key == "language" and (language := option.value):
-                request.session[LANGUAGE_SESSION_KEY] = language
 
-            if option.key == "timezone" and (timezone := option.value):
-                request.timezone = pytz.timezone(timezone)
+        if language := options.get_one(key="language"):
+            request.session[LANGUAGE_SESSION_KEY] = language
+
+        if timezone := options.get_one(key="timezone"):
+            request.timezone = pytz.timezone(timezone)
 
     def process_response(self, request: Request, response: Response) -> Response:
         # If static bound, we don't want to run the normal process_response since this
