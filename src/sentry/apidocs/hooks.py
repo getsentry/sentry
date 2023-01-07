@@ -19,6 +19,11 @@ PUBLIC_ENDPOINTS: Dict[str, EndpointRegistryType] = {}
 
 _DEFINED_TAG_SET = {t["name"] for t in OPENAPI_TAGS}
 
+# path prefixes to exclude
+# this is useful if we're duplicating an endpoint for legacy purposes
+# but do not want to document it
+EXCLUSION_PATH_PREFIXES = ["/api/0/monitors/"]
+
 
 def custom_preprocessing_hook(endpoints: Any) -> Any:  # TODO: organize method, rename
     from sentry.apidocs.public_exclusion_list import (
@@ -37,7 +42,11 @@ def custom_preprocessing_hook(endpoints: Any) -> Any:  # TODO: organize method, 
                 "both `public` and `private` cannot be defined at the same time, "
                 "please remove one of the attributes."
             )
-        if callback.view_class.public:
+
+        if any(path.startswith(p) for p in EXCLUSION_PATH_PREFIXES):
+            pass
+
+        elif callback.view_class.public:
             # endpoints that are documented via tooling
             if method in callback.view_class.public:
                 # only pass declared public methods of the endpoint

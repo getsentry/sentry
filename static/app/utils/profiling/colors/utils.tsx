@@ -310,6 +310,9 @@ export function makeSpansColorMapByOpAndDescription(
 
   for (let i = 0; i < uniqueSpans.length; i++) {
     const key = uniqueSpans[i].node.span.op ?? '';
+    if (key === 'missing instrumentation') {
+      continue;
+    }
     colors.set(key, colorBucket(i / uniqueSpans.length));
   }
 

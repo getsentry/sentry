@@ -126,9 +126,6 @@ from sentry.api.endpoints.internal import (
     InternalStatsEndpoint,
     InternalWarningsEndpoint,
 )
-from sentry.api.endpoints.monitor_checkin_details import MonitorCheckInDetailsEndpoint
-from sentry.api.endpoints.monitor_checkins import MonitorCheckInsEndpoint
-from sentry.api.endpoints.monitor_details import MonitorDetailsEndpoint
 from sentry.api.endpoints.monitor_stats import MonitorStatsEndpoint
 from sentry.api.endpoints.organization_access_request_details import (
     OrganizationAccessRequestDetailsEndpoint,
@@ -618,9 +615,6 @@ __EXCLUDED_FROM_PUBLIC_ENDPOINTS = {
     BroadcastDetailsEndpoint,
     AcceptProjectTransferEndpoint,
     AcceptOrganizationInvite,
-    MonitorDetailsEndpoint,
-    MonitorCheckInsEndpoint,
-    MonitorCheckInDetailsEndpoint,
     MonitorStatsEndpoint,
     UserIndexEndpoint,
     UserDetailsEndpoint,
