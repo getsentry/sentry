@@ -1,6 +1,7 @@
 from unittest.mock import patch
 
 from django.core import mail
+from django.test import override_settings
 
 from sentry import roles
 from sentry.api.endpoints.organization_member.index import OrganizationMemberSerializer
@@ -301,6 +302,10 @@ class OrganizationMemberListTest(OrganizationMemberListTestBase):
         assert len(response.data) == 1
         assert response.data[0]["email"] == self.user.email
 
+    @override_settings(USE_EXTERNAL_ACTOR_ACTOR=False)
+    def test_has_external_users_query_no_actor(self):
+        self.test_has_external_users_query()
+
     def test_cannot_get_unapproved_invites(self):
         join_request = "test@email.com"
         invite_request = "test@gmail.com"
@@ -522,6 +527,10 @@ class OrganizationMemberPermissionRoleTest(OrganizationMemberListTestBase):
             organization_member["externalUsers"][0]["userId"] == organization_member["user"]["id"]
         )
 
+    @override_settings(USE_EXTERNAL_ACTOR_ACTOR=False)
+    def test_user_has_external_user_association_no_actor(self):
+        self.test_user_has_external_user_association()
+
     def test_user_has_external_user_associations_across_multiple_orgs(self):
         organization = self.create_organization(owner=self.user2)
         integration = Integration.objects.create(
@@ -543,6 +552,10 @@ class OrganizationMemberPermissionRoleTest(OrganizationMemberListTestBase):
         assert (
             organization_member["externalUsers"][0]["userId"] == organization_member["user"]["id"]
         )
+
+    @override_settings(USE_EXTERNAL_ACTOR_ACTOR=False)
+    def test_user_has_external_user_associations_across_multiple_orgs_no_actor(self):
+        self.test_user_has_external_user_associations_across_multiple_orgs()
 
 
 @region_silo_test(stable=True)

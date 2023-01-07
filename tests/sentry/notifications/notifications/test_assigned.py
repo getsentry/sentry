@@ -1,5 +1,6 @@
 import responses
 from django.core import mail
+from django.test import override_settings
 
 from sentry.models import (
     Identity,
@@ -94,3 +95,7 @@ class AssignedNotificationAPITest(APITestCase):
         )
         assert attachment["title"] == self.group.title
         assert self.project.slug in attachment["footer"]
+
+    @override_settings(USE_EXTERNAL_ACTOR_ACTOR=False)
+    def test_sends_assignment_notification_team_no_actor(self):
+        self.test_sends_assignment_notification_team()

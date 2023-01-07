@@ -1,5 +1,6 @@
 from functools import cached_property
 
+from django.test import override_settings
 from django.urls import reverse
 
 from sentry.models import OrganizationMember, OrganizationMemberTeam, ProjectTeam, Team
@@ -112,6 +113,10 @@ class OrganizationTeamsListTest(APITestCase):
         response = self.client.get(path)
         assert response.status_code == 200, response.content
         assert len(response.data) == 0
+
+    @override_settings(USE_EXTERNAL_ACTOR_ACTOR=False)
+    def test_has_external_teams_query_no_actor(self):
+        self.test_has_external_teams_query()
 
     def test_query_by_slug(self):
         self.create_team(organization=self.organization, name="foo")

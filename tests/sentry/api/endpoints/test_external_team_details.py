@@ -1,3 +1,5 @@
+from django.test import override_settings
+
 from sentry.models import ExternalActor
 from sentry.testutils import APITestCase
 from sentry.testutils.silo import region_silo_test
@@ -32,6 +34,10 @@ class ExternalTeamDetailsTest(APITestCase):
         assert response.data["id"] == str(self.external_team.id)
         assert response.data["externalName"] == "@getsentry/growth"
 
+    @override_settings(USE_EXTERNAL_ACTOR_ACTOR=False)
+    def test_basic_update_no_actor(self):
+        self.test_basic_update()
+
     def test_invalid_provider_update(self):
         data = {"provider": "git"}
         with self.feature({"organizations:integrations-codeowners": True}):
@@ -44,6 +50,10 @@ class ExternalTeamDetailsTest(APITestCase):
             )
         assert response.data == {"provider": ['"git" is not a valid choice.']}
 
+    @override_settings(USE_EXTERNAL_ACTOR_ACTOR=False)
+    def test_invalid_provider_update_no_actor(self):
+        self.test_invalid_provider_update()
+
     def test_delete_another_orgs_external_team(self):
         invalid_user = self.create_user()
         invalid_organization = self.create_organization(owner=invalid_user)
@@ -52,3 +62,7 @@ class ExternalTeamDetailsTest(APITestCase):
             invalid_organization.slug, self.team.slug, self.external_team.id, method="delete"
         )
         assert resp.status_code == 404
+
+    @override_settings(USE_EXTERNAL_ACTOR_ACTOR=False)
+    def test_delete_another_orgs_external_team_no_actor(self):
+        self.test_delete_another_orgs_external_team()

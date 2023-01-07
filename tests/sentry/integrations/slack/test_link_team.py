@@ -4,6 +4,7 @@ from urllib.parse import urlencode
 import responses
 from django.conf import settings
 from django.db.models import QuerySet
+from django.test import override_settings
 from requests import Response
 from rest_framework import status
 
@@ -134,6 +135,11 @@ class SlackIntegrationLinkTeamTest(SlackIntegrationLinkTeamTestBase):
         assert len(team_settings) == 1
 
     @responses.activate
+    @override_settings(USE_EXTERNAL_ACTOR_ACTOR=False)
+    def test_link_team_no_actor(self):
+        self.test_link_team()
+
+    @responses.activate
     def test_link_team_already_linked(self):
         """Test that if a team has already been linked to a Slack channel when a user tries
         to link them again, we reject the attempt and reply with the ALREADY_LINKED_MESSAGE"""
@@ -171,6 +177,11 @@ class SlackIntegrationLinkTeamTest(SlackIntegrationLinkTeamTestBase):
                 organization=team.organization, actor_ids=[team.actor_id], team_ids=[team.id]
             )
             assert len(external_actors) == 1
+
+    @responses.activate
+    @override_settings(USE_EXTERNAL_ACTOR_ACTOR=False)
+    def test_link_team_multiple_organizations_no_actor(self):
+        self.test_link_team_multiple_organizations()
 
 
 @region_silo_test
@@ -213,6 +224,11 @@ class SlackIntegrationUnlinkTeamTest(SlackIntegrationLinkTeamTestBase):
         assert len(team_settings) == 0
 
     @responses.activate
+    @override_settings(USE_EXTERNAL_ACTOR_ACTOR=False)
+    def test_unlink_team_no_actor(self):
+        self.test_unlink_team()
+
+    @responses.activate
     def test_unlink_multiple_teams(self):
         """
         Test that if you have linked multiple teams to a single channel, when
@@ -252,6 +268,11 @@ class SlackIntegrationUnlinkTeamTest(SlackIntegrationLinkTeamTestBase):
         assert len(team_settings) == 0
 
     @responses.activate
+    @override_settings(USE_EXTERNAL_ACTOR_ACTOR=False)
+    def test_unlink_multiple_teams_no_actor(self):
+        self.test_unlink_multiple_teams()
+
+    @responses.activate
     def test_unlink_team_multiple_organizations(self):
         # Create another organization and team for this user that is linked through `self.integration`.
         organization2 = self.create_organization(owner=self.user)
@@ -284,3 +305,8 @@ class SlackIntegrationUnlinkTeamTest(SlackIntegrationLinkTeamTestBase):
                 organization=team.organization, actor_ids=[team.actor_id], team_ids=[team.id]
             )
             assert len(external_actors) == 0
+
+    @responses.activate
+    @override_settings(USE_EXTERNAL_ACTOR_ACTOR=False)
+    def test_unlink_team_multiple_organizations_no_actor(self):
+        self.test_unlink_team_multiple_organizations()

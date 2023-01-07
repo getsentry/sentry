@@ -1,3 +1,5 @@
+from django.test import override_settings
+
 from sentry.models import ExternalActor, Integration
 from sentry.testutils import APITestCase
 from sentry.testutils.silo import region_silo_test
@@ -41,6 +43,10 @@ class ExternalTeamTest(APITestCase):
             "integrationId": str(self.integration.id),
         }
 
+    @override_settings(USE_EXTERNAL_ACTOR_ACTOR=False)
+    def test_basic_post_no_actor(self):
+        self.test_basic_post()
+
     def test_without_feature_flag(self):
         data = {
             "externalName": "@getsentry/ecosystem",
@@ -62,6 +68,10 @@ class ExternalTeamTest(APITestCase):
                 self.organization.slug, self.team.slug, status_code=400, **data
             )
         assert response.data == {"provider": ["This field is required."]}
+
+    @override_settings(USE_EXTERNAL_ACTOR_ACTOR=False)
+    def test_missing_provider_no_actor(self):
+        self.test_missing_provider()
 
     def test_missing_externalName(self):
         data = {
@@ -118,6 +128,10 @@ class ExternalTeamTest(APITestCase):
             "integrationId": str(self.integration.id),
         }
 
+    @override_settings(USE_EXTERNAL_ACTOR_ACTOR=False)
+    def test_create_existing_association_no_actor(self):
+        self.test_create_existing_association()
+
     def test_create_with_invalid_integration_id(self):
         self.org2 = self.create_organization(owner=self.user, name="org2")
         self.integration = Integration.objects.create(
@@ -156,6 +170,10 @@ class ExternalTeamTest(APITestCase):
         }
         assert ExternalActor.objects.get(id=response.data["id"]).external_id == "YU287RFO30"
 
+    @override_settings(USE_EXTERNAL_ACTOR_ACTOR=False)
+    def test_create_with_external_id_no_actor(self):
+        self.test_create_with_external_id()
+
     def test_create_with_invalid_external_id(self):
         data = {
             "externalId": "",
@@ -165,3 +183,7 @@ class ExternalTeamTest(APITestCase):
         }
         with self.feature({"organizations:integrations-codeowners": True}):
             self.get_error_response(self.organization.slug, self.team.slug, **data)
+
+    @override_settings(USE_EXTERNAL_ACTOR_ACTOR=False)
+    def test_create_with_invalid_external_id_no_actor(self):
+        self.test_create_with_invalid_external_id()

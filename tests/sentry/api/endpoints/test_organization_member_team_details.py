@@ -1,5 +1,6 @@
 from functools import cached_property
 
+from django.test import override_settings
 from rest_framework import status
 
 from sentry.auth import access
@@ -89,6 +90,10 @@ class CreateOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
             team=self.team, organizationmember=self.manager
         ).exists()
 
+    @override_settings(USE_EXTERNAL_ACTOR_ACTOR=False)
+    def test_manager_can_join_team_no_actor(self):
+        self.test_manager_can_join_team()
+
     def test_owner_can_join_team(self):
         owner = self.create_member(organization=self.org, user=self.create_user(), role="owner")
         self.login_as(owner.user)
@@ -121,6 +126,10 @@ class CreateOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
             team=self.team, organizationmember=self.manager
         ).exists()
 
+    @override_settings(USE_EXTERNAL_ACTOR_ACTOR=False)
+    def test_admin_on_team_can_add_members_to_team_no_actor(self):
+        self.test_admin_on_team_can_add_members_to_team()
+
     def test_manager_can_add_members_to_team(self):
         self.login_as(self.manager.user)
 
@@ -141,6 +150,10 @@ class CreateOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
         assert OrganizationMemberTeam.objects.filter(
             team=self.team, organizationmember=self.owner.id
         ).exists()
+
+    @override_settings(USE_EXTERNAL_ACTOR_ACTOR=False)
+    def test_manager_can_add_members_to_team_no_actor(self):
+        self.test_manager_can_add_members_to_team()
 
     def test_owner_can_add_members_to_team(self):
         self.login_as(self.owner.user)
@@ -175,6 +188,10 @@ class CreateOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
             team=self.team, organizationmember=target_owner
         ).exists()
 
+    @override_settings(USE_EXTERNAL_ACTOR_ACTOR=False)
+    def test_owner_can_add_members_to_team_no_actor(self):
+        self.test_owner_can_add_members_to_team()
+
 
 class CreateWithOpenMembershipTest(OrganizationMemberTeamTestBase):
     method = "post"
@@ -199,6 +216,10 @@ class CreateWithOpenMembershipTest(OrganizationMemberTeamTestBase):
             team=self.team, organizationmember=self.admin
         ).exists()
 
+    @override_settings(USE_EXTERNAL_ACTOR_ACTOR=False)
+    def test_admin_can_join_team_no_actor(self):
+        self.test_admin_can_join_team()
+
     def test_member_can_add_member_to_team(self):
         target_member = self.create_member(
             organization=self.org, user=self.create_user(), role="member"
@@ -212,6 +233,10 @@ class CreateWithOpenMembershipTest(OrganizationMemberTeamTestBase):
         assert OrganizationMemberTeam.objects.filter(
             team=self.team, organizationmember=target_member
         ).exists()
+
+    @override_settings(USE_EXTERNAL_ACTOR_ACTOR=False)
+    def test_member_can_add_member_to_team_no_actor(self):
+        self.test_member_can_add_member_to_team()
 
     def test_admin_can_add_member_to_team(self):
         self.login_as(self.admin.user)

@@ -1,3 +1,5 @@
+from django.test import override_settings
+
 from sentry.models import Integration
 from sentry.testutils import APITestCase
 from sentry.testutils.silo import control_silo_test
@@ -34,6 +36,10 @@ class ExternalUserTest(APITestCase):
             "userId": str(self.user.id),
             "integrationId": str(self.integration.id),
         }
+
+    @override_settings(USE_EXTERNAL_ACTOR_ACTOR=False)
+    def test_basic_post_no_actor(self):
+        self.test_basic_post()
 
     def test_without_feature_flag(self):
         response = self.get_error_response(self.org_slug, status_code=403, **self.data)
