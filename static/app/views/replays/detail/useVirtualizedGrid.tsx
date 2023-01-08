@@ -40,16 +40,13 @@ function useVirtualizedGrid({
   const cache = useMemo(() => new CellMeasurerCache(cellMeasurer), [cellMeasurer]);
   const [scrollBarWidth, setScrollBarWidth] = useState(0);
 
-  // Recompute the width of the dynamic column when deps change (ie: a search/filter is applied)
-  useEffect(() => {
-    cache.clearAll();
-    gridRef.current?.recomputeGridSize({columnIndex: dyanmicColumnIndex});
-  }, [cache, gridRef, deps, dyanmicColumnIndex]);
-
   const onWrapperResize = useCallback(() => {
     // TODO: debounce?
     gridRef.current?.recomputeGridSize({columnIndex: dyanmicColumnIndex});
   }, [gridRef, dyanmicColumnIndex]);
+
+  // Recompute the width of the dynamic column when deps change (ie: a search/filter is applied)
+  useEffect(onWrapperResize, [onWrapperResize, deps]);
 
   const onScrollbarPresenceChange = useCallback(({vertical, size}) => {
     setScrollBarWidth(vertical ? size : 0);
