@@ -29,11 +29,6 @@ type Opts = {
    * The <MultiGrid> elem.
    */
   gridRef: RefObject<MultiGrid>;
-  /**
-   * The container of the grid.
-   * When this is resized resizes we will recompute the width of the column that has a dyanmic width.
-   */
-  // wrapperRef: RefObject<HTMLDivElement>;
 };
 
 function useVirtualizedGrid({
@@ -42,21 +37,17 @@ function useVirtualizedGrid({
   deps,
   dyanmicColumnIndex,
   gridRef,
-}: // wrapperRef,
-Opts) {
+}: Opts) {
   const cache = useMemo(() => new CellMeasurerCache(cellMeasurer), [cellMeasurer]);
   const [scrollBarWidth, setScrollBarWidth] = useState(0);
-
-  // Recompute the width of the dynamic column when deps change (ie: a search/filter is applied)
-  useEffect(() => {
-    cache.clearAll();
-    gridRef.current?.recomputeGridSize({columnIndex: dyanmicColumnIndex});
-  }, [cache, gridRef, dyanmicColumnIndex, deps]);
 
   const onWrapperResize = useCallback(() => {
     // TODO: debounce?
     gridRef.current?.recomputeGridSize({columnIndex: dyanmicColumnIndex});
   }, [gridRef, dyanmicColumnIndex]);
+
+  // Recompute the width of the dynamic column when deps change (ie: a search/filter is applied)
+  useEffect(onWrapperResize, [onWrapperResize, deps]);
 
   const onScrollbarPresenceChange = useCallback(({vertical, size}) => {
     setScrollBarWidth(vertical ? size : 0);

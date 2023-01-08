@@ -53,7 +53,6 @@ function NetworkList({networkSpans, startTimestampMs}: Props) {
     : null;
 
   const gridRef = useRef<MultiGrid>(null);
-  // const wrapperRef = useRef<HTMLDivElement>(null);
   const {cache, getColumnWidth, onScrollbarPresenceChange, onWrapperResize} =
     useVirtualizedGrid({
       cellMeasurer: {
@@ -61,7 +60,6 @@ function NetworkList({networkSpans, startTimestampMs}: Props) {
         fixedHeight: true,
       },
       gridRef,
-      // wrapperRef,
       columnCount: COLUMN_COUNT,
       dyanmicColumnIndex: 1,
       deps: [items, searchTerm],

@@ -67,7 +67,12 @@ function FocusArea({}: Props) {
         />
       );
     case 'user':
-      return <UserReplays user={replay?.getReplay()?.user} />;
+      return (
+        <UserReplays
+          replayId={replay?.getReplay()?.id}
+          user={replay?.getReplay()?.user}
+        />
+      );
     default:
       return null;
   }

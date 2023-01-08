@@ -1,4 +1,4 @@
-import {useCallback, useMemo, useRef, useState} from 'react';
+import {useRef} from 'react';
 import {
   AutoSizer,
   CellMeasurer,
@@ -7,24 +7,19 @@ import {
   MultiGrid,
 } from 'react-virtualized';
 import styled from '@emotion/styled';
-import {Location} from 'history';
 
-import {Client} from 'sentry/api';
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
-import EventView from 'sentry/utils/discover/eventView';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
-import fetchReplayList, {
-  DEFAULT_SORT,
-  REPLAY_LIST_FIELDS,
-} from 'sentry/utils/replays/fetchReplayList';
-import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import NoRowRenderer from 'sentry/views/replays/detail/noRowRenderer';
+import useInfiniteLoader, {
+  LoadingStatus,
+} from 'sentry/views/replays/detail/useInfiniteLoader';
+import useLoadReplaysFromUser from 'sentry/views/replays/detail/userReplays/useLoadReplaysFromUser';
 import useVirtualizedGrid from 'sentry/views/replays/detail/useVirtualizedGrid';
 import HeaderCell from 'sentry/views/replays/replayTable/headerCell';
 import TableCell from 'sentry/views/replays/replayTable/tableCell';
@@ -32,44 +27,9 @@ import {ReplayColumns} from 'sentry/views/replays/replayTable/types';
 import type {ReplayListRecord, ReplayRecord} from 'sentry/views/replays/types';
 
 type Props = {
+  replayId: undefined | string;
   user: undefined | ReplayRecord['user'];
 };
-
-function getUserCondition(user: undefined | ReplayRecord['user']) {
-  if (user?.id) {
-    return `user.id:${user.id}`;
-  }
-  if (user?.email) {
-    return `user.email:${user.email}`;
-  }
-  if (user?.ip_address) {
-    return `user.ip_address:${user.ip_address}`;
-  }
-  return '';
-}
-
-function ReplaysFromUser({user}: Props) {
-  const eventView = useMemo(() => {
-    const query = getUserCondition(user);
-    if (!query) {
-      return null;
-    }
-    return EventView.fromSavedQuery({
-      id: '',
-      name: '',
-      version: 2,
-      fields: REPLAY_LIST_FIELDS,
-      projects: [],
-      query,
-      orderby: DEFAULT_SORT,
-    });
-  }, [user]);
-
-  if (eventView) {
-    return <SessionsList eventView={eventView} />;
-  }
-  return <Placeholder height="100%" />;
-}
 
 const COLUMNS = [
   ReplayColumns.user,
@@ -79,85 +39,20 @@ const COLUMNS = [
   ReplayColumns.activity,
 ];
 
-enum Status {
-  loading,
-  loaded,
-}
-
-type Opts = {
-  api: Client;
-  eventView: EventView;
-  organization: Organization;
-};
-
-function useReplayInifiniteLoader({api, eventView, organization}: Opts) {
-  const loadedRowsRef = useRef(new Map<number, Status>());
-  const [replays, setReplays] = useState<ReplayListRecord[]>();
-
-  const isRowLoaded = useCallback(({index}) => {
-    return loadedRowsRef.current.has(index);
-  }, []);
-
-  const loadMoreRows = useCallback(
-    async ({startIndex, stopIndex}) => {
-      // console.log('load more rows', {startIndex, stopIndex});
-
-      for (let i = startIndex; i <= stopIndex; i++) {
-        loadedRowsRef.current.set(i, Status.loading);
-      }
-
-      const {
-        fetchError,
-        // pageLinks,
-        replays: newReplays,
-      } = await fetchReplayList({
-        api,
-        eventView,
-        location: {
-          query: {
-            per_page: String(stopIndex - startIndex),
-            cursor: `0:${startIndex}:0`,
-          },
-        } as Location<{
-          cursor: string;
-          per_page: string;
-        }>,
-        organization,
-      });
-
-      // console.log('resp', {fetchError, newReplays});
-      if (!fetchError) {
-        // console.log('loaded!', {pageLinks});
-
-        for (let i = startIndex; i <= stopIndex; i++) {
-          loadedRowsRef.current.set(i, Status.loaded);
-        }
-        setReplays(prev => [...(prev || []), ...(newReplays || [])]);
-      }
-    },
-    [api, eventView, organization]
-  );
-
-  return {
-    replays,
-    isRowLoaded,
-    loadMoreRows,
-  };
-}
-
-function SessionsList({eventView}: {eventView: EventView}) {
-  const api = useApi();
+function ReplaysFromUser({replayId, user}: Props) {
   const routes = useRoutes();
   const organization = useOrganization();
 
-  const {replays, isRowLoaded, loadMoreRows} = useReplayInifiniteLoader({
-    api,
-    eventView,
-    organization,
-  });
+  const {eventView, loadRows} = useLoadReplaysFromUser({user});
 
-  const gridRef = useRef<MultiGrid>(null);
-  // const wrapperRef = useRef<HTMLDivElement>(null);
+  const {isLoading, isRowLoaded, loadMoreRows, rows, rowState} =
+    useInfiniteLoader<ReplayListRecord>({
+      loadRows,
+      initialStartIndex: 0,
+      initialStopIndex: 5,
+    });
+
+  const gridRef = useRef<MultiGrid | null>(null);
   const {cache, getColumnWidth, onScrollbarPresenceChange, onWrapperResize} =
     useVirtualizedGrid({
       cellMeasurer: {
@@ -165,94 +60,17 @@ function SessionsList({eventView}: {eventView: EventView}) {
         fixedHeight: true,
       },
       gridRef,
-      // wrapperRef,
       columnCount: COLUMNS.length,
       dyanmicColumnIndex: 0,
-      deps: [],
+      deps: [rows],
     });
 
   const referrer = getRouteStringFromRoutes(routes);
 
-  const renderCell = ({columnIndex, rowIndex, key, parent, style}: GridCellProps) => {
-    // const rowRenderer = ({columnIndex, index, key, parent, style}) => {
-    // if (index === 0) {
-    //   console.log('render title row');
-    //   return (
-    //     <div key={key} style={style}>
-    //       {new Array(6).fill(0).map((_, i) => (
-    //         <Header key={i}>
-    //           <HeaderCell key={COLUMNS[i]} column={COLUMNS[i]} />
-    //         </Header>
-    //       ))}
-    //     </div>
-    //   );
-    // }
-    // const dataIndex = index - 1;
-    // if (!isRowLoaded({index: dataIndex})) {
-    //   return (
-    //     <div key={key} style={style}>
-    //       <Placeholder height="24px" />
-    //     </div>
-    //   );
-    // }
-    // // const replay = replays![dataIndex];
-    // return (
-    //   <div key={key} style={style}>
-    //     data row ${dataIndex}
-    //   </div>
-    // );
+  const cellRenderer = ({columnIndex, rowIndex, key, parent, style}: GridCellProps) => {
+    // Adjust index by 1 because the loader doesn't know about the header row
+    const dataIndex = rowIndex - 1;
 
-    if (rowIndex === 0) {
-      return (
-        <CellMeasurer
-          cache={cache}
-          columnIndex={columnIndex}
-          key={key}
-          parent={parent}
-          rowIndex={rowIndex}
-        >
-          <Header style={style}>
-            <HeaderCell key={COLUMNS[columnIndex]} column={COLUMNS[columnIndex]} />
-          </Header>
-        </CellMeasurer>
-      );
-    }
-
-    if (!replays) {
-      return (
-        <CellMeasurer
-          cache={cache}
-          columnIndex={columnIndex}
-          key={key}
-          parent={parent}
-          rowIndex={rowIndex}
-        >
-          <Body style={style}>
-            <Placeholder height="32px" />
-          </Body>
-        </CellMeasurer>
-      );
-    }
-
-    const replay = replays[rowIndex - 1];
-
-    if (!replay) {
-      return (
-        <CellMeasurer
-          cache={cache}
-          columnIndex={columnIndex}
-          key={key}
-          parent={parent}
-          rowIndex={rowIndex}
-        >
-          <Body style={style}>
-            <Placeholder height="32px" />
-          </Body>
-        </CellMeasurer>
-      );
-    }
-
-    // console.log('rendering', {rowIndex, replay, replays});
     return (
       <CellMeasurer
         cache={cache}
@@ -261,15 +79,21 @@ function SessionsList({eventView}: {eventView: EventView}) {
         parent={parent}
         rowIndex={rowIndex}
       >
-        <Body style={style}>
-          <TableCell
-            column={COLUMNS[columnIndex]}
-            eventView={eventView}
-            organization={organization}
-            referrer={referrer}
-            replay={replay}
-          />
-        </Body>
+        {rowIndex === 0 ? (
+          <Header style={style}>
+            <HeaderCell key={COLUMNS[columnIndex]} column={COLUMNS[columnIndex]} />
+          </Header>
+        ) : rowState[dataIndex] === LoadingStatus.LOADED ? (
+          <Body style={style} isCurrent={rows[dataIndex].id === replayId}>
+            <TableCell
+              column={COLUMNS[columnIndex]}
+              eventView={eventView!}
+              organization={organization}
+              referrer={referrer}
+              replay={rows[dataIndex]}
+            />
+          </Body>
+        ) : null}
       </CellMeasurer>
     );
   };
@@ -277,47 +101,54 @@ function SessionsList({eventView}: {eventView: EventView}) {
   return (
     <SessionsContainer>
       <SessionsTable>
-        {!replays ? (
+        {isLoading ? (
           <Placeholder height="100%" />
         ) : (
           <InfiniteLoader
             isRowLoaded={isRowLoaded}
             loadMoreRows={loadMoreRows}
-            rowCount={10000}
-            minimumBatchSize={50}
+            rowCount={1000}
+            minimumBatchSize={5}
           >
             {({onRowsRendered, registerChild}) => {
-              console.log('loader rendered');
               return (
                 <AutoSizer onResize={onWrapperResize}>
                   {({width, height}) => (
                     <MultiGrid
-                      ref={registerChild}
+                      ref={elem => {
+                        gridRef.current = elem;
+                        registerChild(elem);
+                      }}
                       columnCount={COLUMNS.length}
                       columnWidth={getColumnWidth(width)}
-                      cellRenderer={renderCell}
-                      deferredMeasurementCache={cache}
+                      cellRenderer={cellRenderer}
+                      estimatedRowSize={50}
+                      // TODO(replays): I think this should be included, but it puts all cells in position `top:0;left:0`
+                      // deferredMeasurementCache={cache}
                       fixedRowCount={1}
+                      headerHeight={28}
                       height={height}
                       noContentRenderer={() => (
                         <NoRowRenderer
-                          unfilteredItems={replays}
+                          unfilteredItems={Object.values(rows) || []}
                           clearSearchTerm={() => {}}
                         >
-                          {t('No sessions found')}
+                          {t('No sessions recorded')}
                         </NoRowRenderer>
                       )}
-                      onSectionRendered={({rowStartIndex, rowStopIndex}) => {
-                        onRowsRendered({
-                          startIndex: rowStartIndex,
-                          stopIndex: rowStopIndex,
-                        });
-                      }}
                       onScrollbarPresenceChange={onScrollbarPresenceChange}
+                      onSectionRendered={({rowStartIndex, rowStopIndex}) =>
+                        // Adjust indexes by 1 because the loader doesn't know about the header row
+                        onRowsRendered({
+                          startIndex: rowStartIndex - 1,
+                          stopIndex: rowStopIndex - 1,
+                        })
+                      }
                       overscanColumnCount={COLUMNS.length}
                       overscanRowCount={5}
-                      rowCount={replays.length + 1}
-                      rowHeight={({index}) => (index === 0 ? 25 : 50)}
+                      // Adjust count by 1 because the loader doesn't know about the header row
+                      rowCount={Object.keys(rows).length + 1}
+                      rowHeight={({index}) => (index === 0 ? 28 : 50)}
                       width={width}
                     />
                   )}
@@ -366,8 +197,11 @@ const Header = styled('div')`
   }
 `;
 
-const Body = styled('div')`
+const Body = styled('div')<{isCurrent: boolean}>`
+  display: flex;
   padding: ${space(0.5)} ${space(1)};
+
+  background: ${p => (p.isCurrent ? p.theme.hover : 'inherit')};
 `;
 
 export default ReplaysFromUser;
