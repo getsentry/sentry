@@ -312,6 +312,11 @@ export function FlamegraphSpans({
         >
           <FlamegraphTooltipFrameMainInfo>
             <FlamegraphTooltipColorIndicator
+              backgroundImage={
+                hoveredNode.node.span.op === 'missing instrumentation'
+                  ? `url(${spansRenderer.patternDataUrl})`
+                  : 'none'
+              }
               backgroundColor={formatColorForSpan(hoveredNode, spansRenderer)}
             />
             {spanChart.formatter(hoveredNode.duration)}{' '}
