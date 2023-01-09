@@ -59,6 +59,13 @@ export class CanvasView<T extends {configSpace: Rect}> {
     this.initConfigSpace(canvas);
   }
 
+  setMinWidth(minWidth: number) {
+    if (minWidth < 0) {
+      throw new Error('View min width cannot be negative');
+    }
+    this.minWidth = minWidth;
+  }
+
   private _initConfigSpace(canvas: FlamegraphCanvas): void {
     this.configSpace = new Rect(
       0,
