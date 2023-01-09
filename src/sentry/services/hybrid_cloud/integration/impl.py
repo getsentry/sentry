@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Mapping, Tuple
+from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Tuple
 
 from sentry.api.paginator import OffsetPaginator
 from sentry.models.integrations import Integration, OrganizationIntegration
@@ -99,12 +99,14 @@ class DatabaseBackedIntegrationService(IntegrationService):
         provider: str | None = None,
         external_id: str | None = None,
     ) -> APIIntegration | None:
-        # If an integration_id is provided, use that -- otherwise, use the provider and external_id
-        integration_kwargs: Mapping[str, Any] = (
-            {"id": integration_id}
-            if integration_id
-            else {"provider": provider, "external_id": external_id}
-        )
+        integration_kwargs: Dict[str, Any] = {}
+        if integration_id is not None:
+            integration_kwargs["id"] = integration_id
+        if provider is not None:
+            integration_kwargs["provider"] = provider
+        if external_id is not None:
+            integration_kwargs["external_id"] = external_id
+
         integration = Integration.objects.filter(**integration_kwargs).first()
         return self._serialize_integration(integration) if integration else None
 
