@@ -66,6 +66,7 @@ const ThreadSelector = ({
     <ClassNames>
       {({css}) => (
         <StyledDropdownAutoComplete
+          detached
           data-test-id="thread-selector"
           items={getItems()}
           onSelect={item => {
@@ -87,7 +88,7 @@ const ThreadSelector = ({
           emptyHidesInput
         >
           {({isOpen, selectedItem}) => (
-            <StyledDropdownButton isOpen={isOpen} size="xs" align="left">
+            <StyledDropdownButton isOpen={isOpen} size="xs">
               {selectedItem ? (
                 <SelectedOption
                   id={selectedItem.thread.id}

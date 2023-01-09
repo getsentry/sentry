@@ -32,7 +32,7 @@ const MonitorHeaderActions = ({monitor, orgId, onUpdate}: Props) => {
     addLoadingMessage(t('Deleting Monitor...'));
 
     api
-      .requestPromise(`/monitors/${monitor.id}/`, {
+      .requestPromise(`/organizations/${orgId}/monitors/${monitor.id}/`, {
         method: 'DELETE',
       })
       .then(() => {
@@ -46,7 +46,7 @@ const MonitorHeaderActions = ({monitor, orgId, onUpdate}: Props) => {
   const updateMonitor = (data: Partial<Monitor>) => {
     addLoadingMessage();
     api
-      .requestPromise(`/monitors/${monitor.id}/`, {
+      .requestPromise(`/organizations/${orgId}/monitors/${monitor.id}/`, {
         method: 'PUT',
         data,
       })
