@@ -76,6 +76,7 @@ export class OrganizationStats extends Component<Props> {
       case DataCategory.TRANSACTIONS:
       case DataCategory.ATTACHMENTS:
       case DataCategory.PROFILES:
+      case DataCategory.REPLAYS:
         return dataCategory as DataCategory;
       default:
         return DataCategory.ERRORS;
@@ -242,9 +243,17 @@ export class OrganizationStats extends Component<Props> {
   };
 
   renderProjectPageControl = () => {
+    const {organization} = this.props;
+
     if (!this.hasProjectStats) {
       return null;
     }
+
+    const hasReplay = organization.features.includes('session-replay-ui');
+    const options = hasReplay
+      ? CHART_OPTIONS_DATACATEGORY
+      : CHART_OPTIONS_DATACATEGORY.filter(opt => opt.value !== DataCategory.REPLAYS);
+
     return (
       <PageControl>
         <PageFilterBar>
@@ -252,7 +261,7 @@ export class OrganizationStats extends Component<Props> {
           <DropdownDataCategory
             triggerProps={{prefix: t('Category')}}
             value={this.dataCategory}
-            options={CHART_OPTIONS_DATACATEGORY}
+            options={options}
             onChange={opt =>
               this.setStateOnUrl({dataCategory: opt.value as DataCategory})
             }
@@ -295,12 +304,17 @@ export class OrganizationStats extends Component<Props> {
 
     const {start, end, period, utc} = this.dataDatetime;
 
+    const hasReplay = organization.features.includes('session-replay-ui');
+    const options = hasReplay
+      ? CHART_OPTIONS_DATACATEGORY
+      : CHART_OPTIONS_DATACATEGORY.filter(opt => opt.value !== DataCategory.REPLAYS);
+
     return (
       <Fragment>
         <DropdownDataCategory
           triggerProps={{prefix: t('Category')}}
           value={this.dataCategory}
-          options={CHART_OPTIONS_DATACATEGORY}
+          options={options}
           onChange={opt => this.setStateOnUrl({dataCategory: opt.value as DataCategory})}
         />
 

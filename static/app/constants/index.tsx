@@ -227,6 +227,7 @@ export const DATA_CATEGORY_NAMES = {
   [DataCategory.TRANSACTIONS]: t('Transactions'),
   [DataCategory.ATTACHMENTS]: t('Attachments'),
   [DataCategory.PROFILES]: t('Profiles'),
+  [DataCategory.REPLAYS]: t('Session Replays'),
 };
 
 // Special Search characters
