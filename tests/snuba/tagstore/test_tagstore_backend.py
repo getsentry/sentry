@@ -1133,7 +1133,7 @@ class ProfilingTagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin):
 
         second_group_fingerprint = f"{GroupType.PROFILE_BLOCKED_THREAD.value}-group2"
         second_group_timestamp_start = timezone.now() - timedelta(hours=5)
-        for incr in range(1, 4):
+        for incr in range(1, 5):
             event, issue_occurrence, group_info = self.store_search_issue(
                 self.project.id,
                 incr,
@@ -1150,7 +1150,7 @@ class ProfilingTagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin):
         ) == {first_group.id: 2, second_group.id: 3}
         assert self.ts.get_generic_groups_user_counts(
             [self.project.id], group_ids=[first_group.id, second_group.id], environment_ids=None
-        ) == {first_group.id: 3, second_group.id: 3}
+        ) == {first_group.id: 3, second_group.id: 4}
 
     def test_get_profiling_group_list_tag_value_by_environment(self):
         group_fingerprint = f"{GroupType.PROFILE_BLOCKED_THREAD.value}-group1"
