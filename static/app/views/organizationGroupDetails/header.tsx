@@ -10,6 +10,7 @@ import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import ErrorLevel from 'sentry/components/events/errorLevel';
 import EventMessage from 'sentry/components/events/eventMessage';
+import FeatureBadge from 'sentry/components/featureBadge';
 import InboxReason from 'sentry/components/group/inboxBadges/inboxReason';
 import UnhandledInboxTag from 'sentry/components/group/inboxBadges/unhandledTag';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
@@ -25,7 +26,14 @@ import Tooltip from 'sentry/components/tooltip';
 import {IconChat} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Event, Group, IssueCategory, Organization, Project} from 'sentry/types';
+import {
+  Event,
+  Group,
+  IssueCategory,
+  IssueType,
+  Organization,
+  Project,
+} from 'sentry/types';
 import {getMessage} from 'sentry/utils/events';
 import projectSupportsReplay from 'sentry/utils/replays/projectSupportsReplay';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -286,6 +294,12 @@ function GroupHeader({
         >
           <StyledShortId shortId={group.shortId} />
         </Tooltip>
+        {group.issueType === IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS && (
+          <FeatureBadge
+            type="alpha"
+            title="N+1 API Calls Performance Issues are in active development and may change"
+          />
+        )}
       </ShortIdBreadrcumb>
     </GuideAnchor>
   );
