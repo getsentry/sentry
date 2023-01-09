@@ -160,7 +160,7 @@ def get_project_config(
 def get_dynamic_sampling_config(project: Project) -> Optional[Mapping[str, Any]]:
     if features.has("organizations:dynamic-sampling", project.organization) and options.get(
         "dynamic-sampling:enabled-biases"
-    )(project):
+    ):
         return {"rules": generate_rules(project)}
     return None
 
