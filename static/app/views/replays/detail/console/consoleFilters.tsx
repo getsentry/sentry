@@ -17,17 +17,18 @@ function Filters({
   setLogLevel,
   setSearchTerm,
 }: Props) {
+  const logLevels = getLogLevels();
   return (
     <FiltersGrid>
       <CompactSelect
         triggerProps={{prefix: t('Log Level')}}
         triggerLabel={logLevel.length === 0 ? t('Any') : null}
         multiple
-        options={getLogLevels()}
+        options={logLevels}
         onChange={selected => setLogLevel(selected.map(_ => _.value))}
         size="sm"
         value={logLevel}
-        isDisabled={!breadcrumbs || !breadcrumbs.length}
+        isDisabled={!logLevels.length}
       />
       <SearchBar
         onChange={setSearchTerm}
