@@ -9,7 +9,7 @@ import {ViewHierarchyWindow} from '.';
 
 type DetailsPanelProps = {
   data: ViewHierarchyWindow | null;
-  getTitle: any;
+  getTitle?: (data: ViewHierarchyWindow) => string;
 };
 
 function DetailsPanel({data, getTitle}: DetailsPanelProps) {
@@ -27,7 +27,7 @@ function DetailsPanel({data, getTitle}: DetailsPanelProps) {
 
   return (
     <Container>
-      <Title>{getTitle?.(data)}</Title>
+      {!!getTitle && <Title>{getTitle(data)}</Title>}
       <KeyValueList data={keyValueData} />
     </Container>
   );
