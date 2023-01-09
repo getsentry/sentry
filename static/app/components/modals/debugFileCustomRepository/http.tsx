@@ -193,7 +193,7 @@ function Http({Header, Body, Footer, onSubmit, ...props}: Props) {
             (typeof data.password === 'string' && !!data.password)) && (
             <ClearPasswordButton
               onClick={handleClearPassword}
-              icon={<IconClose size="14px" />}
+              icon={<IconClose legacySize="14px" />}
               size="xs"
               title={t('Clear password')}
               aria-label={t('Clear password')}

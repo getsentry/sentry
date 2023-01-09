@@ -29,7 +29,7 @@ function NewIssue({sampleEvent, eventCount, organization}: Props) {
         />
         <ExtraInfo>
           <TimeWrapper>
-            <StyledIconClock size="11px" />
+            <StyledIconClock legacySize="11px" />
             <TimeSince
               date={
                 sampleEvent.dateCreated
