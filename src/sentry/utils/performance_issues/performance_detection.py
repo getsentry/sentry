@@ -963,10 +963,10 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
         if root_span:
             self.potential_parents[root_span.get("span_id")] = root_span
 
-    def is_creation_allowed_for_organization(self, organization: Optional[Organization]):
+    def is_creation_allowed_for_organization(self, organization: Optional[Organization]) -> bool:
         return True  # This detector is fully rolled out
 
-    def is_creation_allowed_for_project(self, project: Optional[Project]):
+    def is_creation_allowed_for_project(self, project: Optional[Project]) -> bool:
         return True  # This should probably use the `n_plus_one_db.problem-creation` option, which is currently not in use
 
     def visit_span(self, span: Span) -> None:
