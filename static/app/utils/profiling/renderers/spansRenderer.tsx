@@ -46,6 +46,19 @@ export class SpanChartRenderer2D {
   }
 
   findHoveredNode(configSpaceCursor: vec2): SpanChartNode | null {
+    // ConfigSpace origin is at top of rectangle, so we need to offset bottom by 1
+    // to account for size of renderered rectangle.
+    if (configSpaceCursor[1] > this.spanChart.configSpace.bottom + 1) {
+      return null;
+    }
+
+    if (
+      configSpaceCursor[0] < this.spanChart.configSpace.left ||
+      configSpaceCursor[0] > this.spanChart.configSpace.right
+    ) {
+      return null;
+    }
+
     let hoveredNode: SpanChartNode | null = null;
     const queue = [...this.spanChart.root.children];
 
@@ -105,7 +118,8 @@ export class SpanChartRenderer2D {
         continue;
       }
 
-      const color = this.colors.get(span.node.span.span_id);
+      const color =
+        this.colors.get(span.node.span.span_id) ?? this.theme.COLORS.SPAN_FALLBACK_COLOR;
 
       if (!color) {
         throw new Error('Missing color for span');

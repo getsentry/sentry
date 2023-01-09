@@ -42,7 +42,7 @@ const ClearIndicator = (
   props: React.ComponentProps<typeof selectComponents.ClearIndicator>
 ) => (
   <selectComponents.ClearIndicator {...props}>
-    <IconClose size="10px" />
+    <IconClose legacySize="10px" />
   </selectComponents.ClearIndicator>
 );
 
@@ -50,7 +50,7 @@ const DropdownIndicator = (
   props: React.ComponentProps<typeof selectComponents.DropdownIndicator>
 ) => (
   <selectComponents.DropdownIndicator {...props}>
-    <IconChevron direction="down" size="14px" />
+    <IconChevron direction="down" legacySize="14px" />
   </selectComponents.DropdownIndicator>
 );
 
@@ -58,7 +58,7 @@ const MultiValueRemove = (
   props: React.ComponentProps<typeof selectComponents.MultiValueRemove>
 ) => (
   <selectComponents.MultiValueRemove {...props}>
-    <IconClose size="8px" />
+    <IconClose legacySize="8px" />
   </selectComponents.MultiValueRemove>
 );
 

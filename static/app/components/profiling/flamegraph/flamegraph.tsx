@@ -288,6 +288,18 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
     [spanChart, spansCanvas, flamegraphTheme.SIZES]
   );
 
+  // We want to make sure that the views have the same min zoom levels so that
+  // if you wheel zoom on one, the other one will also zoom to the same level of detail.
+  // If we dont do this, then at some point during the zoom action the views will
+  // detach and only one will zoom while the other one will stay at the same zoom level.
+  useEffect(() => {
+    if (flamegraphView && spansView) {
+      const minWidthBetweenViews = Math.min(flamegraphView.minWidth, spansView.minWidth);
+      flamegraphView.setMinWidth(minWidthBetweenViews);
+      spansView.setMinWidth(minWidthBetweenViews);
+    }
+  });
+
   useEffect(() => {
     if (!flamegraphCanvas || !flamegraphView) {
       return undefined;
