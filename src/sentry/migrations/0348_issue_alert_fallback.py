@@ -6,7 +6,7 @@ from enum import Enum
 from django.db import migrations, transaction
 
 from sentry.new_migrations.migrations import CheckedMigration
-from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
+from sentry.utils.query import RangeQuerySetWrapper, RangeQuerySetWrapperWithProgressBar
 
 
 # Redefining the enums here so that we can reliably use them in the migration.
@@ -30,7 +30,8 @@ def set_issue_alert_fallback(rule, fallthrough_choice):
         id = action.get("id")
         target_type = action.get("targetType")
         if id == "sentry.mail.actions.NotifyEmailAction" and target_type == "IssueOwners":
-            action.update({"fallthroughType": fallthrough_choice})
+            if "fallthroughType" not in action:
+                action.update({"fallthroughType": fallthrough_choice})
             rule_changed = True
 
     if rule_changed:
@@ -53,8 +54,6 @@ def migrate_project_ownership_to_issue_alert_fallback(project, ProjectOwnership,
         for rule in Rule.objects.filter(project=project, status=RuleStatus.ACTIVE.value):
             set_issue_alert_fallback(rule, fallthrough_choice)
 
-        project.save()
-
 
 def migrate_to_issue_alert_fallback(apps, schema_editor):
     Project = apps.get_model("sentry", "Project")
@@ -68,8 +67,11 @@ def migrate_to_issue_alert_fallback(apps, schema_editor):
         Organization.objects.filter(status=OrganizationStatus.ACTIVE.value)
     ):
         # We only migrate projects that are not pending deletion.
-        for project in Project.objects.filter(
-            organization=org, status__in=[ProjectStatus.ACTIVE.value, ProjectStatus.DISABLED.value]
+        for project in RangeQuerySetWrapper(
+            Project.objects.filter(
+                organization=org,
+                status__in=[ProjectStatus.ACTIVE.value, ProjectStatus.DISABLED.value],
+            )
         ):
             try:
                 migrate_project_ownership_to_issue_alert_fallback(project, ProjectOwnership, Rule)

@@ -8,18 +8,19 @@ class BackfillAlertRuleTypeTest(TestMigrations):
     migrate_from = "0347_add_project_has_minified_stack_trace_flag"
     migrate_to = "0348_issue_alert_fallback"
 
-    def create_issue_alert(self, name, project):
+    def create_issue_alert(self, name, project, set_fallthrough=False):
         rule = Rule()
         rule.project = project
         rule.label = name
-        rule.data["actions"] = [
-            {
-                "id": "sentry.mail.actions.NotifyEmailAction",
-                "targetType": "IssueOwners",
-                "targetIdentifier": "None",
-            }
-        ]
+        action = {
+            "id": "sentry.mail.actions.NotifyEmailAction",
+            "targetType": "IssueOwners",
+            "targetIdentifier": "None",
+        }
+        if set_fallthrough:
+            action["fallthroughType"] = "AllMembers"
 
+        rule.data["actions"] = [action]
         rule.save()
         return rule
 
@@ -36,8 +37,12 @@ class BackfillAlertRuleTypeTest(TestMigrations):
         project_with_fallback_off = Project.objects.create(
             organization_id=self.organization.id, name="p3"
         )
+        project_with_fallback_set = Project.objects.create(
+            organization_id=self.organization.id, name="p4"
+        )
         ProjectOwnership.objects.create(project=project_with_fallback_on, fallthrough="True")
         ProjectOwnership.objects.create(project=project_with_fallback_off, fallthrough="False")
+        ProjectOwnership.objects.create(project=project_with_fallback_set, fallthrough="False")
 
         self.alerts = [
             self.create_issue_alert("alert1", project)
@@ -48,11 +53,15 @@ class BackfillAlertRuleTypeTest(TestMigrations):
             ]
         ]
 
+        self.alerts.append(
+            self.create_issue_alert("alert1", project_with_fallback_set, set_fallthrough=True)
+        )
+
     def test(self):
         assert not Rule.objects.filter(project_id=self.project_no_alerts.id).exists()
         for alert, expected_type in zip(
             self.alerts,
-            ["ActiveMembers", "AllMembers", "NoOne"],
+            ["ActiveMembers", "AllMembers", "NoOne", "AllMembers"],
         ):
             alert = Rule.objects.get(id=alert.id)
             action = alert.data["actions"][0]
