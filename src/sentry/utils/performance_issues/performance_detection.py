@@ -77,6 +77,11 @@ DETECTOR_TYPE_TO_GROUP_TYPE = {
 DETECTOR_TYPE_ISSUE_CREATION_TO_SYSTEM_OPTION = {
     DetectorType.N_PLUS_ONE_DB_QUERIES: "performance.issues.n_plus_one_db.problem-creation",
     DetectorType.N_PLUS_ONE_DB_QUERIES_EXTENDED: "performance.issues.n_plus_one_db_ext.problem-creation",
+    # NOTE: Slow Span issues are not allowed for creation yet, the addition of this line is temporary so that we can
+    # record some metrics for issues of this type that *should* be created. We won't actually create any of these issues atm.
+    # This is handled within `event_manager.py` before the issue gets created.
+    # TODO: Remove this once we've verified that quality issues will be created, and not during spikes.
+    DetectorType.SLOW_SPAN: "performance.issues.slow_span.problem-creation",
 }
 
 
