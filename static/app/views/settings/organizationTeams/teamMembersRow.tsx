@@ -111,6 +111,23 @@ const RemoveButton = (props: {
     return null;
   }
 
+  if (member.flags['idp:provisioned']) {
+    return (
+      <Button
+        size="xs"
+        disabled
+        icon={<IconSubtract size="xs" isCircled />}
+        onClick={onClick}
+        aria-label={t('Remove')}
+        title={t(
+          "Membership to this team is managed through your organization's identity provider."
+        )}
+      >
+        {t('Remove')}
+      </Button>
+    );
+  }
+
   return (
     <Button
       size="xs"
