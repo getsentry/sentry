@@ -200,7 +200,7 @@ describe('Performance Transaction Events Content', function () {
     expect(
       screen.getByPlaceholderText(t('Search for events, users, tags, and more'))
     ).toBeInTheDocument();
-    expect(screen.getByTestId('span-operation-breakdown-filter')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Filter by operation'})).toBeInTheDocument();
 
     const columnTitles = screen
       .getAllByRole('columnheader')
@@ -241,7 +241,7 @@ describe('Performance Transaction Events Content', function () {
     expect(
       screen.getByPlaceholderText(t('Search for events, users, tags, and more'))
     ).toBeInTheDocument();
-    expect(screen.getByTestId('span-operation-breakdown-filter')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Filter by operation'})).toBeInTheDocument();
 
     const columnTitles = screen
       .getAllByRole('columnheader')

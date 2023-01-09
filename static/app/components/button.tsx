@@ -53,10 +53,6 @@ interface BaseButtonProps
    */
   busy?: boolean;
   /**
-   * Test ID for the button.
-   */
-  'data-test-id'?: string;
-  /**
    * Disables the button, assigning appropriate aria attributes and disallows
    * interactions with the button.
    */
