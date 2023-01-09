@@ -28,6 +28,7 @@ function useReplayList({eventView, location, organization}: Options): Result {
   });
 
   const loadReplays = useCallback(async () => {
+    api.clear();
     setData(prev => ({
       ...prev,
       isFetching: true,
