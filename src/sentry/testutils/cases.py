@@ -963,6 +963,14 @@ class SnubaTestCase(BaseTestCase):
         self.snuba_tagstore = SnubaTagStorage()
 
     def store_event(self, *args, **kwargs):
+        """
+        Simulates storing an event for testing.
+
+        To set event title:
+        - use "message": "{title}" field for errors
+        - use "transaction": "{title}" field for transactions
+        More info on event payloads: https://develop.sentry.dev/sdk/event-payloads/
+        """
         with mock.patch("sentry.eventstream.insert", self.snuba_eventstream.insert):
             stored_event = Factories.store_event(*args, **kwargs)
 
