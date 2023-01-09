@@ -3,7 +3,7 @@ import 'prism-sentry/index.css';
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
-import CheckboxFancy from 'sentry/components/checkboxFancy/checkboxFancy';
+import Checkbox from 'sentry/components/checkbox';
 import space from 'sentry/styles/space';
 import {Project} from 'sentry/types';
 import localStorage from 'sentry/utils/localStorage';
@@ -31,17 +31,14 @@ export function OnboardingStep({docContent, docKey, prefix, project}: Props) {
   return (
     <Wrapper>
       <TaskCheckBox>
-        <CheckboxFancy
-          size="22px"
-          isChecked={isChecked()}
-          onClick={event => {
-            event.preventDefault();
-            event.stopPropagation();
-
-            if (isChecked()) {
-              localStorage.removeItem(localStorageKey);
-            } else {
+        <Checkbox
+          size="md"
+          checked={isChecked()}
+          onChange={event => {
+            if (event.target.checked) {
               localStorage.setItem(localStorageKey, 'check');
+            } else {
+              localStorage.removeItem(localStorageKey);
             }
             setIncrement(increment + 1);
 
