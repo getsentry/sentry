@@ -4,15 +4,14 @@ from django.utils import timezone
 from freezegun import freeze_time
 
 from sentry.testutils import APITestCase, SnubaTestCase
+from sentry.testutils.cases import PerformanceIssueTestCase
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
-from sentry.types.issues import GroupType
-from sentry.utils.samples import load_data
 
 
 @region_silo_test
-class GroupEventsTest(APITestCase, SnubaTestCase):
+class GroupEventsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
     def setUp(self):
         super().setUp()
         self.min_ago = before_now(minutes=1)
@@ -421,16 +420,12 @@ class GroupEventsTest(APITestCase, SnubaTestCase):
         assert response.data[1]["eventID"] == "b" * 32
 
     def test_perf_issue(self):
-        event_data = load_data(
-            "transaction",
-            fingerprint=[f"{GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value}-group1"],
-        )
-        event_1 = self.store_event(data=event_data, project_id=self.project.id)
-        event_2 = self.store_event(data=event_data, project_id=self.project.id)
+        event_1 = self.create_performance_issue()
+        event_2 = self.create_performance_issue()
 
         self.login_as(user=self.user)
 
-        url = f"/api/0/issues/{event_1.groups[0].id}/events/"
+        url = f"/api/0/issues/{event_1.group.id}/events/"
         response = self.do_request(url)
 
         assert response.status_code == 200, response.content
