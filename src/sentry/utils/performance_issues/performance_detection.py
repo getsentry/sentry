@@ -238,7 +238,7 @@ def get_detection_settings(project_id: Optional[int] = None) -> Dict[DetectorTyp
             }
         ],
         DetectorType.N_PLUS_ONE_API_CALLS: {
-            "detection_rate": settings["n_plus_one_api_calls_detection_rate"],
+            "detection_rate": settings["n_plus_one_api_calls_detection_rate"] or 0.0,
             "duration_threshold": 50,  # ms
             "concurrency_threshold": 5,  # ms
             "count": 10,
