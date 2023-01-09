@@ -60,9 +60,9 @@ function PageFilterRow({
 const checkboxInputStyles = css`
   /* Make the hitbox of the checkbox a bit larger */
   top: -${space(2)};
-  right: -${space(1.5)};
-  bottom: -${space(2)};
   left: -${space(2)};
+  width: 48px;
+  height: 48px;
 `;
 
 const MultiselectCheckbox = styled(Checkbox)`
