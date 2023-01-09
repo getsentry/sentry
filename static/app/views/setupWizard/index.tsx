@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useRef, useState} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
@@ -55,10 +55,12 @@ function SetupWizard({hash = false}: Props) {
     return () => window.clearInterval(pollingInterval);
   }, [checkFinished]);
 
-  const urlParams = new URLSearchParams(location.search);
-  const projectPlatform = urlParams.get('project_platform');
-  const docsLink =
-    platformDocsMapping[projectPlatform || ''] || 'https://docs.sentry.io/';
+  // outside of route context
+  const docsLink = useMemo(() => {
+    const urlParams = new URLSearchParams(location.search);
+    const projectPlatform = urlParams.get('project_platform');
+    return platformDocsMapping[projectPlatform || ''] || 'https://docs.sentry.io/';
+  }, []);
 
   return (
     <ThemeAndStyleProvider>
@@ -76,7 +78,9 @@ function SetupWizard({hash = false}: Props) {
               <Button priority="primary" to="">
                 {t('View Issues')}
               </Button>
-              <Button href={docsLink}>{t('See Docs')}</Button>
+              <Button href={docsLink} external>
+                {t('See Docs')}
+              </Button>
             </MinWidthButtonBar>
           </div>
         )}
