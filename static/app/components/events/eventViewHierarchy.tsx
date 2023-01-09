@@ -20,7 +20,7 @@ function fillWithUniqueIds(hierarchy) {
   return {
     ...hierarchy,
     id: uniqueId(),
-    children: hierarchy.children.map(fillWithUniqueIds),
+    children: hierarchy.children?.map(fillWithUniqueIds) ?? [],
   };
 }
 
