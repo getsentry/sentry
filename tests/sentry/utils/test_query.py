@@ -1,6 +1,6 @@
-from sentry.models import User
+from sentry.models import Team, User
 from sentry.testutils import TestCase
-from sentry.utils.query import RangeQuerySetWrapper
+from sentry.utils.query import RangeQuerySetWrapper, bulk_delete_objects
 
 
 class RangeQuerySetWrapperTest(TestCase):
@@ -26,3 +26,29 @@ class RangeQuerySetWrapperTest(TestCase):
             user.delete()
 
         assert User.objects.all().count() == 0
+
+
+class BulkDeleteObjectsTest(TestCase):
+    def setUp(self):
+        super().setUp()
+        Team.objects.all().delete()
+
+    def test_basic(self):
+        total = 10
+        records = []
+        for _ in range(total):
+            records.append(self.create_team())
+
+        result = bulk_delete_objects(Team, id__in=[r.id for r in records])
+        assert result, "Could be more work to do"
+        assert len(Team.objects.all()) == 0
+
+    def test_limiting(self):
+        total = 10
+        records = []
+        for _ in range(total):
+            records.append(self.create_team())
+
+        result = bulk_delete_objects(Team, id__in=[r.id for r in records], limit=5)
+        assert result, "Still more work to do"
+        assert len(Team.objects.all()) == 5
