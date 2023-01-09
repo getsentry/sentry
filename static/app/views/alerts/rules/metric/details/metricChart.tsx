@@ -1,6 +1,5 @@
 import {PureComponent} from 'react';
-// eslint-disable-next-line no-restricted-imports
-import {browserHistory, withRouter, WithRouterProps} from 'react-router';
+import {browserHistory, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import color from 'color';
 import type {LineSeriesOption} from 'echarts';
@@ -45,6 +44,8 @@ import getDynamicText from 'sentry/utils/getDynamicText';
 import {MINUTES_THRESHOLD_TO_DISPLAY_SECONDS} from 'sentry/utils/sessions';
 import theme from 'sentry/utils/theme';
 import toArray from 'sentry/utils/toArray';
+// eslint-disable-next-line no-restricted-imports
+import withSentryRouter from 'sentry/utils/withSentryRouter';
 import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/rules/metric/constants';
 import {makeDefaultCta} from 'sentry/views/alerts/rules/metric/metricRulePresets';
 import {
@@ -76,7 +77,6 @@ type Props = WithRouterProps & {
   api: Client;
   filter: string[] | null;
   interval: string;
-  orgId: string;
   organization: Organization;
   project: Project;
   query: string;
@@ -193,10 +193,10 @@ class MetricChart extends PureComponent<Props, State> {
     criticalDuration: number,
     warningDuration: number
   ) {
-    const {rule, orgId, project, timePeriod, query} = this.props;
+    const {rule, organization, project, timePeriod, query} = this.props;
 
     const {buttonText, ...props} = makeDefaultCta({
-      orgSlug: orgId,
+      orgSlug: organization.slug,
       projects: [project],
       rule,
       timePeriod,
@@ -423,7 +423,7 @@ class MetricChart extends PureComponent<Props, State> {
                           comparisonSeries &&
                             `<div><span class="tooltip-label">${comparisonSeries.marker} <strong>${comparisonSeriesName}</strong></span>${comparisonPointYFormatted}</div>`,
                           `</div>`,
-                          `<div class="tooltip-date">`,
+                          `<div class="tooltip-footer">`,
                           `<span>${startTime} &mdash; ${endTime}</span>`,
                           comparisonPointY !== undefined &&
                             Math.abs(changePercentage) !== Infinity &&
@@ -545,7 +545,7 @@ class MetricChart extends PureComponent<Props, State> {
   }
 }
 
-export default withRouter(MetricChart);
+export default withSentryRouter(MetricChart);
 
 const ChartPanel = styled(Panel)`
   margin-top: ${space(2)};

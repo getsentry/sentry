@@ -1,5 +1,7 @@
 import os
+from copy import deepcopy
 
+from sentry.eventstore.models import Event
 from sentry.testutils.factories import get_fixture_path
 from sentry.utils import json
 
@@ -10,16 +12,30 @@ _fixture_path = get_fixture_path("events", "performance_problems")
 EVENTS = {}
 PROJECT_ID = 1
 
-for filename in os.listdir(_fixture_path):
-    if not filename.endswith(".json"):
-        continue
+for (dirpath, dirnames, filenames) in os.walk(_fixture_path):
 
-    [event_name, _extension] = filename.split(".")
+    for filename in filenames:
+        [name, extension] = filename.split(".")
 
-    with open(os.path.join(_fixture_path, filename)) as f:
-        event = json.load(f)
-        event["project"] = PROJECT_ID
-        EVENTS[event_name] = event
+        if not extension == "json":
+            continue
+
+        filepath = os.path.join(dirpath, filename)
+        relative_path = os.path.relpath(filepath, _fixture_path)
+
+        [full_event_name, _] = relative_path.split(".")
+
+        with open(filepath) as f:
+            event = json.load(f)
+            event["project"] = PROJECT_ID
+
+        EVENTS[full_event_name] = event
+
+
+def get_event(event_name) -> Event:
+    # Create copy to avoid the risk of tests altering the event and affecting
+    # other tests.
+    return deepcopy(EVENTS[event_name])
 
 
 # Duration is in ms

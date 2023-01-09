@@ -132,7 +132,7 @@ function StacktraceLinkModal({
                           onClick={onManualSetup}
                           to={
                             hasOneSourceCodeIntegration
-                              ? `/settings/${organization.slug}/integrations/${sourceCodeProviders[0].provider.name}/${sourceCodeProviders[0].id}/`
+                              ? `/settings/${organization.slug}/integrations/${sourceCodeProviders[0].provider.key}/${sourceCodeProviders[0].id}/`
                               : `/settings/${organization.slug}/integrations/`
                           }
                         />
@@ -190,10 +190,8 @@ function StacktraceLinkModal({
       </Body>
       <Footer>
         <ButtonBar gap={1}>
-          <Button type="button" onClick={closeModal}>
-            {t('Cancel')}
-          </Button>
-          <Button type="button" priority="primary" onClick={handleSubmit}>
+          <Button onClick={closeModal}>{t('Cancel')}</Button>
+          <Button priority="primary" onClick={handleSubmit}>
             {t('Save')}
           </Button>
         </ButtonBar>

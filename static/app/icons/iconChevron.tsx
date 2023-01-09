@@ -1,7 +1,5 @@
 import {forwardRef, Fragment} from 'react';
-import {css} from '@emotion/react';
-
-import theme from 'sentry/utils/theme';
+import {css, useTheme} from '@emotion/react';
 
 import {SvgIcon, SVGIconProps} from './svgIcon';
 
@@ -12,6 +10,8 @@ interface Props extends SVGIconProps {
 
 const IconChevron = forwardRef<SVGSVGElement, Props>(
   ({isCircled = false, direction = 'up', ...props}, ref) => {
+    const theme = useTheme();
+
     return (
       <SvgIcon
         {...props}

@@ -1,6 +1,5 @@
-import {Component, Fragment} from 'react';
-// eslint-disable-next-line no-restricted-imports
-import {browserHistory, withRouter, WithRouterProps} from 'react-router';
+import {Fragment} from 'react';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {Location, LocationDescriptorObject} from 'history';
@@ -16,7 +15,7 @@ import Tooltip from 'sentry/components/tooltip';
 import Truncate from 'sentry/components/truncate';
 import {IconStack} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {Organization, Project} from 'sentry/types';
+import {Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
@@ -44,15 +43,17 @@ import {
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import {decodeList} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import withProjects from 'sentry/utils/withProjects';
+import useProjects from 'sentry/utils/useProjects';
+import {useRoutes} from 'sentry/utils/useRoutes';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
 import {getExpandedResults, pushEventViewToLocation} from '../utils';
 
+import {QuickContextHoverWrapper} from './quickContext/quickContextWrapper';
+import {ContextType} from './quickContext/utils';
 import CellAction, {Actions, updateQuery} from './cellAction';
 import ColumnEditModal, {modalCss} from './columnEditModal';
-import {ContextType, QuickContextHoverWrapper} from './quickContext';
 import TableActions from './tableActions';
 import TopResultsIndicator from './topResultsIndicator';
 import {TableColumn} from './types';
@@ -68,7 +69,6 @@ export type TableViewProps = {
   measurementKeys: null | string[];
   onChangeShowTags: () => void;
   organization: Organization;
-  projects: Project[];
   showTags: boolean;
   tableData: TableData | null | undefined;
 
@@ -92,12 +92,18 @@ export type TableViewProps = {
  * In most cases, the new EventView object differs from the previous EventView
  * object. The new EventView object is pushed to the location object.
  */
-class TableView extends Component<TableViewProps & WithRouterProps> {
+function TableView(props: TableViewProps) {
+  const {projects} = useProjects();
+  const routes = useRoutes();
+
   /**
    * Updates a column on resizing
    */
-  _resizeColumn = (columnIndex: number, nextColumn: TableColumn<keyof TableDataRow>) => {
-    const {location, eventView} = this.props;
+  function _resizeColumn(
+    columnIndex: number,
+    nextColumn: TableColumn<keyof TableDataRow>
+  ) {
+    const {location, eventView} = props;
 
     const newWidth = nextColumn.width ? Number(nextColumn.width) : COL_WIDTH_UNDEFINED;
     const nextEventView = eventView.withResizedColumn(columnIndex, newWidth);
@@ -107,15 +113,14 @@ class TableView extends Component<TableViewProps & WithRouterProps> {
       nextEventView,
       extraQuery: pickRelevantLocationQueryStrings(location),
     });
-  };
+  }
 
-  _renderPrependColumns = (
+  function _renderPrependColumns(
     isHeader: boolean,
     dataRow?: any,
     rowIndex?: number
-  ): React.ReactNode[] => {
-    const {organization, eventView, tableData, location, isHomepage, projects} =
-      this.props;
+  ): React.ReactNode[] {
+    const {organization, eventView, tableData, location, isHomepage} = props;
     const hasAggregates = eventView.hasAggregateField();
     const hasIdField = eventView.hasIdField();
 
@@ -212,10 +217,12 @@ class TableView extends Component<TableViewProps & WithRouterProps> {
       ];
     }
     return [];
-  };
+  }
 
-  _renderGridHeaderCell = (column: TableColumn<keyof TableDataRow>): React.ReactNode => {
-    const {eventView, location, tableData} = this.props;
+  function _renderGridHeaderCell(
+    column: TableColumn<keyof TableDataRow>
+  ): React.ReactNode {
+    const {eventView, location, tableData} = props;
     const tableMeta = tableData?.meta;
 
     const align = fieldAlignment(column.name, column.type, tableMeta);
@@ -260,27 +267,22 @@ class TableView extends Component<TableViewProps & WithRouterProps> {
         generateSortLink={generateSortLink}
       />
     );
-  };
+  }
 
-  _renderGridBodyCell = (
+  function _renderGridBodyCell(
     column: TableColumn<keyof TableDataRow>,
     dataRow: TableDataRow,
     rowIndex: number,
     columnIndex: number
-  ): React.ReactNode => {
-    const {isFirstPage, eventView, location, organization, tableData, isHomepage} =
-      this.props;
+  ): React.ReactNode {
+    const {isFirstPage, eventView, location, organization, tableData, isHomepage} = props;
 
     if (!tableData || !tableData.meta) {
       return dataRow[column.key];
     }
 
     const columnKey = String(column.key);
-    const fieldRenderer = getFieldRenderer(
-      columnKey,
-      tableData.meta,
-      !organization.features.includes('discover-frontend-use-events-endpoint')
-    );
+    const fieldRenderer = getFieldRenderer(columnKey, tableData.meta, false);
 
     const display = eventView.getDisplayMode();
     const isTopEvents =
@@ -302,12 +304,24 @@ class TableView extends Component<TableViewProps & WithRouterProps> {
         isHomepage,
       });
 
-      cell = (
-        <Tooltip title={t('View Event')}>
-          <StyledLink data-test-id="view-event" to={target}>
-            {cell}
-          </StyledLink>
-        </Tooltip>
+      const idLink = (
+        <StyledLink data-test-id="view-event" to={target}>
+          {cell}
+        </StyledLink>
+      );
+
+      cell = organization.features.includes('discover-quick-context') ? (
+        <QuickContextHoverWrapper
+          organization={organization}
+          dataRow={dataRow}
+          contextType={ContextType.EVENT}
+          projects={projects}
+          eventView={eventView}
+        >
+          {idLink}
+        </QuickContextHoverWrapper>
+      ) : (
+        <StyledTooltip title={t('View Event')}>{idLink}</StyledTooltip>
       );
     } else if (columnKey === 'trace') {
       const dateSelection = eventView.normalizeDateSelection(location);
@@ -330,7 +344,7 @@ class TableView extends Component<TableViewProps & WithRouterProps> {
     } else if (columnKey === 'replayId') {
       if (dataRow.replayId) {
         const replaySlug = `${dataRow['project.name']}:${dataRow.replayId}`;
-        const referrer = getRouteStringFromRoutes(this.props.routes);
+        const referrer = getRouteStringFromRoutes(routes);
 
         const target = {
           pathname: `/organizations/${organization.slug}/replays/${replaySlug}/`,
@@ -367,7 +381,7 @@ class TableView extends Component<TableViewProps & WithRouterProps> {
           <CellAction
             column={column}
             dataRow={dataRow}
-            handleCellAction={this.handleCellAction(dataRow, column)}
+            handleCellAction={handleCellAction(dataRow, column)}
           >
             {cell}
           </CellAction>
@@ -381,22 +395,22 @@ class TableView extends Component<TableViewProps & WithRouterProps> {
         <CellAction
           column={column}
           dataRow={dataRow}
-          handleCellAction={this.handleCellAction(dataRow, column)}
+          handleCellAction={handleCellAction(dataRow, column)}
         >
           {cell}
         </CellAction>
       </Fragment>
     );
-  };
+  }
 
-  handleEditColumns = () => {
+  function handleEditColumns() {
     const {
       organization,
       eventView,
       measurementKeys,
       spanOperationBreakdownKeys,
       customMeasurements,
-    } = this.props;
+    } = props;
 
     openModal(
       modalProps => (
@@ -406,18 +420,20 @@ class TableView extends Component<TableViewProps & WithRouterProps> {
           measurementKeys={measurementKeys}
           spanOperationBreakdownKeys={spanOperationBreakdownKeys}
           columns={eventView.getColumns().map(col => col.column)}
-          onApply={this.handleUpdateColumns}
+          onApply={handleUpdateColumns}
           customMeasurements={customMeasurements}
         />
       ),
       {modalCss, backdrop: 'static'}
     );
-  };
+  }
 
-  handleCellAction = (dataRow: TableDataRow, column: TableColumn<keyof TableDataRow>) => {
+  function handleCellAction(
+    dataRow: TableDataRow,
+    column: TableColumn<keyof TableDataRow>
+  ) {
     return (action: Actions, value: React.ReactText) => {
-      const {eventView, organization, projects, location, tableData, isHomepage} =
-        this.props;
+      const {eventView, organization, location, tableData, isHomepage} = props;
 
       const query = new MutableSearch(eventView.query);
 
@@ -510,10 +526,10 @@ class TableView extends Component<TableViewProps & WithRouterProps> {
       target.query.yAxis = decodeList(location.query.yAxis);
       browserHistory.push(target);
     };
-  };
+  }
 
-  handleUpdateColumns = (columns: Column[]): void => {
-    const {organization, eventView, location, isHomepage} = this.props;
+  function handleUpdateColumns(columns: Column[]): void {
+    const {organization, eventView, location, isHomepage} = props;
 
     // metrics
     trackAnalyticsEvent({
@@ -533,9 +549,9 @@ class TableView extends Component<TableViewProps & WithRouterProps> {
       nextView.getYAxisOptions().find(({value}) => value === yAxis)
     );
     browserHistory.push(resultsViewUrlTarget);
-  };
+  }
 
-  renderHeaderButtons = () => {
+  function renderHeaderButtons() {
     const {
       organization,
       title,
@@ -546,7 +562,7 @@ class TableView extends Component<TableViewProps & WithRouterProps> {
       location,
       onChangeShowTags,
       showTags,
-    } = this.props;
+    } = props;
 
     return (
       <TableActions
@@ -555,49 +571,45 @@ class TableView extends Component<TableViewProps & WithRouterProps> {
         error={error}
         organization={organization}
         eventView={eventView}
-        onEdit={this.handleEditColumns}
+        onEdit={handleEditColumns}
         tableData={tableData}
         location={location}
         onChangeShowTags={onChangeShowTags}
         showTags={showTags}
       />
     );
-  };
-
-  render() {
-    const {isLoading, error, location, tableData, eventView, organization} = this.props;
-
-    const columnOrder = eventView.getColumns(
-      organization.features.includes('discover-frontend-use-events-endpoint')
-    );
-    const columnSortBy = eventView.getSorts();
-
-    const prependColumnWidths = eventView.hasAggregateField()
-      ? ['40px']
-      : eventView.hasIdField()
-      ? []
-      : [`minmax(${COL_WIDTH_MINIMUM}px, max-content)`];
-
-    return (
-      <GridEditable
-        isLoading={isLoading}
-        error={error}
-        data={tableData ? tableData.data : []}
-        columnOrder={columnOrder}
-        columnSortBy={columnSortBy}
-        title={t('Results')}
-        grid={{
-          renderHeadCell: this._renderGridHeaderCell as any,
-          renderBodyCell: this._renderGridBodyCell as any,
-          onResizeColumn: this._resizeColumn as any,
-          renderPrependColumns: this._renderPrependColumns as any,
-          prependColumnWidths,
-        }}
-        headerButtons={this.renderHeaderButtons}
-        location={location}
-      />
-    );
   }
+
+  const {isLoading, error, location, tableData, eventView} = props;
+
+  const columnOrder = eventView.getColumns();
+  const columnSortBy = eventView.getSorts();
+
+  const prependColumnWidths = eventView.hasAggregateField()
+    ? ['40px']
+    : eventView.hasIdField()
+    ? []
+    : [`minmax(${COL_WIDTH_MINIMUM}px, max-content)`];
+
+  return (
+    <GridEditable
+      isLoading={isLoading}
+      error={error}
+      data={tableData ? tableData.data : []}
+      columnOrder={columnOrder}
+      columnSortBy={columnSortBy}
+      title={t('Results')}
+      grid={{
+        renderHeadCell: _renderGridHeaderCell as any,
+        renderBodyCell: _renderGridBodyCell as any,
+        onResizeColumn: _resizeColumn as any,
+        renderPrependColumns: _renderPrependColumns as any,
+        prependColumnWidths,
+      }}
+      headerButtons={renderHeaderButtons}
+      location={location}
+    />
+  );
 }
 
 const PrependHeader = styled('span')`
@@ -606,6 +618,7 @@ const PrependHeader = styled('span')`
 
 const StyledTooltip = styled(Tooltip)`
   display: initial;
+  max-width: max-content;
 `;
 
 const StyledLink = styled(Link)`
@@ -618,4 +631,4 @@ const StyledIcon = styled(IconStack)`
   vertical-align: middle;
 `;
 
-export default withRouter(withProjects(TableView));
+export default TableView;

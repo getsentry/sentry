@@ -8,7 +8,6 @@ from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.http.request import HttpRequest
 from django.utils.crypto import constant_time_compare
-from typing_extensions import TypeGuard
 
 from sentry import options
 from sentry.utils.cache import memoize
@@ -87,6 +86,10 @@ class SystemToken:
         pass
 
 
-def is_system_auth(auth: object) -> TypeGuard[SystemToken]:
+def is_system_auth(auth: object) -> bool:
     """:returns True when Sentry itself is hitting the API."""
+    from sentry.services.hybrid_cloud.auth import AuthenticatedToken
+
+    if isinstance(auth, AuthenticatedToken):
+        return auth.kind == "system"
     return isinstance(auth, SystemToken)

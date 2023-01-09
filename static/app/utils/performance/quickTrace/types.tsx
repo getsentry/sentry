@@ -1,9 +1,10 @@
+import {Theme} from '@emotion/react';
+
 import {EventTag, Measurement} from 'sentry/types/event';
 import {
   DiscoverQueryProps,
   GenericChildrenProps,
 } from 'sentry/utils/discover/genericDiscoverQuery';
-import {Theme} from 'sentry/utils/theme';
 
 /**
  * `EventLite` represents the type of a simplified event from

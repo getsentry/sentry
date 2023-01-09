@@ -28,7 +28,6 @@ from sentry.db.models import (
     region_silo_only_model,
     sane_repr,
 )
-from sentry.dynamic_sampling.feature_multiplexer import DynamicSamplingFeatureMultiplexer
 from sentry.exceptions import InvalidSearchQuery
 from sentry.locks import locks
 from sentry.models import (
@@ -69,66 +68,29 @@ class ReleaseCommitError(Exception):
     pass
 
 
-def ds_rules_contain_latest_release_rule(rules):
-    """
-    This function checks that one of the active rules
-    has value "latest" as release literal
-    """
-
-    # We don't have proper schema and type validate in rules object
-    try:
-        for rule in rules:
-            if rule.get("active"):
-                inner_rule = rule["condition"]["inner"]
-                if (
-                    inner_rule
-                    and inner_rule[0]["name"] == "trace.release"
-                    and inner_rule[0]["value"] == ["latest"]
-                ):
-                    return True
-    except Exception:
-        sentry_sdk.capture_exception()
-    return False
-
-
 class ReleaseProjectModelManager(BaseManager):
+    @staticmethod
+    def _on_post(project, trigger):
+        from sentry.dynamic_sampling.feature_multiplexer import DynamicSamplingFeatureMultiplexer
+        from sentry.dynamic_sampling.latest_release_booster import ProjectBoostedReleases
+
+        ds_feature_multiplexer = DynamicSamplingFeatureMultiplexer(project)
+        project_boosted_releases = ProjectBoostedReleases(project.id)
+        # We want to invalidate the project config only if dynamic sampling is enabled and there exists boosted releases
+        # in the project.
+        if (
+            ds_feature_multiplexer.is_on_dynamic_sampling
+            and project_boosted_releases.has_boosted_releases
+        ):
+            transaction.on_commit(
+                lambda: schedule_invalidate_project_config(project_id=project.id, trigger=trigger)
+            )
+
     def post_save(self, instance, **kwargs):
-        # this hook may be called from model hooks during an
-        # open transaction. In that case, wait until the current transaction has
-        # been committed or rolled back to ensure we don't read stale data in the
-        # task.
-        #
-        # If there is no transaction open, on_commit should run immediately.
-        ds_feature_multiplexer = DynamicSamplingFeatureMultiplexer(instance.project)
-        if ds_feature_multiplexer.is_on_dynamic_sampling_deprecated:
-            dynamic_sampling = instance.project.get_option("sentry:dynamic_sampling")
-            if dynamic_sampling is not None and ds_rules_contain_latest_release_rule(
-                dynamic_sampling["rules"]
-            ):
-                transaction.on_commit(
-                    lambda: schedule_invalidate_project_config(
-                        project_id=instance.project.id, trigger="releaseproject.post_save"
-                    )
-                )
+        self._on_post(project=instance.project, trigger="releaseproject.post_save")
 
     def post_delete(self, instance, **kwargs):
-        # this hook may be called from model hooks during an
-        # open transaction. In that case, wait until the current transaction has
-        # been committed or rolled back to ensure we don't read stale data in the
-        # task.
-        #
-        # If there is no transaction open, on_commit should run immediately.
-        ds_feature_multiplexer = DynamicSamplingFeatureMultiplexer(instance.project)
-        if ds_feature_multiplexer.is_on_dynamic_sampling_deprecated:
-            dynamic_sampling = instance.project.get_option("sentry:dynamic_sampling")
-            if dynamic_sampling is not None and ds_rules_contain_latest_release_rule(
-                dynamic_sampling["rules"]
-            ):
-                transaction.on_commit(
-                    lambda: schedule_invalidate_project_config(
-                        project_id=instance.project.id, trigger="releaseproject.post_delete"
-                    )
-                )
+        self._on_post(project=instance.project, trigger="releaseproject.post_delete")
 
 
 @region_silo_only_model

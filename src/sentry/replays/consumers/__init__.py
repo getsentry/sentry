@@ -4,12 +4,13 @@ import signal
 from typing import Any, MutableMapping
 
 from arroyo import Topic
+from arroyo.backends.kafka.configuration import build_kafka_consumer_configuration
 from arroyo.backends.kafka.consumer import KafkaConsumer, KafkaPayload
-from arroyo.commit import IMMEDIATE
+from arroyo.commit import ONCE_PER_SECOND
 from arroyo.processing.processor import StreamProcessor
 from django.conf import settings
 
-from sentry.replays.consumers.recording.factory import ProcessReplayRecordingStrategyFactory
+from sentry.replays.consumers.recording import ProcessReplayRecordingStrategyFactory
 from sentry.utils import kafka_config
 
 
@@ -29,7 +30,7 @@ def get_replays_recordings_consumer(
         consumer=consumer,
         topic=Topic(topic),
         processor_factory=ProcessReplayRecordingStrategyFactory(),
-        commit_policy=IMMEDIATE,
+        commit_policy=ONCE_PER_SECOND,
     )
 
     def handler(signum: int, frame: Any) -> None:
@@ -42,15 +43,12 @@ def get_replays_recordings_consumer(
 
 def get_config(
     topic: str, group_id: str, auto_offset_reset: str, force_cluster: str | None
-) -> MutableMapping[Any, Any]:
+) -> MutableMapping[str, Any]:
     cluster_name: str = force_cluster or settings.KAFKA_TOPICS[topic]["cluster"]
-    consumer_config: MutableMapping[Any, Any] = kafka_config.get_kafka_consumer_cluster_options(
-        cluster_name,
-        override_params={
-            "auto.offset.reset": auto_offset_reset,
-            "enable.auto.commit": False,
-            "enable.auto.offset.store": False,
-            "group.id": group_id,
-        },
+    return build_kafka_consumer_configuration(
+        kafka_config.get_kafka_consumer_cluster_options(
+            cluster_name,
+        ),
+        group_id=group_id,
+        auto_offset_reset=auto_offset_reset,
     )
-    return consumer_config

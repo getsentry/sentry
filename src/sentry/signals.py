@@ -100,6 +100,8 @@ class BetterSignal(Signal):
 buffer_incr_complete = BetterSignal(providing_args=["model", "columns", "extra", "result"])
 pending_delete = BetterSignal(providing_args=["instance", "actor"])
 event_processed = BetterSignal(providing_args=["project", "event"])
+# When the organization and initial member have been created
+org_setup_complete = BetterSignal(providing_args=["organization", "user"])
 
 # This signal should eventually be removed as we should not send
 # transactions through post processing
@@ -114,6 +116,9 @@ project_created = BetterSignal(providing_args=["project", "user", "default_rules
 first_event_pending = BetterSignal(providing_args=["project", "user"])
 
 first_event_received = BetterSignal(providing_args=["project", "event"])
+# We use signal for consistency with other places but
+# would like to get rid of the signal since it doesn’t serve any purpose
+first_event_with_minified_stack_trace_received = BetterSignal(providing_args=["project", "event"])
 first_transaction_received = BetterSignal(providing_args=["project", "event"])
 first_profile_received = BetterSignal(providing_args=["project"])
 first_replay_received = BetterSignal(providing_args=["project"])

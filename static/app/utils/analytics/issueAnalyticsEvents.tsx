@@ -1,3 +1,5 @@
+import {TagFacetsStyles} from 'sentry/components/group/tagFacets';
+
 type IssueStream = {
   group_id: string;
   tab: string;
@@ -29,6 +31,10 @@ export type IssueEventParameters = {
     group?: string;
     platform?: string;
   };
+  'issue_group_details.stack_traces.setup_source_maps_alert.clicked': {
+    platform?: string;
+    project_id?: string;
+  };
   'issue_group_details.tab.clicked': {
     tab: string;
     browser?: string;
@@ -39,13 +45,22 @@ export type IssueEventParameters = {
   'issue_group_details.tags.bar.clicked': {
     is_mobile: boolean;
     tag: string;
+    type: TagFacetsStyles;
+    value: string;
+    platform?: string;
+  };
+  'issue_group_details.tags.bar.hovered': {
+    is_mobile: boolean;
+    tag: string;
+    type: TagFacetsStyles;
     value: string;
     platform?: string;
   };
   'issue_group_details.tags.show_all_tags.clicked': {
     is_mobile: boolean;
-    tag: string;
+    type: TagFacetsStyles;
     platform?: string;
+    tag?: string;
   };
   'issue_group_details.tags.switcher.clicked': {
     is_mobile: boolean;
@@ -136,6 +151,8 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issues_stream.sort_changed': 'Changed Sort on Issues Stream',
   'issues_stream.paginate': 'Paginate Issues Stream',
   'issue.shared_publicly': 'Issue Shared Publicly',
+  'issue_group_details.stack_traces.setup_source_maps_alert.clicked':
+    'Issue Group Details: Setup Source Maps Alert Clicked',
   resolve_issue: 'Resolve Issue',
   'tag.clicked': 'Tag: Clicked',
   'issue.quick_trace_status': 'Issue Quick Trace Status',
@@ -153,6 +170,7 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issue_group_details.tags.switcher.clicked':
     'Issue Group Details: Tags switcher clicked',
   'issue_group_details.tags.bar.clicked': 'Issue Group Details: Tags value bar clicked',
+  'issue_group_details.tags.bar.hovered': 'Issue Group Details: Tags value bar hovered',
   'issue_group_details.tags_distribution.bar.clicked':
     'Issue Group Details: Tags distribution value bar clicked',
 

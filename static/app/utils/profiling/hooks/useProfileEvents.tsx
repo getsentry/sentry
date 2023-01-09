@@ -2,8 +2,12 @@ import {useQuery} from '@tanstack/react-query';
 
 import {ResponseMeta} from 'sentry/api';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {t} from 'sentry/locale';
+import {PageFilters} from 'sentry/types';
+import {defined} from 'sentry/utils';
 import {DURATION_UNITS, SIZE_UNITS} from 'sentry/utils/discover/fieldRenderers';
 import {FieldValueType} from 'sentry/utils/fields';
+import RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -18,6 +22,8 @@ interface UseProfileEventsOptions<F> {
   referrer: string;
   sort: Sort<F>;
   cursor?: string;
+  datetime?: PageFilters['datetime'];
+  enabled?: boolean;
   limit?: number;
   query?: string;
 }
@@ -45,6 +51,8 @@ export function useProfileEvents<F extends string>({
   query,
   sort,
   cursor,
+  enabled = true,
+  datetime,
 }: UseProfileEventsOptions<F>) {
   const api = useApi();
   const organization = useOrganization();
@@ -57,7 +65,7 @@ export function useProfileEvents<F extends string>({
       referrer,
       project: selection.projects,
       environment: selection.environments,
-      ...normalizeDateTimeParams(selection.datetime),
+      ...normalizeDateTimeParams(datetime ?? selection.datetime),
       field: fields,
       per_page: limit,
       query,
@@ -75,12 +83,34 @@ export function useProfileEvents<F extends string>({
       query: endpointOptions.query,
     });
 
-  return useQuery<[EventsResults<F>, string | undefined, ResponseMeta | undefined]>({
+  return useQuery<
+    [EventsResults<F>, string | undefined, ResponseMeta | undefined],
+    RequestError
+  >({
     queryKey,
     queryFn,
     refetchOnWindowFocus: false,
     retry: false,
+    enabled,
   });
+}
+
+export function formatError(error: any): string | null {
+  if (!defined(error)) {
+    return null;
+  }
+
+  const detail = error.responseJSON?.detail;
+  if (typeof detail === 'string') {
+    return detail;
+  }
+
+  const message = detail?.message;
+  if (typeof message === 'string') {
+    return message;
+  }
+
+  return t('An unknown error occurred.');
 }
 
 export function formatSort<F extends string>(

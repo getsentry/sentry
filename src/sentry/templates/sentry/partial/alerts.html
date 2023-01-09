@@ -1,6 +1,39 @@
 {% load sentry_helpers %}
 {% load sentry_assets %}
 
+{% block css %}
+{% if show_login_banner %}
+<style type="text/css">
+  .alert-banner {
+    background: rgb(255, 219, 74);
+    padding-top: 0.75rem;
+    padding-bottom: 0.75rem;
+    display: flex;
+    justify-content: center;
+    border-radius: 4px;
+    margin-bottom: 4px;
+  }
+  .alert-message {
+    margin-left: 1rem;
+    margin-right: 1rem;
+    line-height: 1.5;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-align: left;
+    flex-grow: 1;
+    font-size: 16px;
+    font-family: Rubik;
+  }
+  @media only screen and (max-width: 1025px) {
+    .alert-banner {
+      display: none;
+    }
+  }
+</style>
+{% endif %}
+{% endblock %}
+
 <div id="blk_alerts" class="messages-container"></div>
 <div id="blk_indicators"></div>
 
@@ -26,6 +59,7 @@
 </script>
 {% endscript %}
 
+
 {% if messages %}
   <div id="messages" class="messages-container">
     {% for message in messages %}
@@ -39,5 +73,15 @@
           </div>
       {% endwith %}
     {% endfor %}
+  </div>
+{% elif show_login_banner %}
+  <div class="alert-banner">
+    <div class="alert-message">
+      {% if banner_choice == 0 %}
+        Find out why we think declarative programming is the future for mobile apps. &nbsp<a target="_blank" href="https://blog.sentry.io/2022/12/07/mobile-the-future-is-declarative/?utm_medium=banner&utm_source=sentry&utm_campaign=login-declarative&utm_content=login-banner&utm_term=">Learn more</a>.
+      {% elif banner_choice == 1 %}
+      Have you noticed improved JavaScript stack traces? Learn how Sentry used JavaScript parsing to improve stack traces. &nbsp<a target="_blank" href="https://blog.sentry.io/2022/11/30/how-we-made-javascript-stack-traces-awesome/?utm_medium=banner&utm_source=sentry&utm_campaign=login-js-parsing&utm_content=login-banner&utm_term=">Read more</a>.
+      {% endif %}
+    </div>
   </div>
 {% endif %}

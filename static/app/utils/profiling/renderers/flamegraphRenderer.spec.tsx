@@ -6,15 +6,18 @@ import {
   makeFlamegraph,
 } from 'sentry-test/profiling/utils';
 
+import {CanvasView} from 'sentry/utils/profiling/canvasView';
 import {FlamegraphSearch} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphSearch';
 import {
   LightFlamegraphTheme,
   LightFlamegraphTheme as theme,
 } from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
-import {FlamegraphView} from 'sentry/utils/profiling/flamegraphView';
 import {Rect} from 'sentry/utils/profiling/gl/utils';
 import {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
+
+import {Flamegraph} from '../flamegraph';
+import {getFlamegraphFrameSearchId} from '../flamegraphFrame';
 
 const originalDpr = window.devicePixelRatio;
 
@@ -51,7 +54,9 @@ describe('flamegraphRenderer', () => {
         vec2.fromValues(0, 0)
       );
 
-      expect(renderer.colors).toEqual([1, 0, 0, 1]);
+      expect(JSON.stringify(renderer.colors)).toEqual(
+        JSON.stringify(new Float32Array([1, 0, 0, 1]))
+      );
     });
   });
 
@@ -74,13 +79,25 @@ describe('flamegraphRenderer', () => {
     // To draw a rect, we need to draw 2 triangles, each with 3 vertices
     // First triangle:  top left -> top right -> bottom left
     // Second triangle: bottom left -> top right -> bottom right
-    expect(renderer.positions.slice(0, 2)).toEqual([rect.left, rect.top]);
-    expect(renderer.positions.slice(2, 4)).toEqual([rect.right, rect.top]);
-    expect(renderer.positions.slice(4, 6)).toEqual([rect.left, rect.bottom]);
+    expect(JSON.stringify(renderer.positions.slice(0, 2))).toEqual(
+      JSON.stringify(new Float32Array([rect.left, rect.top]))
+    );
+    expect(JSON.stringify(renderer.positions.slice(2, 4))).toEqual(
+      JSON.stringify(new Float32Array([rect.right, rect.top]))
+    );
+    expect(JSON.stringify(renderer.positions.slice(4, 6))).toEqual(
+      JSON.stringify(new Float32Array([rect.left, rect.bottom]))
+    );
 
-    expect(renderer.positions.slice(6, 8)).toEqual([rect.left, rect.bottom]);
-    expect(renderer.positions.slice(8, 10)).toEqual([rect.right, rect.top]);
-    expect(renderer.positions.slice(10, 12)).toEqual([rect.right, rect.bottom]);
+    expect(JSON.stringify(renderer.positions.slice(6, 8))).toEqual(
+      JSON.stringify(new Float32Array([rect.left, rect.bottom]))
+    );
+    expect(JSON.stringify(renderer.positions.slice(8, 10))).toEqual(
+      JSON.stringify(new Float32Array([rect.right, rect.top]))
+    );
+    expect(JSON.stringify(renderer.positions.slice(10, 12))).toEqual(
+      JSON.stringify(new Float32Array([rect.right, rect.bottom]))
+    );
   });
 
   it('inits shaders', () => {
@@ -126,7 +143,7 @@ describe('flamegraphRenderer', () => {
     );
 
     expect(renderer.getColorForFrame(flamegraph.frames[0])).toEqual([
-      0.9750000000000001, 0.7250000000000001, 0.7250000000000001,
+      0.9625, 0.7125, 0.7125,
     ]);
     expect(
       renderer.getColorForFrame({
@@ -169,14 +186,14 @@ describe('flamegraphRenderer', () => {
       theme
     );
 
-    expect(renderer.getHoveredNode(vec2.fromValues(-1, 0))).toBeNull();
-    expect(renderer.getHoveredNode(vec2.fromValues(-1, 0))).toBeNull();
-    expect(renderer.getHoveredNode(vec2.fromValues(0, 0))?.frame?.name).toBe('f0');
-    expect(renderer.getHoveredNode(vec2.fromValues(5, 2))?.frame?.name).toBe('f3');
+    expect(renderer.findHoveredNode(vec2.fromValues(-1, 0))).toBeNull();
+    expect(renderer.findHoveredNode(vec2.fromValues(-1, 0))).toBeNull();
+    expect(renderer.findHoveredNode(vec2.fromValues(0, 0))?.frame?.name).toBe('f0');
+    expect(renderer.findHoveredNode(vec2.fromValues(5, 2))?.frame?.name).toBe('f3');
   });
 
   describe('draw', () => {
-    it('sets uniform1f for search results', () => {
+    it('sets search results buffer', () => {
       const context = makeContextMock();
       const canvas = makeCanvasMock({
         getContext: jest.fn().mockReturnValue(context),
@@ -213,23 +230,30 @@ describe('flamegraphRenderer', () => {
       );
 
       const results: FlamegraphSearch['results'] = new Map();
-      // @ts-ignore we just need a partial frame
-      results.set('f00', {});
 
       const flamegraphCanvas = new FlamegraphCanvas(canvas, vec2.fromValues(0, 0));
-      const flamegraphView = new FlamegraphView({
+      const flamegraphView = new CanvasView<Flamegraph>({
         canvas: flamegraphCanvas,
-        flamegraph,
-        theme,
+        model: flamegraph,
+        options: {
+          inverted: flamegraph.inverted,
+          minWidth: flamegraph.profile.minFrameDuration,
+          barHeight: theme.SIZES.BAR_HEIGHT,
+          depthOffset: theme.SIZES.FLAMEGRAPH_DEPTH_OFFSET,
+        },
       });
       const renderer = new FlamegraphRenderer(canvas, flamegraph, theme);
 
-      renderer.draw(
-        flamegraphView.fromConfigView(flamegraphCanvas.physicalSpace),
-        results
+      // @ts-ignore we only need a partial frame mock
+      results.set(getFlamegraphFrameSearchId(flamegraph.frames[0]), {});
+      renderer.setSearchResults(results);
+
+      expect(JSON.stringify(renderer.searchResults.slice(0, 6))).toEqual(
+        JSON.stringify(new Float32Array([1, 1, 1, 1, 1, 1]))
       );
-      expect(context.uniform1i).toHaveBeenCalledTimes(3);
-      expect(context.drawArrays).toHaveBeenCalledTimes(2);
+
+      renderer.draw(flamegraphView.fromConfigView(flamegraphCanvas.physicalSpace));
+      expect(context.drawArrays).toHaveBeenCalledTimes(1);
     });
 
     it('draws all frames', () => {
@@ -269,18 +293,20 @@ describe('flamegraphRenderer', () => {
       );
 
       const flamegraphCanvas = new FlamegraphCanvas(canvas, vec2.fromValues(0, 0));
-      const flamegraphView = new FlamegraphView({
+      const flamegraphView = new CanvasView<Flamegraph>({
         canvas: flamegraphCanvas,
-        flamegraph,
-        theme,
+        model: flamegraph,
+        options: {
+          inverted: flamegraph.inverted,
+          minWidth: flamegraph.profile.minFrameDuration,
+          barHeight: theme.SIZES.BAR_HEIGHT,
+          depthOffset: theme.SIZES.FLAMEGRAPH_DEPTH_OFFSET,
+        },
       });
       const renderer = new FlamegraphRenderer(canvas, flamegraph, theme);
 
-      renderer.draw(
-        flamegraphView.fromConfigView(flamegraphCanvas.physicalSpace),
-        new Map()
-      );
-      expect(context.drawArrays).toHaveBeenCalledTimes(2);
+      renderer.draw(flamegraphView.fromConfigView(flamegraphCanvas.physicalSpace));
+      expect(context.drawArrays).toHaveBeenCalledTimes(1);
     });
   });
 });

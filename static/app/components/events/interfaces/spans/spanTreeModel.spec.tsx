@@ -85,7 +85,7 @@ describe('SpanTreeModel', () => {
         type: EntryType.SPANS,
       },
     ],
-  } as EventTransaction;
+  } as unknown as EventTransaction;
 
   MockApiClient.addMockResponse({
     url: '/organizations/sentry/events/project:19c403a10af34db2b7d93ad669bb51ed/',
@@ -216,7 +216,7 @@ describe('SpanTreeModel', () => {
         isLastSibling: true,
         continuingTreeDepths: [],
         showEmbeddedChildren: false,
-        toggleEmbeddedChildren: expect.any(Function),
+        toggleEmbeddedChildren: expect.anything(),
         fetchEmbeddedChildrenState: 'idle',
         toggleNestedSpanGroup: undefined,
         toggleSiblingSpanGroup: undefined,
@@ -247,7 +247,7 @@ describe('SpanTreeModel', () => {
         isLastSibling: false,
         continuingTreeDepths: [],
         showEmbeddedChildren: false,
-        toggleEmbeddedChildren: expect.any(Function),
+        toggleEmbeddedChildren: expect.anything(),
         fetchEmbeddedChildrenState: 'idle',
         toggleNestedSpanGroup: undefined,
         toggleSiblingSpanGroup: undefined,
@@ -278,7 +278,7 @@ describe('SpanTreeModel', () => {
         isLastSibling: true,
         continuingTreeDepths: [],
         showEmbeddedChildren: false,
-        toggleEmbeddedChildren: expect.any(Function),
+        toggleEmbeddedChildren: expect.anything(),
         fetchEmbeddedChildrenState: 'idle',
         toggleNestedSpanGroup: undefined,
         toggleSiblingSpanGroup: undefined,
@@ -305,7 +305,7 @@ describe('SpanTreeModel', () => {
         isLastSibling: true,
         continuingTreeDepths: [],
         showEmbeddedChildren: false,
-        toggleEmbeddedChildren: expect.any(Function),
+        toggleEmbeddedChildren: expect.anything(),
         fetchEmbeddedChildrenState: 'idle',
         toggleNestedSpanGroup: undefined,
         toggleSiblingSpanGroup: undefined,
@@ -411,7 +411,7 @@ describe('SpanTreeModel', () => {
         isLastSibling: false,
         continuingTreeDepths: [],
         showEmbeddedChildren: false,
-        toggleEmbeddedChildren: expect.any(Function),
+        toggleEmbeddedChildren: expect.anything(),
         fetchEmbeddedChildrenState: 'idle',
         toggleNestedSpanGroup: undefined,
         toggleSiblingSpanGroup: undefined,
@@ -435,7 +435,7 @@ describe('SpanTreeModel', () => {
         isLastSibling: true,
         continuingTreeDepths: [1],
         showEmbeddedChildren: false,
-        toggleEmbeddedChildren: expect.any(Function),
+        toggleEmbeddedChildren: expect.anything(),
         fetchEmbeddedChildrenState: 'idle',
         toggleNestedSpanGroup: undefined,
         toggleSiblingSpanGroup: undefined,
@@ -550,6 +550,10 @@ describe('SpanTreeModel', () => {
       },
     };
 
+    if (!Array.isArray(event2.entries[0].data)) {
+      throw new Error('event2.entries[0].data is not an array');
+    }
+
     for (let i = 0; i < 5; i++) {
       event2.entries[0].data.push(spanTemplate);
     }
@@ -626,6 +630,10 @@ describe('SpanTreeModel', () => {
         url: '/api/0/internal/health/',
       },
     };
+
+    if (!Array.isArray(event2.entries[0].data)) {
+      throw new Error('event2.entries[0].data is not an array');
+    }
 
     for (let i = 0; i < 4; i++) {
       event2.entries[0].data.push(spanTemplate);
@@ -717,6 +725,10 @@ describe('SpanTreeModel', () => {
         url: '/api/0/internal/health/',
       },
     };
+
+    if (!Array.isArray(event2.entries[0].data)) {
+      throw new Error('event2.entries[0].data is not an array');
+    }
 
     for (let i = 0; i < 7; i++) {
       event2.entries[0].data.push(groupableSpanTemplate);

@@ -1,9 +1,9 @@
+from functools import cached_property
 from time import time
 
 import pytest
 import responses
 from django.test import RequestFactory
-from exam import fixture
 from responses.matchers import query_string_matcher
 
 from fixtures.vsts import (
@@ -29,7 +29,7 @@ from sentry.utils import json
 
 
 class VstsIssueBase(TestCase):
-    @fixture
+    @cached_property
     def request(self):
         return RequestFactory()
 

@@ -1,8 +1,8 @@
+import {Theme} from '@emotion/react';
 import {createStore} from 'reflux';
 
 import {defined} from 'sentry/utils';
 import localStorage from 'sentry/utils/localStorage';
-import {Theme} from 'sentry/utils/theme';
 
 import {CommonStoreDefinition} from './types';
 

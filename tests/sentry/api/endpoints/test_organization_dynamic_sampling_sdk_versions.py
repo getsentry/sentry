@@ -212,7 +212,7 @@ def mocked_discover_query():
     }
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class OrganizationDynamicSamplingSDKVersionsTest(APITestCase):
     @property
     def endpoint(self):
@@ -226,14 +226,14 @@ class OrganizationDynamicSamplingSDKVersionsTest(APITestCase):
     def test_permission(self):
         user = self.create_user("foo@example.com")
         self.login_as(user)
-        with Feature({"organizations:server-side-sampling": True}):
+        with Feature({"organizations:dynamic-sampling": True}):
             response = self.client.get(self.endpoint)
             assert response.status_code == 403
 
     def test_user_permissions_for_project_ids_filter(self):
         user = self.create_user("foo@example.com")
         self.login_as(user)
-        with Feature({"organizations:server-side-sampling": True}):
+        with Feature({"organizations:dynamic-sampling": True}):
             response = self.client.get(
                 f"{self.endpoint}?project={self.project.id}&"
                 f"start=2022-08-06T00:02:00+00:00&"
@@ -252,7 +252,7 @@ class OrganizationDynamicSamplingSDKVersionsTest(APITestCase):
 
     def test_no_project_ids_filter_requested(self):
         self.login_as(self.user)
-        with Feature({"organizations:server-side-sampling": True}):
+        with Feature({"organizations:dynamic-sampling": True}):
             response = self.client.get(
                 f"{self.endpoint}?"
                 f"start=2022-08-06T00:02:00+00:00&"
@@ -263,7 +263,7 @@ class OrganizationDynamicSamplingSDKVersionsTest(APITestCase):
 
     def test_no_query_start_or_no_query_end(self):
         self.login_as(self.user)
-        with Feature({"organizations:server-side-sampling": True}):
+        with Feature({"organizations:dynamic-sampling": True}):
             response = self.client.get(
                 f"{self.endpoint}?project={self.project.id}&end=2022-08-07T00:00:02+00:00"
             )
@@ -278,7 +278,7 @@ class OrganizationDynamicSamplingSDKVersionsTest(APITestCase):
 
     def test_query_start_is_before_query_end(self):
         self.login_as(self.user)
-        with Feature({"organizations:server-side-sampling": True}):
+        with Feature({"organizations:dynamic-sampling": True}):
             response = self.client.get(
                 f"{self.endpoint}?project="
                 f"{self.project.id}&start=2022-08-10T00:02:00+00:00&end=2022-08-07T00:00:02+00:00"
@@ -288,7 +288,7 @@ class OrganizationDynamicSamplingSDKVersionsTest(APITestCase):
 
     def test_query_start_and_query_end_are_atmost_one_day_apart(self):
         self.login_as(self.user)
-        with Feature({"organizations:server-side-sampling": True}):
+        with Feature({"organizations:dynamic-sampling": True}):
             response = self.client.get(
                 f"{self.endpoint}?project="
                 f"{self.project.id}&start=2022-08-05T00:02:00+00:00&end=2022-08-07T00:00:02+00:00"
@@ -302,7 +302,7 @@ class OrganizationDynamicSamplingSDKVersionsTest(APITestCase):
     def test_successful_response(self, mock_query):
         self.login_as(self.user)
         mock_query.return_value = mocked_discover_query()
-        with Feature({"organizations:server-side-sampling": True}):
+        with Feature({"organizations:dynamic-sampling": True}):
             response = self.client.get(
                 f"{self.endpoint}?project={self.project.id}&"
                 f"start=2022-08-06T00:02:00+00:00&"
@@ -379,7 +379,7 @@ class OrganizationDynamicSamplingSDKVersionsTest(APITestCase):
     def test_response_when_no_transactions_are_available(self, mock_query):
         self.login_as(self.user)
         mock_query.return_value = {"data": []}
-        with Feature({"organizations:server-side-sampling": True}):
+        with Feature({"organizations:dynamic-sampling": True}):
             response = self.client.get(
                 f"{self.endpoint}?project={self.project.id}&"
                 f"start=2022-08-06T00:02:00+00:00&"
@@ -428,7 +428,7 @@ class OrganizationDynamicSamplingSDKVersionsTest(APITestCase):
             ),
         ]
 
-        with Feature({"organizations:server-side-sampling": True}):
+        with Feature({"organizations:dynamic-sampling": True}):
             response = self.client.get(
                 f"{self.endpoint}?project={self.project.id}&"
                 f"start=2022-08-06T00:02:00+00:00&"
@@ -464,7 +464,7 @@ class OrganizationDynamicSamplingSDKVersionsTest(APITestCase):
                 },
             ]
         }
-        with Feature({"organizations:server-side-sampling": True}):
+        with Feature({"organizations:dynamic-sampling": True}):
             response = self.client.get(
                 f"{self.endpoint}?project={self.project.id}&"
                 f"start=2022-08-06T00:02:00+00:00&"

@@ -14,7 +14,6 @@ import {OrganizationContext} from 'sentry/views/organizationContext';
 import {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
 import EventsPageContent from 'sentry/views/performance/transactionSummary/transactionEvents/content';
 import {EventsDisplayFilterName} from 'sentry/views/performance/transactionSummary/transactionEvents/utils';
-import {RouteContext} from 'sentry/views/routeContext';
 
 function initializeData() {
   const organization = TestStubs.Organization({
@@ -45,13 +44,11 @@ describe('Performance Transaction Events Content', function () {
   let data;
   let transactionName;
   let eventView;
-  let totalEventCount;
   let initialData;
   const query =
     'transaction.duration:<15m event.type:transaction transaction:/api/0/organizations/{organization_slug}/events/';
   beforeEach(function () {
     transactionName = 'transactionName';
-    totalEventCount = '200';
     fields = [
       'id',
       'user.display',
@@ -104,6 +101,29 @@ describe('Performance Transaction Events Content', function () {
         'spans.total.time': 600,
       },
     ];
+    // Total events count response
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      headers: {
+        Link:
+          '<http://localhost/api/0/organizations/org-slug/events/?cursor=2:0:0>; rel="next"; results="true"; cursor="2:0:0",' +
+          '<http://localhost/api/0/organizations/org-slug/events/?cursor=1:0:0>; rel="previous"; results="false"; cursor="1:0:0"',
+      },
+      body: {
+        meta: {
+          fields: {
+            'count()': 'integer',
+          },
+        },
+        data: [{'count()': 200}],
+      },
+      match: [
+        (_url, options) => {
+          return options.query?.field?.includes('count()');
+        },
+      ],
+    });
+
     // Transaction list response
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
@@ -157,24 +177,21 @@ describe('Performance Transaction Events Content', function () {
 
   it('basic rendering', function () {
     render(
-      <RouteContext.Provider value={initialData.routerContext}>
-        <OrganizationContext.Provider value={initialData.organization}>
-          <EventsPageContent
-            totalEventCount={totalEventCount}
-            eventView={eventView}
-            organization={initialData.organization}
-            location={initialData.router.location}
-            transactionName={transactionName}
-            spanOperationBreakdownFilter={SpanOperationBreakdownFilter.None}
-            onChangeSpanOperationBreakdownFilter={() => {}}
-            eventsDisplayFilterName={EventsDisplayFilterName.p100}
-            onChangeEventsDisplayFilter={() => {}}
-            setError={() => {}}
-            projectId="123"
-            projects={[]}
-          />
-        </OrganizationContext.Provider>
-      </RouteContext.Provider>,
+      <OrganizationContext.Provider value={initialData.organization}>
+        <EventsPageContent
+          eventView={eventView}
+          organization={initialData.organization}
+          location={initialData.router.location}
+          transactionName={transactionName}
+          spanOperationBreakdownFilter={SpanOperationBreakdownFilter.None}
+          onChangeSpanOperationBreakdownFilter={() => {}}
+          eventsDisplayFilterName={EventsDisplayFilterName.p100}
+          onChangeEventsDisplayFilter={() => {}}
+          setError={() => {}}
+          projectId="123"
+          projects={[]}
+        />
+      </OrganizationContext.Provider>,
       {context: initialData.routerContext}
     );
 
@@ -200,25 +217,22 @@ describe('Performance Transaction Events Content', function () {
 
   it('rendering with webvital selected', function () {
     render(
-      <RouteContext.Provider value={initialData.routerContext}>
-        <OrganizationContext.Provider value={initialData.organization}>
-          <EventsPageContent
-            totalEventCount={totalEventCount}
-            eventView={eventView}
-            organization={initialData.organization}
-            location={initialData.router.location}
-            transactionName={transactionName}
-            spanOperationBreakdownFilter={SpanOperationBreakdownFilter.None}
-            onChangeSpanOperationBreakdownFilter={() => {}}
-            eventsDisplayFilterName={EventsDisplayFilterName.p100}
-            onChangeEventsDisplayFilter={() => {}}
-            webVital={WebVital.LCP}
-            setError={() => {}}
-            projectId="123"
-            projects={[]}
-          />
-        </OrganizationContext.Provider>
-      </RouteContext.Provider>,
+      <OrganizationContext.Provider value={initialData.organization}>
+        <EventsPageContent
+          eventView={eventView}
+          organization={initialData.organization}
+          location={initialData.router.location}
+          transactionName={transactionName}
+          spanOperationBreakdownFilter={SpanOperationBreakdownFilter.None}
+          onChangeSpanOperationBreakdownFilter={() => {}}
+          eventsDisplayFilterName={EventsDisplayFilterName.p100}
+          onChangeEventsDisplayFilter={() => {}}
+          webVital={WebVital.LCP}
+          setError={() => {}}
+          projectId="123"
+          projects={[]}
+        />
+      </OrganizationContext.Provider>,
       {context: initialData.routerContext}
     );
 

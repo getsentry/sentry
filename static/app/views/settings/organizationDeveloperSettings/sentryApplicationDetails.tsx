@@ -31,8 +31,10 @@ import {
 import {IconAdd, IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {InternalAppApiToken, Scope, SentryApp} from 'sentry/types';
+import {InternalAppApiToken, Organization, Scope, SentryApp} from 'sentry/types';
 import getDynamicText from 'sentry/utils/getDynamicText';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import withOrganization from 'sentry/utils/withOrganization';
 import AsyncView from 'sentry/views/asyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import PermissionsObserver from 'sentry/views/settings/organizationDeveloperSettings/permissionsObserver';
@@ -133,14 +135,16 @@ class SentryAppFormModel extends FormModel {
   }
 }
 
-type Props = RouteComponentProps<{orgId: string; appSlug?: string}, {}>;
+type Props = RouteComponentProps<{appSlug?: string}, {}> & {
+  organization: Organization;
+};
 
 type State = AsyncView['state'] & {
   app: SentryApp | null;
   tokens: InternalAppApiToken[];
 };
 
-export default class SentryApplicationDetails extends AsyncView<Props, State> {
+class SentryApplicationDetails extends AsyncView<Props, State> {
   form = new SentryAppFormModel();
 
   getDefaultState(): State {
@@ -181,16 +185,16 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
 
   handleSubmitSuccess = (data: SentryApp) => {
     const {app} = this.state;
-    const {orgId} = this.props.params;
+    const {organization} = this.props;
     const type = this.isInternal ? 'internal' : 'public';
-    const baseUrl = `/settings/${orgId}/developer-settings/`;
+    const baseUrl = `/settings/${organization.slug}/developer-settings/`;
     const url = app ? `${baseUrl}?type=${type}` : `${baseUrl}${data.slug}/`;
     if (app) {
       addSuccessMessage(t('%s successfully saved.', data.name));
     } else {
       addSuccessMessage(t('%s successfully created.', data.name));
     }
-    browserHistory.push(url);
+    browserHistory.push(normalizeUrl(url));
   };
 
   handleSubmitError = err => {
@@ -287,7 +291,6 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
             size="sm"
             icon={<IconDelete />}
             data-test-id="token-delete"
-            type="button"
           >
             {t('Revoke')}
           </Button>
@@ -378,7 +381,6 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
   };
 
   renderBody() {
-    const {orgId} = this.props.params;
     const {app} = this.state;
     const scopes = (app && [...app.scopes]) || [];
     const events = (app && this.normalize(app.events)) || [];
@@ -403,7 +405,7 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
           apiEndpoint={endpoint}
           allowUndo
           initialData={{
-            organization: orgId,
+            organization: this.props.organization.slug,
             isAlertable: false,
             isInternal: this.isInternal,
             schema: {},
@@ -445,7 +447,6 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
                   icon={<IconAdd size="xs" isCircled />}
                   onClick={evt => this.onAddToken(evt)}
                   data-test-id="token-add"
-                  type="button"
                 >
                   {t('New Token')}
                 </Button>
@@ -496,8 +497,11 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
   }
 }
 
+export default withOrganization(SentryApplicationDetails);
+
 const StyledPanelItem = styled(PanelItem)`
   display: flex;
+  align-items: center;
   justify-content: space-between;
 `;
 

@@ -10,6 +10,7 @@ import click
 from sentry.bgtasks.api import managed_bgtasks
 from sentry.ingest.types import ConsumerType
 from sentry.runner.decorators import configuration, log_options
+from sentry.sentry_metrics.consumers.indexer.slicing_router import get_slicing_router
 
 DEFAULT_BLOCK_SIZE = int(32 * 1e6)
 
@@ -563,6 +564,20 @@ def ingest_consumer(consumer_types, all_consumer_types, **options):
         get_ingest_consumer(consumer_types=consumer_types, executor=executor, **options).run()
 
 
+@run.command("occurrences-ingest-consumer")
+@configuration
+def occurrences_ingest_consumer():
+    from django.conf import settings
+
+    from sentry.issues.occurrence_consumer import get_occurrences_ingest_consumer
+    from sentry.utils import metrics
+
+    consumer_type = settings.KAFKA_INGEST_OCCURRENCES
+
+    with metrics.global_tags(ingest_consumer_types=consumer_type, _all_threads=True):
+        get_occurrences_ingest_consumer(consumer_type).run()
+
+
 @run.command("region-to-control-consumer")
 @log_options()
 @click.option(
@@ -585,47 +600,6 @@ def region_to_control_consumer(region_name, **kafka_options):
 
     with metrics.global_tags(region_name=region_name):
         get_region_to_control_consumer(**kafka_options).run()
-
-
-@run.command("ingest-metrics-consumer-2")
-@log_options()
-@click.option("--topic", default="ingest-metrics", help="Topic to get metrics data from.")
-@batching_kafka_options("ingest-metrics-consumer")
-@configuration
-@click.option(
-    "--processes",
-    default=1,
-    type=int,
-)
-@click.option("--input-block-size", type=int, default=DEFAULT_BLOCK_SIZE)
-@click.option("--output-block-size", type=int, default=DEFAULT_BLOCK_SIZE)
-@click.option("--factory-name", default="default")
-@click.option("--ingest-profile", required=True)
-@click.option("commit_max_batch_size", "--commit-max-batch-size", type=int, default=25000)
-@click.option("commit_max_batch_time", "--commit-max-batch-time-ms", type=int, default=10000)
-@click.option("--indexer-db", default="postgres")
-def metrics_streaming_consumer(**options):
-    import sentry_sdk
-
-    from sentry.sentry_metrics.configuration import IndexerStorage, UseCaseKey, get_ingest_config
-    from sentry.sentry_metrics.consumers.indexer.multiprocess import get_streaming_metrics_consumer
-    from sentry.utils.metrics import global_tags
-
-    use_case = UseCaseKey(options["ingest_profile"])
-    db_backend = IndexerStorage(options["indexer_db"])
-    sentry_sdk.set_tag("sentry_metrics.use_case_key", use_case.value)
-    ingest_config = get_ingest_config(use_case, db_backend)
-
-    streamer = get_streaming_metrics_consumer(indexer_profile=ingest_config, **options)
-
-    def handler(signum, frame):
-        streamer.signal_shutdown()
-
-    signal.signal(signal.SIGINT, handler)
-    signal.signal(signal.SIGTERM, handler)
-
-    with global_tags(_all_threads=True, pipeline=ingest_config.internal_metrics_tag):
-        streamer.run()
 
 
 @run.command("ingest-metrics-parallel-consumer")
@@ -657,8 +631,11 @@ def metrics_parallel_consumer(**options):
     use_case = UseCaseKey(options["ingest_profile"])
     db_backend = IndexerStorage(options["indexer_db"])
     ingest_config = get_ingest_config(use_case, db_backend)
+    slicing_router = get_slicing_router(ingest_config)
 
-    streamer = get_parallel_metrics_consumer(indexer_profile=ingest_config, **options)
+    streamer = get_parallel_metrics_consumer(
+        indexer_profile=ingest_config, slicing_router=slicing_router, **options
+    )
 
     def handler(signum, frame):
         streamer.signal_shutdown()
@@ -687,9 +664,9 @@ def metrics_billing_consumer(**options):
 @batching_kafka_options("ingest-profiles")
 @configuration
 def profiles_consumer(**options):
-    from sentry.profiles.consumer import get_profiles_consumer
+    from sentry.profiles.consumers import get_profiles_process_consumer
 
-    get_profiles_consumer(**options).run()
+    get_profiles_process_consumer(**options).run()
 
 
 @run.command("ingest-replay-recordings")

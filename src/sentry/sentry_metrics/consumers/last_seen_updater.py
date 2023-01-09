@@ -1,19 +1,23 @@
 import datetime
 import functools
+from abc import abstractmethod
 from datetime import timedelta
 from typing import Any, Mapping, Optional, Set, Union
 
 import rapidjson
-from arroyo import Message, Topic
 from arroyo.backends.kafka import KafkaConsumer, KafkaPayload
 from arroyo.commit import IMMEDIATE
 from arroyo.processing import StreamProcessor
-from arroyo.processing.strategies import ProcessingStrategy
-from arroyo.processing.strategies.factory import KafkaConsumerStrategyFactory, StreamMessageFilter
-from arroyo.types import TPayload
+from arroyo.processing.strategies import ProcessingStrategy, ProcessingStrategyFactory
+from arroyo.processing.strategies.commit import CommitOffsets
+from arroyo.processing.strategies.filter import FilterStep
+from arroyo.processing.strategies.reduce import Reduce
+from arroyo.processing.strategies.run_task import RunTask
+from arroyo.processing.strategies.transform import TransformStep
+from arroyo.types import BaseValue, Commit, Message, Partition, Topic
 from django.utils import timezone
 
-from sentry.sentry_metrics.configuration import MetricsIngestConfiguration
+from sentry.sentry_metrics.configuration import MetricsIngestConfiguration, UseCaseKey
 from sentry.sentry_metrics.consumers.indexer.common import get_config
 from sentry.sentry_metrics.consumers.indexer.multiprocess import logger
 from sentry.sentry_metrics.indexer.base import FetchType
@@ -30,7 +34,18 @@ def get_metrics():  # type: ignore
     return metrics
 
 
-class LastSeenUpdaterMessageFilter(StreamMessageFilter[KafkaPayload]):
+class StreamMessageFilter:
+    """
+    A filter over messages coming from a stream. Can be used to pre filter
+    messages during consumption but potentially for other use cases as well.
+    """
+
+    @abstractmethod
+    def should_drop(self, message: Message[KafkaPayload]) -> bool:
+        raise NotImplementedError
+
+
+class LastSeenUpdaterMessageFilter(StreamMessageFilter):
     def __init__(self, metrics: Any) -> None:
         self.__metrics = metrics
 
@@ -54,7 +69,7 @@ class LastSeenUpdaterMessageFilter(StreamMessageFilter[KafkaPayload]):
         return FetchType.DB_READ.value not in str(header_value)
 
 
-class KeepAliveMessageFilter(StreamMessageFilter[TPayload]):
+class KeepAliveMessageFilter(StreamMessageFilter):
     """
     A message filter that wraps another message filter, and ensures that at
     most `consecutive_drop_limit` messages are dropped in a row. If the wrapped
@@ -75,14 +90,12 @@ class KeepAliveMessageFilter(StreamMessageFilter[TPayload]):
     for correctness.
     """
 
-    def __init__(
-        self, inner_filter: StreamMessageFilter[TPayload], consecutive_drop_limit: int
-    ) -> None:
+    def __init__(self, inner_filter: StreamMessageFilter, consecutive_drop_limit: int) -> None:
         self.inner_filter = inner_filter
         self.consecutive_drop_count = 0
         self.consecutive_drop_limit = consecutive_drop_limit
 
-    def should_drop(self, message: Message[TPayload]) -> bool:
+    def should_drop(self, message: Message[KafkaPayload]) -> bool:
         if not self.inner_filter.should_drop(message):
             self.consecutive_drop_count = 0
             return False
@@ -110,37 +123,6 @@ def _update_stale_last_seen(
     )
 
 
-class LastSeenUpdaterCollector(ProcessingStrategy[Set[int]]):
-    def __init__(self, metrics: Any, table: IndexerTable) -> None:
-        self.__seen_ints: Set[int] = set()
-        self.__metrics = metrics
-        self.__table = table
-
-    def submit(self, message: Message[Set[int]]) -> None:
-        self.__seen_ints.update(message.payload)
-
-    def poll(self) -> None:
-        pass
-
-    def terminate(self) -> None:
-        pass
-
-    def close(self) -> None:
-        pass
-
-    def join(self, timeout: Optional[float] = None) -> None:
-        keys_to_pass_to_update = len(self.__seen_ints)
-        logger.debug(f"{keys_to_pass_to_update} unique keys seen")
-        self.__metrics.incr(
-            "last_seen_updater.unique_update_candidate_keys", amount=keys_to_pass_to_update
-        )
-        with self.__metrics.timer("last_seen_updater.postgres_time"):
-            update_count = _update_stale_last_seen(self.__table, self.__seen_ints)
-        self.__metrics.incr("last_seen_updater.updated_rows_count", amount=update_count)
-        logger.debug(f"{update_count} keys updated")
-        self.__seen_ints = set()
-
-
 def retrieve_db_read_keys(message: Message[KafkaPayload]) -> Set[int]:
     try:
         parsed_message = json.loads(message.payload.value, use_rapid_json=True)
@@ -155,21 +137,58 @@ def retrieve_db_read_keys(message: Message[KafkaPayload]) -> Set[int]:
         return set()
 
 
-def _last_seen_updater_processing_factory(
-    max_batch_size: int, max_batch_time: float, ingest_config: MetricsIngestConfiguration
-) -> KafkaConsumerStrategyFactory:
-    return KafkaConsumerStrategyFactory(
-        max_batch_time=max_batch_time,
-        max_batch_size=max_batch_size,
-        processes=None,
-        input_block_size=None,
-        output_block_size=None,
-        process_message=retrieve_db_read_keys,
-        prefilter=KeepAliveMessageFilter(LastSeenUpdaterMessageFilter(metrics=get_metrics()), 100),
-        collector=lambda: LastSeenUpdaterCollector(
-            metrics=get_metrics(), table=TABLE_MAPPING[ingest_config.use_case_id]
-        ),
-    )
+class LastSeenUpdaterStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
+    def __init__(
+        self,
+        use_case_id: UseCaseKey,
+        max_batch_size: int,
+        max_batch_time: float,
+    ) -> None:
+        self.__use_case_id = use_case_id
+        self.__max_batch_size = max_batch_size
+        self.__max_batch_time = max_batch_time
+        self.__metrics = get_metrics()
+        self.__prefilter = KeepAliveMessageFilter(
+            LastSeenUpdaterMessageFilter(metrics=self.__metrics), 100
+        )
+
+    def __should_accept(self, message: Message[KafkaPayload]) -> bool:
+        return not self.__prefilter.should_drop(message)
+
+    def create_with_partitions(
+        self,
+        commit: Commit,
+        partitions: Mapping[Partition, int],
+    ) -> ProcessingStrategy[KafkaPayload]:
+        def accumulator(result: Set[int], value: BaseValue[Set[int]]) -> Set[int]:
+            result.update(value.payload)
+            return result
+
+        initial_value: Set[int] = set()
+
+        def do_update(message: Message[Set[int]]) -> None:
+            table = TABLE_MAPPING[self.__use_case_id]
+            seen_ints = message.payload
+
+            keys_to_pass_to_update = len(seen_ints)
+            logger.debug(f"{keys_to_pass_to_update} unique keys seen")
+            self.__metrics.incr(
+                "last_seen_updater.unique_update_candidate_keys", amount=keys_to_pass_to_update
+            )
+            with self.__metrics.timer("last_seen_updater.postgres_time"):
+                update_count = _update_stale_last_seen(table, seen_ints)
+            self.__metrics.incr("last_seen_updater.updated_rows_count", amount=update_count)
+            logger.debug(f"{update_count} keys updated")
+
+        collect_step = Reduce(
+            self.__max_batch_size,
+            self.__max_batch_time,
+            accumulator,
+            initial_value,
+            RunTask(do_update, CommitOffsets(commit)),
+        )
+
+        return FilterStep(self.__should_accept, TransformStep(retrieve_db_read_keys, collect_step))
 
 
 def get_last_seen_updater(
@@ -186,9 +205,12 @@ def get_last_seen_updater(
     tables. This enables us to do deletions of tag keys/values that haven't been
     accessed over the past N days (generally, 90).
     """
-    processing_factory = _last_seen_updater_processing_factory(
-        max_batch_size, max_batch_time, ingest_config
+    processing_factory = LastSeenUpdaterStrategyFactory(
+        ingest_config.use_case_id,
+        max_batch_size=max_batch_size,
+        max_batch_time=max_batch_time,
     )
+
     return StreamProcessor(
         KafkaConsumer(get_config(ingest_config.output_topic, group_id, auto_offset_reset)),
         Topic(ingest_config.output_topic),

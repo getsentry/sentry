@@ -3,6 +3,15 @@
 
 import {t} from 'sentry/locale';
 
+export enum PlatformCategory {
+  FRONTEND,
+  MOBILE,
+  BACKEND,
+  SERVERLESS,
+  DESKTOP,
+  OTHER,
+}
+
 export const popularPlatformCategories = [
   'javascript',
   'javascript-react',
@@ -224,7 +233,9 @@ export const profiling = [
   'python-pylons',
   'python-pyramid',
   'python-tornado',
-];
+  // rust
+  'rust',
+] as const;
 
 export const releaseHealth: PlatformKey[] = [
   // frontend

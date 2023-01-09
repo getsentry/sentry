@@ -5,7 +5,17 @@ from typing import Callable, Mapping, Optional, Union
 import sentry_sdk
 from django.utils.functional import cached_property
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
-from snuba_sdk import Column, Condition, Direction, Function, Identifier, Lambda, Op, OrderBy
+from snuba_sdk import (
+    Column,
+    Condition,
+    CurriedFunction,
+    Direction,
+    Function,
+    Identifier,
+    Lambda,
+    Op,
+    OrderBy,
+)
 
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.exceptions import InvalidSearchQuery
@@ -17,12 +27,14 @@ from sentry.models.transaction_threshold import (
 )
 from sentry.search.events import builder
 from sentry.search.events.constants import (
+    ARRAY_FIELDS,
     DEFAULT_PROJECT_THRESHOLD,
     DEFAULT_PROJECT_THRESHOLD_METRIC,
     EQUALITY_OPERATORS,
     ERROR_HANDLED_ALIAS,
     ERROR_UNHANDLED_ALIAS,
     FUNCTION_ALIASES,
+    HTTP_STATUS_CODE_ALIAS,
     ISSUE_ALIAS,
     ISSUE_ID_ALIAS,
     MAX_QUERYABLE_TRANSACTION_THRESHOLDS,
@@ -68,6 +80,7 @@ from sentry.search.events.fields import (
     SnQLFieldColumn,
     SnQLFunction,
     SnQLStringArg,
+    normalize_count_if_condition,
     normalize_count_if_value,
     normalize_percentile_alias,
     with_default,
@@ -132,6 +145,7 @@ class DiscoverDatasetConfig(DatasetConfig):
             MEASUREMENTS_FRAMES_SLOW_RATE: self._resolve_measurements_frames_slow_rate,
             MEASUREMENTS_FRAMES_FROZEN_RATE: self._resolve_measurements_frames_frozen_rate,
             MEASUREMENTS_STALL_PERCENTAGE: self._resolve_measurements_stall_percentage,
+            HTTP_STATUS_CODE_ALIAS: self._resolve_http_status_code,
         }
 
     @property
@@ -251,6 +265,18 @@ class DiscoverDatasetConfig(DatasetConfig):
                         alias,
                     ),
                     default_result_type="percentage",
+                ),
+                SnQLFunction(
+                    "group_uniq_array",
+                    required_args=[NumberRange("max_size", 0, 101), ColumnTagArg("column")],
+                    snql_aggregate=lambda args, alias: CurriedFunction(
+                        "groupUniqArray",
+                        [int(args["max_size"])],
+                        [args["column"]],
+                        alias,
+                    ),
+                    default_result_type="string",  # TODO: support array type
+                    private=True,
                 ),
                 SnQLFunction(
                     "percentile",
@@ -465,21 +491,17 @@ class DiscoverDatasetConfig(DatasetConfig):
                         {
                             "name": "typed_value",
                             "fn": normalize_count_if_value,
-                        }
+                        },
+                        {
+                            "name": "normalized_condition",
+                            "fn": normalize_count_if_condition,
+                        },
+                        {
+                            "name": "is_array_field",
+                            "fn": lambda args: args["column"] in ARRAY_FIELDS,
+                        },
                     ],
-                    snql_aggregate=lambda args, alias: Function(
-                        "countIf",
-                        [
-                            Function(
-                                args["condition"],
-                                [
-                                    args["column"],
-                                    args["typed_value"],
-                                ],
-                            )
-                        ],
-                        alias,
-                    ),
+                    snql_aggregate=self._resolve_count_if,
                     default_result_type="integer",
                 ),
                 SnQLFunction(
@@ -1031,6 +1053,16 @@ class DiscoverDatasetConfig(DatasetConfig):
             "coalesce", [self.builder.column(column) for column in columns], USER_DISPLAY_ALIAS
         )
 
+    def _resolve_http_status_code(self, _: str) -> SelectType:
+        return Function(
+            "coalesce",
+            [
+                Function("nullif", [self.builder.column("http.status_code"), ""]),
+                self.builder.column("tags[http.status_code]"),
+            ],
+            HTTP_STATUS_CODE_ALIAS,
+        )
+
     @cached_property  # type: ignore
     def _resolve_project_threshold_config(self) -> SelectType:
         org_id = (
@@ -1430,6 +1462,54 @@ class DiscoverDatasetConfig(DatasetConfig):
                     ],
                 ),
                 0,
+            ],
+            alias,
+        )
+
+    def _resolve_count_if(self, args: Mapping[str, str], alias: str) -> SelectType:
+        condition = args["normalized_condition"]
+        is_array_field = args["is_array_field"]
+
+        if is_array_field:
+            array_condition = Function(
+                "has",
+                [
+                    args["column"],
+                    args["typed_value"],
+                ],
+            )
+
+            if condition == "notEquals":
+                return Function(
+                    "countIf",
+                    [
+                        Function(
+                            "equals",
+                            [
+                                array_condition,
+                                0,
+                            ],
+                        ),
+                    ],
+                    alias,
+                )
+
+            return Function(
+                "countIf",
+                [array_condition],
+                alias,
+            )
+
+        return Function(
+            "countIf",
+            [
+                Function(
+                    condition,
+                    [
+                        args["column"],
+                        args["typed_value"],
+                    ],
+                )
             ],
             alias,
         )

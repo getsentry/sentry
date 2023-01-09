@@ -1,11 +1,8 @@
-import {Component, Fragment} from 'react';
-// eslint-disable-next-line no-restricted-imports
-import {withRouter, WithRouterProps} from 'react-router';
+import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import map from 'lodash/map';
 import omit from 'lodash/omit';
 
-import {Client} from 'sentry/api';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import Clipboard from 'sentry/components/clipboard';
@@ -24,6 +21,8 @@ import {
 } from 'sentry/components/performance/waterfall/rowDetails';
 import Pill from 'sentry/components/pill';
 import Pills from 'sentry/components/pills';
+import {useTransactionProfileId} from 'sentry/components/profiling/transactionProfileIdProvider';
+import {TransactionToProfileButton} from 'sentry/components/profiling/transactionToProfileButton';
 import {
   generateIssueEventTarget,
   generateTraceTarget,
@@ -41,7 +40,7 @@ import EventView from 'sentry/utils/discover/eventView';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {QuickTraceEvent, TraceError} from 'sentry/utils/performance/quickTrace/types';
-import withApi from 'sentry/utils/withApi';
+import {useLocation} from 'sentry/utils/useLocation';
 import {spanDetailsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/utils';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
@@ -68,8 +67,7 @@ type TransactionResult = {
   transaction: string;
 };
 
-type Props = WithRouterProps & {
-  api: Client;
+type Props = {
   childTransactions: QuickTraceEvent[] | null;
   event: Readonly<EventTransaction>;
   isRoot: boolean;
@@ -80,17 +78,15 @@ type Props = WithRouterProps & {
   trace: Readonly<ParsedTraceType>;
 };
 
-type State = {
-  errorsOpened: boolean;
-};
+function SpanDetail(props: Props) {
+  const [errorsOpened, setErrorsOpened] = useState(false);
+  const location = useLocation();
+  const profileId = useTransactionProfileId();
 
-class SpanDetail extends Component<Props, State> {
-  state: State = {
-    errorsOpened: false,
-  };
+  useEffect(() => {
+    // Run on mount.
 
-  componentDidMount() {
-    const {span, organization, event} = this.props;
+    const {span, organization, event} = props;
     if ('type' in span) {
       return;
     }
@@ -100,10 +96,11 @@ class SpanDetail extends Component<Props, State> {
       operation: span.op ?? 'undefined',
       project_platform: event.platform ?? 'undefined',
     });
-  }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  renderTraversalButton(): React.ReactNode {
-    if (!this.props.childTransactions) {
+  function renderTraversalButton(): React.ReactNode {
+    if (!props.childTransactions) {
       // TODO: Amend size to use theme when we eventually refactor LoadingIndicator
       // 12px is consistent with theme.iconSizes['xs'] but theme returns a string.
       return (
@@ -113,16 +110,16 @@ class SpanDetail extends Component<Props, State> {
       );
     }
 
-    if (this.props.childTransactions.length <= 0) {
+    if (props.childTransactions.length <= 0) {
       return null;
     }
 
-    const {span, trace, event, organization} = this.props;
+    const {span, trace, event, organization} = props;
 
     assert(!isGapSpan(span));
 
-    if (this.props.childTransactions.length === 1) {
-      // Note: This is rendered by this.renderSpanChild() as a dedicated row
+    if (props.childTransactions.length === 1) {
+      // Note: This is rendered by renderSpanChild() as a dedicated row
       return null;
     }
 
@@ -164,8 +161,8 @@ class SpanDetail extends Component<Props, State> {
     );
   }
 
-  renderSpanChild(): React.ReactNode {
-    const {childTransactions, organization, location} = this.props;
+  function renderSpanChild(): React.ReactNode {
+    const {childTransactions, organization} = props;
 
     if (!childTransactions || childTransactions.length !== 1) {
       return null;
@@ -222,8 +219,8 @@ class SpanDetail extends Component<Props, State> {
     );
   }
 
-  renderTraceButton() {
-    const {span, organization, event} = this.props;
+  function renderTraceButton() {
+    const {span, organization, event} = props;
 
     if (isGapSpan(span)) {
       return null;
@@ -236,8 +233,8 @@ class SpanDetail extends Component<Props, State> {
     );
   }
 
-  renderViewSimilarSpansButton() {
-    const {span, organization, location, event} = this.props;
+  function renderViewSimilarSpansButton() {
+    const {span, organization, event} = props;
 
     if (isGapSpan(span) || !span.op || !span.hash) {
       return null;
@@ -260,8 +257,8 @@ class SpanDetail extends Component<Props, State> {
     );
   }
 
-  renderOrphanSpanMessage() {
-    const {span} = this.props;
+  function renderOrphanSpanMessage() {
+    const {span} = props;
 
     if (!isOrphanSpan(span)) {
       return null;
@@ -276,13 +273,12 @@ class SpanDetail extends Component<Props, State> {
     );
   }
 
-  toggleErrors = () => {
-    this.setState(({errorsOpened}) => ({errorsOpened: !errorsOpened}));
-  };
+  function toggleErrors() {
+    setErrorsOpened(prevErrorsOpened => !prevErrorsOpened);
+  }
 
-  renderSpanErrorMessage() {
-    const {span, organization, relatedErrors} = this.props;
-    const {errorsOpened} = this.state;
+  function renderSpanErrorMessage() {
+    const {span, organization, relatedErrors} = props;
 
     if (!relatedErrors || relatedErrors.length <= 0 || isGapSpan(span)) {
       return null;
@@ -315,7 +311,7 @@ class SpanDetail extends Component<Props, State> {
           ))}
         </ErrorMessageContent>
         {relatedErrors.length > DEFAULT_ERRORS_VISIBLE && (
-          <ErrorToggle size="xs" onClick={this.toggleErrors}>
+          <ErrorToggle size="xs" onClick={toggleErrors}>
             {errorsOpened ? t('Show less') : t('Show more')}
           </ErrorToggle>
         )}
@@ -323,7 +319,7 @@ class SpanDetail extends Component<Props, State> {
     );
   }
 
-  partitionSizes(data) {
+  function partitionSizes(data) {
     const sizeKeys = SIZE_DATA_KEYS.reduce((keys, key) => {
       if (data.hasOwnProperty(key)) {
         keys[key] = data[key];
@@ -340,8 +336,8 @@ class SpanDetail extends Component<Props, State> {
     };
   }
 
-  renderSpanDetails() {
-    const {span, event, location, organization, scrollToHash} = this.props;
+  function renderSpanDetails() {
+    const {span, event, organization, scrollToHash} = props;
 
     if (isGapSpan(span)) {
       return (
@@ -367,16 +363,20 @@ class SpanDetail extends Component<Props, State> {
       return !rawSpanKeys.has(key as any);
     });
 
-    const {sizeKeys, nonSizeKeys} = this.partitionSizes(span?.data ?? {});
+    const {sizeKeys, nonSizeKeys} = partitionSizes(span?.data ?? {});
 
     const allZeroSizes = SIZE_DATA_KEYS.map(key => sizeKeys[key]).every(
       value => value === 0
     );
 
+    const flamechartSpanFeatureEnabled = organization.features.includes(
+      'profiling-flamechart-spans'
+    );
+
     return (
       <Fragment>
-        {this.renderOrphanSpanMessage()}
-        {this.renderSpanErrorMessage()}
+        {renderOrphanSpanMessage()}
+        {renderSpanErrorMessage()}
         <SpanDetails>
           <table className="table key-value">
             <tbody>
@@ -405,16 +405,34 @@ class SpanDetail extends Component<Props, State> {
                     </SpanIdTitle>
                   )
                 }
-                extra={this.renderTraversalButton()}
+                extra={renderTraversalButton()}
               >
                 {span.span_id}
               </Row>
               <Row title="Parent Span ID">{span.parent_span_id || ''}</Row>
-              {this.renderSpanChild()}
-              <Row title="Trace ID" extra={this.renderTraceButton()}>
+              {renderSpanChild()}
+              <Row title="Trace ID" extra={renderTraceButton()}>
                 {span.trace_id}
               </Row>
-              <Row title="Description" extra={this.renderViewSimilarSpansButton()}>
+              {flamechartSpanFeatureEnabled && profileId && event.projectSlug && (
+                <Row
+                  title="Profile ID"
+                  extra={
+                    <TransactionToProfileButton
+                      size="xs"
+                      projectSlug={event.projectSlug}
+                      query={{
+                        spanId: span.span_id,
+                      }}
+                    >
+                      {t('View Profile')}
+                    </TransactionToProfileButton>
+                  }
+                >
+                  {profileId}
+                </Row>
+              )}
+              <Row title="Description" extra={renderViewSimilarSpansButton()}>
                 {span?.description ?? ''}
               </Row>
               <Row title="Status">{span.status || ''}</Row>
@@ -493,19 +511,17 @@ class SpanDetail extends Component<Props, State> {
     );
   }
 
-  render() {
-    return (
-      <SpanDetailContainer
-        data-component="span-detail"
-        onClick={event => {
-          // prevent toggling the span detail
-          event.stopPropagation();
-        }}
-      >
-        {this.renderSpanDetails()}
-      </SpanDetailContainer>
-    );
-  }
+  return (
+    <SpanDetailContainer
+      data-component="span-detail"
+      onClick={event => {
+        // prevent toggling the span detail
+        event.stopPropagation();
+      }}
+    >
+      {renderSpanDetails()}
+    </SpanDetailContainer>
+  );
 }
 
 const StyledDiscoverButton = styled(DiscoverButton)`
@@ -657,4 +673,4 @@ const ButtonContainer = styled('div')`
   padding: 8px 10px;
 `;
 
-export default withApi(withRouter(SpanDetail));
+export default SpanDetail;

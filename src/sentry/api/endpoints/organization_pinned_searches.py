@@ -40,14 +40,14 @@ class OrganizationPinnedSearchEndpoint(OrganizationEndpoint):
         SavedSearch.objects.create_or_update(
             organization=organization,
             name=PINNED_SEARCH_NAME,
-            owner=request.user,
+            owner_id=request.user.id,
             type=result["type"],
             visibility=Visibility.OWNER_PINNED,
             values={"query": result["query"], "sort": result["sort"]},
         )
         pinned_search = SavedSearch.objects.get(
             organization=organization,
-            owner=request.user,
+            owner_id=request.user.id,
             type=result["type"],
             visibility=Visibility.OWNER_PINNED,
         )
@@ -61,7 +61,7 @@ class OrganizationPinnedSearchEndpoint(OrganizationEndpoint):
             return Response({"detail": "Invalid input for `type`. Error: %s" % str(e)}, status=400)
         SavedSearch.objects.filter(
             organization=organization,
-            owner=request.user,
+            owner_id=request.user.id,
             type=search_type.value,
             visibility=Visibility.OWNER_PINNED,
         ).delete()

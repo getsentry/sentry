@@ -51,7 +51,7 @@ const GroupReleaseStats = ({
   return (
     <div>
       {!group || !allEnvironments ? (
-        <Placeholder height="288px" />
+        <Placeholder height="346px" bottomGutter={4} />
       ) : (
         <Fragment>
           <GraphContainer>

@@ -1,7 +1,10 @@
+from __future__ import annotations
+
 from abc import abstractmethod
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, List, Optional
 
+from sentry.models.organization import OrganizationStatus
 from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_delegation, stubbed
 from sentry.silo import SiloMode
 
@@ -13,7 +16,7 @@ class OrganizationService(InterfaceWithLifecycle):
     @abstractmethod
     def get_organization_by_id(
         self, *, id: int, user_id: Optional[int]
-    ) -> Optional["ApiUserOrganizationContext"]:
+    ) -> Optional[ApiUserOrganizationContext]:
         """
         Fetches the organization, team, and project data given by an organization id, regardless of its visibility
         status.  When user_id is provided, membership data related to that user from the organization
@@ -21,25 +24,34 @@ class OrganizationService(InterfaceWithLifecycle):
         """
         pass
 
+    # TODO: This should return ApiOrganizationSummary objects, since we cannot realistically span out requests and
+    #  capture full org objects / teams / permissions.  But we can gather basic summary data from the control silo.
     @abstractmethod
     def get_organizations(
-        self, user_id: Optional[int], scope: Optional[str], only_visible: bool
-    ) -> List["ApiOrganization"]:
+        self,
+        user_id: Optional[int],
+        scope: Optional[str],
+        only_visible: bool,
+        organization_ids: Optional[List[int]] = None,
+    ) -> List[ApiOrganizationSummary]:
         """
-        When user_id is set, returns all organization and membership data associated with that user id given
-        a scope and visibility requirement.  When user_id is None, provides all organizations across the entire
-        system.
+        When user_id is set, returns all organizations associated with that user id given
+        a scope and visibility requirement.  When user_id is not set, but organization_ids is, provides the
+        set of organizations matching those ids, ignore scope and user_id.
+
         When only_visible set, the organization object is only returned if it's status is Visible, otherwise any
-        organization will be returned. NOTE: related resources, including membership, projects, and teams, will
-        ALWAYS filter by status=VISIBLE.  To pull projects or teams that are not visible, use a different service
-        endpoint.
+        organization will be returned.
+
+        Because this endpoint fetches not from region silos, but the control silo organization membership table,
+        only a subset of all organization metadata is available.  Spanning out and querying multiple organizations
+        for their full metadata is greatly discouraged for performance reasons.
         """
         pass
 
     @abstractmethod
     def check_membership_by_email(
         self, organization_id: int, email: str
-    ) -> Optional["ApiOrganizationMember"]:
+    ) -> Optional[ApiOrganizationMember]:
         """
         Used to look up an organization membership by an email
         """
@@ -48,7 +60,7 @@ class OrganizationService(InterfaceWithLifecycle):
     @abstractmethod
     def check_membership_by_id(
         self, organization_id: int, user_id: int
-    ) -> Optional["ApiOrganizationMember"]:
+    ) -> Optional[ApiOrganizationMember]:
         """
         Used to look up an organization membership by a user id
         """
@@ -63,7 +75,7 @@ class OrganizationService(InterfaceWithLifecycle):
 
     def get_organization_by_slug(
         self, *, user_id: Optional[int], slug: str, only_visible: bool
-    ) -> Optional["ApiUserOrganizationContext"]:
+    ) -> Optional[ApiUserOrganizationContext]:
         """
         Defers to check_organization_by_slug -> get_organization_by_id
         """
@@ -101,13 +113,17 @@ class ApiTeam:
     status: int = field(default_factory=team_status_visible)
     organization_id: int = -1
     slug: str = ""
+    actor_id: int | None = None
+
+    def class_name(self) -> str:
+        return "Team"
 
 
 @dataclass
 class ApiTeamMember:
     id: int = -1
     is_active: bool = False
-    role: Optional["TeamRole"] = None
+    role: Optional[TeamRole] = None
     project_ids: List[int] = field(default_factory=list)
     scopes: List[str] = field(default_factory=list)
     team_id: int = -1
@@ -169,17 +185,25 @@ class ApiOrganizationFlags:
 
 
 @dataclass
-class ApiOrganization:
+class ApiOrganizationSummary:
+    """
+    The subset of organization metadata available from the control silo specifically.
+    """
+
     slug: str = ""
     id: int = -1
     name: str = ""
 
+
+@dataclass
+class ApiOrganization(ApiOrganizationSummary):
     # Represents the full set of teams and projects associated with the org.  Note that these are not filtered by
     # visibility, but you can apply a manual filter on the status attribute.
     teams: List[ApiTeam] = field(default_factory=list)
     projects: List[ApiProject] = field(default_factory=list)
 
     flags: ApiOrganizationFlags = field(default_factory=lambda: ApiOrganizationFlags())
+    status: OrganizationStatus = OrganizationStatus.VISIBLE
 
 
 @dataclass

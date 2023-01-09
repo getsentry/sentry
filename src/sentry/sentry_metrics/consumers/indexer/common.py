@@ -1,18 +1,20 @@
 import logging
 import time
-from typing import Any, List, MutableMapping, Optional, Set
+from typing import Any, List, MutableMapping, MutableSequence, Optional, Union
 
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.backends.kafka.configuration import build_kafka_consumer_configuration
 from arroyo.processing.strategies import MessageRejected
 from arroyo.processing.strategies import ProcessingStrategy
 from arroyo.processing.strategies import ProcessingStrategy as ProcessingStep
-from arroyo.types import Message
+from arroyo.types import Message, Value
 from django.conf import settings
 
+from sentry.sentry_metrics.consumers.indexer.routing_producer import RoutingPayload
 from sentry.utils import kafka_config, metrics
 
 MessageBatch = List[Message[KafkaPayload]]
+IndexerOutputMessageBatch = MutableSequence[Message[Union[RoutingPayload, KafkaPayload]]]
 
 logger = logging.getLogger(__name__)
 
@@ -34,10 +36,6 @@ def get_config(topic: str, group_id: str, auto_offset_reset: str) -> MutableMapp
     return consumer_config
 
 
-class DuplicateMessage(Exception):
-    pass
-
-
 class MetricsBatchBuilder:
     """
     Batches up individual messages - type: Message[KafkaPayload] - into a
@@ -51,7 +49,6 @@ class MetricsBatchBuilder:
         self.__messages: MessageBatch = []
         self.__max_batch_size = max_batch_size
         self.__deadline = time.time() + max_batch_time / 1000.0
-        self.__offsets: Set[int] = set()
 
     def __len__(self) -> int:
         return len(self.__messages)
@@ -61,10 +58,7 @@ class MetricsBatchBuilder:
         return self.__messages
 
     def append(self, message: Message[KafkaPayload]) -> None:
-        if message.offset in self.__offsets:
-            raise DuplicateMessage
         self.__messages.append(message)
-        self.__offsets.add(message.offset)
 
     def ready(self) -> bool:
         if len(self.messages) >= self.__max_batch_size:
@@ -100,6 +94,9 @@ class BatchMessages(ProcessingStep[KafkaPayload]):
         self.__batch: Optional[MetricsBatchBuilder] = None
         self.__closed = False
         self.__batch_start: Optional[float] = None
+        # If we received MessageRejected from subsequent steps, this is set to true.
+        # It is reset to false upon the next successful submit.
+        self.__apply_backpressure = False
 
     def poll(self) -> None:
         assert not self.__closed
@@ -107,29 +104,17 @@ class BatchMessages(ProcessingStep[KafkaPayload]):
         self.__next_step.poll()
 
         if self.__batch and self.__batch.ready():
-            try:
-                self.__flush()
-            except MessageRejected:
-                # Probably means that we have received back pressure due to the
-                # ParallelTransformStep.
-                logger.debug("Attempt to flush batch failed...Re-trying in next poll")
-                pass
+            self.__flush()
 
     def submit(self, message: Message[KafkaPayload]) -> None:
+        if self.__apply_backpressure is True:
+            raise MessageRejected
+
         if self.__batch is None:
             self.__batch_start = time.time()
             self.__batch = MetricsBatchBuilder(self.__max_batch_size, self.__max_batch_time)
 
-        try:
-            self.__batch.append(message)
-        except DuplicateMessage:
-            # If we are getting back pressure from the next_step (ParallelTransformStep),
-            # the consumer will keep trying to submit the same carried over message
-            # until it succeeds and stops throwing the MessageRejected error. In this
-            # case we don't want to keep adding the same message to the batch over and
-            # over again
-            logger.debug(f"Message already added to batch with offset: {message.offset}")
-            pass
+        self.__batch.append(message)
 
         if self.__batch and self.__batch.ready():
             self.__flush()
@@ -139,14 +124,19 @@ class BatchMessages(ProcessingStep[KafkaPayload]):
             return
         last = self.__batch.messages[-1]
 
-        new_message = Message(last.partition, last.offset, self.__batch.messages, last.timestamp)
+        new_message = Message(Value(self.__batch.messages, last.committable))
         if self.__batch_start is not None:
             elapsed_time = time.time() - self.__batch_start
             metrics.timing("batch_messages.build_time", elapsed_time)
-            self.__batch_start = None
 
-        self.__next_step.submit(new_message)
-        self.__batch = None
+        try:
+            self.__next_step.submit(new_message)
+            if self.__apply_backpressure is True:
+                self.__apply_backpressure = False
+            self.__batch_start = None
+            self.__batch = None
+        except MessageRejected:
+            self.__apply_backpressure = True
 
     def terminate(self) -> None:
         self.__closed = True
@@ -159,7 +149,7 @@ class BatchMessages(ProcessingStep[KafkaPayload]):
         if self.__batch:
             last = self.__batch.messages[-1]
             logger.debug(
-                f"Abandoning batch of {len(self.__batch)} messages...latest offset: {last.offset}"
+                f"Abandoning batch of {len(self.__batch)} messages...latest offset: {last.committable}"
             )
 
         self.__next_step.close()

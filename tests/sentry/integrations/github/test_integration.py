@@ -9,7 +9,7 @@ from django.urls import reverse
 import sentry
 from sentry.constants import ObjectStatus
 from sentry.integrations.github import API_ERRORS, GitHubIntegrationProvider
-from sentry.integrations.utils.repo import Repo, RepoTree
+from sentry.integrations.utils.code_mapping import Repo, RepoTree
 from sentry.models import Integration, OrganizationIntegration, Project, Repository
 from sentry.plugins.base import plugins
 from sentry.plugins.bases import IssueTrackingPlugin2
@@ -51,6 +51,13 @@ TREE_RESPONSES = {
     "baz": {
         "status_code": 404,
         "body": {"message": "Not Found"},
+    },
+    "xyz": {
+        "status_code": 403,
+        "body": {
+            "message": "API rate limit exceeded for installation ID 123456.",
+            "documentation_url": "https://docs.github.com/rest/overview/resources-in-the-rest-api#rate-limiting",
+        },
     },
 }
 
@@ -120,7 +127,12 @@ class GitHubIntegrationTest(IntegrationTestCase):
             "archived": {
                 "archived": True,
             },
+            "xyz": {
+                "full_name": "Test-Organization/xyz",
+                "default_branch": "master",
+            },
         }
+        self.repositories = repositories
         api_url = f"{self.base_url}/installation/repositories"
         first = f'<{api_url}?per_page={pp}&page=1>; rel="first"'
         last = f'<{api_url}?per_page={pp}&page={len(repositories)}>; rel="last"'
@@ -148,6 +160,13 @@ class GitHubIntegrationTest(IntegrationTestCase):
             match=[responses.matchers.query_param_matcher({"per_page": pp, "page": 3})],
             json={"repositories": [repositories["baz"]]},
             headers={"link": ", ".join([gen_link(2, "prev"), first])},
+        )
+        # This is for when we're not testing the pagination logic
+        responses.add(
+            responses.GET,
+            url=self.base_url + "/installation/repositories",
+            match=[responses.matchers.query_param_matcher({"per_page": 100})],
+            json={"repositories": [repo for repo in repositories.values()]},
         )
 
         responses.add(
@@ -578,9 +597,43 @@ class GitHubIntegrationTest(IntegrationTestCase):
             organization=self.organization, integration=integration
         ).exists()
 
+    def get_installation_helper(self):
+        with self.tasks():
+            self.assert_setup_flow()  # This somehow creates the integration
+
+        integration = Integration.objects.get(provider=self.provider.key)
+        installation = integration.get_installation(self.organization.id)
+        return installation
+
+    @responses.activate
+    def test_get_trees_for_org_handles_rate_limit_reached(self):
+        """Test that we will not hit Github's API more than once when we reach the API rate limit"""
+        installation = self.get_installation_helper()
+        # This will force reaching for xyz before foo
+        cache.set(
+            "githubtrees:repositories:foo:Test-Organization",
+            [
+                {"full_name": "Test-Organization/bar", "default_branch": "main"},
+                {"full_name": "Test-Organization/xyz", "default_branch": "master"},
+                {"full_name": "Test-Organization/foo", "default_branch": "master"},
+            ],
+            3600,
+        )
+        trees = installation.get_trees_for_org()
+        key_prefix = "github:repo:Test-Organization"
+        bar_files = cache.get(f"{key_prefix}/bar:source-code")
+        assert bar_files == []
+        assert cache.get(f"{key_prefix}/xyz:source-code") is None  # Hit API rate limit
+        assert cache.get(f"{key_prefix}/foo:source-code") is None  # Never tried
+        assert len(trees.keys()) == 1
+        # Only the repos before the API rate limit will be in trees
+        assert trees["Test-Organization/bar"].files == []
+        assert "Test-Organization/foo" not in trees
+
     @responses.activate
     def test_get_trees_for_org(self):
         """Fetch the tree representation of a repo"""
+        installation = self.get_installation_helper()
         expected_trees = {
             "Test-Organization/bar": RepoTree(Repo("Test-Organization/bar", "main"), []),
             "Test-Organization/baz": RepoTree(Repo("Test-Organization/baz", "master"), []),
@@ -589,41 +642,34 @@ class GitHubIntegrationTest(IntegrationTestCase):
                 ["src/sentry/api/endpoints/auth_login.py"],
             ),
         }
-        with self.tasks():
-            self.assert_setup_flow()
 
-        integration = Integration.objects.get(provider=self.provider.key)
-        installation = integration.get_installation(self.organization.id)
-
-        with patch.object(sentry.integrations.github.client.GitHubClientMixin, "page_size", 1):
+        with patch("sentry.integrations.utils.code_mapping.logger") as logger:
             assert not cache.get("githubtrees:repositories:Test-Organization")
             # This allows checking for caching related output
             self._caplog.set_level(logging.INFO, logger="sentry")
+            # Check that the cache is clear
+            repo_key = "github:repo:Test-Organization/foo:source-code"
+            assert cache.get("githubtrees:repositories:foo:Test-Organization") is None
+            assert cache.get(repo_key) is None
             trees = installation.get_trees_for_org()
 
             # These checks are useful since they will be available in the GCP logs
-            expected_msg = "The Github App does not have access to Test-Organization/baz."
-            assert self._caplog.records[8].message == expected_msg
-            assert self._caplog.records[8].levelname == "WARNING"
-            # XXX: We would need to patch timezone to make sure the time is always the same
-            assert self._caplog.records[9].message.startswith("Caching trees for Test-Organization")
-            assert self._caplog.records[9].levelname == "INFO"
+            for msg in [
+                "The Github App does not have access to Test-Organization/baz.",
+                "Caching trees for Test-Organization",
+            ]:
+                assert logger.info.called_with(msg)
 
             assert cache.get("githubtrees:repositories:foo:Test-Organization") == [
                 {"full_name": "Test-Organization/foo", "default_branch": "master"},
                 {"full_name": "Test-Organization/bar", "default_branch": "main"},
                 {"full_name": "Test-Organization/baz", "default_branch": "master"},
+                {"full_name": "Test-Organization/xyz", "default_branch": "master"},
             ]
-            assert cache.get("githubtrees:repo:Test-Organization/foo") == RepoTree(
-                Repo("Test-Organization/foo", "master"),
-                ["src/sentry/api/endpoints/auth_login.py"],
-            )
-
+            assert cache.get(repo_key) == ["src/sentry/api/endpoints/auth_login.py"]
             assert trees == expected_trees
 
             # Calling a second time should produce the same results
             trees = installation.get_trees_for_org()
-            assert self._caplog.records[10].message == "Using cached trees for Test-Organization."
-            assert self._caplog.records[10].levelname == "INFO"
-
+            assert logger.info.called_with("Using cached trees for Test-Organization.")
             assert trees == expected_trees

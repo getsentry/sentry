@@ -1,20 +1,14 @@
 import {Fragment} from 'react';
-// eslint-disable-next-line no-restricted-imports
-import {withRouter, WithRouterProps} from 'react-router';
 
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Client} from 'sentry/api';
 import Link from 'sentry/components/links/link';
 import {t, tct} from 'sentry/locale';
-import withApi from 'sentry/utils/withApi';
 import {EmailAddresses} from 'sentry/views/settings/account/accountEmails';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
-type Props = WithRouterProps &
-  Pick<ModalRenderProps, 'Body' | 'Header'> & {
-    api: Client;
-    actionMessage?: string;
-  };
+type Props = Pick<ModalRenderProps, 'Body' | 'Header'> & {
+  actionMessage?: string;
+};
 
 function EmailVerificationModal({
   Header,
@@ -41,5 +35,5 @@ function EmailVerificationModal({
   );
 }
 
-export default withRouter(withApi(EmailVerificationModal));
+export default EmailVerificationModal;
 export {EmailVerificationModal};

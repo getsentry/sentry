@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import abc
 from datetime import timedelta
+from typing import Dict
 from unittest import mock
 from unittest.mock import Mock, patch
 
@@ -29,7 +30,7 @@ from sentry.models.activity import ActivityIntegration
 from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema
 from sentry.rules import init_registry
 from sentry.tasks.merge import merge_groups
-from sentry.tasks.post_process import post_process_group
+from sentry.tasks.post_process import post_process_group, process_event
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.cases import BaseTestCase
 from sentry.testutils.helpers import apply_feature_flag_on_cls, with_feature
@@ -150,6 +151,41 @@ class CorePostProcessGroupTestMixin(BasePostProgressGroupMixin):
             group_id=event.group_id,
         )
         assert event_processing_store.get(cache_key) is None
+
+
+@apply_feature_flag_on_cls("organizations:derive-code-mappings")
+@apply_feature_flag_on_cls("organizations:derive-code-mappings-dry-run")
+class DeriveCodeMappingsProcessGroupTestMixin(BasePostProgressGroupMixin):
+    def _call_post_process_group(self, data: Dict[str, str]) -> None:
+        event = self.store_event(data=data, project_id=self.project.id)
+        cache_key = write_event_to_cache(event)
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=True,
+            cache_key=cache_key,
+            group_id=event.group_id,
+        )
+
+    @patch("sentry.tasks.derive_code_mappings.derive_code_mappings")
+    def test_derive_invalid_platform(self, mock_derive_code_mappings):
+        self._call_post_process_group({"platform": "elixir"})
+        assert mock_derive_code_mappings.delay.call_count == 0
+
+    @patch("sentry.tasks.derive_code_mappings.derive_code_mappings")
+    def test_derive_python(self, mock_derive_code_mappings):
+        data = {"platform": "python"}
+        self._call_post_process_group(data)
+        assert mock_derive_code_mappings.delay.call_count == 1
+        assert mock_derive_code_mappings.delay.called_with(self.project.id, data, False)
+
+    @patch("sentry.tasks.derive_code_mappings.derive_code_mappings")
+    def test_derive_js(self, mock_derive_code_mappings):
+        data = {"platform": "javascript"}
+        self._call_post_process_group(data)
+        assert mock_derive_code_mappings.delay.call_count == 1
+        # Because we only run on dry run mode even if the official flag is set
+        assert mock_derive_code_mappings.delay.called_with(self.project.id, data, True)
 
 
 class RuleProcessorTestMixin(BasePostProgressGroupMixin):
@@ -1075,6 +1111,7 @@ class PostProcessGroupErrorTest(
     TestCase,
     AssignmentTestMixin,
     CorePostProcessGroupTestMixin,
+    DeriveCodeMappingsProcessGroupTestMixin,
     InboxTestMixin,
     ResourceChangeBoundsTestMixin,
     RuleProcessorTestMixin,
@@ -1097,7 +1134,6 @@ class PostProcessGroupErrorTest(
 
 
 @region_silo_test
-@apply_feature_flag_on_cls("organizations:performance-issues-post-process-group")
 class PostProcessGroupPerformanceTest(
     TestCase,
     SnubaTestCase,
@@ -1109,7 +1145,7 @@ class PostProcessGroupPerformanceTest(
 ):
     def create_event(self, data, project_id):
         fingerprint = data["fingerprint"][0] if data.get("fingerprint") else "some_group"
-        fingerprint = f"{GroupType.PERFORMANCE_N_PLUS_ONE.value}-{fingerprint}"
+        fingerprint = f"{GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value}-{fingerprint}"
         # Store a performance event
         event = self.store_transaction(
             project_id=project_id,
@@ -1176,7 +1212,6 @@ class PostProcessGroupPerformanceTest(
         assert mock_processor.call_count == 0
         assert run_post_process_job_mock.call_count == 0
 
-    @with_feature("organizations:performance-issues-post-process-group")
     @patch("sentry.tasks.post_process.run_post_process_job")
     @patch("sentry.rules.processor.RuleProcessor")
     @patch("sentry.signals.transaction_processed.send_robust")
@@ -1194,7 +1229,7 @@ class PostProcessGroupPerformanceTest(
             user_id=self.create_user(name="user1").name,
             fingerprint=[
                 f"{GroupType.PERFORMANCE_SLOW_SPAN.value}-group1",
-                f"{GroupType.PERFORMANCE_N_PLUS_ONE.value}-group2",
+                f"{GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value}-group2",
             ],
             environment=None,
             timestamp=min_ago,
@@ -1217,3 +1252,39 @@ class PostProcessGroupPerformanceTest(
         assert event_processed_signal_mock.call_count == 0
         assert mock_processor.call_count == 0
         assert run_post_process_job_mock.call_count == 2
+
+
+class TransactionClustererTestCase(TestCase, SnubaTestCase):
+    @with_feature("organizations:transaction-name-clusterer")
+    @patch("sentry.ingest.transaction_clusterer.datasource.redis._store_transaction_name")
+    def test_process_transaction_event_clusterer(
+        self,
+        mock_store_transaction_name,
+    ):
+        min_ago = before_now(minutes=1).replace(tzinfo=pytz.utc)
+        event = process_event(
+            data={
+                "project": self.project.id,
+                "event_id": "b" * 32,
+                "transaction": "foo",
+                "start_timestamp": str(min_ago),
+                "timestamp": str(min_ago),
+                "type": "transaction",
+                "transaction_info": {
+                    "source": "url",
+                },
+                "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
+            },
+            group_id=0,
+        )
+        cache_key = write_event_to_cache(event)
+        post_process_group(
+            is_new=False,
+            is_regression=False,
+            is_new_group_environment=False,
+            cache_key=cache_key,
+            group_id=None,
+            group_states=None,
+        )
+
+        assert mock_store_transaction_name.mock_calls == [mock.call(self.project, "foo")]

@@ -1,7 +1,6 @@
 import {Component} from 'react';
-// eslint-disable-next-line no-restricted-imports
-import {withRouter, WithRouterProps} from 'react-router';
-import {withTheme} from '@emotion/react';
+import {WithRouterProps} from 'react-router';
+import {Theme, withTheme} from '@emotion/react';
 import {Query} from 'history';
 import isEqual from 'lodash/isEqual';
 import memoize from 'lodash/memoize';
@@ -17,9 +16,10 @@ import {escape} from 'sentry/utils';
 import {getFormattedDate, getUtcDateString} from 'sentry/utils/dates';
 import {formatVersion} from 'sentry/utils/formatters';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
-import {Theme} from 'sentry/utils/theme';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
+// eslint-disable-next-line no-restricted-imports
+import withSentryRouter from 'sentry/utils/withSentryRouter';
 
 type ReleaseMetaBasic = {
   date: string;
@@ -279,7 +279,7 @@ class ReleaseSeries extends Component<Props, State> {
               'Release'
             )}</strong></span> ${version}</div>`,
             '</div>',
-            '<div class="tooltip-date">',
+            '<div class="tooltip-footer">',
             time,
             '</div>',
             '</div>',
@@ -307,4 +307,4 @@ class ReleaseSeries extends Component<Props, State> {
   }
 }
 
-export default withRouter(withOrganization(withApi(withTheme(ReleaseSeries))));
+export default withSentryRouter(withOrganization(withApi(withTheme(ReleaseSeries))));

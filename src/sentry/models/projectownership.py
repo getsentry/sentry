@@ -4,10 +4,12 @@ from django.db import models
 from django.db.models.signals import post_delete, post_save
 from django.utils import timezone
 
+from sentry import features
 from sentry.db.models import Model, region_silo_only_model, sane_repr
 from sentry.db.models.fields import FlexibleForeignKey, JSONField
 from sentry.models import ActorTuple
 from sentry.models.groupowner import OwnerRuleType
+from sentry.models.project import Project
 from sentry.ownership.grammar import Rule, load_schema, resolve_actors
 from sentry.utils import metrics
 from sentry.utils.cache import cache
@@ -118,6 +120,12 @@ class ProjectOwnership(Model):
         rules = cls._matching_ownership_rules(ownership, project_id, data)
 
         if not rules:
+            project = Project.objects.get(id=project_id)
+            if features.has(
+                "organizations:issue-alert-fallback-targeting", project.organization, actor=None
+            ):
+                return [], None
+
             return cls.Everyone if ownership.fallthrough else [], None
 
         owners = {o for rule in rules for o in rule.owners}
@@ -265,23 +273,23 @@ class ProjectOwnership(Model):
                     "rule": (issue_owner.context or {}).get("rule", ""),
                 }
             )
-
-            assignment = GroupAssignee.objects.assign(
-                event.group,
-                owner.resolve(),
-                create_only=True,
-                extra=details,
-            )
-
-            if assignment["new_assignment"] or assignment["updated_assignment"]:
-                analytics.record(
-                    "codeowners.assignment"
-                    if details.get("integration") == ActivityIntegration.CODEOWNERS.value
-                    else "issueowners.assignment",
-                    organization_id=ownership.project.organization_id,
-                    project_id=project_id,
-                    group_id=event.group.id,
+            if owner and owner.resolve():
+                assignment = GroupAssignee.objects.assign(
+                    event.group,
+                    owner.resolve(),
+                    create_only=True,
+                    extra=details,
                 )
+
+                if assignment["new_assignment"] or assignment["updated_assignment"]:
+                    analytics.record(
+                        "codeowners.assignment"
+                        if details.get("integration") == ActivityIntegration.CODEOWNERS.value
+                        else "issueowners.assignment",
+                        organization_id=ownership.project.organization_id,
+                        project_id=project_id,
+                        group_id=event.group.id,
+                    )
 
     @classmethod
     def _matching_ownership_rules(

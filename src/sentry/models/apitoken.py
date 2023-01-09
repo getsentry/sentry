@@ -9,7 +9,7 @@ from sentry.db.models import (
     BaseManager,
     FlexibleForeignKey,
     Model,
-    region_silo_only_model,
+    control_silo_only_model,
     sane_repr,
 )
 from sentry.models.apiscopes import HasApiScopes
@@ -25,7 +25,7 @@ def generate_token():
     return uuid4().hex + uuid4().hex
 
 
-@region_silo_only_model
+@control_silo_only_model
 class ApiToken(Model, HasApiScopes):
     __include_in_export__ = True
 
@@ -74,3 +74,12 @@ class ApiToken(Model, HasApiScopes):
             expires_at = timezone.now() + DEFAULT_EXPIRATION
 
         self.update(token=generate_token(), refresh_token=generate_token(), expires_at=expires_at)
+
+
+def is_api_token_auth(auth: object) -> bool:
+    """:returns True when an API token is hitting the API."""
+    from sentry.services.hybrid_cloud.auth import AuthenticatedToken
+
+    if isinstance(auth, AuthenticatedToken):
+        return auth.kind == "api_token"
+    return isinstance(auth, ApiToken)

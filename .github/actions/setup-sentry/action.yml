@@ -82,6 +82,7 @@ runs:
         ### pytest-sentry configuration ###
         if [ "$GITHUB_REPOSITORY" = "getsentry/sentry" ]; then
           echo "PYTEST_SENTRY_DSN=https://6fd5cfea2d4d46b182ad214ac7810508@sentry.io/2423079" >> $GITHUB_ENV
+          echo "PYTEST_SENTRY_TRACES_SAMPLE_RATE=0" >> $GITHUB_ENV
 
           # This records failures on master to sentry in order to detect flakey tests, as it's
           # expected that people have failing tests on their PRs
@@ -133,12 +134,9 @@ runs:
         WORKDIR: ${{ inputs.workdir }}
       run: |
         cd "$WORKDIR"
-        python setup.py install_egg_info
+        pip install -r requirements-dev-frozen.txt
         # We need to install editable otherwise things like check migration will fail.
-        pip install -r requirements-dev-frozen.txt & \
-        SENTRY_LIGHT_BUILD=1 pip install --no-deps -e . & \
-        wait
-        cd -
+        SENTRY_LIGHT_BUILD=1 pip install --no-deps -e .
 
     - name: Start devservices
       shell: bash
@@ -150,6 +148,7 @@ runs:
         NEED_CHARTCUTERIE: ${{ inputs.chartcuterie }}
         WORKDIR: ${{ inputs.workdir }}
         PG_VERSION: ${{ inputs.pg-version }}
+        ENABLE_AUTORUN_MIGRATION_SEARCH_ISSUES: '1'
       run: |
         sentry init
 

@@ -1,9 +1,8 @@
 import {Component, createRef} from 'react';
-import {withTheme} from '@emotion/react';
+import {Theme, withTheme} from '@emotion/react';
 import type {PieSeriesOption} from 'echarts';
 
 import {ReactEchartsRef, Series} from 'sentry/types/echarts';
-import type {Theme} from 'sentry/utils/theme';
 
 import Legend from './components/legend';
 import PieSeries from './series/pieSeries';
@@ -151,7 +150,7 @@ class PieChart extends Component<Props> {
               '<div class="tooltip-series">',
               `<div><span class="tooltip-label">${data.marker}<strong>${data.name}</strong></span> ${data.percent}%</div>`,
               '</div>',
-              `<div class="tooltip-date">${data.value}</div>`,
+              `<div class="tooltip-footer">${data.value}</div>`,
               '</div>',
               '<div class="tooltip-arrow"></div>',
             ].join('');

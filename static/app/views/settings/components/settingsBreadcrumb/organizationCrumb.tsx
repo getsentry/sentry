@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import IdBadge from 'sentry/components/idBadge';
 import {Organization} from 'sentry/types';
 import recreateRoute from 'sentry/utils/recreateRoute';
+import shouldUseLegacyRoute from 'sentry/utils/shouldUseLegacyRoute';
 import withLatestContext from 'sentry/utils/withLatestContext';
 import BreadcrumbDropdown from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbDropdown';
 import findFirstRouteWithoutRouteParam from 'sentry/views/settings/components/settingsBreadcrumb/findFirstRouteWithoutRouteParam';
@@ -24,7 +25,7 @@ const OrganizationCrumb = ({
   route,
   ...props
 }: Props) => {
-  const handleSelect = (item: {value: string}) => {
+  const handleSelect = (item: {value: Organization}) => {
     // If we are currently in a project context, and we're attempting to switch organizations,
     // then we need to default to index route (e.g. `route`)
     //
@@ -45,13 +46,17 @@ const OrganizationCrumb = ({
     if (destination === undefined) {
       return;
     }
-
-    browserHistory.push(
-      recreateRoute(destination, {
-        routes,
-        params: {...params, orgId: item.value},
-      })
-    );
+    const org = item.value;
+    const path = recreateRoute(destination, {
+      routes,
+      params: {...params, orgId: org.slug},
+    });
+    if (shouldUseLegacyRoute(org)) {
+      browserHistory.push(path);
+    } else {
+      const {organizationUrl} = org.links;
+      window.location.assign(`${organizationUrl}${path}`);
+    }
   };
 
   if (!organization) {
@@ -59,16 +64,12 @@ const OrganizationCrumb = ({
   }
 
   const hasMenu = organizations.length > 1;
+  const orgSettings = `/settings/${organization.slug}/`;
 
   return (
     <BreadcrumbDropdown
       name={
-        <CrumbLink
-          to={recreateRoute(route, {
-            routes,
-            params: {...params, orgId: organization.slug},
-          })}
-        >
+        <CrumbLink to={orgSettings}>
           <BadgeWrapper>
             <IdBadge avatarSize={18} organization={organization} />
           </BadgeWrapper>
@@ -79,7 +80,7 @@ const OrganizationCrumb = ({
       route={route}
       items={organizations.map((org, index) => ({
         index,
-        value: org.slug,
+        value: org,
         label: (
           <MenuItem>
             <IdBadge organization={org} />

@@ -98,7 +98,6 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
         if request.auth and not request.user.is_authenticated:
             # TODO: remove this, no longer supported probably
             if hasattr(request.auth, "project"):
-                team_list = list(request.auth.project.teams.all())
                 queryset = Project.objects.filter(id=request.auth.project.id)
             elif request.auth.organization is not None:
                 org = request.auth.organization
@@ -144,7 +143,7 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
                     team_list = list(Team.objects.filter(organization=organization, slug__in=value))
                     queryset = queryset.exclude(teams__in=team_list)
                 elif key == "is_member":
-                    queryset = queryset.filter(teams__organizationmember__user=request.user)
+                    queryset = queryset.filter(teams__organizationmember__user_id=request.user.id)
                 else:
                     queryset = queryset.none()
 
@@ -195,6 +194,6 @@ class OrganizationProjectsCountEndpoint(OrganizationEndpoint, EnvironmentMixin):
         queryset = Project.objects.filter(organization=organization)
 
         all_projects = queryset.count()
-        my_projects = queryset.filter(teams__organizationmember__user=request.user).count()
+        my_projects = queryset.filter(teams__organizationmember__user_id=request.user.id).count()
 
         return Response({"allProjects": all_projects, "myProjects": my_projects})

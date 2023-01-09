@@ -1,6 +1,10 @@
-import type {TraceContextType} from 'sentry/components/events/interfaces/spans/types';
+import type {
+  RawSpanType,
+  TraceContextType,
+} from 'sentry/components/events/interfaces/spans/types';
 import type {SymbolicatorStatus} from 'sentry/components/events/interfaces/types';
 import type {PlatformKey} from 'sentry/data/platformCategories';
+import type {IssueType} from 'sentry/types';
 
 import type {RawCrumb} from './breadcrumbs';
 import type {Image} from './debugImage';
@@ -291,8 +295,8 @@ type EntryStacktrace = {
   type: EntryType.STACKTRACE;
 };
 
-type EntrySpans = {
-  data: any;
+export type EntrySpans = {
+  data: RawSpanType[];
   type: EntryType.SPANS;
 };
 
@@ -357,21 +361,119 @@ export type Entry =
   | EntryGeneric
   | EntryResources;
 
-// Contexts
-type RuntimeContext = {
-  type: 'runtime';
-  build?: string;
-  name?: string;
-  raw_description?: string;
-  version?: number;
-};
+// Contexts: https://develop.sentry.dev/sdk/event-payloads/contexts/
 
-type DeviceContext = {
-  arch: string;
-  family: string;
-  model: string;
+export interface BaseContext {
   type: string;
-};
+}
+
+export enum DeviceContextKey {
+  ARCH = 'arch',
+  BATTERY_LEVEL = 'battery_level',
+  BATTERY_STATUS = 'battery_status',
+  BOOT_TIME = 'boot_time',
+  BRAND = 'brand',
+  CHARGING = 'charging',
+  CPU_DESCRIPTION = 'cpu_description',
+  DEVICE_TYPE = 'device_type',
+  DEVICE_UNIQUE_IDENTIFIER = 'device_unique_identifier',
+  EXTERNAL_FREE_STORAGE = 'external_free_storage',
+  EXTERNAL_STORAGE_SIZE = 'external_storage_size',
+  EXTERNAL_TOTAL_STORAGE = 'external_total_storage',
+  FAMILY = 'family',
+  FREE_MEMORY = 'free_memory',
+  FREE_STORAGE = 'free_storage',
+  LOW_MEMORY = 'low_memory',
+  MANUFACTURER = 'manufacturer',
+  MEMORY_SIZE = 'memory_size',
+  MODEL = 'model',
+  MODEL_ID = 'model_id',
+  NAME = 'name',
+  ONLINE = 'online',
+  ORIENTATION = 'orientation',
+  PROCESSOR_COUNT = 'processor_count',
+  PROCESSOR_FREQUENCY = 'processor_frequency',
+  SCREEN_DENSITY = 'screen_density',
+  SCREEN_DPI = 'screen_dpi',
+  SCREEN_HEIGHT_PIXELS = 'screen_height_pixels',
+  SCREEN_RESOLUTION = 'screen_resolution',
+  SCREEN_WIDTH_PIXELS = 'screen_width_pixels',
+  SIMULATOR = 'simulator',
+  STORAGE_SIZE = 'storage_size',
+  SUPPORTS_ACCELEROMETER = 'supports_accelerometer',
+  SUPPORTS_AUDIO = 'supports_audio',
+  SUPPORTS_GYROSCOPE = 'supports_gyroscope',
+  SUPPORTS_LOCATION_SERVICE = 'supports_location_service',
+  SUPPORTS_VIBRATION = 'supports_vibration',
+  USABLE_MEMORY = 'usable_memory',
+}
+
+// https://develop.sentry.dev/sdk/event-payloads/contexts/#device-context
+export interface DeviceContext
+  extends Partial<Record<DeviceContextKey, unknown>>,
+    BaseContext {
+  type: 'device';
+  [DeviceContextKey.NAME]: string;
+  [DeviceContextKey.ARCH]?: string;
+  [DeviceContextKey.BATTERY_LEVEL]?: number;
+  [DeviceContextKey.BATTERY_STATUS]?: string;
+  [DeviceContextKey.BOOT_TIME]?: string;
+  [DeviceContextKey.BRAND]?: string;
+  [DeviceContextKey.CHARGING]?: boolean;
+  [DeviceContextKey.CPU_DESCRIPTION]?: string;
+  [DeviceContextKey.DEVICE_TYPE]?: string;
+  [DeviceContextKey.DEVICE_UNIQUE_IDENTIFIER]?: string;
+  [DeviceContextKey.EXTERNAL_FREE_STORAGE]?: number;
+  [DeviceContextKey.EXTERNAL_STORAGE_SIZE]?: number;
+  [DeviceContextKey.EXTERNAL_TOTAL_STORAGE]?: number;
+  [DeviceContextKey.FAMILY]?: string;
+  [DeviceContextKey.FREE_MEMORY]?: number;
+  [DeviceContextKey.FREE_STORAGE]?: number;
+  [DeviceContextKey.LOW_MEMORY]?: boolean;
+  [DeviceContextKey.MANUFACTURER]?: string;
+  [DeviceContextKey.MEMORY_SIZE]?: number;
+  [DeviceContextKey.MODEL]?: string;
+  [DeviceContextKey.MODEL_ID]?: string;
+  [DeviceContextKey.ONLINE]?: boolean;
+  [DeviceContextKey.ORIENTATION]?: 'portrait' | 'landscape';
+  [DeviceContextKey.PROCESSOR_COUNT]?: number;
+  [DeviceContextKey.PROCESSOR_FREQUENCY]?: number;
+  [DeviceContextKey.SCREEN_DENSITY]?: number;
+  [DeviceContextKey.SCREEN_DPI]?: number;
+  [DeviceContextKey.SCREEN_HEIGHT_PIXELS]?: number;
+  [DeviceContextKey.SCREEN_RESOLUTION]?: string;
+  [DeviceContextKey.SCREEN_WIDTH_PIXELS]?: number;
+  [DeviceContextKey.SIMULATOR]?: boolean;
+  [DeviceContextKey.STORAGE_SIZE]?: number;
+  [DeviceContextKey.SUPPORTS_ACCELEROMETER]?: boolean;
+  [DeviceContextKey.SUPPORTS_AUDIO]?: boolean;
+  [DeviceContextKey.SUPPORTS_GYROSCOPE]?: boolean;
+  [DeviceContextKey.SUPPORTS_LOCATION_SERVICE]?: boolean;
+  [DeviceContextKey.SUPPORTS_VIBRATION]?: boolean;
+  [DeviceContextKey.USABLE_MEMORY]?: number;
+  // This field is deprecated in favour of locale field in culture context
+  language?: string;
+  // This field is deprecated in favour of timezone field in culture context
+  timezone?: string;
+}
+
+enum RuntimeContextKey {
+  BUILD = 'build',
+  NAME = 'name',
+  RAW_DESCRIPTION = 'raw_description',
+  VERSION = 'version',
+}
+
+// https://develop.sentry.dev/sdk/event-payloads/contexts/#runtime-context
+interface RuntimeContext
+  extends Partial<Record<RuntimeContextKey, unknown>>,
+    BaseContext {
+  type: 'runtime';
+  [RuntimeContextKey.BUILD]?: string;
+  [RuntimeContextKey.NAME]?: string;
+  [RuntimeContextKey.RAW_DESCRIPTION]?: string;
+  [RuntimeContextKey.VERSION]?: number;
+}
 
 type OSContext = {
   build: string;
@@ -381,16 +483,114 @@ type OSContext = {
   version: string;
 };
 
+export enum OtelContextKey {
+  ATTRIBUTES = 'attributes',
+  RESOURCE = 'resource',
+}
+
+// OpenTelemetry Context
+// https://develop.sentry.dev/sdk/performance/opentelemetry/#opentelemetry-context
+interface OtelContext extends Partial<Record<OtelContextKey, unknown>>, BaseContext {
+  type: 'otel';
+  [OtelContextKey.ATTRIBUTES]?: Record<string, unknown>;
+  [OtelContextKey.RESOURCE]?: Record<string, unknown>;
+}
+
+export enum UnityContextKey {
+  COPY_TEXTURE_SUPPORT = 'copy_texture_support',
+  EDITOR_VERSION = 'editor_version',
+  INSTALL_MODE = 'install_mode',
+  RENDERING_THREADING_MODE = 'rendering_threading_mode',
+  TARGET_FRAME_RATE = 'target_frame_rate',
+}
+
+// Unity Context
+// TODO(Priscila): Add this context to the docs
+export interface UnityContext {
+  [UnityContextKey.COPY_TEXTURE_SUPPORT]: string;
+  [UnityContextKey.EDITOR_VERSION]: string;
+  [UnityContextKey.INSTALL_MODE]: string;
+  [UnityContextKey.RENDERING_THREADING_MODE]: string;
+  [UnityContextKey.TARGET_FRAME_RATE]: string;
+  type: 'unity';
+}
+
+export enum MemoryInfoContextKey {
+  ALLOCATED_BYTES = 'allocated_bytes',
+  FRAGMENTED_BYTES = 'fragmented_bytes',
+  HEAP_SIZE_BYTES = 'heap_size_bytes',
+  HIGH_MEMORY_LOAD_THRESHOLD_BYTES = 'high_memory_load_threshold_bytes',
+  TOTAL_AVAILABLE_MEMORY_BYTES = 'total_available_memory_bytes',
+  MEMORY_LOAD_BYTES = 'memory_load_bytes',
+  TOTAL_COMMITTED_BYTES = 'total_committed_bytes',
+  PROMOTED_BYTES = 'promoted_bytes',
+  PINNED_OBJECTS_COUNT = 'pinned_objects_count',
+  PAUSE_TIME_PERCENTAGE = 'pause_time_percentage',
+  INDEX = 'index',
+  FINALIZATION_PENDING_COUNT = 'finalization_pending_count',
+  COMPACTED = 'compacted',
+  CONCURRENT = 'concurrent',
+  PAUSE_DURATIONS = 'pause_durations',
+}
+
+// MemoryInfo Context
+// TODO(Priscila): Add this context to the docs
+export interface MemoryInfoContext {
+  type: 'Memory Info' | 'memory_info';
+  [MemoryInfoContextKey.FINALIZATION_PENDING_COUNT]: number;
+  [MemoryInfoContextKey.COMPACTED]: boolean;
+  [MemoryInfoContextKey.CONCURRENT]: boolean;
+  [MemoryInfoContextKey.PAUSE_DURATIONS]: number[];
+  [MemoryInfoContextKey.TOTAL_AVAILABLE_MEMORY_BYTES]?: number;
+  [MemoryInfoContextKey.MEMORY_LOAD_BYTES]?: number;
+  [MemoryInfoContextKey.TOTAL_COMMITTED_BYTES]?: number;
+  [MemoryInfoContextKey.PROMOTED_BYTES]?: number;
+  [MemoryInfoContextKey.PINNED_OBJECTS_COUNT]?: number;
+  [MemoryInfoContextKey.PAUSE_TIME_PERCENTAGE]?: number;
+  [MemoryInfoContextKey.INDEX]?: number;
+  [MemoryInfoContextKey.ALLOCATED_BYTES]?: number;
+  [MemoryInfoContextKey.FRAGMENTED_BYTES]?: number;
+  [MemoryInfoContextKey.HEAP_SIZE_BYTES]?: number;
+  [MemoryInfoContextKey.HIGH_MEMORY_LOAD_THRESHOLD_BYTES]?: number;
+}
+
+export enum ThreadPoolInfoContextKey {
+  MIN_WORKER_THREADS = 'min_worker_threads',
+  MIN_COMPLETION_PORT_THREADS = 'min_completion_port_threads',
+  MAX_WORKER_THREADS = 'max_worker_threads',
+  MAX_COMPLETION_PORT_THREADS = 'max_completion_port_threads',
+  AVAILABLE_WORKER_THREADS = 'available_worker_threads',
+  AVAILABLE_COMPLETION_PORT_THREADS = 'available_completion_port_threads',
+}
+
+// ThreadPoolInfo Context
+// TODO(Priscila): Add this context to the docs
+export interface ThreadPoolInfoContext {
+  type: 'ThreadPool Info' | 'threadpool_info';
+  [ThreadPoolInfoContextKey.MIN_WORKER_THREADS]: number;
+  [ThreadPoolInfoContextKey.MIN_COMPLETION_PORT_THREADS]: number;
+  [ThreadPoolInfoContextKey.MAX_WORKER_THREADS]: number;
+  [ThreadPoolInfoContextKey.MAX_COMPLETION_PORT_THREADS]: number;
+  [ThreadPoolInfoContextKey.AVAILABLE_WORKER_THREADS]: number;
+  [ThreadPoolInfoContextKey.AVAILABLE_COMPLETION_PORT_THREADS]: number;
+}
+
 type EventContexts = {
+  'Memory Info'?: MemoryInfoContext;
+  'ThreadPool Info'?: ThreadPoolInfoContext;
   client_os?: OSContext;
   device?: DeviceContext;
   feedback?: Record<string, any>;
+  memory_info?: MemoryInfoContext;
   os?: OSContext;
+  otel?: OtelContext;
   // TODO (udameli): add better types here
   // once perf issue data shape is more clear
   performance_issue?: any;
   runtime?: RuntimeContext;
+  threadpool_info?: ThreadPoolInfoContext;
   trace?: TraceContextType;
+  unity?: UnityContext;
 };
 
 export type Measurement = {value: number; unit?: string};
@@ -410,6 +610,35 @@ export type PerformanceDetectorData = {
   causeSpanIds: string[];
   offenderSpanIds: string[];
   parentSpanIds: string[];
+  issueType?: IssueType;
+};
+
+type EventEvidenceDisplay = {
+  /**
+   * Used for alerting, probably not useful for the UI
+   */
+  important: boolean;
+  name: string;
+  value: string;
+};
+
+type EventOccurrence = {
+  detectionTime: string;
+  eventId: string;
+  /**
+   * Arbitrary data that vertical teams can pass to assist with rendering the page.
+   * This is intended mostly for use with customizing the UI, not in the generic UI.
+   */
+  evidenceData: Record<string, any>;
+  /**
+   * Data displayed in the evidence table. Used in all issue types besides errors.
+   */
+  evidenceDisplay: EventEvidenceDisplay[];
+  fingerprint: string[];
+  id: string;
+  issueTitle: string;
+  resourceId: string;
+  subtitle: string;
 };
 
 interface EventBase {
@@ -426,6 +655,7 @@ interface EventBase {
   location: string | null;
   message: string;
   metadata: EventMetadata;
+  occurrence: EventOccurrence | null;
   projectID: string;
   size: number;
   tags: EventTag[];

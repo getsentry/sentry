@@ -3,6 +3,7 @@ import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {SwitchOrganization} from 'sentry/components/sidebar/sidebarDropdown/switchOrganization';
 
 describe('SwitchOrganization', function () {
+  const routerContext = TestStubs.routerContext();
   it('can list organizations', function () {
     jest.useFakeTimers();
     render(
@@ -12,11 +13,12 @@ describe('SwitchOrganization', function () {
           TestStubs.Organization({name: 'Organization 1'}),
           TestStubs.Organization({name: 'Organization 2', slug: 'org2'}),
         ]}
-      />
+      />,
+      {context: TestStubs.routerContext()}
     );
 
     userEvent.hover(screen.getByTestId('sidebar-switch-org'));
-    act(() => void jest.advanceTimersByTime(500));
+    act(() => jest.advanceTimersByTime(500));
 
     expect(screen.getByRole('list')).toBeInTheDocument();
 
@@ -52,11 +54,12 @@ describe('SwitchOrganization', function () {
             features: ['customer-domains'],
           }),
         ]}
-      />
+      />,
+      {context: routerContext}
     );
 
     userEvent.hover(screen.getByTestId('sidebar-switch-org'));
-    act(() => void jest.advanceTimersByTime(500));
+    act(() => jest.advanceTimersByTime(500));
 
     expect(screen.getByRole('list')).toBeInTheDocument();
 
@@ -90,11 +93,12 @@ describe('SwitchOrganization', function () {
             features: [],
           }),
         ]}
-      />
+      />,
+      {context: routerContext}
     );
 
     userEvent.hover(screen.getByTestId('sidebar-switch-org'));
-    act(() => void jest.advanceTimersByTime(500));
+    act(() => jest.advanceTimersByTime(500));
 
     expect(screen.getByRole('list')).toBeInTheDocument();
 
@@ -131,7 +135,7 @@ describe('SwitchOrganization', function () {
     );
 
     userEvent.hover(screen.getByTestId('sidebar-switch-org'));
-    act(() => void jest.advanceTimersByTime(500));
+    act(() => jest.advanceTimersByTime(500));
 
     expect(screen.getByRole('list')).toBeInTheDocument();
 
@@ -180,11 +184,11 @@ describe('SwitchOrganization', function () {
           }),
         ]}
       />,
-      {organization: currentOrg}
+      {organization: currentOrg, context: routerContext}
     );
 
     userEvent.hover(screen.getByTestId('sidebar-switch-org'));
-    act(() => void jest.advanceTimersByTime(500));
+    act(() => jest.advanceTimersByTime(500));
 
     expect(screen.getByRole('list')).toBeInTheDocument();
 
@@ -203,10 +207,12 @@ describe('SwitchOrganization', function () {
 
   it('shows "Create an Org" if they have permission', function () {
     jest.useFakeTimers();
-    render(<SwitchOrganization canCreateOrganization organizations={[]} />);
+    render(<SwitchOrganization canCreateOrganization organizations={[]} />, {
+      context: routerContext,
+    });
 
     userEvent.hover(screen.getByTestId('sidebar-switch-org'));
-    act(() => void jest.advanceTimersByTime(500));
+    act(() => jest.advanceTimersByTime(500));
 
     expect(screen.getByTestId('sidebar-create-org')).toBeInTheDocument();
 
@@ -221,7 +227,7 @@ describe('SwitchOrganization', function () {
     render(<SwitchOrganization canCreateOrganization={false} organizations={[]} />);
 
     userEvent.hover(screen.getByTestId('sidebar-switch-org'));
-    act(() => void jest.advanceTimersByTime(500));
+    act(() => jest.advanceTimersByTime(500));
 
     expect(screen.queryByTestId('sidebar-create-org')).not.toBeInTheDocument();
     jest.useRealTimers();
@@ -244,7 +250,7 @@ describe('SwitchOrganization', function () {
     });
 
     userEvent.hover(screen.getByTestId('sidebar-switch-org'));
-    act(() => void jest.advanceTimersByTime(500));
+    act(() => jest.advanceTimersByTime(500));
 
     expect(screen.getByTestId('sidebar-create-org')).toBeInTheDocument();
 
@@ -269,7 +275,7 @@ describe('SwitchOrganization', function () {
     );
 
     userEvent.hover(screen.getByTestId('sidebar-switch-org'));
-    act(() => void jest.advanceTimersByTime(500));
+    act(() => jest.advanceTimersByTime(500));
 
     expect(screen.getByTestId('pending-deletion-icon')).toBeInTheDocument();
     jest.useRealTimers();
@@ -289,7 +295,7 @@ describe('SwitchOrganization', function () {
     );
 
     userEvent.hover(screen.getByTestId('sidebar-switch-org'));
-    act(() => void jest.advanceTimersByTime(500));
+    act(() => jest.advanceTimersByTime(500));
 
     expect(screen.getByRole('list')).toBeInTheDocument();
 

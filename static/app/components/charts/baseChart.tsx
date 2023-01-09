@@ -4,7 +4,7 @@ import 'echarts/lib/component/toolbox';
 import 'zrender/lib/svg/svg';
 
 import {forwardRef, useMemo} from 'react';
-import {css, Global, useTheme} from '@emotion/react';
+import {css, Global, Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {
   AxisPointerComponentOption,
@@ -43,7 +43,6 @@ import {
   Series,
 } from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
-import type {Theme} from 'sentry/utils/theme';
 
 import Grid from './components/grid';
 import Legend from './components/legend';
@@ -587,7 +586,7 @@ function BaseChartUnwrapped({
 const getTooltipStyles = (p: {theme: Theme}) => css`
   /* Tooltip styling */
   .tooltip-series,
-  .tooltip-date {
+  .tooltip-footer {
     color: ${p.theme.subText};
     font-family: ${p.theme.text.family};
     font-variant-numeric: tabular-nums;
@@ -607,6 +606,9 @@ const getTooltipStyles = (p: {theme: Theme}) => css`
     font-weight: normal;
     color: ${p.theme.textColor};
   }
+  .tooltip-label-value {
+    color: ${p.theme.textColor};
+  }
   .tooltip-label-indent {
     margin-left: 18px;
   }
@@ -615,13 +617,22 @@ const getTooltipStyles = (p: {theme: Theme}) => css`
     justify-content: space-between;
     align-items: baseline;
   }
-  .tooltip-date {
+  .tooltip-footer {
     border-top: solid 1px ${p.theme.innerBorder};
     text-align: center;
     position: relative;
     width: auto;
     border-radius: ${p.theme.borderRadiusBottom};
+    display: flex;
+    justify-content: space-between;
+    gap: ${space(3)};
   }
+
+  .tooltip-footer-centered {
+    justify-content: center;
+    gap: 0;
+  }
+
   .tooltip-arrow {
     top: 100%;
     left: 50%;

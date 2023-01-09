@@ -1,3 +1,4 @@
+from functools import cached_property
 from unittest import mock
 from urllib.parse import urlencode
 
@@ -6,12 +7,12 @@ from django.conf import settings
 from django.test import override_settings
 from django.urls import reverse
 from django.utils.http import urlquote
-from exam import fixture
 
 from sentry import newsletter, options
 from sentry.auth.authenticators import RecoveryCodeInterface, TotpInterface
 from sentry.models import OrganizationMember, User
 from sentry.testutils import TestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import control_silo_test
 from sentry.utils import json
 from sentry.utils.client_state import get_client_state_key, get_redis_client
@@ -20,7 +21,7 @@ from sentry.utils.client_state import get_client_state_key, get_redis_client
 # TODO(dcramer): need tests for SSO behavior and single org behavior
 # @control_silo_test(stable=True)
 class AuthLoginTest(TestCase):
-    @fixture
+    @cached_property
     def path(self):
         return reverse("sentry-login")
 
@@ -110,6 +111,23 @@ class AuthLoginTest(TestCase):
                 (reverse("sentry-login"), 302),
                 ("/organizations/baz/issues/", 302),
             ]
+
+    @with_feature("organizations:customer-domains")
+    def test_login_valid_credentials_with_org_and_customer_domains(self):
+        org = self.create_organization(owner=self.user)
+        # load it once for test cookie
+        self.client.get(self.path)
+
+        resp = self.client.post(
+            self.path,
+            {"username": self.user.username, "password": "admin", "op": "login"},
+            follow=True,
+        )
+        assert resp.status_code == 200
+        assert resp.redirect_chain == [
+            (f"http://{org.slug}.testserver/auth/login/", 302),
+            (f"http://{org.slug}.testserver/issues/", 302),
+        ]
 
     def test_registration_disabled(self):
         options.set("auth.allow-registration", True)
@@ -320,7 +338,7 @@ class AuthLoginTest(TestCase):
 )
 @control_silo_test
 class AuthLoginNewsletterTest(TestCase):
-    @fixture
+    @cached_property
     def path(self):
         return reverse("sentry-login")
 
@@ -409,7 +427,7 @@ def provision_middleware():
     SENTRY_USE_CUSTOMER_DOMAINS=True,
 )
 class AuthLoginCustomerDomainTest(TestCase):
-    @fixture
+    @cached_property
     def path(self):
         return reverse("sentry-login")
 
@@ -420,12 +438,12 @@ class AuthLoginCustomerDomainTest(TestCase):
         resp = self.client.post(
             self.path,
             {"username": self.user.username, "password": "admin", "op": "login"},
-            HTTP_HOST="albertos-apples.testserver",
+            SERVER_NAME="albertos-apples.testserver",
             follow=True,
         )
         assert resp.status_code == 200
         assert resp.redirect_chain == [
-            (f"http://albertos-apples.testserver{reverse('sentry-login')}", 302),
+            ("http://albertos-apples.testserver/auth/login/", 302),
             ("http://testserver/organizations/new/", 302),
         ]
 
@@ -442,8 +460,8 @@ class AuthLoginCustomerDomainTest(TestCase):
         )
         assert resp.status_code == 200
         assert resp.redirect_chain == [
-            (f"http://albertos-apples.testserver{reverse('sentry-login')}", 302),
-            ("/organizations/albertos-apples/issues/", 302),
+            ("http://albertos-apples.testserver/auth/login/", 302),
+            ("http://albertos-apples.testserver/issues/", 302),
         ]
 
     def test_login_valid_credentials_invalid_customer_domain(self):
@@ -463,9 +481,9 @@ class AuthLoginCustomerDomainTest(TestCase):
 
             assert resp.status_code == 200
             assert resp.redirect_chain == [
-                (f"http://invalid.testserver{reverse('sentry-login')}", 302),
+                ("http://invalid.testserver/auth/login/", 302),
                 ("http://albertos-apples.testserver/auth/login/", 302),
-                ("/organizations/albertos-apples/issues/", 302),
+                ("http://albertos-apples.testserver/issues/", 302),
             ]
 
     def test_login_valid_credentials_non_staff(self):
@@ -486,8 +504,8 @@ class AuthLoginCustomerDomainTest(TestCase):
             )
             assert resp.status_code == 200
             assert resp.redirect_chain == [
-                (f"http://albertos-apples.testserver{reverse('sentry-login')}", 302),
-                ("/organizations/albertos-apples/issues/", 302),
+                ("http://albertos-apples.testserver/auth/login/", 302),
+                ("http://albertos-apples.testserver/issues/", 302),
             ]
 
     def test_login_valid_credentials_not_a_member(self):
@@ -524,12 +542,12 @@ class AuthLoginCustomerDomainTest(TestCase):
             resp = self.client.post(
                 self.path,
                 {"username": user.username, "password": "admin", "op": "login"},
-                HTTP_HOST="albertos-apples.testserver",
+                SERVER_NAME="albertos-apples.testserver",
                 follow=True,
             )
 
             assert resp.status_code == 200
             assert resp.redirect_chain == [
-                (f"http://albertos-apples.testserver{reverse('sentry-login')}", 302),
+                ("http://albertos-apples.testserver/auth/login/", 302),
                 ("http://testserver/organizations/new/", 302),
             ]

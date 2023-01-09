@@ -9,7 +9,7 @@ import {
 } from 'sentry/actionCreators/organizations';
 import Button from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
-import Field from 'sentry/components/forms/field';
+import FieldGroup from 'sentry/components/forms/fieldGroup';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {Panel, PanelHeader} from 'sentry/components/panels';
@@ -66,17 +66,20 @@ function OrganizationGeneralSettings(props: Props) {
 
   const handleSaveForm: React.ComponentProps<
     typeof OrganizationSettingsForm
-  >['onSave'] = (prevData: Organization, data: Partial<Organization>) => {
-    if (data.slug && data.slug !== prevData.slug) {
-      changeOrganizationSlug(
-        prevData,
-        data as Partial<Organization> & Pick<Organization, 'slug'>
-      );
-      browserHistory.replace(`/settings/${data.slug}/`);
+  >['onSave'] = (prevData: Organization, updated: Organization) => {
+    if (updated.slug && updated.slug !== prevData.slug) {
+      changeOrganizationSlug(prevData, updated);
+
+      if (updated.features.includes('customer-domains')) {
+        const {organizationUrl} = updated.links;
+        window.location.replace(`${organizationUrl}/settings/organization/`);
+      } else {
+        browserHistory.replace(`/settings/${updated.slug}/`);
+      }
     } else {
       // This will update OrganizationStore (as well as OrganizationsStore
       // which is slightly incorrect because it has summaries vs a detailed org)
-      updateOrganization(data);
+      updateOrganization(updated);
     }
   };
 
@@ -110,7 +113,7 @@ function OrganizationGeneralSettings(props: Props) {
         {access.has('org:admin') && !organization.isDefault && (
           <Panel>
             <PanelHeader>{t('Remove Organization')}</PanelHeader>
-            <Field
+            <FieldGroup
               label={t('Remove Organization')}
               help={t(
                 'Removing this organization will delete all data including projects and their associated events.'
@@ -126,7 +129,7 @@ function OrganizationGeneralSettings(props: Props) {
                   <Button priority="danger">{t('Remove Organization')}</Button>
                 </Confirm>
               </div>
-            </Field>
+            </FieldGroup>
           </Panel>
         )}
       </div>

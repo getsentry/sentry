@@ -39,7 +39,6 @@ describe('projectGeneralSettings', function () {
         router: TestStubs.router({
           params: {
             projectId: project.slug,
-            orgId: org.slug,
           },
         }),
       },
@@ -81,9 +80,7 @@ describe('projectGeneralSettings', function () {
   });
 
   it('renders form fields', function () {
-    render(
-      <ProjectGeneralSettings params={{orgId: org.slug, projectId: project.slug}} />
-    );
+    render(<ProjectGeneralSettings params={{projectId: project.slug}} />);
 
     expect(getField('textbox', 'Name')).toHaveValue('Project Name');
     expect(getField('textbox', 'Subject Prefix')).toHaveValue('[my-org]');
@@ -103,10 +100,9 @@ describe('projectGeneralSettings', function () {
 
   it('disables scrapeJavaScript when equivalent org setting is false', function () {
     routerContext.context.organization.scrapeJavaScript = false;
-    render(
-      <ProjectGeneralSettings params={{orgId: org.slug, projectId: project.slug}} />,
-      {context: routerContext}
-    );
+    render(<ProjectGeneralSettings params={{projectId: project.slug}} />, {
+      context: routerContext,
+    });
 
     expect(getField('checkbox', 'Enable JavaScript source fetching')).toBeDisabled();
     expect(getField('checkbox', 'Enable JavaScript source fetching')).not.toBeChecked();
@@ -118,9 +114,7 @@ describe('projectGeneralSettings', function () {
       method: 'DELETE',
     });
 
-    render(
-      <ProjectGeneralSettings params={{orgId: org.slug, projectId: project.slug}} />
-    );
+    render(<ProjectGeneralSettings params={{projectId: project.slug}} />);
 
     userEvent.click(screen.getByRole('button', {name: 'Remove Project'}));
 
@@ -138,9 +132,7 @@ describe('projectGeneralSettings', function () {
       method: 'POST',
     });
 
-    render(
-      <ProjectGeneralSettings params={{orgId: org.slug, projectId: project.slug}} />
-    );
+    render(<ProjectGeneralSettings params={{projectId: project.slug}} />);
 
     userEvent.click(screen.getByRole('button', {name: 'Transfer Project'}));
 
@@ -172,9 +164,7 @@ describe('projectGeneralSettings', function () {
       body: {detail: 'An organization owner could not be found'},
     });
 
-    render(
-      <ProjectGeneralSettings params={{orgId: org.slug, projectId: project.slug}} />
-    );
+    render(<ProjectGeneralSettings params={{projectId: project.slug}} />);
 
     userEvent.click(screen.getByRole('button', {name: 'Transfer Project'}));
 
@@ -199,7 +189,7 @@ describe('projectGeneralSettings', function () {
     routerContext.context.organization.access = ['org:read'];
 
     const {container} = render(
-      <ProjectGeneralSettings params={{orgId: org.slug, projectId: project.slug}} />,
+      <ProjectGeneralSettings params={{projectId: project.slug}} />,
       {context: routerContext}
     );
 
@@ -213,10 +203,9 @@ describe('projectGeneralSettings', function () {
 
   it('disables the form for users without write permissions', function () {
     routerContext.context.organization.access = ['org:read'];
-    render(
-      <ProjectGeneralSettings params={{orgId: org.slug, projectId: project.slug}} />,
-      {context: routerContext}
-    );
+    render(<ProjectGeneralSettings params={{projectId: project.slug}} />, {
+      context: routerContext,
+    });
 
     // no textboxes are enabled
     screen.queryAllByRole('textbox').forEach(textbox => expect(textbox).toBeDisabled());
@@ -227,7 +216,7 @@ describe('projectGeneralSettings', function () {
   });
 
   it('changing project platform updates ProjectsStore', async function () {
-    const params = {orgId: org.slug, projectId: project.slug};
+    const params = {projectId: project.slug};
     ProjectsStore.loadInitialData([project]);
 
     putMock = MockApiClient.addMockResponse({
@@ -260,7 +249,7 @@ describe('projectGeneralSettings', function () {
   });
 
   it('changing name updates ProjectsStore', async function () {
-    const params = {orgId: org.slug, projectId: project.slug};
+    const params = {projectId: project.slug};
     ProjectsStore.loadInitialData([project]);
 
     putMock = MockApiClient.addMockResponse({
@@ -298,7 +287,7 @@ describe('projectGeneralSettings', function () {
 
   describe('Non-"save on blur" Field', function () {
     beforeEach(function () {
-      const params = {orgId: org.slug, projectId: project.slug};
+      const params = {projectId: project.slug};
       ProjectsStore.loadInitialData([project]);
 
       putMock = MockApiClient.addMockResponse({

@@ -1,7 +1,5 @@
 import {Fragment, isValidElement} from 'react';
-// eslint-disable-next-line no-restricted-imports
-import {withRouter, WithRouterProps} from 'react-router';
-import {css} from '@emotion/react';
+import {css, Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import FeatureBadge from 'sentry/components/featureBadge';
@@ -12,7 +10,8 @@ import Tooltip from 'sentry/components/tooltip';
 import {Organization} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import localStorage from 'sentry/utils/localStorage';
-import {Theme} from 'sentry/utils/theme';
+import useRouter from 'sentry/utils/useRouter';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 import {SidebarOrientation} from './types';
 
@@ -21,7 +20,7 @@ const LabelHook = HookOrDefault({
   defaultComponent: ({children}) => <Fragment>{children}</Fragment>,
 });
 
-type Props = WithRouterProps & {
+type Props = {
   /**
    * Icon to display
    */
@@ -84,7 +83,6 @@ type Props = WithRouterProps & {
 };
 
 const SidebarItem = ({
-  router,
   id,
   href,
   to,
@@ -104,6 +102,7 @@ const SidebarItem = ({
   onClick,
   ...props
 }: Props) => {
+  const router = useRouter();
   // label might be wrapped in a guideAnchor
   let labelString = label;
   if (isValidElement(label)) {
@@ -116,7 +115,7 @@ const SidebarItem = ({
     (!hasPanel &&
       router &&
       toPathWithoutReferrer &&
-      location.pathname.startsWith(toPathWithoutReferrer)) ||
+      location.pathname.startsWith(normalizeUrl(toPathWithoutReferrer))) ||
     (labelString === 'Discover' && location.pathname.includes('/discover/')) ||
     (labelString === 'Dashboards' &&
       (location.pathname.includes('/dashboards/') ||
@@ -194,7 +193,7 @@ const SidebarItem = ({
   );
 };
 
-export default withRouter(SidebarItem);
+export default SidebarItem;
 
 const getActiveStyle = ({active, theme}: {active?: string; theme?: Theme}) => {
   if (!active) {

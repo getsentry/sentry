@@ -1,14 +1,31 @@
 from __future__ import annotations
 
 import contextlib
+import dataclasses
+import inspect
 import logging
 import threading
 from abc import ABC, abstractmethod
-from typing import Any, Callable, Dict, Generator, Generic, Mapping, Optional, Type, TypeVar, cast
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Generator,
+    Generic,
+    List,
+    Mapping,
+    Type,
+    TypeVar,
+    Union,
+    cast,
+)
 
 logger = logging.getLogger(__name__)
 
 from sentry.silo import SiloMode
+
+T = TypeVar("T")
+C = TypeVar("C", bound="PatchableMixin[Any]")
 
 
 class InterfaceWithLifecycle(ABC):
@@ -32,41 +49,56 @@ class DelegatedBySiloMode(Generic[ServiceInterface]):
     """
 
     _constructors: Mapping[SiloMode, Callable[[], ServiceInterface]]
-    _singleton: Dict[SiloMode, ServiceInterface]
+    _singleton: Dict[SiloMode, ServiceInterface | None]
+    _lock: threading.RLock
 
     def __init__(self, mapping: Mapping[SiloMode, Callable[[], ServiceInterface]]):
         self._constructors = mapping
         self._singleton = {}
+        self._lock = threading.RLock()
 
     @contextlib.contextmanager
     def with_replacement(
-        self, service: Optional[ServiceInterface], silo_mode: SiloMode
+        self, service: ServiceInterface | None, silo_mode: SiloMode
     ) -> Generator[None, None, None]:
-        prev = self._singleton
-        self.close()
-
-        if service:
+        with self._lock:
+            prev = self._singleton.get(silo_mode, None)
             self._singleton[silo_mode] = service
+        try:
             yield
-        else:
-            yield
-        self.close()
-        self._singleton = prev
+        finally:
+            with self._lock:
+                self.close(silo_mode)
+                self._singleton[silo_mode] = prev
 
     def __getattr__(self, item: str) -> Any:
         cur_mode = SiloMode.get_current_mode()
-        if impl := self._singleton.get(cur_mode, None):
-            return getattr(impl, item)
-        if con := self._constructors.get(cur_mode, None):
-            self.close()
-            return getattr(self._singleton.setdefault(cur_mode, con()), item)
+
+        with self._lock:
+            if impl := self._singleton.get(cur_mode, None):
+                return getattr(impl, item)
+            if con := self._constructors.get(cur_mode, None):
+                self.close(cur_mode)
+                self._singleton[cur_mode] = inst = con()
+                return getattr(inst, item)
 
         raise KeyError(f"No implementation found for {cur_mode}.")
 
-    def close(self) -> None:
-        for impl in self._singleton.values():
-            impl.close()
-        self._singleton = {}
+    def close(self, mode: SiloMode | None = None) -> None:
+        to_close: List[ServiceInterface] = []
+        with self._lock:
+            if mode is None:
+                to_close.extend(s for s in self._singleton.values() if s is not None)
+                self._singleton = dict()
+            else:
+                existing = self._singleton.get(mode)
+                if existing:
+                    to_close.append(existing)
+                self._singleton = self._singleton.copy()
+                self._singleton[mode] = None
+
+        for service in to_close:
+            service.close()
 
 
 hc_test_stub: Any = threading.local()
@@ -94,12 +126,21 @@ def CreateStubFromBase(
 
     def make_method(method_name: str) -> Any:
         def method(self: Any, *args: Any, **kwds: Any) -> Any:
-            from django.test import override_settings
+            from sentry.services.hybrid_cloud.auth import AuthenticationContext
 
-            with override_settings(SILO_MODE=target_mode):
+            with SiloMode.exit_single_process_silo_context():
                 if cb := getattr(hc_test_stub, "cb", None):
                     cb(self.backing_service, method_name, *args, **kwds)
-                return getattr(self.backing_service, method_name)(*args, **kwds)
+                method = getattr(self.backing_service, method_name)
+                call_args = inspect.getcallargs(method, *args, **kwds)
+
+                auth_context: AuthenticationContext = AuthenticationContext()
+                if "auth_context" in call_args:
+                    auth_context = call_args["auth_context"] or auth_context
+                with auth_context.applied_to_request(), SiloMode.enter_single_process_silo_context(
+                    target_mode
+                ):
+                    return method(*args, **kwds)
 
         return method
 
@@ -131,3 +172,46 @@ def silo_mode_delegation(
     the mapping values.
     """
     return cast(ServiceInterface, DelegatedBySiloMode(mapping))
+
+
+# Need a non-null default value so that we can
+# detect attributes being set to null. We're using
+# a class for this to get a reasonable repr in debugging.
+class UnsetType:
+    def __repr__(self) -> str:
+        return "Unset"
+
+
+# Protocol to be translated in the RPC layer for fields that have a default but "are not set".
+UnsetVal = UnsetType()
+Unset = Union[object, None, T]
+
+
+class PatchableMixin(Generic[T]):
+    def as_update(self) -> Mapping[str, Any]:
+        return {
+            f.name: getattr(self, f.name)
+            for f in self.patch_fields()
+            if getattr(self, f.name) is not UnsetVal
+        }
+
+    @classmethod
+    def patch_fields(cls: Type[C]) -> List[dataclasses.Field[Any]]:
+        result: List[dataclasses.Field[Any]] = []
+        for field in dataclasses.fields(cls):
+            if field.default is UnsetVal:
+                result.append(field)
+        return result
+
+    @classmethod
+    def params_from_instance(cls: Type[C], inst: T) -> Dict[str, Any]:
+        params: Dict[str, Any] = dict()
+        for field in cls.patch_fields():
+            if hasattr(inst, field.name):
+                params[field.name] = getattr(inst, field.name)
+        return params
+
+    # Subclass this to add additional members that are not 1:1 mapping from instance.
+    @classmethod
+    def from_instance(cls: Type[C], inst: T) -> C:
+        return cls(**cls.params_from_instance(inst))

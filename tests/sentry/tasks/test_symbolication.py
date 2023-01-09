@@ -1,4 +1,5 @@
 from unittest import mock
+from unittest.mock import patch
 
 import pytest
 
@@ -222,8 +223,13 @@ def test_should_demote_symbolication_always_and_never(default_project):
 
 
 @pytest.mark.django_db
+@patch("sentry.event_manager.EventManager.save", return_value=None)
 def test_submit_symbolicate_queue_switch(
-    default_project, mock_should_demote_symbolication, mock_submit_symbolicate
+    self,
+    default_project,
+    mock_should_demote_symbolication,
+    mock_submit_symbolicate,
+    mock_event_processing_store,
 ):
     data = {
         "project": default_project.id,
@@ -232,10 +238,11 @@ def test_submit_symbolicate_queue_switch(
         "event_id": EVENT_ID,
         "extra": {"foo": "bar"},
     }
+    mock_event_processing_store.get.return_value = data
+    mock_event_processing_store.store.return_value = "e:1"
 
     is_low_priority = mock_should_demote_symbolication(default_project.id)
     assert is_low_priority
-
     with TaskRunner():
         mock_submit_symbolicate(
             is_low_priority=is_low_priority,
@@ -243,6 +250,5 @@ def test_submit_symbolicate_queue_switch(
             cache_key="e:1",
             event_id=EVENT_ID,
             start_time=0,
-            data=data,
         )
     assert mock_submit_symbolicate.call_count == 4

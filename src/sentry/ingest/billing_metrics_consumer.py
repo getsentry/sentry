@@ -1,16 +1,6 @@
 import logging
-from datetime import datetime, timedelta
-from typing import (
-    Any,
-    Callable,
-    Mapping,
-    MutableMapping,
-    Optional,
-    Sequence,
-    TypedDict,
-    Union,
-    cast,
-)
+from datetime import datetime, timedelta, timezone
+from typing import Any, Mapping, MutableMapping, Optional, Sequence, TypedDict, Union, cast
 
 from arroyo import Topic
 from arroyo.backends.kafka import KafkaConsumer, KafkaPayload
@@ -18,7 +8,7 @@ from arroyo.backends.kafka.configuration import build_kafka_consumer_configurati
 from arroyo.commit import IMMEDIATE
 from arroyo.processing import StreamProcessor
 from arroyo.processing.strategies import ProcessingStrategy, ProcessingStrategyFactory
-from arroyo.types import Message, Partition, Position
+from arroyo.types import Commit, Message, Partition
 from django.conf import settings
 
 from sentry.constants import DataCategory
@@ -73,7 +63,7 @@ class BillingMetricsConsumerStrategyFactory(ProcessingStrategyFactory[KafkaPaylo
 
     def create_with_partitions(
         self,
-        commit: Callable[[Mapping[Partition, Position]], None],
+        commit: Commit,
         partitions: Mapping[Partition, int],
     ) -> ProcessingStrategy[KafkaPayload]:
         return BillingTxCountMetricConsumerStrategy(
@@ -106,7 +96,7 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
 
     def __init__(
         self,
-        commit: Callable[[Mapping[Partition, Position]], None],
+        commit: Commit,
         max_batch_size: int,
         max_batch_time: int,
     ) -> None:
@@ -114,8 +104,8 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
         self.__max_batch_size = max_batch_size
         self.__max_batch_time = timedelta(milliseconds=max_batch_time)
         self.__messages_since_last_commit = 0
-        self.__last_commit = datetime.now()
-        self.__ready_to_commit: MutableMapping[Partition, Position] = {}
+        self.__last_commit = datetime.now(timezone.utc)
+        self.__ready_to_commit: MutableMapping[Partition, int] = {}
         self.__closed = False
 
     def poll(self) -> None:
@@ -167,14 +157,14 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
             key_id=None,
             outcome=Outcome.ACCEPTED,
             reason=None,
-            timestamp=datetime.fromtimestamp(payload["timestamp"]),
+            timestamp=datetime.now(timezone.utc),
             event_id=None,
             category=DataCategory.TRANSACTION,
             quantity=quantity,
         )
 
     def _mark_commit_ready(self, message: Message[KafkaPayload]) -> None:
-        self.__ready_to_commit[message.partition] = Position(message.next_offset, message.timestamp)
+        self.__ready_to_commit.update(message.committable)
 
     def join(self, timeout: Optional[float] = None) -> None:
         self._bulk_commit()
@@ -184,7 +174,7 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
             return False
         if self.__messages_since_last_commit >= self.__max_batch_size:
             return True
-        if self.__last_commit + self.__max_batch_time <= datetime.now():
+        if self.__last_commit + self.__max_batch_time <= datetime.now(timezone.utc):
             return True
         return False
 
@@ -192,4 +182,4 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
         self.__commit(self.__ready_to_commit)
         self.__ready_to_commit = {}
         self.__messages_since_last_commit = 0
-        self.__last_commit = datetime.now()
+        self.__last_commit = datetime.now(timezone.utc)

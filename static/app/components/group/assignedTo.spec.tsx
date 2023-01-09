@@ -1,4 +1,4 @@
-import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import AssignedTo from 'sentry/components/group/assignedTo';
 import GroupStore from 'sentry/stores/groupStore';
@@ -76,6 +76,13 @@ describe('Group > AssignedTo', () => {
     expect(screen.getByText('No-one')).toBeInTheDocument();
   });
 
+  it('does not render chevron when disableDropdown prop is passed', () => {
+    render(<AssignedTo disableDropdown projectId={project.id} group={GROUP_1} />, {
+      organization,
+    });
+    expect(screen.queryByTestId('assigned-to-chevron-icon')).not.toBeInTheDocument();
+  });
+
   it('can assign team', async () => {
     const assignMock = MockApiClient.addMockResponse({
       method: 'PUT',
@@ -86,7 +93,7 @@ describe('Group > AssignedTo', () => {
       },
     });
     render(<AssignedTo projectId={project.id} group={GROUP_1} />, {organization});
-    act(() => MemberListStore.loadInitialData([USER_1, USER_2]));
+    MemberListStore.loadInitialData([USER_1, USER_2]);
     await openMenu();
     expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
 
@@ -118,7 +125,7 @@ describe('Group > AssignedTo', () => {
     });
 
     render(<AssignedTo projectId={project.id} group={GROUP_1} />, {organization});
-    act(() => MemberListStore.loadInitialData([USER_1, USER_2]));
+    MemberListStore.loadInitialData([USER_1, USER_2]);
     await openMenu();
 
     // Assign first item in list, which is TEAM_1

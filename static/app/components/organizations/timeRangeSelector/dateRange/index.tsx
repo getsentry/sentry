@@ -1,8 +1,7 @@
 import {Component} from 'react';
 import type {Range} from 'react-date-range';
-// eslint-disable-next-line no-restricted-imports
-import {withRouter, WithRouterProps} from 'react-router';
-import {withTheme} from '@emotion/react';
+import {WithRouterProps} from 'react-router';
+import {Theme, withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import moment from 'moment';
 
@@ -21,7 +20,8 @@ import {
   setDateToTime,
 } from 'sentry/utils/dates';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
-import {Theme} from 'sentry/utils/theme';
+// eslint-disable-next-line no-restricted-imports
+import withSentryRouter from 'sentry/utils/withSentryRouter';
 
 const getTimeStringFromDate = (date: Date) => moment(date).local().format('HH:mm');
 
@@ -204,13 +204,7 @@ class BaseDateRange extends Component<Props, State> {
             />
             <UtcPicker>
               {t('Use UTC')}
-              <Checkbox
-                onChange={onChangeUtc}
-                checked={utc || false}
-                style={{
-                  margin: '0 0 0 0.5em',
-                }}
-              />
+              <Checkbox onChange={onChangeUtc} checked={utc || false} />
             </UtcPicker>
           </TimeAndUtcPicker>
         )}
@@ -219,7 +213,7 @@ class BaseDateRange extends Component<Props, State> {
   }
 }
 
-const DateRange = styled(withTheme(withRouter(BaseDateRange)))`
+const DateRange = styled(withTheme(withSentryRouter(BaseDateRange)))`
   display: flex;
   flex-direction: column;
   border-left: 1px solid ${p => p.theme.border};
@@ -239,6 +233,7 @@ const UtcPicker = styled('div')`
   align-items: center;
   justify-content: flex-end;
   flex: 1;
+  gap: ${space(1)};
 `;
 
 export default DateRange;

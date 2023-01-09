@@ -1,9 +1,9 @@
 import {forwardRef} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
-import {css} from '@emotion/react';
+import {css, Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {FormSize, Theme} from 'sentry/utils/theme';
+import {FormSize} from 'sentry/utils/theme';
 
 export interface InputStylesProps {
   monospace?: boolean;
@@ -20,7 +20,7 @@ export const inputStyles = (p: InputStylesProps & {theme: Theme}) => css`
   background: ${p.theme.background};
   border: 1px solid ${p.theme.border};
   border-radius: ${p.theme.borderRadius};
-  box-shadow: inset ${p.theme.dropShadowLight};
+  box-shadow: inset ${p.theme.dropShadowMedium};
   resize: vertical;
   transition: border 0.1s, box-shadow 0.1s;
 

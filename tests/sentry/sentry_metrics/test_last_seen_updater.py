@@ -2,8 +2,8 @@ from datetime import datetime, timedelta
 from unittest.mock import Mock
 
 import pytest
-from arroyo import Message, Partition, Topic
 from arroyo.backends.kafka import KafkaPayload
+from arroyo.types import BrokerValue, Message, Partition, Topic
 from django.utils import timezone
 
 from sentry.metrics.dummy import DummyMetricsBackend
@@ -11,7 +11,7 @@ from sentry.sentry_metrics.configuration import IndexerStorage, UseCaseKey, get_
 from sentry.sentry_metrics.consumers.last_seen_updater import (
     KeepAliveMessageFilter,
     LastSeenUpdaterMessageFilter,
-    _last_seen_updater_processing_factory,
+    LastSeenUpdaterStrategyFactory,
     _update_stale_last_seen,
     retrieve_db_read_keys,
 )
@@ -68,10 +68,12 @@ def headerless_kafka_payload(payload_bytes):
 
 def kafka_message(kafka_payload):
     return Message(
-        partition=Partition(Topic("fake-topic"), 1),
-        offset=1,
-        payload=kafka_payload,
-        timestamp=datetime.now(),
+        BrokerValue(
+            payload=kafka_payload,
+            partition=Partition(Topic("fake-topic"), 1),
+            offset=1,
+            timestamp=datetime.now(),
+        )
     )
 
 
@@ -96,8 +98,10 @@ def test_retrieve_db_read_keys_meta_field_bad_json():
 class TestLastSeenUpdaterEndToEnd(TestCase):
     @staticmethod
     def processing_factory():
-        return _last_seen_updater_processing_factory(
-            ingest_config=get_ingest_config(UseCaseKey.RELEASE_HEALTH, IndexerStorage.POSTGRES),
+        return LastSeenUpdaterStrategyFactory(
+            use_case_id=get_ingest_config(
+                UseCaseKey.RELEASE_HEALTH, IndexerStorage.POSTGRES
+            ).use_case_id,
             max_batch_time=1.0,
             max_batch_size=1,
         )
@@ -128,9 +132,10 @@ class TestLastSeenUpdaterEndToEnd(TestCase):
 
     def test_basic_flow(self):
         # we can't use fixtures with unittest.TestCase
+        commit = Mock()
         message = kafka_message(headerless_kafka_payload(mixed_payload()))
         processing_strategy = self.processing_factory().create_with_partitions(
-            lambda x: None, {Partition(Topic("fake-topic"), 0): 0}
+            commit, {Partition(Topic("fake-topic"), 0): 0}
         )
         processing_strategy.submit(message)
         processing_strategy.poll()
@@ -145,10 +150,11 @@ class TestLastSeenUpdaterEndToEnd(TestCase):
         assert (timezone.now() - stale_item.last_seen) < timedelta(seconds=30)
 
     def test_message_processes_after_bad_message(self):
+        commit = Mock()
         ok_message = kafka_message(headerless_kafka_payload(mixed_payload()))
         bad_message = kafka_message(headerless_kafka_payload(bad_payload()))
         processing_strategy = self.processing_factory().create_with_partitions(
-            lambda x: None, {Partition(Topic("fake-topic"), 0): 0}
+            commit, {Partition(Topic("fake-topic"), 0): 0}
         )
         processing_strategy.submit(bad_message)
         processing_strategy.submit(ok_message)
@@ -166,7 +172,9 @@ class TestFilterMethod:
 
     def empty_message_with_headers(self, headers):
         payload = KafkaPayload(headers=headers, key=Mock(), value=Mock())
-        return Message(partition=Mock(), offset=0, payload=payload, timestamp=datetime.utcnow())
+        return Message(
+            BrokerValue(payload=payload, partition=Mock(), offset=0, timestamp=datetime.utcnow())
+        )
 
     def test_message_filter_no_header(self, message_filter):
         message = self.empty_message_with_headers([])

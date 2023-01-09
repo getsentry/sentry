@@ -1,3 +1,5 @@
+import {Fragment} from 'react';
+
 import {
   act,
   render,
@@ -58,7 +60,7 @@ describe('SearchBar', () => {
     jest.clearAllMocks();
 
     eventsMock = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/eventsv2/`,
+      url: `/organizations/${organization.slug}/events/`,
       body: {data: []},
     });
   });
@@ -69,7 +71,7 @@ describe('SearchBar', () => {
 
   it('Sends user input as a transaction search and shows the results', async () => {
     eventsMock = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/eventsv2/`,
+      url: `/organizations/${organization.slug}/events/`,
       body: {
         data: [{transaction: 'clients.call'}, {transaction: 'clients.fetch'}],
       },
@@ -80,15 +82,13 @@ describe('SearchBar', () => {
     userEvent.type(screen.getByRole('textbox'), 'proje');
     expect(screen.getByRole('textbox')).toHaveValue('proje');
 
-    act(() => {
-      jest.runAllTimers();
-    });
+    act(jest.runAllTimers);
 
     await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
 
     expect(eventsMock).toHaveBeenCalledTimes(1);
     expect(eventsMock).toHaveBeenCalledWith(
-      '/organizations/org-slug/eventsv2/',
+      '/organizations/org-slug/events/',
       expect.objectContaining({
         query: expect.objectContaining({
           query: 'transaction:*proje* event.type:transaction',
@@ -103,7 +103,7 @@ describe('SearchBar', () => {
   it('Responds to keyboard navigation', async () => {
     const onSearch = jest.fn();
     eventsMock = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/eventsv2/`,
+      url: `/organizations/${organization.slug}/events/`,
       body: {
         data: [
           {project_id: 1, transaction: 'clients.call'},
@@ -116,9 +116,7 @@ describe('SearchBar', () => {
     userEvent.type(screen.getByRole('textbox'), 'proje');
     expect(screen.getByTestId('smart-search-dropdown')).toBeInTheDocument();
 
-    act(() => {
-      jest.runAllTimers();
-    });
+    act(jest.runAllTimers);
 
     await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
 
@@ -128,9 +126,7 @@ describe('SearchBar', () => {
     userEvent.type(screen.getByRole('textbox'), 'client');
     expect(screen.getByTestId('smart-search-dropdown')).toBeInTheDocument();
 
-    act(() => {
-      jest.runAllTimers();
-    });
+    act(jest.runAllTimers);
 
     await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
 
@@ -146,7 +142,7 @@ describe('SearchBar', () => {
   it('Submits wildcard searches', async () => {
     const onSearch = jest.fn();
     eventsMock = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/eventsv2/`,
+      url: `/organizations/${organization.slug}/events/`,
       body: {
         data: [
           {project_id: 1, transaction: 'clients.call'},
@@ -159,9 +155,7 @@ describe('SearchBar', () => {
     userEvent.paste(screen.getByRole('textbox'), 'client*');
     expect(screen.getByTestId('smart-search-dropdown')).toBeInTheDocument();
 
-    act(() => {
-      jest.runAllTimers();
-    });
+    act(jest.runAllTimers);
 
     await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
 
@@ -170,5 +164,30 @@ describe('SearchBar', () => {
     expect(screen.queryByTestId('smart-search-dropdown')).not.toBeInTheDocument();
     expect(onSearch).toHaveBeenCalledTimes(1);
     expect(onSearch).toHaveBeenCalledWith('transaction:client*');
+  });
+
+  it('closes the search dropdown when clicked outside of', () => {
+    const onSearch = jest.fn();
+    eventsMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      body: {
+        data: [
+          {project_id: 1, transaction: 'clients.call'},
+          {project_id: 1, transaction: 'clients.fetch'},
+        ],
+      },
+    });
+    render(
+      <Fragment>
+        <div data-test-id="some-div" />
+        <SearchBar {...testProps} onSearch={onSearch} />
+      </Fragment>
+    );
+
+    userEvent.type(screen.getByRole('textbox'), 'proje');
+    expect(screen.getByTestId('smart-search-dropdown')).toBeInTheDocument();
+
+    userEvent.click(screen.getByTestId('some-div'));
+    expect(screen.queryByTestId('smart-search-dropdown')).not.toBeInTheDocument();
   });
 });

@@ -10,8 +10,9 @@ from rest_framework.request import Request
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
 
 from sentry import features, quotas
-from sentry.api.base import LINK_HEADER
-from sentry.api.bases import NoProjects, OrganizationEndpoint
+from sentry.api.base import CURSOR_LINK_HEADER
+from sentry.api.bases import NoProjects
+from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.helpers.mobile import get_readable_device_name
 from sentry.api.helpers.teams import get_teams
 from sentry.api.serializers.snuba import BaseSnubaSerializer, SnubaTSResultSerializer
@@ -44,7 +45,7 @@ def resolve_axis_column(column: str, index: int = 0) -> str:
     )
 
 
-class OrganizationEventsEndpointBase(OrganizationEndpoint):  # type: ignore
+class OrganizationEventsEndpointBase(OrganizationEndpoint):
     def has_feature(self, organization: Organization, request: Request) -> bool:
         return (
             features.has("organizations:discover-basic", organization, actor=request.user)
@@ -252,7 +253,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         else:
             base_url = base_url + "?"
 
-        return cast(str, LINK_HEADER).format(
+        return cast(str, CURSOR_LINK_HEADER).format(
             uri=base_url,
             cursor=str(cursor),
             name=name,

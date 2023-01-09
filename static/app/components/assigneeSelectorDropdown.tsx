@@ -377,14 +377,17 @@ export class AssigneeSelectorDropdown extends Component<
 
     return (
       <InviteMemberLink
-        to=""
+        to="#invite-member"
         data-test-id="invite-member"
         disabled={loading}
-        onClick={() => openInviteMembersModal({source: 'assignee_selector'})}
+        onClick={event => {
+          event.preventDefault();
+          openInviteMembersModal({source: 'assignee_selector'});
+        }}
       >
         <MenuItemFooterWrapper>
           <IconContainer>
-            <IconAdd color="activeText" isCircled size="14px" />
+            <IconAdd color="activeText" isCircled legacySize="14px" />
           </IconContainer>
           <Label>{t('Invite Member')}</Label>
         </MenuItemFooterWrapper>
@@ -461,7 +464,7 @@ export class AssigneeSelectorDropdown extends Component<
             <div>
               <MenuItemFooterWrapper role="button" onClick={this.clearAssignTo} py={0}>
                 <IconContainer>
-                  <IconClose color="activeText" isCircled size="14px" />
+                  <IconClose color="activeText" isCircled legacySize="14px" />
                 </IconContainer>
                 <Label>{t('Clear Assignee')}</Label>
               </MenuItemFooterWrapper>

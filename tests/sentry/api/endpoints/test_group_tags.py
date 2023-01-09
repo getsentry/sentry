@@ -4,7 +4,7 @@ from sentry.testutils.silo import region_silo_test
 from sentry.types.issues import GroupType
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class GroupTagsTest(APITestCase, SnubaTestCase):
     def test_simple(self):
         event1 = self.store_event(
@@ -240,3 +240,46 @@ class GroupTagsTest(APITestCase, SnubaTestCase):
         assert top_values[1]["readable"] == "iPhone 13 Pro Max"
         assert top_values[2]["value"] == "random-model"
         assert "readable" not in top_values[2]
+
+    def test_limit(self):
+        for _ in range(3):
+            self.store_event(
+                data={
+                    "fingerprint": ["group-1"],
+                    "tags": {"os": "iOS"},
+                    "timestamp": iso_format(before_now(minutes=1)),
+                },
+                project_id=self.project.id,
+            )
+        for _ in range(2):
+            self.store_event(
+                data={
+                    "fingerprint": ["group-1"],
+                    "tags": {"os": "android"},
+                    "timestamp": iso_format(before_now(minutes=1)),
+                },
+                project_id=self.project.id,
+            )
+        event = self.store_event(
+            data={
+                "fingerprint": ["group-1"],
+                "tags": {"os": "windows"},
+                "timestamp": iso_format(before_now(minutes=1)),
+            },
+            project_id=self.project.id,
+        )
+
+        self.login_as(user=self.user)
+
+        url = f"/api/0/issues/{event.group.id}/tags/?limit=2&key=os"
+        response = self.client.get(url, format="json")
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        assert response.data[0]["key"] == "os"
+        assert response.data[0]["totalValues"] == 6
+
+        top_values = sorted(response.data[0]["topValues"], key=lambda r: r["value"])
+        assert len(top_values) == 2
+        assert top_values[0]["value"] == "android"
+        assert top_values[1]["value"] == "iOS"

@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 
 from arroyo.backends.kafka import KafkaPayload
-from arroyo.types import Message, Partition, Topic
+from arroyo.types import BrokerValue, Message, Partition, Topic
 
 from sentry.sentry_metrics.configuration import (
     RELEASE_HEALTH_PG_NAMESPACE,
@@ -40,8 +40,6 @@ def test_basic(request):
         max_msg_batch_time=1,
         max_parallel_batch_size=1,
         max_parallel_batch_time=1,
-        max_batch_size=1,
-        max_batch_time=1,
         processes=1,
         input_block_size=1024,
         output_block_size=1024,
@@ -58,18 +56,21 @@ def test_basic(request):
             cardinality_limiter_namespace=RELEASE_HEALTH_PG_NAMESPACE,
             index_tag_values_option_name="sentry-metrics.performance.index-tag-values",
         ),
+        slicing_router=None,
     )
 
     strategy = processing_factory.create_with_partitions(
-        lambda _: None,
+        lambda _, force=False: None,
         {Partition(topic=Topic(name="ingest-bogus-metrics"), index=1): 1},
     )
 
     message = Message(
-        Partition(Topic("topic"), 0),
-        0,
-        KafkaPayload(None, json.dumps(counter_payload).encode("utf-8"), []),
-        datetime.now(),
+        BrokerValue(
+            KafkaPayload(None, json.dumps(counter_payload).encode("utf-8"), []),
+            Partition(Topic("topic"), 0),
+            0,
+            datetime.now(),
+        ),
     )
 
     # Just assert that the strategy does not crash. Further assertions, such as

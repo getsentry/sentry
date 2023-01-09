@@ -26,7 +26,8 @@ USERID_UNINSTALL_RESPONSE = """{
 }"""
 
 # response payload to POST, instead of DELETE
-POST_DELETE_RESPONSE = """{
+# Old Vercel response
+POST_DELETE_RESPONSE_OLD = """{
         "type": "integration-configuration-removed",
         "payload": {
             "configuration": {
@@ -36,6 +37,23 @@ POST_DELETE_RESPONSE = """{
         },
         "teamId": "vercel_team_id",
         "userId": "vercel_user_id"
+}"""
+
+# New Vercel response
+POST_DELETE_RESPONSE_NEW = """{
+        "type": "integration-configuration.removed",
+        "payload": {
+            "configuration": {
+                "id": "my_config_id",
+                "projects": ["project_id1"]
+            },
+            "team": {
+                "id": "vercel_team_id"
+            },
+            "user": {
+                "id": "vercel_user_id"
+            }
+        }
 }"""
 
 
@@ -69,13 +87,28 @@ class VercelUninstallTest(APITestCase):
             "userId": "vercel_user_id"
         }"""
 
-    def test_uninstall(self):
+    def test_uninstall_old(self):
         with override_options({"vercel.client-secret": SECRET}):
             response = self.client.post(
                 path=self.url,
-                data=POST_DELETE_RESPONSE,
+                data=POST_DELETE_RESPONSE_OLD,
                 content_type="application/json",
                 HTTP_X_VERCEL_SIGNATURE="9fe7776332998c90980cc537b24b196f37e17c99",
+            )
+
+            assert response.status_code == 204
+            assert not Integration.objects.filter(id=self.integration.id).exists()
+            assert not OrganizationIntegration.objects.filter(
+                integration_id=self.integration.id, organization_id=self.organization.id
+            ).exists()
+
+    def test_uninstall_new(self):
+        with override_options({"vercel.client-secret": SECRET}):
+            response = self.client.post(
+                path=self.url,
+                data=POST_DELETE_RESPONSE_NEW,
+                content_type="application/json",
+                HTTP_X_VERCEL_SIGNATURE="83d53d644f6504de716eea275039e8bddd870be5",
             )
 
             assert response.status_code == 204
