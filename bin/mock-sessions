@@ -61,7 +61,7 @@ def send_session(session, project, project_key):
     envelope = ["{}", '{"type":"session"}', json.dumps(session)]
     payload = "\n".join(envelope)
 
-    host = "http://127.0.0.1:3001"
+    host = "http://127.0.0.1:8000"
 
     url = f"{host}/api/{project.id}/envelope/?sentry_key={project_key.public_key}&sentry_version=7&sentry_client=sentry.curl/1.1.1"
     headers = {
