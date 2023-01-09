@@ -182,7 +182,7 @@ def set_project_codemappings(
             stack_root=code_mapping.stacktrace_root,
             defaults={
                 "repository": repository,
-                "organization_integration": organization_integration,
+                "organization_integration_id": organization_integration.id,
                 "source_root": code_mapping.source_path,
                 "default_branch": code_mapping.repo.branch,
                 "automatically_generated": True,
