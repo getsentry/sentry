@@ -27,9 +27,9 @@ function Node({label, id, children, collapsible}: NodeProps) {
                 onClick={() => setIsExpanded(!isExpanded)}
               >
                 {isExpanded ? (
-                  <IconSubtract size="9px" color="white" />
+                  <IconSubtract legacySize="9px" color="white" />
                 ) : (
-                  <IconAdd size="9px" color="white" />
+                  <IconAdd legacySize="9px" color="white" />
                 )}
               </IconWrapper>
             )}
