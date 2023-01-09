@@ -1,7 +1,9 @@
 from enum import Enum
-from typing import Any, Dict, List, Optional, TypedDict, Union
+from typing import Any, Dict, List, Optional, Set, TypedDict, Union
 
+from sentry import features, options
 from sentry.dynamic_sampling.latest_release_booster import ProjectBoostedReleases
+from sentry.models import Project
 from sentry.utils import json
 
 BOOSTED_RELEASES_LIMIT = 10
@@ -112,3 +114,32 @@ def _deep_sorted(value: Union[Any, Dict[Any, Any]]) -> Union[Any, Dict[Any, Any]
         return {key: _deep_sorted(value) for key, value in sorted(value.items())}
     else:
         return value
+
+
+def is_on_dynamic_sampling(project: Project) -> bool:
+    return features.has("organizations:dynamic-sampling", project.organization) and options.get(
+        "dynamic-sampling:enabled-biases"
+    )
+
+
+def get_user_biases(user_set_biases: Optional[List[Bias]]) -> List[Bias]:
+    if user_set_biases is None:
+        return DEFAULT_BIASES
+
+    id_to_user_bias = {bias["id"]: bias for bias in user_set_biases}
+    returned_biases = []
+    for bias in DEFAULT_BIASES:
+        if bias["id"] in id_to_user_bias:
+            returned_biases.append(id_to_user_bias[bias["id"]])
+        else:
+            returned_biases.append(bias)
+    return returned_biases
+
+
+def get_enabled_user_biases(user_set_biases: Optional[List[Bias]]) -> Set[str]:
+    users_biases = get_user_biases(user_set_biases)
+    return {bias["id"] for bias in users_biases if bias["active"]}
+
+
+def get_supported_biases_ids() -> Set[str]:
+    return {bias["id"] for bias in DEFAULT_BIASES}

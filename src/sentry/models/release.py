@@ -28,6 +28,7 @@ from sentry.db.models import (
     region_silo_only_model,
     sane_repr,
 )
+from sentry.dynamic_sampling.utils import is_on_dynamic_sampling
 from sentry.exceptions import InvalidSearchQuery
 from sentry.locks import locks
 from sentry.models import (
@@ -71,17 +72,12 @@ class ReleaseCommitError(Exception):
 class ReleaseProjectModelManager(BaseManager):
     @staticmethod
     def _on_post(project, trigger):
-        from sentry.dynamic_sampling.feature_multiplexer import DynamicSamplingFeatureMultiplexer
         from sentry.dynamic_sampling.latest_release_booster import ProjectBoostedReleases
 
-        ds_feature_multiplexer = DynamicSamplingFeatureMultiplexer(project)
         project_boosted_releases = ProjectBoostedReleases(project.id)
         # We want to invalidate the project config only if dynamic sampling is enabled and there exists boosted releases
         # in the project.
-        if (
-            ds_feature_multiplexer.is_on_dynamic_sampling
-            and project_boosted_releases.has_boosted_releases
-        ):
+        if is_on_dynamic_sampling(project) and project_boosted_releases.has_boosted_releases:
             transaction.on_commit(
                 lambda: schedule_invalidate_project_config(project_id=project.id, trigger=trigger)
             )

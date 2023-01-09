@@ -22,7 +22,6 @@ from sentry_sdk import Hub, capture_exception
 from sentry import features, killswitches, quotas, utils
 from sentry.constants import ObjectStatus
 from sentry.datascrubbing import get_datascrubbing_settings, get_pii_config
-from sentry.dynamic_sampling.feature_multiplexer import DynamicSamplingFeatureMultiplexer
 from sentry.dynamic_sampling.rules_generator import generate_rules
 from sentry.grouping.api import get_grouping_config_dict_for_project
 from sentry.ingest.inbound_filters import (
@@ -41,6 +40,7 @@ from sentry.utils import metrics
 from sentry.utils.http import get_origins
 from sentry.utils.options import sample_modulo
 
+from ...dynamic_sampling.utils import is_on_dynamic_sampling
 from .measurements import CUSTOM_MEASUREMENT_LIMIT, get_measurements_config
 
 #: These features will be listed in the project config
@@ -159,9 +159,7 @@ def get_project_config(
 
 
 def get_dynamic_sampling_config(project: Project) -> Optional[Mapping[str, Any]]:
-    feature_multiplexer = DynamicSamplingFeatureMultiplexer(project)
-
-    if feature_multiplexer.is_on_dynamic_sampling:
+    if is_on_dynamic_sampling(project):
         return {"rules": generate_rules(project)}
     return None
 

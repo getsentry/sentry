@@ -11,8 +11,7 @@ from sentry.db.models import (
 )
 from sentry.db.models.fields import JSONField
 from sentry.db.models.fields.bounded import BoundedBigIntegerField
-from sentry.dynamic_sampling.feature_multiplexer import DynamicSamplingFeatureMultiplexer
-from sentry.dynamic_sampling.utils import RuleType
+from sentry.dynamic_sampling.utils import RuleType, get_enabled_user_biases, is_on_dynamic_sampling
 from sentry.models.projectteam import ProjectTeam
 from sentry.tasks.relay import schedule_invalidate_project_config
 
@@ -99,10 +98,9 @@ class TeamKeyTransactionModelManager(BaseManager):
         if project is None:
             return
 
-        ds_feature_multiplexer = DynamicSamplingFeatureMultiplexer(project)
-        if ds_feature_multiplexer.is_on_dynamic_sampling:
+        if is_on_dynamic_sampling(project):
             # check if option is enabled
-            enabled_biases = DynamicSamplingFeatureMultiplexer.get_enabled_user_biases(
+            enabled_biases = get_enabled_user_biases(
                 project.get_option("sentry:dynamic_sampling_biases", None)
             )
             # invalidate project config only when the rule is enabled
