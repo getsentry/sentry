@@ -11,6 +11,30 @@ DAY = 24 * HOUR
 test_get_num_intervals_cases = [
     # uses granularity when interval not provided
     (
+        "2000-01-01T10:33",
+        "2000-01-01T11:09",
+        3 * MINUTE,
+        None,
+        12,
+        "uses 3 minute granularity, aligned start & end",
+    ),
+    (
+        "2000-01-01T10:33",
+        "2000-01-01T11:10",
+        3 * MINUTE,
+        None,
+        12,
+        "uses 3 minute granularity, aligned start",
+    ),
+    (
+        "2000-01-01T10:40",
+        "2000-01-01T11:10",
+        3 * MINUTE,
+        None,
+        10,
+        "uses 3 minute granularity, not aligned",
+    ),
+    (
         "2000-01-01T10:20",
         "2000-01-01T10:40",
         HOUR,
