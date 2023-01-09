@@ -176,7 +176,7 @@ const performanceOptionDefinitions: Field[] = [
   },
   {
     key: 'performance.issues.consecutive_db.problem-creation',
-    label: t('Consecutive DB Problem Creation Rate'),
+    label: t('Problem Creation Rate'),
     help: t(
       'Controls the overall rate at which performance problems are detected by the Consecutive DB detector.'
     ),
@@ -208,7 +208,7 @@ const performanceOptionDefinitions: Field[] = [
   },
   {
     key: 'performance.issues.n_plus_one_api_calls.problem-creation',
-    label: t('N+1 API Calls Problem Creation Rate'),
+    label: t('Problem Creation Rate'),
     help: t(
       'Controls the overall rate at which performance problems are detected by the N+1 API Calls detector.'
     ),
