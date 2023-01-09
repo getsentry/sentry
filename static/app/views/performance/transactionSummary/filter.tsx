@@ -68,7 +68,7 @@ function Filter(props: Props) {
         onChange={opt => onChangeFilter(opt?.value)}
         triggerProps={{
           icon: <IconFilter />,
-          'data-test-id': 'span-operation-breakdown-filter',
+          'aria-label': t('Filter by operation'),
         }}
         triggerLabel={
           currentFilter === SpanOperationBreakdownFilter.None
