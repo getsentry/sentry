@@ -441,6 +441,10 @@ class Group(Model):
                 GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN.value,
                 _("Render Blocking Asset Span"),
             ),
+            (
+                GroupType.PERFORMANCE_N_PLUS_ONE_API_CALLS.value,
+                _("N+1 API Calls"),
+            ),
             # TODO add more group types when detection starts outputting them
         ),
     )
