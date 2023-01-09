@@ -279,8 +279,6 @@ function FlamegraphZoomViewMinimap({
   );
 
   useCanvasZoomOrScroll({
-    lastInteraction,
-    configSpaceCursor,
     setConfigSpaceCursor,
     setLastInteraction,
     handleWheel: onWheelCenterZoom,

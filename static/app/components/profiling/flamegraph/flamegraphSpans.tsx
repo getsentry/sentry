@@ -189,8 +189,6 @@ export function FlamegraphSpans({
   const onCanvasScroll = useCanvasScroll(spansCanvas, spansView, canvasPoolManager);
 
   useCanvasZoomOrScroll({
-    lastInteraction,
-    configSpaceCursor,
     setConfigSpaceCursor,
     setLastInteraction,
     handleWheel: onWheelCenterZoom,
