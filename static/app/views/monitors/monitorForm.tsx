@@ -1,7 +1,8 @@
 import {Component, Fragment} from 'react';
+import styled from '@emotion/styled';
 import {Observer} from 'mobx-react';
 
-import Field from 'sentry/components/forms/field';
+import FieldGroup from 'sentry/components/forms/fieldGroup';
 import NumberField from 'sentry/components/forms/fields/numberField';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import TextField from 'sentry/components/forms/fields/textField';
@@ -134,11 +135,11 @@ class MonitorForm extends Component<Props> {
 
           <PanelBody>
             {monitor && (
-              <Field label={t('ID')}>
+              <FieldGroup label={t('ID')}>
                 <div className="controls">
                   <TextCopyInput>{monitor.id}</TextCopyInput>
                 </div>
-              </Field>
+              </FieldGroup>
             )}
             <SelectField
               name="project"
@@ -208,24 +209,30 @@ class MonitorForm extends Component<Props> {
                   case 'interval':
                     return (
                       <Fragment>
-                        <NumberField
-                          name="config.schedule.frequency"
-                          label={t('Frequency')}
-                          placeholder="e.g. 1"
-                          help={t(
-                            'The amount of intervals that pass between executions of the cron job.'
-                          )}
-                          required
-                        />
-                        <SelectField
-                          name="config.schedule.interval"
-                          label={t('Interval')}
-                          options={INTERVALS}
-                          help={t(
-                            'The interval on which the frequency will be applied. 1 time every X amount of (minutes, hours, days)'
-                          )}
-                          required
-                        />
+                        <CombinedField>
+                          <FieldGroup
+                            label={t('Frequency')}
+                            help={t(
+                              'The amount of time between each job execution. Example, every 5 hours.'
+                            )}
+                            stacked
+                            required
+                          />
+                          <StyledNumberField
+                            name="config.schedule.frequency"
+                            label={t('Frequency')}
+                            placeholder="e.g. 1"
+                            hideLabel
+                            required
+                          />
+                          <StyledSelectField
+                            name="config.schedule.interval"
+                            label={t('Interval')}
+                            options={INTERVALS}
+                            hideLabel
+                            required
+                          />
+                        </CombinedField>
                         <NumberField
                           name="config.checkin_margin"
                           label={t('Check-in Margin')}
@@ -247,5 +254,21 @@ class MonitorForm extends Component<Props> {
     );
   }
 }
+
+const CombinedField = styled('div')`
+  display: grid;
+  grid-template-columns: 50% 1fr 1fr;
+  align-items: center;
+  border-bottom: 1px solid ${p => p.theme.innerBorder};
+`;
+
+const StyledNumberField = styled(NumberField)`
+  padding: 0;
+  border-bottom: none;
+`;
+
+const StyledSelectField = styled(SelectField)`
+  padding-left: 0;
+`;
 
 export default withPageFilters(withProjects(MonitorForm));

@@ -1,4 +1,3 @@
-import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -17,6 +16,7 @@ import FileSize from 'sentry/components/fileSize';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {TransactionProfileIdProvider} from 'sentry/components/profiling/transactionProfileIdProvider';
 import {TransactionToProfileButton} from 'sentry/components/profiling/transactionToProfileButton';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {TagsTable} from 'sentry/components/tagsTable';
@@ -152,7 +152,10 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
       results?: QuickTraceQueryChildrenProps,
       metaResults?: TraceMetaQueryChildrenProps
     ) => (
-      <Fragment>
+      <TransactionProfileIdProvider
+        transactionId={event.type === 'transaction' ? event.id : undefined}
+        timestamp={event.dateReceived}
+      >
         <Layout.Header>
           <Layout.HeaderContent>
             <DiscoverBreadcrumb
@@ -186,11 +189,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                 {t('JSON')} (<FileSize bytes={event.size} />)
               </Button>
               {hasProfilingFeature && event.type === 'transaction' && (
-                <TransactionToProfileButton
-                  orgId={organization.slug}
-                  projectId={this.projectId}
-                  transactionId={event.eventID}
-                />
+                <TransactionToProfileButton projectSlug={this.projectId} />
               )}
               {transactionSummaryTarget && (
                 <Feature organization={organization} features={['performance-view']}>
@@ -281,7 +280,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
             </Layout.Side>
           )}
         </Layout.Body>
-      </Fragment>
+      </TransactionProfileIdProvider>
     );
 
     const hasQuickTraceView = organization.features.includes('performance-view');

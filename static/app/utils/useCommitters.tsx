@@ -20,13 +20,14 @@ const makeCommittersQueryKey = (
 
 function useCommitters(
   {eventId, projectSlug}: UseCommittersProps,
-  options: UseQueryOptions<CommittersResponse> = {}
+  options: Partial<UseQueryOptions<CommittersResponse>> = {}
 ) {
   const org = useOrganization();
   return useQuery<CommittersResponse>(
     makeCommittersQueryKey(org.slug, projectSlug, eventId),
     {
       staleTime: Infinity,
+      retry: false,
       ...options,
     }
   );

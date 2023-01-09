@@ -179,6 +179,10 @@ class QueryBuilder(BaseQueryBuilder):
         has_metrics: bool = False,
         transform_alias_to_input_format: bool = False,
         use_metrics_layer: bool = False,
+        # This skips converting tags back to their non-prefixed versions when processing the results
+        # Currently this is only used for avoiding conflicting values when doing the first query
+        # of a top events request
+        skip_tag_resolution: bool = False,
     ):
         self.dataset = dataset
 
@@ -218,6 +222,13 @@ class QueryBuilder(BaseQueryBuilder):
         self.value_resolver_map: Dict[str, Callable[[Any], Any]] = {}
         # value_resolver_map may change type
         self.meta_resolver_map: Dict[str, str] = {}
+
+        # These maps let us convert from prefixed to original tag keys
+        # and vice versa to avoid collisions where tags and functions have
+        # similar aliases
+        self.prefixed_to_tag_map: Dict[str, str] = {}
+        self.tag_to_prefixed_map: Dict[str, str] = {}
+        self.skip_tag_resolution = skip_tag_resolution
 
         self.auto_aggregations = auto_aggregations
         self.limit = self.resolve_limit(limit)
@@ -264,7 +275,15 @@ class QueryBuilder(BaseQueryBuilder):
     def resolve_column_name(self, col: str) -> str:
         # TODO when utils/snuba.py becomes typed don't need this extra annotation
         column_resolver: Callable[[str], str] = resolve_column(self.dataset)
-        return column_resolver(col)
+        column_name = column_resolver(col)
+
+        # If the original column was passed in as tag[X], then there won't be a conflict
+        # and there's no need to prefix the tag
+        if not col.startswith("tags[") and column_name.startswith("tags["):
+            self.prefixed_to_tag_map[f"tags_{col}"] = col
+            self.tag_to_prefixed_map[col] = f"tags_{col}"
+
+        return column_name
 
     def resolve_query(
         self,
@@ -803,6 +822,7 @@ class QueryBuilder(BaseQueryBuilder):
         resolved_orderby: Union[str, SelectType, None]
         for orderby in orderby_columns:
             bare_orderby = orderby.lstrip("-")
+            bare_orderby = self.tag_to_prefixed_map.get(bare_orderby, bare_orderby)
             try:
                 # Allow ordering equations with the calculated alias (ie. equation[0])
                 if is_equation_alias(bare_orderby):
@@ -829,7 +849,6 @@ class QueryBuilder(BaseQueryBuilder):
                 if isinstance(selected_column, Column) and selected_column == resolved_orderby:
                     validated.append(OrderBy(selected_column, direction))
                     break
-
                 elif (
                     isinstance(selected_column, AliasedExpression)
                     and selected_column.alias == bare_orderby
@@ -1063,7 +1082,7 @@ class QueryBuilder(BaseQueryBuilder):
         # If the expected aliases differs from the resolved snuba column,
         # make sure to alias the expression appropriately so we get back
         # the column with the correct names.
-        return AliasedExpression(column, name)
+        return AliasedExpression(column, self.tag_to_prefixed_map.get(name, name))
 
     def column(self, name: str) -> Column:
         """Given an unresolved sentry name and return a snql column.
@@ -1426,12 +1445,14 @@ class QueryBuilder(BaseQueryBuilder):
                 for value in results["meta"]:
                     name = value["name"]
                     key = translated_columns.get(name, name)
+                    key = self.prefixed_to_tag_map.get(key, key)
                     field_type = fields.get_json_meta_type(key, value.get("type"), self)
                     field_meta[key] = field_type
                 # Ensure all columns in the result have types.
                 if results["data"]:
                     for key in results["data"][0]:
                         field_key = translated_columns.get(key, key)
+                        field_key = self.prefixed_to_tag_map.get(field_key, field_key)
                         if field_key not in field_meta:
                             field_meta[field_key] = "string"
 
@@ -1439,8 +1460,6 @@ class QueryBuilder(BaseQueryBuilder):
             def get_row(row: Dict[str, Any]) -> Dict[str, Any]:
                 transformed = {}
                 for key, value in row.items():
-                    new_key = translated_columns.get(key, key)
-
                     if isinstance(value, float):
                         # 0 for nan, and none for inf were chosen arbitrarily, nan and inf are invalid json
                         # so needed to pick something valid to use instead
@@ -1448,12 +1467,15 @@ class QueryBuilder(BaseQueryBuilder):
                             value = 0
                         elif math.isinf(value):
                             value = None
-                    if new_key in self.value_resolver_map:
-                        new_value = self.value_resolver_map[new_key](value)
+                    if key in self.value_resolver_map:
+                        new_value = self.value_resolver_map[key](value)
                     else:
                         new_value = value
 
-                    transformed[new_key] = new_value
+                    resolved_key = translated_columns.get(key, key)
+                    if not self.skip_tag_resolution:
+                        resolved_key = self.prefixed_to_tag_map.get(resolved_key, resolved_key)
+                    transformed[resolved_key] = new_value
 
                 return transformed
 
@@ -1493,6 +1515,7 @@ class TimeseriesQueryBuilder(UnresolvedQuery):
         functions_acl: Optional[List[str]] = None,
         limit: Optional[int] = 10000,
         has_metrics: bool = False,
+        skip_tag_resolution: bool = False,
     ):
         super().__init__(
             dataset,
@@ -1504,6 +1527,7 @@ class TimeseriesQueryBuilder(UnresolvedQuery):
             functions_acl=functions_acl,
             equation_config={"auto_add": True, "aggregates_only": True},
             has_metrics=has_metrics,
+            skip_tag_resolution=skip_tag_resolution,
         )
 
         self.granularity = Granularity(interval)
@@ -1609,6 +1633,7 @@ class TopEventsQueryBuilder(TimeseriesQueryBuilder):
         equations: Optional[List[str]] = None,
         functions_acl: Optional[List[str]] = None,
         limit: Optional[int] = 10000,
+        skip_tag_resolution: bool = False,
     ):
         selected_columns = [] if selected_columns is None else selected_columns
         timeseries_columns = [] if timeseries_columns is None else timeseries_columns
@@ -1623,9 +1648,11 @@ class TopEventsQueryBuilder(TimeseriesQueryBuilder):
             equations=list(set(equations + timeseries_equations)),
             functions_acl=functions_acl,
             limit=limit,
+            skip_tag_resolution=skip_tag_resolution,
         )
 
         self.fields: List[str] = selected_columns if selected_columns is not None else []
+        self.fields = [self.tag_to_prefixed_map.get(c, c) for c in selected_columns]
 
         if (conditions := self.resolve_top_event_conditions(top_events, other)) is not None:
             self.where.append(conditions)
@@ -1674,7 +1701,7 @@ class TopEventsQueryBuilder(TimeseriesQueryBuilder):
                 self.where.append(Condition(self.column("project_id"), Op.IN, projects))
                 continue
 
-            resolved_field = self.resolve_column(field)
+            resolved_field = self.resolve_column(self.prefixed_to_tag_map.get(field, field))
 
             values: Set[Any] = set()
             for event in top_events:

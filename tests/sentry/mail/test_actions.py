@@ -90,7 +90,7 @@ class NotifyEmailFormTest(TestCase):
         # FallthroughChoice is only set for ActionTargetType.ISSUE_OWNERS
         form = self.form_from_values(
             ActionTargetType.TEAM.value,
-            fallthroughChoice=FallthroughChoiceType.ADMIN_OR_RECENT.value,
+            fallthroughChoice=FallthroughChoiceType.ACTIVE_MEMBERS.value,
         )
         assert not form.is_valid()
 
@@ -186,7 +186,6 @@ class NotifyEmailTest(RuleTestCase):
             "fallthroughType": "AllMembers",
         }
         condition_data = {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}
-
         Rule.objects.filter(project=event.project).delete()
         Rule.objects.create(
             project=event.project, data={"conditions": [condition_data], "actions": [action_data]}
@@ -206,7 +205,44 @@ class NotifyEmailTest(RuleTestCase):
         assert sent.to == [self.user.email]
         assert "uh oh" in sent.subject
 
-    @with_feature("organizations:performance-issues-post-process-group")
+    @with_feature("organizations:issue-alert-fallback-targeting")
+    def test_full_integration_fallthrough_not_provided(self):
+        one_min_ago = iso_format(before_now(minutes=1))
+        event = self.store_event(
+            data={
+                "message": "hello",
+                "exception": {"type": "Foo", "value": "uh oh"},
+                "level": "error",
+                "timestamp": one_min_ago,
+            },
+            project_id=self.project.id,
+            assert_no_errors=False,
+        )
+        action_data = {
+            "id": "sentry.mail.actions.NotifyEmailAction",
+            "targetType": "IssueOwners",
+        }
+        condition_data = {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}
+        Rule.objects.filter(project=event.project).delete()
+        Rule.objects.create(
+            project=event.project, data={"conditions": [condition_data], "actions": [action_data]}
+        )
+
+        with self.tasks():
+            post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=False,
+                cache_key=write_event_to_cache(event),
+                group_id=event.group_id,
+            )
+
+        # See that the ActiveMembers default results in notifications still being sent
+        assert len(mail.outbox) == 1
+        sent = mail.outbox[0]
+        assert sent.to == [self.user.email]
+        assert "uh oh" in sent.subject
+
     def test_full_integration_performance(self):
         event_data = load_data(
             "transaction",
@@ -309,3 +345,23 @@ class NotifyEmailTest(RuleTestCase):
         assert sent_out_to == sorted([self.user.email, gil_workflow.email, dan_workflow.email])
         for x in [out.subject for out in mail.outbox]:
             assert "uh oh" in x
+
+    @with_feature("organizations:issue-alert-fallback-targeting")
+    def test_render_label_fallback_none(self):
+        # Check that the label defaults to ActiveMembers
+        rule = self.get_rule(data={"targetType": ActionTargetType.ISSUE_OWNERS.value})
+        assert (
+            rule.render_label()
+            == "Send a notification to IssueOwners and if none can be found then send a notification to ActiveMembers"
+        )
+
+        rule = self.get_rule(
+            data={
+                "targetType": ActionTargetType.ISSUE_OWNERS.value,
+                "fallthroughType": FallthroughChoiceType.ALL_MEMBERS.value,
+            }
+        )
+        assert (
+            rule.render_label()
+            == "Send a notification to IssueOwners and if none can be found then send a notification to AllMembers"
+        )

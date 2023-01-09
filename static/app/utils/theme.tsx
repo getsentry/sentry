@@ -119,14 +119,14 @@ export const darkColors = {
 };
 
 const lightShadows = {
-  dropShadowLightest: '0 0 2px rgba(43, 34, 51, 0.04)',
-  dropShadowLight: '0 1px 4px rgba(43, 34, 51, 0.04)',
+  dropShadowLight: '0 0 1px rgba(43, 34, 51, 0.04)',
+  dropShadowMedium: '0 1px 2px rgba(43, 34, 51, 0.04)',
   dropShadowHeavy: '0 4px 24px rgba(43, 34, 51, 0.12)',
 };
 
 const darkShadows = {
-  dropShadowLightest: '0 0 2px rgba(10, 8, 12, 0.2)',
-  dropShadowLight: '0 1px 4px rgba(10, 8, 12, 0.2)',
+  dropShadowLight: '0 0 1px rgba(10, 8, 12, 0.2)',
+  dropShadowMedium: '0 1px 2px rgba(10, 8, 12, 0.2)',
   dropShadowHeavy: '0 4px 24px rgba(10, 8, 12, 0.36)',
 };
 
@@ -267,11 +267,6 @@ const generateAliases = (colors: BaseColors) => ({
    * Default form text color
    */
   formText: colors.gray400,
-
-  /**
-   * Form input border
-   */
-  formInputBorder: colors.gray200,
 
   /**
    *
@@ -560,17 +555,6 @@ const generateButtonTheme = (colors: BaseColors, alias: Aliases) => ({
     borderTranslucent: alias.translucentInnerBorder,
     focusBorder: 'transparent',
     focusShadow: 'transparent',
-  },
-  form: {
-    color: alias.textColor,
-    colorActive: alias.textColor,
-    background: alias.background,
-    backgroundActive: alias.hover,
-    border: alias.formInputBorder,
-    borderActive: alias.formInputBorder,
-    borderTranslucent: alias.translucentBorder,
-    focusBorder: alias.focusBorder,
-    focusShadow: alias.focus,
   },
 });
 
@@ -904,7 +888,8 @@ export const darkTheme: Theme = {
   sidebarBorder: darkAliases.border,
 };
 
-export type Theme = typeof lightTheme;
+type Theme = typeof lightTheme;
+
 export type Color = keyof typeof lightColors;
 export type Aliases = typeof lightAliases;
 export type ColorOrAlias = keyof Aliases | Color;
@@ -913,14 +898,15 @@ export type FormSize = keyof Theme['form'];
 
 export default commonTheme;
 
-type MyTheme = Theme;
+// Be clear about what the [@emotion/React].THeme is extending
+type SentryTheme = Theme;
 
 /**
  * Configure Emotion to use our theme
  */
 declare module '@emotion/react' {
   // eslint-disable-next-line @typescript-eslint/no-shadow
-  export interface Theme extends MyTheme {}
+  export interface Theme extends SentryTheme {}
 }
 
 // This should never be used directly (except in storybook)

@@ -25,18 +25,16 @@ class SelectedFrameRenderer {
     for (let i = 0; i < frames.length; i++) {
       const frameInPhysicalSpace = frames[i].transformRect(configViewToPhysicalSpace);
 
-      // We draw the border in the center of the flamegraph, so we need to increase
-      // the width by border width and negatively offset it by half the border width
-      const borderRect = frameInPhysicalSpace
-        .withWidth(frameInPhysicalSpace.width - style.BORDER_WIDTH * 2)
-        .withHeight(frameInPhysicalSpace.height - style.BORDER_WIDTH * 2)
-        .translate(
-          frameInPhysicalSpace.x + style.BORDER_WIDTH / 2,
-          frameInPhysicalSpace.y + style.BORDER_WIDTH / 2
-        );
-
       context.beginPath();
-      context.strokeRect(borderRect.x, borderRect.y, borderRect.width, borderRect.height);
+
+      // We draw the border in the center of the flamegraph, so we need to decrease
+      // the width by border width and negatively offset it by half the border width
+      context.strokeRect(
+        frameInPhysicalSpace.x + style.BORDER_WIDTH,
+        frameInPhysicalSpace.y + style.BORDER_WIDTH,
+        frameInPhysicalSpace.width - style.BORDER_WIDTH * 2,
+        frameInPhysicalSpace.height - style.BORDER_WIDTH * 2
+      );
     }
   }
 }

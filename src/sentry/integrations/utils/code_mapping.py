@@ -13,7 +13,7 @@ logger.setLevel(logging.INFO)
 # Read this to learn about file extensions for different languages
 # https://github.com/github/linguist/blob/master/lib/linguist/languages.yml
 # We only care about the ones that would show up in stacktraces after symbolication
-EXTENSIONS = ["js", "jsx", "tsx", "ts", "mjs", "py", "rb", "php", "go"]
+EXTENSIONS = ["js", "jsx", "tsx", "ts", "mjs", "py", "rb", "rake", "php", "go"]
 
 
 class Repo(NamedTuple):
@@ -297,10 +297,12 @@ class CodeMappingTreesHelper:
         if len(matched_files) != 1:
             return []
 
-        stacktrace_root, source_path = self._normalized_stack_and_source_roots(
-            f"{frame_filename.root}/",
-            self._get_code_mapping_source_path(matched_files[0], frame_filename),
-        )
+        stacktrace_root = f"{frame_filename.root}/"
+        source_path = self._get_code_mapping_source_path(matched_files[0], frame_filename)
+        if frame_filename.frame_type() != "packaged":
+            stacktrace_root, source_path = self._normalized_stack_and_source_roots(
+                stacktrace_root, source_path
+            )
         # It is too risky generating code mappings when there's more
         # than one file potentially matching
         return [

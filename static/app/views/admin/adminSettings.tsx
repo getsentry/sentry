@@ -17,16 +17,14 @@ const optionsAvailable = [
   'auth.user-rate-limit',
   'api.rate-limit.org-create',
   'beacon.anonymous',
-  'performance.issues.all.problem-detection',
-  'performance.issues.all.problem-creation',
-  'performance.issues.all.early-adopter-rollout',
-  'performance.issues.all.general-availability-rollout',
-  'performance.issues.all.post-process-group-early-adopter-rollout',
-  'performance.issues.all.post-process-group-ga-rollout',
   'performance.issues.n_plus_one_db.problem-creation',
   'performance.issues.n_plus_one_db_ext.problem-creation',
   'performance.issues.n_plus_one_db.count_threshold',
   'performance.issues.n_plus_one_db.duration_threshold',
+  'performance.issues.n_plus_one_api_calls.problem-creation',
+  'performance.issues.n_plus_one_api_calls.la-rollout',
+  'performance.issues.n_plus_one_api_calls.ea-rollout',
+  'performance.issues.n_plus_one_api_calls.ga-rollout',
 ];
 
 type Field = ReturnType<typeof getOption>;
@@ -101,20 +99,18 @@ export default class AdminSettings extends AsyncView<{}, State> {
 
           <Feature features={['organizations:performance-issues-dev']}>
             <Panel>
-              <PanelHeader>Performance Issues - All</PanelHeader>
-              {fields['performance.issues.all.problem-detection']}
-              {fields['performance.issues.all.problem-creation']}
-              {fields['performance.issues.all.early-adopter-rollout']}
-              {fields['performance.issues.all.general-availability-rollout']}
-              {fields['performance.issues.all.post-process-group-early-adopter-rollout']}
-              {fields['performance.issues.all.post-process-group-ga-rollout']}
-            </Panel>
-            <Panel>
               <PanelHeader>Performance Issues - Detectors</PanelHeader>
               {fields['performance.issues.n_plus_one_db.problem-creation']}
               {fields['performance.issues.n_plus_one_db_ext.problem-creation']}
               {fields['performance.issues.n_plus_one_db.count_threshold']}
               {fields['performance.issues.n_plus_one_db.duration_threshold']}
+            </Panel>
+            <Panel>
+              <PanelHeader>Performance Issues - N+1 API Calls Detector</PanelHeader>
+              {fields['performance.issues.n_plus_one_api_calls.problem-creation']}
+              {fields['performance.issues.n_plus_one_api_calls.la-rollout']}
+              {fields['performance.issues.n_plus_one_api_calls.ea-rollout']}
+              {fields['performance.issues.n_plus_one_api_calls.ga-rollout']}
             </Panel>
           </Feature>
         </Form>

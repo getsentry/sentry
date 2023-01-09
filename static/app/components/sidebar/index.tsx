@@ -40,7 +40,7 @@ import {getDiscoverLandingUrl} from 'sentry/utils/discover/urls';
 import theme from 'sentry/utils/theme';
 import useMedia from 'sentry/utils/useMedia';
 
-import {ProfilingOnboardingSidebar} from '../profiling/ProfilingOnboarding/proflingOnboardingSidebar';
+import {ProfilingOnboardingSidebar} from '../profiling/ProfilingOnboarding/profilingOnboardingSidebar';
 
 import Broadcasts from './broadcasts';
 import SidebarHelp from './help';
@@ -235,8 +235,8 @@ function Sidebar({location, organization}: Props) {
         {...sidebarItemProps}
         icon={<IconTimer size="md" />}
         label={t('Crons')}
-        to={`/organizations/${organization.slug}/monitors/`}
-        id="monitors"
+        to={`/organizations/${organization.slug}/crons/`}
+        id="crons"
         isBeta
       />
     </Feature>

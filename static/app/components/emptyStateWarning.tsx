@@ -26,7 +26,7 @@ const EmptyStateWarning = ({
     </EmptyMessage>
   ) : (
     <EmptyStreamWrapper data-test-id="empty-state" className={className}>
-      {withIcon && <IconSearch size="54px" />}
+      {withIcon && <IconSearch legacySize="54px" />}
       {children}
     </EmptyStreamWrapper>
   );

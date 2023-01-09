@@ -1,9 +1,20 @@
-import {Component} from 'react';
+import React, {Component, useEffect, useRef} from 'react';
+import {
+  AutoSizer,
+  CellMeasurer,
+  CellMeasurerCache,
+  List as ReactVirtualizedList,
+  ListRowProps,
+  OverscanIndicesGetterParams,
+  WindowScroller,
+} from 'react-virtualized';
 import styled from '@emotion/styled';
 import {withProfiler} from '@sentry/react';
+import differenceWith from 'lodash/differenceWith';
 import isEqual from 'lodash/isEqual';
+import throttle from 'lodash/throttle';
 
-import {SpanBarType} from 'sentry/components/performance/waterfall/constants';
+import {ROW_HEIGHT, SpanBarType} from 'sentry/components/performance/waterfall/constants';
 import {MessageRow} from 'sentry/components/performance/waterfall/messageRow';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {t, tct} from 'sentry/locale';
@@ -11,8 +22,10 @@ import {Organization} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 
 import {DragManagerChildrenProps} from './dragManager';
+import {ActiveOperationFilter} from './filter';
 import {ScrollbarManagerChildrenProps, withScrollbarManager} from './scrollbarManager';
 import {ProfiledSpanBar} from './spanBar';
+import * as SpanContext from './spanContext';
 import {SpanDescendantGroupBar} from './spanDescendantGroupBar';
 import SpanSiblingGroupBar from './spanSiblingGroupBar';
 import {
@@ -21,24 +34,125 @@ import {
   FilterSpans,
   GroupType,
   ParsedTraceType,
+  SpanTreeNode,
+  SpanTreeNodeType,
   SpanType,
 } from './types';
-import {getSpanID, getSpanOperation, setSpansOnTransaction} from './utils';
+import {
+  getSpanID,
+  getSpanOperation,
+  isGapSpan,
+  setSpansOnTransaction,
+  spanTargetHash,
+} from './utils';
 import WaterfallModel from './waterfallModel';
 
 type PropType = ScrollbarManagerChildrenProps & {
   dragProps: DragManagerChildrenProps;
   filterSpans: FilterSpans | undefined;
+  operationNameFilters: ActiveOperationFilter;
   organization: Organization;
+  spanContextProps: SpanContext.SpanContextProps;
   spans: EnhancedProcessedSpanType[];
+  traceViewHeaderRef: React.RefObject<HTMLDivElement>;
   traceViewRef: React.RefObject<HTMLDivElement>;
   waterfallModel: WaterfallModel;
   focusedSpanIds?: Set<string>;
 };
 
+type StateType = {
+  headerPos: number;
+  spanRows: Record<string, {spanRow: React.RefObject<HTMLDivElement>; treeDepth: number}>;
+};
+
+const listRef = React.createRef<ReactVirtualizedList>();
+
 class SpanTree extends Component<PropType> {
+  state: StateType = {
+    headerPos: 0,
+    // Stores each visible span row ref along with its tree depth. This is used to calculate the
+    // horizontal auto-scroll positioning
+    spanRows: {},
+  };
+
   componentDidMount() {
     setSpansOnTransaction(this.props.spans.length);
+
+    if (location.hash) {
+      const {spans} = this.props;
+
+      // This reducer searches for the index of the anchored span.
+      // It's possible that one of the spans within an autogroup is anchored, so we need to search
+      // for the index within the autogroupings as well.
+      const {finalIndex, isIndexFound} = spans.reduce(
+        (
+          acc: {
+            finalIndex: number;
+            isIndexFound: boolean;
+          },
+          span,
+          currIndex
+        ) => {
+          if ('type' in span.span || acc.isIndexFound) {
+            return acc;
+          }
+
+          if (spanTargetHash(span.span.span_id) === location.hash) {
+            acc.finalIndex = currIndex;
+            acc.isIndexFound = true;
+          }
+
+          if (span.type === 'span_group_siblings') {
+            if (!span.spanSiblingGrouping) {
+              return acc;
+            }
+
+            const indexWithinGroup = span.spanSiblingGrouping.findIndex(
+              s => spanTargetHash(s.span.span_id) === location.hash
+            );
+
+            if (indexWithinGroup === -1) {
+              return acc;
+            }
+
+            acc.finalIndex = currIndex + indexWithinGroup;
+            acc.isIndexFound = true;
+            return acc;
+          }
+
+          if (span.type === 'span_group_chain') {
+            if (!span.spanNestedGrouping) {
+              return acc;
+            }
+
+            const indexWithinGroup = span.spanNestedGrouping.findIndex(
+              s => spanTargetHash(s.span.span_id) === location.hash
+            );
+
+            if (indexWithinGroup === -1) {
+              return acc;
+            }
+
+            acc.finalIndex = currIndex + indexWithinGroup;
+            acc.isIndexFound = true;
+            return acc;
+          }
+
+          return acc;
+        },
+        {finalIndex: -1, isIndexFound: false}
+      );
+
+      if (!isIndexFound) {
+        return;
+      }
+
+      // This is just an estimate of where the anchored span is located. We can't get its precise location here, since
+      // we need it to mount and use its boundingbox to determine that, but since the list is virtualized, there's no guarantee that
+      // this span is mounted initially. The actual scroll positioning will be determined within the SpanBar instance that is anchored,
+      // since this scroll estimation will allow that span to mount
+      window.scrollTo(0, window.scrollY + ROW_HEIGHT * finalIndex);
+    }
   }
 
   shouldComponentUpdate(nextProps: PropType) {
@@ -62,22 +176,124 @@ class SpanTree extends Component<PropType> {
   }
 
   componentDidUpdate(prevProps: PropType) {
+    // If the filters or minimap drag props have changed, we can't pinpoint the exact
+    // spans that we need to recalculate the heights for, so recompute them all
     if (
       !isEqual(prevProps.filterSpans, this.props.filterSpans) ||
-      !isEqual(prevProps.spans, this.props.spans)
+      !isEqual(prevProps.dragProps, this.props.dragProps) ||
+      !isEqual(prevProps.operationNameFilters, this.props.operationNameFilters)
     ) {
-      // Update horizontal scroll states after a search has been performed or if
-      // if the spans has changed
-      this.props.updateScrollState();
+      this.cache.clearAll();
+      listRef.current?.recomputeRowHeights();
+      return;
+    }
+
+    // When the spans change, we can be more efficient with recomputing heights.
+    // Measuring cells is an expensive operation, so efficiency here is key.
+    // We will look specifically at the cells that need to have their heights recalculated, and clear
+    // their respective slots in the cache.
+    if (prevProps.spans.length !== this.props.spans.length) {
+      // If there are filters applied, it's difficult to find the exact positioning of the spans that
+      // changed. It's easier to just clear the cache instead
+      if (this.props.operationNameFilters) {
+        this.cache.clearAll();
+        listRef.current?.recomputeRowHeights();
+        return;
+      }
+      // When the structure of the span tree is changed in an update, this can be due to the following reasons:
+      // - A subtree was collapsed or expanded
+      // - An autogroup was collapsed or expanded
+      // - An embedded transaction was collapsed or expanded
+
+      // Notice how in each case, there are two subcases: collapsing and expanding
+      // In the collapse case, spans are *removed* from the tree, whereas expansion *adds* spans to the tree
+      // We will have to determine which of these cases occurred, and then use that info to determine which specific cells
+      // need to be recomputed.
+
+      const comparator = (
+        span1: EnhancedProcessedSpanType,
+        span2: EnhancedProcessedSpanType
+      ) => {
+        if (isGapSpan(span1.span) || isGapSpan(span2.span)) {
+          return isEqual(span1.span, span2.span);
+        }
+
+        return span1.span.span_id === span2.span.span_id;
+      };
+
+      // Case 1: Spans were removed due to a subtree or group collapsing
+      if (prevProps.spans.length > this.props.spans.length) {
+        // diffLeft will tell us all spans that have been removed in this update.
+        const diffLeft = new Set(
+          differenceWith(prevProps.spans, this.props.spans, comparator)
+        );
+
+        prevProps.spans.forEach((span, index) => {
+          // We only want to clear the cache for spans that are expanded.
+          if (this.props.spanContextProps.isSpanExpanded(span.span)) {
+            this.cache.clear(index, 0);
+          }
+        });
+
+        // This loop will ensure that any expanded spans after the spans which were removed
+        // will have their cache slots cleared, since the new spans which will occupy those slots will not be expanded.
+        this.props.spans.forEach(({span}, index) => {
+          if (this.props.spanContextProps.isSpanExpanded(span)) {
+            // Since spans were removed, the index in the new state is offset by the num of spans removed
+            this.cache.clear(index + diffLeft.size, 0);
+          }
+        });
+      }
+      // Case 2: Spans were added due to a subtree or group expanding
+      else {
+        // diffRight will tell us all spans that have been added in this update.
+        const diffRight = new Set(
+          differenceWith(this.props.spans, prevProps.spans, comparator)
+        );
+
+        prevProps.spans.forEach(({span}, index) => {
+          // We only want to clear the cache for spans that are added.
+          if (this.props.spanContextProps.isSpanExpanded(span)) {
+            this.cache.clear(index, 0);
+          }
+        });
+
+        this.props.spans.forEach(({span}, index) => {
+          if (this.props.spanContextProps.isSpanExpanded(span)) {
+            this.cache.clear(index, 0);
+          }
+        });
+
+        // This loop will ensure that any expanded spans after the spans which were added
+        // will have their cache slots cleared, since the new spans which will occupy those slots will not be expanded.
+        prevProps.spans.forEach((span, index) => {
+          if (
+            !diffRight.has(span) &&
+            this.props.spanContextProps.isSpanExpanded(span.span)
+          ) {
+            // Since spans were removed, the index in the new state is offset by the num of spans removed
+            this.cache.clear(index + diffRight.size, 0);
+          }
+        });
+      }
+
+      listRef.current?.forceUpdateGrid();
     }
   }
+
+  cache = new CellMeasurerCache({
+    fixedWidth: true,
+
+    defaultHeight: ROW_HEIGHT,
+    minHeight: ROW_HEIGHT,
+  });
 
   generateInfoMessage(input: {
     filteredSpansAbove: EnhancedProcessedSpanType[];
     isCurrentSpanFilteredOut: boolean;
     isCurrentSpanHidden: boolean;
     outOfViewSpansAbove: EnhancedProcessedSpanType[];
-  }): React.ReactNode {
+  }): JSX.Element | null {
     const {
       isCurrentSpanHidden,
       outOfViewSpansAbove,
@@ -146,6 +362,10 @@ class SpanTree extends Component<PropType> {
                   {organization}
                 );
                 waterfallModel.expandHiddenSpans(filteredSpansAbove.slice(0));
+
+                // We must clear the cache at this point, since the code in componentDidUpdate is unable to effectively
+                // determine the specific cache slots to clear when hidden spans are expanded
+                this.cache.clearAll();
               }
             : undefined
         }
@@ -175,23 +395,20 @@ class SpanTree extends Component<PropType> {
 
   toggleSpanTree = (spanID: string) => () => {
     this.props.waterfallModel.toggleSpanSubTree(spanID);
-    // Update horizontal scroll states after this subtree was either hidden or
-    // revealed.
-    this.props.updateScrollState();
   };
 
-  render() {
+  generateSpanTree = () => {
     const {
       waterfallModel,
       spans,
       organization,
       dragProps,
       onWheel,
-      generateContentSpanBarRef,
-      markSpanOutOfView,
-      markSpanInView,
+      addContentSpanBarRef,
+      removeContentSpanBarRef,
       storeSpanBar,
     } = this.props;
+
     const generateBounds = waterfallModel.generateBounds({
       viewStart: dragProps.viewWindowStart,
       viewEnd: dragProps.viewWindowEnd,
@@ -201,7 +418,7 @@ class SpanTree extends Component<PropType> {
       filteredSpansAbove: EnhancedProcessedSpanType[];
       outOfViewSpansAbove: EnhancedProcessedSpanType[];
       spanNumber: number;
-      spanTree: React.ReactNode[];
+      spanTree: SpanTreeNode[];
     };
 
     const numOfSpans = spans.reduce((sum: number, payload: EnhancedProcessedSpanType) => {
@@ -248,28 +465,32 @@ class SpanTree extends Component<PropType> {
             outOfViewSpansAbove: acc.outOfViewSpansAbove,
             isCurrentSpanFilteredOut: false,
           });
-          acc.spanTree.push(infoMessage);
+          if (infoMessage) {
+            acc.spanTree.push({type: SpanTreeNodeType.MESSAGE, element: infoMessage});
+          }
         }
 
         const spanNumber = acc.spanNumber;
         const {span, treeDepth, continuingTreeDepths} = payload;
 
         if (payload.type === 'span_group_chain') {
-          acc.spanTree.push(
-            <SpanDescendantGroupBar
-              key={`${spanNumber}-span-group`}
-              event={waterfallModel.event}
-              span={span}
-              generateBounds={generateBounds}
-              treeDepth={treeDepth}
-              continuingTreeDepths={continuingTreeDepths}
-              spanNumber={spanNumber}
-              spanGrouping={payload.spanNestedGrouping as EnhancedSpan[]}
-              toggleSpanGroup={payload.toggleNestedSpanGroup as () => void}
-              onWheel={onWheel}
-              generateContentSpanBarRef={generateContentSpanBarRef}
-            />
-          );
+          acc.spanTree.push({
+            type: SpanTreeNodeType.DESCENDANT_GROUP,
+            props: {
+              event: waterfallModel.event,
+              span,
+              generateBounds,
+              getCurrentLeftPos: this.props.getCurrentLeftPos,
+              treeDepth,
+              continuingTreeDepths,
+              spanNumber,
+              spanGrouping: payload.spanNestedGrouping as EnhancedSpan[],
+              toggleSpanGroup: payload.toggleNestedSpanGroup as () => void,
+              onWheel,
+              addContentSpanBarRef,
+              removeContentSpanBarRef,
+            },
+          });
           acc.spanNumber = spanNumber + 1;
 
           acc.outOfViewSpansAbove = [];
@@ -279,24 +500,27 @@ class SpanTree extends Component<PropType> {
         }
 
         if (payload.type === 'span_group_siblings') {
-          acc.spanTree.push(
-            <SpanSiblingGroupBar
-              key={`${spanNumber}-span-sibling`}
-              event={waterfallModel.event}
-              span={span}
-              generateBounds={generateBounds}
-              treeDepth={treeDepth}
-              continuingTreeDepths={continuingTreeDepths}
-              spanNumber={spanNumber}
-              spanGrouping={payload.spanSiblingGrouping as EnhancedSpan[]}
-              toggleSiblingSpanGroup={payload.toggleSiblingSpanGroup}
-              isLastSibling={payload.isLastSibling ?? false}
-              occurrence={payload.occurrence}
-              onWheel={onWheel}
-              generateContentSpanBarRef={generateContentSpanBarRef}
-              isEmbeddedSpanTree={isEmbeddedSpanTree}
-            />
-          );
+          acc.spanTree.push({
+            type: SpanTreeNodeType.SIBLING_GROUP,
+            props: {
+              event: waterfallModel.event,
+              span,
+              generateBounds,
+              getCurrentLeftPos: this.props.getCurrentLeftPos,
+              treeDepth,
+              continuingTreeDepths,
+              spanNumber,
+              spanGrouping: payload.spanSiblingGrouping as EnhancedSpan[],
+              toggleSiblingSpanGroup: payload.toggleSiblingSpanGroup,
+              isLastSibling: payload.isLastSibling ?? false,
+              occurrence: payload.occurrence,
+              onWheel,
+              addContentSpanBarRef,
+              removeContentSpanBarRef,
+              isEmbeddedSpanTree,
+            },
+          });
+
           acc.spanNumber = spanNumber + 1;
 
           acc.outOfViewSpansAbove = [];
@@ -305,7 +529,6 @@ class SpanTree extends Component<PropType> {
           return acc;
         }
 
-        const key = getSpanID(span, `span-${spanNumber}`);
         const isLast = payload.isLastSibling;
         const isRoot = type === 'root_span';
         const spanBarColor: string = pickBarColor(getSpanOperation(span));
@@ -348,48 +571,40 @@ class SpanTree extends Component<PropType> {
           spanBarType = SpanBarType.AFFECTED;
         }
 
-        acc.spanTree.push(
-          <ProfiledSpanBar
-            key={key}
-            organization={organization}
-            event={waterfallModel.event}
-            spanBarColor={spanBarColor}
-            spanBarType={spanBarType}
-            span={span}
-            showSpanTree={!waterfallModel.hiddenSpanSubTrees.has(getSpanID(span))}
-            numOfSpanChildren={numOfSpanChildren}
-            trace={waterfallModel.parsedTrace}
-            generateBounds={generateBounds}
-            toggleSpanTree={this.toggleSpanTree(getSpanID(span))}
-            treeDepth={treeDepth}
-            continuingTreeDepths={continuingTreeDepths}
-            spanNumber={spanNumber}
-            isLast={isLast}
-            isRoot={isRoot}
-            showEmbeddedChildren={payload.showEmbeddedChildren}
-            toggleEmbeddedChildren={payload.toggleEmbeddedChildren}
-            toggleSiblingSpanGroup={toggleSiblingSpanGroup}
-            fetchEmbeddedChildrenState={payload.fetchEmbeddedChildrenState}
-            toggleSpanGroup={toggleSpanGroup}
-            numOfSpans={numOfSpans}
-            groupType={groupType}
-            groupOccurrence={payload.groupOccurrence}
-            isEmbeddedTransactionTimeAdjusted={payload.isEmbeddedTransactionTimeAdjusted}
-            onWheel={onWheel}
-            generateContentSpanBarRef={generateContentSpanBarRef}
-            markSpanOutOfView={markSpanOutOfView}
-            markSpanInView={markSpanInView}
-            storeSpanBar={storeSpanBar}
-          />
-        );
-
-        // If this is an embedded span tree, we will manually mark these spans as in view.
-        // This is necessary because generally these spans are dependant on intersection observers which will
-        // mark them in view, but these observers are not reliable when the span tree is in a condensed state.
-        // Marking them here will ensure that the horizontally positioning is correctly set when the tree is loaded.
-        if (isAffectedSpan) {
-          markSpanInView(span.span_id, treeDepth);
-        }
+        acc.spanTree.push({
+          type: SpanTreeNodeType.SPAN,
+          props: {
+            organization,
+            event: waterfallModel.event,
+            spanBarColor,
+            spanBarType,
+            span,
+            showSpanTree: !waterfallModel.hiddenSpanSubTrees.has(getSpanID(span)),
+            numOfSpanChildren,
+            trace: waterfallModel.parsedTrace,
+            generateBounds,
+            toggleSpanTree: this.toggleSpanTree(getSpanID(span)),
+            treeDepth,
+            continuingTreeDepths,
+            spanNumber,
+            isLast,
+            isRoot,
+            showEmbeddedChildren: payload.showEmbeddedChildren,
+            toggleEmbeddedChildren: payload.toggleEmbeddedChildren,
+            toggleSiblingSpanGroup,
+            fetchEmbeddedChildrenState: payload.fetchEmbeddedChildrenState,
+            toggleSpanGroup,
+            numOfSpans,
+            groupType,
+            groupOccurrence: payload.groupOccurrence,
+            isEmbeddedTransactionTimeAdjusted: payload.isEmbeddedTransactionTimeAdjusted,
+            onWheel,
+            addContentSpanBarRef,
+            removeContentSpanBarRef,
+            storeSpanBar,
+            getCurrentLeftPos: this.props.getCurrentLeftPos,
+          },
+        });
 
         acc.spanNumber = spanNumber + 1;
         return acc;
@@ -409,14 +624,291 @@ class SpanTree extends Component<PropType> {
       filteredSpansAbove,
     });
 
+    if (infoMessage) {
+      spanTree.push({type: SpanTreeNodeType.MESSAGE, element: infoMessage});
+    }
+
+    return spanTree;
+  };
+
+  renderSpanNode(
+    node: SpanTreeNode,
+    extraProps: {
+      cellMeasurerCache: CellMeasurerCache;
+      listRef: React.RefObject<ReactVirtualizedList>;
+      measure: () => void;
+    } & SpanContext.SpanContextProps
+  ) {
+    switch (node.type) {
+      case SpanTreeNodeType.SPAN:
+        return (
+          <ProfiledSpanBar
+            key={getSpanID(node.props.span, `span-${node.props.spanNumber}`)}
+            {...node.props}
+            {...extraProps}
+          />
+        );
+      case SpanTreeNodeType.DESCENDANT_GROUP:
+        return (
+          <SpanDescendantGroupBar
+            key={`${node.props.spanNumber}-span-group`}
+            {...node.props}
+            didAnchoredSpanMount={extraProps.didAnchoredSpanMount}
+          />
+        );
+      case SpanTreeNodeType.SIBLING_GROUP:
+        return (
+          <SpanSiblingGroupBar
+            key={`${node.props.spanNumber}-span-sibling`}
+            {...node.props}
+            didAnchoredSpanMount={extraProps.didAnchoredSpanMount}
+          />
+        );
+      case SpanTreeNodeType.MESSAGE:
+        return node.element;
+      default:
+        return null;
+    }
+  }
+
+  renderRow(props: ListRowProps, spanTree: SpanTreeNode[]) {
+    return (
+      <SpanRow
+        {...props}
+        spanTree={spanTree}
+        spanContextProps={this.props.spanContextProps}
+        cache={this.cache}
+        addSpanRowToState={this.addSpanRowToState}
+        removeSpanRowFromState={this.removeSpanRowFromState}
+      />
+    );
+  }
+
+  // Overscan is necessary to ensure a smooth horizontal autoscrolling experience.
+  // This function will allow the spanTree to mount spans which are not immediately visible
+  // in the view. If they are mounted too late, the horizontal autoscroll will look super glitchy
+  overscanIndicesGetter(params: OverscanIndicesGetterParams) {
+    const {startIndex, stopIndex, overscanCellsCount, cellCount} = params;
+    return {
+      overscanStartIndex: Math.max(0, startIndex - overscanCellsCount),
+      overscanStopIndex: Math.min(cellCount - 1, stopIndex + overscanCellsCount),
+    };
+  }
+
+  addSpanRowToState = (
+    spanId: string,
+    spanRow: React.RefObject<HTMLDivElement>,
+    treeDepth: number
+  ) => {
+    this.setState((prevState: StateType) => {
+      const newSpanRows = {...prevState.spanRows};
+      newSpanRows[spanId] = {spanRow, treeDepth};
+
+      return {spanRows: newSpanRows};
+    });
+  };
+
+  removeSpanRowFromState = (spanId: string) => {
+    this.setState((prevState: StateType) => {
+      const newSpanRows = {...prevState.spanRows};
+      delete newSpanRows[spanId];
+      return {spanRows: newSpanRows};
+    });
+  };
+
+  isSpanRowVisible = (spanRow: React.RefObject<HTMLDivElement>) => {
+    const {traceViewHeaderRef} = this.props;
+
+    if (!spanRow.current || !traceViewHeaderRef.current) {
+      return false;
+    }
+
+    const headerBottom = traceViewHeaderRef.current?.getBoundingClientRect().bottom;
+    const viewportBottom = window.innerHeight || document.documentElement.clientHeight;
+    const {bottom, top} = spanRow.current.getBoundingClientRect();
+
+    // We determine if a span row is visible if it is above the viewport bottom boundary, below the header, and also below the top of the viewport
+    return bottom < viewportBottom && bottom > headerBottom && top > 0;
+  };
+
+  throttledOnScroll = throttle(
+    () => {
+      const spanRowsArray = Object.values(this.state.spanRows);
+      const {depthSum, visibleSpanCount, isRootSpanVisible} = spanRowsArray.reduce(
+        (acc, {spanRow, treeDepth}) => {
+          if (!spanRow.current || !this.isSpanRowVisible(spanRow)) {
+            return acc;
+          }
+
+          if (treeDepth === 0) {
+            acc.isRootSpanVisible = true;
+          }
+
+          acc.depthSum += treeDepth;
+          acc.visibleSpanCount += 1;
+
+          return acc;
+        },
+        {
+          depthSum: 0,
+          visibleSpanCount: 0,
+          isRootSpanVisible: false,
+        }
+      );
+
+      // If the root is visible, we do not want to shift the view around so just pass 0 instead of the average
+      const averageDepth =
+        isRootSpanVisible || visibleSpanCount === 0
+          ? 0
+          : Math.round(depthSum / visibleSpanCount);
+
+      this.props.updateHorizontalScrollState(averageDepth);
+    },
+    500,
+    {trailing: true}
+  );
+
+  render() {
+    const spanTree = this.generateSpanTree();
+    const infoMessage = spanTree[spanTree.length - 1];
+    if (!infoMessage) {
+      spanTree.pop();
+    }
+
+    const limitExceededMessage = this.generateLimitExceededMessage();
+    limitExceededMessage &&
+      spanTree.push({type: SpanTreeNodeType.MESSAGE, element: limitExceededMessage});
+
     return (
       <TraceViewContainer ref={this.props.traceViewRef}>
-        {spanTree}
-        {infoMessage}
-        {this.generateLimitExceededMessage()}
+        <WindowScroller onScroll={this.throttledOnScroll}>
+          {({height, isScrolling, onChildScroll, scrollTop}) => (
+            <AutoSizer disableHeight>
+              {({width}) => (
+                <ReactVirtualizedList
+                  autoHeight
+                  isScrolling={isScrolling}
+                  onScroll={onChildScroll}
+                  scrollTop={scrollTop}
+                  deferredMeasurementCache={this.cache}
+                  height={height}
+                  width={width}
+                  rowHeight={this.cache.rowHeight}
+                  rowCount={spanTree.length}
+                  rowRenderer={props => this.renderRow(props, spanTree)}
+                  ref={listRef}
+                />
+              )}
+            </AutoSizer>
+          )}
+        </WindowScroller>
       </TraceViewContainer>
     );
   }
+}
+
+type SpanRowProps = ListRowProps & {
+  addSpanRowToState: (
+    spanId: string,
+    spanRow: React.RefObject<HTMLDivElement>,
+    treeDepth: number
+  ) => void;
+  cache: CellMeasurerCache;
+  removeSpanRowFromState: (spanId: string) => void;
+  spanContextProps: SpanContext.SpanContextProps;
+  spanTree: SpanTreeNode[];
+};
+
+function SpanRow(props: SpanRowProps) {
+  const {
+    index,
+    parent,
+    style,
+    columnIndex,
+    spanTree,
+    cache,
+    spanContextProps,
+    addSpanRowToState,
+    removeSpanRowFromState,
+  } = props;
+
+  const rowRef = useRef<HTMLDivElement>(null);
+  const spanNode = spanTree[index];
+
+  useEffect(() => {
+    // Gap spans do not have IDs, so we can't really store them. This should not be a big deal, since
+    // we only need to keep track of spans to calculate an average depth, a few missing spans will not
+    // throw off the calculation too hard
+    if (spanNode.type !== SpanTreeNodeType.MESSAGE && !isGapSpan(spanNode.props.span)) {
+      addSpanRowToState(spanNode.props.span.span_id, rowRef, spanNode.props.treeDepth);
+    }
+
+    return () => {
+      if (spanNode.type !== SpanTreeNodeType.MESSAGE && !isGapSpan(spanNode.props.span)) {
+        removeSpanRowFromState(spanNode.props.span.span_id);
+      }
+    };
+  }, [rowRef, spanNode, addSpanRowToState, removeSpanRowFromState]);
+
+  const renderSpanNode = (
+    node: SpanTreeNode,
+    extraProps: {
+      cellMeasurerCache: CellMeasurerCache;
+      listRef: React.RefObject<ReactVirtualizedList>;
+      measure: () => void;
+    } & SpanContext.SpanContextProps
+  ) => {
+    switch (node.type) {
+      case SpanTreeNodeType.SPAN:
+        return (
+          <ProfiledSpanBar
+            key={getSpanID(node.props.span, `span-${node.props.spanNumber}`)}
+            {...node.props}
+            {...extraProps}
+          />
+        );
+      case SpanTreeNodeType.DESCENDANT_GROUP:
+        return (
+          <SpanDescendantGroupBar
+            key={`${node.props.spanNumber}-span-group`}
+            {...node.props}
+            didAnchoredSpanMount={extraProps.didAnchoredSpanMount}
+          />
+        );
+      case SpanTreeNodeType.SIBLING_GROUP:
+        return (
+          <SpanSiblingGroupBar
+            key={`${node.props.spanNumber}-span-sibling`}
+            {...node.props}
+            didAnchoredSpanMount={extraProps.didAnchoredSpanMount}
+          />
+        );
+      case SpanTreeNodeType.MESSAGE:
+        return node.element;
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <CellMeasurer
+      cache={cache}
+      parent={parent}
+      columnIndex={columnIndex}
+      rowIndex={index}
+    >
+      {({measure}) => (
+        <div style={style} ref={rowRef}>
+          {renderSpanNode(spanNode, {
+            measure,
+            listRef,
+            cellMeasurerCache: cache,
+            ...spanContextProps,
+          })}
+        </div>
+      )}
+    </CellMeasurer>
+  );
 }
 
 const TraceViewContainer = styled('div')`

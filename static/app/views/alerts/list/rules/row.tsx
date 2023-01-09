@@ -77,7 +77,7 @@ function RuleListRow({
   function renderLastIncidentDate(): React.ReactNode {
     if (isIssueAlert(rule)) {
       if (!rule.lastTriggered) {
-        return t('Alerts not triggered yet');
+        return t('Alert not triggered yet');
       }
       return (
         <div>
@@ -88,7 +88,7 @@ function RuleListRow({
     }
 
     if (!rule.latestIncident) {
-      return t('Alerts not triggered yet');
+      return t('Alert not triggered yet');
     }
 
     if (activeIncident) {
@@ -238,7 +238,7 @@ function RuleListRow({
     value: '',
     label: () => (
       <MenuItemWrapper>
-        <StyledIconUser size="20px" />
+        <StyledIconUser size="md" />
         {t('Unassigned')}
       </MenuItemWrapper>
     ),
@@ -293,7 +293,7 @@ function RuleListRow({
     />
   ) : (
     <Tooltip isHoverable skipWrapper title={t('Unassigned')}>
-      <StyledIconUser size="20px" color="gray400" />
+      <StyledIconUser size="md" color="gray400" />
     </Tooltip>
   );
 

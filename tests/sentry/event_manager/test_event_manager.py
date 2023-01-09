@@ -76,6 +76,7 @@ from sentry.testutils import (
 )
 from sentry.testutils.helpers import apply_feature_flag_on_cls, override_options
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.performance_issues.event_generators import get_event
 from sentry.testutils.silo import region_silo_test
 from sentry.types.activity import ActivityType
 from sentry.types.issues import GroupCategory, GroupType
@@ -88,7 +89,6 @@ from sentry.utils.performance_issues.performance_detection import (
 )
 from sentry.utils.samples import load_data
 from tests.sentry.integrations.github.test_repository import stub_installation_token
-from tests.sentry.utils.performance_issues.test_performance_detection import EVENTS
 
 
 def make_event(**kwargs):
@@ -2219,18 +2219,12 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
             assert record.data["sentry:grouping_config"] == DEFAULT_GROUPING_CONFIG
             assert record.data["slug"] == self.project.slug
 
-    @override_options({"performance.issues.all.problem-creation": 1.0})
-    @override_options({"performance.issues.all.problem-detection": 1.0})
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
     def test_perf_issue_creation(self):
         self.project.update_option("sentry:performance_issue_creation_rate", 1.0)
 
-        with mock.patch("sentry_sdk.tracing.Span.containing_transaction"), self.feature(
-            {
-                "organizations:performance-issues-ingest": True,
-            }
-        ):
-            manager = EventManager(make_event(**EVENTS["n-plus-one-in-django-index-view"]))
+        with mock.patch("sentry_sdk.tracing.Span.containing_transaction"):
+            manager = EventManager(make_event(**get_event("n-plus-one-in-django-index-view")))
             manager.normalize()
             event = manager.save(self.project.id)
             data = event.data
@@ -2305,18 +2299,12 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
                 ],
             )
 
-    @override_options({"performance.issues.all.problem-creation": 1.0})
-    @override_options({"performance.issues.all.problem-detection": 1.0})
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
     def test_perf_issue_update(self):
         self.project.update_option("sentry:performance_issue_creation_rate", 1.0)
 
-        with mock.patch("sentry_sdk.tracing.Span.containing_transaction"), self.feature(
-            {
-                "organizations:performance-issues-ingest": True,
-            }
-        ):
-            manager = EventManager(make_event(**EVENTS["n-plus-one-in-django-index-view"]))
+        with mock.patch("sentry_sdk.tracing.Span.containing_transaction"):
+            manager = EventManager(make_event(**get_event("n-plus-one-in-django-index-view")))
             manager.normalize()
             event = manager.save(self.project.id)
             group = event.groups[0]
@@ -2332,7 +2320,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
             assert group.location() == "hi"
             assert group.title == "lol"
 
-            manager = EventManager(make_event(**EVENTS["n-plus-one-in-django-index-view"]))
+            manager = EventManager(make_event(**get_event("n-plus-one-in-django-index-view")))
             manager.normalize()
             with self.tasks():
                 manager.save(self.project.id)
@@ -2349,8 +2337,6 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
             assert group.message == "nope"
             assert group.culprit == "/books/"
 
-    @override_options({"performance.issues.all.problem-creation": 1.0})
-    @override_options({"performance.issues.all.problem-detection": 1.0})
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
     def test_error_issue_no_associate_perf_event(self):
         """Test that you can't associate a performance event with an error issue"""
@@ -2359,10 +2345,9 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
         with mock.patch("sentry_sdk.tracing.Span.containing_transaction"), self.feature(
             {
                 "projects:performance-suspect-spans-ingestion": True,
-                "organizations:performance-issues-ingest": True,
             }
         ):
-            manager = EventManager(make_event(**EVENTS["n-plus-one-in-django-index-view"]))
+            manager = EventManager(make_event(**get_event("n-plus-one-in-django-index-view")))
             manager.normalize()
             event = manager.save(self.project.id)
             assert len(event.groups) == 1
@@ -2371,14 +2356,12 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
             group = event.groups[0]
             group.type = GroupType.ERROR.value
             group.save()
-            manager = EventManager(make_event(**EVENTS["n-plus-one-in-django-index-view"]))
+            manager = EventManager(make_event(**get_event("n-plus-one-in-django-index-view")))
             manager.normalize()
             event = manager.save(self.project.id)
 
             assert len(event.groups) == 0
 
-    @override_options({"performance.issues.all.problem-creation": 1.0})
-    @override_options({"performance.issues.all.problem-detection": 1.0})
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
     def test_perf_issue_no_associate_error_event(self):
         """Test that you can't associate an error event with a performance issue"""
@@ -2387,7 +2370,6 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
         with mock.patch("sentry_sdk.tracing.Span.containing_transaction"), self.feature(
             {
                 "projects:performance-suspect-spans-ingestion": True,
-                "organizations:performance-issues-ingest": True,
             }
         ):
             manager = EventManager(make_event())
@@ -2405,8 +2387,6 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
 
             assert len(event.groups) == 0
 
-    @override_options({"performance.issues.all.problem-creation": 1.0})
-    @override_options({"performance.issues.all.problem-detection": 1.0})
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
     @override_settings(SENTRY_PERFORMANCE_ISSUES_REDUCE_NOISE=True)
     def test_perf_issue_creation_ignored(self):
@@ -2415,18 +2395,15 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
         with mock.patch("sentry_sdk.tracing.Span.containing_transaction"), self.feature(
             {
                 "projects:performance-suspect-spans-ingestion": True,
-                "organizations:performance-issues-ingest": True,
             }
         ):
-            manager = EventManager(make_event(**EVENTS["n-plus-one-in-django-index-view"]))
+            manager = EventManager(make_event(**get_event("n-plus-one-in-django-index-view")))
             manager.normalize()
             event = manager.save(self.project.id)
             data = event.data
             assert event.get_event_type() == "transaction"
             assert data["hashes"] == []
 
-    @override_options({"performance.issues.all.problem-creation": 1.0})
-    @override_options({"performance.issues.all.problem-detection": 1.0})
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
     @override_settings(SENTRY_PERFORMANCE_ISSUES_REDUCE_NOISE=True)
     def test_perf_issue_creation_over_ignored_threshold(self):
@@ -2435,12 +2412,11 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
         with mock.patch("sentry_sdk.tracing.Span.containing_transaction"), self.feature(
             {
                 "projects:performance-suspect-spans-ingestion": True,
-                "organizations:performance-issues-ingest": True,
             }
         ):
-            manager1 = EventManager(make_event(**EVENTS["n-plus-one-in-django-index-view"]))
-            manager2 = EventManager(make_event(**EVENTS["n-plus-one-in-django-index-view"]))
-            manager3 = EventManager(make_event(**EVENTS["n-plus-one-in-django-index-view"]))
+            manager1 = EventManager(make_event(**get_event("n-plus-one-in-django-index-view")))
+            manager2 = EventManager(make_event(**get_event("n-plus-one-in-django-index-view")))
+            manager3 = EventManager(make_event(**get_event("n-plus-one-in-django-index-view")))
             manager1.normalize()
             manager2.normalize()
             manager3.normalize()
@@ -3192,6 +3168,65 @@ class DSLatestReleaseBoostTest(TestCase):
             assert (
                 ProjectBoostedReleases(project_id=project.id).get_extended_boosted_releases() == []
             )
+
+    @freeze_time("2022-11-03 10:00:00")
+    def test_release_not_boosted_with_deleted_release_after_event_received(self):
+        with self.options(
+            {
+                "dynamic-sampling:boost-latest-release": True,
+            }
+        ):
+            ts = time()
+
+            project = self.create_project(platform="python")
+            release_1 = Release.get_or_create(
+                project=project, version="1.0", date_added=datetime.now()
+            )
+            release_2 = Release.get_or_create(
+                project=project, version="2.0", date_added=datetime.now() + timedelta(hours=1)
+            )
+
+            self.make_release_transaction(
+                release_version=release_1.version,
+                environment_name=None,
+                project_id=project.id,
+                checksum="a" * 32,
+                timestamp=self.timestamp,
+            )
+            assert self.redis_client.get(f"ds::p:{project.id}:r:{release_1.id}") == "1"
+
+            self.make_release_transaction(
+                release_version=release_2.version,
+                environment_name=None,
+                project_id=project.id,
+                checksum="a" * 32,
+                timestamp=self.timestamp,
+            )
+            assert self.redis_client.get(f"ds::p:{project.id}:r:{release_2.id}") == "1"
+
+            # We simulate that the release_2 is deleted after the boost has been inserted.
+            release_2_id = release_2.id
+            release_2.delete()
+
+            # We expect the boosted release to be kept in Redis, if not queried by the ProjectBoostedReleases.
+            assert self.redis_client.hgetall(f"ds::p:{project.id}:boosted_releases") == {
+                f"ds::r:{release_1.id}": str(ts),
+                f"ds::r:{release_2_id}": str(ts),
+            }
+            # We expect to not see the release 2 because it will not be in the database anymore, thus we mark it as
+            # expired.
+            assert ProjectBoostedReleases(
+                project_id=project.id
+            ).get_extended_boosted_releases() == [
+                ExtendedBoostedRelease(
+                    id=release_1.id,
+                    timestamp=ts,
+                    environment=None,
+                    cache_key=f"ds::r:{release_1.id}",
+                    version=release_1.version,
+                    platform=Platform(project.platform),
+                ),
+            ]
 
     @freeze_time("2022-11-03 10:00:00")
     def test_get_boosted_releases_with_old_and_new_cache_keys(self):

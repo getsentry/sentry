@@ -15,6 +15,7 @@ import space from 'sentry/styles/space';
 import {logException} from 'sentry/utils/logging';
 import useApi from 'sentry/utils/useApi';
 
+import CronsFeedbackButton from './cronsFeedbackButton';
 import {Monitor} from './types';
 
 type Props = {
@@ -27,11 +28,11 @@ const MonitorHeaderActions = ({monitor, orgId, onUpdate}: Props) => {
   const api = useApi();
 
   const handleDelete = () => {
-    const redirectPath = `/organizations/${orgId}/monitors/`;
+    const redirectPath = `/organizations/${orgId}/crons/`;
     addLoadingMessage(t('Deleting Monitor...'));
 
     api
-      .requestPromise(`/monitors/${monitor.id}/`, {
+      .requestPromise(`/organizations/${orgId}/monitors/${monitor.id}/`, {
         method: 'DELETE',
       })
       .then(() => {
@@ -45,7 +46,7 @@ const MonitorHeaderActions = ({monitor, orgId, onUpdate}: Props) => {
   const updateMonitor = (data: Partial<Monitor>) => {
     addLoadingMessage();
     api
-      .requestPromise(`/monitors/${monitor.id}/`, {
+      .requestPromise(`/organizations/${orgId}/monitors/${monitor.id}/`, {
         method: 'PUT',
         data,
       })
@@ -70,7 +71,7 @@ const MonitorHeaderActions = ({monitor, orgId, onUpdate}: Props) => {
         <Button
           size="sm"
           icon={<IconEdit size="xs" />}
-          to={`/organizations/${orgId}/monitors/${monitor.id}/edit/`}
+          to={`/organizations/${orgId}/crons/${monitor.id}/edit/`}
         >
           {t('Edit')}
         </Button>
@@ -85,6 +86,7 @@ const MonitorHeaderActions = ({monitor, orgId, onUpdate}: Props) => {
             {t('Delete')}
           </Button>
         </Confirm>
+        <CronsFeedbackButton />
       </ButtonBar>
     </ButtonContainer>
   );

@@ -1,8 +1,7 @@
-import {css} from '@emotion/react';
+import {css, Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {IconCheckmark, IconSubtract} from 'sentry/icons';
-import {Theme} from 'sentry/utils/theme';
 
 interface Props extends React.HTMLAttributes<HTMLDivElement> {
   isChecked?: boolean;
@@ -36,8 +35,8 @@ const CheckboxFancy = styled(
       aria-checked={isIndeterminate ? 'mixed' : isChecked}
       {...props}
     >
-      {isIndeterminate && <IconSubtract size="70%" color="white" />}
-      {!isIndeterminate && isChecked && <IconCheckmark size="70%" color="white" />}
+      {isIndeterminate && <IconSubtract legacySize="70%" color="white" />}
+      {!isIndeterminate && isChecked && <IconCheckmark legacySize="70%" color="white" />}
     </div>
   )
 )`

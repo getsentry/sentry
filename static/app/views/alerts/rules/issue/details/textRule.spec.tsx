@@ -44,4 +44,26 @@ describe('AlertRuleDetails', () => {
       'Number of events in an issue is 150% higher in 1h compared to 1h ago'
     );
   });
+
+  it('displays EventFrequencyPercentCondition count', () => {
+    const wrapper = render(
+      <TextCondition
+        condition={{
+          comparisonInterval: '1h',
+          comparisonType: 'percent',
+          id: 'sentry.rules.conditions.event_frequency.EventFrequencyPercentCondition',
+          interval: '1h',
+          name: 'Percent of sessions affected by an issue is 150% higher in 1h compared to 1h ago',
+          value: 150,
+
+          // TODO(scttcper): label and prompt only exist in the type definition
+          label: '',
+          prompt: '',
+        }}
+      />
+    );
+    expect(wrapper.container).toHaveTextContent(
+      'Percent of sessions affected by an issue is 150% higher in 1h compared to 1h ago'
+    );
+  });
 });
