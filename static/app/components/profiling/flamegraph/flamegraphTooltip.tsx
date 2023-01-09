@@ -124,6 +124,7 @@ export const FlamegraphTooltipFrameMainInfo = styled('div')`
 
 export const FlamegraphTooltipColorIndicator = styled('div')<{
   backgroundColor: React.CSSProperties['backgroundColor'];
+  backgroundImage?: React.CSSProperties['backgroundImage'];
 }>`
   width: 12px;
   height: 12px;
@@ -131,6 +132,8 @@ export const FlamegraphTooltipColorIndicator = styled('div')<{
   min-height: 12px;
   border-radius: 2px;
   display: inline-block;
+  background-image: ${p => p.backgroundImage};
+  background-size: 16px 16px;
   background-color: ${p => p.backgroundColor};
   margin-right: ${space(1)};
 `;
