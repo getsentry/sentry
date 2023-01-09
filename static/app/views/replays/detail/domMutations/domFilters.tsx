@@ -15,17 +15,18 @@ function DomFilters({
   setType,
   type,
 }: Props) {
+  const mutationTypes = getMutationsTypes();
   return (
     <FiltersGrid>
       <CompactSelect
         triggerProps={{prefix: t('Event Type')}}
         triggerLabel={type.length === 0 ? t('Any') : null}
         multiple
-        options={getMutationsTypes()}
+        options={mutationTypes}
         size="sm"
         onChange={selected => setType(selected.map(_ => _.value))}
         value={type}
-        isDisabled={!actions || !actions.length}
+        isDisabled={!mutationTypes.length}
       />
       <SearchBar
         size="sm"
