@@ -24,7 +24,7 @@ type Opts = {
   /**
    * There must be one column with a dynamic width, so the table can fill all available width inside the container
    */
-  dyanmicColumnIndex: number;
+  dynamicColumnIndex: number;
   /**
    * The <MultiGrid> elem.
    */
@@ -34,7 +34,7 @@ function useVirtualizedGrid({
   cellMeasurer,
   columnCount,
   deps,
-  dyanmicColumnIndex,
+  dynamicColumnIndex,
   gridRef,
 }: Opts) {
   const cache = useMemo(() => new CellMeasurerCache(cellMeasurer), [cellMeasurer]);
@@ -42,8 +42,8 @@ function useVirtualizedGrid({
 
   const onWrapperResize = useCallback(() => {
     // TODO: debounce?
-    gridRef.current?.recomputeGridSize({columnIndex: dyanmicColumnIndex});
-  }, [gridRef, dyanmicColumnIndex]);
+    gridRef.current?.recomputeGridSize({columnIndex: dynamicColumnIndex});
+  }, [gridRef, dynamicColumnIndex]);
 
   // Recompute the width of the dynamic column when deps change (ie: a search/filter is applied)
   useEffect(onWrapperResize, [onWrapperResize, deps]);
@@ -55,11 +55,11 @@ function useVirtualizedGrid({
   const getColumnWidth = useCallback(
     (width: number) =>
       ({index}) => {
-        if (index === dyanmicColumnIndex) {
+        if (index === dynamicColumnIndex) {
           const colWidth = Math.max(
             Array.from(new Array(columnCount)).reduce(
               (remaining, _, i) =>
-                i === dyanmicColumnIndex
+                i === dynamicColumnIndex
                   ? remaining
                   : remaining - cache.columnWidth({index: i}),
               width - scrollBarWidth
@@ -71,7 +71,7 @@ function useVirtualizedGrid({
 
         return cache.columnWidth({index});
       },
-    [cache, columnCount, dyanmicColumnIndex, scrollBarWidth]
+    [cache, columnCount, dynamicColumnIndex, scrollBarWidth]
   );
 
   return {
