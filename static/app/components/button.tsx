@@ -53,10 +53,6 @@ interface BaseButtonProps
    */
   busy?: boolean;
   /**
-   * Test ID for the button.
-   */
-  'data-test-id'?: string;
-  /**
    * Disables the button, assigning appropriate aria attributes and disallows
    * interactions with the button.
    */
@@ -101,17 +97,9 @@ interface BaseButtonProps
    */
   priority?: 'default' | 'primary' | 'danger' | 'link';
   /**
-   * @deprecated Use `external`
-   */
-  rel?: HTMLAnchorElement['rel'];
-  /**
    * The size of the button
    */
   size?: ButtonSize;
-  /**
-   * @deprecated Use `external`
-   */
-  target?: HTMLAnchorElement['target'];
   /**
    * Display a tooltip for the button.
    */

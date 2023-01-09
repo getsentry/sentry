@@ -73,7 +73,6 @@ class OrganizationCodeMappingsTest(APITestCase):
         assert response.status_code == 200, response.content
 
         assert response.data[0] == {
-            "automaticallyGenerated": False,
             "id": str(path_config1.id),
             "projectId": str(self.project1.id),
             "projectSlug": self.project1.slug,
@@ -95,7 +94,6 @@ class OrganizationCodeMappingsTest(APITestCase):
         }
 
         assert response.data[1] == {
-            "automaticallyGenerated": False,
             "id": str(path_config2.id),
             "projectId": str(self.project2.id),
             "projectSlug": self.project2.slug,
@@ -131,7 +129,6 @@ class OrganizationCodeMappingsTest(APITestCase):
         assert response.status_code == 200, response.content
 
         assert response.data[0] == {
-            "automaticallyGenerated": False,
             "id": str(path_config1.id),
             "projectId": str(self.project1.id),
             "projectSlug": self.project1.slug,
@@ -215,7 +212,6 @@ class OrganizationCodeMappingsTest(APITestCase):
         response = self.make_post()
         assert response.status_code == 201, response.content
         assert response.data == {
-            "automaticallyGenerated": False,
             "id": str(response.data["id"]),
             "projectId": str(self.project1.id),
             "projectSlug": self.project1.slug,

@@ -104,7 +104,6 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
         repo = Repository.objects.get(name="getsentry/codemap")
         assert response.status_code == 201, response.content
         assert response.data == {
-            "automaticallyGenerated": True,
             "id": str(response.data["id"]),
             "projectId": str(self.project.id),
             "projectSlug": self.project.slug,
