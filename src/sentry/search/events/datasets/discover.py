@@ -102,7 +102,7 @@ class DiscoverDatasetConfig(DatasetConfig):
 
     def __init__(self, builder: builder.QueryBuilder):
         self.builder = builder
-        self.total_count = None
+        self.total_count: Optional[int] = None
 
     @property
     def search_filter_converter(
