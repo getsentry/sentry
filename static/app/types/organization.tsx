@@ -75,6 +75,9 @@ export interface Organization extends OrganizationSummary {
 export type Team = {
   avatar: Avatar;
   externalTeams: ExternalTeam[];
+  flags: {
+    'idp:provisioned': boolean;
+  };
   hasAccess: boolean;
   id: string;
   isMember: boolean;
@@ -111,6 +114,8 @@ export interface Member {
   email: string;
   expired: boolean;
   flags: {
+    'idp:provisioned': boolean;
+    'idp:role-restricted': boolean;
     'member-limit:restricted': boolean;
     'sso:invalid': boolean;
     'sso:linked': boolean;

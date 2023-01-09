@@ -13,6 +13,8 @@ export function Member(params = {}) {
     expired: false,
     flags: {
       'sso:linked': false,
+      'idp:provisioned': false,
+      'idp:role-restricted': false,
     },
     user: User(),
     inviteStatus: 'approved',

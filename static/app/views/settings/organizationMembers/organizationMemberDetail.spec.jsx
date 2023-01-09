@@ -17,6 +17,15 @@ describe('OrganizationMemberDetail', function () {
   let organization;
   let routerContext;
   const team = TestStubs.Team();
+  const idpTeam = TestStubs.Team({
+    id: '4',
+    slug: 'idp-member-team',
+    name: 'Idp Member Team',
+    isMember: true,
+    flags: {
+      'idp:provisioned': true,
+    },
+  });
   const teams = [
     team,
     TestStubs.Team({
@@ -25,6 +34,16 @@ describe('OrganizationMemberDetail', function () {
       name: 'New Team',
       isMember: false,
     }),
+    TestStubs.Team({
+      id: '3',
+      slug: 'idp-team',
+      name: 'Idp Team',
+      isMember: false,
+      flags: {
+        'idp:provisioned': true,
+      },
+    }),
+    idpTeam,
   ];
   const member = TestStubs.Member({
     roles: TestStubs.OrgRoleList(),
@@ -48,6 +67,12 @@ describe('OrganizationMemberDetail', function () {
     pending: true,
     expired: true,
   });
+  const idpTeamMember = TestStubs.Member({
+    id: 4,
+    roles: TestStubs.OrgRoleList(),
+    dateCreated: new Date(),
+    teams: [idpTeam.slug],
+  });
 
   describe('Can Edit', function () {
     beforeEach(function () {
@@ -68,6 +93,10 @@ describe('OrganizationMemberDetail', function () {
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/members/${expiredMember.id}/`,
         body: expiredMember,
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/members/${idpTeamMember.id}/`,
+        body: idpTeamMember,
       });
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/teams/`,
@@ -122,6 +151,14 @@ describe('OrganizationMemberDetail', function () {
       );
     });
 
+    it('cannot leave idp-provisioned team', function () {
+      render(<OrganizationMemberDetail params={{memberId: idpTeamMember.id}} />, {
+        context: routerContext,
+      });
+
+      expect(screen.getByRole('button', {name: 'Remove'})).toBeDisabled();
+    });
+
     it('joins a team', function () {
       render(<OrganizationMemberDetail params={{memberId: member.id}} />, {
         context: routerContext,
@@ -147,6 +184,41 @@ describe('OrganizationMemberDetail', function () {
           }),
         })
       );
+    });
+
+    it('cannot join idp-provisioned team', async function () {
+      render(<OrganizationMemberDetail params={{memberId: member.id}} />, {
+        context: routerContext,
+      });
+
+      userEvent.click(screen.getByText('Add Team'));
+      userEvent.hover(screen.queryByText('#idp-team'));
+      expect(
+        await screen.findByText(
+          "Membership to this team is managed through your organization's identity provider."
+        )
+      ).toBeInTheDocument();
+    });
+
+    it('cannot change roles if member is idp-provisioned', function () {
+      const roleRestrictedMember = TestStubs.Member({
+        roles: TestStubs.OrgRoleList(),
+        dateCreated: new Date(),
+        teams: [team.slug],
+        flags: {
+          'idp:role-restricted': true,
+        },
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/members/${member.id}/`,
+        body: roleRestrictedMember,
+      });
+      render(<OrganizationMemberDetail params={{memberId: roleRestrictedMember.id}} />, {
+        context: routerContext,
+      });
+
+      const radios = screen.getAllByRole('radio');
+      expect(radios.at(0)).toHaveAttribute('readonly');
     });
   });
 

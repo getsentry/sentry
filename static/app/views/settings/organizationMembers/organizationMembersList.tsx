@@ -330,7 +330,7 @@ class OrganizationMembersList extends AsyncView<Props, State> {
                 organization={organization}
                 member={member}
                 status={this.state.invited[member.id]}
-                memberCanLeave={!isOnlyOwner}
+                memberCanLeave={!isOnlyOwner && !member.flags['idp:provisioned']}
                 currentUser={currentUser}
                 canRemoveMembers={canRemove}
                 canAddMembers={canAddMembers}
