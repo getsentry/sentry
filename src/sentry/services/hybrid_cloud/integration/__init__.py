@@ -103,6 +103,17 @@ class IntegrationService(InterfaceWithLifecycle):
         pass
 
     @abstractmethod
+    def page_organization_integrations_ids(
+        self,
+        *,
+        organization_id: int,
+        statuses: List[int],
+        provider_key: str | None = None,
+        args: ApiPaginationArgs,
+    ) -> ApiPaginationResult:
+        pass
+
+    @abstractmethod
     def get_integrations(
         self,
         *,
@@ -135,6 +146,7 @@ class IntegrationService(InterfaceWithLifecycle):
     def get_organization_integrations(
         self,
         *,
+        org_integration_ids: List[int] | None = None,
         integration_id: int | None = None,
         organization_id: int | None = None,
         status: int | None = None,
@@ -143,7 +155,7 @@ class IntegrationService(InterfaceWithLifecycle):
         limit: int | None = None,
     ) -> List[APIOrganizationIntegration]:
         """
-        Returns all APIOrganizationIntegrations from the integration_id, organization_id and status.
+        Returns all APIOrganizationIntegrations from the matching kwargs.
         If providers is set, it will also be filtered by the integration providers set in the list.
         If has_grace_period is set, it will filter by whether the grace_period is null or not.
         Defaults to a limit of 5.

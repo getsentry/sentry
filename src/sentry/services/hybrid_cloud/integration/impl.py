@@ -40,6 +40,29 @@ class DatabaseBackedIntegrationService(IntegrationService):
             ),
         )
 
+    def page_organization_integrations_ids(
+        self,
+        *,
+        organization_id: int,
+        statuses: List[int],
+        provider_key: str | None = None,
+        args: ApiPaginationArgs,
+    ) -> ApiPaginationResult:
+        queryset = OrganizationIntegration.objects.filter(
+            organization_id=organization_id,
+            status__in=statuses,
+        )
+
+        if provider_key:
+            queryset = queryset.filter(integration__provider=provider_key.lower())
+
+        return args.do_hybrid_cloud_pagination(
+            description="page_organization_integrations_ids",
+            paginator_cls=OffsetPaginator,
+            order_by="integration__name",
+            queryset=queryset,
+        )
+
     def get_integrations(
         self,
         *,
@@ -50,7 +73,6 @@ class DatabaseBackedIntegrationService(IntegrationService):
         org_integration_status: int | None = None,
         limit: int | None = 5,
     ) -> List[APIIntegration]:
-        int_kwargs = {}
         int_kwargs: Dict[str, Any] = {}
         if integration_ids is not None:
             int_kwargs["id__in"] = integration_ids
@@ -89,6 +111,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
     def get_organization_integrations(
         self,
         *,
+        org_integration_ids: List[int] | None = None,
         integration_id: int | None = None,
         organization_id: int | None = None,
         status: int | None = None,
@@ -97,6 +120,9 @@ class DatabaseBackedIntegrationService(IntegrationService):
         limit: int | None = 5,
     ) -> List[APIOrganizationIntegration]:
         oi_kwargs: Dict[str, Any] = {}
+
+        if org_integration_ids is not None:
+            oi_kwargs["id__in"] = org_integration_ids
         if integration_id is not None:
             oi_kwargs["integration_id"] = integration_id
         if organization_id is not None:
@@ -107,7 +133,6 @@ class DatabaseBackedIntegrationService(IntegrationService):
             oi_kwargs["integration__provider__in"] = providers
         if has_grace_period is not None:
             oi_kwargs["grace_period_end__isnull"] = not has_grace_period
-
         ois = OrganizationIntegration.objects.filter(**oi_kwargs)
 
         if limit is not None:
