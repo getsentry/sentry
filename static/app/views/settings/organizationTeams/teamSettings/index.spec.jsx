@@ -24,11 +24,14 @@ describe('TeamSettings', function () {
   it('can change slug', async function () {
     const team = TestStubs.Team();
     const putMock = MockApiClient.addMockResponse({
-      url: `/teams/org/${team.slug}/`,
+      url: `/teams/org-slug/${team.slug}/`,
       method: 'PUT',
+      body: {
+        slug: 'new-slug',
+      },
     });
 
-    render(<TeamSettings team={team} params={{orgId: 'org', teamId: team.slug}} />);
+    render(<TeamSettings team={team} params={{teamId: team.slug}} />);
 
     const input = screen.getByRole('textbox', {name: 'Name'});
     userEvent.clear(input);
@@ -37,7 +40,7 @@ describe('TeamSettings', function () {
     userEvent.click(screen.getByRole('button', {name: 'Save'}));
 
     expect(putMock).toHaveBeenCalledWith(
-      `/teams/org/${team.slug}/`,
+      `/teams/org-slug/${team.slug}/`,
       expect.objectContaining({
         data: {
           slug: 'new-slug',
@@ -47,7 +50,7 @@ describe('TeamSettings', function () {
 
     await waitFor(() =>
       expect(browserHistory.replace).toHaveBeenCalledWith(
-        '/settings/org/teams/new-slug/settings/'
+        '/settings/org-slug/teams/new-slug/settings/'
       )
     );
   });
@@ -61,7 +64,7 @@ describe('TeamSettings', function () {
       },
     ]);
 
-    render(<TeamSettings team={team} params={{orgId: 'org', teamId: team.slug}} />, {
+    render(<TeamSettings team={team} params={{teamId: team.slug}} />, {
       context,
     });
 
@@ -71,12 +74,12 @@ describe('TeamSettings', function () {
   it('can remove team', async function () {
     const team = TestStubs.Team({hasAccess: true});
     const deleteMock = MockApiClient.addMockResponse({
-      url: `/teams/org/${team.slug}/`,
+      url: `/teams/org-slug/${team.slug}/`,
       method: 'DELETE',
     });
     TeamStore.loadInitialData([{slug: 'team-slug', hasAccess: true}]);
 
-    render(<TeamSettings params={{orgId: 'org', teamId: team.slug}} team={team} />);
+    render(<TeamSettings params={{teamId: team.slug}} team={team} />);
 
     // Click "Remove Team button
     userEvent.click(screen.getByRole('button', {name: 'Remove Team'}));
@@ -86,14 +89,14 @@ describe('TeamSettings', function () {
     userEvent.click(screen.getByTestId('confirm-button'));
 
     expect(deleteMock).toHaveBeenCalledWith(
-      `/teams/org/${team.slug}/`,
+      `/teams/org-slug/${team.slug}/`,
       expect.objectContaining({
         method: 'DELETE',
       })
     );
 
     await waitFor(() =>
-      expect(browserHistory.replace).toHaveBeenCalledWith('/settings/org/teams/')
+      expect(browserHistory.replace).toHaveBeenCalledWith('/settings/org-slug/teams/')
     );
 
     expect(TeamStore.getAll()).toEqual([]);

@@ -27,8 +27,7 @@ describe('OrganizationMemberRow', function () {
 
   const defaultProps = {
     routes: [],
-    params: {orgId: 'org-slug'},
-    orgName: 'Organization Name',
+    organization: TestStubs.Organization(),
     status: '',
     requireLink: false,
     memberCanLeave: false,

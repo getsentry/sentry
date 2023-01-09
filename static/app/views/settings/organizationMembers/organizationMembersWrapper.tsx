@@ -17,7 +17,7 @@ import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHea
 type Props = {
   organization: Organization;
   children?: any;
-} & RouteComponentProps<{orgId: string}, {}>;
+} & RouteComponentProps<{}, {}>;
 
 type State = AsyncView['state'] & {
   inviteRequests: Member[];
@@ -34,17 +34,17 @@ const InviteMembersButtonHook = HookOrDefault({
 
 class OrganizationMembersWrapper extends AsyncView<Props, State> {
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
-    const {orgId} = this.props.params;
+    const {organization} = this.props;
 
     return [
-      ['inviteRequests', `/organizations/${orgId}/invite-requests/`],
-      ['requestList', `/organizations/${orgId}/access-requests/`],
+      ['inviteRequests', `/organizations/${organization.slug}/invite-requests/`],
+      ['requestList', `/organizations/${organization.slug}/access-requests/`],
     ];
   }
 
   getTitle() {
-    const {orgId} = this.props.params;
-    return routeTitleGen(t('Members'), orgId, false);
+    const {organization} = this.props;
+    return routeTitleGen(t('Members'), organization.slug, false);
   }
 
   get onRequestsTab() {

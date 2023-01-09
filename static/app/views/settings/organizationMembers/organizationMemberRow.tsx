@@ -11,7 +11,7 @@ import {PanelItem} from 'sentry/components/panels';
 import {IconCheckmark, IconClose, IconFlag, IconMail, IconSubtract} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {AvatarUser, Member} from 'sentry/types';
+import {AvatarUser, Member, Organization} from 'sentry/types';
 import isMemberDisabledFromLimit from 'sentry/utils/isMemberDisabledFromLimit';
 
 type Props = {
@@ -23,8 +23,7 @@ type Props = {
   onLeave: (member: Member) => void;
   onRemove: (member: Member) => void;
   onSendInvite: (member: Member) => void;
-  orgName: string;
-  params: Record<string, string>;
+  organization: Organization;
   requireLink: boolean;
   status: '' | 'loading' | 'success' | 'error' | null;
 };
@@ -94,9 +93,8 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
 
   render() {
     const {
-      params,
       member,
-      orgName,
+      organization,
       status,
       requireLink,
       memberCanLeave,
@@ -116,7 +114,7 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
     // member has a `user` property if they are registered with sentry
     // i.e. has accepted an invite to join org
     const has2fa = user && user.has2fa;
-    const detailsUrl = `/settings/${params.orgId}/members/${id}/`;
+    const detailsUrl = `/settings/${organization.slug}/members/${id}/`;
     const isInviteSuccessful = status === 'success';
     const isInviting = status === 'loading';
     const showResendButton = pending || needsSso;
@@ -173,7 +171,7 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
               <Confirm
                 message={tct('Are you sure you want to remove [name] from [orgName]?', {
                   name,
-                  orgName,
+                  orgName: organization.slug,
                 })}
                 onConfirm={this.handleRemove}
               >
@@ -202,7 +200,7 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
             {showLeaveButton && memberCanLeave && (
               <Confirm
                 message={tct('Are you sure you want to leave [orgName]?', {
-                  orgName,
+                  orgName: organization.slug,
                 })}
                 onConfirm={this.handleLeave}
               >
