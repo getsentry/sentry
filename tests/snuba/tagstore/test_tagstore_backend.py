@@ -171,7 +171,7 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin):
     @cached_property
     def generic_group_and_env(self):
         env = Environment.objects.get(name="test")
-        event, _, _ = self.store_search_issue(
+        _, _, group_info = self.store_search_issue(
             self.project.id,
             self.user.id,
             [f"{GroupType.PROFILE_BLOCKED_THREAD.value}-group1"],
@@ -180,7 +180,7 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin):
             [("foo", "bar"), ("biz", "baz")],
             "releaseme",
         )
-        return event.group, env
+        return group_info.group, env
 
     def test_get_group_tag_keys_and_top_values(self):
         result = list(
@@ -300,6 +300,7 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin):
         assert len(top_release_values) == 1
         assert {v.value for v in top_release_values} == {"releaseme"}
         assert all(v.times_seen == 1 for v in top_release_values)
+        # assert False
 
     def test_get_top_group_tag_values(self):
         resp = self.ts.get_top_group_tag_values(self.proj1group1, self.proj1env1.id, "foo", 1)

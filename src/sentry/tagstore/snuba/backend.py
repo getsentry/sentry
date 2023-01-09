@@ -530,10 +530,10 @@ class SnubaTagStorage(TagStorage):
             if group.issue_category == GroupCategory.PERFORMANCE:
                 dataset = Dataset.Transactions
                 apply_performance_conditions(conditions, group)
-            elif not group.issue_category == GroupCategory.ERROR:
-                dataset = Dataset.IssuePlatform
             else:
                 filters["group_id"] = [group.id]
+                if not group.issue_category == GroupCategory.ERROR:
+                    dataset = Dataset.IssuePlatform
         return dataset, conditions, filters
 
     def get_group_tag_value_count(self, group, environment_id, key):
