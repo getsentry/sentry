@@ -264,7 +264,7 @@ class SnubaTSDB(BaseTSDB):
             groupby.append(model_group)
         if group_on_time and not model_ignore_time_series_processing:
             groupby.append("time")
-        else:
+        if group_on_time and model_ignore_time_series_processing:
             groupby.append("client_time")
         if aggregation == "count()" and model_aggregate is not None:
             # Special case, because count has different semantics, we change:
@@ -280,7 +280,7 @@ class SnubaTSDB(BaseTSDB):
 
         aggregated_as = "aggregate"
         aggregations = [[aggregation, model_aggregate, aggregated_as]]
-        if model_ignore_time_series_processing:
+        if group_on_time and model_ignore_time_series_processing:
             # aggregations.append(["toUnixTimestamp", "client_timestamp", "client_ts"])
             # aggregations.append(["toStartOfHour", "client_timestamp", "client_timehour"])
             aggregations.append(
@@ -312,7 +312,8 @@ class SnubaTSDB(BaseTSDB):
         orderby = []
         if group_on_time and not model_ignore_time_series_processing:
             orderby.append("-time")
-        else:
+
+        if group_on_time and model_ignore_time_series_processing:
             orderby.append("-client_time")
 
         if group_on_model and model_group is not None:
@@ -347,13 +348,14 @@ class SnubaTSDB(BaseTSDB):
 
         if group_on_time and not model_ignore_time_series_processing:
             keys_map["time"] = series
-        else:
+
+        if group_on_time and model_ignore_time_series_processing:
             keys_map["client_time"] = series
 
         self.zerofill(result, groupby, keys_map)
         self.trim(result, groupby, keys)
 
-        if model_ignore_time_series_processing:
+        if group_on_time and model_ignore_time_series_processing:
             # unroll aggregated data
             self.unnest(result, "aggregate")
             return result
