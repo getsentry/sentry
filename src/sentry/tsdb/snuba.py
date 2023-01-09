@@ -315,16 +315,6 @@ class SnubaTSDB(BaseTSDB):
 
         aggregated_as = "aggregate"
         aggregations = [[aggregation, model_aggregate, aggregated_as]]
-        if group_on_time and model_ignore_time_series_processing:
-            # aggregations.append(["toUnixTimestamp", "client_timestamp", "client_ts"])
-            # aggregations.append(["toStartOfHour", "client_timestamp", "client_timehour"])
-            aggregations.append(
-                [
-                    "toUnixTimestamp",
-                    [["toStartOfHour", "client_timestamp"]],
-                    "client_time",
-                ]
-            )
 
         # For historical compatibility with bucket-counted TSDB implementations
         # we grab the original bucketed series and add the rollup time to the
