@@ -28,10 +28,6 @@ interface BaseButtonProps
     'ref' | 'label' | 'size' | 'title'
   > {
   /**
-   * Positions the text within the button.
-   */
-  align?: 'center' | 'left' | 'right';
-  /**
    * Used when you want to overwrite the default Reload event key for analytics
    */
   analyticsEventKey?: string;
@@ -135,10 +131,11 @@ interface BaseButtonProps
   translucentBorder?: boolean;
 }
 
-export interface ButtonPropsWithoutAriaLabel extends BaseButtonProps {
+interface ButtonPropsWithoutAriaLabel extends BaseButtonProps {
   children: React.ReactNode;
 }
-export interface ButtonPropsWithAriaLabel extends BaseButtonProps {
+
+interface ButtonPropsWithAriaLabel extends BaseButtonProps {
   'aria-label': string;
   children?: never;
 }
@@ -158,7 +155,6 @@ function BaseButton({
   'aria-label': ariaLabel,
   borderless,
   translucentBorder,
-  align = 'center',
   priority,
   disabled = false,
   tooltipProps,
@@ -237,7 +233,7 @@ function BaseButton({
           higherOpacity={priority && ['primary', 'danger'].includes(priority)}
         />
       )}
-      <ButtonLabel align={align} size={size} borderless={borderless}>
+      <ButtonLabel size={size} borderless={borderless}>
         {icon && (
           <Icon size={size} hasChildren={hasChildren}>
             {icon}
@@ -469,8 +465,8 @@ const StyledButton = styled(
   ${getButtonStyles};
 `;
 
-const buttonLabelPropKeys = ['size', 'borderless', 'align'];
-type ButtonLabelProps = Pick<ButtonProps, 'size' | 'borderless' | 'align'>;
+const buttonLabelPropKeys = ['size', 'borderless'];
+type ButtonLabelProps = Pick<ButtonProps, 'size' | 'borderless'>;
 
 const ButtonLabel = styled('span', {
   shouldForwardProp: prop =>
@@ -479,7 +475,7 @@ const ButtonLabel = styled('span', {
   height: 100%;
   display: flex;
   align-items: center;
-  justify-content: ${p => p.align};
+  justify-content: center;
   white-space: nowrap;
 `;
 

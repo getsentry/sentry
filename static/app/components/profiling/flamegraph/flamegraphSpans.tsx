@@ -109,8 +109,15 @@ export function FlamegraphSpans({
       return undefined;
     }
 
+    if (profiledTransaction.type !== 'resolved') {
+      return undefined;
+    }
+
     const drawSpans = () => {
-      spansRenderer.draw(spansView.fromConfigView(spansCanvas.physicalSpace));
+      spansRenderer.draw(
+        spansView.configView.transformRect(spansView.configSpaceTransform),
+        spansView.fromConfigView(spansCanvas.physicalSpace)
+      );
     };
 
     drawSpans();
@@ -119,7 +126,7 @@ export function FlamegraphSpans({
     return () => {
       scheduler.unregisterBeforeFrameCallback(drawSpans);
     };
-  }, [spansCanvas, spansRenderer, scheduler, spansView]);
+  }, [spansCanvas, spansRenderer, scheduler, spansView, profiledTransaction.type]);
 
   const onMouseDrag = useCallback(
     (evt: React.MouseEvent<HTMLCanvasElement>) => {
@@ -139,7 +146,7 @@ export function FlamegraphSpans({
         return;
       }
 
-      canvasPoolManager.dispatch('transform config view', [configDelta]);
+      canvasPoolManager.dispatch('transform config view', [configDelta, spansView]);
       setStartInteractionVector(
         getPhysicalSpacePositionFromOffset(
           evt.nativeEvent.offsetX,
@@ -182,8 +189,6 @@ export function FlamegraphSpans({
   const onCanvasScroll = useCanvasScroll(spansCanvas, spansView, canvasPoolManager);
 
   useCanvasZoomOrScroll({
-    lastInteraction,
-    configSpaceCursor,
     setConfigSpaceCursor,
     setLastInteraction,
     handleWheel: onWheelCenterZoom,
@@ -241,6 +246,10 @@ export function FlamegraphSpans({
       evt.preventDefault();
       evt.stopPropagation();
 
+      if (!spansView) {
+        return;
+      }
+
       if (!configSpaceCursor) {
         setLastInteraction(null);
         setStartInteractionVector(null);
@@ -258,8 +267,8 @@ export function FlamegraphSpans({
           selectedSpansRef.current = [hoveredNode];
           // If double click is fired on a node, then zoom into it
           canvasPoolManager.dispatch('set config view', [
-            // nextPosition.withHeight(flamegraphView.configView.height),
-            new Rect(hoveredNode.start, 0, hoveredNode.duration, 1),
+            new Rect(hoveredNode.start, hoveredNode.depth, hoveredNode.duration, 1),
+            spansView,
           ]);
         }
 
@@ -272,7 +281,7 @@ export function FlamegraphSpans({
       setLastInteraction(null);
       setStartInteractionVector(null);
     },
-    [configSpaceCursor, hoveredNode, canvasPoolManager, lastInteraction]
+    [configSpaceCursor, hoveredNode, spansView, canvasPoolManager, lastInteraction]
   );
 
   return (

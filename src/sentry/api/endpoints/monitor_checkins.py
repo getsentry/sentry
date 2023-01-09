@@ -51,11 +51,7 @@ class MonitorCheckInsEndpoint(MonitorEndpoint):
         self, request: Request, project, monitor, organization_slug: str | None = None
     ) -> Response:
         """
-        Retrieve check-ins for a monitor
-        ````````````````````````````````
-
-        :pparam string monitor_id: the id of the monitor.
-        :auth: required
+        Retrieve a list of check-ins for a monitor
         """
         # we don't allow read permission with DSNs
         if isinstance(request.auth, ProjectKey):
@@ -100,11 +96,12 @@ class MonitorCheckInsEndpoint(MonitorEndpoint):
         self, request: Request, project, monitor, organization_slug: str | None = None
     ) -> Response:
         """
-        Create a new check-in for a monitor
-        ```````````````````````````````````
+        Creates a new check-in for a monitor.
 
-        :pparam string monitor_id: the id of the monitor.
-        :auth: required
+        If `status` is not present, it will be assumed that the check-in is starting, and be marked as `in_progress`.
+
+        To achieve a ping-like behavior, you can simply define `status` and optionally `duration` and
+        this check-in will be automatically marked as finished.
 
         Note: If a DSN is utilized for authentication, the response will be limited in details.
         """
