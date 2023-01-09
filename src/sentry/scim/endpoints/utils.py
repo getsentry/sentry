@@ -17,7 +17,9 @@ ACCEPTED_FILTERED_KEYS = ["userName", "value", "displayName"]
 
 
 class SCIMApiError(APIException):
-    def __init__(self, detail, status_code=400):
+    def __init__(self, detail, status_code=400, span=None):
+        if span is not None:
+            span.set_tag("http.response_code", status_code)
         self.status_code = status_code
         self.detail = {"schemas": [SCIM_API_ERROR], "detail": detail}
 
