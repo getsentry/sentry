@@ -1,10 +1,12 @@
 from enum import Enum
-from typing import Any, Dict, List, Optional, Set, TypedDict, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set, TypedDict, Union
 
 from sentry import features, options
 from sentry.dynamic_sampling.latest_release_booster import ProjectBoostedReleases
-from sentry.models import Project
 from sentry.utils import json
+
+if TYPE_CHECKING:
+    from sentry.models import Project
 
 BOOSTED_RELEASES_LIMIT = 10
 BOOSTED_KEY_TRANSACTION_LIMIT = 10
@@ -116,7 +118,7 @@ def _deep_sorted(value: Union[Any, Dict[Any, Any]]) -> Union[Any, Dict[Any, Any]
         return value
 
 
-def is_on_dynamic_sampling(project: Project) -> bool:
+def is_on_dynamic_sampling(project: "Project") -> bool:
     return features.has("organizations:dynamic-sampling", project.organization) and options.get(
         "dynamic-sampling:enabled-biases"
     )
