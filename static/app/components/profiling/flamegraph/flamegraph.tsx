@@ -268,7 +268,7 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
 
   const spansView = useMemoWithPrevious<CanvasView<SpanChart> | null>(
     _previousView => {
-      if (!spansCanvas || !spanChart) {
+      if (!spansCanvas || !spanChart || !flamegraphView) {
         return null;
       }
 
@@ -283,8 +283,13 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
         },
       });
 
+      // Initialize configView to whatever the flamegraph configView is
+      newView.setConfigView(flamegraphView?.configView);
+
       return newView;
     },
+    // We skip position.view dependency because it will go into an infinite loop
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [spanChart, spansCanvas, flamegraphTheme.SIZES]
   );
 
