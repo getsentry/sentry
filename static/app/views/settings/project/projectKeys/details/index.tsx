@@ -2,6 +2,7 @@ import {browserHistory, RouteComponentProps} from 'react-router';
 
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import AsyncView from 'sentry/views/asyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
@@ -37,7 +38,9 @@ export default class ProjectKeyDetails extends AsyncView<Props, State> {
   handleRemove = () => {
     const {organization} = this.props;
     const {projectId} = this.props.params;
-    browserHistory.push(`/${organization.slug}/${projectId}/settings/keys/`);
+    browserHistory.push(
+      normalizeUrl(`/settings/${organization.slug}/projects/${projectId}/keys/`)
+    );
   };
 
   renderBody() {

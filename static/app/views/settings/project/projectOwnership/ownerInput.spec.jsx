@@ -33,7 +33,6 @@ describe('Project Ownership Input', function () {
   it('renders', function () {
     const {container} = render(
       <OwnerInput
-        params={{orgId: org.slug, projectId: project.slug}}
         organization={org}
         initialText="url:src @dummy@example.com"
         project={project}
@@ -61,7 +60,6 @@ describe('Project Ownership Input', function () {
   it('updates on add preserving existing text', async function () {
     render(
       <OwnerInput
-        params={{orgId: org.slug, projectId: project.slug}}
         organization={org}
         initialText="url:src @dummy@example.com"
         project={project}

@@ -29,7 +29,7 @@ import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHea
 
 import SourceMapsArtifactRow from './sourceMapsArtifactRow';
 
-type RouteParams = {name: string; orgId: string; projectId: string};
+type RouteParams = {name: string; projectId: string};
 
 type Props = RouteComponentProps<RouteParams, {}> & {
   organization: Organization;
@@ -59,9 +59,12 @@ class ProjectSourceMapsDetail extends AsyncView<Props, State> {
   }
 
   getArtifactsUrl() {
-    const {orgId, projectId, name} = this.props.params;
+    const {organization} = this.props;
+    const {projectId, name} = this.props.params;
 
-    return `/projects/${orgId}/${projectId}/releases/${encodeURIComponent(name)}/files/`;
+    return `/projects/${organization.slug}/${projectId}/releases/${encodeURIComponent(
+      name
+    )}/files/`;
   }
 
   handleSearch = (query: string) => {
@@ -88,13 +91,14 @@ class ProjectSourceMapsDetail extends AsyncView<Props, State> {
   };
 
   handleArchiveDelete = async () => {
-    const {orgId, projectId, name} = this.props.params;
+    const {organization} = this.props;
+    const {projectId, name} = this.props.params;
 
     addLoadingMessage(t('Removing artifacts\u2026'));
 
     try {
       await this.api.requestPromise(
-        `/projects/${orgId}/${projectId}/files/source-maps/`,
+        `/projects/${organization.slug}/${projectId}/files/source-maps/`,
         {
           method: 'DELETE',
           query: {name},
@@ -150,8 +154,8 @@ class ProjectSourceMapsDetail extends AsyncView<Props, State> {
 
   renderBody() {
     const {loading, artifacts, artifactsPageLinks} = this.state;
-    const {name, orgId} = this.props.params;
-    const {project} = this.props;
+    const {name} = this.props.params;
+    const {project, organization} = this.props;
 
     return (
       <Fragment>
@@ -167,7 +171,7 @@ class ProjectSourceMapsDetail extends AsyncView<Props, State> {
           action={
             <StyledButtonBar gap={1}>
               <ReleaseButton
-                to={`/organizations/${orgId}/releases/${encodeURIComponent(
+                to={`/organizations/${organization.slug}/releases/${encodeURIComponent(
                   name
                 )}/?project=${project.id}`}
               >
