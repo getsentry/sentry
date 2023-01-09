@@ -1295,8 +1295,6 @@ class DiscoverDatasetConfig(DatasetConfig):
         self.builder.requires_other_aggregates = True
         if self.total_count is not None:
             return Function("toUInt64", [self.total_count], alias)
-        # TODO: check that there are aggregates since total_count isn't as useful without it
-        # TODO: ditto equations
         total_query = builder.QueryBuilder(
             dataset=self.builder.dataset,
             params={},
