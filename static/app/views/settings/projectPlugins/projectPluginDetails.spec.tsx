@@ -50,7 +50,6 @@ describe('ProjectPluginDetails', function () {
         organization={organization}
         project={project}
         params={{
-          orgId: organization.slug,
           projectId: project.slug,
           pluginId: 'amazon-sqs',
         }}
@@ -75,7 +74,6 @@ describe('ProjectPluginDetails', function () {
         project={project}
         plugins={{plugins}}
         params={{
-          orgId: organization.slug,
           projectId: project.slug,
           pluginId: 'amazon-sqs',
         }}
@@ -103,7 +101,6 @@ describe('ProjectPluginDetails', function () {
         project={project}
         plugins={{plugins}}
         params={{
-          orgId: organization.slug,
           projectId: project.slug,
           pluginId: 'amazon-sqs',
         }}
