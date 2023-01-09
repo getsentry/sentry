@@ -1,4 +1,5 @@
 """Dynamic query parsing library."""
+import uuid
 from typing import Any, List, Optional, Tuple, Union
 
 from rest_framework.exceptions import ParseError
@@ -155,6 +156,12 @@ class ListField(Field):
             return self._has_any_condition(Op.IN if operator == Op.EQ else Op.NOT_IN, value)
 
         if self.is_uuid:
+            # Client side UUID validation.  If this fails we use a condition which is always
+            # false.  E.g. 1 == 2.
+            is_valid = _validate_uuids([value])
+            if not is_valid:
+                return Condition(Function("identity", parameters=[1]), Op.EQ, 2)
+
             v = Function("toUUIDOrZero", parameters=[value])
         else:
             v = value
@@ -174,6 +181,12 @@ class ListField(Field):
             return self._has_condition(Op.EQ if operator == Op.IN else Op.NEQ, values)
 
         if self.is_uuid:
+            # Client side UUID validation.  If this fails we use a condition which is always
+            # false.  E.g. 1 == 2.
+            is_valid = _validate_uuids(values)
+            if not is_valid:
+                return Condition(Function("identity", parameters=[1]), Op.EQ, 2)
+
             vs = [Function("toUUIDOrZero", parameters=[value]) for value in values]
         else:
             vs = values
@@ -429,3 +442,14 @@ def _wildcard_search_function(value, identifier):
             f"(?i){wildcard_value}",
         ],
     )
+
+
+# Helpers
+
+
+def _validate_uuids(values: List[str]) -> bool:
+    try:
+        [uuid.UUID(value) for value in values]
+        return True
+    except ValueError:
+        return False

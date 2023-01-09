@@ -515,6 +515,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             null_queries = [
                 "!replayType:session",
                 "!errorIds:a3a62ef6ac86415b83c2416fc2f76db1",
+                "errorIds:123",
                 "!traceIds:4491657243ba4dbebd2f6bd62b733080",
                 "countUrls:0",
                 f"id:{replay1_id} AND id:b",
