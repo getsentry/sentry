@@ -452,6 +452,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "platform:javascript",
                 "releases:version@1.3",
                 "releases:[a,version@1.3]",
+                "environment:production",
                 "duration:>15",
                 "user.id:123",
                 "user.name:username123",
@@ -492,7 +493,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             ]
 
             for query in queries:
-                response = self.client.get(self.url + f"?query={query}")
+                response = self.client.get(self.url + f"?field=id&query={query}")
                 assert response.status_code == 200, query
                 response_data = response.json()
                 assert len(response_data["data"]) == 1, query
@@ -521,7 +522,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "!activity:3",
             ]
             for query in null_queries:
-                response = self.client.get(self.url + f"?query={query}")
+                response = self.client.get(self.url + f"?field=id&query={query}")
                 assert response.status_code == 200, query
                 response_data = response.json()
                 assert len(response_data["data"]) == 0, query
