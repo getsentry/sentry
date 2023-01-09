@@ -202,7 +202,7 @@ const performanceOptionDefinitions: Field[] = [
     key: 'performance.issues.consecutive_db.ga-rollout',
     label: t('General Availability Detection Rate'),
     help: t(
-      'Controls the rate at which performance problems are detected by the for Consecutive DB detector for GA organizations.'
+      'Controls the rate at which performance problems are detected by the Consecutive DB detector for GA organizations.'
     ),
     ...HIGH_THROUGHPUT_RATE_OPTION,
   },
