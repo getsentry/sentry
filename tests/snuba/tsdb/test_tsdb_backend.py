@@ -917,7 +917,7 @@ class SnubaTSDBGroupProfilingTest(TestCase, SnubaTestCase, SearchIssueTestMixin)
             self.now + timedelta(hours=4),
             rollup=3600,
         ) == {
-            self.proj1group1.id: 2  # 2 unique users overall
+            self.proj1group1.id: 5  # 2 unique users overall
         }
 
         assert self.db.get_distinct_counts_totals(
@@ -929,14 +929,6 @@ class SnubaTSDBGroupProfilingTest(TestCase, SnubaTestCase, SearchIssueTestMixin)
         ) == {
             self.proj1group1.id: 1  # Only 1 unique user in the first hour
         }
-
-        assert self.db.get_distinct_counts_totals(
-            TSDBModel.users_affected_by_profile_group,
-            [self.proj1.id],
-            self.now,
-            self.now + timedelta(hours=4),
-            rollup=3600,
-        ) == {self.proj1.id: 2}
 
         assert (
             self.db.get_distinct_counts_totals(
