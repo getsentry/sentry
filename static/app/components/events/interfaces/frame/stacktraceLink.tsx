@@ -20,6 +20,7 @@ import space from 'sentry/styles/space';
 import type {
   Event,
   Frame,
+  GitBlame,
   Organization,
   Project,
   StacktraceLinkResult,
@@ -123,6 +124,18 @@ export function isMobileLanguage(event: Event) {
   );
 }
 
+function getCommitSha(lineNo: number | null, gitBlameList: GitBlame[] | null) {
+  if (!lineNo || !gitBlameList) {
+    return null;
+  }
+  for (const blame of gitBlameList) {
+    if (lineNo && lineNo >= blame.startingLine && lineNo <= blame.endingLine) {
+      return blame.commit.oid;
+    }
+  }
+  return null;
+}
+
 export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
   const organization = useOrganization();
   const {projects} = useProjects();
@@ -224,6 +237,9 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
 
   // Match found - display link to source
   if (match.config && match.sourceUrl) {
+    if (match.gitBlame) {
+      const commitSha = getCommitSha(frame.lineNo, match?.gitBlame);
+    }
     return (
       <CodeMappingButtonContainer columnQuantity={2}>
         <OpenInLink

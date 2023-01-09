@@ -10,6 +10,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
 from sentry.integrations import IntegrationFeatures
+from sentry.integrations.github.integration import GitHubIntegration
 from sentry.models import Integration, Project, RepositoryProjectPathConfig
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.event_frames import munged_filename_and_frames
@@ -228,7 +229,11 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                     outcome = munging_outcome
                     scope.set_tag("stacktrace_link.munged", True)
 
-                current_config = {"config": serialize(config, request.user), "outcome": outcome}
+                current_config = {
+                    "config": serialize(config, request.user),
+                    "outcome": outcome,
+                    "repository": config.repository,
+                }
                 # use the provider key to be able to split up stacktrace
                 # link metrics by integration type
                 provider = current_config["config"]["provider"]["key"]
@@ -254,6 +259,19 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                         scope.set_tag("stacktrace_link.error", "stack_root_mismatch")
                     else:
                         scope.set_tag("stacktrace_link.error", "file_not_found")
+
+                result["gitBlame"] = None
+                githubIntegration = GitHubIntegration(integrations[0], project.organization_id)
+                try:
+                    git_blame_list = githubIntegration.get_blame_for_file(
+                        repo=current_config["repository"],
+                        filepath=filepath,
+                        ref=current_config["config"]["defaultBranch"],
+                        lineno=1,
+                    )
+                    result["gitBlame"] = git_blame_list
+                except Exception:
+                    logger.exception("Could not get git blame")
 
         if result["config"]:
             analytics.record(
