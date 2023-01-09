@@ -325,11 +325,8 @@ const RequestLogFilters = styled('div')`
 `;
 
 const ErrorsOnlyCheckbox = styled('div')`
-  input {
-    margin: 0 ${space(1)} 0 0;
-  }
-
   display: flex;
+  gap: ${space(1)};
   align-items: center;
 `;
 

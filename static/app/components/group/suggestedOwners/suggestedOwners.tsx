@@ -1,14 +1,8 @@
 import {assignToActor, assignToUser} from 'sentry/actionCreators/group';
 import AsyncComponent from 'sentry/components/asyncComponent';
-import type {
-  Actor,
-  CodeOwner,
-  Committer,
-  Group,
-  Organization,
-  Project,
-} from 'sentry/types';
+import type {Actor, Committer, Group, Organization, Project} from 'sentry/types';
 import type {Event} from 'sentry/types/event';
+import {defined} from 'sentry/utils';
 import useCommitters from 'sentry/utils/useCommitters';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -26,7 +20,6 @@ type Props = {
 } & AsyncComponent['props'];
 
 type State = {
-  codeowners: CodeOwner[] | null;
   eventOwners: {owners: Array<Actor>; rules: Rules} | null;
 } & AsyncComponent['state'];
 
@@ -35,7 +28,6 @@ class SuggestedOwners extends AsyncComponent<Props, State> {
     return {
       ...super.getDefaultState(),
       event: {rules: [], owners: []},
-      codeowners: [],
     };
   }
 
@@ -47,12 +39,6 @@ class SuggestedOwners extends AsyncComponent<Props, State> {
         `/projects/${organization.slug}/${project.slug}/events/${event.id}/owners/`,
       ],
     ];
-    if (organization.features.includes('integrations-codeowners')) {
-      endpoints.push([
-        `codeowners`,
-        `/projects/${organization.slug}/${project.slug}/codeowners/`,
-      ]);
-    }
 
     return endpoints as ReturnType<AsyncComponent['getEndpoints']>;
   }
@@ -187,8 +173,12 @@ function SuggestedOwnersWrapper(props: Omit<Props, 'committers' | 'organization'
       eventId: props.event.id,
       projectSlug: props.project.slug,
     },
-    {notifyOnChangeProps: ['data']}
+    {notifyOnChangeProps: ['data'], enabled: !defined(props.group.assignedTo)}
   );
+
+  if (defined(props.group.assignedTo)) {
+    return null;
+  }
 
   return (
     <SuggestedOwners

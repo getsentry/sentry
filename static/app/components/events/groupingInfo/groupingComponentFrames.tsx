@@ -51,7 +51,7 @@ class GroupingComponentFrames extends Component<Props, State> {
                 <ToggleCollapse
                   size="sm"
                   priority="link"
-                  icon={<IconAdd size="8px" />}
+                  icon={<IconAdd legacySize="8px" />}
                   onClick={() => this.setState({collapsed: false})}
                 >
                   {tct('show [numberOfFrames] similar', {
@@ -70,7 +70,7 @@ class GroupingComponentFrames extends Component<Props, State> {
             <ToggleCollapse
               size="sm"
               priority="link"
-              icon={<IconSubtract size="8px" />}
+              icon={<IconSubtract legacySize="8px" />}
               onClick={() => this.setState({collapsed: true})}
             >
               {tct('collapse [numberOfFrames] similar', {

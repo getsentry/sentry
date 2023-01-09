@@ -18,10 +18,6 @@ describe('SuggestedOwners', function () {
     TeamStore.init();
     MemberListStore.loadInitialData([user, TestStubs.CommitAuthor()]);
     Client.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/codeowners/`,
-      body: [],
-    });
-    Client.addMockResponse({
       url: `/prompts-activity/`,
       body: {},
     });
@@ -144,6 +140,23 @@ describe('SuggestedOwners', function () {
       {
         organization,
       }
+    );
+
+    await waitFor(() => {
+      expect(container).toBeEmptyDOMElement();
+    });
+  });
+
+  it('hides when there is already an assignee', async () => {
+    const {container} = render(
+      <SuggestedOwners
+        project={project}
+        event={event}
+        group={TestStubs.Group({
+          assignedTo: {type: 'team', id: '123', name: 'team-name'},
+        })}
+      />,
+      {organization}
     );
 
     await waitFor(() => {

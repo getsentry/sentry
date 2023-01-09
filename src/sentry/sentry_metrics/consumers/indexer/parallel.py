@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import functools
 import logging
-from typing import Mapping, Optional, Union
+from typing import Any, Mapping, Optional, Union
 
 from arroyo.backends.kafka import KafkaConsumer, KafkaPayload
 from arroyo.commit import CommitPolicy
@@ -18,18 +18,27 @@ from sentry.sentry_metrics.configuration import (
     MetricsIngestConfiguration,
     initialize_sentry_and_global_consumer_state,
 )
-from sentry.sentry_metrics.consumers.indexer.common import BatchMessages, MessageBatch, get_config
+from sentry.sentry_metrics.consumers.indexer.common import (
+    BatchMessages,
+    IndexerOutputMessageBatch,
+    get_config,
+)
 from sentry.sentry_metrics.consumers.indexer.multiprocess import SimpleProduceStep
 from sentry.sentry_metrics.consumers.indexer.processing import MessageProcessor
+from sentry.sentry_metrics.consumers.indexer.routing_producer import (
+    RoutingPayload,
+    RoutingProducerStep,
+)
+from sentry.sentry_metrics.consumers.indexer.slicing_router import SlicingRouter
 from sentry.utils.batching_kafka_consumer import create_topics
 
 logger = logging.getLogger(__name__)
 
 
-class Unbatcher(ProcessingStep[MessageBatch]):
+class Unbatcher(ProcessingStep[IndexerOutputMessageBatch]):
     def __init__(
         self,
-        next_step: ProcessingStep[KafkaPayload],
+        next_step: ProcessingStep[Union[KafkaPayload, RoutingPayload]],
     ) -> None:
         self.__next_step = next_step
         self.__closed = False
@@ -37,7 +46,7 @@ class Unbatcher(ProcessingStep[MessageBatch]):
     def poll(self) -> None:
         self.__next_step.poll()
 
-    def submit(self, message: Message[MessageBatch]) -> None:
+    def submit(self, message: Message[IndexerOutputMessageBatch]) -> None:
         assert not self.__closed
 
         for transformed_message in message.payload:
@@ -87,6 +96,7 @@ class MetricsConsumerStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         input_block_size: int,
         output_block_size: int,
         config: MetricsIngestConfiguration,
+        slicing_router: Optional[SlicingRouter],
     ):
         self.__config = config
 
@@ -103,20 +113,21 @@ class MetricsConsumerStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
 
         self.__input_block_size = input_block_size
         self.__output_block_size = output_block_size
+        self.__slicing_router = slicing_router
 
     def create_with_partitions(
         self,
         commit: Commit,
         partitions: Mapping[Partition, int],
     ) -> ProcessingStrategy[KafkaPayload]:
+        producer = get_metrics_producer_strategy(
+            config=self.__config,
+            commit=commit,
+            slicing_router=self.__slicing_router,
+        )
         parallel_strategy = ParallelTransformStep(
             MessageProcessor(self.__config).process_messages,
-            Unbatcher(
-                SimpleProduceStep(
-                    commit_function=commit,
-                    output_topic=self.__config.output_topic,
-                ),
-            ),
+            Unbatcher(next_step=producer),
             self.__processes,
             max_batch_size=self.__max_parallel_batch_size,
             # This is in seconds
@@ -142,6 +153,25 @@ class MetricsConsumerStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         return strategy
 
 
+def get_metrics_producer_strategy(
+    config: MetricsIngestConfiguration,
+    commit: Commit,
+    slicing_router: Optional[SlicingRouter],
+) -> Any:
+    if config.is_output_sliced:
+        if slicing_router is None:
+            raise ValueError("Slicing router is required for sliced output")
+        return RoutingProducerStep(
+            commit_function=commit,
+            message_router=slicing_router,
+        )
+    else:
+        return SimpleProduceStep(
+            commit_function=commit,
+            output_topic=config.output_topic,
+        )
+
+
 def get_parallel_metrics_consumer(
     max_msg_batch_size: int,
     max_msg_batch_time: float,
@@ -155,6 +185,7 @@ def get_parallel_metrics_consumer(
     group_id: str,
     auto_offset_reset: str,
     indexer_profile: MetricsIngestConfiguration,
+    slicing_router: Optional[SlicingRouter],
     **options: Mapping[str, Union[str, int]],
 ) -> StreamProcessor[KafkaPayload]:
     processing_factory = MetricsConsumerStrategyFactory(
@@ -166,6 +197,7 @@ def get_parallel_metrics_consumer(
         input_block_size=input_block_size,
         output_block_size=output_block_size,
         config=indexer_profile,
+        slicing_router=slicing_router,
     )
 
     cluster_name: str = settings.KAFKA_TOPICS[indexer_profile.input_topic]["cluster"]

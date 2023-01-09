@@ -8,7 +8,8 @@ from rest_framework.response import Response
 
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.permissions import SuperuserPermission
-from sentry.models import User
+from sentry.models.project import Project
+from sentry.services.hybrid_cloud.user import user_service
 from sentry.types.issues import GroupType
 from sentry.utils import json
 from sentry.utils.dates import ensure_aware
@@ -51,8 +52,8 @@ class IssueOccurrenceEndpoint(Endpoint):
         """
         event = {}
         if request.query_params.get("dummyEvent") == "True":
-            user = User.objects.get(id=request.user.id)
-            projects = user.get_projects()
+            user = user_service.get_user(request.user.id)
+            projects = Project.objects.get_for_user_ids({user.id})
             if not projects:
                 return Response(
                     "Requesting user must belong to at least one project.",

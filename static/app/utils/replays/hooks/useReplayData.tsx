@@ -1,5 +1,6 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
 import * as Sentry from '@sentry/react';
+import chunk from 'lodash/chunk';
 
 import parseLinkHeader, {ParsedHeader} from 'sentry/utils/parseLinkHeader';
 import {mapResponseToReplayRecord} from 'sentry/utils/replays/replayDataUtils';
@@ -8,7 +9,8 @@ import RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 import type {ReplayError, ReplayRecord} from 'sentry/views/replays/types';
 
-const SEGMENTS_PER_PAGE = 50;
+const SEGMENTS_PER_PAGE = 50; // p95 is 44 segments
+const ERRORS_PER_PAGE = 50; // Need to make sure the url is not too large
 
 type State = {
   attachments: undefined | unknown[];
@@ -158,17 +160,22 @@ function useReplayData({replaySlug, orgSlug}: Options): Result {
       const finishedAtClone = new Date(replayRecord.finishedAt);
       finishedAtClone.setSeconds(finishedAtClone.getSeconds() + 1);
 
-      const response = await api.requestPromise(
-        `/organizations/${orgSlug}/replays-events-meta/`,
-        {
-          query: {
-            start: replayRecord.startedAt.toISOString(),
-            end: finishedAtClone.toISOString(),
-            query: `id:[${String(replayRecord.errorIds)}]`,
-          },
-        }
+      const chunks = chunk(replayRecord.errorIds, ERRORS_PER_PAGE);
+      const responses = await Promise.allSettled(
+        chunks.map(errorIds =>
+          api.requestPromise(`/organizations/${orgSlug}/replays-events-meta/`, {
+            query: {
+              start: replayRecord.startedAt.toISOString(),
+              end: finishedAtClone.toISOString(),
+              query: `id:[${String(errorIds)}]`,
+            },
+          })
+        )
       );
-      return response.data;
+
+      return responses.flatMap(resp =>
+        resp.status === 'fulfilled' ? resp.value.data : []
+      );
     },
     [api, orgSlug]
   );
