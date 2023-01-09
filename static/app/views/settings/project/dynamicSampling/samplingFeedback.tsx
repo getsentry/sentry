@@ -1,7 +1,7 @@
 import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 
-import CheckboxFancy from 'sentry/components/checkboxFancy/checkboxFancy';
+import Checkbox from 'sentry/components/checkbox';
 import {FeatureFeedback} from 'sentry/components/featureFeedback';
 import {TextField} from 'sentry/components/forms';
 import Textarea from 'sentry/components/forms/controls/textarea';
@@ -60,12 +60,12 @@ function MultipleCheckboxField({
   otherTextField: React.ReactNode;
 }) {
   const handleClick = useCallback(
-    (newOption: Option) => {
+    (newOption: Option, checked: boolean) => {
       const newOptions = options.map(option => {
         if (option.value === newOption.value) {
           return {
             ...option,
-            checked: !option.checked,
+            checked,
           };
         }
         return option;
@@ -81,11 +81,8 @@ function MultipleCheckboxField({
       {options.map(option => {
         if (option.value === 'other') {
           return (
-            <CheckboxOtherOptionWrapper
-              key={option.value}
-              onClick={() => handleClick(option)}
-            >
-              <CheckboxFancy isChecked={option.checked} />
+            <CheckboxOtherOptionWrapper key={option.value}>
+              <Checkbox onChange={e => handleClick(option, e.target.checked)} />
               {option.title}
               {otherTextField}
             </CheckboxOtherOptionWrapper>
@@ -93,8 +90,11 @@ function MultipleCheckboxField({
         }
 
         return (
-          <CheckboxOption key={option.value} onClick={() => handleClick(option)}>
-            <CheckboxFancy isChecked={option.checked} />
+          <CheckboxOption key={option.value}>
+            <Checkbox
+              checked={option.checked}
+              onChange={e => handleClick(option, e.target.checked)}
+            />
             {option.title}
           </CheckboxOption>
         );
@@ -230,7 +230,7 @@ const Label = styled('strong')`
   display: inline-block;
 `;
 
-const CheckboxOption = styled('div')`
+const CheckboxOption = styled('label')`
   cursor: pointer;
   display: grid;
   grid-template-columns: max-content 1fr;
