@@ -10,7 +10,7 @@ from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import audit_log, features
+from sentry import audit_log, features, options
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.api.decorators import sudo_required
@@ -23,11 +23,7 @@ from sentry.auth.superuser import is_active_superuser
 from sentry.constants import RESERVED_PROJECT_SLUGS
 from sentry.datascrubbing import validate_pii_config_update
 from sentry.dynamic_sampling.rules_generator import generate_rules
-from sentry.dynamic_sampling.utils import (
-    get_supported_biases_ids,
-    get_user_biases,
-    is_on_dynamic_sampling,
-)
+from sentry.dynamic_sampling.utils import get_supported_biases_ids, get_user_biases
 from sentry.grouping.enhancer import Enhancements, InvalidEnhancerConfig
 from sentry.grouping.fingerprinting import FingerprintingRules, InvalidFingerprintingConfig
 from sentry.ingest.inbound_filters import FilterTypes
@@ -374,7 +370,9 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             data["hasAlertIntegrationInstalled"] = has_alert_integration(project)
 
         # Dynamic Sampling Logic
-        if is_on_dynamic_sampling(project):
+        if features.has("organizations:dynamic-sampling", project.organization) and options.get(
+            "dynamic-sampling:enabled-biases"
+        ):
             ds_bias_serializer = DynamicSamplingBiasSerializer(
                 data=get_user_biases(project.get_option("sentry:dynamic_sampling_biases", None)),
                 many=True,
@@ -431,7 +429,10 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
         result = serializer.validated_data
 
-        if result.get("dynamicSamplingBiases") and not is_on_dynamic_sampling(project):
+        if result.get("dynamicSamplingBiases") and not (
+            features.has("organizations:dynamic-sampling", project.organization)
+            and options.get("dynamic-sampling:enabled-biases")
+        ):
             return Response(
                 {"detail": ["dynamicSamplingBiases is not a valid field"]},
                 status=403,
@@ -616,99 +617,108 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 ]
         # TODO(dcramer): rewrite options to use standard API config
         if has_project_write:
-            options = request.data.get("options", {})
-            if "sentry:origins" in options:
+            request_options = request.data.get("options", {})
+            if "sentry:origins" in request_options:
                 project.update_option(
-                    "sentry:origins", clean_newline_inputs(options["sentry:origins"])
+                    "sentry:origins", clean_newline_inputs(request_options["sentry:origins"])
                 )
-            if "sentry:resolve_age" in options:
-                project.update_option("sentry:resolve_age", int(options["sentry:resolve_age"]))
-            if "sentry:scrub_data" in options:
-                project.update_option("sentry:scrub_data", bool(options["sentry:scrub_data"]))
-            if "sentry:scrub_defaults" in options:
+            if "sentry:resolve_age" in request_options:
                 project.update_option(
-                    "sentry:scrub_defaults", bool(options["sentry:scrub_defaults"])
+                    "sentry:resolve_age", int(request_options["sentry:resolve_age"])
                 )
-            if "sentry:safe_fields" in options:
+            if "sentry:scrub_data" in request_options:
                 project.update_option(
-                    "sentry:safe_fields", [s.strip().lower() for s in options["sentry:safe_fields"]]
+                    "sentry:scrub_data", bool(request_options["sentry:scrub_data"])
                 )
-            if "sentry:store_crash_reports" in options:
+            if "sentry:scrub_defaults" in request_options:
+                project.update_option(
+                    "sentry:scrub_defaults", bool(request_options["sentry:scrub_defaults"])
+                )
+            if "sentry:safe_fields" in request_options:
+                project.update_option(
+                    "sentry:safe_fields",
+                    [s.strip().lower() for s in request_options["sentry:safe_fields"]],
+                )
+            if "sentry:store_crash_reports" in request_options:
                 project.update_option(
                     "sentry:store_crash_reports",
                     convert_crashreport_count(
-                        options["sentry:store_crash_reports"], allow_none=True
+                        request_options["sentry:store_crash_reports"], allow_none=True
                     ),
                 )
-            if "sentry:relay_pii_config" in options:
+            if "sentry:relay_pii_config" in request_options:
                 project.update_option(
-                    "sentry:relay_pii_config", options["sentry:relay_pii_config"].strip() or None
+                    "sentry:relay_pii_config",
+                    request_options["sentry:relay_pii_config"].strip() or None,
                 )
-            if "sentry:sensitive_fields" in options:
+            if "sentry:sensitive_fields" in request_options:
                 project.update_option(
                     "sentry:sensitive_fields",
-                    [s.strip().lower() for s in options["sentry:sensitive_fields"]],
+                    [s.strip().lower() for s in request_options["sentry:sensitive_fields"]],
                 )
-            if "sentry:scrub_ip_address" in options:
+            if "sentry:scrub_ip_address" in request_options:
                 project.update_option(
-                    "sentry:scrub_ip_address", bool(options["sentry:scrub_ip_address"])
+                    "sentry:scrub_ip_address", bool(request_options["sentry:scrub_ip_address"])
                 )
-            if "sentry:grouping_config" in options:
-                project.update_option("sentry:grouping_config", options["sentry:grouping_config"])
-            if "sentry:fingerprinting_rules" in options:
+            if "sentry:grouping_config" in request_options:
                 project.update_option(
-                    "sentry:fingerprinting_rules", options["sentry:fingerprinting_rules"]
+                    "sentry:grouping_config", request_options["sentry:grouping_config"]
                 )
-            if "mail:subject_prefix" in options:
-                project.update_option("mail:subject_prefix", options["mail:subject_prefix"])
-            if "sentry:default_environment" in options:
+            if "sentry:fingerprinting_rules" in request_options:
                 project.update_option(
-                    "sentry:default_environment", options["sentry:default_environment"]
+                    "sentry:fingerprinting_rules", request_options["sentry:fingerprinting_rules"]
                 )
-            if "sentry:csp_ignored_sources_defaults" in options:
+            if "mail:subject_prefix" in request_options:
+                project.update_option("mail:subject_prefix", request_options["mail:subject_prefix"])
+            if "sentry:default_environment" in request_options:
+                project.update_option(
+                    "sentry:default_environment", request_options["sentry:default_environment"]
+                )
+            if "sentry:csp_ignored_sources_defaults" in request_options:
                 project.update_option(
                     "sentry:csp_ignored_sources_defaults",
-                    bool(options["sentry:csp_ignored_sources_defaults"]),
+                    bool(request_options["sentry:csp_ignored_sources_defaults"]),
                 )
-            if "sentry:csp_ignored_sources" in options:
+            if "sentry:csp_ignored_sources" in request_options:
                 project.update_option(
                     "sentry:csp_ignored_sources",
-                    clean_newline_inputs(options["sentry:csp_ignored_sources"]),
+                    clean_newline_inputs(request_options["sentry:csp_ignored_sources"]),
                 )
-            if "sentry:blacklisted_ips" in options:
+            if "sentry:blacklisted_ips" in request_options:
                 project.update_option(
                     "sentry:blacklisted_ips",
-                    clean_newline_inputs(options["sentry:blacklisted_ips"]),
+                    clean_newline_inputs(request_options["sentry:blacklisted_ips"]),
                 )
-            if "feedback:branding" in options:
+            if "feedback:branding" in request_options:
                 project.update_option(
-                    "feedback:branding", "1" if options["feedback:branding"] else "0"
+                    "feedback:branding", "1" if request_options["feedback:branding"] else "0"
                 )
-            if "sentry:reprocessing_active" in options:
+            if "sentry:reprocessing_active" in request_options:
                 project.update_option(
-                    "sentry:reprocessing_active", bool(options["sentry:reprocessing_active"])
+                    "sentry:reprocessing_active",
+                    bool(request_options["sentry:reprocessing_active"]),
                 )
-            if "filters:blacklisted_ips" in options:
+            if "filters:blacklisted_ips" in request_options:
                 project.update_option(
                     "sentry:blacklisted_ips",
-                    clean_newline_inputs(options["filters:blacklisted_ips"]),
+                    clean_newline_inputs(request_options["filters:blacklisted_ips"]),
                 )
-            if f"filters:{FilterTypes.RELEASES}" in options:
+            if f"filters:{FilterTypes.RELEASES}" in request_options:
                 if features.has("projects:custom-inbound-filters", project, actor=request.user):
                     project.update_option(
                         f"sentry:{FilterTypes.RELEASES}",
-                        clean_newline_inputs(options[f"filters:{FilterTypes.RELEASES}"]),
+                        clean_newline_inputs(request_options[f"filters:{FilterTypes.RELEASES}"]),
                     )
                 else:
                     return Response(
                         {"detail": ["You do not have that feature enabled"]}, status=400
                     )
-            if f"filters:{FilterTypes.ERROR_MESSAGES}" in options:
+            if f"filters:{FilterTypes.ERROR_MESSAGES}" in request_options:
                 if features.has("projects:custom-inbound-filters", project, actor=request.user):
                     project.update_option(
                         f"sentry:{FilterTypes.ERROR_MESSAGES}",
                         clean_newline_inputs(
-                            options[f"filters:{FilterTypes.ERROR_MESSAGES}"],
+                            request_options[f"filters:{FilterTypes.ERROR_MESSAGES}"],
                             case_insensitive=False,
                         ),
                     )
@@ -740,7 +750,10 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         )
 
         data = serialize(project, request.user, DetailedProjectSerializer())
-        if not is_on_dynamic_sampling(project):
+        if not (
+            features.has("organizations:dynamic-sampling", project.organization)
+            and options.get("dynamic-sampling:enabled-biases")
+        ):
             data["dynamicSamplingBiases"] = None
         # If here because the case of when no dynamic sampling is enabled at all, you would want to kick
         # out both keys actually

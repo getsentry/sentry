@@ -16,6 +16,7 @@ from django.utils.functional import cached_property
 from django.utils.translation import ugettext_lazy as _
 from sentry_relay import RelayError, parse_release
 
+from sentry import features, options
 from sentry.constants import BAD_RELEASE_CHARS, COMMIT_RANGE_DELIMITER
 from sentry.db.models import (
     ArrayField,
@@ -28,7 +29,6 @@ from sentry.db.models import (
     region_silo_only_model,
     sane_repr,
 )
-from sentry.dynamic_sampling.utils import is_on_dynamic_sampling
 from sentry.exceptions import InvalidSearchQuery
 from sentry.locks import locks
 from sentry.models import (
@@ -77,7 +77,11 @@ class ReleaseProjectModelManager(BaseManager):
         project_boosted_releases = ProjectBoostedReleases(project.id)
         # We want to invalidate the project config only if dynamic sampling is enabled and there exists boosted releases
         # in the project.
-        if is_on_dynamic_sampling(project) and project_boosted_releases.has_boosted_releases:
+        if (
+            features.has("organizations:dynamic-sampling", project.organization)
+            and options.get("dynamic-sampling:enabled-biases")
+            and project_boosted_releases.has_boosted_releases
+        ):
             transaction.on_commit(
                 lambda: schedule_invalidate_project_config(project_id=project.id, trigger=trigger)
             )

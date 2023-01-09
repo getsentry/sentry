@@ -54,7 +54,6 @@ from sentry.constants import (
 )
 from sentry.culprit import generate_culprit
 from sentry.dynamic_sampling.latest_release_booster import LatestReleaseBias, LatestReleaseParams
-from sentry.dynamic_sampling.utils import is_on_dynamic_sampling
 from sentry.eventstore.processing import event_processing_store
 from sentry.eventtypes import (
     CspEvent,
@@ -911,7 +910,10 @@ def _get_or_create_release_many(jobs: Sequence[Job], projects: ProjectsMapping) 
                 # Dynamic Sampling - Boosting latest release functionality
                 if (
                     options.get("dynamic-sampling:boost-latest-release")
-                    and is_on_dynamic_sampling(projects[project_id])
+                    and features.has(
+                        "organizations:dynamic-sampling", projects[project_id].organization
+                    )
+                    and options.get("dynamic-sampling:enabled-biases")
                     and data.get("type") == "transaction"
                 ):
                     with sentry_sdk.start_span(
