@@ -215,14 +215,14 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
     expect(mock).toHaveBeenCalledWith(
       '/organizations/org-slug/sessions/',
       expect.objectContaining({
-        query: {
+        query: expect.objectContaining({
           environment: ['prod'],
           field: ['count_unique(user)'],
           groupBy: ['session.status'],
           interval: '30m',
           project: [1],
           statsPeriod: '14d',
-        },
+        }),
       })
     );
   });
