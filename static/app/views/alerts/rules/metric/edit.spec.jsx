@@ -78,7 +78,6 @@ describe('MetricRulesEdit', function () {
         <GlobalModal />
         <MetricRulesEdit
           params={{
-            orgId: organization.slug,
             projectId: project.slug,
             ruleId: rule.id,
           }}

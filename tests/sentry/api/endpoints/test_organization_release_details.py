@@ -21,9 +21,11 @@ from sentry.models import (
     Repository,
 )
 from sentry.testutils import APITestCase
+from sentry.testutils.silo import region_silo_test
 from sentry.types.activity import ActivityType
 
 
+@region_silo_test(stable=True)
 class ReleaseDetailsTest(APITestCase):
     def setUp(self):
         super().setUp()
@@ -622,6 +624,7 @@ class ReleaseDetailsTest(APITestCase):
         assert "adoptionStages" in response.data
 
 
+@region_silo_test(stable=True)
 class UpdateReleaseDetailsTest(APITestCase):
     @patch("sentry.tasks.commits.fetch_commits")
     def test_simple(self, mock_fetch_commits):
@@ -1027,6 +1030,7 @@ class UpdateReleaseDetailsTest(APITestCase):
         assert activity.exists()
 
 
+@region_silo_test(stable=True)
 class ReleaseDeleteTest(APITestCase):
     def test_simple(self):
         user = self.create_user(is_staff=False, is_superuser=False)
@@ -1154,6 +1158,7 @@ class ReleaseDeleteTest(APITestCase):
         assert response.json() == {"commits": {"id": ["This field is required."]}}
 
 
+@region_silo_test(stable=True)
 class ReleaseSerializerTest(unittest.TestCase):
     def setUp(self):
         super().setUp()

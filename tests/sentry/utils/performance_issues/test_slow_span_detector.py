@@ -4,7 +4,11 @@ from typing import List
 import pytest
 
 from sentry.eventstore.models import Event
-from sentry.testutils.performance_issues.event_generators import EVENTS, create_event, create_span
+from sentry.testutils.performance_issues.event_generators import (
+    create_event,
+    create_span,
+    get_event,
+)
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.performance_issues.performance_detection import (
     GroupType,
@@ -70,7 +74,7 @@ class SlowSpanDetectorTest(unittest.TestCase):
         ]
 
     def test_detects_slow_span_in_solved_n_plus_one_query(self):
-        n_plus_one_event = EVENTS["solved-n-plus-one-in-django-index-view"]
+        n_plus_one_event = get_event("solved-n-plus-one-in-django-index-view")
 
         assert self.find_problems(n_plus_one_event) == [
             PerformanceProblem(

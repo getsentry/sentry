@@ -42,7 +42,7 @@ const MonitorStats = ({monitor, orgId}: Props) => {
     endpoints: [
       [
         'stats',
-        `/monitors/${orgId}/${monitor.id}/stats/`,
+        `/organizations/${orgId}/monitors/${monitor.id}/stats/`,
         {
           query: {
             since: since.toString(),

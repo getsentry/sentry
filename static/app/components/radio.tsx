@@ -28,7 +28,7 @@ const Radio = styled('input')<CheckedProps>`
   align-items: center;
   justify-content: center;
   border: 1px solid ${p => p.theme.border};
-  box-shadow: inset ${p => p.theme.dropShadowLight};
+  box-shadow: inset ${p => p.theme.dropShadowMedium};
   background: none;
   appearance: none;
   transition: border 0.1s, box-shadow 0.1s;

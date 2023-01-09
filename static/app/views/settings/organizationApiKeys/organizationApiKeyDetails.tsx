@@ -22,7 +22,6 @@ const API_CHOICES: Choices = API_ACCESS_SCOPES.map(s => [s, s]);
 
 type RouteParams = {
   apiKey: string;
-  orgId: string;
 };
 
 type Props = RouteComponentProps<RouteParams, {}> & {
@@ -35,10 +34,11 @@ type State = AsyncView['state'] & {
 
 class OrganizationApiKeyDetails extends AsyncView<Props, State> {
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+    const {organization} = this.props;
     return [
       [
         'apiKey',
-        `/organizations/${this.props.params.orgId}/api-keys/${this.props.params.apiKey}/`,
+        `/organizations/${organization.slug}/api-keys/${this.props.params.apiKey}/`,
       ],
     ];
   }
@@ -65,6 +65,7 @@ class OrganizationApiKeyDetails extends AsyncView<Props, State> {
   };
 
   renderBody() {
+    const {organization} = this.props;
     return (
       <div>
         <SettingsPageHeader title={t('Edit API Key')} />
@@ -73,7 +74,7 @@ class OrganizationApiKeyDetails extends AsyncView<Props, State> {
           <PanelHeader>{t('API Key')}</PanelHeader>
           <ApiForm
             apiMethod="PUT"
-            apiEndpoint={`/organizations/${this.props.params.orgId}/api-keys/${this.props.params.apiKey}/`}
+            apiEndpoint={`/organizations/${organization.slug}/api-keys/${this.props.params.apiKey}/`}
             initialData={this.state.apiKey}
             onSubmitSuccess={this.handleSubmitSuccess}
             onSubmitError={this.handleSubmitError}

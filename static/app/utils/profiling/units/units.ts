@@ -37,6 +37,9 @@ export function formatTo(
 }
 
 const format = (v: number, abbrev: string, precision: number) => {
+  if (v === 0) {
+    return '0' + abbrev;
+  }
   return v.toFixed(precision) + abbrev;
 };
 

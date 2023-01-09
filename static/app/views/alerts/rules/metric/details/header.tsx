@@ -1,4 +1,3 @@
-import {RouteComponentProps} from 'react-router';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
@@ -10,28 +9,29 @@ import {IconCopy, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {PageHeader} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
-import {Project} from 'sentry/types';
+import {Organization, Project} from 'sentry/types';
 import {MetricRule} from 'sentry/views/alerts/rules/metric/types';
 
 import {isIssueAlert} from '../../../utils';
 
-type Props = Pick<RouteComponentProps<{orgId: string}, {}>, 'params'> & {
+type Props = {
   hasMetricRuleDetailsError: boolean;
+  organization: Organization;
   project?: Project;
   rule?: MetricRule;
 };
 
-function DetailsHeader({hasMetricRuleDetailsError, rule, params, project}: Props) {
+function DetailsHeader({hasMetricRuleDetailsError, rule, organization, project}: Props) {
   const isRuleReady = !!rule && !hasMetricRuleDetailsError;
   const ruleTitle = rule && !hasMetricRuleDetailsError ? rule.name : '';
   const settingsLink =
     rule &&
-    `/organizations/${params.orgId}/alerts/${
+    `/organizations/${organization.slug}/alerts/${
       isIssueAlert(rule) ? 'rules' : 'metric-rules'
     }/${project?.slug ?? rule?.projects?.[0]}/${rule.id}/`;
 
   const duplicateLink = {
-    pathname: `/organizations/${params.orgId}/alerts/new/metric/`,
+    pathname: `/organizations/${organization.slug}/alerts/new/metric/`,
     query: {
       project: project?.slug,
       duplicateRuleId: rule?.id,
@@ -45,7 +45,7 @@ function DetailsHeader({hasMetricRuleDetailsError, rule, params, project}: Props
       <BreadCrumbBar>
         <AlertBreadcrumbs
           crumbs={[
-            {label: t('Alerts'), to: `/organizations/${params.orgId}/alerts/rules/`},
+            {label: t('Alerts'), to: `/organizations/${organization.slug}/alerts/rules/`},
             {label: ruleTitle},
           ]}
         />

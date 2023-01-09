@@ -2,6 +2,7 @@ from datetime import timedelta
 from uuid import UUID
 
 from django.utils import timezone
+from django.utils.http import urlquote
 from freezegun import freeze_time
 
 from sentry.models import CheckInStatus, Monitor, MonitorCheckIn, MonitorStatus, MonitorType
@@ -17,6 +18,23 @@ class CreateMonitorCheckInTest(MonitorTestCase):
 
     def setUp(self):
         super().setUp()
+
+    def test_headers_on_creation(self):
+        self.login_as(self.user)
+
+        for path_func in self._get_path_functions():
+            monitor = self._create_monitor()
+            path = path_func(monitor)
+
+            resp = self.client.post(path, {"status": "ok"})
+            assert resp.status_code == 201, resp.content
+
+            # XXX(dcramer): pretty gross assertion but due to the pathing theres no easier way
+            assert (
+                resp["Link"]
+                == f'<http://testserver{urlquote(path)}checkins/latest/>; rel="latest">'
+            )
+            assert resp["Location"] == f'http://testserver{path}checkins/{resp.data["id"]}/'
 
     def test_passing(self):
         self.login_as(self.user)
@@ -156,7 +174,7 @@ class CreateMonitorCheckInTest(MonitorTestCase):
 
     def test_mismatched_org_slugs(self):
         monitor = self._create_monitor()
-        path = f"/api/0/monitors/asdf/{monitor.guid}/checkins/"
+        path = f"/api/0/organizations/asdf/monitors/{monitor.guid}/checkins/"
         self.login_as(user=self.user)
 
         resp = self.client.post(path)

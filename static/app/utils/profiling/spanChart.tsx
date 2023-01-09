@@ -42,16 +42,21 @@ class SpanChart {
     spanTree: SpanTree,
     options: {unit: Profile['unit']; configSpace?: Rect} = {unit: 'milliseconds'}
   ) {
-    this.spanTree = spanTree;
+    // Units need to be init before any profile iteration is done
     this.toFinalUnit = makeFormatTo('seconds', options.unit);
-    this.spans = this.collectSpanNodes();
     this.timelineFormatter = makeTimelineFormatter(options.unit);
+    this.formatter = makeFormatter(options.unit);
+
+    this.spanTree = spanTree;
+    this.spans = this.collectSpanNodes();
 
     const duration = this.toFinalUnit(
       this.spanTree.root.span.timestamp - this.spanTree.root.span.start_timestamp
     );
 
     this.configSpace = new Rect(0, 0, duration, this.depth);
+    this.root.end = duration;
+    this.root.duration = duration;
   }
 
   // Bfs over the span tree while keeping track of level depth and calling the cb fn
@@ -88,11 +93,12 @@ class SpanChart {
           this.root.children.push(spanChartNode);
         }
 
-        const nodesWithParent = node.children.map(
-          // @todo use satisfies here when available
-          child => [spanChartNode, child] as [SpanChartNode, SpanTreeNode]
+        queue.push(
+          ...node.children.map(
+            // @todo use satisfies here when available
+            child => [spanChartNode, child] as [SpanChartNode, SpanTreeNode]
+          )
         );
-        queue.push(...nodesWithParent);
       }
       depth++;
     }

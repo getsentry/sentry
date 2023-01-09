@@ -21,6 +21,14 @@ const optionsAvailable = [
   'performance.issues.n_plus_one_db_ext.problem-creation',
   'performance.issues.n_plus_one_db.count_threshold',
   'performance.issues.n_plus_one_db.duration_threshold',
+  'performance.issues.consecutive_db.problem-creation',
+  'performance.issues.consecutive_db.la-rollout',
+  'performance.issues.consecutive_db.ea-rollout',
+  'performance.issues.consecutive_db.ga-rollout',
+  'performance.issues.n_plus_one_api_calls.problem-creation',
+  'performance.issues.n_plus_one_api_calls.la-rollout',
+  'performance.issues.n_plus_one_api_calls.ea-rollout',
+  'performance.issues.n_plus_one_api_calls.ga-rollout',
 ];
 
 type Field = ReturnType<typeof getOption>;
@@ -100,6 +108,20 @@ export default class AdminSettings extends AsyncView<{}, State> {
               {fields['performance.issues.n_plus_one_db_ext.problem-creation']}
               {fields['performance.issues.n_plus_one_db.count_threshold']}
               {fields['performance.issues.n_plus_one_db.duration_threshold']}
+            </Panel>
+            <Panel>
+              <PanelHeader>Performance Issues - Consecutive DB Detector</PanelHeader>
+              {fields['performance.issues.consecutive_db.problem-creation']}
+              {fields['performance.issues.consecutive_db.la-rollout']}
+              {fields['performance.issues.consecutive_db.ea-rollout']}
+              {fields['performance.issues.consecutive_db.ga-rollout']}
+            </Panel>
+            <Panel>
+              <PanelHeader>Performance Issues - N+1 API Calls Detector</PanelHeader>
+              {fields['performance.issues.n_plus_one_api_calls.problem-creation']}
+              {fields['performance.issues.n_plus_one_api_calls.la-rollout']}
+              {fields['performance.issues.n_plus_one_api_calls.ea-rollout']}
+              {fields['performance.issues.n_plus_one_api_calls.ga-rollout']}
             </Panel>
           </Feature>
         </Form>
