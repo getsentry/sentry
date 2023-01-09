@@ -20,8 +20,6 @@ class SimpleProduceStep(ProcessingStep[KafkaPayload]):
         self,
         output_topic: str,
         commit_function: Commit,
-        commit_max_batch_size: int,
-        commit_max_batch_time: float,
         producer: Optional[AbstractProducer[KafkaPayload]] = None,
     ) -> None:
         snuba_metrics = settings.KAFKA_TOPICS[output_topic]
@@ -33,33 +31,13 @@ class SimpleProduceStep(ProcessingStep[KafkaPayload]):
 
         self.__closed = False
         self.__produced_message_offsets: MutableMapping[Partition, int] = {}
-        self.__callbacks = 0
-        self.__started = time.time()
         # TODO: Need to make these flags
-        self.__commit_max_batch_size = commit_max_batch_size
-        self.__commit_max_batch_time = commit_max_batch_time
         self.__producer_queue_max_size = 80000
         self.__producer_long_poll_timeout = 3.0
 
         # poll duration metrics
         self.__poll_start_time = time.time()
         self.__poll_duration_sum = 0.0
-
-    def _ready(self) -> bool:
-        now = time.time()
-        duration = now - self.__started
-        if self.__callbacks >= self.__commit_max_batch_size:
-            logger.info(
-                f"Max size reached: total of {self.__callbacks} messages after {duration:.{2}f} seconds"
-            )
-            return True
-        if now >= (self.__started + self.__commit_max_batch_time):
-            logger.info(
-                f"Max time reached: total of {self.__callbacks} messages after {duration:.{2}f} seconds"
-            )
-            return True
-
-        return False
 
     def _record_poll_duration(self, poll_duration: float) -> None:
         self.__poll_duration_sum += poll_duration
@@ -87,11 +65,9 @@ class SimpleProduceStep(ProcessingStep[KafkaPayload]):
 
         self.poll_producer(timeout)
 
-        if self._ready():
+        with metrics.timer("simple_produce_step.poll.maybe_commit", sample_rate=0.05):
             self.__commit_function(self.__produced_message_offsets)
-            self.__callbacks = 0
             self.__produced_message_offsets = {}
-            self.__started = time.time()
 
     def submit(self, message: Message[KafkaPayload]) -> None:
         self.__producer.produce(
@@ -104,7 +80,6 @@ class SimpleProduceStep(ProcessingStep[KafkaPayload]):
 
     def callback(self, error: Any, message: Any, committable: Mapping[Partition, int]) -> None:
         if message and error is None:
-            self.__callbacks += 1
             self.__produced_message_offsets.update(committable)
         if error is not None:
             raise Exception(error.str())
@@ -121,9 +96,5 @@ class SimpleProduceStep(ProcessingStep[KafkaPayload]):
                 timeout = 5.0
             self.__producer.flush(timeout)
 
-        if self.__callbacks:
-            logger.info(f"Committing {self.__callbacks} messages...")
-            self.__commit_function(self.__produced_message_offsets)
-            self.__callbacks = 0
-            self.__produced_message_offsets = {}
-            self.__started = time.time()
+        self.__commit_function(self.__produced_message_offsets, force=True)
+        self.__produced_message_offsets = {}
