@@ -104,10 +104,17 @@ class IntegrationService(InterfaceWithLifecycle):
 
     @abstractmethod
     def get_integrations(
-        self, *, integration_ids: Iterable[int] | None = None, organization_id: int | None = None
+        self,
+        *,
+        integration_ids: Iterable[int] | None = None,
+        organization_id: int | None = None,
+        status: int | None = None,
+        providers: List[str] | None = None,
+        org_integration_status: int | None = None,
+        limit: int | None = 5,
     ) -> List[APIIntegration]:
         """
-        Returns a list of APIIntegrations filtered either by a list of integration ids, or a single organization id
+        Returns all APIIntegrations matching the provided kwargs. Defaults to a limit of 5.
         """
         pass
 
@@ -139,6 +146,7 @@ class IntegrationService(InterfaceWithLifecycle):
         Returns all APIOrganizationIntegrations from the integration_id, organization_id and status.
         If providers is set, it will also be filtered by the integration providers set in the list.
         If has_grace_period is set, it will filter by whether the grace_period is null or not.
+        Defaults to a limit of 5.
         """
         pass
 
@@ -201,7 +209,10 @@ class IntegrationService(InterfaceWithLifecycle):
     # The following methods replace instance methods of the ORM objects!
 
     def get_installation(
-        self, *, integration: APIIntegration | Integration, organization_id: int
+        self,
+        *,
+        integration: APIIntegration | Integration,
+        organization_id: int,
     ) -> IntegrationInstallation:
         """
         Returns the IntegrationInstallation class for a given integration.

@@ -41,22 +41,34 @@ class DatabaseBackedIntegrationService(IntegrationService):
         )
 
     def get_integrations(
-        self, *, integration_ids: Iterable[int] | None = None, organization_id: int | None = None
+        self,
+        *,
+        integration_ids: Iterable[int] | None = None,
+        organization_id: int | None = None,
+        status: int | None = None,
+        providers: List[str] | None = None,
+        org_integration_status: int | None = None,
+        limit: int | None = 5,
     ) -> List[APIIntegration]:
-        queryset = None
-        if integration_ids:
-            queryset = Integration.objects.filter(id__in=integration_ids)
+        int_kwargs = {}
+        int_kwargs: Dict[str, Any] = {}
+        if integration_ids is not None:
+            int_kwargs["id__in"] = integration_ids
         if organization_id is not None:
-            queryset = (
-                queryset.filter(organizations=organization_id)
-                if queryset
-                else Integration.objects.filter(organizations=organization_id)
-            )
-        return (
-            [self._serialize_integration(integration) for integration in queryset]
-            if queryset
-            else []
-        )
+            int_kwargs["organizationintegration__organization_id"] = organization_id
+        if status is not None:
+            int_kwargs["status"] = status
+        if providers is not None:
+            int_kwargs["provider__in"] = providers
+        if org_integration_status is not None:
+            int_kwargs["organizationintegration__status"] = org_integration_status
+
+        integrations = Integration.objects.filter(**int_kwargs)
+
+        if limit is not None:
+            integrations = integrations[:limit]
+
+        return [self._serialize_integration(integration) for integration in integrations]
 
     def get_integration(
         self,
@@ -82,7 +94,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
         status: int | None = None,
         providers: List[str] | None = None,
         has_grace_period: bool | None = None,
-        limit: int | None = None,
+        limit: int | None = 5,
     ) -> List[APIOrganizationIntegration]:
         oi_kwargs: Dict[str, Any] = {}
         if integration_id is not None:
