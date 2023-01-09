@@ -72,40 +72,52 @@ function isXAxis(
 export function decodeFlamegraphStateFromQueryParams(
   query: qs.ParsedQuery
 ): DeepPartial<FlamegraphState> {
-  return {
-    profiles: {
-      highlightFrames:
-        typeof query.frameName === 'string' && typeof query.framePackage === 'string'
-          ? {
-              name: query.frameName,
-              package: query.framePackage,
-            }
-          : null,
-      threadId:
-        typeof query.tid === 'string' && !isNaN(parseInt(query.tid, 10))
-          ? parseInt(query.tid, 10)
-          : null,
-    },
-    position: {view: Rect.decode(query.fov) ?? Rect.Empty()},
-    preferences: {
-      layout: isLayout(query.layout)
-        ? query.layout
-        : DEFAULT_FLAMEGRAPH_STATE.preferences.layout,
-      colorCoding: isColorCoding(query.colorCoding)
-        ? query.colorCoding
-        : DEFAULT_FLAMEGRAPH_STATE.preferences.colorCoding,
-      sorting: isSorting(query.sorting)
-        ? query.sorting
-        : DEFAULT_FLAMEGRAPH_STATE.preferences.sorting,
-      view: isView(query.view) ? query.view : DEFAULT_FLAMEGRAPH_STATE.preferences.view,
-      xAxis: isXAxis(query.xAxis)
-        ? query.xAxis
-        : DEFAULT_FLAMEGRAPH_STATE.preferences.xAxis,
-    },
-    search: {
-      query: typeof query.query === 'string' ? query.query : '',
-    },
-  };
+  const decoded: DeepPartial<FlamegraphState> = {};
+
+  if (typeof query.frameName === 'string' && typeof query.framePackage === 'string') {
+    decoded.profiles = {
+      highlightFrames: {
+        name: query.frameName,
+        package: query.framePackage,
+      },
+    };
+  }
+
+  if (typeof query.tid === 'string' && !isNaN(parseInt(query.tid, 10))) {
+    decoded.profiles = {
+      threadId: parseInt(query.tid, 10),
+    };
+  }
+
+  const fov = Rect.decode(query.fov);
+  if (fov) {
+    decoded.position = {view: fov};
+  }
+
+  decoded.preferences = {};
+  decoded.search = {};
+
+  if (isLayout(query.layout)) {
+    decoded.preferences.layout = query.layout;
+  }
+  if (isColorCoding(query.colorCoding)) {
+    decoded.preferences.colorCoding = query.colorCoding;
+  }
+  if (isSorting(query.sorting)) {
+    decoded.preferences.sorting = query.sorting;
+  }
+
+  if (isView(query.view)) {
+    decoded.preferences.view = query.view;
+  }
+  if (isXAxis(query.xAxis)) {
+    decoded.preferences.xAxis = query.xAxis;
+  }
+  if (typeof query.query === 'string') {
+    decoded.search.query = query.query;
+  }
+
+  return decoded;
 }
 
 export function encodeFlamegraphStateToQueryParams(state: FlamegraphState) {
@@ -168,6 +180,7 @@ export function FlamegraphStateLocalStorageSync() {
       preferences: {
         layout: DEFAULT_FLAMEGRAPH_STATE.preferences.layout,
         timelines: DEFAULT_FLAMEGRAPH_STATE.preferences.timelines,
+        view: DEFAULT_FLAMEGRAPH_STATE.preferences.view,
       },
     }
   );
@@ -177,11 +190,12 @@ export function FlamegraphStateLocalStorageSync() {
       preferences: {
         layout: state.preferences.layout,
         timelines: state.preferences.timelines,
+        view: state.preferences.view,
       },
     });
     // We only want to sync the local storage when the state changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.preferences.layout, state.preferences.timelines]);
+  }, [state.preferences.layout, state.preferences.timelines, state.preferences.view]);
 
   return null;
 }
