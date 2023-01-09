@@ -89,7 +89,7 @@ describe('spanChart', () => {
     expect(tree.root.children[0].children[2].span.span_id).toBe('4');
     const chart = new SpanChart(tree);
 
-    chart.forEachSpan(span => {
+    chart.forEachSpanOfTree(chart.spanTrees[0], 0, span => {
       if (span.node.span.span_id === '1') {
         expect(span.depth).toBe(1);
       } else if (span.node.span.span_id === '2') {
