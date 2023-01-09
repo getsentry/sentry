@@ -1,9 +1,6 @@
 import {mat3, vec2} from 'gl-matrix';
 
-import {
-  FlamegraphTheme,
-  LCH_LIGHT,
-} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
+import {FlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 import {
   getContext,
   Rect,
@@ -11,7 +8,7 @@ import {
 } from 'sentry/utils/profiling/gl/utils';
 import {SpanChart, SpanChartNode} from 'sentry/utils/profiling/spanChart';
 
-import {makeColorBucketTheme, makeSpansColorMapByOpAndDescription} from '../colors/utils';
+import {makeSpansColorMapByOpAndDescription} from '../colors/utils';
 
 // Convert color component from 0-1 to 0-255 range
 function colorComponentsToRgba(color: number[]): string {
@@ -26,7 +23,6 @@ export class SpanChartRenderer2D {
   theme: FlamegraphTheme;
 
   context: CanvasRenderingContext2D;
-  spans: ReadonlyArray<SpanChartNode> = [];
   colors: ReturnType<typeof makeSpansColorMapByOpAndDescription>;
 
   constructor(canvas: HTMLCanvasElement, spanChart: SpanChart, theme: FlamegraphTheme) {
@@ -34,14 +30,12 @@ export class SpanChartRenderer2D {
     this.spanChart = spanChart;
     this.theme = theme;
 
-    this.spans = [...this.spanChart.spans];
     this.context = getContext(this.canvas, '2d');
     this.colors = makeSpansColorMapByOpAndDescription(
-      this.spans,
-      makeColorBucketTheme(LCH_LIGHT)
+      this.spanChart.spans,
+      this.theme.COLORS.SPAN_COLOR_BUCKET
     );
 
-    this.init();
     resizeCanvasToDisplaySize(this.canvas);
   }
 
@@ -49,10 +43,6 @@ export class SpanChartRenderer2D {
     return (
       this.colors.get(span.node.span.span_id) ?? this.theme.COLORS.FRAME_FALLBACK_COLOR
     );
-  }
-
-  init() {
-    this.spans = [...this.spanChart.spans];
   }
 
   findHoveredNode(configSpaceCursor: vec2): SpanChartNode | null {
@@ -83,17 +73,40 @@ export class SpanChartRenderer2D {
     return hoveredNode;
   }
 
-  draw(configViewToPhysicalSpace: mat3) {
+  draw(configView: Rect, configViewToPhysicalSpace: mat3) {
     if (!this.canvas) {
       throw new Error('No canvas to draw on');
     }
 
     this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
-    const BORDER_WIDTH = 2 * window.devicePixelRatio;
 
-    for (let i = 0; i < this.spans.length; i++) {
-      const span = this.spans[i];
-      const color = this.colors.get(span.node.span.span_id);
+    const BORDER_WIDTH = 2 * window.devicePixelRatio;
+    const TOP_BOUNDARY = configView.top - 1;
+    const BOTTOM_BOUNDARY = configView.bottom + 1;
+
+    const spans: SpanChartNode[] = [...this.spanChart.root.children];
+
+    for (let i = 0; i < spans.length; i++) {
+      const span = spans[i];
+
+      if (span.end < configView.left || span.start > configView.right) {
+        continue;
+      }
+
+      if (span.depth > BOTTOM_BOUNDARY) {
+        continue;
+      }
+
+      for (let j = 0; j < span.children.length; j++) {
+        spans.push(span.children[j]);
+      }
+
+      if (span.depth < TOP_BOUNDARY) {
+        continue;
+      }
+
+      const color =
+        this.colors.get(span.node.span.span_id) ?? this.theme.COLORS.SPAN_FALLBACK_COLOR;
 
       if (!color) {
         throw new Error('Missing color for span');

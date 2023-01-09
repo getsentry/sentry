@@ -124,7 +124,7 @@ class CreateOrganizationPinnedSearchTest(APITestCase):
         ).exists()
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class DeleteOrganizationPinnedSearchTest(APITestCase):
     endpoint = "sentry-api-0-organization-pinned-searches"
     method = "delete"

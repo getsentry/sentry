@@ -35,6 +35,7 @@ from sentry.notifications.types import (
     NotificationSettingTypes,
 )
 from sentry.services.hybrid_cloud.user import APIUser, user_service
+from sentry.services.hybrid_cloud.user_option import user_option_service
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import metrics
 
@@ -49,7 +50,7 @@ AVAILABLE_PROVIDERS = {
     ExternalProviders.SLACK,
 }
 
-FALLTHROUGH_NOTIFICATION_LIMIT = 20
+FALLTHROUGH_NOTIFICATION_LIMIT_EA = 20
 
 
 def get_providers_from_which_to_remove_user(
@@ -67,7 +68,13 @@ def get_providers_from_which_to_remove_user(
         for provider, participants in participants_by_provider.items()
         if user.id in map(lambda p: int(p.id), participants)
     }
-    if providers and user.get_option(key="self_notifications", default="0") == "0":
+
+    if (
+        user_option_service.query_options(user_ids=[user.id], keys=["self_notifications"]).get_one(
+            default="0"
+        )
+        == "0"
+    ):
         return providers
     return set()
 
@@ -285,8 +292,7 @@ def determine_eligible_recipients(
         if owners:
             return owners
 
-        if fallthrough_choice:
-            return get_fallthrough_recipients(project, fallthrough_choice)
+        return get_fallthrough_recipients(project, fallthrough_choice)
 
     return set()
 
@@ -344,13 +350,17 @@ def get_send_to(
 
 
 def get_fallthrough_recipients(
-    project: Project, fallthrough_choice: FallthroughChoiceType
+    project: Project, fallthrough_choice: FallthroughChoiceType | None
 ) -> Iterable[APIUser]:
     if not features.has(
         "organizations:issue-alert-fallback-targeting",
         project.organization,
         actor=None,
     ):
+        return []
+
+    if not fallthrough_choice:
+        logger.warning(f"Missing fallthrough type in project: {project}")
         return []
 
     if fallthrough_choice == FallthroughChoiceType.NO_ONE:
@@ -360,9 +370,13 @@ def get_fallthrough_recipients(
         return user_service.get_from_project(project.id)
 
     elif fallthrough_choice == FallthroughChoiceType.ACTIVE_MEMBERS:
-        return user_service.get_many(
-            project.member_set.order_by("-user__last_active").values_list("user_id", flat=True)
-        )[:FALLTHROUGH_NOTIFICATION_LIMIT]
+        if project.organization.flags.early_adopter.is_set:
+            return user_service.get_many(
+                project.member_set.order_by("-user__last_active").values_list("user_id", flat=True)
+            )[:FALLTHROUGH_NOTIFICATION_LIMIT_EA]
+
+        # Return all members for non-EA orgs. This line will be removed once EA is over.
+        return user_service.get_from_project(project.id)
 
     raise NotImplementedError(f"Unknown fallthrough choice: {fallthrough_choice}")
 

@@ -9,6 +9,9 @@ import {Panel, PanelHeader} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
+import withRouteAnalytics, {
+  WithRouteAnalyticsProps,
+} from 'sentry/utils/routeAnalytics/withRouteAnalytics';
 import withOrganization from 'sentry/utils/withOrganization';
 import AsyncView from 'sentry/views/asyncView';
 
@@ -20,6 +23,7 @@ import MonitorOnboarding from './onboarding';
 import {Monitor} from './types';
 
 type Props = AsyncView['props'] &
+  WithRouteAnalyticsProps &
   RouteComponentProps<{monitorId: string; orgId: string}, {}> & {
     organization: Organization;
   };
@@ -38,7 +42,7 @@ class MonitorDetails extends AsyncView<Props, State> {
     return [
       [
         'monitor',
-        `/monitors/${this.orgSlug}/${params.monitorId}/`,
+        `/organizations/${this.orgSlug}/monitors/${params.monitorId}/`,
         {query: location.query},
       ],
     ];
@@ -53,6 +57,16 @@ class MonitorDetails extends AsyncView<Props, State> {
 
   onUpdate = (data: Monitor) =>
     this.setState(state => ({monitor: {...state.monitor, ...data}}));
+
+  onRequestSuccess(response) {
+    this.props.setEventNames(
+      'monitors.details_page_viewed',
+      'Monitors: Details Page Viewed'
+    );
+    this.props.setRouteAnalyticsParams({
+      empty_state: !response.data?.lastCheckIn,
+    });
+  }
 
   renderBody() {
     const {monitor} = this.state;
@@ -96,4 +110,4 @@ const StyledPageFilterBar = styled(PageFilterBar)`
   margin-bottom: ${space(2)};
 `;
 
-export default withOrganization(MonitorDetails);
+export default withRouteAnalytics(withOrganization(MonitorDetails));

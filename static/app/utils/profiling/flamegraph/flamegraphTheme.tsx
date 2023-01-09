@@ -51,6 +51,7 @@ export interface FlamegraphTheme {
     SAMPLE_TICK_COLOR: ColorChannels;
     SEARCH_RESULT_FRAME_COLOR: string;
     SELECTED_FRAME_BORDER_COLOR: string;
+    SPAN_COLOR_BUCKET: (t: number) => ColorChannels;
     SPAN_FALLBACK_COLOR: [number, number, number, number];
     SPAN_FRAME_BACKGROUND: string;
     SPAN_FRAME_BORDER: string;
@@ -105,12 +106,26 @@ export const LCH_DARK = {
   L_d: 0.1,
 };
 
+const SPAN_LCH_LIGHT = {
+  C_0: 0.25,
+  C_d: 0.2,
+  L_0: 0.7,
+  L_d: 0.25,
+};
+
+const SPANS_LCH_DARK = {
+  C_0: 0.2,
+  C_d: 0.1,
+  L_0: 0.2,
+  L_d: 0.1,
+};
+
 const SIZES: FlamegraphTheme['SIZES'] = {
   BAR_FONT_SIZE: 11,
   BAR_HEIGHT: 20,
   BAR_PADDING: 4,
   FLAMEGRAPH_DEPTH_OFFSET: 12,
-  SPANS_DEPTH_OFFSET: 3,
+  SPANS_DEPTH_OFFSET: 6,
   FOCUSED_FRAME_BORDER_WIDTH: 2,
   FRAME_BORDER_WIDTH: 2,
   GRID_LINE_WIDTH: 2,
@@ -120,8 +135,8 @@ const SIZES: FlamegraphTheme['SIZES'] = {
   LABEL_FONT_SIZE: 10,
   MINIMAP_HEIGHT: 100,
   MINIMAP_POSITION_OVERLAY_BORDER_WIDTH: 2,
-  SPANS_HEIGHT: 100,
-  SPANS_BAR_HEIGHT: 12,
+  SPANS_HEIGHT: 160,
+  SPANS_BAR_HEIGHT: 16,
   TIMELINE_HEIGHT: 20,
   TOOLTIP_FONT_SIZE: 12,
 };
@@ -136,13 +151,14 @@ export const LightFlamegraphTheme: FlamegraphTheme = {
   COLORS: {
     BAR_LABEL_FONT_COLOR: '#000',
     COLOR_BUCKET: makeColorBucketTheme(LCH_LIGHT),
+    SPAN_COLOR_BUCKET: makeColorBucketTheme(SPAN_LCH_LIGHT, 140, 220),
     COLOR_MAP: makeColorMap,
     CURSOR_CROSSHAIR: '#bbbbbb',
     DIFFERENTIAL_DECREASE: [0.309, 0.2058, 0.98],
     DIFFERENTIAL_INCREASE: [0.98, 0.2058, 0.4381],
     FOCUSED_FRAME_BORDER_COLOR: lightTheme.focus,
-    FRAME_FALLBACK_COLOR: [0, 0, 0, 0.035],
-    SPAN_FALLBACK_COLOR: [0, 0, 0, 0.035],
+    FRAME_FALLBACK_COLOR: [0, 0, 0, 0.1],
+    SPAN_FALLBACK_COLOR: [0, 0, 0, 0.1],
     GRID_FRAME_BACKGROUND_COLOR: 'rgba(255, 255, 255, 0.8)',
     GRID_LINE_COLOR: '#e5e7eb',
     HIGHLIGHTED_LABEL_COLOR: [255, 255, 0],
@@ -165,13 +181,14 @@ export const DarkFlamegraphTheme: FlamegraphTheme = {
   COLORS: {
     BAR_LABEL_FONT_COLOR: 'rgb(255 255 255 / 80%)',
     COLOR_BUCKET: makeColorBucketTheme(LCH_DARK),
+    SPAN_COLOR_BUCKET: makeColorBucketTheme(SPANS_LCH_DARK, 140, 220),
     COLOR_MAP: makeColorMap,
     CURSOR_CROSSHAIR: '#828285',
     DIFFERENTIAL_DECREASE: [0.309, 0.2058, 0.98],
     DIFFERENTIAL_INCREASE: [0.98, 0.2058, 0.4381],
     FOCUSED_FRAME_BORDER_COLOR: darkTheme.focus,
-    FRAME_FALLBACK_COLOR: [1, 1, 1, 0.1],
-    SPAN_FALLBACK_COLOR: [1, 1, 1, 0.1],
+    FRAME_FALLBACK_COLOR: [1, 1, 1, 0.3],
+    SPAN_FALLBACK_COLOR: [1, 1, 1, 0.3],
     GRID_FRAME_BACKGROUND_COLOR: 'rgba(0, 0, 0, 0.4)',
     GRID_LINE_COLOR: '#222227',
     HIGHLIGHTED_LABEL_COLOR: [255, 255, 0],

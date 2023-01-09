@@ -1,17 +1,28 @@
 import datetime
 from io import BytesIO
+from unittest import mock
 from uuid import uuid4
 
+import pytest
 from django.urls import reverse
 
 from sentry.models import File
+from sentry.replays import tasks
 from sentry.replays.models import ReplayRecordingSegment
 from sentry.replays.testutils import assert_expected_response, mock_expected_response, mock_replay
 from sentry.testutils import APITestCase, ReplaysSnubaTestCase
 from sentry.testutils.helpers import TaskRunner
 from sentry.testutils.silo import region_silo_test
+from sentry.utils import kafka_config
 
 REPLAYS_FEATURES = {"organizations:session-replay": True}
+
+
+@pytest.fixture(autouse=True)
+def setup():
+    with mock.patch.object(kafka_config, "get_kafka_producer_cluster_options"):
+        with mock.patch.object(tasks, "KafkaPublisher"):
+            yield
 
 
 @region_silo_test
