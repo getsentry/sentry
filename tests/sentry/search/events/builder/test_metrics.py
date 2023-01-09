@@ -1,6 +1,7 @@
 import datetime
 import math
 from typing import List
+from unittest import mock
 
 import pytest
 from django.utils import timezone
@@ -70,6 +71,7 @@ class MetricBuilderBaseTest(MetricsEnhancedPerformanceTestCase):
         "foo_transaction",
         "bar_transaction",
         "baz_transaction",
+        "measurements.custom.measurement",
     ]
     DEFAULT_METRIC_TIMESTAMP = datetime.datetime(
         2015, 1, 1, 10, 15, 0, tzinfo=timezone.utc
@@ -1450,6 +1452,61 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         assert data["count_unique_user"] == 0
         # Handled by the discover transform later so its fine that this is nan
         assert math.isnan(data["p50"])
+
+    @mock.patch("sentry.search.events.builder.metrics.indexer.resolve", return_value=-1)
+    def test_multiple_references_only_resolve_index_once(self, mock_indexer):
+        MetricsQueryBuilder(
+            self.params,
+            query=f"project:{self.project.slug} transaction:foo_transaction transaction:foo_transaction",
+            dataset=Dataset.PerformanceMetrics,
+            selected_columns=[
+                "transaction",
+                "count_web_vitals(measurements.lcp, good)",
+                "count_web_vitals(measurements.lcp, good)",
+                "count_web_vitals(measurements.lcp, good)",
+                "count_web_vitals(measurements.lcp, good)",
+                "count_web_vitals(measurements.lcp, good)",
+            ],
+        )
+
+        expected = [mock.call(UseCaseKey.PERFORMANCE, self.organization.id, "transaction")]
+
+        expected.extend(
+            [
+                mock.call(
+                    UseCaseKey.PERFORMANCE,
+                    self.organization.id,
+                    constants.METRICS_MAP["measurements.lcp"],
+                ),
+                mock.call(UseCaseKey.PERFORMANCE, self.organization.id, "measurement_rating"),
+            ]
+        )
+
+        self.assertCountEqual(mock_indexer.mock_calls, expected)
+
+    def test_custom_measurement_allowed(self):
+        MetricsQueryBuilder(
+            self.params,
+            dataset=Dataset.PerformanceMetrics,
+            selected_columns=[
+                "transaction",
+                "avg(measurements.custom.measurement)",
+                "p50(measurements.custom.measurement)",
+                "p75(measurements.custom.measurement)",
+                "p90(measurements.custom.measurement)",
+                "p95(measurements.custom.measurement)",
+                "p99(measurements.custom.measurement)",
+                "p100(measurements.custom.measurement)",
+                "percentile(measurements.custom.measurement, 0.95)",
+                "sum(measurements.custom.measurement)",
+                "max(measurements.custom.measurement)",
+                "min(measurements.custom.measurement)",
+                "count_unique(user)",
+            ],
+            query="transaction:foo_transaction",
+            allow_metric_aggregates=False,
+            use_aggregate_conditions=True,
+        )
 
     def test_group_by_not_in_select(self):
         query = MetricsQueryBuilder(
