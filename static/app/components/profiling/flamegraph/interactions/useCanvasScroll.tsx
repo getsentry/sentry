@@ -37,7 +37,7 @@ export function useCanvasScroll(
         ]);
 
         const translate = mat3.fromTranslation(mat3.create(), configDelta);
-        canvasPoolManager.dispatch('transform config view', [translate]);
+        canvasPoolManager.dispatch('transform config view', [translate, view]);
       }
     },
     [canvas, view, canvasPoolManager]

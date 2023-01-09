@@ -305,19 +305,51 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
       return undefined;
     }
 
-    const onConfigViewChange = (rect: Rect) => {
-      flamegraphView.setConfigView(rect.withHeight(flamegraphView.configView.height));
-      if (spansView) {
+    // This code below manages the synchronization of the config views between spans and flamegraph
+    // We do so by listening to the config view change event and then updating the other views accordingly which
+    // allows us to keep the X axis in sync between the two views but keep the Y axis independent
+    const onConfigViewChange = (rect: Rect, sourceConfigViewChange: CanvasView<any>) => {
+      if (sourceConfigViewChange === flamegraphView) {
+        flamegraphView.setConfigView(rect.withHeight(flamegraphView.configView.height));
+
+        if (spansView) {
+          const beforeY = spansView.configView.y;
+          spansView.setConfigView(
+            rect.withHeight(spansView.configView.height).withY(beforeY)
+          );
+        }
+      }
+
+      if (sourceConfigViewChange === spansView) {
         spansView.setConfigView(rect.withHeight(spansView.configView.height));
+        const beforeY = flamegraphView.configView.y;
+        flamegraphView.setConfigView(
+          rect.withHeight(flamegraphView.configView.height).withY(beforeY)
+        );
       }
       canvasPoolManager.draw();
     };
 
-    const onTransformConfigView = (mat: mat3) => {
-      flamegraphView.transformConfigView(mat);
-      if (spansView) {
-        spansView.transformConfigView(mat);
+    const onTransformConfigView = (
+      mat: mat3,
+      sourceTransformConfigView: CanvasView<any>
+    ) => {
+      if (sourceTransformConfigView === flamegraphView) {
+        flamegraphView.transformConfigView(mat);
+        if (spansView) {
+          const beforeY = spansView.configView.y;
+          spansView.transformConfigView(mat);
+          spansView.setConfigView(spansView.configView.withY(beforeY));
+        }
       }
+
+      if (sourceTransformConfigView === spansView) {
+        spansView.transformConfigView(mat);
+        const beforeY = flamegraphView.configView.y;
+        flamegraphView.transformConfigView(mat);
+        flamegraphView.setConfigView(flamegraphView.configView.withY(beforeY));
+      }
+
       canvasPoolManager.draw();
     };
 
