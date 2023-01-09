@@ -162,7 +162,7 @@ class ListField(Field):
             if not is_valid:
                 return Condition(Function("identity", parameters=[1]), Op.EQ, 2)
 
-            v = Function("toUUIDOrZero", parameters=[value])
+            v = Function("toUUID", parameters=[value])
         else:
             v = value
 
@@ -187,7 +187,7 @@ class ListField(Field):
             if not is_valid:
                 return Condition(Function("identity", parameters=[1]), Op.EQ, 2)
 
-            vs = [Function("toUUIDOrZero", parameters=[value]) for value in values]
+            vs = [Function("toUUID", parameters=[value]) for value in values]
         else:
             vs = values
 
