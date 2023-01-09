@@ -201,6 +201,7 @@ def get_detection_settings(project_id: Optional[int] = None) -> Dict[DetectorTyp
             "render_blocking_fcp_ratio": options.get(
                 "performance.issues.render_blocking_assets.fcp_ratio_threshold"
             ),
+            "n_plus_one_api_calls_detection_rate": 1.0,
         }
     )
 
@@ -238,7 +239,7 @@ def get_detection_settings(project_id: Optional[int] = None) -> Dict[DetectorTyp
             }
         ],
         DetectorType.N_PLUS_ONE_API_CALLS: {
-            "detection_rate": settings["n_plus_one_api_calls_detection_rate"] or 0.0,
+            "detection_rate": settings["n_plus_one_api_calls_detection_rate"],
             "duration_threshold": 50,  # ms
             "concurrency_threshold": 5,  # ms
             "count": 10,
@@ -671,7 +672,7 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         return False  # Fully turned off
 
     def is_creation_allowed_for_project(self, project: Project) -> bool:
-        return self.settings["n_plus_one_api_calls_detection_rate"] > random.random()
+        return self.settings["detection_rate"] > random.random()
 
     @classmethod
     def is_event_eligible(cls, event):
