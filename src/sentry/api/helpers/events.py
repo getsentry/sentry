@@ -56,6 +56,8 @@ def get_query_builder_for_group(
     dataset = Dataset.Events
     if group.issue_category == GroupCategory.PERFORMANCE:
         dataset = Dataset.Transactions
+    elif group.issue_category == GroupCategory.ERROR:
+        dataset = Dataset.IssuePlatform
     return QueryBuilder(
         dataset=dataset,
         query=f"issue:{group.qualified_short_id} {query}",

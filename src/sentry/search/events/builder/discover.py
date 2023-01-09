@@ -320,7 +320,7 @@ class QueryBuilder(BaseQueryBuilder):
         Mapping[str, Callable[[Direction], OrderBy]],
     ]:
         self.config: DatasetConfig
-        if self.dataset in [Dataset.Discover, Dataset.Transactions, Dataset.Events]:
+        if self.dataset in [Dataset.Discover, Dataset.Transactions, Dataset.Events, Dataset.IssuePlatform]:
             self.config = DiscoverDatasetConfig(self)
         elif self.dataset == Dataset.Sessions:
             self.config = SessionsDatasetConfig(self)
