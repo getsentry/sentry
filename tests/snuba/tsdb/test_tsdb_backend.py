@@ -917,7 +917,7 @@ class SnubaTSDBGroupProfilingTest(TestCase, SnubaTestCase, SearchIssueTestMixin)
             self.now + timedelta(hours=4),
             rollup=3600,
         ) == {
-            self.proj1group1.id: 5  # 2 unique users overall
+            self.proj1group1.id: 5  # 5 unique users overall
         }
 
         assert self.db.get_distinct_counts_totals(
