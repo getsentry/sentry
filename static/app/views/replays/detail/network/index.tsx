@@ -61,7 +61,7 @@ function NetworkList({networkSpans, startTimestampMs}: Props) {
       },
       gridRef,
       columnCount: COLUMN_COUNT,
-      dyanmicColumnIndex: 1,
+      dynamicColumnIndex: 1,
       deps: [items, searchTerm],
     });
 

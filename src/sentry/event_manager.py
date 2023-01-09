@@ -2213,7 +2213,9 @@ def _calculate_span_grouping(jobs: Sequence[Job], projects: ProjectsMapping) -> 
 @metrics.wraps("save_event.detect_performance_problems")
 def _detect_performance_problems(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
     for job in jobs:
-        job["performance_problems"] = detect_performance_problems(job["data"])
+        job["performance_problems"] = detect_performance_problems(
+            job["data"], projects[job["project_id"]]
+        )
 
 
 class PerformanceJob(TypedDict, total=False):

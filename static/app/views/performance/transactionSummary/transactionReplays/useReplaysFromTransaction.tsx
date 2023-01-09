@@ -128,8 +128,8 @@ function useReplaysFromTransaction({
 
     setData({
       ...listData,
-      isFetching: false,
       eventView,
+      isFetching: false,
       replays,
     });
   }, [

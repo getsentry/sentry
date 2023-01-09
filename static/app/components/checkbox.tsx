@@ -23,12 +23,18 @@ interface Props extends Omit<CheckboxProps, 'checked' | 'size'> {
   size?: FormSize;
 }
 
-type CheckboxConfig = {borderRadius: string; box: string; icon: string};
+type CheckboxConfig = {
+  borderRadius: string;
+  box: string;
+  // TODO: We should use IconSize here, but the `xs` checkmark needs the
+  // smaller icon size right now, so we use legacySize
+  icon: string;
+};
 
 const checkboxSizeMap: Record<FormSize, CheckboxConfig> = {
-  xs: {box: '12px', icon: '10px', borderRadius: '2px'},
-  sm: {box: '16px', icon: '12px', borderRadius: '4px'},
-  md: {box: '22px', icon: '16px', borderRadius: '6px'},
+  xs: {box: '12px', borderRadius: '2px', icon: '10px'},
+  sm: {box: '16px', borderRadius: '4px', icon: '12px'},
+  md: {box: '22px', borderRadius: '6px', icon: '16px'},
 };
 
 const Checkbox = ({
@@ -51,15 +57,16 @@ const Checkbox = ({
   return (
     <Wrapper {...{className, checked, size}}>
       <HiddenInput
+        ref={checkboxRef}
         css={inputCss}
         checked={checked !== 'indeterminate' && checked}
         type="checkbox"
         {...props}
       />
       <StyledCheckbox aria-hidden checked={checked} size={size}>
-        {checked === true && <IconCheckmark size={checkboxSizeMap[size].icon} />}
+        {checked === true && <IconCheckmark legacySize={checkboxSizeMap[size].icon} />}
         {checked === 'indeterminate' && (
-          <IconSubtract size={checkboxSizeMap[size].icon} />
+          <IconSubtract legacySize={checkboxSizeMap[size].icon} />
         )}
       </StyledCheckbox>
       {!props.disabled && (
@@ -85,9 +92,10 @@ const HiddenInput = styled('input')`
   opacity: 0;
   top: 0;
   left: 0;
-  right: 0;
-  bottom: 0;
+  height: 100%;
+  width: 100%;
   margin: 0;
+  padding: 0;
   cursor: pointer;
 
   &.focus-visible + * {

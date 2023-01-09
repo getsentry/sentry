@@ -200,6 +200,15 @@ class ProjectPerformance extends AsyncView<Props, State> {
         max: 1000000.0,
         defaultValue: 500,
       },
+      {
+        name: 'n_plus_one_api_calls_detection_rate',
+        type: 'range',
+        label: t('N+1 API Calls Detection Rate'),
+        min: 0.0,
+        max: 1.0,
+        step: 0.01,
+        defaultValue: 0,
+      },
     ];
   }
 
