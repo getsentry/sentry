@@ -111,7 +111,7 @@ fk_emeptions = {
     (SentryAppInstallationToken, ApiToken),
     (SentryAppInstallationToken, SentryAppInstallation),
     (MonitorCheckIn, MonitorLocation),
-    (NotificationSetting, Actor),
+    (NotificationSetting, User),
     (UserOption, Project),
     (UserOption, Organization),
     (OrganizationAccessRequest, User),
