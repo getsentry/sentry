@@ -3,7 +3,7 @@ import {isEventFromBrowserJavaScriptSDK} from 'sentry/components/events/interfac
 import ExternalLink from 'sentry/components/links/externalLink';
 import {PlatformKey, sourceMaps} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
-import {EntryType, Event, EventTransaction} from 'sentry/types';
+import {EntryType, Event, EventTransaction, Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {eventHasSourceMaps} from 'sentry/utils/events';
@@ -42,6 +42,40 @@ function isLocalhost(url?: string) {
   return url.includes('localhost') || url.includes('127.0.0.1');
 }
 
+export function shouldDisplaySetupSourceMapsAlert(
+  organization: Organization,
+  projectId: string | undefined,
+  event: Event | undefined
+): boolean {
+  const eventPlatform = event?.platform ?? 'other';
+  const eventFromBrowserJavaScriptSDK = isEventFromBrowserJavaScriptSDK(
+    event as EventTransaction
+  );
+
+  if (!defined(projectId) || !defined(event)) {
+    return false;
+  }
+
+  if (!organization.features?.includes('source-maps-cta')) {
+    return false;
+  }
+
+  // We would like to filter out all platforms that do not have the concept of source maps
+  if (
+    !eventFromBrowserJavaScriptSDK &&
+    !sourceMaps.includes(eventPlatform as PlatformKey)
+  ) {
+    return false;
+  }
+
+  // If the event already has source maps, we do not want to show this alert
+  if (eventHasSourceMaps(event)) {
+    return false;
+  }
+
+  return true;
+}
+
 type Props = {
   event: Event;
 };
@@ -49,32 +83,13 @@ type Props = {
 export function SetupSourceMapsAlert({event}: Props) {
   const organization = useOrganization();
   const router = useRouter();
-
-  if (!organization.features?.includes('source-maps-cta')) {
-    return null;
-  }
-
   const projectId = router.location.query.project;
-
-  if (!defined(projectId)) {
-    return null;
-  }
-
   const eventPlatform = event.platform ?? 'other';
   const eventFromBrowserJavaScriptSDK = isEventFromBrowserJavaScriptSDK(
     event as EventTransaction
   );
 
-  // We would like to filter out all platforms that do not have the concept of source maps
-  if (
-    !eventFromBrowserJavaScriptSDK &&
-    !sourceMaps.includes(eventPlatform as PlatformKey)
-  ) {
-    return null;
-  }
-
-  // If the event already has source maps, we do not want to show this alert
-  if (eventHasSourceMaps(event)) {
+  if (!shouldDisplaySetupSourceMapsAlert(organization, projectId, event)) {
     return null;
   }
 
