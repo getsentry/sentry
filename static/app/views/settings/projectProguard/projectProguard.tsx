@@ -16,7 +16,7 @@ import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 import ProjectProguardRow from './projectProguardRow';
 
-type Props = RouteComponentProps<{orgId: string; projectId: string}, {}> & {
+type Props = RouteComponentProps<{projectId: string}, {}> & {
   organization: Organization;
   project: Project;
 };
@@ -40,13 +40,13 @@ class ProjectProguard extends AsyncView<Props, State> {
   }
 
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
-    const {params, location} = this.props;
-    const {orgId, projectId} = params;
+    const {organization, params, location} = this.props;
+    const {projectId} = params;
 
     const endpoints: ReturnType<AsyncView['getEndpoints']> = [
       [
         'mappings',
-        `/projects/${orgId}/${projectId}/files/dsyms/`,
+        `/projects/${organization.slug}/${projectId}/files/dsyms/`,
         {query: {query: location.query.query, file_formats: 'proguard'}},
       ],
     ];
@@ -55,14 +55,17 @@ class ProjectProguard extends AsyncView<Props, State> {
   }
 
   handleDelete = (id: string) => {
-    const {orgId, projectId} = this.props.params;
+    const {organization} = this.props;
+    const {projectId} = this.props.params;
 
     this.setState({
       loading: true,
     });
 
     this.api.request(
-      `/projects/${orgId}/${projectId}/files/dsyms/?id=${encodeURIComponent(id)}`,
+      `/projects/${organization.slug}/${projectId}/files/dsyms/?id=${encodeURIComponent(
+        id
+      )}`,
       {
         method: 'DELETE',
         complete: () => this.fetchData(),
@@ -100,16 +103,16 @@ class ProjectProguard extends AsyncView<Props, State> {
   renderMappings() {
     const {mappings} = this.state;
     const {organization, params} = this.props;
-    const {orgId, projectId} = params;
+    const {projectId} = params;
 
     if (!mappings?.length) {
       return null;
     }
 
     return mappings.map(mapping => {
-      const downloadUrl = `${
-        this.api.baseUrl
-      }/projects/${orgId}/${projectId}/files/dsyms/?id=${encodeURIComponent(mapping.id)}`;
+      const downloadUrl = `${this.api.baseUrl}/projects/${
+        organization.slug
+      }/${projectId}/files/dsyms/?id=${encodeURIComponent(mapping.id)}`;
 
       return (
         <ProjectProguardRow

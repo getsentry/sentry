@@ -33,7 +33,8 @@ describe('ProjectCspReports', function () {
         router={router}
         routes={router.routes}
         location={TestStubs.location({pathname: routeUrl})}
-        params={{orgId: organization.slug, projectId: project.slug}}
+        organization={organization}
+        params={{projectId: project.slug}}
       />
     );
     expect(container).toSnapshot();
@@ -47,7 +48,8 @@ describe('ProjectCspReports', function () {
         router={router}
         routes={router.routes}
         location={TestStubs.location({pathname: routeUrl})}
-        params={{orgId: organization.slug, projectId: project.slug}}
+        organization={organization}
+        params={{projectId: project.slug}}
       />
     );
 
@@ -82,7 +84,8 @@ describe('ProjectCspReports', function () {
         router={router}
         routes={router.routes}
         location={TestStubs.location({pathname: routeUrl})}
-        params={{orgId: organization.slug, projectId: project.slug}}
+        organization={organization}
+        params={{projectId: project.slug}}
       />
     );
 

@@ -23,8 +23,9 @@ describe('ProjectExpectCtReports', function () {
         routeParams={{}}
         router={router}
         routes={router.routes}
-        params={{orgId: org.slug, projectId: project.slug}}
+        params={{projectId: project.slug}}
         location={TestStubs.location({pathname: url})}
+        organization={org}
       />
     );
 

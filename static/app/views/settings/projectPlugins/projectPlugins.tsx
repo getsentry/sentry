@@ -24,12 +24,11 @@ type Props = {
   organization: Organization;
   plugins: Plugin[];
   project: Project;
-} & RouteComponentProps<{orgId: string}, {}>;
+} & RouteComponentProps<{}, {}>;
 
 class ProjectPlugins extends Component<Props> {
   render() {
-    const {plugins, loading, error, onChange, routes, organization, params, project} =
-      this.props;
+    const {plugins, loading, error, onChange, routes, organization, project} = this.props;
     const hasError = error;
     const isLoading = !hasError && loading;
 
@@ -40,6 +39,7 @@ class ProjectPlugins extends Component<Props> {
     if (isLoading) {
       return <LoadingIndicator />;
     }
+    const params = {orgId: organization.slug, projectId: project.slug};
 
     return (
       <Panel>
