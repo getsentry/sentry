@@ -53,11 +53,11 @@ def get_direct_hit_response(
 def get_query_builder_for_group(
     query: str, snuba_params: Mapping[str, Any], group: Group, limit: int, offset: int
 ) -> QueryBuilder:
-    dataset = Dataset.Events
+    dataset = Dataset.IssuePlatform
     if group.issue_category == GroupCategory.PERFORMANCE:
         dataset = Dataset.Transactions
-    elif not group.issue_category == GroupCategory.ERROR:
-        dataset = Dataset.IssuePlatform
+    elif group.issue_category == GroupCategory.ERROR:
+        dataset = Dataset.Events
     return QueryBuilder(
         dataset=dataset,
         query=f"issue:{group.qualified_short_id} {query}",
