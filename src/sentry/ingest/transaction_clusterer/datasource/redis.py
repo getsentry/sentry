@@ -1,11 +1,10 @@
 """ Write transactions into redis sets """
-from typing import Any, Iterator
+from typing import Any, Iterator, Mapping
 
 import sentry_sdk
 from django.conf import settings
 
 from sentry import features
-from sentry.eventstore.models import Event
 from sentry.ingest.transaction_clusterer.datasource import TRANSACTION_SOURCE_URL
 from sentry.models import Project
 from sentry.utils import redis
@@ -64,9 +63,10 @@ def get_transaction_names(project: Project) -> Iterator[str]:
     return client.sscan_iter(redis_key)  # type: ignore
 
 
-def record_transaction_name(project: Project, event: Event, **kwargs: Any) -> None:
-    transaction_info = event.data.get("transaction_info") or {}
-    transaction_name = event.transaction
+def record_transaction_name(project: Project, event_data: Mapping[str, Any], **kwargs: Any) -> None:
+    transaction_info = event_data.get("transaction_info") or {}
+
+    transaction_name = event_data.get("transaction")
     source = transaction_info.get("source")
     if transaction_name and features.has(
         "organizations:transaction-name-clusterer", project.organization

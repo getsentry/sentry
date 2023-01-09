@@ -69,6 +69,7 @@ from sentry.incidents.endpoints.project_alert_rule_task_details import (
 from sentry.replays.endpoints.organization_issue_replay_count import (
     OrganizationIssueReplayCountEndpoint,
 )
+from sentry.replays.endpoints.organization_replay_count import OrganizationReplayCountEndpoint
 from sentry.replays.endpoints.organization_replay_events_meta import (
     OrganizationReplayEventsMetaEndpoint,
 )
@@ -210,6 +211,7 @@ from .endpoints.internal import (
     InternalStatsEndpoint,
     InternalWarningsEndpoint,
 )
+from .endpoints.issue_occurrence import IssueOccurrenceEndpoint
 from .endpoints.monitor_checkin_details import MonitorCheckInDetailsEndpoint
 from .endpoints.monitor_checkins import MonitorCheckInsEndpoint
 from .endpoints.monitor_details import MonitorDetailsEndpoint
@@ -411,7 +413,6 @@ from .endpoints.project_profiling_profile import (
     ProjectProfilingRawProfileEndpoint,
     ProjectProfilingTransactionIDProfileIDEndpoint,
 )
-from .endpoints.project_release_activity import ProjectReleaseActivityEndpoint
 from .endpoints.project_release_commits import ProjectReleaseCommitsEndpoint
 from .endpoints.project_release_details import ProjectReleaseDetailsEndpoint
 from .endpoints.project_release_file_details import ProjectReleaseFileDetailsEndpoint
@@ -693,6 +694,34 @@ urlpatterns = [
                     r"^(?P<monitor_id>[^\/]+)/stats/$",
                     MonitorStatsEndpoint.as_view(),
                     name="sentry-api-0-monitor-stats",
+                ),
+            ]
+        ),
+    ),
+    # TODO: include in the /organizations/ route tree + remove old dupes once hybrid cloud launches
+    url(
+        r"^organizations/(?P<organization_slug>[^\/]+)/monitors/",
+        include(
+            [
+                url(
+                    r"^(?P<monitor_id>[^\/]+)/$",
+                    MonitorDetailsEndpoint.as_view(),
+                    name="sentry-api-0-monitor-details-with-org",
+                ),
+                url(
+                    r"^(?P<monitor_id>[^\/]+)/checkins/$",
+                    MonitorCheckInsEndpoint.as_view(),
+                    name="sentry-api-0-monitor-check-in-index-with-org",
+                ),
+                url(
+                    r"^(?P<monitor_id>[^\/]+)/checkins/(?P<checkin_id>[^\/]+)/$",
+                    MonitorCheckInDetailsEndpoint.as_view(),
+                    name="sentry-api-0-monitor-check-in-details-with-org",
+                ),
+                url(
+                    r"^(?P<monitor_id>[^\/]+)/stats/$",
+                    MonitorStatsEndpoint.as_view(),
+                    name="sentry-api-0-monitor-stats-with-org",
                 ),
             ]
         ),
@@ -1578,6 +1607,11 @@ urlpatterns = [
                     name="sentry-api-0-organization-issue-replay-count",
                 ),
                 url(
+                    r"^(?P<organization_slug>[^\/]+)/replay-count/$",
+                    OrganizationReplayCountEndpoint.as_view(),
+                    name="sentry-api-0-organization-replay-count",
+                ),
+                url(
                     r"^(?P<organization_slug>[^\/]+)/replays-events-meta/$",
                     OrganizationReplayEventsMetaEndpoint.as_view(),
                     name="sentry-api-0-organization-replay-events-meta",
@@ -2018,11 +2052,6 @@ urlpatterns = [
                     name="sentry-api-0-project-release-details",
                 ),
                 url(
-                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/releases/(?P<version>[^/]+)/activity/$",
-                    ProjectReleaseActivityEndpoint.as_view(),
-                    name="sentry-api-0-project-release-activity",
-                ),
-                url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/releases/(?P<version>[^/]+)/commits/$",
                     ProjectReleaseCommitsEndpoint.as_view(),
                     name="sentry-api-0-project-release-commits",
@@ -2309,10 +2338,22 @@ urlpatterns = [
     ),
     # Groups
     url(r"^(?:issues|groups)/", include(GROUP_URLS)),
+    # TODO: include in the /organizations/ route tree + remove old dupe once hybrid cloud launches
+    url(
+        r"^organizations/(?P<organization_slug>[^\/]+)/issues/(?P<issue_id>[^\/]+)/participants/$",
+        GroupParticipantsEndpoint.as_view(),
+        name="sentry-api-0-group-stats-with-org",
+    ),
     url(
         r"^issues/(?P<issue_id>[^\/]+)/participants/$",
         GroupParticipantsEndpoint.as_view(),
         name="sentry-api-0-group-stats",
+    ),
+    # TODO: include in the /organizations/ route tree + remove old dupe once hybrid cloud launches
+    url(
+        r"^organizations/(?P<organization_slug>[^\/]+)/shared/(?:issues|groups)/(?P<share_id>[^\/]+)/$",
+        SharedGroupDetailsEndpoint.as_view(),
+        name="sentry-api-0-shared-group-details-with-org",
     ),
     url(
         r"^shared/(?:issues|groups)/(?P<share_id>[^\/]+)/$",
@@ -2407,6 +2448,12 @@ urlpatterns = [
         r"^integration-features/$",
         IntegrationFeaturesEndpoint.as_view(),
         name="sentry-api-0-integration-features",
+    ),
+    # Issue Occurrences
+    url(
+        r"^issue-occurrence/$",
+        IssueOccurrenceEndpoint.as_view(),
+        name="sentry-api-0-issue-occurrence",
     ),
     # Grouping configs
     url(

@@ -11,7 +11,7 @@ class OrganizationMonitorsTestBase(APITestCase):
         self.login_as(self.user)
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class ListOrganizationMonitorsTest(OrganizationMonitorsTestBase):
     def check_valid_response(self, response, expected_monitors):
         assert [str(monitor.guid) for monitor in expected_monitors] == [
@@ -24,24 +24,22 @@ class ListOrganizationMonitorsTest(OrganizationMonitorsTestBase):
             organization_id=self.organization.id,
             name="My Monitor",
         )
-        with self.feature({"organizations:monitors": True}):
-            response = self.get_success_response(self.organization.slug)
+        response = self.get_success_response(self.organization.slug)
         self.check_valid_response(response, [monitor])
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class CreateOrganizationMonitorTest(OrganizationMonitorsTestBase):
     method = "post"
 
     def test_simple(self):
-        with self.feature({"organizations:monitors": True}):
-            data = {
-                "project": self.project.slug,
-                "name": "My Monitor",
-                "type": "cron_job",
-                "config": {"schedule_type": "crontab", "schedule": "@daily"},
-            }
-            response = self.get_success_response(self.organization.slug, **data)
+        data = {
+            "project": self.project.slug,
+            "name": "My Monitor",
+            "type": "cron_job",
+            "config": {"schedule_type": "crontab", "schedule": "@daily"},
+        }
+        response = self.get_success_response(self.organization.slug, **data)
 
         assert response.data["id"]
 

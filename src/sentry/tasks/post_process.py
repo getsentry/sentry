@@ -360,17 +360,13 @@ def post_process_group(
         # This should eventually be completely removed and transactions
         # will not go through any post processing.
         if is_transaction_event:
-            record_transaction_name_for_clustering(event.project, event)
+            record_transaction_name_for_clustering(event.project, event.data)
             with sentry_sdk.start_span(op="tasks.post_process_group.transaction_processed_signal"):
                 transaction_processed.send_robust(
                     sender=post_process_group,
                     project=event.project,
                     event=event,
                 )
-            if not features.has(
-                "organizations:performance-issues-post-process-group", event.project.organization
-            ):
-                return
 
         # TODO: Remove this check once we're sending all group ids as `group_states` and treat all
         # events the same way
@@ -612,7 +608,7 @@ def process_code_mappings(job: PostProcessJob) -> None:
         project = event.project
 
         # Supported platforms
-        if event.data["platform"] not in ["javascript", "python"]:
+        if event.data["platform"] not in ["javascript", "python", "ruby"]:
             return
 
         cache_key = f"code-mappings:{project.id}"

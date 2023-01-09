@@ -1,8 +1,8 @@
 from datetime import datetime
+from functools import cached_property
 
 import pytz
 from django.urls import reverse
-from exam import fixture
 
 from sentry.models import RelayUsage
 from sentry.testutils import APITestCase
@@ -10,11 +10,11 @@ from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class OrganizationRelayHistoryTest(APITestCase):
     endpoint = "sentry-api-0-organization-relay-usage"
 
-    @fixture
+    @cached_property
     def user(self):
         return self.create_user("test@test.com")
 

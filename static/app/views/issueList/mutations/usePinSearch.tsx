@@ -50,7 +50,7 @@ export const usePinSearch = (
       options.onSuccess?.(savedSearch, variables, context);
     },
     onError: (error, variables, context) => {
-      addErrorMessage(t('Unable to remove the default search.'));
+      addErrorMessage(t('Unable to set the default search.'));
       options.onError?.(error, variables, context);
     },
   });

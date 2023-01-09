@@ -1,9 +1,9 @@
+from functools import cached_property
 from unittest.mock import patch
 
 import pytest
 from django.conf import settings
 from django.core.cache.backends.locmem import LocMemCache
-from exam import fixture
 
 from sentry.models import Option
 from sentry.options.manager import (
@@ -22,13 +22,13 @@ from sentry.utils.types import Int, String
 
 
 class OptionsManagerTest(TestCase):
-    @fixture
+    @cached_property
     def store(self):
         c = LocMemCache("test", {})
         c.clear()
         return OptionsStore(cache=c)
 
-    @fixture
+    @cached_property
     def manager(self):
         return OptionsManager(store=self.store)
 

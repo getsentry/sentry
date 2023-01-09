@@ -1,7 +1,9 @@
+from datetime import timedelta
 from typing import List
 
 import pytest
 from django.urls import reverse
+from django.utils import timezone
 from freezegun import freeze_time
 from snuba_sdk import Column, Condition, Function, Op
 
@@ -14,8 +16,11 @@ from sentry.testutils.cases import APITestCase, SnubaTestCase
 
 pytestmark = pytest.mark.sentry_metrics
 
+ONE_DAY_AGO = timezone.now() - timedelta(days=1)
+MOCK_DATETIME = ONE_DAY_AGO.replace(hour=10, minute=0, second=0, microsecond=0)
 
-@freeze_time("2022-09-29 10:00:00")
+
+@freeze_time(MOCK_DATETIME)
 class MetricsSessionsV2Test(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()

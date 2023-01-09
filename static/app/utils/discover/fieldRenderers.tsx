@@ -581,7 +581,7 @@ const SPECIAL_FIELDS: SpecialFields = {
             <NumberContainer>
               <Count value={count} />
             </NumberContainer>
-            <UserIcon size="20" />
+            <UserIcon size="md" />
           </FlexContainer>
         );
       }

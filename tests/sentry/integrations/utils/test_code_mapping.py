@@ -226,7 +226,7 @@ class TestDerivedCodeMappings(TestCase):
         code_mappings = self.code_mapping_helper.generate_code_mappings(stacktraces)
         # The file appears in more than one repo, thus, we are unable to determine the code mapping
         assert code_mappings == []
-        assert logger.warning.called_with("More than one repo matched sentry/web/urls.py")
+        logger.warning.assert_called_with("More than one repo matched sentry/web/urls.py")
 
     def test_list_file_matches_single(self):
         frame_filename = FrameFilename("sentry_plugins/slack/client.py")
@@ -262,3 +262,40 @@ class TestDerivedCodeMappings(TestCase):
             },
         ]
         assert matches == expected_matches
+
+    def test_normalized_stack_and_source_roots_starts_with_period_slash(self):
+        stacktrace_root, source_path = self.code_mapping_helper._normalized_stack_and_source_roots(
+            "./app/", "static/app/"
+        )
+        assert stacktrace_root == "./"
+        assert source_path == "static/"
+
+    def test_normalized_stack_and_source_roots_starts_with_period_slash_no_containing_directory(
+        self,
+    ):
+        stacktrace_root, source_path = self.code_mapping_helper._normalized_stack_and_source_roots(
+            "./app/", "app/"
+        )
+        assert stacktrace_root == "./"
+        assert source_path == ""
+
+    def test_normalized_stack_and_source_not_matching(self):
+        stacktrace_root, source_path = self.code_mapping_helper._normalized_stack_and_source_roots(
+            "sentry/", "src/sentry/"
+        )
+        assert stacktrace_root == "sentry/"
+        assert source_path == "src/sentry/"
+
+    def test_normalized_stack_and_source_roots_equal(self):
+        stacktrace_root, source_path = self.code_mapping_helper._normalized_stack_and_source_roots(
+            "source/", "source/"
+        )
+        assert stacktrace_root == ""
+        assert source_path == ""
+
+    def test_normalized_stack_and_source_roots_starts_with_period_slash_two_levels(self):
+        stacktrace_root, source_path = self.code_mapping_helper._normalized_stack_and_source_roots(
+            "./app/", "app/foo/app/"
+        )
+        assert stacktrace_root == "./"
+        assert source_path == "app/foo/"

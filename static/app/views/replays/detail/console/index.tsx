@@ -1,4 +1,4 @@
-import {useRef} from 'react';
+import {memo, useRef} from 'react';
 import {
   AutoSizer,
   CellMeasurer,
@@ -8,11 +8,8 @@ import {
 import styled from '@emotion/styled';
 
 import Placeholder from 'sentry/components/placeholder';
-import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {t} from 'sentry/locale';
 import type {BreadcrumbTypeDefault, Crumb} from 'sentry/types/breadcrumbs';
-import {getPrevReplayEvent} from 'sentry/utils/replays/getReplayEvent';
-import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import ConsoleFilters from 'sentry/views/replays/detail/console/consoleFilters';
 import ConsoleLogRow from 'sentry/views/replays/detail/console/consoleLogRow';
 import useConsoleFilters from 'sentry/views/replays/detail/console/useConsoleFilters';
@@ -26,30 +23,9 @@ interface Props {
 }
 
 function Console({breadcrumbs, startTimestampMs}: Props) {
-  const {currentTime, currentHoverTime} = useReplayContext();
-
   const filterProps = useConsoleFilters({breadcrumbs: breadcrumbs || []});
   const {items, setSearchTerm} = filterProps;
   const clearSearchTerm = () => setSearchTerm('');
-
-  const {handleMouseEnter, handleMouseLeave, handleClick} =
-    useCrumbHandlers(startTimestampMs);
-
-  const current = getPrevReplayEvent({
-    items,
-    targetTimestampMs: startTimestampMs + currentTime,
-    allowEqual: true,
-    allowExact: true,
-  });
-
-  const hovered = currentHoverTime
-    ? getPrevReplayEvent({
-        items,
-        targetTimestampMs: startTimestampMs + currentHoverTime,
-        allowEqual: true,
-        allowExact: true,
-      })
-    : null;
 
   const listRef = useRef<ReactVirtualizedList>(null);
   const {cache} = useVirtualizedList({
@@ -73,12 +49,8 @@ function Console({breadcrumbs, startTimestampMs}: Props) {
         rowIndex={index}
       >
         <ConsoleLogRow
-          isCurrent={item.id === current?.id}
-          isHovered={item.id === hovered?.id}
           breadcrumb={item}
-          onClickTimestamp={() => handleClick(item)}
-          onMouseEnter={() => handleMouseEnter(item)}
-          onMouseLeave={() => handleMouseLeave(item)}
+          breadcrumbs={items}
           startTimestampMs={startTimestampMs}
           style={style}
         />
@@ -94,11 +66,8 @@ function Console({breadcrumbs, startTimestampMs}: Props) {
           <AutoSizer>
             {({width, height}) => (
               <ReactVirtualizedList
-                ref={listRef}
                 deferredMeasurementCache={cache}
                 height={height}
-                overscanRowCount={5}
-                rowCount={items.length}
                 noRowsRenderer={() => (
                   <NoRowRenderer
                     unfilteredItems={breadcrumbs}
@@ -107,6 +76,9 @@ function Console({breadcrumbs, startTimestampMs}: Props) {
                     {t('No console logs recorded')}
                   </NoRowRenderer>
                 )}
+                overscanRowCount={5}
+                ref={listRef}
+                rowCount={items.length}
                 rowHeight={cache.rowHeight}
                 rowRenderer={renderRow}
                 width={width}
@@ -133,4 +105,4 @@ const ConsoleLogContainer = styled('div')`
   border-radius: ${p => p.theme.borderRadius};
 `;
 
-export default Console;
+export default memo(Console);

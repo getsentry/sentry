@@ -1,35 +1,81 @@
+from __future__ import annotations
+
 from django.db import transaction
+from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import audit_log
-from sentry.api.base import pending_silo_endpoint
+from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.monitor import MonitorEndpoint
 from sentry.api.serializers import serialize
+from sentry.api.serializers.models.monitor import MonitorSerializerResponse
 from sentry.api.validators import MonitorValidator
+from sentry.apidocs.constants import (
+    RESPONSE_ACCEPTED,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NOTFOUND,
+    RESPONSE_UNAUTHORIZED,
+)
+from sentry.apidocs.parameters import GLOBAL_PARAMS, MONITOR_PARAMS
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models import Monitor, MonitorStatus, ScheduledDeletion
 
 
-@pending_silo_endpoint
+@region_silo_endpoint
+@extend_schema(tags=["Crons"])
 class MonitorDetailsEndpoint(MonitorEndpoint):
-    def get(self, request: Request, project, monitor) -> Response:
-        """
-        Retrieve a monitor
-        ``````````````````
+    public = {"GET", "PUT", "DELETE"}
 
-        :pparam string monitor_id: the id of the monitor.
-        :auth: required
+    @extend_schema(
+        operation_id="Retrieve a monitor",
+        parameters=[
+            GLOBAL_PARAMS.ORG_SLUG,
+            MONITOR_PARAMS.MONITOR_ID,
+        ],
+        responses={
+            200: inline_sentry_response_serializer("Monitor", MonitorSerializerResponse),
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOTFOUND,
+        },
+    )
+    def get(
+        self, request: Request, project, monitor, organization_slug: str | None = None
+    ) -> Response:
         """
+        Retrieves details for a monitor.
+        """
+        if organization_slug:
+            if project.organization.slug != organization_slug:
+                return self.respond_invalid()
+
         return self.respond(serialize(monitor, request.user))
 
-    def put(self, request: Request, project, monitor) -> Response:
+    @extend_schema(
+        operation_id="Update a monitor",
+        parameters=[
+            GLOBAL_PARAMS.ORG_SLUG,
+            MONITOR_PARAMS.MONITOR_ID,
+        ],
+        request=MonitorValidator,
+        responses={
+            200: inline_sentry_response_serializer("Monitor", MonitorSerializerResponse),
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOTFOUND,
+        },
+    )
+    def put(
+        self, request: Request, project, monitor, organization_slug: str | None = None
+    ) -> Response:
         """
-        Update a monitor
-        ````````````````
+        Update a monitor.
+        """
+        if organization_slug:
+            if project.organization.slug != organization_slug:
+                return self.respond_invalid()
 
-        :pparam string monitor_id: the id of the monitor.
-        :auth: required
-        """
         validator = MonitorValidator(
             data=request.data,
             partial=True,
@@ -73,14 +119,31 @@ class MonitorDetailsEndpoint(MonitorEndpoint):
 
         return self.respond(serialize(monitor, request.user))
 
-    def delete(self, request: Request, project, monitor) -> Response:
+    @extend_schema(
+        operation_id="Delete a monitor",
+        parameters=[
+            GLOBAL_PARAMS.ORG_SLUG,
+            MONITOR_PARAMS.MONITOR_ID,
+        ],
+        request=MonitorValidator,
+        responses={
+            202: RESPONSE_ACCEPTED,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOTFOUND,
+        },
+    )
+    def delete(
+        self, request: Request, project, monitor, organization_slug: str | None = None
+    ) -> Response:
         """
-        Delete a monitor
-        ````````````````
+        Delete a monitor.
+        """
 
-        :pparam string monitor_id: the id of the monitor.
-        :auth: required
-        """
+        if organization_slug:
+            if project.organization.slug != organization_slug:
+                return self.respond_invalid()
+
         with transaction.atomic():
             affected = (
                 Monitor.objects.filter(id=monitor.id)

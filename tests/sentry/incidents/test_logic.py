@@ -1,4 +1,5 @@
 from datetime import timedelta
+from functools import cached_property
 from unittest import mock
 from unittest.mock import patch
 
@@ -7,7 +8,6 @@ import responses
 from django.conf import settings
 from django.core import mail
 from django.utils import timezone
-from exam import fixture
 from freezegun import freeze_time
 
 from sentry.constants import ObjectStatus
@@ -237,7 +237,7 @@ class BaseIncidentsValidation:
 
 
 class BaseIncidentEventStatsTest(BaseIncidentsTest, BaseIncidentsValidation):
-    @fixture
+    @cached_property
     def project_incident(self):
         self.create_event(self.now - timedelta(minutes=2))
         self.create_event(self.now - timedelta(minutes=2))
@@ -246,7 +246,7 @@ class BaseIncidentEventStatsTest(BaseIncidentsTest, BaseIncidentsValidation):
             date_started=self.now - timedelta(minutes=5), query="", projects=[self.project]
         )
 
-    @fixture
+    @cached_property
     def group_incident(self):
         fingerprint = "group-1"
         event = self.create_event(self.now - timedelta(minutes=2), fingerprint=fingerprint)
@@ -348,15 +348,14 @@ class CreateIncidentActivityTest(TestCase, BaseIncidentsTest):
     def test_comment(self):
         incident = self.create_incident()
         comment = "hello"
-        with self.assertChanges(
-            lambda: IncidentSubscription.objects.filter(incident=incident, user=self.user).exists(),
-            before=False,
-            after=True,
-        ):
-            self.record_event.reset_mock()
-            activity = create_incident_activity(
-                incident, IncidentActivityType.COMMENT, user=self.user, comment=comment
-            )
+
+        assert not IncidentSubscription.objects.filter(incident=incident, user=self.user).exists()
+        self.record_event.reset_mock()
+        activity = create_incident_activity(
+            incident, IncidentActivityType.COMMENT, user=self.user, comment=comment
+        )
+        assert IncidentSubscription.objects.filter(incident=incident, user=self.user).exists()
+
         assert activity.incident == incident
         assert activity.type == IncidentActivityType.COMMENT.value
         assert activity.user == self.user
@@ -381,21 +380,22 @@ class CreateIncidentActivityTest(TestCase, BaseIncidentsTest):
         subscribed_mentioned_member = self.create_user()
         IncidentSubscription.objects.create(incident=incident, user=subscribed_mentioned_member)
         comment = f"hello **@{mentioned_member.username}** and **@{subscribed_mentioned_member.username}**"
-        with self.assertChanges(
-            lambda: IncidentSubscription.objects.filter(
-                incident=incident, user=mentioned_member
-            ).exists(),
-            before=False,
-            after=True,
-        ):
-            self.record_event.reset_mock()
-            activity = create_incident_activity(
-                incident,
-                IncidentActivityType.COMMENT,
-                user=self.user,
-                comment=comment,
-                mentioned_user_ids=[mentioned_member.id, subscribed_mentioned_member.id],
-            )
+
+        assert not IncidentSubscription.objects.filter(
+            incident=incident, user=mentioned_member
+        ).exists()
+        self.record_event.reset_mock()
+        activity = create_incident_activity(
+            incident,
+            IncidentActivityType.COMMENT,
+            user=self.user,
+            comment=comment,
+            mentioned_user_ids=[mentioned_member.id, subscribed_mentioned_member.id],
+        )
+        assert IncidentSubscription.objects.filter(
+            incident=incident, user=mentioned_member
+        ).exists()
+
         assert activity.incident == incident
         assert activity.type == IncidentActivityType.COMMENT.value
         assert activity.user == self.user
@@ -639,7 +639,7 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
 
 
 class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
-    @fixture
+    @cached_property
     def alert_rule(self):
         return self.create_alert_rule(name="hello")
 
@@ -945,7 +945,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
 
 
 class DeleteAlertRuleTest(TestCase, BaseIncidentsTest):
-    @fixture
+    @cached_property
     def alert_rule(self):
         return self.create_alert_rule()
 
@@ -971,7 +971,7 @@ class DeleteAlertRuleTest(TestCase, BaseIncidentsTest):
 
 
 class EnableAlertRuleTest(TestCase, BaseIncidentsTest):
-    @fixture
+    @cached_property
     def alert_rule(self):
         return self.create_alert_rule()
 
@@ -991,7 +991,7 @@ class EnableAlertRuleTest(TestCase, BaseIncidentsTest):
 
 
 class DisbaleAlertRuleTest(TestCase, BaseIncidentsTest):
-    @fixture
+    @cached_property
     def alert_rule(self):
         return self.create_alert_rule()
 
@@ -1020,7 +1020,7 @@ class TestGetExcludedProjectsForAlertRule(TestCase):
 
 
 class CreateAlertRuleTriggerTest(TestCase):
-    @fixture
+    @cached_property
     def alert_rule(self):
         return self.create_alert_rule()
 
@@ -1056,7 +1056,7 @@ class CreateAlertRuleTriggerTest(TestCase):
 
 
 class UpdateAlertRuleTriggerTest(TestCase):
-    @fixture
+    @cached_property
     def alert_rule(self):
         return self.create_alert_rule()
 
@@ -1135,11 +1135,11 @@ class GetTriggersForAlertRuleTest(TestCase):
 
 
 class BaseAlertRuleTriggerActionTest:
-    @fixture
+    @cached_property
     def alert_rule(self):
         return self.create_alert_rule()
 
-    @fixture
+    @cached_property
     def trigger(self):
         return create_alert_rule_trigger(self.alert_rule, "hello", 1000)
 
@@ -1343,7 +1343,7 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest, TestCase)
 
 
 class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
-    @fixture
+    @cached_property
     def action(self):
         return create_alert_rule_trigger_action(
             self.trigger,
@@ -1550,7 +1550,7 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
 
 
 class DeleteAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
-    @fixture
+    @cached_property
     def action(self):
         return create_alert_rule_trigger_action(
             self.trigger,
@@ -1634,25 +1634,25 @@ class MetricTranslationTest(TestCase):
 
 
 class TriggerActionTest(TestCase):
-    @fixture
+    @cached_property
     def user(self):
         return self.create_user("test@test.com")
 
-    @fixture
+    @cached_property
     def team(self):
         team = self.create_team()
         self.create_team_membership(team, user=self.user)
         return team
 
-    @fixture
+    @cached_property
     def project(self):
         return self.create_project(teams=[self.team], name="foo")
 
-    @fixture
+    @cached_property
     def other_project(self):
         return self.create_project(teams=[self.team], name="other")
 
-    @fixture
+    @cached_property
     def rule(self):
         rule = self.create_alert_rule(
             projects=[self.project, self.other_project],
@@ -1681,7 +1681,7 @@ class TriggerActionTest(TestCase):
         )
         return rule
 
-    @fixture
+    @cached_property
     def trigger(self):
         return self.rule.alertruletrigger_set.get()
 
@@ -1736,11 +1736,11 @@ class TestDeduplicateTriggerActions(TestCase):
             },
         )
 
-    @fixture
+    @cached_property
     def critical(self):
         return AlertRuleTrigger(label=CRITICAL_TRIGGER_LABEL)
 
-    @fixture
+    @cached_property
     def warning(self):
         return AlertRuleTrigger(label=WARNING_TRIGGER_LABEL)
 

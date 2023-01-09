@@ -1,18 +1,15 @@
 import {Fragment, useCallback, useMemo, useRef} from 'react';
 import {css, Theme} from '@emotion/react';
 import styled from '@emotion/styled';
-import classNames from 'classnames';
 import type {LocationDescriptor} from 'history';
 
 import AssigneeSelector from 'sentry/components/assigneeSelector';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Checkbox from 'sentry/components/checkbox';
 import Count from 'sentry/components/count';
-import DeprecatedDropdownMenu from 'sentry/components/deprecatedDropdownMenu';
 import EventOrGroupExtraDetails from 'sentry/components/eventOrGroupExtraDetails';
 import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
 import Link from 'sentry/components/links/link';
-import MenuItem from 'sentry/components/menuItem';
 import {getRelativeSummary} from 'sentry/components/organizations/timeRangeSelector/utils';
 import {PanelItem} from 'sentry/components/panels';
 import Placeholder from 'sentry/components/placeholder';
@@ -20,6 +17,7 @@ import ProgressBar from 'sentry/components/progressBar';
 import {joinQuery, parseSearch, Token} from 'sentry/components/searchSyntax/parser';
 import GroupChart from 'sentry/components/stream/groupChart';
 import TimeSince from 'sentry/components/timeSince';
+import Tooltip from 'sentry/components/tooltip';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import DemoWalkthroughStore from 'sentry/stores/demoWalkthroughStore';
@@ -31,6 +29,7 @@ import {
   Group,
   GroupReprocessing,
   InboxDetails,
+  IssueCategory,
   NewQuery,
   Organization,
   User,
@@ -307,116 +306,89 @@ function BaseGroupRow({
     withChart && group && group.filtered && statsPeriod && useFilteredStats
   );
 
+  const groupCategoryCountTitles: Record<IssueCategory, string> = {
+    [IssueCategory.ERROR]: t('Error Events'),
+    [IssueCategory.PERFORMANCE]: t('Transaction Events'),
+  };
+
   const groupCount = !defined(primaryCount) ? (
     <Placeholder height="18px" />
   ) : (
-    <DeprecatedDropdownMenu isNestedDropdown>
-      {({isOpen, getRootProps, getActorProps, getMenuProps}) => {
-        const topLevelCx = classNames('dropdown', {'anchor-middle': true, open: isOpen});
-
-        return (
-          <GuideAnchor target="dynamic_counts" disabled={!hasGuideAnchor}>
-            <span {...getRootProps({className: topLevelCx})}>
-              <span {...getActorProps({})}>
-                <div className="dropdown-actor-title">
-                  <PrimaryCount value={primaryCount} />
-                  {secondaryCount !== undefined && useFilteredStats && (
-                    <SecondaryCount value={secondaryCount} />
-                  )}
-                </div>
-              </span>
-              {useFilteredStats && (
-                <StyledDropdownList
-                  {...getMenuProps({className: 'dropdown-menu inverted'})}
-                >
-                  {group.filtered && (
-                    <Fragment>
-                      <StyledMenuItem to={getDiscoverUrl(true)}>
-                        <MenuItemText>
-                          {queryFilterDescription ?? t('Matching search filters')}
-                        </MenuItemText>
-                        <MenuItemCount value={group.filtered.count} />
-                      </StyledMenuItem>
-                      <MenuItem divider />
-                    </Fragment>
-                  )}
-
-                  <StyledMenuItem to={getDiscoverUrl()}>
-                    <MenuItemText>{t('Total in %s', summary)}</MenuItemText>
-                    <MenuItemCount value={group.count} />
-                  </StyledMenuItem>
-
-                  {group.lifetime && (
-                    <Fragment>
-                      <MenuItem divider />
-                      <StyledMenuItem>
-                        <MenuItemText>{t('Since issue began')}</MenuItemText>
-                        <MenuItemCount value={group.lifetime.count} />
-                      </StyledMenuItem>
-                    </Fragment>
-                  )}
-                </StyledDropdownList>
-              )}
-            </span>
-          </GuideAnchor>
-        );
-      }}
-    </DeprecatedDropdownMenu>
+    <GuideAnchor target="dynamic_counts" disabled={!hasGuideAnchor}>
+      <Tooltip
+        disabled={!useFilteredStats}
+        isHoverable
+        title={
+          <CountTooltipContent>
+            <h4>{groupCategoryCountTitles[group.issueCategory]}</h4>
+            {group.filtered && (
+              <Fragment>
+                <div>{queryFilterDescription ?? t('Matching filters')}</div>
+                <Link to={getDiscoverUrl(true)}>
+                  <Count value={group.filtered?.count} />
+                </Link>
+              </Fragment>
+            )}
+            <Fragment>
+              <div>{t('Total in %s', summary)}</div>
+              <Link to={getDiscoverUrl()}>
+                <Count value={group.count} />
+              </Link>
+            </Fragment>
+            {group.lifetime && (
+              <Fragment>
+                <div>{t('Since issue began')}</div>
+                <Count value={group.lifetime.count} />
+              </Fragment>
+            )}
+          </CountTooltipContent>
+        }
+      >
+        <PrimaryCount value={primaryCount} />
+        {secondaryCount !== undefined && useFilteredStats && (
+          <SecondaryCount value={secondaryCount} />
+        )}
+      </Tooltip>
+    </GuideAnchor>
   );
 
   const groupUsersCount = !defined(primaryUserCount) ? (
     <Placeholder height="18px" />
   ) : (
-    <DeprecatedDropdownMenu isNestedDropdown>
-      {({isOpen, getRootProps, getActorProps, getMenuProps}) => {
-        const topLevelCx = classNames('dropdown', {'anchor-middle': true, open: isOpen});
-
-        return (
-          <span {...getRootProps({className: topLevelCx})}>
-            <span {...getActorProps({})}>
-              <div className="dropdown-actor-title">
-                <PrimaryCount value={primaryUserCount} />
-                {secondaryUserCount !== undefined && useFilteredStats && (
-                  <SecondaryCount dark value={secondaryUserCount} />
-                )}
-              </div>
-            </span>
-            {useFilteredStats && (
-              <StyledDropdownList
-                {...getMenuProps({className: 'dropdown-menu inverted'})}
-              >
-                {group.filtered && (
-                  <Fragment>
-                    <StyledMenuItem to={getDiscoverUrl(true)}>
-                      <MenuItemText>
-                        {queryFilterDescription ?? t('Matching search filters')}
-                      </MenuItemText>
-                      <MenuItemCount value={group.filtered.userCount} />
-                    </StyledMenuItem>
-                    <MenuItem divider />
-                  </Fragment>
-                )}
-
-                <StyledMenuItem to={getDiscoverUrl()}>
-                  <MenuItemText>{t('Total in %s', summary)}</MenuItemText>
-                  <MenuItemCount value={group.userCount} />
-                </StyledMenuItem>
-
-                {group.lifetime && (
-                  <Fragment>
-                    <MenuItem divider />
-                    <StyledMenuItem>
-                      <MenuItemText>{t('Since issue began')}</MenuItemText>
-                      <MenuItemCount value={group.lifetime.userCount} />
-                    </StyledMenuItem>
-                  </Fragment>
-                )}
-              </StyledDropdownList>
-            )}
-          </span>
-        );
-      }}
-    </DeprecatedDropdownMenu>
+    <Tooltip
+      isHoverable
+      disabled={!usePageFilters}
+      title={
+        <CountTooltipContent>
+          <h4>{t('Affected Users')}</h4>
+          {group.filtered && (
+            <Fragment>
+              <div>{queryFilterDescription ?? t('Matching filters')}</div>
+              <Link to={getDiscoverUrl(true)}>
+                <Count value={group.filtered?.userCount} />
+              </Link>
+            </Fragment>
+          )}
+          <Fragment>
+            <div>{t('Total in %s', summary)}</div>
+            <Link to={getDiscoverUrl()}>
+              <Count value={group.userCount} />
+            </Link>
+          </Fragment>
+          {group.lifetime && (
+            <Fragment>
+              <div>{t('Since issue began')}</div>
+              <Count value={group.lifetime.userCount} />
+            </Fragment>
+          )}
+        </CountTooltipContent>
+      }
+    >
+      <PrimaryCount value={primaryUserCount} />
+      {secondaryUserCount !== undefined && useFilteredStats && (
+        <SecondaryCount dark value={secondaryUserCount} />
+      )}
+    </Tooltip>
   );
 
   const lastTriggered = !defined(lastTriggeredDate) ? (
@@ -571,11 +543,6 @@ const GroupCheckBoxWrapper = styled('div')`
   height: 15px;
   display: flex;
   align-items: center;
-
-  & input[type='checkbox'] {
-    margin: 0;
-    display: block;
-  }
 `;
 
 const primaryStatStyle = (theme: Theme) => css`
@@ -603,56 +570,21 @@ const SecondaryCount = styled(({value, ...p}) => <Count {...p} value={value} />)
   ${p => secondaryStatStyle(p.theme)}
 `;
 
-const StyledDropdownList = styled('ul')`
-  z-index: ${p => p.theme.zIndex.hovercard};
-`;
-
-interface MenuItemProps extends React.HTMLAttributes<HTMLDivElement> {
-  to?: LocationDescriptor;
-}
-
-const StyledMenuItem = styled(({to, children, ...p}: MenuItemProps) => (
-  <MenuItem noAnchor>
-    {to ? (
-      // @ts-expect-error allow target _blank for this link to open in new window
-      <Link to={to} target="_blank">
-        <div {...p}>{children}</div>
-      </Link>
-    ) : (
-      <div className="dropdown-toggle">
-        <div {...p}>{children}</div>
-      </div>
-    )}
-  </MenuItem>
-))`
-  margin: 0;
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-`;
-
-const menuItemStatStyles = css`
-  text-align: right;
-  font-weight: bold;
-  font-variant-numeric: tabular-nums;
-  padding-left: ${space(1)};
-`;
-
-const MenuItemCount = styled(({value, ...p}) => (
-  <div {...p}>
-    <Count value={value} />
-  </div>
-))`
-  ${menuItemStatStyles};
-  color: ${p => p.theme.subText};
-`;
-
-const MenuItemText = styled('div')`
-  white-space: nowrap;
-  font-weight: normal;
+const CountTooltipContent = styled('div')`
+  display: grid;
+  grid-template-columns: 1fr max-content;
+  gap: ${space(1)} ${space(3)};
   text-align: left;
-  padding-right: ${space(1)};
-  color: ${p => p.theme.textColor};
+  font-size: ${p => p.theme.fontSizeMedium};
+  align-items: center;
+
+  h4 {
+    color: ${p => p.theme.gray300};
+    font-size: ${p => p.theme.fontSizeExtraSmall};
+    text-transform: uppercase;
+    grid-column: 1 / -1;
+    margin-bottom: ${space(0.25)};
+  }
 `;
 
 const ChartWrapper = styled('div')<{narrowGroups: boolean}>`

@@ -1,7 +1,6 @@
 import functools
 import logging
 import os
-import random
 import re
 import time
 from collections import namedtuple
@@ -83,6 +82,12 @@ TRANSACTIONS_SNUBA_MAP = {
     if col.value.transaction_name is not None
 }
 
+ISSUE_PLATFORM_MAP = {
+    col.value.alias: col.value.issue_platform_name
+    for col in Columns
+    if col.value.issue_platform_name is not None
+}
+
 SESSIONS_FIELD_LIST = [
     "release",
     "sessions",
@@ -130,6 +135,7 @@ DATASETS = {
     Dataset.Sessions: SESSIONS_SNUBA_MAP,
     Dataset.Metrics: METRICS_COLUMN_MAP,
     Dataset.PerformanceMetrics: METRICS_COLUMN_MAP,
+    Dataset.IssuePlatform: ISSUE_PLATFORM_MAP,
 }
 
 # Store the internal field names to save work later on.
@@ -140,6 +146,7 @@ DATASET_FIELDS = {
     Dataset.Transactions: list(TRANSACTIONS_SNUBA_MAP.values()),
     Dataset.Discover: list(DISCOVER_COLUMN_MAP.values()),
     Dataset.Sessions: SESSIONS_FIELD_LIST,
+    Dataset.IssuePlatform: list(ISSUE_PLATFORM_MAP.values()),
 }
 
 SNUBA_OR = "or"
@@ -532,6 +539,7 @@ def _prepare_query_params(query_params):
         Dataset.Sessions,
         Dataset.Transactions,
         Dataset.Replays,
+        Dataset.IssuePlatform,
     ]:
         (organization_id, params_to_update) = get_query_params_to_update_for_projects(
             query_params, with_org=query_params.dataset == Dataset.Sessions
@@ -805,37 +813,24 @@ def _bulk_snuba_query(
         if isinstance(snuba_param_list[0][0], Request):
             query_fn = _snql_query
 
+        parent_api: str = "<missing>"
         with sentry_sdk.configure_scope() as scope:
             if scope.transaction:
-                # XXX(evanh): There seems to be a bug where the parent API is attributed to
-                # the wrong referrer. For one example of this, log a warning so I can capture
-                # the stack trace and try to figure out if this is a bug or not.
                 parent_api = scope.transaction.name
-                referrer = headers.get("referer", "<unknown>")
-                if (
-                    referrer == "tsdb-modelid:500"
-                    and parent_api
-                    != "/api/0/projects/{organization_slug}/{project_slug}/keys/{key_id}/stats/"
-                    and random.random() < 0.1
-                ):
-                    span.set_tag("parent_api_mismatch", f"{referrer}||{parent_api}")
-                    sentry_sdk.set_tag("parent_api_mismatch", f"{referrer}||{parent_api}")
-                    logger.warning(
-                        "unthreaded referrer attributed to incorrect parent api",
-                        stack_info=True,
-                        extra={"parent_api": parent_api},
-                    )
 
         if len(snuba_param_list) > 1:
             query_results = list(
                 _query_thread_pool.map(
                     query_fn,
-                    [(params, Hub(Hub.current), headers) for params in snuba_param_list],
+                    [
+                        (params, Hub(Hub.current), headers, parent_api)
+                        for params in snuba_param_list
+                    ],
                 )
             )
         else:
             # No need to submit to the thread pool if we're just performing a single query
-            query_results = [query_fn((snuba_param_list[0], Hub(Hub.current), headers))]
+            query_results = [query_fn((snuba_param_list[0], Hub(Hub.current), headers, parent_api))]
 
     results = []
     for response, _, reverse in query_results:
@@ -885,11 +880,12 @@ def _bulk_snuba_query(
 RawResult = Tuple[urllib3.response.HTTPResponse, Callable[[Any], Any], Callable[[Any], Any]]
 
 
-def _snql_query(params: Tuple[SnubaQuery, Hub, Mapping[str, str]]) -> RawResult:
+def _snql_query(params: Tuple[SnubaQuery, Hub, Mapping[str, str], str]) -> RawResult:
     # Eventually we can get rid of this wrapper, but for now it's cleaner to unwrap
     # the params here than in the calling function.
-    query_data, thread_hub, headers = params
+    query_data, thread_hub, headers, parent_api = params
     request, forward, reverse = query_data
+    request.parent_api = parent_api
     assert isinstance(request, Request)
     try:
         return _raw_snql_query(request, thread_hub, headers), forward, reverse
@@ -897,14 +893,15 @@ def _snql_query(params: Tuple[SnubaQuery, Hub, Mapping[str, str]]) -> RawResult:
         raise SnubaError(err)
 
 
-def _legacy_snql_query(params: Tuple[SnubaQuery, Hub, Mapping[str, str]]) -> RawResult:
+def _legacy_snql_query(params: Tuple[SnubaQuery, Hub, Mapping[str, str], str]) -> RawResult:
     # Convert the JSON query to SnQL and run it
-    query_data, thread_hub, headers = params
+    query_data, thread_hub, headers, parent_api = params
     query_params, forward, reverse = query_data
 
     try:
         snql_entity = query_params["dataset"]
         request = json_to_snql(query_params, snql_entity)
+        request.parent_api = parent_api
         result = _raw_snql_query(request, Hub(thread_hub), headers)
     except urllib3.exceptions.HTTPError as err:
         raise SnubaError(err)

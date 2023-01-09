@@ -80,6 +80,9 @@ def set_top_tags(
         scope.set_tag("stacktrace_link.platform", ctx["platform"])
         scope.set_tag("stacktrace_link.code_mappings", has_code_mappings)
         scope.set_tag("stacktrace_link.file", ctx["file"])
+        # Add tag if filepath is Windows
+        if ctx["file"] and ctx["file"].find(":\\") > -1:
+            scope.set_tag("stacktrace_link.windows", True)
         scope.set_tag("stacktrace_link.abs_path", ctx["abs_path"])
         if ctx["platform"] == "python":
             # This allows detecting a file that belongs to Python's 3rd party modules
@@ -137,7 +140,7 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
         Sorts the code mapping config list based on precedence.
         User generated code mappings are evaluated before Sentry generated code mappings.
         Code mappings with more defined stack trace roots are evaluated before less defined stack trace
-        roots (To Do)
+        roots.
 
         `configs`: The list of code mapping configs
 
@@ -147,7 +150,12 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
             inserted = False
             for index, sorted_config in enumerate(sorted_configs):
                 # This check will ensure that all user defined code mappings will come before Sentry generated ones
-                if sorted_config.automatically_generated and not config.automatically_generated:
+                if (
+                    sorted_config.automatically_generated and not config.automatically_generated
+                ) or (  # Insert more defined stack roots before less defined ones
+                    (sorted_config.automatically_generated == config.automatically_generated)
+                    and config.stack_root.startswith(sorted_config.stack_root)
+                ):
                     sorted_configs.insert(index, config)
                     inserted = True
                     break

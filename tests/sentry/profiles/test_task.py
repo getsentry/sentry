@@ -1,10 +1,10 @@
+from functools import cached_property
 from io import BytesIO
 from os.path import join
 from zipfile import ZipFile
 
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
-from exam import fixture
 
 from sentry.models import Project
 from sentry.profiles.task import _deobfuscate, _normalize, _process_symbolicator_results_for_sample
@@ -75,13 +75,13 @@ class ProfilesProcessTaskTest(TestCase):
 
         self.login_as(user=self.owner)
 
-    @fixture
+    @cached_property
     def ios_profile(self):
         path = join(PROFILES_FIXTURES_PATH, "valid_ios_profile.json")
         with open(path) as f:
             return json.loads(f.read())
 
-    @fixture
+    @cached_property
     def android_profile(self):
         path = join(PROFILES_FIXTURES_PATH, "valid_android_profile.json")
         with open(path) as f:
@@ -287,6 +287,9 @@ class ProfilesProcessTaskTest(TestCase):
                 ],
                 "samples": [
                     {"stack_id": 0},
+                    # a second sample with the same stack id, the stack should
+                    # not be processed a second time
+                    {"stack_id": 0},
                 ],
                 "stacks": [
                     [0, 1, 2],
@@ -343,4 +346,4 @@ class ProfilesProcessTaskTest(TestCase):
 
         _process_symbolicator_results_for_sample(profile, stacktraces)
 
-        assert profile["profile"]["stacks"][0] == [0, 1, 2, 3, 4, 5]
+        assert profile["profile"]["stacks"] == [[0, 1, 2, 3, 4, 5]]

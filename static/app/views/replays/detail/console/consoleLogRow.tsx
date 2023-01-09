@@ -1,9 +1,14 @@
+import {CSSProperties, useCallback} from 'react';
 import styled from '@emotion/styled';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
+import {useReplayContext} from 'sentry/components/replays/replayContext';
+import {relativeTimeInMs} from 'sentry/components/replays/utils';
 import {IconFire, IconWarning} from 'sentry/icons';
 import space from 'sentry/styles/space';
 import type {BreadcrumbTypeDefault, Crumb} from 'sentry/types/breadcrumbs';
+import {getPrevReplayEvent} from 'sentry/utils/replays/getReplayEvent';
+import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import MessageFormatter from 'sentry/views/replays/detail/console/messageFormatter';
 import {breadcrumbHasIssue} from 'sentry/views/replays/detail/console/utils';
 import ViewIssueLink from 'sentry/views/replays/detail/console/viewIssueLink';
@@ -11,27 +16,54 @@ import TimestampButton from 'sentry/views/replays/detail/timestampButton';
 
 type Props = {
   breadcrumb: Extract<Crumb, BreadcrumbTypeDefault>;
-  isCurrent: boolean;
-  isHovered: boolean;
-  onClickTimestamp: any;
-  onMouseEnter: any;
-  onMouseLeave: any;
+  breadcrumbs: Extract<Crumb, BreadcrumbTypeDefault>[];
   startTimestampMs: number;
-  style: any;
+  style: CSSProperties;
 };
 
-function ConsoleMessage({
-  breadcrumb,
-  isCurrent,
-  isHovered,
-  onClickTimestamp,
-  onMouseEnter,
-  onMouseLeave,
-  startTimestampMs = 0,
-  style,
-}: Props) {
+function ConsoleMessage({breadcrumb, breadcrumbs, startTimestampMs, style}: Props) {
+  const {currentTime, currentHoverTime} = useReplayContext();
+
+  const {handleMouseEnter, handleMouseLeave, handleClick} =
+    useCrumbHandlers(startTimestampMs);
+
+  const onClickTimestamp = useCallback(
+    () => handleClick(breadcrumb),
+    [handleClick, breadcrumb]
+  );
+  const onMouseEnter = useCallback(
+    () => handleMouseEnter(breadcrumb),
+    [handleMouseEnter, breadcrumb]
+  );
+  const onMouseLeave = useCallback(
+    () => handleMouseLeave(breadcrumb),
+    [handleMouseLeave, breadcrumb]
+  );
+
+  const current = getPrevReplayEvent({
+    items: breadcrumbs,
+    targetTimestampMs: startTimestampMs + currentTime,
+    allowEqual: true,
+    allowExact: true,
+  });
+
+  const hovered = currentHoverTime
+    ? getPrevReplayEvent({
+        items: breadcrumbs,
+        targetTimestampMs: startTimestampMs + currentHoverTime,
+        allowEqual: true,
+        allowExact: true,
+      })
+    : undefined;
+
+  const hasOccurred =
+    currentTime >= relativeTimeInMs(breadcrumb.timestamp || 0, startTimestampMs);
+  const isCurrent = breadcrumb.id === current?.id;
+  const isHovered = breadcrumb.id === hovered?.id;
+
   return (
     <ConsoleLog
+      hasOccurred={hasOccurred}
       isCurrent={isCurrent}
       isHovered={isHovered}
       level={breadcrumb.level}
@@ -64,6 +96,7 @@ const IssueLinkWrapper = styled('div')`
 `;
 
 const ConsoleLog = styled('div')<{
+  hasOccurred: boolean;
   isCurrent: boolean;
   isHovered: boolean;
   level: string;
@@ -80,16 +113,14 @@ const ConsoleLog = styled('div')<{
 
   border-bottom: 1px solid
     ${p =>
-      p.isCurrent
-        ? p.theme.purple300
-        : p.isHovered
-        ? p.theme.purple200
-        : p.theme.innerBorder};
+      p.isCurrent ? p.theme.purple300 : p.isHovered ? p.theme.purple200 : 'transparent'};
 
   color: ${p =>
     ['warning', 'error'].includes(p.level)
       ? p.theme.alert[p.level].iconColor
-      : 'inherit'};
+      : p.hasOccurred
+      ? 'inherit'
+      : p.theme.gray300};
 
   & ${IssueLinkWrapper} {
     visibility: hidden;

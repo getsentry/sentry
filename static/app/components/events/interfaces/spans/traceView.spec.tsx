@@ -5,7 +5,6 @@ import {
 } from 'sentry-test/performance/initializePerformanceData';
 import {MockSpan, TransactionEventBuilder} from 'sentry-test/performance/utils';
 import {
-  act,
   render,
   screen,
   userEvent,
@@ -13,17 +12,18 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import * as AnchorLinkManager from 'sentry/components/events/interfaces/spans/anchorLinkManager';
+import * as AnchorLinkManager from 'sentry/components/events/interfaces/spans/spanContext';
 import TraceView from 'sentry/components/events/interfaces/spans/traceView';
 import {spanTargetHash} from 'sentry/components/events/interfaces/spans/utils';
 import WaterfallModel from 'sentry/components/events/interfaces/spans/waterfallModel';
+import {TransactionProfileIdProvider} from 'sentry/components/profiling/transactionProfileIdProvider';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {QuickTraceContext} from 'sentry/utils/performance/quickTrace/quickTraceContext';
 import QuickTraceQuery from 'sentry/utils/performance/quickTrace/quickTraceQuery';
 
 function initializeData(settings) {
   const data = _initializeData(settings);
-  act(() => void ProjectsStore.loadInitialData(data.organization.projects));
+  ProjectsStore.loadInitialData(data.organization.projects);
   return data;
 }
 
@@ -222,9 +222,7 @@ describe('TraceView', () => {
 
     // TODO: This test can be converted later to use the TransactionEventBuilder instead
     it('should allow expanding of embedded transactions', async () => {
-      const {organization, project, location} = initializeData({
-        features: ['unified-span-view'],
-      });
+      const {organization, project, location} = initializeData({});
 
       const event = generateSampleEvent();
       generateSampleSpan(
@@ -415,9 +413,11 @@ describe('TraceView', () => {
       const waterfallModel = new WaterfallModel(builder.getEvent());
 
       render(
-        <AnchorLinkManager.Provider>
-          <TraceView organization={data.organization} waterfallModel={waterfallModel} />
-        </AnchorLinkManager.Provider>
+        <TransactionProfileIdProvider transactionId={undefined} timestamp={undefined}>
+          <AnchorLinkManager.Provider>
+            <TraceView organization={data.organization} waterfallModel={waterfallModel} />
+          </AnchorLinkManager.Provider>
+        </TransactionProfileIdProvider>
       );
 
       expect(await screen.findByText(/0000000000000003/i)).toBeInTheDocument();
@@ -441,9 +441,11 @@ describe('TraceView', () => {
       const waterfallModel = new WaterfallModel(builder.getEvent());
 
       render(
-        <AnchorLinkManager.Provider>
-          <TraceView organization={data.organization} waterfallModel={waterfallModel} />
-        </AnchorLinkManager.Provider>
+        <TransactionProfileIdProvider transactionId={undefined} timestamp={undefined}>
+          <AnchorLinkManager.Provider>
+            <TraceView organization={data.organization} waterfallModel={waterfallModel} />
+          </AnchorLinkManager.Provider>
+        </TransactionProfileIdProvider>
       );
 
       expect(await screen.findByText(/0000000000000003/i)).toBeInTheDocument();

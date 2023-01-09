@@ -162,11 +162,6 @@ const ActionWrapper = styled('div')`
   grid-auto-flow: column;
   align-items: center;
   gap: ${space(1)};
-
-  /* Can't use styled components for this because of broad selector */
-  input[type='checkbox'] {
-    margin: 0;
-  }
 `;
 
 const Controls = styled('div')<{expanded: boolean}>`

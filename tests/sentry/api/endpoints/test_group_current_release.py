@@ -4,7 +4,7 @@ from sentry.testutils.helpers.datetime import MockClock
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class GroupCurrentReleaseTest(APITestCase):
     def _set_up_current_release(self, group_seen_on_latest_release):
         clock = MockClock()

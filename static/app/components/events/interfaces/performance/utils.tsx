@@ -3,6 +3,7 @@ import keyBy from 'lodash/keyBy';
 
 import {t} from 'sentry/locale';
 import {
+  EntrySpans,
   EntryType,
   EventTransaction,
   IssueCategory,
@@ -10,7 +11,7 @@ import {
   PlatformType,
 } from 'sentry/types';
 
-import {RawSpanType, SpanEntry} from '../spans/types';
+import {RawSpanType} from '../spans/types';
 
 import {ResourceLink} from './resources';
 import {TraceContextSpanProxy} from './spanEvidence';
@@ -18,6 +19,9 @@ import {TraceContextSpanProxy} from './spanEvidence';
 const RESOURCES_DESCRIPTIONS: Record<IssueType, string> = {
   [IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES]: t(
     "N+1 queries are extraneous queries (N) caused by a single, initial query (+1). In the Span Evidence above, we've identified the parent span where the extraneous spans are located and the extraneous spans themselves. To learn more about how to fix N+1 problems, check out these resources:"
+  ),
+  [IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS]: t(
+    "N+1 API Calls are repeated concurrent calls to fetch a resource type. In the Span Evidence section we've identified the repeated calls. To learn more about how and when to fix N+1 API Calls, check out these resources:"
   ),
   [IssueType.PERFORMANCE_FILE_IO_MAIN_THREAD]: t(
     'File IO operations on your main thread may cause app hangs.'
@@ -32,6 +36,12 @@ const DEFAULT_RESOURCE_LINK: Record<IssueType, ResourceLink[]> = {
     {
       text: t('Sentry Docs: N+1 Queries'),
       link: 'https://docs.sentry.io/product/issues/issue-details/performance-issues/n-one-queries/',
+    },
+  ],
+  [IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS]: [
+    {
+      text: t('Sentry Docs: N+1 API Calls'),
+      link: 'https://docs.sentry.io/product/issues/issue-details/performance-issues/n-one-api-calls/',
     },
   ],
   [IssueType.PERFORMANCE_FILE_IO_MAIN_THREAD]: [],
@@ -54,6 +64,7 @@ const RESOURCE_LINKS: Record<IssueType, PlatformSpecificResources> = {
       },
     ],
   },
+  [IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS]: {},
   [IssueType.PERFORMANCE_FILE_IO_MAIN_THREAD]: {},
   [IssueType.ERROR]: {},
 };
@@ -96,10 +107,13 @@ export function getSpanInfoFromTransactionEvent(
   }
 
   // Let's dive into the event to pick off the span evidence data by using the IDs we know
-  const spanEntry = event.entries.find((entry: SpanEntry | any): entry is SpanEntry => {
+  const spanEntry = event.entries.find((entry: EntrySpans | any): entry is EntrySpans => {
     return entry.type === EntryType.SPANS;
   });
-  const spans: Array<RawSpanType | TraceContextSpanProxy> = [...spanEntry?.data] ?? [];
+
+  const spans: Array<RawSpanType | TraceContextSpanProxy> = spanEntry?.data
+    ? [...spanEntry.data]
+    : [];
 
   if (event?.contexts?.trace && event?.contexts?.trace?.span_id) {
     // TODO: Fix this conditional and check if span_id is ever actually undefined.
@@ -110,14 +124,15 @@ export function getSpanInfoFromTransactionEvent(
   const parentSpan = event.perfProblem.parentSpanIds
     ? spansById[event.perfProblem.parentSpanIds[0]]
     : null;
-  const offendingSpan = event.perfProblem.offenderSpanIds
-    ? spansById[event.perfProblem.offenderSpanIds[0]]
-    : null;
+
+  const offendingSpans = (event?.perfProblem?.offenderSpanIds ?? []).map(
+    spanID => spansById[spanID]
+  );
 
   const affectedSpanIds = [...event.perfProblem.offenderSpanIds];
   if (parentSpan !== null) {
     affectedSpanIds.push(parentSpan.span_id);
   }
 
-  return {parentSpan, offendingSpan, affectedSpanIds};
+  return {parentSpan, offendingSpans, affectedSpanIds};
 }

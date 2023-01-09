@@ -1,15 +1,15 @@
 import logging
 import uuid
+from functools import cached_property
 from time import time
 from unittest import mock
 
 from django.urls import reverse
-from exam import fixture
 
 from sentry.event_manager import EventManager
 from sentry.testutils import TestCase
 from sentry.testutils.helpers import override_options
-from sentry.testutils.performance_issues.event_generators import EVENTS
+from sentry.testutils.performance_issues.event_generators import get_event
 
 
 def make_event(**kwargs):
@@ -23,12 +23,12 @@ def make_event(**kwargs):
     return result
 
 
-nplus_one_no_timestamp = {**EVENTS["n-plus-one-in-django-index-view"]}
+nplus_one_no_timestamp = {**get_event("n-plus-one-in-django-index-view")}
 del nplus_one_no_timestamp["timestamp"]
 
 
 class DisabledMemberViewTest(TestCase):
-    @fixture
+    @cached_property
     def path(self):
         return reverse("sentry-organization-newest-performance-issue", args=[self.org.slug])
 
@@ -45,8 +45,6 @@ class DisabledMemberViewTest(TestCase):
         self.login_as(self.user)
 
     @override_options({"store.use-ingest-performance-detection-only": 1.0})
-    @override_options({"performance.issues.all.problem-creation": 1.0})
-    @override_options({"performance.issues.all.problem-detection": 1.0})
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
     def test_simple(self):
         self.project1.update_option("sentry:performance_issue_creation_rate", 1.0)
@@ -54,7 +52,6 @@ class DisabledMemberViewTest(TestCase):
         with mock.patch("sentry_sdk.tracing.Span.containing_transaction"), self.feature(
             {
                 "projects:performance-suspect-spans-ingestion": True,
-                "organizations:performance-issues-ingest": True,
             }
         ):
             latest_event_time = time()
