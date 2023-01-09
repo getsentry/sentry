@@ -76,6 +76,7 @@ export class OrganizationStats extends Component<Props> {
       case DataCategory.TRANSACTIONS:
       case DataCategory.ATTACHMENTS:
       case DataCategory.PROFILES:
+      case DataCategory.REPLAYS:
         return dataCategory as DataCategory;
       default:
         return DataCategory.ERRORS;
