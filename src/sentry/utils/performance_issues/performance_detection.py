@@ -673,7 +673,7 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         )
 
     def is_creation_allowed_for_project(self, project: Project) -> bool:
-        return False  # Fully turned off
+        return True  # Detection always allowed by project for now
 
     @classmethod
     def is_event_eligible(cls, event):
