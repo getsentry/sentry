@@ -165,9 +165,19 @@ export function VitalWidget(props: PerformanceWidgetProps) {
             provided.widgetData.list.data[selectedListIndex]?.transaction as string,
           ]);
 
+          const showOnlyPoorVitals = organization.features.includes(
+            'performance-new-widget-designs'
+          );
+          let requestProps = pick(provided, eventsRequestQueryProps);
+          if (showOnlyPoorVitals) {
+            requestProps = {
+              ...requestProps,
+              yAxis: ['count_web_vitals(measurements.lcp, poor)'],
+            };
+          }
           return (
             <EventsRequest
-              {...pick(provided, eventsRequestQueryProps)}
+              {...requestProps}
               limit={1}
               currentSeriesNames={[sortField]}
               includePrevious={false}
