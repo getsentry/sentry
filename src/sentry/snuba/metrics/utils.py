@@ -393,7 +393,7 @@ def get_intervals(
     if interval is None:
         interval = granularity
 
-    start, end, num_intervals = to_intervals(start, end, interval)
+    start, _end, num_intervals = to_intervals(start, end, interval)
 
     interval_span = timedelta(seconds=interval)
     idx = 0
