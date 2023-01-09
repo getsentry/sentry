@@ -460,9 +460,8 @@ class PerformanceDetector(ABC):
     def stored_problems(self) -> PerformanceProblemsMap:
         raise NotImplementedError
 
-    @classmethod
-    def is_creation_allowed_for_system(cls) -> bool:
-        system_option = DETECTOR_TYPE_ISSUE_CREATION_TO_SYSTEM_OPTION.get(cls.type, None)
+    def is_creation_allowed_for_system(self) -> bool:
+        system_option = DETECTOR_TYPE_ISSUE_CREATION_TO_SYSTEM_OPTION.get(self.__class__.type, None)
 
         if not system_option:
             return False
@@ -474,12 +473,10 @@ class PerformanceDetector(ABC):
 
         return rate > random.random()
 
-    @classmethod
-    def is_creation_allowed_for_organization(cls, organization: Organization) -> bool:
+    def is_creation_allowed_for_organization(self, organization: Organization) -> bool:
         return False  # Creation is off by default. Ideally, it should auto-generate the feature flag name, and check its value
 
-    @classmethod
-    def is_creation_allowed_for_project(cls, project: Project) -> bool:
+    def is_creation_allowed_for_project(self, project: Project) -> bool:
         return False  # Creation is off by default. Ideally, it should auto-generate the project option name, and check its value
 
     @classmethod
@@ -675,12 +672,10 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
             self._maybe_store_problem()
             self.spans = [span]
 
-    @classmethod
-    def is_creation_allowed_for_organization(cls, organization: Organization) -> bool:
+    def is_creation_allowed_for_organization(self, organization: Organization) -> bool:
         return False  # Fully turned off
 
-    @classmethod
-    def is_creation_allowed_for_project(cls, project: Project) -> bool:
+    def is_creation_allowed_for_project(self, project: Project) -> bool:
         return False  # Fully turned off
 
     @classmethod
@@ -968,12 +963,10 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
         if root_span:
             self.potential_parents[root_span.get("span_id")] = root_span
 
-    @classmethod
-    def is_creation_allowed_for_organization(cls, organization: Optional[Organization]):
+    def is_creation_allowed_for_organization(self, organization: Optional[Organization]):
         return True  # This detector is fully rolled out
 
-    @classmethod
-    def is_creation_allowed_for_project(cls, project: Optional[Project]):
+    def is_creation_allowed_for_project(self, project: Optional[Project]):
         return True  # This should probably use the `n_plus_one_db.problem-creation` option, which is currently not in use
 
     def visit_span(self, span: Span) -> None:
