@@ -43,10 +43,14 @@ def create_batching_kafka_consumer(topic_names, worker, **options):
         **options,
     )
 
+    return consumer
+
+
+def run_processor_with_signals(processor):
     def handler(signum, frame):
-        consumer.signal_shutdown()
+        processor.signal_shutdown()
 
     signal.signal(signal.SIGINT, handler)
     signal.signal(signal.SIGTERM, handler)
 
-    return consumer
+    processor.run()

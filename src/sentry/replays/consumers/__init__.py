@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import signal
 from typing import Any, MutableMapping
 
 from arroyo import Topic
@@ -26,19 +25,12 @@ def get_replays_recordings_consumer(
     topic = force_topic or topic
     consumer_config = get_config(topic, group_id, auto_offset_reset, force_cluster)
     consumer = KafkaConsumer(consumer_config)
-    processor = StreamProcessor(
+    return StreamProcessor(
         consumer=consumer,
         topic=Topic(topic),
         processor_factory=ProcessReplayRecordingStrategyFactory(),
         commit_policy=ONCE_PER_SECOND,
     )
-
-    def handler(signum: int, frame: Any) -> None:
-        processor.signal_shutdown()
-
-    signal.signal(signal.SIGINT, handler)
-    signal.signal(signal.SIGTERM, handler)
-    return processor
 
 
 def get_config(

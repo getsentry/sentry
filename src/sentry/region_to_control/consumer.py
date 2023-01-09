@@ -1,4 +1,3 @@
-import signal
 from typing import Any, Mapping, Optional
 
 import sentry_sdk
@@ -38,20 +37,12 @@ def get_region_to_control_consumer(
         )
     )
 
-    processor = StreamProcessor(
+    return StreamProcessor(
         consumer=consumer,
         topic=Topic(settings.KAFKA_REGION_TO_CONTROL),
         processor_factory=RegionToControlStrategyFactory(),
         commit_policy=ONCE_PER_SECOND,
     )
-
-    def handler(*args: Any) -> None:
-        processor.signal_shutdown()
-
-    signal.signal(signal.SIGINT, handler)
-    signal.signal(signal.SIGTERM, handler)
-
-    return processor
 
 
 class ProcessRegionToControlMessage(ProcessingStrategy[KafkaPayload]):
