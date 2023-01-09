@@ -157,7 +157,8 @@ class ListField(Field):
 
         if self.is_uuid:
             # Client side UUID validation.  If this fails we use a condition which is always
-            # false.  E.g. 1 == 2.
+            # false.  E.g. 1 == 2.  We don't use toUUIDOrZero because our Clickhouse version does
+            # not support it.
             is_valid = _validate_uuids([value])
             if not is_valid:
                 return Condition(Function("identity", parameters=[1]), Op.EQ, 2)
@@ -182,7 +183,8 @@ class ListField(Field):
 
         if self.is_uuid:
             # Client side UUID validation.  If this fails we use a condition which is always
-            # false.  E.g. 1 == 2.
+            # false.  E.g. 1 == 2.  We don't use toUUIDOrZero because our Clickhouse version does
+            # not support it.
             is_valid = _validate_uuids(values)
             if not is_valid:
                 return Condition(Function("identity", parameters=[1]), Op.EQ, 2)
