@@ -10,7 +10,7 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 from sentry.types.issues import GroupType
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
-from sentry.testutils.cases import PerformanceIssueTestCase
+
 
 @region_silo_test
 class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceIssueTestCase):
@@ -436,7 +436,7 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
         )
 
     def test_generic_issue(self):
-        event_1, _, _ = self.store_search_issue(
+        event_1, _, group_info = self.store_search_issue(
             self.project.id,
             self.user.id,
             [f"{GroupType.PROFILE_BLOCKED_THREAD.value}-group1"],
@@ -453,11 +453,10 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
 
         self.login_as(user=self.user)
 
-        url = f"/api/0/issues/{event_1.group.id}/events/"
+        url = f"/api/0/issues/{group_info.group.id}/events/"
         response = self.do_request(url)
 
         assert response.status_code == 200, response.content
         assert sorted(map(lambda x: x["eventID"], response.data)) == sorted(
             [str(event_1.event_id), str(event_2.event_id)]
         )
-
