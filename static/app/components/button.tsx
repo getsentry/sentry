@@ -101,17 +101,9 @@ interface BaseButtonProps
    */
   priority?: 'default' | 'primary' | 'danger' | 'link';
   /**
-   * @deprecated Use `external`
-   */
-  rel?: HTMLAnchorElement['rel'];
-  /**
    * The size of the button
    */
   size?: ButtonSize;
-  /**
-   * @deprecated Use `external`
-   */
-  target?: HTMLAnchorElement['target'];
   /**
    * Display a tooltip for the button.
    */
