@@ -55,21 +55,22 @@ function useVirtualizedGrid({
   const getColumnWidth = useCallback(
     (width: number) =>
       ({index}) => {
-        if (index === dynamicColumnIndex) {
-          const colWidth = Math.max(
-            Array.from(new Array(columnCount)).reduce(
-              (remaining, _, i) =>
-                i === dynamicColumnIndex
-                  ? remaining
-                  : remaining - cache.columnWidth({index: i}),
-              width - scrollBarWidth
-            ),
-            200
-          );
-          return colWidth;
+        if (index !== dynamicColumnIndex) {
+          return cache.columnWidth({index});
         }
 
-        return cache.columnWidth({index});
+        const columns = Array.from(new Array(columnCount));
+        const fullWidth = width - scrollBarWidth;
+        // Take the full width available, and remove all the static/cached widths
+        // so we know how much space is available for our dynamic column.
+        const colWidth = columns.reduce(
+          (remainingWidth, _, i) =>
+            i === dynamicColumnIndex
+              ? remainingWidth
+              : remainingWidth - cache.columnWidth({index: i}),
+          fullWidth
+        );
+        return Math.max(colWidth, 200);
       },
     [cache, columnCount, dynamicColumnIndex, scrollBarWidth]
   );
