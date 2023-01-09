@@ -53,8 +53,9 @@ export interface FlamegraphTheme {
     SELECTED_FRAME_BORDER_COLOR: string;
     SPAN_COLOR_BUCKET: (t: number) => ColorChannels;
     SPAN_FALLBACK_COLOR: [number, number, number, number];
-    SPAN_FRAME_BACKGROUND: string;
     SPAN_FRAME_BORDER: string;
+    SPAN_FRAME_LINE_PATTERN: string;
+    SPAN_FRAME_LINE_PATTERN_BACKGROUND: string;
     STACK_TO_COLOR: (
       frames: ReadonlyArray<FlamegraphFrame>,
       colorMapFn: FlamegraphTheme['COLORS']['COLOR_MAP'],
@@ -157,8 +158,8 @@ export const LightFlamegraphTheme: FlamegraphTheme = {
     DIFFERENTIAL_DECREASE: [0.309, 0.2058, 0.98],
     DIFFERENTIAL_INCREASE: [0.98, 0.2058, 0.4381],
     FOCUSED_FRAME_BORDER_COLOR: lightTheme.focus,
-    FRAME_FALLBACK_COLOR: [0, 0, 0, 0.035],
-    SPAN_FALLBACK_COLOR: [0, 0, 0, 0.035],
+    FRAME_FALLBACK_COLOR: [0, 0, 0, 0.1],
+    SPAN_FALLBACK_COLOR: [0, 0, 0, 0.1],
     GRID_FRAME_BACKGROUND_COLOR: 'rgba(255, 255, 255, 0.8)',
     GRID_LINE_COLOR: '#e5e7eb',
     HIGHLIGHTED_LABEL_COLOR: [255, 255, 0],
@@ -169,7 +170,8 @@ export const LightFlamegraphTheme: FlamegraphTheme = {
     SAMPLE_TICK_COLOR: [255, 0, 0, 0.5],
     SEARCH_RESULT_FRAME_COLOR: 'vec4(0.99, 0.70, 0.35, 1.0)',
     SELECTED_FRAME_BORDER_COLOR: lightTheme.blue400,
-    SPAN_FRAME_BACKGROUND: 'rgba(231, 231, 231, 0.5)',
+    SPAN_FRAME_LINE_PATTERN: '#dedae3',
+    SPAN_FRAME_LINE_PATTERN_BACKGROUND: '#f4f2f7',
     SPAN_FRAME_BORDER: 'rgba(200, 200, 200, 1)',
     STACK_TO_COLOR: makeStackToColor([0, 0, 0, 0.035]),
   },
@@ -187,8 +189,8 @@ export const DarkFlamegraphTheme: FlamegraphTheme = {
     DIFFERENTIAL_DECREASE: [0.309, 0.2058, 0.98],
     DIFFERENTIAL_INCREASE: [0.98, 0.2058, 0.4381],
     FOCUSED_FRAME_BORDER_COLOR: darkTheme.focus,
-    FRAME_FALLBACK_COLOR: [1, 1, 1, 0.1],
-    SPAN_FALLBACK_COLOR: [1, 1, 1, 0.1],
+    FRAME_FALLBACK_COLOR: [1, 1, 1, 0.3],
+    SPAN_FALLBACK_COLOR: [1, 1, 1, 0.3],
     GRID_FRAME_BACKGROUND_COLOR: 'rgba(0, 0, 0, 0.4)',
     GRID_LINE_COLOR: '#222227',
     HIGHLIGHTED_LABEL_COLOR: [255, 255, 0],
@@ -198,8 +200,9 @@ export const DarkFlamegraphTheme: FlamegraphTheme = {
     MINIMAP_POSITION_OVERLAY_COLOR: 'rgba(255,255,255,0.1)',
     SAMPLE_TICK_COLOR: [255, 0, 0, 0.5],
     SEARCH_RESULT_FRAME_COLOR: 'vec4(0.99, 0.70, 0.35, 0.7)',
+    SPAN_FRAME_LINE_PATTERN: '#594b66',
+    SPAN_FRAME_LINE_PATTERN_BACKGROUND: '#1a1724',
     SELECTED_FRAME_BORDER_COLOR: lightTheme.blue400,
-    SPAN_FRAME_BACKGROUND: 'rgba(232, 232, 232, 0.2)',
     SPAN_FRAME_BORDER: '#57575b',
     STACK_TO_COLOR: makeStackToColor([1, 1, 1, 0.1]),
   },

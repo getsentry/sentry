@@ -31,6 +31,7 @@ import {
 
 type State = Awaited<ReturnType<typeof fetchReplayList>> & {
   eventView: undefined | EventView;
+  isFetching: boolean;
   replays?: ReplayListRecordWithTx[];
 };
 
@@ -128,6 +129,7 @@ function useReplaysFromTransaction({
     setData({
       ...listData,
       eventView,
+      isFetching: false,
       replays,
     });
   }, [

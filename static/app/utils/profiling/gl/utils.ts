@@ -311,13 +311,9 @@ export class Rect {
 
   containsRect(rect: Rect): boolean {
     return (
-      // left bound
       this.left <= rect.left &&
-      // right bound
       rect.right <= this.right &&
-      // top bound
       this.top <= rect.top &&
-      // bottom bound
       rect.bottom <= this.bottom
     );
   }
@@ -507,14 +503,17 @@ export function formatColorForSpan(
   renderer: SpanChartRenderer2D
 ): string {
   const color = renderer.getColorForFrame(frame);
-  if (color.length === 4) {
-    return `rgba(${color
-      .slice(0, 3)
-      .map(n => n * 255)
-      .join(',')}, ${color[3]})`;
-  }
+  if (Array.isArray(color)) {
+    if (color.length === 4) {
+      return `rgba(${color
+        .slice(0, 3)
+        .map(n => n * 255)
+        .join(',')}, ${color[3]})`;
+    }
 
-  return `rgba(${color.map(n => n * 255).join(',')}, 1.0)`;
+    return `rgba(${color.map(n => n * 255).join(',')}, 1.0)`;
+  }
+  return '';
 }
 
 export function formatColorForFrame(

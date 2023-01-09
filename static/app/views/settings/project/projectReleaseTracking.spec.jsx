@@ -42,7 +42,7 @@ describe('ProjectReleaseTracking', function () {
         organization={org}
         project={project}
         plugins={{loading: false, plugins: TestStubs.Plugins()}}
-        params={{orgId: org.slug, projectId: project.slug}}
+        params={{projectId: project.slug}}
       />
     );
 
@@ -55,7 +55,7 @@ describe('ProjectReleaseTracking', function () {
         organization={org}
         project={project}
         plugins={{loading: false, plugins: TestStubs.Plugins()}}
-        params={{orgId: org.slug, projectId: project.slug}}
+        params={{projectId: project.slug}}
       />
     );
 
@@ -94,7 +94,7 @@ describe('ProjectReleaseTracking', function () {
       <ProjectReleaseTrackingContainer
         organization={org}
         project={project}
-        params={{orgId: org.slug, projectId: project.slug}}
+        params={{projectId: project.slug}}
       />
     );
     expect(fetchPlugins).toHaveBeenCalled();
@@ -106,7 +106,7 @@ describe('ProjectReleaseTracking', function () {
       <ProjectReleaseTrackingContainer
         organization={org}
         project={{...project, slug: 'new-project'}}
-        params={{orgId: org.slug, projectId: 'new-project'}}
+        params={{projectId: 'new-project'}}
       />
     );
 
@@ -123,7 +123,7 @@ describe('ProjectReleaseTracking', function () {
       <ProjectReleaseTrackingContainer
         organization={org}
         project={{...project, slug: 'new-project'}}
-        params={{orgId: org.slug, projectId: 'new-project'}}
+        params={{projectId: 'new-project'}}
       />
     );
     expect(fetchPlugins).not.toHaveBeenCalled();
