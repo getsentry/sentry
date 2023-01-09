@@ -43,7 +43,7 @@ export function fromLumaChromaHue(L: number, C: number, H: number): ColorChannel
       ? [X, 0, C]
       : [C, 0, X];
 
-  const m = L - (0.3 * R1 + 0.59 * G1 + 0.11 * B1);
+  const m = L - (0.35 * R1 + 0.35 * G1 + 0.35 * B1);
 
   return [clamp(R1 + m, 0, 1), clamp(G1 + m, 0, 1), clamp(B1 + m, 0, 1.0)];
 }
@@ -133,10 +133,15 @@ function defaultFrameSort(a: FlamegraphFrame, b: FlamegraphFrame): number {
   return defaultFrameSortKey(a) > defaultFrameSortKey(b) ? 1 : -1;
 }
 
-export function makeColorBucketTheme(lch: LCH) {
-  return (t: number): ColorChannels => {
+export function makeColorBucketTheme(
+  lch: LCH,
+  spectrum = 360,
+  offset = 0
+): (t: number) => ColorChannels {
+  return t => {
     const x = triangle(30.0 * t);
-    const H = 360.0 * (0.9 * t);
+    const tx = 0.9 * t;
+    const H = spectrum < 360 ? offset + spectrum * tx : spectrum * tx;
     const C = lch.C_0 + lch.C_d * x;
     const L = lch.L_0 - lch.L_d * x;
     return fromLumaChromaHue(L, C, H);
@@ -301,14 +306,18 @@ export function makeSpansColorMapByOpAndDescription(
   colorBucket: FlamegraphTheme['COLORS']['COLOR_BUCKET']
 ): Map<SpanChartNode['node']['span']['span_id'], ColorChannels> {
   const colors = new Map<SpanChartNode['node']['span']['span_id'], ColorChannels>();
+  const uniqueSpans = uniqueBy(spans, s => s.node.span.op ?? '');
 
-  const uniqueSpans = uniqueBy(
-    spans,
-    s => s.node.span.op ?? '' + s.node.span.description ?? ''
-  );
+  for (let i = 0; i < uniqueSpans.length; i++) {
+    const key = uniqueSpans[i].node.span.op ?? '';
+    if (key === 'missing instrumentation') {
+      continue;
+    }
+    colors.set(key, colorBucket(i / uniqueSpans.length));
+  }
 
   for (let i = 0; i < spans.length; i++) {
-    colors.set(spans[i].node.span.span_id, colorBucket(i / uniqueSpans.length));
+    colors.set(spans[i].node.span.span_id, colors.get(spans[i].node.span.op ?? '')!);
   }
 
   return colors;

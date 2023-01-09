@@ -32,7 +32,7 @@ describe('ProjectAlertSettings', () => {
     render(
       <Settings
         canEditRule
-        params={{orgId: organization.slug, projectId: project.slug}}
+        params={{projectId: project.slug}}
         organization={organization}
         routes={[]}
       />

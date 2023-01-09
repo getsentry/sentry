@@ -47,7 +47,7 @@ describe('Project Ownership', () => {
     it('renders', () => {
       const wrapper = render(
         <ProjectOwnership
-          params={{orgId: org.slug, projectId: project.slug}}
+          params={{projectId: project.slug}}
           organization={org}
           project={project}
         />
@@ -68,7 +68,7 @@ describe('Project Ownership', () => {
       });
       render(
         <ProjectOwnership
-          params={{orgId: org.slug, projectId: project.slug}}
+          params={{projectId: project.slug}}
           organization={org}
           project={project}
         />,
@@ -98,7 +98,7 @@ describe('Project Ownership', () => {
 
       render(
         <ProjectOwnership
-          params={{orgId: org.slug, projectId: project.slug}}
+          params={{projectId: project.slug}}
           organization={org}
           project={project}
         />
@@ -118,6 +118,22 @@ describe('Project Ownership', () => {
           })
         );
       });
+    });
+
+    it('should hide issue owners for issue-alert-fallback-targeting flag', () => {
+      const organization = {...org, features: ['issue-alert-fallback-targeting']};
+      render(
+        <ProjectOwnership
+          params={{orgId: organization.slug, projectId: project.slug}}
+          organization={organization}
+          project={project}
+        />
+      );
+
+      expect(screen.getByText('Prioritize Auto Assignment')).toBeInTheDocument();
+      expect(
+        screen.queryByText('Send alert to project members if there’s no assigned owner')
+      ).not.toBeInTheDocument();
     });
   });
 });

@@ -28,7 +28,7 @@ const Panel = styled(FluidHeight)`
   background: ${p => p.theme.background};
   border-radius: ${p => p.theme.borderRadius};
   border: 1px solid ${p => p.theme.border};
-  box-shadow: ${p => p.theme.dropShadowLight};
+  box-shadow: ${p => p.theme.dropShadowMedium};
 `;
 
 export default ReplayView;

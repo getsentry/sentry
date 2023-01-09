@@ -1,3 +1,4 @@
+import {CSSProperties} from 'react';
 import styled from '@emotion/styled';
 
 import {IconArrow} from 'sentry/icons';
@@ -5,39 +6,34 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import useSortNetwork from 'sentry/views/replays/detail/network/useSortNetwork';
 
+type SortConfig = ReturnType<typeof useSortNetwork>['sortConfig'];
 type Props = {
   handleSort: ReturnType<typeof useSortNetwork>['handleSort'];
   index: number;
-  sortConfig: ReturnType<typeof useSortNetwork>['sortConfig'];
+  sortConfig: SortConfig;
+  style: CSSProperties;
 };
 
 export const HEADER_HEIGHT = 25;
 
-const COLUMNS = [
-  {
-    key: 'status',
-    label: t('Status'),
-    field: 'status',
-    sortFn: row => row.data.statusCode,
-  },
-  {key: 'path', label: t('Path'), field: 'description'},
-  {key: 'type', label: t('Type'), field: 'op'},
-  {key: 'size', label: t('Size'), field: 'size', sortFn: row => row.data.size},
-  {
-    key: 'duration',
-    label: t('Duration'),
-    field: 'duration',
-    sortFn: row => row.endTimestamp - row.startTimestamp,
-  },
-  {key: 'timestamp', label: t('Timestamp'), field: 'startTimestamp'},
+const COLUMNS: {
+  field: SortConfig['by'];
+  label: string;
+}[] = [
+  {field: 'status', label: t('Status')},
+  {field: 'description', label: t('Path')},
+  {field: 'op', label: t('Type')},
+  {field: 'size', label: t('Size')},
+  {field: 'duration', label: t('Duration')},
+  {field: 'startTimestamp', label: t('Timestamp')},
 ];
 
 export const COLUMN_COUNT = COLUMNS.length;
 
-function NetworkHeaderCell({handleSort, index, sortConfig}: Props) {
-  const {field, label, sortFn} = COLUMNS[index];
+function NetworkHeaderCell({handleSort, index, sortConfig, style}: Props) {
+  const {field, label} = COLUMNS[index];
   return (
-    <HeaderButton onClick={() => handleSort(field, sortFn)}>
+    <HeaderButton style={style} onClick={() => handleSort(field)}>
       {label}
       <IconArrow
         color="gray300"

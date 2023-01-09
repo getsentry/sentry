@@ -237,6 +237,9 @@ class DatabaseBackedAuthService(AuthService):
             ).values_list("organization_id", flat=True)
         )
 
+    def get_auth_providers(self, organization_id: int) -> List[ApiAuthProvider]:
+        return list(AuthProvider.objects.filter(organization_id=organization_id))
+
 
 class FakeRequestDict:
     d: Mapping[str, str | bytes | None]

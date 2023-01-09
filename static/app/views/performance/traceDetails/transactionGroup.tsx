@@ -61,6 +61,7 @@ class TransactionGroup extends Component<Props, State> {
       barColor,
       addContentSpanBarRef,
       removeContentSpanBarRef,
+      onWheel,
     } = this.props;
     const {isExpanded} = this.state;
 
@@ -82,6 +83,7 @@ class TransactionGroup extends Component<Props, State> {
           barColor={barColor}
           addContentSpanBarRef={addContentSpanBarRef}
           removeContentSpanBarRef={removeContentSpanBarRef}
+          onWheel={onWheel}
         />
         {isExpanded && renderedChildren}
       </Fragment>

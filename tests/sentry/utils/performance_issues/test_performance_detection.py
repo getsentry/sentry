@@ -7,7 +7,7 @@ from sentry import projectoptions
 from sentry.eventstore.models import Event
 from sentry.testutils import TestCase
 from sentry.testutils.helpers import override_options
-from sentry.testutils.performance_issues.event_generators import EVENTS
+from sentry.testutils.performance_issues.event_generators import get_event
 from sentry.testutils.silo import region_silo_test
 from sentry.types.issues import GroupType
 from sentry.utils.performance_issues.performance_detection import (
@@ -73,7 +73,7 @@ class PerformanceDetectionTest(unittest.TestCase):
 
     @override_options(BASE_DETECTOR_OPTIONS)
     def test_project_option_overrides_default(self):
-        n_plus_one_event = EVENTS["n-plus-one-in-django-index-view"]
+        n_plus_one_event = get_event("n-plus-one-in-django-index-view")
         sdk_span_mock = Mock()
 
         perf_problems = _detect_performance_problems(n_plus_one_event, sdk_span_mock)
@@ -88,7 +88,7 @@ class PerformanceDetectionTest(unittest.TestCase):
 
     @override_options(BASE_DETECTOR_OPTIONS)
     def test_n_plus_one_extended_detection_no_parent_span(self):
-        n_plus_one_event = EVENTS["n-plus-one-db-root-parent-span"]
+        n_plus_one_event = get_event("n-plus-one-db-root-parent-span")
         sdk_span_mock = Mock()
 
         perf_problems = _detect_performance_problems(n_plus_one_event, sdk_span_mock)
@@ -117,7 +117,7 @@ class PerformanceDetectionTest(unittest.TestCase):
 
     @override_options(BASE_DETECTOR_OPTIONS)
     def test_n_plus_one_extended_detection_matches_previous_group(self):
-        n_plus_one_event = EVENTS["n-plus-one-in-django-index-view"]
+        n_plus_one_event = get_event("n-plus-one-in-django-index-view")
         sdk_span_mock = Mock()
 
         with override_options({"performance.issues.n_plus_one_db.problem-creation": 0.0}):
@@ -134,7 +134,7 @@ class PerformanceDetectionTest(unittest.TestCase):
 
     @override_options(BASE_DETECTOR_OPTIONS)
     def test_overlap_detector_problems(self):
-        n_plus_one_event = EVENTS["n-plus-one-db-root-parent-span"]
+        n_plus_one_event = get_event("n-plus-one-db-root-parent-span")
         sdk_span_mock = Mock()
 
         n_plus_one_problems = _detect_performance_problems(n_plus_one_event, sdk_span_mock)
@@ -143,7 +143,7 @@ class PerformanceDetectionTest(unittest.TestCase):
 
     @override_options(BASE_DETECTOR_OPTIONS_OFF)
     def test_system_option_disables_detector_issue_creation(self):
-        n_plus_one_event = EVENTS["n-plus-one-in-django-index-view"]
+        n_plus_one_event = get_event("n-plus-one-in-django-index-view")
         sdk_span_mock = Mock()
 
         perf_problems = _detect_performance_problems(n_plus_one_event, sdk_span_mock)
@@ -151,7 +151,7 @@ class PerformanceDetectionTest(unittest.TestCase):
 
     @override_options(BASE_DETECTOR_OPTIONS)
     def test_system_option_used_when_project_option_is_default(self):
-        n_plus_one_event = EVENTS["n-plus-one-in-django-index-view"]
+        n_plus_one_event = get_event("n-plus-one-in-django-index-view")
         sdk_span_mock = Mock()
 
         self.project_option_mock.return_value = projectoptions.get_well_known_default(
@@ -207,7 +207,7 @@ class PerformanceDetectionTest(unittest.TestCase):
 
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
     def test_detects_multiple_performance_issues_in_n_plus_one_query(self):
-        n_plus_one_event = EVENTS["n-plus-one-in-django-index-view"]
+        n_plus_one_event = get_event("n-plus-one-in-django-index-view")
         sdk_span_mock = Mock()
 
         perf_problems = _detect_performance_problems(n_plus_one_event, sdk_span_mock)
@@ -248,14 +248,14 @@ class PerformanceDetectionTest(unittest.TestCase):
 
     @patch("sentry.utils.metrics.incr")
     def test_does_not_report_metric_on_non_truncated_n_plus_one_query(self, incr_mock):
-        n_plus_one_event = EVENTS["n-plus-one-in-django-new-view"]
+        n_plus_one_event = get_event("n-plus-one-in-django-new-view")
         _detect_performance_problems(n_plus_one_event, Mock())
         unexpected_call = call("performance.performance_issue.truncated_np1_db")
         assert unexpected_call not in incr_mock.mock_calls
 
     @patch("sentry.utils.metrics.incr")
     def test_reports_metric_on_truncated_query_n_plus_one(self, incr_mock):
-        truncated_duplicates_event = EVENTS["n-plus-one-in-django-new-view-truncated-duplicates"]
+        truncated_duplicates_event = get_event("n-plus-one-in-django-new-view-truncated-duplicates")
         _detect_performance_problems(truncated_duplicates_event, Mock())
         incr_mock.assert_has_calls([call("performance.performance_issue.truncated_np1_db")])
 

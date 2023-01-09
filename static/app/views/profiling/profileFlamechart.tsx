@@ -65,7 +65,7 @@ const LoadingGroup: ProfileGroup = {
   profiles: [Profile.Empty],
 };
 
-const LoadingSpanTree = SpanTree.Empty();
+const LoadingSpanTree = SpanTree.Empty;
 
 function ProfileFlamegraph(): React.ReactElement {
   const organization = useOrganization();
@@ -118,6 +118,10 @@ function ProfileFlamegraph(): React.ReactElement {
       preferences: {
         ...storedPreferences.preferences,
         ...queryStringState.preferences,
+        timelines: {
+          ...DEFAULT_FLAMEGRAPH_STATE.preferences.timelines,
+          ...(storedPreferences?.preferences?.timelines ?? {}),
+        },
         layout:
           storedPreferences?.preferences?.layout ??
           queryStringState.preferences?.layout ??

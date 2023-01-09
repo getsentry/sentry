@@ -608,7 +608,7 @@ def process_code_mappings(job: PostProcessJob) -> None:
         project = event.project
 
         # Supported platforms
-        if event.data["platform"] not in ["javascript", "python"]:
+        if event.data["platform"] not in ["javascript", "python", "ruby"]:
             return
 
         cache_key = f"code-mappings:{project.id}"

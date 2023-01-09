@@ -37,7 +37,7 @@ function Expander({
       tooltipProps={isHoverPreviewed ? {delay: SLOW_TOOLTIP_DELAY} : undefined}
       onClick={onToggleContext}
     >
-      <IconChevron direction={isExpanded ? 'up' : 'down'} size="8px" />
+      <IconChevron direction={isExpanded ? 'up' : 'down'} legacySize="8px" />
     </StyledButton>
   );
 }
