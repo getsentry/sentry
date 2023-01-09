@@ -2,7 +2,6 @@ from enum import Enum
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set, TypedDict, Union
 
 from sentry import features, options
-from sentry.dynamic_sampling.latest_release_booster import ProjectBoostedReleases
 from sentry.utils import json
 
 if TYPE_CHECKING:
@@ -88,8 +87,7 @@ def get_rule_type(rule: BaseRule) -> Optional[RuleType]:
     if (
         RESERVED_IDS[RuleType.BOOST_LATEST_RELEASES_RULE]
         <= rule["id"]
-        < RESERVED_IDS[RuleType.BOOST_LATEST_RELEASES_RULE]
-        + ProjectBoostedReleases.BOOSTED_RELEASES_LIMIT
+        < RESERVED_IDS[RuleType.BOOST_LATEST_RELEASES_RULE] + BOOSTED_RELEASES_LIMIT
     ):
         return RuleType.BOOST_LATEST_RELEASES_RULE
 
