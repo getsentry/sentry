@@ -9,7 +9,7 @@ from abc import ABC, abstractmethod
 from collections import defaultdict, deque
 from datetime import timedelta
 from enum import Enum
-from typing import Any, Dict, List, Optional, Sequence, Tuple
+from typing import Any, Dict, List, Optional, Sequence, Tuple, cast
 from urllib.parse import urlparse
 
 import sentry_sdk
@@ -143,14 +143,14 @@ PerformanceProblemsMap = Dict[str, PerformanceProblem]
 
 
 # Facade in front of performance detection to limit impact of detection on our events ingestion
-def detect_performance_problems(data: Event) -> List[PerformanceProblem]:
+def detect_performance_problems(data: Event, project: Project) -> List[PerformanceProblem]:
     try:
         # Add an experimental tag to be able to find these spans in production while developing. Should be removed later.
         sentry_sdk.set_tag("_did_analyze_performance_issue", "true")
         with metrics.timer(
             "performance.detect_performance_issue", sample_rate=0.01
         ), sentry_sdk.start_span(op="py.detect_performance_issue", description="none") as sdk_span:
-            return _detect_performance_problems(data, sdk_span)
+            return _detect_performance_problems(data, sdk_span, project)
     except Exception:
         logging.exception("Failed to detect performance problems")
     return []
@@ -251,16 +251,11 @@ def get_detection_settings(project_id: Optional[str] = None) -> Dict[DetectorTyp
     }
 
 
-def _detect_performance_problems(data: Event, sdk_span: Any) -> List[PerformanceProblem]:
+def _detect_performance_problems(
+    data: Event, sdk_span: Any, project: Project
+) -> List[PerformanceProblem]:
     event_id = data.get("event_id", None)
     project_id = data.get("project")
-
-    try:
-        project = Project.objects.get_from_cache(id=project_id)
-        organization = Organization.objects.get_from_cache(id=project.organization_id)
-    except Project.DoesNotExist:
-        project = None
-        organization = None
 
     detection_settings = get_detection_settings(project_id)
     detectors: List[PerformanceDetector] = [
@@ -280,6 +275,7 @@ def _detect_performance_problems(data: Event, sdk_span: Any) -> List[Performance
     # Metrics reporting only for detection, not created issues.
     report_metrics_for_detectors(data, event_id, detectors, sdk_span)
 
+    organization = cast(Organization, project.organization)
     if project is None or organization is None:
         return []
 
