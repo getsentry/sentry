@@ -178,7 +178,7 @@ const performanceOptionDefinitions: Field[] = [
     key: 'performance.issues.consecutive_db.problem-creation',
     label: t('N+1 API Calls Problem Creation Rate'),
     help: t(
-      'Controls the overall rate at which performance problems are detected by the N+1 API Calls detector.'
+      'Controls the overall rate at which performance problems are detected by the Consecutive DB detector.'
     ),
     ...HIGH_THROUGHPUT_RATE_OPTION,
   },
@@ -186,7 +186,7 @@ const performanceOptionDefinitions: Field[] = [
     key: 'performance.issues.consecutive_db.la-rollout',
     label: t('Limited Availability Detection Rate'),
     help: t(
-      'Controls the rate at which performance problems are detected by the N+1 API Calls detector for LA organizations.'
+      'Controls the rate at which performance problems are detected by the Consecutive DB detector for LA organizations.'
     ),
     ...HIGH_THROUGHPUT_RATE_OPTION,
   },
@@ -194,7 +194,7 @@ const performanceOptionDefinitions: Field[] = [
     key: 'performance.issues.consecutive_db.ea-rollout',
     label: t('Early Adopter Detection Rate'),
     help: t(
-      'Controls the rate at which performance problems are detected by the N+1 API Calls detector for EA organizations.'
+      'Controls the rate at which performance problems are detected by the Consecutive DB detector for EA organizations.'
     ),
     ...HIGH_THROUGHPUT_RATE_OPTION,
   },
@@ -202,7 +202,7 @@ const performanceOptionDefinitions: Field[] = [
     key: 'performance.issues.consecutive_db.ga-rollout',
     label: t('General Availability Detection Rate'),
     help: t(
-      'Controls the rate at which performance problems are detected by the for N+1 API Calls detector for GA organizations.'
+      'Controls the rate at which performance problems are detected by the for Consecutive DB detector for GA organizations.'
     ),
     ...HIGH_THROUGHPUT_RATE_OPTION,
   },
