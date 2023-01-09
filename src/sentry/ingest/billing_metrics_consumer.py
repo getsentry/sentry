@@ -1,11 +1,11 @@
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from typing import Any, Mapping, MutableMapping, Optional, Sequence, TypedDict, Union, cast
 
 from arroyo import Topic
 from arroyo.backends.kafka import KafkaConsumer, KafkaPayload
 from arroyo.backends.kafka.configuration import build_kafka_consumer_configuration
-from arroyo.commit import IMMEDIATE
+from arroyo.commit import CommitPolicy
 from arroyo.processing import StreamProcessor
 from arroyo.processing.strategies import ProcessingStrategy, ProcessingStrategyFactory
 from arroyo.types import Commit, Message, Partition
@@ -41,8 +41,8 @@ def get_metrics_billing_consumer(
             ),
         ),
         topic=Topic(topic),
-        processor_factory=BillingMetricsConsumerStrategyFactory(max_batch_size, max_batch_time),
-        commit_policy=IMMEDIATE,
+        processor_factory=BillingMetricsConsumerStrategyFactory(),
+        commit_policy=CommitPolicy(max_batch_time / 1000, max_batch_size),
     )
 
 
@@ -57,18 +57,12 @@ def _get_bootstrap_servers(topic: str, force_cluster: Union[str, None]) -> Seque
 
 
 class BillingMetricsConsumerStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
-    def __init__(self, max_batch_size: int, max_batch_time: int):
-        self.__max_batch_size = max_batch_size
-        self.__max_batch_time = max_batch_time
-
     def create_with_partitions(
         self,
         commit: Commit,
         partitions: Mapping[Partition, int],
     ) -> ProcessingStrategy[KafkaPayload]:
-        return BillingTxCountMetricConsumerStrategy(
-            commit, self.__max_batch_size, self.__max_batch_time
-        )
+        return BillingTxCountMetricConsumerStrategy(commit)
 
 
 class MetricsBucket(TypedDict):
@@ -97,20 +91,13 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
     def __init__(
         self,
         commit: Commit,
-        max_batch_size: int,
-        max_batch_time: int,
     ) -> None:
         self.__commit = commit
-        self.__max_batch_size = max_batch_size
-        self.__max_batch_time = timedelta(milliseconds=max_batch_time)
-        self.__messages_since_last_commit = 0
-        self.__last_commit = datetime.now(timezone.utc)
         self.__ready_to_commit: MutableMapping[Partition, int] = {}
         self.__closed = False
 
     def poll(self) -> None:
-        if self._should_commit():
-            self._bulk_commit()
+        self._bulk_commit()
 
     def terminate(self) -> None:
         self.close()
@@ -120,10 +107,12 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
 
     def submit(self, message: Message[KafkaPayload]) -> None:
         assert not self.__closed
-        self.__messages_since_last_commit += 1
 
         payload = self._get_payload(message)
         self._produce_billing_outcomes(payload)
+        # TODO(markus): Perhaps call _bulk_commit directly here instead of
+        # manually accumulating offsets? Might be more in line with other
+        # consumers.
         self._mark_commit_ready(message)
 
     def _get_payload(self, message: Message[KafkaPayload]) -> MetricsBucket:
@@ -167,19 +156,8 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
         self.__ready_to_commit.update(message.committable)
 
     def join(self, timeout: Optional[float] = None) -> None:
-        self._bulk_commit()
+        self._bulk_commit(force=True)
 
-    def _should_commit(self) -> bool:
-        if not self.__ready_to_commit:
-            return False
-        if self.__messages_since_last_commit >= self.__max_batch_size:
-            return True
-        if self.__last_commit + self.__max_batch_time <= datetime.now(timezone.utc):
-            return True
-        return False
-
-    def _bulk_commit(self) -> None:
-        self.__commit(self.__ready_to_commit)
+    def _bulk_commit(self, force=False) -> None:
+        self.__commit(self.__ready_to_commit, force=force)
         self.__ready_to_commit = {}
-        self.__messages_since_last_commit = 0
-        self.__last_commit = datetime.now(timezone.utc)
