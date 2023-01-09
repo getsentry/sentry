@@ -282,6 +282,7 @@ class ProjectDetail extends AsyncView<Props, State> {
                   hasSessions={hasSessions}
                   hasTransactions={hasTransactions}
                   query={query}
+                  project={project}
                 />
                 {isProjectStabilized && (
                   <Fragment>

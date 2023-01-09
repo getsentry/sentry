@@ -12,6 +12,8 @@ export type DoSessionsRequestOptions = {
   environment?: Readonly<string[]>;
   groupBy?: string[];
   includeAllArgs?: boolean;
+  includeSeries?: boolean;
+  includeTotals?: boolean;
   interval?: string;
   limit?: number;
   orderBy?: string;
@@ -36,6 +38,8 @@ export const doSessionsRequest = (
     orderBy,
     query,
     includeAllArgs = false,
+    includeSeries,
+    includeTotals,
     statsPeriodStart,
     statsPeriodEnd,
     limit,
@@ -62,6 +66,8 @@ export const doSessionsRequest = (
       statsPeriod,
       statsPeriodStart,
       statsPeriodEnd,
+      includeSeries: includeSeries === false ? '0' : '1',
+      includeTotals: includeTotals === false ? '0' : '1',
     }).filter(([, value]) => defined(value) && value !== '')
   );
 

@@ -1,8 +1,14 @@
 import styled from '@emotion/styled';
 
 import space from 'sentry/styles/space';
-import {Organization, PageFilters, SessionFieldWithOperation} from 'sentry/types';
+import {
+  Organization,
+  PageFilters,
+  Project,
+  SessionFieldWithOperation,
+} from 'sentry/types';
 
+import {ProjectAnrScoreCard} from './projectAnrScoreCard';
 import ProjectApdexScoreCard from './projectApdexScoreCard';
 import ProjectStabilityScoreCard from './projectStabilityScoreCard';
 import ProjectVelocityScoreCard from './projectVelocityScoreCard';
@@ -13,6 +19,7 @@ type Props = {
   organization: Organization;
   selection: PageFilters;
   hasTransactions?: boolean;
+  project?: Project;
   query?: string;
 };
 
@@ -23,6 +30,7 @@ function ProjectScoreCards({
   hasSessions,
   hasTransactions,
   query,
+  project,
 }: Props) {
   return (
     <CardWrapper>
@@ -51,13 +59,22 @@ function ProjectScoreCards({
         query={query}
       />
 
-      <ProjectApdexScoreCard
-        organization={organization}
-        selection={selection}
-        isProjectStabilized={isProjectStabilized}
-        hasTransactions={hasTransactions}
-        query={query}
-      />
+      {organization.features.includes('anr-rate') && project?.platform === 'android' ? (
+        <ProjectAnrScoreCard
+          organization={organization}
+          selection={selection}
+          isProjectStabilized={isProjectStabilized}
+          query={query}
+        />
+      ) : (
+        <ProjectApdexScoreCard
+          organization={organization}
+          selection={selection}
+          isProjectStabilized={isProjectStabilized}
+          hasTransactions={hasTransactions}
+          query={query}
+        />
+      )}
     </CardWrapper>
   );
 }
