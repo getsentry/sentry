@@ -315,7 +315,7 @@ class SnubaTSDB(BaseTSDB):
 
         aggregated_as = "aggregate"
         aggregations = [[aggregation, model_aggregate, aggregated_as]]
-        if model_ignore_time_series_processing:
+        if group_on_time and model_ignore_time_series_processing:
             # aggregations.append(["toUnixTimestamp", "client_timestamp", "client_ts"])
             # aggregations.append(["toStartOfHour", "client_timestamp", "client_timehour"])
             aggregations.append(
