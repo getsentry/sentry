@@ -238,6 +238,7 @@ def get_detection_settings(project_id: Optional[int] = None) -> Dict[DetectorTyp
             }
         ],
         DetectorType.N_PLUS_ONE_API_CALLS: {
+            "detection_rate": settings["n_plus_one_api_calls_detection_rate"],
             "duration_threshold": 50,  # ms
             "concurrency_threshold": 5,  # ms
             "count": 10,
@@ -670,7 +671,7 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         return False  # Fully turned off
 
     def is_creation_allowed_for_project(self, project: Project) -> bool:
-        return False  # Fully turned off
+        return self.settings["n_plus_one_api_calls_detection_rate"] > random.random()
 
     @classmethod
     def is_event_eligible(cls, event):
