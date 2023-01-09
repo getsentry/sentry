@@ -50,7 +50,7 @@ export const lightColors = {
   yellow200: 'rgba(245, 176, 0, 0.55)',
   yellow100: 'rgba(245, 176, 0, 0.08)',
 
-  red400: '#D62C31',
+  red400: '#DF3338',
   red300: '#F55459',
   red200: 'rgba(245, 84, 89, 0.5)',
   red100: 'rgba(245, 84, 89, 0.09)',
