@@ -31,7 +31,7 @@ export class Profile {
   appendOrderTree: CallTreeNode = new CallTreeNode(Frame.Root, null);
   framesInStack: Set<Profiling.Event['frame']> = new Set();
 
-  // Min duration of the profile
+  // Min duration of a single frame in our profile
   minFrameDuration = Number.POSITIVE_INFINITY;
 
   samples: CallTreeNode[] = [];
