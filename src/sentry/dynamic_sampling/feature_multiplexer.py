@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, List, Optional, Set
+from typing import TYPE_CHECKING, Callable, List, Optional, Set
 
 from sentry import features, options
 from sentry.dynamic_sampling.utils import DEFAULT_BIASES, Bias
@@ -7,35 +7,50 @@ if TYPE_CHECKING:
     from sentry.models import Project
 
 
-class DynamicSamplingFeatureMultiplexer:
-    def __init__(self, project: "Project"):
-        # Feature flag that informs us that the org is on the new AM2 plan and thereby have adaptive
-        # sampling enabled
-        self.dynamic_sampling = features.has("organizations:dynamic-sampling", project.organization)
+class DynamicSamplingBiasesContext:
+    def __init__(self, get_user_set_biases: Callable[[], Optional[List[Bias]]] = lambda: None):
+        self.get_user_set_biases = get_user_set_biases
 
-    @property
-    def is_on_dynamic_sampling(self) -> bool:
-        return self.dynamic_sampling and options.get("dynamic-sampling:enabled-biases")
+    def get_user_biases(self) -> List[Bias]:
+        return self._merge_default_and_user_set(self.get_user_set_biases())
+
+    def get_enabled_user_biases(self) -> Set[str]:
+        return {bias["id"] for bias in self.get_user_biases() if bias["active"]}
 
     @staticmethod
-    def get_user_biases(user_set_biases: Optional[List[Bias]]) -> List[Bias]:
+    def _merge_default_and_user_set(user_set_biases: Optional[List[Bias]]) -> List[Bias]:
         if user_set_biases is None:
             return DEFAULT_BIASES
 
         id_to_user_bias = {bias["id"]: bias for bias in user_set_biases}
-        returned_biases = []
+        merged_biases = []
         for bias in DEFAULT_BIASES:
             if bias["id"] in id_to_user_bias:
-                returned_biases.append(id_to_user_bias[bias["id"]])
+                merged_biases.append(id_to_user_bias[bias["id"]])
             else:
-                returned_biases.append(bias)
-        return returned_biases
+                merged_biases.append(bias)
 
-    @classmethod
-    def get_enabled_user_biases(cls, user_set_biases: Optional[List[Bias]]) -> Set[str]:
-        users_biases = cls.get_user_biases(user_set_biases)
-        return {bias["id"] for bias in users_biases if bias["active"]}
+        return merged_biases
 
     @staticmethod
     def get_supported_biases_ids() -> Set[str]:
         return {bias["id"] for bias in DEFAULT_BIASES}
+
+
+class DynamicSamplingFeatureMultiplexer:
+    def __init__(self, project: Project):
+        self.project = project
+
+    @property
+    def is_on_dynamic_sampling(self) -> bool:
+        # Feature flag that informs us that the org is on the new AM2 plan and thereby have adaptive
+        # sampling enabled.
+        return features.has(
+            "organizations:dynamic-sampling", self.project.organization
+        ) and options.get("dynamic-sampling:enabled-biases")
+
+    @staticmethod
+    def build_dynamic_sampling_biases_context(
+        block: Callable[[], Optional[List[Bias]]] = lambda: None
+    ) -> DynamicSamplingBiasesContext:
+        return DynamicSamplingBiasesContext(block)

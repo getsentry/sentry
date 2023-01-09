@@ -69,7 +69,8 @@ def clean_newline_inputs(value, case_insensitive=True):
 
 class DynamicSamplingBiasSerializer(serializers.Serializer):
     id = serializers.ChoiceField(
-        required=True, choices=DynamicSamplingFeatureMultiplexer.get_supported_biases_ids()
+        required=True,
+        choices=DynamicSamplingFeatureMultiplexer.build_dynamic_sampling_biases_context().get_supported_biases_ids(),
     )
     active = serializers.BooleanField(default=False)
 
@@ -375,10 +376,11 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
         # Dynamic Sampling Logic
         if ds_feature_multiplexer.is_on_dynamic_sampling:
+            ds_biases_context = ds_feature_multiplexer.build_dynamic_sampling_biases_context(
+                lambda: project.get_option("sentry:dynamic_sampling_biases", None)
+            )
             ds_bias_serializer = DynamicSamplingBiasSerializer(
-                data=ds_feature_multiplexer.get_user_biases(
-                    project.get_option("sentry:dynamic_sampling_biases", None)
-                ),
+                data=ds_biases_context.get_user_biases(),
                 many=True,
             )
             if not ds_bias_serializer.is_valid():
@@ -433,8 +435,11 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
         result = serializer.validated_data
 
-        ds_flags_multiplexer = DynamicSamplingFeatureMultiplexer(project)
-        if result.get("dynamicSamplingBiases") and not ds_flags_multiplexer.is_on_dynamic_sampling:
+        ds_feature_multiplexer = DynamicSamplingFeatureMultiplexer(project)
+        if (
+            result.get("dynamicSamplingBiases")
+            and not ds_feature_multiplexer.is_on_dynamic_sampling
+        ):
             return Response(
                 {"detail": ["dynamicSamplingBiases is not a valid field"]},
                 status=403,
@@ -605,9 +610,10 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             )
 
         if "dynamicSamplingBiases" in result:
-            updated_biases = ds_flags_multiplexer.get_user_biases(
-                user_set_biases=result["dynamicSamplingBiases"]
+            ds_biases_context = ds_feature_multiplexer.build_dynamic_sampling_biases_context(
+                lambda: result["dynamicSamplingBiases"]
             )
+            updated_biases = ds_biases_context.get_user_biases()
             if project.update_option("sentry:dynamic_sampling_biases", updated_biases):
                 changed_proj_settings["sentry:dynamic_sampling_biases"] = result[
                     "dynamicSamplingBiases"
@@ -745,7 +751,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         )
 
         data = serialize(project, request.user, DetailedProjectSerializer())
-        if not ds_flags_multiplexer.is_on_dynamic_sampling:
+        if not ds_feature_multiplexer.is_on_dynamic_sampling:
             data["dynamicSamplingBiases"] = None
         # If here because the case of when no dynamic sampling is enabled at all, you would want to kick
         # out both keys actually

@@ -101,10 +101,11 @@ class TeamKeyTransactionModelManager(BaseManager):
 
         ds_feature_multiplexer = DynamicSamplingFeatureMultiplexer(project)
         if ds_feature_multiplexer.is_on_dynamic_sampling:
-            # check if option is enabled
-            enabled_biases = DynamicSamplingFeatureMultiplexer.get_enabled_user_biases(
-                project.get_option("sentry:dynamic_sampling_biases", None)
+            ds_biases_context = ds_feature_multiplexer.build_dynamic_sampling_biases_context(
+                lambda: project.get_option("sentry:dynamic_sampling_biases", None)
             )
+            # check if option is enabled
+            enabled_biases = ds_biases_context.get_enabled_user_biases()
             # invalidate project config only when the rule is enabled
             if RuleType.BOOST_KEY_TRANSACTIONS_RULE.value in enabled_biases:
                 transaction.on_commit(

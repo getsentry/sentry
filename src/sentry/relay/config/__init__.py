@@ -159,10 +159,11 @@ def get_project_config(
 
 
 def get_dynamic_sampling_config(project: Project) -> Optional[Mapping[str, Any]]:
-    feature_multiplexer = DynamicSamplingFeatureMultiplexer(project)
+    ds_feature_multiplexer = DynamicSamplingFeatureMultiplexer(project)
 
-    if feature_multiplexer.is_on_dynamic_sampling:
+    if ds_feature_multiplexer.is_on_dynamic_sampling:
         return {"rules": generate_rules(project)}
+
     return None
 
 

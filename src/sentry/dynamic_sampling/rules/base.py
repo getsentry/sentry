@@ -81,14 +81,16 @@ class DynamicSamplingBiases:
 
 
 def generate_rules(project: Project) -> List[BaseRule]:
-    enabled_biases = DynamicSamplingFeatureMultiplexer.get_enabled_user_biases(
-        project.get_option("sentry:dynamic_sampling_biases", None)
+    ds_biases_context = DynamicSamplingFeatureMultiplexer(
+        project
+    ).build_dynamic_sampling_biases_context(
+        lambda: project.get_option("sentry:dynamic_sampling_biases", None)
     )
 
     combinator = DynamicSamplingBiases().build_combinator(
         build_type=CombinatorBuildType.FROM_ENABLED_BIASES,
         project=project,
-        enabled_biases=enabled_biases,
+        enabled_biases=ds_biases_context.get_enabled_user_biases(),
     )
 
     if combinator is not None:
