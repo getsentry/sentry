@@ -105,7 +105,8 @@ export class SpanChartRenderer2D {
         continue;
       }
 
-      const color = this.colors.get(span.node.span.span_id);
+      const color =
+        this.colors.get(span.node.span.span_id) ?? this.theme.COLORS.SPAN_FALLBACK_COLOR;
 
       if (!color) {
         throw new Error('Missing color for span');

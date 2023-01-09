@@ -44,11 +44,7 @@ class MonitorDetailsEndpoint(MonitorEndpoint):
         self, request: Request, project, monitor, organization_slug: str | None = None
     ) -> Response:
         """
-        Retrieve a monitor
-        ``````````````````
-
-        :pparam string monitor_id: the id of the monitor.
-        :auth: required
+        Retrieves details for a monitor.
         """
         if organization_slug:
             if project.organization.slug != organization_slug:
@@ -74,11 +70,7 @@ class MonitorDetailsEndpoint(MonitorEndpoint):
         self, request: Request, project, monitor, organization_slug: str | None = None
     ) -> Response:
         """
-        Update a monitor
-        ````````````````
-
-        :pparam string monitor_id: the id of the monitor.
-        :auth: required
+        Update a monitor.
         """
         if organization_slug:
             if project.organization.slug != organization_slug:
@@ -145,12 +137,9 @@ class MonitorDetailsEndpoint(MonitorEndpoint):
         self, request: Request, project, monitor, organization_slug: str | None = None
     ) -> Response:
         """
-        Delete a monitor
-        ````````````````
-
-        :pparam string monitor_id: the id of the monitor.
-        :auth: required
+        Delete a monitor.
         """
+
         if organization_slug:
             if project.organization.slug != organization_slug:
                 return self.respond_invalid()

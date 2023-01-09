@@ -24,7 +24,7 @@ import RulesPanel from 'sentry/views/settings/project/projectOwnership/rulesPane
 type Props = {
   organization: Organization;
   project: Project;
-} & RouteComponentProps<{orgId: string; projectId: string}, {}>;
+} & RouteComponentProps<{projectId: string}, {}>;
 
 type State = {
   codeowners?: CodeOwner[];
