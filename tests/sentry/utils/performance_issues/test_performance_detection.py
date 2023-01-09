@@ -177,7 +177,7 @@ class PerformanceDetectionTest(unittest.TestCase):
 
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
     def test_respects_organization_creation_permissions(self):
-        n_plus_one_event = EVENTS["n-plus-one-in-django-index-view"]
+        n_plus_one_event = get_event("n-plus-one-in-django-index-view")
         sdk_span_mock = Mock()
 
         with patch.object(
@@ -192,7 +192,7 @@ class PerformanceDetectionTest(unittest.TestCase):
 
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
     def test_respects_project_creation_permissions(self):
-        n_plus_one_event = EVENTS["n-plus-one-in-django-index-view"]
+        n_plus_one_event = get_event("n-plus-one-in-django-index-view")
         sdk_span_mock = Mock()
 
         with patch.object(
