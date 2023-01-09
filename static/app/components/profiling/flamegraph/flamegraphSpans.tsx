@@ -9,6 +9,7 @@ import {
 } from 'react';
 import styled from '@emotion/styled';
 import {vec2} from 'gl-matrix';
+import * as qs from 'query-string';
 
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {BoundTooltip} from 'sentry/components/profiling/boundTooltip';
@@ -127,6 +128,32 @@ export function FlamegraphSpans({
       scheduler.unregisterBeforeFrameCallback(drawSpans);
     };
   }, [spansCanvas, spansRenderer, scheduler, spansView, profiledTransaction.type]);
+
+  // When spans render, check for span_id presence in qs.
+  // If it is present, highlight the span and zoom to it. This allows
+  // us to link to specific spans via id without knowing their exact
+  // without knowing their exact position in the view.
+  useEffect(() => {
+    if (!spansView || !spanChart || !spanChart.spans.length) {
+      return;
+    }
+
+    const span_id = qs.parse(window.location.search).spanId;
+    if (!span_id) {
+      return;
+    }
+    const span = spanChart.spans.find(s => s.node.span.span_id === span_id);
+    if (!span) {
+      return;
+    }
+
+    selectedSpansRef.current = [span];
+    canvasPoolManager.dispatch('highlight span', [span ? [span] : null, 'selected']);
+    canvasPoolManager.dispatch('set config view', [
+      new Rect(span.start, span.depth, span.duration, 1),
+      spansView,
+    ]);
+  }, [canvasPoolManager, spansView, spanChart]);
 
   const onMouseDrag = useCallback(
     (evt: React.MouseEvent<HTMLCanvasElement>) => {
@@ -314,6 +341,11 @@ export function FlamegraphSpans({
         >
           <FlamegraphTooltipFrameMainInfo>
             <FlamegraphTooltipColorIndicator
+              backgroundImage={
+                hoveredNode.node.span.op === 'missing instrumentation'
+                  ? `url(${spansRenderer.patternDataUrl})`
+                  : 'none'
+              }
               backgroundColor={formatColorForSpan(hoveredNode, spansRenderer)}
             />
             {spanChart.formatter(hoveredNode.duration)}{' '}
