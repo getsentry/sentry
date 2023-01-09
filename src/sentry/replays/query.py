@@ -1,6 +1,6 @@
 from collections import namedtuple
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, Generator, List, Optional, Union
 
 from snuba_sdk import (
     Column,
@@ -207,6 +207,9 @@ def make_select_statement(
     for fltr in search_filters:
         if isinstance(fltr, SearchFilter):
             unique_fields.add(fltr.key.name)
+        elif isinstance(fltr, ParenExpression):
+            for f in _extract_children(fltr):
+                unique_fields.add(f.key.name)
 
     # Select fields used for sorting.
     for sort in sorting:
@@ -434,7 +437,6 @@ def _activity_score():
 
 FIELD_QUERY_ALIAS_MAP: Dict[str, List[str]] = {
     "id": ["replay_id"],
-    "title": ["title"],
     "replayType": ["replayType"],
     "projectId": ["projectId"],
     "platform": ["platform"],
@@ -446,7 +448,7 @@ FIELD_QUERY_ALIAS_MAP: Dict[str, List[str]] = {
     "startedAt": ["startedAt"],
     "finishedAt": ["finishedAt"],
     "duration": ["duration", "startedAt", "finishedAt"],
-    "urls": ["urls_sorted"],
+    "urls": ["urls_sorted", "agg_urls"],
     "countErrors": ["countErrors"],
     "countUrls": ["urls_sorted"],
     "countSegments": ["countSegments"],
@@ -481,7 +483,6 @@ FIELD_QUERY_ALIAS_MAP: Dict[str, List[str]] = {
 
 QUERY_ALIAS_COLUMN_MAP = {
     "replay_id": _strip_uuid_dashes("replay_id", Column("replay_id")),
-    "title": _grouped_unique_scalar_value(column_name="title"),
     "replayType": _grouped_unique_scalar_value(column_name="replay_type", alias="replayType"),
     "projectId": Function(
         "toString",
@@ -489,7 +490,9 @@ QUERY_ALIAS_COLUMN_MAP = {
         alias="projectId",
     ),
     "platform": _grouped_unique_scalar_value(column_name="platform"),
-    "environment": _grouped_unique_scalar_value(column_name="environment", alias="agg_environment"),
+    "agg_environment": _grouped_unique_scalar_value(
+        column_name="environment", alias="agg_environment"
+    ),
     "releases": _grouped_unique_values(column_name="release", alias="releases", aliased=True),
     "dist": _grouped_unique_scalar_value(column_name="dist"),
     "traceIds": Function(
@@ -594,3 +597,11 @@ def collect_aliases(fields: List[str]) -> List[str]:
 def select_from_fields(fields: List[str]) -> List[Union[Column, Function]]:
     """Return a list of columns to select."""
     return [QUERY_ALIAS_COLUMN_MAP[alias] for alias in collect_aliases(fields)]
+
+
+def _extract_children(expression: ParenExpression) -> Generator[None, None, str]:
+    for child in expression.children:
+        if isinstance(child, SearchFilter):
+            yield child
+        elif isinstance(child, ParenExpression):
+            yield from _extract_children(child)
