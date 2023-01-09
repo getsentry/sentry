@@ -362,11 +362,6 @@ export function FlamegraphSpans({
             {spansRenderer.spanChart.timelineFormatter(hoveredNode.start)} {' \u2014 '}
             {spansRenderer.spanChart.timelineFormatter(hoveredNode.end)}
           </FlamegraphTooltipTimelineInfo>
-          <FlamegraphTooltipTimelineInfo>
-            Span: {hoveredNode.node.span.span_id}
-            {'\n'}
-            Parent: {hoveredNode.node.span.parent_span_id}
-          </FlamegraphTooltipTimelineInfo>
         </BoundTooltip>
       ) : null}
     </Fragment>
