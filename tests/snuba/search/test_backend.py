@@ -2307,7 +2307,7 @@ class EventsGenericSnubaSearchTest(SharedSnubaTest, OccurrenceTestMixin):
         super().setUp()
         self.base_datetime = (datetime.utcnow() - timedelta(days=3)).replace(tzinfo=pytz.utc)
 
-        occurrence, group_info = process_event_and_issue_occurrence(
+        _, group_info = process_event_and_issue_occurrence(
             self.build_occurrence_data(),
             {
                 "event_id": uuid.uuid4().hex,
@@ -2321,7 +2321,7 @@ class EventsGenericSnubaSearchTest(SharedSnubaTest, OccurrenceTestMixin):
         )
         self.profile_group_1 = group_info.group
 
-        occurrence, group_info = process_event_and_issue_occurrence(
+        _, group_info = process_event_and_issue_occurrence(
             self.build_occurrence_data(fingerprint=["put-me-in-group-2"]),
             {
                 "event_id": uuid.uuid4().hex,
@@ -2334,6 +2334,19 @@ class EventsGenericSnubaSearchTest(SharedSnubaTest, OccurrenceTestMixin):
             },
         )
         self.profile_group_2 = group_info.group
+
+        process_event_and_issue_occurrence(
+            self.build_occurrence_data(fingerprint=["put-me-in-group-3"]),
+            {
+                "event_id": uuid.uuid4().hex,
+                "project_id": self.project.id,
+                "title": "some other problem",
+                "platform": "python",
+                "tags": {"my_tag": "2"},
+                "timestamp": before_now(minutes=2).isoformat(),
+                "message_timestamp": before_now(minutes=2).isoformat(),
+            },
+        )
 
         error_event_data = {
             "timestamp": iso_format(self.base_datetime - timedelta(days=20)),
