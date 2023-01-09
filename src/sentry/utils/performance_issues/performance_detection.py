@@ -15,7 +15,7 @@ from urllib.parse import urlparse
 import sentry_sdk
 from symbolic import ProguardMapper  # type: ignore
 
-from sentry import nodestore, options, projectoptions
+from sentry import features, nodestore, options, projectoptions
 from sentry.eventstore.models import Event
 from sentry.models import Organization, Project, ProjectDebugFile, ProjectOption
 from sentry.types.issues import GroupType
@@ -667,7 +667,9 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
             self.spans = [span]
 
     def is_creation_allowed_for_organization(self, organization: Organization) -> bool:
-        return False  # Fully turned off
+        return features.has(
+            "organizations:performance-n-plus-one-api-calls-detector", organization, actor=None
+        )
 
     def is_creation_allowed_for_project(self, project: Project) -> bool:
         return False  # Fully turned off
