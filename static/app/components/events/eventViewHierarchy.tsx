@@ -36,19 +36,8 @@ function EventViewHierarchy({projectSlug, viewHierarchies}: Props) {
 
   const hierarchyMeta = viewHierarchies[selectedViewHierarchy];
   const {isLoading, data} = useQuery<ViewHierarchyData>(
-    [
-      getAttachmentUrl({
-        attachment: hierarchyMeta,
-        eventId: hierarchyMeta.event_id,
-        orgId: organization.slug,
-        projectId: projectSlug,
-      }),
-    ],
+    [`viewHierarchies.${hierarchyMeta.id}`],
     async () => {
-      if (!hierarchyMeta) {
-        return DEFAULT_RESPONSE;
-      }
-
       const response = await api.requestPromise(
         getAttachmentUrl({
           attachment: hierarchyMeta,
