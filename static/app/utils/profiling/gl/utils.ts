@@ -311,13 +311,9 @@ export class Rect {
 
   containsRect(rect: Rect): boolean {
     return (
-      // left bound
       this.left <= rect.left &&
-      // right bound
       rect.right <= this.right &&
-      // top bound
       this.top <= rect.top &&
-      // bottom bound
       rect.bottom <= this.bottom
     );
   }
