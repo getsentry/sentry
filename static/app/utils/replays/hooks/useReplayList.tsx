@@ -13,7 +13,7 @@ type Options = {
   organization: Organization;
 };
 
-type State = Awaited<ReturnType<typeof fetchReplayList>>;
+type State = Awaited<ReturnType<typeof fetchReplayList>> & {isFetching: boolean};
 
 type Result = State;
 
@@ -39,7 +39,7 @@ function useReplayList({eventView, location, organization}: Options): Result {
       eventView,
     });
 
-    setData(response);
+    setData({...response, isFetching: false});
   }, [api, organization, location, eventView]);
 
   useEffect(() => {
