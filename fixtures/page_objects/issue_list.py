@@ -33,6 +33,7 @@ class IssueListPage(BasePage):
         self.browser.click('[aria-label="Resolve"]')
 
     def wait_for_resolved_issue(self):
+        self.browser.wait_until_not('[data-test-id="toast-loading"]')
         self.browser.wait_until('[data-test-id="resolved-issue"]')
 
     def wait_for_issue_removal(self):
