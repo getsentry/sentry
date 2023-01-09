@@ -123,7 +123,7 @@ export function FlamegraphLayout(props: FlamegraphLayoutProps) {
             height={timelines.transaction_spans ? flamegraphTheme.SIZES.SPANS_HEIGHT : 20}
           >
             <CollapsibleTimeline
-              title={t('Spans')}
+              title={t('Transaction')}
               open={timelines.transaction_spans}
               onOpen={onOpenSpans}
               onClose={onCloseSpans}
