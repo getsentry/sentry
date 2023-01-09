@@ -28,9 +28,10 @@ import type {
 } from 'sentry/types';
 import {buildTeamId, buildUserId, valueIsEqual} from 'sentry/utils';
 
-export type SuggestedAssignee = Actor & {
+export type SuggestedAssignee = {
+  actor: Actor;
   assignee: AssignableTeam | User;
-  suggestedReason: SuggestedOwnerReason;
+  suggestedReason: string;
 };
 
 type AssignableTeam = {
@@ -59,6 +60,7 @@ export interface AssigneeSelectorDropdownProps {
     assignee: User | Actor,
     suggestedAssignee?: SuggestedAssignee
   ) => void;
+  owners?: Omit<SuggestedAssignee, 'assignee'>[];
 }
 
 type State = {
@@ -111,6 +113,10 @@ export class AssigneeSelectorDropdown extends Component<
       nextProps.memberList &&
       !valueIsEqual(this.props.memberList, nextProps.memberList)
     ) {
+      return true;
+    }
+
+    if (!valueIsEqual(this.props.owners, nextProps.owners)) {
       return true;
     }
 
@@ -213,7 +219,7 @@ export class AssigneeSelectorDropdown extends Component<
     if (onAssign) {
       const suggestionType = type === 'member' ? 'user' : type;
       const suggestion = this.getSuggestedAssignees().find(
-        actor => actor.type === suggestionType && actor.id === assignee.id
+        ({actor}) => actor.type === suggestionType && actor.id === assignee.id
       );
       onAssign?.(type, assignee, suggestion);
     }
@@ -306,35 +312,13 @@ export class AssigneeSelectorDropdown extends Component<
     };
     // filter out suggested assignees if a suggestion is already selected
     return this.getSuggestedAssignees()
-      .filter(({type, id}) => !(type === assignedTo?.type && id === assignedTo?.id))
-      .filter(({type}) => type === 'user' || type === 'team')
-      .map(({type, suggestedReason, assignee}) => {
-        const reason = textReason[suggestedReason];
-        if (type === 'user') {
-          return this.renderMemberNode(assignee as User, reason);
-        }
-
-        return this.renderTeamNode(assignee as AssignableTeam, reason);
-      });
-  }
-
-  renderTargetedAssigneeNodes(): React.ComponentProps<
-    typeof DropdownAutoComplete
-  >['items'] {
-    const {assignedTo} = this.state;
-    const textReason: Record<SuggestedOwnerReason, string> = {
-      suspectCommit: t('Suspect Commit'),
-      releaseCommit: t('Suspect Release'),
-      ownershipRule: t('Ownership Rule'),
-      codeowners: t('Codeowners'),
-    };
-    // filter out suggested assignees if a suggestion is already selected
-    return this.getSuggestedAssignees()
-      .filter(({type, id}) => !(type === assignedTo?.type && id === assignedTo?.id))
-      .filter(({type}) => type === 'user' || type === 'team')
-      .map(({type, suggestedReason, assignee}) => {
-        const reason = textReason[suggestedReason];
-        if (type === 'user') {
+      .filter(
+        ({actor}) => !(actor.type === assignedTo?.type && actor.id === assignedTo?.id)
+      )
+      .filter(({actor}) => actor.type === 'user' || actor.type === 'team')
+      .map(({actor, suggestedReason, assignee}) => {
+        const reason = textReason[suggestedReason] ?? suggestedReason;
+        if (actor.type === 'user') {
           return this.renderMemberNode(assignee as User, reason);
         }
 
@@ -424,13 +408,45 @@ export class AssigneeSelectorDropdown extends Component<
   }
 
   getSuggestedAssignees(): SuggestedAssignee[] {
+    const assignableTeams = this.assignableTeams();
+    const memberList = this.memberList() ?? [];
+
+    const {owners} = this.props;
+    if (owners !== undefined) {
+      // Add team or user from store
+      return owners
+        .map<SuggestedAssignee | null>(owner => {
+          if (owner.actor.type === 'user') {
+            const member = memberList.find(user => user.id === owner.actor.id);
+            if (member) {
+              return {
+                ...owner,
+                assignee: member,
+              };
+            }
+          }
+          if (owner.actor.type === 'team') {
+            const matchingTeam = assignableTeams.find(
+              assignableTeam => assignableTeam.team.id === owner.actor.id
+            );
+            if (matchingTeam) {
+              return {
+                ...owner,
+                assignee: matchingTeam,
+              };
+            }
+          }
+
+          return null;
+        })
+        .filter((owner): owner is SuggestedAssignee => !!owner);
+    }
+
     const {suggestedOwners} = this.state;
     if (!suggestedOwners) {
       return [];
     }
 
-    const assignableTeams = this.assignableTeams();
-    const memberList = this.memberList() ?? [];
     const suggestedAssignees: Array<SuggestedAssignee | null> = suggestedOwners.map(
       owner => {
         // converts a backend suggested owner to a suggested assignee
@@ -439,9 +455,11 @@ export class AssigneeSelectorDropdown extends Component<
           const member = memberList.find(user => user.id === id);
           if (member) {
             return {
-              type: 'user',
-              id,
-              name: member.name,
+              actor: {
+                id,
+                type: 'user',
+                name: member.name,
+              },
               suggestedReason: owner.type,
               assignee: member,
             };
@@ -452,9 +470,11 @@ export class AssigneeSelectorDropdown extends Component<
           );
           if (matchingTeam) {
             return {
-              type: 'team',
-              id,
-              name: matchingTeam.team.name,
+              actor: {
+                id,
+                type: 'team',
+                name: matchingTeam.team.name,
+              },
               suggestedReason: owner.type,
               assignee: matchingTeam,
             };
@@ -465,7 +485,7 @@ export class AssigneeSelectorDropdown extends Component<
       }
     );
 
-    return suggestedAssignees.filter(owner => !!owner) as SuggestedAssignee[];
+    return suggestedAssignees.filter((owner): owner is SuggestedAssignee => !!owner);
   }
 
   render() {
@@ -582,6 +602,7 @@ const InviteMemberLink = styled(Link)`
 
 const Label = styled(TextOverflow)`
   margin-left: ${space(1)};
+  max-width: 300px;
 `;
 
 const GroupHeader = styled('div')`
@@ -591,7 +612,6 @@ const GroupHeader = styled('div')`
   text-transform: uppercase;
   margin: ${space(1)} 0;
   color: ${p => p.theme.subText};
-  line-height: ${p => p.theme.fontSizeSmall};
   text-align: left;
 `;
 

@@ -5,6 +5,7 @@ import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {
   AssigneeSelectorDropdown,
   AssigneeSelectorDropdownProps,
+  SuggestedAssignee,
 } from 'sentry/components/assigneeSelectorDropdown';
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import {AutoCompleteRoot} from 'sentry/components/dropdownAutoComplete/menu';
@@ -19,7 +20,7 @@ import {t} from 'sentry/locale';
 import MemberListStore from 'sentry/stores/memberListStore';
 import TeamStore from 'sentry/stores/teamStore';
 import space from 'sentry/styles/space';
-import type {Actor, Commit, Committer, Group, Project, Release} from 'sentry/types';
+import type {Actor, Commit, Committer, Group, Project} from 'sentry/types';
 import type {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import useApi from 'sentry/utils/useApi';
@@ -33,17 +34,29 @@ interface AssignedToProps {
   event?: Event;
   onAssign?: AssigneeSelectorDropdownProps['onAssign'];
 }
-type Owner = {
+type IssueOwner = {
   actor: Actor;
   source: 'codeowners' | 'projectOwnership' | 'suspectCommit';
-  commits?: Array<Commit>;
-  release?: Release;
-  rules?: Array<any> | null;
+  commits?: Commit[];
+  rules?: Array<[string, string]> | null;
 };
 type EventOwners = {
-  owners: Array<Actor>;
+  owners: Actor[];
   rules: Rules;
 };
+
+function getSuggestedReason(owner: IssueOwner) {
+  if (owner.commits) {
+    return t('Suspect commit author');
+  }
+
+  if (owner.rules) {
+    const firstRule = owner.rules[0];
+    return t('Owner of %s', firstRule.join(':'));
+  }
+
+  return '';
+}
 
 /**
  * Combine the committer and ownership data into a single array, merging
@@ -73,8 +86,8 @@ function getOwnerList(
   committers: Committer[],
   eventOwners: EventOwners | null,
   assignedTo: Actor
-): Owner[] {
-  const owners: Owner[] = committers.map(commiter => ({
+): Omit<SuggestedAssignee, 'assignee'>[] {
+  const owners: IssueOwner[] = committers.map(commiter => ({
     actor: {...commiter.author, type: 'user'},
     commits: commiter.commits,
     source: 'suspectCommit',
@@ -82,7 +95,7 @@ function getOwnerList(
 
   eventOwners?.owners.forEach(owner => {
     const matchingRule = findMatchedRules(eventOwners?.rules || [], owner);
-    const normalizedOwner: Owner = {
+    const normalizedOwner: IssueOwner = {
       actor: owner,
       rules: matchingRule,
       source: matchingRule?.[0] === 'codeowners' ? 'codeowners' : 'projectOwnership',
@@ -100,9 +113,15 @@ function getOwnerList(
   });
 
   // Do not display current assignee
-  return owners.filter(
+  const filteredOwners = owners.filter(
     owner => !(owner.actor.type === assignedTo?.type && owner.actor.id === assignedTo?.id)
   );
+
+  // Convert to suggested assignee format
+  return filteredOwners.map(owner => ({
+    actor: owner.actor,
+    suggestedReason: getSuggestedReason(owner),
+  }));
 }
 
 export function getAssignedToDisplayName(group: Group, assignedTo?: Actor) {
@@ -129,7 +148,10 @@ function AssignedTo({group, project, event, disableDropdown = false}: AssignedTo
     },
     {
       notifyOnChangeProps: ['data'],
-      enabled: !defined(event?.id) && !defined(group.assignedTo),
+      enabled:
+        organization.features.includes('') &&
+        !defined(event?.id) &&
+        !defined(group.assignedTo),
     }
   );
 
@@ -139,28 +161,40 @@ function AssignedTo({group, project, event, disableDropdown = false}: AssignedTo
   }, [api, organization, project]);
 
   useEffect(() => {
-    if (!event) {
-      return;
+    if (!event || !organization.features.includes('')) {
+      return () => {};
     }
+
+    let unmounted = false;
 
     api
       .requestPromise(
         `/projects/${organization.slug}/${project.slug}/events/${event.id}/owners/`
       )
-      .then(setEventOwners);
-  }, [api, event, organization.slug, project.slug]);
+      .then(response => {
+        if (unmounted) {
+          return;
+        }
+
+        setEventOwners(response);
+      });
+
+    return () => {
+      unmounted = true;
+    };
+  }, [api, event, organization, project.slug]);
 
   const owners = getOwnerList(data?.committers ?? [], eventOwners, group.assignedTo);
-  console.log(owners);
 
   return (
     <SidebarSection.Wrap data-test-id="assigned-to">
       <SidebarSection.Title>{t('Assigned To')}</SidebarSection.Title>
       <StyledSidebarSectionContent>
         <AssigneeSelectorDropdown
+          organization={organization}
+          owners={owners}
           disabled={disableDropdown}
           id={group.id}
-          organization={organization}
         >
           {({loading, assignedTo, isOpen, getActorProps}) => (
             <DropdownButton data-test-id="assignee-selector" {...getActorProps({})}>
