@@ -1,0 +1,282 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Project Ownership Input renders 1`] = `
+<div>
+  <div
+    class="css-12vmtw4-Candidates e1oeciqa4"
+  />
+  <div
+    class="css-1e7nh0c-BuilderBar e1oeciqa2"
+  >
+    <div
+      class="e1oeciqa1 css-10i55q-container-BuilderSelect"
+    >
+      <span
+        aria-atomic="false"
+        aria-live="polite"
+        aria-relevant="additions text"
+        class="css-1f43avz-a11yText-A11yText"
+      />
+      <div
+        class=" css-1lxgacs-Control"
+      >
+        <div
+          class=" css-1kqg4xi-ValueContainer"
+        >
+          <div
+            class=" css-y9r1cg-singleValue"
+          >
+            <div
+              class="css-up9q07-SingleValueWrap e11mqpwz1"
+            >
+              <div
+                class="css-1h9r4of-SingleValueLabel-overflowEllipsis e11mqpwz0"
+              >
+                Path
+              </div>
+            </div>
+          </div>
+          <div
+            class="css-s57u0a-Input"
+          >
+            <div
+              class=""
+              style="display: inline-block;"
+            >
+              <input
+                aria-autocomplete="list"
+                aria-label="Rule type"
+                autocapitalize="none"
+                autocomplete="off"
+                autocorrect="off"
+                id="react-select-2-input"
+                spellcheck="false"
+                style="box-sizing: content-box; width: 2px; border: 0px; opacity: 1; outline: 0; padding: 0px;"
+                tabindex="0"
+                type="text"
+                value=""
+              />
+              <div
+                style="position: absolute; top: 0px; left: 0px; visibility: hidden; height: 0px; overflow: scroll; white-space: pre;"
+              />
+            </div>
+          </div>
+        </div>
+        <div
+          class=" css-1d4abpz-IndicatorsContainer"
+        >
+          <div
+            aria-hidden="true"
+            class=" css-1td69xg-indicatorContainer"
+          >
+            <svg
+              class="css-1905w31-IconChevron"
+              fill="currentColor"
+              height="14px"
+              viewBox="0 0 16 16"
+              width="14px"
+            >
+              <path
+                d="M14,11.75a.74.74,0,0,1-.53-.22L8,6.06,2.53,11.53a.75.75,0,0,1-1.06-1.06l6-6a.75.75,0,0,1,1.06,0l6,6a.75.75,0,0,1,0,1.06A.74.74,0,0,1,14,11.75Z"
+              />
+            </svg>
+          </div>
+        </div>
+      </div>
+      <input
+        name="select-type"
+        type="hidden"
+        value="path"
+      />
+    </div>
+    <input
+      aria-label="Rule pattern"
+      class="css-1ws5oe1-Input-inputStyles ekvub0m0"
+      placeholder="src/example/*"
+      value=""
+    />
+    <svg
+      class="css-grvq9j-IconChevron"
+      fill="#DBD6E1"
+      height="16px"
+      viewBox="0 0 16 16"
+      width="16px"
+    >
+      <path
+        d="M14,11.75a.74.74,0,0,1-.53-.22L8,6.06,2.53,11.53a.75.75,0,0,1-1.06-1.06l6-6a.75.75,0,0,1,1.06,0l6,6a.75.75,0,0,1,0,1.06A.74.74,0,0,1,14,11.75Z"
+      />
+    </svg>
+    <div
+      class="css-10depfe-container-SelectOwners"
+    >
+      <span
+        aria-atomic="false"
+        aria-live="polite"
+        aria-relevant="additions text"
+        class="css-1f43avz-a11yText-A11yText"
+      />
+      <div
+        class=" css-1lxgacs-Control"
+      >
+        <div
+          class=" css-1kqg4xi-ValueContainer"
+        >
+          <div
+            class=" css-6vsncc-placeholder"
+          >
+            Owners
+          </div>
+          <div
+            class="css-s57u0a-Input"
+          >
+            <div
+              class=""
+              style="display: inline-block;"
+            >
+              <input
+                aria-autocomplete="list"
+                aria-label="Rule owner"
+                autocapitalize="none"
+                autocomplete="off"
+                autocorrect="off"
+                id="react-select-3-input"
+                spellcheck="false"
+                style="box-sizing: content-box; width: 2px; border: 0px; opacity: 1; outline: 0; padding: 0px;"
+                tabindex="0"
+                type="text"
+                value=""
+              />
+              <div
+                style="position: absolute; top: 0px; left: 0px; visibility: hidden; height: 0px; overflow: scroll; white-space: pre;"
+              />
+            </div>
+          </div>
+        </div>
+        <div
+          class=" css-1d4abpz-IndicatorsContainer"
+        >
+          <div
+            class="loading mini"
+            data-test-id="loading-indicator"
+            style="height: 20px; width: 20px;"
+          >
+            <div
+              class="loading-indicator"
+              style="width: 20px; height: 20px;"
+            />
+            <div
+              class="loading-message"
+            />
+          </div>
+          <div
+            aria-hidden="true"
+            class=" css-1td69xg-indicatorContainer"
+          >
+            <svg
+              class="css-1905w31-IconChevron"
+              fill="currentColor"
+              height="14px"
+              viewBox="0 0 16 16"
+              width="14px"
+            >
+              <path
+                d="M14,11.75a.74.74,0,0,1-.53-.22L8,6.06,2.53,11.53a.75.75,0,0,1-1.06-1.06l6-6a.75.75,0,0,1,1.06,0l6,6a.75.75,0,0,1,0,1.06A.74.74,0,0,1,14,11.75Z"
+              />
+            </svg>
+          </div>
+        </div>
+      </div>
+      <div>
+        <input
+          name="owners"
+          type="hidden"
+        />
+      </div>
+    </div>
+    <button
+      aria-disabled="true"
+      aria-label="Add rule"
+      class="css-knu3xv-StyledButton-getColors-getButtonStyles e1b8u3ky2"
+      disabled=""
+      role="button"
+      type="button"
+    >
+      <span
+        class="css-at526y-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+        role="presentation"
+      />
+      <span
+        class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+      >
+        <span
+          class="css-161yn40-Icon e1b8u3ky0"
+        >
+          <svg
+            fill="currentColor"
+            height="16px"
+            viewBox="0 0 16 16"
+            width="16px"
+          >
+            <path
+              d="M11.28,8.75H4.72a.75.75,0,1,1,0-1.5h6.56a.75.75,0,1,1,0,1.5Z"
+            />
+            <path
+              d="M8,12a.76.76,0,0,1-.75-.75V4.72a.75.75,0,0,1,1.5,0v6.56A.76.76,0,0,1,8,12Z"
+            />
+            <path
+              d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z"
+            />
+          </svg>
+        </span>
+      </span>
+    </button>
+  </div>
+  <div
+    style="position: relative;"
+  >
+    <textarea
+      aria-label="Ownership Rules"
+      async=""
+      autocapitalize="off"
+      autocomplete="off"
+      autocorrect="off"
+      class="css-1k7rv57-TextArea-inputStyles-StyledTextArea elg57ml1"
+      placeholder="#example usage
+path:src/example/pipeline/* person@sentry.io #infra
+module:com.module.name.example #sdks
+url:http://example.com/settings/* #product
+tags.sku_class:enterprise #enterprise"
+      rows="2"
+      spellcheck="false"
+    >
+      new
+    </textarea>
+    <div
+      class="css-1btkwqp-ActionBar elg57ml4"
+    >
+      <div />
+      <div
+        class="css-1wld5yb-SaveButton elg57ml2"
+      >
+        <button
+          aria-disabled="false"
+          aria-label="Save Changes"
+          class="css-14jq4g8-StyledButton-getColors-getButtonStyles e1b8u3ky2"
+          role="button"
+          type="button"
+        >
+          <span
+            class="css-at526y-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+            role="presentation"
+          />
+          <span
+            class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+          >
+            Save Changes
+          </span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+`;

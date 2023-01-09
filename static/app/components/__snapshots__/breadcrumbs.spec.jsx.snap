@@ -1,0 +1,49 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Breadcrumbs renders crumbs with icon 1`] = `
+<div>
+  <nav
+    class="css-186k3a3-BreadcrumbList e11qg6053"
+  >
+    <a
+      class="e11qg6052 css-1fjwnaq-Link-BreadcrumbLink-overflowEllipsis-getBreadcrumbListItemStyles e1ycxor00"
+      data-test-id="breadcrumb-link"
+    >
+      Test 1
+    </a>
+    <svg
+      class="e11qg6050 css-ooauvb-IconChevron-BreadcrumbDividerIcon"
+      fill="currentColor"
+      height="12px"
+      viewBox="0 0 16 16"
+      width="12px"
+    >
+      <path
+        d="M14,11.75a.74.74,0,0,1-.53-.22L8,6.06,2.53,11.53a.75.75,0,0,1-1.06-1.06l6-6a.75.75,0,0,1,1.06,0l6,6a.75.75,0,0,1,0,1.06A.74.74,0,0,1,14,11.75Z"
+      />
+    </svg>
+    <a
+      class="e11qg6052 css-1fjwnaq-Link-BreadcrumbLink-overflowEllipsis-getBreadcrumbListItemStyles e1ycxor00"
+      data-test-id="breadcrumb-link"
+    >
+      Test 2
+    </a>
+    <svg
+      class="e11qg6050 css-ooauvb-IconChevron-BreadcrumbDividerIcon"
+      fill="currentColor"
+      height="12px"
+      viewBox="0 0 16 16"
+      width="12px"
+    >
+      <path
+        d="M14,11.75a.74.74,0,0,1-.53-.22L8,6.06,2.53,11.53a.75.75,0,0,1-1.06-1.06l6-6a.75.75,0,0,1,1.06,0l6,6a.75.75,0,0,1,0,1.06A.74.74,0,0,1,14,11.75Z"
+      />
+    </svg>
+    <span
+      class="css-ihnbxl-BreadcrumbItem-overflowEllipsis-getBreadcrumbListItemStyles e11qg6051"
+    >
+      Test 3
+    </span>
+  </nav>
+</div>
+`;

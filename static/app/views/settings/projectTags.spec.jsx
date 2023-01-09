@@ -32,7 +32,7 @@ describe('ProjectTags', function () {
       <ProjectTags organization={org} params={{projectId: project.slug}} />
     );
 
-    expect(container).toSnapshot();
+    expect(container).toMatchSnapshot();
   });
 
   it('renders empty', function () {

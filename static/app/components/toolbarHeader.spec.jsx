@@ -14,6 +14,6 @@ describe('ToolbarHeader', function () {
       </ToolbarHeader>
     );
     expect(screen.getByText('Toolbar Header')).toBeInTheDocument();
-    expect(container).toSnapshot();
+    expect(container).toMatchSnapshot();
   });
 });

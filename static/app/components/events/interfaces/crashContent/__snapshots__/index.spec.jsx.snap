@@ -1,0 +1,44 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`CrashContent renders with meta data 1`] = `
+<div>
+  <div>
+    <div
+      class="exception"
+    >
+      <span
+        aria-describedby="tooltip-ppqxtntur2"
+        class="css-1y4rfpo-Container e1lk5gpt0"
+      >
+        <h5
+          class="css-dcmuoy-Title e1rtpi7z0"
+        >
+          ValueError
+        </h5>
+      </span>
+      <pre
+        class="exc-message css-1q8nviw-StyledPre e1rtpi7z1"
+      >
+        python err A949AE01EBB07300D62AE0178F0944DD21F8C98C err
+      </pre>
+      <div
+        class=" traceback full-traceback css-w0ecv3-Panel-Wrapper es17bp51"
+        data-test-id="stack-trace-content"
+      >
+        <img
+          class="css-aojgj6-StyledPlatformIcon e1lyxnxt0"
+          data-test-id="platform-icon-other"
+          height="20px"
+          src="[object Object]"
+          style="border-radius: nullpx;"
+          width="20px"
+        />
+        <ul
+          class="css-20qtln-StyledList es17bp50"
+          data-test-id="frames"
+        />
+      </div>
+    </div>
+  </div>
+</div>
+`;

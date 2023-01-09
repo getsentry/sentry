@@ -1,0 +1,23 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`GlobalSelectionLink does not have global selection values in query 1`] = `
+<div>
+  <a
+    class="css-ta9xa3-Link e1ycxor00"
+    href="http://some.url/"
+  >
+    Go somewhere!
+  </a>
+</div>
+`;
+
+exports[`GlobalSelectionLink has global selection values in query 1`] = `
+<div>
+  <a
+    class="css-ta9xa3-Link e1ycxor00"
+    href="http://some.url/?environment=staging&project=foo&project=bar"
+  >
+    Go somewhere!
+  </a>
+</div>
+`;

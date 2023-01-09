@@ -74,7 +74,7 @@ describe('SavedIssueSearches', function () {
 
     await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
 
-    expect(container).toSnapshot();
+    expect(container).toMatchSnapshot();
   });
 
   it('hides saves searches by default past first 4', async function () {

@@ -1,0 +1,370 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`ProjectTags renders 1`] = `
+<div>
+  <div
+    class="css-q8xgg6-SettingsPageHeader e1nr98yc2"
+  >
+    <div
+      class="css-1mfa9vw-TitleAndActions e1nr98yc8"
+    >
+      <div
+        class="css-u3au9h-TitleWrapper e1nr98yc7"
+      >
+        <div
+          class="css-18xqiae-Title e1nr98yc6"
+        >
+          <h4
+            class="css-jz1c1u-HeaderTitle e12cn1y20"
+          >
+            Tags
+          </h4>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div
+    class="css-1j3tvli-TextBlock ezm48a60"
+  >
+    <span>
+      <span>
+        Each event in Sentry may be annotated with various tags (key and value pairs).
+                 Learn how to 
+      </span>
+      <a
+        class="css-1ecfdi8-Anchor ehytxfi0"
+        href="https://docs.sentry.io/platform-redirect/?next=/enriching-events/tags/"
+        rel="noreferrer noopener"
+        target="_blank"
+      >
+        <span>
+          add custom tags
+        </span>
+      </a>
+      <span>
+        .
+      </span>
+    </span>
+  </div>
+  <div
+    class="css-2fj46w-Panel edxrl2k0"
+  >
+    <div
+      class="css-1v7t0a0-PanelHeader-getPadding eknsyxy0"
+    >
+      Tags
+    </div>
+    <div
+      class="css-pemm1r-PanelBody-textStyles eszvord0"
+    >
+      <div
+        class="css-z5zzfx-PanelItem-TagPanelItem e1sylqj52"
+        data-test-id="tag-row"
+      >
+        <div
+          class="css-1bqp74k-TagName e1sylqj51"
+        >
+          browser
+        </div>
+        <div
+          class="css-y4ry98-Actions e1sylqj50"
+        >
+          <button
+            aria-describedby="tooltip-cb52mqw1rv"
+            aria-disabled="false"
+            aria-label="Remove tag"
+            class="css-cs9ro8-StyledButton-getColors-getButtonStyles e1b8u3ky2"
+            data-test-id="delete"
+            role="button"
+            type="button"
+          >
+            <span
+              class="css-vul34l-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+              role="presentation"
+            />
+            <span
+              class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+            >
+              <span
+                class="css-161yn40-Icon e1b8u3ky0"
+              >
+                <svg
+                  fill="currentColor"
+                  height="12px"
+                  viewBox="0 0 16 16"
+                  width="12px"
+                >
+                  <path
+                    d="M14.71,3.94H1.29a.75.75,0,0,1,0-1.5H14.71a.75.75,0,0,1,0,1.5Z"
+                  />
+                  <path
+                    d="M12.69,15.94H3.31a1.75,1.75,0,0,1-1.75-1.75v-11h1.5v11a.25.25,0,0,0,.25.25h9.38a.25.25,0,0,0,.25-.25v-11h1.5v11A1.75,1.75,0,0,1,12.69,15.94Z"
+                  />
+                  <path
+                    d="M5,13a.74.74,0,0,1-.75-.75V6.14a.75.75,0,0,1,1.5,0v6.1A.75.75,0,0,1,5,13Z"
+                  />
+                  <path
+                    d="M8,13a.75.75,0,0,1-.75-.75V6.14a.75.75,0,0,1,1.5,0v6.1A.75.75,0,0,1,8,13Z"
+                  />
+                  <path
+                    d="M11.05,13a.75.75,0,0,1-.75-.75V6.14a.75.75,0,0,1,1.5,0v6.1A.74.74,0,0,1,11.05,13Z"
+                  />
+                  <path
+                    d="M10.51,3.47l-.81-2H6.3l-.81,2L4.1,2.91,5,.77A1.26,1.26,0,0,1,6.13,0H9.87A1.26,1.26,0,0,1,11,.77l.87,2.14Z"
+                  />
+                </svg>
+              </span>
+            </span>
+          </button>
+        </div>
+      </div>
+      <div
+        class="css-z5zzfx-PanelItem-TagPanelItem e1sylqj52"
+        data-test-id="tag-row"
+      >
+        <div
+          class="css-1bqp74k-TagName e1sylqj51"
+        >
+          device
+        </div>
+        <div
+          class="css-y4ry98-Actions e1sylqj50"
+        >
+          <button
+            aria-describedby="tooltip-z4qz70bnt9"
+            aria-disabled="false"
+            aria-label="Remove tag"
+            class="css-cs9ro8-StyledButton-getColors-getButtonStyles e1b8u3ky2"
+            data-test-id="delete"
+            role="button"
+            type="button"
+          >
+            <span
+              class="css-vul34l-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+              role="presentation"
+            />
+            <span
+              class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+            >
+              <span
+                class="css-161yn40-Icon e1b8u3ky0"
+              >
+                <svg
+                  fill="currentColor"
+                  height="12px"
+                  viewBox="0 0 16 16"
+                  width="12px"
+                >
+                  <path
+                    d="M14.71,3.94H1.29a.75.75,0,0,1,0-1.5H14.71a.75.75,0,0,1,0,1.5Z"
+                  />
+                  <path
+                    d="M12.69,15.94H3.31a1.75,1.75,0,0,1-1.75-1.75v-11h1.5v11a.25.25,0,0,0,.25.25h9.38a.25.25,0,0,0,.25-.25v-11h1.5v11A1.75,1.75,0,0,1,12.69,15.94Z"
+                  />
+                  <path
+                    d="M5,13a.74.74,0,0,1-.75-.75V6.14a.75.75,0,0,1,1.5,0v6.1A.75.75,0,0,1,5,13Z"
+                  />
+                  <path
+                    d="M8,13a.75.75,0,0,1-.75-.75V6.14a.75.75,0,0,1,1.5,0v6.1A.75.75,0,0,1,8,13Z"
+                  />
+                  <path
+                    d="M11.05,13a.75.75,0,0,1-.75-.75V6.14a.75.75,0,0,1,1.5,0v6.1A.74.74,0,0,1,11.05,13Z"
+                  />
+                  <path
+                    d="M10.51,3.47l-.81-2H6.3l-.81,2L4.1,2.91,5,.77A1.26,1.26,0,0,1,6.13,0H9.87A1.26,1.26,0,0,1,11,.77l.87,2.14Z"
+                  />
+                </svg>
+              </span>
+            </span>
+          </button>
+        </div>
+      </div>
+      <div
+        class="css-z5zzfx-PanelItem-TagPanelItem e1sylqj52"
+        data-test-id="tag-row"
+      >
+        <div
+          class="css-1bqp74k-TagName e1sylqj51"
+        >
+          url
+        </div>
+        <div
+          class="css-y4ry98-Actions e1sylqj50"
+        >
+          <button
+            aria-describedby="tooltip-1ns5pq836t"
+            aria-disabled="false"
+            aria-label="Remove tag"
+            class="css-cs9ro8-StyledButton-getColors-getButtonStyles e1b8u3ky2"
+            data-test-id="delete"
+            role="button"
+            type="button"
+          >
+            <span
+              class="css-vul34l-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+              role="presentation"
+            />
+            <span
+              class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+            >
+              <span
+                class="css-161yn40-Icon e1b8u3ky0"
+              >
+                <svg
+                  fill="currentColor"
+                  height="12px"
+                  viewBox="0 0 16 16"
+                  width="12px"
+                >
+                  <path
+                    d="M14.71,3.94H1.29a.75.75,0,0,1,0-1.5H14.71a.75.75,0,0,1,0,1.5Z"
+                  />
+                  <path
+                    d="M12.69,15.94H3.31a1.75,1.75,0,0,1-1.75-1.75v-11h1.5v11a.25.25,0,0,0,.25.25h9.38a.25.25,0,0,0,.25-.25v-11h1.5v11A1.75,1.75,0,0,1,12.69,15.94Z"
+                  />
+                  <path
+                    d="M5,13a.74.74,0,0,1-.75-.75V6.14a.75.75,0,0,1,1.5,0v6.1A.75.75,0,0,1,5,13Z"
+                  />
+                  <path
+                    d="M8,13a.75.75,0,0,1-.75-.75V6.14a.75.75,0,0,1,1.5,0v6.1A.75.75,0,0,1,8,13Z"
+                  />
+                  <path
+                    d="M11.05,13a.75.75,0,0,1-.75-.75V6.14a.75.75,0,0,1,1.5,0v6.1A.74.74,0,0,1,11.05,13Z"
+                  />
+                  <path
+                    d="M10.51,3.47l-.81-2H6.3l-.81,2L4.1,2.91,5,.77A1.26,1.26,0,0,1,6.13,0H9.87A1.26,1.26,0,0,1,11,.77l.87,2.14Z"
+                  />
+                </svg>
+              </span>
+            </span>
+          </button>
+        </div>
+      </div>
+      <div
+        class="css-z5zzfx-PanelItem-TagPanelItem e1sylqj52"
+        data-test-id="tag-row"
+      >
+        <div
+          class="css-1bqp74k-TagName e1sylqj51"
+        >
+          environment
+        </div>
+        <div
+          class="css-y4ry98-Actions e1sylqj50"
+        >
+          <button
+            aria-describedby="tooltip-obuebjwity"
+            aria-disabled="true"
+            aria-label="Remove tag"
+            class="css-1fjxthh-StyledButton-getColors-getButtonStyles e1b8u3ky2"
+            data-test-id="delete"
+            disabled=""
+            role="button"
+            type="button"
+          >
+            <span
+              class="css-vul34l-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+              role="presentation"
+            />
+            <span
+              class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+            >
+              <span
+                class="css-161yn40-Icon e1b8u3ky0"
+              >
+                <svg
+                  fill="currentColor"
+                  height="12px"
+                  viewBox="0 0 16 16"
+                  width="12px"
+                >
+                  <path
+                    d="M14.71,3.94H1.29a.75.75,0,0,1,0-1.5H14.71a.75.75,0,0,1,0,1.5Z"
+                  />
+                  <path
+                    d="M12.69,15.94H3.31a1.75,1.75,0,0,1-1.75-1.75v-11h1.5v11a.25.25,0,0,0,.25.25h9.38a.25.25,0,0,0,.25-.25v-11h1.5v11A1.75,1.75,0,0,1,12.69,15.94Z"
+                  />
+                  <path
+                    d="M5,13a.74.74,0,0,1-.75-.75V6.14a.75.75,0,0,1,1.5,0v6.1A.75.75,0,0,1,5,13Z"
+                  />
+                  <path
+                    d="M8,13a.75.75,0,0,1-.75-.75V6.14a.75.75,0,0,1,1.5,0v6.1A.75.75,0,0,1,8,13Z"
+                  />
+                  <path
+                    d="M11.05,13a.75.75,0,0,1-.75-.75V6.14a.75.75,0,0,1,1.5,0v6.1A.74.74,0,0,1,11.05,13Z"
+                  />
+                  <path
+                    d="M10.51,3.47l-.81-2H6.3l-.81,2L4.1,2.91,5,.77A1.26,1.26,0,0,1,6.13,0H9.87A1.26,1.26,0,0,1,11,.77l.87,2.14Z"
+                  />
+                </svg>
+              </span>
+            </span>
+          </button>
+        </div>
+      </div>
+      <div
+        class="css-z5zzfx-PanelItem-TagPanelItem e1sylqj52"
+        data-test-id="tag-row"
+      >
+        <div
+          class="css-1bqp74k-TagName e1sylqj51"
+        >
+          user
+        </div>
+        <div
+          class="css-y4ry98-Actions e1sylqj50"
+        >
+          <button
+            aria-describedby="tooltip-4rsh0mbgde"
+            aria-disabled="true"
+            aria-label="Remove tag"
+            class="css-1fjxthh-StyledButton-getColors-getButtonStyles e1b8u3ky2"
+            data-test-id="delete"
+            disabled=""
+            role="button"
+            type="button"
+          >
+            <span
+              class="css-vul34l-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+              role="presentation"
+            />
+            <span
+              class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+            >
+              <span
+                class="css-161yn40-Icon e1b8u3ky0"
+              >
+                <svg
+                  fill="currentColor"
+                  height="12px"
+                  viewBox="0 0 16 16"
+                  width="12px"
+                >
+                  <path
+                    d="M14.71,3.94H1.29a.75.75,0,0,1,0-1.5H14.71a.75.75,0,0,1,0,1.5Z"
+                  />
+                  <path
+                    d="M12.69,15.94H3.31a1.75,1.75,0,0,1-1.75-1.75v-11h1.5v11a.25.25,0,0,0,.25.25h9.38a.25.25,0,0,0,.25-.25v-11h1.5v11A1.75,1.75,0,0,1,12.69,15.94Z"
+                  />
+                  <path
+                    d="M5,13a.74.74,0,0,1-.75-.75V6.14a.75.75,0,0,1,1.5,0v6.1A.75.75,0,0,1,5,13Z"
+                  />
+                  <path
+                    d="M8,13a.75.75,0,0,1-.75-.75V6.14a.75.75,0,0,1,1.5,0v6.1A.75.75,0,0,1,8,13Z"
+                  />
+                  <path
+                    d="M11.05,13a.75.75,0,0,1-.75-.75V6.14a.75.75,0,0,1,1.5,0v6.1A.74.74,0,0,1,11.05,13Z"
+                  />
+                  <path
+                    d="M10.51,3.47l-.81-2H6.3l-.81,2L4.1,2.91,5,.77A1.26,1.26,0,0,1,6.13,0H9.87A1.26,1.26,0,0,1,11,.77l.87,2.14Z"
+                  />
+                </svg>
+              </span>
+            </span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+`;

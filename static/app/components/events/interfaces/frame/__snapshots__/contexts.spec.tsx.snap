@@ -1,0 +1,139 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Device getInferredData renders 1`] = `
+<div>
+  <table
+    class="table key-value css-cijyfx-Table e1h1gsq30"
+  >
+    <tbody>
+      <tr>
+        <td
+          class="key css-z8tmcy-TableSubject e1h1gsq34"
+        >
+          Device Type
+        </td>
+        <td
+          class="val"
+          data-test-id="device-context-device_type-value"
+        >
+          <div
+            class="css-1a2fpst-Tablevalue e1h1gsq33"
+          >
+            <pre>
+              <pre>
+                <span
+                  class="val-string"
+                >
+                  <span>
+                    desktop
+                  </span>
+                </span>
+              </pre>
+            </pre>
+          </div>
+        </td>
+      </tr>
+      <tr>
+        <td
+          class="key css-z8tmcy-TableSubject e1h1gsq34"
+        >
+          Name
+        </td>
+        <td
+          class="val"
+          data-test-id="device-context-name-value"
+        >
+          <div
+            class="css-1a2fpst-Tablevalue e1h1gsq33"
+          >
+            <pre>
+              <pre>
+                <span
+                  class="val-string"
+                >
+                  <span>
+                    Device Name
+                  </span>
+                </span>
+              </pre>
+            </pre>
+          </div>
+        </td>
+      </tr>
+      <tr>
+        <td
+          class="key css-z8tmcy-TableSubject e1h1gsq34"
+        >
+          Screen Height Pixels
+        </td>
+        <td
+          class="val"
+          data-test-id="device-context-screen_height_pixels-value"
+        >
+          <div
+            class="css-1a2fpst-Tablevalue e1h1gsq33"
+          >
+            <pre>
+              <pre>
+                <span>
+                  2160
+                </span>
+              </pre>
+            </pre>
+          </div>
+        </td>
+      </tr>
+      <tr>
+        <td
+          class="key css-z8tmcy-TableSubject e1h1gsq34"
+        >
+          Screen Resolution
+        </td>
+        <td
+          class="val"
+          data-test-id="device-context-screen_resolution-value"
+        >
+          <div
+            class="css-1a2fpst-Tablevalue e1h1gsq33"
+          >
+            <pre>
+              <pre>
+                <span
+                  class="val-string"
+                >
+                  <span>
+                    3840x2160 (4K UHD)
+                  </span>
+                </span>
+              </pre>
+            </pre>
+          </div>
+        </td>
+      </tr>
+      <tr>
+        <td
+          class="key css-z8tmcy-TableSubject e1h1gsq34"
+        >
+          Screen Width Pixels
+        </td>
+        <td
+          class="val"
+          data-test-id="device-context-screen_width_pixels-value"
+        >
+          <div
+            class="css-1a2fpst-Tablevalue e1h1gsq33"
+          >
+            <pre>
+              <pre>
+                <span>
+                  3840
+                </span>
+              </pre>
+            </pre>
+          </div>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+`;

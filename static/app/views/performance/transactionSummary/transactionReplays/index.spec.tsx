@@ -160,7 +160,7 @@ describe('TransactionReplays', () => {
     const {container} = renderComponent();
 
     await waitFor(() => {
-      expect(container).toSnapshot();
+      expect(container).toMatchSnapshot();
     });
   });
 

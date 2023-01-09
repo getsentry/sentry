@@ -33,7 +33,7 @@ describe('dropdownMenuDeprecated', function () {
 
   it('renders', function () {
     const {container} = render(<DeprecatedDropdownImplementation />);
-    expect(container).toSnapshot();
+    expect(container).toMatchSnapshot();
   });
 
   it('can toggle dropdown menu with actor', function () {

@@ -16,7 +16,7 @@ describe('RadioGroup', function () {
         onChange={jest.fn()}
       />
     );
-    expect(container).toSnapshot();
+    expect(container).toMatchSnapshot();
   });
 
   it('renders disabled', function () {
@@ -29,7 +29,7 @@ describe('RadioGroup', function () {
         onChange={jest.fn()}
       />
     );
-    expect(container).toSnapshot();
+    expect(container).toMatchSnapshot();
 
     expect(screen.getByRole('radio', {name: 'Choice One'})).toBeDisabled();
   });
@@ -48,7 +48,7 @@ describe('RadioGroup', function () {
       />
     );
 
-    expect(container).toSnapshot();
+    expect(container).toMatchSnapshot();
 
     expect(screen.getByRole('radio', {name: 'Choice One'})).toBeEnabled();
     expect(screen.getByRole('radio', {name: 'Choice Two'})).toBeDisabled();
@@ -72,7 +72,7 @@ describe('RadioGroup', function () {
         onChange={jest.fn()}
       />
     );
-    expect(container).toSnapshot();
+    expect(container).toMatchSnapshot();
   });
 
   it('calls onChange when clicked', function () {

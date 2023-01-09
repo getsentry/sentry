@@ -6,7 +6,7 @@ describe('OrganizationAuthList', function () {
   it('renders with no providers', function () {
     const {container} = render(<OrganizationAuthList providerList={[]} />);
 
-    expect(container).toSnapshot();
+    expect(container).toMatchSnapshot();
   });
 
   it('renders', function () {
@@ -18,7 +18,7 @@ describe('OrganizationAuthList', function () {
       />
     );
 
-    expect(container).toSnapshot();
+    expect(container).toMatchSnapshot();
   });
 
   it('renders for members', function () {

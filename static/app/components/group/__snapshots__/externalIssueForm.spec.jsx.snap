@@ -1,0 +1,364 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`ExternalIssueForm create renders 1`] = `
+<div>
+  <span>
+    <span>
+      GitHub
+    </span>
+    <span>
+       Issue
+    </span>
+  </span>
+  <ul
+    class="nav nav-tabs border-bottom css-up4y7q-Wrap e1fej6h40"
+  >
+    <li
+      class="active"
+    >
+      <a>
+        Create
+      </a>
+    </li>
+    <li
+      class=""
+    >
+      <a>
+        Link
+      </a>
+    </li>
+  </ul>
+  <form
+    class="form-stacked"
+  >
+    <div />
+    <div
+      class="modal-footer css-1wj3569-StyledFooter el3x56x1"
+    >
+      <div
+        class="css-1ci39bu-DefaultButtons el3x56x0"
+      >
+        <button
+          aria-disabled="false"
+          aria-label="Create Issue"
+          class="css-zbzvlb-StyledButton-getColors-getButtonStyles e1b8u3ky2"
+          data-test-id="form-submit"
+          role="button"
+          type="submit"
+        >
+          <span
+            class="css-at526y-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+            role="presentation"
+          />
+          <span
+            class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+          >
+            Create Issue
+          </span>
+        </button>
+      </div>
+    </div>
+  </form>
+</div>
+`;
+
+exports[`ExternalIssueForm link renders and loads options 1`] = `
+<div>
+  <span>
+    <span>
+      GitHub
+    </span>
+    <span>
+       Issue
+    </span>
+  </span>
+  <ul
+    class="nav nav-tabs border-bottom css-up4y7q-Wrap e1fej6h40"
+  >
+    <li
+      class=""
+    >
+      <a>
+        Create
+      </a>
+    </li>
+    <li
+      class="active"
+    >
+      <a>
+        Link
+      </a>
+    </li>
+  </ul>
+  <form
+    class="form-stacked"
+  >
+    <div>
+      <div
+        class="css-1lnntq6-FieldWrapper-getPadding-inlineStyle-FieldWrapper e12z3jxd0"
+      >
+        <label
+          aria-label="GitHub Repository"
+          class="css-kv2nyk-FieldDescription-inlineStyle e1cwyh1y0"
+          for="repo"
+        >
+          <div
+            class="css-1amoduc-FieldLabel ekcr5um0"
+          >
+            <span>
+              GitHub Repository
+              <div
+                class="css-19ojc76-FieldRequiredBadge egnfobg0"
+              />
+            </span>
+          </div>
+        </label>
+        <div
+          class="css-1m0ep53-FieldControlWrapper e1ap0t511"
+        >
+          <div
+            class="css-sse8ie-FieldControlStyled e1ap0t510"
+          >
+            <div
+              class=" css-2b097c-container"
+            >
+              <span
+                aria-atomic="false"
+                aria-live="polite"
+                aria-relevant="additions text"
+                class="css-1f43avz-a11yText-A11yText"
+              />
+              <div
+                class=" css-qq86f4-Control"
+              >
+                <div
+                  class=" css-1kqg4xi-ValueContainer"
+                >
+                  <div
+                    class=" css-6vsncc-placeholder"
+                  >
+                    --
+                  </div>
+                  <div
+                    class="css-s57u0a-Input"
+                  >
+                    <div
+                      class=""
+                      style="display: inline-block;"
+                    >
+                      <input
+                        aria-autocomplete="list"
+                        autocapitalize="none"
+                        autocomplete="off"
+                        autocorrect="off"
+                        id="repo"
+                        spellcheck="false"
+                        style="box-sizing: content-box; width: 2px; border: 0px; opacity: 1; outline: 0; padding: 0px;"
+                        tabindex="0"
+                        type="text"
+                        value=""
+                      />
+                      <div
+                        style="position: absolute; top: 0px; left: 0px; visibility: hidden; height: 0px; overflow: scroll; white-space: pre;"
+                      />
+                    </div>
+                  </div>
+                </div>
+                <div
+                  class=" css-1d4abpz-IndicatorsContainer"
+                >
+                  <div
+                    aria-hidden="true"
+                    class=" css-1td69xg-indicatorContainer"
+                  >
+                    <svg
+                      class="css-1905w31-IconChevron"
+                      fill="currentColor"
+                      height="14px"
+                      viewBox="0 0 16 16"
+                      width="14px"
+                    >
+                      <path
+                        d="M14,11.75a.74.74,0,0,1-.53-.22L8,6.06,2.53,11.53a.75.75,0,0,1-1.06-1.06l6-6a.75.75,0,0,1,1.06,0l6,6a.75.75,0,0,1,0,1.06A.74.74,0,0,1,14,11.75Z"
+                      />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div
+        class="css-1lnntq6-FieldWrapper-getPadding-inlineStyle-FieldWrapper e12z3jxd0"
+      >
+        <label
+          aria-label="Issue"
+          class="css-kv2nyk-FieldDescription-inlineStyle e1cwyh1y0"
+          for="externalIssue"
+        >
+          <div
+            class="css-1amoduc-FieldLabel ekcr5um0"
+          >
+            <span>
+              Issue
+              <div
+                class="css-19ojc76-FieldRequiredBadge egnfobg0"
+              />
+            </span>
+          </div>
+        </label>
+        <div
+          class="css-1m0ep53-FieldControlWrapper e1ap0t511"
+        >
+          <div
+            class="css-sse8ie-FieldControlStyled e1ap0t510"
+          >
+            <div
+              class=" css-2b097c-container"
+            >
+              <span
+                aria-atomic="false"
+                aria-live="polite"
+                aria-relevant="additions text"
+                class="css-1f43avz-a11yText-A11yText"
+              />
+              <div
+                class=" css-qq86f4-Control"
+              >
+                <div
+                  class=" css-1kqg4xi-ValueContainer"
+                >
+                  <div
+                    class=" css-6vsncc-placeholder"
+                  >
+                    --
+                  </div>
+                  <div
+                    class="css-s57u0a-Input"
+                  >
+                    <div
+                      class=""
+                      style="display: inline-block;"
+                    >
+                      <input
+                        aria-autocomplete="list"
+                        autocapitalize="none"
+                        autocomplete="off"
+                        autocorrect="off"
+                        id="externalIssue"
+                        spellcheck="false"
+                        style="box-sizing: content-box; width: 2px; border: 0px; opacity: 1; outline: 0; padding: 0px;"
+                        tabindex="0"
+                        type="text"
+                        value=""
+                      />
+                      <div
+                        style="position: absolute; top: 0px; left: 0px; visibility: hidden; height: 0px; overflow: scroll; white-space: pre;"
+                      />
+                    </div>
+                  </div>
+                </div>
+                <div
+                  class=" css-1d4abpz-IndicatorsContainer"
+                >
+                  <div
+                    aria-hidden="true"
+                    class=" css-1td69xg-indicatorContainer"
+                  >
+                    <svg
+                      class="css-1905w31-IconChevron"
+                      fill="currentColor"
+                      height="14px"
+                      viewBox="0 0 16 16"
+                      width="14px"
+                    >
+                      <path
+                        d="M14,11.75a.74.74,0,0,1-.53-.22L8,6.06,2.53,11.53a.75.75,0,0,1-1.06-1.06l6-6a.75.75,0,0,1,1.06,0l6,6a.75.75,0,0,1,0,1.06A.74.74,0,0,1,14,11.75Z"
+                      />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div
+        class="css-1lnntq6-FieldWrapper-getPadding-inlineStyle-FieldWrapper e12z3jxd0"
+      >
+        <label
+          aria-label="Comment"
+          class="css-kv2nyk-FieldDescription-inlineStyle e1cwyh1y0"
+          for="comment"
+        >
+          <div
+            class="css-1amoduc-FieldLabel ekcr5um0"
+          >
+            <span>
+              Comment
+            </span>
+          </div>
+          <div
+            class="css-rfxxz0-FieldHelp e1mobfxl0"
+            id="comment_help"
+          >
+            Leave blank if you don't want to add a comment to the GitHub issue.
+          </div>
+        </label>
+        <div
+          class="css-1m0ep53-FieldControlWrapper e1ap0t511"
+        >
+          <div
+            class="css-sse8ie-FieldControlStyled e1ap0t510"
+          >
+            <div
+              class="css-1biel1q-InputGroupWrap e13j5zq05"
+            >
+              <textarea
+                aria-describedby="comment_help"
+                class="css-1ktzohu-TextArea-inputStyles-StyledTextArea-getInputStyles e13j5zq02"
+                default=""
+                id="comment"
+                label="Comment"
+                name="comment"
+                type="textarea"
+              />
+              <div
+                class="css-vdn3ll-InputItemsWrap-InputTrailingItemsWrap e13j5zq00"
+                data-test-id="input-trailing-items"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div
+      class="modal-footer css-1wj3569-StyledFooter el3x56x1"
+    >
+      <div
+        class="css-1ci39bu-DefaultButtons el3x56x0"
+      >
+        <button
+          aria-disabled="false"
+          aria-label="Link Issue"
+          class="css-zbzvlb-StyledButton-getColors-getButtonStyles e1b8u3ky2"
+          data-test-id="form-submit"
+          role="button"
+          type="submit"
+        >
+          <span
+            class="css-at526y-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+            role="presentation"
+          />
+          <span
+            class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+          >
+            Link Issue
+          </span>
+        </button>
+      </div>
+    </div>
+  </form>
+</div>
+`;

@@ -221,7 +221,7 @@ describe('Breadcrumbs', () => {
       );
 
       expect(await screen.findByText('Configure Session Replay')).toBeInTheDocument();
-      expect(container).toSnapshot();
+      expect(container).toMatchSnapshot();
     });
 
     it('should not render the replay inline onboarding component when the project is not JS', async function () {
@@ -247,7 +247,7 @@ describe('Breadcrumbs', () => {
         await screen.queryByText('Configure Session Replay')
       ).not.toBeInTheDocument();
       expect(await screen.queryByTestId('player-container')).not.toBeInTheDocument();
-      expect(container).toSnapshot();
+      expect(container).toMatchSnapshot();
     });
 
     it('should render a replay when there is a replayId', async function () {
@@ -271,7 +271,7 @@ describe('Breadcrumbs', () => {
       );
 
       expect(await screen.findByTestId('player-container')).toBeInTheDocument();
-      expect(container).toSnapshot();
+      expect(container).toMatchSnapshot();
     });
 
     it('can change the sort', async function () {

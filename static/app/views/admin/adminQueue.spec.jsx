@@ -55,7 +55,7 @@ describe('AdminQueue', function () {
       });
 
       const wrapper = render(<AdminQueue params={{}} />);
-      expect(wrapper.container).toSnapshot();
+      expect(wrapper.container).toMatchSnapshot();
     });
   });
 });

@@ -1,0 +1,44 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`CompactSelect renders 1`] = `
+<div>
+  <div
+    class="css-tea0zw-MenuControlWrap ems9bqr7"
+    role="presentation"
+  >
+    <button
+      aria-disabled="false"
+      aria-expanded="false"
+      aria-haspopup="listbox"
+      class="e1u0jomf1 css-1q1ft08-StyledButton-getColors-getButtonStyles-StyledButton e1b8u3ky2"
+      id="react-aria7569790268-2"
+      role="button"
+      type="button"
+    >
+      <span
+        class="css-vul34l-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+        role="presentation"
+      />
+      <span
+        class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+      >
+        <span
+          class="css-1wc0ez-ButtonLabel-overflowEllipsis ems9bqr6"
+        />
+        <svg
+          aria-hidden="true"
+          class="e1u0jomf2 css-tq1qdr-IconChevron-StyledChevron"
+          fill="currentColor"
+          height="12px"
+          viewBox="0 0 16 16"
+          width="12px"
+        >
+          <path
+            d="M14,11.75a.74.74,0,0,1-.53-.22L8,6.06,2.53,11.53a.75.75,0,0,1-1.06-1.06l6-6a.75.75,0,0,1,1.06,0l6,6a.75.75,0,0,1,0,1.06A.74.74,0,0,1,14,11.75Z"
+          />
+        </svg>
+      </span>
+    </button>
+  </div>
+</div>
+`;

@@ -1,0 +1,3720 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Sidebar SidebarDropdown can open "Switch Organization" sub-menu 1`] = `
+<div>
+  <nav
+    aria-label="Primary Navigation"
+    class="css-zoz7hg-SidebarWrapper-responsiveFlex e78qnej5"
+  >
+    <div
+      class="css-1n625m3-SidebarSectionGroupPrimary-responsiveFlex e78qnej3"
+    >
+      <div
+        class="css-ebgxwp-SidebarSectionGroup-responsiveFlex-SidebarSection e78qnej1"
+      >
+        <div
+          class="css-1hndfv9-SidebarDropdownRoot e169svp67"
+        >
+          <button
+            aria-expanded="true"
+            aria-haspopup="listbox"
+            class="css-1fdb9ax-SidebarDropdownActor e169svp63"
+            data-test-id="sidebar-dropdown"
+            style="outline: none;"
+            type="button"
+          >
+            <span
+              class="avatar e169svp62 css-1qzip9z-StyledBaseAvatar-StyledAvatar ery3g4h1"
+              data-test-id="letter_avatar-avatar"
+              style="width: 32px; height: 32px;"
+              title="org slug"
+            >
+              <svg
+                class="css-h0a6ia-LetterAvatar-imageStyle ewkzefl0"
+                viewBox="0 0 120 120"
+              >
+                <rect
+                  fill="#4674ca"
+                  height="120"
+                  opacity="100%"
+                  rx="15"
+                  ry="15"
+                  width="120"
+                  x="0"
+                  y="0"
+                />
+                <text
+                  fill="#FFFFFF"
+                  font-size="65"
+                  style="dominant-baseline: central;"
+                  text-anchor="middle"
+                  x="50%"
+                  y="50%"
+                >
+                  OS
+                </text>
+              </svg>
+            </span>
+            <div
+              class="css-196hndj-OrgAndUserWrapper e169svp66"
+            >
+              <div
+                class="css-1fmy7d5-TextOverflow-overflowEllipsis-OrgOrUserName e169svp65"
+              >
+                Organization Name
+                 
+                <svg
+                  class="e169svp60 css-5pcn6a-IconChevron-StyledIconChevron"
+                  fill="#FFFFFF"
+                  height="12px"
+                  viewBox="0 0 16 16"
+                  width="12px"
+                >
+                  <path
+                    d="M14,11.75a.74.74,0,0,1-.53-.22L8,6.06,2.53,11.53a.75.75,0,0,1-1.06-1.06l6-6a.75.75,0,0,1,1.06,0l6,6a.75.75,0,0,1,0,1.06A.74.74,0,0,1,14,11.75Z"
+                  />
+                </svg>
+              </div>
+              <div
+                class="css-1dru019-TextOverflow-overflowEllipsis-UserNameOrEmail e169svp64"
+              >
+                Foo Bar
+              </div>
+            </div>
+          </button>
+          <div
+            class="css-aon3u8-OrgAndUserMenu-SidebarDropdownMenu e169svp61"
+            role="listbox"
+          >
+            <div
+              class="css-3mtfj6-SidebarOrgSummary e1lbnnyb3"
+            >
+              <span
+                class="avatar css-64x09n-StyledBaseAvatar ery3g4h1"
+                data-test-id="letter_avatar-avatar"
+                style="width: 36px; height: 36px;"
+                title="org slug"
+              >
+                <svg
+                  class="css-h0a6ia-LetterAvatar-imageStyle ewkzefl0"
+                  viewBox="0 0 120 120"
+                >
+                  <rect
+                    fill="#4674ca"
+                    height="120"
+                    opacity="100%"
+                    rx="15"
+                    ry="15"
+                    width="120"
+                    x="0"
+                    y="0"
+                  />
+                  <text
+                    fill="#FFFFFF"
+                    font-size="65"
+                    style="dominant-baseline: central;"
+                    text-anchor="middle"
+                    x="50%"
+                    y="50%"
+                  >
+                    OS
+                  </text>
+                </svg>
+              </span>
+              <div>
+                <div
+                  class="css-1y0cbjb-Name-overflowEllipsis e1lbnnyb2"
+                >
+                  Organization Name
+                </div>
+              </div>
+            </div>
+            <a
+              class="erdj4vr0 css-v7w5ks-Link-StyledSidebarMenuItemLink-menuItemStyles e1ycxor00"
+              href="/settings/org-slug/"
+            >
+              <span
+                class="css-iiqoom-MenuItemLabel-MenuItemLabel erdj4vr1"
+              >
+                Organization settings
+              </span>
+            </a>
+            <a
+              class="erdj4vr0 css-v7w5ks-Link-StyledSidebarMenuItemLink-menuItemStyles e1ycxor00"
+              href="/settings/org-slug/teams/"
+            >
+              <span
+                class="css-iiqoom-MenuItemLabel-MenuItemLabel erdj4vr1"
+              >
+                Teams
+              </span>
+            </a>
+            <div
+              class="css-tng1e7-StyledSidebarMenuItemLink-menuItemStyles erdj4vr0"
+              tabindex="0"
+            >
+              <span
+                class="css-uvye8q-MenuItemLabel-MenuItemLabel erdj4vr1"
+              >
+                <span
+                  aria-expanded="true"
+                  aria-haspopup="listbox"
+                  class="css-lpolsh-SwitchOrganizationMenuActor e3cits32"
+                  data-test-id="sidebar-switch-org"
+                  style="outline: none;"
+                >
+                  Switch organization
+                  <span
+                    class="css-7k5q7b-SubMenuCaret e3cits33"
+                  >
+                    <svg
+                      class="css-grvq9j-IconChevron"
+                      fill="currentColor"
+                      height="12px"
+                      viewBox="0 0 16 16"
+                      width="12px"
+                    >
+                      <path
+                        d="M14,11.75a.74.74,0,0,1-.53-.22L8,6.06,2.53,11.53a.75.75,0,0,1-1.06-1.06l6-6a.75.75,0,0,1,1.06,0l6,6a.75.75,0,0,1,0,1.06A.74.74,0,0,1,14,11.75Z"
+                      />
+                    </svg>
+                  </span>
+                </span>
+                <div
+                  class="css-1isw4nq-SwitchOrganizationMenu-SidebarDropdownMenu e3cits31"
+                  data-test-id="sidebar-switch-org-menu"
+                  role="listbox"
+                >
+                  <div
+                    class="css-37pvlm-OrganizationList e3cits30"
+                    role="list"
+                  />
+                  <a
+                    class="erdj4vr0 css-v7w5ks-Link-StyledSidebarMenuItemLink-menuItemStyles e1ycxor00"
+                    data-test-id="sidebar-create-org"
+                    href="/organizations/new/"
+                    style="align-items: center;"
+                  >
+                    <span
+                      class="css-iiqoom-MenuItemLabel-MenuItemLabel erdj4vr1"
+                    >
+                      <span
+                        class="css-8m01f9-MenuItemLabelWithIcon e3cits34"
+                      >
+                        <svg
+                          class="css-h1z1jv-StyledIconAdd e3cits35"
+                          fill="currentColor"
+                          height="16px"
+                          viewBox="0 0 16 16"
+                          width="16px"
+                        >
+                          <path
+                            d="M8.75,7.25V2a.75.75,0,0,0-1.5,0V7.25H2a.75.75,0,0,0,0,1.5H7.25V14a.75.75,0,0,0,1.5,0V8.75H14a.75.75,0,0,0,0-1.5Z"
+                          />
+                        </svg>
+                        <span>
+                          Create a new organization
+                        </span>
+                      </span>
+                    </span>
+                  </a>
+                </div>
+              </span>
+            </div>
+            <div
+              class="css-701fh4-Divider e1jp3ypz0"
+            />
+            <a
+              class="css-1pc3u7n-Link-UserSummary-menuItemStyles e169svp69"
+              href="/settings/account/details/"
+            >
+              <div
+                class="e169svp68 css-v6z8s3-StyledUserBadge-UserBadgeNoOverflow ex0sq0q4"
+              >
+                <span
+                  class="avatar ex0sq0q0 css-1be6esu-StyledBaseAvatar-StyledAvatar ery3g4h1"
+                  data-test-id="letter_avatar-avatar"
+                  style="width: 32px; height: 32px;"
+                  title="Foo Bar"
+                >
+                  <svg
+                    class="css-1jaqko8-LetterAvatar-imageStyle ewkzefl0"
+                    viewBox="0 0 120 120"
+                  >
+                    <rect
+                      fill="#315cac"
+                      height="120"
+                      opacity="100%"
+                      rx="15"
+                      ry="15"
+                      width="120"
+                      x="0"
+                      y="0"
+                    />
+                    <text
+                      fill="#FFFFFF"
+                      font-size="65"
+                      style="dominant-baseline: central;"
+                      text-anchor="middle"
+                      x="50%"
+                      y="50%"
+                    >
+                      FB
+                    </text>
+                  </svg>
+                </span>
+                <div
+                  class="css-1ylujlu-StyledNameAndEmail ex0sq0q3"
+                >
+                  <span
+                    class="css-1swmbvv-StyledName-overflowEllipsis ex0sq0q1"
+                  >
+                    Foo Bar
+                  </span>
+                  <div
+                    class="css-wqo7p-StyledEmail-overflowEllipsis ex0sq0q2"
+                  >
+                    foo@example.com
+                  </div>
+                </div>
+              </div>
+            </a>
+            <div>
+              <a
+                class="erdj4vr0 css-v7w5ks-Link-StyledSidebarMenuItemLink-menuItemStyles e1ycxor00"
+                href="/settings/account/"
+              >
+                <span
+                  class="css-iiqoom-MenuItemLabel-MenuItemLabel erdj4vr1"
+                >
+                  User settings
+                </span>
+              </a>
+              <a
+                class="erdj4vr0 css-v7w5ks-Link-StyledSidebarMenuItemLink-menuItemStyles e1ycxor00"
+                href="/settings/account/api/"
+              >
+                <span
+                  class="css-iiqoom-MenuItemLabel-MenuItemLabel erdj4vr1"
+                >
+                  API keys
+                </span>
+              </a>
+              <div
+                class="css-tng1e7-StyledSidebarMenuItemLink-menuItemStyles erdj4vr0"
+                data-test-id="sidebar-signout"
+                tabindex="0"
+              >
+                <span
+                  class="css-uvye8q-MenuItemLabel-MenuItemLabel erdj4vr1"
+                >
+                  Sign out
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div
+        class="css-peuyen-PrimaryItems e78qnej2"
+      >
+        <div
+          class="css-ebgxwp-SidebarSectionGroup-responsiveFlex-SidebarSection e78qnej1"
+        >
+          <a
+            class="css-12x120d-Link-StyledSidebarItem e1ncrmo85"
+            href="/organizations/org-slug/projects/"
+            id="sidebar-item-projects"
+          >
+            <div
+              class="css-1i4zbf6-SidebarItemWrapper e1ncrmo84"
+            >
+              <span
+                class="css-587bsy-SidebarItemIcon e1ncrmo83"
+              >
+                <svg
+                  fill="currentColor"
+                  height="20px"
+                  viewBox="0 0 16 16"
+                  width="20px"
+                >
+                  <path
+                    d="M5.43,11.92a.73.73,0,0,1-.53-.22L3,9.82A.75.75,0,0,1,3,8.76L4.9,6.88A.75.75,0,0,1,6,7.94L4.61,9.29,6,10.64A.75.75,0,0,1,6,11.7.74.74,0,0,1,5.43,11.92Z"
+                  />
+                  <path
+                    d="M10.58,11.92a.74.74,0,0,1-.53-.22.75.75,0,0,1,0-1.06L11.4,9.29,10.05,7.94a.75.75,0,0,1,1.06-1.06L13,8.76a.74.74,0,0,1,0,1.06L11.11,11.7A.71.71,0,0,1,10.58,11.92Z"
+                  />
+                  <path
+                    d="M15.26,16H.76A.75.75,0,0,1,0,15.26V.76A.74.74,0,0,1,.76,0H5.12A2.75,2.75,0,0,1,6.77.56L8.51,1.87a1.3,1.3,0,0,0,.75.25h6a.76.76,0,0,1,.75.75V15.26A.76.76,0,0,1,15.26,16ZM1.51,14.51h13V3.62H9.26a2.75,2.75,0,0,1-1.65-.55L5.87,1.76h0a1.3,1.3,0,0,0-.75-.25H1.51Z"
+                  />
+                </svg>
+              </span>
+              <span
+                class="css-htovvg-SidebarItemLabel e1ncrmo82"
+              >
+                <div
+                  class="css-1r3o8wo-TextOverflow-overflowEllipsis eyxbn6j0"
+                >
+                  Projects
+                </div>
+              </span>
+            </div>
+          </a>
+          <a
+            class="css-12x120d-Link-StyledSidebarItem e1ncrmo85"
+            href="/organizations/org-slug/issues/?referrer=sidebar"
+            id="sidebar-item-issues"
+          >
+            <div
+              class="css-1i4zbf6-SidebarItemWrapper e1ncrmo84"
+            >
+              <span
+                class="css-587bsy-SidebarItemIcon e1ncrmo83"
+              >
+                <svg
+                  fill="currentColor"
+                  height="20px"
+                  viewBox="0 0 16 16"
+                  width="20px"
+                >
+                  <path
+                    d="M13.24,16H2.74A2.75,2.75,0,0,1,0,13.26V2.76A2.75,2.75,0,0,1,2.74,0h10.5A2.75,2.75,0,0,1,16,2.76v10.5A2.75,2.75,0,0,1,13.24,16ZM2.74,1.51A1.25,1.25,0,0,0,1.49,2.76v10.5a1.25,1.25,0,0,0,1.25,1.25h10.5a1.25,1.25,0,0,0,1.25-1.25V2.76a1.25,1.25,0,0,0-1.25-1.25Z"
+                  />
+                  <rect
+                    height="1.5"
+                    width="14.5"
+                    x="0.74"
+                    y="2.61"
+                  />
+                  <rect
+                    height="1.5"
+                    width="14.5"
+                    x="0.74"
+                    y="5.26"
+                  />
+                  <path
+                    d="M10.79,12.08H5.19a1.25,1.25,0,0,1-1.25-1.25V9.42H.74V7.92h4.7v2.66h5.1V7.92h4.7v1.5H12v1.41A1.25,1.25,0,0,1,10.79,12.08Z"
+                  />
+                </svg>
+              </span>
+              <span
+                class="css-htovvg-SidebarItemLabel e1ncrmo82"
+              >
+                <div
+                  class="css-1r3o8wo-TextOverflow-overflowEllipsis eyxbn6j0"
+                >
+                  Issues
+                </div>
+              </span>
+            </div>
+          </a>
+          <a
+            class="css-12x120d-Link-StyledSidebarItem e1ncrmo85"
+            href="/organizations/org-slug/releases/"
+            id="sidebar-item-releases"
+          >
+            <div
+              class="css-1i4zbf6-SidebarItemWrapper e1ncrmo84"
+            >
+              <span
+                class="css-587bsy-SidebarItemIcon e1ncrmo83"
+              >
+                <svg
+                  fill="currentColor"
+                  height="20px"
+                  viewBox="0 0 16 16"
+                  width="20px"
+                >
+                  <path
+                    d="M14.77,16H1.23A1.26,1.26,0,0,1,0,14.75V6.52A1.25,1.25,0,0,1,1.23,5.27H14.77A1.25,1.25,0,0,1,16,6.52v8.23A1.26,1.26,0,0,1,14.77,16ZM1.48,14.5h13V6.77h-13Z"
+                  />
+                  <path
+                    d="M14.71,6h-1.5V4.14H2.79V6H1.29V3.89A1.25,1.25,0,0,1,2.54,2.64H13.46a1.25,1.25,0,0,1,1.25,1.25Z"
+                  />
+                  <path
+                    d="M13.37,3.39h-1.5V1.5H4.13V3.39H2.63V1.25A1.26,1.26,0,0,1,3.88,0h8.24a1.26,1.26,0,0,1,1.25,1.25Z"
+                  />
+                </svg>
+              </span>
+              <span
+                class="css-htovvg-SidebarItemLabel e1ncrmo82"
+              >
+                <div
+                  class="css-1r3o8wo-TextOverflow-overflowEllipsis eyxbn6j0"
+                >
+                  Releases
+                </div>
+              </span>
+            </div>
+          </a>
+          <a
+            class="css-12x120d-Link-StyledSidebarItem e1ncrmo85"
+            href="/organizations/org-slug/user-feedback/"
+            id="sidebar-item-user-feedback"
+          >
+            <div
+              class="css-1i4zbf6-SidebarItemWrapper e1ncrmo84"
+            >
+              <span
+                class="css-587bsy-SidebarItemIcon e1ncrmo83"
+              >
+                <svg
+                  fill="currentColor"
+                  height="20px"
+                  viewBox="0 0 16 16"
+                  width="20px"
+                >
+                  <path
+                    d="M9.9,15.61H6.1a.74.74,0,0,1-.75-.75v-2.6a.74.74,0,0,1,.75-.75H9.9a.74.74,0,0,1,.75.75v2.6A.74.74,0,0,1,9.9,15.61Zm-3.05-1.5h2.3V13H6.85Z"
+                  />
+                  <path
+                    d="M6.1,14.31H5.37a2.75,2.75,0,0,1-2.75-2.75V3.14A2.75,2.75,0,0,1,5.37.39h5.26a2.75,2.75,0,0,1,2.75,2.75V9.4h-1.5V3.14a1.25,1.25,0,0,0-1.25-1.25H5.37A1.25,1.25,0,0,0,4.12,3.14v8.42a1.25,1.25,0,0,0,1.25,1.25H6.1Z"
+                  />
+                  <path
+                    d="M3.37,10.16H2.2A2.25,2.25,0,0,1,0,7.91V7A2.25,2.25,0,0,1,2.2,4.74H3.37v1.5H2.2A.74.74,0,0,0,1.45,7v.92a.75.75,0,0,0,.75.75H3.37Z"
+                  />
+                  <path
+                    d="M13.8,10.16H12.63V8.66H13.8a.75.75,0,0,0,.75-.75V7a.74.74,0,0,0-.75-.75H12.63V4.74H13.8A2.25,2.25,0,0,1,16.05,7v.92A2.25,2.25,0,0,1,13.8,10.16Z"
+                  />
+                </svg>
+              </span>
+              <span
+                class="css-htovvg-SidebarItemLabel e1ncrmo82"
+              >
+                <div
+                  class="css-1r3o8wo-TextOverflow-overflowEllipsis eyxbn6j0"
+                >
+                  User Feedback
+                </div>
+              </span>
+            </div>
+          </a>
+          <a
+            class="css-12x120d-Link-StyledSidebarItem e1ncrmo85"
+            href="/organizations/org-slug/alerts/rules/"
+            id="sidebar-item-alerts"
+          >
+            <div
+              class="css-1i4zbf6-SidebarItemWrapper e1ncrmo84"
+            >
+              <span
+                class="css-587bsy-SidebarItemIcon e1ncrmo83"
+              >
+                <svg
+                  fill="currentColor"
+                  height="20px"
+                  viewBox="0 0 16 16"
+                  width="20px"
+                >
+                  <path
+                    d="M14.74,16H1.26a.75.75,0,0,1-.75-.75V13.08a1.75,1.75,0,0,1,1.75-1.75H13.74a1.75,1.75,0,0,1,1.75,1.75v2.17A.75.75,0,0,1,14.74,16ZM2,14.5H14V13.08a.25.25,0,0,0-.25-.25H2.26a.25.25,0,0,0-.25.25Z"
+                  />
+                  <path
+                    d="M12.48,12.24,11.21,6.08a1.2,1.2,0,0,0-1.18-1H6a1.2,1.2,0,0,0-1.18,1L3.52,12.24l-1.46-.31L3.32,5.78A2.71,2.71,0,0,1,6,3.61H10a2.71,2.71,0,0,1,2.65,2.17l1.26,6.15Z"
+                  />
+                  <path
+                    d="M4,3.45a.75.75,0,0,1-.64-.36L2.56,1.77a.75.75,0,0,1,.24-1,.76.76,0,0,1,1,.24L4.65,2.3a.76.76,0,0,1-.24,1A.79.79,0,0,1,4,3.45Z"
+                  />
+                  <path
+                    d="M2.15,5.94H.77a.75.75,0,0,1,0-1.5H2.15a.75.75,0,0,1,0,1.5Z"
+                  />
+                  <path
+                    d="M8,2.92a.76.76,0,0,1-.75-.75V.77a.75.75,0,1,1,1.5,0v1.4A.76.76,0,0,1,8,2.92Z"
+                  />
+                  <path
+                    d="M12,3.45a.79.79,0,0,1-.39-.11.76.76,0,0,1-.24-1L12.16,1a.76.76,0,0,1,1-.24.75.75,0,0,1,.24,1l-.82,1.32A.75.75,0,0,1,12,3.45Z"
+                  />
+                  <path
+                    d="M15.23,5.94H13.85a.75.75,0,0,1,0-1.5h1.38a.75.75,0,0,1,0,1.5Z"
+                  />
+                  <path
+                    d="M8,10.63a2,2,0,1,1,2-2A2,2,0,0,1,8,10.63ZM8,8.09a.52.52,0,1,0,.52.52A.52.52,0,0,0,8,8.09Z"
+                  />
+                  <rect
+                    height="2.21"
+                    width="1.5"
+                    x="7.25"
+                    y="9.88"
+                  />
+                </svg>
+              </span>
+              <span
+                class="css-htovvg-SidebarItemLabel e1ncrmo82"
+              >
+                <div
+                  class="css-1r3o8wo-TextOverflow-overflowEllipsis eyxbn6j0"
+                >
+                  Alerts
+                </div>
+              </span>
+            </div>
+          </a>
+        </div>
+        <div
+          class="css-ebgxwp-SidebarSectionGroup-responsiveFlex-SidebarSection e78qnej1"
+        >
+          <a
+            class="css-12x120d-Link-StyledSidebarItem e1ncrmo85"
+            href="/organizations/org-slug/activity/"
+            id="sidebar-item-activity"
+          >
+            <div
+              class="css-1i4zbf6-SidebarItemWrapper e1ncrmo84"
+            >
+              <span
+                class="css-587bsy-SidebarItemIcon e1ncrmo83"
+              >
+                <svg
+                  fill="currentColor"
+                  height="20px"
+                  viewBox="0 0 16 16"
+                  width="20px"
+                >
+                  <path
+                    d="M15.19,8.75H3.7a.75.75,0,1,1,0-1.5H15.19a.75.75,0,0,1,0,1.5Z"
+                  />
+                  <circle
+                    cx="0.75"
+                    cy="8"
+                    r="0.75"
+                  />
+                  <path
+                    d="M15.19,15H3.7a.75.75,0,1,1,0-1.5H15.19a.75.75,0,1,1,0,1.5Z"
+                  />
+                  <circle
+                    cx="0.75"
+                    cy="14.25"
+                    r="0.75"
+                  />
+                  <path
+                    d="M15.19,2.53H3.7A.75.75,0,0,1,3.7,1H15.19a.75.75,0,1,1,0,1.5Z"
+                  />
+                  <circle
+                    cx="0.75"
+                    cy="1.75"
+                    r="0.75"
+                  />
+                </svg>
+              </span>
+              <span
+                class="css-htovvg-SidebarItemLabel e1ncrmo82"
+              >
+                <div
+                  class="css-1r3o8wo-TextOverflow-overflowEllipsis eyxbn6j0"
+                >
+                  Activity
+                </div>
+              </span>
+            </div>
+          </a>
+          <a
+            class="css-12x120d-Link-StyledSidebarItem e1ncrmo85"
+            href="/organizations/org-slug/stats/"
+            id="sidebar-item-stats"
+          >
+            <div
+              class="css-1i4zbf6-SidebarItemWrapper e1ncrmo84"
+            >
+              <span
+                class="css-587bsy-SidebarItemIcon e1ncrmo83"
+              >
+                <svg
+                  fill="currentColor"
+                  height="20px"
+                  viewBox="0 0 16 16"
+                  width="20px"
+                >
+                  <path
+                    d="M13.25,16H2.75A2.75,2.75,0,0,1,0,13.25V2.75A2.75,2.75,0,0,1,2.75,0h10.5A2.75,2.75,0,0,1,16,2.75v10.5A2.75,2.75,0,0,1,13.25,16ZM2.75,1.5A1.25,1.25,0,0,0,1.5,2.75v10.5A1.25,1.25,0,0,0,2.75,14.5h10.5a1.25,1.25,0,0,0,1.25-1.25V2.75A1.25,1.25,0,0,0,13.25,1.5Z"
+                  />
+                  <path
+                    d="M3.59,15.65a.76.76,0,0,1-.75-.75V9.25a.75.75,0,0,1,1.5,0V14.9A.75.75,0,0,1,3.59,15.65Z"
+                  />
+                  <path
+                    d="M6.53,15.65a.76.76,0,0,1-.75-.75V9.25a.75.75,0,0,1,1.5,0V14.9A.76.76,0,0,1,6.53,15.65Z"
+                  />
+                  <path
+                    d="M9.47,15.65a.76.76,0,0,1-.75-.75V7.8a.75.75,0,1,1,1.5,0v7.1A.76.76,0,0,1,9.47,15.65Z"
+                  />
+                  <path
+                    d="M12.41,15.65a.75.75,0,0,1-.75-.75v-10a.75.75,0,1,1,1.5,0V14.9A.76.76,0,0,1,12.41,15.65Z"
+                  />
+                </svg>
+              </span>
+              <span
+                class="css-htovvg-SidebarItemLabel e1ncrmo82"
+              >
+                <div
+                  class="css-1r3o8wo-TextOverflow-overflowEllipsis eyxbn6j0"
+                >
+                  Stats
+                </div>
+              </span>
+            </div>
+          </a>
+        </div>
+        <div
+          class="css-ebgxwp-SidebarSectionGroup-responsiveFlex-SidebarSection e78qnej1"
+        >
+          <a
+            class="css-12x120d-Link-StyledSidebarItem e1ncrmo85"
+            href="/settings/org-slug/"
+            id="sidebar-item-settings"
+          >
+            <div
+              class="css-1i4zbf6-SidebarItemWrapper e1ncrmo84"
+            >
+              <span
+                class="css-587bsy-SidebarItemIcon e1ncrmo83"
+              >
+                <svg
+                  fill="currentColor"
+                  height="20px"
+                  viewBox="0 0 16 16"
+                  width="20px"
+                >
+                  <path
+                    d="M8,10.73A2.73,2.73,0,1,1,10.73,8,2.74,2.74,0,0,1,8,10.73Zm0-4A1.23,1.23,0,1,0,9.23,8,1.23,1.23,0,0,0,8,6.77Z"
+                  />
+                  <path
+                    d="M8.05,16A2.07,2.07,0,0,1,6,13.93a.35.35,0,0,0-.22-.35.37.37,0,0,0-.41.05,2.07,2.07,0,0,1-1.5.64h0a2,2,0,0,1-1.43-.58l0,0a2.07,2.07,0,0,1,0-2.93.37.37,0,0,0,.1-.41.35.35,0,0,0-.31-.21H2.07A2.07,2.07,0,0,1,2.07,6a.35.35,0,0,0,.35-.22.37.37,0,0,0,0-.41,2.07,2.07,0,0,1-.64-1.5,2,2,0,0,1,.58-1.43l0,0a2.07,2.07,0,0,1,2.93,0,.37.37,0,0,0,.41.1l.13,0a.37.37,0,0,0,.13-.27V2.07a2.07,2.07,0,0,1,4.14,0,.36.36,0,0,0,.2.36.35.35,0,0,0,.38-.06,2.07,2.07,0,0,1,1.5-.64h0a2,2,0,0,1,1.43.58l0,0a2.07,2.07,0,0,1,0,2.93.37.37,0,0,0-.1.41.5.5,0,0,1,0,.13.37.37,0,0,0,.27.13h.11a2.07,2.07,0,0,1,0,4.14.36.36,0,0,0-.36.2h0a.36.36,0,0,0,.07.37,2.07,2.07,0,0,1,.64,1.5,2,2,0,0,1-.58,1.43l0,0a2.07,2.07,0,0,1-2.93,0,.37.37,0,0,0-.41-.1.35.35,0,0,0-.21.31v.11A2.07,2.07,0,0,1,8.05,16ZM5.59,12a1.83,1.83,0,0,1,.73.15,1.81,1.81,0,0,1,1.16,1.66.59.59,0,0,0,.57.65.56.56,0,0,0,.57-.57v-.11a1.84,1.84,0,0,1,3.13-1.31.6.6,0,0,0,.84.06l0,0a.56.56,0,0,0,0-.8,1.86,1.86,0,0,1-.41-2.07,1.84,1.84,0,0,1,1.68-1.11A.59.59,0,0,0,14.5,8a.57.57,0,0,0-.57-.57h-.11a1.84,1.84,0,0,1-1.69-1.11,1.33,1.33,0,0,1-.05-.19,1.82,1.82,0,0,1,.43-1.88.6.6,0,0,0,.06-.84l0,0a.56.56,0,0,0-.8,0,1.87,1.87,0,0,1-2.07.41A1.84,1.84,0,0,1,8.57,2.13.59.59,0,0,0,8,1.5a.57.57,0,0,0-.57.57v.11A1.84,1.84,0,0,1,6.32,3.87l-.19,0a1.8,1.8,0,0,1-1.88-.43.6.6,0,0,0-.84-.06l0,0a.56.56,0,0,0,0,.8,1.86,1.86,0,0,1,.41,2.07A1.81,1.81,0,0,1,2.15,7.48a.59.59,0,0,0-.65.57.56.56,0,0,0,.57.57h.11a1.84,1.84,0,0,1,1.31,3.13.6.6,0,0,0-.06.84l0,0a.56.56,0,0,0,.8,0A2,2,0,0,1,5.59,12ZM12.88,10h0Z"
+                  />
+                </svg>
+              </span>
+              <span
+                class="css-htovvg-SidebarItemLabel e1ncrmo82"
+              >
+                <div
+                  class="css-1r3o8wo-TextOverflow-overflowEllipsis eyxbn6j0"
+                >
+                  Settings
+                </div>
+              </span>
+            </div>
+          </a>
+        </div>
+      </div>
+    </div>
+    <div
+      class="css-1vwp36z-SidebarSectionGroup-responsiveFlex e78qnej4"
+    >
+      <div
+        class="css-19ratys-SidebarSectionGroup-responsiveFlex-SidebarSection e78qnej1"
+      />
+      <div
+        class="css-ebgxwp-SidebarSectionGroup-responsiveFlex-SidebarSection e78qnej1"
+      >
+        <div
+          class="css-n88be7-HelpRoot eilhrqr2"
+        >
+          <div
+            aria-expanded="false"
+            aria-haspopup="listbox"
+            class="css-16xbimb-HelpActor eilhrqr1"
+            style="outline: none;"
+          >
+            <a
+              class="css-12x120d-Link-StyledSidebarItem e1ncrmo85"
+              data-test-id="help-sidebar"
+              href="#"
+              id="sidebar-item-help"
+            >
+              <div
+                class="css-1i4zbf6-SidebarItemWrapper e1ncrmo84"
+              >
+                <span
+                  class="css-587bsy-SidebarItemIcon e1ncrmo83"
+                >
+                  <svg
+                    fill="currentColor"
+                    height="20px"
+                    viewBox="0 0 16 16"
+                    width="20px"
+                  >
+                    <path
+                      d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z"
+                    />
+                    <path
+                      d="M5.33,6.19a1.93,1.93,0,0,1,.33-1,2.59,2.59,0,0,1,1-.87,3,3,0,0,1,1.47-.34,3.18,3.18,0,0,1,1.38.29,2.28,2.28,0,0,1,.92.78,2,2,0,0,1,.32,1.07,1.69,1.69,0,0,1-.18.8,2.74,2.74,0,0,1-.44.6l-.92.84a3.92,3.92,0,0,0-.29.29,1,1,0,0,0-.17.23,1.8,1.8,0,0,0-.08.21c0,.07,0,.19-.09.37a.6.6,0,0,1-.64.56.64.64,0,0,1-.47-.19.74.74,0,0,1-.19-.54,1.91,1.91,0,0,1,.51-1.36,7.83,7.83,0,0,1,.63-.59c.22-.2.39-.35.49-.46a1.46,1.46,0,0,0,.26-.34.8.8,0,0,0,.1-.41.93.93,0,0,0-.32-.72,1.13,1.13,0,0,0-.82-.3,1.15,1.15,0,0,0-.87.3,2.33,2.33,0,0,0-.47.88c-.12.4-.35.61-.7.61a.65.65,0,0,1-.5-.22A.63.63,0,0,1,5.33,6.19ZM8,12.07a.84.84,0,0,1-.57-.21.75.75,0,0,1-.24-.59.74.74,0,0,1,.23-.57A.78.78,0,0,1,8,10.47a.74.74,0,0,1,.57.23.78.78,0,0,1,.23.57.76.76,0,0,1-.24.59A.83.83,0,0,1,8,12.07Z"
+                    />
+                  </svg>
+                </span>
+                <span
+                  class="css-htovvg-SidebarItemLabel e1ncrmo82"
+                >
+                  <div
+                    class="css-1r3o8wo-TextOverflow-overflowEllipsis eyxbn6j0"
+                  >
+                    Help
+                  </div>
+                </span>
+              </div>
+            </a>
+          </div>
+        </div>
+        <a
+          class="css-12x120d-Link-StyledSidebarItem e1ncrmo85"
+          data-test-id="sidebar-broadcasts"
+          href="#"
+          id="sidebar-item-broadcasts"
+        >
+          <div
+            class="css-1i4zbf6-SidebarItemWrapper e1ncrmo84"
+          >
+            <span
+              class="css-587bsy-SidebarItemIcon e1ncrmo83"
+            >
+              <svg
+                fill="currentColor"
+                height="20px"
+                viewBox="0 0 16 16"
+                width="20px"
+              >
+                <path
+                  d="M8,10.2A2.2,2.2,0,1,1,10.2,8,2.21,2.21,0,0,1,8,10.2ZM8,7.3a.7.7,0,1,0,.7.7A.7.7,0,0,0,8,7.3Z"
+                />
+                <path
+                  d="M13.13,13.88a.74.74,0,0,1-.53-.22.75.75,0,0,1,0-1.06,6.51,6.51,0,0,0,0-9.2.75.75,0,0,1,0-1.06.75.75,0,0,1,1.06,0,8,8,0,0,1,0,11.32A.73.73,0,0,1,13.13,13.88Zm-10.26,0a.73.73,0,0,1-.53-.22,8,8,0,0,1,0-11.32.75.75,0,0,1,1.06,0,.75.75,0,0,1,0,1.06,6.51,6.51,0,0,0,0,9.2.75.75,0,0,1,0,1.06A.74.74,0,0,1,2.87,13.88Zm8.21-2.05a.74.74,0,0,1-.67-.41.76.76,0,0,1,.15-.88,3.62,3.62,0,0,0,0-5.09.74.74,0,0,1,0-1.06.75.75,0,0,1,1.06,0A5.1,5.1,0,0,1,13.1,8a5,5,0,0,1-1.49,3.61.75.75,0,0,1-.2.15A.78.78,0,0,1,11.08,11.83Zm0-.75h0Zm-6.16.75a.79.79,0,0,1-.53-.22A5.1,5.1,0,0,1,2.9,8,5,5,0,0,1,4.39,4.39l.08-.08a.75.75,0,0,1,1,1.15A3.51,3.51,0,0,0,4.4,8a3.59,3.59,0,0,0,1,2.55.74.74,0,0,1,0,1.06A.75.75,0,0,1,4.92,11.83Z"
+                />
+              </svg>
+            </span>
+            <span
+              class="css-htovvg-SidebarItemLabel e1ncrmo82"
+            >
+              <div
+                class="css-1r3o8wo-TextOverflow-overflowEllipsis eyxbn6j0"
+              >
+                What's new
+              </div>
+            </span>
+            <span
+              class="css-jgcd9c-SidebarItemBadge e1ncrmo81"
+            >
+              1
+            </span>
+          </div>
+        </a>
+      </div>
+      <div
+        class="css-ebgxwp-SidebarSectionGroup-responsiveFlex-SidebarSection e78qnej1"
+      >
+        <a
+          class="e78qnej0 css-qynit2-Link-StyledSidebarItem-SidebarCollapseItem e1ncrmo85"
+          data-test-id="sidebar-collapse"
+          href="#"
+          id="sidebar-item-collapse"
+        >
+          <div
+            class="css-1i4zbf6-SidebarItemWrapper e1ncrmo84"
+          >
+            <span
+              class="css-587bsy-SidebarItemIcon e1ncrmo83"
+            >
+              <svg
+                class="css-ubc1ky-IconChevron"
+                fill="currentColor"
+                height="16px"
+                viewBox="0 0 16 16"
+                width="16px"
+              >
+                <path
+                  d="M14,11.75a.74.74,0,0,1-.53-.22L8,6.06,2.53,11.53a.75.75,0,0,1-1.06-1.06l6-6a.75.75,0,0,1,1.06,0l6,6a.75.75,0,0,1,0,1.06A.74.74,0,0,1,14,11.75Z"
+                />
+              </svg>
+            </span>
+            <span
+              class="css-htovvg-SidebarItemLabel e1ncrmo82"
+            >
+              <div
+                class="css-1r3o8wo-TextOverflow-overflowEllipsis eyxbn6j0"
+              >
+                Collapse
+              </div>
+            </span>
+          </div>
+        </a>
+      </div>
+    </div>
+  </nav>
+</div>
+`;
+
+exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
+<div>
+  <nav
+    aria-label="Primary Navigation"
+    class="css-zoz7hg-SidebarWrapper-responsiveFlex e78qnej5"
+  >
+    <div
+      class="css-1n625m3-SidebarSectionGroupPrimary-responsiveFlex e78qnej3"
+    >
+      <div
+        class="css-ebgxwp-SidebarSectionGroup-responsiveFlex-SidebarSection e78qnej1"
+      >
+        <div
+          class="css-1hndfv9-SidebarDropdownRoot e169svp67"
+        >
+          <button
+            aria-expanded="true"
+            aria-haspopup="listbox"
+            class="css-1fdb9ax-SidebarDropdownActor e169svp63"
+            data-test-id="sidebar-dropdown"
+            style="outline: none;"
+            type="button"
+          >
+            <span
+              class="avatar e169svp62 css-1qzip9z-StyledBaseAvatar-StyledAvatar ery3g4h1"
+              data-test-id="letter_avatar-avatar"
+              style="width: 32px; height: 32px;"
+              title="org slug"
+            >
+              <svg
+                class="css-h0a6ia-LetterAvatar-imageStyle ewkzefl0"
+                viewBox="0 0 120 120"
+              >
+                <rect
+                  fill="#4674ca"
+                  height="120"
+                  opacity="100%"
+                  rx="15"
+                  ry="15"
+                  width="120"
+                  x="0"
+                  y="0"
+                />
+                <text
+                  fill="#FFFFFF"
+                  font-size="65"
+                  style="dominant-baseline: central;"
+                  text-anchor="middle"
+                  x="50%"
+                  y="50%"
+                >
+                  OS
+                </text>
+              </svg>
+            </span>
+            <div
+              class="css-196hndj-OrgAndUserWrapper e169svp66"
+            >
+              <div
+                class="css-1fmy7d5-TextOverflow-overflowEllipsis-OrgOrUserName e169svp65"
+              >
+                Organization Name
+                 
+                <svg
+                  class="e169svp60 css-5pcn6a-IconChevron-StyledIconChevron"
+                  fill="#FFFFFF"
+                  height="12px"
+                  viewBox="0 0 16 16"
+                  width="12px"
+                >
+                  <path
+                    d="M14,11.75a.74.74,0,0,1-.53-.22L8,6.06,2.53,11.53a.75.75,0,0,1-1.06-1.06l6-6a.75.75,0,0,1,1.06,0l6,6a.75.75,0,0,1,0,1.06A.74.74,0,0,1,14,11.75Z"
+                  />
+                </svg>
+              </div>
+              <div
+                class="css-1dru019-TextOverflow-overflowEllipsis-UserNameOrEmail e169svp64"
+              >
+                Foo Bar
+              </div>
+            </div>
+          </button>
+          <div
+            class="css-aon3u8-OrgAndUserMenu-SidebarDropdownMenu e169svp61"
+            role="listbox"
+          >
+            <div
+              class="css-3mtfj6-SidebarOrgSummary e1lbnnyb3"
+            >
+              <span
+                class="avatar css-64x09n-StyledBaseAvatar ery3g4h1"
+                data-test-id="letter_avatar-avatar"
+                style="width: 36px; height: 36px;"
+                title="org slug"
+              >
+                <svg
+                  class="css-h0a6ia-LetterAvatar-imageStyle ewkzefl0"
+                  viewBox="0 0 120 120"
+                >
+                  <rect
+                    fill="#4674ca"
+                    height="120"
+                    opacity="100%"
+                    rx="15"
+                    ry="15"
+                    width="120"
+                    x="0"
+                    y="0"
+                  />
+                  <text
+                    fill="#FFFFFF"
+                    font-size="65"
+                    style="dominant-baseline: central;"
+                    text-anchor="middle"
+                    x="50%"
+                    y="50%"
+                  >
+                    OS
+                  </text>
+                </svg>
+              </span>
+              <div>
+                <div
+                  class="css-1y0cbjb-Name-overflowEllipsis e1lbnnyb2"
+                >
+                  Organization Name
+                </div>
+              </div>
+            </div>
+            <a
+              class="erdj4vr0 css-v7w5ks-Link-StyledSidebarMenuItemLink-menuItemStyles e1ycxor00"
+              href="/settings/org-slug/"
+            >
+              <span
+                class="css-iiqoom-MenuItemLabel-MenuItemLabel erdj4vr1"
+              >
+                Organization settings
+              </span>
+            </a>
+            <a
+              class="erdj4vr0 css-v7w5ks-Link-StyledSidebarMenuItemLink-menuItemStyles e1ycxor00"
+              href="/settings/org-slug/teams/"
+            >
+              <span
+                class="css-iiqoom-MenuItemLabel-MenuItemLabel erdj4vr1"
+              >
+                Teams
+              </span>
+            </a>
+            <div
+              class="css-tng1e7-StyledSidebarMenuItemLink-menuItemStyles erdj4vr0"
+              tabindex="0"
+            >
+              <span
+                class="css-uvye8q-MenuItemLabel-MenuItemLabel erdj4vr1"
+              >
+                <span
+                  aria-expanded="false"
+                  aria-haspopup="listbox"
+                  class="css-lpolsh-SwitchOrganizationMenuActor e3cits32"
+                  data-test-id="sidebar-switch-org"
+                  style="outline: none;"
+                >
+                  Switch organization
+                  <span
+                    class="css-7k5q7b-SubMenuCaret e3cits33"
+                  >
+                    <svg
+                      class="css-grvq9j-IconChevron"
+                      fill="currentColor"
+                      height="12px"
+                      viewBox="0 0 16 16"
+                      width="12px"
+                    >
+                      <path
+                        d="M14,11.75a.74.74,0,0,1-.53-.22L8,6.06,2.53,11.53a.75.75,0,0,1-1.06-1.06l6-6a.75.75,0,0,1,1.06,0l6,6a.75.75,0,0,1,0,1.06A.74.74,0,0,1,14,11.75Z"
+                      />
+                    </svg>
+                  </span>
+                </span>
+              </span>
+            </div>
+            <div
+              class="css-701fh4-Divider e1jp3ypz0"
+            />
+            <a
+              class="css-1pc3u7n-Link-UserSummary-menuItemStyles e169svp69"
+              href="/settings/account/details/"
+            >
+              <div
+                class="e169svp68 css-v6z8s3-StyledUserBadge-UserBadgeNoOverflow ex0sq0q4"
+              >
+                <span
+                  class="avatar ex0sq0q0 css-1be6esu-StyledBaseAvatar-StyledAvatar ery3g4h1"
+                  data-test-id="letter_avatar-avatar"
+                  style="width: 32px; height: 32px;"
+                  title="Foo Bar"
+                >
+                  <svg
+                    class="css-1jaqko8-LetterAvatar-imageStyle ewkzefl0"
+                    viewBox="0 0 120 120"
+                  >
+                    <rect
+                      fill="#315cac"
+                      height="120"
+                      opacity="100%"
+                      rx="15"
+                      ry="15"
+                      width="120"
+                      x="0"
+                      y="0"
+                    />
+                    <text
+                      fill="#FFFFFF"
+                      font-size="65"
+                      style="dominant-baseline: central;"
+                      text-anchor="middle"
+                      x="50%"
+                      y="50%"
+                    >
+                      FB
+                    </text>
+                  </svg>
+                </span>
+                <div
+                  class="css-1ylujlu-StyledNameAndEmail ex0sq0q3"
+                >
+                  <span
+                    class="css-1swmbvv-StyledName-overflowEllipsis ex0sq0q1"
+                  >
+                    Foo Bar
+                  </span>
+                  <div
+                    class="css-wqo7p-StyledEmail-overflowEllipsis ex0sq0q2"
+                  >
+                    foo@example.com
+                  </div>
+                </div>
+              </div>
+            </a>
+            <div>
+              <a
+                class="erdj4vr0 css-v7w5ks-Link-StyledSidebarMenuItemLink-menuItemStyles e1ycxor00"
+                href="/settings/account/"
+              >
+                <span
+                  class="css-iiqoom-MenuItemLabel-MenuItemLabel erdj4vr1"
+                >
+                  User settings
+                </span>
+              </a>
+              <a
+                class="erdj4vr0 css-v7w5ks-Link-StyledSidebarMenuItemLink-menuItemStyles e1ycxor00"
+                href="/settings/account/api/"
+              >
+                <span
+                  class="css-iiqoom-MenuItemLabel-MenuItemLabel erdj4vr1"
+                >
+                  API keys
+                </span>
+              </a>
+              <div
+                class="css-tng1e7-StyledSidebarMenuItemLink-menuItemStyles erdj4vr0"
+                data-test-id="sidebar-signout"
+                tabindex="0"
+              >
+                <span
+                  class="css-uvye8q-MenuItemLabel-MenuItemLabel erdj4vr1"
+                >
+                  Sign out
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div
+        class="css-peuyen-PrimaryItems e78qnej2"
+      >
+        <div
+          class="css-ebgxwp-SidebarSectionGroup-responsiveFlex-SidebarSection e78qnej1"
+        >
+          <a
+            class="css-12x120d-Link-StyledSidebarItem e1ncrmo85"
+            href="/organizations/org-slug/projects/"
+            id="sidebar-item-projects"
+          >
+            <div
+              class="css-1i4zbf6-SidebarItemWrapper e1ncrmo84"
+            >
+              <span
+                class="css-587bsy-SidebarItemIcon e1ncrmo83"
+              >
+                <svg
+                  fill="currentColor"
+                  height="20px"
+                  viewBox="0 0 16 16"
+                  width="20px"
+                >
+                  <path
+                    d="M5.43,11.92a.73.73,0,0,1-.53-.22L3,9.82A.75.75,0,0,1,3,8.76L4.9,6.88A.75.75,0,0,1,6,7.94L4.61,9.29,6,10.64A.75.75,0,0,1,6,11.7.74.74,0,0,1,5.43,11.92Z"
+                  />
+                  <path
+                    d="M10.58,11.92a.74.74,0,0,1-.53-.22.75.75,0,0,1,0-1.06L11.4,9.29,10.05,7.94a.75.75,0,0,1,1.06-1.06L13,8.76a.74.74,0,0,1,0,1.06L11.11,11.7A.71.71,0,0,1,10.58,11.92Z"
+                  />
+                  <path
+                    d="M15.26,16H.76A.75.75,0,0,1,0,15.26V.76A.74.74,0,0,1,.76,0H5.12A2.75,2.75,0,0,1,6.77.56L8.51,1.87a1.3,1.3,0,0,0,.75.25h6a.76.76,0,0,1,.75.75V15.26A.76.76,0,0,1,15.26,16ZM1.51,14.51h13V3.62H9.26a2.75,2.75,0,0,1-1.65-.55L5.87,1.76h0a1.3,1.3,0,0,0-.75-.25H1.51Z"
+                  />
+                </svg>
+              </span>
+              <span
+                class="css-htovvg-SidebarItemLabel e1ncrmo82"
+              >
+                <div
+                  class="css-1r3o8wo-TextOverflow-overflowEllipsis eyxbn6j0"
+                >
+                  Projects
+                </div>
+              </span>
+            </div>
+          </a>
+          <a
+            class="css-12x120d-Link-StyledSidebarItem e1ncrmo85"
+            href="/organizations/org-slug/issues/?referrer=sidebar"
+            id="sidebar-item-issues"
+          >
+            <div
+              class="css-1i4zbf6-SidebarItemWrapper e1ncrmo84"
+            >
+              <span
+                class="css-587bsy-SidebarItemIcon e1ncrmo83"
+              >
+                <svg
+                  fill="currentColor"
+                  height="20px"
+                  viewBox="0 0 16 16"
+                  width="20px"
+                >
+                  <path
+                    d="M13.24,16H2.74A2.75,2.75,0,0,1,0,13.26V2.76A2.75,2.75,0,0,1,2.74,0h10.5A2.75,2.75,0,0,1,16,2.76v10.5A2.75,2.75,0,0,1,13.24,16ZM2.74,1.51A1.25,1.25,0,0,0,1.49,2.76v10.5a1.25,1.25,0,0,0,1.25,1.25h10.5a1.25,1.25,0,0,0,1.25-1.25V2.76a1.25,1.25,0,0,0-1.25-1.25Z"
+                  />
+                  <rect
+                    height="1.5"
+                    width="14.5"
+                    x="0.74"
+                    y="2.61"
+                  />
+                  <rect
+                    height="1.5"
+                    width="14.5"
+                    x="0.74"
+                    y="5.26"
+                  />
+                  <path
+                    d="M10.79,12.08H5.19a1.25,1.25,0,0,1-1.25-1.25V9.42H.74V7.92h4.7v2.66h5.1V7.92h4.7v1.5H12v1.41A1.25,1.25,0,0,1,10.79,12.08Z"
+                  />
+                </svg>
+              </span>
+              <span
+                class="css-htovvg-SidebarItemLabel e1ncrmo82"
+              >
+                <div
+                  class="css-1r3o8wo-TextOverflow-overflowEllipsis eyxbn6j0"
+                >
+                  Issues
+                </div>
+              </span>
+            </div>
+          </a>
+          <a
+            class="css-12x120d-Link-StyledSidebarItem e1ncrmo85"
+            href="/organizations/org-slug/releases/"
+            id="sidebar-item-releases"
+          >
+            <div
+              class="css-1i4zbf6-SidebarItemWrapper e1ncrmo84"
+            >
+              <span
+                class="css-587bsy-SidebarItemIcon e1ncrmo83"
+              >
+                <svg
+                  fill="currentColor"
+                  height="20px"
+                  viewBox="0 0 16 16"
+                  width="20px"
+                >
+                  <path
+                    d="M14.77,16H1.23A1.26,1.26,0,0,1,0,14.75V6.52A1.25,1.25,0,0,1,1.23,5.27H14.77A1.25,1.25,0,0,1,16,6.52v8.23A1.26,1.26,0,0,1,14.77,16ZM1.48,14.5h13V6.77h-13Z"
+                  />
+                  <path
+                    d="M14.71,6h-1.5V4.14H2.79V6H1.29V3.89A1.25,1.25,0,0,1,2.54,2.64H13.46a1.25,1.25,0,0,1,1.25,1.25Z"
+                  />
+                  <path
+                    d="M13.37,3.39h-1.5V1.5H4.13V3.39H2.63V1.25A1.26,1.26,0,0,1,3.88,0h8.24a1.26,1.26,0,0,1,1.25,1.25Z"
+                  />
+                </svg>
+              </span>
+              <span
+                class="css-htovvg-SidebarItemLabel e1ncrmo82"
+              >
+                <div
+                  class="css-1r3o8wo-TextOverflow-overflowEllipsis eyxbn6j0"
+                >
+                  Releases
+                </div>
+              </span>
+            </div>
+          </a>
+          <a
+            class="css-12x120d-Link-StyledSidebarItem e1ncrmo85"
+            href="/organizations/org-slug/user-feedback/"
+            id="sidebar-item-user-feedback"
+          >
+            <div
+              class="css-1i4zbf6-SidebarItemWrapper e1ncrmo84"
+            >
+              <span
+                class="css-587bsy-SidebarItemIcon e1ncrmo83"
+              >
+                <svg
+                  fill="currentColor"
+                  height="20px"
+                  viewBox="0 0 16 16"
+                  width="20px"
+                >
+                  <path
+                    d="M9.9,15.61H6.1a.74.74,0,0,1-.75-.75v-2.6a.74.74,0,0,1,.75-.75H9.9a.74.74,0,0,1,.75.75v2.6A.74.74,0,0,1,9.9,15.61Zm-3.05-1.5h2.3V13H6.85Z"
+                  />
+                  <path
+                    d="M6.1,14.31H5.37a2.75,2.75,0,0,1-2.75-2.75V3.14A2.75,2.75,0,0,1,5.37.39h5.26a2.75,2.75,0,0,1,2.75,2.75V9.4h-1.5V3.14a1.25,1.25,0,0,0-1.25-1.25H5.37A1.25,1.25,0,0,0,4.12,3.14v8.42a1.25,1.25,0,0,0,1.25,1.25H6.1Z"
+                  />
+                  <path
+                    d="M3.37,10.16H2.2A2.25,2.25,0,0,1,0,7.91V7A2.25,2.25,0,0,1,2.2,4.74H3.37v1.5H2.2A.74.74,0,0,0,1.45,7v.92a.75.75,0,0,0,.75.75H3.37Z"
+                  />
+                  <path
+                    d="M13.8,10.16H12.63V8.66H13.8a.75.75,0,0,0,.75-.75V7a.74.74,0,0,0-.75-.75H12.63V4.74H13.8A2.25,2.25,0,0,1,16.05,7v.92A2.25,2.25,0,0,1,13.8,10.16Z"
+                  />
+                </svg>
+              </span>
+              <span
+                class="css-htovvg-SidebarItemLabel e1ncrmo82"
+              >
+                <div
+                  class="css-1r3o8wo-TextOverflow-overflowEllipsis eyxbn6j0"
+                >
+                  User Feedback
+                </div>
+              </span>
+            </div>
+          </a>
+          <a
+            class="css-12x120d-Link-StyledSidebarItem e1ncrmo85"
+            href="/organizations/org-slug/alerts/rules/"
+            id="sidebar-item-alerts"
+          >
+            <div
+              class="css-1i4zbf6-SidebarItemWrapper e1ncrmo84"
+            >
+              <span
+                class="css-587bsy-SidebarItemIcon e1ncrmo83"
+              >
+                <svg
+                  fill="currentColor"
+                  height="20px"
+                  viewBox="0 0 16 16"
+                  width="20px"
+                >
+                  <path
+                    d="M14.74,16H1.26a.75.75,0,0,1-.75-.75V13.08a1.75,1.75,0,0,1,1.75-1.75H13.74a1.75,1.75,0,0,1,1.75,1.75v2.17A.75.75,0,0,1,14.74,16ZM2,14.5H14V13.08a.25.25,0,0,0-.25-.25H2.26a.25.25,0,0,0-.25.25Z"
+                  />
+                  <path
+                    d="M12.48,12.24,11.21,6.08a1.2,1.2,0,0,0-1.18-1H6a1.2,1.2,0,0,0-1.18,1L3.52,12.24l-1.46-.31L3.32,5.78A2.71,2.71,0,0,1,6,3.61H10a2.71,2.71,0,0,1,2.65,2.17l1.26,6.15Z"
+                  />
+                  <path
+                    d="M4,3.45a.75.75,0,0,1-.64-.36L2.56,1.77a.75.75,0,0,1,.24-1,.76.76,0,0,1,1,.24L4.65,2.3a.76.76,0,0,1-.24,1A.79.79,0,0,1,4,3.45Z"
+                  />
+                  <path
+                    d="M2.15,5.94H.77a.75.75,0,0,1,0-1.5H2.15a.75.75,0,0,1,0,1.5Z"
+                  />
+                  <path
+                    d="M8,2.92a.76.76,0,0,1-.75-.75V.77a.75.75,0,1,1,1.5,0v1.4A.76.76,0,0,1,8,2.92Z"
+                  />
+                  <path
+                    d="M12,3.45a.79.79,0,0,1-.39-.11.76.76,0,0,1-.24-1L12.16,1a.76.76,0,0,1,1-.24.75.75,0,0,1,.24,1l-.82,1.32A.75.75,0,0,1,12,3.45Z"
+                  />
+                  <path
+                    d="M15.23,5.94H13.85a.75.75,0,0,1,0-1.5h1.38a.75.75,0,0,1,0,1.5Z"
+                  />
+                  <path
+                    d="M8,10.63a2,2,0,1,1,2-2A2,2,0,0,1,8,10.63ZM8,8.09a.52.52,0,1,0,.52.52A.52.52,0,0,0,8,8.09Z"
+                  />
+                  <rect
+                    height="2.21"
+                    width="1.5"
+                    x="7.25"
+                    y="9.88"
+                  />
+                </svg>
+              </span>
+              <span
+                class="css-htovvg-SidebarItemLabel e1ncrmo82"
+              >
+                <div
+                  class="css-1r3o8wo-TextOverflow-overflowEllipsis eyxbn6j0"
+                >
+                  Alerts
+                </div>
+              </span>
+            </div>
+          </a>
+        </div>
+        <div
+          class="css-ebgxwp-SidebarSectionGroup-responsiveFlex-SidebarSection e78qnej1"
+        >
+          <a
+            class="css-12x120d-Link-StyledSidebarItem e1ncrmo85"
+            href="/organizations/org-slug/activity/"
+            id="sidebar-item-activity"
+          >
+            <div
+              class="css-1i4zbf6-SidebarItemWrapper e1ncrmo84"
+            >
+              <span
+                class="css-587bsy-SidebarItemIcon e1ncrmo83"
+              >
+                <svg
+                  fill="currentColor"
+                  height="20px"
+                  viewBox="0 0 16 16"
+                  width="20px"
+                >
+                  <path
+                    d="M15.19,8.75H3.7a.75.75,0,1,1,0-1.5H15.19a.75.75,0,0,1,0,1.5Z"
+                  />
+                  <circle
+                    cx="0.75"
+                    cy="8"
+                    r="0.75"
+                  />
+                  <path
+                    d="M15.19,15H3.7a.75.75,0,1,1,0-1.5H15.19a.75.75,0,1,1,0,1.5Z"
+                  />
+                  <circle
+                    cx="0.75"
+                    cy="14.25"
+                    r="0.75"
+                  />
+                  <path
+                    d="M15.19,2.53H3.7A.75.75,0,0,1,3.7,1H15.19a.75.75,0,1,1,0,1.5Z"
+                  />
+                  <circle
+                    cx="0.75"
+                    cy="1.75"
+                    r="0.75"
+                  />
+                </svg>
+              </span>
+              <span
+                class="css-htovvg-SidebarItemLabel e1ncrmo82"
+              >
+                <div
+                  class="css-1r3o8wo-TextOverflow-overflowEllipsis eyxbn6j0"
+                >
+                  Activity
+                </div>
+              </span>
+            </div>
+          </a>
+          <a
+            class="css-12x120d-Link-StyledSidebarItem e1ncrmo85"
+            href="/organizations/org-slug/stats/"
+            id="sidebar-item-stats"
+          >
+            <div
+              class="css-1i4zbf6-SidebarItemWrapper e1ncrmo84"
+            >
+              <span
+                class="css-587bsy-SidebarItemIcon e1ncrmo83"
+              >
+                <svg
+                  fill="currentColor"
+                  height="20px"
+                  viewBox="0 0 16 16"
+                  width="20px"
+                >
+                  <path
+                    d="M13.25,16H2.75A2.75,2.75,0,0,1,0,13.25V2.75A2.75,2.75,0,0,1,2.75,0h10.5A2.75,2.75,0,0,1,16,2.75v10.5A2.75,2.75,0,0,1,13.25,16ZM2.75,1.5A1.25,1.25,0,0,0,1.5,2.75v10.5A1.25,1.25,0,0,0,2.75,14.5h10.5a1.25,1.25,0,0,0,1.25-1.25V2.75A1.25,1.25,0,0,0,13.25,1.5Z"
+                  />
+                  <path
+                    d="M3.59,15.65a.76.76,0,0,1-.75-.75V9.25a.75.75,0,0,1,1.5,0V14.9A.75.75,0,0,1,3.59,15.65Z"
+                  />
+                  <path
+                    d="M6.53,15.65a.76.76,0,0,1-.75-.75V9.25a.75.75,0,0,1,1.5,0V14.9A.76.76,0,0,1,6.53,15.65Z"
+                  />
+                  <path
+                    d="M9.47,15.65a.76.76,0,0,1-.75-.75V7.8a.75.75,0,1,1,1.5,0v7.1A.76.76,0,0,1,9.47,15.65Z"
+                  />
+                  <path
+                    d="M12.41,15.65a.75.75,0,0,1-.75-.75v-10a.75.75,0,1,1,1.5,0V14.9A.76.76,0,0,1,12.41,15.65Z"
+                  />
+                </svg>
+              </span>
+              <span
+                class="css-htovvg-SidebarItemLabel e1ncrmo82"
+              >
+                <div
+                  class="css-1r3o8wo-TextOverflow-overflowEllipsis eyxbn6j0"
+                >
+                  Stats
+                </div>
+              </span>
+            </div>
+          </a>
+        </div>
+        <div
+          class="css-ebgxwp-SidebarSectionGroup-responsiveFlex-SidebarSection e78qnej1"
+        >
+          <a
+            class="css-12x120d-Link-StyledSidebarItem e1ncrmo85"
+            href="/settings/org-slug/"
+            id="sidebar-item-settings"
+          >
+            <div
+              class="css-1i4zbf6-SidebarItemWrapper e1ncrmo84"
+            >
+              <span
+                class="css-587bsy-SidebarItemIcon e1ncrmo83"
+              >
+                <svg
+                  fill="currentColor"
+                  height="20px"
+                  viewBox="0 0 16 16"
+                  width="20px"
+                >
+                  <path
+                    d="M8,10.73A2.73,2.73,0,1,1,10.73,8,2.74,2.74,0,0,1,8,10.73Zm0-4A1.23,1.23,0,1,0,9.23,8,1.23,1.23,0,0,0,8,6.77Z"
+                  />
+                  <path
+                    d="M8.05,16A2.07,2.07,0,0,1,6,13.93a.35.35,0,0,0-.22-.35.37.37,0,0,0-.41.05,2.07,2.07,0,0,1-1.5.64h0a2,2,0,0,1-1.43-.58l0,0a2.07,2.07,0,0,1,0-2.93.37.37,0,0,0,.1-.41.35.35,0,0,0-.31-.21H2.07A2.07,2.07,0,0,1,2.07,6a.35.35,0,0,0,.35-.22.37.37,0,0,0,0-.41,2.07,2.07,0,0,1-.64-1.5,2,2,0,0,1,.58-1.43l0,0a2.07,2.07,0,0,1,2.93,0,.37.37,0,0,0,.41.1l.13,0a.37.37,0,0,0,.13-.27V2.07a2.07,2.07,0,0,1,4.14,0,.36.36,0,0,0,.2.36.35.35,0,0,0,.38-.06,2.07,2.07,0,0,1,1.5-.64h0a2,2,0,0,1,1.43.58l0,0a2.07,2.07,0,0,1,0,2.93.37.37,0,0,0-.1.41.5.5,0,0,1,0,.13.37.37,0,0,0,.27.13h.11a2.07,2.07,0,0,1,0,4.14.36.36,0,0,0-.36.2h0a.36.36,0,0,0,.07.37,2.07,2.07,0,0,1,.64,1.5,2,2,0,0,1-.58,1.43l0,0a2.07,2.07,0,0,1-2.93,0,.37.37,0,0,0-.41-.1.35.35,0,0,0-.21.31v.11A2.07,2.07,0,0,1,8.05,16ZM5.59,12a1.83,1.83,0,0,1,.73.15,1.81,1.81,0,0,1,1.16,1.66.59.59,0,0,0,.57.65.56.56,0,0,0,.57-.57v-.11a1.84,1.84,0,0,1,3.13-1.31.6.6,0,0,0,.84.06l0,0a.56.56,0,0,0,0-.8,1.86,1.86,0,0,1-.41-2.07,1.84,1.84,0,0,1,1.68-1.11A.59.59,0,0,0,14.5,8a.57.57,0,0,0-.57-.57h-.11a1.84,1.84,0,0,1-1.69-1.11,1.33,1.33,0,0,1-.05-.19,1.82,1.82,0,0,1,.43-1.88.6.6,0,0,0,.06-.84l0,0a.56.56,0,0,0-.8,0,1.87,1.87,0,0,1-2.07.41A1.84,1.84,0,0,1,8.57,2.13.59.59,0,0,0,8,1.5a.57.57,0,0,0-.57.57v.11A1.84,1.84,0,0,1,6.32,3.87l-.19,0a1.8,1.8,0,0,1-1.88-.43.6.6,0,0,0-.84-.06l0,0a.56.56,0,0,0,0,.8,1.86,1.86,0,0,1,.41,2.07A1.81,1.81,0,0,1,2.15,7.48a.59.59,0,0,0-.65.57.56.56,0,0,0,.57.57h.11a1.84,1.84,0,0,1,1.31,3.13.6.6,0,0,0-.06.84l0,0a.56.56,0,0,0,.8,0A2,2,0,0,1,5.59,12ZM12.88,10h0Z"
+                  />
+                </svg>
+              </span>
+              <span
+                class="css-htovvg-SidebarItemLabel e1ncrmo82"
+              >
+                <div
+                  class="css-1r3o8wo-TextOverflow-overflowEllipsis eyxbn6j0"
+                >
+                  Settings
+                </div>
+              </span>
+            </div>
+          </a>
+        </div>
+      </div>
+    </div>
+    <div
+      class="css-1vwp36z-SidebarSectionGroup-responsiveFlex e78qnej4"
+    >
+      <div
+        class="css-19ratys-SidebarSectionGroup-responsiveFlex-SidebarSection e78qnej1"
+      />
+      <div
+        class="css-ebgxwp-SidebarSectionGroup-responsiveFlex-SidebarSection e78qnej1"
+      >
+        <div
+          class="css-n88be7-HelpRoot eilhrqr2"
+        >
+          <div
+            aria-expanded="false"
+            aria-haspopup="listbox"
+            class="css-16xbimb-HelpActor eilhrqr1"
+            style="outline: none;"
+          >
+            <a
+              class="css-12x120d-Link-StyledSidebarItem e1ncrmo85"
+              data-test-id="help-sidebar"
+              href="#"
+              id="sidebar-item-help"
+            >
+              <div
+                class="css-1i4zbf6-SidebarItemWrapper e1ncrmo84"
+              >
+                <span
+                  class="css-587bsy-SidebarItemIcon e1ncrmo83"
+                >
+                  <svg
+                    fill="currentColor"
+                    height="20px"
+                    viewBox="0 0 16 16"
+                    width="20px"
+                  >
+                    <path
+                      d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z"
+                    />
+                    <path
+                      d="M5.33,6.19a1.93,1.93,0,0,1,.33-1,2.59,2.59,0,0,1,1-.87,3,3,0,0,1,1.47-.34,3.18,3.18,0,0,1,1.38.29,2.28,2.28,0,0,1,.92.78,2,2,0,0,1,.32,1.07,1.69,1.69,0,0,1-.18.8,2.74,2.74,0,0,1-.44.6l-.92.84a3.92,3.92,0,0,0-.29.29,1,1,0,0,0-.17.23,1.8,1.8,0,0,0-.08.21c0,.07,0,.19-.09.37a.6.6,0,0,1-.64.56.64.64,0,0,1-.47-.19.74.74,0,0,1-.19-.54,1.91,1.91,0,0,1,.51-1.36,7.83,7.83,0,0,1,.63-.59c.22-.2.39-.35.49-.46a1.46,1.46,0,0,0,.26-.34.8.8,0,0,0,.1-.41.93.93,0,0,0-.32-.72,1.13,1.13,0,0,0-.82-.3,1.15,1.15,0,0,0-.87.3,2.33,2.33,0,0,0-.47.88c-.12.4-.35.61-.7.61a.65.65,0,0,1-.5-.22A.63.63,0,0,1,5.33,6.19ZM8,12.07a.84.84,0,0,1-.57-.21.75.75,0,0,1-.24-.59.74.74,0,0,1,.23-.57A.78.78,0,0,1,8,10.47a.74.74,0,0,1,.57.23.78.78,0,0,1,.23.57.76.76,0,0,1-.24.59A.83.83,0,0,1,8,12.07Z"
+                    />
+                  </svg>
+                </span>
+                <span
+                  class="css-htovvg-SidebarItemLabel e1ncrmo82"
+                >
+                  <div
+                    class="css-1r3o8wo-TextOverflow-overflowEllipsis eyxbn6j0"
+                  >
+                    Help
+                  </div>
+                </span>
+              </div>
+            </a>
+          </div>
+        </div>
+        <a
+          class="css-12x120d-Link-StyledSidebarItem e1ncrmo85"
+          data-test-id="sidebar-broadcasts"
+          href="#"
+          id="sidebar-item-broadcasts"
+        >
+          <div
+            class="css-1i4zbf6-SidebarItemWrapper e1ncrmo84"
+          >
+            <span
+              class="css-587bsy-SidebarItemIcon e1ncrmo83"
+            >
+              <svg
+                fill="currentColor"
+                height="20px"
+                viewBox="0 0 16 16"
+                width="20px"
+              >
+                <path
+                  d="M8,10.2A2.2,2.2,0,1,1,10.2,8,2.21,2.21,0,0,1,8,10.2ZM8,7.3a.7.7,0,1,0,.7.7A.7.7,0,0,0,8,7.3Z"
+                />
+                <path
+                  d="M13.13,13.88a.74.74,0,0,1-.53-.22.75.75,0,0,1,0-1.06,6.51,6.51,0,0,0,0-9.2.75.75,0,0,1,0-1.06.75.75,0,0,1,1.06,0,8,8,0,0,1,0,11.32A.73.73,0,0,1,13.13,13.88Zm-10.26,0a.73.73,0,0,1-.53-.22,8,8,0,0,1,0-11.32.75.75,0,0,1,1.06,0,.75.75,0,0,1,0,1.06,6.51,6.51,0,0,0,0,9.2.75.75,0,0,1,0,1.06A.74.74,0,0,1,2.87,13.88Zm8.21-2.05a.74.74,0,0,1-.67-.41.76.76,0,0,1,.15-.88,3.62,3.62,0,0,0,0-5.09.74.74,0,0,1,0-1.06.75.75,0,0,1,1.06,0A5.1,5.1,0,0,1,13.1,8a5,5,0,0,1-1.49,3.61.75.75,0,0,1-.2.15A.78.78,0,0,1,11.08,11.83Zm0-.75h0Zm-6.16.75a.79.79,0,0,1-.53-.22A5.1,5.1,0,0,1,2.9,8,5,5,0,0,1,4.39,4.39l.08-.08a.75.75,0,0,1,1,1.15A3.51,3.51,0,0,0,4.4,8a3.59,3.59,0,0,0,1,2.55.74.74,0,0,1,0,1.06A.75.75,0,0,1,4.92,11.83Z"
+                />
+              </svg>
+            </span>
+            <span
+              class="css-htovvg-SidebarItemLabel e1ncrmo82"
+            >
+              <div
+                class="css-1r3o8wo-TextOverflow-overflowEllipsis eyxbn6j0"
+              >
+                What's new
+              </div>
+            </span>
+            <span
+              class="css-jgcd9c-SidebarItemBadge e1ncrmo81"
+            >
+              1
+            </span>
+          </div>
+        </a>
+      </div>
+      <div
+        class="css-ebgxwp-SidebarSectionGroup-responsiveFlex-SidebarSection e78qnej1"
+      >
+        <a
+          class="e78qnej0 css-qynit2-Link-StyledSidebarItem-SidebarCollapseItem e1ncrmo85"
+          data-test-id="sidebar-collapse"
+          href="#"
+          id="sidebar-item-collapse"
+        >
+          <div
+            class="css-1i4zbf6-SidebarItemWrapper e1ncrmo84"
+          >
+            <span
+              class="css-587bsy-SidebarItemIcon e1ncrmo83"
+            >
+              <svg
+                class="css-ubc1ky-IconChevron"
+                fill="currentColor"
+                height="16px"
+                viewBox="0 0 16 16"
+                width="16px"
+              >
+                <path
+                  d="M14,11.75a.74.74,0,0,1-.53-.22L8,6.06,2.53,11.53a.75.75,0,0,1-1.06-1.06l6-6a.75.75,0,0,1,1.06,0l6,6a.75.75,0,0,1,0,1.06A.74.74,0,0,1,14,11.75Z"
+                />
+              </svg>
+            </span>
+            <span
+              class="css-htovvg-SidebarItemLabel e1ncrmo82"
+            >
+              <div
+                class="css-1r3o8wo-TextOverflow-overflowEllipsis eyxbn6j0"
+              >
+                Collapse
+              </div>
+            </span>
+          </div>
+        </a>
+      </div>
+    </div>
+  </nav>
+</div>
+`;
+
+exports[`Sidebar SidebarPanel can display Broadcasts panel and mark as seen 1`] = `
+<div>
+  <nav
+    aria-label="Primary Navigation"
+    class="css-zoz7hg-SidebarWrapper-responsiveFlex e78qnej5"
+  >
+    <div
+      class="css-1n625m3-SidebarSectionGroupPrimary-responsiveFlex e78qnej3"
+    >
+      <div
+        class="css-ebgxwp-SidebarSectionGroup-responsiveFlex-SidebarSection e78qnej1"
+      >
+        <div
+          class="css-1hndfv9-SidebarDropdownRoot e169svp67"
+        >
+          <button
+            aria-expanded="false"
+            aria-haspopup="listbox"
+            class="css-1fdb9ax-SidebarDropdownActor e169svp63"
+            data-test-id="sidebar-dropdown"
+            style="outline: none;"
+            type="button"
+          >
+            <span
+              class="avatar e169svp62 css-1qzip9z-StyledBaseAvatar-StyledAvatar ery3g4h1"
+              data-test-id="letter_avatar-avatar"
+              style="width: 32px; height: 32px;"
+              title="org slug"
+            >
+              <svg
+                class="css-h0a6ia-LetterAvatar-imageStyle ewkzefl0"
+                viewBox="0 0 120 120"
+              >
+                <rect
+                  fill="#4674ca"
+                  height="120"
+                  opacity="100%"
+                  rx="15"
+                  ry="15"
+                  width="120"
+                  x="0"
+                  y="0"
+                />
+                <text
+                  fill="#FFFFFF"
+                  font-size="65"
+                  style="dominant-baseline: central;"
+                  text-anchor="middle"
+                  x="50%"
+                  y="50%"
+                >
+                  OS
+                </text>
+              </svg>
+            </span>
+            <div
+              class="css-196hndj-OrgAndUserWrapper e169svp66"
+            >
+              <div
+                class="css-1fmy7d5-TextOverflow-overflowEllipsis-OrgOrUserName e169svp65"
+              >
+                Organization Name
+                 
+                <svg
+                  class="e169svp60 css-5pcn6a-IconChevron-StyledIconChevron"
+                  fill="#FFFFFF"
+                  height="12px"
+                  viewBox="0 0 16 16"
+                  width="12px"
+                >
+                  <path
+                    d="M14,11.75a.74.74,0,0,1-.53-.22L8,6.06,2.53,11.53a.75.75,0,0,1-1.06-1.06l6-6a.75.75,0,0,1,1.06,0l6,6a.75.75,0,0,1,0,1.06A.74.74,0,0,1,14,11.75Z"
+                  />
+                </svg>
+              </div>
+              <div
+                class="css-1dru019-TextOverflow-overflowEllipsis-UserNameOrEmail e169svp64"
+              >
+                Foo Bar
+              </div>
+            </div>
+          </button>
+        </div>
+      </div>
+      <div
+        class="css-peuyen-PrimaryItems e78qnej2"
+      >
+        <div
+          class="css-ebgxwp-SidebarSectionGroup-responsiveFlex-SidebarSection e78qnej1"
+        >
+          <a
+            class="css-12x120d-Link-StyledSidebarItem e1ncrmo85"
+            href="/organizations/org-slug/projects/"
+            id="sidebar-item-projects"
+          >
+            <div
+              class="css-1i4zbf6-SidebarItemWrapper e1ncrmo84"
+            >
+              <span
+                class="css-587bsy-SidebarItemIcon e1ncrmo83"
+              >
+                <svg
+                  fill="currentColor"
+                  height="20px"
+                  viewBox="0 0 16 16"
+                  width="20px"
+                >
+                  <path
+                    d="M5.43,11.92a.73.73,0,0,1-.53-.22L3,9.82A.75.75,0,0,1,3,8.76L4.9,6.88A.75.75,0,0,1,6,7.94L4.61,9.29,6,10.64A.75.75,0,0,1,6,11.7.74.74,0,0,1,5.43,11.92Z"
+                  />
+                  <path
+                    d="M10.58,11.92a.74.74,0,0,1-.53-.22.75.75,0,0,1,0-1.06L11.4,9.29,10.05,7.94a.75.75,0,0,1,1.06-1.06L13,8.76a.74.74,0,0,1,0,1.06L11.11,11.7A.71.71,0,0,1,10.58,11.92Z"
+                  />
+                  <path
+                    d="M15.26,16H.76A.75.75,0,0,1,0,15.26V.76A.74.74,0,0,1,.76,0H5.12A2.75,2.75,0,0,1,6.77.56L8.51,1.87a1.3,1.3,0,0,0,.75.25h6a.76.76,0,0,1,.75.75V15.26A.76.76,0,0,1,15.26,16ZM1.51,14.51h13V3.62H9.26a2.75,2.75,0,0,1-1.65-.55L5.87,1.76h0a1.3,1.3,0,0,0-.75-.25H1.51Z"
+                  />
+                </svg>
+              </span>
+              <span
+                class="css-htovvg-SidebarItemLabel e1ncrmo82"
+              >
+                <div
+                  class="css-1r3o8wo-TextOverflow-overflowEllipsis eyxbn6j0"
+                >
+                  Projects
+                </div>
+              </span>
+            </div>
+          </a>
+          <a
+            class="css-12x120d-Link-StyledSidebarItem e1ncrmo85"
+            href="/organizations/org-slug/issues/?referrer=sidebar"
+            id="sidebar-item-issues"
+          >
+            <div
+              class="css-1i4zbf6-SidebarItemWrapper e1ncrmo84"
+            >
+              <span
+                class="css-587bsy-SidebarItemIcon e1ncrmo83"
+              >
+                <svg
+                  fill="currentColor"
+                  height="20px"
+                  viewBox="0 0 16 16"
+                  width="20px"
+                >
+                  <path
+                    d="M13.24,16H2.74A2.75,2.75,0,0,1,0,13.26V2.76A2.75,2.75,0,0,1,2.74,0h10.5A2.75,2.75,0,0,1,16,2.76v10.5A2.75,2.75,0,0,1,13.24,16ZM2.74,1.51A1.25,1.25,0,0,0,1.49,2.76v10.5a1.25,1.25,0,0,0,1.25,1.25h10.5a1.25,1.25,0,0,0,1.25-1.25V2.76a1.25,1.25,0,0,0-1.25-1.25Z"
+                  />
+                  <rect
+                    height="1.5"
+                    width="14.5"
+                    x="0.74"
+                    y="2.61"
+                  />
+                  <rect
+                    height="1.5"
+                    width="14.5"
+                    x="0.74"
+                    y="5.26"
+                  />
+                  <path
+                    d="M10.79,12.08H5.19a1.25,1.25,0,0,1-1.25-1.25V9.42H.74V7.92h4.7v2.66h5.1V7.92h4.7v1.5H12v1.41A1.25,1.25,0,0,1,10.79,12.08Z"
+                  />
+                </svg>
+              </span>
+              <span
+                class="css-htovvg-SidebarItemLabel e1ncrmo82"
+              >
+                <div
+                  class="css-1r3o8wo-TextOverflow-overflowEllipsis eyxbn6j0"
+                >
+                  Issues
+                </div>
+              </span>
+            </div>
+          </a>
+          <a
+            class="css-12x120d-Link-StyledSidebarItem e1ncrmo85"
+            href="/organizations/org-slug/releases/"
+            id="sidebar-item-releases"
+          >
+            <div
+              class="css-1i4zbf6-SidebarItemWrapper e1ncrmo84"
+            >
+              <span
+                class="css-587bsy-SidebarItemIcon e1ncrmo83"
+              >
+                <svg
+                  fill="currentColor"
+                  height="20px"
+                  viewBox="0 0 16 16"
+                  width="20px"
+                >
+                  <path
+                    d="M14.77,16H1.23A1.26,1.26,0,0,1,0,14.75V6.52A1.25,1.25,0,0,1,1.23,5.27H14.77A1.25,1.25,0,0,1,16,6.52v8.23A1.26,1.26,0,0,1,14.77,16ZM1.48,14.5h13V6.77h-13Z"
+                  />
+                  <path
+                    d="M14.71,6h-1.5V4.14H2.79V6H1.29V3.89A1.25,1.25,0,0,1,2.54,2.64H13.46a1.25,1.25,0,0,1,1.25,1.25Z"
+                  />
+                  <path
+                    d="M13.37,3.39h-1.5V1.5H4.13V3.39H2.63V1.25A1.26,1.26,0,0,1,3.88,0h8.24a1.26,1.26,0,0,1,1.25,1.25Z"
+                  />
+                </svg>
+              </span>
+              <span
+                class="css-htovvg-SidebarItemLabel e1ncrmo82"
+              >
+                <div
+                  class="css-1r3o8wo-TextOverflow-overflowEllipsis eyxbn6j0"
+                >
+                  Releases
+                </div>
+              </span>
+            </div>
+          </a>
+          <a
+            class="css-12x120d-Link-StyledSidebarItem e1ncrmo85"
+            href="/organizations/org-slug/user-feedback/"
+            id="sidebar-item-user-feedback"
+          >
+            <div
+              class="css-1i4zbf6-SidebarItemWrapper e1ncrmo84"
+            >
+              <span
+                class="css-587bsy-SidebarItemIcon e1ncrmo83"
+              >
+                <svg
+                  fill="currentColor"
+                  height="20px"
+                  viewBox="0 0 16 16"
+                  width="20px"
+                >
+                  <path
+                    d="M9.9,15.61H6.1a.74.74,0,0,1-.75-.75v-2.6a.74.74,0,0,1,.75-.75H9.9a.74.74,0,0,1,.75.75v2.6A.74.74,0,0,1,9.9,15.61Zm-3.05-1.5h2.3V13H6.85Z"
+                  />
+                  <path
+                    d="M6.1,14.31H5.37a2.75,2.75,0,0,1-2.75-2.75V3.14A2.75,2.75,0,0,1,5.37.39h5.26a2.75,2.75,0,0,1,2.75,2.75V9.4h-1.5V3.14a1.25,1.25,0,0,0-1.25-1.25H5.37A1.25,1.25,0,0,0,4.12,3.14v8.42a1.25,1.25,0,0,0,1.25,1.25H6.1Z"
+                  />
+                  <path
+                    d="M3.37,10.16H2.2A2.25,2.25,0,0,1,0,7.91V7A2.25,2.25,0,0,1,2.2,4.74H3.37v1.5H2.2A.74.74,0,0,0,1.45,7v.92a.75.75,0,0,0,.75.75H3.37Z"
+                  />
+                  <path
+                    d="M13.8,10.16H12.63V8.66H13.8a.75.75,0,0,0,.75-.75V7a.74.74,0,0,0-.75-.75H12.63V4.74H13.8A2.25,2.25,0,0,1,16.05,7v.92A2.25,2.25,0,0,1,13.8,10.16Z"
+                  />
+                </svg>
+              </span>
+              <span
+                class="css-htovvg-SidebarItemLabel e1ncrmo82"
+              >
+                <div
+                  class="css-1r3o8wo-TextOverflow-overflowEllipsis eyxbn6j0"
+                >
+                  User Feedback
+                </div>
+              </span>
+            </div>
+          </a>
+          <a
+            class="css-12x120d-Link-StyledSidebarItem e1ncrmo85"
+            href="/organizations/org-slug/alerts/rules/"
+            id="sidebar-item-alerts"
+          >
+            <div
+              class="css-1i4zbf6-SidebarItemWrapper e1ncrmo84"
+            >
+              <span
+                class="css-587bsy-SidebarItemIcon e1ncrmo83"
+              >
+                <svg
+                  fill="currentColor"
+                  height="20px"
+                  viewBox="0 0 16 16"
+                  width="20px"
+                >
+                  <path
+                    d="M14.74,16H1.26a.75.75,0,0,1-.75-.75V13.08a1.75,1.75,0,0,1,1.75-1.75H13.74a1.75,1.75,0,0,1,1.75,1.75v2.17A.75.75,0,0,1,14.74,16ZM2,14.5H14V13.08a.25.25,0,0,0-.25-.25H2.26a.25.25,0,0,0-.25.25Z"
+                  />
+                  <path
+                    d="M12.48,12.24,11.21,6.08a1.2,1.2,0,0,0-1.18-1H6a1.2,1.2,0,0,0-1.18,1L3.52,12.24l-1.46-.31L3.32,5.78A2.71,2.71,0,0,1,6,3.61H10a2.71,2.71,0,0,1,2.65,2.17l1.26,6.15Z"
+                  />
+                  <path
+                    d="M4,3.45a.75.75,0,0,1-.64-.36L2.56,1.77a.75.75,0,0,1,.24-1,.76.76,0,0,1,1,.24L4.65,2.3a.76.76,0,0,1-.24,1A.79.79,0,0,1,4,3.45Z"
+                  />
+                  <path
+                    d="M2.15,5.94H.77a.75.75,0,0,1,0-1.5H2.15a.75.75,0,0,1,0,1.5Z"
+                  />
+                  <path
+                    d="M8,2.92a.76.76,0,0,1-.75-.75V.77a.75.75,0,1,1,1.5,0v1.4A.76.76,0,0,1,8,2.92Z"
+                  />
+                  <path
+                    d="M12,3.45a.79.79,0,0,1-.39-.11.76.76,0,0,1-.24-1L12.16,1a.76.76,0,0,1,1-.24.75.75,0,0,1,.24,1l-.82,1.32A.75.75,0,0,1,12,3.45Z"
+                  />
+                  <path
+                    d="M15.23,5.94H13.85a.75.75,0,0,1,0-1.5h1.38a.75.75,0,0,1,0,1.5Z"
+                  />
+                  <path
+                    d="M8,10.63a2,2,0,1,1,2-2A2,2,0,0,1,8,10.63ZM8,8.09a.52.52,0,1,0,.52.52A.52.52,0,0,0,8,8.09Z"
+                  />
+                  <rect
+                    height="2.21"
+                    width="1.5"
+                    x="7.25"
+                    y="9.88"
+                  />
+                </svg>
+              </span>
+              <span
+                class="css-htovvg-SidebarItemLabel e1ncrmo82"
+              >
+                <div
+                  class="css-1r3o8wo-TextOverflow-overflowEllipsis eyxbn6j0"
+                >
+                  Alerts
+                </div>
+              </span>
+            </div>
+          </a>
+        </div>
+        <div
+          class="css-ebgxwp-SidebarSectionGroup-responsiveFlex-SidebarSection e78qnej1"
+        >
+          <a
+            class="css-12x120d-Link-StyledSidebarItem e1ncrmo85"
+            href="/organizations/org-slug/activity/"
+            id="sidebar-item-activity"
+          >
+            <div
+              class="css-1i4zbf6-SidebarItemWrapper e1ncrmo84"
+            >
+              <span
+                class="css-587bsy-SidebarItemIcon e1ncrmo83"
+              >
+                <svg
+                  fill="currentColor"
+                  height="20px"
+                  viewBox="0 0 16 16"
+                  width="20px"
+                >
+                  <path
+                    d="M15.19,8.75H3.7a.75.75,0,1,1,0-1.5H15.19a.75.75,0,0,1,0,1.5Z"
+                  />
+                  <circle
+                    cx="0.75"
+                    cy="8"
+                    r="0.75"
+                  />
+                  <path
+                    d="M15.19,15H3.7a.75.75,0,1,1,0-1.5H15.19a.75.75,0,1,1,0,1.5Z"
+                  />
+                  <circle
+                    cx="0.75"
+                    cy="14.25"
+                    r="0.75"
+                  />
+                  <path
+                    d="M15.19,2.53H3.7A.75.75,0,0,1,3.7,1H15.19a.75.75,0,1,1,0,1.5Z"
+                  />
+                  <circle
+                    cx="0.75"
+                    cy="1.75"
+                    r="0.75"
+                  />
+                </svg>
+              </span>
+              <span
+                class="css-htovvg-SidebarItemLabel e1ncrmo82"
+              >
+                <div
+                  class="css-1r3o8wo-TextOverflow-overflowEllipsis eyxbn6j0"
+                >
+                  Activity
+                </div>
+              </span>
+            </div>
+          </a>
+          <a
+            class="css-12x120d-Link-StyledSidebarItem e1ncrmo85"
+            href="/organizations/org-slug/stats/"
+            id="sidebar-item-stats"
+          >
+            <div
+              class="css-1i4zbf6-SidebarItemWrapper e1ncrmo84"
+            >
+              <span
+                class="css-587bsy-SidebarItemIcon e1ncrmo83"
+              >
+                <svg
+                  fill="currentColor"
+                  height="20px"
+                  viewBox="0 0 16 16"
+                  width="20px"
+                >
+                  <path
+                    d="M13.25,16H2.75A2.75,2.75,0,0,1,0,13.25V2.75A2.75,2.75,0,0,1,2.75,0h10.5A2.75,2.75,0,0,1,16,2.75v10.5A2.75,2.75,0,0,1,13.25,16ZM2.75,1.5A1.25,1.25,0,0,0,1.5,2.75v10.5A1.25,1.25,0,0,0,2.75,14.5h10.5a1.25,1.25,0,0,0,1.25-1.25V2.75A1.25,1.25,0,0,0,13.25,1.5Z"
+                  />
+                  <path
+                    d="M3.59,15.65a.76.76,0,0,1-.75-.75V9.25a.75.75,0,0,1,1.5,0V14.9A.75.75,0,0,1,3.59,15.65Z"
+                  />
+                  <path
+                    d="M6.53,15.65a.76.76,0,0,1-.75-.75V9.25a.75.75,0,0,1,1.5,0V14.9A.76.76,0,0,1,6.53,15.65Z"
+                  />
+                  <path
+                    d="M9.47,15.65a.76.76,0,0,1-.75-.75V7.8a.75.75,0,1,1,1.5,0v7.1A.76.76,0,0,1,9.47,15.65Z"
+                  />
+                  <path
+                    d="M12.41,15.65a.75.75,0,0,1-.75-.75v-10a.75.75,0,1,1,1.5,0V14.9A.76.76,0,0,1,12.41,15.65Z"
+                  />
+                </svg>
+              </span>
+              <span
+                class="css-htovvg-SidebarItemLabel e1ncrmo82"
+              >
+                <div
+                  class="css-1r3o8wo-TextOverflow-overflowEllipsis eyxbn6j0"
+                >
+                  Stats
+                </div>
+              </span>
+            </div>
+          </a>
+        </div>
+        <div
+          class="css-ebgxwp-SidebarSectionGroup-responsiveFlex-SidebarSection e78qnej1"
+        >
+          <a
+            class="css-12x120d-Link-StyledSidebarItem e1ncrmo85"
+            href="/settings/org-slug/"
+            id="sidebar-item-settings"
+          >
+            <div
+              class="css-1i4zbf6-SidebarItemWrapper e1ncrmo84"
+            >
+              <span
+                class="css-587bsy-SidebarItemIcon e1ncrmo83"
+              >
+                <svg
+                  fill="currentColor"
+                  height="20px"
+                  viewBox="0 0 16 16"
+                  width="20px"
+                >
+                  <path
+                    d="M8,10.73A2.73,2.73,0,1,1,10.73,8,2.74,2.74,0,0,1,8,10.73Zm0-4A1.23,1.23,0,1,0,9.23,8,1.23,1.23,0,0,0,8,6.77Z"
+                  />
+                  <path
+                    d="M8.05,16A2.07,2.07,0,0,1,6,13.93a.35.35,0,0,0-.22-.35.37.37,0,0,0-.41.05,2.07,2.07,0,0,1-1.5.64h0a2,2,0,0,1-1.43-.58l0,0a2.07,2.07,0,0,1,0-2.93.37.37,0,0,0,.1-.41.35.35,0,0,0-.31-.21H2.07A2.07,2.07,0,0,1,2.07,6a.35.35,0,0,0,.35-.22.37.37,0,0,0,0-.41,2.07,2.07,0,0,1-.64-1.5,2,2,0,0,1,.58-1.43l0,0a2.07,2.07,0,0,1,2.93,0,.37.37,0,0,0,.41.1l.13,0a.37.37,0,0,0,.13-.27V2.07a2.07,2.07,0,0,1,4.14,0,.36.36,0,0,0,.2.36.35.35,0,0,0,.38-.06,2.07,2.07,0,0,1,1.5-.64h0a2,2,0,0,1,1.43.58l0,0a2.07,2.07,0,0,1,0,2.93.37.37,0,0,0-.1.41.5.5,0,0,1,0,.13.37.37,0,0,0,.27.13h.11a2.07,2.07,0,0,1,0,4.14.36.36,0,0,0-.36.2h0a.36.36,0,0,0,.07.37,2.07,2.07,0,0,1,.64,1.5,2,2,0,0,1-.58,1.43l0,0a2.07,2.07,0,0,1-2.93,0,.37.37,0,0,0-.41-.1.35.35,0,0,0-.21.31v.11A2.07,2.07,0,0,1,8.05,16ZM5.59,12a1.83,1.83,0,0,1,.73.15,1.81,1.81,0,0,1,1.16,1.66.59.59,0,0,0,.57.65.56.56,0,0,0,.57-.57v-.11a1.84,1.84,0,0,1,3.13-1.31.6.6,0,0,0,.84.06l0,0a.56.56,0,0,0,0-.8,1.86,1.86,0,0,1-.41-2.07,1.84,1.84,0,0,1,1.68-1.11A.59.59,0,0,0,14.5,8a.57.57,0,0,0-.57-.57h-.11a1.84,1.84,0,0,1-1.69-1.11,1.33,1.33,0,0,1-.05-.19,1.82,1.82,0,0,1,.43-1.88.6.6,0,0,0,.06-.84l0,0a.56.56,0,0,0-.8,0,1.87,1.87,0,0,1-2.07.41A1.84,1.84,0,0,1,8.57,2.13.59.59,0,0,0,8,1.5a.57.57,0,0,0-.57.57v.11A1.84,1.84,0,0,1,6.32,3.87l-.19,0a1.8,1.8,0,0,1-1.88-.43.6.6,0,0,0-.84-.06l0,0a.56.56,0,0,0,0,.8,1.86,1.86,0,0,1,.41,2.07A1.81,1.81,0,0,1,2.15,7.48a.59.59,0,0,0-.65.57.56.56,0,0,0,.57.57h.11a1.84,1.84,0,0,1,1.31,3.13.6.6,0,0,0-.06.84l0,0a.56.56,0,0,0,.8,0A2,2,0,0,1,5.59,12ZM12.88,10h0Z"
+                  />
+                </svg>
+              </span>
+              <span
+                class="css-htovvg-SidebarItemLabel e1ncrmo82"
+              >
+                <div
+                  class="css-1r3o8wo-TextOverflow-overflowEllipsis eyxbn6j0"
+                >
+                  Settings
+                </div>
+              </span>
+            </div>
+          </a>
+        </div>
+      </div>
+    </div>
+    <div
+      class="css-1vwp36z-SidebarSectionGroup-responsiveFlex e78qnej4"
+    >
+      <div
+        class="css-19ratys-SidebarSectionGroup-responsiveFlex-SidebarSection e78qnej1"
+      />
+      <div
+        class="css-ebgxwp-SidebarSectionGroup-responsiveFlex-SidebarSection e78qnej1"
+      >
+        <div
+          class="css-n88be7-HelpRoot eilhrqr2"
+        >
+          <div
+            aria-expanded="false"
+            aria-haspopup="listbox"
+            class="css-16xbimb-HelpActor eilhrqr1"
+            style="outline: none;"
+          >
+            <a
+              class="css-12x120d-Link-StyledSidebarItem e1ncrmo85"
+              data-test-id="help-sidebar"
+              href="#"
+              id="sidebar-item-help"
+            >
+              <div
+                class="css-1i4zbf6-SidebarItemWrapper e1ncrmo84"
+              >
+                <span
+                  class="css-587bsy-SidebarItemIcon e1ncrmo83"
+                >
+                  <svg
+                    fill="currentColor"
+                    height="20px"
+                    viewBox="0 0 16 16"
+                    width="20px"
+                  >
+                    <path
+                      d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z"
+                    />
+                    <path
+                      d="M5.33,6.19a1.93,1.93,0,0,1,.33-1,2.59,2.59,0,0,1,1-.87,3,3,0,0,1,1.47-.34,3.18,3.18,0,0,1,1.38.29,2.28,2.28,0,0,1,.92.78,2,2,0,0,1,.32,1.07,1.69,1.69,0,0,1-.18.8,2.74,2.74,0,0,1-.44.6l-.92.84a3.92,3.92,0,0,0-.29.29,1,1,0,0,0-.17.23,1.8,1.8,0,0,0-.08.21c0,.07,0,.19-.09.37a.6.6,0,0,1-.64.56.64.64,0,0,1-.47-.19.74.74,0,0,1-.19-.54,1.91,1.91,0,0,1,.51-1.36,7.83,7.83,0,0,1,.63-.59c.22-.2.39-.35.49-.46a1.46,1.46,0,0,0,.26-.34.8.8,0,0,0,.1-.41.93.93,0,0,0-.32-.72,1.13,1.13,0,0,0-.82-.3,1.15,1.15,0,0,0-.87.3,2.33,2.33,0,0,0-.47.88c-.12.4-.35.61-.7.61a.65.65,0,0,1-.5-.22A.63.63,0,0,1,5.33,6.19ZM8,12.07a.84.84,0,0,1-.57-.21.75.75,0,0,1-.24-.59.74.74,0,0,1,.23-.57A.78.78,0,0,1,8,10.47a.74.74,0,0,1,.57.23.78.78,0,0,1,.23.57.76.76,0,0,1-.24.59A.83.83,0,0,1,8,12.07Z"
+                    />
+                  </svg>
+                </span>
+                <span
+                  class="css-htovvg-SidebarItemLabel e1ncrmo82"
+                >
+                  <div
+                    class="css-1r3o8wo-TextOverflow-overflowEllipsis eyxbn6j0"
+                  >
+                    Help
+                  </div>
+                </span>
+              </div>
+            </a>
+          </div>
+        </div>
+        <a
+          active="true"
+          class="css-1xelfzs-Link-StyledSidebarItem-getActiveStyle e1ncrmo85"
+          data-test-id="sidebar-broadcasts"
+          href="#"
+          id="sidebar-item-broadcasts"
+        >
+          <div
+            class="css-1i4zbf6-SidebarItemWrapper e1ncrmo84"
+          >
+            <span
+              class="css-587bsy-SidebarItemIcon e1ncrmo83"
+            >
+              <svg
+                fill="currentColor"
+                height="20px"
+                viewBox="0 0 16 16"
+                width="20px"
+              >
+                <path
+                  d="M8,10.2A2.2,2.2,0,1,1,10.2,8,2.21,2.21,0,0,1,8,10.2ZM8,7.3a.7.7,0,1,0,.7.7A.7.7,0,0,0,8,7.3Z"
+                />
+                <path
+                  d="M13.13,13.88a.74.74,0,0,1-.53-.22.75.75,0,0,1,0-1.06,6.51,6.51,0,0,0,0-9.2.75.75,0,0,1,0-1.06.75.75,0,0,1,1.06,0,8,8,0,0,1,0,11.32A.73.73,0,0,1,13.13,13.88Zm-10.26,0a.73.73,0,0,1-.53-.22,8,8,0,0,1,0-11.32.75.75,0,0,1,1.06,0,.75.75,0,0,1,0,1.06,6.51,6.51,0,0,0,0,9.2.75.75,0,0,1,0,1.06A.74.74,0,0,1,2.87,13.88Zm8.21-2.05a.74.74,0,0,1-.67-.41.76.76,0,0,1,.15-.88,3.62,3.62,0,0,0,0-5.09.74.74,0,0,1,0-1.06.75.75,0,0,1,1.06,0A5.1,5.1,0,0,1,13.1,8a5,5,0,0,1-1.49,3.61.75.75,0,0,1-.2.15A.78.78,0,0,1,11.08,11.83Zm0-.75h0Zm-6.16.75a.79.79,0,0,1-.53-.22A5.1,5.1,0,0,1,2.9,8,5,5,0,0,1,4.39,4.39l.08-.08a.75.75,0,0,1,1,1.15A3.51,3.51,0,0,0,4.4,8a3.59,3.59,0,0,0,1,2.55.74.74,0,0,1,0,1.06A.75.75,0,0,1,4.92,11.83Z"
+                />
+              </svg>
+            </span>
+            <span
+              class="css-htovvg-SidebarItemLabel e1ncrmo82"
+            >
+              <div
+                class="css-1r3o8wo-TextOverflow-overflowEllipsis eyxbn6j0"
+              >
+                What's new
+              </div>
+            </span>
+            <span
+              class="css-jgcd9c-SidebarItemBadge e1ncrmo81"
+            >
+              1
+            </span>
+          </div>
+        </a>
+      </div>
+      <div
+        class="css-ebgxwp-SidebarSectionGroup-responsiveFlex-SidebarSection e78qnej1"
+      >
+        <a
+          class="e78qnej0 css-qynit2-Link-StyledSidebarItem-SidebarCollapseItem e1ncrmo85"
+          data-test-id="sidebar-collapse"
+          href="#"
+          id="sidebar-item-collapse"
+        >
+          <div
+            class="css-1i4zbf6-SidebarItemWrapper e1ncrmo84"
+          >
+            <span
+              class="css-587bsy-SidebarItemIcon e1ncrmo83"
+            >
+              <svg
+                class="css-ubc1ky-IconChevron"
+                fill="currentColor"
+                height="16px"
+                viewBox="0 0 16 16"
+                width="16px"
+              >
+                <path
+                  d="M14,11.75a.74.74,0,0,1-.53-.22L8,6.06,2.53,11.53a.75.75,0,0,1-1.06-1.06l6-6a.75.75,0,0,1,1.06,0l6,6a.75.75,0,0,1,0,1.06A.74.74,0,0,1,14,11.75Z"
+                />
+              </svg>
+            </span>
+            <span
+              class="css-htovvg-SidebarItemLabel e1ncrmo82"
+            >
+              <div
+                class="css-1r3o8wo-TextOverflow-overflowEllipsis eyxbn6j0"
+              >
+                Collapse
+              </div>
+            </span>
+          </div>
+        </a>
+      </div>
+    </div>
+  </nav>
+</div>
+`;
+
+exports[`Sidebar SidebarPanel can show Incidents in Sidebar Panel 1`] = `
+<div>
+  <nav
+    aria-label="Primary Navigation"
+    class="css-zoz7hg-SidebarWrapper-responsiveFlex e78qnej5"
+  >
+    <div
+      class="css-1n625m3-SidebarSectionGroupPrimary-responsiveFlex e78qnej3"
+    >
+      <div
+        class="css-ebgxwp-SidebarSectionGroup-responsiveFlex-SidebarSection e78qnej1"
+      >
+        <div
+          class="css-1hndfv9-SidebarDropdownRoot e169svp67"
+        >
+          <button
+            aria-expanded="false"
+            aria-haspopup="listbox"
+            class="css-1fdb9ax-SidebarDropdownActor e169svp63"
+            data-test-id="sidebar-dropdown"
+            style="outline: none;"
+            type="button"
+          >
+            <span
+              class="avatar e169svp62 css-1qzip9z-StyledBaseAvatar-StyledAvatar ery3g4h1"
+              data-test-id="letter_avatar-avatar"
+              style="width: 32px; height: 32px;"
+              title="org slug"
+            >
+              <svg
+                class="css-h0a6ia-LetterAvatar-imageStyle ewkzefl0"
+                viewBox="0 0 120 120"
+              >
+                <rect
+                  fill="#4674ca"
+                  height="120"
+                  opacity="100%"
+                  rx="15"
+                  ry="15"
+                  width="120"
+                  x="0"
+                  y="0"
+                />
+                <text
+                  fill="#FFFFFF"
+                  font-size="65"
+                  style="dominant-baseline: central;"
+                  text-anchor="middle"
+                  x="50%"
+                  y="50%"
+                >
+                  OS
+                </text>
+              </svg>
+            </span>
+            <div
+              class="css-196hndj-OrgAndUserWrapper e169svp66"
+            >
+              <div
+                class="css-1fmy7d5-TextOverflow-overflowEllipsis-OrgOrUserName e169svp65"
+              >
+                Organization Name
+                 
+                <svg
+                  class="e169svp60 css-5pcn6a-IconChevron-StyledIconChevron"
+                  fill="#FFFFFF"
+                  height="12px"
+                  viewBox="0 0 16 16"
+                  width="12px"
+                >
+                  <path
+                    d="M14,11.75a.74.74,0,0,1-.53-.22L8,6.06,2.53,11.53a.75.75,0,0,1-1.06-1.06l6-6a.75.75,0,0,1,1.06,0l6,6a.75.75,0,0,1,0,1.06A.74.74,0,0,1,14,11.75Z"
+                  />
+                </svg>
+              </div>
+              <div
+                class="css-1dru019-TextOverflow-overflowEllipsis-UserNameOrEmail e169svp64"
+              >
+                Foo Bar
+              </div>
+            </div>
+          </button>
+        </div>
+      </div>
+      <div
+        class="css-peuyen-PrimaryItems e78qnej2"
+      >
+        <div
+          class="css-ebgxwp-SidebarSectionGroup-responsiveFlex-SidebarSection e78qnej1"
+        >
+          <a
+            class="css-12x120d-Link-StyledSidebarItem e1ncrmo85"
+            href="/organizations/org-slug/projects/"
+            id="sidebar-item-projects"
+          >
+            <div
+              class="css-1i4zbf6-SidebarItemWrapper e1ncrmo84"
+            >
+              <span
+                class="css-587bsy-SidebarItemIcon e1ncrmo83"
+              >
+                <svg
+                  fill="currentColor"
+                  height="20px"
+                  viewBox="0 0 16 16"
+                  width="20px"
+                >
+                  <path
+                    d="M5.43,11.92a.73.73,0,0,1-.53-.22L3,9.82A.75.75,0,0,1,3,8.76L4.9,6.88A.75.75,0,0,1,6,7.94L4.61,9.29,6,10.64A.75.75,0,0,1,6,11.7.74.74,0,0,1,5.43,11.92Z"
+                  />
+                  <path
+                    d="M10.58,11.92a.74.74,0,0,1-.53-.22.75.75,0,0,1,0-1.06L11.4,9.29,10.05,7.94a.75.75,0,0,1,1.06-1.06L13,8.76a.74.74,0,0,1,0,1.06L11.11,11.7A.71.71,0,0,1,10.58,11.92Z"
+                  />
+                  <path
+                    d="M15.26,16H.76A.75.75,0,0,1,0,15.26V.76A.74.74,0,0,1,.76,0H5.12A2.75,2.75,0,0,1,6.77.56L8.51,1.87a1.3,1.3,0,0,0,.75.25h6a.76.76,0,0,1,.75.75V15.26A.76.76,0,0,1,15.26,16ZM1.51,14.51h13V3.62H9.26a2.75,2.75,0,0,1-1.65-.55L5.87,1.76h0a1.3,1.3,0,0,0-.75-.25H1.51Z"
+                  />
+                </svg>
+              </span>
+              <span
+                class="css-htovvg-SidebarItemLabel e1ncrmo82"
+              >
+                <div
+                  class="css-1r3o8wo-TextOverflow-overflowEllipsis eyxbn6j0"
+                >
+                  Projects
+                </div>
+              </span>
+            </div>
+          </a>
+          <a
+            class="css-12x120d-Link-StyledSidebarItem e1ncrmo85"
+            href="/organizations/org-slug/issues/?referrer=sidebar"
+            id="sidebar-item-issues"
+          >
+            <div
+              class="css-1i4zbf6-SidebarItemWrapper e1ncrmo84"
+            >
+              <span
+                class="css-587bsy-SidebarItemIcon e1ncrmo83"
+              >
+                <svg
+                  fill="currentColor"
+                  height="20px"
+                  viewBox="0 0 16 16"
+                  width="20px"
+                >
+                  <path
+                    d="M13.24,16H2.74A2.75,2.75,0,0,1,0,13.26V2.76A2.75,2.75,0,0,1,2.74,0h10.5A2.75,2.75,0,0,1,16,2.76v10.5A2.75,2.75,0,0,1,13.24,16ZM2.74,1.51A1.25,1.25,0,0,0,1.49,2.76v10.5a1.25,1.25,0,0,0,1.25,1.25h10.5a1.25,1.25,0,0,0,1.25-1.25V2.76a1.25,1.25,0,0,0-1.25-1.25Z"
+                  />
+                  <rect
+                    height="1.5"
+                    width="14.5"
+                    x="0.74"
+                    y="2.61"
+                  />
+                  <rect
+                    height="1.5"
+                    width="14.5"
+                    x="0.74"
+                    y="5.26"
+                  />
+                  <path
+                    d="M10.79,12.08H5.19a1.25,1.25,0,0,1-1.25-1.25V9.42H.74V7.92h4.7v2.66h5.1V7.92h4.7v1.5H12v1.41A1.25,1.25,0,0,1,10.79,12.08Z"
+                  />
+                </svg>
+              </span>
+              <span
+                class="css-htovvg-SidebarItemLabel e1ncrmo82"
+              >
+                <div
+                  class="css-1r3o8wo-TextOverflow-overflowEllipsis eyxbn6j0"
+                >
+                  Issues
+                </div>
+              </span>
+            </div>
+          </a>
+          <a
+            class="css-12x120d-Link-StyledSidebarItem e1ncrmo85"
+            href="/organizations/org-slug/releases/"
+            id="sidebar-item-releases"
+          >
+            <div
+              class="css-1i4zbf6-SidebarItemWrapper e1ncrmo84"
+            >
+              <span
+                class="css-587bsy-SidebarItemIcon e1ncrmo83"
+              >
+                <svg
+                  fill="currentColor"
+                  height="20px"
+                  viewBox="0 0 16 16"
+                  width="20px"
+                >
+                  <path
+                    d="M14.77,16H1.23A1.26,1.26,0,0,1,0,14.75V6.52A1.25,1.25,0,0,1,1.23,5.27H14.77A1.25,1.25,0,0,1,16,6.52v8.23A1.26,1.26,0,0,1,14.77,16ZM1.48,14.5h13V6.77h-13Z"
+                  />
+                  <path
+                    d="M14.71,6h-1.5V4.14H2.79V6H1.29V3.89A1.25,1.25,0,0,1,2.54,2.64H13.46a1.25,1.25,0,0,1,1.25,1.25Z"
+                  />
+                  <path
+                    d="M13.37,3.39h-1.5V1.5H4.13V3.39H2.63V1.25A1.26,1.26,0,0,1,3.88,0h8.24a1.26,1.26,0,0,1,1.25,1.25Z"
+                  />
+                </svg>
+              </span>
+              <span
+                class="css-htovvg-SidebarItemLabel e1ncrmo82"
+              >
+                <div
+                  class="css-1r3o8wo-TextOverflow-overflowEllipsis eyxbn6j0"
+                >
+                  Releases
+                </div>
+              </span>
+            </div>
+          </a>
+          <a
+            class="css-12x120d-Link-StyledSidebarItem e1ncrmo85"
+            href="/organizations/org-slug/user-feedback/"
+            id="sidebar-item-user-feedback"
+          >
+            <div
+              class="css-1i4zbf6-SidebarItemWrapper e1ncrmo84"
+            >
+              <span
+                class="css-587bsy-SidebarItemIcon e1ncrmo83"
+              >
+                <svg
+                  fill="currentColor"
+                  height="20px"
+                  viewBox="0 0 16 16"
+                  width="20px"
+                >
+                  <path
+                    d="M9.9,15.61H6.1a.74.74,0,0,1-.75-.75v-2.6a.74.74,0,0,1,.75-.75H9.9a.74.74,0,0,1,.75.75v2.6A.74.74,0,0,1,9.9,15.61Zm-3.05-1.5h2.3V13H6.85Z"
+                  />
+                  <path
+                    d="M6.1,14.31H5.37a2.75,2.75,0,0,1-2.75-2.75V3.14A2.75,2.75,0,0,1,5.37.39h5.26a2.75,2.75,0,0,1,2.75,2.75V9.4h-1.5V3.14a1.25,1.25,0,0,0-1.25-1.25H5.37A1.25,1.25,0,0,0,4.12,3.14v8.42a1.25,1.25,0,0,0,1.25,1.25H6.1Z"
+                  />
+                  <path
+                    d="M3.37,10.16H2.2A2.25,2.25,0,0,1,0,7.91V7A2.25,2.25,0,0,1,2.2,4.74H3.37v1.5H2.2A.74.74,0,0,0,1.45,7v.92a.75.75,0,0,0,.75.75H3.37Z"
+                  />
+                  <path
+                    d="M13.8,10.16H12.63V8.66H13.8a.75.75,0,0,0,.75-.75V7a.74.74,0,0,0-.75-.75H12.63V4.74H13.8A2.25,2.25,0,0,1,16.05,7v.92A2.25,2.25,0,0,1,13.8,10.16Z"
+                  />
+                </svg>
+              </span>
+              <span
+                class="css-htovvg-SidebarItemLabel e1ncrmo82"
+              >
+                <div
+                  class="css-1r3o8wo-TextOverflow-overflowEllipsis eyxbn6j0"
+                >
+                  User Feedback
+                </div>
+              </span>
+            </div>
+          </a>
+          <a
+            class="css-12x120d-Link-StyledSidebarItem e1ncrmo85"
+            href="/organizations/org-slug/alerts/rules/"
+            id="sidebar-item-alerts"
+          >
+            <div
+              class="css-1i4zbf6-SidebarItemWrapper e1ncrmo84"
+            >
+              <span
+                class="css-587bsy-SidebarItemIcon e1ncrmo83"
+              >
+                <svg
+                  fill="currentColor"
+                  height="20px"
+                  viewBox="0 0 16 16"
+                  width="20px"
+                >
+                  <path
+                    d="M14.74,16H1.26a.75.75,0,0,1-.75-.75V13.08a1.75,1.75,0,0,1,1.75-1.75H13.74a1.75,1.75,0,0,1,1.75,1.75v2.17A.75.75,0,0,1,14.74,16ZM2,14.5H14V13.08a.25.25,0,0,0-.25-.25H2.26a.25.25,0,0,0-.25.25Z"
+                  />
+                  <path
+                    d="M12.48,12.24,11.21,6.08a1.2,1.2,0,0,0-1.18-1H6a1.2,1.2,0,0,0-1.18,1L3.52,12.24l-1.46-.31L3.32,5.78A2.71,2.71,0,0,1,6,3.61H10a2.71,2.71,0,0,1,2.65,2.17l1.26,6.15Z"
+                  />
+                  <path
+                    d="M4,3.45a.75.75,0,0,1-.64-.36L2.56,1.77a.75.75,0,0,1,.24-1,.76.76,0,0,1,1,.24L4.65,2.3a.76.76,0,0,1-.24,1A.79.79,0,0,1,4,3.45Z"
+                  />
+                  <path
+                    d="M2.15,5.94H.77a.75.75,0,0,1,0-1.5H2.15a.75.75,0,0,1,0,1.5Z"
+                  />
+                  <path
+                    d="M8,2.92a.76.76,0,0,1-.75-.75V.77a.75.75,0,1,1,1.5,0v1.4A.76.76,0,0,1,8,2.92Z"
+                  />
+                  <path
+                    d="M12,3.45a.79.79,0,0,1-.39-.11.76.76,0,0,1-.24-1L12.16,1a.76.76,0,0,1,1-.24.75.75,0,0,1,.24,1l-.82,1.32A.75.75,0,0,1,12,3.45Z"
+                  />
+                  <path
+                    d="M15.23,5.94H13.85a.75.75,0,0,1,0-1.5h1.38a.75.75,0,0,1,0,1.5Z"
+                  />
+                  <path
+                    d="M8,10.63a2,2,0,1,1,2-2A2,2,0,0,1,8,10.63ZM8,8.09a.52.52,0,1,0,.52.52A.52.52,0,0,0,8,8.09Z"
+                  />
+                  <rect
+                    height="2.21"
+                    width="1.5"
+                    x="7.25"
+                    y="9.88"
+                  />
+                </svg>
+              </span>
+              <span
+                class="css-htovvg-SidebarItemLabel e1ncrmo82"
+              >
+                <div
+                  class="css-1r3o8wo-TextOverflow-overflowEllipsis eyxbn6j0"
+                >
+                  Alerts
+                </div>
+              </span>
+            </div>
+          </a>
+        </div>
+        <div
+          class="css-ebgxwp-SidebarSectionGroup-responsiveFlex-SidebarSection e78qnej1"
+        >
+          <a
+            class="css-12x120d-Link-StyledSidebarItem e1ncrmo85"
+            href="/organizations/org-slug/activity/"
+            id="sidebar-item-activity"
+          >
+            <div
+              class="css-1i4zbf6-SidebarItemWrapper e1ncrmo84"
+            >
+              <span
+                class="css-587bsy-SidebarItemIcon e1ncrmo83"
+              >
+                <svg
+                  fill="currentColor"
+                  height="20px"
+                  viewBox="0 0 16 16"
+                  width="20px"
+                >
+                  <path
+                    d="M15.19,8.75H3.7a.75.75,0,1,1,0-1.5H15.19a.75.75,0,0,1,0,1.5Z"
+                  />
+                  <circle
+                    cx="0.75"
+                    cy="8"
+                    r="0.75"
+                  />
+                  <path
+                    d="M15.19,15H3.7a.75.75,0,1,1,0-1.5H15.19a.75.75,0,1,1,0,1.5Z"
+                  />
+                  <circle
+                    cx="0.75"
+                    cy="14.25"
+                    r="0.75"
+                  />
+                  <path
+                    d="M15.19,2.53H3.7A.75.75,0,0,1,3.7,1H15.19a.75.75,0,1,1,0,1.5Z"
+                  />
+                  <circle
+                    cx="0.75"
+                    cy="1.75"
+                    r="0.75"
+                  />
+                </svg>
+              </span>
+              <span
+                class="css-htovvg-SidebarItemLabel e1ncrmo82"
+              >
+                <div
+                  class="css-1r3o8wo-TextOverflow-overflowEllipsis eyxbn6j0"
+                >
+                  Activity
+                </div>
+              </span>
+            </div>
+          </a>
+          <a
+            class="css-12x120d-Link-StyledSidebarItem e1ncrmo85"
+            href="/organizations/org-slug/stats/"
+            id="sidebar-item-stats"
+          >
+            <div
+              class="css-1i4zbf6-SidebarItemWrapper e1ncrmo84"
+            >
+              <span
+                class="css-587bsy-SidebarItemIcon e1ncrmo83"
+              >
+                <svg
+                  fill="currentColor"
+                  height="20px"
+                  viewBox="0 0 16 16"
+                  width="20px"
+                >
+                  <path
+                    d="M13.25,16H2.75A2.75,2.75,0,0,1,0,13.25V2.75A2.75,2.75,0,0,1,2.75,0h10.5A2.75,2.75,0,0,1,16,2.75v10.5A2.75,2.75,0,0,1,13.25,16ZM2.75,1.5A1.25,1.25,0,0,0,1.5,2.75v10.5A1.25,1.25,0,0,0,2.75,14.5h10.5a1.25,1.25,0,0,0,1.25-1.25V2.75A1.25,1.25,0,0,0,13.25,1.5Z"
+                  />
+                  <path
+                    d="M3.59,15.65a.76.76,0,0,1-.75-.75V9.25a.75.75,0,0,1,1.5,0V14.9A.75.75,0,0,1,3.59,15.65Z"
+                  />
+                  <path
+                    d="M6.53,15.65a.76.76,0,0,1-.75-.75V9.25a.75.75,0,0,1,1.5,0V14.9A.76.76,0,0,1,6.53,15.65Z"
+                  />
+                  <path
+                    d="M9.47,15.65a.76.76,0,0,1-.75-.75V7.8a.75.75,0,1,1,1.5,0v7.1A.76.76,0,0,1,9.47,15.65Z"
+                  />
+                  <path
+                    d="M12.41,15.65a.75.75,0,0,1-.75-.75v-10a.75.75,0,1,1,1.5,0V14.9A.76.76,0,0,1,12.41,15.65Z"
+                  />
+                </svg>
+              </span>
+              <span
+                class="css-htovvg-SidebarItemLabel e1ncrmo82"
+              >
+                <div
+                  class="css-1r3o8wo-TextOverflow-overflowEllipsis eyxbn6j0"
+                >
+                  Stats
+                </div>
+              </span>
+            </div>
+          </a>
+        </div>
+        <div
+          class="css-ebgxwp-SidebarSectionGroup-responsiveFlex-SidebarSection e78qnej1"
+        >
+          <a
+            class="css-12x120d-Link-StyledSidebarItem e1ncrmo85"
+            href="/settings/org-slug/"
+            id="sidebar-item-settings"
+          >
+            <div
+              class="css-1i4zbf6-SidebarItemWrapper e1ncrmo84"
+            >
+              <span
+                class="css-587bsy-SidebarItemIcon e1ncrmo83"
+              >
+                <svg
+                  fill="currentColor"
+                  height="20px"
+                  viewBox="0 0 16 16"
+                  width="20px"
+                >
+                  <path
+                    d="M8,10.73A2.73,2.73,0,1,1,10.73,8,2.74,2.74,0,0,1,8,10.73Zm0-4A1.23,1.23,0,1,0,9.23,8,1.23,1.23,0,0,0,8,6.77Z"
+                  />
+                  <path
+                    d="M8.05,16A2.07,2.07,0,0,1,6,13.93a.35.35,0,0,0-.22-.35.37.37,0,0,0-.41.05,2.07,2.07,0,0,1-1.5.64h0a2,2,0,0,1-1.43-.58l0,0a2.07,2.07,0,0,1,0-2.93.37.37,0,0,0,.1-.41.35.35,0,0,0-.31-.21H2.07A2.07,2.07,0,0,1,2.07,6a.35.35,0,0,0,.35-.22.37.37,0,0,0,0-.41,2.07,2.07,0,0,1-.64-1.5,2,2,0,0,1,.58-1.43l0,0a2.07,2.07,0,0,1,2.93,0,.37.37,0,0,0,.41.1l.13,0a.37.37,0,0,0,.13-.27V2.07a2.07,2.07,0,0,1,4.14,0,.36.36,0,0,0,.2.36.35.35,0,0,0,.38-.06,2.07,2.07,0,0,1,1.5-.64h0a2,2,0,0,1,1.43.58l0,0a2.07,2.07,0,0,1,0,2.93.37.37,0,0,0-.1.41.5.5,0,0,1,0,.13.37.37,0,0,0,.27.13h.11a2.07,2.07,0,0,1,0,4.14.36.36,0,0,0-.36.2h0a.36.36,0,0,0,.07.37,2.07,2.07,0,0,1,.64,1.5,2,2,0,0,1-.58,1.43l0,0a2.07,2.07,0,0,1-2.93,0,.37.37,0,0,0-.41-.1.35.35,0,0,0-.21.31v.11A2.07,2.07,0,0,1,8.05,16ZM5.59,12a1.83,1.83,0,0,1,.73.15,1.81,1.81,0,0,1,1.16,1.66.59.59,0,0,0,.57.65.56.56,0,0,0,.57-.57v-.11a1.84,1.84,0,0,1,3.13-1.31.6.6,0,0,0,.84.06l0,0a.56.56,0,0,0,0-.8,1.86,1.86,0,0,1-.41-2.07,1.84,1.84,0,0,1,1.68-1.11A.59.59,0,0,0,14.5,8a.57.57,0,0,0-.57-.57h-.11a1.84,1.84,0,0,1-1.69-1.11,1.33,1.33,0,0,1-.05-.19,1.82,1.82,0,0,1,.43-1.88.6.6,0,0,0,.06-.84l0,0a.56.56,0,0,0-.8,0,1.87,1.87,0,0,1-2.07.41A1.84,1.84,0,0,1,8.57,2.13.59.59,0,0,0,8,1.5a.57.57,0,0,0-.57.57v.11A1.84,1.84,0,0,1,6.32,3.87l-.19,0a1.8,1.8,0,0,1-1.88-.43.6.6,0,0,0-.84-.06l0,0a.56.56,0,0,0,0,.8,1.86,1.86,0,0,1,.41,2.07A1.81,1.81,0,0,1,2.15,7.48a.59.59,0,0,0-.65.57.56.56,0,0,0,.57.57h.11a1.84,1.84,0,0,1,1.31,3.13.6.6,0,0,0-.06.84l0,0a.56.56,0,0,0,.8,0A2,2,0,0,1,5.59,12ZM12.88,10h0Z"
+                  />
+                </svg>
+              </span>
+              <span
+                class="css-htovvg-SidebarItemLabel e1ncrmo82"
+              >
+                <div
+                  class="css-1r3o8wo-TextOverflow-overflowEllipsis eyxbn6j0"
+                >
+                  Settings
+                </div>
+              </span>
+            </div>
+          </a>
+        </div>
+      </div>
+    </div>
+    <div
+      class="css-1vwp36z-SidebarSectionGroup-responsiveFlex e78qnej4"
+    >
+      <div
+        class="css-19ratys-SidebarSectionGroup-responsiveFlex-SidebarSection e78qnej1"
+      />
+      <div
+        class="css-ebgxwp-SidebarSectionGroup-responsiveFlex-SidebarSection e78qnej1"
+      >
+        <div
+          class="css-n88be7-HelpRoot eilhrqr2"
+        >
+          <div
+            aria-expanded="false"
+            aria-haspopup="listbox"
+            class="css-16xbimb-HelpActor eilhrqr1"
+            style="outline: none;"
+          >
+            <a
+              class="css-12x120d-Link-StyledSidebarItem e1ncrmo85"
+              data-test-id="help-sidebar"
+              href="#"
+              id="sidebar-item-help"
+            >
+              <div
+                class="css-1i4zbf6-SidebarItemWrapper e1ncrmo84"
+              >
+                <span
+                  class="css-587bsy-SidebarItemIcon e1ncrmo83"
+                >
+                  <svg
+                    fill="currentColor"
+                    height="20px"
+                    viewBox="0 0 16 16"
+                    width="20px"
+                  >
+                    <path
+                      d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z"
+                    />
+                    <path
+                      d="M5.33,6.19a1.93,1.93,0,0,1,.33-1,2.59,2.59,0,0,1,1-.87,3,3,0,0,1,1.47-.34,3.18,3.18,0,0,1,1.38.29,2.28,2.28,0,0,1,.92.78,2,2,0,0,1,.32,1.07,1.69,1.69,0,0,1-.18.8,2.74,2.74,0,0,1-.44.6l-.92.84a3.92,3.92,0,0,0-.29.29,1,1,0,0,0-.17.23,1.8,1.8,0,0,0-.08.21c0,.07,0,.19-.09.37a.6.6,0,0,1-.64.56.64.64,0,0,1-.47-.19.74.74,0,0,1-.19-.54,1.91,1.91,0,0,1,.51-1.36,7.83,7.83,0,0,1,.63-.59c.22-.2.39-.35.49-.46a1.46,1.46,0,0,0,.26-.34.8.8,0,0,0,.1-.41.93.93,0,0,0-.32-.72,1.13,1.13,0,0,0-.82-.3,1.15,1.15,0,0,0-.87.3,2.33,2.33,0,0,0-.47.88c-.12.4-.35.61-.7.61a.65.65,0,0,1-.5-.22A.63.63,0,0,1,5.33,6.19ZM8,12.07a.84.84,0,0,1-.57-.21.75.75,0,0,1-.24-.59.74.74,0,0,1,.23-.57A.78.78,0,0,1,8,10.47a.74.74,0,0,1,.57.23.78.78,0,0,1,.23.57.76.76,0,0,1-.24.59A.83.83,0,0,1,8,12.07Z"
+                    />
+                  </svg>
+                </span>
+                <span
+                  class="css-htovvg-SidebarItemLabel e1ncrmo82"
+                >
+                  <div
+                    class="css-1r3o8wo-TextOverflow-overflowEllipsis eyxbn6j0"
+                  >
+                    Help
+                  </div>
+                </span>
+              </div>
+            </a>
+          </div>
+        </div>
+        <a
+          class="css-12x120d-Link-StyledSidebarItem e1ncrmo85"
+          data-test-id="sidebar-broadcasts"
+          href="#"
+          id="sidebar-item-broadcasts"
+        >
+          <div
+            class="css-1i4zbf6-SidebarItemWrapper e1ncrmo84"
+          >
+            <span
+              class="css-587bsy-SidebarItemIcon e1ncrmo83"
+            >
+              <svg
+                fill="currentColor"
+                height="20px"
+                viewBox="0 0 16 16"
+                width="20px"
+              >
+                <path
+                  d="M8,10.2A2.2,2.2,0,1,1,10.2,8,2.21,2.21,0,0,1,8,10.2ZM8,7.3a.7.7,0,1,0,.7.7A.7.7,0,0,0,8,7.3Z"
+                />
+                <path
+                  d="M13.13,13.88a.74.74,0,0,1-.53-.22.75.75,0,0,1,0-1.06,6.51,6.51,0,0,0,0-9.2.75.75,0,0,1,0-1.06.75.75,0,0,1,1.06,0,8,8,0,0,1,0,11.32A.73.73,0,0,1,13.13,13.88Zm-10.26,0a.73.73,0,0,1-.53-.22,8,8,0,0,1,0-11.32.75.75,0,0,1,1.06,0,.75.75,0,0,1,0,1.06,6.51,6.51,0,0,0,0,9.2.75.75,0,0,1,0,1.06A.74.74,0,0,1,2.87,13.88Zm8.21-2.05a.74.74,0,0,1-.67-.41.76.76,0,0,1,.15-.88,3.62,3.62,0,0,0,0-5.09.74.74,0,0,1,0-1.06.75.75,0,0,1,1.06,0A5.1,5.1,0,0,1,13.1,8a5,5,0,0,1-1.49,3.61.75.75,0,0,1-.2.15A.78.78,0,0,1,11.08,11.83Zm0-.75h0Zm-6.16.75a.79.79,0,0,1-.53-.22A5.1,5.1,0,0,1,2.9,8,5,5,0,0,1,4.39,4.39l.08-.08a.75.75,0,0,1,1,1.15A3.51,3.51,0,0,0,4.4,8a3.59,3.59,0,0,0,1,2.55.74.74,0,0,1,0,1.06A.75.75,0,0,1,4.92,11.83Z"
+                />
+              </svg>
+            </span>
+            <span
+              class="css-htovvg-SidebarItemLabel e1ncrmo82"
+            >
+              <div
+                class="css-1r3o8wo-TextOverflow-overflowEllipsis eyxbn6j0"
+              >
+                What's new
+              </div>
+            </span>
+            <span
+              class="css-jgcd9c-SidebarItemBadge e1ncrmo81"
+            >
+              1
+            </span>
+          </div>
+        </a>
+        <a
+          active="true"
+          class="css-1xelfzs-Link-StyledSidebarItem-getActiveStyle e1ncrmo85"
+          href="#"
+          id="sidebar-item-statusupdate"
+        >
+          <div
+            class="css-1i4zbf6-SidebarItemWrapper e1ncrmo84"
+          >
+            <span
+              class="css-587bsy-SidebarItemIcon e1ncrmo83"
+            >
+              <svg
+                fill="currentColor"
+                height="20px"
+                viewBox="0 0 16 16"
+                width="20px"
+              >
+                <path
+                  d="M13.87,15.26H2.13A2.1,2.1,0,0,1,0,13.16a2.07,2.07,0,0,1,.27-1L6.17,1.8a2.1,2.1,0,0,1,1.27-1,2.11,2.11,0,0,1,2.39,1L15.7,12.11a2.1,2.1,0,0,1-1.83,3.15ZM8,2.24a.44.44,0,0,0-.16,0,.58.58,0,0,0-.37.28L1.61,12.86a.52.52,0,0,0-.08.3.6.6,0,0,0,.6.6H13.87a.54.54,0,0,0,.3-.08.59.59,0,0,0,.22-.82L8.53,2.54h0a.61.61,0,0,0-.23-.22A.54.54,0,0,0,8,2.24Z"
+                />
+                <path
+                  d="M8,10.37a.75.75,0,0,1-.75-.75V5.92a.75.75,0,0,1,1.5,0v3.7A.74.74,0,0,1,8,10.37Z"
+                />
+                <circle
+                  cx="8"
+                  cy="11.79"
+                  r="0.76"
+                />
+              </svg>
+            </span>
+            <span
+              class="css-htovvg-SidebarItemLabel e1ncrmo82"
+            >
+              <div
+                class="css-1r3o8wo-TextOverflow-overflowEllipsis eyxbn6j0"
+              >
+                Service status
+              </div>
+            </span>
+          </div>
+        </a>
+      </div>
+      <div
+        class="css-ebgxwp-SidebarSectionGroup-responsiveFlex-SidebarSection e78qnej1"
+      >
+        <a
+          class="e78qnej0 css-qynit2-Link-StyledSidebarItem-SidebarCollapseItem e1ncrmo85"
+          data-test-id="sidebar-collapse"
+          href="#"
+          id="sidebar-item-collapse"
+        >
+          <div
+            class="css-1i4zbf6-SidebarItemWrapper e1ncrmo84"
+          >
+            <span
+              class="css-587bsy-SidebarItemIcon e1ncrmo83"
+            >
+              <svg
+                class="css-ubc1ky-IconChevron"
+                fill="currentColor"
+                height="16px"
+                viewBox="0 0 16 16"
+                width="16px"
+              >
+                <path
+                  d="M14,11.75a.74.74,0,0,1-.53-.22L8,6.06,2.53,11.53a.75.75,0,0,1-1.06-1.06l6-6a.75.75,0,0,1,1.06,0l6,6a.75.75,0,0,1,0,1.06A.74.74,0,0,1,14,11.75Z"
+                />
+              </svg>
+            </span>
+            <span
+              class="css-htovvg-SidebarItemLabel e1ncrmo82"
+            >
+              <div
+                class="css-1r3o8wo-TextOverflow-overflowEllipsis eyxbn6j0"
+              >
+                Collapse
+              </div>
+            </span>
+          </div>
+        </a>
+      </div>
+    </div>
+  </nav>
+</div>
+`;
+
+exports[`Sidebar can toggle help menu 1`] = `
+<div>
+  <nav
+    aria-label="Primary Navigation"
+    class="css-zoz7hg-SidebarWrapper-responsiveFlex e78qnej5"
+  >
+    <div
+      class="css-1n625m3-SidebarSectionGroupPrimary-responsiveFlex e78qnej3"
+    >
+      <div
+        class="css-ebgxwp-SidebarSectionGroup-responsiveFlex-SidebarSection e78qnej1"
+      >
+        <div
+          class="css-1hndfv9-SidebarDropdownRoot e169svp67"
+        >
+          <button
+            aria-expanded="false"
+            aria-haspopup="listbox"
+            class="css-1fdb9ax-SidebarDropdownActor e169svp63"
+            data-test-id="sidebar-dropdown"
+            style="outline: none;"
+            type="button"
+          >
+            <span
+              class="avatar e169svp62 css-1qzip9z-StyledBaseAvatar-StyledAvatar ery3g4h1"
+              data-test-id="letter_avatar-avatar"
+              style="width: 32px; height: 32px;"
+              title="org slug"
+            >
+              <svg
+                class="css-h0a6ia-LetterAvatar-imageStyle ewkzefl0"
+                viewBox="0 0 120 120"
+              >
+                <rect
+                  fill="#4674ca"
+                  height="120"
+                  opacity="100%"
+                  rx="15"
+                  ry="15"
+                  width="120"
+                  x="0"
+                  y="0"
+                />
+                <text
+                  fill="#FFFFFF"
+                  font-size="65"
+                  style="dominant-baseline: central;"
+                  text-anchor="middle"
+                  x="50%"
+                  y="50%"
+                >
+                  OS
+                </text>
+              </svg>
+            </span>
+            <div
+              class="css-196hndj-OrgAndUserWrapper e169svp66"
+            >
+              <div
+                class="css-1fmy7d5-TextOverflow-overflowEllipsis-OrgOrUserName e169svp65"
+              >
+                Organization Name
+                 
+                <svg
+                  class="e169svp60 css-5pcn6a-IconChevron-StyledIconChevron"
+                  fill="#FFFFFF"
+                  height="12px"
+                  viewBox="0 0 16 16"
+                  width="12px"
+                >
+                  <path
+                    d="M14,11.75a.74.74,0,0,1-.53-.22L8,6.06,2.53,11.53a.75.75,0,0,1-1.06-1.06l6-6a.75.75,0,0,1,1.06,0l6,6a.75.75,0,0,1,0,1.06A.74.74,0,0,1,14,11.75Z"
+                  />
+                </svg>
+              </div>
+              <div
+                class="css-1dru019-TextOverflow-overflowEllipsis-UserNameOrEmail e169svp64"
+              >
+                Foo Bar
+              </div>
+            </div>
+          </button>
+        </div>
+      </div>
+      <div
+        class="css-peuyen-PrimaryItems e78qnej2"
+      >
+        <div
+          class="css-ebgxwp-SidebarSectionGroup-responsiveFlex-SidebarSection e78qnej1"
+        >
+          <a
+            class="css-12x120d-Link-StyledSidebarItem e1ncrmo85"
+            href="/organizations/org-slug/projects/"
+            id="sidebar-item-projects"
+          >
+            <div
+              class="css-1i4zbf6-SidebarItemWrapper e1ncrmo84"
+            >
+              <span
+                class="css-587bsy-SidebarItemIcon e1ncrmo83"
+              >
+                <svg
+                  fill="currentColor"
+                  height="20px"
+                  viewBox="0 0 16 16"
+                  width="20px"
+                >
+                  <path
+                    d="M5.43,11.92a.73.73,0,0,1-.53-.22L3,9.82A.75.75,0,0,1,3,8.76L4.9,6.88A.75.75,0,0,1,6,7.94L4.61,9.29,6,10.64A.75.75,0,0,1,6,11.7.74.74,0,0,1,5.43,11.92Z"
+                  />
+                  <path
+                    d="M10.58,11.92a.74.74,0,0,1-.53-.22.75.75,0,0,1,0-1.06L11.4,9.29,10.05,7.94a.75.75,0,0,1,1.06-1.06L13,8.76a.74.74,0,0,1,0,1.06L11.11,11.7A.71.71,0,0,1,10.58,11.92Z"
+                  />
+                  <path
+                    d="M15.26,16H.76A.75.75,0,0,1,0,15.26V.76A.74.74,0,0,1,.76,0H5.12A2.75,2.75,0,0,1,6.77.56L8.51,1.87a1.3,1.3,0,0,0,.75.25h6a.76.76,0,0,1,.75.75V15.26A.76.76,0,0,1,15.26,16ZM1.51,14.51h13V3.62H9.26a2.75,2.75,0,0,1-1.65-.55L5.87,1.76h0a1.3,1.3,0,0,0-.75-.25H1.51Z"
+                  />
+                </svg>
+              </span>
+              <span
+                class="css-htovvg-SidebarItemLabel e1ncrmo82"
+              >
+                <div
+                  class="css-1r3o8wo-TextOverflow-overflowEllipsis eyxbn6j0"
+                >
+                  Projects
+                </div>
+              </span>
+            </div>
+          </a>
+          <a
+            class="css-12x120d-Link-StyledSidebarItem e1ncrmo85"
+            href="/organizations/org-slug/issues/?referrer=sidebar"
+            id="sidebar-item-issues"
+          >
+            <div
+              class="css-1i4zbf6-SidebarItemWrapper e1ncrmo84"
+            >
+              <span
+                class="css-587bsy-SidebarItemIcon e1ncrmo83"
+              >
+                <svg
+                  fill="currentColor"
+                  height="20px"
+                  viewBox="0 0 16 16"
+                  width="20px"
+                >
+                  <path
+                    d="M13.24,16H2.74A2.75,2.75,0,0,1,0,13.26V2.76A2.75,2.75,0,0,1,2.74,0h10.5A2.75,2.75,0,0,1,16,2.76v10.5A2.75,2.75,0,0,1,13.24,16ZM2.74,1.51A1.25,1.25,0,0,0,1.49,2.76v10.5a1.25,1.25,0,0,0,1.25,1.25h10.5a1.25,1.25,0,0,0,1.25-1.25V2.76a1.25,1.25,0,0,0-1.25-1.25Z"
+                  />
+                  <rect
+                    height="1.5"
+                    width="14.5"
+                    x="0.74"
+                    y="2.61"
+                  />
+                  <rect
+                    height="1.5"
+                    width="14.5"
+                    x="0.74"
+                    y="5.26"
+                  />
+                  <path
+                    d="M10.79,12.08H5.19a1.25,1.25,0,0,1-1.25-1.25V9.42H.74V7.92h4.7v2.66h5.1V7.92h4.7v1.5H12v1.41A1.25,1.25,0,0,1,10.79,12.08Z"
+                  />
+                </svg>
+              </span>
+              <span
+                class="css-htovvg-SidebarItemLabel e1ncrmo82"
+              >
+                <div
+                  class="css-1r3o8wo-TextOverflow-overflowEllipsis eyxbn6j0"
+                >
+                  Issues
+                </div>
+              </span>
+            </div>
+          </a>
+          <a
+            class="css-12x120d-Link-StyledSidebarItem e1ncrmo85"
+            href="/organizations/org-slug/releases/"
+            id="sidebar-item-releases"
+          >
+            <div
+              class="css-1i4zbf6-SidebarItemWrapper e1ncrmo84"
+            >
+              <span
+                class="css-587bsy-SidebarItemIcon e1ncrmo83"
+              >
+                <svg
+                  fill="currentColor"
+                  height="20px"
+                  viewBox="0 0 16 16"
+                  width="20px"
+                >
+                  <path
+                    d="M14.77,16H1.23A1.26,1.26,0,0,1,0,14.75V6.52A1.25,1.25,0,0,1,1.23,5.27H14.77A1.25,1.25,0,0,1,16,6.52v8.23A1.26,1.26,0,0,1,14.77,16ZM1.48,14.5h13V6.77h-13Z"
+                  />
+                  <path
+                    d="M14.71,6h-1.5V4.14H2.79V6H1.29V3.89A1.25,1.25,0,0,1,2.54,2.64H13.46a1.25,1.25,0,0,1,1.25,1.25Z"
+                  />
+                  <path
+                    d="M13.37,3.39h-1.5V1.5H4.13V3.39H2.63V1.25A1.26,1.26,0,0,1,3.88,0h8.24a1.26,1.26,0,0,1,1.25,1.25Z"
+                  />
+                </svg>
+              </span>
+              <span
+                class="css-htovvg-SidebarItemLabel e1ncrmo82"
+              >
+                <div
+                  class="css-1r3o8wo-TextOverflow-overflowEllipsis eyxbn6j0"
+                >
+                  Releases
+                </div>
+              </span>
+            </div>
+          </a>
+          <a
+            class="css-12x120d-Link-StyledSidebarItem e1ncrmo85"
+            href="/organizations/org-slug/user-feedback/"
+            id="sidebar-item-user-feedback"
+          >
+            <div
+              class="css-1i4zbf6-SidebarItemWrapper e1ncrmo84"
+            >
+              <span
+                class="css-587bsy-SidebarItemIcon e1ncrmo83"
+              >
+                <svg
+                  fill="currentColor"
+                  height="20px"
+                  viewBox="0 0 16 16"
+                  width="20px"
+                >
+                  <path
+                    d="M9.9,15.61H6.1a.74.74,0,0,1-.75-.75v-2.6a.74.74,0,0,1,.75-.75H9.9a.74.74,0,0,1,.75.75v2.6A.74.74,0,0,1,9.9,15.61Zm-3.05-1.5h2.3V13H6.85Z"
+                  />
+                  <path
+                    d="M6.1,14.31H5.37a2.75,2.75,0,0,1-2.75-2.75V3.14A2.75,2.75,0,0,1,5.37.39h5.26a2.75,2.75,0,0,1,2.75,2.75V9.4h-1.5V3.14a1.25,1.25,0,0,0-1.25-1.25H5.37A1.25,1.25,0,0,0,4.12,3.14v8.42a1.25,1.25,0,0,0,1.25,1.25H6.1Z"
+                  />
+                  <path
+                    d="M3.37,10.16H2.2A2.25,2.25,0,0,1,0,7.91V7A2.25,2.25,0,0,1,2.2,4.74H3.37v1.5H2.2A.74.74,0,0,0,1.45,7v.92a.75.75,0,0,0,.75.75H3.37Z"
+                  />
+                  <path
+                    d="M13.8,10.16H12.63V8.66H13.8a.75.75,0,0,0,.75-.75V7a.74.74,0,0,0-.75-.75H12.63V4.74H13.8A2.25,2.25,0,0,1,16.05,7v.92A2.25,2.25,0,0,1,13.8,10.16Z"
+                  />
+                </svg>
+              </span>
+              <span
+                class="css-htovvg-SidebarItemLabel e1ncrmo82"
+              >
+                <div
+                  class="css-1r3o8wo-TextOverflow-overflowEllipsis eyxbn6j0"
+                >
+                  User Feedback
+                </div>
+              </span>
+            </div>
+          </a>
+          <a
+            class="css-12x120d-Link-StyledSidebarItem e1ncrmo85"
+            href="/organizations/org-slug/alerts/rules/"
+            id="sidebar-item-alerts"
+          >
+            <div
+              class="css-1i4zbf6-SidebarItemWrapper e1ncrmo84"
+            >
+              <span
+                class="css-587bsy-SidebarItemIcon e1ncrmo83"
+              >
+                <svg
+                  fill="currentColor"
+                  height="20px"
+                  viewBox="0 0 16 16"
+                  width="20px"
+                >
+                  <path
+                    d="M14.74,16H1.26a.75.75,0,0,1-.75-.75V13.08a1.75,1.75,0,0,1,1.75-1.75H13.74a1.75,1.75,0,0,1,1.75,1.75v2.17A.75.75,0,0,1,14.74,16ZM2,14.5H14V13.08a.25.25,0,0,0-.25-.25H2.26a.25.25,0,0,0-.25.25Z"
+                  />
+                  <path
+                    d="M12.48,12.24,11.21,6.08a1.2,1.2,0,0,0-1.18-1H6a1.2,1.2,0,0,0-1.18,1L3.52,12.24l-1.46-.31L3.32,5.78A2.71,2.71,0,0,1,6,3.61H10a2.71,2.71,0,0,1,2.65,2.17l1.26,6.15Z"
+                  />
+                  <path
+                    d="M4,3.45a.75.75,0,0,1-.64-.36L2.56,1.77a.75.75,0,0,1,.24-1,.76.76,0,0,1,1,.24L4.65,2.3a.76.76,0,0,1-.24,1A.79.79,0,0,1,4,3.45Z"
+                  />
+                  <path
+                    d="M2.15,5.94H.77a.75.75,0,0,1,0-1.5H2.15a.75.75,0,0,1,0,1.5Z"
+                  />
+                  <path
+                    d="M8,2.92a.76.76,0,0,1-.75-.75V.77a.75.75,0,1,1,1.5,0v1.4A.76.76,0,0,1,8,2.92Z"
+                  />
+                  <path
+                    d="M12,3.45a.79.79,0,0,1-.39-.11.76.76,0,0,1-.24-1L12.16,1a.76.76,0,0,1,1-.24.75.75,0,0,1,.24,1l-.82,1.32A.75.75,0,0,1,12,3.45Z"
+                  />
+                  <path
+                    d="M15.23,5.94H13.85a.75.75,0,0,1,0-1.5h1.38a.75.75,0,0,1,0,1.5Z"
+                  />
+                  <path
+                    d="M8,10.63a2,2,0,1,1,2-2A2,2,0,0,1,8,10.63ZM8,8.09a.52.52,0,1,0,.52.52A.52.52,0,0,0,8,8.09Z"
+                  />
+                  <rect
+                    height="2.21"
+                    width="1.5"
+                    x="7.25"
+                    y="9.88"
+                  />
+                </svg>
+              </span>
+              <span
+                class="css-htovvg-SidebarItemLabel e1ncrmo82"
+              >
+                <div
+                  class="css-1r3o8wo-TextOverflow-overflowEllipsis eyxbn6j0"
+                >
+                  Alerts
+                </div>
+              </span>
+            </div>
+          </a>
+        </div>
+        <div
+          class="css-ebgxwp-SidebarSectionGroup-responsiveFlex-SidebarSection e78qnej1"
+        >
+          <a
+            class="css-12x120d-Link-StyledSidebarItem e1ncrmo85"
+            href="/organizations/org-slug/activity/"
+            id="sidebar-item-activity"
+          >
+            <div
+              class="css-1i4zbf6-SidebarItemWrapper e1ncrmo84"
+            >
+              <span
+                class="css-587bsy-SidebarItemIcon e1ncrmo83"
+              >
+                <svg
+                  fill="currentColor"
+                  height="20px"
+                  viewBox="0 0 16 16"
+                  width="20px"
+                >
+                  <path
+                    d="M15.19,8.75H3.7a.75.75,0,1,1,0-1.5H15.19a.75.75,0,0,1,0,1.5Z"
+                  />
+                  <circle
+                    cx="0.75"
+                    cy="8"
+                    r="0.75"
+                  />
+                  <path
+                    d="M15.19,15H3.7a.75.75,0,1,1,0-1.5H15.19a.75.75,0,1,1,0,1.5Z"
+                  />
+                  <circle
+                    cx="0.75"
+                    cy="14.25"
+                    r="0.75"
+                  />
+                  <path
+                    d="M15.19,2.53H3.7A.75.75,0,0,1,3.7,1H15.19a.75.75,0,1,1,0,1.5Z"
+                  />
+                  <circle
+                    cx="0.75"
+                    cy="1.75"
+                    r="0.75"
+                  />
+                </svg>
+              </span>
+              <span
+                class="css-htovvg-SidebarItemLabel e1ncrmo82"
+              >
+                <div
+                  class="css-1r3o8wo-TextOverflow-overflowEllipsis eyxbn6j0"
+                >
+                  Activity
+                </div>
+              </span>
+            </div>
+          </a>
+          <a
+            class="css-12x120d-Link-StyledSidebarItem e1ncrmo85"
+            href="/organizations/org-slug/stats/"
+            id="sidebar-item-stats"
+          >
+            <div
+              class="css-1i4zbf6-SidebarItemWrapper e1ncrmo84"
+            >
+              <span
+                class="css-587bsy-SidebarItemIcon e1ncrmo83"
+              >
+                <svg
+                  fill="currentColor"
+                  height="20px"
+                  viewBox="0 0 16 16"
+                  width="20px"
+                >
+                  <path
+                    d="M13.25,16H2.75A2.75,2.75,0,0,1,0,13.25V2.75A2.75,2.75,0,0,1,2.75,0h10.5A2.75,2.75,0,0,1,16,2.75v10.5A2.75,2.75,0,0,1,13.25,16ZM2.75,1.5A1.25,1.25,0,0,0,1.5,2.75v10.5A1.25,1.25,0,0,0,2.75,14.5h10.5a1.25,1.25,0,0,0,1.25-1.25V2.75A1.25,1.25,0,0,0,13.25,1.5Z"
+                  />
+                  <path
+                    d="M3.59,15.65a.76.76,0,0,1-.75-.75V9.25a.75.75,0,0,1,1.5,0V14.9A.75.75,0,0,1,3.59,15.65Z"
+                  />
+                  <path
+                    d="M6.53,15.65a.76.76,0,0,1-.75-.75V9.25a.75.75,0,0,1,1.5,0V14.9A.76.76,0,0,1,6.53,15.65Z"
+                  />
+                  <path
+                    d="M9.47,15.65a.76.76,0,0,1-.75-.75V7.8a.75.75,0,1,1,1.5,0v7.1A.76.76,0,0,1,9.47,15.65Z"
+                  />
+                  <path
+                    d="M12.41,15.65a.75.75,0,0,1-.75-.75v-10a.75.75,0,1,1,1.5,0V14.9A.76.76,0,0,1,12.41,15.65Z"
+                  />
+                </svg>
+              </span>
+              <span
+                class="css-htovvg-SidebarItemLabel e1ncrmo82"
+              >
+                <div
+                  class="css-1r3o8wo-TextOverflow-overflowEllipsis eyxbn6j0"
+                >
+                  Stats
+                </div>
+              </span>
+            </div>
+          </a>
+        </div>
+        <div
+          class="css-ebgxwp-SidebarSectionGroup-responsiveFlex-SidebarSection e78qnej1"
+        >
+          <a
+            class="css-12x120d-Link-StyledSidebarItem e1ncrmo85"
+            href="/settings/org-slug/"
+            id="sidebar-item-settings"
+          >
+            <div
+              class="css-1i4zbf6-SidebarItemWrapper e1ncrmo84"
+            >
+              <span
+                class="css-587bsy-SidebarItemIcon e1ncrmo83"
+              >
+                <svg
+                  fill="currentColor"
+                  height="20px"
+                  viewBox="0 0 16 16"
+                  width="20px"
+                >
+                  <path
+                    d="M8,10.73A2.73,2.73,0,1,1,10.73,8,2.74,2.74,0,0,1,8,10.73Zm0-4A1.23,1.23,0,1,0,9.23,8,1.23,1.23,0,0,0,8,6.77Z"
+                  />
+                  <path
+                    d="M8.05,16A2.07,2.07,0,0,1,6,13.93a.35.35,0,0,0-.22-.35.37.37,0,0,0-.41.05,2.07,2.07,0,0,1-1.5.64h0a2,2,0,0,1-1.43-.58l0,0a2.07,2.07,0,0,1,0-2.93.37.37,0,0,0,.1-.41.35.35,0,0,0-.31-.21H2.07A2.07,2.07,0,0,1,2.07,6a.35.35,0,0,0,.35-.22.37.37,0,0,0,0-.41,2.07,2.07,0,0,1-.64-1.5,2,2,0,0,1,.58-1.43l0,0a2.07,2.07,0,0,1,2.93,0,.37.37,0,0,0,.41.1l.13,0a.37.37,0,0,0,.13-.27V2.07a2.07,2.07,0,0,1,4.14,0,.36.36,0,0,0,.2.36.35.35,0,0,0,.38-.06,2.07,2.07,0,0,1,1.5-.64h0a2,2,0,0,1,1.43.58l0,0a2.07,2.07,0,0,1,0,2.93.37.37,0,0,0-.1.41.5.5,0,0,1,0,.13.37.37,0,0,0,.27.13h.11a2.07,2.07,0,0,1,0,4.14.36.36,0,0,0-.36.2h0a.36.36,0,0,0,.07.37,2.07,2.07,0,0,1,.64,1.5,2,2,0,0,1-.58,1.43l0,0a2.07,2.07,0,0,1-2.93,0,.37.37,0,0,0-.41-.1.35.35,0,0,0-.21.31v.11A2.07,2.07,0,0,1,8.05,16ZM5.59,12a1.83,1.83,0,0,1,.73.15,1.81,1.81,0,0,1,1.16,1.66.59.59,0,0,0,.57.65.56.56,0,0,0,.57-.57v-.11a1.84,1.84,0,0,1,3.13-1.31.6.6,0,0,0,.84.06l0,0a.56.56,0,0,0,0-.8,1.86,1.86,0,0,1-.41-2.07,1.84,1.84,0,0,1,1.68-1.11A.59.59,0,0,0,14.5,8a.57.57,0,0,0-.57-.57h-.11a1.84,1.84,0,0,1-1.69-1.11,1.33,1.33,0,0,1-.05-.19,1.82,1.82,0,0,1,.43-1.88.6.6,0,0,0,.06-.84l0,0a.56.56,0,0,0-.8,0,1.87,1.87,0,0,1-2.07.41A1.84,1.84,0,0,1,8.57,2.13.59.59,0,0,0,8,1.5a.57.57,0,0,0-.57.57v.11A1.84,1.84,0,0,1,6.32,3.87l-.19,0a1.8,1.8,0,0,1-1.88-.43.6.6,0,0,0-.84-.06l0,0a.56.56,0,0,0,0,.8,1.86,1.86,0,0,1,.41,2.07A1.81,1.81,0,0,1,2.15,7.48a.59.59,0,0,0-.65.57.56.56,0,0,0,.57.57h.11a1.84,1.84,0,0,1,1.31,3.13.6.6,0,0,0-.06.84l0,0a.56.56,0,0,0,.8,0A2,2,0,0,1,5.59,12ZM12.88,10h0Z"
+                  />
+                </svg>
+              </span>
+              <span
+                class="css-htovvg-SidebarItemLabel e1ncrmo82"
+              >
+                <div
+                  class="css-1r3o8wo-TextOverflow-overflowEllipsis eyxbn6j0"
+                >
+                  Settings
+                </div>
+              </span>
+            </div>
+          </a>
+        </div>
+      </div>
+    </div>
+    <div
+      class="css-1vwp36z-SidebarSectionGroup-responsiveFlex e78qnej4"
+    >
+      <div
+        class="css-19ratys-SidebarSectionGroup-responsiveFlex-SidebarSection e78qnej1"
+      />
+      <div
+        class="css-ebgxwp-SidebarSectionGroup-responsiveFlex-SidebarSection e78qnej1"
+      >
+        <div
+          class="css-n88be7-HelpRoot eilhrqr2"
+        >
+          <div
+            aria-expanded="true"
+            aria-haspopup="listbox"
+            class="css-16xbimb-HelpActor eilhrqr1"
+            style="outline: none;"
+          >
+            <a
+              class="css-12x120d-Link-StyledSidebarItem e1ncrmo85"
+              data-test-id="help-sidebar"
+              href="#"
+              id="sidebar-item-help"
+            >
+              <div
+                class="css-1i4zbf6-SidebarItemWrapper e1ncrmo84"
+              >
+                <span
+                  class="css-587bsy-SidebarItemIcon e1ncrmo83"
+                >
+                  <svg
+                    fill="currentColor"
+                    height="20px"
+                    viewBox="0 0 16 16"
+                    width="20px"
+                  >
+                    <path
+                      d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z"
+                    />
+                    <path
+                      d="M5.33,6.19a1.93,1.93,0,0,1,.33-1,2.59,2.59,0,0,1,1-.87,3,3,0,0,1,1.47-.34,3.18,3.18,0,0,1,1.38.29,2.28,2.28,0,0,1,.92.78,2,2,0,0,1,.32,1.07,1.69,1.69,0,0,1-.18.8,2.74,2.74,0,0,1-.44.6l-.92.84a3.92,3.92,0,0,0-.29.29,1,1,0,0,0-.17.23,1.8,1.8,0,0,0-.08.21c0,.07,0,.19-.09.37a.6.6,0,0,1-.64.56.64.64,0,0,1-.47-.19.74.74,0,0,1-.19-.54,1.91,1.91,0,0,1,.51-1.36,7.83,7.83,0,0,1,.63-.59c.22-.2.39-.35.49-.46a1.46,1.46,0,0,0,.26-.34.8.8,0,0,0,.1-.41.93.93,0,0,0-.32-.72,1.13,1.13,0,0,0-.82-.3,1.15,1.15,0,0,0-.87.3,2.33,2.33,0,0,0-.47.88c-.12.4-.35.61-.7.61a.65.65,0,0,1-.5-.22A.63.63,0,0,1,5.33,6.19ZM8,12.07a.84.84,0,0,1-.57-.21.75.75,0,0,1-.24-.59.74.74,0,0,1,.23-.57A.78.78,0,0,1,8,10.47a.74.74,0,0,1,.57.23.78.78,0,0,1,.23.57.76.76,0,0,1-.24.59A.83.83,0,0,1,8,12.07Z"
+                    />
+                  </svg>
+                </span>
+                <span
+                  class="css-htovvg-SidebarItemLabel e1ncrmo82"
+                >
+                  <div
+                    class="css-1r3o8wo-TextOverflow-overflowEllipsis eyxbn6j0"
+                  >
+                    Help
+                  </div>
+                </span>
+              </div>
+            </a>
+          </div>
+          <div
+            class="css-12tga25-HelpMenu-SidebarDropdownMenu eilhrqr0"
+            role="listbox"
+          >
+            <div
+              class="css-tng1e7-StyledSidebarMenuItemLink-menuItemStyles erdj4vr0"
+              data-test-id="search-docs-and-faqs"
+              tabindex="0"
+            >
+              <span
+                class="css-uvye8q-MenuItemLabel-MenuItemLabel erdj4vr1"
+              >
+                Search Support, Docs and More
+              </span>
+            </div>
+            <a
+              class="erdj4vr0 css-1huhaxd-Anchor-StyledSidebarMenuItemLink-menuItemStyles ehytxfi0"
+              href="https://help.sentry.io/"
+              rel="noreferrer noopener"
+              target="_blank"
+            >
+              <span
+                class="css-iiqoom-MenuItemLabel-MenuItemLabel erdj4vr1"
+              >
+                Visit Help Center
+              </span>
+            </a>
+          </div>
+        </div>
+        <a
+          class="css-12x120d-Link-StyledSidebarItem e1ncrmo85"
+          data-test-id="sidebar-broadcasts"
+          href="#"
+          id="sidebar-item-broadcasts"
+        >
+          <div
+            class="css-1i4zbf6-SidebarItemWrapper e1ncrmo84"
+          >
+            <span
+              class="css-587bsy-SidebarItemIcon e1ncrmo83"
+            >
+              <svg
+                fill="currentColor"
+                height="20px"
+                viewBox="0 0 16 16"
+                width="20px"
+              >
+                <path
+                  d="M8,10.2A2.2,2.2,0,1,1,10.2,8,2.21,2.21,0,0,1,8,10.2ZM8,7.3a.7.7,0,1,0,.7.7A.7.7,0,0,0,8,7.3Z"
+                />
+                <path
+                  d="M13.13,13.88a.74.74,0,0,1-.53-.22.75.75,0,0,1,0-1.06,6.51,6.51,0,0,0,0-9.2.75.75,0,0,1,0-1.06.75.75,0,0,1,1.06,0,8,8,0,0,1,0,11.32A.73.73,0,0,1,13.13,13.88Zm-10.26,0a.73.73,0,0,1-.53-.22,8,8,0,0,1,0-11.32.75.75,0,0,1,1.06,0,.75.75,0,0,1,0,1.06,6.51,6.51,0,0,0,0,9.2.75.75,0,0,1,0,1.06A.74.74,0,0,1,2.87,13.88Zm8.21-2.05a.74.74,0,0,1-.67-.41.76.76,0,0,1,.15-.88,3.62,3.62,0,0,0,0-5.09.74.74,0,0,1,0-1.06.75.75,0,0,1,1.06,0A5.1,5.1,0,0,1,13.1,8a5,5,0,0,1-1.49,3.61.75.75,0,0,1-.2.15A.78.78,0,0,1,11.08,11.83Zm0-.75h0Zm-6.16.75a.79.79,0,0,1-.53-.22A5.1,5.1,0,0,1,2.9,8,5,5,0,0,1,4.39,4.39l.08-.08a.75.75,0,0,1,1,1.15A3.51,3.51,0,0,0,4.4,8a3.59,3.59,0,0,0,1,2.55.74.74,0,0,1,0,1.06A.75.75,0,0,1,4.92,11.83Z"
+                />
+              </svg>
+            </span>
+            <span
+              class="css-htovvg-SidebarItemLabel e1ncrmo82"
+            >
+              <div
+                class="css-1r3o8wo-TextOverflow-overflowEllipsis eyxbn6j0"
+              >
+                What's new
+              </div>
+            </span>
+            <span
+              class="css-jgcd9c-SidebarItemBadge e1ncrmo81"
+            >
+              1
+            </span>
+          </div>
+        </a>
+      </div>
+      <div
+        class="css-ebgxwp-SidebarSectionGroup-responsiveFlex-SidebarSection e78qnej1"
+      >
+        <a
+          class="e78qnej0 css-qynit2-Link-StyledSidebarItem-SidebarCollapseItem e1ncrmo85"
+          data-test-id="sidebar-collapse"
+          href="#"
+          id="sidebar-item-collapse"
+        >
+          <div
+            class="css-1i4zbf6-SidebarItemWrapper e1ncrmo84"
+          >
+            <span
+              class="css-587bsy-SidebarItemIcon e1ncrmo83"
+            >
+              <svg
+                class="css-ubc1ky-IconChevron"
+                fill="currentColor"
+                height="16px"
+                viewBox="0 0 16 16"
+                width="16px"
+              >
+                <path
+                  d="M14,11.75a.74.74,0,0,1-.53-.22L8,6.06,2.53,11.53a.75.75,0,0,1-1.06-1.06l6-6a.75.75,0,0,1,1.06,0l6,6a.75.75,0,0,1,0,1.06A.74.74,0,0,1,14,11.75Z"
+                />
+              </svg>
+            </span>
+            <span
+              class="css-htovvg-SidebarItemLabel e1ncrmo82"
+            >
+              <div
+                class="css-1r3o8wo-TextOverflow-overflowEllipsis eyxbn6j0"
+              >
+                Collapse
+              </div>
+            </span>
+          </div>
+        </a>
+      </div>
+    </div>
+  </nav>
+</div>
+`;
+
+exports[`Sidebar renders without org 1`] = `
+<div>
+  <nav
+    aria-label="Primary Navigation"
+    class="css-zoz7hg-SidebarWrapper-responsiveFlex e78qnej5"
+  >
+    <div
+      class="css-1n625m3-SidebarSectionGroupPrimary-responsiveFlex e78qnej3"
+    >
+      <div
+        class="css-ebgxwp-SidebarSectionGroup-responsiveFlex-SidebarSection e78qnej1"
+      >
+        <div
+          class="css-1hndfv9-SidebarDropdownRoot e169svp67"
+        >
+          <button
+            aria-expanded="true"
+            aria-haspopup="listbox"
+            class="css-1fdb9ax-SidebarDropdownActor e169svp63"
+            data-test-id="sidebar-dropdown"
+            style="outline: none;"
+            type="button"
+          >
+            <span
+              class="avatar e169svp62 css-1qzip9z-StyledBaseAvatar-StyledAvatar ery3g4h1"
+              data-test-id="letter_avatar-avatar"
+              style="width: 32px; height: 32px;"
+              title="Foo Bar"
+            >
+              <svg
+                class="css-h0a6ia-LetterAvatar-imageStyle ewkzefl0"
+                viewBox="0 0 120 120"
+              >
+                <rect
+                  fill="#315cac"
+                  height="120"
+                  opacity="100%"
+                  rx="15"
+                  ry="15"
+                  width="120"
+                  x="0"
+                  y="0"
+                />
+                <text
+                  fill="#FFFFFF"
+                  font-size="65"
+                  style="dominant-baseline: central;"
+                  text-anchor="middle"
+                  x="50%"
+                  y="50%"
+                >
+                  FB
+                </text>
+              </svg>
+            </span>
+            <div
+              class="css-196hndj-OrgAndUserWrapper e169svp66"
+            >
+              <div
+                class="css-1fmy7d5-TextOverflow-overflowEllipsis-OrgOrUserName e169svp65"
+              >
+                Foo Bar
+                 
+                <svg
+                  class="e169svp60 css-5pcn6a-IconChevron-StyledIconChevron"
+                  fill="#FFFFFF"
+                  height="12px"
+                  viewBox="0 0 16 16"
+                  width="12px"
+                >
+                  <path
+                    d="M14,11.75a.74.74,0,0,1-.53-.22L8,6.06,2.53,11.53a.75.75,0,0,1-1.06-1.06l6-6a.75.75,0,0,1,1.06,0l6,6a.75.75,0,0,1,0,1.06A.74.74,0,0,1,14,11.75Z"
+                  />
+                </svg>
+              </div>
+              <div
+                class="css-1dru019-TextOverflow-overflowEllipsis-UserNameOrEmail e169svp64"
+              >
+                foo@example.com
+              </div>
+            </div>
+          </button>
+          <div
+            class="css-aon3u8-OrgAndUserMenu-SidebarDropdownMenu e169svp61"
+            role="listbox"
+          >
+            <a
+              class="css-1pc3u7n-Link-UserSummary-menuItemStyles e169svp69"
+              href="/settings/account/details/"
+            >
+              <div
+                class="e169svp68 css-v6z8s3-StyledUserBadge-UserBadgeNoOverflow ex0sq0q4"
+              >
+                <span
+                  class="avatar ex0sq0q0 css-1be6esu-StyledBaseAvatar-StyledAvatar ery3g4h1"
+                  data-test-id="letter_avatar-avatar"
+                  style="width: 32px; height: 32px;"
+                  title="Foo Bar"
+                >
+                  <svg
+                    class="css-1jaqko8-LetterAvatar-imageStyle ewkzefl0"
+                    viewBox="0 0 120 120"
+                  >
+                    <rect
+                      fill="#315cac"
+                      height="120"
+                      opacity="100%"
+                      rx="15"
+                      ry="15"
+                      width="120"
+                      x="0"
+                      y="0"
+                    />
+                    <text
+                      fill="#FFFFFF"
+                      font-size="65"
+                      style="dominant-baseline: central;"
+                      text-anchor="middle"
+                      x="50%"
+                      y="50%"
+                    >
+                      FB
+                    </text>
+                  </svg>
+                </span>
+                <div
+                  class="css-1ylujlu-StyledNameAndEmail ex0sq0q3"
+                >
+                  <span
+                    class="css-1swmbvv-StyledName-overflowEllipsis ex0sq0q1"
+                  >
+                    Foo Bar
+                  </span>
+                  <div
+                    class="css-wqo7p-StyledEmail-overflowEllipsis ex0sq0q2"
+                  >
+                    foo@example.com
+                  </div>
+                </div>
+              </div>
+            </a>
+            <div>
+              <a
+                class="erdj4vr0 css-v7w5ks-Link-StyledSidebarMenuItemLink-menuItemStyles e1ycxor00"
+                href="/settings/account/"
+              >
+                <span
+                  class="css-iiqoom-MenuItemLabel-MenuItemLabel erdj4vr1"
+                >
+                  User settings
+                </span>
+              </a>
+              <a
+                class="erdj4vr0 css-v7w5ks-Link-StyledSidebarMenuItemLink-menuItemStyles e1ycxor00"
+                href="/settings/account/api/"
+              >
+                <span
+                  class="css-iiqoom-MenuItemLabel-MenuItemLabel erdj4vr1"
+                >
+                  API keys
+                </span>
+              </a>
+              <div
+                class="css-tng1e7-StyledSidebarMenuItemLink-menuItemStyles erdj4vr0"
+                data-test-id="sidebar-signout"
+                tabindex="0"
+              >
+                <span
+                  class="css-uvye8q-MenuItemLabel-MenuItemLabel erdj4vr1"
+                >
+                  Sign out
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div
+        class="css-peuyen-PrimaryItems e78qnej2"
+      />
+    </div>
+  </nav>
+</div>
+`;

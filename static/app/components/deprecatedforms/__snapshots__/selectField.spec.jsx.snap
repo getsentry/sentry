@@ -1,0 +1,280 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`SelectField renders with flat options 1`] = `
+<div>
+  <div
+    class=""
+  >
+    <div
+      class="controls"
+    >
+      <div
+        class="e1lvk2vs0 css-16xadpu-container-StyledSelectControl"
+      >
+        <span
+          aria-atomic="false"
+          aria-live="polite"
+          aria-relevant="additions text"
+          class="css-1f43avz-a11yText-A11yText"
+        />
+        <div
+          class=" css-1lxgacs-Control"
+        >
+          <div
+            class=" css-1kqg4xi-ValueContainer"
+          >
+            <div
+              class=" css-6vsncc-placeholder"
+            >
+              Select...
+            </div>
+            <div
+              class="css-s57u0a-Input"
+            >
+              <div
+                class=""
+                style="display: inline-block;"
+              >
+                <input
+                  aria-autocomplete="list"
+                  autocapitalize="none"
+                  autocomplete="off"
+                  autocorrect="off"
+                  id="id-fieldName"
+                  spellcheck="false"
+                  style="box-sizing: content-box; width: 2px; border: 0px; opacity: 1; outline: 0; padding: 0px;"
+                  tabindex="0"
+                  type="text"
+                  value=""
+                />
+                <div
+                  style="position: absolute; top: 0px; left: 0px; visibility: hidden; height: 0px; overflow: scroll; white-space: pre;"
+                />
+              </div>
+            </div>
+          </div>
+          <div
+            class=" css-1d4abpz-IndicatorsContainer"
+          >
+            <div
+              aria-hidden="true"
+              class=" css-1td69xg-indicatorContainer"
+            >
+              <svg
+                class="css-1905w31-IconChevron"
+                fill="currentColor"
+                height="14px"
+                viewBox="0 0 16 16"
+                width="14px"
+              >
+                <path
+                  d="M14,11.75a.74.74,0,0,1-.53-.22L8,6.06,2.53,11.53a.75.75,0,0,1-1.06-1.06l6-6a.75.75,0,0,1,1.06,0l6,6a.75.75,0,0,1,0,1.06A.74.74,0,0,1,14,11.75Z"
+                />
+              </svg>
+            </div>
+          </div>
+        </div>
+        <input
+          name="fieldName"
+          type="hidden"
+          value=""
+        />
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`SelectField renders with paired options 1`] = `
+<div>
+  <div
+    class=""
+  >
+    <div
+      class="controls"
+    >
+      <div
+        class="e1lvk2vs0 css-16xadpu-container-StyledSelectControl"
+      >
+        <span
+          aria-atomic="false"
+          aria-live="polite"
+          aria-relevant="additions text"
+          class="css-1f43avz-a11yText-A11yText"
+        />
+        <div
+          class=" css-1lxgacs-Control"
+        >
+          <div
+            class=" css-1kqg4xi-ValueContainer"
+          >
+            <div
+              class=" css-6vsncc-placeholder"
+            >
+              Select...
+            </div>
+            <div
+              class="css-s57u0a-Input"
+            >
+              <div
+                class=""
+                style="display: inline-block;"
+              >
+                <input
+                  aria-autocomplete="list"
+                  autocapitalize="none"
+                  autocomplete="off"
+                  autocorrect="off"
+                  id="id-fieldName"
+                  spellcheck="false"
+                  style="box-sizing: content-box; width: 2px; border: 0px; opacity: 1; outline: 0; padding: 0px;"
+                  tabindex="0"
+                  type="text"
+                  value=""
+                />
+                <div
+                  style="position: absolute; top: 0px; left: 0px; visibility: hidden; height: 0px; overflow: scroll; white-space: pre;"
+                />
+              </div>
+            </div>
+          </div>
+          <div
+            class=" css-1d4abpz-IndicatorsContainer"
+          >
+            <div
+              aria-hidden="true"
+              class=" css-1td69xg-indicatorContainer"
+            >
+              <svg
+                class="css-1905w31-IconChevron"
+                fill="currentColor"
+                height="14px"
+                viewBox="0 0 16 16"
+                width="14px"
+              >
+                <path
+                  d="M14,11.75a.74.74,0,0,1-.53-.22L8,6.06,2.53,11.53a.75.75,0,0,1-1.06-1.06l6-6a.75.75,0,0,1,1.06,0l6,6a.75.75,0,0,1,0,1.06A.74.74,0,0,1,14,11.75Z"
+                />
+              </svg>
+            </div>
+          </div>
+        </div>
+        <input
+          name="fieldName"
+          type="hidden"
+          value=""
+        />
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`SelectField renders without form context 1`] = `
+<div>
+  <div
+    class=""
+  >
+    <div
+      class="controls"
+    >
+      <div
+        class="e1lvk2vs0 css-16xadpu-container-StyledSelectControl"
+      >
+        <span
+          aria-atomic="false"
+          aria-live="polite"
+          aria-relevant="additions text"
+          class="css-1f43avz-a11yText-A11yText"
+        />
+        <div
+          class=" css-1lxgacs-Control"
+        >
+          <div
+            class=" css-1kqg4xi-ValueContainer"
+          >
+            <div
+              class=" css-y9r1cg-singleValue"
+            >
+              <div
+                class="css-up9q07-SingleValueWrap e11mqpwz1"
+              >
+                <div
+                  class="css-1h9r4of-SingleValueLabel-overflowEllipsis e11mqpwz0"
+                >
+                  a
+                </div>
+              </div>
+            </div>
+            <div
+              class="css-s57u0a-Input"
+            >
+              <div
+                class=""
+                style="display: inline-block;"
+              >
+                <input
+                  aria-autocomplete="list"
+                  autocapitalize="none"
+                  autocomplete="off"
+                  autocorrect="off"
+                  id="id-fieldName"
+                  spellcheck="false"
+                  style="box-sizing: content-box; width: 2px; border: 0px; opacity: 1; outline: 0; padding: 0px;"
+                  tabindex="0"
+                  type="text"
+                  value=""
+                />
+                <div
+                  style="position: absolute; top: 0px; left: 0px; visibility: hidden; height: 0px; overflow: scroll; white-space: pre;"
+                />
+              </div>
+            </div>
+          </div>
+          <div
+            class=" css-1d4abpz-IndicatorsContainer"
+          >
+            <div
+              aria-hidden="true"
+              class=" css-1td69xg-indicatorContainer"
+            >
+              <svg
+                data-test-id="icon-close"
+                fill="currentColor"
+                height="10px"
+                viewBox="0 0 16 16"
+                width="10px"
+              >
+                <path
+                  d="M6.94,8,1.47,13.47a.75.75,0,0,0,0,1.06.75.75,0,0,0,1.06,0L8,9.06l5.47,5.47a.75.75,0,0,0,1.06,0,.75.75,0,0,0,0-1.06L9.06,8l5.47-5.47a.75.75,0,0,0-1.06-1.06L8,6.94,2.53,1.47A.75.75,0,0,0,1.47,2.53Z"
+                />
+              </svg>
+            </div>
+            <div
+              aria-hidden="true"
+              class=" css-1td69xg-indicatorContainer"
+            >
+              <svg
+                class="css-1905w31-IconChevron"
+                fill="currentColor"
+                height="14px"
+                viewBox="0 0 16 16"
+                width="14px"
+              >
+                <path
+                  d="M14,11.75a.74.74,0,0,1-.53-.22L8,6.06,2.53,11.53a.75.75,0,0,1-1.06-1.06l6-6a.75.75,0,0,1,1.06,0l6,6a.75.75,0,0,1,0,1.06A.74.74,0,0,1,14,11.75Z"
+                />
+              </svg>
+            </div>
+          </div>
+        </div>
+        <input
+          name="fieldName"
+          type="hidden"
+          value="a"
+        />
+      </div>
+    </div>
+  </div>
+</div>
+`;

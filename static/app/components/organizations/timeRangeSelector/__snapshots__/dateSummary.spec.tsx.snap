@@ -1,0 +1,43 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`DateSummary renders 1`] = `
+<div>
+  <div
+    class="css-920ayr-DateGroupWrapper e2fdw4c4"
+  >
+    <div
+      class="css-1jp3snm-DateGroup e2fdw4c3"
+    >
+      <div
+        class="css-20umtq-Date e2fdw4c2"
+      >
+        Oct 13, 2017
+        <div
+          class="css-ln7fxw-Time e2fdw4c1"
+        >
+          22:38
+        </div>
+      </div>
+    </div>
+    <span
+      class="css-1pxvoc9-DateRangeDivider e2fdw4c0"
+    >
+      to
+    </span>
+    <div
+      class="css-1jp3snm-DateGroup e2fdw4c3"
+    >
+      <div
+        class="css-20umtq-Date e2fdw4c2"
+      >
+        Oct 16, 2017
+        <div
+          class="css-ln7fxw-Time e2fdw4c1"
+        >
+          22:38
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+`;

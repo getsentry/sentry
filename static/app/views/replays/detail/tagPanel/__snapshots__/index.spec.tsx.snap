@@ -1,0 +1,79 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`TagPanel should snaptshot empty state 1`] = `
+<div>
+  <div
+    class="css-1au8vqh-Placeholder e18pl72u0"
+    data-test-id="replay-tags-loading-placeholder"
+  />
+</div>
+`;
+
+exports[`TagPanel should snaptshot state with tags 1`] = `
+<div>
+  <div
+    class="css-1pdm81n-Panel-Panel e3sjh3g0"
+  >
+    <section
+      class="css-15bfflf-FluidContainer e1p38l3b1"
+    >
+      <div
+        class="css-1avjtts-OverflowBody e1p38l3b0"
+      >
+        <dl
+          class="css-17t2lno-KeyValueTable e13z4zle2"
+        >
+          <dt
+            class="css-lksp8j-Key e13z4zle1"
+          >
+            <span
+              aria-describedby="tooltip-bpg9uik38j"
+              class="e1h1jp430 css-1c8nu9l-Container-StyledTooltip-overflowEllipsis e1lk5gpt0"
+            >
+              browser.name
+            </span>
+          </dt>
+          <dd
+            class="css-gyqmxa-Value e13z4zle0"
+          >
+            <span
+              aria-describedby="tooltip-9m0opw5epz"
+              class="e1h1jp430 css-1c8nu9l-Container-StyledTooltip-overflowEllipsis e1lk5gpt0"
+            >
+              <span>
+                Chrome
+              </span>
+            </span>
+          </dd>
+          <dt
+            class="css-lksp8j-Key e13z4zle1"
+          >
+            <span
+              aria-describedby="tooltip-91ywqwbwhx"
+              class="e1h1jp430 css-1c8nu9l-Container-StyledTooltip-overflowEllipsis e1lk5gpt0"
+            >
+              sdk.version
+            </span>
+          </dt>
+          <dd
+            class="css-gyqmxa-Value e13z4zle0"
+          >
+            <span
+              aria-describedby="tooltip-qxp66ltzeh"
+              class="e1h1jp430 css-1c8nu9l-Container-StyledTooltip-overflowEllipsis e1lk5gpt0"
+            >
+              <span>
+                7.13.0
+              </span>
+              , 
+              <span>
+                7.13.2
+              </span>
+            </span>
+          </dd>
+        </dl>
+      </div>
+    </section>
+  </div>
+</div>
+`;

@@ -23,7 +23,7 @@ describe('AccountIdentities', function () {
     });
 
     const {container} = render(<AccountIdentities />);
-    expect(container).toSnapshot();
+    expect(container).toMatchSnapshot();
   });
 
   it('renders list', function () {
@@ -45,7 +45,7 @@ describe('AccountIdentities', function () {
     });
 
     const {container} = render(<AccountIdentities />);
-    expect(container).toSnapshot();
+    expect(container).toMatchSnapshot();
   });
 
   it('disconnects identity', function () {

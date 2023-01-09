@@ -1,0 +1,66 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`FormField + model renders with Form 1`] = `
+<div>
+  <form
+    class="form-stacked"
+  >
+    <div>
+      <div
+        class="css-1s6sn9m-FieldWrapper-getPadding-inlineStyle-FieldWrapper-FieldWrapper e12z3jxd0"
+      >
+        <div
+          class="css-msyoo4-FieldControlWrapper e1ap0t511"
+        >
+          <div
+            class="css-sse8ie-FieldControlStyled e1ap0t510"
+          >
+            <div
+              class="css-1biel1q-InputGroupWrap e13j5zq05"
+            >
+              <input
+                aria-describedby="fieldName_help"
+                class="css-s5jfkh-Input-inputStyles-StyledInput-getInputStyles e13j5zq03"
+                id="fieldName"
+                name="fieldName"
+                type="text"
+                value=""
+              />
+              <div
+                class="css-vdn3ll-InputItemsWrap-InputTrailingItemsWrap e13j5zq00"
+                data-test-id="input-trailing-items"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div
+      class="css-1wj3569-StyledFooter el3x56x1"
+    >
+      <div
+        class="css-1ci39bu-DefaultButtons el3x56x0"
+      >
+        <button
+          aria-disabled="false"
+          aria-label="Save Changes"
+          class="css-zbzvlb-StyledButton-getColors-getButtonStyles e1b8u3ky2"
+          data-test-id="form-submit"
+          role="button"
+          type="submit"
+        >
+          <span
+            class="css-at526y-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+            role="presentation"
+          />
+          <span
+            class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+          >
+            Save Changes
+          </span>
+        </button>
+      </div>
+    </div>
+  </form>
+</div>
+`;

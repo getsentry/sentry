@@ -53,7 +53,7 @@ describe('IssueDiff', function () {
       />
     );
     expect(screen.queryByTestId('split-diff')).not.toBeInTheDocument();
-    expect(wrapper.container).toSnapshot();
+    expect(wrapper.container).toMatchSnapshot();
   });
 
   it('can dynamically import SplitDiff', async function () {
@@ -68,7 +68,7 @@ describe('IssueDiff', function () {
     );
 
     expect(await screen.findByTestId('split-diff')).toBeInTheDocument();
-    expect(wrapper.container).toSnapshot();
+    expect(wrapper.container).toMatchSnapshot();
   });
 
   it('can diff message', async function () {
@@ -97,6 +97,6 @@ describe('IssueDiff', function () {
     );
 
     expect(await screen.findByTestId('split-diff')).toBeInTheDocument();
-    expect(wrapper.container).toSnapshot();
+    expect(wrapper.container).toMatchSnapshot();
   });
 });

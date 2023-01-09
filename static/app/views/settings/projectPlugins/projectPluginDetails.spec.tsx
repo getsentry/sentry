@@ -63,7 +63,7 @@ describe('ProjectPluginDetails', function () {
       />
     );
 
-    expect(container).toSnapshot();
+    expect(container).toMatchSnapshot();
   });
 
   it('resets plugin', async function () {

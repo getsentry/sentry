@@ -1,0 +1,1216 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`ThreadsV2 native platform cocoa renders 1`] = `
+<div>
+  <div
+    class=" css-bxfmzo-DataSection e9xr8173"
+  >
+    <div
+      class="css-9q5uv6-SectionHeader e11dlz2y2"
+      id="threads"
+    >
+      <div
+        class="css-jgc6yt-Title e11dlz2y6"
+      >
+        <div
+          class="css-e1bk5a-Header ej36lci2"
+        >
+          <div
+            class="css-1qtuppg-Title ej36lci1"
+          >
+            <div
+              class="css-kux2fl-AutoCompleteRoot e9jzhqd6"
+              data-is-open="false"
+              data-test-id="thread-selector"
+            >
+              <div
+                aria-expanded="false"
+                aria-haspopup="listbox"
+                class="css-1vv9ctx-Actor e101wqlx0"
+                role="button"
+                style="outline: none;"
+                tabindex="0"
+              >
+                <button
+                  aria-disabled="false"
+                  aria-expanded="false"
+                  aria-haspopup="true"
+                  class="e77pghw0 e1u0jomf1 css-1cbj9wv-StyledButton-getColors-getButtonStyles-StyledButton-StyledDropdownButton e1b8u3ky2"
+                  role="button"
+                  type="button"
+                >
+                  <span
+                    class="css-vul34l-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+                    role="presentation"
+                  />
+                  <span
+                    class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+                  >
+                    <div
+                      class="css-10m42hw-Wrapper e1hljjr62"
+                    >
+                      <div
+                        class="css-3zrn8b-TextOverflow-overflowEllipsis-ThreadId e1hljjr61"
+                      >
+                        <span>
+                          <span>
+                            Thread #
+                          </span>
+                          <span>
+                            0
+                          </span>
+                          <span>
+                            :
+                          </span>
+                        </span>
+                      </div>
+                      <div
+                        class="css-1pxdqc8-TextOverflow-overflowEllipsis-ThreadId-Label e1hljjr60"
+                      >
+                        ViewController.causeCrash
+                      </div>
+                    </div>
+                    <svg
+                      aria-hidden="true"
+                      class="e1u0jomf2 css-tq1qdr-IconChevron-StyledChevron"
+                      fill="currentColor"
+                      height="12px"
+                      viewBox="0 0 16 16"
+                      width="12px"
+                    >
+                      <path
+                        d="M14,11.75a.74.74,0,0,1-.53-.22L8,6.06,2.53,11.53a.75.75,0,0,1-1.06-1.06l6-6a.75.75,0,0,1,1.06,0l6,6a.75.75,0,0,1,0,1.06A.74.74,0,0,1,14,11.75Z"
+                      />
+                    </svg>
+                  </span>
+                </button>
+              </div>
+            </div>
+          </div>
+          <div
+            class="css-hcql2l-ActionWrapper ej36lci0"
+          >
+            <div
+              class="css-108kfzz-ButtonGrid-MergedStyles e1n9g4yq0"
+            >
+              <button
+                aria-disabled="false"
+                aria-label="Most Relevant"
+                class="active css-1n1ixk5-StyledButton-getColors-getButtonStyles e1b8u3ky2"
+                role="button"
+                type="button"
+              >
+                <span
+                  class="css-at526y-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+                  role="presentation"
+                />
+                <span
+                  class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+                >
+                  Most Relevant
+                </span>
+              </button>
+              <button
+                aria-disabled="false"
+                aria-label="Full Stack Trace"
+                class=" css-1uzn75c-StyledButton-getColors-getButtonStyles e1b8u3ky2"
+                role="button"
+                type="button"
+              >
+                <span
+                  class="css-vul34l-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+                  role="presentation"
+                />
+                <span
+                  class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+                >
+                  Full Stack Trace
+                </span>
+              </button>
+            </div>
+            <div
+              class="css-tea0zw-MenuControlWrap ems9bqr7"
+              role="presentation"
+            >
+              <button
+                aria-disabled="false"
+                aria-expanded="false"
+                aria-haspopup="listbox"
+                class="e1u0jomf1 css-133h606-StyledButton-getColors-getButtonStyles-StyledButton e1b8u3ky2"
+                id="react-aria4666799722-26"
+                role="button"
+                type="button"
+              >
+                <span
+                  class="css-vul34l-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+                  role="presentation"
+                />
+                <span
+                  class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+                >
+                  <span
+                    class="css-3238mv-Icon e1b8u3ky0"
+                  >
+                    <svg
+                      class="css-0"
+                      fill="currentColor"
+                      height="12px"
+                      viewBox="0 0 16 16"
+                      width="12px"
+                    >
+                      <path
+                        d="M15.49 11.76a.75.75 0 0 1-.22.53l-2.88 2.88a.75.75 0 0 1-1.06 0l-2.87-2.88a.74.74 0 0 1 0-1.06.75.75 0 0 1 1.06 0l2.34 2.35 2.35-2.35a.75.75 0 0 1 1.06 0 .79.79 0 0 1 .22.53Z"
+                      />
+                      <path
+                        d="M12.61 1.34v13.3a.75.75 0 1 1-1.5 0V1.34a.75.75 0 1 1 1.5 0Z"
+                      />
+                      <path
+                        d="M7.87 4.22a.74.74 0 0 1-.22.53.75.75 0 0 1-1.06 0L4.25 2.4 1.9 4.75A.75.75 0 0 1 .84 3.69L3.72.81a.75.75 0 0 1 1.06 0l2.87 2.88a.74.74 0 0 1 .22.53Z"
+                      />
+                      <path
+                        d="M5 1.34v13.3a.75.75 0 1 1-1.5 0V1.34a.75.75 0 0 1 1.5 0Z"
+                      />
+                    </svg>
+                  </span>
+                  <span
+                    class="css-1wc0ez-ButtonLabel-overflowEllipsis ems9bqr6"
+                  >
+                    Newest
+                  </span>
+                  <svg
+                    aria-hidden="true"
+                    class="e1u0jomf2 css-tq1qdr-IconChevron-StyledChevron"
+                    fill="currentColor"
+                    height="12px"
+                    viewBox="0 0 16 16"
+                    width="12px"
+                  >
+                    <path
+                      d="M14,11.75a.74.74,0,0,1-.53-.22L8,6.06,2.53,11.53a.75.75,0,0,1-1.06-1.06l6-6a.75.75,0,0,1,1.06,0l6,6a.75.75,0,0,1,0,1.06A.74.74,0,0,1,14,11.75Z"
+                    />
+                  </svg>
+                </span>
+              </button>
+            </div>
+            <div
+              class="css-tea0zw-MenuControlWrap ems9bqr7"
+              role="presentation"
+            >
+              <button
+                aria-disabled="false"
+                aria-expanded="false"
+                aria-haspopup="listbox"
+                aria-label="Options"
+                class="e1u0jomf1 css-133h606-StyledButton-getColors-getButtonStyles-StyledButton e1b8u3ky2"
+                id="react-aria4666799722-29"
+                role="button"
+                type="button"
+              >
+                <span
+                  class="css-vul34l-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+                  role="presentation"
+                />
+                <span
+                  class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+                >
+                  <span
+                    class="css-161yn40-Icon e1b8u3ky0"
+                  >
+                    <svg
+                      fill="currentColor"
+                      height="12px"
+                      viewBox="0 0 16 16"
+                      width="12px"
+                    >
+                      <circle
+                        cx="8"
+                        cy="8"
+                        r="1.31"
+                      />
+                      <circle
+                        cx="1.31"
+                        cy="8"
+                        r="1.31"
+                      />
+                      <circle
+                        cx="14.69"
+                        cy="8"
+                        r="1.31"
+                      />
+                    </svg>
+                  </span>
+                  
+                </span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div
+      class="css-1o3cuay-SectionContents e11dlz2y1"
+    >
+      <div>
+        <div
+          class="exception"
+        >
+          <h5
+            class="css-dcmuoy-Title e1rtpi7z0"
+          >
+            EXC_BAD_ACCESS
+          </h5>
+          <pre
+            class="exc-message css-1q8nviw-StyledPre e1rtpi7z1"
+          >
+            Attempted to dereference null pointer.
+Originated at or in a subcall of ViewController.causeCrash(Any) -&gt; ()
+          </pre>
+          <div
+            class="traceback in-app-traceback css-9ugulp-Panel-Wrapper ewsx1zn1"
+          >
+            <ul
+              class="css-1ipo0ac-Frames ewsx1zn0"
+              data-test-id="stack-trace"
+            >
+              <li
+                class="frame css-1t3mk5t-GridRow-GridRow elaoi1g1"
+                data-test-id="stack-trace-frame"
+              >
+                <div
+                  class="css-t15jnc-StrictClickContent elaoi1g0"
+                >
+                  <div
+                    class="css-1tc0v78-Cell-StatusCell elaoi1g14"
+                  >
+                    <svg
+                      fill="#F32F35"
+                      height="16px"
+                      viewBox="0 0 16 16"
+                      width="16px"
+                    >
+                      <path
+                        d="M13.87,15.26H2.13A2.1,2.1,0,0,1,0,13.16a2.07,2.07,0,0,1,.27-1L6.17,1.8a2.1,2.1,0,0,1,1.27-1,2.11,2.11,0,0,1,2.39,1L15.7,12.11a2.1,2.1,0,0,1-1.83,3.15ZM8,2.24a.44.44,0,0,0-.16,0,.58.58,0,0,0-.37.28L1.61,12.86a.52.52,0,0,0-.08.3.6.6,0,0,0,.6.6H13.87a.54.54,0,0,0,.3-.08.59.59,0,0,0,.22-.82L8.53,2.54h0a.61.61,0,0,0-.23-.22A.54.54,0,0,0,8,2.24Z"
+                      />
+                      <path
+                        d="M8,10.37a.75.75,0,0,1-.75-.75V5.92a.75.75,0,0,1,1.5,0v3.7A.74.74,0,0,1,8,10.37Z"
+                      />
+                      <circle
+                        cx="8"
+                        cy="11.79"
+                        r="0.76"
+                      />
+                    </svg>
+                  </div>
+                  <div
+                    class="css-1r5vps0-Cell-PackageCell elaoi1g13"
+                  >
+                    Crashed in non-app
+                    :
+                     
+                    <span>
+                      <span
+                        aria-describedby="tooltip-vx3646y4vv"
+                        class="css-19485un-Container e1lk5gpt0"
+                      >
+                        <span
+                          class="css-ndh068-Package elaoi1g5"
+                          color="errorText"
+                        >
+                          Sentry
+                        </span>
+                      </span>
+                    </span>
+                  </div>
+                  <div
+                    class="css-zymqxb-Cell-AddressCell elaoi1g12"
+                  >
+                    +0x0cbfc
+                  </div>
+                  <div
+                    class="css-1maofxu-Cell-GroupingCell elaoi1g11"
+                  />
+                  <div
+                    class="css-14k3gdp-Cell-FunctionNameCell elaoi1g10"
+                  >
+                    <div
+                      class="css-1ntqi9d-FunctionName elaoi1g4"
+                    >
+                      <span>
+                        -[SentryClient crash]
+                      </span>
+                    </div>
+                  </div>
+                  <div
+                    class="css-1k4ebsp-Cell-ExpandCell elaoi1g9"
+                  />
+                </div>
+                <div
+                  class="css-8k144g-RegistersCell elaoi1g8"
+                />
+              </li>
+              <li
+                class="frame css-rhmg1w-GridRow elaoi1g1"
+                data-test-id="stack-trace-frame"
+              >
+                <div
+                  class="css-t15jnc-StrictClickContent elaoi1g0"
+                >
+                  <div
+                    class="css-1tc0v78-Cell-StatusCell elaoi1g14"
+                  >
+                    <svg
+                      fill="#F32F35"
+                      height="16px"
+                      viewBox="0 0 16 16"
+                      width="16px"
+                    >
+                      <path
+                        d="M13.87,15.26H2.13A2.1,2.1,0,0,1,0,13.16a2.07,2.07,0,0,1,.27-1L6.17,1.8a2.1,2.1,0,0,1,1.27-1,2.11,2.11,0,0,1,2.39,1L15.7,12.11a2.1,2.1,0,0,1-1.83,3.15ZM8,2.24a.44.44,0,0,0-.16,0,.58.58,0,0,0-.37.28L1.61,12.86a.52.52,0,0,0-.08.3.6.6,0,0,0,.6.6H13.87a.54.54,0,0,0,.3-.08.59.59,0,0,0,.22-.82L8.53,2.54h0a.61.61,0,0,0-.23-.22A.54.54,0,0,0,8,2.24Z"
+                      />
+                      <path
+                        d="M8,10.37a.75.75,0,0,1-.75-.75V5.92a.75.75,0,0,1,1.5,0v3.7A.74.74,0,0,1,8,10.37Z"
+                      />
+                      <circle
+                        cx="8"
+                        cy="11.79"
+                        r="0.76"
+                      />
+                    </svg>
+                  </div>
+                  <div
+                    class="css-1r5vps0-Cell-PackageCell elaoi1g13"
+                  >
+                    <span>
+                      <span
+                        aria-describedby="tooltip-3ysb3knz6f"
+                        class="css-19485un-Container e1lk5gpt0"
+                      >
+                        <span
+                          class="css-ndh068-Package elaoi1g5"
+                          color="errorText"
+                        >
+                          sentry-ios-cocoapods
+                        </span>
+                      </span>
+                    </span>
+                  </div>
+                  <div
+                    class="css-zymqxb-Cell-AddressCell elaoi1g12"
+                  >
+                    +0x085ac
+                  </div>
+                  <div
+                    class="css-1maofxu-Cell-GroupingCell elaoi1g11"
+                  />
+                  <div
+                    class="css-14k3gdp-Cell-FunctionNameCell elaoi1g10"
+                  >
+                    <div
+                      class="css-1ntqi9d-FunctionName elaoi1g4"
+                    >
+                      <span>
+                        ViewController.causeCrash
+                      </span>
+                    </div>
+                  </div>
+                  <div
+                    class="css-1k4ebsp-Cell-ExpandCell elaoi1g9"
+                  />
+                </div>
+                <div
+                  class="css-8k144g-RegistersCell elaoi1g8"
+                />
+              </li>
+              <li
+                class="frame css-1t3mk5t-GridRow-GridRow elaoi1g1"
+                data-test-id="stack-trace-frame"
+              >
+                <div
+                  class="css-t15jnc-StrictClickContent elaoi1g0"
+                >
+                  <div
+                    class="css-1tc0v78-Cell-StatusCell elaoi1g14"
+                  >
+                    <svg
+                      fill="#F32F35"
+                      height="16px"
+                      viewBox="0 0 16 16"
+                      width="16px"
+                    >
+                      <path
+                        d="M13.87,15.26H2.13A2.1,2.1,0,0,1,0,13.16a2.07,2.07,0,0,1,.27-1L6.17,1.8a2.1,2.1,0,0,1,1.27-1,2.11,2.11,0,0,1,2.39,1L15.7,12.11a2.1,2.1,0,0,1-1.83,3.15ZM8,2.24a.44.44,0,0,0-.16,0,.58.58,0,0,0-.37.28L1.61,12.86a.52.52,0,0,0-.08.3.6.6,0,0,0,.6.6H13.87a.54.54,0,0,0,.3-.08.59.59,0,0,0,.22-.82L8.53,2.54h0a.61.61,0,0,0-.23-.22A.54.54,0,0,0,8,2.24Z"
+                      />
+                      <path
+                        d="M8,10.37a.75.75,0,0,1-.75-.75V5.92a.75.75,0,0,1,1.5,0v3.7A.74.74,0,0,1,8,10.37Z"
+                      />
+                      <circle
+                        cx="8"
+                        cy="11.79"
+                        r="0.76"
+                      />
+                    </svg>
+                  </div>
+                  <div
+                    class="css-1r5vps0-Cell-PackageCell elaoi1g13"
+                  >
+                    Called from
+                    :
+                     
+                    <span>
+                      <span
+                        aria-describedby="tooltip-z94jvb0mwi"
+                        class="css-19485un-Container e1lk5gpt0"
+                      >
+                        <span
+                          class="css-ndh068-Package elaoi1g5"
+                          color="errorText"
+                        >
+                          UIKit
+                        </span>
+                      </span>
+                    </span>
+                  </div>
+                  <div
+                    class="css-zymqxb-Cell-AddressCell elaoi1g12"
+                  >
+                    <span
+                      aria-describedby="tooltip-xgm498m4z2"
+                      class="css-1y4rfpo-Container e1lk5gpt0"
+                    >
+                      +0x44c54
+                    </span>
+                  </div>
+                  <div
+                    class="css-1maofxu-Cell-GroupingCell elaoi1g11"
+                  />
+                  <div
+                    class="css-14k3gdp-Cell-FunctionNameCell elaoi1g10"
+                  >
+                    <div
+                      class="css-1ntqi9d-FunctionName elaoi1g4"
+                    >
+                      <span>
+                        &lt;redacted&gt;
+                      </span>
+                    </div>
+                  </div>
+                  <div
+                    class="css-1k4ebsp-Cell-ExpandCell elaoi1g9"
+                  />
+                </div>
+                <div
+                  class="css-8k144g-RegistersCell elaoi1g8"
+                />
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`ThreadsV2 non native platform other platform renders 1`] = `
+<div>
+  <div
+    class=" css-bxfmzo-DataSection e9xr8173"
+  >
+    <div
+      class="css-9q5uv6-SectionHeader e11dlz2y2"
+      id="threads"
+    >
+      <div
+        class="css-jgc6yt-Title e11dlz2y6"
+      >
+        <div
+          class="css-e1bk5a-Header ej36lci2"
+        >
+          <div
+            class="css-1qtuppg-Title ej36lci1"
+          >
+            <a
+              class="permalink css-1lq1rvv-Permalink ej36lci3"
+              href="#threads"
+              type="threads"
+            >
+              <svg
+                class="css-1owawuk-StyledIconLink ej36lci4"
+                fill="#80708F"
+                height="12px"
+                viewBox="0 0 16 16"
+                width="12px"
+              >
+                <path
+                  d="M4.58,9.5a.71.71,0,0,1-.53-.22L1.16,6.4l0,0h0L1,6.22a.49.49,0,0,1-.11-.14A3.68,3.68,0,0,1,6.06.9.49.49,0,0,1,6.2,1L9.26,4.07a.74.74,0,0,1,0,1.06.75.75,0,0,1-1.06,0L5.32,2.24l0,0A2.19,2.19,0,0,0,2.18,5.29L5.11,8.22a.75.75,0,0,1,0,1.06A.74.74,0,0,1,4.58,9.5Z"
+                />
+                <path
+                  d="M12.21,15.91A3.68,3.68,0,0,1,9.9,15.1L9.75,15l-3-3.06a.74.74,0,0,1,0-1.06.75.75,0,0,1,1.06,0l2.89,2.9h0a2.18,2.18,0,0,0,3.09-3.09h0l-2.9-2.9a.77.77,0,0,1,0-1.07.75.75,0,0,1,1.06,0L15,9.77l.11.15a3.69,3.69,0,0,1-2.87,6Z"
+                />
+                <path
+                  d="M11.92,12.69a.74.74,0,0,1-.53-.22L3.5,4.58A.75.75,0,1,1,4.56,3.52l7.89,7.89a.74.74,0,0,1,0,1.06A.71.71,0,0,1,11.92,12.69Z"
+                />
+              </svg>
+              <h3>
+                Stack Trace
+              </h3>
+            </a>
+          </div>
+          <div
+            class="css-hcql2l-ActionWrapper ej36lci0"
+          >
+            <div
+              class="css-108kfzz-ButtonGrid-MergedStyles e1n9g4yq0"
+            >
+              <button
+                aria-disabled="false"
+                aria-label="Most Relevant"
+                class="active css-1n1ixk5-StyledButton-getColors-getButtonStyles e1b8u3ky2"
+                role="button"
+                type="button"
+              >
+                <span
+                  class="css-at526y-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+                  role="presentation"
+                />
+                <span
+                  class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+                >
+                  Most Relevant
+                </span>
+              </button>
+              <button
+                aria-disabled="false"
+                aria-label="Full Stack Trace"
+                class=" css-1uzn75c-StyledButton-getColors-getButtonStyles e1b8u3ky2"
+                role="button"
+                type="button"
+              >
+                <span
+                  class="css-vul34l-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+                  role="presentation"
+                />
+                <span
+                  class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+                >
+                  Full Stack Trace
+                </span>
+              </button>
+            </div>
+            <div
+              class="css-tea0zw-MenuControlWrap ems9bqr7"
+              role="presentation"
+            >
+              <button
+                aria-disabled="false"
+                aria-expanded="false"
+                aria-haspopup="listbox"
+                class="e1u0jomf1 css-133h606-StyledButton-getColors-getButtonStyles-StyledButton e1b8u3ky2"
+                id="react-aria4666799722-2"
+                role="button"
+                type="button"
+              >
+                <span
+                  class="css-vul34l-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+                  role="presentation"
+                />
+                <span
+                  class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+                >
+                  <span
+                    class="css-3238mv-Icon e1b8u3ky0"
+                  >
+                    <svg
+                      class="css-0"
+                      fill="currentColor"
+                      height="12px"
+                      viewBox="0 0 16 16"
+                      width="12px"
+                    >
+                      <path
+                        d="M15.49 11.76a.75.75 0 0 1-.22.53l-2.88 2.88a.75.75 0 0 1-1.06 0l-2.87-2.88a.74.74 0 0 1 0-1.06.75.75 0 0 1 1.06 0l2.34 2.35 2.35-2.35a.75.75 0 0 1 1.06 0 .79.79 0 0 1 .22.53Z"
+                      />
+                      <path
+                        d="M12.61 1.34v13.3a.75.75 0 1 1-1.5 0V1.34a.75.75 0 1 1 1.5 0Z"
+                      />
+                      <path
+                        d="M7.87 4.22a.74.74 0 0 1-.22.53.75.75 0 0 1-1.06 0L4.25 2.4 1.9 4.75A.75.75 0 0 1 .84 3.69L3.72.81a.75.75 0 0 1 1.06 0l2.87 2.88a.74.74 0 0 1 .22.53Z"
+                      />
+                      <path
+                        d="M5 1.34v13.3a.75.75 0 1 1-1.5 0V1.34a.75.75 0 0 1 1.5 0Z"
+                      />
+                    </svg>
+                  </span>
+                  <span
+                    class="css-1wc0ez-ButtonLabel-overflowEllipsis ems9bqr6"
+                  >
+                    Newest
+                  </span>
+                  <svg
+                    aria-hidden="true"
+                    class="e1u0jomf2 css-tq1qdr-IconChevron-StyledChevron"
+                    fill="currentColor"
+                    height="12px"
+                    viewBox="0 0 16 16"
+                    width="12px"
+                  >
+                    <path
+                      d="M14,11.75a.74.74,0,0,1-.53-.22L8,6.06,2.53,11.53a.75.75,0,0,1-1.06-1.06l6-6a.75.75,0,0,1,1.06,0l6,6a.75.75,0,0,1,0,1.06A.74.74,0,0,1,14,11.75Z"
+                    />
+                  </svg>
+                </span>
+              </button>
+            </div>
+            <div
+              class="css-tea0zw-MenuControlWrap ems9bqr7"
+              role="presentation"
+            >
+              <button
+                aria-disabled="false"
+                aria-expanded="false"
+                aria-haspopup="listbox"
+                aria-label="Options"
+                class="e1u0jomf1 css-133h606-StyledButton-getColors-getButtonStyles-StyledButton e1b8u3ky2"
+                id="react-aria4666799722-5"
+                role="button"
+                type="button"
+              >
+                <span
+                  class="css-vul34l-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+                  role="presentation"
+                />
+                <span
+                  class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+                >
+                  <span
+                    class="css-161yn40-Icon e1b8u3ky0"
+                  >
+                    <svg
+                      fill="currentColor"
+                      height="12px"
+                      viewBox="0 0 16 16"
+                      width="12px"
+                    >
+                      <circle
+                        cx="8"
+                        cy="8"
+                        r="1.31"
+                      />
+                      <circle
+                        cx="1.31"
+                        cy="8"
+                        r="1.31"
+                      />
+                      <circle
+                        cx="14.69"
+                        cy="8"
+                        r="1.31"
+                      />
+                    </svg>
+                  </span>
+                  
+                </span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div
+      class="css-1o3cuay-SectionContents e11dlz2y1"
+    >
+      <div
+        class="css-1xf7mve-Pills e1nyfzl40"
+      >
+        <li
+          class="css-gvi4h9-StyledPill e1qdl66w0"
+        >
+          <span
+            class="css-4o2sdj-PillName e1qdl66w2"
+          >
+            id
+          </span>
+          <span
+            class="css-18i8w4t-PillName-PillValue e1qdl66w1"
+          >
+            13920
+          </span>
+        </li>
+        <li
+          class="css-gvi4h9-StyledPill e1qdl66w0"
+        >
+          <span
+            class="css-4o2sdj-PillName e1qdl66w2"
+          >
+            name
+          </span>
+          <span
+            class="css-18i8w4t-PillName-PillValue e1qdl66w1"
+          >
+            puma 002
+          </span>
+        </li>
+        <li
+          class="css-5qsd94-StyledPill e1qdl66w0"
+          type="positive"
+        >
+          <span
+            class="css-4o2sdj-PillName e1qdl66w2"
+          >
+            was active
+          </span>
+          <span
+            class="css-18i8w4t-PillName-PillValue e1qdl66w1"
+          >
+            true
+          </span>
+        </li>
+        <li
+          class="false css-gvi4h9-StyledPill e1qdl66w0"
+        >
+          <span
+            class="css-4o2sdj-PillName e1qdl66w2"
+          >
+            errored
+          </span>
+          <span
+            class="css-18i8w4t-PillName-PillValue e1qdl66w1"
+          >
+            yes
+          </span>
+        </li>
+      </div>
+      <div>
+        <div
+          class="exception"
+        >
+          <span
+            aria-describedby="tooltip-rm1rcft7vv"
+            class="css-1y4rfpo-Container e1lk5gpt0"
+          >
+            <h5
+              class="css-dcmuoy-Title e1rtpi7z0"
+            >
+              ZeroDivisionError
+            </h5>
+          </span>
+          <pre
+            class="exc-message css-1q8nviw-StyledPre e1rtpi7z1"
+          >
+            divided by 0
+          </pre>
+          <div
+            class="undefined traceback in-app-traceback css-w0ecv3-Panel-Wrapper e1p86c9l1"
+            data-test-id="stack-trace-content-v2"
+          >
+            <img
+              class="css-aojgj6-StyledPlatformIcon e1lyxnxt0"
+              data-test-id="platform-icon-ruby"
+              height="20px"
+              src="[object Object]"
+              style="border-radius: nullpx;"
+              width="20px"
+            />
+            <ul
+              class="css-8us282-List-StyledList e1p86c9l0"
+            >
+              <li
+                class="frame is-expandable expanded css-1gidkqm-ListItem-StyleListItem e1nxtbgi0"
+                data-test-id="stack-trace-frame"
+              >
+                <div
+                  class="title css-1eejnux-Wrapper e1njak3d0"
+                >
+                  <div
+                    class="css-1u991uj-VertCenterWrapper ek8al2z4"
+                  >
+                    <div
+                      class="css-1b8quh2-Title ek8al2z3"
+                    >
+                      <code
+                        class="filename"
+                        data-test-id="filename"
+                      >
+                        <span
+                          class=" css-a2xa0g-Wrapper e1sfkn8v1"
+                        >
+                          <span>
+                            sentry/controllers/welcome_controller.rb
+                          </span>
+                        </span>
+                      </code>
+                      <span
+                        class="in-at css-19bbnue-InFramePosition e1cfec1l1"
+                      >
+                         in 
+                      </span>
+                      <code
+                        class="function"
+                        data-test-id="function"
+                      >
+                        <span>
+                          /
+                        </span>
+                      </code>
+                      <span
+                        class="in-at in-at-line css-19bbnue-InFramePosition e1cfec1l1"
+                      >
+                         at line 
+                      </span>
+                      <code
+                        class="lineno"
+                      >
+                        5
+                      </code>
+                      <span
+                        aria-describedby="tooltip-eh79ieyw3q"
+                        class="e1cfec1l0 eo868af0 css-1haoray-Container-StyledTooltip-StyledGroupingIndicator e1lk5gpt0"
+                      >
+                        <svg
+                          fill="#80708F"
+                          height="12px"
+                          viewBox="0 0 16 16"
+                          width="12px"
+                        >
+                          <path
+                            d="M8,11.78A.74.74,0,0,1,7.24,11V7a.75.75,0,0,1,1.5,0v4A.75.75,0,0,1,8,11.78Z"
+                          />
+                          <circle
+                            cx="8"
+                            cy="4.78"
+                            r="0.76"
+                          />
+                          <path
+                            d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z"
+                          />
+                        </svg>
+                      </span>
+                    </div>
+                  </div>
+                  <button
+                    aria-describedby="tooltip-av67js5rih"
+                    aria-disabled="false"
+                    class="btn-toggle e1tqrvas0 css-yfd5ou-StyledButton-getColors-getButtonStyles-StyledButton e1b8u3ky2"
+                    role="button"
+                    type="button"
+                  >
+                    <span
+                      class="css-vul34l-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+                      role="presentation"
+                    />
+                    <span
+                      class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+                    >
+                      <svg
+                        class="css-1wv9wcw-IconChevron"
+                        fill="currentColor"
+                        height="8px"
+                        viewBox="0 0 16 16"
+                        width="8px"
+                      >
+                        <path
+                          d="M14,11.75a.74.74,0,0,1-.53-.22L8,6.06,2.53,11.53a.75.75,0,0,1-1.06-1.06l6-6a.75.75,0,0,1,1.06,0l6,6a.75.75,0,0,1,0,1.06A.74.74,0,0,1,14,11.75Z"
+                        />
+                      </svg>
+                    </span>
+                  </button>
+                </div>
+                <ol
+                  class="undefined context expanded css-o5u8vu-Wrapper e1spsaex0"
+                  start="2"
+                >
+                  <li
+                    class="css-bh11i6-StyledContextLine e1spsaex1 expandable"
+                  >
+                    <div
+                      class="css-1i08my2-Context e1ip0x50"
+                    >
+                      <span
+                        class="ws"
+                      >
+                          
+                      </span>
+                      <span
+                        class="contextline"
+                      >
+                        before_action :set_sentry_context
+                      </span>
+                    </div>
+                  </li>
+                  <li
+                    class="css-bh11i6-StyledContextLine e1spsaex1 expandable"
+                  >
+                    <div
+                      class="css-1i08my2-Context e1ip0x50"
+                    >
+                      <span
+                        class="ws"
+                      >
+                        
+
+                      </span>
+                      <span
+                        class="contextline"
+                      />
+                    </div>
+                  </li>
+                  <li
+                    class="css-bh11i6-StyledContextLine e1spsaex1 expandable"
+                  >
+                    <div
+                      class="css-1i08my2-Context e1ip0x50"
+                    >
+                      <span
+                        class="ws"
+                      >
+                          
+                      </span>
+                      <span
+                        class="contextline"
+                      >
+                        def index
+                      </span>
+                    </div>
+                  </li>
+                  <li
+                    class="css-bh11i6-StyledContextLine e1spsaex1 expandable active"
+                  >
+                    <div
+                      class="css-1i08my2-Context e1ip0x50"
+                    >
+                      <span
+                        class="ws"
+                      >
+                            
+                      </span>
+                      <span
+                        class="contextline"
+                      >
+                        1 / 0
+                      </span>
+                    </div>
+                  </li>
+                  <li
+                    class="css-bh11i6-StyledContextLine e1spsaex1 expandable"
+                  >
+                    <div
+                      class="css-1i08my2-Context e1ip0x50"
+                    >
+                      <span
+                        class="ws"
+                      >
+                          
+                      </span>
+                      <span
+                        class="contextline"
+                      >
+                        end
+                      </span>
+                    </div>
+                  </li>
+                  <li
+                    class="css-bh11i6-StyledContextLine e1spsaex1 expandable"
+                  >
+                    <div
+                      class="css-1i08my2-Context e1ip0x50"
+                    >
+                      <span
+                        class="ws"
+                      >
+                        
+
+                      </span>
+                      <span
+                        class="contextline"
+                      />
+                    </div>
+                  </li>
+                  <li
+                    class="css-bh11i6-StyledContextLine e1spsaex1 expandable"
+                  >
+                    <div
+                      class="css-1i08my2-Context e1ip0x50"
+                    >
+                      <span
+                        class="ws"
+                      >
+                          
+                      </span>
+                      <span
+                        class="contextline"
+                      >
+                        def view_error
+                      </span>
+                    </div>
+                  </li>
+                </ol>
+              </li>
+              <li
+                class="frame is-expandable collapsed css-1gidkqm-ListItem-StyleListItem e1nxtbgi0"
+                data-test-id="stack-trace-frame"
+              >
+                <div
+                  class="title css-1eejnux-Wrapper e1njak3d0"
+                >
+                  <div
+                    class="css-1u991uj-VertCenterWrapper ek8al2z4"
+                  >
+                    <div
+                      class="css-1b8quh2-Title ek8al2z3"
+                    >
+                      <code
+                        class="filename"
+                        data-test-id="filename"
+                      >
+                        <span
+                          class=" css-a2xa0g-Wrapper e1sfkn8v1"
+                        >
+                          <span>
+                            sentry/controllers/welcome_controller.rb
+                          </span>
+                        </span>
+                      </code>
+                      <span
+                        class="in-at css-19bbnue-InFramePosition e1cfec1l1"
+                      >
+                         in 
+                      </span>
+                      <code
+                        class="function"
+                        data-test-id="function"
+                      >
+                        <span>
+                          index
+                        </span>
+                      </code>
+                      <span
+                        class="in-at in-at-line css-19bbnue-InFramePosition e1cfec1l1"
+                      >
+                         at line 
+                      </span>
+                      <code
+                        class="lineno"
+                      >
+                        5
+                      </code>
+                    </div>
+                  </div>
+                  <button
+                    aria-describedby="tooltip-hyuvwxvp6l"
+                    aria-disabled="false"
+                    class="btn-toggle e1tqrvas0 css-yfd5ou-StyledButton-getColors-getButtonStyles-StyledButton e1b8u3ky2"
+                    role="button"
+                    type="button"
+                  >
+                    <span
+                      class="css-vul34l-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+                      role="presentation"
+                    />
+                    <span
+                      class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+                    >
+                      <svg
+                        class="css-1905w31-IconChevron"
+                        fill="currentColor"
+                        height="8px"
+                        viewBox="0 0 16 16"
+                        width="8px"
+                      >
+                        <path
+                          d="M14,11.75a.74.74,0,0,1-.53-.22L8,6.06,2.53,11.53a.75.75,0,0,1-1.06-1.06l6-6a.75.75,0,0,1,1.06,0l6,6a.75.75,0,0,1,0,1.06A.74.74,0,0,1,14,11.75Z"
+                        />
+                      </svg>
+                    </span>
+                  </button>
+                </div>
+                <ol
+                  class="undefined context  css-o5u8vu-Wrapper e1spsaex0"
+                  start="2"
+                >
+                  <li
+                    class="css-bh11i6-StyledContextLine e1spsaex1 expandable active"
+                  >
+                    <div
+                      class="css-1i08my2-Context e1ip0x50"
+                    >
+                      <span
+                        class="ws"
+                      >
+                            
+                      </span>
+                      <span
+                        class="contextline"
+                      >
+                        1 / 0
+                      </span>
+                    </div>
+                  </li>
+                </ol>
+              </li>
+              <li
+                class="frame collapsed system-frame leads-to-app css-1gidkqm-ListItem-StyleListItem e1nxtbgi0"
+                data-test-id="stack-trace-frame"
+              >
+                <div
+                  class="title css-1eejnux-Wrapper e1njak3d0"
+                >
+                  <div
+                    class="css-1u991uj-VertCenterWrapper ek8al2z4"
+                  >
+                    <div
+                      class="css-1b8quh2-Title ek8al2z3"
+                    >
+                      <div
+                        class="leads-to-app-hint css-mav659-Wrapper-overflowEllipsis e1m80khw0"
+                        width=""
+                      >
+                        Called from
+                        : 
+                      </div>
+                      <code
+                        class="filename"
+                        data-test-id="filename"
+                      >
+                        <span
+                          class=" css-a2xa0g-Wrapper e1sfkn8v1"
+                        >
+                          <span>
+                            puma (3.12.6) lib/puma/server.rb
+                          </span>
+                        </span>
+                      </code>
+                      <span
+                        class="in-at css-19bbnue-InFramePosition e1cfec1l1"
+                      >
+                         in 
+                      </span>
+                      <code
+                        class="function"
+                        data-test-id="function"
+                      >
+                        <span>
+                          block in run
+                        </span>
+                      </code>
+                      <span
+                        class="in-at in-at-line css-19bbnue-InFramePosition e1cfec1l1"
+                      >
+                         at line 
+                      </span>
+                      <code
+                        class="lineno"
+                      >
+                        334
+                      </code>
+                    </div>
+                  </div>
+                </div>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+`;

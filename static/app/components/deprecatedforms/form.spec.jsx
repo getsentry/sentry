@@ -10,7 +10,7 @@ describe('Form', function () {
           <hr />
         </Form>
       );
-      expect(container).toSnapshot();
+      expect(container).toMatchSnapshot();
     });
   });
 });

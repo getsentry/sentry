@@ -1,0 +1,170 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`AdminQueue render() renders 1`] = `
+<div>
+  <div>
+    <div
+      class="css-zvtyv0-Header eevg6610"
+    >
+      <h3>
+        Queue Overview
+      </h3>
+      <div
+        class="css-108kfzz-ButtonGrid-MergedStyles e1n9g4yq0"
+      >
+        <button
+          aria-disabled="false"
+          aria-label="1h"
+          class=" css-c98s0k-StyledButton-getColors-getButtonStyles e1b8u3ky2"
+          role="button"
+          type="button"
+        >
+          <span
+            class="css-vul34l-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+            role="presentation"
+          />
+          <span
+            class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+          >
+            1h
+          </span>
+        </button>
+        <button
+          aria-disabled="false"
+          aria-label="1d"
+          class=" css-c98s0k-StyledButton-getColors-getButtonStyles e1b8u3ky2"
+          role="button"
+          type="button"
+        >
+          <span
+            class="css-vul34l-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+            role="presentation"
+          />
+          <span
+            class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+          >
+            1d
+          </span>
+        </button>
+        <button
+          aria-disabled="false"
+          aria-label="1w"
+          class="active css-14jq4g8-StyledButton-getColors-getButtonStyles e1b8u3ky2"
+          role="button"
+          type="button"
+        >
+          <span
+            class="css-at526y-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+            role="presentation"
+          />
+          <span
+            class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+          >
+            1w
+          </span>
+        </button>
+      </div>
+    </div>
+    <div
+      class="css-2fj46w-Panel edxrl2k0"
+    >
+      <div
+        class="css-1v7t0a0-PanelHeader-getPadding eknsyxy0"
+      >
+        Global Throughput
+      </div>
+      <div
+        class="css-1fapqz0-PanelBody-textStyles eszvord0"
+      >
+        <div
+          class="css-qr61vd-ChartContainer-getTooltipStyles e1d3yu8b0"
+        />
+      </div>
+    </div>
+    <h3>
+      Task Details
+    </h3>
+    <div>
+      <div
+        class="m-b-1"
+      >
+        <label>
+          Show details for task:
+        </label>
+        <div
+          class=" css-2b097c-container"
+        >
+          <span
+            aria-atomic="false"
+            aria-live="polite"
+            aria-relevant="additions text"
+            class="css-1f43avz-a11yText-A11yText"
+          />
+          <div
+            class=" css-1lxgacs-Control"
+          >
+            <div
+              class=" css-1kqg4xi-ValueContainer"
+            >
+              <div
+                class=" css-6vsncc-placeholder"
+              >
+                Select...
+              </div>
+              <div
+                class="css-s57u0a-Input"
+              >
+                <div
+                  class=""
+                  style="display: inline-block;"
+                >
+                  <input
+                    aria-autocomplete="list"
+                    autocapitalize="none"
+                    autocomplete="off"
+                    autocorrect="off"
+                    id="react-select-2-input"
+                    spellcheck="false"
+                    style="box-sizing: content-box; width: 2px; border: 0px; opacity: 1; outline: 0; padding: 0px;"
+                    tabindex="0"
+                    type="text"
+                    value=""
+                  />
+                  <div
+                    style="position: absolute; top: 0px; left: 0px; visibility: hidden; height: 0px; overflow: scroll; white-space: pre;"
+                  />
+                </div>
+              </div>
+            </div>
+            <div
+              class=" css-1d4abpz-IndicatorsContainer"
+            >
+              <div
+                aria-hidden="true"
+                class=" css-1td69xg-indicatorContainer"
+              >
+                <svg
+                  class="css-1905w31-IconChevron"
+                  fill="currentColor"
+                  height="14px"
+                  viewBox="0 0 16 16"
+                  width="14px"
+                >
+                  <path
+                    d="M14,11.75a.74.74,0,0,1-.53-.22L8,6.06,2.53,11.53a.75.75,0,0,1-1.06-1.06l6-6a.75.75,0,0,1,1.06,0l6,6a.75.75,0,0,1,0,1.06A.74.74,0,0,1,14,11.75Z"
+                  />
+                </svg>
+              </div>
+            </div>
+          </div>
+          <input
+            name="task"
+            type="hidden"
+            value=""
+          />
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+`;

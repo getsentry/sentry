@@ -1,0 +1,350 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`OrganizationCreate renders with terms 1`] = `
+<div>
+  <div
+    class="app"
+  >
+    <div
+      class="pattern-bg"
+    />
+    <div
+      class="container"
+    >
+      <div
+        class="box box-modal"
+      >
+        <div
+          class="box-header"
+        >
+          <a
+            href="/"
+          >
+            <svg
+              fill="currentColor"
+              height="24px"
+              viewBox="0 0 16 16"
+              width="24px"
+            >
+              <path
+                d="M15.8,14.57a1.53,1.53,0,0,0,0-1.52L9.28,1.43a1.46,1.46,0,0,0-2.56,0L4.61,5.18l.54.32A10.43,10.43,0,0,1,8.92,9.39a10.84,10.84,0,0,1,1.37,4.67H8.81a9.29,9.29,0,0,0-1.16-3.91A9,9,0,0,0,4.41,6.81L3.88,6.5,1.91,10l.53.32a5.12,5.12,0,0,1,2.42,3.73H1.48a.25.25,0,0,1-.21-.12.24.24,0,0,1,0-.25L2.21,12a3.32,3.32,0,0,0-1.07-.63L.2,13.05a1.53,1.53,0,0,0,0,1.52,1.46,1.46,0,0,0,1.28.76H6.13V14.7a6.55,6.55,0,0,0-.82-3.16,6.31,6.31,0,0,0-1.73-2l.74-1.32a7.85,7.85,0,0,1,2.26,2.53,8,8,0,0,1,1,3.92v.63h3.94V14.7A12.14,12.14,0,0,0,10,8.75a11.8,11.8,0,0,0-3.7-4l1.5-2.67a.24.24,0,0,1,.42,0l6.52,11.63a.24.24,0,0,1,0,.25.24.24,0,0,1-.21.12H13c0,.43,0,.85,0,1.27h1.53a1.46,1.46,0,0,0,1.28-.76"
+              />
+            </svg>
+          </a>
+          <a
+            class="logout pull-right"
+          >
+            <span
+              class="css-19nn0ms-Logout eaq1ri90"
+            >
+              Sign out
+            </span>
+          </a>
+        </div>
+        <div
+          class="box-content with-padding"
+        >
+          <h3>
+            Create a New Organization
+          </h3>
+          <p>
+            Organizations represent the top level in your hierarchy. You'll be able to bundle a collection of teams within an organization as well as give organization-wide permissions to users.
+          </p>
+          <form
+            class="form-stacked"
+          >
+            <div>
+              <div
+                class="css-1lnntq6-FieldWrapper-getPadding-inlineStyle-FieldWrapper e12z3jxd0"
+              >
+                <label
+                  aria-label="Organization Name"
+                  class="css-kv2nyk-FieldDescription-inlineStyle e1cwyh1y0"
+                  for="organization-name"
+                >
+                  <div
+                    class="css-1amoduc-FieldLabel ekcr5um0"
+                  >
+                    <span>
+                      Organization Name
+                      <div
+                        class="css-19ojc76-FieldRequiredBadge egnfobg0"
+                      />
+                    </span>
+                  </div>
+                </label>
+                <div
+                  class="css-1m0ep53-FieldControlWrapper e1ap0t511"
+                >
+                  <div
+                    class="css-sse8ie-FieldControlStyled e1ap0t510"
+                  >
+                    <div
+                      class="css-1biel1q-InputGroupWrap e13j5zq05"
+                    >
+                      <input
+                        aria-describedby="name_help"
+                        class="css-s5jfkh-Input-inputStyles-StyledInput-getInputStyles e13j5zq03"
+                        id="name"
+                        label="Organization Name"
+                        name="name"
+                        placeholder="e.g. My Company"
+                        type="text"
+                        value=""
+                      />
+                      <div
+                        class="css-vdn3ll-InputItemsWrap-InputTrailingItemsWrap e13j5zq00"
+                        data-test-id="input-trailing-items"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div
+                class="css-1genh3g-FieldWrapper-getPadding-inlineStyle e12z3jxd0"
+              >
+                <div
+                  class="css-1m0ep53-FieldControlWrapper e1ap0t511"
+                >
+                  <div
+                    class="css-sse8ie-FieldControlStyled e1ap0t510"
+                  >
+                    <div
+                      class="css-v9y00g-FieldLayout e6z7ikk0"
+                    >
+                      <span
+                        class="css-1orruw8-ControlWrapper e6z7ikk1"
+                      >
+                        <div
+                          class="css-bphz7d-Wrapper e14pn5ur2"
+                        >
+                          <input
+                            class="css-4npmde-HiddenInput-HiddenInput e14pn5ur1"
+                            id="agreeTerms"
+                            name="agreeTerms"
+                            type="checkbox"
+                          />
+                          <div
+                            aria-hidden="true"
+                            class="css-5y1i99-StyledCheckbox-StyledCheckbox e14pn5ur0"
+                          />
+                          <span
+                            class="css-vul34l-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+                            role="presentation"
+                          />
+                        </div>
+                      </span>
+                      <label
+                        class="css-kv2nyk-FieldDescription-inlineStyle e1cwyh1y0"
+                        for="agreeTerms"
+                      >
+                        <div
+                          class="css-1amoduc-FieldLabel ekcr5um0"
+                        >
+                          <span>
+                            <span>
+                              <span>
+                                I agree to the 
+                              </span>
+                              <a
+                                href="https://example.com/terms"
+                              >
+                                <span>
+                                  Terms of Service
+                                </span>
+                              </a>
+                              <span>
+                                 and the 
+                              </span>
+                              <a
+                                href="https://example.com/privacy"
+                              >
+                                <span>
+                                  Privacy Policy
+                                </span>
+                              </a>
+                            </span>
+                            <div
+                              class="css-19ojc76-FieldRequiredBadge egnfobg0"
+                            />
+                          </span>
+                        </div>
+                      </label>
+                    </div>
+                  </div>
+                  <div
+                    class="css-iw48yj-FieldControlState e190hkl80"
+                  />
+                </div>
+              </div>
+            </div>
+            <div
+              class="css-1wj3569-StyledFooter el3x56x1"
+            >
+              <div
+                class="css-1ci39bu-DefaultButtons el3x56x0"
+              >
+                <button
+                  aria-disabled="true"
+                  aria-label="Create Organization"
+                  class="css-knu3xv-StyledButton-getColors-getButtonStyles e1b8u3ky2"
+                  data-test-id="form-submit"
+                  disabled=""
+                  role="button"
+                  type="submit"
+                >
+                  <span
+                    class="css-at526y-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+                    role="presentation"
+                  />
+                  <span
+                    class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+                  >
+                    Create Organization
+                  </span>
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`OrganizationCreate renders without terms 1`] = `
+<div>
+  <div
+    class="app"
+  >
+    <div
+      class="pattern-bg"
+    />
+    <div
+      class="container"
+    >
+      <div
+        class="box box-modal"
+      >
+        <div
+          class="box-header"
+        >
+          <a
+            href="/"
+          >
+            <svg
+              fill="currentColor"
+              height="24px"
+              viewBox="0 0 16 16"
+              width="24px"
+            >
+              <path
+                d="M15.8,14.57a1.53,1.53,0,0,0,0-1.52L9.28,1.43a1.46,1.46,0,0,0-2.56,0L4.61,5.18l.54.32A10.43,10.43,0,0,1,8.92,9.39a10.84,10.84,0,0,1,1.37,4.67H8.81a9.29,9.29,0,0,0-1.16-3.91A9,9,0,0,0,4.41,6.81L3.88,6.5,1.91,10l.53.32a5.12,5.12,0,0,1,2.42,3.73H1.48a.25.25,0,0,1-.21-.12.24.24,0,0,1,0-.25L2.21,12a3.32,3.32,0,0,0-1.07-.63L.2,13.05a1.53,1.53,0,0,0,0,1.52,1.46,1.46,0,0,0,1.28.76H6.13V14.7a6.55,6.55,0,0,0-.82-3.16,6.31,6.31,0,0,0-1.73-2l.74-1.32a7.85,7.85,0,0,1,2.26,2.53,8,8,0,0,1,1,3.92v.63h3.94V14.7A12.14,12.14,0,0,0,10,8.75a11.8,11.8,0,0,0-3.7-4l1.5-2.67a.24.24,0,0,1,.42,0l6.52,11.63a.24.24,0,0,1,0,.25.24.24,0,0,1-.21.12H13c0,.43,0,.85,0,1.27h1.53a1.46,1.46,0,0,0,1.28-.76"
+              />
+            </svg>
+          </a>
+          <a
+            class="logout pull-right"
+          >
+            <span
+              class="css-19nn0ms-Logout eaq1ri90"
+            >
+              Sign out
+            </span>
+          </a>
+        </div>
+        <div
+          class="box-content with-padding"
+        >
+          <h3>
+            Create a New Organization
+          </h3>
+          <p>
+            Organizations represent the top level in your hierarchy. You'll be able to bundle a collection of teams within an organization as well as give organization-wide permissions to users.
+          </p>
+          <form
+            class="form-stacked"
+          >
+            <div>
+              <div
+                class="css-1lnntq6-FieldWrapper-getPadding-inlineStyle-FieldWrapper e12z3jxd0"
+              >
+                <label
+                  aria-label="Organization Name"
+                  class="css-kv2nyk-FieldDescription-inlineStyle e1cwyh1y0"
+                  for="organization-name"
+                >
+                  <div
+                    class="css-1amoduc-FieldLabel ekcr5um0"
+                  >
+                    <span>
+                      Organization Name
+                      <div
+                        class="css-19ojc76-FieldRequiredBadge egnfobg0"
+                      />
+                    </span>
+                  </div>
+                </label>
+                <div
+                  class="css-1m0ep53-FieldControlWrapper e1ap0t511"
+                >
+                  <div
+                    class="css-sse8ie-FieldControlStyled e1ap0t510"
+                  >
+                    <div
+                      class="css-1biel1q-InputGroupWrap e13j5zq05"
+                    >
+                      <input
+                        aria-describedby="name_help"
+                        class="css-s5jfkh-Input-inputStyles-StyledInput-getInputStyles e13j5zq03"
+                        id="name"
+                        label="Organization Name"
+                        name="name"
+                        placeholder="e.g. My Company"
+                        type="text"
+                        value=""
+                      />
+                      <div
+                        class="css-vdn3ll-InputItemsWrap-InputTrailingItemsWrap e13j5zq00"
+                        data-test-id="input-trailing-items"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div
+              class="css-1wj3569-StyledFooter el3x56x1"
+            >
+              <div
+                class="css-1ci39bu-DefaultButtons el3x56x0"
+              >
+                <button
+                  aria-disabled="true"
+                  aria-label="Create Organization"
+                  class="css-knu3xv-StyledButton-getColors-getButtonStyles e1b8u3ky2"
+                  data-test-id="form-submit"
+                  disabled=""
+                  role="button"
+                  type="submit"
+                >
+                  <span
+                    class="css-at526y-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+                    role="presentation"
+                  />
+                  <span
+                    class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+                  >
+                    Create Organization
+                  </span>
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+`;

@@ -1,0 +1,42 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`NumberField render() renders 1`] = `
+<div>
+  <div
+    class="control-group"
+  >
+    <div
+      class="controls"
+    >
+      <input
+        class="form-control"
+        id="id-fieldName"
+        name="fieldName"
+        type="number"
+        value=""
+      />
+    </div>
+  </div>
+</div>
+`;
+
+exports[`NumberField render() renders with optional attributes 1`] = `
+<div>
+  <div
+    class="control-group"
+  >
+    <div
+      class="controls"
+    >
+      <input
+        class="form-control"
+        id="id-fieldName"
+        min="0"
+        name="fieldName"
+        type="number"
+        value=""
+      />
+    </div>
+  </div>
+</div>
+`;

@@ -1,0 +1,202 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`ProjectCard renders 1`] = `
+<div>
+  <div
+    data-test-id="project-slug"
+  >
+    <div
+      class="css-edypmf-Panel-StyledProjectCard eja9a5410"
+    >
+      <div
+        class="css-10unlhp-CardHeader eja9a5413"
+      >
+        <div
+          class="css-fkrxu0-HeaderRow eja9a5411"
+        >
+          <div
+            class="eja9a545 css-1cehdwo-Wrapper-StyledIdBadge e1vo4o574"
+          >
+            <div
+              class="e1vo4o573 css-ho1bcj-Wrapper-Wrapper-StyledAvatar e8mgi9q0"
+              direction="right"
+              max="1"
+              size="32"
+            >
+              <div
+                class="css-nk0wu5-PlatformIcons e8mgi9q5"
+              >
+                <img
+                  class="css-da8t6h-StyledPlatformIcon e8mgi9q2"
+                  data-test-id="platform-icon-javascript"
+                  height="32"
+                  src="[object Object]"
+                  style="border-radius: 3px;"
+                  width="32"
+                />
+              </div>
+            </div>
+            <div
+              class="css-ajl783-DisplayNameAndDescription e1vo4o572"
+            >
+              <span
+                class="css-12dq2et-DisplayName e1vo4o571"
+                data-test-id="badge-display-name"
+              >
+                <span
+                  class="css-1exbshj-BadgeDisplayName-overflowEllipsis-BadgeDisplayName evxkoyb0"
+                >
+                  project-slug
+                </span>
+              </span>
+            </div>
+          </div>
+          <button
+            aria-disabled="false"
+            aria-label="Bookmark Project"
+            aria-pressed="false"
+            class="eja9a5412 e1lcpz8z0 css-exwf1k-StyledButton-getColors-getButtonStyles-BookmarkStarButton-StyledBookmarkStar e1b8u3ky2"
+            role="button"
+            type="button"
+          >
+            <span
+              class="css-vul34l-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+              role="presentation"
+            />
+            <span
+              class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+            >
+              <span
+                class="css-161yn40-Icon e1b8u3ky0"
+              >
+                <svg
+                  fill="#80708F"
+                  height="16px"
+                  viewBox="0 0 16 16"
+                  width="16px"
+                >
+                  <path
+                    d="M12.47,15.63a.73.73,0,0,1-.35-.09L8,13.38,3.88,15.54a.75.75,0,0,1-.79,0,.76.76,0,0,1-.3-.74l.79-4.59L.24,6.91A.75.75,0,0,1,.66,5.63L5.27,5,7.33.79a.78.78,0,0,1,1.34,0L10.73,5l4.61.67a.75.75,0,0,1,.42,1.28l-3.34,3.25.79,4.59a.76.76,0,0,1-.3.74A.79.79,0,0,1,12.47,15.63ZM8,11.78a.85.85,0,0,1,.35.08l3.12,1.65L10.88,10a.78.78,0,0,1,.21-.67L13.62,6.9l-3.49-.51A.74.74,0,0,1,9.56,6L8,2.82,6.44,6a.74.74,0,0,1-.57.41L2.38,6.9,4.91,9.36a.78.78,0,0,1,.21.67l-.59,3.48,3.12-1.65A.85.85,0,0,1,8,11.78Z"
+                  />
+                </svg>
+              </span>
+            </span>
+          </button>
+        </div>
+        <div
+          class="css-1rvdpp3-SummaryLinks eja9a544"
+          data-test-id="summary-links"
+        >
+          <a
+            class="css-ta9xa3-Link e1ycxor00"
+            data-test-id="project-errors"
+          >
+            Errors: 3
+          </a>
+        </div>
+      </div>
+      <div
+        class="css-1jjvow8-ChartContainer eja9a5414"
+        data-test-id="chart-container"
+      >
+        <div
+          class="css-qr61vd-ChartContainer-getTooltipStyles e1d3yu8b0"
+        />
+        <div
+          class="css-ssfjz7-Container eshjevu1"
+        >
+          <div
+            class="css-1y0l0s1-EmptyText eshjevu0"
+          >
+            No activity yet.
+          </div>
+        </div>
+      </div>
+      <div
+        class="css-1w4lfru-FooterWrapper eja9a549"
+      >
+        <div
+          class="css-1aavslt-ScoreCardWrapper eja9a548"
+        >
+          <div
+            class="css-lfsnah-Panel-ScorePanel e179ouq55"
+          >
+            <div
+              class="css-1is1hhx-HeaderTitle e179ouq54"
+            >
+              <div
+                class="css-1czpmjm-Title-overflowEllipsis e179ouq53"
+              >
+                Crash Free Sessions
+              </div>
+            </div>
+            <div
+              class="css-1soor9o-ScoreWrapper e179ouq52"
+            >
+              <span
+                class="css-wcmmgq-Score e179ouq51"
+              >
+                <div
+                  class="css-yo4yps-ButtonGrid e1n9g4yq0"
+                >
+                  <a
+                    aria-disabled="false"
+                    aria-label="Start Setup"
+                    class="e1b8u3ky2 css-19ueexc-Anchor-StyledButton-getColors-getButtonStyles ehytxfi0"
+                    href="https://docs.sentry.io/product/releases/health/"
+                    rel="noreferrer noopener"
+                    role="button"
+                    target="_blank"
+                  >
+                    <span
+                      class="css-at526y-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+                      role="presentation"
+                    />
+                    <span
+                      class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+                    >
+                      Start Setup
+                    </span>
+                  </a>
+                </div>
+              </span>
+            </div>
+          </div>
+        </div>
+        <div
+          class="css-qto2gl-DeploysWrapper eja9a547"
+        >
+          <span
+            class="css-l9auen-ReleaseTitle eja9a546"
+          >
+            Latest Deploys
+          </span>
+          <div
+            class="css-ahfesi-DeployContainer-GetStarted e1nt7vv30"
+          >
+            <a
+              aria-disabled="false"
+              aria-label="Track Deploys"
+              class="e1b8u3ky2 css-4sxwtx-Anchor-StyledButton-getColors-getButtonStyles ehytxfi0"
+              href="https://docs.sentry.io/product/releases/"
+              rel="noreferrer noopener"
+              role="button"
+              target="_blank"
+            >
+              <span
+                class="css-vul34l-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+                role="presentation"
+              />
+              <span
+                class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+              >
+                Track Deploys
+              </span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+`;

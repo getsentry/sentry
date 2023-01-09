@@ -11,7 +11,7 @@ describe('ExceptionMechanism', function () {
         handled: true,
       };
       const {container} = render(<Mechanism data={mechanism} />);
-      expect(container).toSnapshot();
+      expect(container).toMatchSnapshot();
     });
 
     it('should render a help_link icon', function () {
@@ -22,7 +22,7 @@ describe('ExceptionMechanism', function () {
       };
 
       const {container} = render(<Mechanism data={mechanism} />);
-      expect(container).toSnapshot();
+      expect(container).toMatchSnapshot();
     });
 
     it('should render a description hovercard', function () {
@@ -33,7 +33,7 @@ describe('ExceptionMechanism', function () {
       };
 
       const {container} = render(<Mechanism data={mechanism} />);
-      expect(container).toSnapshot();
+      expect(container).toMatchSnapshot();
     });
 
     it('should add the help_link to the description hovercard', function () {
@@ -45,7 +45,7 @@ describe('ExceptionMechanism', function () {
       };
 
       const {container} = render(<Mechanism data={mechanism} />);
-      expect(container).toSnapshot();
+      expect(container).toMatchSnapshot();
     });
 
     it('should not add the help_link if not starts with http(s)', function () {
@@ -56,7 +56,7 @@ describe('ExceptionMechanism', function () {
         help_link: 'example.org/help',
       };
       const {container} = render(<Mechanism data={mechanism} />);
-      expect(container).toSnapshot();
+      expect(container).toMatchSnapshot();
     });
 
     it('should render the handled pill', function () {
@@ -65,7 +65,7 @@ describe('ExceptionMechanism', function () {
         handled: false,
       };
       const {container} = render(<Mechanism data={mechanism} />);
-      expect(container).toSnapshot();
+      expect(container).toMatchSnapshot();
     });
   });
 
@@ -78,7 +78,7 @@ describe('ExceptionMechanism', function () {
       };
 
       const {container} = render(<Mechanism data={mechanism} />);
-      expect(container).toSnapshot();
+      expect(container).toMatchSnapshot();
     });
 
     it('should prefer the errno name if present', function () {
@@ -89,7 +89,7 @@ describe('ExceptionMechanism', function () {
       };
 
       const {container} = render(<Mechanism data={mechanism} />);
-      expect(container).toSnapshot();
+      expect(container).toMatchSnapshot();
     });
   });
 
@@ -102,7 +102,7 @@ describe('ExceptionMechanism', function () {
       };
 
       const {container} = render(<Mechanism data={mechanism} />);
-      expect(container).toSnapshot();
+      expect(container).toMatchSnapshot();
     });
 
     it('should prefer the exception name if present', function () {
@@ -115,7 +115,7 @@ describe('ExceptionMechanism', function () {
       };
 
       const {container} = render(<Mechanism data={mechanism} />);
-      expect(container).toSnapshot();
+      expect(container).toMatchSnapshot();
     });
   });
 
@@ -128,7 +128,7 @@ describe('ExceptionMechanism', function () {
       };
 
       const {container} = render(<Mechanism data={mechanism} />);
-      expect(container).toSnapshot();
+      expect(container).toMatchSnapshot();
     });
 
     it('should add the signal code if present', function () {
@@ -139,7 +139,7 @@ describe('ExceptionMechanism', function () {
       };
 
       const {container} = render(<Mechanism data={mechanism} />);
-      expect(container).toSnapshot();
+      expect(container).toMatchSnapshot();
     });
 
     it('should prefer signal and code names if present', function () {
@@ -150,7 +150,7 @@ describe('ExceptionMechanism', function () {
       };
 
       const {container} = render(<Mechanism data={mechanism} />);
-      expect(container).toSnapshot();
+      expect(container).toMatchSnapshot();
     });
   });
 
@@ -163,7 +163,7 @@ describe('ExceptionMechanism', function () {
       };
 
       const {container} = render(<Mechanism data={mechanism} />);
-      expect(container).toSnapshot();
+      expect(container).toMatchSnapshot();
     });
 
     it('should skip object-like values', function () {
@@ -177,7 +177,7 @@ describe('ExceptionMechanism', function () {
         },
       };
       const {container} = render(<Mechanism data={mechanism} />);
-      expect(container).toSnapshot();
+      expect(container).toMatchSnapshot();
     });
   });
 });

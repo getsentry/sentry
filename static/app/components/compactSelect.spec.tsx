@@ -12,7 +12,7 @@ describe('CompactSelect', function () {
         ]}
       />
     );
-    expect(container).toSnapshot();
+    expect(container).toMatchSnapshot();
   });
 
   it('renders disabled', function () {

@@ -41,7 +41,7 @@ describe('Organization Rate Limits', function () {
     const {container} = renderComponent({organization: org});
 
     expect(screen.getByRole('slider')).toBeInTheDocument();
-    expect(container).toSnapshot();
+    expect(container).toMatchSnapshot();
   });
 
   it('can change Account Rate Limit', function () {

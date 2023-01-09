@@ -6,7 +6,7 @@ describe('ProgressBar', function () {
   it('basic', function () {
     const progressBarValue = 50;
     const {container} = render(<ProgressBar value={progressBarValue} />);
-    expect(container).toSnapshot();
+    expect(container).toMatchSnapshot();
 
     const elementProperties = screen.getByRole('progressbar');
     // element exists

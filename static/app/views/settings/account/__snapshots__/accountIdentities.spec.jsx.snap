@@ -1,0 +1,211 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`AccountIdentities renders empty 1`] = `
+<div>
+  <div
+    class="css-q8xgg6-SettingsPageHeader e1nr98yc2"
+  >
+    <div
+      class="css-1mfa9vw-TitleAndActions e1nr98yc8"
+    >
+      <div
+        class="css-u3au9h-TitleWrapper e1nr98yc7"
+      >
+        <div
+          class="css-18xqiae-Title e1nr98yc6"
+        >
+          <h4
+            class="css-jz1c1u-HeaderTitle e12cn1y20"
+          >
+            Identities
+          </h4>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div
+    class="css-2fj46w-Panel edxrl2k0"
+  >
+    <div
+      class="css-1v7t0a0-PanelHeader-getPadding eknsyxy0"
+    >
+      Application Identities
+    </div>
+    <div
+      class="css-pemm1r-PanelBody-textStyles eszvord0"
+    >
+      <div
+        class="css-fvblbb-EmptyMessage-EmptyMessage ege7ww24"
+        data-test-id="empty-message"
+      >
+        <div
+          class="css-u2uxsp-TextBlock-Description ege7ww21"
+        >
+          There are no application identities associated with your Sentry account
+        </div>
+      </div>
+    </div>
+  </div>
+  <div
+    class="css-2fj46w-Panel edxrl2k0"
+  >
+    <div
+      class="css-1v7t0a0-PanelHeader-getPadding eknsyxy0"
+    >
+      Organization Identities
+    </div>
+    <div
+      class="css-pemm1r-PanelBody-textStyles eszvord0"
+    >
+      <div
+        class="css-fvblbb-EmptyMessage-EmptyMessage ege7ww24"
+        data-test-id="empty-message"
+      >
+        <div
+          class="css-u2uxsp-TextBlock-Description ege7ww21"
+        >
+          There are no organization identities associated with your Sentry account
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`AccountIdentities renders list 1`] = `
+<div>
+  <div
+    class="css-q8xgg6-SettingsPageHeader e1nr98yc2"
+  >
+    <div
+      class="css-1mfa9vw-TitleAndActions e1nr98yc8"
+    >
+      <div
+        class="css-u3au9h-TitleWrapper e1nr98yc7"
+      >
+        <div
+          class="css-18xqiae-Title e1nr98yc6"
+        >
+          <h4
+            class="css-jz1c1u-HeaderTitle e12cn1y20"
+          >
+            Identities
+          </h4>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div
+    class="css-2fj46w-Panel edxrl2k0"
+  >
+    <div
+      class="css-1v7t0a0-PanelHeader-getPadding eknsyxy0"
+    >
+      Application Identities
+    </div>
+    <div
+      class="css-pemm1r-PanelBody-textStyles eszvord0"
+    >
+      <div
+        class="css-1khtwab-PanelItem-IdentityPanelItem e1mvbtt45"
+      >
+        <div
+          class="css-z7qkn0-InternalContainer e1mvbtt44"
+        >
+          <div
+            class="css-1k382oe-IdentityIcon ey6d5bz0"
+            size="36"
+          />
+          <div
+            class="css-16lwd5g-IdentityText e1mvbtt43"
+          >
+            <div
+              class="css-4aspjf-IdentityName e1mvbtt42"
+            >
+              GitHub
+            </div>
+          </div>
+        </div>
+        <div
+          class="css-z7qkn0-InternalContainer e1mvbtt44"
+        >
+          <div
+            class="css-of2y7q-TagWrapper e1mvbtt40"
+          >
+            <span
+              class="css-13g1j83-TagWrapper e8jgvoh4"
+            >
+              <div
+                class="css-15z9say-Background e8jgvoh3"
+                type="default"
+              >
+                <span
+                  class="css-uly9e3-Text e8jgvoh1"
+                  type="default"
+                >
+                  Legacy
+                </span>
+              </div>
+            </span>
+            <span
+              class="css-13g1j83-TagWrapper e8jgvoh4"
+            >
+              <div
+                class="css-15z9say-Background e8jgvoh3"
+                type="default"
+              >
+                <span
+                  class="css-uly9e3-Text e8jgvoh1"
+                  type="default"
+                >
+                  Integration
+                </span>
+              </div>
+            </span>
+          </div>
+          <button
+            aria-disabled="false"
+            aria-label="Disconnect"
+            class="css-1qcj53z-StyledButton-getColors-getButtonStyles e1b8u3ky2"
+            role="button"
+            type="button"
+          >
+            <span
+              class="css-vul34l-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+              role="presentation"
+            />
+            <span
+              class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+            >
+              Disconnect
+            </span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div
+    class="css-2fj46w-Panel edxrl2k0"
+  >
+    <div
+      class="css-1v7t0a0-PanelHeader-getPadding eknsyxy0"
+    >
+      Organization Identities
+    </div>
+    <div
+      class="css-pemm1r-PanelBody-textStyles eszvord0"
+    >
+      <div
+        class="css-fvblbb-EmptyMessage-EmptyMessage ege7ww24"
+        data-test-id="empty-message"
+      >
+        <div
+          class="css-u2uxsp-TextBlock-Description ege7ww21"
+        >
+          There are no organization identities associated with your Sentry account
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+`;

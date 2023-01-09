@@ -5,22 +5,22 @@ import Button from 'sentry/components/button';
 describe('Button', function () {
   it('renders', function () {
     const {container} = render(<Button priority="primary">Button</Button>);
-    expect(container).toSnapshot();
+    expect(container).toMatchSnapshot();
   });
 
   it('renders react-router link', function () {
     const {container} = render(<Button to="/some/route">Router Link</Button>);
-    expect(container).toSnapshot();
+    expect(container).toMatchSnapshot();
   });
 
   it('renders normal link', function () {
     const {container} = render(<Button href="/some/relative/url">Normal Link</Button>);
-    expect(container).toSnapshot();
+    expect(container).toMatchSnapshot();
   });
 
   it('renders disabled normal link', function () {
     const {container} = render(<Button href="/some/relative/url">Normal Link</Button>);
-    expect(container).toSnapshot();
+    expect(container).toMatchSnapshot();
   });
 
   it('calls `onClick` callback', function () {

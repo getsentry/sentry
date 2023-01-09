@@ -17,14 +17,14 @@ describe('SelectField', function () {
         value="a"
       />
     );
-    expect(container).toSnapshot();
+    expect(container).toMatchSnapshot();
   });
 
   it('renders with flat options', function () {
     const {container} = render(
       <SelectField choices={['a', 'b', 'c']} name="fieldName" />
     );
-    expect(container).toSnapshot();
+    expect(container).toMatchSnapshot();
   });
 
   it('renders with paired options', function () {
@@ -38,7 +38,7 @@ describe('SelectField', function () {
         name="fieldName"
       />
     );
-    expect(container).toSnapshot();
+    expect(container).toMatchSnapshot();
   });
 
   it('can change value and submit', async function () {

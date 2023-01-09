@@ -12,7 +12,7 @@ describe('FrameRegisters', function () {
     };
 
     const {container} = render(<FrameRegisters registers={registers} />);
-    expect(container).toSnapshot();
+    expect(container).toMatchSnapshot();
   });
 
   it('should skip registers without a value', function () {
@@ -23,7 +23,7 @@ describe('FrameRegisters', function () {
     };
 
     const {container} = render(<FrameRegisters registers={registers} />);
-    expect(container).toSnapshot();
+    expect(container).toMatchSnapshot();
   });
 });
 

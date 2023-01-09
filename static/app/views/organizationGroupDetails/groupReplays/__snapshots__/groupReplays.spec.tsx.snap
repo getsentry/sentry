@@ -1,0 +1,154 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`GroupReplays Replay Feature Enabled should show empty message when no replays are found 1`] = `
+<div>
+  <main
+    class="css-hwwl40-PageContent-StyledPageContent e1g324zf0"
+  >
+    <div
+      class="e1yvh7111 css-arywy4-Panel-Wrapper-StyledPanelTable eswnkzd1"
+    >
+      <div
+        class="css-11gnd7u-PanelTableHeader eswnkzd0"
+        data-test-id="table-header"
+      >
+        <div
+          class="css-9pjj0t-Header e145f1ze2"
+        >
+          Session
+        </div>
+      </div>
+      <div
+        class="css-11gnd7u-PanelTableHeader eswnkzd0"
+        data-test-id="table-header"
+      >
+        <div
+          class="css-9pjj0t-Header e145f1ze2"
+        >
+          <a
+            aria-sort="descending"
+            class="css-kwbsg2-Link-SortLink e145f1ze1"
+            href="/organizations/org-slug/replays/?sort=startedAt"
+            role="columnheader"
+          >
+            Start Time
+             
+            <svg
+              class="css-ltpg9g-IconArrow"
+              fill="#80708F"
+              height="12px"
+              viewBox="0 0 16 16"
+              width="12px"
+            >
+              <path
+                d="M13.76,7.32a.74.74,0,0,1-.53-.22L8,1.87,2.77,7.1A.75.75,0,1,1,1.71,6L7.47.28a.74.74,0,0,1,1.06,0L14.29,6a.75.75,0,0,1,0,1.06A.74.74,0,0,1,13.76,7.32Z"
+              />
+              <path
+                d="M8,15.94a.75.75,0,0,1-.75-.75V.81a.75.75,0,0,1,1.5,0V15.19A.75.75,0,0,1,8,15.94Z"
+              />
+            </svg>
+          </a>
+        </div>
+      </div>
+      <div
+        class="css-11gnd7u-PanelTableHeader eswnkzd0"
+        data-test-id="table-header"
+      >
+        <div
+          class="css-9pjj0t-Header e145f1ze2"
+        >
+          <a
+            aria-sort="none"
+            class="css-kwbsg2-Link-SortLink e145f1ze1"
+            href="/organizations/org-slug/replays/?sort=-duration"
+            role="columnheader"
+          >
+            Duration
+             
+          </a>
+        </div>
+      </div>
+      <div
+        class="css-11gnd7u-PanelTableHeader eswnkzd0"
+        data-test-id="table-header"
+      >
+        <div
+          class="css-9pjj0t-Header e145f1ze2"
+        >
+          <a
+            aria-sort="none"
+            class="css-kwbsg2-Link-SortLink e145f1ze1"
+            href="/organizations/org-slug/replays/?sort=-countErrors"
+            role="columnheader"
+          >
+            Errors
+             
+          </a>
+        </div>
+      </div>
+      <div
+        class="css-11gnd7u-PanelTableHeader eswnkzd0"
+        data-test-id="table-header"
+      >
+        <div
+          class="css-9pjj0t-Header e145f1ze2"
+        >
+          <a
+            aria-sort="none"
+            class="css-kwbsg2-Link-SortLink e145f1ze1"
+            href="/organizations/org-slug/replays/?sort=-activity"
+            role="columnheader"
+          >
+            Activity
+             
+          </a>
+          <span
+            class="e145f1ze0 css-6twy0m-QuestionIconContainer-StyledQuestionTooltip edfbgzx0"
+          >
+            <span
+              aria-describedby="tooltip-lkvuanrgnr"
+              class="css-1y4rfpo-Container e1lk5gpt0"
+            >
+              <svg
+                data-test-id="more-information"
+                fill="currentColor"
+                height="12px"
+                viewBox="0 0 16 16"
+                width="12px"
+              >
+                <path
+                  d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z"
+                />
+                <path
+                  d="M5.33,6.19a1.93,1.93,0,0,1,.33-1,2.59,2.59,0,0,1,1-.87,3,3,0,0,1,1.47-.34,3.18,3.18,0,0,1,1.38.29,2.28,2.28,0,0,1,.92.78,2,2,0,0,1,.32,1.07,1.69,1.69,0,0,1-.18.8,2.74,2.74,0,0,1-.44.6l-.92.84a3.92,3.92,0,0,0-.29.29,1,1,0,0,0-.17.23,1.8,1.8,0,0,0-.08.21c0,.07,0,.19-.09.37a.6.6,0,0,1-.64.56.64.64,0,0,1-.47-.19.74.74,0,0,1-.19-.54,1.91,1.91,0,0,1,.51-1.36,7.83,7.83,0,0,1,.63-.59c.22-.2.39-.35.49-.46a1.46,1.46,0,0,0,.26-.34.8.8,0,0,0,.1-.41.93.93,0,0,0-.32-.72,1.13,1.13,0,0,0-.82-.3,1.15,1.15,0,0,0-.87.3,2.33,2.33,0,0,0-.47.88c-.12.4-.35.61-.7.61a.65.65,0,0,1-.5-.22A.63.63,0,0,1,5.33,6.19ZM8,12.07a.84.84,0,0,1-.57-.21.75.75,0,0,1-.24-.59.74.74,0,0,1,.23-.57A.78.78,0,0,1,8,10.47a.74.74,0,0,1,.57.23.78.78,0,0,1,.23.57.76.76,0,0,1-.24.59A.83.83,0,0,1,8,12.07Z"
+                />
+              </svg>
+            </span>
+          </span>
+        </div>
+      </div>
+      <div
+        class="eswnkzd2 css-rxvyk7-EmptyStreamWrapper-TableEmptyStateWarning e3njqq72"
+        data-test-id="empty-state"
+      >
+        <svg
+          fill="currentColor"
+          height="54px"
+          viewBox="0 0 16 16"
+          width="54px"
+        >
+          <path
+            d="M6,12A6,6,0,1,1,12,6,6,6,0,0,1,6,12ZM6,1.54A4.46,4.46,0,1,0,10.45,6,4.46,4.46,0,0,0,6,1.54Z"
+          />
+          <path
+            d="M15.2,16a.74.74,0,0,1-.53-.22L9.14,10.2A.75.75,0,0,1,10.2,9.14l5.53,5.53a.75.75,0,0,1,0,1.06A.74.74,0,0,1,15.2,16Z"
+          />
+        </svg>
+        <p>
+          There are no items to display
+        </p>
+      </div>
+    </div>
+  </main>
+</div>
+`;

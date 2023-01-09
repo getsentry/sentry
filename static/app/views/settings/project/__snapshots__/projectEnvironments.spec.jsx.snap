@@ -1,0 +1,236 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`ProjectEnvironments render active renders empty message 1`] = `
+<div>
+  <div>
+    <div
+      class="css-q8xgg6-SettingsPageHeader e1nr98yc2"
+    >
+      <div
+        class="css-1mfa9vw-TitleAndActions e1nr98yc8"
+      >
+        <div
+          class="css-u3au9h-TitleWrapper e1nr98yc7"
+        >
+          <div
+            class="css-18xqiae-Title e1nr98yc6"
+          >
+            <h4
+              class="css-jz1c1u-HeaderTitle e12cn1y20"
+            >
+              Manage Environments
+            </h4>
+          </div>
+        </div>
+      </div>
+      <div
+        class="css-4o0g7p-TabsWrapper e1nr98yc0"
+      >
+        <ul
+          class="nav nav-tabs border-bottom css-up4y7q-Wrap e1fej6h40"
+        >
+          <li
+            class="active css-1dpjfax-StyledLi er8tqc10"
+          >
+            <a>
+              Environments
+            </a>
+          </li>
+          <li
+            class=" css-1dpjfax-StyledLi er8tqc10"
+          >
+            <a>
+              Hidden
+            </a>
+          </li>
+        </ul>
+      </div>
+    </div>
+    <div
+      class="css-2fj46w-Panel edxrl2k0"
+    >
+      <div
+        class="css-1v7t0a0-PanelHeader-getPadding eknsyxy0"
+      >
+        Active Environments
+      </div>
+      <div
+        class="css-pemm1r-PanelBody-textStyles eszvord0"
+      >
+        <div
+          class="css-fvblbb-EmptyMessage-EmptyMessage ege7ww24"
+          data-test-id="empty-message"
+        >
+          <div
+            class="css-u2uxsp-TextBlock-Description ege7ww21"
+          >
+            You don't have any environments yet.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`ProjectEnvironments render hidden renders empty message 1`] = `
+<div>
+  <div>
+    <div
+      class="css-q8xgg6-SettingsPageHeader e1nr98yc2"
+    >
+      <div
+        class="css-1mfa9vw-TitleAndActions e1nr98yc8"
+      >
+        <div
+          class="css-u3au9h-TitleWrapper e1nr98yc7"
+        >
+          <div
+            class="css-18xqiae-Title e1nr98yc6"
+          >
+            <h4
+              class="css-jz1c1u-HeaderTitle e12cn1y20"
+            >
+              Manage Environments
+            </h4>
+          </div>
+        </div>
+      </div>
+      <div
+        class="css-4o0g7p-TabsWrapper e1nr98yc0"
+      >
+        <ul
+          class="nav nav-tabs border-bottom css-up4y7q-Wrap e1fej6h40"
+        >
+          <li
+            class=" css-1dpjfax-StyledLi er8tqc10"
+          >
+            <a>
+              Environments
+            </a>
+          </li>
+          <li
+            class="active css-1dpjfax-StyledLi er8tqc10"
+          >
+            <a>
+              Hidden
+            </a>
+          </li>
+        </ul>
+      </div>
+    </div>
+    <div
+      class="css-2fj46w-Panel edxrl2k0"
+    >
+      <div
+        class="css-1v7t0a0-PanelHeader-getPadding eknsyxy0"
+      >
+        Hidden
+      </div>
+      <div
+        class="css-pemm1r-PanelBody-textStyles eszvord0"
+      >
+        <div
+          class="css-fvblbb-EmptyMessage-EmptyMessage ege7ww24"
+          data-test-id="empty-message"
+        >
+          <div
+            class="css-u2uxsp-TextBlock-Description ege7ww21"
+          >
+            You don't have any hidden environments.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`ProjectEnvironments render hidden renders environment list 1`] = `
+<div>
+  <div>
+    <div
+      class="css-q8xgg6-SettingsPageHeader e1nr98yc2"
+    >
+      <div
+        class="css-1mfa9vw-TitleAndActions e1nr98yc8"
+      >
+        <div
+          class="css-u3au9h-TitleWrapper e1nr98yc7"
+        >
+          <div
+            class="css-18xqiae-Title e1nr98yc6"
+          >
+            <h4
+              class="css-jz1c1u-HeaderTitle e12cn1y20"
+            >
+              Manage Environments
+            </h4>
+          </div>
+        </div>
+      </div>
+      <div
+        class="css-4o0g7p-TabsWrapper e1nr98yc0"
+      >
+        <ul
+          class="nav nav-tabs border-bottom css-up4y7q-Wrap e1fej6h40"
+        >
+          <li
+            class=" css-1dpjfax-StyledLi er8tqc10"
+          >
+            <a>
+              Environments
+            </a>
+          </li>
+          <li
+            class="active css-1dpjfax-StyledLi er8tqc10"
+          >
+            <a>
+              Hidden
+            </a>
+          </li>
+        </ul>
+      </div>
+    </div>
+    <div
+      class="css-2fj46w-Panel edxrl2k0"
+    >
+      <div
+        class="css-1v7t0a0-PanelHeader-getPadding eknsyxy0"
+      >
+        Hidden
+      </div>
+      <div
+        class="css-pemm1r-PanelBody-textStyles eszvord0"
+      >
+        <div
+          class="css-l83ci8-PanelItem-EnvironmentItem e1heia562"
+        >
+          <div
+            class="css-p8xoka-Name e1heia561"
+          >
+            zzz
+          </div>
+          <button
+            aria-disabled="false"
+            aria-label="Show"
+            class="e1heia560 css-1nbt7u2-StyledButton-getColors-getButtonStyles-EnvironmentButton e1b8u3ky2"
+            role="button"
+            type="button"
+          >
+            <span
+              class="css-vul34l-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+              role="presentation"
+            />
+            <span
+              class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+            >
+              Show
+            </span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+`;

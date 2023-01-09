@@ -1,0 +1,612 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`AdminSettings render() renders 1`] = `
+<div>
+  <div>
+    <h3>
+      Settings
+    </h3>
+    <form
+      class="form-stacked"
+    >
+      <div>
+        <div
+          class="css-2fj46w-Panel edxrl2k0"
+        >
+          <div
+            class="css-1v7t0a0-PanelHeader-getPadding eknsyxy0"
+          >
+            General
+          </div>
+          <div
+            class="css-1s6sn9m-FieldWrapper-getPadding-inlineStyle-FieldWrapper-FieldWrapper e12z3jxd0"
+          >
+            <label
+              aria-label="Root URL"
+              class="css-1lqelms-FieldDescription-inlineStyle e1cwyh1y0"
+              for="system.url-prefix"
+            >
+              <div
+                class="css-ozwa0k-FieldLabel ekcr5um0"
+              >
+                <span>
+                  Root URL
+                </span>
+              </div>
+              <div
+                class="css-14bl5nc-FieldHelp e1mobfxl0"
+                id="system.url-prefix_help"
+              >
+                The root web address which is used to communicate with the Sentry backend.
+              </div>
+            </label>
+            <div
+              class="css-msyoo4-FieldControlWrapper e1ap0t511"
+            >
+              <div
+                class="css-sse8ie-FieldControlStyled e1ap0t510"
+              >
+                <div
+                  class="css-2tpzr9-InputGroupWrap e13j5zq05"
+                  disabled=""
+                >
+                  <input
+                    aria-describedby="system.url-prefix_help"
+                    class="css-bjpyf7-Input-inputStyles-StyledInput-getInputStyles e13j5zq03"
+                    disabled=""
+                    id="system.url-prefix"
+                    label="Root URL"
+                    name="system.url-prefix"
+                    placeholder="https://sentry.example.com"
+                    type="text"
+                    value="https://sentry.example.com"
+                  />
+                  <div
+                    class="css-pzxhlx-InputItemsWrap-InputTrailingItemsWrap e13j5zq00"
+                    data-test-id="input-trailing-items"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+          <div
+            class="css-1s6sn9m-FieldWrapper-getPadding-inlineStyle-FieldWrapper-FieldWrapper e12z3jxd0"
+          >
+            <label
+              aria-label="Admin Email"
+              class="css-1lqelms-FieldDescription-inlineStyle e1cwyh1y0"
+              for="system.admin-email"
+            >
+              <div
+                class="css-ozwa0k-FieldLabel ekcr5um0"
+              >
+                <span>
+                  Admin Email
+                  <div
+                    class="css-19ojc76-FieldRequiredBadge egnfobg0"
+                  />
+                </span>
+              </div>
+              <div
+                class="css-14bl5nc-FieldHelp e1mobfxl0"
+                id="system.admin-email_help"
+              >
+                The technical contact for this Sentry installation.
+              </div>
+            </label>
+            <div
+              class="css-msyoo4-FieldControlWrapper e1ap0t511"
+            >
+              <div
+                class="css-sse8ie-FieldControlStyled e1ap0t510"
+              >
+                <div
+                  class="css-2tpzr9-InputGroupWrap e13j5zq05"
+                  disabled=""
+                >
+                  <input
+                    aria-describedby="system.admin-email_help"
+                    class="css-bjpyf7-Input-inputStyles-StyledInput-getInputStyles e13j5zq03"
+                    disabled=""
+                    id="system.admin-email"
+                    label="Admin Email"
+                    name="system.admin-email"
+                    placeholder="admin@example.com"
+                    type="email"
+                    value="foo@example.com"
+                  />
+                  <div
+                    class="css-pzxhlx-InputItemsWrap-InputTrailingItemsWrap e13j5zq00"
+                    data-test-id="input-trailing-items"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+          <div
+            class="css-1s6sn9m-FieldWrapper-getPadding-inlineStyle-FieldWrapper-FieldWrapper e12z3jxd0"
+          >
+            <label
+              aria-label="Support Email"
+              class="css-1lqelms-FieldDescription-inlineStyle e1cwyh1y0"
+              for="system.support-email"
+            >
+              <div
+                class="css-ozwa0k-FieldLabel ekcr5um0"
+              >
+                <span>
+                  Support Email
+                  <div
+                    class="css-19ojc76-FieldRequiredBadge egnfobg0"
+                  />
+                </span>
+              </div>
+              <div
+                class="css-14bl5nc-FieldHelp e1mobfxl0"
+                id="system.support-email_help"
+              >
+                The support contact for this Sentry installation.
+              </div>
+            </label>
+            <div
+              class="css-msyoo4-FieldControlWrapper e1ap0t511"
+            >
+              <div
+                class="css-sse8ie-FieldControlStyled e1ap0t510"
+              >
+                <div
+                  class="css-2tpzr9-InputGroupWrap e13j5zq05"
+                  disabled=""
+                >
+                  <input
+                    aria-describedby="system.support-email_help"
+                    class="css-bjpyf7-Input-inputStyles-StyledInput-getInputStyles e13j5zq03"
+                    disabled=""
+                    id="system.support-email"
+                    label="Support Email"
+                    name="system.support-email"
+                    placeholder="support@example.com"
+                    type="email"
+                    value="foo@example.com"
+                  />
+                  <div
+                    class="css-pzxhlx-InputItemsWrap-InputTrailingItemsWrap e13j5zq00"
+                    data-test-id="input-trailing-items"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+          <div
+            class="css-1s6sn9m-FieldWrapper-getPadding-inlineStyle-FieldWrapper-FieldWrapper e12z3jxd0"
+          >
+            <label
+              aria-label="Security Email"
+              class="css-1lqelms-FieldDescription-inlineStyle e1cwyh1y0"
+              for="system.security-email"
+            >
+              <div
+                class="css-ozwa0k-FieldLabel ekcr5um0"
+              >
+                <span>
+                  Security Email
+                  <div
+                    class="css-19ojc76-FieldRequiredBadge egnfobg0"
+                  />
+                </span>
+              </div>
+              <div
+                class="css-14bl5nc-FieldHelp e1mobfxl0"
+                id="system.security-email_help"
+              >
+                The security contact for this Sentry installation.
+              </div>
+            </label>
+            <div
+              class="css-msyoo4-FieldControlWrapper e1ap0t511"
+            >
+              <div
+                class="css-sse8ie-FieldControlStyled e1ap0t510"
+              >
+                <div
+                  class="css-2tpzr9-InputGroupWrap e13j5zq05"
+                  disabled=""
+                >
+                  <input
+                    aria-describedby="system.security-email_help"
+                    class="css-bjpyf7-Input-inputStyles-StyledInput-getInputStyles e13j5zq03"
+                    disabled=""
+                    id="system.security-email"
+                    label="Security Email"
+                    name="system.security-email"
+                    placeholder="security@example.com"
+                    type="email"
+                    value="foo@example.com"
+                  />
+                  <div
+                    class="css-pzxhlx-InputItemsWrap-InputTrailingItemsWrap e13j5zq00"
+                    data-test-id="input-trailing-items"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+          <div
+            class="css-1s6sn9m-FieldWrapper-getPadding-inlineStyle-FieldWrapper-FieldWrapper e12z3jxd0"
+          >
+            <label
+              aria-label="Rate Limit"
+              class="css-1lqelms-FieldDescription-inlineStyle e1cwyh1y0"
+              for="system.rate-limit"
+            >
+              <div
+                class="css-ozwa0k-FieldLabel ekcr5um0"
+              >
+                <span>
+                  Rate Limit
+                  <div
+                    class="css-19ojc76-FieldRequiredBadge egnfobg0"
+                  />
+                </span>
+              </div>
+              <div
+                class="css-14bl5nc-FieldHelp e1mobfxl0"
+                id="system.rate-limit_help"
+              >
+                The maximum number of events the system should accept per minute. A value of 0 will disable the default rate limit.
+              </div>
+            </label>
+            <div
+              class="css-msyoo4-FieldControlWrapper e1ap0t511"
+            >
+              <div
+                class="css-sse8ie-FieldControlStyled e1ap0t510"
+              >
+                <div
+                  class="css-2tpzr9-InputGroupWrap e13j5zq05"
+                  disabled=""
+                >
+                  <input
+                    aria-describedby="system.rate-limit_help"
+                    class="css-bjpyf7-Input-inputStyles-StyledInput-getInputStyles e13j5zq03"
+                    disabled=""
+                    id="system.rate-limit"
+                    label="Rate Limit"
+                    name="system.rate-limit"
+                    placeholder="e.g. 500"
+                    type="text"
+                    value="25"
+                  />
+                  <div
+                    class="css-pzxhlx-InputItemsWrap-InputTrailingItemsWrap e13j5zq00"
+                    data-test-id="input-trailing-items"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div
+          class="css-2fj46w-Panel edxrl2k0"
+        >
+          <div
+            class="css-1v7t0a0-PanelHeader-getPadding eknsyxy0"
+          >
+            Security & Abuse
+          </div>
+          <div
+            class="css-nl4tr5-FieldWrapper-getPadding-inlineStyle-FieldWrapper e12z3jxd0"
+          >
+            <label
+              aria-label="Allow Registration"
+              class="css-1lqelms-FieldDescription-inlineStyle e1cwyh1y0"
+              for="auth.allow-registration"
+            >
+              <div
+                class="css-ozwa0k-FieldLabel ekcr5um0"
+              >
+                <span>
+                  Allow Registration
+                  <div
+                    class="css-19ojc76-FieldRequiredBadge egnfobg0"
+                  />
+                </span>
+              </div>
+              <div
+                class="css-14bl5nc-FieldHelp e1mobfxl0"
+                id="auth.allow-registration_help"
+              >
+                Allow anyone to create an account and access this Sentry installation.
+              </div>
+            </label>
+            <div
+              class="css-msyoo4-FieldControlWrapper e1ap0t511"
+            >
+              <div
+                class="css-sse8ie-FieldControlStyled e1ap0t510"
+              >
+                <button
+                  aria-checked="true"
+                  aria-describedby="tooltip-bxdwonpzfh"
+                  class="css-1lixgqp-SwitchButton ep74ita1"
+                  data-test-id="switch"
+                  disabled=""
+                  id="auth.allow-registration"
+                  label="Allow Registration"
+                  name="auth.allow-registration"
+                  required=""
+                  role="checkbox"
+                  type="button"
+                >
+                  <span
+                    class="css-185ejt3-Toggle ep74ita0"
+                  />
+                </button>
+              </div>
+              <div
+                class="css-iw48yj-FieldControlState e190hkl80"
+              />
+            </div>
+          </div>
+          <div
+            class="css-1s6sn9m-FieldWrapper-getPadding-inlineStyle-FieldWrapper-FieldWrapper e12z3jxd0"
+          >
+            <label
+              aria-label="IP Rate Limit"
+              class="css-1lqelms-FieldDescription-inlineStyle e1cwyh1y0"
+              for="auth.ip-rate-limit"
+            >
+              <div
+                class="css-ozwa0k-FieldLabel ekcr5um0"
+              >
+                <span>
+                  IP Rate Limit
+                  <div
+                    class="css-19ojc76-FieldRequiredBadge egnfobg0"
+                  />
+                </span>
+              </div>
+              <div
+                class="css-14bl5nc-FieldHelp e1mobfxl0"
+                id="auth.ip-rate-limit_help"
+              >
+                The maximum number of times an authentication attempt may be made by a single IP address in a 60 second window.
+              </div>
+            </label>
+            <div
+              class="css-msyoo4-FieldControlWrapper e1ap0t511"
+            >
+              <div
+                class="css-sse8ie-FieldControlStyled e1ap0t510"
+              >
+                <div
+                  class="css-2tpzr9-InputGroupWrap e13j5zq05"
+                  disabled=""
+                >
+                  <input
+                    aria-describedby="auth.ip-rate-limit_help"
+                    class="css-bjpyf7-Input-inputStyles-StyledInput-getInputStyles e13j5zq03"
+                    disabled=""
+                    id="auth.ip-rate-limit"
+                    label="IP Rate Limit"
+                    name="auth.ip-rate-limit"
+                    placeholder="e.g. 10"
+                    type="text"
+                    value="25"
+                  />
+                  <div
+                    class="css-pzxhlx-InputItemsWrap-InputTrailingItemsWrap e13j5zq00"
+                    data-test-id="input-trailing-items"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+          <div
+            class="css-1s6sn9m-FieldWrapper-getPadding-inlineStyle-FieldWrapper-FieldWrapper e12z3jxd0"
+          >
+            <label
+              aria-label="User Rate Limit"
+              class="css-1lqelms-FieldDescription-inlineStyle e1cwyh1y0"
+              for="auth.user-rate-limit"
+            >
+              <div
+                class="css-ozwa0k-FieldLabel ekcr5um0"
+              >
+                <span>
+                  User Rate Limit
+                  <div
+                    class="css-19ojc76-FieldRequiredBadge egnfobg0"
+                  />
+                </span>
+              </div>
+              <div
+                class="css-14bl5nc-FieldHelp e1mobfxl0"
+                id="auth.user-rate-limit_help"
+              >
+                The maximum number of times an authentication attempt may be made against a single account in a 60 second window.
+              </div>
+            </label>
+            <div
+              class="css-msyoo4-FieldControlWrapper e1ap0t511"
+            >
+              <div
+                class="css-sse8ie-FieldControlStyled e1ap0t510"
+              >
+                <div
+                  class="css-2tpzr9-InputGroupWrap e13j5zq05"
+                  disabled=""
+                >
+                  <input
+                    aria-describedby="auth.user-rate-limit_help"
+                    class="css-bjpyf7-Input-inputStyles-StyledInput-getInputStyles e13j5zq03"
+                    disabled=""
+                    id="auth.user-rate-limit"
+                    label="User Rate Limit"
+                    name="auth.user-rate-limit"
+                    placeholder="e.g. 10"
+                    type="text"
+                    value="25"
+                  />
+                  <div
+                    class="css-pzxhlx-InputItemsWrap-InputTrailingItemsWrap e13j5zq00"
+                    data-test-id="input-trailing-items"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+          <div
+            class="css-1s6sn9m-FieldWrapper-getPadding-inlineStyle-FieldWrapper-FieldWrapper e12z3jxd0"
+          >
+            <label
+              aria-label="Organization Creation Rate Limit"
+              class="css-1lqelms-FieldDescription-inlineStyle e1cwyh1y0"
+              for="api.rate-limit.org-create"
+            >
+              <div
+                class="css-ozwa0k-FieldLabel ekcr5um0"
+              >
+                <span>
+                  Organization Creation Rate Limit
+                  <div
+                    class="css-19ojc76-FieldRequiredBadge egnfobg0"
+                  />
+                </span>
+              </div>
+              <div
+                class="css-14bl5nc-FieldHelp e1mobfxl0"
+                id="api.rate-limit.org-create_help"
+              >
+                The maximum number of organizations which may be created by a single account in a one hour window.
+              </div>
+            </label>
+            <div
+              class="css-msyoo4-FieldControlWrapper e1ap0t511"
+            >
+              <div
+                class="css-sse8ie-FieldControlStyled e1ap0t510"
+              >
+                <div
+                  class="css-2tpzr9-InputGroupWrap e13j5zq05"
+                  disabled=""
+                >
+                  <input
+                    aria-describedby="api.rate-limit.org-create_help"
+                    class="css-bjpyf7-Input-inputStyles-StyledInput-getInputStyles e13j5zq03"
+                    disabled=""
+                    id="api.rate-limit.org-create"
+                    label="Organization Creation Rate Limit"
+                    name="api.rate-limit.org-create"
+                    placeholder="e.g. 5"
+                    type="text"
+                    value="25"
+                  />
+                  <div
+                    class="css-pzxhlx-InputItemsWrap-InputTrailingItemsWrap e13j5zq00"
+                    data-test-id="input-trailing-items"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div
+          class="css-2fj46w-Panel edxrl2k0"
+        >
+          <div
+            class="css-1v7t0a0-PanelHeader-getPadding eknsyxy0"
+          >
+            Beacon
+          </div>
+          <div
+            class="css-nl4tr5-FieldWrapper-getPadding-inlineStyle-FieldWrapper e12z3jxd0"
+          >
+            <label
+              aria-label="Usage Statistics"
+              class="css-1lqelms-FieldDescription-inlineStyle e1cwyh1y0"
+              for="beacon.anonymous"
+            >
+              <div
+                class="css-1amoduc-FieldLabel ekcr5um0"
+              >
+                <span>
+                  Usage Statistics
+                </span>
+              </div>
+              <div
+                class="css-14bl5nc-FieldHelp e1mobfxl0"
+                id="beacon.anonymous_help"
+              >
+                <span>
+                  <span>
+                    If enabled, any stats reported to sentry.io will exclude identifying information (such as your administrative email address). By anonymizing your installation the Sentry team will be unable to contact you about security updates. For more information on what data is sent to Sentry, see the 
+                  </span>
+                  <a
+                    href="https://develop.sentry.dev/self-hosted/"
+                  >
+                    <span>
+                      documentation
+                    </span>
+                  </a>
+                  <span>
+                    . Note: This is separate from error-reporting for the self-hosted installer. The data reported to the beacon only includes usage stats from your running self-hosted instance.
+                  </span>
+                </span>
+              </div>
+            </label>
+            <div
+              class="css-msyoo4-FieldControlWrapper e1ap0t511"
+            >
+              <div
+                class="css-sse8ie-FieldControlStyled e1ap0t510"
+              >
+                <div
+                  aria-label="Usage Statistics"
+                  class="css-16wknvt-Container ec3iq7v3"
+                  id="beacon.anonymous"
+                  role="radiogroup"
+                >
+                  <label
+                    aria-checked="false"
+                    class="css-1aip5k1-RadioLineItem ec3iq7v2"
+                  >
+                    <input
+                      aria-label="Send my contact information along with usage statistics"
+                      class="css-12n34x7-Radio-checkedCss epd3w7v0"
+                      type="radio"
+                    />
+                    <div
+                      class="css-1nwjsmg-RadioLineText ec3iq7v1"
+                    >
+                      Send my contact information along with usage statistics
+                    </div>
+                  </label>
+                  <label
+                    aria-checked="false"
+                    class="css-1aip5k1-RadioLineItem ec3iq7v2"
+                  >
+                    <input
+                      aria-label="Please keep my usage information anonymous"
+                      class="css-12n34x7-Radio-checkedCss epd3w7v0"
+                      type="radio"
+                    />
+                    <div
+                      class="css-1nwjsmg-RadioLineText ec3iq7v1"
+                    >
+                      Please keep my usage information anonymous
+                    </div>
+                  </label>
+                </div>
+              </div>
+              <div
+                class="css-iw48yj-FieldControlState e190hkl80"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+`;

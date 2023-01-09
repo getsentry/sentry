@@ -85,7 +85,7 @@ describe('OrganizationTeamProjects', function () {
     );
 
     expect(await screen.findByText('project-slug')).toBeInTheDocument();
-    expect(container).toSnapshot();
+    expect(container).toMatchSnapshot();
   });
 
   it('Should allow bookmarking', async function () {

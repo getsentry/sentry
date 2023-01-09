@@ -1,0 +1,37 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`BaseChart can scale to full parent height when given autoHeightResize 1`] = `
+<div>
+  <div
+    style="height: 500px; background: yellow; padding: 20px;"
+  >
+    <div
+      class="css-1ez5hvi-ChartContainer-getTooltipStyles e1d3yu8b0"
+    >
+      <div
+        style="height: 100%; background: green;"
+      >
+        echarts mock
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`BaseChart renders with default height when autoHeightResize not provided 1`] = `
+<div>
+  <div
+    style="height: 500px; background: yellow; padding: 20px;"
+  >
+    <div
+      class="css-91lev7-ChartContainer-getTooltipStyles e1d3yu8b0"
+    >
+      <div
+        style="height: 200px; background: green;"
+      >
+        echarts mock
+      </div>
+    </div>
+  </div>
+</div>
+`;

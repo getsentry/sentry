@@ -14,7 +14,7 @@ describe('InactivePlugins', function () {
     const {container} = render(
       <InactivePlugins onEnablePlugin={() => {}} plugins={TestStubs.Plugins()} />
     );
-    expect(container).toSnapshot();
+    expect(container).toMatchSnapshot();
   });
 
   it('enables a plugin', function () {

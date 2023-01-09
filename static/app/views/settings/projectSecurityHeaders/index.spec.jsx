@@ -27,6 +27,6 @@ describe('ProjectSecurityHeaders', function () {
         })}
       />
     );
-    expect(wrapper.container).toSnapshot();
+    expect(wrapper.container).toMatchSnapshot();
   });
 });

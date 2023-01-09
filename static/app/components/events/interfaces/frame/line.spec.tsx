@@ -41,7 +41,7 @@ describe('Frame - Line', function () {
           event={event}
         />
       );
-      expect(container).toSnapshot();
+      expect(container).toMatchSnapshot();
     });
   });
 
@@ -66,7 +66,7 @@ describe('Frame - Line', function () {
           isExpanded
         />
       );
-      expect(screen.getByRole('list')).toSnapshot();
+      expect(screen.getByRole('list')).toMatchSnapshot();
     });
 
     it('should render register values', () => {

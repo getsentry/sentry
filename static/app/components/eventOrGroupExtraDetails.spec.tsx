@@ -22,7 +22,7 @@ describe('EventOrGroupExtraDetails', function () {
       {context: routerContext}
     );
 
-    expect(container).toSnapshot();
+    expect(container).toMatchSnapshot();
   });
 
   it('renders only first seen', function () {
@@ -39,7 +39,7 @@ describe('EventOrGroupExtraDetails', function () {
       {context: routerContext}
     );
 
-    expect(container).toSnapshot();
+    expect(container).toMatchSnapshot();
   });
 
   it('renders only last seen', function () {
@@ -56,7 +56,7 @@ describe('EventOrGroupExtraDetails', function () {
       {context: routerContext}
     );
 
-    expect(container).toSnapshot();
+    expect(container).toMatchSnapshot();
   });
 
   it('renders all details', function () {
@@ -81,7 +81,7 @@ describe('EventOrGroupExtraDetails', function () {
       {context: routerContext}
     );
 
-    expect(container).toSnapshot();
+    expect(container).toMatchSnapshot();
   });
 
   it('renders assignee and status', function () {
@@ -107,7 +107,7 @@ describe('EventOrGroupExtraDetails', function () {
       {context: routerContext}
     );
 
-    expect(container).toSnapshot();
+    expect(container).toMatchSnapshot();
   });
 
   it('details when mentioned', function () {
@@ -129,6 +129,6 @@ describe('EventOrGroupExtraDetails', function () {
       {context: routerContext}
     );
 
-    expect(container).toSnapshot();
+    expect(container).toMatchSnapshot();
   });
 });

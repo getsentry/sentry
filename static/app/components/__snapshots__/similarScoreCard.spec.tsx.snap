@@ -1,0 +1,56 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`SimilarScoreCard renders with score list 1`] = `
+<div>
+  <div
+    class="css-7efqgu-Wrapper ena4wns1"
+  >
+    <div>
+      Exception Message
+    </div>
+    <div
+      class="css-1l9x7oq-Score ena4wns0"
+    />
+  </div>
+  <div
+    class="css-7efqgu-Wrapper ena4wns1"
+  >
+    <div>
+      In-App Frames
+    </div>
+    <div
+      class="css-1eaeou7-Score ena4wns0"
+    />
+  </div>
+  <div
+    class="css-7efqgu-Wrapper ena4wns1"
+  >
+    <div>
+      Stack Trace Frames
+    </div>
+    <div
+      class="css-5nf72g-Score ena4wns0"
+    />
+  </div>
+  <div
+    class="css-7efqgu-Wrapper ena4wns1"
+  >
+    <div>
+      Log Message
+    </div>
+    <div
+      class="css-1k5z1u3-Score ena4wns0"
+    />
+  </div>
+  <div
+    class="css-7efqgu-Wrapper ena4wns1"
+  >
+    <div>
+      Other
+    </div>
+    <div
+      class="css-1k5z1u3-Score ena4wns0"
+    />
+  </div>
+</div>
+`;

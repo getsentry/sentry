@@ -38,7 +38,7 @@ describe('OrganizationProjects', function () {
   it('should render the projects in the store', function () {
     const {container} = render(<OrganizationProjectsContainer location={{query: {}}} />);
 
-    expect(container).toSnapshot();
+    expect(container).toMatchSnapshot();
 
     expect(screen.getByText('project-slug')).toBeInTheDocument();
 

@@ -1,0 +1,14 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`ExternalLink renders 1`] = `
+<div>
+  <a
+    class="css-1ecfdi8-Anchor ehytxfi0"
+    href="https://www.sentry.io/"
+    rel="noreferrer noopener"
+    target="_blank"
+  >
+    ExternalLink
+  </a>
+</div>
+`;

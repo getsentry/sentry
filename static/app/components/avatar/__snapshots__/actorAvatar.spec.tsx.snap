@@ -1,0 +1,85 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`ActorAvatar render() should not show a gravatar when actor type is a team 1`] = `
+<div>
+  <span
+    aria-describedby="tooltip-ntdgcz7gf9"
+    class="css-1y4rfpo-Container e1lk5gpt0"
+  >
+    <span
+      class="avatar css-64x09n-StyledBaseAvatar ery3g4h1"
+      data-test-id="letter_avatar-avatar"
+      style="width: 24px; height: 24px;"
+      title="cool team"
+    >
+      <svg
+        class="css-h0a6ia-LetterAvatar-imageStyle ewkzefl0"
+        viewBox="0 0 120 120"
+      >
+        <rect
+          fill="#4e3fb4"
+          height="120"
+          opacity="100%"
+          rx="15"
+          ry="15"
+          width="120"
+          x="0"
+          y="0"
+        />
+        <text
+          fill="#FFFFFF"
+          font-size="65"
+          style="dominant-baseline: central;"
+          text-anchor="middle"
+          x="50%"
+          y="50%"
+        >
+          CT
+        </text>
+      </svg>
+    </span>
+  </span>
+</div>
+`;
+
+exports[`ActorAvatar render() should show a gravatar when actor type is a user 1`] = `
+<div>
+  <span
+    aria-describedby="tooltip-zn3u1of4ap"
+    class="css-1y4rfpo-Container e1lk5gpt0"
+  >
+    <span
+      class="avatar css-eti684-StyledBaseAvatar ery3g4h1"
+      data-test-id="letter_avatar-avatar"
+      style="width: 24px; height: 24px;"
+      title="JanActore Bloggs"
+    >
+      <svg
+        class="css-1jaqko8-LetterAvatar-imageStyle ewkzefl0"
+        viewBox="0 0 120 120"
+      >
+        <rect
+          fill="#4e3fb4"
+          height="120"
+          opacity="100%"
+          rx="15"
+          ry="15"
+          width="120"
+          x="0"
+          y="0"
+        />
+        <text
+          fill="#FFFFFF"
+          font-size="65"
+          style="dominant-baseline: central;"
+          text-anchor="middle"
+          x="50%"
+          y="50%"
+        >
+          JB
+        </text>
+      </svg>
+    </span>
+  </span>
+</div>
+`;

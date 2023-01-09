@@ -16,14 +16,14 @@ describe('OrganizationCreate', function () {
 
   it('renders without terms', function () {
     const wrapper = render(<OrganizationCreate />);
-    expect(wrapper.container).toSnapshot();
+    expect(wrapper.container).toMatchSnapshot();
   });
 
   it('renders with terms', function () {
     ConfigStore.set('termsUrl', 'https://example.com/terms');
     ConfigStore.set('privacyUrl', 'https://example.com/privacy');
     const wrapper = render(<OrganizationCreate />);
-    expect(wrapper.container).toSnapshot();
+    expect(wrapper.container).toMatchSnapshot();
   });
 
   it('creates a new org', function () {

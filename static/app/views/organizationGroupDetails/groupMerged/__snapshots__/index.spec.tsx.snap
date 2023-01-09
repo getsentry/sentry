@@ -1,0 +1,295 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Issues -> Merged View renders with mocked data 1`] = `
+<div>
+  <div
+    class="css-b3ubg8-Body e1q4ew4a7"
+  >
+    <section
+      class="css-12xv6fc-Main e1q4ew4a1"
+    >
+      <div
+        class="ref-warning css-jz38p3-Wrap-alertStyles e73vi8e5"
+        type="warning"
+      >
+        <span
+          class="css-iaz4p1-Message e73vi8e3"
+        >
+          This is an experimental feature. Data may not be immediately available while we process unmerges.
+        </span>
+      </div>
+      <h4>
+        <span>
+          Merged fingerprints with latest event
+        </span>
+         
+        <span>
+          <span>
+            (
+          </span>
+          <span>
+            2
+          </span>
+          <span>
+            )
+          </span>
+        </span>
+      </h4>
+      <div
+        class="css-2fj46w-Panel edxrl2k0"
+      >
+        <div
+          class="css-a8axuq-PanelHeader-getPadding eknsyxy0"
+        >
+          <div>
+            <button
+              aria-describedby="tooltip-vw8s2gaqh9"
+              aria-disabled="true"
+              class="css-21gw7o-StyledButton-getColors-getButtonStyles e1b8u3ky2"
+              disabled=""
+              role="button"
+              type="button"
+            >
+              <span
+                class="css-vul34l-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+                role="presentation"
+              />
+              <span
+                class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+              >
+                <span>
+                  <span>
+                    Unmerge (
+                  </span>
+                  <span>
+                    0
+                  </span>
+                  <span>
+                    )
+                  </span>
+                </span>
+              </span>
+            </button>
+            <button
+              aria-describedby="tooltip-isyqkm33zo"
+              aria-disabled="true"
+              aria-label="Compare"
+              class="e9vanab0 css-1rr9hgh-StyledButton-getColors-getButtonStyles-CompareButton e1b8u3ky2"
+              disabled=""
+              role="button"
+              type="button"
+            >
+              <span
+                class="css-vul34l-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+                role="presentation"
+              />
+              <span
+                class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+              >
+                Compare
+              </span>
+            </button>
+          </div>
+          <button
+            aria-disabled="false"
+            aria-label="Collapse All"
+            class="css-1qcj53z-StyledButton-getColors-getButtonStyles e1b8u3ky2"
+            role="button"
+            type="button"
+          >
+            <span
+              class="css-vul34l-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+              role="presentation"
+            />
+            <span
+              class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+            >
+              Collapse All
+            </span>
+          </button>
+        </div>
+        <div
+          class="css-pemm1r-PanelBody-textStyles eszvord0"
+        >
+          <div
+            class="css-vfab7-MergedGroup e2itrlr6"
+          >
+            <div
+              class="css-zp70yf-Controls e2itrlr4"
+            >
+              <div
+                class="css-1oey6q-ActionWrapper e2itrlr5"
+              >
+                <div
+                  class="css-bphz7d-Wrapper e14pn5ur2"
+                >
+                  <input
+                    class="css-4npmde-HiddenInput-HiddenInput e14pn5ur1"
+                    id="2c4887696f708c476a81ce4e834c4b02"
+                    type="checkbox"
+                    value="2c4887696f708c476a81ce4e834c4b02"
+                  />
+                  <div
+                    aria-hidden="true"
+                    class="css-5y1i99-StyledCheckbox-StyledCheckbox e14pn5ur0"
+                  />
+                  <span
+                    class="css-vul34l-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+                    role="presentation"
+                  />
+                </div>
+                <label
+                  class="css-dqz7d8-FingerprintLabel e2itrlr3"
+                  for="2c4887696f708c476a81ce4e834c4b02"
+                >
+                  2c4887696f708c476a81ce4e834c4b02
+                </label>
+              </div>
+              <div>
+                <span
+                  class="css-1p9cy4i-Collapse e2itrlr2"
+                >
+                  <svg
+                    class="css-1wv9wcw-IconChevron"
+                    fill="currentColor"
+                    height="12px"
+                    viewBox="0 0 16 16"
+                    width="12px"
+                  >
+                    <path
+                      d="M14,11.75a.74.74,0,0,1-.53-.22L8,6.06,2.53,11.53a.75.75,0,0,1-1.06-1.06l6-6a.75.75,0,0,1,1.06,0l6,6a.75.75,0,0,1,0,1.06A.74.74,0,0,1,14,11.75Z"
+                    />
+                  </svg>
+                </span>
+              </div>
+            </div>
+            <div
+              class="event-list css-rio58w-MergedEventList e2itrlr1"
+            >
+              <div
+                class="event-details css-o9ue8z-EventDetails e2itrlr0"
+              >
+                <div
+                  data-test-id="event-issue-header"
+                >
+                  <div
+                    class="css-ouo8wi-Title-truncateStyles-Title e1weinmj6"
+                  >
+                    <a
+                      class="css-ta9xa3-Link e1ycxor00"
+                      href="/organizations/org-slug/issues/268/events/807f0de4d8c246098f21f8e0f1684f3d/?_allp=1&referrer=merged-item"
+                    >
+                      <span
+                        class="e1weinmj0 css-yxe4hf-Wrapper-StyledEventOrGroupTitle ejrtwu50"
+                      >
+                        TypeError
+                      </span>
+                    </a>
+                  </div>
+                  <div
+                    class="css-5u5f53-TagAndMessageWrapper-StyledTagAndMessageWrapper e1weinmj4"
+                  >
+                    <div
+                      class="css-1jsaje1-Message-truncateStyles e1weinmj3"
+                    >
+                      Cannot read property 'assignedTo' of undefined
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div
+            class="css-vfab7-MergedGroup e2itrlr6"
+          >
+            <div
+              class="css-zp70yf-Controls e2itrlr4"
+            >
+              <div
+                class="css-1oey6q-ActionWrapper e2itrlr5"
+              >
+                <div
+                  class="css-bphz7d-Wrapper e14pn5ur2"
+                >
+                  <input
+                    class="css-4npmde-HiddenInput-HiddenInput e14pn5ur1"
+                    id="e05da55328a860b21f62e371f0a7507d"
+                    type="checkbox"
+                    value="e05da55328a860b21f62e371f0a7507d"
+                  />
+                  <div
+                    aria-hidden="true"
+                    class="css-5y1i99-StyledCheckbox-StyledCheckbox e14pn5ur0"
+                  />
+                  <span
+                    class="css-vul34l-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+                    role="presentation"
+                  />
+                </div>
+                <label
+                  class="css-dqz7d8-FingerprintLabel e2itrlr3"
+                  for="e05da55328a860b21f62e371f0a7507d"
+                >
+                  e05da55328a860b21f62e371f0a7507d
+                </label>
+              </div>
+              <div>
+                <span
+                  class="css-1p9cy4i-Collapse e2itrlr2"
+                >
+                  <svg
+                    class="css-1wv9wcw-IconChevron"
+                    fill="currentColor"
+                    height="12px"
+                    viewBox="0 0 16 16"
+                    width="12px"
+                  >
+                    <path
+                      d="M14,11.75a.74.74,0,0,1-.53-.22L8,6.06,2.53,11.53a.75.75,0,0,1-1.06-1.06l6-6a.75.75,0,0,1,1.06,0l6,6a.75.75,0,0,1,0,1.06A.74.74,0,0,1,14,11.75Z"
+                    />
+                  </svg>
+                </span>
+              </div>
+            </div>
+            <div
+              class="event-list css-rio58w-MergedEventList e2itrlr1"
+            >
+              <div
+                class="event-details css-o9ue8z-EventDetails e2itrlr0"
+              >
+                <div
+                  data-test-id="event-issue-header"
+                >
+                  <div
+                    class="css-ouo8wi-Title-truncateStyles-Title e1weinmj6"
+                  >
+                    <a
+                      class="css-ta9xa3-Link e1ycxor00"
+                      href="/organizations/org-slug/issues/268/events/807f0de4d8c246098f21f8e0f1684f3d/?_allp=1&referrer=merged-item"
+                    >
+                      <span
+                        class="e1weinmj0 css-yxe4hf-Wrapper-StyledEventOrGroupTitle ejrtwu50"
+                      >
+                        TypeError
+                      </span>
+                    </a>
+                  </div>
+                  <div
+                    class="css-5u5f53-TagAndMessageWrapper-StyledTagAndMessageWrapper e1weinmj4"
+                  >
+                    <div
+                      class="css-1jsaje1-Message-truncateStyles e1weinmj3"
+                    >
+                      Cannot read property 'assignedTo' of undefined
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>
+`;

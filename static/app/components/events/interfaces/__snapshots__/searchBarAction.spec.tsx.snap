@@ -1,0 +1,707 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`SearchBarAction default render 1`] = `
+<div>
+  <div
+    class="css-c0hg7j-Wrapper e19685a32"
+  >
+    <div
+      class="css-tea0zw-MenuControlWrap ems9bqr7"
+      role="presentation"
+    >
+      <button
+        aria-controls="react-aria7796080689-3"
+        aria-disabled="false"
+        aria-expanded="true"
+        aria-haspopup="listbox"
+        class="e19685a30 e1u0jomf1 css-1tr35n-StyledButton-getColors-getButtonStyles-StyledButton-StyledTrigger e1b8u3ky2"
+        id="react-aria7796080689-2"
+        role="button"
+        type="button"
+      >
+        <span
+          class="css-vul34l-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+          role="presentation"
+        />
+        <span
+          class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+        >
+          Filter By
+          <svg
+            aria-hidden="true"
+            class="e1u0jomf2 css-qrt7yt-IconChevron-StyledChevron"
+            fill="currentColor"
+            height="12px"
+            viewBox="0 0 16 16"
+            width="12px"
+          >
+            <path
+              d="M14,11.75a.74.74,0,0,1-.53-.22L8,6.06,2.53,11.53a.75.75,0,0,1-1.06-1.06l6-6a.75.75,0,0,1,1.06,0l6,6a.75.75,0,0,1,0,1.06A.74.74,0,0,1,14,11.75Z"
+            />
+          </svg>
+        </span>
+      </button>
+      <span
+        data-focus-scope-start="true"
+        hidden=""
+      />
+      <div
+        id="react-aria7796080689-1"
+        style="position: absolute; left: 0px; top: 0px; z-index: 1001; pointer-events: auto;"
+      >
+        <div
+          class="css-43kb1z-Overlay-StyledOverlay ems9bqr4"
+        >
+          <div
+            class=" css-1osxyss-container"
+          >
+            <span
+              aria-atomic="false"
+              aria-live="polite"
+              aria-relevant="additions text"
+              class="css-1f43avz-a11yText-A11yText"
+            >
+              <span
+                id="aria-selection"
+              />
+              <span
+                id="aria-context"
+              >
+                option HTTP request focused, 0 of 2. 8 results available. Use Up and Down to choose options, press Enter to select the currently focused option, press Escape to exit the menu.
+              </span>
+            </span>
+            <div
+              aria-hidden="true"
+              class=" css-1cn087x-Control"
+            >
+              <div
+                class=" css-835h8n-ValueContainer"
+              >
+                <div
+                  class=" css-kc6oq8-placeholder"
+                >
+                  Search…
+                </div>
+                <input
+                  aria-autocomplete="list"
+                  class="css-wmatm6-dummyInput-DummyInput"
+                  id="react-select-2-input"
+                  readonly=""
+                  tabindex="0"
+                  value=""
+                />
+              </div>
+              <div
+                class=" css-151a1mi-IndicatorsContainer"
+              >
+                <div
+                  aria-hidden="true"
+                  class=" css-1y40dj-indicatorContainer"
+                >
+                  <svg
+                    class="css-1905w31-IconChevron"
+                    fill="currentColor"
+                    height="14px"
+                    viewBox="0 0 16 16"
+                    width="14px"
+                  >
+                    <path
+                      d="M14,11.75a.74.74,0,0,1-.53-.22L8,6.06,2.53,11.53a.75.75,0,0,1-1.06-1.06l6-6a.75.75,0,0,1,1.06,0l6,6a.75.75,0,0,1,0,1.06A.74.74,0,0,1,14,11.75Z"
+                    />
+                  </svg>
+                </div>
+              </div>
+            </div>
+            <div
+              class=" css-vsiylz-menu"
+            >
+              <div
+                class=" css-1hyy96e-MenuList"
+              >
+                <div
+                  class=" css-12hmnhh-Group"
+                >
+                  <div
+                    class=" css-ejy78p-group"
+                    id="react-select-2-group-0-heading"
+                  >
+                    Types
+                  </div>
+                  <div>
+                    <div
+                      aria-checked="false"
+                      aria-describedby="menuitem-details-zzgh8mi77u"
+                      aria-disabled="false"
+                      aria-labelledby="menuitem-label-olisd7lnc2"
+                      class="option option--is-focused css-hepm6i-MenuItemWrap eoaj5np8"
+                      id="react-select-2-option-0-0"
+                      role="menuitemcheckbox"
+                      tabindex="-1"
+                      value="http"
+                    >
+                      <div
+                        class="css-scw8h2-InnerWrap eoaj5np7"
+                        data-test-id="http"
+                      >
+                        <span
+                          class="css-1of4qjf-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer-StyledInteractionStateLayer eoaj5np6"
+                          role="presentation"
+                        />
+                        <div
+                          class="css-1qa932s-LeadingItems eoaj5np4"
+                        >
+                          <div
+                            class="css-1nt5ksc-CheckWrap e12a69680"
+                          />
+                          <div
+                            class="css-1bnolhm-Wrapper e14ruzvs1"
+                          >
+                            <div
+                              class="css-3extg3-IconWrapper e14ruzvs0"
+                              color="green300"
+                            >
+                              <svg
+                                class="css-1dz45b7-IconSort"
+                                fill="currentColor"
+                                height="12px"
+                                viewBox="0 0 16 16"
+                                width="12px"
+                              >
+                                <path
+                                  d="M15.49 11.76a.75.75 0 0 1-.22.53l-2.88 2.88a.75.75 0 0 1-1.06 0l-2.87-2.88a.74.74 0 0 1 0-1.06.75.75 0 0 1 1.06 0l2.34 2.35 2.35-2.35a.75.75 0 0 1 1.06 0 .79.79 0 0 1 .22.53Z"
+                                />
+                                <path
+                                  d="M12.61 1.34v13.3a.75.75 0 1 1-1.5 0V1.34a.75.75 0 1 1 1.5 0Z"
+                                />
+                                <path
+                                  d="M7.87 4.22a.74.74 0 0 1-.22.53.75.75 0 0 1-1.06 0L4.25 2.4 1.9 4.75A.75.75 0 0 1 .84 3.69L3.72.81a.75.75 0 0 1 1.06 0l2.87 2.88a.74.74 0 0 1 .22.53Z"
+                                />
+                                <path
+                                  d="M5 1.34v13.3a.75.75 0 1 1-1.5 0V1.34a.75.75 0 0 1 1.5 0Z"
+                                />
+                              </svg>
+                            </div>
+                          </div>
+                        </div>
+                        <div
+                          class="css-1p7u6k0-ContentWrap eoaj5np5"
+                        >
+                          <div
+                            class="css-yki0ea-LabelWrap eoaj5np3"
+                          >
+                            <p
+                              aria-hidden="true"
+                              class="css-35vlyv-Label-overflowEllipsis eoaj5np2"
+                              data-test-id="menu-list-item-label"
+                              id="menuitem-label-olisd7lnc2"
+                            >
+                              HTTP request
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div
+                      aria-checked="false"
+                      aria-describedby="menuitem-details-8flg9mmctg"
+                      aria-disabled="false"
+                      aria-labelledby="menuitem-label-y2lie3bh2n"
+                      class="option css-hepm6i-MenuItemWrap eoaj5np8"
+                      id="react-select-2-option-0-1"
+                      role="menuitemcheckbox"
+                      tabindex="-1"
+                      value="transaction"
+                    >
+                      <div
+                        class="css-1k37yyt-InnerWrap eoaj5np7"
+                        data-test-id="transaction"
+                      >
+                        <span
+                          class="css-8qg416-InteractionStateLayer-InteractionStateLayer-StyledInteractionStateLayer eoaj5np6"
+                          role="presentation"
+                        />
+                        <div
+                          class="css-1qa932s-LeadingItems eoaj5np4"
+                        >
+                          <div
+                            class="css-1nt5ksc-CheckWrap e12a69680"
+                          />
+                          <div
+                            class="css-1bnolhm-Wrapper e14ruzvs1"
+                          >
+                            <div
+                              class="css-92q560-IconWrapper e14ruzvs0"
+                              color="pink300"
+                            >
+                              <svg
+                                fill="currentColor"
+                                height="12px"
+                                viewBox="0 0 16 16"
+                                width="12px"
+                              >
+                                <path
+                                  d="M8.28,14.48h6.24V11.16H8.28ZM4.88,9.66h6.24V6.34H4.88Zm7.74,0h2.15A1.25,1.25,0,0,1,16,10.91v3.82A1.25,1.25,0,0,1,14.77,16H8a1.25,1.25,0,0,1-1.25-1.25V11.16H4.63A1.25,1.25,0,0,1,3.38,9.91V6.34H1.23A1.25,1.25,0,0,1,0,5.09V1.27A1.25,1.25,0,0,1,1.23,0H8A1.25,1.25,0,0,1,9.22,1.27V4.84h2.15a1.25,1.25,0,0,1,1.25,1.25ZM1.48,4.84H7.72V1.52H1.48Z"
+                                />
+                              </svg>
+                            </div>
+                          </div>
+                        </div>
+                        <div
+                          class="css-1p7u6k0-ContentWrap eoaj5np5"
+                        >
+                          <div
+                            class="css-yki0ea-LabelWrap eoaj5np3"
+                          >
+                            <p
+                              aria-hidden="true"
+                              class="css-35vlyv-Label-overflowEllipsis eoaj5np2"
+                              data-test-id="menu-list-item-label"
+                              id="menuitem-label-y2lie3bh2n"
+                            >
+                              Transaction
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div
+                      aria-checked="false"
+                      aria-describedby="menuitem-details-pfcorino6l"
+                      aria-disabled="false"
+                      aria-labelledby="menuitem-label-z2mgtklnsn"
+                      class="option css-hepm6i-MenuItemWrap eoaj5np8"
+                      id="react-select-2-option-0-2"
+                      role="menuitemcheckbox"
+                      tabindex="-1"
+                      value="ui"
+                    >
+                      <div
+                        class="css-1k37yyt-InnerWrap eoaj5np7"
+                        data-test-id="ui"
+                      >
+                        <span
+                          class="css-8qg416-InteractionStateLayer-InteractionStateLayer-StyledInteractionStateLayer eoaj5np6"
+                          role="presentation"
+                        />
+                        <div
+                          class="css-1qa932s-LeadingItems eoaj5np4"
+                        >
+                          <div
+                            class="css-1nt5ksc-CheckWrap e12a69680"
+                          />
+                          <div
+                            class="css-1bnolhm-Wrapper e14ruzvs1"
+                          >
+                            <div
+                              class="css-v1h9wx-IconWrapper e14ruzvs0"
+                              color="purple300"
+                            >
+                              <svg
+                                fill="currentColor"
+                                height="12px"
+                                viewBox="0 0 16 16"
+                                width="12px"
+                              >
+                                <path
+                                  d="M8,10.63a4,4,0,0,1-3.94-4V4a3.94,3.94,0,1,1,7.88,0V6.68A4,4,0,0,1,8,10.63ZM8,1.52A2.44,2.44,0,0,0,5.56,4V6.68a2.44,2.44,0,1,0,4.88,0V4A2.44,2.44,0,0,0,8,1.52Z"
+                                />
+                                <path
+                                  d="M14.19,16H1.81A1.74,1.74,0,0,1,.07,14.24V12.32A3.72,3.72,0,0,1,3.19,8.64l2.46-.41a.76.76,0,0,1,.87.62.75.75,0,0,1-.62.86l-2.47.41a2.22,2.22,0,0,0-1.86,2.2v1.92a.24.24,0,0,0,.24.24H14.19a.24.24,0,0,0,.24-.24V12.32a2.22,2.22,0,0,0-1.86-2.2L10.1,9.71a.75.75,0,0,1-.62-.86.76.76,0,0,1,.87-.62l2.47.41a3.72,3.72,0,0,1,3.11,3.68v1.92A1.74,1.74,0,0,1,14.19,16Z"
+                                />
+                              </svg>
+                            </div>
+                          </div>
+                        </div>
+                        <div
+                          class="css-1p7u6k0-ContentWrap eoaj5np5"
+                        >
+                          <div
+                            class="css-yki0ea-LabelWrap eoaj5np3"
+                          >
+                            <p
+                              aria-hidden="true"
+                              class="css-35vlyv-Label-overflowEllipsis eoaj5np2"
+                              data-test-id="menu-list-item-label"
+                              id="menuitem-label-z2mgtklnsn"
+                            >
+                              User Action
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div
+                      aria-checked="false"
+                      aria-describedby="menuitem-details-21kxv5okyu"
+                      aria-disabled="false"
+                      aria-labelledby="menuitem-label-33o8cnqfcx"
+                      class="option css-hepm6i-MenuItemWrap eoaj5np8"
+                      id="react-select-2-option-0-3"
+                      role="menuitemcheckbox"
+                      tabindex="-1"
+                      value="navigation"
+                    >
+                      <div
+                        class="css-1k37yyt-InnerWrap eoaj5np7"
+                        data-test-id="navigation"
+                      >
+                        <span
+                          class="css-8qg416-InteractionStateLayer-InteractionStateLayer-StyledInteractionStateLayer eoaj5np6"
+                          role="presentation"
+                        />
+                        <div
+                          class="css-1qa932s-LeadingItems eoaj5np4"
+                        >
+                          <div
+                            class="css-1nt5ksc-CheckWrap e12a69680"
+                          />
+                          <div
+                            class="css-1bnolhm-Wrapper e14ruzvs1"
+                          >
+                            <div
+                              class="css-3extg3-IconWrapper e14ruzvs0"
+                              color="green300"
+                            >
+                              <svg
+                                fill="currentColor"
+                                height="12px"
+                                viewBox="0 0 16 16"
+                                width="12px"
+                              >
+                                <path
+                                  d="M8,16a.74.74,0,0,1-.45-.15c-4-3-6.09-6.16-6.09-9.29A6.55,6.55,0,0,1,8,0a6.54,6.54,0,0,1,6.54,6.54c0,3.14-2,6.26-6.09,9.29A.74.74,0,0,1,8,16ZM8,1.51a5,5,0,0,0-5,5c0,2.53,1.69,5.13,5,7.74,3.34-2.61,5-5.21,5-7.74a5,5,0,0,0-5-5Z"
+                                />
+                                <path
+                                  d="M8,8.85a2.78,2.78,0,1,1,2.77-2.77A2.78,2.78,0,0,1,8,8.85Zm0-4A1.28,1.28,0,1,0,9.27,6.08,1.27,1.27,0,0,0,8,4.8Z"
+                                />
+                              </svg>
+                            </div>
+                          </div>
+                        </div>
+                        <div
+                          class="css-1p7u6k0-ContentWrap eoaj5np5"
+                        >
+                          <div
+                            class="css-yki0ea-LabelWrap eoaj5np3"
+                          >
+                            <p
+                              aria-hidden="true"
+                              class="css-35vlyv-Label-overflowEllipsis eoaj5np2"
+                              data-test-id="menu-list-item-label"
+                              id="menuitem-label-33o8cnqfcx"
+                            >
+                              Navigation
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div
+                      aria-checked="false"
+                      aria-describedby="menuitem-details-b4fq83bgmj"
+                      aria-disabled="false"
+                      aria-labelledby="menuitem-label-ej5fprnjqx"
+                      class="option css-hepm6i-MenuItemWrap eoaj5np8"
+                      id="react-select-2-option-0-4"
+                      role="menuitemcheckbox"
+                      tabindex="-1"
+                      value="debug"
+                    >
+                      <div
+                        class="css-1k37yyt-InnerWrap eoaj5np7"
+                        data-test-id="debug"
+                      >
+                        <span
+                          class="css-8qg416-InteractionStateLayer-InteractionStateLayer-StyledInteractionStateLayer eoaj5np6"
+                          role="presentation"
+                        />
+                        <div
+                          class="css-1qa932s-LeadingItems eoaj5np4"
+                        >
+                          <div
+                            class="css-1nt5ksc-CheckWrap e12a69680"
+                          />
+                          <div
+                            class="css-1bnolhm-Wrapper e14ruzvs1"
+                          >
+                            <div
+                              class="css-v1h9wx-IconWrapper e14ruzvs0"
+                              color="purple300"
+                            >
+                              <svg
+                                fill="currentColor"
+                                height="12px"
+                                viewBox="0 0 16 16"
+                                width="12px"
+                              >
+                                <path
+                                  d="M2.68,16a2.64,2.64,0,0,1-1.86-.77,2.61,2.61,0,0,1-.77-1.86,2.58,2.58,0,0,1,.77-1.86L5.71,6.57l0-.05a4.74,4.74,0,0,1,.79-5.25A4.76,4.76,0,0,1,11.75.5.73.73,0,0,1,12.2,1a.74.74,0,0,1-.2.68L9.72,4l.61,1.67L12,6.28,14.28,4A.74.74,0,0,1,15,3.8a.73.73,0,0,1,.54.45,4.76,4.76,0,0,1-.77,5.27,4.76,4.76,0,0,1-5.28.78h0L4.54,15.18A2.62,2.62,0,0,1,2.68,16Zm6.9-14.4a2.86,2.86,0,0,0-2,.78A3.32,3.32,0,0,0,7.09,6l.19.53a.73.73,0,0,1-.18.78L1.88,12.52a1.13,1.13,0,0,0,0,1.6,1.15,1.15,0,0,0,1.6,0L8.71,8.9a.73.73,0,0,1,.78-.18l.5.18a3.32,3.32,0,0,0,3.68-.44A2.93,2.93,0,0,0,14.42,6l-1.7,1.7a.73.73,0,0,1-.79.17L9.49,7a.69.69,0,0,1-.44-.44l-.9-2.44a.73.73,0,0,1,.17-.79L10,1.58Z"
+                                />
+                              </svg>
+                            </div>
+                          </div>
+                        </div>
+                        <div
+                          class="css-1p7u6k0-ContentWrap eoaj5np5"
+                        >
+                          <div
+                            class="css-yki0ea-LabelWrap eoaj5np3"
+                          >
+                            <p
+                              aria-hidden="true"
+                              class="css-35vlyv-Label-overflowEllipsis eoaj5np2"
+                              data-test-id="menu-list-item-label"
+                              id="menuitem-label-ej5fprnjqx"
+                            >
+                              Debug
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div
+                      aria-checked="false"
+                      aria-describedby="menuitem-details-spkmg1nm2f"
+                      aria-disabled="false"
+                      aria-labelledby="menuitem-label-pm4p78inkm"
+                      class="option css-hepm6i-MenuItemWrap eoaj5np8"
+                      id="react-select-2-option-0-5"
+                      role="menuitemcheckbox"
+                      tabindex="-1"
+                      value="error"
+                    >
+                      <div
+                        class="css-1k37yyt-InnerWrap eoaj5np7"
+                        data-test-id="error"
+                      >
+                        <span
+                          class="css-8qg416-InteractionStateLayer-InteractionStateLayer-StyledInteractionStateLayer eoaj5np6"
+                          role="presentation"
+                        />
+                        <div
+                          class="css-1qa932s-LeadingItems eoaj5np4"
+                        >
+                          <div
+                            class="css-1nt5ksc-CheckWrap e12a69680"
+                          />
+                          <div
+                            class="css-1bnolhm-Wrapper e14ruzvs1"
+                          >
+                            <div
+                              class="css-donp5e-IconWrapper e14ruzvs0"
+                              color="red300"
+                            >
+                              <svg
+                                fill="currentColor"
+                                height="12px"
+                                viewBox="0 0 16 16"
+                                width="12px"
+                              >
+                                <path
+                                  d="M8.08,15.92A6.58,6.58,0,0,1,1.51,9.34a4.88,4.88,0,0,1,2.2-4.25.74.74,0,0,1,1,.34,6,6,0,0,1,4-5.3A.74.74,0,0,1,9.4.22a.73.73,0,0,1,.33.61v.31A15.07,15.07,0,0,0,10,4.93a3.72,3.72,0,0,1,2.3-1.7.74.74,0,0,1,.66.12.75.75,0,0,1,.3.6A6.21,6.21,0,0,0,14,6.79a5.78,5.78,0,0,1,.68,2.55A6.58,6.58,0,0,1,8.08,15.92ZM3.59,7.23A4.25,4.25,0,0,0,3,9.34a5.07,5.07,0,1,0,10.14,0,4.6,4.6,0,0,0-.54-1.94,8,8,0,0,1-.76-2.32A2,2,0,0,0,11.07,7a.75.75,0,0,1-1.32.58C8.4,6,8.25,4.22,8.23,2c-2,1.29-2.15,3.58-2.09,5.85A7.52,7.52,0,0,1,6.14,9a.74.74,0,0,1-.46.63.77.77,0,0,1-.76-.11A4.56,4.56,0,0,1,3.59,7.23Z"
+                                />
+                              </svg>
+                            </div>
+                          </div>
+                        </div>
+                        <div
+                          class="css-1p7u6k0-ContentWrap eoaj5np5"
+                        >
+                          <div
+                            class="css-yki0ea-LabelWrap eoaj5np3"
+                          >
+                            <p
+                              aria-hidden="true"
+                              class="css-35vlyv-Label-overflowEllipsis eoaj5np2"
+                              data-test-id="menu-list-item-label"
+                              id="menuitem-label-pm4p78inkm"
+                            >
+                              Error
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div
+                  class=" css-12hmnhh-Group"
+                >
+                  <div
+                    class=" css-ejy78p-group"
+                    id="react-select-2-group-1-heading"
+                  >
+                    Levels
+                  </div>
+                  <div>
+                    <div
+                      aria-checked="false"
+                      aria-describedby="menuitem-details-mahl5h8hz8"
+                      aria-disabled="false"
+                      aria-labelledby="menuitem-label-t7ha4t2enr"
+                      class="option css-hepm6i-MenuItemWrap eoaj5np8"
+                      id="react-select-2-option-1-0"
+                      role="menuitemcheckbox"
+                      tabindex="-1"
+                      value="info"
+                    >
+                      <div
+                        class="css-1k37yyt-InnerWrap eoaj5np7"
+                        data-test-id="info"
+                      >
+                        <span
+                          class="css-8qg416-InteractionStateLayer-InteractionStateLayer-StyledInteractionStateLayer eoaj5np6"
+                          role="presentation"
+                        />
+                        <div
+                          class="css-1qa932s-LeadingItems eoaj5np4"
+                        >
+                          <div
+                            class="css-1nt5ksc-CheckWrap e12a69680"
+                          />
+                          <span
+                            class="e1pcrnqj0 css-4nkaoc-TagWrapper-LevelTag e8jgvoh4"
+                          >
+                            <div
+                              class="css-venipz-Background e8jgvoh3"
+                              type="info"
+                            >
+                              <span
+                                class="css-uly9e3-Text e8jgvoh1"
+                                type="info"
+                              >
+                                Info
+                              </span>
+                            </div>
+                          </span>
+                        </div>
+                        <div
+                          class="css-1p7u6k0-ContentWrap eoaj5np5"
+                        >
+                          <div
+                            class="css-yki0ea-LabelWrap eoaj5np3"
+                          >
+                            <p
+                              aria-hidden="true"
+                              class="css-35vlyv-Label-overflowEllipsis eoaj5np2"
+                              data-test-id="menu-list-item-label"
+                              id="menuitem-label-t7ha4t2enr"
+                            >
+                              info
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div
+                      aria-checked="false"
+                      aria-describedby="menuitem-details-kz7tm4lr83"
+                      aria-disabled="false"
+                      aria-labelledby="menuitem-label-fqitirm2uk"
+                      class="option css-hepm6i-MenuItemWrap eoaj5np8"
+                      id="react-select-2-option-1-1"
+                      role="menuitemcheckbox"
+                      tabindex="-1"
+                      value="error"
+                    >
+                      <div
+                        class="css-1k37yyt-InnerWrap eoaj5np7"
+                        data-test-id="error"
+                      >
+                        <span
+                          class="css-8qg416-InteractionStateLayer-InteractionStateLayer-StyledInteractionStateLayer eoaj5np6"
+                          role="presentation"
+                        />
+                        <div
+                          class="css-1qa932s-LeadingItems eoaj5np4"
+                        >
+                          <div
+                            class="css-1nt5ksc-CheckWrap e12a69680"
+                          />
+                          <span
+                            class="e1pcrnqj0 css-4nkaoc-TagWrapper-LevelTag e8jgvoh4"
+                          >
+                            <div
+                              class="css-89xa4v-Background e8jgvoh3"
+                              type="error"
+                            >
+                              <span
+                                class="css-uly9e3-Text e8jgvoh1"
+                                type="error"
+                              >
+                                Error
+                              </span>
+                            </div>
+                          </span>
+                        </div>
+                        <div
+                          class="css-1p7u6k0-ContentWrap eoaj5np5"
+                        >
+                          <div
+                            class="css-yki0ea-LabelWrap eoaj5np3"
+                          >
+                            <p
+                              aria-hidden="true"
+                              class="css-35vlyv-Label-overflowEllipsis eoaj5np2"
+                              data-test-id="menu-list-item-label"
+                              id="menuitem-label-fqitirm2uk"
+                            >
+                              error
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <span
+        data-focus-scope-end="true"
+        hidden=""
+      />
+    </div>
+    <form
+      class="e19685a31 css-8pb9o0-FormWrap-StyledSearchBar e4xnwji2"
+    >
+      <div
+        class="css-1biel1q-InputGroupWrap e13j5zq05"
+      >
+        <div
+          class="css-j206kq-InputItemsWrap-InputLeadingItemsWrap e13j5zq01"
+          data-test-id="input-leading-items"
+        >
+          <svg
+            fill="#80708F"
+            height="16px"
+            viewBox="0 0 16 16"
+            width="16px"
+          >
+            <path
+              d="M6,12A6,6,0,1,1,12,6,6,6,0,0,1,6,12ZM6,1.54A4.46,4.46,0,1,0,10.45,6,4.46,4.46,0,0,0,6,1.54Z"
+            />
+            <path
+              d="M15.2,16a.74.74,0,0,1-.53-.22L9.14,10.2A.75.75,0,0,1,10.2,9.14l5.53,5.53a.75.75,0,0,1,0,1.06A.74.74,0,0,1,15.2,16Z"
+            />
+          </svg>
+        </div>
+        <input
+          autocomplete="off"
+          class="e4xnwji1 css-1wfpay8-Input-inputStyles-StyledInput-getInputStyles-StyledInput e13j5zq03"
+          name="query"
+          placeholder=""
+          type="text"
+          value=""
+        />
+        <div
+          class="css-lc4in0-InputItemsWrap-InputTrailingItemsWrap e13j5zq00"
+          data-test-id="input-trailing-items"
+        />
+      </div>
+    </form>
+  </div>
+</div>
+`;

@@ -236,7 +236,7 @@ describe('Modals -> WidgetViewerModal', function () {
       it('renders Discover area chart widget viewer', async function () {
         mockEvents();
         const {container} = await renderModal({initialData, widget: mockWidget});
-        expect(container).toSnapshot();
+        expect(container).toMatchSnapshot();
       });
 
       it('redirects user to Discover when clicking Open in Discover', async function () {
@@ -353,7 +353,7 @@ describe('Modals -> WidgetViewerModal', function () {
           },
         });
         userEvent.click(screen.getByText('/organizations/:orgId/performance/summary/'));
-        expect(container).toSnapshot();
+        expect(container).toMatchSnapshot();
       });
 
       it('renders widget chart minimap', async function () {
@@ -644,7 +644,7 @@ describe('Modals -> WidgetViewerModal', function () {
         mockEventsStats();
         mockEvents();
         const {container} = await renderModal({initialData, widget: mockWidget});
-        expect(container).toSnapshot();
+        expect(container).toMatchSnapshot();
       });
 
       it('sorts table when a sortable column header is clicked', async function () {
@@ -910,7 +910,7 @@ describe('Modals -> WidgetViewerModal', function () {
         mockEvents();
         mockEventsGeo();
         const {container} = await renderModal({initialData, widget: mockWidget});
-        expect(container).toSnapshot();
+        expect(container).toMatchSnapshot();
       });
 
       it('uses provided tableData and does not make an events requests', async function () {
@@ -1159,7 +1159,7 @@ describe('Modals -> WidgetViewerModal', function () {
     it('renders Issue table widget viewer', async function () {
       const {container} = await renderModal({initialData, widget: mockWidget});
       await screen.findByText('Error: Failed');
-      expect(container).toSnapshot();
+      expect(container).toMatchSnapshot();
     });
 
     it('redirects user to Issues when clicking Open in Issues', async function () {
@@ -1334,7 +1334,7 @@ describe('Modals -> WidgetViewerModal', function () {
     it('renders Release widget viewer', async function () {
       const {container} = await renderModal({initialData, widget: mockWidget});
       expect(await screen.findByText('e102abb2c46e')).toBeInTheDocument();
-      expect(container).toSnapshot();
+      expect(container).toMatchSnapshot();
     });
 
     it('renders pagination buttons', async function () {

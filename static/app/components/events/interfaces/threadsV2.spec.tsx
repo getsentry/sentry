@@ -229,7 +229,7 @@ describe('ThreadsV2', function () {
         expect(screen.getByTestId('stack-trace-content-v2')).toBeInTheDocument();
         expect(screen.queryAllByTestId('stack-trace-frame')).toHaveLength(3);
 
-        expect(container).toSnapshot();
+        expect(container).toMatchSnapshot();
       });
 
       it('toggle full stack trace button', function () {
@@ -889,7 +889,7 @@ describe('ThreadsV2', function () {
         expect(screen.getByTestId('stack-trace')).toBeInTheDocument();
         expect(screen.queryAllByTestId('stack-trace-frame')).toHaveLength(3);
 
-        expect(container).toSnapshot();
+        expect(container).toMatchSnapshot();
       });
 
       it('toggle full stack trace button', function () {

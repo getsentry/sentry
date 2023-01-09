@@ -1,0 +1,65 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`QueryCount can render when count is 0 when \`hideIfEmpty\` is false 1`] = `
+<div>
+  <span>
+    <span>
+      (
+    </span>
+    <span>
+      0
+    </span>
+    <span>
+      )
+    </span>
+  </span>
+</div>
+`;
+
+exports[`QueryCount displays count when count < max 1`] = `
+<div>
+  <span>
+    <span>
+      (
+    </span>
+    <span>
+      5
+    </span>
+    <span>
+      )
+    </span>
+  </span>
+</div>
+`;
+
+exports[`QueryCount displays count when no max 1`] = `
+<div>
+  <span>
+    <span>
+      (
+    </span>
+    <span>
+      5
+    </span>
+    <span>
+      )
+    </span>
+  </span>
+</div>
+`;
+
+exports[`QueryCount displays max count if count >= max 1`] = `
+<div>
+  <span>
+    <span>
+      (
+    </span>
+    <span>
+      500+
+    </span>
+    <span>
+      )
+    </span>
+  </span>
+</div>
+`;

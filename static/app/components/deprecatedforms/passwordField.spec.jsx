@@ -7,12 +7,12 @@ describe('PasswordField', function () {
   describe('render()', function () {
     it('renders', function () {
       const {container} = render(<PasswordField name="fieldName" />);
-      expect(container).toSnapshot();
+      expect(container).toMatchSnapshot();
     });
 
     it('renders with value', function () {
       const {container} = render(<PasswordField name="fieldName" value="foobar" />);
-      expect(container).toSnapshot();
+      expect(container).toMatchSnapshot();
     });
 
     it('renders with form context', function () {
@@ -21,7 +21,7 @@ describe('PasswordField', function () {
           <PasswordField name="fieldName" />
         </Form>
       );
-      expect(container).toSnapshot();
+      expect(container).toMatchSnapshot();
     });
   });
 });

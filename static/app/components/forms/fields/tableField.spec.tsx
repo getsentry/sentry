@@ -24,7 +24,7 @@ describe('TableField', function () {
   describe('renders', function () {
     it('renders without form context', function () {
       const {container} = render(<TableField {...defaultProps} />);
-      expect(container).toSnapshot();
+      expect(container).toMatchSnapshot();
     });
 
     it('renders with form context', function () {
@@ -33,7 +33,7 @@ describe('TableField', function () {
           <TableField {...defaultProps} />
         </Form>
       );
-      expect(container).toSnapshot();
+      expect(container).toMatchSnapshot();
     });
 
     it('renders button text', function () {

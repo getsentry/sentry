@@ -22,7 +22,7 @@ describe('SettingsIndex', function () {
         <SettingsIndex {...props} organization={TestStubs.Organization()} />
       </BreadcrumbContextProvider>
     );
-    expect(container).toSnapshot();
+    expect(container).toMatchSnapshot();
   });
 
   it('has loading when there is no organization', function () {

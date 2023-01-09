@@ -7,6 +7,6 @@ describe('ExternalLink', function () {
     const {container} = render(
       <ExternalLink href="https://www.sentry.io/">ExternalLink</ExternalLink>
     );
-    expect(container).toSnapshot();
+    expect(container).toMatchSnapshot();
   });
 });

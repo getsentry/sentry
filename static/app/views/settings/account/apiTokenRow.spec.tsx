@@ -9,7 +9,7 @@ describe('ApiTokenRow', () => {
     );
 
     // Should be loading
-    expect(wrapper.container).toSnapshot();
+    expect(wrapper.container).toMatchSnapshot();
   });
 
   it('calls onRemove callback when trash can is clicked', () => {

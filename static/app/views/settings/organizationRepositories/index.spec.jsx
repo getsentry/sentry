@@ -30,7 +30,7 @@ describe('OrganizationRepositoriesContainer', function () {
           context,
         }
       );
-      expect(wrapper.container).toSnapshot();
+      expect(wrapper.container).toMatchSnapshot();
     });
   });
 });

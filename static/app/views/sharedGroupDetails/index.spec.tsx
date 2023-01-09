@@ -41,6 +41,6 @@ describe('SharedGroupDetails', function () {
       </RouteContext.Provider>
     );
 
-    expect(container).toSnapshot();
+    expect(container).toMatchSnapshot();
   });
 });

@@ -1,0 +1,210 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`IssueDiff can diff message 1`] = `
+<div>
+  <div
+    class="css-7qh1p4-StyledIssueDiff ectlbkf1"
+  >
+    <table
+      class="css-18p7gye-SplitTable e1fxrp6z5"
+      data-test-id="split-diff"
+    >
+      <tbody
+        class="css-69spau-SplitBody e1fxrp6z4"
+      >
+        <tr>
+          <td
+            class="css-18bd3s4-Cell e1fxrp6z3"
+          >
+            <div
+              class="css-1fil82z-Line e1fxrp6z1"
+            >
+              <span
+                class="css-14ol76t-Word e1fxrp6z0"
+              >
+                Foo
+              </span>
+              <span
+                class="css-16nwljm-Word e1fxrp6z0"
+              >
+                 World
+              </span>
+            </div>
+          </td>
+          <td
+            class="css-13hcps-Gap e1fxrp6z2"
+          />
+          <td
+            class="css-182lmus-Cell e1fxrp6z3"
+          >
+            <div
+              class="css-1fil82z-Line e1fxrp6z1"
+            >
+              <span
+                class="css-eukqn3-Word e1fxrp6z0"
+              >
+                Hello
+              </span>
+              <span
+                class="css-16nwljm-Word e1fxrp6z0"
+              >
+                 World
+              </span>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+`;
+
+exports[`IssueDiff can dynamically import SplitDiff 1`] = `
+<div>
+  <div
+    class="css-7qh1p4-StyledIssueDiff ectlbkf1"
+  >
+    <table
+      class="css-18p7gye-SplitTable e1fxrp6z5"
+      data-test-id="split-diff"
+    >
+      <tbody
+        class="css-69spau-SplitBody e1fxrp6z4"
+      >
+        <tr>
+          <td
+            class="css-1kp4lih-Cell e1fxrp6z3"
+          >
+            <div
+              class="css-1fil82z-Line e1fxrp6z1"
+            >
+              <span
+                class="css-16nwljm-Word e1fxrp6z0"
+              >
+                SyntaxError: Unexpected token else
+              </span>
+            </div>
+          </td>
+          <td
+            class="css-13hcps-Gap e1fxrp6z2"
+          />
+          <td
+            class="css-1kp4lih-Cell e1fxrp6z3"
+          >
+            <div
+              class="css-1fil82z-Line e1fxrp6z1"
+            >
+              <span
+                class="css-16nwljm-Word e1fxrp6z0"
+              >
+                SyntaxError: Unexpected token else
+              </span>
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td
+            class="css-18bd3s4-Cell e1fxrp6z3"
+          >
+            <div
+              class="css-1fil82z-Line e1fxrp6z1"
+            >
+              <span
+                class="css-16nwljm-Word e1fxrp6z0"
+              >
+                  
+              </span>
+              <span
+                class="css-14ol76t-Word e1fxrp6z0"
+              >
+                at
+              </span>
+              <span
+                class="css-16nwljm-Word e1fxrp6z0"
+              >
+                 
+              </span>
+              <span
+                class="css-14ol76t-Word e1fxrp6z0"
+              >
+                ? (
+              </span>
+              <span
+                class="css-16nwljm-Word e1fxrp6z0"
+              >
+                /hiventy/kraken-prod/issues/438681831/
+              </span>
+              <span
+                class="css-14ol76t-Word e1fxrp6z0"
+              >
+                )
+              </span>
+            </div>
+          </td>
+          <td
+            class="css-13hcps-Gap e1fxrp6z2"
+          />
+          <td
+            class="css-182lmus-Cell e1fxrp6z3"
+          >
+            <div
+              class="css-1fil82z-Line e1fxrp6z1"
+            >
+              <span
+                class="css-16nwljm-Word e1fxrp6z0"
+              >
+                  
+              </span>
+              <span
+                class="css-eukqn3-Word e1fxrp6z0"
+              >
+                File
+              </span>
+              <span
+                class="css-16nwljm-Word e1fxrp6z0"
+              >
+                 
+              </span>
+              <span
+                class="css-eukqn3-Word e1fxrp6z0"
+              >
+                "
+              </span>
+              <span
+                class="css-16nwljm-Word e1fxrp6z0"
+              >
+                /hiventy/kraken-prod/issues/438681831/
+              </span>
+              <span
+                class="css-eukqn3-Word e1fxrp6z0"
+              >
+                "
+              </span>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+`;
+
+exports[`IssueDiff is loading when initially rendering 1`] = `
+<div>
+  <div
+    class="css-qvbv9c-StyledIssueDiff ectlbkf1"
+  >
+    <div
+      class="loading"
+      data-test-id="loading-indicator"
+    >
+      <div
+        class="loading-indicator"
+      />
+      <div
+        class="loading-message"
+      />
+    </div>
+  </div>
+</div>
+`;

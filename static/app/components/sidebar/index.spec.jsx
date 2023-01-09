@@ -57,7 +57,7 @@ describe('Sidebar', function () {
     expect(screen.getByText(user.email)).toBeInTheDocument();
 
     userEvent.click(screen.getByTestId('sidebar-dropdown'));
-    expect(container).toSnapshot();
+    expect(container).toMatchSnapshot();
   });
 
   it('has can logout', async function () {
@@ -88,7 +88,7 @@ describe('Sidebar', function () {
     userEvent.click(screen.getByText('Help'));
 
     expect(screen.getByText('Visit Help Center')).toBeInTheDocument();
-    expect(container).toSnapshot();
+    expect(container).toMatchSnapshot();
   });
 
   describe('SidebarDropdown', function () {
@@ -100,7 +100,7 @@ describe('Sidebar', function () {
 
       const orgSettingsLink = screen.getByText('Organization settings');
       expect(orgSettingsLink).toBeInTheDocument();
-      expect(container).toSnapshot();
+      expect(container).toMatchSnapshot();
     });
     it('has link to Members settings with `member:write`', async function () {
       const {container} = renderSidebar({
@@ -129,7 +129,7 @@ describe('Sidebar', function () {
       const createOrg = screen.getByText('Create a new organization');
       expect(createOrg).toBeInTheDocument();
 
-      expect(container).toSnapshot();
+      expect(container).toMatchSnapshot();
     });
   });
 
@@ -198,7 +198,7 @@ describe('Sidebar', function () {
 
       const broadcastTitle = screen.getByText(broadcast.title);
       expect(broadcastTitle).toBeInTheDocument();
-      expect(container).toSnapshot();
+      expect(container).toMatchSnapshot();
 
       // Should mark as seen after a delay
       act(() => jest.advanceTimersByTime(2000));
@@ -248,7 +248,7 @@ describe('Sidebar', function () {
       userEvent.click(await screen.findByText('Service status'));
       await screen.findByText('Recent service updates');
 
-      expect(container).toSnapshot();
+      expect(container).toMatchSnapshot();
     });
   });
 

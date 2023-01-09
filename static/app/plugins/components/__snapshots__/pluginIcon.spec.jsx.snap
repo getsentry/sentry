@@ -1,0 +1,10 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`PluginIcon renders 1`] = `
+<div>
+  <div
+    class="css-1o69gdi-PluginIcon e155defn0"
+    size="20"
+  />
+</div>
+`;

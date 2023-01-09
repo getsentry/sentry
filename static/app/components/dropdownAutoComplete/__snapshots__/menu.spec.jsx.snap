@@ -1,0 +1,155 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`DropdownAutoCompleteMenu renders with a group 1`] = `
+<div>
+  <div
+    class="css-j1qymt-AutoCompleteRoot e9jzhqd6"
+    data-is-open="true"
+  >
+    Click Me!
+    <div
+      class="css-1qhhon-DropdownBubble-getMenuBorderRadius-StyledDropdownBubble e9jzhqd5"
+      role="listbox"
+    >
+      <div
+        class="css-15ftm2w-DropdownMainContent e9jzhqd4"
+      >
+        <div
+          class="css-lbs8fo-InputWrapper e9jzhqd3"
+        >
+          <input
+            class="css-9zew3o-Input-inputStyles-StyledInput e9jzhqd9"
+            placeholder="Filter search"
+            value=""
+          />
+          <div
+            class="css-o4ipj0-InputLoadingWrapper e9jzhqd8"
+          />
+        </div>
+        <div>
+          <div
+            class="css-1eq72kg-ItemList e9jzhqd1"
+            data-test-id="autocomplete-list"
+          >
+            
+            <div
+              class="css-7xsufe-LabelWithBorder e3p9f02"
+            >
+              <div
+                class="css-14hlgih-GroupLabel e3p9f01"
+              >
+                countries
+              </div>
+            </div>
+            <div
+              class="css-5xy2fw-AutoCompleteItem e3p9f00"
+              id="autocomplete-d1b39a7a-5f6c-7001-a050-050831358e55-item-0"
+              role="option"
+            >
+              <span
+                class="css-1wm009r-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+                role="presentation"
+              />
+              <div>
+                New Zealand
+              </div>
+            </div>
+            <div
+              class="css-ow4npr-AutoCompleteItem e3p9f00"
+              id="autocomplete-d1b39a7a-5f6c-7001-a050-050831358e55-item-1"
+              role="option"
+            >
+              <span
+                class="css-tp7sr3-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+                role="presentation"
+              />
+              <div>
+                Australia
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`DropdownAutoCompleteMenu renders without a group 1`] = `
+<div>
+  <div
+    class="css-j1qymt-AutoCompleteRoot e9jzhqd6"
+    data-is-open="true"
+  >
+    Click Me!
+    <div
+      class="css-1qhhon-DropdownBubble-getMenuBorderRadius-StyledDropdownBubble e9jzhqd5"
+      role="listbox"
+    >
+      <div
+        class="css-15ftm2w-DropdownMainContent e9jzhqd4"
+      >
+        <div
+          class="css-lbs8fo-InputWrapper e9jzhqd3"
+        >
+          <input
+            class="css-9zew3o-Input-inputStyles-StyledInput e9jzhqd9"
+            placeholder="Filter search"
+            value=""
+          />
+          <div
+            class="css-o4ipj0-InputLoadingWrapper e9jzhqd8"
+          />
+        </div>
+        <div>
+          <div
+            class="css-1eq72kg-ItemList e9jzhqd1"
+            data-test-id="autocomplete-list"
+          >
+            
+            <div
+              class="css-5xy2fw-AutoCompleteItem e3p9f00"
+              id="autocomplete-3896a710-bb14-78de-1e76-a655ccf6167b-item-0"
+              role="option"
+            >
+              <span
+                class="css-1wm009r-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+                role="presentation"
+              />
+              <div>
+                Apple
+              </div>
+            </div>
+            <div
+              class="css-ow4npr-AutoCompleteItem e3p9f00"
+              id="autocomplete-3896a710-bb14-78de-1e76-a655ccf6167b-item-1"
+              role="option"
+            >
+              <span
+                class="css-tp7sr3-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+                role="presentation"
+              />
+              <div>
+                Bacon
+              </div>
+            </div>
+            <div
+              class="css-ow4npr-AutoCompleteItem e3p9f00"
+              id="autocomplete-3896a710-bb14-78de-1e76-a655ccf6167b-item-2"
+              role="option"
+            >
+              <span
+                class="css-tp7sr3-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+                role="presentation"
+              />
+              <div>
+                Corn
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+`;

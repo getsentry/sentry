@@ -200,7 +200,7 @@ describe('EventTagsAndScreenshot', function () {
       const tagsContainer = within(screen.getByTestId('event-tags'));
       expect(tagsContainer.getAllByRole('listitem')).toHaveLength(tags.length);
 
-      expect(container).toSnapshot();
+      expect(container).toMatchSnapshot();
     });
 
     it('shared event - without attachments', function () {
@@ -223,7 +223,7 @@ describe('EventTagsAndScreenshot', function () {
       // Tags Container
       expect(screen.getByText('Tags')).toBeInTheDocument();
 
-      expect(container).toSnapshot();
+      expect(container).toMatchSnapshot();
     });
 
     it('shared event - with attachments', function () {
@@ -246,7 +246,7 @@ describe('EventTagsAndScreenshot', function () {
       // Tags Container
       expect(screen.getByText('Tags')).toBeInTheDocument();
 
-      expect(container).toSnapshot();
+      expect(container).toMatchSnapshot();
     });
   });
 
@@ -315,7 +315,7 @@ describe('EventTagsAndScreenshot', function () {
 
       userEvent.click(screen.getByLabelText('Close Modal'));
 
-      expect(container).toSnapshot();
+      expect(container).toMatchSnapshot();
     });
   });
 
@@ -359,7 +359,7 @@ describe('EventTagsAndScreenshot', function () {
       const tagsContainer = within(screen.getByTestId('event-tags'));
       expect(tagsContainer.getAllByRole('listitem')).toHaveLength(tags.length);
 
-      expect(container).toSnapshot();
+      expect(container).toMatchSnapshot();
     });
 
     it('renders multiple screenshots correctly', function () {
@@ -444,7 +444,7 @@ describe('EventTagsAndScreenshot', function () {
       const tagsContainer = within(screen.getByTestId('event-tags'));
       expect(tagsContainer.queryByRole('listitem')).not.toBeInTheDocument();
 
-      expect(container).toSnapshot();
+      expect(container).toMatchSnapshot();
     });
 
     it('has tags and attachments only', function () {
@@ -479,7 +479,7 @@ describe('EventTagsAndScreenshot', function () {
       const tagsContainer = within(screen.getByTestId('event-tags'));
       expect(tagsContainer.getAllByRole('listitem')).toHaveLength(tags.length);
 
-      expect(container).toSnapshot();
+      expect(container).toMatchSnapshot();
     });
   });
 });

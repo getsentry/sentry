@@ -8,7 +8,7 @@ describe('DetailedError', function () {
       <DetailedError heading="Error heading" message={<div>Message</div>} />
     );
 
-    expect(container).toSnapshot();
+    expect(container).toMatchSnapshot();
   });
 
   it('renders with "Retry" button', function () {
@@ -20,7 +20,7 @@ describe('DetailedError', function () {
       />
     );
 
-    expect(container).toSnapshot();
+    expect(container).toMatchSnapshot();
   });
 
   it('can hide support links', function () {
@@ -33,7 +33,7 @@ describe('DetailedError', function () {
       />
     );
 
-    expect(container).toSnapshot();
+    expect(container).toMatchSnapshot();
   });
 
   it('hides footer when no "Retry" and no support links', function () {
@@ -45,6 +45,6 @@ describe('DetailedError', function () {
       />
     );
 
-    expect(container).toSnapshot();
+    expect(container).toMatchSnapshot();
   });
 });

@@ -39,7 +39,7 @@ describe('EventDataSection', function () {
       />
     );
 
-    expect(wrapper.container).toSnapshot();
+    expect(wrapper.container).toMatchSnapshot();
   });
 
   it('renders raw', function () {
@@ -52,7 +52,7 @@ describe('EventDataSection', function () {
         raw
       />
     );
-    expect(wrapper.container).toSnapshot();
+    expect(wrapper.container).toMatchSnapshot();
   });
 });
 
@@ -74,12 +74,12 @@ describe('KeyValueList', function () {
       <KeyValueList data={extraDataArray} isContextData raw={false} />
     );
 
-    expect(wrapper.container).toSnapshot();
+    expect(wrapper.container).toMatchSnapshot();
   });
 
   it('renders raw', function () {
     const wrapper = render(<KeyValueList data={extraDataArray} isContextData raw />);
 
-    expect(wrapper.container).toSnapshot();
+    expect(wrapper.container).toMatchSnapshot();
   });
 });

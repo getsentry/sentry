@@ -17,7 +17,7 @@ describe('FormField + model', function () {
         <TextField name="fieldName" />
       </Form>
     );
-    expect(wrapper.container).toSnapshot();
+    expect(wrapper.container).toMatchSnapshot();
   });
 
   it('sets initial data in model', function () {

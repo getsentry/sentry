@@ -1,0 +1,882 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`OrganizationApiKeyDetails renders 1`] = `
+<div>
+  <div>
+    <div
+      class="css-q8xgg6-SettingsPageHeader e1nr98yc2"
+    >
+      <div
+        class="css-1mfa9vw-TitleAndActions e1nr98yc8"
+      >
+        <div
+          class="css-u3au9h-TitleWrapper e1nr98yc7"
+        >
+          <div
+            class="css-18xqiae-Title e1nr98yc6"
+          >
+            <h4
+              class="css-jz1c1u-HeaderTitle e12cn1y20"
+            >
+              Edit API Key
+            </h4>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div
+      class="css-2fj46w-Panel edxrl2k0"
+    >
+      <div
+        class="css-1v7t0a0-PanelHeader-getPadding eknsyxy0"
+      >
+        API Key
+      </div>
+      <form
+        class="form-stacked"
+      >
+        <div>
+          <div
+            class="css-pemm1r-PanelBody-textStyles eszvord0"
+          >
+            <div
+              class="css-1s6sn9m-FieldWrapper-getPadding-inlineStyle-FieldWrapper-FieldWrapper e12z3jxd0"
+            >
+              <label
+                aria-label="Label"
+                class="css-1lqelms-FieldDescription-inlineStyle e1cwyh1y0"
+                for="label"
+              >
+                <div
+                  class="css-1amoduc-FieldLabel ekcr5um0"
+                >
+                  <span>
+                    Label
+                  </span>
+                </div>
+              </label>
+              <div
+                class="css-msyoo4-FieldControlWrapper e1ap0t511"
+              >
+                <div
+                  class="css-sse8ie-FieldControlStyled e1ap0t510"
+                >
+                  <div
+                    class="css-1biel1q-InputGroupWrap e13j5zq05"
+                  >
+                    <input
+                      aria-describedby="label_help"
+                      class="css-bjpyf7-Input-inputStyles-StyledInput-getInputStyles e13j5zq03"
+                      id="label"
+                      label="Label"
+                      name="label"
+                      type="text"
+                      value="Default"
+                    />
+                    <div
+                      class="css-vdn3ll-InputItemsWrap-InputTrailingItemsWrap e13j5zq00"
+                      data-test-id="input-trailing-items"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div
+              class="css-1s6sn9m-FieldWrapper-getPadding-inlineStyle-FieldWrapper-FieldWrapper e12z3jxd0"
+            >
+              <label
+                aria-label="API Key"
+                class="css-1lqelms-FieldDescription-inlineStyle e1cwyh1y0"
+                for="key"
+              >
+                <div
+                  class="css-ozwa0k-FieldLabel ekcr5um0"
+                >
+                  <span>
+                    API Key
+                  </span>
+                </div>
+              </label>
+              <div
+                class="css-msyoo4-FieldControlWrapper e1ap0t511"
+              >
+                <div
+                  class="css-sse8ie-FieldControlStyled e1ap0t510"
+                >
+                  <div
+                    class="css-2tpzr9-InputGroupWrap e13j5zq05"
+                    disabled=""
+                  >
+                    <input
+                      aria-describedby="key_help"
+                      class="css-bjpyf7-Input-inputStyles-StyledInput-getInputStyles e13j5zq03"
+                      disabled=""
+                      id="key"
+                      label="API Key"
+                      name="key"
+                      type="text"
+                      value="aa624bcc12024702a202cd90be5feda0"
+                    />
+                    <div
+                      class="css-pzxhlx-InputItemsWrap-InputTrailingItemsWrap e13j5zq00"
+                      data-test-id="input-trailing-items"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div
+              class="css-17scq18-FieldWrapper-getPadding-inlineStyle-FieldWrapper e12z3jxd0"
+            >
+              <label
+                aria-label="Scopes"
+                class="css-kv2nyk-FieldDescription-inlineStyle e1cwyh1y0"
+                for="scope_list"
+              >
+                <div
+                  class="css-1amoduc-FieldLabel ekcr5um0"
+                >
+                  <span>
+                    Scopes
+                    <div
+                      class="css-19ojc76-FieldRequiredBadge egnfobg0"
+                    />
+                  </span>
+                </div>
+              </label>
+              <div
+                class="css-1m0ep53-FieldControlWrapper e1ap0t511"
+              >
+                <div
+                  class="css-sse8ie-FieldControlStyled e1ap0t510"
+                >
+                  <div
+                    class="css-13x1w20-MultipleCheckboxWrapper eib0h5u3"
+                  >
+                    <div
+                      class="css-n4y8vg-LabelContainer eib0h5u0"
+                    >
+                      <label
+                        class="css-19dlw23-Label eib0h5u2"
+                      >
+                        <div
+                          class="css-1x6zjrv-Wrapper e14pn5ur2"
+                        >
+                          <input
+                            checked=""
+                            class="css-c0rrkd-HiddenInput-HiddenInput e14pn5ur1"
+                            type="checkbox"
+                            value="project:read"
+                          />
+                          <div
+                            aria-hidden="true"
+                            class="css-u1o78x-StyledCheckbox-StyledCheckbox e14pn5ur0"
+                          >
+                            <svg
+                              data-test-id="icon-check-mark"
+                              fill="currentColor"
+                              height="12px"
+                              viewBox="0 0 16 16"
+                              width="12px"
+                            >
+                              <path
+                                d="M6.19,14.51a.77.77,0,0,1-.57-.25l-4.2-4.8a.75.75,0,0,1,1.13-1l3.56,4.06L13.36,1.82a.75.75,0,0,1,1-.21.76.76,0,0,1,.21,1.05L6.81,14.18a.73.73,0,0,1-.58.33Z"
+                              />
+                            </svg>
+                          </div>
+                          <span
+                            class="css-at526y-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+                            role="presentation"
+                          />
+                        </div>
+                        <span
+                          class="css-6ymjw8-CheckboxLabel eib0h5u1"
+                        >
+                          project:read
+                        </span>
+                      </label>
+                    </div>
+                    <div
+                      class="css-n4y8vg-LabelContainer eib0h5u0"
+                    >
+                      <label
+                        class="css-19dlw23-Label eib0h5u2"
+                      >
+                        <div
+                          class="css-bphz7d-Wrapper e14pn5ur2"
+                        >
+                          <input
+                            class="css-4npmde-HiddenInput-HiddenInput e14pn5ur1"
+                            type="checkbox"
+                            value="project:write"
+                          />
+                          <div
+                            aria-hidden="true"
+                            class="css-5y1i99-StyledCheckbox-StyledCheckbox e14pn5ur0"
+                          />
+                          <span
+                            class="css-vul34l-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+                            role="presentation"
+                          />
+                        </div>
+                        <span
+                          class="css-6ymjw8-CheckboxLabel eib0h5u1"
+                        >
+                          project:write
+                        </span>
+                      </label>
+                    </div>
+                    <div
+                      class="css-n4y8vg-LabelContainer eib0h5u0"
+                    >
+                      <label
+                        class="css-19dlw23-Label eib0h5u2"
+                      >
+                        <div
+                          class="css-bphz7d-Wrapper e14pn5ur2"
+                        >
+                          <input
+                            class="css-4npmde-HiddenInput-HiddenInput e14pn5ur1"
+                            type="checkbox"
+                            value="project:admin"
+                          />
+                          <div
+                            aria-hidden="true"
+                            class="css-5y1i99-StyledCheckbox-StyledCheckbox e14pn5ur0"
+                          />
+                          <span
+                            class="css-vul34l-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+                            role="presentation"
+                          />
+                        </div>
+                        <span
+                          class="css-6ymjw8-CheckboxLabel eib0h5u1"
+                        >
+                          project:admin
+                        </span>
+                      </label>
+                    </div>
+                    <div
+                      class="css-n4y8vg-LabelContainer eib0h5u0"
+                    >
+                      <label
+                        class="css-19dlw23-Label eib0h5u2"
+                      >
+                        <div
+                          class="css-bphz7d-Wrapper e14pn5ur2"
+                        >
+                          <input
+                            class="css-4npmde-HiddenInput-HiddenInput e14pn5ur1"
+                            type="checkbox"
+                            value="project:releases"
+                          />
+                          <div
+                            aria-hidden="true"
+                            class="css-5y1i99-StyledCheckbox-StyledCheckbox e14pn5ur0"
+                          />
+                          <span
+                            class="css-vul34l-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+                            role="presentation"
+                          />
+                        </div>
+                        <span
+                          class="css-6ymjw8-CheckboxLabel eib0h5u1"
+                        >
+                          project:releases
+                        </span>
+                      </label>
+                    </div>
+                    <div
+                      class="css-n4y8vg-LabelContainer eib0h5u0"
+                    >
+                      <label
+                        class="css-19dlw23-Label eib0h5u2"
+                      >
+                        <div
+                          class="css-1x6zjrv-Wrapper e14pn5ur2"
+                        >
+                          <input
+                            checked=""
+                            class="css-c0rrkd-HiddenInput-HiddenInput e14pn5ur1"
+                            type="checkbox"
+                            value="team:read"
+                          />
+                          <div
+                            aria-hidden="true"
+                            class="css-u1o78x-StyledCheckbox-StyledCheckbox e14pn5ur0"
+                          >
+                            <svg
+                              data-test-id="icon-check-mark"
+                              fill="currentColor"
+                              height="12px"
+                              viewBox="0 0 16 16"
+                              width="12px"
+                            >
+                              <path
+                                d="M6.19,14.51a.77.77,0,0,1-.57-.25l-4.2-4.8a.75.75,0,0,1,1.13-1l3.56,4.06L13.36,1.82a.75.75,0,0,1,1-.21.76.76,0,0,1,.21,1.05L6.81,14.18a.73.73,0,0,1-.58.33Z"
+                              />
+                            </svg>
+                          </div>
+                          <span
+                            class="css-at526y-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+                            role="presentation"
+                          />
+                        </div>
+                        <span
+                          class="css-6ymjw8-CheckboxLabel eib0h5u1"
+                        >
+                          team:read
+                        </span>
+                      </label>
+                    </div>
+                    <div
+                      class="css-n4y8vg-LabelContainer eib0h5u0"
+                    >
+                      <label
+                        class="css-19dlw23-Label eib0h5u2"
+                      >
+                        <div
+                          class="css-bphz7d-Wrapper e14pn5ur2"
+                        >
+                          <input
+                            class="css-4npmde-HiddenInput-HiddenInput e14pn5ur1"
+                            type="checkbox"
+                            value="team:write"
+                          />
+                          <div
+                            aria-hidden="true"
+                            class="css-5y1i99-StyledCheckbox-StyledCheckbox e14pn5ur0"
+                          />
+                          <span
+                            class="css-vul34l-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+                            role="presentation"
+                          />
+                        </div>
+                        <span
+                          class="css-6ymjw8-CheckboxLabel eib0h5u1"
+                        >
+                          team:write
+                        </span>
+                      </label>
+                    </div>
+                    <div
+                      class="css-n4y8vg-LabelContainer eib0h5u0"
+                    >
+                      <label
+                        class="css-19dlw23-Label eib0h5u2"
+                      >
+                        <div
+                          class="css-bphz7d-Wrapper e14pn5ur2"
+                        >
+                          <input
+                            class="css-4npmde-HiddenInput-HiddenInput e14pn5ur1"
+                            type="checkbox"
+                            value="team:admin"
+                          />
+                          <div
+                            aria-hidden="true"
+                            class="css-5y1i99-StyledCheckbox-StyledCheckbox e14pn5ur0"
+                          />
+                          <span
+                            class="css-vul34l-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+                            role="presentation"
+                          />
+                        </div>
+                        <span
+                          class="css-6ymjw8-CheckboxLabel eib0h5u1"
+                        >
+                          team:admin
+                        </span>
+                      </label>
+                    </div>
+                    <div
+                      class="css-n4y8vg-LabelContainer eib0h5u0"
+                    >
+                      <label
+                        class="css-19dlw23-Label eib0h5u2"
+                      >
+                        <div
+                          class="css-1x6zjrv-Wrapper e14pn5ur2"
+                        >
+                          <input
+                            checked=""
+                            class="css-c0rrkd-HiddenInput-HiddenInput e14pn5ur1"
+                            type="checkbox"
+                            value="event:read"
+                          />
+                          <div
+                            aria-hidden="true"
+                            class="css-u1o78x-StyledCheckbox-StyledCheckbox e14pn5ur0"
+                          >
+                            <svg
+                              data-test-id="icon-check-mark"
+                              fill="currentColor"
+                              height="12px"
+                              viewBox="0 0 16 16"
+                              width="12px"
+                            >
+                              <path
+                                d="M6.19,14.51a.77.77,0,0,1-.57-.25l-4.2-4.8a.75.75,0,0,1,1.13-1l3.56,4.06L13.36,1.82a.75.75,0,0,1,1-.21.76.76,0,0,1,.21,1.05L6.81,14.18a.73.73,0,0,1-.58.33Z"
+                              />
+                            </svg>
+                          </div>
+                          <span
+                            class="css-at526y-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+                            role="presentation"
+                          />
+                        </div>
+                        <span
+                          class="css-6ymjw8-CheckboxLabel eib0h5u1"
+                        >
+                          event:read
+                        </span>
+                      </label>
+                    </div>
+                    <div
+                      class="css-n4y8vg-LabelContainer eib0h5u0"
+                    >
+                      <label
+                        class="css-19dlw23-Label eib0h5u2"
+                      >
+                        <div
+                          class="css-bphz7d-Wrapper e14pn5ur2"
+                        >
+                          <input
+                            class="css-4npmde-HiddenInput-HiddenInput e14pn5ur1"
+                            type="checkbox"
+                            value="event:write"
+                          />
+                          <div
+                            aria-hidden="true"
+                            class="css-5y1i99-StyledCheckbox-StyledCheckbox e14pn5ur0"
+                          />
+                          <span
+                            class="css-vul34l-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+                            role="presentation"
+                          />
+                        </div>
+                        <span
+                          class="css-6ymjw8-CheckboxLabel eib0h5u1"
+                        >
+                          event:write
+                        </span>
+                      </label>
+                    </div>
+                    <div
+                      class="css-n4y8vg-LabelContainer eib0h5u0"
+                    >
+                      <label
+                        class="css-19dlw23-Label eib0h5u2"
+                      >
+                        <div
+                          class="css-bphz7d-Wrapper e14pn5ur2"
+                        >
+                          <input
+                            class="css-4npmde-HiddenInput-HiddenInput e14pn5ur1"
+                            type="checkbox"
+                            value="event:admin"
+                          />
+                          <div
+                            aria-hidden="true"
+                            class="css-5y1i99-StyledCheckbox-StyledCheckbox e14pn5ur0"
+                          />
+                          <span
+                            class="css-vul34l-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+                            role="presentation"
+                          />
+                        </div>
+                        <span
+                          class="css-6ymjw8-CheckboxLabel eib0h5u1"
+                        >
+                          event:admin
+                        </span>
+                      </label>
+                    </div>
+                    <div
+                      class="css-n4y8vg-LabelContainer eib0h5u0"
+                    >
+                      <label
+                        class="css-19dlw23-Label eib0h5u2"
+                      >
+                        <div
+                          class="css-bphz7d-Wrapper e14pn5ur2"
+                        >
+                          <input
+                            class="css-4npmde-HiddenInput-HiddenInput e14pn5ur1"
+                            type="checkbox"
+                            value="org:read"
+                          />
+                          <div
+                            aria-hidden="true"
+                            class="css-5y1i99-StyledCheckbox-StyledCheckbox e14pn5ur0"
+                          />
+                          <span
+                            class="css-vul34l-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+                            role="presentation"
+                          />
+                        </div>
+                        <span
+                          class="css-6ymjw8-CheckboxLabel eib0h5u1"
+                        >
+                          org:read
+                        </span>
+                      </label>
+                    </div>
+                    <div
+                      class="css-n4y8vg-LabelContainer eib0h5u0"
+                    >
+                      <label
+                        class="css-19dlw23-Label eib0h5u2"
+                      >
+                        <div
+                          class="css-bphz7d-Wrapper e14pn5ur2"
+                        >
+                          <input
+                            class="css-4npmde-HiddenInput-HiddenInput e14pn5ur1"
+                            type="checkbox"
+                            value="org:write"
+                          />
+                          <div
+                            aria-hidden="true"
+                            class="css-5y1i99-StyledCheckbox-StyledCheckbox e14pn5ur0"
+                          />
+                          <span
+                            class="css-vul34l-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+                            role="presentation"
+                          />
+                        </div>
+                        <span
+                          class="css-6ymjw8-CheckboxLabel eib0h5u1"
+                        >
+                          org:write
+                        </span>
+                      </label>
+                    </div>
+                    <div
+                      class="css-n4y8vg-LabelContainer eib0h5u0"
+                    >
+                      <label
+                        class="css-19dlw23-Label eib0h5u2"
+                      >
+                        <div
+                          class="css-bphz7d-Wrapper e14pn5ur2"
+                        >
+                          <input
+                            class="css-4npmde-HiddenInput-HiddenInput e14pn5ur1"
+                            type="checkbox"
+                            value="org:admin"
+                          />
+                          <div
+                            aria-hidden="true"
+                            class="css-5y1i99-StyledCheckbox-StyledCheckbox e14pn5ur0"
+                          />
+                          <span
+                            class="css-vul34l-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+                            role="presentation"
+                          />
+                        </div>
+                        <span
+                          class="css-6ymjw8-CheckboxLabel eib0h5u1"
+                        >
+                          org:admin
+                        </span>
+                      </label>
+                    </div>
+                    <div
+                      class="css-n4y8vg-LabelContainer eib0h5u0"
+                    >
+                      <label
+                        class="css-19dlw23-Label eib0h5u2"
+                      >
+                        <div
+                          class="css-bphz7d-Wrapper e14pn5ur2"
+                        >
+                          <input
+                            class="css-4npmde-HiddenInput-HiddenInput e14pn5ur1"
+                            type="checkbox"
+                            value="org:integrations"
+                          />
+                          <div
+                            aria-hidden="true"
+                            class="css-5y1i99-StyledCheckbox-StyledCheckbox e14pn5ur0"
+                          />
+                          <span
+                            class="css-vul34l-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+                            role="presentation"
+                          />
+                        </div>
+                        <span
+                          class="css-6ymjw8-CheckboxLabel eib0h5u1"
+                        >
+                          org:integrations
+                        </span>
+                      </label>
+                    </div>
+                    <div
+                      class="css-n4y8vg-LabelContainer eib0h5u0"
+                    >
+                      <label
+                        class="css-19dlw23-Label eib0h5u2"
+                      >
+                        <div
+                          class="css-1x6zjrv-Wrapper e14pn5ur2"
+                        >
+                          <input
+                            checked=""
+                            class="css-c0rrkd-HiddenInput-HiddenInput e14pn5ur1"
+                            type="checkbox"
+                            value="member:read"
+                          />
+                          <div
+                            aria-hidden="true"
+                            class="css-u1o78x-StyledCheckbox-StyledCheckbox e14pn5ur0"
+                          >
+                            <svg
+                              data-test-id="icon-check-mark"
+                              fill="currentColor"
+                              height="12px"
+                              viewBox="0 0 16 16"
+                              width="12px"
+                            >
+                              <path
+                                d="M6.19,14.51a.77.77,0,0,1-.57-.25l-4.2-4.8a.75.75,0,0,1,1.13-1l3.56,4.06L13.36,1.82a.75.75,0,0,1,1-.21.76.76,0,0,1,.21,1.05L6.81,14.18a.73.73,0,0,1-.58.33Z"
+                              />
+                            </svg>
+                          </div>
+                          <span
+                            class="css-at526y-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+                            role="presentation"
+                          />
+                        </div>
+                        <span
+                          class="css-6ymjw8-CheckboxLabel eib0h5u1"
+                        >
+                          member:read
+                        </span>
+                      </label>
+                    </div>
+                    <div
+                      class="css-n4y8vg-LabelContainer eib0h5u0"
+                    >
+                      <label
+                        class="css-19dlw23-Label eib0h5u2"
+                      >
+                        <div
+                          class="css-bphz7d-Wrapper e14pn5ur2"
+                        >
+                          <input
+                            class="css-4npmde-HiddenInput-HiddenInput e14pn5ur1"
+                            type="checkbox"
+                            value="member:write"
+                          />
+                          <div
+                            aria-hidden="true"
+                            class="css-5y1i99-StyledCheckbox-StyledCheckbox e14pn5ur0"
+                          />
+                          <span
+                            class="css-vul34l-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+                            role="presentation"
+                          />
+                        </div>
+                        <span
+                          class="css-6ymjw8-CheckboxLabel eib0h5u1"
+                        >
+                          member:write
+                        </span>
+                      </label>
+                    </div>
+                    <div
+                      class="css-n4y8vg-LabelContainer eib0h5u0"
+                    >
+                      <label
+                        class="css-19dlw23-Label eib0h5u2"
+                      >
+                        <div
+                          class="css-bphz7d-Wrapper e14pn5ur2"
+                        >
+                          <input
+                            class="css-4npmde-HiddenInput-HiddenInput e14pn5ur1"
+                            type="checkbox"
+                            value="member:admin"
+                          />
+                          <div
+                            aria-hidden="true"
+                            class="css-5y1i99-StyledCheckbox-StyledCheckbox e14pn5ur0"
+                          />
+                          <span
+                            class="css-vul34l-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+                            role="presentation"
+                          />
+                        </div>
+                        <span
+                          class="css-6ymjw8-CheckboxLabel eib0h5u1"
+                        >
+                          member:admin
+                        </span>
+                      </label>
+                    </div>
+                    <div
+                      class="css-n4y8vg-LabelContainer eib0h5u0"
+                    >
+                      <label
+                        class="css-19dlw23-Label eib0h5u2"
+                      >
+                        <div
+                          class="css-bphz7d-Wrapper e14pn5ur2"
+                        >
+                          <input
+                            class="css-4npmde-HiddenInput-HiddenInput e14pn5ur1"
+                            type="checkbox"
+                            value="alerts:read"
+                          />
+                          <div
+                            aria-hidden="true"
+                            class="css-5y1i99-StyledCheckbox-StyledCheckbox e14pn5ur0"
+                          />
+                          <span
+                            class="css-vul34l-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+                            role="presentation"
+                          />
+                        </div>
+                        <span
+                          class="css-6ymjw8-CheckboxLabel eib0h5u1"
+                        >
+                          alerts:read
+                        </span>
+                      </label>
+                    </div>
+                    <div
+                      class="css-n4y8vg-LabelContainer eib0h5u0"
+                    >
+                      <label
+                        class="css-19dlw23-Label eib0h5u2"
+                      >
+                        <div
+                          class="css-bphz7d-Wrapper e14pn5ur2"
+                        >
+                          <input
+                            class="css-4npmde-HiddenInput-HiddenInput e14pn5ur1"
+                            type="checkbox"
+                            value="alerts:write"
+                          />
+                          <div
+                            aria-hidden="true"
+                            class="css-5y1i99-StyledCheckbox-StyledCheckbox e14pn5ur0"
+                          />
+                          <span
+                            class="css-vul34l-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+                            role="presentation"
+                          />
+                        </div>
+                        <span
+                          class="css-6ymjw8-CheckboxLabel eib0h5u1"
+                        >
+                          alerts:write
+                        </span>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+                <div
+                  class="css-iw48yj-FieldControlState e190hkl80"
+                />
+              </div>
+            </div>
+            <div
+              class="css-1s6sn9m-FieldWrapper-getPadding-inlineStyle-FieldWrapper-FieldWrapper e12z3jxd0"
+            >
+              <label
+                aria-label="Allowed Domains"
+                class="css-1lqelms-FieldDescription-inlineStyle e1cwyh1y0"
+                for="allowed_origins"
+              >
+                <div
+                  class="css-1amoduc-FieldLabel ekcr5um0"
+                >
+                  <span>
+                    Allowed Domains
+                  </span>
+                </div>
+                <div
+                  class="css-14bl5nc-FieldHelp e1mobfxl0"
+                  id="allowed_origins_help"
+                >
+                  Separate multiple entries with a newline
+                </div>
+              </label>
+              <div
+                class="css-msyoo4-FieldControlWrapper e1ap0t511"
+              >
+                <div
+                  class="css-sse8ie-FieldControlStyled e1ap0t510"
+                >
+                  <div
+                    class="css-1biel1q-InputGroupWrap e13j5zq05"
+                  >
+                    <textarea
+                      aria-describedby="allowed_origins_help"
+                      class="css-17087aq-TextArea-inputStyles-StyledTextArea-getInputStyles e13j5zq02"
+                      id="allowed_origins"
+                      label="Allowed Domains"
+                      name="allowed_origins"
+                      placeholder="e.g. example.com or https://example.com"
+                    />
+                    <div
+                      class="css-vdn3ll-InputItemsWrap-InputTrailingItemsWrap e13j5zq00"
+                      data-test-id="input-trailing-items"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div
+          class="css-1wj3569-StyledFooter el3x56x1"
+        >
+          <div
+            class="css-1ci39bu-DefaultButtons el3x56x0"
+          >
+            <button
+              aria-disabled="false"
+              aria-label="Cancel"
+              class="css-c6blth-StyledButton-getColors-getButtonStyles e1b8u3ky2"
+              role="button"
+              style="margin-left: 5px;"
+              type="button"
+            >
+              <span
+                class="css-vul34l-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+                role="presentation"
+              />
+              <span
+                class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+              >
+                Cancel
+              </span>
+            </button>
+            <button
+              aria-disabled="false"
+              aria-label="Save Changes"
+              class="css-1l33bx7-StyledButton-getColors-getButtonStyles e1b8u3ky2"
+              data-test-id="form-submit"
+              role="button"
+              type="submit"
+            >
+              <span
+                class="css-at526y-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+                role="presentation"
+              />
+              <span
+                class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+              >
+                Save Changes
+              </span>
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+`;

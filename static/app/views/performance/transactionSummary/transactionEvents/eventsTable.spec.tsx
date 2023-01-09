@@ -261,7 +261,7 @@ describe('Performance GridEditable Table', function () {
     expect(screen.queryByText(SPAN_OP_RELATIVE_BREAKDOWN_FIELD)).not.toBeInTheDocument();
     expect(screen.queryByTestId('relative-ops-breakdown')).not.toBeInTheDocument();
     expect(screen.queryByTestId('grid-head-cell-static')).not.toBeInTheDocument();
-    expect(container).toSnapshot();
+    expect(container).toMatchSnapshot();
   });
 
   it('renders event id and trace id url', async function () {
@@ -340,6 +340,6 @@ describe('Performance GridEditable Table', function () {
     );
 
     expect(screen.getAllByRole('columnheader')).toHaveLength(7);
-    expect(container).toSnapshot();
+    expect(container).toMatchSnapshot();
   });
 });

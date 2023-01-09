@@ -27,7 +27,7 @@ describe('EventOrGroupTitle', function () {
       />
     );
 
-    expect(wrapper.container).toSnapshot();
+    expect(wrapper.container).toMatchSnapshot();
   });
 
   it('renders with subtitle when `type = csp`', function () {
@@ -44,7 +44,7 @@ describe('EventOrGroupTitle', function () {
       />
     );
 
-    expect(wrapper.container).toSnapshot();
+    expect(wrapper.container).toMatchSnapshot();
   });
 
   it('renders with no subtitle when `type = default`', function () {
@@ -63,7 +63,7 @@ describe('EventOrGroupTitle', function () {
       />
     );
 
-    expect(wrapper.container).toSnapshot();
+    expect(wrapper.container).toMatchSnapshot();
   });
 
   it('renders with title override', function () {

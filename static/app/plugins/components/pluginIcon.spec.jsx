@@ -12,12 +12,12 @@ jest.mock('images/logos/logo-github.svg', () => 'github', {});
 describe('PluginIcon', function () {
   it('renders', function () {
     const {container} = render(<PluginIcon pluginId="github" size={20} />);
-    expect(container).toSnapshot();
+    expect(container).toMatchSnapshot();
   });
 
   // doesn't work because of the above comment
   it.skip('renders with default icon with invalid plugin id', function () {
     const {container} = render(<PluginIcon pluginId="invalid" size={20} />);
-    expect(container).toSnapshot();
+    expect(container).toMatchSnapshot();
   });
 });

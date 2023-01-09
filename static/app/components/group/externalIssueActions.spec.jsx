@@ -28,7 +28,7 @@ describe('ExternalIssueActions', function () {
         />
       );
 
-      expect(container).toSnapshot();
+      expect(container).toMatchSnapshot();
       // renders GitHub Issue when no issues currently linked
       expect(screen.getByText('GitHub Issue')).toBeInTheDocument();
     });

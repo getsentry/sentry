@@ -1,0 +1,3308 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`EventTagsAndScreenshot renders screenshot and tags has context and attachments only 1`] = `
+<div>
+  <div
+    class="css-1abrh3j-DataSection-Wrapper e17i6yh93"
+  >
+    <div
+      class="css-j9ca70-TagWrapper e17i6yh90"
+    >
+      <div
+        class="e5agty60 ey532ti0 css-1i5rj93-DataSection-StyledEventDataSection-StyledDataSection e9xr8173"
+        data-test-id="event-tags"
+      >
+        <div
+          class="css-9q5uv6-SectionHeader e11dlz2y2"
+          id="tags"
+        >
+          <div
+            class="css-jgc6yt-Title e11dlz2y6"
+          >
+            <div
+              class="css-1ud1d8w-TitleWrapper ey532ti2"
+            >
+              <h3
+                class="css-12a2sue-Title ey532ti1"
+              >
+                Tags
+              </h3>
+              <span
+                class="css-a48maj-QuestionIconContainer edfbgzx0"
+              >
+                <span
+                  aria-describedby="tooltip-hqukdusypb"
+                  class="css-1y4rfpo-Container e1lk5gpt0"
+                >
+                  <svg
+                    data-test-id="more-information"
+                    fill="currentColor"
+                    height="16px"
+                    viewBox="0 0 16 16"
+                    width="16px"
+                  >
+                    <path
+                      d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z"
+                    />
+                    <path
+                      d="M5.33,6.19a1.93,1.93,0,0,1,.33-1,2.59,2.59,0,0,1,1-.87,3,3,0,0,1,1.47-.34,3.18,3.18,0,0,1,1.38.29,2.28,2.28,0,0,1,.92.78,2,2,0,0,1,.32,1.07,1.69,1.69,0,0,1-.18.8,2.74,2.74,0,0,1-.44.6l-.92.84a3.92,3.92,0,0,0-.29.29,1,1,0,0,0-.17.23,1.8,1.8,0,0,0-.08.21c0,.07,0,.19-.09.37a.6.6,0,0,1-.64.56.64.64,0,0,1-.47-.19.74.74,0,0,1-.19-.54,1.91,1.91,0,0,1,.51-1.36,7.83,7.83,0,0,1,.63-.59c.22-.2.39-.35.49-.46a1.46,1.46,0,0,0,.26-.34.8.8,0,0,0,.1-.41.93.93,0,0,0-.32-.72,1.13,1.13,0,0,0-.82-.3,1.15,1.15,0,0,0-.87.3,2.33,2.33,0,0,0-.47.88c-.12.4-.35.61-.7.61a.65.65,0,0,1-.5-.22A.63.63,0,0,1,5.33,6.19ZM8,12.07a.84.84,0,0,1-.57-.21.75.75,0,0,1-.24-.59.74.74,0,0,1,.23-.57A.78.78,0,0,1,8,10.47a.74.74,0,0,1,.57.23.78.78,0,0,1,.23.57.76.76,0,0,1-.24.59A.83.83,0,0,1,8,12.07Z"
+                    />
+                  </svg>
+                </span>
+              </span>
+            </div>
+          </div>
+        </div>
+        <div
+          class="css-1o3cuay-SectionContents e11dlz2y1"
+        >
+          <div
+            class="css-1ya2art-Wrapper e1sozlaf0"
+          >
+            <div
+              class="css-b1ea3l-ItemContainer-overflowEllipsis et3gjwk0"
+              data-test-id="context-item"
+            >
+              <div
+                class="css-crgm5y-IconContainer et3gjwk1"
+              >
+                <span
+                  class="avatar css-eti684-StyledBaseAvatar ery3g4h1"
+                  data-test-id="letter_avatar-avatar"
+                  style="width: 32px; height: 32px;"
+                  title="tony1@example.com"
+                >
+                  <svg
+                    class="css-1jaqko8-LetterAvatar-imageStyle ewkzefl0"
+                    viewBox="0 0 120 120"
+                  >
+                    <rect
+                      fill="#f9a66d"
+                      height="120"
+                      opacity="100%"
+                      rx="15"
+                      ry="15"
+                      width="120"
+                      x="0"
+                      y="0"
+                    />
+                    <text
+                      fill="#FFFFFF"
+                      font-size="65"
+                      style="dominant-baseline: central;"
+                      text-anchor="middle"
+                      x="50%"
+                      y="50%"
+                    >
+                      T
+                    </text>
+                  </svg>
+                </span>
+              </div>
+              <div
+                class="css-3raiof-Details et3gjwk2"
+              >
+                <h3
+                  data-test-id="user-title"
+                >
+                  <span>
+                    tony1@example.com
+                  </span>
+                </h3>
+                <p
+                  class="css-1r3o8wo-TextOverflow-overflowEllipsis eyxbn6j0"
+                  data-test-id="context-sub-title"
+                >
+                  <strong
+                    class="css-ntp2p4-Subject eyl6uqx0"
+                  >
+                    ID:
+                  </strong>
+                  <span>
+                    1
+                  </span>
+                </p>
+              </div>
+            </div>
+            <div
+              class="css-b1ea3l-ItemContainer-overflowEllipsis et3gjwk0"
+              data-test-id="context-item"
+            >
+              <div
+                class="css-crgm5y-IconContainer et3gjwk1"
+              >
+                <img
+                  class="css-0"
+                  height="32px"
+                  src="[object Object]"
+                  width="32px"
+                />
+              </div>
+              <div
+                class="css-3raiof-Details et3gjwk2"
+              >
+                <h3>
+                  <span>
+                    iOS
+                  </span>
+                </h3>
+                <p
+                  class="css-1r3o8wo-TextOverflow-overflowEllipsis eyxbn6j0"
+                  data-test-id="context-sub-title"
+                >
+                  <strong
+                    class="css-ntp2p4-Subject e1xlfyw30"
+                  >
+                    Version:
+                  </strong>
+                  <span>
+                    14.7.1
+                  </span>
+                </p>
+              </div>
+            </div>
+            <div
+              class="css-b1ea3l-ItemContainer-overflowEllipsis et3gjwk0"
+              data-test-id="context-item"
+            >
+              <div
+                class="css-crgm5y-IconContainer et3gjwk1"
+              >
+                <img
+                  class="css-0"
+                  height="32px"
+                  src="[object Object]"
+                  width="32px"
+                />
+              </div>
+              <div
+                class="css-3raiof-Details et3gjwk2"
+              >
+                <h3>
+                  <span
+                    data-test-id="loaded-device-name"
+                  >
+                    <span>
+                      iPhone 12 Pro Max 
+                    </span>
+                  </span>
+                </h3>
+                <p
+                  class="css-1r3o8wo-TextOverflow-overflowEllipsis eyxbn6j0"
+                  data-test-id="context-sub-title"
+                >
+                  <strong
+                    class="css-ntp2p4-Subject eumrt8l0"
+                  >
+                    Model:
+                  </strong>
+                  <span>
+                    iPhone13,4
+                  </span>
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div
+        class="css-ytvwb6-ScreenshotWrapper e17i6yh91"
+      >
+        <div
+          class="e17i6yh92 ey532ti0 css-zbmwyz-DataSection-StyledEventDataSection-StyledScreenshotDataSection e9xr8173"
+          data-test-id="screenshot-data-section"
+        >
+          <div
+            class="css-9q5uv6-SectionHeader e11dlz2y2"
+            id="object-object"
+          >
+            <div
+              class="css-jgc6yt-Title e11dlz2y6"
+            >
+              <div
+                class="css-1ud1d8w-TitleWrapper ey532ti2"
+              >
+                <h3
+                  class="css-12a2sue-Title ey532ti1"
+                >
+                  <span>
+                    <a
+                      class="css-ta9xa3-Link e1ycxor00"
+                    >
+                      Screenshot
+                    </a>
+                  </span>
+                </h3>
+                <span
+                  class="css-a48maj-QuestionIconContainer edfbgzx0"
+                >
+                  <span
+                    aria-describedby="tooltip-q07ft4govb"
+                    class="css-1y4rfpo-Container e1lk5gpt0"
+                  >
+                    <svg
+                      data-test-id="more-information"
+                      fill="currentColor"
+                      height="16px"
+                      viewBox="0 0 16 16"
+                      width="16px"
+                    >
+                      <path
+                        d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z"
+                      />
+                      <path
+                        d="M5.33,6.19a1.93,1.93,0,0,1,.33-1,2.59,2.59,0,0,1,1-.87,3,3,0,0,1,1.47-.34,3.18,3.18,0,0,1,1.38.29,2.28,2.28,0,0,1,.92.78,2,2,0,0,1,.32,1.07,1.69,1.69,0,0,1-.18.8,2.74,2.74,0,0,1-.44.6l-.92.84a3.92,3.92,0,0,0-.29.29,1,1,0,0,0-.17.23,1.8,1.8,0,0,0-.08.21c0,.07,0,.19-.09.37a.6.6,0,0,1-.64.56.64.64,0,0,1-.47-.19.74.74,0,0,1-.19-.54,1.91,1.91,0,0,1,.51-1.36,7.83,7.83,0,0,1,.63-.59c.22-.2.39-.35.49-.46a1.46,1.46,0,0,0,.26-.34.8.8,0,0,0,.1-.41.93.93,0,0,0-.32-.72,1.13,1.13,0,0,0-.82-.3,1.15,1.15,0,0,0-.87.3,2.33,2.33,0,0,0-.47.88c-.12.4-.35.61-.7.61a.65.65,0,0,1-.5-.22A.63.63,0,0,1,5.33,6.19ZM8,12.07a.84.84,0,0,1-.57-.21.75.75,0,0,1-.24-.59.74.74,0,0,1,.23-.57A.78.78,0,0,1,8,10.47a.74.74,0,0,1,.57.23.78.78,0,0,1,.23.57.76.76,0,0,1-.24.59A.83.83,0,0,1,8,12.07Z"
+                      />
+                    </svg>
+                  </span>
+                </span>
+              </div>
+            </div>
+          </div>
+          <div
+            class="css-1o3cuay-SectionContents e11dlz2y1"
+          >
+            <div
+              class="css-14jckha-Panel-StyledPanel evn908h6"
+            >
+              <div
+                class="css-1yd2e18-PanelBody-textStyles-StyledPanelBody evn908h4"
+              >
+                <div
+                  class="css-nz0qqn-StyledLoadingIndicator evn908h2"
+                >
+                  <div
+                    class="loading mini"
+                    data-test-id="loading-indicator"
+                  >
+                    <div
+                      class="loading-indicator"
+                    />
+                    <div
+                      class="loading-message"
+                    />
+                  </div>
+                </div>
+                <div
+                  class="css-invl16-StyledImageWrapper evn908h1"
+                >
+                  <div
+                    class="evn908h0 css-ghj97d-PanelItem-Container-ImageVisualization-StyledImageVisualization e1bs8vy90"
+                  >
+                    <img
+                      data-test-id="image-viewer"
+                      src="/api/0/projects/org-slug/project-slug/events/1/attachments/1765467046/?download"
+                    />
+                  </div>
+                </div>
+              </div>
+              <div
+                class="css-1wjlrzm-PanelFooter-StyledPanelFooter evn908h3"
+              >
+                <div
+                  class="css-yo4yps-ButtonGrid e1n9g4yq0"
+                >
+                  <button
+                    aria-disabled="false"
+                    aria-label="View screenshot"
+                    class="css-cs9ro8-StyledButton-getColors-getButtonStyles e1b8u3ky2"
+                    role="button"
+                    type="button"
+                  >
+                    <span
+                      class="css-vul34l-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+                      role="presentation"
+                    />
+                    <span
+                      class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+                    >
+                      View screenshot
+                    </span>
+                  </button>
+                  <div
+                    class="css-d14xmy-MenuControlWrap e1xefvzy0"
+                    role="presentation"
+                  >
+                    <button
+                      aria-disabled="false"
+                      aria-expanded="false"
+                      aria-haspopup="true"
+                      aria-label="More screenshot actions"
+                      class="e1u0jomf1 css-p6stui-StyledButton-getColors-getButtonStyles-StyledButton e1b8u3ky2"
+                      id="react-aria8723275562-11"
+                      role="button"
+                      type="button"
+                    >
+                      <span
+                        class="css-vul34l-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+                        role="presentation"
+                      />
+                      <span
+                        class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+                      >
+                        <span
+                          class="css-161yn40-Icon e1b8u3ky0"
+                        >
+                          <svg
+                            fill="currentColor"
+                            height="12px"
+                            viewBox="0 0 16 16"
+                            width="12px"
+                          >
+                            <circle
+                              cx="8"
+                              cy="8"
+                              r="1.31"
+                            />
+                            <circle
+                              cx="1.31"
+                              cy="8"
+                              r="1.31"
+                            />
+                            <circle
+                              cx="14.69"
+                              cy="8"
+                              r="1.31"
+                            />
+                          </svg>
+                        </span>
+                      </span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`EventTagsAndScreenshot renders screenshot and tags has context, tags and attachments 1`] = `
+<div>
+  <div
+    class="css-1abrh3j-DataSection-Wrapper e17i6yh93"
+  >
+    <div
+      class="css-j9ca70-TagWrapper e17i6yh90"
+    >
+      <div
+        class="e5agty60 ey532ti0 css-1i5rj93-DataSection-StyledEventDataSection-StyledDataSection e9xr8173"
+        data-test-id="event-tags"
+      >
+        <div
+          class="css-9q5uv6-SectionHeader e11dlz2y2"
+          id="tags"
+        >
+          <div
+            class="css-jgc6yt-Title e11dlz2y6"
+          >
+            <div
+              class="css-1ud1d8w-TitleWrapper ey532ti2"
+            >
+              <h3
+                class="css-12a2sue-Title ey532ti1"
+              >
+                Tags
+              </h3>
+              <span
+                class="css-a48maj-QuestionIconContainer edfbgzx0"
+              >
+                <span
+                  aria-describedby="tooltip-ebefk5ean1"
+                  class="css-1y4rfpo-Container e1lk5gpt0"
+                >
+                  <svg
+                    data-test-id="more-information"
+                    fill="currentColor"
+                    height="16px"
+                    viewBox="0 0 16 16"
+                    width="16px"
+                  >
+                    <path
+                      d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z"
+                    />
+                    <path
+                      d="M5.33,6.19a1.93,1.93,0,0,1,.33-1,2.59,2.59,0,0,1,1-.87,3,3,0,0,1,1.47-.34,3.18,3.18,0,0,1,1.38.29,2.28,2.28,0,0,1,.92.78,2,2,0,0,1,.32,1.07,1.69,1.69,0,0,1-.18.8,2.74,2.74,0,0,1-.44.6l-.92.84a3.92,3.92,0,0,0-.29.29,1,1,0,0,0-.17.23,1.8,1.8,0,0,0-.08.21c0,.07,0,.19-.09.37a.6.6,0,0,1-.64.56.64.64,0,0,1-.47-.19.74.74,0,0,1-.19-.54,1.91,1.91,0,0,1,.51-1.36,7.83,7.83,0,0,1,.63-.59c.22-.2.39-.35.49-.46a1.46,1.46,0,0,0,.26-.34.8.8,0,0,0,.1-.41.93.93,0,0,0-.32-.72,1.13,1.13,0,0,0-.82-.3,1.15,1.15,0,0,0-.87.3,2.33,2.33,0,0,0-.47.88c-.12.4-.35.61-.7.61a.65.65,0,0,1-.5-.22A.63.63,0,0,1,5.33,6.19ZM8,12.07a.84.84,0,0,1-.57-.21.75.75,0,0,1-.24-.59.74.74,0,0,1,.23-.57A.78.78,0,0,1,8,10.47a.74.74,0,0,1,.57.23.78.78,0,0,1,.23.57.76.76,0,0,1-.24.59A.83.83,0,0,1,8,12.07Z"
+                    />
+                  </svg>
+                </span>
+              </span>
+            </div>
+          </div>
+        </div>
+        <div
+          class="css-1o3cuay-SectionContents e11dlz2y1"
+        >
+          <div
+            class="css-1ya2art-Wrapper e1sozlaf0"
+          >
+            <div
+              class="css-b1ea3l-ItemContainer-overflowEllipsis et3gjwk0"
+              data-test-id="context-item"
+            >
+              <div
+                class="css-crgm5y-IconContainer et3gjwk1"
+              >
+                <span
+                  class="avatar css-eti684-StyledBaseAvatar ery3g4h1"
+                  data-test-id="letter_avatar-avatar"
+                  style="width: 32px; height: 32px;"
+                  title="tony1@example.com"
+                >
+                  <svg
+                    class="css-1jaqko8-LetterAvatar-imageStyle ewkzefl0"
+                    viewBox="0 0 120 120"
+                  >
+                    <rect
+                      fill="#f9a66d"
+                      height="120"
+                      opacity="100%"
+                      rx="15"
+                      ry="15"
+                      width="120"
+                      x="0"
+                      y="0"
+                    />
+                    <text
+                      fill="#FFFFFF"
+                      font-size="65"
+                      style="dominant-baseline: central;"
+                      text-anchor="middle"
+                      x="50%"
+                      y="50%"
+                    >
+                      T
+                    </text>
+                  </svg>
+                </span>
+              </div>
+              <div
+                class="css-3raiof-Details et3gjwk2"
+              >
+                <h3
+                  data-test-id="user-title"
+                >
+                  <span>
+                    tony1@example.com
+                  </span>
+                </h3>
+                <p
+                  class="css-1r3o8wo-TextOverflow-overflowEllipsis eyxbn6j0"
+                  data-test-id="context-sub-title"
+                >
+                  <strong
+                    class="css-ntp2p4-Subject eyl6uqx0"
+                  >
+                    ID:
+                  </strong>
+                  <span>
+                    1
+                  </span>
+                </p>
+              </div>
+            </div>
+            <div
+              class="css-b1ea3l-ItemContainer-overflowEllipsis et3gjwk0"
+              data-test-id="context-item"
+            >
+              <div
+                class="css-crgm5y-IconContainer et3gjwk1"
+              >
+                <img
+                  class="css-0"
+                  height="32px"
+                  src="[object Object]"
+                  width="32px"
+                />
+              </div>
+              <div
+                class="css-3raiof-Details et3gjwk2"
+              >
+                <h3>
+                  <span>
+                    iOS
+                  </span>
+                </h3>
+                <p
+                  class="css-1r3o8wo-TextOverflow-overflowEllipsis eyxbn6j0"
+                  data-test-id="context-sub-title"
+                >
+                  <strong
+                    class="css-ntp2p4-Subject e1xlfyw30"
+                  >
+                    Version:
+                  </strong>
+                  <span>
+                    14.7.1
+                  </span>
+                </p>
+              </div>
+            </div>
+            <div
+              class="css-b1ea3l-ItemContainer-overflowEllipsis et3gjwk0"
+              data-test-id="context-item"
+            >
+              <div
+                class="css-crgm5y-IconContainer et3gjwk1"
+              >
+                <img
+                  class="css-0"
+                  height="32px"
+                  src="[object Object]"
+                  width="32px"
+                />
+              </div>
+              <div
+                class="css-3raiof-Details et3gjwk2"
+              >
+                <h3>
+                  <span
+                    data-test-id="loaded-device-name"
+                  >
+                    <span>
+                      iPhone 12 Pro Max 
+                    </span>
+                  </span>
+                </h3>
+                <p
+                  class="css-1r3o8wo-TextOverflow-overflowEllipsis eyxbn6j0"
+                  data-test-id="context-sub-title"
+                >
+                  <strong
+                    class="css-ntp2p4-Subject eumrt8l0"
+                  >
+                    Model:
+                  </strong>
+                  <span>
+                    iPhone13,4
+                  </span>
+                </p>
+              </div>
+            </div>
+          </div>
+          <div
+            class="ef69h7u0 css-975one-Wrapper-StyledClippedBox easm7v12"
+          >
+            <div
+              class="css-1xf7mve-Pills e1nyfzl40"
+            >
+              <li
+                class="css-gvi4h9-StyledPill e1qdl66w0"
+              >
+                <span
+                  class="css-4o2sdj-PillName e1qdl66w2"
+                >
+                  app.device
+                </span>
+                <span
+                  class="css-18i8w4t-PillName-PillValue e1qdl66w1"
+                >
+                  <a
+                    class="css-ta9xa3-Link e1ycxor00"
+                  >
+                    <span
+                      data-test-id="loaded-device-name"
+                    >
+                      0b77c3f2567d65fe816e1fa7013779fbe3b51633
+                    </span>
+                  </a>
+                </span>
+              </li>
+              <li
+                class="css-gvi4h9-StyledPill e1qdl66w0"
+              >
+                <span
+                  class="css-4o2sdj-PillName e1qdl66w2"
+                >
+                  device
+                </span>
+                <span
+                  class="css-18i8w4t-PillName-PillValue e1qdl66w1"
+                >
+                  <a
+                    class="css-ta9xa3-Link e1ycxor00"
+                  >
+                    <span
+                      data-test-id="loaded-device-name"
+                    >
+                      iPhone 12 Pro Max 
+                    </span>
+                  </a>
+                </span>
+              </li>
+              <li
+                class="css-gvi4h9-StyledPill e1qdl66w0"
+              >
+                <span
+                  class="css-4o2sdj-PillName e1qdl66w2"
+                >
+                  device.family
+                </span>
+                <span
+                  class="css-18i8w4t-PillName-PillValue e1qdl66w1"
+                >
+                  <a
+                    class="css-ta9xa3-Link e1ycxor00"
+                  >
+                    <span
+                      data-test-id="loaded-device-name"
+                    >
+                      iOS
+                    </span>
+                  </a>
+                </span>
+              </li>
+              <li
+                class="css-gvi4h9-StyledPill e1qdl66w0"
+              >
+                <span
+                  class="css-4o2sdj-PillName e1qdl66w2"
+                >
+                  dist
+                </span>
+                <span
+                  class="css-18i8w4t-PillName-PillValue e1qdl66w1"
+                >
+                  <a
+                    class="css-ta9xa3-Link e1ycxor00"
+                  >
+                    <span
+                      data-test-id="loaded-device-name"
+                    >
+                      390
+                    </span>
+                  </a>
+                </span>
+              </li>
+              <li
+                class="css-gvi4h9-StyledPill e1qdl66w0"
+              >
+                <span
+                  class="css-4o2sdj-PillName e1qdl66w2"
+                >
+                  environment
+                </span>
+                <span
+                  class="css-18i8w4t-PillName-PillValue e1qdl66w1"
+                >
+                  <a
+                    class="css-ta9xa3-Link e1ycxor00"
+                  >
+                    <span
+                      data-test-id="loaded-device-name"
+                    >
+                      debug
+                    </span>
+                  </a>
+                </span>
+              </li>
+              <li
+                class="css-gvi4h9-StyledPill e1qdl66w0"
+              >
+                <span
+                  class="css-4o2sdj-PillName e1qdl66w2"
+                >
+                  language
+                </span>
+                <span
+                  class="css-18i8w4t-PillName-PillValue e1qdl66w1"
+                >
+                  <a
+                    class="css-ta9xa3-Link e1ycxor00"
+                  >
+                    <span
+                      data-test-id="loaded-device-name"
+                    >
+                      swift
+                    </span>
+                  </a>
+                </span>
+              </li>
+              <li
+                class="css-gvi4h9-StyledPill e1qdl66w0"
+              >
+                <span
+                  class="css-4o2sdj-PillName e1qdl66w2"
+                >
+                  level
+                </span>
+                <span
+                  class="css-18i8w4t-PillName-PillValue e1qdl66w1"
+                >
+                  <a
+                    class="css-ta9xa3-Link e1ycxor00"
+                  >
+                    <span
+                      data-test-id="loaded-device-name"
+                    >
+                      info
+                    </span>
+                  </a>
+                </span>
+              </li>
+              <li
+                class="css-gvi4h9-StyledPill e1qdl66w0"
+              >
+                <span
+                  class="css-4o2sdj-PillName e1qdl66w2"
+                >
+                  os
+                </span>
+                <span
+                  class="css-18i8w4t-PillName-PillValue e1qdl66w1"
+                >
+                  <a
+                    class="css-ta9xa3-Link e1ycxor00"
+                  >
+                    <span
+                      data-test-id="loaded-device-name"
+                    >
+                      iOS 14.7.1
+                    </span>
+                  </a>
+                </span>
+              </li>
+              <li
+                class="css-gvi4h9-StyledPill e1qdl66w0"
+              >
+                <span
+                  class="css-4o2sdj-PillName e1qdl66w2"
+                >
+                  os.name
+                </span>
+                <span
+                  class="css-18i8w4t-PillName-PillValue e1qdl66w1"
+                >
+                  <a
+                    class="css-ta9xa3-Link e1ycxor00"
+                  >
+                    <span
+                      data-test-id="loaded-device-name"
+                    >
+                      iOS
+                    </span>
+                  </a>
+                </span>
+              </li>
+              <li
+                class="css-gvi4h9-StyledPill e1qdl66w0"
+              >
+                <span
+                  class="css-4o2sdj-PillName e1qdl66w2"
+                >
+                  os.rooted
+                </span>
+                <span
+                  class="css-18i8w4t-PillName-PillValue e1qdl66w1"
+                >
+                  <a
+                    class="css-ta9xa3-Link e1ycxor00"
+                  >
+                    <span
+                      data-test-id="loaded-device-name"
+                    >
+                      no
+                    </span>
+                  </a>
+                </span>
+              </li>
+              <li
+                class="css-gvi4h9-StyledPill e1qdl66w0"
+              >
+                <span
+                  class="css-4o2sdj-PillName e1qdl66w2"
+                >
+                  release
+                </span>
+                <span
+                  class="css-18i8w4t-PillName-PillValue e1qdl66w1"
+                >
+                  <span
+                    aria-describedby="hovercard-7hqm66jzld"
+                    class="css-1y4rfpo-Container e1lk5gpt0"
+                    style="text-decoration: underline dotted rgba(60, 116, 221, 0.5);"
+                  >
+                    <a
+                      class="css-ta9xa3-Link e1ycxor00"
+                    >
+                      <span
+                        class="css-o1spc8-VersionText eqmhduc3"
+                      >
+                        7.2.3 (390)
+                      </span>
+                    </a>
+                  </span>
+                </span>
+              </li>
+              <li
+                class="css-gvi4h9-StyledPill e1qdl66w0"
+              >
+                <span
+                  class="css-4o2sdj-PillName e1qdl66w2"
+                >
+                  transaction
+                </span>
+                <span
+                  class="css-18i8w4t-PillName-PillValue e1qdl66w1"
+                >
+                  <a
+                    class="css-ta9xa3-Link e1ycxor00"
+                  >
+                    <span
+                      data-test-id="loaded-device-name"
+                    >
+                      iOS_Swift.ViewController
+                    </span>
+                  </a>
+                </span>
+              </li>
+              <li
+                class="css-gvi4h9-StyledPill e1qdl66w0"
+              >
+                <span
+                  class="css-4o2sdj-PillName e1qdl66w2"
+                >
+                  user
+                </span>
+                <span
+                  class="css-18i8w4t-PillName-PillValue e1qdl66w1"
+                >
+                  <a
+                    class="css-ta9xa3-Link e1ycxor00"
+                  >
+                    <span
+                      data-test-id="loaded-device-name"
+                    >
+                      id:1
+                    </span>
+                  </a>
+                </span>
+              </li>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div
+        class="css-ytvwb6-ScreenshotWrapper e17i6yh91"
+      >
+        <div
+          class="e17i6yh92 ey532ti0 css-zbmwyz-DataSection-StyledEventDataSection-StyledScreenshotDataSection e9xr8173"
+          data-test-id="screenshot-data-section"
+        >
+          <div
+            class="css-9q5uv6-SectionHeader e11dlz2y2"
+            id="object-object"
+          >
+            <div
+              class="css-jgc6yt-Title e11dlz2y6"
+            >
+              <div
+                class="css-1ud1d8w-TitleWrapper ey532ti2"
+              >
+                <h3
+                  class="css-12a2sue-Title ey532ti1"
+                >
+                  <span>
+                    <a
+                      class="css-ta9xa3-Link e1ycxor00"
+                    >
+                      Screenshot
+                    </a>
+                  </span>
+                </h3>
+                <span
+                  class="css-a48maj-QuestionIconContainer edfbgzx0"
+                >
+                  <span
+                    aria-describedby="tooltip-7db4jdsxod"
+                    class="css-1y4rfpo-Container e1lk5gpt0"
+                  >
+                    <svg
+                      data-test-id="more-information"
+                      fill="currentColor"
+                      height="16px"
+                      viewBox="0 0 16 16"
+                      width="16px"
+                    >
+                      <path
+                        d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z"
+                      />
+                      <path
+                        d="M5.33,6.19a1.93,1.93,0,0,1,.33-1,2.59,2.59,0,0,1,1-.87,3,3,0,0,1,1.47-.34,3.18,3.18,0,0,1,1.38.29,2.28,2.28,0,0,1,.92.78,2,2,0,0,1,.32,1.07,1.69,1.69,0,0,1-.18.8,2.74,2.74,0,0,1-.44.6l-.92.84a3.92,3.92,0,0,0-.29.29,1,1,0,0,0-.17.23,1.8,1.8,0,0,0-.08.21c0,.07,0,.19-.09.37a.6.6,0,0,1-.64.56.64.64,0,0,1-.47-.19.74.74,0,0,1-.19-.54,1.91,1.91,0,0,1,.51-1.36,7.83,7.83,0,0,1,.63-.59c.22-.2.39-.35.49-.46a1.46,1.46,0,0,0,.26-.34.8.8,0,0,0,.1-.41.93.93,0,0,0-.32-.72,1.13,1.13,0,0,0-.82-.3,1.15,1.15,0,0,0-.87.3,2.33,2.33,0,0,0-.47.88c-.12.4-.35.61-.7.61a.65.65,0,0,1-.5-.22A.63.63,0,0,1,5.33,6.19ZM8,12.07a.84.84,0,0,1-.57-.21.75.75,0,0,1-.24-.59.74.74,0,0,1,.23-.57A.78.78,0,0,1,8,10.47a.74.74,0,0,1,.57.23.78.78,0,0,1,.23.57.76.76,0,0,1-.24.59A.83.83,0,0,1,8,12.07Z"
+                      />
+                    </svg>
+                  </span>
+                </span>
+              </div>
+            </div>
+          </div>
+          <div
+            class="css-1o3cuay-SectionContents e11dlz2y1"
+          >
+            <div
+              class="css-14jckha-Panel-StyledPanel evn908h6"
+            >
+              <div
+                class="css-1yd2e18-PanelBody-textStyles-StyledPanelBody evn908h4"
+              >
+                <div
+                  class="css-nz0qqn-StyledLoadingIndicator evn908h2"
+                >
+                  <div
+                    class="loading mini"
+                    data-test-id="loading-indicator"
+                  >
+                    <div
+                      class="loading-indicator"
+                    />
+                    <div
+                      class="loading-message"
+                    />
+                  </div>
+                </div>
+                <div
+                  class="css-invl16-StyledImageWrapper evn908h1"
+                >
+                  <div
+                    class="evn908h0 css-ghj97d-PanelItem-Container-ImageVisualization-StyledImageVisualization e1bs8vy90"
+                  >
+                    <img
+                      data-test-id="image-viewer"
+                      src="/api/0/projects/org-slug/project-slug/events/1/attachments/1765467046/?download"
+                    />
+                  </div>
+                </div>
+              </div>
+              <div
+                class="css-1wjlrzm-PanelFooter-StyledPanelFooter evn908h3"
+              >
+                <div
+                  class="css-yo4yps-ButtonGrid e1n9g4yq0"
+                >
+                  <button
+                    aria-disabled="false"
+                    aria-label="View screenshot"
+                    class="css-cs9ro8-StyledButton-getColors-getButtonStyles e1b8u3ky2"
+                    role="button"
+                    type="button"
+                  >
+                    <span
+                      class="css-vul34l-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+                      role="presentation"
+                    />
+                    <span
+                      class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+                    >
+                      View screenshot
+                    </span>
+                  </button>
+                  <div
+                    class="css-d14xmy-MenuControlWrap e1xefvzy0"
+                    role="presentation"
+                  >
+                    <button
+                      aria-disabled="false"
+                      aria-expanded="false"
+                      aria-haspopup="true"
+                      aria-label="More screenshot actions"
+                      class="e1u0jomf1 css-p6stui-StyledButton-getColors-getButtonStyles-StyledButton e1b8u3ky2"
+                      id="react-aria8723275562-5"
+                      role="button"
+                      type="button"
+                    >
+                      <span
+                        class="css-vul34l-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+                        role="presentation"
+                      />
+                      <span
+                        class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+                      >
+                        <span
+                          class="css-161yn40-Icon e1b8u3ky0"
+                        >
+                          <svg
+                            fill="currentColor"
+                            height="12px"
+                            viewBox="0 0 16 16"
+                            width="12px"
+                          >
+                            <circle
+                              cx="8"
+                              cy="8"
+                              r="1.31"
+                            />
+                            <circle
+                              cx="1.31"
+                              cy="8"
+                              r="1.31"
+                            />
+                            <circle
+                              cx="14.69"
+                              cy="8"
+                              r="1.31"
+                            />
+                          </svg>
+                        </span>
+                      </span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`EventTagsAndScreenshot renders screenshot and tags has tags and attachments only 1`] = `
+<div>
+  <div
+    class="css-1abrh3j-DataSection-Wrapper e17i6yh93"
+  >
+    <div
+      class="css-j9ca70-TagWrapper e17i6yh90"
+    >
+      <div
+        class="e5agty60 ey532ti0 css-1i5rj93-DataSection-StyledEventDataSection-StyledDataSection e9xr8173"
+        data-test-id="event-tags"
+      >
+        <div
+          class="css-9q5uv6-SectionHeader e11dlz2y2"
+          id="tags"
+        >
+          <div
+            class="css-jgc6yt-Title e11dlz2y6"
+          >
+            <div
+              class="css-1ud1d8w-TitleWrapper ey532ti2"
+            >
+              <h3
+                class="css-12a2sue-Title ey532ti1"
+              >
+                Tags
+              </h3>
+              <span
+                class="css-a48maj-QuestionIconContainer edfbgzx0"
+              >
+                <span
+                  aria-describedby="tooltip-tntggu65zh"
+                  class="css-1y4rfpo-Container e1lk5gpt0"
+                >
+                  <svg
+                    data-test-id="more-information"
+                    fill="currentColor"
+                    height="16px"
+                    viewBox="0 0 16 16"
+                    width="16px"
+                  >
+                    <path
+                      d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z"
+                    />
+                    <path
+                      d="M5.33,6.19a1.93,1.93,0,0,1,.33-1,2.59,2.59,0,0,1,1-.87,3,3,0,0,1,1.47-.34,3.18,3.18,0,0,1,1.38.29,2.28,2.28,0,0,1,.92.78,2,2,0,0,1,.32,1.07,1.69,1.69,0,0,1-.18.8,2.74,2.74,0,0,1-.44.6l-.92.84a3.92,3.92,0,0,0-.29.29,1,1,0,0,0-.17.23,1.8,1.8,0,0,0-.08.21c0,.07,0,.19-.09.37a.6.6,0,0,1-.64.56.64.64,0,0,1-.47-.19.74.74,0,0,1-.19-.54,1.91,1.91,0,0,1,.51-1.36,7.83,7.83,0,0,1,.63-.59c.22-.2.39-.35.49-.46a1.46,1.46,0,0,0,.26-.34.8.8,0,0,0,.1-.41.93.93,0,0,0-.32-.72,1.13,1.13,0,0,0-.82-.3,1.15,1.15,0,0,0-.87.3,2.33,2.33,0,0,0-.47.88c-.12.4-.35.61-.7.61a.65.65,0,0,1-.5-.22A.63.63,0,0,1,5.33,6.19ZM8,12.07a.84.84,0,0,1-.57-.21.75.75,0,0,1-.24-.59.74.74,0,0,1,.23-.57A.78.78,0,0,1,8,10.47a.74.74,0,0,1,.57.23.78.78,0,0,1,.23.57.76.76,0,0,1-.24.59A.83.83,0,0,1,8,12.07Z"
+                    />
+                  </svg>
+                </span>
+              </span>
+            </div>
+          </div>
+        </div>
+        <div
+          class="css-1o3cuay-SectionContents e11dlz2y1"
+        >
+          <div
+            class="ef69h7u0 css-975one-Wrapper-StyledClippedBox easm7v12"
+          >
+            <div
+              class="css-1xf7mve-Pills e1nyfzl40"
+            >
+              <li
+                class="css-gvi4h9-StyledPill e1qdl66w0"
+              >
+                <span
+                  class="css-4o2sdj-PillName e1qdl66w2"
+                >
+                  app.device
+                </span>
+                <span
+                  class="css-18i8w4t-PillName-PillValue e1qdl66w1"
+                >
+                  <a
+                    class="css-ta9xa3-Link e1ycxor00"
+                  >
+                    <span
+                      data-test-id="loaded-device-name"
+                    >
+                      0b77c3f2567d65fe816e1fa7013779fbe3b51633
+                    </span>
+                  </a>
+                </span>
+              </li>
+              <li
+                class="css-gvi4h9-StyledPill e1qdl66w0"
+              >
+                <span
+                  class="css-4o2sdj-PillName e1qdl66w2"
+                >
+                  device
+                </span>
+                <span
+                  class="css-18i8w4t-PillName-PillValue e1qdl66w1"
+                >
+                  <a
+                    class="css-ta9xa3-Link e1ycxor00"
+                  >
+                    <span
+                      data-test-id="loaded-device-name"
+                    >
+                      iPhone 12 Pro Max 
+                    </span>
+                  </a>
+                </span>
+              </li>
+              <li
+                class="css-gvi4h9-StyledPill e1qdl66w0"
+              >
+                <span
+                  class="css-4o2sdj-PillName e1qdl66w2"
+                >
+                  device.family
+                </span>
+                <span
+                  class="css-18i8w4t-PillName-PillValue e1qdl66w1"
+                >
+                  <a
+                    class="css-ta9xa3-Link e1ycxor00"
+                  >
+                    <span
+                      data-test-id="loaded-device-name"
+                    >
+                      iOS
+                    </span>
+                  </a>
+                </span>
+              </li>
+              <li
+                class="css-gvi4h9-StyledPill e1qdl66w0"
+              >
+                <span
+                  class="css-4o2sdj-PillName e1qdl66w2"
+                >
+                  dist
+                </span>
+                <span
+                  class="css-18i8w4t-PillName-PillValue e1qdl66w1"
+                >
+                  <a
+                    class="css-ta9xa3-Link e1ycxor00"
+                  >
+                    <span
+                      data-test-id="loaded-device-name"
+                    >
+                      390
+                    </span>
+                  </a>
+                </span>
+              </li>
+              <li
+                class="css-gvi4h9-StyledPill e1qdl66w0"
+              >
+                <span
+                  class="css-4o2sdj-PillName e1qdl66w2"
+                >
+                  environment
+                </span>
+                <span
+                  class="css-18i8w4t-PillName-PillValue e1qdl66w1"
+                >
+                  <a
+                    class="css-ta9xa3-Link e1ycxor00"
+                  >
+                    <span
+                      data-test-id="loaded-device-name"
+                    >
+                      debug
+                    </span>
+                  </a>
+                </span>
+              </li>
+              <li
+                class="css-gvi4h9-StyledPill e1qdl66w0"
+              >
+                <span
+                  class="css-4o2sdj-PillName e1qdl66w2"
+                >
+                  language
+                </span>
+                <span
+                  class="css-18i8w4t-PillName-PillValue e1qdl66w1"
+                >
+                  <a
+                    class="css-ta9xa3-Link e1ycxor00"
+                  >
+                    <span
+                      data-test-id="loaded-device-name"
+                    >
+                      swift
+                    </span>
+                  </a>
+                </span>
+              </li>
+              <li
+                class="css-gvi4h9-StyledPill e1qdl66w0"
+              >
+                <span
+                  class="css-4o2sdj-PillName e1qdl66w2"
+                >
+                  level
+                </span>
+                <span
+                  class="css-18i8w4t-PillName-PillValue e1qdl66w1"
+                >
+                  <a
+                    class="css-ta9xa3-Link e1ycxor00"
+                  >
+                    <span
+                      data-test-id="loaded-device-name"
+                    >
+                      info
+                    </span>
+                  </a>
+                </span>
+              </li>
+              <li
+                class="css-gvi4h9-StyledPill e1qdl66w0"
+              >
+                <span
+                  class="css-4o2sdj-PillName e1qdl66w2"
+                >
+                  os
+                </span>
+                <span
+                  class="css-18i8w4t-PillName-PillValue e1qdl66w1"
+                >
+                  <a
+                    class="css-ta9xa3-Link e1ycxor00"
+                  >
+                    <span
+                      data-test-id="loaded-device-name"
+                    >
+                      iOS 14.7.1
+                    </span>
+                  </a>
+                </span>
+              </li>
+              <li
+                class="css-gvi4h9-StyledPill e1qdl66w0"
+              >
+                <span
+                  class="css-4o2sdj-PillName e1qdl66w2"
+                >
+                  os.name
+                </span>
+                <span
+                  class="css-18i8w4t-PillName-PillValue e1qdl66w1"
+                >
+                  <a
+                    class="css-ta9xa3-Link e1ycxor00"
+                  >
+                    <span
+                      data-test-id="loaded-device-name"
+                    >
+                      iOS
+                    </span>
+                  </a>
+                </span>
+              </li>
+              <li
+                class="css-gvi4h9-StyledPill e1qdl66w0"
+              >
+                <span
+                  class="css-4o2sdj-PillName e1qdl66w2"
+                >
+                  os.rooted
+                </span>
+                <span
+                  class="css-18i8w4t-PillName-PillValue e1qdl66w1"
+                >
+                  <a
+                    class="css-ta9xa3-Link e1ycxor00"
+                  >
+                    <span
+                      data-test-id="loaded-device-name"
+                    >
+                      no
+                    </span>
+                  </a>
+                </span>
+              </li>
+              <li
+                class="css-gvi4h9-StyledPill e1qdl66w0"
+              >
+                <span
+                  class="css-4o2sdj-PillName e1qdl66w2"
+                >
+                  release
+                </span>
+                <span
+                  class="css-18i8w4t-PillName-PillValue e1qdl66w1"
+                >
+                  <span
+                    aria-describedby="hovercard-viltldrn16"
+                    class="css-1y4rfpo-Container e1lk5gpt0"
+                    style="text-decoration: underline dotted rgba(60, 116, 221, 0.5);"
+                  >
+                    <a
+                      class="css-ta9xa3-Link e1ycxor00"
+                    >
+                      <span
+                        class="css-o1spc8-VersionText eqmhduc3"
+                      >
+                        7.2.3 (390)
+                      </span>
+                    </a>
+                  </span>
+                </span>
+              </li>
+              <li
+                class="css-gvi4h9-StyledPill e1qdl66w0"
+              >
+                <span
+                  class="css-4o2sdj-PillName e1qdl66w2"
+                >
+                  transaction
+                </span>
+                <span
+                  class="css-18i8w4t-PillName-PillValue e1qdl66w1"
+                >
+                  <a
+                    class="css-ta9xa3-Link e1ycxor00"
+                  >
+                    <span
+                      data-test-id="loaded-device-name"
+                    >
+                      iOS_Swift.ViewController
+                    </span>
+                  </a>
+                </span>
+              </li>
+              <li
+                class="css-gvi4h9-StyledPill e1qdl66w0"
+              >
+                <span
+                  class="css-4o2sdj-PillName e1qdl66w2"
+                >
+                  user
+                </span>
+                <span
+                  class="css-18i8w4t-PillName-PillValue e1qdl66w1"
+                >
+                  <a
+                    class="css-ta9xa3-Link e1ycxor00"
+                  >
+                    <span
+                      data-test-id="loaded-device-name"
+                    >
+                      id:1
+                    </span>
+                  </a>
+                </span>
+              </li>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div
+        class="css-ytvwb6-ScreenshotWrapper e17i6yh91"
+      >
+        <div
+          class="e17i6yh92 ey532ti0 css-zbmwyz-DataSection-StyledEventDataSection-StyledScreenshotDataSection e9xr8173"
+          data-test-id="screenshot-data-section"
+        >
+          <div
+            class="css-9q5uv6-SectionHeader e11dlz2y2"
+            id="object-object"
+          >
+            <div
+              class="css-jgc6yt-Title e11dlz2y6"
+            >
+              <div
+                class="css-1ud1d8w-TitleWrapper ey532ti2"
+              >
+                <h3
+                  class="css-12a2sue-Title ey532ti1"
+                >
+                  <span>
+                    <a
+                      class="css-ta9xa3-Link e1ycxor00"
+                    >
+                      Screenshot
+                    </a>
+                  </span>
+                </h3>
+                <span
+                  class="css-a48maj-QuestionIconContainer edfbgzx0"
+                >
+                  <span
+                    aria-describedby="tooltip-191hdjn7s9"
+                    class="css-1y4rfpo-Container e1lk5gpt0"
+                  >
+                    <svg
+                      data-test-id="more-information"
+                      fill="currentColor"
+                      height="16px"
+                      viewBox="0 0 16 16"
+                      width="16px"
+                    >
+                      <path
+                        d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z"
+                      />
+                      <path
+                        d="M5.33,6.19a1.93,1.93,0,0,1,.33-1,2.59,2.59,0,0,1,1-.87,3,3,0,0,1,1.47-.34,3.18,3.18,0,0,1,1.38.29,2.28,2.28,0,0,1,.92.78,2,2,0,0,1,.32,1.07,1.69,1.69,0,0,1-.18.8,2.74,2.74,0,0,1-.44.6l-.92.84a3.92,3.92,0,0,0-.29.29,1,1,0,0,0-.17.23,1.8,1.8,0,0,0-.08.21c0,.07,0,.19-.09.37a.6.6,0,0,1-.64.56.64.64,0,0,1-.47-.19.74.74,0,0,1-.19-.54,1.91,1.91,0,0,1,.51-1.36,7.83,7.83,0,0,1,.63-.59c.22-.2.39-.35.49-.46a1.46,1.46,0,0,0,.26-.34.8.8,0,0,0,.1-.41.93.93,0,0,0-.32-.72,1.13,1.13,0,0,0-.82-.3,1.15,1.15,0,0,0-.87.3,2.33,2.33,0,0,0-.47.88c-.12.4-.35.61-.7.61a.65.65,0,0,1-.5-.22A.63.63,0,0,1,5.33,6.19ZM8,12.07a.84.84,0,0,1-.57-.21.75.75,0,0,1-.24-.59.74.74,0,0,1,.23-.57A.78.78,0,0,1,8,10.47a.74.74,0,0,1,.57.23.78.78,0,0,1,.23.57.76.76,0,0,1-.24.59A.83.83,0,0,1,8,12.07Z"
+                      />
+                    </svg>
+                  </span>
+                </span>
+              </div>
+            </div>
+          </div>
+          <div
+            class="css-1o3cuay-SectionContents e11dlz2y1"
+          >
+            <div
+              class="css-14jckha-Panel-StyledPanel evn908h6"
+            >
+              <div
+                class="css-1yd2e18-PanelBody-textStyles-StyledPanelBody evn908h4"
+              >
+                <div
+                  class="css-nz0qqn-StyledLoadingIndicator evn908h2"
+                >
+                  <div
+                    class="loading mini"
+                    data-test-id="loading-indicator"
+                  >
+                    <div
+                      class="loading-indicator"
+                    />
+                    <div
+                      class="loading-message"
+                    />
+                  </div>
+                </div>
+                <div
+                  class="css-invl16-StyledImageWrapper evn908h1"
+                >
+                  <div
+                    class="evn908h0 css-ghj97d-PanelItem-Container-ImageVisualization-StyledImageVisualization e1bs8vy90"
+                  >
+                    <img
+                      data-test-id="image-viewer"
+                      src="/api/0/projects/org-slug/project-slug/events/1/attachments/1765467046/?download"
+                    />
+                  </div>
+                </div>
+              </div>
+              <div
+                class="css-1wjlrzm-PanelFooter-StyledPanelFooter evn908h3"
+              >
+                <div
+                  class="css-yo4yps-ButtonGrid e1n9g4yq0"
+                >
+                  <button
+                    aria-disabled="false"
+                    aria-label="View screenshot"
+                    class="css-cs9ro8-StyledButton-getColors-getButtonStyles e1b8u3ky2"
+                    role="button"
+                    type="button"
+                  >
+                    <span
+                      class="css-vul34l-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+                      role="presentation"
+                    />
+                    <span
+                      class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+                    >
+                      View screenshot
+                    </span>
+                  </button>
+                  <div
+                    class="css-d14xmy-MenuControlWrap e1xefvzy0"
+                    role="presentation"
+                  >
+                    <button
+                      aria-disabled="false"
+                      aria-expanded="false"
+                      aria-haspopup="true"
+                      aria-label="More screenshot actions"
+                      class="e1u0jomf1 css-p6stui-StyledButton-getColors-getButtonStyles-StyledButton e1b8u3ky2"
+                      id="react-aria8723275562-14"
+                      role="button"
+                      type="button"
+                    >
+                      <span
+                        class="css-vul34l-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+                        role="presentation"
+                      />
+                      <span
+                        class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+                      >
+                        <span
+                          class="css-161yn40-Icon e1b8u3ky0"
+                        >
+                          <svg
+                            fill="currentColor"
+                            height="12px"
+                            viewBox="0 0 16 16"
+                            width="12px"
+                          >
+                            <circle
+                              cx="8"
+                              cy="8"
+                              r="1.31"
+                            />
+                            <circle
+                              cx="1.31"
+                              cy="8"
+                              r="1.31"
+                            />
+                            <circle
+                              cx="14.69"
+                              cy="8"
+                              r="1.31"
+                            />
+                          </svg>
+                        </span>
+                      </span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`EventTagsAndScreenshot renders screenshot only no context and no tags 1`] = `
+<div>
+  <div
+    class="css-ognaig-DataSection-Wrapper e17i6yh93"
+  >
+    <div
+      class="css-j9ca70-TagWrapper e17i6yh90"
+    />
+    <div>
+      <div
+        class="css-ytvwb6-ScreenshotWrapper e17i6yh91"
+      >
+        <div
+          class="e17i6yh92 ey532ti0 css-zbmwyz-DataSection-StyledEventDataSection-StyledScreenshotDataSection e9xr8173"
+          data-test-id="screenshot-data-section"
+        >
+          <div
+            class="css-9q5uv6-SectionHeader e11dlz2y2"
+            id="object-object"
+          >
+            <div
+              class="css-jgc6yt-Title e11dlz2y6"
+            >
+              <div
+                class="css-1ud1d8w-TitleWrapper ey532ti2"
+              >
+                <h3
+                  class="css-12a2sue-Title ey532ti1"
+                >
+                  <span>
+                    <a
+                      class="css-ta9xa3-Link e1ycxor00"
+                    >
+                      Screenshot
+                    </a>
+                  </span>
+                </h3>
+                <span
+                  class="css-a48maj-QuestionIconContainer edfbgzx0"
+                >
+                  <span
+                    aria-describedby="tooltip-570am678cw"
+                    class="css-1y4rfpo-Container e1lk5gpt0"
+                  >
+                    <svg
+                      data-test-id="more-information"
+                      fill="currentColor"
+                      height="16px"
+                      viewBox="0 0 16 16"
+                      width="16px"
+                    >
+                      <path
+                        d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z"
+                      />
+                      <path
+                        d="M5.33,6.19a1.93,1.93,0,0,1,.33-1,2.59,2.59,0,0,1,1-.87,3,3,0,0,1,1.47-.34,3.18,3.18,0,0,1,1.38.29,2.28,2.28,0,0,1,.92.78,2,2,0,0,1,.32,1.07,1.69,1.69,0,0,1-.18.8,2.74,2.74,0,0,1-.44.6l-.92.84a3.92,3.92,0,0,0-.29.29,1,1,0,0,0-.17.23,1.8,1.8,0,0,0-.08.21c0,.07,0,.19-.09.37a.6.6,0,0,1-.64.56.64.64,0,0,1-.47-.19.74.74,0,0,1-.19-.54,1.91,1.91,0,0,1,.51-1.36,7.83,7.83,0,0,1,.63-.59c.22-.2.39-.35.49-.46a1.46,1.46,0,0,0,.26-.34.8.8,0,0,0,.1-.41.93.93,0,0,0-.32-.72,1.13,1.13,0,0,0-.82-.3,1.15,1.15,0,0,0-.87.3,2.33,2.33,0,0,0-.47.88c-.12.4-.35.61-.7.61a.65.65,0,0,1-.5-.22A.63.63,0,0,1,5.33,6.19ZM8,12.07a.84.84,0,0,1-.57-.21.75.75,0,0,1-.24-.59.74.74,0,0,1,.23-.57A.78.78,0,0,1,8,10.47a.74.74,0,0,1,.57.23.78.78,0,0,1,.23.57.76.76,0,0,1-.24.59A.83.83,0,0,1,8,12.07Z"
+                      />
+                    </svg>
+                  </span>
+                </span>
+              </div>
+            </div>
+          </div>
+          <div
+            class="css-1o3cuay-SectionContents e11dlz2y1"
+          >
+            <div
+              class="css-14jckha-Panel-StyledPanel evn908h6"
+            >
+              <div
+                class="css-1yd2e18-PanelBody-textStyles-StyledPanelBody evn908h4"
+              >
+                <div
+                  class="css-nz0qqn-StyledLoadingIndicator evn908h2"
+                >
+                  <div
+                    class="loading mini"
+                    data-test-id="loading-indicator"
+                  >
+                    <div
+                      class="loading-indicator"
+                    />
+                    <div
+                      class="loading-message"
+                    />
+                  </div>
+                </div>
+                <div
+                  class="css-invl16-StyledImageWrapper evn908h1"
+                >
+                  <div
+                    class="evn908h0 css-ghj97d-PanelItem-Container-ImageVisualization-StyledImageVisualization e1bs8vy90"
+                  >
+                    <img
+                      data-test-id="image-viewer"
+                      src="/api/0/projects/org-slug/project-slug/events/1/attachments/1765467046/?download"
+                    />
+                  </div>
+                </div>
+              </div>
+              <div
+                class="css-1wjlrzm-PanelFooter-StyledPanelFooter evn908h3"
+              >
+                <div
+                  class="css-yo4yps-ButtonGrid e1n9g4yq0"
+                >
+                  <button
+                    aria-disabled="false"
+                    aria-label="View screenshot"
+                    class="css-cs9ro8-StyledButton-getColors-getButtonStyles e1b8u3ky2"
+                    role="button"
+                    type="button"
+                  >
+                    <span
+                      class="css-vul34l-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+                      role="presentation"
+                    />
+                    <span
+                      class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+                    >
+                      View screenshot
+                    </span>
+                  </button>
+                  <div
+                    class="css-d14xmy-MenuControlWrap e1xefvzy0"
+                    role="presentation"
+                  >
+                    <button
+                      aria-disabled="false"
+                      aria-expanded="false"
+                      aria-haspopup="true"
+                      aria-label="More screenshot actions"
+                      class="e1u0jomf1 css-p6stui-StyledButton-getColors-getButtonStyles-StyledButton e1b8u3ky2"
+                      id="react-aria8723275562-2"
+                      role="button"
+                      type="button"
+                    >
+                      <span
+                        class="css-vul34l-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+                        role="presentation"
+                      />
+                      <span
+                        class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+                      >
+                        <span
+                          class="css-161yn40-Icon e1b8u3ky0"
+                        >
+                          <svg
+                            fill="currentColor"
+                            height="12px"
+                            viewBox="0 0 16 16"
+                            width="12px"
+                          >
+                            <circle
+                              cx="8"
+                              cy="8"
+                              r="1.31"
+                            />
+                            <circle
+                              cx="1.31"
+                              cy="8"
+                              r="1.31"
+                            />
+                            <circle
+                              cx="14.69"
+                              cy="8"
+                              r="1.31"
+                            />
+                          </svg>
+                        </span>
+                      </span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`EventTagsAndScreenshot renders tags only not shared event - without attachments 1`] = `
+<div>
+  <div
+    class="css-ognaig-DataSection-Wrapper e17i6yh93"
+  >
+    <div
+      class="css-j9ca70-TagWrapper e17i6yh90"
+    >
+      <div
+        class="e5agty60 ey532ti0 css-1i5rj93-DataSection-StyledEventDataSection-StyledDataSection e9xr8173"
+        data-test-id="event-tags"
+      >
+        <div
+          class="css-9q5uv6-SectionHeader e11dlz2y2"
+          id="tags"
+        >
+          <div
+            class="css-jgc6yt-Title e11dlz2y6"
+          >
+            <div
+              class="css-1ud1d8w-TitleWrapper ey532ti2"
+            >
+              <h3
+                class="css-12a2sue-Title ey532ti1"
+              >
+                Tags
+              </h3>
+              <span
+                class="css-a48maj-QuestionIconContainer edfbgzx0"
+              >
+                <span
+                  aria-describedby="tooltip-li5pjp3sa7"
+                  class="css-1y4rfpo-Container e1lk5gpt0"
+                >
+                  <svg
+                    data-test-id="more-information"
+                    fill="currentColor"
+                    height="16px"
+                    viewBox="0 0 16 16"
+                    width="16px"
+                  >
+                    <path
+                      d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z"
+                    />
+                    <path
+                      d="M5.33,6.19a1.93,1.93,0,0,1,.33-1,2.59,2.59,0,0,1,1-.87,3,3,0,0,1,1.47-.34,3.18,3.18,0,0,1,1.38.29,2.28,2.28,0,0,1,.92.78,2,2,0,0,1,.32,1.07,1.69,1.69,0,0,1-.18.8,2.74,2.74,0,0,1-.44.6l-.92.84a3.92,3.92,0,0,0-.29.29,1,1,0,0,0-.17.23,1.8,1.8,0,0,0-.08.21c0,.07,0,.19-.09.37a.6.6,0,0,1-.64.56.64.64,0,0,1-.47-.19.74.74,0,0,1-.19-.54,1.91,1.91,0,0,1,.51-1.36,7.83,7.83,0,0,1,.63-.59c.22-.2.39-.35.49-.46a1.46,1.46,0,0,0,.26-.34.8.8,0,0,0,.1-.41.93.93,0,0,0-.32-.72,1.13,1.13,0,0,0-.82-.3,1.15,1.15,0,0,0-.87.3,2.33,2.33,0,0,0-.47.88c-.12.4-.35.61-.7.61a.65.65,0,0,1-.5-.22A.63.63,0,0,1,5.33,6.19ZM8,12.07a.84.84,0,0,1-.57-.21.75.75,0,0,1-.24-.59.74.74,0,0,1,.23-.57A.78.78,0,0,1,8,10.47a.74.74,0,0,1,.57.23.78.78,0,0,1,.23.57.76.76,0,0,1-.24.59A.83.83,0,0,1,8,12.07Z"
+                    />
+                  </svg>
+                </span>
+              </span>
+            </div>
+          </div>
+        </div>
+        <div
+          class="css-1o3cuay-SectionContents e11dlz2y1"
+        >
+          <div
+            class="css-1ya2art-Wrapper e1sozlaf0"
+          >
+            <div
+              class="css-b1ea3l-ItemContainer-overflowEllipsis et3gjwk0"
+              data-test-id="context-item"
+            >
+              <div
+                class="css-crgm5y-IconContainer et3gjwk1"
+              >
+                <span
+                  class="avatar css-eti684-StyledBaseAvatar ery3g4h1"
+                  data-test-id="letter_avatar-avatar"
+                  style="width: 32px; height: 32px;"
+                  title="tony1@example.com"
+                >
+                  <svg
+                    class="css-1jaqko8-LetterAvatar-imageStyle ewkzefl0"
+                    viewBox="0 0 120 120"
+                  >
+                    <rect
+                      fill="#f9a66d"
+                      height="120"
+                      opacity="100%"
+                      rx="15"
+                      ry="15"
+                      width="120"
+                      x="0"
+                      y="0"
+                    />
+                    <text
+                      fill="#FFFFFF"
+                      font-size="65"
+                      style="dominant-baseline: central;"
+                      text-anchor="middle"
+                      x="50%"
+                      y="50%"
+                    >
+                      T
+                    </text>
+                  </svg>
+                </span>
+              </div>
+              <div
+                class="css-3raiof-Details et3gjwk2"
+              >
+                <h3
+                  data-test-id="user-title"
+                >
+                  <span>
+                    tony1@example.com
+                  </span>
+                </h3>
+                <p
+                  class="css-1r3o8wo-TextOverflow-overflowEllipsis eyxbn6j0"
+                  data-test-id="context-sub-title"
+                >
+                  <strong
+                    class="css-ntp2p4-Subject eyl6uqx0"
+                  >
+                    ID:
+                  </strong>
+                  <span>
+                    1
+                  </span>
+                </p>
+              </div>
+            </div>
+            <div
+              class="css-b1ea3l-ItemContainer-overflowEllipsis et3gjwk0"
+              data-test-id="context-item"
+            >
+              <div
+                class="css-crgm5y-IconContainer et3gjwk1"
+              >
+                <div
+                  class="css-ogxbgd-LoadingMask e1dnwgq10"
+                />
+              </div>
+              <div
+                class="css-3raiof-Details et3gjwk2"
+              >
+                <h3>
+                  <span>
+                    iOS
+                  </span>
+                </h3>
+                <p
+                  class="css-1r3o8wo-TextOverflow-overflowEllipsis eyxbn6j0"
+                  data-test-id="context-sub-title"
+                >
+                  <strong
+                    class="css-ntp2p4-Subject e1xlfyw30"
+                  >
+                    Version:
+                  </strong>
+                  <span>
+                    14.7.1
+                  </span>
+                </p>
+              </div>
+            </div>
+            <div
+              class="css-b1ea3l-ItemContainer-overflowEllipsis et3gjwk0"
+              data-test-id="context-item"
+            >
+              <div
+                class="css-crgm5y-IconContainer et3gjwk1"
+              >
+                <div
+                  class="css-ogxbgd-LoadingMask e1dnwgq10"
+                />
+              </div>
+              <div
+                class="css-3raiof-Details et3gjwk2"
+              >
+                <h3>
+                  <span
+                    data-test-id="loaded-device-name"
+                  >
+                    <span>
+                      iPhone 12 Pro Max 
+                    </span>
+                  </span>
+                </h3>
+                <p
+                  class="css-1r3o8wo-TextOverflow-overflowEllipsis eyxbn6j0"
+                  data-test-id="context-sub-title"
+                >
+                  <strong
+                    class="css-ntp2p4-Subject eumrt8l0"
+                  >
+                    Model:
+                  </strong>
+                  <span>
+                    iPhone13,4
+                  </span>
+                </p>
+              </div>
+            </div>
+          </div>
+          <div
+            class="ef69h7u0 css-975one-Wrapper-StyledClippedBox easm7v12"
+          >
+            <div
+              class="css-1xf7mve-Pills e1nyfzl40"
+            >
+              <li
+                class="css-gvi4h9-StyledPill e1qdl66w0"
+              >
+                <span
+                  class="css-4o2sdj-PillName e1qdl66w2"
+                >
+                  app.device
+                </span>
+                <span
+                  class="css-18i8w4t-PillName-PillValue e1qdl66w1"
+                >
+                  <a
+                    class="css-ta9xa3-Link e1ycxor00"
+                  >
+                    <span
+                      data-test-id="loaded-device-name"
+                    >
+                      0b77c3f2567d65fe816e1fa7013779fbe3b51633
+                    </span>
+                  </a>
+                </span>
+              </li>
+              <li
+                class="css-gvi4h9-StyledPill e1qdl66w0"
+              >
+                <span
+                  class="css-4o2sdj-PillName e1qdl66w2"
+                >
+                  device
+                </span>
+                <span
+                  class="css-18i8w4t-PillName-PillValue e1qdl66w1"
+                >
+                  <a
+                    class="css-ta9xa3-Link e1ycxor00"
+                  >
+                    <span
+                      data-test-id="loaded-device-name"
+                    >
+                      iPhone 12 Pro Max 
+                    </span>
+                  </a>
+                </span>
+              </li>
+              <li
+                class="css-gvi4h9-StyledPill e1qdl66w0"
+              >
+                <span
+                  class="css-4o2sdj-PillName e1qdl66w2"
+                >
+                  device.family
+                </span>
+                <span
+                  class="css-18i8w4t-PillName-PillValue e1qdl66w1"
+                >
+                  <a
+                    class="css-ta9xa3-Link e1ycxor00"
+                  >
+                    <span
+                      data-test-id="loaded-device-name"
+                    >
+                      iOS
+                    </span>
+                  </a>
+                </span>
+              </li>
+              <li
+                class="css-gvi4h9-StyledPill e1qdl66w0"
+              >
+                <span
+                  class="css-4o2sdj-PillName e1qdl66w2"
+                >
+                  dist
+                </span>
+                <span
+                  class="css-18i8w4t-PillName-PillValue e1qdl66w1"
+                >
+                  <a
+                    class="css-ta9xa3-Link e1ycxor00"
+                  >
+                    <span
+                      data-test-id="loaded-device-name"
+                    >
+                      390
+                    </span>
+                  </a>
+                </span>
+              </li>
+              <li
+                class="css-gvi4h9-StyledPill e1qdl66w0"
+              >
+                <span
+                  class="css-4o2sdj-PillName e1qdl66w2"
+                >
+                  environment
+                </span>
+                <span
+                  class="css-18i8w4t-PillName-PillValue e1qdl66w1"
+                >
+                  <a
+                    class="css-ta9xa3-Link e1ycxor00"
+                  >
+                    <span
+                      data-test-id="loaded-device-name"
+                    >
+                      debug
+                    </span>
+                  </a>
+                </span>
+              </li>
+              <li
+                class="css-gvi4h9-StyledPill e1qdl66w0"
+              >
+                <span
+                  class="css-4o2sdj-PillName e1qdl66w2"
+                >
+                  language
+                </span>
+                <span
+                  class="css-18i8w4t-PillName-PillValue e1qdl66w1"
+                >
+                  <a
+                    class="css-ta9xa3-Link e1ycxor00"
+                  >
+                    <span
+                      data-test-id="loaded-device-name"
+                    >
+                      swift
+                    </span>
+                  </a>
+                </span>
+              </li>
+              <li
+                class="css-gvi4h9-StyledPill e1qdl66w0"
+              >
+                <span
+                  class="css-4o2sdj-PillName e1qdl66w2"
+                >
+                  level
+                </span>
+                <span
+                  class="css-18i8w4t-PillName-PillValue e1qdl66w1"
+                >
+                  <a
+                    class="css-ta9xa3-Link e1ycxor00"
+                  >
+                    <span
+                      data-test-id="loaded-device-name"
+                    >
+                      info
+                    </span>
+                  </a>
+                </span>
+              </li>
+              <li
+                class="css-gvi4h9-StyledPill e1qdl66w0"
+              >
+                <span
+                  class="css-4o2sdj-PillName e1qdl66w2"
+                >
+                  os
+                </span>
+                <span
+                  class="css-18i8w4t-PillName-PillValue e1qdl66w1"
+                >
+                  <a
+                    class="css-ta9xa3-Link e1ycxor00"
+                  >
+                    <span
+                      data-test-id="loaded-device-name"
+                    >
+                      iOS 14.7.1
+                    </span>
+                  </a>
+                </span>
+              </li>
+              <li
+                class="css-gvi4h9-StyledPill e1qdl66w0"
+              >
+                <span
+                  class="css-4o2sdj-PillName e1qdl66w2"
+                >
+                  os.name
+                </span>
+                <span
+                  class="css-18i8w4t-PillName-PillValue e1qdl66w1"
+                >
+                  <a
+                    class="css-ta9xa3-Link e1ycxor00"
+                  >
+                    <span
+                      data-test-id="loaded-device-name"
+                    >
+                      iOS
+                    </span>
+                  </a>
+                </span>
+              </li>
+              <li
+                class="css-gvi4h9-StyledPill e1qdl66w0"
+              >
+                <span
+                  class="css-4o2sdj-PillName e1qdl66w2"
+                >
+                  os.rooted
+                </span>
+                <span
+                  class="css-18i8w4t-PillName-PillValue e1qdl66w1"
+                >
+                  <a
+                    class="css-ta9xa3-Link e1ycxor00"
+                  >
+                    <span
+                      data-test-id="loaded-device-name"
+                    >
+                      no
+                    </span>
+                  </a>
+                </span>
+              </li>
+              <li
+                class="css-gvi4h9-StyledPill e1qdl66w0"
+              >
+                <span
+                  class="css-4o2sdj-PillName e1qdl66w2"
+                >
+                  release
+                </span>
+                <span
+                  class="css-18i8w4t-PillName-PillValue e1qdl66w1"
+                >
+                  <span
+                    aria-describedby="hovercard-gq86noyr47"
+                    class="css-1y4rfpo-Container e1lk5gpt0"
+                    style="text-decoration: underline dotted rgba(60, 116, 221, 0.5);"
+                  >
+                    <a
+                      class="css-ta9xa3-Link e1ycxor00"
+                    >
+                      <span
+                        class="css-o1spc8-VersionText eqmhduc3"
+                      >
+                        7.2.3 (390)
+                      </span>
+                    </a>
+                  </span>
+                </span>
+              </li>
+              <li
+                class="css-gvi4h9-StyledPill e1qdl66w0"
+              >
+                <span
+                  class="css-4o2sdj-PillName e1qdl66w2"
+                >
+                  transaction
+                </span>
+                <span
+                  class="css-18i8w4t-PillName-PillValue e1qdl66w1"
+                >
+                  <a
+                    class="css-ta9xa3-Link e1ycxor00"
+                  >
+                    <span
+                      data-test-id="loaded-device-name"
+                    >
+                      iOS_Swift.ViewController
+                    </span>
+                  </a>
+                </span>
+              </li>
+              <li
+                class="css-gvi4h9-StyledPill e1qdl66w0"
+              >
+                <span
+                  class="css-4o2sdj-PillName e1qdl66w2"
+                >
+                  user
+                </span>
+                <span
+                  class="css-18i8w4t-PillName-PillValue e1qdl66w1"
+                >
+                  <a
+                    class="css-ta9xa3-Link e1ycxor00"
+                  >
+                    <span
+                      data-test-id="loaded-device-name"
+                    >
+                      id:1
+                    </span>
+                  </a>
+                </span>
+              </li>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`EventTagsAndScreenshot renders tags only shared event - with attachments 1`] = `
+<div>
+  <div
+    class="css-ognaig-DataSection-Wrapper e17i6yh93"
+  >
+    <div
+      class="css-j9ca70-TagWrapper e17i6yh90"
+    >
+      <div
+        class="e5agty60 ey532ti0 css-1i5rj93-DataSection-StyledEventDataSection-StyledDataSection e9xr8173"
+        data-test-id="event-tags"
+      >
+        <div
+          class="css-9q5uv6-SectionHeader e11dlz2y2"
+          id="tags"
+        >
+          <div
+            class="css-jgc6yt-Title e11dlz2y6"
+          >
+            <div
+              class="css-1ud1d8w-TitleWrapper ey532ti2"
+            >
+              <h3
+                class="css-12a2sue-Title ey532ti1"
+              >
+                Tags
+              </h3>
+              <span
+                class="css-a48maj-QuestionIconContainer edfbgzx0"
+              >
+                <span
+                  aria-describedby="tooltip-nmvpc2asel"
+                  class="css-1y4rfpo-Container e1lk5gpt0"
+                >
+                  <svg
+                    data-test-id="more-information"
+                    fill="currentColor"
+                    height="16px"
+                    viewBox="0 0 16 16"
+                    width="16px"
+                  >
+                    <path
+                      d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z"
+                    />
+                    <path
+                      d="M5.33,6.19a1.93,1.93,0,0,1,.33-1,2.59,2.59,0,0,1,1-.87,3,3,0,0,1,1.47-.34,3.18,3.18,0,0,1,1.38.29,2.28,2.28,0,0,1,.92.78,2,2,0,0,1,.32,1.07,1.69,1.69,0,0,1-.18.8,2.74,2.74,0,0,1-.44.6l-.92.84a3.92,3.92,0,0,0-.29.29,1,1,0,0,0-.17.23,1.8,1.8,0,0,0-.08.21c0,.07,0,.19-.09.37a.6.6,0,0,1-.64.56.64.64,0,0,1-.47-.19.74.74,0,0,1-.19-.54,1.91,1.91,0,0,1,.51-1.36,7.83,7.83,0,0,1,.63-.59c.22-.2.39-.35.49-.46a1.46,1.46,0,0,0,.26-.34.8.8,0,0,0,.1-.41.93.93,0,0,0-.32-.72,1.13,1.13,0,0,0-.82-.3,1.15,1.15,0,0,0-.87.3,2.33,2.33,0,0,0-.47.88c-.12.4-.35.61-.7.61a.65.65,0,0,1-.5-.22A.63.63,0,0,1,5.33,6.19ZM8,12.07a.84.84,0,0,1-.57-.21.75.75,0,0,1-.24-.59.74.74,0,0,1,.23-.57A.78.78,0,0,1,8,10.47a.74.74,0,0,1,.57.23.78.78,0,0,1,.23.57.76.76,0,0,1-.24.59A.83.83,0,0,1,8,12.07Z"
+                    />
+                  </svg>
+                </span>
+              </span>
+            </div>
+          </div>
+        </div>
+        <div
+          class="css-1o3cuay-SectionContents e11dlz2y1"
+        >
+          <div
+            class="css-1ya2art-Wrapper e1sozlaf0"
+          >
+            <div
+              class="css-b1ea3l-ItemContainer-overflowEllipsis et3gjwk0"
+              data-test-id="context-item"
+            >
+              <div
+                class="css-crgm5y-IconContainer et3gjwk1"
+              >
+                <span
+                  class="avatar css-eti684-StyledBaseAvatar ery3g4h1"
+                  data-test-id="letter_avatar-avatar"
+                  style="width: 32px; height: 32px;"
+                  title="tony1@example.com"
+                >
+                  <svg
+                    class="css-1jaqko8-LetterAvatar-imageStyle ewkzefl0"
+                    viewBox="0 0 120 120"
+                  >
+                    <rect
+                      fill="#f9a66d"
+                      height="120"
+                      opacity="100%"
+                      rx="15"
+                      ry="15"
+                      width="120"
+                      x="0"
+                      y="0"
+                    />
+                    <text
+                      fill="#FFFFFF"
+                      font-size="65"
+                      style="dominant-baseline: central;"
+                      text-anchor="middle"
+                      x="50%"
+                      y="50%"
+                    >
+                      T
+                    </text>
+                  </svg>
+                </span>
+              </div>
+              <div
+                class="css-3raiof-Details et3gjwk2"
+              >
+                <h3
+                  data-test-id="user-title"
+                >
+                  <span>
+                    tony1@example.com
+                  </span>
+                </h3>
+                <p
+                  class="css-1r3o8wo-TextOverflow-overflowEllipsis eyxbn6j0"
+                  data-test-id="context-sub-title"
+                >
+                  <strong
+                    class="css-ntp2p4-Subject eyl6uqx0"
+                  >
+                    ID:
+                  </strong>
+                  <span>
+                    1
+                  </span>
+                </p>
+              </div>
+            </div>
+            <div
+              class="css-b1ea3l-ItemContainer-overflowEllipsis et3gjwk0"
+              data-test-id="context-item"
+            >
+              <div
+                class="css-crgm5y-IconContainer et3gjwk1"
+              >
+                <img
+                  class="css-0"
+                  height="32px"
+                  src="[object Object]"
+                  width="32px"
+                />
+              </div>
+              <div
+                class="css-3raiof-Details et3gjwk2"
+              >
+                <h3>
+                  <span>
+                    iOS
+                  </span>
+                </h3>
+                <p
+                  class="css-1r3o8wo-TextOverflow-overflowEllipsis eyxbn6j0"
+                  data-test-id="context-sub-title"
+                >
+                  <strong
+                    class="css-ntp2p4-Subject e1xlfyw30"
+                  >
+                    Version:
+                  </strong>
+                  <span>
+                    14.7.1
+                  </span>
+                </p>
+              </div>
+            </div>
+            <div
+              class="css-b1ea3l-ItemContainer-overflowEllipsis et3gjwk0"
+              data-test-id="context-item"
+            >
+              <div
+                class="css-crgm5y-IconContainer et3gjwk1"
+              >
+                <img
+                  class="css-0"
+                  height="32px"
+                  src="[object Object]"
+                  width="32px"
+                />
+              </div>
+              <div
+                class="css-3raiof-Details et3gjwk2"
+              >
+                <h3>
+                  <span
+                    data-test-id="loaded-device-name"
+                  >
+                    <span>
+                      iPhone 12 Pro Max 
+                    </span>
+                  </span>
+                </h3>
+                <p
+                  class="css-1r3o8wo-TextOverflow-overflowEllipsis eyxbn6j0"
+                  data-test-id="context-sub-title"
+                >
+                  <strong
+                    class="css-ntp2p4-Subject eumrt8l0"
+                  >
+                    Model:
+                  </strong>
+                  <span>
+                    iPhone13,4
+                  </span>
+                </p>
+              </div>
+            </div>
+          </div>
+          <div
+            class="ef69h7u0 css-975one-Wrapper-StyledClippedBox easm7v12"
+          >
+            <div
+              class="css-1xf7mve-Pills e1nyfzl40"
+            >
+              <li
+                class="css-gvi4h9-StyledPill e1qdl66w0"
+              >
+                <span
+                  class="css-4o2sdj-PillName e1qdl66w2"
+                >
+                  app.device
+                </span>
+                <span
+                  class="css-18i8w4t-PillName-PillValue e1qdl66w1"
+                >
+                  <a
+                    class="css-ta9xa3-Link e1ycxor00"
+                  >
+                    <span
+                      data-test-id="loaded-device-name"
+                    >
+                      0b77c3f2567d65fe816e1fa7013779fbe3b51633
+                    </span>
+                  </a>
+                </span>
+              </li>
+              <li
+                class="css-gvi4h9-StyledPill e1qdl66w0"
+              >
+                <span
+                  class="css-4o2sdj-PillName e1qdl66w2"
+                >
+                  device
+                </span>
+                <span
+                  class="css-18i8w4t-PillName-PillValue e1qdl66w1"
+                >
+                  <a
+                    class="css-ta9xa3-Link e1ycxor00"
+                  >
+                    <span
+                      data-test-id="loaded-device-name"
+                    >
+                      iPhone 12 Pro Max 
+                    </span>
+                  </a>
+                </span>
+              </li>
+              <li
+                class="css-gvi4h9-StyledPill e1qdl66w0"
+              >
+                <span
+                  class="css-4o2sdj-PillName e1qdl66w2"
+                >
+                  device.family
+                </span>
+                <span
+                  class="css-18i8w4t-PillName-PillValue e1qdl66w1"
+                >
+                  <a
+                    class="css-ta9xa3-Link e1ycxor00"
+                  >
+                    <span
+                      data-test-id="loaded-device-name"
+                    >
+                      iOS
+                    </span>
+                  </a>
+                </span>
+              </li>
+              <li
+                class="css-gvi4h9-StyledPill e1qdl66w0"
+              >
+                <span
+                  class="css-4o2sdj-PillName e1qdl66w2"
+                >
+                  dist
+                </span>
+                <span
+                  class="css-18i8w4t-PillName-PillValue e1qdl66w1"
+                >
+                  <a
+                    class="css-ta9xa3-Link e1ycxor00"
+                  >
+                    <span
+                      data-test-id="loaded-device-name"
+                    >
+                      390
+                    </span>
+                  </a>
+                </span>
+              </li>
+              <li
+                class="css-gvi4h9-StyledPill e1qdl66w0"
+              >
+                <span
+                  class="css-4o2sdj-PillName e1qdl66w2"
+                >
+                  environment
+                </span>
+                <span
+                  class="css-18i8w4t-PillName-PillValue e1qdl66w1"
+                >
+                  <a
+                    class="css-ta9xa3-Link e1ycxor00"
+                  >
+                    <span
+                      data-test-id="loaded-device-name"
+                    >
+                      debug
+                    </span>
+                  </a>
+                </span>
+              </li>
+              <li
+                class="css-gvi4h9-StyledPill e1qdl66w0"
+              >
+                <span
+                  class="css-4o2sdj-PillName e1qdl66w2"
+                >
+                  language
+                </span>
+                <span
+                  class="css-18i8w4t-PillName-PillValue e1qdl66w1"
+                >
+                  <a
+                    class="css-ta9xa3-Link e1ycxor00"
+                  >
+                    <span
+                      data-test-id="loaded-device-name"
+                    >
+                      swift
+                    </span>
+                  </a>
+                </span>
+              </li>
+              <li
+                class="css-gvi4h9-StyledPill e1qdl66w0"
+              >
+                <span
+                  class="css-4o2sdj-PillName e1qdl66w2"
+                >
+                  level
+                </span>
+                <span
+                  class="css-18i8w4t-PillName-PillValue e1qdl66w1"
+                >
+                  <a
+                    class="css-ta9xa3-Link e1ycxor00"
+                  >
+                    <span
+                      data-test-id="loaded-device-name"
+                    >
+                      info
+                    </span>
+                  </a>
+                </span>
+              </li>
+              <li
+                class="css-gvi4h9-StyledPill e1qdl66w0"
+              >
+                <span
+                  class="css-4o2sdj-PillName e1qdl66w2"
+                >
+                  os
+                </span>
+                <span
+                  class="css-18i8w4t-PillName-PillValue e1qdl66w1"
+                >
+                  <a
+                    class="css-ta9xa3-Link e1ycxor00"
+                  >
+                    <span
+                      data-test-id="loaded-device-name"
+                    >
+                      iOS 14.7.1
+                    </span>
+                  </a>
+                </span>
+              </li>
+              <li
+                class="css-gvi4h9-StyledPill e1qdl66w0"
+              >
+                <span
+                  class="css-4o2sdj-PillName e1qdl66w2"
+                >
+                  os.name
+                </span>
+                <span
+                  class="css-18i8w4t-PillName-PillValue e1qdl66w1"
+                >
+                  <a
+                    class="css-ta9xa3-Link e1ycxor00"
+                  >
+                    <span
+                      data-test-id="loaded-device-name"
+                    >
+                      iOS
+                    </span>
+                  </a>
+                </span>
+              </li>
+              <li
+                class="css-gvi4h9-StyledPill e1qdl66w0"
+              >
+                <span
+                  class="css-4o2sdj-PillName e1qdl66w2"
+                >
+                  os.rooted
+                </span>
+                <span
+                  class="css-18i8w4t-PillName-PillValue e1qdl66w1"
+                >
+                  <a
+                    class="css-ta9xa3-Link e1ycxor00"
+                  >
+                    <span
+                      data-test-id="loaded-device-name"
+                    >
+                      no
+                    </span>
+                  </a>
+                </span>
+              </li>
+              <li
+                class="css-gvi4h9-StyledPill e1qdl66w0"
+              >
+                <span
+                  class="css-4o2sdj-PillName e1qdl66w2"
+                >
+                  release
+                </span>
+                <span
+                  class="css-18i8w4t-PillName-PillValue e1qdl66w1"
+                >
+                  <span
+                    aria-describedby="hovercard-3yut94kp7k"
+                    class="css-1y4rfpo-Container e1lk5gpt0"
+                    style="text-decoration: underline dotted rgba(60, 116, 221, 0.5);"
+                  >
+                    <a
+                      class="css-ta9xa3-Link e1ycxor00"
+                    >
+                      <span
+                        class="css-o1spc8-VersionText eqmhduc3"
+                      >
+                        7.2.3 (390)
+                      </span>
+                    </a>
+                  </span>
+                </span>
+              </li>
+              <li
+                class="css-gvi4h9-StyledPill e1qdl66w0"
+              >
+                <span
+                  class="css-4o2sdj-PillName e1qdl66w2"
+                >
+                  transaction
+                </span>
+                <span
+                  class="css-18i8w4t-PillName-PillValue e1qdl66w1"
+                >
+                  <a
+                    class="css-ta9xa3-Link e1ycxor00"
+                  >
+                    <span
+                      data-test-id="loaded-device-name"
+                    >
+                      iOS_Swift.ViewController
+                    </span>
+                  </a>
+                </span>
+              </li>
+              <li
+                class="css-gvi4h9-StyledPill e1qdl66w0"
+              >
+                <span
+                  class="css-4o2sdj-PillName e1qdl66w2"
+                >
+                  user
+                </span>
+                <span
+                  class="css-18i8w4t-PillName-PillValue e1qdl66w1"
+                >
+                  <a
+                    class="css-ta9xa3-Link e1ycxor00"
+                  >
+                    <span
+                      data-test-id="loaded-device-name"
+                    >
+                      id:1
+                    </span>
+                  </a>
+                </span>
+              </li>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`EventTagsAndScreenshot renders tags only shared event - without attachments 1`] = `
+<div>
+  <div
+    class="css-ognaig-DataSection-Wrapper e17i6yh93"
+  >
+    <div
+      class="css-j9ca70-TagWrapper e17i6yh90"
+    >
+      <div
+        class="e5agty60 ey532ti0 css-1i5rj93-DataSection-StyledEventDataSection-StyledDataSection e9xr8173"
+        data-test-id="event-tags"
+      >
+        <div
+          class="css-9q5uv6-SectionHeader e11dlz2y2"
+          id="tags"
+        >
+          <div
+            class="css-jgc6yt-Title e11dlz2y6"
+          >
+            <div
+              class="css-1ud1d8w-TitleWrapper ey532ti2"
+            >
+              <h3
+                class="css-12a2sue-Title ey532ti1"
+              >
+                Tags
+              </h3>
+              <span
+                class="css-a48maj-QuestionIconContainer edfbgzx0"
+              >
+                <span
+                  aria-describedby="tooltip-ufxm8brgsu"
+                  class="css-1y4rfpo-Container e1lk5gpt0"
+                >
+                  <svg
+                    data-test-id="more-information"
+                    fill="currentColor"
+                    height="16px"
+                    viewBox="0 0 16 16"
+                    width="16px"
+                  >
+                    <path
+                      d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z"
+                    />
+                    <path
+                      d="M5.33,6.19a1.93,1.93,0,0,1,.33-1,2.59,2.59,0,0,1,1-.87,3,3,0,0,1,1.47-.34,3.18,3.18,0,0,1,1.38.29,2.28,2.28,0,0,1,.92.78,2,2,0,0,1,.32,1.07,1.69,1.69,0,0,1-.18.8,2.74,2.74,0,0,1-.44.6l-.92.84a3.92,3.92,0,0,0-.29.29,1,1,0,0,0-.17.23,1.8,1.8,0,0,0-.08.21c0,.07,0,.19-.09.37a.6.6,0,0,1-.64.56.64.64,0,0,1-.47-.19.74.74,0,0,1-.19-.54,1.91,1.91,0,0,1,.51-1.36,7.83,7.83,0,0,1,.63-.59c.22-.2.39-.35.49-.46a1.46,1.46,0,0,0,.26-.34.8.8,0,0,0,.1-.41.93.93,0,0,0-.32-.72,1.13,1.13,0,0,0-.82-.3,1.15,1.15,0,0,0-.87.3,2.33,2.33,0,0,0-.47.88c-.12.4-.35.61-.7.61a.65.65,0,0,1-.5-.22A.63.63,0,0,1,5.33,6.19ZM8,12.07a.84.84,0,0,1-.57-.21.75.75,0,0,1-.24-.59.74.74,0,0,1,.23-.57A.78.78,0,0,1,8,10.47a.74.74,0,0,1,.57.23.78.78,0,0,1,.23.57.76.76,0,0,1-.24.59A.83.83,0,0,1,8,12.07Z"
+                    />
+                  </svg>
+                </span>
+              </span>
+            </div>
+          </div>
+        </div>
+        <div
+          class="css-1o3cuay-SectionContents e11dlz2y1"
+        >
+          <div
+            class="css-1ya2art-Wrapper e1sozlaf0"
+          >
+            <div
+              class="css-b1ea3l-ItemContainer-overflowEllipsis et3gjwk0"
+              data-test-id="context-item"
+            >
+              <div
+                class="css-crgm5y-IconContainer et3gjwk1"
+              >
+                <span
+                  class="avatar css-eti684-StyledBaseAvatar ery3g4h1"
+                  data-test-id="letter_avatar-avatar"
+                  style="width: 32px; height: 32px;"
+                  title="tony1@example.com"
+                >
+                  <svg
+                    class="css-1jaqko8-LetterAvatar-imageStyle ewkzefl0"
+                    viewBox="0 0 120 120"
+                  >
+                    <rect
+                      fill="#f9a66d"
+                      height="120"
+                      opacity="100%"
+                      rx="15"
+                      ry="15"
+                      width="120"
+                      x="0"
+                      y="0"
+                    />
+                    <text
+                      fill="#FFFFFF"
+                      font-size="65"
+                      style="dominant-baseline: central;"
+                      text-anchor="middle"
+                      x="50%"
+                      y="50%"
+                    >
+                      T
+                    </text>
+                  </svg>
+                </span>
+              </div>
+              <div
+                class="css-3raiof-Details et3gjwk2"
+              >
+                <h3
+                  data-test-id="user-title"
+                >
+                  <span>
+                    tony1@example.com
+                  </span>
+                </h3>
+                <p
+                  class="css-1r3o8wo-TextOverflow-overflowEllipsis eyxbn6j0"
+                  data-test-id="context-sub-title"
+                >
+                  <strong
+                    class="css-ntp2p4-Subject eyl6uqx0"
+                  >
+                    ID:
+                  </strong>
+                  <span>
+                    1
+                  </span>
+                </p>
+              </div>
+            </div>
+            <div
+              class="css-b1ea3l-ItemContainer-overflowEllipsis et3gjwk0"
+              data-test-id="context-item"
+            >
+              <div
+                class="css-crgm5y-IconContainer et3gjwk1"
+              >
+                <img
+                  class="css-0"
+                  height="32px"
+                  src="[object Object]"
+                  width="32px"
+                />
+              </div>
+              <div
+                class="css-3raiof-Details et3gjwk2"
+              >
+                <h3>
+                  <span>
+                    iOS
+                  </span>
+                </h3>
+                <p
+                  class="css-1r3o8wo-TextOverflow-overflowEllipsis eyxbn6j0"
+                  data-test-id="context-sub-title"
+                >
+                  <strong
+                    class="css-ntp2p4-Subject e1xlfyw30"
+                  >
+                    Version:
+                  </strong>
+                  <span>
+                    14.7.1
+                  </span>
+                </p>
+              </div>
+            </div>
+            <div
+              class="css-b1ea3l-ItemContainer-overflowEllipsis et3gjwk0"
+              data-test-id="context-item"
+            >
+              <div
+                class="css-crgm5y-IconContainer et3gjwk1"
+              >
+                <img
+                  class="css-0"
+                  height="32px"
+                  src="[object Object]"
+                  width="32px"
+                />
+              </div>
+              <div
+                class="css-3raiof-Details et3gjwk2"
+              >
+                <h3>
+                  <span
+                    data-test-id="loaded-device-name"
+                  >
+                    <span>
+                      iPhone 12 Pro Max 
+                    </span>
+                  </span>
+                </h3>
+                <p
+                  class="css-1r3o8wo-TextOverflow-overflowEllipsis eyxbn6j0"
+                  data-test-id="context-sub-title"
+                >
+                  <strong
+                    class="css-ntp2p4-Subject eumrt8l0"
+                  >
+                    Model:
+                  </strong>
+                  <span>
+                    iPhone13,4
+                  </span>
+                </p>
+              </div>
+            </div>
+          </div>
+          <div
+            class="ef69h7u0 css-975one-Wrapper-StyledClippedBox easm7v12"
+          >
+            <div
+              class="css-1xf7mve-Pills e1nyfzl40"
+            >
+              <li
+                class="css-gvi4h9-StyledPill e1qdl66w0"
+              >
+                <span
+                  class="css-4o2sdj-PillName e1qdl66w2"
+                >
+                  app.device
+                </span>
+                <span
+                  class="css-18i8w4t-PillName-PillValue e1qdl66w1"
+                >
+                  <a
+                    class="css-ta9xa3-Link e1ycxor00"
+                  >
+                    <span
+                      data-test-id="loaded-device-name"
+                    >
+                      0b77c3f2567d65fe816e1fa7013779fbe3b51633
+                    </span>
+                  </a>
+                </span>
+              </li>
+              <li
+                class="css-gvi4h9-StyledPill e1qdl66w0"
+              >
+                <span
+                  class="css-4o2sdj-PillName e1qdl66w2"
+                >
+                  device
+                </span>
+                <span
+                  class="css-18i8w4t-PillName-PillValue e1qdl66w1"
+                >
+                  <a
+                    class="css-ta9xa3-Link e1ycxor00"
+                  >
+                    <span
+                      data-test-id="loaded-device-name"
+                    >
+                      iPhone 12 Pro Max 
+                    </span>
+                  </a>
+                </span>
+              </li>
+              <li
+                class="css-gvi4h9-StyledPill e1qdl66w0"
+              >
+                <span
+                  class="css-4o2sdj-PillName e1qdl66w2"
+                >
+                  device.family
+                </span>
+                <span
+                  class="css-18i8w4t-PillName-PillValue e1qdl66w1"
+                >
+                  <a
+                    class="css-ta9xa3-Link e1ycxor00"
+                  >
+                    <span
+                      data-test-id="loaded-device-name"
+                    >
+                      iOS
+                    </span>
+                  </a>
+                </span>
+              </li>
+              <li
+                class="css-gvi4h9-StyledPill e1qdl66w0"
+              >
+                <span
+                  class="css-4o2sdj-PillName e1qdl66w2"
+                >
+                  dist
+                </span>
+                <span
+                  class="css-18i8w4t-PillName-PillValue e1qdl66w1"
+                >
+                  <a
+                    class="css-ta9xa3-Link e1ycxor00"
+                  >
+                    <span
+                      data-test-id="loaded-device-name"
+                    >
+                      390
+                    </span>
+                  </a>
+                </span>
+              </li>
+              <li
+                class="css-gvi4h9-StyledPill e1qdl66w0"
+              >
+                <span
+                  class="css-4o2sdj-PillName e1qdl66w2"
+                >
+                  environment
+                </span>
+                <span
+                  class="css-18i8w4t-PillName-PillValue e1qdl66w1"
+                >
+                  <a
+                    class="css-ta9xa3-Link e1ycxor00"
+                  >
+                    <span
+                      data-test-id="loaded-device-name"
+                    >
+                      debug
+                    </span>
+                  </a>
+                </span>
+              </li>
+              <li
+                class="css-gvi4h9-StyledPill e1qdl66w0"
+              >
+                <span
+                  class="css-4o2sdj-PillName e1qdl66w2"
+                >
+                  language
+                </span>
+                <span
+                  class="css-18i8w4t-PillName-PillValue e1qdl66w1"
+                >
+                  <a
+                    class="css-ta9xa3-Link e1ycxor00"
+                  >
+                    <span
+                      data-test-id="loaded-device-name"
+                    >
+                      swift
+                    </span>
+                  </a>
+                </span>
+              </li>
+              <li
+                class="css-gvi4h9-StyledPill e1qdl66w0"
+              >
+                <span
+                  class="css-4o2sdj-PillName e1qdl66w2"
+                >
+                  level
+                </span>
+                <span
+                  class="css-18i8w4t-PillName-PillValue e1qdl66w1"
+                >
+                  <a
+                    class="css-ta9xa3-Link e1ycxor00"
+                  >
+                    <span
+                      data-test-id="loaded-device-name"
+                    >
+                      info
+                    </span>
+                  </a>
+                </span>
+              </li>
+              <li
+                class="css-gvi4h9-StyledPill e1qdl66w0"
+              >
+                <span
+                  class="css-4o2sdj-PillName e1qdl66w2"
+                >
+                  os
+                </span>
+                <span
+                  class="css-18i8w4t-PillName-PillValue e1qdl66w1"
+                >
+                  <a
+                    class="css-ta9xa3-Link e1ycxor00"
+                  >
+                    <span
+                      data-test-id="loaded-device-name"
+                    >
+                      iOS 14.7.1
+                    </span>
+                  </a>
+                </span>
+              </li>
+              <li
+                class="css-gvi4h9-StyledPill e1qdl66w0"
+              >
+                <span
+                  class="css-4o2sdj-PillName e1qdl66w2"
+                >
+                  os.name
+                </span>
+                <span
+                  class="css-18i8w4t-PillName-PillValue e1qdl66w1"
+                >
+                  <a
+                    class="css-ta9xa3-Link e1ycxor00"
+                  >
+                    <span
+                      data-test-id="loaded-device-name"
+                    >
+                      iOS
+                    </span>
+                  </a>
+                </span>
+              </li>
+              <li
+                class="css-gvi4h9-StyledPill e1qdl66w0"
+              >
+                <span
+                  class="css-4o2sdj-PillName e1qdl66w2"
+                >
+                  os.rooted
+                </span>
+                <span
+                  class="css-18i8w4t-PillName-PillValue e1qdl66w1"
+                >
+                  <a
+                    class="css-ta9xa3-Link e1ycxor00"
+                  >
+                    <span
+                      data-test-id="loaded-device-name"
+                    >
+                      no
+                    </span>
+                  </a>
+                </span>
+              </li>
+              <li
+                class="css-gvi4h9-StyledPill e1qdl66w0"
+              >
+                <span
+                  class="css-4o2sdj-PillName e1qdl66w2"
+                >
+                  release
+                </span>
+                <span
+                  class="css-18i8w4t-PillName-PillValue e1qdl66w1"
+                >
+                  <span
+                    aria-describedby="hovercard-l4urb6z7wy"
+                    class="css-1y4rfpo-Container e1lk5gpt0"
+                    style="text-decoration: underline dotted rgba(60, 116, 221, 0.5);"
+                  >
+                    <a
+                      class="css-ta9xa3-Link e1ycxor00"
+                    >
+                      <span
+                        class="css-o1spc8-VersionText eqmhduc3"
+                      >
+                        7.2.3 (390)
+                      </span>
+                    </a>
+                  </span>
+                </span>
+              </li>
+              <li
+                class="css-gvi4h9-StyledPill e1qdl66w0"
+              >
+                <span
+                  class="css-4o2sdj-PillName e1qdl66w2"
+                >
+                  transaction
+                </span>
+                <span
+                  class="css-18i8w4t-PillName-PillValue e1qdl66w1"
+                >
+                  <a
+                    class="css-ta9xa3-Link e1ycxor00"
+                  >
+                    <span
+                      data-test-id="loaded-device-name"
+                    >
+                      iOS_Swift.ViewController
+                    </span>
+                  </a>
+                </span>
+              </li>
+              <li
+                class="css-gvi4h9-StyledPill e1qdl66w0"
+              >
+                <span
+                  class="css-4o2sdj-PillName e1qdl66w2"
+                >
+                  user
+                </span>
+                <span
+                  class="css-18i8w4t-PillName-PillValue e1qdl66w1"
+                >
+                  <a
+                    class="css-ta9xa3-Link e1ycxor00"
+                  >
+                    <span
+                      data-test-id="loaded-device-name"
+                    >
+                      id:1
+                    </span>
+                  </a>
+                </span>
+              </li>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+`;

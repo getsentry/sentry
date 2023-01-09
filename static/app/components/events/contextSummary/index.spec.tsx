@@ -56,7 +56,7 @@ describe('ContextSummary', function () {
       };
 
       const {container} = render(<ContextSummary event={event} />);
-      expect(container).toSnapshot();
+      expect(container).toMatchSnapshot();
     });
 
     it('renders nothing with a single user context', function () {
@@ -68,7 +68,7 @@ describe('ContextSummary', function () {
       };
 
       const {container} = render(<ContextSummary event={event} />);
-      expect(container).toSnapshot();
+      expect(container).toMatchSnapshot();
     });
 
     it('should bail out with empty contexts', function () {
@@ -83,7 +83,7 @@ describe('ContextSummary', function () {
       };
 
       const {container} = render(<ContextSummary event={event} />);
-      expect(container).toSnapshot();
+      expect(container).toMatchSnapshot();
     });
 
     it('renders at least three contexts', function () {
@@ -97,7 +97,7 @@ describe('ContextSummary', function () {
       };
 
       const {container} = render(<ContextSummary event={event} />);
-      expect(container).toSnapshot();
+      expect(container).toMatchSnapshot();
     });
 
     it('renders up to four contexts', function () {
@@ -114,7 +114,7 @@ describe('ContextSummary', function () {
       };
 
       const {container} = render(<ContextSummary event={event} />);
-      expect(container).toSnapshot();
+      expect(container).toMatchSnapshot();
     });
 
     it('should prefer client_os over os', function () {
@@ -131,7 +131,7 @@ describe('ContextSummary', function () {
       };
 
       const {container} = render(<ContextSummary event={event} />);
-      expect(container).toSnapshot();
+      expect(container).toMatchSnapshot();
     });
 
     it('renders client_os too', function () {
@@ -147,7 +147,7 @@ describe('ContextSummary', function () {
       };
 
       const {container} = render(<ContextSummary event={event} />);
-      expect(container).toSnapshot();
+      expect(container).toMatchSnapshot();
     });
 
     it('should skip non-default named contexts', function () {
@@ -164,7 +164,7 @@ describe('ContextSummary', function () {
       };
 
       const {container} = render(<ContextSummary event={event} />);
-      expect(container).toSnapshot();
+      expect(container).toMatchSnapshot();
     });
 
     it('should skip a missing user context', function () {
@@ -180,7 +180,7 @@ describe('ContextSummary', function () {
       };
 
       const {container} = render(<ContextSummary event={event} />);
-      expect(container).toSnapshot();
+      expect(container).toMatchSnapshot();
     });
   });
 });
@@ -198,7 +198,7 @@ describe('OsSummary', function () {
           meta={{}}
         />
       );
-      expect(container).toSnapshot();
+      expect(container).toMatchSnapshot();
     });
 
     it('renders the kernel version when no version', function () {
@@ -211,7 +211,7 @@ describe('OsSummary', function () {
           meta={{}}
         />
       );
-      expect(container).toSnapshot();
+      expect(container).toMatchSnapshot();
     });
 
     it('renders unknown when no version', function () {
@@ -223,7 +223,7 @@ describe('OsSummary', function () {
           meta={{}}
         />
       );
-      expect(container).toSnapshot();
+      expect(container).toMatchSnapshot();
     });
 
     it('display redacted name', async function () {
@@ -294,7 +294,7 @@ describe('GpuSummary', function () {
           meta={{}}
         />
       );
-      expect(container).toSnapshot();
+      expect(container).toMatchSnapshot();
     });
 
     it('renders unknown when no vendor', function () {
@@ -306,7 +306,7 @@ describe('GpuSummary', function () {
           meta={{}}
         />
       );
-      expect(container).toSnapshot();
+      expect(container).toMatchSnapshot();
     });
 
     it('display redacted name', async function () {

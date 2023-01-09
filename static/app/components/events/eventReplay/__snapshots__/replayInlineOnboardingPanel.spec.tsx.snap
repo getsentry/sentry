@@ -1,0 +1,88 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`replayInlineOnboardingPanel should render by default 1`] = `
+<div>
+  <div
+    class="css-1ds8lgp-StyledOnboardingPanel e1u4daa84"
+  >
+    <div>
+      <h3
+        class="css-hj9cty-Heading e1u4daa83"
+      >
+        Configure Session Replay
+      </h3>
+      <p
+        class="css-1diwgxu-Content e1u4daa82"
+      >
+        Playback your app to identify the root cause of errors and latency issues.
+      </p>
+      <div
+        class="css-1tm7vxm-ButtonList e1u4daa80"
+      >
+        <button
+          aria-disabled="false"
+          aria-label="Get Started"
+          class="css-14jq4g8-StyledButton-getColors-getButtonStyles e1b8u3ky2"
+          role="button"
+          type="button"
+        >
+          <span
+            class="css-at526y-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+            role="presentation"
+          />
+          <span
+            class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+          >
+            Get Started
+          </span>
+        </button>
+        <div
+          class="css-108kfzz-ButtonGrid-MergedStyles e1n9g4yq0"
+        >
+          <button
+            aria-disabled="false"
+            aria-label="Snooze"
+            class="css-c98s0k-StyledButton-getColors-getButtonStyles e1b8u3ky2"
+            role="button"
+            type="button"
+          >
+            <span
+              class="css-vul34l-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+              role="presentation"
+            />
+            <span
+              class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+            >
+              Snooze
+            </span>
+          </button>
+          <button
+            aria-disabled="false"
+            aria-label="Dismiss"
+            class="css-c98s0k-StyledButton-getColors-getButtonStyles e1b8u3ky2"
+            role="button"
+            type="button"
+          >
+            <span
+              class="css-vul34l-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+              role="presentation"
+            />
+            <span
+              class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+            >
+              Dismiss
+            </span>
+          </button>
+        </div>
+      </div>
+    </div>
+    <img
+      alt=""
+      class="css-1jadpbu-Illustration e1u4daa81"
+      height="112"
+      src="[object Object]"
+      width="220"
+    />
+  </div>
+</div>
+`;

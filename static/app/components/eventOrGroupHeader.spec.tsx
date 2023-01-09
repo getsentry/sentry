@@ -42,7 +42,7 @@ describe('EventOrGroupHeader', function () {
         <EventOrGroupHeader organization={organization} data={group} {...router} />
       );
 
-      expect(container).toSnapshot();
+      expect(container).toMatchSnapshot();
     });
 
     it('renders with `type = csp`', function () {
@@ -57,7 +57,7 @@ describe('EventOrGroupHeader', function () {
         />
       );
 
-      expect(container).toSnapshot();
+      expect(container).toMatchSnapshot();
     });
 
     it('renders with `type = default`', function () {
@@ -76,7 +76,7 @@ describe('EventOrGroupHeader', function () {
         />
       );
 
-      expect(container).toSnapshot();
+      expect(container).toMatchSnapshot();
     });
 
     it('renders metadata values in message for error events', function () {
@@ -128,7 +128,7 @@ describe('EventOrGroupHeader', function () {
           {...router}
         />
       );
-      expect(container).toSnapshot();
+      expect(container).toMatchSnapshot();
     });
 
     it('renders with `type = csp`', function () {
@@ -142,7 +142,7 @@ describe('EventOrGroupHeader', function () {
           {...router}
         />
       );
-      expect(container).toSnapshot();
+      expect(container).toMatchSnapshot();
     });
 
     it('renders with `type = default`', function () {
@@ -160,7 +160,7 @@ describe('EventOrGroupHeader', function () {
           {...router}
         />
       );
-      expect(container).toSnapshot();
+      expect(container).toMatchSnapshot();
     });
 
     it('hides level tag', function () {
@@ -178,7 +178,7 @@ describe('EventOrGroupHeader', function () {
           }}
         />
       );
-      expect(container).toSnapshot();
+      expect(container).toMatchSnapshot();
     });
 
     it('keeps sort in link when query has sort', function () {

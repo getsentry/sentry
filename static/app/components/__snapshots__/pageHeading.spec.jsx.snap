@@ -1,0 +1,11 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`PageHeading renders 1`] = `
+<div>
+  <h1
+    class="css-13uurkd-PageHeading e1k3ddu90"
+  >
+    New Header
+  </h1>
+</div>
+`;

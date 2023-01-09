@@ -19,7 +19,7 @@ describe('AccountSubscriptions', function () {
       context: TestStubs.routerContext(),
     });
 
-    expect(wrapper.container).toSnapshot();
+    expect(wrapper.container).toMatchSnapshot();
   });
 
   it('renders list and can toggle', function () {
@@ -36,7 +36,7 @@ describe('AccountSubscriptions', function () {
       context: TestStubs.routerContext(),
     });
 
-    expect(wrapper.container).toSnapshot();
+    expect(wrapper.container).toMatchSnapshot();
 
     expect(mock).not.toHaveBeenCalled();
 

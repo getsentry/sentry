@@ -1,0 +1,113 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`MultipleCheckbox renders 1`] = `
+<div>
+  <div
+    class="css-13x1w20-MultipleCheckboxWrapper eib0h5u3"
+  >
+    <div
+      class="css-n4y8vg-LabelContainer eib0h5u0"
+    >
+      <label
+        class="css-19dlw23-Label eib0h5u2"
+      >
+        <div
+          class="css-bphz7d-Wrapper e14pn5ur2"
+        >
+          <input
+            class="css-4npmde-HiddenInput-HiddenInput e14pn5ur1"
+            type="checkbox"
+            value="0"
+          />
+          <div
+            aria-hidden="true"
+            class="css-5y1i99-StyledCheckbox-StyledCheckbox e14pn5ur0"
+          />
+          <span
+            class="css-vul34l-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+            role="presentation"
+          />
+        </div>
+        <span
+          class="css-6ymjw8-CheckboxLabel eib0h5u1"
+        >
+          Choice A
+        </span>
+      </label>
+    </div>
+    <div
+      class="css-n4y8vg-LabelContainer eib0h5u0"
+    >
+      <label
+        class="css-19dlw23-Label eib0h5u2"
+      >
+        <div
+          class="css-1x6zjrv-Wrapper e14pn5ur2"
+        >
+          <input
+            checked=""
+            class="css-c0rrkd-HiddenInput-HiddenInput e14pn5ur1"
+            type="checkbox"
+            value="1"
+          />
+          <div
+            aria-hidden="true"
+            class="css-u1o78x-StyledCheckbox-StyledCheckbox e14pn5ur0"
+          >
+            <svg
+              data-test-id="icon-check-mark"
+              fill="currentColor"
+              height="12px"
+              viewBox="0 0 16 16"
+              width="12px"
+            >
+              <path
+                d="M6.19,14.51a.77.77,0,0,1-.57-.25l-4.2-4.8a.75.75,0,0,1,1.13-1l3.56,4.06L13.36,1.82a.75.75,0,0,1,1-.21.76.76,0,0,1,.21,1.05L6.81,14.18a.73.73,0,0,1-.58.33Z"
+              />
+            </svg>
+          </div>
+          <span
+            class="css-at526y-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+            role="presentation"
+          />
+        </div>
+        <span
+          class="css-6ymjw8-CheckboxLabel eib0h5u1"
+        >
+          Choice B
+        </span>
+      </label>
+    </div>
+    <div
+      class="css-n4y8vg-LabelContainer eib0h5u0"
+    >
+      <label
+        class="css-19dlw23-Label eib0h5u2"
+      >
+        <div
+          class="css-bphz7d-Wrapper e14pn5ur2"
+        >
+          <input
+            class="css-4npmde-HiddenInput-HiddenInput e14pn5ur1"
+            type="checkbox"
+            value="2"
+          />
+          <div
+            aria-hidden="true"
+            class="css-5y1i99-StyledCheckbox-StyledCheckbox e14pn5ur0"
+          />
+          <span
+            class="css-vul34l-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+            role="presentation"
+          />
+        </div>
+        <span
+          class="css-6ymjw8-CheckboxLabel eib0h5u1"
+        >
+          Choice C
+        </span>
+      </label>
+    </div>
+  </div>
+</div>
+`;

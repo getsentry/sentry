@@ -42,7 +42,7 @@ describe('SettingsLayout', function () {
       </BreadcrumbContextProvider>
     );
 
-    expect(container).toSnapshot();
+    expect(container).toMatchSnapshot();
   });
 
   it('can render navigation', function () {

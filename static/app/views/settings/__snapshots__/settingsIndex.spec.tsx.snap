@@ -1,0 +1,451 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`SettingsIndex renders 1`] = `
+<div>
+  <div
+    class="css-d651c0-SettingsColumn e1ur80md7"
+  >
+    <div
+      class="css-1yen440-SettingsHeader e1actt5b0"
+    >
+      <div
+        class="css-jn09wj-HeaderContent e1ur80md6"
+      >
+        <nav
+          aria-label="Settings Breadcrumbs"
+          class="e1ur80md4 css-17bs639-Breadcrumbs-StyledSettingsBreadcrumb e8a6wdo0"
+        />
+        <div
+          class="css-1wnc5x8-SearchWrapper ebntwz10"
+          role="search"
+        >
+          <div
+            class="css-28tpol-SearchInputWrapper ep9h6jq2"
+          >
+            <svg
+              class="css-12z783-SearchInputIcon ep9h6jq1"
+              fill="currentColor"
+              height="14px"
+              viewBox="0 0 16 16"
+              width="14px"
+            >
+              <path
+                d="M6,12A6,6,0,1,1,12,6,6,6,0,0,1,6,12ZM6,1.54A4.46,4.46,0,1,0,10.45,6,4.46,4.46,0,0,0,6,1.54Z"
+              />
+              <path
+                d="M15.2,16a.74.74,0,0,1-.53-.22L9.14,10.2A.75.75,0,0,1,10.2,9.14l5.53,5.53a.75.75,0,0,1,0,1.06A.74.74,0,0,1,15.2,16Z"
+              />
+            </svg>
+            <input
+              aria-expanded="true"
+              aria-haspopup="listbox"
+              aria-label="Search Settings"
+              class="css-1yzmhwf-SearchInput ep9h6jq0"
+              placeholder="Search"
+              style="outline: none;"
+              type="text"
+              value=""
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+    <div
+      class="css-wm0ppo-MaxWidthContainer e1ur80md3"
+    >
+      <div
+        class="css-1ct1h34-NavMask e1ur80md1"
+      />
+      <div
+        class="css-qmxbz1-Content e1ur80md0"
+      >
+        <div
+          class="css-133ef7q-GridLayout ej14ybg9"
+        >
+          <div
+            class="css-xzn35n-Panel-GridPanel ej14ybg8"
+          >
+            <div
+              class="css-104dup1-PanelHeader-getPadding-HomePanelHeader ej14ybg7"
+            >
+              <a
+                class="css-9pdfrg-Link-HomeLink-linkCss-HomeLinkIcon-linkIconCss ej14ybg2"
+              >
+                <span
+                  class="avatar css-eti684-StyledBaseAvatar ery3g4h1"
+                  data-test-id="letter_avatar-avatar"
+                  style="width: 56px; height: 56px;"
+                  title="Foo Bar"
+                >
+                  <svg
+                    class="css-1jaqko8-LetterAvatar-imageStyle ewkzefl0"
+                    viewBox="0 0 120 120"
+                  >
+                    <rect
+                      fill="#315cac"
+                      height="120"
+                      opacity="100%"
+                      rx="15"
+                      ry="15"
+                      width="120"
+                      x="0"
+                      y="0"
+                    />
+                    <text
+                      fill="#FFFFFF"
+                      font-size="65"
+                      style="dominant-baseline: central;"
+                      text-anchor="middle"
+                      x="50%"
+                      y="50%"
+                    >
+                      FB
+                    </text>
+                  </svg>
+                </span>
+                My Account
+              </a>
+            </div>
+            <div
+              class="css-zuu6in-PanelBody-textStyles-HomePanelBody ej14ybg6"
+            >
+              <h3>
+                Quick links
+                :
+              </h3>
+              <ul>
+                <li>
+                  <a
+                    class="css-1v650xf-Link-HomeLink-linkCss ej14ybg4"
+                  >
+                    Change my password
+                  </a>
+                </li>
+                <li>
+                  <a
+                    class="css-1v650xf-Link-HomeLink-linkCss ej14ybg4"
+                  >
+                    Notification Preferences
+                  </a>
+                </li>
+                <li>
+                  <a
+                    class="css-1v650xf-Link-HomeLink-linkCss ej14ybg4"
+                  >
+                    Change my avatar
+                  </a>
+                </li>
+              </ul>
+            </div>
+          </div>
+          <div
+            class="css-xzn35n-Panel-GridPanel ej14ybg8"
+          >
+            <div
+              class="css-104dup1-PanelHeader-getPadding-HomePanelHeader ej14ybg7"
+            >
+              <a
+                class="css-9pdfrg-Link-HomeLink-linkCss-HomeLinkIcon-linkIconCss ej14ybg2"
+              >
+                <span
+                  class="avatar css-64x09n-StyledBaseAvatar ery3g4h1"
+                  data-test-id="letter_avatar-avatar"
+                  style="width: 56px; height: 56px;"
+                  title="org slug"
+                >
+                  <svg
+                    class="css-h0a6ia-LetterAvatar-imageStyle ewkzefl0"
+                    viewBox="0 0 120 120"
+                  >
+                    <rect
+                      fill="#4674ca"
+                      height="120"
+                      opacity="100%"
+                      rx="15"
+                      ry="15"
+                      width="120"
+                      x="0"
+                      y="0"
+                    />
+                    <text
+                      fill="#FFFFFF"
+                      font-size="65"
+                      style="dominant-baseline: central;"
+                      text-anchor="middle"
+                      x="50%"
+                      y="50%"
+                    >
+                      OS
+                    </text>
+                  </svg>
+                </span>
+                <div
+                  class="css-1pc0j7m-OrganizationName-overflowEllipsis ej14ybg0"
+                >
+                  org-slug
+                </div>
+              </a>
+            </div>
+            <div
+              class="css-zuu6in-PanelBody-textStyles-HomePanelBody ej14ybg6"
+            >
+              <h3>
+                Quick links
+                :
+              </h3>
+              <ul>
+                <li>
+                  <a
+                    class="css-1v650xf-Link-HomeLink-linkCss ej14ybg4"
+                  >
+                    Projects
+                  </a>
+                </li>
+                <li>
+                  <a
+                    class="css-1v650xf-Link-HomeLink-linkCss ej14ybg4"
+                  >
+                    Teams
+                  </a>
+                </li>
+                <li>
+                  <a
+                    class="css-1v650xf-Link-HomeLink-linkCss ej14ybg4"
+                  >
+                    Members
+                  </a>
+                </li>
+              </ul>
+            </div>
+          </div>
+          <div
+            class="css-xzn35n-Panel-GridPanel ej14ybg8"
+          >
+            <div
+              class="css-104dup1-PanelHeader-getPadding-HomePanelHeader ej14ybg7"
+            >
+              <a
+                class="ej14ybg1 css-1rr4wtr-Anchor-ExternalHomeLinkIcon-linkIconCss ehytxfi0"
+                href="https://docs.sentry.io/"
+                rel="noreferrer noopener"
+                target="_blank"
+              >
+                <div
+                  class="css-1absfmy-HomeIconContainer ej14ybg5"
+                  color="pink300"
+                >
+                  <svg
+                    fill="currentColor"
+                    height="24px"
+                    viewBox="0 0 16 16"
+                    width="24px"
+                  >
+                    <path
+                      d="M8,15.27a.76.76,0,0,1-.75-.75V2.06a.75.75,0,0,1,1.5,0V14.52A.76.76,0,0,1,8,15.27Z"
+                    />
+                    <path
+                      d="M5.74,5.38H2.93a.75.75,0,0,1,0-1.5H5.74a.75.75,0,0,1,0,1.5Z"
+                    />
+                    <path
+                      d="M5.74,7.89H2.93a.75.75,0,0,1,0-1.5H5.74a.75.75,0,0,1,0,1.5Z"
+                    />
+                    <path
+                      d="M13.07,5.38H10.26a.75.75,0,0,1,0-1.5h2.81a.75.75,0,0,1,0,1.5Z"
+                    />
+                    <path
+                      d="M13.07,7.89H10.26a.75.75,0,0,1,0-1.5h2.81a.75.75,0,0,1,0,1.5Z"
+                    />
+                    <path
+                      d="M15.25,14.62h-.07a76.54,76.54,0,0,0-14.36,0,.67.67,0,0,1-.57-.19A.73.73,0,0,1,0,13.87V2.06a.76.76,0,0,1,.75-.75h14.5a.76.76,0,0,1,.75.75V13.87a.73.73,0,0,1-.25.55A.7.7,0,0,1,15.25,14.62ZM8,12.77c2.23,0,4.41.09,6.5.27V2.81H1.5V13C3.59,12.86,5.77,12.77,8,12.77Z"
+                    />
+                  </svg>
+                </div>
+                Documentation
+              </a>
+            </div>
+            <div
+              class="css-zuu6in-PanelBody-textStyles-HomePanelBody ej14ybg6"
+            >
+              <h3>
+                Quick links
+                :
+              </h3>
+              <ul>
+                <li>
+                  <a
+                    class="ej14ybg3 css-n5lex6-Anchor-ExternalHomeLink-linkCss ehytxfi0"
+                    href="https://docs.sentry.io/platform-redirect/?next=/"
+                    rel="noreferrer noopener"
+                    target="_blank"
+                  >
+                    Quickstart Guide
+                  </a>
+                </li>
+                <li>
+                  <a
+                    class="ej14ybg3 css-n5lex6-Anchor-ExternalHomeLink-linkCss ehytxfi0"
+                    href="https://docs.sentry.io/platforms/"
+                    rel="noreferrer noopener"
+                    target="_blank"
+                  >
+                    Platforms & Frameworks
+                  </a>
+                </li>
+                <li>
+                  <a
+                    class="ej14ybg3 css-n5lex6-Anchor-ExternalHomeLink-linkCss ehytxfi0"
+                    href="https://docs.sentry.io/product/cli/"
+                    rel="noreferrer noopener"
+                    target="_blank"
+                  >
+                    Sentry CLI
+                  </a>
+                </li>
+              </ul>
+            </div>
+          </div>
+          <div
+            class="css-xzn35n-Panel-GridPanel ej14ybg8"
+          >
+            <div
+              class="css-104dup1-PanelHeader-getPadding-HomePanelHeader ej14ybg7"
+            >
+              <a
+                class="css-9pdfrg-Link-HomeLink-linkCss-HomeLinkIcon-linkIconCss ej14ybg2"
+              >
+                <div
+                  class="css-1x2jdmg-HomeIconContainer ej14ybg5"
+                  color="activeText"
+                >
+                  <svg
+                    fill="currentColor"
+                    height="24px"
+                    viewBox="0 0 16 16"
+                    width="24px"
+                  >
+                    <path
+                      d="M9.9,15.61H6.1a.74.74,0,0,1-.75-.75v-2.6a.74.74,0,0,1,.75-.75H9.9a.74.74,0,0,1,.75.75v2.6A.74.74,0,0,1,9.9,15.61Zm-3.05-1.5h2.3V13H6.85Z"
+                    />
+                    <path
+                      d="M6.1,14.31H5.37a2.75,2.75,0,0,1-2.75-2.75V3.14A2.75,2.75,0,0,1,5.37.39h5.26a2.75,2.75,0,0,1,2.75,2.75V9.4h-1.5V3.14a1.25,1.25,0,0,0-1.25-1.25H5.37A1.25,1.25,0,0,0,4.12,3.14v8.42a1.25,1.25,0,0,0,1.25,1.25H6.1Z"
+                    />
+                    <path
+                      d="M3.37,10.16H2.2A2.25,2.25,0,0,1,0,7.91V7A2.25,2.25,0,0,1,2.2,4.74H3.37v1.5H2.2A.74.74,0,0,0,1.45,7v.92a.75.75,0,0,0,.75.75H3.37Z"
+                    />
+                    <path
+                      d="M13.8,10.16H12.63V8.66H13.8a.75.75,0,0,0,.75-.75V7a.74.74,0,0,0-.75-.75H12.63V4.74H13.8A2.25,2.25,0,0,1,16.05,7v.92A2.25,2.25,0,0,1,13.8,10.16Z"
+                    />
+                  </svg>
+                </div>
+                Support
+              </a>
+            </div>
+            <div
+              class="css-zuu6in-PanelBody-textStyles-HomePanelBody ej14ybg6"
+            >
+              <h3>
+                Quick links
+                :
+              </h3>
+              <ul>
+                <li>
+                  <a
+                    class="css-1v650xf-Link-HomeLink-linkCss ej14ybg4"
+                  >
+                    Contact Support
+                  </a>
+                </li>
+                <li>
+                  <a
+                    class="ej14ybg3 css-n5lex6-Anchor-ExternalHomeLink-linkCss ehytxfi0"
+                    href="https://github.com/getsentry/sentry/issues"
+                    rel="noreferrer noopener"
+                    target="_blank"
+                  >
+                    Sentry on GitHub
+                  </a>
+                </li>
+                <li>
+                  <a
+                    class="ej14ybg3 css-n5lex6-Anchor-ExternalHomeLink-linkCss ehytxfi0"
+                    href="https://status.sentry.io/"
+                    rel="noreferrer noopener"
+                    target="_blank"
+                  >
+                    Service Status
+                  </a>
+                </li>
+              </ul>
+            </div>
+          </div>
+          <div
+            class="css-xzn35n-Panel-GridPanel ej14ybg8"
+          >
+            <div
+              class="css-104dup1-PanelHeader-getPadding-HomePanelHeader ej14ybg7"
+            >
+              <a
+                class="css-9pdfrg-Link-HomeLink-linkCss-HomeLinkIcon-linkIconCss ej14ybg2"
+              >
+                <div
+                  class="css-u57jdl-HomeIconContainer ej14ybg5"
+                >
+                  <svg
+                    fill="currentColor"
+                    height="24px"
+                    viewBox="0 0 16 16"
+                    width="24px"
+                  >
+                    <path
+                      d="M11.67,7.94a.75.75,0,0,1-.75-.75V4.34a2.84,2.84,0,1,0-5.67,0V7.19a.75.75,0,1,1-1.5,0V4.34a4.34,4.34,0,1,1,8.67,0V7.19A.76.76,0,0,1,11.67,7.94Z"
+                    />
+                    <path
+                      d="M14.72,6.44H1.44a.75.75,0,0,0-.75.75v8.06a.76.76,0,0,0,.75.75H14.72a.76.76,0,0,0,.75-.75V7.19A.75.75,0,0,0,14.72,6.44ZM8.83,12.19a.75.75,0,0,1-1.5,0V10.05a.75.75,0,0,1,1.5,0Z"
+                    />
+                  </svg>
+                </div>
+                API Keys
+              </a>
+            </div>
+            <div
+              class="css-zuu6in-PanelBody-textStyles-HomePanelBody ej14ybg6"
+            >
+              <h3>
+                Quick links
+                :
+              </h3>
+              <ul>
+                <li>
+                  <a
+                    class="css-1v650xf-Link-HomeLink-linkCss ej14ybg4"
+                  >
+                    Auth Tokens
+                  </a>
+                </li>
+                <li>
+                  <a
+                    class="css-1v650xf-Link-HomeLink-linkCss ej14ybg4"
+                  >
+                    Your Integrations
+                  </a>
+                </li>
+                <li>
+                  <a
+                    class="ej14ybg3 css-n5lex6-Anchor-ExternalHomeLink-linkCss ehytxfi0"
+                    href="https://docs.sentry.io/api/"
+                    rel="noreferrer noopener"
+                    target="_blank"
+                  >
+                    Documentation
+                  </a>
+                </li>
+              </ul>
+            </div>
+          </div>
+           
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+`;

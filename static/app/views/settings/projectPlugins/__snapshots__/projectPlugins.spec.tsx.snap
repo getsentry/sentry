@@ -1,0 +1,183 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`ProjectPlugins renders 1`] = `
+<div>
+  <div
+    class="css-2fj46w-Panel edxrl2k0"
+  >
+    <div
+      class="css-1v7t0a0-PanelHeader-getPadding eknsyxy0"
+    >
+      <div>
+        Legacy Integration
+      </div>
+      <div>
+        Enabled
+      </div>
+    </div>
+    <div
+      class="css-pemm1r-PanelBody-textStyles eszvord0"
+    >
+      <div
+        class="ref-warning e8p7jd00 css-1q4cvad-Wrap-alertStyles-PanelAlert e73vi8e5"
+        type="warning"
+      >
+        <div
+          class="css-9ifyx1-IconWrapper e73vi8e4"
+        >
+          <svg
+            fill="currentColor"
+            height="16px"
+            viewBox="0 0 16 16"
+            width="16px"
+          >
+            <path
+              d="M13.87,15.26H2.13A2.1,2.1,0,0,1,0,13.16a2.07,2.07,0,0,1,.27-1L6.17,1.8a2.1,2.1,0,0,1,1.27-1,2.11,2.11,0,0,1,2.39,1L15.7,12.11a2.1,2.1,0,0,1-1.83,3.15ZM8,2.24a.44.44,0,0,0-.16,0,.58.58,0,0,0-.37.28L1.61,12.86a.52.52,0,0,0-.08.3.6.6,0,0,0,.6.6H13.87a.54.54,0,0,0,.3-.08.59.59,0,0,0,.22-.82L8.53,2.54h0a.61.61,0,0,0-.23-.22A.54.54,0,0,0,8,2.24Z"
+            />
+            <path
+              d="M8,10.37a.75.75,0,0,1-.75-.75V5.92a.75.75,0,0,1,1.5,0v3.7A.74.74,0,0,1,8,10.37Z"
+            />
+            <circle
+              cx="8"
+              cy="11.79"
+              r="0.76"
+            />
+          </svg>
+        </div>
+        <span
+          class="css-iaz4p1-Message e73vi8e3"
+        >
+          <span>
+            <span>
+              Legacy Integrations must be configured per-project. It's recommended to prefer organization integrations over the legacy project integrations when available. Visit the 
+            </span>
+            <a
+              class="css-ta9xa3-Link e1ycxor00"
+            >
+              <span>
+                organization integrations
+              </span>
+            </a>
+            <span>
+               settings to manage them.
+            </span>
+          </span>
+        </span>
+      </div>
+      <div
+        class="css-1eswhgj-PanelItem elsgeq40"
+      >
+        <div
+          class="amazon-sqs css-119mele-PluginItem evund0f5"
+        >
+          <div
+            class="css-10f9tt3-PluginInfo evund0f3"
+          >
+            <div
+              class="css-t7m0sj-PluginIcon-StyledPluginIcon evund0f1"
+              size="48"
+            />
+            <div
+              class="css-1yqqovl-PluginDescription evund0f4"
+            >
+              <div
+                class="css-13njfqo-PluginName evund0f2"
+              >
+                Amazon SQS 
+                <span
+                  class="css-16i2hsm-Version evund0f0"
+                >
+                  v8.23.0.dev0
+                </span>
+              </div>
+              <div>
+                <a
+                  class="css-1e7h2lz-Anchor-grayText ehytxfi0"
+                  href="https://github.com/getsentry/sentry"
+                  rel="noreferrer noopener"
+                  target="_blank"
+                >
+                  Sentry Team
+                </a>
+                <span>
+                   
+                  ·
+                   
+                  <a
+                    class="css-19t5w00-Link-grayText e1ycxor00"
+                  >
+                    Configure plugin
+                  </a>
+                </span>
+              </div>
+            </div>
+          </div>
+          <button
+            aria-checked="false"
+            class="css-1lixgqp-SwitchButton ep74ita1"
+            data-test-id="switch"
+            role="checkbox"
+            type="button"
+          >
+            <span
+              class="css-1vgpr18-Toggle ep74ita0"
+            />
+          </button>
+        </div>
+      </div>
+      <div
+        class="css-1eswhgj-PanelItem elsgeq40"
+      >
+        <div
+          class="github css-119mele-PluginItem evund0f5"
+        >
+          <div
+            class="css-10f9tt3-PluginInfo evund0f3"
+          >
+            <div
+              class="css-t7m0sj-PluginIcon-StyledPluginIcon evund0f1"
+              size="48"
+            />
+            <div
+              class="css-1yqqovl-PluginDescription evund0f4"
+            >
+              <div
+                class="css-13njfqo-PluginName evund0f2"
+              >
+                GitHub 
+                <span
+                  class="css-16i2hsm-Version evund0f0"
+                >
+                  v8.23.0.dev0
+                </span>
+              </div>
+              <div>
+                <a
+                  class="css-1e7h2lz-Anchor-grayText ehytxfi0"
+                  href="https://github.com/getsentry/sentry"
+                  rel="noreferrer noopener"
+                  target="_blank"
+                >
+                  Sentry Team
+                </a>
+              </div>
+            </div>
+          </div>
+          <button
+            aria-checked="true"
+            class="css-1lixgqp-SwitchButton ep74ita1"
+            data-test-id="switch"
+            disabled=""
+            role="checkbox"
+            type="button"
+          >
+            <span
+              class="css-185ejt3-Toggle ep74ita0"
+            />
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+`;

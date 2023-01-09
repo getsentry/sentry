@@ -7,6 +7,6 @@ describe('CircleIndicator', function () {
     const {container} = render(<CircleIndicator data-test-id="circleIndicator" />);
 
     expect(await screen.findByTestId('circleIndicator')).toBeInTheDocument();
-    expect(container).toSnapshot();
+    expect(container).toMatchSnapshot();
   });
 });

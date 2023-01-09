@@ -1,0 +1,179 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`OrganizationProjects should render the projects in the store 1`] = `
+<div>
+  <div
+    class="css-q8xgg6-SettingsPageHeader e1nr98yc2"
+  >
+    <div
+      class="css-1mfa9vw-TitleAndActions e1nr98yc8"
+    >
+      <div
+        class="css-u3au9h-TitleWrapper e1nr98yc7"
+      >
+        <div
+          class="css-18xqiae-Title e1nr98yc6"
+        >
+          <h4
+            class="css-jz1c1u-HeaderTitle e12cn1y20"
+          >
+            Projects
+          </h4>
+        </div>
+      </div>
+      <div
+        class="css-1srjsw5-Action e1nr98yc3"
+      >
+        <a
+          aria-disabled="false"
+          aria-label="Create Project"
+          class="e1b8u3ky2 css-1wsjsdp-Link-StyledButton-getColors-getButtonStyles e1ycxor00"
+          role="button"
+        >
+          <span
+            class="css-at526y-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+            role="presentation"
+          />
+          <span
+            class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+          >
+            <span
+              class="css-1ywt59b-Icon e1b8u3ky0"
+            >
+              <svg
+                fill="currentColor"
+                height="12px"
+                viewBox="0 0 16 16"
+                width="12px"
+              >
+                <path
+                  d="M11.28,8.75H4.72a.75.75,0,1,1,0-1.5h6.56a.75.75,0,1,1,0,1.5Z"
+                />
+                <path
+                  d="M8,12a.76.76,0,0,1-.75-.75V4.72a.75.75,0,0,1,1.5,0v6.56A.76.76,0,0,1,8,12Z"
+                />
+                <path
+                  d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z"
+                />
+              </svg>
+            </span>
+            Create Project
+          </span>
+        </a>
+      </div>
+    </div>
+  </div>
+  <div
+    class="css-nqzxf5-SearchWrapper e1wqwm893"
+  >
+    <form
+      class="css-1eu18ac-Form eup3waa0"
+    >
+      <input
+        class="search css-1ws5oe1-Input-inputStyles ekvub0m0"
+        placeholder="Search Projects"
+        value=""
+      />
+    </form>
+  </div>
+  <div
+    class="css-2fj46w-Panel edxrl2k0"
+  >
+    <div
+      class="css-1v7t0a0-PanelHeader-getPadding eknsyxy0"
+    >
+      Projects
+    </div>
+    <div
+      class="css-pemm1r-PanelBody-textStyles eszvord0"
+    >
+      <div
+        class="css-1phdsb6-PanelItem-GridPanelItem e1wqwm892"
+      >
+        <div
+          class="css-f3hcme-ProjectListItemWrapper e1wqwm891"
+        >
+          <div
+            class="css-1jb4yvr-Wrapper e3cl2ic0"
+          >
+            <button
+              aria-disabled="false"
+              aria-label="Bookmark Project"
+              aria-pressed="false"
+              class="e1lcpz8z0 css-1jvq0r8-StyledButton-getColors-getButtonStyles-BookmarkStarButton e1b8u3ky2"
+              role="button"
+              type="button"
+            >
+              <span
+                class="css-vul34l-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+                role="presentation"
+              />
+              <span
+                class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+              >
+                <span
+                  class="css-161yn40-Icon e1b8u3ky0"
+                >
+                  <svg
+                    fill="#80708F"
+                    height="16px"
+                    viewBox="0 0 16 16"
+                    width="16px"
+                  >
+                    <path
+                      d="M12.47,15.63a.73.73,0,0,1-.35-.09L8,13.38,3.88,15.54a.75.75,0,0,1-.79,0,.76.76,0,0,1-.3-.74l.79-4.59L.24,6.91A.75.75,0,0,1,.66,5.63L5.27,5,7.33.79a.78.78,0,0,1,1.34,0L10.73,5l4.61.67a.75.75,0,0,1,.42,1.28l-3.34,3.25.79,4.59a.76.76,0,0,1-.3.74A.79.79,0,0,1,12.47,15.63ZM8,11.78a.85.85,0,0,1,.35.08l3.12,1.65L10.88,10a.78.78,0,0,1,.21-.67L13.62,6.9l-3.49-.51A.74.74,0,0,1,9.56,6L8,2.82,6.44,6a.74.74,0,0,1-.57.41L2.38,6.9,4.91,9.36a.78.78,0,0,1,.21.67l-.59,3.48,3.12-1.65A.85.85,0,0,1,8,11.78Z"
+                    />
+                  </svg>
+                </span>
+              </span>
+            </button>
+            <a
+              class="css-1irtykh-Link-StyledLink e11cq06e0"
+            >
+              <div
+                class="css-6orsd0-Wrapper e1vo4o574"
+              >
+                <div
+                  class="e1vo4o573 css-j5xni3-Wrapper-Wrapper-StyledAvatar e8mgi9q0"
+                  direction="right"
+                  max="1"
+                  size="18"
+                >
+                  <img
+                    class="css-da8t6h-StyledPlatformIcon e8mgi9q2"
+                    height="18"
+                    src="[object Object]"
+                    style="border-radius: 3px;"
+                    width="18"
+                  />
+                </div>
+                <div
+                  class="css-ajl783-DisplayNameAndDescription e1vo4o572"
+                >
+                  <span
+                    class="css-12dq2et-DisplayName e1vo4o571"
+                    data-test-id="badge-display-name"
+                  >
+                    <span
+                      class="css-1exbshj-BadgeDisplayName-overflowEllipsis-BadgeDisplayName evxkoyb0"
+                    >
+                      project-slug
+                    </span>
+                  </span>
+                </div>
+              </div>
+            </a>
+          </div>
+        </div>
+        <div
+          class="css-1cwjgo8-ProjectStatsGraphWrapper e1wqwm890"
+        >
+          <div
+            class="css-qr61vd-ChartContainer-getTooltipStyles e1d3yu8b0"
+          />
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+`;

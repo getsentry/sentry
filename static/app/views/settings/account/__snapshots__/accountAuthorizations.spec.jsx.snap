@@ -1,0 +1,72 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`AccountAuthorizations renders empty 1`] = `
+<div>
+  <div>
+    <div
+      class="css-q8xgg6-SettingsPageHeader e1nr98yc2"
+    >
+      <div
+        class="css-1mfa9vw-TitleAndActions e1nr98yc8"
+      >
+        <div
+          class="css-u3au9h-TitleWrapper e1nr98yc7"
+        >
+          <div
+            class="css-18xqiae-Title e1nr98yc6"
+          >
+            <h4
+              class="css-jz1c1u-HeaderTitle e12cn1y20"
+            >
+              Authorized Applications
+            </h4>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p
+      class="css-i23gaz-Description etd9r7m5"
+    >
+      <span>
+        <span>
+          You can manage your own applications via the 
+        </span>
+        <a
+          class="css-ta9xa3-Link e1ycxor00"
+          href="/settings/account/api/"
+        >
+          <span>
+            API dashboard
+          </span>
+        </a>
+        <span>
+          .
+        </span>
+      </span>
+    </p>
+    <div
+      class="css-2fj46w-Panel edxrl2k0"
+    >
+      <div
+        class="css-1v7t0a0-PanelHeader-getPadding eknsyxy0"
+      >
+        Approved Applications
+      </div>
+      <div
+        class="css-pemm1r-PanelBody-textStyles eszvord0"
+      >
+        <div
+          class="css-fvblbb-EmptyMessage-EmptyMessage ege7ww24"
+          data-test-id="empty-message"
+        >
+          <div
+            class="css-u2uxsp-TextBlock-Description ege7ww21"
+          >
+            You haven't approved any third party applications.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+`;

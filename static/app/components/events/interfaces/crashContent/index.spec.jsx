@@ -21,6 +21,6 @@ describe('CrashContent', function () {
       />
     );
 
-    expect(wrapper.container).toSnapshot();
+    expect(wrapper.container).toMatchSnapshot();
   });
 });

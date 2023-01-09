@@ -1,0 +1,239 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`JsonForm fields prop default 1`] = `
+<div>
+  <div>
+    <div
+      class="css-2fj46w-Panel edxrl2k0"
+    >
+      <div
+        class="css-pemm1r-PanelBody-textStyles eszvord0"
+      >
+        <div
+          class="css-1s6sn9m-FieldWrapper-getPadding-inlineStyle-FieldWrapper-FieldWrapper e12z3jxd0"
+        >
+          <label
+            aria-label="Name"
+            class="css-1lqelms-FieldDescription-inlineStyle e1cwyh1y0"
+            for="name"
+          >
+            <div
+              class="css-1amoduc-FieldLabel ekcr5um0"
+            >
+              <span>
+                Name
+                <div
+                  class="css-19ojc76-FieldRequiredBadge egnfobg0"
+                />
+              </span>
+            </div>
+            <div
+              class="css-14bl5nc-FieldHelp e1mobfxl0"
+              id="name_help"
+            >
+              A name for this project
+            </div>
+          </label>
+          <div
+            class="css-msyoo4-FieldControlWrapper e1ap0t511"
+          >
+            <div
+              class="css-sse8ie-FieldControlStyled e1ap0t510"
+            >
+              <div
+                class="css-1biel1q-InputGroupWrap e13j5zq05"
+              >
+                <input
+                  aria-describedby="name_help"
+                  class="css-bjpyf7-Input-inputStyles-StyledInput-getInputStyles e13j5zq03"
+                  id="name"
+                  label="Name"
+                  name="name"
+                  placeholder="my-awesome-project"
+                  type="text"
+                  value=""
+                />
+                <div
+                  class="css-vdn3ll-InputItemsWrap-InputTrailingItemsWrap e13j5zq00"
+                  data-test-id="input-trailing-items"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+        <div
+          class="css-1s6sn9m-FieldWrapper-getPadding-inlineStyle-FieldWrapper-FieldWrapper e12z3jxd0"
+        >
+          <label
+            aria-label="Platform"
+            class="css-1lqelms-FieldDescription-inlineStyle e1cwyh1y0"
+            for="platform"
+          >
+            <div
+              class="css-1amoduc-FieldLabel ekcr5um0"
+            >
+              <span>
+                Platform
+              </span>
+            </div>
+            <div
+              class="css-14bl5nc-FieldHelp e1mobfxl0"
+              id="platform_help"
+            >
+              The primary platform for this project
+            </div>
+          </label>
+          <div
+            class="css-msyoo4-FieldControlWrapper e1ap0t511"
+          >
+            <div
+              class="css-sse8ie-FieldControlStyled e1ap0t510"
+            >
+              <div
+                class=" css-2b097c-container"
+              >
+                <span
+                  aria-atomic="false"
+                  aria-live="polite"
+                  aria-relevant="additions text"
+                  class="css-1f43avz-a11yText-A11yText"
+                />
+                <div
+                  class=" css-lkrcqj-Control"
+                >
+                  <div
+                    class=" css-1kqg4xi-ValueContainer"
+                  >
+                    <div
+                      class=" css-6vsncc-placeholder"
+                    >
+                      --
+                    </div>
+                    <div
+                      class="css-s57u0a-Input"
+                    >
+                      <div
+                        class=""
+                        style="display: inline-block;"
+                      >
+                        <input
+                          aria-autocomplete="list"
+                          autocapitalize="none"
+                          autocomplete="off"
+                          autocorrect="off"
+                          id="platform"
+                          spellcheck="false"
+                          style="box-sizing: content-box; width: 2px; border: 0px; opacity: 1; outline: 0; padding: 0px;"
+                          tabindex="0"
+                          type="text"
+                          value=""
+                        />
+                        <div
+                          style="position: absolute; top: 0px; left: 0px; visibility: hidden; height: 0px; overflow: scroll; white-space: pre;"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  <div
+                    class=" css-1d4abpz-IndicatorsContainer"
+                  >
+                    <div
+                      aria-hidden="true"
+                      class=" css-1td69xg-indicatorContainer"
+                    >
+                      <svg
+                        class="css-1905w31-IconChevron"
+                        fill="currentColor"
+                        height="14px"
+                        viewBox="0 0 16 16"
+                        width="14px"
+                      >
+                        <path
+                          d="M14,11.75a.74.74,0,0,1-.53-.22L8,6.06,2.53,11.53a.75.75,0,0,1-1.06-1.06l6-6a.75.75,0,0,1,1.06,0l6,6a.75.75,0,0,1,0,1.06A.74.74,0,0,1,14,11.75Z"
+                        />
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`JsonForm form prop default 1`] = `
+<div>
+  <div>
+    <div
+      class="css-2fj46w-Panel edxrl2k0"
+      id="Account-Details"
+    >
+      <div
+        class="css-1v7t0a0-PanelHeader-getPadding eknsyxy0"
+      >
+        Account Details
+      </div>
+      <div
+        class="css-pemm1r-PanelBody-textStyles eszvord0"
+      >
+        <div
+          class="css-1s6sn9m-FieldWrapper-getPadding-inlineStyle-FieldWrapper-FieldWrapper e12z3jxd0"
+        >
+          <label
+            aria-label="Name"
+            class="css-1lqelms-FieldDescription-inlineStyle e1cwyh1y0"
+            for="name"
+          >
+            <div
+              class="css-1amoduc-FieldLabel ekcr5um0"
+            >
+              <span>
+                Name
+                <div
+                  class="css-19ojc76-FieldRequiredBadge egnfobg0"
+                />
+              </span>
+            </div>
+            <div
+              class="css-14bl5nc-FieldHelp e1mobfxl0"
+              id="name_help"
+            >
+              Your full name
+            </div>
+          </label>
+          <div
+            class="css-msyoo4-FieldControlWrapper e1ap0t511"
+          >
+            <div
+              class="css-sse8ie-FieldControlStyled e1ap0t510"
+            >
+              <div
+                class="css-1biel1q-InputGroupWrap e13j5zq05"
+              >
+                <input
+                  aria-describedby="name_help"
+                  class="css-bjpyf7-Input-inputStyles-StyledInput-getInputStyles e13j5zq03"
+                  id="name"
+                  label="Name"
+                  name="name"
+                  placeholder="e.g. John Doe"
+                  type="text"
+                  value=""
+                />
+                <div
+                  class="css-vdn3ll-InputItemsWrap-InputTrailingItemsWrap e13j5zq00"
+                  data-test-id="input-trailing-items"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+`;

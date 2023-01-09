@@ -1,0 +1,151 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`TableField renders renders with form context 1`] = `
+<div>
+  <form
+    class="form-stacked"
+  >
+    <div>
+      <div
+        class="css-nl4tr5-FieldWrapper-getPadding-inlineStyle-FieldWrapper e12z3jxd0"
+      >
+        <div
+          class="css-msyoo4-FieldControlWrapper e1ap0t511"
+        >
+          <div
+            class="css-sse8ie-FieldControlStyled e1ap0t510"
+          >
+            <div>
+              <button
+                aria-disabled="false"
+                aria-label="Add Thing"
+                class="css-1uzn75c-StyledButton-getColors-getButtonStyles e1b8u3ky2"
+                role="button"
+                type="button"
+              >
+                <span
+                  class="css-vul34l-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+                  role="presentation"
+                />
+                <span
+                  class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+                >
+                  <span
+                    class="css-3238mv-Icon e1b8u3ky0"
+                  >
+                    <svg
+                      fill="currentColor"
+                      height="12px"
+                      viewBox="0 0 16 16"
+                      width="12px"
+                    >
+                      <path
+                        d="M11.28,8.75H4.72a.75.75,0,1,1,0-1.5h6.56a.75.75,0,1,1,0,1.5Z"
+                      />
+                      <path
+                        d="M8,12a.76.76,0,0,1-.75-.75V4.72a.75.75,0,0,1,1.5,0v6.56A.76.76,0,0,1,8,12Z"
+                      />
+                      <path
+                        d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z"
+                      />
+                    </svg>
+                  </span>
+                  Add Thing
+                </span>
+              </button>
+            </div>
+          </div>
+          <div
+            class="css-iw48yj-FieldControlState e190hkl80"
+          />
+        </div>
+      </div>
+    </div>
+    <div
+      class="css-1wj3569-StyledFooter el3x56x1"
+    >
+      <div
+        class="css-1ci39bu-DefaultButtons el3x56x0"
+      >
+        <button
+          aria-disabled="false"
+          aria-label="Save Changes"
+          class="css-zbzvlb-StyledButton-getColors-getButtonStyles e1b8u3ky2"
+          data-test-id="form-submit"
+          role="button"
+          type="submit"
+        >
+          <span
+            class="css-at526y-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+            role="presentation"
+          />
+          <span
+            class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+          >
+            Save Changes
+          </span>
+        </button>
+      </div>
+    </div>
+  </form>
+</div>
+`;
+
+exports[`TableField renders renders without form context 1`] = `
+<div>
+  <div
+    class="css-nl4tr5-FieldWrapper-getPadding-inlineStyle-FieldWrapper e12z3jxd0"
+  >
+    <div
+      class="css-msyoo4-FieldControlWrapper e1ap0t511"
+    >
+      <div
+        class="css-sse8ie-FieldControlStyled e1ap0t510"
+      >
+        <div>
+          <button
+            aria-disabled="false"
+            aria-label="Add Thing"
+            class="css-1uzn75c-StyledButton-getColors-getButtonStyles e1b8u3ky2"
+            role="button"
+            type="button"
+          >
+            <span
+              class="css-vul34l-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+              role="presentation"
+            />
+            <span
+              class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+            >
+              <span
+                class="css-3238mv-Icon e1b8u3ky0"
+              >
+                <svg
+                  fill="currentColor"
+                  height="12px"
+                  viewBox="0 0 16 16"
+                  width="12px"
+                >
+                  <path
+                    d="M11.28,8.75H4.72a.75.75,0,1,1,0-1.5h6.56a.75.75,0,1,1,0,1.5Z"
+                  />
+                  <path
+                    d="M8,12a.76.76,0,0,1-.75-.75V4.72a.75.75,0,0,1,1.5,0v6.56A.76.76,0,0,1,8,12Z"
+                  />
+                  <path
+                    d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z"
+                  />
+                </svg>
+              </span>
+              Add Thing
+            </span>
+          </button>
+        </div>
+      </div>
+      <div
+        class="css-iw48yj-FieldControlState e190hkl80"
+      />
+    </div>
+  </div>
+</div>
+`;

@@ -1,0 +1,788 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`ExceptionMechanism additional data should render all fields in the data object 1`] = `
+<div>
+  <div
+    class="css-1t6kzof-Wrapper eay2bfv4"
+  >
+    <div
+      class="css-1yk4yzv-Pills-StyledPills eay2bfv0"
+    >
+      <li
+        class="css-gvi4h9-StyledPill e1qdl66w0"
+      >
+        <span
+          class="css-4o2sdj-PillName e1qdl66w2"
+        >
+          mechanism
+        </span>
+        <span
+          class="css-18i8w4t-PillName-PillValue e1qdl66w1"
+        >
+          generic
+        </span>
+      </li>
+      <li
+        class="css-1uepqnj-StyledPill e1qdl66w0"
+        type="negative"
+      >
+        <span
+          class="css-4o2sdj-PillName e1qdl66w2"
+        >
+          handled
+        </span>
+        <span
+          class="css-18i8w4t-PillName-PillValue e1qdl66w1"
+        >
+          false
+        </span>
+      </li>
+      <li
+        class="css-gvi4h9-StyledPill e1qdl66w0"
+      >
+        <span
+          class="css-4o2sdj-PillName e1qdl66w2"
+        >
+          relevant_address
+        </span>
+        <span
+          class="css-18i8w4t-PillName-PillValue e1qdl66w1"
+        >
+          0x1
+        </span>
+      </li>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`ExceptionMechanism additional data should skip object-like values 1`] = `
+<div>
+  <div
+    class="css-1t6kzof-Wrapper eay2bfv4"
+  >
+    <div
+      class="css-1yk4yzv-Pills-StyledPills eay2bfv0"
+    >
+      <li
+        class="css-gvi4h9-StyledPill e1qdl66w0"
+      >
+        <span
+          class="css-4o2sdj-PillName e1qdl66w2"
+        >
+          mechanism
+        </span>
+        <span
+          class="css-18i8w4t-PillName-PillValue e1qdl66w1"
+        >
+          generic
+        </span>
+      </li>
+      <li
+        class="css-1uepqnj-StyledPill e1qdl66w0"
+        type="negative"
+      >
+        <span
+          class="css-4o2sdj-PillName e1qdl66w2"
+        >
+          handled
+        </span>
+        <span
+          class="css-18i8w4t-PillName-PillValue e1qdl66w1"
+        >
+          false
+        </span>
+      </li>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`ExceptionMechanism basic attributes should add the help_link to the description hovercard 1`] = `
+<div>
+  <div
+    class="css-1t6kzof-Wrapper eay2bfv4"
+  >
+    <div
+      class="css-1yk4yzv-Pills-StyledPills eay2bfv0"
+    >
+      <li
+        class="css-gvi4h9-StyledPill e1qdl66w0"
+      >
+        <span
+          class="css-4o2sdj-PillName e1qdl66w2"
+        >
+          <span
+            aria-describedby="hovercard-0c4oo22rwc"
+            class="css-1y4rfpo-Container e1lk5gpt0"
+            style="text-decoration: underline dotted #80708F;"
+          >
+            mechanism
+          </span>
+        </span>
+        <span
+          class="css-18i8w4t-PillName-PillValue e1qdl66w1"
+        >
+          generic
+        </span>
+      </li>
+      <li
+        class="css-5qsd94-StyledPill e1qdl66w0"
+        type="positive"
+      >
+        <span
+          class="css-4o2sdj-PillName e1qdl66w2"
+        >
+          handled
+        </span>
+        <span
+          class="css-18i8w4t-PillName-PillValue e1qdl66w1"
+        >
+          true
+        </span>
+      </li>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`ExceptionMechanism basic attributes should not add the help_link if not starts with http(s) 1`] = `
+<div>
+  <div
+    class="css-1t6kzof-Wrapper eay2bfv4"
+  >
+    <div
+      class="css-1yk4yzv-Pills-StyledPills eay2bfv0"
+    >
+      <li
+        class="css-gvi4h9-StyledPill e1qdl66w0"
+      >
+        <span
+          class="css-4o2sdj-PillName e1qdl66w2"
+        >
+          <span
+            aria-describedby="hovercard-c5ysw7on13"
+            class="css-1y4rfpo-Container e1lk5gpt0"
+            style="text-decoration: underline dotted #80708F;"
+          >
+            mechanism
+          </span>
+        </span>
+        <span
+          class="css-18i8w4t-PillName-PillValue e1qdl66w1"
+        >
+          generic
+        </span>
+      </li>
+      <li
+        class="css-5qsd94-StyledPill e1qdl66w0"
+        type="positive"
+      >
+        <span
+          class="css-4o2sdj-PillName e1qdl66w2"
+        >
+          handled
+        </span>
+        <span
+          class="css-18i8w4t-PillName-PillValue e1qdl66w1"
+        >
+          true
+        </span>
+      </li>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`ExceptionMechanism basic attributes should render a description hovercard 1`] = `
+<div>
+  <div
+    class="css-1t6kzof-Wrapper eay2bfv4"
+  >
+    <div
+      class="css-1yk4yzv-Pills-StyledPills eay2bfv0"
+    >
+      <li
+        class="css-gvi4h9-StyledPill e1qdl66w0"
+      >
+        <span
+          class="css-4o2sdj-PillName e1qdl66w2"
+        >
+          <span
+            aria-describedby="hovercard-v1ztjeqzfi"
+            class="css-1y4rfpo-Container e1lk5gpt0"
+            style="text-decoration: underline dotted #80708F;"
+          >
+            mechanism
+          </span>
+        </span>
+        <span
+          class="css-18i8w4t-PillName-PillValue e1qdl66w1"
+        >
+          generic
+        </span>
+      </li>
+      <li
+        class="css-5qsd94-StyledPill e1qdl66w0"
+        type="positive"
+      >
+        <span
+          class="css-4o2sdj-PillName e1qdl66w2"
+        >
+          handled
+        </span>
+        <span
+          class="css-18i8w4t-PillName-PillValue e1qdl66w1"
+        >
+          true
+        </span>
+      </li>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`ExceptionMechanism basic attributes should render a help_link icon 1`] = `
+<div>
+  <div
+    class="css-1t6kzof-Wrapper eay2bfv4"
+  >
+    <div
+      class="css-1yk4yzv-Pills-StyledPills eay2bfv0"
+    >
+      <li
+        class="css-gvi4h9-StyledPill e1qdl66w0"
+      >
+        <span
+          class="css-4o2sdj-PillName e1qdl66w2"
+        >
+          <span
+            class="css-1yfrbh4-Name eay2bfv2"
+          >
+            mechanism 
+            <a
+              class="eay2bfv3 css-1ewhgcz-Anchor-StyledExternalLink-iconStyle ehytxfi0"
+              href="https://example.org/help"
+              rel="noreferrer noopener"
+              target="_blank"
+            >
+              <svg
+                fill="currentColor"
+                height="12px"
+                viewBox="0 0 16 16"
+                width="12px"
+              >
+                <path
+                  d="M13.25,16H2.75A2.75,2.75,0,0,1,0,13.25V2.75A2.75,2.75,0,0,1,2.75,0h10.5A2.75,2.75,0,0,1,16,2.75v10.5A2.75,2.75,0,0,1,13.25,16ZM2.75,1.5A1.25,1.25,0,0,0,1.5,2.75v10.5A1.25,1.25,0,0,0,2.75,14.5h10.5a1.25,1.25,0,0,0,1.25-1.25V2.75A1.25,1.25,0,0,0,13.25,1.5Z"
+                />
+                <path
+                  d="M11.13,10.63a.74.74,0,0,1-.75-.75V5.62H6.12a.75.75,0,0,1,0-1.5h5a.76.76,0,0,1,.75.75v5A.75.75,0,0,1,11.13,10.63Z"
+                />
+                <path
+                  d="M4.87,11.88a.79.79,0,0,1-.53-.22.75.75,0,0,1,0-1.06L10.6,4.34A.75.75,0,0,1,11.66,5.4L5.4,11.66A.77.77,0,0,1,4.87,11.88Z"
+                />
+              </svg>
+            </a>
+          </span>
+        </span>
+        <span
+          class="css-18i8w4t-PillName-PillValue e1qdl66w1"
+        >
+          generic
+        </span>
+      </li>
+      <li
+        class="css-5qsd94-StyledPill e1qdl66w0"
+        type="positive"
+      >
+        <span
+          class="css-4o2sdj-PillName e1qdl66w2"
+        >
+          handled
+        </span>
+        <span
+          class="css-18i8w4t-PillName-PillValue e1qdl66w1"
+        >
+          true
+        </span>
+      </li>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`ExceptionMechanism basic attributes should render the exception mechanism 1`] = `
+<div>
+  <div
+    class="css-1t6kzof-Wrapper eay2bfv4"
+  >
+    <div
+      class="css-1yk4yzv-Pills-StyledPills eay2bfv0"
+    >
+      <li
+        class="css-gvi4h9-StyledPill e1qdl66w0"
+      >
+        <span
+          class="css-4o2sdj-PillName e1qdl66w2"
+        >
+          mechanism
+        </span>
+        <span
+          class="css-18i8w4t-PillName-PillValue e1qdl66w1"
+        >
+          generic
+        </span>
+      </li>
+      <li
+        class="css-5qsd94-StyledPill e1qdl66w0"
+        type="positive"
+      >
+        <span
+          class="css-4o2sdj-PillName e1qdl66w2"
+        >
+          handled
+        </span>
+        <span
+          class="css-18i8w4t-PillName-PillValue e1qdl66w1"
+        >
+          true
+        </span>
+      </li>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`ExceptionMechanism basic attributes should render the handled pill 1`] = `
+<div>
+  <div
+    class="css-1t6kzof-Wrapper eay2bfv4"
+  >
+    <div
+      class="css-1yk4yzv-Pills-StyledPills eay2bfv0"
+    >
+      <li
+        class="css-gvi4h9-StyledPill e1qdl66w0"
+      >
+        <span
+          class="css-4o2sdj-PillName e1qdl66w2"
+        >
+          mechanism
+        </span>
+        <span
+          class="css-18i8w4t-PillName-PillValue e1qdl66w1"
+        >
+          generic
+        </span>
+      </li>
+      <li
+        class="css-1uepqnj-StyledPill e1qdl66w0"
+        type="negative"
+      >
+        <span
+          class="css-4o2sdj-PillName e1qdl66w2"
+        >
+          handled
+        </span>
+        <span
+          class="css-18i8w4t-PillName-PillValue e1qdl66w1"
+        >
+          false
+        </span>
+      </li>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`ExceptionMechanism errno meta should prefer the errno name if present 1`] = `
+<div>
+  <div
+    class="css-1t6kzof-Wrapper eay2bfv4"
+  >
+    <div
+      class="css-1yk4yzv-Pills-StyledPills eay2bfv0"
+    >
+      <li
+        class="css-gvi4h9-StyledPill e1qdl66w0"
+      >
+        <span
+          class="css-4o2sdj-PillName e1qdl66w2"
+        >
+          mechanism
+        </span>
+        <span
+          class="css-18i8w4t-PillName-PillValue e1qdl66w1"
+        >
+          generic
+        </span>
+      </li>
+      <li
+        class="css-1uepqnj-StyledPill e1qdl66w0"
+        type="negative"
+      >
+        <span
+          class="css-4o2sdj-PillName e1qdl66w2"
+        >
+          handled
+        </span>
+        <span
+          class="css-18i8w4t-PillName-PillValue e1qdl66w1"
+        >
+          false
+        </span>
+      </li>
+      <li
+        class="css-gvi4h9-StyledPill e1qdl66w0"
+      >
+        <span
+          class="css-4o2sdj-PillName e1qdl66w2"
+        >
+          errno
+        </span>
+        <span
+          class="css-18i8w4t-PillName-PillValue e1qdl66w1"
+        >
+          E2BIG
+        </span>
+      </li>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`ExceptionMechanism errno meta should render the errno number 1`] = `
+<div>
+  <div
+    class="css-1t6kzof-Wrapper eay2bfv4"
+  >
+    <div
+      class="css-1yk4yzv-Pills-StyledPills eay2bfv0"
+    >
+      <li
+        class="css-gvi4h9-StyledPill e1qdl66w0"
+      >
+        <span
+          class="css-4o2sdj-PillName e1qdl66w2"
+        >
+          mechanism
+        </span>
+        <span
+          class="css-18i8w4t-PillName-PillValue e1qdl66w1"
+        >
+          generic
+        </span>
+      </li>
+      <li
+        class="css-1uepqnj-StyledPill e1qdl66w0"
+        type="negative"
+      >
+        <span
+          class="css-4o2sdj-PillName e1qdl66w2"
+        >
+          handled
+        </span>
+        <span
+          class="css-18i8w4t-PillName-PillValue e1qdl66w1"
+        >
+          false
+        </span>
+      </li>
+      <li
+        class="css-gvi4h9-StyledPill e1qdl66w0"
+      >
+        <span
+          class="css-4o2sdj-PillName e1qdl66w2"
+        >
+          errno
+        </span>
+        <span
+          class="css-18i8w4t-PillName-PillValue e1qdl66w1"
+        >
+          7
+        </span>
+      </li>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`ExceptionMechanism mach_exception meta should prefer the exception name if present 1`] = `
+<div>
+  <div
+    class="css-1t6kzof-Wrapper eay2bfv4"
+  >
+    <div
+      class="css-1yk4yzv-Pills-StyledPills eay2bfv0"
+    >
+      <li
+        class="css-gvi4h9-StyledPill e1qdl66w0"
+      >
+        <span
+          class="css-4o2sdj-PillName e1qdl66w2"
+        >
+          mechanism
+        </span>
+        <span
+          class="css-18i8w4t-PillName-PillValue e1qdl66w1"
+        >
+          generic
+        </span>
+      </li>
+      <li
+        class="css-1uepqnj-StyledPill e1qdl66w0"
+        type="negative"
+      >
+        <span
+          class="css-4o2sdj-PillName e1qdl66w2"
+        >
+          handled
+        </span>
+        <span
+          class="css-18i8w4t-PillName-PillValue e1qdl66w1"
+        >
+          false
+        </span>
+      </li>
+      <li
+        class="css-gvi4h9-StyledPill e1qdl66w0"
+      >
+        <span
+          class="css-4o2sdj-PillName e1qdl66w2"
+        >
+          mach exception
+        </span>
+        <span
+          class="css-18i8w4t-PillName-PillValue e1qdl66w1"
+        >
+          EXC_BAD_ACCESS
+        </span>
+      </li>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`ExceptionMechanism mach_exception meta should render the mach exception number 1`] = `
+<div>
+  <div
+    class="css-1t6kzof-Wrapper eay2bfv4"
+  >
+    <div
+      class="css-1yk4yzv-Pills-StyledPills eay2bfv0"
+    >
+      <li
+        class="css-gvi4h9-StyledPill e1qdl66w0"
+      >
+        <span
+          class="css-4o2sdj-PillName e1qdl66w2"
+        >
+          mechanism
+        </span>
+        <span
+          class="css-18i8w4t-PillName-PillValue e1qdl66w1"
+        >
+          generic
+        </span>
+      </li>
+      <li
+        class="css-1uepqnj-StyledPill e1qdl66w0"
+        type="negative"
+      >
+        <span
+          class="css-4o2sdj-PillName e1qdl66w2"
+        >
+          handled
+        </span>
+        <span
+          class="css-18i8w4t-PillName-PillValue e1qdl66w1"
+        >
+          false
+        </span>
+      </li>
+      <li
+        class="css-gvi4h9-StyledPill e1qdl66w0"
+      >
+        <span
+          class="css-4o2sdj-PillName e1qdl66w2"
+        >
+          mach exception
+        </span>
+        <span
+          class="css-18i8w4t-PillName-PillValue e1qdl66w1"
+        >
+          1
+        </span>
+      </li>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`ExceptionMechanism signal meta should add the signal code if present 1`] = `
+<div>
+  <div
+    class="css-1t6kzof-Wrapper eay2bfv4"
+  >
+    <div
+      class="css-1yk4yzv-Pills-StyledPills eay2bfv0"
+    >
+      <li
+        class="css-gvi4h9-StyledPill e1qdl66w0"
+      >
+        <span
+          class="css-4o2sdj-PillName e1qdl66w2"
+        >
+          mechanism
+        </span>
+        <span
+          class="css-18i8w4t-PillName-PillValue e1qdl66w1"
+        >
+          generic
+        </span>
+      </li>
+      <li
+        class="css-1uepqnj-StyledPill e1qdl66w0"
+        type="negative"
+      >
+        <span
+          class="css-4o2sdj-PillName e1qdl66w2"
+        >
+          handled
+        </span>
+        <span
+          class="css-18i8w4t-PillName-PillValue e1qdl66w1"
+        >
+          false
+        </span>
+      </li>
+      <li
+        class="css-gvi4h9-StyledPill e1qdl66w0"
+      >
+        <span
+          class="css-4o2sdj-PillName e1qdl66w2"
+        >
+          signal
+        </span>
+        <span
+          class="css-18i8w4t-PillName-PillValue e1qdl66w1"
+        >
+          11 (code 0)
+        </span>
+      </li>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`ExceptionMechanism signal meta should prefer signal and code names if present 1`] = `
+<div>
+  <div
+    class="css-1t6kzof-Wrapper eay2bfv4"
+  >
+    <div
+      class="css-1yk4yzv-Pills-StyledPills eay2bfv0"
+    >
+      <li
+        class="css-gvi4h9-StyledPill e1qdl66w0"
+      >
+        <span
+          class="css-4o2sdj-PillName e1qdl66w2"
+        >
+          mechanism
+        </span>
+        <span
+          class="css-18i8w4t-PillName-PillValue e1qdl66w1"
+        >
+          generic
+        </span>
+      </li>
+      <li
+        class="css-1uepqnj-StyledPill e1qdl66w0"
+        type="negative"
+      >
+        <span
+          class="css-4o2sdj-PillName e1qdl66w2"
+        >
+          handled
+        </span>
+        <span
+          class="css-18i8w4t-PillName-PillValue e1qdl66w1"
+        >
+          false
+        </span>
+      </li>
+      <li
+        class="css-gvi4h9-StyledPill e1qdl66w0"
+      >
+        <span
+          class="css-4o2sdj-PillName e1qdl66w2"
+        >
+          signal
+        </span>
+        <span
+          class="css-18i8w4t-PillName-PillValue e1qdl66w1"
+        >
+          SIGSEGV (SEGV_NOOP)
+        </span>
+      </li>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`ExceptionMechanism signal meta should render the signal number 1`] = `
+<div>
+  <div
+    class="css-1t6kzof-Wrapper eay2bfv4"
+  >
+    <div
+      class="css-1yk4yzv-Pills-StyledPills eay2bfv0"
+    >
+      <li
+        class="css-gvi4h9-StyledPill e1qdl66w0"
+      >
+        <span
+          class="css-4o2sdj-PillName e1qdl66w2"
+        >
+          mechanism
+        </span>
+        <span
+          class="css-18i8w4t-PillName-PillValue e1qdl66w1"
+        >
+          generic
+        </span>
+      </li>
+      <li
+        class="css-1uepqnj-StyledPill e1qdl66w0"
+        type="negative"
+      >
+        <span
+          class="css-4o2sdj-PillName e1qdl66w2"
+        >
+          handled
+        </span>
+        <span
+          class="css-18i8w4t-PillName-PillValue e1qdl66w1"
+        >
+          false
+        </span>
+      </li>
+      <li
+        class="css-gvi4h9-StyledPill e1qdl66w0"
+      >
+        <span
+          class="css-4o2sdj-PillName e1qdl66w2"
+        >
+          signal
+        </span>
+        <span
+          class="css-18i8w4t-PillName-PillValue e1qdl66w1"
+        >
+          11
+        </span>
+      </li>
+    </div>
+  </div>
+</div>
+`;

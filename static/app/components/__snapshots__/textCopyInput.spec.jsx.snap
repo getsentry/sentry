@@ -1,0 +1,19 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`TextCopyInput renders 1`] = `
+<div>
+  <div
+    class="css-1biel1q-InputGroupWrap e13j5zq05"
+  >
+    <input
+      class="eqx5lw01 css-182ojs2-Input-inputStyles-StyledInput-getInputStyles-StyledInput e13j5zq03"
+      readonly=""
+      value="Text to Copy"
+    />
+    <div
+      class="css-vdn3ll-InputItemsWrap-InputTrailingItemsWrap e13j5zq00"
+      data-test-id="input-trailing-items"
+    />
+  </div>
+</div>
+`;

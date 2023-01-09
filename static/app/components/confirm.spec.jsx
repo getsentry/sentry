@@ -23,7 +23,7 @@ describe('Confirm', function () {
       </Confirm>
     );
 
-    expect(wrapper.container).toSnapshot();
+    expect(wrapper.container).toMatchSnapshot();
   });
 
   it('renders custom confirm button & callbacks work', function () {

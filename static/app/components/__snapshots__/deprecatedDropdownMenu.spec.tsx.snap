@@ -1,0 +1,15 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`dropdownMenuDeprecated renders 1`] = `
+<div>
+  <span>
+    <button
+      aria-expanded="false"
+      aria-haspopup="listbox"
+      style="outline: none;"
+    >
+      Open Dropdown
+    </button>
+  </span>
+</div>
+`;

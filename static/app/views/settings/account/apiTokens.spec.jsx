@@ -19,7 +19,7 @@ describe('ApiTokens', function () {
     const {container} = render(<ApiTokens organization={organization} />);
 
     // Should be loading
-    expect(container).toSnapshot();
+    expect(container).toMatchSnapshot();
   });
 
   it('renders with result', function () {
@@ -31,7 +31,7 @@ describe('ApiTokens', function () {
     const {container} = render(<ApiTokens organization={organization} />);
 
     // Should be loading
-    expect(container).toSnapshot();
+    expect(container).toMatchSnapshot();
   });
 
   it('can delete token', function () {

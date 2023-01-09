@@ -116,7 +116,7 @@ describe('AdminSettings', function () {
 
     it('renders', function () {
       const wrapper = render(<AdminSettings params={{}} />);
-      expect(wrapper.container).toSnapshot();
+      expect(wrapper.container).toMatchSnapshot();
     });
   });
 });

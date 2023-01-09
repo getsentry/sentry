@@ -46,7 +46,7 @@ describe('StreamGroup', function () {
     });
 
     expect(GuideStore.state.anchors).toEqual(new Set(['dynamic_counts', 'issue_stream']));
-    expect(wrapper.container).toSnapshot();
+    expect(wrapper.container).toMatchSnapshot();
   });
 
   it('marks as reviewed', function () {

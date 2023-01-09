@@ -15,21 +15,21 @@ describe('Checkbox', function () {
       const {container} = render(<Checkbox {...defaultProps} />);
 
       expect(await screen.findByRole('checkbox')).toBeInTheDocument();
-      expect(container).toSnapshot();
+      expect(container).toMatchSnapshot();
     });
 
     it('checked state', async function () {
       const {container} = render(<Checkbox {...defaultProps} checked />);
 
       expect(await screen.findByRole('checkbox')).toBeInTheDocument();
-      expect(container).toSnapshot();
+      expect(container).toMatchSnapshot();
     });
 
     it('indeterminate state', async function () {
       const {container} = render(<Checkbox {...defaultProps} checked="indeterminate" />);
 
       expect(await screen.findByRole('checkbox')).toBeInTheDocument();
-      expect(container).toSnapshot();
+      expect(container).toMatchSnapshot();
     });
   });
 

@@ -1,0 +1,11 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`CircleIndicator renders 1`] = `
+<div>
+  <div
+    class="css-6elntb-CircleIndicator e13rus8i0"
+    data-test-id="circleIndicator"
+    size="14"
+  />
+</div>
+`;

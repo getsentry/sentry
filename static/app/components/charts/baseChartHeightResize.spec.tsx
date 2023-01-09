@@ -29,7 +29,7 @@ describe('BaseChart', function () {
       </TestContainer>
     );
 
-    expect(container).toSnapshot();
+    expect(container).toMatchSnapshot();
   });
 
   it('renders with default height when autoHeightResize not provided', () => {
@@ -39,6 +39,6 @@ describe('BaseChart', function () {
       </TestContainer>
     );
 
-    expect(container).toSnapshot();
+    expect(container).toMatchSnapshot();
   });
 });

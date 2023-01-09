@@ -52,7 +52,7 @@ describe('Project Ownership', () => {
           project={project}
         />
       );
-      expect(wrapper.container).toSnapshot();
+      expect(wrapper.container).toMatchSnapshot();
       // Does not render codeowners for orgs without 'integrations-codeowners' feature
       expect(
         screen.queryByRole('button', {name: 'Add CODEOWNERS'})

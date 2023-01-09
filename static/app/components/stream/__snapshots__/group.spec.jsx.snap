@@ -1,0 +1,269 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`StreamGroup renders with anchors 1`] = `
+<div>
+  <div
+    class="css-5om4lq-PanelItem-Wrapper e7hpboy11"
+    data-test-id="group"
+    data-test-reviewed="false"
+  >
+    <div
+      class="css-xpiv08-GroupCheckBoxWrapper e7hpboy9"
+    >
+      <div
+        class="css-bphz7d-Wrapper e14pn5ur2"
+      >
+        <input
+          aria-label="Select Issue"
+          class="css-4npmde-HiddenInput-HiddenInput e14pn5ur1"
+          id="1337"
+          type="checkbox"
+        />
+        <div
+          aria-hidden="true"
+          class="css-5y1i99-StyledCheckbox-StyledCheckbox e14pn5ur0"
+        />
+        <span
+          class="css-vul34l-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+          role="presentation"
+        />
+      </div>
+    </div>
+    <div
+      class="css-u2g2wj-GroupSummary e7hpboy10"
+    >
+      <div
+        data-test-id="event-issue-header"
+      >
+        <div
+          class="css-ouo8wi-Title-truncateStyles-Title e1weinmj6"
+        >
+          <a
+            class="css-ta9xa3-Link e1ycxor00"
+            href="/organizations/org-slug/issues/1337/?_allp=1&referrer=issue-stream"
+          >
+            <div
+              aria-describedby="tooltip-1l8zy2au8l"
+              class="css-1g5gbvi-GroupLevel e1weinmj1"
+            />
+            <span
+              class="e1weinmj0 css-yxe4hf-Wrapper-StyledEventOrGroupTitle ejrtwu50"
+            >
+              <span
+                class="css-gg42vh-Wrapper ewamzvo2"
+                data-testid="stacktrace-preview"
+              >
+                <span
+                  aria-describedby="hovercard-xumdai0yto"
+                  class="css-1y4rfpo-Container e1lk5gpt0"
+                >
+                  RequestError
+                </span>
+              </span>
+              <span
+                style="display: inline-block; width: 10px;"
+              >
+                 
+              </span>
+              <em
+                class="css-15ppkm0-Subtitle ejrtwu51"
+                title="fetchData(app/components/group/suggestedOwners/suggestedOwners)"
+              >
+                fetchData(app/components/group/suggestedOwners/suggestedOwners)
+              </em>
+              <br />
+            </span>
+          </a>
+        </div>
+      </div>
+      <div
+        class="css-7jorpt-GroupExtra e12ld8r34"
+      >
+        <span
+          class="eob36su0 css-6ur077-TagWrapper-StyledTag e8jgvoh4"
+        >
+          <span
+            aria-describedby="tooltip-r9lkvktn14"
+            class="css-19485un-Container e1lk5gpt0"
+          >
+            <div
+              class="css-8fao5s-Background e8jgvoh3"
+              type="warning"
+            >
+              <span
+                class="css-uly9e3-Text e8jgvoh1"
+                type="warning"
+              >
+                New Issue
+              </span>
+            </div>
+          </span>
+        </span>
+        <div
+          class="css-trnaid-Wrapper exuvsu52"
+        >
+          <div
+            class="css-1q7u6y8-AvatarWrapper exuvsu51"
+          >
+            <a
+              class="e12ld8r33 css-qci7il-Link-StyledLink-ShadowlessProjectBadge e11cq06e0"
+              href="/organizations/org-slug/projects/foo-project/?project=13"
+            >
+              <div
+                class="css-6orsd0-Wrapper e1vo4o574"
+              >
+                <div
+                  class="e1vo4o573 css-a2anbt-Wrapper-Wrapper-StyledAvatar e8mgi9q0"
+                  direction="right"
+                  max="1"
+                  size="12"
+                >
+                  <img
+                    class="css-1w6u914-StyledPlatformIcon e8mgi9q2"
+                    height="12"
+                    src="[object Object]"
+                    style="border-radius: 3px;"
+                    width="12"
+                  />
+                </div>
+              </div>
+            </a>
+          </div>
+          <div
+            class="css-ecjcgo-IdWrapper exuvsu50"
+          >
+            JAVASCRIPT-6QS
+          </div>
+        </div>
+        <div
+          class="css-xdyng2-Wrapper e1pqcbf22"
+        >
+          <svg
+            class="css-1ounr7j-StyledIconClock e1pqcbf20"
+            fill="#80708F"
+            height="12px"
+            viewBox="0 0 16 16"
+            width="12px"
+          >
+            <path
+              d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.52A6.48,6.48,0,1,0,14.48,8,6.49,6.49,0,0,0,8,1.52Z"
+            />
+            <path
+              d="M11.62,8.75H8A.76.76,0,0,1,7.25,8V2.88a.75.75,0,1,1,1.5,0V7.25h2.87a.75.75,0,0,1,0,1.5Z"
+            />
+          </svg>
+          <time
+            aria-describedby="tooltip-ai3wymamoj"
+            datetime="2019-04-11T01:08:59.000Z"
+            style="text-decoration: underline dotted #80708F;"
+          >
+            -18mo ago
+          </time>
+          <span
+            class="hidden-xs hidden-sm css-4l1cp-Separator e1pqcbf21"
+          >
+             | 
+          </span>
+          <time
+            aria-describedby="tooltip-y06gwe9vv5"
+            class="hidden-xs hidden-sm"
+            datetime="2019-04-05T19:44:05.963Z"
+            style="text-decoration: underline dotted #80708F;"
+          >
+            -18mo old
+          </time>
+        </div>
+      </div>
+    </div>
+    <div
+      class="css-1xk3so9-ChartWrapper e7hpboy5"
+    >
+      <div
+        class="css-91lev7-ChartContainer-getTooltipStyles e1d3yu8b0"
+      />
+    </div>
+    <div
+      class="css-1wee17m-EventCountsWrapper e7hpboy4"
+    >
+      <span
+        class="css-jvz05s-PrimaryCount-primaryStatStyle e7hpboy8"
+        title="327482"
+      >
+        327k
+      </span>
+    </div>
+    <div
+      class="css-1wee17m-EventCountsWrapper e7hpboy4"
+    >
+      <span
+        aria-describedby="tooltip-6zqy4m39nl"
+        class="css-1y4rfpo-Container e1lk5gpt0"
+      >
+        <span
+          class="css-jvz05s-PrimaryCount-primaryStatStyle e7hpboy8"
+          title="35,097"
+        >
+          35k
+        </span>
+      </span>
+    </div>
+    <div
+      class="css-dcjevs-AssigneeWrapper e7hpboy3"
+    >
+      <div
+        class="css-1daxy8t-AssigneeWrapper exyuw1c6"
+      >
+        <div
+          class="css-j1qymt-AutoCompleteRoot e9jzhqd6"
+          data-is-open="false"
+        >
+          <div
+            aria-expanded="false"
+            aria-haspopup="listbox"
+            class="css-1vv9ctx-Actor e101wqlx0"
+            role="button"
+            style="outline: none;"
+            tabindex="0"
+          >
+            <div
+              aria-expanded="false"
+              aria-haspopup="listbox"
+              class="css-kyevsp-DropdownButton exyuw1c3"
+              data-test-id="assignee-selector"
+              style="outline: none;"
+            >
+              <svg
+                aria-describedby="tooltip-pa0cnixxzj"
+                class="css-wzk2wm-StyledIconUser exyuw1c5"
+                data-test-id="unassigned"
+                fill="#3E3446"
+                height="20px"
+                viewBox="0 0 16 16"
+                width="20px"
+              >
+                <path
+                  d="M8,10.63a4,4,0,0,1-3.94-4V4a3.94,3.94,0,1,1,7.88,0V6.68A4,4,0,0,1,8,10.63ZM8,1.52A2.44,2.44,0,0,0,5.56,4V6.68a2.44,2.44,0,1,0,4.88,0V4A2.44,2.44,0,0,0,8,1.52Z"
+                />
+                <path
+                  d="M14.19,16H1.81A1.74,1.74,0,0,1,.07,14.24V12.32A3.72,3.72,0,0,1,3.19,8.64l2.46-.41a.76.76,0,0,1,.87.62.75.75,0,0,1-.62.86l-2.47.41a2.22,2.22,0,0,0-1.86,2.2v1.92a.24.24,0,0,0,.24.24H14.19a.24.24,0,0,0,.24-.24V12.32a2.22,2.22,0,0,0-1.86-2.2L10.1,9.71a.75.75,0,0,1-.62-.86.76.76,0,0,1,.87-.62l2.47.41a3.72,3.72,0,0,1,3.11,3.68v1.92A1.74,1.74,0,0,1,14.19,16Z"
+                />
+              </svg>
+              <svg
+                class="exyuw1c4 css-187qrkm-IconChevron-StyledChevron"
+                fill="currentColor"
+                height="12px"
+                viewBox="0 0 16 16"
+                width="12px"
+              >
+                <path
+                  d="M14,11.75a.74.74,0,0,1-.53-.22L8,6.06,2.53,11.53a.75.75,0,0,1-1.06-1.06l6-6a.75.75,0,0,1,1.06,0l6,6a.75.75,0,0,1,0,1.06A.74.74,0,0,1,14,11.75Z"
+                />
+              </svg>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+`;

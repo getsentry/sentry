@@ -1,0 +1,15 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Version renders 1`] = `
+<div>
+  <a
+    class="css-ta9xa3-Link e1ycxor00"
+  >
+    <span
+      class="css-mr6gw0-VersionText eqmhduc3"
+    >
+      1.0.0 (20200101)
+    </span>
+  </a>
+</div>
+`;

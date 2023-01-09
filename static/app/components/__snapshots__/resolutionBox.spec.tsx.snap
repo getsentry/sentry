@@ -1,0 +1,308 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`ResolutionBox render() handles default 1`] = `
+<div>
+  <div
+    class="css-2opn4v-BannerContainer e9xr8172"
+  >
+    <p
+      class="css-agmicg-BannerSummary e9xr8171"
+    >
+      <svg
+        class="css-qlepug-StyledIconCheckmark eusmyo20"
+        data-test-id="icon-check-mark"
+        fill="#268D75"
+        height="16px"
+        viewBox="0 0 16 16"
+        width="16px"
+      >
+        <path
+          d="M6.19,14.51a.77.77,0,0,1-.57-.25l-4.2-4.8a.75.75,0,0,1,1.13-1l3.56,4.06L13.36,1.82a.75.75,0,0,1,1-.21.76.76,0,0,1,.21,1.05L6.81,14.18a.73.73,0,0,1-.58.33Z"
+        />
+      </svg>
+      <span>
+        This issue has been marked as resolved.
+      </span>
+    </p>
+  </div>
+</div>
+`;
+
+exports[`ResolutionBox render() handles inCommit 1`] = `
+<div>
+  <div
+    class="css-2opn4v-BannerContainer e9xr8172"
+  >
+    <p
+      class="css-agmicg-BannerSummary e9xr8171"
+    >
+      <svg
+        class="css-qlepug-StyledIconCheckmark eusmyo20"
+        data-test-id="icon-check-mark"
+        fill="#268D75"
+        height="16px"
+        viewBox="0 0 16 16"
+        width="16px"
+      >
+        <path
+          d="M6.19,14.51a.77.77,0,0,1-.57-.25l-4.2-4.8a.75.75,0,0,1,1.13-1l3.56,4.06L13.36,1.82a.75.75,0,0,1,1-.21.76.76,0,0,1,.21,1.05L6.81,14.18a.73.73,0,0,1-.58.33Z"
+        />
+      </svg>
+      <span>
+        <span>
+          <span>
+            This issue has been marked as resolved by 
+          </span>
+          <span>
+            f7f395d
+          </span>
+          <time
+            aria-describedby="tooltip-l8js3ka9f8"
+            class="css-1metgxf-StyledTimeSince eusmyo21"
+            datetime="2018-11-30T18:46:31.000Z"
+            style="text-decoration: underline dotted #80708F;"
+          >
+            in a year
+          </time>
+        </span>
+      </span>
+    </p>
+  </div>
+</div>
+`;
+
+exports[`ResolutionBox render() handles inNextRelease 1`] = `
+<div>
+  <div
+    class="css-2opn4v-BannerContainer e9xr8172"
+  >
+    <p
+      class="css-agmicg-BannerSummary e9xr8171"
+    >
+      <svg
+        class="css-qlepug-StyledIconCheckmark eusmyo20"
+        data-test-id="icon-check-mark"
+        fill="#268D75"
+        height="16px"
+        viewBox="0 0 16 16"
+        width="16px"
+      >
+        <path
+          d="M6.19,14.51a.77.77,0,0,1-.57-.25l-4.2-4.8a.75.75,0,0,1,1.13-1l3.56,4.06L13.36,1.82a.75.75,0,0,1,1-.21.76.76,0,0,1,.21,1.05L6.81,14.18a.73.73,0,0,1-.58.33Z"
+        />
+      </svg>
+      <span>
+        This issue has been marked as resolved in the upcoming release.
+      </span>
+    </p>
+  </div>
+</div>
+`;
+
+exports[`ResolutionBox render() handles inNextRelease with actor 1`] = `
+<div>
+  <div
+    class="css-2opn4v-BannerContainer e9xr8172"
+  >
+    <p
+      class="css-agmicg-BannerSummary e9xr8171"
+    >
+      <svg
+        class="css-qlepug-StyledIconCheckmark eusmyo20"
+        data-test-id="icon-check-mark"
+        fill="#268D75"
+        height="16px"
+        viewBox="0 0 16 16"
+        width="16px"
+      >
+        <path
+          d="M6.19,14.51a.77.77,0,0,1-.57-.25l-4.2-4.8a.75.75,0,0,1,1.13-1l3.56,4.06L13.36,1.82a.75.75,0,0,1,1-.21.76.76,0,0,1,.21,1.05L6.81,14.18a.73.73,0,0,1-.58.33Z"
+        />
+      </svg>
+      <span>
+        <span>
+          <strong>
+            <span
+              class="avatar avatar css-eti684-StyledBaseAvatar ery3g4h1"
+              data-test-id="letter_avatar-avatar"
+              style="width: 20px; height: 20px;"
+              title="David Cramer"
+            >
+              <svg
+                class="css-1jaqko8-LetterAvatar-imageStyle ewkzefl0"
+                viewBox="0 0 120 120"
+              >
+                <rect
+                  fill="#847a8c"
+                  height="120"
+                  opacity="100%"
+                  rx="15"
+                  ry="15"
+                  width="120"
+                  x="0"
+                  y="0"
+                />
+                <text
+                  fill="#FFFFFF"
+                  font-size="65"
+                  style="dominant-baseline: central;"
+                  text-anchor="middle"
+                  x="50%"
+                  y="50%"
+                >
+                  DC
+                </text>
+              </svg>
+            </span>
+            <span
+              style="margin-left: 5px;"
+            >
+              David Cramer
+            </span>
+          </strong>
+          <span>
+             marked this issue as resolved in the upcoming release.
+          </span>
+        </span>
+      </span>
+    </p>
+  </div>
+</div>
+`;
+
+exports[`ResolutionBox render() handles inRelease 1`] = `
+<div>
+  <div
+    class="css-2opn4v-BannerContainer e9xr8172"
+  >
+    <p
+      class="css-agmicg-BannerSummary e9xr8171"
+    >
+      <svg
+        class="css-qlepug-StyledIconCheckmark eusmyo20"
+        data-test-id="icon-check-mark"
+        fill="#268D75"
+        height="16px"
+        viewBox="0 0 16 16"
+        width="16px"
+      >
+        <path
+          d="M6.19,14.51a.77.77,0,0,1-.57-.25l-4.2-4.8a.75.75,0,0,1,1.13-1l3.56,4.06L13.36,1.82a.75.75,0,0,1,1-.21.76.76,0,0,1,.21,1.05L6.81,14.18a.73.73,0,0,1-.58.33Z"
+        />
+      </svg>
+      <span>
+        <span>
+          <span>
+            This issue has been marked as resolved in version 
+          </span>
+          <span
+            aria-describedby="tooltip-gjsm6ohvud"
+            class="css-1y4rfpo-Container e1lk5gpt0"
+          >
+            <a
+              class="css-ta9xa3-Link e1ycxor00"
+            >
+              <span
+                class="css-mr6gw0-VersionText eqmhduc3"
+              >
+                1.0
+              </span>
+            </a>
+          </span>
+          <span>
+            .
+          </span>
+        </span>
+      </span>
+    </p>
+  </div>
+</div>
+`;
+
+exports[`ResolutionBox render() handles inRelease with actor 1`] = `
+<div>
+  <div
+    class="css-2opn4v-BannerContainer e9xr8172"
+  >
+    <p
+      class="css-agmicg-BannerSummary e9xr8171"
+    >
+      <svg
+        class="css-qlepug-StyledIconCheckmark eusmyo20"
+        data-test-id="icon-check-mark"
+        fill="#268D75"
+        height="16px"
+        viewBox="0 0 16 16"
+        width="16px"
+      >
+        <path
+          d="M6.19,14.51a.77.77,0,0,1-.57-.25l-4.2-4.8a.75.75,0,0,1,1.13-1l3.56,4.06L13.36,1.82a.75.75,0,0,1,1-.21.76.76,0,0,1,.21,1.05L6.81,14.18a.73.73,0,0,1-.58.33Z"
+        />
+      </svg>
+      <span>
+        <span>
+          <strong>
+            <span
+              class="avatar avatar css-eti684-StyledBaseAvatar ery3g4h1"
+              data-test-id="letter_avatar-avatar"
+              style="width: 20px; height: 20px;"
+              title="David Cramer"
+            >
+              <svg
+                class="css-1jaqko8-LetterAvatar-imageStyle ewkzefl0"
+                viewBox="0 0 120 120"
+              >
+                <rect
+                  fill="#847a8c"
+                  height="120"
+                  opacity="100%"
+                  rx="15"
+                  ry="15"
+                  width="120"
+                  x="0"
+                  y="0"
+                />
+                <text
+                  fill="#FFFFFF"
+                  font-size="65"
+                  style="dominant-baseline: central;"
+                  text-anchor="middle"
+                  x="50%"
+                  y="50%"
+                >
+                  DC
+                </text>
+              </svg>
+            </span>
+            <span
+              style="margin-left: 5px;"
+            >
+              David Cramer
+            </span>
+          </strong>
+          <span>
+             marked this issue as resolved in version 
+          </span>
+          <span
+            aria-describedby="tooltip-gfhto0vyed"
+            class="css-1y4rfpo-Container e1lk5gpt0"
+          >
+            <a
+              class="css-ta9xa3-Link e1ycxor00"
+            >
+              <span
+                class="css-mr6gw0-VersionText eqmhduc3"
+              >
+                1.0
+              </span>
+            </a>
+          </span>
+          <span>
+            .
+          </span>
+        </span>
+      </span>
+    </p>
+  </div>
+</div>
+`;

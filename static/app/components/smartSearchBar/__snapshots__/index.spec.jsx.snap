@@ -1,0 +1,266 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`SmartSearchBar renders nested keys correctly 1`] = `
+<div>
+  <div
+    class="css-onx4j4-Container e1e683cn8"
+    data-test-id="smart-search-bar"
+  >
+    <label
+      aria-label="Search events"
+      class="css-t15l72-SearchLabel e1e683cn6"
+      for="smart-search-input"
+    >
+      <svg
+        fill="currentColor"
+        height="16px"
+        viewBox="0 0 16 16"
+        width="16px"
+      >
+        <path
+          d="M6,12A6,6,0,1,1,12,6,6,6,0,0,1,6,12ZM6,1.54A4.46,4.46,0,1,0,10.45,6,4.46,4.46,0,0,0,6,1.54Z"
+        />
+        <path
+          d="M15.2,16a.74.74,0,0,1-.53-.22L9.14,10.2A.75.75,0,0,1,10.2,9.14l5.53,5.53a.75.75,0,0,1,0,1.06A.74.74,0,0,1,15.2,16Z"
+        />
+      </svg>
+    </label>
+    <div
+      class="css-16pz7yp-InputWrapper e1e683cn5"
+    >
+      <div
+        class="css-2l9844-Highlight e1e683cn4"
+      >
+        
+        nest
+        
+      </div>
+      <form>
+        <textarea
+          autocomplete="off"
+          class="css-1jo2ix8-SearchInput e1e683cn3"
+          data-test-id="smart-search-input"
+          id="smart-search-input"
+          name="query"
+          placeholder="Search for events, users, tags, and more"
+          rows="1"
+          spellcheck="false"
+          style="overflow-x: hidden; word-wrap: break-word; overflow-y: hidden;"
+          type="text"
+        >
+          nest
+        </textarea>
+      </form>
+    </div>
+    <div
+      class="e1e683cn2 css-13545yw-ButtonGrid-ActionsBar e1n9g4yq0"
+    >
+      <button
+        aria-describedby="tooltip-x4x4h5pw1t"
+        aria-disabled="false"
+        aria-label="Clear search"
+        class="en1t1xv0 css-1fvcybu-StyledButton-getColors-getButtonStyles-ActionButton e1b8u3ky2"
+        role="button"
+        type="button"
+      >
+        <span
+          class="css-vul34l-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+          role="presentation"
+        />
+        <span
+          class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+        >
+          <span
+            class="css-161yn40-Icon e1b8u3ky0"
+          >
+            <svg
+              data-test-id="icon-close"
+              fill="currentColor"
+              height="12px"
+              viewBox="0 0 16 16"
+              width="12px"
+            >
+              <path
+                d="M6.94,8,1.47,13.47a.75.75,0,0,0,0,1.06.75.75,0,0,0,1.06,0L8,9.06l5.47,5.47a.75.75,0,0,0,1.06,0,.75.75,0,0,0,0-1.06L9.06,8l5.47-5.47a.75.75,0,0,0-1.06-1.06L8,6.94,2.53,1.47A.75.75,0,0,0,1.47,2.53Z"
+              />
+            </svg>
+          </span>
+        </span>
+      </button>
+    </div>
+    <div
+      class="css-1kpf3hm-Overlay-SearchDropdownOverlay e7s74sr20"
+      data-test-id="smart-search-dropdown"
+    >
+      <ul
+        class="css-1weg2cl-SearchItemsList e7s74sr14"
+      >
+        <li
+          class="css-11e4ntr-ListItem-SearchDropdownGroup e7s74sr16"
+        >
+          <header
+            class="css-jeijjp-SearchDropdownGroupTitle e7s74sr15"
+          >
+            <svg
+              fill="currentColor"
+              height="12px"
+              viewBox="0 0 16 16"
+              width="12px"
+            >
+              <path
+                d="M3.87,5.7A1.81,1.81,0,1,1,5.69,3.89,1.82,1.82,0,0,1,3.87,5.7Zm0-2.12a.31.31,0,1,0,.32.31A.31.31,0,0,0,3.87,3.58Z"
+              />
+              <path
+                d="M8,16a.77.77,0,0,1-.53-.21L.24,8.53A.75.75,0,0,1,0,8V.79A.75.75,0,0,1,.77,0H8a.74.74,0,0,1,.53.21l7.22,7.22a.75.75,0,0,1,0,1.06L8.51,15.75A.74.74,0,0,1,8,16ZM1.52,7.69,8,14.15,14.14,8,7.67,1.54H1.52Z"
+              />
+            </svg>
+            Keys
+          </header>
+        </li>
+        <li
+          class="  css-p37i5d-ListItem-SearchListItem e7s74sr13"
+          data-test-id="search-autocomplete-item"
+          role="option"
+        >
+          <div
+            class="css-htyyn-SearchItemTitleWrapper-overflowEllipsis e7s74sr12"
+          >
+            <span
+              class="css-nmvtvk-FirstWordWrapper e7s74sr10"
+            >
+              
+              <strong>
+                nest
+              </strong>
+              ed
+            </span>
+          </div>
+          <span
+            class="css-mfc5pd-Documentation-overflowEllipsis e7s74sr8"
+          >
+            -
+          </span>
+          <span
+            class="css-1cdpasg-TagWrapper e7s74sr9"
+          >
+            <span
+              class="css-13g1j83-TagWrapper e8jgvoh4"
+            >
+              <div
+                class="css-15z9say-Background e8jgvoh3"
+                type="default"
+              >
+                <span
+                  class="css-uly9e3-Text e8jgvoh1"
+                  type="default"
+                >
+                  field
+                </span>
+              </div>
+            </span>
+          </span>
+        </li>
+        <li
+          class="group-child  css-uwr88m-ListItem-SearchListItem e7s74sr13"
+          data-test-id="search-autocomplete-item"
+          role="option"
+        >
+          <div
+            class="css-htyyn-SearchItemTitleWrapper-overflowEllipsis e7s74sr12"
+          >
+            <span
+              class="css-1gvub3r-RestOfWordsContainer e7s74sr11"
+            >
+              .
+              child
+            </span>
+          </div>
+          <span
+            class="css-mfc5pd-Documentation-overflowEllipsis e7s74sr8"
+          >
+            -
+          </span>
+          <span
+            class="css-1cdpasg-TagWrapper e7s74sr9"
+          />
+        </li>
+        <li
+          class="  css-p37i5d-ListItem-SearchListItem e7s74sr13"
+          data-test-id="search-autocomplete-item"
+          role="option"
+        >
+          <div
+            class="css-htyyn-SearchItemTitleWrapper-overflowEllipsis e7s74sr12"
+          >
+            <span
+              class="css-nmvtvk-FirstWordWrapper e7s74sr10"
+            >
+              
+              <strong>
+                nest
+              </strong>
+              ednoparent
+            </span>
+            <span
+              class="css-1ndbsqp-RestOfWordsContainer e7s74sr11"
+            >
+              .
+              child
+            </span>
+          </div>
+          <span
+            class="css-mfc5pd-Documentation-overflowEllipsis e7s74sr8"
+          >
+            -
+          </span>
+          <span
+            class="css-1cdpasg-TagWrapper e7s74sr9"
+          >
+            <span
+              class="css-13g1j83-TagWrapper e8jgvoh4"
+            >
+              <div
+                class="css-15z9say-Background e8jgvoh3"
+                type="default"
+              >
+                <span
+                  class="css-uly9e3-Text e8jgvoh1"
+                  type="default"
+                >
+                  field
+                </span>
+              </div>
+            </span>
+          </span>
+        </li>
+      </ul>
+      <div
+        class="css-w39t67-DropdownFooter e7s74sr7"
+      >
+        <div
+          class="css-yo4yps-ButtonGrid e1n9g4yq0"
+        />
+        <a
+          aria-disabled="false"
+          aria-label="Read the docs"
+          class="e1b8u3ky2 css-l0611-Anchor-StyledButton-getColors-getButtonStyles ehytxfi0"
+          href="https://docs.sentry.io/product/sentry-basics/search/"
+          rel="noreferrer noopener"
+          role="button"
+          target="_blank"
+        >
+          <span
+            class="css-vul34l-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+            role="presentation"
+          />
+          <span
+            class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+          >
+            Read the docs
+          </span>
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+`;

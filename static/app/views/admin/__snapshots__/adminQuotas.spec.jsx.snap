@@ -1,0 +1,142 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`AdminQuotas render() renders 1`] = `
+<div>
+  <h3>
+    Quotas
+  </h3>
+  <div
+    class="css-2fj46w-Panel edxrl2k0"
+  >
+    <div
+      class="css-1v7t0a0-PanelHeader-getPadding eknsyxy0"
+    >
+      Config
+    </div>
+    <div
+      class="css-1fapqz0-PanelBody-textStyles eszvord0"
+    >
+      <div
+        class="css-1lnntq6-FieldWrapper-getPadding-inlineStyle-FieldWrapper e12z3jxd0"
+      >
+        <label
+          aria-label="Backend"
+          class="css-kv2nyk-FieldDescription-inlineStyle e1cwyh1y0"
+          for="backend"
+        >
+          <div
+            class="css-ozwa0k-FieldLabel ekcr5um0"
+          >
+            <span>
+              Backend
+            </span>
+          </div>
+        </label>
+        <div
+          class="css-1m0ep53-FieldControlWrapper e1ap0t511"
+        >
+          <div
+            class="css-sse8ie-FieldControlStyled e1ap0t510"
+          >
+            <div
+              class="css-2tpzr9-InputGroupWrap e13j5zq05"
+              disabled=""
+            >
+              <input
+                aria-describedby="backend_help"
+                class="css-bjpyf7-Input-inputStyles-StyledInput-getInputStyles e13j5zq03"
+                disabled=""
+                id="backend"
+                label="Backend"
+                name="backend"
+                type="text"
+                value="sentry.quotas.redis.RedisQuota"
+              />
+              <div
+                class="css-pzxhlx-InputItemsWrap-InputTrailingItemsWrap e13j5zq00"
+                data-test-id="input-trailing-items"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+      <div
+        class="css-1lnntq6-FieldWrapper-getPadding-inlineStyle-FieldWrapper e12z3jxd0"
+      >
+        <label
+          aria-label="Rate Limit"
+          class="css-kv2nyk-FieldDescription-inlineStyle e1cwyh1y0"
+          for="rateLimit"
+        >
+          <div
+            class="css-ozwa0k-FieldLabel ekcr5um0"
+          >
+            <span>
+              Rate Limit
+            </span>
+          </div>
+        </label>
+        <div
+          class="css-1m0ep53-FieldControlWrapper e1ap0t511"
+        >
+          <div
+            class="css-sse8ie-FieldControlStyled e1ap0t510"
+          >
+            <div
+              class="css-2tpzr9-InputGroupWrap e13j5zq05"
+              disabled=""
+            >
+              <input
+                aria-describedby="rateLimit_help"
+                class="css-bjpyf7-Input-inputStyles-StyledInput-getInputStyles e13j5zq03"
+                disabled=""
+                id="rateLimit"
+                label="Rate Limit"
+                name="rateLimit"
+                type="text"
+                value="0"
+              />
+              <div
+                class="css-pzxhlx-InputItemsWrap-InputTrailingItemsWrap e13j5zq00"
+                data-test-id="input-trailing-items"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div
+    class="css-2fj46w-Panel edxrl2k0"
+  >
+    <div
+      class="css-1v7t0a0-PanelHeader-getPadding eknsyxy0"
+    >
+      Total Events
+    </div>
+    <div
+      class="css-1fapqz0-PanelBody-textStyles eszvord0"
+    >
+      <div
+        class="css-qr61vd-ChartContainer-getTooltipStyles e1d3yu8b0"
+      />
+    </div>
+  </div>
+  <div
+    class="css-2fj46w-Panel edxrl2k0"
+  >
+    <div
+      class="css-1v7t0a0-PanelHeader-getPadding eknsyxy0"
+    >
+      Dropped Events
+    </div>
+    <div
+      class="css-1fapqz0-PanelBody-textStyles eszvord0"
+    >
+      <div
+        class="css-qr61vd-ChartContainer-getTooltipStyles e1d3yu8b0"
+      />
+    </div>
+  </div>
+</div>
+`;

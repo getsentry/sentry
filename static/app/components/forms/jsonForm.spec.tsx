@@ -12,7 +12,7 @@ describe('JsonForm', function () {
       const {container} = render(
         <JsonForm forms={accountDetailsFields} additionalFieldProps={{user}} />
       );
-      expect(container).toSnapshot();
+      expect(container).toMatchSnapshot();
     });
 
     it('missing additionalFieldProps required in "valid" prop', function () {
@@ -84,7 +84,7 @@ describe('JsonForm', function () {
 
     it('default', function () {
       const {container} = render(<JsonForm fields={jsonFormFields} />);
-      expect(container).toSnapshot();
+      expect(container).toMatchSnapshot();
     });
 
     it('missing additionalFieldProps required in "valid" prop', function () {

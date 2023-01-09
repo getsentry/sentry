@@ -12,6 +12,6 @@ describe('EventSdkUpdates', function () {
     };
 
     const wrapper = render(<EventSdkUpdates {...props} />, {context: routerContext});
-    expect(wrapper.container).toSnapshot();
+    expect(wrapper.container).toMatchSnapshot();
   });
 });

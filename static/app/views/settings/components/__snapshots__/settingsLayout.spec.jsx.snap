@@ -1,0 +1,65 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`SettingsLayout renders 1`] = `
+<div>
+  <div
+    class="css-d651c0-SettingsColumn e1ur80md7"
+  >
+    <div
+      class="css-1yen440-SettingsHeader e1actt5b0"
+    >
+      <div
+        class="css-jn09wj-HeaderContent e1ur80md6"
+      >
+        <nav
+          aria-label="Settings Breadcrumbs"
+          class="e1ur80md4 css-17bs639-Breadcrumbs-StyledSettingsBreadcrumb e8a6wdo0"
+        />
+        <div
+          class="css-1wnc5x8-SearchWrapper ebntwz10"
+          role="search"
+        >
+          <div
+            class="css-28tpol-SearchInputWrapper ep9h6jq2"
+          >
+            <svg
+              class="css-12z783-SearchInputIcon ep9h6jq1"
+              fill="currentColor"
+              height="14px"
+              viewBox="0 0 16 16"
+              width="14px"
+            >
+              <path
+                d="M6,12A6,6,0,1,1,12,6,6,6,0,0,1,6,12ZM6,1.54A4.46,4.46,0,1,0,10.45,6,4.46,4.46,0,0,0,6,1.54Z"
+              />
+              <path
+                d="M15.2,16a.74.74,0,0,1-.53-.22L9.14,10.2A.75.75,0,0,1,10.2,9.14l5.53,5.53a.75.75,0,0,1,0,1.06A.74.74,0,0,1,15.2,16Z"
+              />
+            </svg>
+            <input
+              aria-expanded="true"
+              aria-haspopup="listbox"
+              aria-label="Search Settings"
+              class="css-1yzmhwf-SearchInput ep9h6jq0"
+              placeholder="Search"
+              style="outline: none;"
+              type="text"
+              value=""
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+    <div
+      class="css-wm0ppo-MaxWidthContainer e1ur80md3"
+    >
+      <div
+        class="css-1ct1h34-NavMask e1ur80md1"
+      />
+      <div
+        class="css-qmxbz1-Content e1ur80md0"
+      />
+    </div>
+  </div>
+</div>
+`;

@@ -24,7 +24,7 @@ describe('DropdownAutoCompleteMenu', function () {
         {() => 'Click Me!'}
       </DropdownAutoCompleteMenu>
     );
-    expect(container).toSnapshot();
+    expect(container).toMatchSnapshot();
   });
 
   it('renders with a group', function () {
@@ -52,7 +52,7 @@ describe('DropdownAutoCompleteMenu', function () {
         {() => 'Click Me!'}
       </DropdownAutoCompleteMenu>
     );
-    expect(container).toSnapshot();
+    expect(container).toMatchSnapshot();
   });
 
   it('can select an item by clicking', function () {

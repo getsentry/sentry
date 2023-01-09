@@ -19,6 +19,6 @@ describe('AccountAuthorizations', function () {
       context: TestStubs.routerContext(),
     });
 
-    expect(wrapper.container).toSnapshot();
+    expect(wrapper.container).toMatchSnapshot();
   });
 });

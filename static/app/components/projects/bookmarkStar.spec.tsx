@@ -20,7 +20,7 @@ describe('BookmarkStar', function () {
       <BookmarkStar organization={TestStubs.Organization()} project={project} />
     );
 
-    expect(container).toSnapshot();
+    expect(container).toMatchSnapshot();
   });
 
   it('can star', async function () {

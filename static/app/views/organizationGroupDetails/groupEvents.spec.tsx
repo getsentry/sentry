@@ -126,7 +126,7 @@ describe('groupEvents', () => {
       {context: routerContext, organization}
     );
 
-    expect(wrapper.container).toSnapshot();
+    expect(wrapper.container).toMatchSnapshot();
   });
 
   it('handles search', async () => {

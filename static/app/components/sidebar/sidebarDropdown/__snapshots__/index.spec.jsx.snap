@@ -1,0 +1,153 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`SidebarDropdown renders 1`] = `
+<div>
+  <div
+    class="css-1hndfv9-SidebarDropdownRoot e169svp67"
+  >
+    <button
+      aria-expanded="false"
+      aria-haspopup="listbox"
+      class="css-1fdb9ax-SidebarDropdownActor e169svp63"
+      data-test-id="sidebar-dropdown"
+      style="outline: none;"
+      type="button"
+    >
+      <span
+        class="avatar e169svp62 css-1qzip9z-StyledBaseAvatar-StyledAvatar ery3g4h1"
+        data-test-id="letter_avatar-avatar"
+        style="width: 32px; height: 32px;"
+        title="org slug"
+      >
+        <svg
+          class="css-h0a6ia-LetterAvatar-imageStyle ewkzefl0"
+          viewBox="0 0 120 120"
+        >
+          <rect
+            fill="#4674ca"
+            height="120"
+            opacity="100%"
+            rx="15"
+            ry="15"
+            width="120"
+            x="0"
+            y="0"
+          />
+          <text
+            fill="#FFFFFF"
+            font-size="65"
+            style="dominant-baseline: central;"
+            text-anchor="middle"
+            x="50%"
+            y="50%"
+          >
+            OS
+          </text>
+        </svg>
+      </span>
+      <div
+        class="css-196hndj-OrgAndUserWrapper e169svp66"
+      >
+        <div
+          class="css-1fmy7d5-TextOverflow-overflowEllipsis-OrgOrUserName e169svp65"
+        >
+          Organization Name
+           
+          <svg
+            class="e169svp60 css-5pcn6a-IconChevron-StyledIconChevron"
+            fill="#FFFFFF"
+            height="12px"
+            viewBox="0 0 16 16"
+            width="12px"
+          >
+            <path
+              d="M14,11.75a.74.74,0,0,1-.53-.22L8,6.06,2.53,11.53a.75.75,0,0,1-1.06-1.06l6-6a.75.75,0,0,1,1.06,0l6,6a.75.75,0,0,1,0,1.06A.74.74,0,0,1,14,11.75Z"
+            />
+          </svg>
+        </div>
+        <div
+          class="css-1dru019-TextOverflow-overflowEllipsis-UserNameOrEmail e169svp64"
+        >
+          Foo Bar
+        </div>
+      </div>
+    </button>
+  </div>
+</div>
+`;
+
+exports[`SidebarDropdown renders without org links 1`] = `
+<div>
+  <div
+    class="css-1hndfv9-SidebarDropdownRoot e169svp67"
+  >
+    <button
+      aria-expanded="false"
+      aria-haspopup="listbox"
+      class="css-1fdb9ax-SidebarDropdownActor e169svp63"
+      data-test-id="sidebar-dropdown"
+      style="outline: none;"
+      type="button"
+    >
+      <span
+        class="avatar e169svp62 css-1qzip9z-StyledBaseAvatar-StyledAvatar ery3g4h1"
+        data-test-id="letter_avatar-avatar"
+        style="width: 32px; height: 32px;"
+        title="org slug"
+      >
+        <svg
+          class="css-h0a6ia-LetterAvatar-imageStyle ewkzefl0"
+          viewBox="0 0 120 120"
+        >
+          <rect
+            fill="#4674ca"
+            height="120"
+            opacity="100%"
+            rx="15"
+            ry="15"
+            width="120"
+            x="0"
+            y="0"
+          />
+          <text
+            fill="#FFFFFF"
+            font-size="65"
+            style="dominant-baseline: central;"
+            text-anchor="middle"
+            x="50%"
+            y="50%"
+          >
+            OS
+          </text>
+        </svg>
+      </span>
+      <div
+        class="css-196hndj-OrgAndUserWrapper e169svp66"
+      >
+        <div
+          class="css-1fmy7d5-TextOverflow-overflowEllipsis-OrgOrUserName e169svp65"
+        >
+          Organization Name
+           
+          <svg
+            class="e169svp60 css-5pcn6a-IconChevron-StyledIconChevron"
+            fill="#FFFFFF"
+            height="12px"
+            viewBox="0 0 16 16"
+            width="12px"
+          >
+            <path
+              d="M14,11.75a.74.74,0,0,1-.53-.22L8,6.06,2.53,11.53a.75.75,0,0,1-1.06-1.06l6-6a.75.75,0,0,1,1.06,0l6,6a.75.75,0,0,1,0,1.06A.74.74,0,0,1,14,11.75Z"
+            />
+          </svg>
+        </div>
+        <div
+          class="css-1dru019-TextOverflow-overflowEllipsis-UserNameOrEmail e169svp64"
+        >
+          Foo Bar
+        </div>
+      </div>
+    </button>
+  </div>
+</div>
+`;

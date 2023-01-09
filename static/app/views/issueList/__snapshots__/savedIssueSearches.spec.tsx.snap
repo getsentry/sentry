@@ -1,0 +1,268 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`SavedIssueSearches displays saved searches with correct text and in correct sections 1`] = `
+<div>
+  <aside
+    class="css-2li6a7-StyledSidebar e4mhtw112"
+  >
+    <div
+      class="css-129n05n-HeadingContainer e4mhtw111"
+    >
+      <h2
+        class="css-c6t00g-Heading e4mhtw110"
+      >
+        Saved Searches
+      </h2>
+      <button
+        aria-disabled="false"
+        aria-label="Create a new saved search"
+        class="css-1jpb2w0-StyledButton-getColors-getButtonStyles e1b8u3ky2"
+        role="button"
+        type="button"
+      >
+        <span
+          class="css-vul34l-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+          role="presentation"
+        />
+        <span
+          class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+        >
+          <span
+            class="css-161yn40-Icon e1b8u3ky0"
+          >
+            <svg
+              fill="currentColor"
+              height="16px"
+              viewBox="0 0 16 16"
+              width="16px"
+            >
+              <path
+                d="M8.75,7.25V2a.75.75,0,0,0-1.5,0V7.25H2a.75.75,0,0,0,0,1.5H7.25V14a.75.75,0,0,0,1.5,0V8.75H14a.75.75,0,0,0,0-1.5Z"
+              />
+            </svg>
+          </span>
+        </span>
+      </button>
+    </div>
+    <ul
+      class="css-1pnw1cb-SearchesContainer e4mhtw19"
+    >
+      <li
+        class="css-5dderl-SearchListItem-SearchListItem e4mhtw16"
+      >
+        <button
+          aria-disabled="false"
+          aria-label="Just Firefox"
+          class="e4mhtw18 css-ats4r0-StyledButton-getColors-getButtonStyles-StyledItemButton e1b8u3ky2"
+          role="button"
+          type="button"
+        >
+          <span
+            class="css-vul34l-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+            role="presentation"
+          />
+          <span
+            class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+          >
+            <div
+              class="css-19rnm3h-TitleDescriptionWrapper e4mhtw15"
+            >
+              <div
+                class="css-duvd2i-SavedSearchItemTitle-overflowEllipsis e4mhtw14"
+              >
+                Just Firefox
+              </div>
+              <div
+                class="css-1gl3u4v-SavedSearchItemVisbility-overflowEllipsis e4mhtw13"
+              >
+                Only you can see and edit
+              </div>
+            </div>
+          </span>
+        </button>
+        <div
+          class="e4mhtw17 css-o7r412-MenuControlWrap-OverflowMenu e1xefvzy0"
+          role="presentation"
+        >
+          <button
+            aria-disabled="false"
+            aria-expanded="false"
+            aria-haspopup="true"
+            aria-label="Saved search options"
+            class="css-1jpb2w0-StyledButton-getColors-getButtonStyles e1b8u3ky2"
+            id="react-aria7332141648-2"
+            role="button"
+            type="button"
+          >
+            <span
+              class="css-vul34l-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+              role="presentation"
+            />
+            <span
+              class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+            >
+              <span
+                class="css-161yn40-Icon e1b8u3ky0"
+              >
+                <svg
+                  fill="currentColor"
+                  height="16px"
+                  viewBox="0 0 16 16"
+                  width="16px"
+                >
+                  <circle
+                    cx="8"
+                    cy="8"
+                    r="1.31"
+                  />
+                  <circle
+                    cx="1.31"
+                    cy="8"
+                    r="1.31"
+                  />
+                  <circle
+                    cx="14.69"
+                    cy="8"
+                    r="1.31"
+                  />
+                </svg>
+              </span>
+            </span>
+          </button>
+        </div>
+      </li>
+      <li
+        class="css-5dderl-SearchListItem-SearchListItem e4mhtw16"
+      >
+        <button
+          aria-disabled="false"
+          aria-label="Last 4 Hours"
+          class="e4mhtw18 css-ats4r0-StyledButton-getColors-getButtonStyles-StyledItemButton e1b8u3ky2"
+          role="button"
+          type="button"
+        >
+          <span
+            class="css-vul34l-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+            role="presentation"
+          />
+          <span
+            class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+          >
+            <div
+              class="css-19rnm3h-TitleDescriptionWrapper e4mhtw15"
+            >
+              <div
+                class="css-duvd2i-SavedSearchItemTitle-overflowEllipsis e4mhtw14"
+              >
+                Last 4 Hours
+              </div>
+              <div
+                class="css-1gl3u4v-SavedSearchItemVisbility-overflowEllipsis e4mhtw13"
+              >
+                Anyone in organization can see but not edit
+              </div>
+            </div>
+          </span>
+        </button>
+        <div
+          class="e4mhtw17 css-o7r412-MenuControlWrap-OverflowMenu e1xefvzy0"
+          role="presentation"
+        >
+          <button
+            aria-disabled="false"
+            aria-expanded="false"
+            aria-haspopup="true"
+            aria-label="Saved search options"
+            class="css-1jpb2w0-StyledButton-getColors-getButtonStyles e1b8u3ky2"
+            id="react-aria7332141648-5"
+            role="button"
+            type="button"
+          >
+            <span
+              class="css-vul34l-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+              role="presentation"
+            />
+            <span
+              class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+            >
+              <span
+                class="css-161yn40-Icon e1b8u3ky0"
+              >
+                <svg
+                  fill="currentColor"
+                  height="16px"
+                  viewBox="0 0 16 16"
+                  width="16px"
+                >
+                  <circle
+                    cx="8"
+                    cy="8"
+                    r="1.31"
+                  />
+                  <circle
+                    cx="1.31"
+                    cy="8"
+                    r="1.31"
+                  />
+                  <circle
+                    cx="14.69"
+                    cy="8"
+                    r="1.31"
+                  />
+                </svg>
+              </span>
+            </span>
+          </button>
+        </div>
+      </li>
+    </ul>
+    <div
+      class="css-129n05n-HeadingContainer e4mhtw111"
+    >
+      <h2
+        class="css-c6t00g-Heading e4mhtw110"
+      >
+        Recommended Searches
+      </h2>
+    </div>
+    <ul
+      class="css-1pnw1cb-SearchesContainer e4mhtw19"
+    >
+      <li
+        class="css-bp9b58-SearchListItem e4mhtw16"
+      >
+        <button
+          aria-disabled="false"
+          aria-label="Assigned to Me"
+          class="e4mhtw18 css-ats4r0-StyledButton-getColors-getButtonStyles-StyledItemButton e1b8u3ky2"
+          role="button"
+          type="button"
+        >
+          <span
+            class="css-vul34l-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+            role="presentation"
+          />
+          <span
+            class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+          >
+            <div
+              class="css-19rnm3h-TitleDescriptionWrapper e4mhtw15"
+            >
+              <div
+                class="css-duvd2i-SavedSearchItemTitle-overflowEllipsis e4mhtw14"
+              >
+                Assigned to Me
+              </div>
+              <div
+                class="css-hf63f-SavedSearchItemQuery-overflowEllipsis e4mhtw12"
+              >
+                is:unresolved assigned:me
+              </div>
+            </div>
+          </span>
+        </button>
+      </li>
+    </ul>
+  </aside>
+</div>
+`;

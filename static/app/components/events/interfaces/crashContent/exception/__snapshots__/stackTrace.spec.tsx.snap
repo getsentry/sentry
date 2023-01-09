@@ -1,0 +1,62 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`ExceptionStacktraceContent default behaviour 1`] = `
+<div>
+  <div
+    class=" traceback in-app-traceback css-w0ecv3-Panel-Wrapper es17bp51"
+    data-test-id="stack-trace-content"
+  >
+    <img
+      class="css-aojgj6-StyledPlatformIcon e1lyxnxt0"
+      data-test-id="platform-icon-node"
+      height="20px"
+      src="[object Object]"
+      style="border-radius: nullpx;"
+      width="20px"
+    />
+    <ul
+      class="css-20qtln-StyledList es17bp50"
+      data-test-id="frames"
+    >
+      <li
+        class="frame expanded system-frame leads-to-app css-solfr2-StyledLi e4z9bjt0"
+        data-test-id="line"
+      >
+        <div
+          class="title css-7kw2s3-DefaultLine e4z9bjt5"
+          data-test-id="title"
+        >
+          <div
+            class="css-1u991uj-VertCenterWrapper e4z9bjt8"
+          >
+            <div>
+              <code
+                class="filename"
+                data-test-id="filename"
+              >
+                <span
+                  class=" css-a2xa0g-Wrapper e1sfkn8v1"
+                >
+                  <span>
+                    foo/baz.c
+                  </span>
+                </span>
+              </code>
+              <span
+                class="in-at in-at-line css-19bbnue-InFramePosition e1cfec1l1"
+              >
+                 at line 
+              </span>
+              <code
+                class="lineno"
+              >
+                1
+              </code>
+            </div>
+          </div>
+        </div>
+      </li>
+    </ul>
+  </div>
+</div>
+`;

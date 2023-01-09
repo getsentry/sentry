@@ -30,7 +30,7 @@ describe('ProjectPlugins', function () {
       expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument()
     );
 
-    expect(container).toSnapshot();
+    expect(container).toMatchSnapshot();
   });
 
   it('has error state when plugins=[]', async function () {

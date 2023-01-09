@@ -1,0 +1,88 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Button renders 1`] = `
+<div>
+  <button
+    aria-disabled="false"
+    aria-label="Button"
+    class="css-zbzvlb-StyledButton-getColors-getButtonStyles e1b8u3ky2"
+    role="button"
+    type="button"
+  >
+    <span
+      class="css-at526y-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+      role="presentation"
+    />
+    <span
+      class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+    >
+      Button
+    </span>
+  </button>
+</div>
+`;
+
+exports[`Button renders disabled normal link 1`] = `
+<div>
+  <a
+    aria-disabled="false"
+    aria-label="Normal Link"
+    class="css-19177tu-StyledButton-getColors-getButtonStyles e1b8u3ky2"
+    href="/some/relative/url"
+    role="button"
+  >
+    <span
+      class="css-vul34l-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+      role="presentation"
+    />
+    <span
+      class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+    >
+      Normal Link
+    </span>
+  </a>
+</div>
+`;
+
+exports[`Button renders normal link 1`] = `
+<div>
+  <a
+    aria-disabled="false"
+    aria-label="Normal Link"
+    class="css-19177tu-StyledButton-getColors-getButtonStyles e1b8u3ky2"
+    href="/some/relative/url"
+    role="button"
+  >
+    <span
+      class="css-vul34l-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+      role="presentation"
+    />
+    <span
+      class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+    >
+      Normal Link
+    </span>
+  </a>
+</div>
+`;
+
+exports[`Button renders react-router link 1`] = `
+<div>
+  <a
+    aria-disabled="false"
+    aria-label="Router Link"
+    class="e1b8u3ky2 css-qnrsmn-Link-StyledButton-getColors-getButtonStyles e1ycxor00"
+    role="button"
+  >
+    <span
+      class="css-vul34l-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+      role="presentation"
+    />
+    <span
+      class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+    >
+      Router Link
+    </span>
+  </a>
+</div>
+`;

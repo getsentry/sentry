@@ -28,11 +28,11 @@ function renderDropdown(props) {
 describe('SidebarDropdown', function () {
   it('renders', function () {
     const {container} = renderDropdown();
-    expect(container).toSnapshot();
+    expect(container).toMatchSnapshot();
   });
   it('renders without org links', function () {
     const {container} = renderDropdown({hideOrgLinks: true});
-    expect(container).toSnapshot();
+    expect(container).toMatchSnapshot();
   });
   it('renders open sidebar', function () {
     const config = {...ConfigStore.get('config'), singleOrganization: false};

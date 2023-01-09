@@ -1,0 +1,11 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Tooltip renders 1`] = `
+<div>
+  <span
+    aria-describedby="tooltip-qrdi4e2ct"
+  >
+    My Button
+  </span>
+</div>
+`;

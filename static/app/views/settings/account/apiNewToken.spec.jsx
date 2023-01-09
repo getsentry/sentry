@@ -7,6 +7,6 @@ describe('ApiNewToken', function () {
     const wrapper = render(<ApiNewToken params={{}} />, {
       context: TestStubs.routerContext(),
     });
-    expect(wrapper.container).toSnapshot();
+    expect(wrapper.container).toMatchSnapshot();
   });
 });

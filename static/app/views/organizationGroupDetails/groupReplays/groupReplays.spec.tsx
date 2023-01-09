@@ -175,7 +175,7 @@ describe('GroupReplays', () => {
       ).toBeInTheDocument();
       expect(mockEventsApi).toHaveBeenCalledTimes(1);
       expect(mockReplayApi).toHaveBeenCalledTimes(1);
-      expect(container).toSnapshot();
+      expect(container).toMatchSnapshot();
     });
 
     it('should display error message when api call fails', async () => {

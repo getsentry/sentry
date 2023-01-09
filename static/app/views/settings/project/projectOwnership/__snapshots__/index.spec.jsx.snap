@@ -1,0 +1,370 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Project Ownership without codeowners renders 1`] = `
+<div>
+  <div
+    class="css-q8xgg6-SettingsPageHeader e1nr98yc2"
+  >
+    <div
+      class="css-1mfa9vw-TitleAndActions e1nr98yc8"
+    >
+      <div
+        class="css-u3au9h-TitleWrapper e1nr98yc7"
+      >
+        <div
+          class="css-18xqiae-Title e1nr98yc6"
+        >
+          <h4
+            class="css-jz1c1u-HeaderTitle e12cn1y20"
+          >
+            Issue Owners
+          </h4>
+        </div>
+      </div>
+      <div
+        class="css-1srjsw5-Action e1nr98yc3"
+      >
+        <a
+          aria-disabled="false"
+          aria-label="View Issues"
+          class="e1b8u3ky2 css-1n6w0i1-Link-StyledButton-getColors-getButtonStyles e1ycxor00"
+          role="button"
+        >
+          <span
+            class="css-vul34l-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+            role="presentation"
+          />
+          <span
+            class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+          >
+            View Issues
+          </span>
+        </a>
+      </div>
+    </div>
+  </div>
+  <div
+    class="css-7mlzv4-IssueOwnerDetails eln4bag0"
+  >
+    <span>
+      <span>
+        Auto-assign issues to users and teams. To learn more, 
+      </span>
+      <a
+        class="css-1ecfdi8-Anchor ehytxfi0"
+        href="https://docs.sentry.io/product/error-monitoring/issue-owners/"
+        rel="noreferrer noopener"
+        target="_blank"
+      >
+        <span>
+          read the docs
+        </span>
+      </a>
+      <span>
+        .
+      </span>
+    </span>
+  </div>
+  <div
+    class="css-2fj46w-Panel edxrl2k0"
+    data-test-id="issueowners-panel"
+  >
+    <div
+      class="css-1v7t0a0-PanelHeader-getPadding eknsyxy0"
+    >
+      <div
+        class="css-ojysl9-Container earny2k6"
+      >
+        <svg
+          fill="currentColor"
+          height="20px"
+          viewBox="0 0 16 16"
+          width="20px"
+        >
+          <path
+            d="M15.8,14.57a1.53,1.53,0,0,0,0-1.52L9.28,1.43a1.46,1.46,0,0,0-2.56,0L4.61,5.18l.54.32A10.43,10.43,0,0,1,8.92,9.39a10.84,10.84,0,0,1,1.37,4.67H8.81a9.29,9.29,0,0,0-1.16-3.91A9,9,0,0,0,4.41,6.81L3.88,6.5,1.91,10l.53.32a5.12,5.12,0,0,1,2.42,3.73H1.48a.25.25,0,0,1-.21-.12.24.24,0,0,1,0-.25L2.21,12a3.32,3.32,0,0,0-1.07-.63L.2,13.05a1.53,1.53,0,0,0,0,1.52,1.46,1.46,0,0,0,1.28.76H6.13V14.7a6.55,6.55,0,0,0-.82-3.16,6.31,6.31,0,0,0-1.73-2l.74-1.32a7.85,7.85,0,0,1,2.26,2.53,8,8,0,0,1,1,3.92v.63h3.94V14.7A12.14,12.14,0,0,0,10,8.75a11.8,11.8,0,0,0-3.7-4l1.5-2.67a.24.24,0,0,1,.42,0l6.52,11.63a.24.24,0,0,1,0,.25.24.24,0,0,1-.21.12H13c0,.43,0,.85,0,1.27h1.53a1.46,1.46,0,0,0,1.28-.76"
+          />
+        </svg>
+        <div
+          class="css-jl3e1b-Title earny2k5"
+        >
+          Ownership Rules
+        </div>
+      </div>
+      <div
+        class="css-ojysl9-Container earny2k6"
+      >
+        <div
+          class="css-duocky-Controls earny2k0"
+        >
+          <button
+            aria-disabled="false"
+            aria-label="Edit"
+            class="css-cs9ro8-StyledButton-getColors-getButtonStyles e1b8u3ky2"
+            role="button"
+            type="button"
+          >
+            <span
+              class="css-vul34l-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+              role="presentation"
+            />
+            <span
+              class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+            >
+              Edit
+            </span>
+          </button>
+        </div>
+      </div>
+    </div>
+    <div
+      class="css-pemm1r-PanelBody-textStyles eszvord0"
+    >
+      <div
+        class="css-fkfs0h-PanelBody-textStyles-InnerPanelBody earny2k3"
+      >
+        <textarea
+          autocapitalize="off"
+          autocomplete="off"
+          autocorrect="off"
+          class="css-12iww12-TextArea-inputStyles-StyledTextArea earny2k2"
+          placeholder="#example usage
+path:src/example/pipeline/* person@sentry.io #infra
+module:com.module.name.example #sdks
+url:http://example.com/settings/* #product
+tags.sku_class:enterprise #enterprise"
+          readonly=""
+          spellcheck="false"
+        />
+      </div>
+    </div>
+  </div>
+  <form
+    class="form-stacked"
+  >
+    <div>
+      <div>
+        <div
+          class="css-2fj46w-Panel edxrl2k0"
+          id="Issue-Owners"
+        >
+          <div
+            class="css-1v7t0a0-PanelHeader-getPadding eknsyxy0"
+          >
+            Issue Owners
+          </div>
+          <div
+            class="css-pemm1r-PanelBody-textStyles eszvord0"
+          >
+            <div
+              class="css-1s6sn9m-FieldWrapper-getPadding-inlineStyle-FieldWrapper-FieldWrapper e12z3jxd0"
+            >
+              <label
+                aria-label="Prioritize Auto Assignment"
+                class="css-1lqelms-FieldDescription-inlineStyle e1cwyh1y0"
+                for="autoAssignment"
+              >
+                <div
+                  class="css-1amoduc-FieldLabel ekcr5um0"
+                >
+                  <span>
+                    Prioritize Auto Assignment
+                  </span>
+                </div>
+                <div
+                  class="css-14bl5nc-FieldHelp e1mobfxl0"
+                  id="autoAssignment_help"
+                >
+                  When there's a conflict between suspect commit and ownership rules.
+                </div>
+              </label>
+              <div
+                class="css-msyoo4-FieldControlWrapper e1ap0t511"
+              >
+                <div
+                  class="css-sse8ie-FieldControlStyled e1ap0t510"
+                >
+                  <div
+                    class=" css-2b097c-container"
+                  >
+                    <span
+                      aria-atomic="false"
+                      aria-live="polite"
+                      aria-relevant="additions text"
+                      class="css-1f43avz-a11yText-A11yText"
+                    />
+                    <div
+                      class=" css-lkrcqj-Control"
+                    >
+                      <div
+                        class=" css-1kqg4xi-ValueContainer"
+                      >
+                        <div
+                          class=" css-y9r1cg-singleValue"
+                        >
+                          <div
+                            class="css-up9q07-SingleValueWrap e11mqpwz1"
+                          >
+                            <div
+                              class="css-1h9r4of-SingleValueLabel-overflowEllipsis e11mqpwz0"
+                            >
+                              Auto-assign to suspect commits
+                            </div>
+                          </div>
+                        </div>
+                        <div
+                          class="css-s57u0a-Input"
+                        >
+                          <div
+                            class=""
+                            style="display: inline-block;"
+                          >
+                            <input
+                              aria-autocomplete="list"
+                              autocapitalize="none"
+                              autocomplete="off"
+                              autocorrect="off"
+                              id="autoAssignment"
+                              spellcheck="false"
+                              style="box-sizing: content-box; width: 2px; border: 0px; opacity: 1; outline: 0; padding: 0px;"
+                              tabindex="0"
+                              type="text"
+                              value=""
+                            />
+                            <div
+                              style="position: absolute; top: 0px; left: 0px; visibility: hidden; height: 0px; overflow: scroll; white-space: pre;"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                      <div
+                        class=" css-1d4abpz-IndicatorsContainer"
+                      >
+                        <div
+                          aria-hidden="true"
+                          class=" css-1td69xg-indicatorContainer"
+                        >
+                          <svg
+                            class="css-1905w31-IconChevron"
+                            fill="currentColor"
+                            height="14px"
+                            viewBox="0 0 16 16"
+                            width="14px"
+                          >
+                            <path
+                              d="M14,11.75a.74.74,0,0,1-.53-.22L8,6.06,2.53,11.53a.75.75,0,0,1-1.06-1.06l6-6a.75.75,0,0,1,1.06,0l6,6a.75.75,0,0,1,0,1.06A.74.74,0,0,1,14,11.75Z"
+                            />
+                          </svg>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div
+              class="css-nl4tr5-FieldWrapper-getPadding-inlineStyle-FieldWrapper e12z3jxd0"
+            >
+              <label
+                aria-label="Send alert to project members if there’s no assigned owner"
+                class="css-1lqelms-FieldDescription-inlineStyle e1cwyh1y0"
+                for="fallthrough"
+              >
+                <div
+                  class="css-1amoduc-FieldLabel ekcr5um0"
+                >
+                  <span>
+                    Send alert to project members if there’s no assigned owner
+                  </span>
+                </div>
+                <div
+                  class="css-14bl5nc-FieldHelp e1mobfxl0"
+                  id="fallthrough_help"
+                >
+                  Alerts will be sent to all users who have access to this project.
+                </div>
+              </label>
+              <div
+                class="css-msyoo4-FieldControlWrapper e1ap0t511"
+              >
+                <div
+                  class="css-sse8ie-FieldControlStyled e1ap0t510"
+                >
+                  <button
+                    aria-checked="false"
+                    aria-describedby="fallthrough_help"
+                    class="css-1lixgqp-SwitchButton ep74ita1"
+                    data-test-id="switch"
+                    id="fallthrough"
+                    label="Send alert to project members if there’s no assigned owner"
+                    name="fallthrough"
+                    role="checkbox"
+                    type="button"
+                  >
+                    <span
+                      class="css-1vgpr18-Toggle ep74ita0"
+                    />
+                  </button>
+                </div>
+                <div
+                  class="css-iw48yj-FieldControlState e190hkl80"
+                />
+              </div>
+            </div>
+            <div
+              class="css-nl4tr5-FieldWrapper-getPadding-inlineStyle-FieldWrapper e12z3jxd0"
+            >
+              <label
+                aria-label="Sync changes from CODEOWNERS"
+                class="css-1lqelms-FieldDescription-inlineStyle e1cwyh1y0"
+                for="codeownersAutoSync"
+              >
+                <div
+                  class="css-ozwa0k-FieldLabel ekcr5um0"
+                >
+                  <span>
+                    Sync changes from CODEOWNERS
+                  </span>
+                </div>
+                <div
+                  class="css-14bl5nc-FieldHelp e1mobfxl0"
+                  id="codeownersAutoSync_help"
+                >
+                  We’ll update any changes you make to your CODEOWNERS files during a release.
+                </div>
+              </label>
+              <div
+                class="css-msyoo4-FieldControlWrapper e1ap0t511"
+              >
+                <div
+                  class="css-sse8ie-FieldControlStyled e1ap0t510"
+                >
+                  <button
+                    aria-checked="false"
+                    aria-describedby="codeownersAutoSync_help"
+                    class="css-1lixgqp-SwitchButton ep74ita1"
+                    data-test-id="switch"
+                    disabled=""
+                    id="codeownersAutoSync"
+                    label="Sync changes from CODEOWNERS"
+                    name="codeownersAutoSync"
+                    role="checkbox"
+                    type="button"
+                  >
+                    <span
+                      class="css-1r9kncc-Toggle ep74ita0"
+                    />
+                  </button>
+                </div>
+                <div
+                  class="css-iw48yj-FieldControlState e190hkl80"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </form>
+</div>
+`;

@@ -9,27 +9,27 @@ describe('ScoreBar', function () {
 
   it('renders', function () {
     const {container} = render(<ScoreBar size={60} thickness={2} score={3} />);
-    expect(container).toSnapshot();
+    expect(container).toMatchSnapshot();
   });
 
   it('renders vertically', function () {
     const {container} = render(<ScoreBar size={60} thickness={2} vertical score={2} />);
-    expect(container).toSnapshot();
+    expect(container).toMatchSnapshot();
   });
 
   it('renders with score = 0', function () {
     const {container} = render(<ScoreBar size={60} thickness={2} score={0} />);
-    expect(container).toSnapshot();
+    expect(container).toMatchSnapshot();
   });
 
   it('renders with score > max score', function () {
     const {container} = render(<ScoreBar size={60} thickness={2} score={10} />);
-    expect(container).toSnapshot();
+    expect(container).toMatchSnapshot();
   });
 
   it('renders with < 0 score', function () {
     const {container} = render(<ScoreBar size={60} thickness={2} score={-2} />);
-    expect(container).toSnapshot();
+    expect(container).toMatchSnapshot();
   });
 
   it('has custom palette', function () {
@@ -42,6 +42,6 @@ describe('ScoreBar', function () {
         palette={['white', 'red', 'red', 'pink', 'pink', 'purple', 'purple', 'black']}
       />
     );
-    expect(container).toSnapshot();
+    expect(container).toMatchSnapshot();
   });
 });

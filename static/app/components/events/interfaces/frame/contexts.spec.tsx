@@ -79,7 +79,7 @@ describe('Device', function () {
         <DeviceEventContext data={device} event={TestStubs.Event()} />
       );
 
-      expect(container).toSnapshot();
+      expect(container).toMatchSnapshot();
     });
 
     it('renders screen_resolution inferred from screen_width_pixels and screen_height_pixels', function () {

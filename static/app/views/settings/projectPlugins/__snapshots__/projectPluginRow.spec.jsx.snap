@@ -1,0 +1,64 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`ProjectPluginRow renders 1`] = `
+<div>
+  <div
+    class="amazon-sqs css-119mele-PluginItem evund0f5"
+  >
+    <div
+      class="css-10f9tt3-PluginInfo evund0f3"
+    >
+      <div
+        class="css-t7m0sj-PluginIcon-StyledPluginIcon evund0f1"
+        size="48"
+      />
+      <div
+        class="css-1yqqovl-PluginDescription evund0f4"
+      >
+        <div
+          class="css-13njfqo-PluginName evund0f2"
+        >
+          Amazon SQS 
+          <span
+            class="css-16i2hsm-Version evund0f0"
+          >
+            v8.23.0.dev0
+          </span>
+        </div>
+        <div>
+          <a
+            class="css-1e7h2lz-Anchor-grayText ehytxfi0"
+            href="https://github.com/getsentry/sentry"
+            rel="noreferrer noopener"
+            target="_blank"
+          >
+            Sentry Team
+          </a>
+          <span>
+             
+            ·
+             
+            <a
+              class="css-19t5w00-Link-grayText e1ycxor00"
+              href="amazon-sqs"
+            >
+              Configure plugin
+            </a>
+          </span>
+        </div>
+      </div>
+    </div>
+    <button
+      aria-checked="false"
+      class="css-1lixgqp-SwitchButton ep74ita1"
+      data-test-id="switch"
+      role="checkbox"
+      type="button"
+    >
+      <span
+        class="css-1vgpr18-Toggle ep74ita0"
+      />
+    </button>
+  </div>
+</div>
+`;

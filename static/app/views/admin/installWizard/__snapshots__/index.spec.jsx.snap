@@ -1,0 +1,581 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`InstallWizard renders 1`] = `
+<div>
+  <div
+    class="css-ildwfd-Wrapper e1hin65u4"
+  >
+    <div
+      class="css-1kcbx7k-Pattern-fixedStyle-fixedStyle e1hin65u3"
+    />
+    <div
+      class="css-1mmzebe-SetupWizard e1hin65u0"
+    >
+      <h1
+        class="css-1obmcg-Heading e1hin65u2"
+      >
+        <span>
+          Welcome to Sentry
+        </span>
+        <small
+          class="css-qqvcsv-Version e1hin65u1"
+        />
+      </h1>
+      <form
+        class="form-stacked"
+      >
+        <div>
+          <p>
+            Complete setup by filling out the required configuration.
+          </p>
+          <fieldset>
+            <div
+              class="css-1s6sn9m-FieldWrapper-getPadding-inlineStyle-FieldWrapper-FieldWrapper e12z3jxd0"
+            >
+              <label
+                aria-label="Admin Email"
+                class="css-1lqelms-FieldDescription-inlineStyle e1cwyh1y0"
+                for="system.admin-email"
+              >
+                <div
+                  class="css-1amoduc-FieldLabel ekcr5um0"
+                >
+                  <span>
+                    Admin Email
+                    <div
+                      class="css-19ojc76-FieldRequiredBadge egnfobg0"
+                    />
+                  </span>
+                </div>
+                <div
+                  class="css-14bl5nc-FieldHelp e1mobfxl0"
+                  id="system.admin-email_help"
+                >
+                  The technical contact for this Sentry installation.
+                </div>
+              </label>
+              <div
+                class="css-msyoo4-FieldControlWrapper e1ap0t511"
+              >
+                <div
+                  class="css-sse8ie-FieldControlStyled e1ap0t510"
+                >
+                  <div
+                    class="css-1biel1q-InputGroupWrap e13j5zq05"
+                  >
+                    <input
+                      aria-describedby="system.admin-email_help"
+                      class="css-s5jfkh-Input-inputStyles-StyledInput-getInputStyles e13j5zq03"
+                      id="system.admin-email"
+                      label="Admin Email"
+                      name="system.admin-email"
+                      placeholder="admin@example.com"
+                      type="email"
+                      value="foo@example.com"
+                    />
+                    <div
+                      class="css-vdn3ll-InputItemsWrap-InputTrailingItemsWrap e13j5zq00"
+                      data-test-id="input-trailing-items"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </fieldset>
+          <fieldset>
+            <legend>
+              Outbound email
+            </legend>
+            <div
+              class="css-1s6sn9m-FieldWrapper-getPadding-inlineStyle-FieldWrapper-FieldWrapper e12z3jxd0"
+            >
+              <label
+                aria-label="Email From"
+                class="css-1lqelms-FieldDescription-inlineStyle e1cwyh1y0"
+                for="mail.from"
+              >
+                <div
+                  class="css-1amoduc-FieldLabel ekcr5um0"
+                >
+                  <span>
+                    Email From
+                    <div
+                      class="css-19ojc76-FieldRequiredBadge egnfobg0"
+                    />
+                  </span>
+                </div>
+                <div
+                  class="css-14bl5nc-FieldHelp e1mobfxl0"
+                  id="mail.from_help"
+                >
+                  Email address to be used in From for all outbound email.
+                </div>
+              </label>
+              <div
+                class="css-msyoo4-FieldControlWrapper e1ap0t511"
+              >
+                <div
+                  class="css-sse8ie-FieldControlStyled e1ap0t510"
+                >
+                  <div
+                    class="css-1biel1q-InputGroupWrap e13j5zq05"
+                  >
+                    <input
+                      aria-describedby="mail.from_help"
+                      class="css-s5jfkh-Input-inputStyles-StyledInput-getInputStyles e13j5zq03"
+                      default=""
+                      id="mail.from"
+                      label="Email From"
+                      name="mail.from"
+                      type="email"
+                      value="sentry@localhost"
+                    />
+                    <div
+                      class="css-vdn3ll-InputItemsWrap-InputTrailingItemsWrap e13j5zq00"
+                      data-test-id="input-trailing-items"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div
+              class="css-1s6sn9m-FieldWrapper-getPadding-inlineStyle-FieldWrapper-FieldWrapper e12z3jxd0"
+            >
+              <label
+                aria-label="SMTP Host"
+                class="css-1lqelms-FieldDescription-inlineStyle e1cwyh1y0"
+                for="mail.host"
+              >
+                <div
+                  class="css-1amoduc-FieldLabel ekcr5um0"
+                >
+                  <span>
+                    SMTP Host
+                    <div
+                      class="css-19ojc76-FieldRequiredBadge egnfobg0"
+                    />
+                  </span>
+                </div>
+              </label>
+              <div
+                class="css-msyoo4-FieldControlWrapper e1ap0t511"
+              >
+                <div
+                  class="css-sse8ie-FieldControlStyled e1ap0t510"
+                >
+                  <div
+                    class="css-1biel1q-InputGroupWrap e13j5zq05"
+                  >
+                    <input
+                      aria-describedby="mail.host_help"
+                      class="css-s5jfkh-Input-inputStyles-StyledInput-getInputStyles e13j5zq03"
+                      default=""
+                      id="mail.host"
+                      label="SMTP Host"
+                      name="mail.host"
+                      placeholder="localhost"
+                      type="text"
+                      value="localhost"
+                    />
+                    <div
+                      class="css-vdn3ll-InputItemsWrap-InputTrailingItemsWrap e13j5zq00"
+                      data-test-id="input-trailing-items"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div
+              class="css-1s6sn9m-FieldWrapper-getPadding-inlineStyle-FieldWrapper-FieldWrapper e12z3jxd0"
+            >
+              <label
+                aria-label="SMTP Port"
+                class="css-1lqelms-FieldDescription-inlineStyle e1cwyh1y0"
+                for="mail.port"
+              >
+                <div
+                  class="css-1amoduc-FieldLabel ekcr5um0"
+                >
+                  <span>
+                    SMTP Port
+                    <div
+                      class="css-19ojc76-FieldRequiredBadge egnfobg0"
+                    />
+                  </span>
+                </div>
+              </label>
+              <div
+                class="css-msyoo4-FieldControlWrapper e1ap0t511"
+              >
+                <div
+                  class="css-sse8ie-FieldControlStyled e1ap0t510"
+                >
+                  <div
+                    class="css-1biel1q-InputGroupWrap e13j5zq05"
+                  >
+                    <input
+                      aria-describedby="mail.port_help"
+                      class="css-s5jfkh-Input-inputStyles-StyledInput-getInputStyles e13j5zq03"
+                      default=""
+                      id="mail.port"
+                      label="SMTP Port"
+                      name="mail.port"
+                      placeholder="25"
+                      type="text"
+                      value="25"
+                    />
+                    <div
+                      class="css-vdn3ll-InputItemsWrap-InputTrailingItemsWrap e13j5zq00"
+                      data-test-id="input-trailing-items"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div
+              class="css-1s6sn9m-FieldWrapper-getPadding-inlineStyle-FieldWrapper-FieldWrapper e12z3jxd0"
+            >
+              <label
+                aria-label="SMTP Username"
+                class="css-1lqelms-FieldDescription-inlineStyle e1cwyh1y0"
+                for="mail.username"
+              >
+                <div
+                  class="css-1amoduc-FieldLabel ekcr5um0"
+                >
+                  <span>
+                    SMTP Username
+                  </span>
+                </div>
+              </label>
+              <div
+                class="css-msyoo4-FieldControlWrapper e1ap0t511"
+              >
+                <div
+                  class="css-sse8ie-FieldControlStyled e1ap0t510"
+                >
+                  <div
+                    class="css-1biel1q-InputGroupWrap e13j5zq05"
+                  >
+                    <input
+                      aria-describedby="mail.username_help"
+                      class="css-s5jfkh-Input-inputStyles-StyledInput-getInputStyles e13j5zq03"
+                      id="mail.username"
+                      label="SMTP Username"
+                      name="mail.username"
+                      type="text"
+                      value=""
+                    />
+                    <div
+                      class="css-vdn3ll-InputItemsWrap-InputTrailingItemsWrap e13j5zq00"
+                      data-test-id="input-trailing-items"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div
+              class="css-1s6sn9m-FieldWrapper-getPadding-inlineStyle-FieldWrapper-FieldWrapper e12z3jxd0"
+            >
+              <label
+                aria-label="SMTP Password"
+                class="css-1lqelms-FieldDescription-inlineStyle e1cwyh1y0"
+                for="mail.password"
+              >
+                <div
+                  class="css-1amoduc-FieldLabel ekcr5um0"
+                >
+                  <span>
+                    SMTP Password
+                  </span>
+                </div>
+              </label>
+              <div
+                class="css-msyoo4-FieldControlWrapper e1ap0t511"
+              >
+                <div
+                  class="css-sse8ie-FieldControlStyled e1ap0t510"
+                >
+                  <div
+                    class="css-1biel1q-InputGroupWrap e13j5zq05"
+                  >
+                    <input
+                      aria-describedby="mail.password_help"
+                      class="css-s5jfkh-Input-inputStyles-StyledInput-getInputStyles e13j5zq03"
+                      id="mail.password"
+                      label="SMTP Password"
+                      name="mail.password"
+                      type="text"
+                      value=""
+                    />
+                    <div
+                      class="css-vdn3ll-InputItemsWrap-InputTrailingItemsWrap e13j5zq00"
+                      data-test-id="input-trailing-items"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div
+              class="css-nl4tr5-FieldWrapper-getPadding-inlineStyle-FieldWrapper e12z3jxd0"
+            >
+              <label
+                aria-label="Use STARTTLS? (exclusive with SSL)"
+                class="css-1lqelms-FieldDescription-inlineStyle e1cwyh1y0"
+                for="mail.use-tls"
+              >
+                <div
+                  class="css-1amoduc-FieldLabel ekcr5um0"
+                >
+                  <span>
+                    Use STARTTLS? (exclusive with SSL)
+                  </span>
+                </div>
+              </label>
+              <div
+                class="css-msyoo4-FieldControlWrapper e1ap0t511"
+              >
+                <div
+                  class="css-sse8ie-FieldControlStyled e1ap0t510"
+                >
+                  <button
+                    aria-checked="false"
+                    aria-describedby="mail.use-tls_help"
+                    class="css-1lixgqp-SwitchButton ep74ita1"
+                    data-test-id="switch"
+                    id="mail.use-tls"
+                    label="Use STARTTLS? (exclusive with SSL)"
+                    name="mail.use-tls"
+                    role="checkbox"
+                    type="button"
+                  >
+                    <span
+                      class="css-1vgpr18-Toggle ep74ita0"
+                    />
+                  </button>
+                </div>
+                <div
+                  class="css-iw48yj-FieldControlState e190hkl80"
+                />
+              </div>
+            </div>
+            <div
+              class="css-nl4tr5-FieldWrapper-getPadding-inlineStyle-FieldWrapper e12z3jxd0"
+            >
+              <label
+                aria-label="Use SSL? (exclusive with STARTTLS)"
+                class="css-1lqelms-FieldDescription-inlineStyle e1cwyh1y0"
+                for="mail.use-ssl"
+              >
+                <div
+                  class="css-1amoduc-FieldLabel ekcr5um0"
+                >
+                  <span>
+                    Use SSL? (exclusive with STARTTLS)
+                  </span>
+                </div>
+              </label>
+              <div
+                class="css-msyoo4-FieldControlWrapper e1ap0t511"
+              >
+                <div
+                  class="css-sse8ie-FieldControlStyled e1ap0t510"
+                >
+                  <button
+                    aria-checked="false"
+                    aria-describedby="mail.use-ssl_help"
+                    class="css-1lixgqp-SwitchButton ep74ita1"
+                    data-test-id="switch"
+                    id="mail.use-ssl"
+                    label="Use SSL? (exclusive with STARTTLS)"
+                    name="mail.use-ssl"
+                    role="checkbox"
+                    type="button"
+                  >
+                    <span
+                      class="css-1vgpr18-Toggle ep74ita0"
+                    />
+                  </button>
+                </div>
+                <div
+                  class="css-iw48yj-FieldControlState e190hkl80"
+                />
+              </div>
+            </div>
+          </fieldset>
+          <fieldset>
+            <legend>
+              Authentication
+            </legend>
+            <div
+              class="css-nl4tr5-FieldWrapper-getPadding-inlineStyle-FieldWrapper e12z3jxd0"
+            >
+              <label
+                aria-label="Allow Registration"
+                class="css-1lqelms-FieldDescription-inlineStyle e1cwyh1y0"
+                for="auth.allow-registration"
+              >
+                <div
+                  class="css-1amoduc-FieldLabel ekcr5um0"
+                >
+                  <span>
+                    Allow Registration
+                  </span>
+                </div>
+                <div
+                  class="css-14bl5nc-FieldHelp e1mobfxl0"
+                  id="auth.allow-registration_help"
+                >
+                  Allow anyone to create an account and access this Sentry installation.
+                </div>
+              </label>
+              <div
+                class="css-msyoo4-FieldControlWrapper e1ap0t511"
+              >
+                <div
+                  class="css-sse8ie-FieldControlStyled e1ap0t510"
+                >
+                  <button
+                    aria-checked="false"
+                    aria-describedby="auth.allow-registration_help"
+                    class="css-1lixgqp-SwitchButton ep74ita1"
+                    data-test-id="switch"
+                    id="auth.allow-registration"
+                    label="Allow Registration"
+                    name="auth.allow-registration"
+                    role="checkbox"
+                    type="button"
+                  >
+                    <span
+                      class="css-1vgpr18-Toggle ep74ita0"
+                    />
+                  </button>
+                </div>
+                <div
+                  class="css-iw48yj-FieldControlState e190hkl80"
+                />
+              </div>
+            </div>
+          </fieldset>
+          <fieldset>
+            <legend>
+              Beacon
+            </legend>
+            <div
+              class="css-nl4tr5-FieldWrapper-getPadding-inlineStyle-FieldWrapper e12z3jxd0"
+            >
+              <label
+                aria-label="Usage Statistics"
+                class="css-1lqelms-FieldDescription-inlineStyle e1cwyh1y0"
+                for="beacon.anonymous"
+              >
+                <div
+                  class="css-1amoduc-FieldLabel ekcr5um0"
+                >
+                  <span>
+                    Usage Statistics
+                  </span>
+                </div>
+                <div
+                  class="css-14bl5nc-FieldHelp e1mobfxl0"
+                  id="beacon.anonymous_help"
+                >
+                  <span>
+                    <span>
+                      If enabled, any stats reported to sentry.io will exclude identifying information (such as your administrative email address). By anonymizing your installation the Sentry team will be unable to contact you about security updates. For more information on what data is sent to Sentry, see the 
+                    </span>
+                    <a
+                      href="https://develop.sentry.dev/self-hosted/"
+                    >
+                      <span>
+                        documentation
+                      </span>
+                    </a>
+                    <span>
+                      . Note: This is separate from error-reporting for the self-hosted installer. The data reported to the beacon only includes usage stats from your running self-hosted instance.
+                    </span>
+                  </span>
+                </div>
+              </label>
+              <div
+                class="css-msyoo4-FieldControlWrapper e1ap0t511"
+              >
+                <div
+                  class="css-sse8ie-FieldControlStyled e1ap0t510"
+                >
+                  <div
+                    aria-label="Usage Statistics"
+                    class="css-16wknvt-Container ec3iq7v3"
+                    id="beacon.anonymous"
+                    role="radiogroup"
+                  >
+                    <label
+                      aria-checked="false"
+                      class="css-1aip5k1-RadioLineItem ec3iq7v2"
+                    >
+                      <input
+                        aria-label="Send my contact information along with usage statistics"
+                        class="css-12n34x7-Radio-checkedCss epd3w7v0"
+                        type="radio"
+                      />
+                      <div
+                        class="css-1nwjsmg-RadioLineText ec3iq7v1"
+                      >
+                        Send my contact information along with usage statistics
+                      </div>
+                    </label>
+                    <label
+                      aria-checked="false"
+                      class="css-1aip5k1-RadioLineItem ec3iq7v2"
+                    >
+                      <input
+                        aria-label="Please keep my usage information anonymous"
+                        class="css-12n34x7-Radio-checkedCss epd3w7v0"
+                        type="radio"
+                      />
+                      <div
+                        class="css-1nwjsmg-RadioLineText ec3iq7v1"
+                      >
+                        Please keep my usage information anonymous
+                      </div>
+                    </label>
+                  </div>
+                </div>
+                <div
+                  class="css-iw48yj-FieldControlState e190hkl80"
+                />
+              </div>
+            </div>
+          </fieldset>
+        </div>
+        <div
+          class="css-1wj3569-StyledFooter el3x56x1"
+        >
+          <div
+            class="css-1ci39bu-DefaultButtons el3x56x0"
+          >
+            <button
+              aria-disabled="false"
+              aria-label="Continue"
+              class="css-zbzvlb-StyledButton-getColors-getButtonStyles e1b8u3ky2"
+              data-test-id="form-submit"
+              role="button"
+              type="submit"
+            >
+              <span
+                class="css-at526y-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+                role="presentation"
+              />
+              <span
+                class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+              >
+                Continue
+              </span>
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+`;

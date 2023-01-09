@@ -22,7 +22,7 @@ describe('AvatarList', () => {
     expect(screen.getByText('B')).toBeInTheDocument();
     expect(screen.queryByTestId('avatarList-collapsedusers')).not.toBeInTheDocument();
 
-    expect(container).toSnapshot();
+    expect(container).toMatchSnapshot();
   });
 
   it('renders with collapsed avatar count if > 5 users', () => {
@@ -43,6 +43,6 @@ describe('AvatarList', () => {
     expect(screen.getByText(users[4].name.charAt(0))).toBeInTheDocument();
     expect(screen.queryByText(users[5].name.charAt(0))).not.toBeInTheDocument();
     expect(screen.getByTestId('avatarList-collapsedusers')).toBeInTheDocument();
-    expect(container).toSnapshot();
+    expect(container).toMatchSnapshot();
   });
 });

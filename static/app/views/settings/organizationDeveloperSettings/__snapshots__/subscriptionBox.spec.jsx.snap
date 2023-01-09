@@ -1,0 +1,43 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`SubscriptionBox renders resource checkbox 1`] = `
+<div>
+  <div
+    class="css-hu99dg-SubscriptionGridItem eosxblu3"
+  >
+    <div
+      class="css-1u6cxz3-SubscriptionInfo eosxblu2"
+    >
+      <div
+        class="css-17htrnt-SubscriptionTitle eosxblu0"
+      >
+        issue
+      </div>
+      <div
+        class="css-u7zaqe-SubscriptionDescription eosxblu1"
+      >
+        created, resolved, assigned, ignored
+      </div>
+    </div>
+    <div
+      class="css-bphz7d-Wrapper e14pn5ur2"
+    >
+      <input
+        aria-label="issue"
+        class="css-4npmde-HiddenInput-HiddenInput e14pn5ur1"
+        id="issue"
+        type="checkbox"
+        value="issue"
+      />
+      <div
+        aria-hidden="true"
+        class="css-5y1i99-StyledCheckbox-StyledCheckbox e14pn5ur0"
+      />
+      <span
+        class="css-vul34l-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+        role="presentation"
+      />
+    </div>
+  </div>
+</div>
+`;

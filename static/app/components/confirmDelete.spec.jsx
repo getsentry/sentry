@@ -24,7 +24,7 @@ describe('ConfirmDelete', function () {
     userEvent.click(screen.getByRole('button'));
 
     // jest had an issue rendering root component snapshot so using ModalDialog instead
-    expect(globalModal.container).toSnapshot();
+    expect(globalModal.container).toMatchSnapshot();
   });
 
   it('confirm button is disabled and bypass prop is false when modal opens', function () {

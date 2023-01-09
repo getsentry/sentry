@@ -12,7 +12,7 @@ describe('replayInlineOnboardingPanel', () => {
   it('should render by default', async () => {
     const {container} = render(<ReplayInlineOnboardingPanel />);
     expect(await screen.findByText('Configure Session Replay')).toBeInTheDocument();
-    expect(container).toSnapshot();
+    expect(container).toMatchSnapshot();
   });
 
   it('should not render if hideUntil is set', async () => {

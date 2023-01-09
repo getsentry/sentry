@@ -52,7 +52,7 @@ describe('ProjectEnvironments', function () {
         screen.getByText("You don't have any environments yet.")
       ).toBeInTheDocument();
 
-      expect(container).toSnapshot();
+      expect(container).toMatchSnapshot();
     });
 
     it('renders environment list', function () {
@@ -80,7 +80,7 @@ describe('ProjectEnvironments', function () {
         screen.getByText("You don't have any hidden environments.")
       ).toBeInTheDocument();
 
-      expect(container).toSnapshot();
+      expect(container).toMatchSnapshot();
     });
 
     it('renders environment list', function () {
@@ -92,7 +92,7 @@ describe('ProjectEnvironments', function () {
 
       // Hidden buttons should not have "Set as default"
       expect(screen.getByRole('button', {name: 'Show'})).toBeInTheDocument();
-      expect(container).toSnapshot();
+      expect(container).toMatchSnapshot();
     });
   });
 

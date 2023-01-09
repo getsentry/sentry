@@ -1,0 +1,2971 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`CreateProject should block if you have access to no teams 1`] = `
+<div>
+  <div
+    data-test-id="onboarding-info"
+  >
+    <h1
+      class="css-1yv3znu-PageHeading e1k3ddu90"
+    >
+      Create a new project in 3 steps
+    </h1>
+    <p
+      class="css-1i9gbi0-HelpText e1icdt8d0"
+    >
+      <span>
+        <span>
+          Set up a separate project for each part of your application (for example, your API server and frontend client), to quickly pinpoint which part of your application errors are coming from. 
+        </span>
+        <a
+          class="css-1ecfdi8-Anchor ehytxfi0"
+          href="https://docs.sentry.io/product/sentry-basics/integrate-frontend/create-new-project/"
+          rel="noreferrer noopener"
+          target="_blank"
+        >
+          <span>
+             Read the docs
+          </span>
+        </a>
+        <span>
+          .
+        </span>
+      </span>
+    </p>
+    <h1
+      class="css-1yv3znu-PageHeading e1k3ddu90"
+    >
+      1. Choose your platform
+    </h1>
+    <div
+      class="css-e2ouj1-NavContainer e183m2bh5"
+    >
+      <ul
+        class="nav nav-tabs e183m2bh3 css-6h8dug-Wrap-CategoryNav e1fej6h40"
+      >
+        <li
+          class="active css-1dpjfax-StyledLi er8tqc10"
+        >
+          <a
+            href=""
+          >
+            Popular
+          </a>
+        </li>
+        <li
+          class=" css-1dpjfax-StyledLi er8tqc10"
+        >
+          <a
+            href=""
+          >
+            Browser
+          </a>
+        </li>
+        <li
+          class=" css-1dpjfax-StyledLi er8tqc10"
+        >
+          <a
+            href=""
+          >
+            Server
+          </a>
+        </li>
+        <li
+          class=" css-1dpjfax-StyledLi er8tqc10"
+        >
+          <a
+            href=""
+          >
+            Mobile
+          </a>
+        </li>
+        <li
+          class=" css-1dpjfax-StyledLi er8tqc10"
+        >
+          <a
+            href=""
+          >
+            Desktop
+          </a>
+        </li>
+        <li
+          class=" css-1dpjfax-StyledLi er8tqc10"
+        >
+          <a
+            href=""
+          >
+            Serverless
+          </a>
+        </li>
+        <li
+          class=" css-1dpjfax-StyledLi er8tqc10"
+        >
+          <a
+            href=""
+          >
+            All
+          </a>
+        </li>
+      </ul>
+      <form
+        class="e183m2bh4 css-1vwyln3-FormWrap-StyledSearchBar e4xnwji2"
+      >
+        <div
+          class="css-1biel1q-InputGroupWrap e13j5zq05"
+        >
+          <div
+            class="css-j206kq-InputItemsWrap-InputLeadingItemsWrap e13j5zq01"
+            data-test-id="input-leading-items"
+          >
+            <svg
+              fill="#80708F"
+              height="16px"
+              viewBox="0 0 16 16"
+              width="16px"
+            >
+              <path
+                d="M6,12A6,6,0,1,1,12,6,6,6,0,0,1,6,12ZM6,1.54A4.46,4.46,0,1,0,10.45,6,4.46,4.46,0,0,0,6,1.54Z"
+              />
+              <path
+                d="M15.2,16a.74.74,0,0,1-.53-.22L9.14,10.2A.75.75,0,0,1,10.2,9.14l5.53,5.53a.75.75,0,0,1,0,1.06A.74.74,0,0,1,15.2,16Z"
+              />
+            </svg>
+          </div>
+          <input
+            autocomplete="off"
+            class="e4xnwji1 css-1wfpay8-Input-inputStyles-StyledInput-getInputStyles-StyledInput e13j5zq03"
+            name="query"
+            placeholder="Filter Platforms"
+            type="text"
+            value=""
+          />
+          <div
+            class="css-lc4in0-InputItemsWrap-InputTrailingItemsWrap e13j5zq00"
+            data-test-id="input-trailing-items"
+          />
+        </div>
+      </form>
+    </div>
+    <div
+      class="css-1ydw9xt-PlatformList e183m2bh6"
+    >
+      <div
+        class="css-1oggtkz-PlatformCard e183m2bh0"
+        data-test-id="platform-apple-ios"
+      >
+        <img
+          class="css-9g4hn5-StyledPlatformIcon e183m2bh2"
+          height="56"
+          src="[object Object]"
+          style="border-radius: 5px;"
+          width="56"
+        />
+        <h3>
+          iOS
+        </h3>
+      </div>
+      <div
+        class="css-1oggtkz-PlatformCard e183m2bh0"
+        data-test-id="platform-dotnet"
+      >
+        <img
+          class="css-9g4hn5-StyledPlatformIcon e183m2bh2"
+          height="56"
+          src="[object Object]"
+          style="border-radius: 5px;"
+          width="56"
+        />
+        <h3>
+          .NET
+        </h3>
+      </div>
+      <div
+        class="css-1oggtkz-PlatformCard e183m2bh0"
+        data-test-id="platform-dotnet-aspnetcore"
+      >
+        <img
+          class="css-9g4hn5-StyledPlatformIcon e183m2bh2"
+          height="56"
+          src="[object Object]"
+          style="border-radius: 5px;"
+          width="56"
+        />
+        <h3>
+          ASP .NET Core
+        </h3>
+      </div>
+      <div
+        class="css-1oggtkz-PlatformCard e183m2bh0"
+        data-test-id="platform-go"
+      >
+        <img
+          class="css-9g4hn5-StyledPlatformIcon e183m2bh2"
+          height="56"
+          src="[object Object]"
+          style="border-radius: 5px;"
+          width="56"
+        />
+        <h3>
+          Go
+        </h3>
+      </div>
+      <div
+        class="css-1oggtkz-PlatformCard e183m2bh0"
+        data-test-id="platform-java"
+      >
+        <img
+          class="css-9g4hn5-StyledPlatformIcon e183m2bh2"
+          height="56"
+          src="[object Object]"
+          style="border-radius: 5px;"
+          width="56"
+        />
+        <h3>
+          Java
+        </h3>
+      </div>
+      <div
+        class="css-1oggtkz-PlatformCard e183m2bh0"
+        data-test-id="platform-javascript"
+      >
+        <img
+          class="css-9g4hn5-StyledPlatformIcon e183m2bh2"
+          height="56"
+          src="[object Object]"
+          style="border-radius: 5px;"
+          width="56"
+        />
+        <h3>
+          JavaScript
+        </h3>
+      </div>
+      <div
+        class="css-1oggtkz-PlatformCard e183m2bh0"
+        data-test-id="platform-javascript-angular"
+      >
+        <div
+          class="css-9g4hn5-StyledPlatformIcon e183m2bh2"
+          style="position: relative;"
+        >
+          <img
+            height="56"
+            src="[object Object]"
+            style="border-radius: 5px;"
+            width="56"
+          />
+          <img
+            src="[object Object]"
+            style="position: absolute; bottom: -1px; right: -1px; height: 30%; width: 30%; border-radius: 2px;"
+          />
+        </div>
+        <h3>
+          Angular
+        </h3>
+      </div>
+      <div
+        class="css-1oggtkz-PlatformCard e183m2bh0"
+        data-test-id="platform-javascript-nextjs"
+      >
+        <div
+          class="css-9g4hn5-StyledPlatformIcon e183m2bh2"
+          style="position: relative;"
+        >
+          <img
+            height="56"
+            src="[object Object]"
+            style="border-radius: 5px;"
+            width="56"
+          />
+          <img
+            src="[object Object]"
+            style="position: absolute; bottom: -1px; right: -1px; height: 30%; width: 30%; border-radius: 2px;"
+          />
+        </div>
+        <h3>
+          Next.js
+        </h3>
+      </div>
+      <div
+        class="css-1oggtkz-PlatformCard e183m2bh0"
+        data-test-id="platform-javascript-react"
+      >
+        <div
+          class="css-9g4hn5-StyledPlatformIcon e183m2bh2"
+          style="position: relative;"
+        >
+          <img
+            height="56"
+            src="[object Object]"
+            style="border-radius: 5px;"
+            width="56"
+          />
+          <img
+            src="[object Object]"
+            style="position: absolute; bottom: -1px; right: -1px; height: 30%; width: 30%; border-radius: 2px;"
+          />
+        </div>
+        <h3>
+          React
+        </h3>
+      </div>
+      <div
+        class="css-1oggtkz-PlatformCard e183m2bh0"
+        data-test-id="platform-javascript-vue"
+      >
+        <div
+          class="css-9g4hn5-StyledPlatformIcon e183m2bh2"
+          style="position: relative;"
+        >
+          <img
+            height="56"
+            src="[object Object]"
+            style="border-radius: 5px;"
+            width="56"
+          />
+          <img
+            src="[object Object]"
+            style="position: absolute; bottom: -1px; right: -1px; height: 30%; width: 30%; border-radius: 2px;"
+          />
+        </div>
+        <h3>
+          Vue
+        </h3>
+      </div>
+      <div
+        class="css-1oggtkz-PlatformCard e183m2bh0"
+        data-test-id="platform-node"
+      >
+        <img
+          class="css-9g4hn5-StyledPlatformIcon e183m2bh2"
+          height="56"
+          src="[object Object]"
+          style="border-radius: 5px;"
+          width="56"
+        />
+        <h3>
+          Node.js
+        </h3>
+      </div>
+      <div
+        class="css-1oggtkz-PlatformCard e183m2bh0"
+        data-test-id="platform-node-express"
+      >
+        <div
+          class="css-9g4hn5-StyledPlatformIcon e183m2bh2"
+          style="position: relative;"
+        >
+          <img
+            height="56"
+            src="[object Object]"
+            style="border-radius: 5px;"
+            width="56"
+          />
+          <img
+            src="[object Object]"
+            style="position: absolute; bottom: -1px; right: -1px; height: 30%; width: 30%; border-radius: 2px;"
+          />
+        </div>
+        <h3>
+          Express
+        </h3>
+      </div>
+      <div
+        class="css-1oggtkz-PlatformCard e183m2bh0"
+        data-test-id="platform-php"
+      >
+        <img
+          class="css-9g4hn5-StyledPlatformIcon e183m2bh2"
+          height="56"
+          src="[object Object]"
+          style="border-radius: 5px;"
+          width="56"
+        />
+        <h3>
+          PHP
+        </h3>
+      </div>
+      <div
+        class="css-1oggtkz-PlatformCard e183m2bh0"
+        data-test-id="platform-php-laravel"
+      >
+        <div
+          class="css-9g4hn5-StyledPlatformIcon e183m2bh2"
+          style="position: relative;"
+        >
+          <img
+            height="56"
+            src="[object Object]"
+            style="border-radius: 5px;"
+            width="56"
+          />
+          <img
+            src="[object Object]"
+            style="position: absolute; bottom: -1px; right: -1px; height: 30%; width: 30%; border-radius: 2px;"
+          />
+        </div>
+        <h3>
+          Laravel
+        </h3>
+      </div>
+      <div
+        class="css-1oggtkz-PlatformCard e183m2bh0"
+        data-test-id="platform-python"
+      >
+        <img
+          class="css-9g4hn5-StyledPlatformIcon e183m2bh2"
+          height="56"
+          src="[object Object]"
+          style="border-radius: 5px;"
+          width="56"
+        />
+        <h3>
+          Python
+        </h3>
+      </div>
+      <div
+        class="css-1oggtkz-PlatformCard e183m2bh0"
+        data-test-id="platform-python-django"
+      >
+        <div
+          class="css-9g4hn5-StyledPlatformIcon e183m2bh2"
+          style="position: relative;"
+        >
+          <img
+            height="56"
+            src="[object Object]"
+            style="border-radius: 5px;"
+            width="56"
+          />
+          <img
+            src="[object Object]"
+            style="position: absolute; bottom: -1px; right: -1px; height: 30%; width: 30%; border-radius: 2px;"
+          />
+        </div>
+        <h3>
+          Django
+        </h3>
+      </div>
+      <div
+        class="css-1oggtkz-PlatformCard e183m2bh0"
+        data-test-id="platform-python-fastapi"
+      >
+        <div
+          class="css-9g4hn5-StyledPlatformIcon e183m2bh2"
+          style="position: relative;"
+        >
+          <img
+            height="56"
+            src="[object Object]"
+            style="border-radius: 5px;"
+            width="56"
+          />
+          <img
+            src="[object Object]"
+            style="position: absolute; bottom: -1px; right: -1px; height: 30%; width: 30%; border-radius: 2px;"
+          />
+        </div>
+        <h3>
+          FastAPI
+        </h3>
+      </div>
+      <div
+        class="css-1oggtkz-PlatformCard e183m2bh0"
+        data-test-id="platform-python-flask"
+      >
+        <div
+          class="css-9g4hn5-StyledPlatformIcon e183m2bh2"
+          style="position: relative;"
+        >
+          <img
+            height="56"
+            src="[object Object]"
+            style="border-radius: 5px;"
+            width="56"
+          />
+          <img
+            src="[object Object]"
+            style="position: absolute; bottom: -1px; right: -1px; height: 30%; width: 30%; border-radius: 2px;"
+          />
+        </div>
+        <h3>
+          Flask
+        </h3>
+      </div>
+      <div
+        class="css-1oggtkz-PlatformCard e183m2bh0"
+        data-test-id="platform-react-native"
+      >
+        <img
+          class="css-9g4hn5-StyledPlatformIcon e183m2bh2"
+          height="56"
+          src="[object Object]"
+          style="border-radius: 5px;"
+          width="56"
+        />
+        <h3>
+          React-Native
+        </h3>
+      </div>
+      <div
+        class="css-1oggtkz-PlatformCard e183m2bh0"
+        data-test-id="platform-ruby"
+      >
+        <img
+          class="css-9g4hn5-StyledPlatformIcon e183m2bh2"
+          height="56"
+          src="[object Object]"
+          style="border-radius: 5px;"
+          width="56"
+        />
+        <h3>
+          Ruby
+        </h3>
+      </div>
+      <div
+        class="css-1oggtkz-PlatformCard e183m2bh0"
+        data-test-id="platform-ruby-rails"
+      >
+        <div
+          class="css-9g4hn5-StyledPlatformIcon e183m2bh2"
+          style="position: relative;"
+        >
+          <img
+            height="56"
+            src="[object Object]"
+            style="border-radius: 5px;"
+            width="56"
+          />
+          <img
+            src="[object Object]"
+            style="position: absolute; bottom: -1px; right: -1px; height: 30%; width: 30%; border-radius: 2px;"
+          />
+        </div>
+        <h3>
+          Rails
+        </h3>
+      </div>
+    </div>
+    <div
+      class="ref-error css-1qa3xf-Wrap-alertStyles e73vi8e5"
+      type="error"
+    >
+      <span
+        class="css-iaz4p1-Message e73vi8e3"
+      >
+        <h1
+          class="css-9wap5q-Heading e1isf1bc0"
+        >
+          Oops! Something went wrong
+        </h1>
+        <p>
+          
+          It looks like you've hit an issue in our client application. Don't worry though!
+          We use Sentry to monitor Sentry and it's likely we're already looking into this!
+          
+        </p>
+        <p>
+          If you're daring, you may want to try the following:
+        </p>
+        <ul
+          class="css-btt1yy-List-bulletStyle e4p4vya0"
+        >
+          <li
+            class="css-fg0py0-ListItem e4r1zxd1"
+          >
+            <span>
+              <span>
+                Give it a few seconds and 
+              </span>
+              <a>
+                <span>
+                  reload the page
+                </span>
+              </a>
+              <span>
+                .
+              </span>
+            </span>
+          </li>
+          <li
+            class="css-fg0py0-ListItem e4r1zxd1"
+          >
+            <span>
+              <span>
+                If all else fails, 
+              </span>
+              <a
+                href="https://github.com/getsentry/sentry/issues/new/choose"
+              >
+                <span>
+                  contact us
+                </span>
+              </a>
+              <span>
+                 with more details.
+              </span>
+            </span>
+          </li>
+        </ul>
+      </span>
+    </div>
+    <h1
+      class="css-1yv3znu-PageHeading e1k3ddu90"
+    >
+      3. Name your project & assign it a team
+    </h1>
+    <form
+      class="css-8w06rn-CreateProjectForm e1icdt8d6"
+    >
+      <div>
+        <div
+          class="css-1ynor6-FormLabel e1icdt8d5"
+        >
+          Project name
+        </div>
+        <div
+          class="css-1v68q5c-ProjectNameInputWrap e1icdt8d4"
+        >
+          <img
+            class="css-1nk5ijy-StyledPlatformIcon e1icdt8d2"
+            height="20"
+            src="[object Object]"
+            style="border-radius: 3px;"
+            width="20"
+          />
+          <input
+            autocomplete="off"
+            class="css-1xy83h3-Input-inputStyles-ProjectNameInput e1icdt8d3"
+            name="name"
+            placeholder="project-name"
+            type="text"
+            value=""
+          />
+        </div>
+      </div>
+      <div>
+        <div
+          class="css-1ynor6-FormLabel e1icdt8d5"
+        >
+          Team
+        </div>
+        <div
+          class="css-3884hs-TeamSelectInput e1icdt8d1"
+        >
+          <div
+            class=" css-2b097c-container"
+          >
+            <span
+              aria-atomic="false"
+              aria-live="polite"
+              aria-relevant="additions text"
+              class="css-1f43avz-a11yText-A11yText"
+            />
+            <div
+              class=" css-1lxgacs-Control"
+            >
+              <div
+                class=" css-1kqg4xi-ValueContainer"
+              >
+                <div
+                  class=" css-hpv81y-placeholder"
+                >
+                  Select a Team
+                </div>
+                <div
+                  class="css-ba2ole-Input"
+                >
+                  <div
+                    class=""
+                    style="display: inline-block;"
+                  >
+                    <input
+                      aria-autocomplete="list"
+                      autocapitalize="none"
+                      autocomplete="off"
+                      autocorrect="off"
+                      id="react-select-2-input"
+                      spellcheck="false"
+                      style="box-sizing: content-box; width: 2px; border: 0px; opacity: 1; outline: 0; padding: 0px;"
+                      tabindex="0"
+                      type="text"
+                      value=""
+                    />
+                    <div
+                      style="position: absolute; top: 0px; left: 0px; visibility: hidden; height: 0px; overflow: scroll; white-space: pre;"
+                    />
+                  </div>
+                </div>
+              </div>
+              <div
+                class=" css-1d4abpz-IndicatorsContainer"
+              >
+                <div
+                  class="loading mini"
+                  data-test-id="loading-indicator"
+                  style="height: 20px; width: 20px;"
+                >
+                  <div
+                    class="loading-indicator"
+                    style="width: 20px; height: 20px;"
+                  />
+                  <div
+                    class="loading-message"
+                  />
+                </div>
+                <div
+                  aria-hidden="true"
+                  class=" css-1td69xg-indicatorContainer"
+                >
+                  <svg
+                    class="css-1905w31-IconChevron"
+                    fill="currentColor"
+                    height="14px"
+                    viewBox="0 0 16 16"
+                    width="14px"
+                  >
+                    <path
+                      d="M14,11.75a.74.74,0,0,1-.53-.22L8,6.06,2.53,11.53a.75.75,0,0,1-1.06-1.06l6-6a.75.75,0,0,1,1.06,0l6,6a.75.75,0,0,1,0,1.06A.74.74,0,0,1,14,11.75Z"
+                    />
+                  </svg>
+                </div>
+              </div>
+            </div>
+            <input
+              name="select-team"
+              type="hidden"
+              value=""
+            />
+          </div>
+          <button
+            aria-describedby="tooltip-envyx80vr1"
+            aria-disabled="false"
+            aria-label="Create a team"
+            class="css-xtmwpt-StyledButton-getColors-getButtonStyles e1b8u3ky2"
+            data-test-id="create-team"
+            role="button"
+            type="button"
+          >
+            <span
+              class="css-vul34l-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+              role="presentation"
+            />
+            <span
+              class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+            >
+              <span
+                class="css-161yn40-Icon e1b8u3ky0"
+              >
+                <svg
+                  fill="currentColor"
+                  height="16px"
+                  viewBox="0 0 16 16"
+                  width="16px"
+                >
+                  <path
+                    d="M11.28,8.75H4.72a.75.75,0,1,1,0-1.5h6.56a.75.75,0,1,1,0,1.5Z"
+                  />
+                  <path
+                    d="M8,12a.76.76,0,0,1-.75-.75V4.72a.75.75,0,0,1,1.5,0v6.56A.76.76,0,0,1,8,12Z"
+                  />
+                  <path
+                    d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z"
+                  />
+                </svg>
+              </span>
+            </span>
+          </button>
+        </div>
+      </div>
+      <div>
+        <button
+          aria-disabled="true"
+          aria-label="Create Project"
+          class="css-knu3xv-StyledButton-getColors-getButtonStyles e1b8u3ky2"
+          data-test-id="create-project"
+          disabled=""
+          role="button"
+          type="submit"
+        >
+          <span
+            class="css-at526y-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+            role="presentation"
+          />
+          <span
+            class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+          >
+            Create Project
+          </span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+`;
+
+exports[`CreateProject should deal with incorrect platform name if its provided by url 1`] = `
+<div>
+  <div
+    data-test-id="onboarding-info"
+  >
+    <h1
+      class="css-1yv3znu-PageHeading e1k3ddu90"
+    >
+      Create a new project in 3 steps
+    </h1>
+    <p
+      class="css-1i9gbi0-HelpText e1icdt8d0"
+    >
+      <span>
+        <span>
+          Set up a separate project for each part of your application (for example, your API server and frontend client), to quickly pinpoint which part of your application errors are coming from. 
+        </span>
+        <a
+          class="css-1ecfdi8-Anchor ehytxfi0"
+          href="https://docs.sentry.io/product/sentry-basics/integrate-frontend/create-new-project/"
+          rel="noreferrer noopener"
+          target="_blank"
+        >
+          <span>
+             Read the docs
+          </span>
+        </a>
+        <span>
+          .
+        </span>
+      </span>
+    </p>
+    <h1
+      class="css-1yv3znu-PageHeading e1k3ddu90"
+    >
+      1. Choose your platform
+    </h1>
+    <div
+      class="css-e2ouj1-NavContainer e183m2bh5"
+    >
+      <ul
+        class="nav nav-tabs e183m2bh3 css-6h8dug-Wrap-CategoryNav e1fej6h40"
+      >
+        <li
+          class="active css-1dpjfax-StyledLi er8tqc10"
+        >
+          <a
+            href=""
+          >
+            Popular
+          </a>
+        </li>
+        <li
+          class=" css-1dpjfax-StyledLi er8tqc10"
+        >
+          <a
+            href=""
+          >
+            Browser
+          </a>
+        </li>
+        <li
+          class=" css-1dpjfax-StyledLi er8tqc10"
+        >
+          <a
+            href=""
+          >
+            Server
+          </a>
+        </li>
+        <li
+          class=" css-1dpjfax-StyledLi er8tqc10"
+        >
+          <a
+            href=""
+          >
+            Mobile
+          </a>
+        </li>
+        <li
+          class=" css-1dpjfax-StyledLi er8tqc10"
+        >
+          <a
+            href=""
+          >
+            Desktop
+          </a>
+        </li>
+        <li
+          class=" css-1dpjfax-StyledLi er8tqc10"
+        >
+          <a
+            href=""
+          >
+            Serverless
+          </a>
+        </li>
+        <li
+          class=" css-1dpjfax-StyledLi er8tqc10"
+        >
+          <a
+            href=""
+          >
+            All
+          </a>
+        </li>
+      </ul>
+      <form
+        class="e183m2bh4 css-1vwyln3-FormWrap-StyledSearchBar e4xnwji2"
+      >
+        <div
+          class="css-1biel1q-InputGroupWrap e13j5zq05"
+        >
+          <div
+            class="css-j206kq-InputItemsWrap-InputLeadingItemsWrap e13j5zq01"
+            data-test-id="input-leading-items"
+          >
+            <svg
+              fill="#80708F"
+              height="16px"
+              viewBox="0 0 16 16"
+              width="16px"
+            >
+              <path
+                d="M6,12A6,6,0,1,1,12,6,6,6,0,0,1,6,12ZM6,1.54A4.46,4.46,0,1,0,10.45,6,4.46,4.46,0,0,0,6,1.54Z"
+              />
+              <path
+                d="M15.2,16a.74.74,0,0,1-.53-.22L9.14,10.2A.75.75,0,0,1,10.2,9.14l5.53,5.53a.75.75,0,0,1,0,1.06A.74.74,0,0,1,15.2,16Z"
+              />
+            </svg>
+          </div>
+          <input
+            autocomplete="off"
+            class="e4xnwji1 css-1wfpay8-Input-inputStyles-StyledInput-getInputStyles-StyledInput e13j5zq03"
+            name="query"
+            placeholder="Filter Platforms"
+            type="text"
+            value=""
+          />
+          <div
+            class="css-lc4in0-InputItemsWrap-InputTrailingItemsWrap e13j5zq00"
+            data-test-id="input-trailing-items"
+          />
+        </div>
+      </form>
+    </div>
+    <div
+      class="css-1ydw9xt-PlatformList e183m2bh6"
+    >
+      <div
+        class="css-1oggtkz-PlatformCard e183m2bh0"
+        data-test-id="platform-apple-ios"
+      >
+        <img
+          class="css-9g4hn5-StyledPlatformIcon e183m2bh2"
+          height="56"
+          src="[object Object]"
+          style="border-radius: 5px;"
+          width="56"
+        />
+        <h3>
+          iOS
+        </h3>
+      </div>
+      <div
+        class="css-1oggtkz-PlatformCard e183m2bh0"
+        data-test-id="platform-dotnet"
+      >
+        <img
+          class="css-9g4hn5-StyledPlatformIcon e183m2bh2"
+          height="56"
+          src="[object Object]"
+          style="border-radius: 5px;"
+          width="56"
+        />
+        <h3>
+          .NET
+        </h3>
+      </div>
+      <div
+        class="css-1oggtkz-PlatformCard e183m2bh0"
+        data-test-id="platform-dotnet-aspnetcore"
+      >
+        <img
+          class="css-9g4hn5-StyledPlatformIcon e183m2bh2"
+          height="56"
+          src="[object Object]"
+          style="border-radius: 5px;"
+          width="56"
+        />
+        <h3>
+          ASP .NET Core
+        </h3>
+      </div>
+      <div
+        class="css-1oggtkz-PlatformCard e183m2bh0"
+        data-test-id="platform-go"
+      >
+        <img
+          class="css-9g4hn5-StyledPlatformIcon e183m2bh2"
+          height="56"
+          src="[object Object]"
+          style="border-radius: 5px;"
+          width="56"
+        />
+        <h3>
+          Go
+        </h3>
+      </div>
+      <div
+        class="css-1oggtkz-PlatformCard e183m2bh0"
+        data-test-id="platform-java"
+      >
+        <img
+          class="css-9g4hn5-StyledPlatformIcon e183m2bh2"
+          height="56"
+          src="[object Object]"
+          style="border-radius: 5px;"
+          width="56"
+        />
+        <h3>
+          Java
+        </h3>
+      </div>
+      <div
+        class="css-1oggtkz-PlatformCard e183m2bh0"
+        data-test-id="platform-javascript"
+      >
+        <img
+          class="css-9g4hn5-StyledPlatformIcon e183m2bh2"
+          height="56"
+          src="[object Object]"
+          style="border-radius: 5px;"
+          width="56"
+        />
+        <h3>
+          JavaScript
+        </h3>
+      </div>
+      <div
+        class="css-1oggtkz-PlatformCard e183m2bh0"
+        data-test-id="platform-javascript-angular"
+      >
+        <div
+          class="css-9g4hn5-StyledPlatformIcon e183m2bh2"
+          style="position: relative;"
+        >
+          <img
+            height="56"
+            src="[object Object]"
+            style="border-radius: 5px;"
+            width="56"
+          />
+          <img
+            src="[object Object]"
+            style="position: absolute; bottom: -1px; right: -1px; height: 30%; width: 30%; border-radius: 2px;"
+          />
+        </div>
+        <h3>
+          Angular
+        </h3>
+      </div>
+      <div
+        class="css-1oggtkz-PlatformCard e183m2bh0"
+        data-test-id="platform-javascript-nextjs"
+      >
+        <div
+          class="css-9g4hn5-StyledPlatformIcon e183m2bh2"
+          style="position: relative;"
+        >
+          <img
+            height="56"
+            src="[object Object]"
+            style="border-radius: 5px;"
+            width="56"
+          />
+          <img
+            src="[object Object]"
+            style="position: absolute; bottom: -1px; right: -1px; height: 30%; width: 30%; border-radius: 2px;"
+          />
+        </div>
+        <h3>
+          Next.js
+        </h3>
+      </div>
+      <div
+        class="css-1oggtkz-PlatformCard e183m2bh0"
+        data-test-id="platform-javascript-react"
+      >
+        <div
+          class="css-9g4hn5-StyledPlatformIcon e183m2bh2"
+          style="position: relative;"
+        >
+          <img
+            height="56"
+            src="[object Object]"
+            style="border-radius: 5px;"
+            width="56"
+          />
+          <img
+            src="[object Object]"
+            style="position: absolute; bottom: -1px; right: -1px; height: 30%; width: 30%; border-radius: 2px;"
+          />
+        </div>
+        <h3>
+          React
+        </h3>
+      </div>
+      <div
+        class="css-1oggtkz-PlatformCard e183m2bh0"
+        data-test-id="platform-javascript-vue"
+      >
+        <div
+          class="css-9g4hn5-StyledPlatformIcon e183m2bh2"
+          style="position: relative;"
+        >
+          <img
+            height="56"
+            src="[object Object]"
+            style="border-radius: 5px;"
+            width="56"
+          />
+          <img
+            src="[object Object]"
+            style="position: absolute; bottom: -1px; right: -1px; height: 30%; width: 30%; border-radius: 2px;"
+          />
+        </div>
+        <h3>
+          Vue
+        </h3>
+      </div>
+      <div
+        class="css-1oggtkz-PlatformCard e183m2bh0"
+        data-test-id="platform-node"
+      >
+        <img
+          class="css-9g4hn5-StyledPlatformIcon e183m2bh2"
+          height="56"
+          src="[object Object]"
+          style="border-radius: 5px;"
+          width="56"
+        />
+        <h3>
+          Node.js
+        </h3>
+      </div>
+      <div
+        class="css-1oggtkz-PlatformCard e183m2bh0"
+        data-test-id="platform-node-express"
+      >
+        <div
+          class="css-9g4hn5-StyledPlatformIcon e183m2bh2"
+          style="position: relative;"
+        >
+          <img
+            height="56"
+            src="[object Object]"
+            style="border-radius: 5px;"
+            width="56"
+          />
+          <img
+            src="[object Object]"
+            style="position: absolute; bottom: -1px; right: -1px; height: 30%; width: 30%; border-radius: 2px;"
+          />
+        </div>
+        <h3>
+          Express
+        </h3>
+      </div>
+      <div
+        class="css-1oggtkz-PlatformCard e183m2bh0"
+        data-test-id="platform-php"
+      >
+        <img
+          class="css-9g4hn5-StyledPlatformIcon e183m2bh2"
+          height="56"
+          src="[object Object]"
+          style="border-radius: 5px;"
+          width="56"
+        />
+        <h3>
+          PHP
+        </h3>
+      </div>
+      <div
+        class="css-1oggtkz-PlatformCard e183m2bh0"
+        data-test-id="platform-php-laravel"
+      >
+        <div
+          class="css-9g4hn5-StyledPlatformIcon e183m2bh2"
+          style="position: relative;"
+        >
+          <img
+            height="56"
+            src="[object Object]"
+            style="border-radius: 5px;"
+            width="56"
+          />
+          <img
+            src="[object Object]"
+            style="position: absolute; bottom: -1px; right: -1px; height: 30%; width: 30%; border-radius: 2px;"
+          />
+        </div>
+        <h3>
+          Laravel
+        </h3>
+      </div>
+      <div
+        class="css-1oggtkz-PlatformCard e183m2bh0"
+        data-test-id="platform-python"
+      >
+        <img
+          class="css-9g4hn5-StyledPlatformIcon e183m2bh2"
+          height="56"
+          src="[object Object]"
+          style="border-radius: 5px;"
+          width="56"
+        />
+        <h3>
+          Python
+        </h3>
+      </div>
+      <div
+        class="css-1oggtkz-PlatformCard e183m2bh0"
+        data-test-id="platform-python-django"
+      >
+        <div
+          class="css-9g4hn5-StyledPlatformIcon e183m2bh2"
+          style="position: relative;"
+        >
+          <img
+            height="56"
+            src="[object Object]"
+            style="border-radius: 5px;"
+            width="56"
+          />
+          <img
+            src="[object Object]"
+            style="position: absolute; bottom: -1px; right: -1px; height: 30%; width: 30%; border-radius: 2px;"
+          />
+        </div>
+        <h3>
+          Django
+        </h3>
+      </div>
+      <div
+        class="css-1oggtkz-PlatformCard e183m2bh0"
+        data-test-id="platform-python-fastapi"
+      >
+        <div
+          class="css-9g4hn5-StyledPlatformIcon e183m2bh2"
+          style="position: relative;"
+        >
+          <img
+            height="56"
+            src="[object Object]"
+            style="border-radius: 5px;"
+            width="56"
+          />
+          <img
+            src="[object Object]"
+            style="position: absolute; bottom: -1px; right: -1px; height: 30%; width: 30%; border-radius: 2px;"
+          />
+        </div>
+        <h3>
+          FastAPI
+        </h3>
+      </div>
+      <div
+        class="css-1oggtkz-PlatformCard e183m2bh0"
+        data-test-id="platform-python-flask"
+      >
+        <div
+          class="css-9g4hn5-StyledPlatformIcon e183m2bh2"
+          style="position: relative;"
+        >
+          <img
+            height="56"
+            src="[object Object]"
+            style="border-radius: 5px;"
+            width="56"
+          />
+          <img
+            src="[object Object]"
+            style="position: absolute; bottom: -1px; right: -1px; height: 30%; width: 30%; border-radius: 2px;"
+          />
+        </div>
+        <h3>
+          Flask
+        </h3>
+      </div>
+      <div
+        class="css-1oggtkz-PlatformCard e183m2bh0"
+        data-test-id="platform-react-native"
+      >
+        <img
+          class="css-9g4hn5-StyledPlatformIcon e183m2bh2"
+          height="56"
+          src="[object Object]"
+          style="border-radius: 5px;"
+          width="56"
+        />
+        <h3>
+          React-Native
+        </h3>
+      </div>
+      <div
+        class="css-1oggtkz-PlatformCard e183m2bh0"
+        data-test-id="platform-ruby"
+      >
+        <img
+          class="css-9g4hn5-StyledPlatformIcon e183m2bh2"
+          height="56"
+          src="[object Object]"
+          style="border-radius: 5px;"
+          width="56"
+        />
+        <h3>
+          Ruby
+        </h3>
+      </div>
+      <div
+        class="css-1oggtkz-PlatformCard e183m2bh0"
+        data-test-id="platform-ruby-rails"
+      >
+        <div
+          class="css-9g4hn5-StyledPlatformIcon e183m2bh2"
+          style="position: relative;"
+        >
+          <img
+            height="56"
+            src="[object Object]"
+            style="border-radius: 5px;"
+            width="56"
+          />
+          <img
+            src="[object Object]"
+            style="position: absolute; bottom: -1px; right: -1px; height: 30%; width: 30%; border-radius: 2px;"
+          />
+        </div>
+        <h3>
+          Rails
+        </h3>
+      </div>
+    </div>
+    <div
+      class="ref-error css-1qa3xf-Wrap-alertStyles e73vi8e5"
+      type="error"
+    >
+      <span
+        class="css-iaz4p1-Message e73vi8e3"
+      >
+        <h1
+          class="css-9wap5q-Heading e1isf1bc0"
+        >
+          Oops! Something went wrong
+        </h1>
+        <p>
+          
+          It looks like you've hit an issue in our client application. Don't worry though!
+          We use Sentry to monitor Sentry and it's likely we're already looking into this!
+          
+        </p>
+        <p>
+          If you're daring, you may want to try the following:
+        </p>
+        <ul
+          class="css-btt1yy-List-bulletStyle e4p4vya0"
+        >
+          <li
+            class="css-fg0py0-ListItem e4r1zxd1"
+          >
+            <span>
+              <span>
+                Give it a few seconds and 
+              </span>
+              <a>
+                <span>
+                  reload the page
+                </span>
+              </a>
+              <span>
+                .
+              </span>
+            </span>
+          </li>
+          <li
+            class="css-fg0py0-ListItem e4r1zxd1"
+          >
+            <span>
+              <span>
+                If all else fails, 
+              </span>
+              <a
+                href="https://github.com/getsentry/sentry/issues/new/choose"
+              >
+                <span>
+                  contact us
+                </span>
+              </a>
+              <span>
+                 with more details.
+              </span>
+            </span>
+          </li>
+        </ul>
+      </span>
+    </div>
+    <h1
+      class="css-1yv3znu-PageHeading e1k3ddu90"
+    >
+      3. Name your project & assign it a team
+    </h1>
+    <form
+      class="css-8w06rn-CreateProjectForm e1icdt8d6"
+    >
+      <div>
+        <div
+          class="css-1ynor6-FormLabel e1icdt8d5"
+        >
+          Project name
+        </div>
+        <div
+          class="css-1v68q5c-ProjectNameInputWrap e1icdt8d4"
+        >
+          <img
+            class="css-1nk5ijy-StyledPlatformIcon e1icdt8d2"
+            height="20"
+            src="[object Object]"
+            style="border-radius: 3px;"
+            width="20"
+          />
+          <input
+            autocomplete="off"
+            class="css-1xy83h3-Input-inputStyles-ProjectNameInput e1icdt8d3"
+            name="name"
+            placeholder="project-name"
+            type="text"
+            value=""
+          />
+        </div>
+      </div>
+      <div>
+        <div
+          class="css-1ynor6-FormLabel e1icdt8d5"
+        >
+          Team
+        </div>
+        <div
+          class="css-3884hs-TeamSelectInput e1icdt8d1"
+        >
+          <div
+            class=" css-2b097c-container"
+          >
+            <span
+              aria-atomic="false"
+              aria-live="polite"
+              aria-relevant="additions text"
+              class="css-1f43avz-a11yText-A11yText"
+            />
+            <div
+              class=" css-1lxgacs-Control"
+            >
+              <div
+                class=" css-1kqg4xi-ValueContainer"
+              >
+                <div
+                  class=" css-hpv81y-placeholder"
+                >
+                  Select a Team
+                </div>
+                <div
+                  class="css-ba2ole-Input"
+                >
+                  <div
+                    class=""
+                    style="display: inline-block;"
+                  >
+                    <input
+                      aria-autocomplete="list"
+                      autocapitalize="none"
+                      autocomplete="off"
+                      autocorrect="off"
+                      id="react-select-7-input"
+                      spellcheck="false"
+                      style="box-sizing: content-box; width: 2px; border: 0px; opacity: 1; outline: 0; padding: 0px;"
+                      tabindex="0"
+                      type="text"
+                      value=""
+                    />
+                    <div
+                      style="position: absolute; top: 0px; left: 0px; visibility: hidden; height: 0px; overflow: scroll; white-space: pre;"
+                    />
+                  </div>
+                </div>
+              </div>
+              <div
+                class=" css-1d4abpz-IndicatorsContainer"
+              >
+                <div
+                  class="loading mini"
+                  data-test-id="loading-indicator"
+                  style="height: 20px; width: 20px;"
+                >
+                  <div
+                    class="loading-indicator"
+                    style="width: 20px; height: 20px;"
+                  />
+                  <div
+                    class="loading-message"
+                  />
+                </div>
+                <div
+                  aria-hidden="true"
+                  class=" css-1td69xg-indicatorContainer"
+                >
+                  <svg
+                    class="css-1905w31-IconChevron"
+                    fill="currentColor"
+                    height="14px"
+                    viewBox="0 0 16 16"
+                    width="14px"
+                  >
+                    <path
+                      d="M14,11.75a.74.74,0,0,1-.53-.22L8,6.06,2.53,11.53a.75.75,0,0,1-1.06-1.06l6-6a.75.75,0,0,1,1.06,0l6,6a.75.75,0,0,1,0,1.06A.74.74,0,0,1,14,11.75Z"
+                    />
+                  </svg>
+                </div>
+              </div>
+            </div>
+            <input
+              name="select-team"
+              type="hidden"
+              value=""
+            />
+          </div>
+          <button
+            aria-describedby="tooltip-gyiz81sqvm"
+            aria-disabled="false"
+            aria-label="Create a team"
+            class="css-xtmwpt-StyledButton-getColors-getButtonStyles e1b8u3ky2"
+            data-test-id="create-team"
+            role="button"
+            type="button"
+          >
+            <span
+              class="css-vul34l-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+              role="presentation"
+            />
+            <span
+              class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+            >
+              <span
+                class="css-161yn40-Icon e1b8u3ky0"
+              >
+                <svg
+                  fill="currentColor"
+                  height="16px"
+                  viewBox="0 0 16 16"
+                  width="16px"
+                >
+                  <path
+                    d="M11.28,8.75H4.72a.75.75,0,1,1,0-1.5h6.56a.75.75,0,1,1,0,1.5Z"
+                  />
+                  <path
+                    d="M8,12a.76.76,0,0,1-.75-.75V4.72a.75.75,0,0,1,1.5,0v6.56A.76.76,0,0,1,8,12Z"
+                  />
+                  <path
+                    d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z"
+                  />
+                </svg>
+              </span>
+            </span>
+          </button>
+        </div>
+      </div>
+      <div>
+        <button
+          aria-disabled="true"
+          aria-label="Create Project"
+          class="css-knu3xv-StyledButton-getColors-getButtonStyles e1b8u3ky2"
+          data-test-id="create-project"
+          disabled=""
+          role="button"
+          type="submit"
+        >
+          <span
+            class="css-at526y-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+            role="presentation"
+          />
+          <span
+            class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+          >
+            Create Project
+          </span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+`;
+
+exports[`CreateProject should fill in platform name if its provided by url 1`] = `
+<div>
+  <div
+    data-test-id="onboarding-info"
+  >
+    <h1
+      class="css-1yv3znu-PageHeading e1k3ddu90"
+    >
+      Create a new project in 3 steps
+    </h1>
+    <p
+      class="css-1i9gbi0-HelpText e1icdt8d0"
+    >
+      <span>
+        <span>
+          Set up a separate project for each part of your application (for example, your API server and frontend client), to quickly pinpoint which part of your application errors are coming from. 
+        </span>
+        <a
+          class="css-1ecfdi8-Anchor ehytxfi0"
+          href="https://docs.sentry.io/product/sentry-basics/integrate-frontend/create-new-project/"
+          rel="noreferrer noopener"
+          target="_blank"
+        >
+          <span>
+             Read the docs
+          </span>
+        </a>
+        <span>
+          .
+        </span>
+      </span>
+    </p>
+    <h1
+      class="css-1yv3znu-PageHeading e1k3ddu90"
+    >
+      1. Choose your platform
+    </h1>
+    <div
+      class="css-e2ouj1-NavContainer e183m2bh5"
+    >
+      <ul
+        class="nav nav-tabs e183m2bh3 css-6h8dug-Wrap-CategoryNav e1fej6h40"
+      >
+        <li
+          class=" css-1dpjfax-StyledLi er8tqc10"
+        >
+          <a
+            href=""
+          >
+            Popular
+          </a>
+        </li>
+        <li
+          class=" css-1dpjfax-StyledLi er8tqc10"
+        >
+          <a
+            href=""
+          >
+            Browser
+          </a>
+        </li>
+        <li
+          class=" css-1dpjfax-StyledLi er8tqc10"
+        >
+          <a
+            href=""
+          >
+            Server
+          </a>
+        </li>
+        <li
+          class=" css-1dpjfax-StyledLi er8tqc10"
+        >
+          <a
+            href=""
+          >
+            Mobile
+          </a>
+        </li>
+        <li
+          class=" css-1dpjfax-StyledLi er8tqc10"
+        >
+          <a
+            href=""
+          >
+            Desktop
+          </a>
+        </li>
+        <li
+          class=" css-1dpjfax-StyledLi er8tqc10"
+        >
+          <a
+            href=""
+          >
+            Serverless
+          </a>
+        </li>
+        <li
+          class="active css-1dpjfax-StyledLi er8tqc10"
+        >
+          <a
+            href=""
+          >
+            All
+          </a>
+        </li>
+      </ul>
+      <form
+        class="e183m2bh4 css-1vwyln3-FormWrap-StyledSearchBar e4xnwji2"
+      >
+        <div
+          class="css-1biel1q-InputGroupWrap e13j5zq05"
+        >
+          <div
+            class="css-j206kq-InputItemsWrap-InputLeadingItemsWrap e13j5zq01"
+            data-test-id="input-leading-items"
+          >
+            <svg
+              fill="#80708F"
+              height="16px"
+              viewBox="0 0 16 16"
+              width="16px"
+            >
+              <path
+                d="M6,12A6,6,0,1,1,12,6,6,6,0,0,1,6,12ZM6,1.54A4.46,4.46,0,1,0,10.45,6,4.46,4.46,0,0,0,6,1.54Z"
+              />
+              <path
+                d="M15.2,16a.74.74,0,0,1-.53-.22L9.14,10.2A.75.75,0,0,1,10.2,9.14l5.53,5.53a.75.75,0,0,1,0,1.06A.74.74,0,0,1,15.2,16Z"
+              />
+            </svg>
+          </div>
+          <input
+            autocomplete="off"
+            class="e4xnwji1 css-1wfpay8-Input-inputStyles-StyledInput-getInputStyles-StyledInput e13j5zq03"
+            name="query"
+            placeholder="Filter Platforms"
+            type="text"
+            value="ruby"
+          />
+          <div
+            class="css-lc4in0-InputItemsWrap-InputTrailingItemsWrap e13j5zq00"
+            data-test-id="input-trailing-items"
+          >
+            <button
+              aria-disabled="false"
+              aria-label="Clear"
+              class="e4xnwji0 css-6h460u-StyledButton-getColors-getButtonStyles-SearchBarTrailingButton e1b8u3ky2"
+              role="button"
+              type="button"
+            >
+              <span
+                class="css-vul34l-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+                role="presentation"
+              />
+              <span
+                class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+              >
+                <span
+                  class="css-161yn40-Icon e1b8u3ky0"
+                >
+                  <svg
+                    data-test-id="icon-close"
+                    fill="currentColor"
+                    height="12px"
+                    viewBox="0 0 16 16"
+                    width="12px"
+                  >
+                    <path
+                      d="M6.94,8,1.47,13.47a.75.75,0,0,0,0,1.06.75.75,0,0,0,1.06,0L8,9.06l5.47,5.47a.75.75,0,0,0,1.06,0,.75.75,0,0,0,0-1.06L9.06,8l5.47-5.47a.75.75,0,0,0-1.06-1.06L8,6.94,2.53,1.47A.75.75,0,0,0,1.47,2.53Z"
+                    />
+                  </svg>
+                </span>
+              </span>
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+    <div
+      class="css-1ydw9xt-PlatformList e183m2bh6"
+    >
+      <div
+        class="css-1oggtkz-PlatformCard e183m2bh0"
+        data-test-id="platform-ruby"
+      >
+        <img
+          class="css-9g4hn5-StyledPlatformIcon e183m2bh2"
+          height="56"
+          src="[object Object]"
+          style="border-radius: 5px;"
+          width="56"
+        />
+        <h3>
+          Ruby
+        </h3>
+      </div>
+      <div
+        class="css-1oggtkz-PlatformCard e183m2bh0"
+        data-test-id="platform-ruby-rack"
+      >
+        <img
+          class="css-9g4hn5-StyledPlatformIcon e183m2bh2"
+          height="56"
+          src="[object Object]"
+          style="border-radius: 5px;"
+          width="56"
+        />
+        <h3>
+          Rack
+        </h3>
+      </div>
+      <div
+        class="css-zfqiia-PlatformCard e183m2bh0"
+        data-test-id="platform-ruby-rails"
+      >
+        <div
+          class="css-9g4hn5-StyledPlatformIcon e183m2bh2"
+          style="position: relative;"
+        >
+          <img
+            height="56"
+            src="[object Object]"
+            style="border-radius: 5px;"
+            width="56"
+          />
+          <img
+            src="[object Object]"
+            style="position: absolute; bottom: -1px; right: -1px; height: 30%; width: 30%; border-radius: 2px;"
+          />
+        </div>
+        <h3>
+          Rails
+        </h3>
+        <button
+          aria-disabled="false"
+          aria-label="Clear"
+          class="e183m2bh1 css-1wx8at8-StyledButton-getColors-getButtonStyles-ClearButton e1b8u3ky2"
+          role="button"
+          type="button"
+        >
+          <span
+            class="css-vul34l-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+            role="presentation"
+          />
+          <span
+            class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+          >
+            <span
+              class="css-161yn40-Icon e1b8u3ky0"
+            >
+              <svg
+                data-test-id="icon-close"
+                fill="currentColor"
+                height="12px"
+                viewBox="0 0 16 16"
+                width="12px"
+              >
+                <path
+                  d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z"
+                />
+                <path
+                  d="M5.34,11.41a.71.71,0,0,1-.53-.22.74.74,0,0,1,0-1.06l5.32-5.32a.75.75,0,0,1,1.06,1.06L5.87,11.19A.74.74,0,0,1,5.34,11.41Z"
+                />
+                <path
+                  d="M10.66,11.41a.74.74,0,0,1-.53-.22L4.81,5.87A.75.75,0,0,1,5.87,4.81l5.32,5.32a.74.74,0,0,1,0,1.06A.71.71,0,0,1,10.66,11.41Z"
+                />
+              </svg>
+            </span>
+          </span>
+        </button>
+      </div>
+    </div>
+    <div
+      class="ref-error css-1qa3xf-Wrap-alertStyles e73vi8e5"
+      type="error"
+    >
+      <span
+        class="css-iaz4p1-Message e73vi8e3"
+      >
+        <h1
+          class="css-9wap5q-Heading e1isf1bc0"
+        >
+          Oops! Something went wrong
+        </h1>
+        <p>
+          
+          It looks like you've hit an issue in our client application. Don't worry though!
+          We use Sentry to monitor Sentry and it's likely we're already looking into this!
+          
+        </p>
+        <p>
+          If you're daring, you may want to try the following:
+        </p>
+        <ul
+          class="css-btt1yy-List-bulletStyle e4p4vya0"
+        >
+          <li
+            class="css-fg0py0-ListItem e4r1zxd1"
+          >
+            <span>
+              <span>
+                Give it a few seconds and 
+              </span>
+              <a>
+                <span>
+                  reload the page
+                </span>
+              </a>
+              <span>
+                .
+              </span>
+            </span>
+          </li>
+          <li
+            class="css-fg0py0-ListItem e4r1zxd1"
+          >
+            <span>
+              <span>
+                If all else fails, 
+              </span>
+              <a
+                href="https://github.com/getsentry/sentry/issues/new/choose"
+              >
+                <span>
+                  contact us
+                </span>
+              </a>
+              <span>
+                 with more details.
+              </span>
+            </span>
+          </li>
+        </ul>
+      </span>
+    </div>
+    <h1
+      class="css-1yv3znu-PageHeading e1k3ddu90"
+    >
+      3. Name your project & assign it a team
+    </h1>
+    <form
+      class="css-8w06rn-CreateProjectForm e1icdt8d6"
+    >
+      <div>
+        <div
+          class="css-1ynor6-FormLabel e1icdt8d5"
+        >
+          Project name
+        </div>
+        <div
+          class="css-1v68q5c-ProjectNameInputWrap e1icdt8d4"
+        >
+          <img
+            class="css-1nk5ijy-StyledPlatformIcon e1icdt8d2"
+            height="20"
+            src="[object Object]"
+            style="border-radius: 3px;"
+            width="20"
+          />
+          <input
+            autocomplete="off"
+            class="css-1xy83h3-Input-inputStyles-ProjectNameInput e1icdt8d3"
+            name="name"
+            placeholder="project-name"
+            type="text"
+            value="Rails"
+          />
+        </div>
+      </div>
+      <div>
+        <div
+          class="css-1ynor6-FormLabel e1icdt8d5"
+        >
+          Team
+        </div>
+        <div
+          class="css-3884hs-TeamSelectInput e1icdt8d1"
+        >
+          <div
+            class=" css-2b097c-container"
+          >
+            <span
+              aria-atomic="false"
+              aria-live="polite"
+              aria-relevant="additions text"
+              class="css-1f43avz-a11yText-A11yText"
+            />
+            <div
+              class=" css-1lxgacs-Control"
+            >
+              <div
+                class=" css-1kqg4xi-ValueContainer"
+              >
+                <div
+                  class=" css-hpv81y-placeholder"
+                >
+                  Select a Team
+                </div>
+                <div
+                  class="css-ba2ole-Input"
+                >
+                  <div
+                    class=""
+                    style="display: inline-block;"
+                  >
+                    <input
+                      aria-autocomplete="list"
+                      autocapitalize="none"
+                      autocomplete="off"
+                      autocorrect="off"
+                      id="react-select-5-input"
+                      spellcheck="false"
+                      style="box-sizing: content-box; width: 2px; border: 0px; opacity: 1; outline: 0; padding: 0px;"
+                      tabindex="0"
+                      type="text"
+                      value=""
+                    />
+                    <div
+                      style="position: absolute; top: 0px; left: 0px; visibility: hidden; height: 0px; overflow: scroll; white-space: pre;"
+                    />
+                  </div>
+                </div>
+              </div>
+              <div
+                class=" css-1d4abpz-IndicatorsContainer"
+              >
+                <div
+                  class="loading mini"
+                  data-test-id="loading-indicator"
+                  style="height: 20px; width: 20px;"
+                >
+                  <div
+                    class="loading-indicator"
+                    style="width: 20px; height: 20px;"
+                  />
+                  <div
+                    class="loading-message"
+                  />
+                </div>
+                <div
+                  aria-hidden="true"
+                  class=" css-1td69xg-indicatorContainer"
+                >
+                  <svg
+                    class="css-1905w31-IconChevron"
+                    fill="currentColor"
+                    height="14px"
+                    viewBox="0 0 16 16"
+                    width="14px"
+                  >
+                    <path
+                      d="M14,11.75a.74.74,0,0,1-.53-.22L8,6.06,2.53,11.53a.75.75,0,0,1-1.06-1.06l6-6a.75.75,0,0,1,1.06,0l6,6a.75.75,0,0,1,0,1.06A.74.74,0,0,1,14,11.75Z"
+                    />
+                  </svg>
+                </div>
+              </div>
+            </div>
+            <input
+              name="select-team"
+              type="hidden"
+              value=""
+            />
+          </div>
+          <button
+            aria-describedby="tooltip-44gxqdjjgq"
+            aria-disabled="false"
+            aria-label="Create a team"
+            class="css-xtmwpt-StyledButton-getColors-getButtonStyles e1b8u3ky2"
+            data-test-id="create-team"
+            role="button"
+            type="button"
+          >
+            <span
+              class="css-vul34l-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+              role="presentation"
+            />
+            <span
+              class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+            >
+              <span
+                class="css-161yn40-Icon e1b8u3ky0"
+              >
+                <svg
+                  fill="currentColor"
+                  height="16px"
+                  viewBox="0 0 16 16"
+                  width="16px"
+                >
+                  <path
+                    d="M11.28,8.75H4.72a.75.75,0,1,1,0-1.5h6.56a.75.75,0,1,1,0,1.5Z"
+                  />
+                  <path
+                    d="M8,12a.76.76,0,0,1-.75-.75V4.72a.75.75,0,0,1,1.5,0v6.56A.76.76,0,0,1,8,12Z"
+                  />
+                  <path
+                    d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z"
+                  />
+                </svg>
+              </span>
+            </span>
+          </button>
+        </div>
+      </div>
+      <div>
+        <button
+          aria-disabled="false"
+          aria-label="Create Project"
+          class="css-zbzvlb-StyledButton-getColors-getButtonStyles e1b8u3ky2"
+          data-test-id="create-project"
+          role="button"
+          type="submit"
+        >
+          <span
+            class="css-at526y-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+            role="presentation"
+          />
+          <span
+            class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+          >
+            Create Project
+          </span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+`;
+
+exports[`CreateProject should fill in project name if its empty when platform is chosen 1`] = `
+<div>
+  <div
+    data-test-id="onboarding-info"
+  >
+    <h1
+      class="css-1yv3znu-PageHeading e1k3ddu90"
+    >
+      Create a new project in 3 steps
+    </h1>
+    <p
+      class="css-1i9gbi0-HelpText e1icdt8d0"
+    >
+      <span>
+        <span>
+          Set up a separate project for each part of your application (for example, your API server and frontend client), to quickly pinpoint which part of your application errors are coming from. 
+        </span>
+        <a
+          class="css-1ecfdi8-Anchor ehytxfi0"
+          href="https://docs.sentry.io/product/sentry-basics/integrate-frontend/create-new-project/"
+          rel="noreferrer noopener"
+          target="_blank"
+        >
+          <span>
+             Read the docs
+          </span>
+        </a>
+        <span>
+          .
+        </span>
+      </span>
+    </p>
+    <h1
+      class="css-1yv3znu-PageHeading e1k3ddu90"
+    >
+      1. Choose your platform
+    </h1>
+    <div
+      class="css-e2ouj1-NavContainer e183m2bh5"
+    >
+      <ul
+        class="nav nav-tabs e183m2bh3 css-6h8dug-Wrap-CategoryNav e1fej6h40"
+      >
+        <li
+          class="active css-1dpjfax-StyledLi er8tqc10"
+        >
+          <a
+            href=""
+          >
+            Popular
+          </a>
+        </li>
+        <li
+          class=" css-1dpjfax-StyledLi er8tqc10"
+        >
+          <a
+            href=""
+          >
+            Browser
+          </a>
+        </li>
+        <li
+          class=" css-1dpjfax-StyledLi er8tqc10"
+        >
+          <a
+            href=""
+          >
+            Server
+          </a>
+        </li>
+        <li
+          class=" css-1dpjfax-StyledLi er8tqc10"
+        >
+          <a
+            href=""
+          >
+            Mobile
+          </a>
+        </li>
+        <li
+          class=" css-1dpjfax-StyledLi er8tqc10"
+        >
+          <a
+            href=""
+          >
+            Desktop
+          </a>
+        </li>
+        <li
+          class=" css-1dpjfax-StyledLi er8tqc10"
+        >
+          <a
+            href=""
+          >
+            Serverless
+          </a>
+        </li>
+        <li
+          class=" css-1dpjfax-StyledLi er8tqc10"
+        >
+          <a
+            href=""
+          >
+            All
+          </a>
+        </li>
+      </ul>
+      <form
+        class="e183m2bh4 css-1vwyln3-FormWrap-StyledSearchBar e4xnwji2"
+      >
+        <div
+          class="css-1biel1q-InputGroupWrap e13j5zq05"
+        >
+          <div
+            class="css-j206kq-InputItemsWrap-InputLeadingItemsWrap e13j5zq01"
+            data-test-id="input-leading-items"
+          >
+            <svg
+              fill="#80708F"
+              height="16px"
+              viewBox="0 0 16 16"
+              width="16px"
+            >
+              <path
+                d="M6,12A6,6,0,1,1,12,6,6,6,0,0,1,6,12ZM6,1.54A4.46,4.46,0,1,0,10.45,6,4.46,4.46,0,0,0,6,1.54Z"
+              />
+              <path
+                d="M15.2,16a.74.74,0,0,1-.53-.22L9.14,10.2A.75.75,0,0,1,10.2,9.14l5.53,5.53a.75.75,0,0,1,0,1.06A.74.74,0,0,1,15.2,16Z"
+              />
+            </svg>
+          </div>
+          <input
+            autocomplete="off"
+            class="e4xnwji1 css-1wfpay8-Input-inputStyles-StyledInput-getInputStyles-StyledInput e13j5zq03"
+            name="query"
+            placeholder="Filter Platforms"
+            type="text"
+            value=""
+          />
+          <div
+            class="css-lc4in0-InputItemsWrap-InputTrailingItemsWrap e13j5zq00"
+            data-test-id="input-trailing-items"
+          />
+        </div>
+      </form>
+    </div>
+    <div
+      class="css-1ydw9xt-PlatformList e183m2bh6"
+    >
+      <div
+        class="css-zfqiia-PlatformCard e183m2bh0"
+        data-test-id="platform-apple-ios"
+      >
+        <img
+          class="css-9g4hn5-StyledPlatformIcon e183m2bh2"
+          height="56"
+          src="[object Object]"
+          style="border-radius: 5px;"
+          width="56"
+        />
+        <h3>
+          iOS
+        </h3>
+        <button
+          aria-disabled="false"
+          aria-label="Clear"
+          class="e183m2bh1 css-1wx8at8-StyledButton-getColors-getButtonStyles-ClearButton e1b8u3ky2"
+          role="button"
+          type="button"
+        >
+          <span
+            class="css-vul34l-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+            role="presentation"
+          />
+          <span
+            class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+          >
+            <span
+              class="css-161yn40-Icon e1b8u3ky0"
+            >
+              <svg
+                data-test-id="icon-close"
+                fill="currentColor"
+                height="12px"
+                viewBox="0 0 16 16"
+                width="12px"
+              >
+                <path
+                  d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z"
+                />
+                <path
+                  d="M5.34,11.41a.71.71,0,0,1-.53-.22.74.74,0,0,1,0-1.06l5.32-5.32a.75.75,0,0,1,1.06,1.06L5.87,11.19A.74.74,0,0,1,5.34,11.41Z"
+                />
+                <path
+                  d="M10.66,11.41a.74.74,0,0,1-.53-.22L4.81,5.87A.75.75,0,0,1,5.87,4.81l5.32,5.32a.74.74,0,0,1,0,1.06A.71.71,0,0,1,10.66,11.41Z"
+                />
+              </svg>
+            </span>
+          </span>
+        </button>
+      </div>
+      <div
+        class="css-1oggtkz-PlatformCard e183m2bh0"
+        data-test-id="platform-dotnet"
+      >
+        <img
+          class="css-9g4hn5-StyledPlatformIcon e183m2bh2"
+          height="56"
+          src="[object Object]"
+          style="border-radius: 5px;"
+          width="56"
+        />
+        <h3>
+          .NET
+        </h3>
+      </div>
+      <div
+        class="css-1oggtkz-PlatformCard e183m2bh0"
+        data-test-id="platform-dotnet-aspnetcore"
+      >
+        <img
+          class="css-9g4hn5-StyledPlatformIcon e183m2bh2"
+          height="56"
+          src="[object Object]"
+          style="border-radius: 5px;"
+          width="56"
+        />
+        <h3>
+          ASP .NET Core
+        </h3>
+      </div>
+      <div
+        class="css-1oggtkz-PlatformCard e183m2bh0"
+        data-test-id="platform-go"
+      >
+        <img
+          class="css-9g4hn5-StyledPlatformIcon e183m2bh2"
+          height="56"
+          src="[object Object]"
+          style="border-radius: 5px;"
+          width="56"
+        />
+        <h3>
+          Go
+        </h3>
+      </div>
+      <div
+        class="css-1oggtkz-PlatformCard e183m2bh0"
+        data-test-id="platform-java"
+      >
+        <img
+          class="css-9g4hn5-StyledPlatformIcon e183m2bh2"
+          height="56"
+          src="[object Object]"
+          style="border-radius: 5px;"
+          width="56"
+        />
+        <h3>
+          Java
+        </h3>
+      </div>
+      <div
+        class="css-1oggtkz-PlatformCard e183m2bh0"
+        data-test-id="platform-javascript"
+      >
+        <img
+          class="css-9g4hn5-StyledPlatformIcon e183m2bh2"
+          height="56"
+          src="[object Object]"
+          style="border-radius: 5px;"
+          width="56"
+        />
+        <h3>
+          JavaScript
+        </h3>
+      </div>
+      <div
+        class="css-1oggtkz-PlatformCard e183m2bh0"
+        data-test-id="platform-javascript-angular"
+      >
+        <div
+          class="css-9g4hn5-StyledPlatformIcon e183m2bh2"
+          style="position: relative;"
+        >
+          <img
+            height="56"
+            src="[object Object]"
+            style="border-radius: 5px;"
+            width="56"
+          />
+          <img
+            src="[object Object]"
+            style="position: absolute; bottom: -1px; right: -1px; height: 30%; width: 30%; border-radius: 2px;"
+          />
+        </div>
+        <h3>
+          Angular
+        </h3>
+      </div>
+      <div
+        class="css-1oggtkz-PlatformCard e183m2bh0"
+        data-test-id="platform-javascript-nextjs"
+      >
+        <div
+          class="css-9g4hn5-StyledPlatformIcon e183m2bh2"
+          style="position: relative;"
+        >
+          <img
+            height="56"
+            src="[object Object]"
+            style="border-radius: 5px;"
+            width="56"
+          />
+          <img
+            src="[object Object]"
+            style="position: absolute; bottom: -1px; right: -1px; height: 30%; width: 30%; border-radius: 2px;"
+          />
+        </div>
+        <h3>
+          Next.js
+        </h3>
+      </div>
+      <div
+        class="css-1oggtkz-PlatformCard e183m2bh0"
+        data-test-id="platform-javascript-react"
+      >
+        <div
+          class="css-9g4hn5-StyledPlatformIcon e183m2bh2"
+          style="position: relative;"
+        >
+          <img
+            height="56"
+            src="[object Object]"
+            style="border-radius: 5px;"
+            width="56"
+          />
+          <img
+            src="[object Object]"
+            style="position: absolute; bottom: -1px; right: -1px; height: 30%; width: 30%; border-radius: 2px;"
+          />
+        </div>
+        <h3>
+          React
+        </h3>
+      </div>
+      <div
+        class="css-1oggtkz-PlatformCard e183m2bh0"
+        data-test-id="platform-javascript-vue"
+      >
+        <div
+          class="css-9g4hn5-StyledPlatformIcon e183m2bh2"
+          style="position: relative;"
+        >
+          <img
+            height="56"
+            src="[object Object]"
+            style="border-radius: 5px;"
+            width="56"
+          />
+          <img
+            src="[object Object]"
+            style="position: absolute; bottom: -1px; right: -1px; height: 30%; width: 30%; border-radius: 2px;"
+          />
+        </div>
+        <h3>
+          Vue
+        </h3>
+      </div>
+      <div
+        class="css-1oggtkz-PlatformCard e183m2bh0"
+        data-test-id="platform-node"
+      >
+        <img
+          class="css-9g4hn5-StyledPlatformIcon e183m2bh2"
+          height="56"
+          src="[object Object]"
+          style="border-radius: 5px;"
+          width="56"
+        />
+        <h3>
+          Node.js
+        </h3>
+      </div>
+      <div
+        class="css-1oggtkz-PlatformCard e183m2bh0"
+        data-test-id="platform-node-express"
+      >
+        <div
+          class="css-9g4hn5-StyledPlatformIcon e183m2bh2"
+          style="position: relative;"
+        >
+          <img
+            height="56"
+            src="[object Object]"
+            style="border-radius: 5px;"
+            width="56"
+          />
+          <img
+            src="[object Object]"
+            style="position: absolute; bottom: -1px; right: -1px; height: 30%; width: 30%; border-radius: 2px;"
+          />
+        </div>
+        <h3>
+          Express
+        </h3>
+      </div>
+      <div
+        class="css-1oggtkz-PlatformCard e183m2bh0"
+        data-test-id="platform-php"
+      >
+        <img
+          class="css-9g4hn5-StyledPlatformIcon e183m2bh2"
+          height="56"
+          src="[object Object]"
+          style="border-radius: 5px;"
+          width="56"
+        />
+        <h3>
+          PHP
+        </h3>
+      </div>
+      <div
+        class="css-1oggtkz-PlatformCard e183m2bh0"
+        data-test-id="platform-php-laravel"
+      >
+        <div
+          class="css-9g4hn5-StyledPlatformIcon e183m2bh2"
+          style="position: relative;"
+        >
+          <img
+            height="56"
+            src="[object Object]"
+            style="border-radius: 5px;"
+            width="56"
+          />
+          <img
+            src="[object Object]"
+            style="position: absolute; bottom: -1px; right: -1px; height: 30%; width: 30%; border-radius: 2px;"
+          />
+        </div>
+        <h3>
+          Laravel
+        </h3>
+      </div>
+      <div
+        class="css-1oggtkz-PlatformCard e183m2bh0"
+        data-test-id="platform-python"
+      >
+        <img
+          class="css-9g4hn5-StyledPlatformIcon e183m2bh2"
+          height="56"
+          src="[object Object]"
+          style="border-radius: 5px;"
+          width="56"
+        />
+        <h3>
+          Python
+        </h3>
+      </div>
+      <div
+        class="css-1oggtkz-PlatformCard e183m2bh0"
+        data-test-id="platform-python-django"
+      >
+        <div
+          class="css-9g4hn5-StyledPlatformIcon e183m2bh2"
+          style="position: relative;"
+        >
+          <img
+            height="56"
+            src="[object Object]"
+            style="border-radius: 5px;"
+            width="56"
+          />
+          <img
+            src="[object Object]"
+            style="position: absolute; bottom: -1px; right: -1px; height: 30%; width: 30%; border-radius: 2px;"
+          />
+        </div>
+        <h3>
+          Django
+        </h3>
+      </div>
+      <div
+        class="css-1oggtkz-PlatformCard e183m2bh0"
+        data-test-id="platform-python-fastapi"
+      >
+        <div
+          class="css-9g4hn5-StyledPlatformIcon e183m2bh2"
+          style="position: relative;"
+        >
+          <img
+            height="56"
+            src="[object Object]"
+            style="border-radius: 5px;"
+            width="56"
+          />
+          <img
+            src="[object Object]"
+            style="position: absolute; bottom: -1px; right: -1px; height: 30%; width: 30%; border-radius: 2px;"
+          />
+        </div>
+        <h3>
+          FastAPI
+        </h3>
+      </div>
+      <div
+        class="css-1oggtkz-PlatformCard e183m2bh0"
+        data-test-id="platform-python-flask"
+      >
+        <div
+          class="css-9g4hn5-StyledPlatformIcon e183m2bh2"
+          style="position: relative;"
+        >
+          <img
+            height="56"
+            src="[object Object]"
+            style="border-radius: 5px;"
+            width="56"
+          />
+          <img
+            src="[object Object]"
+            style="position: absolute; bottom: -1px; right: -1px; height: 30%; width: 30%; border-radius: 2px;"
+          />
+        </div>
+        <h3>
+          Flask
+        </h3>
+      </div>
+      <div
+        class="css-1oggtkz-PlatformCard e183m2bh0"
+        data-test-id="platform-react-native"
+      >
+        <img
+          class="css-9g4hn5-StyledPlatformIcon e183m2bh2"
+          height="56"
+          src="[object Object]"
+          style="border-radius: 5px;"
+          width="56"
+        />
+        <h3>
+          React-Native
+        </h3>
+      </div>
+      <div
+        class="css-1oggtkz-PlatformCard e183m2bh0"
+        data-test-id="platform-ruby"
+      >
+        <img
+          class="css-9g4hn5-StyledPlatformIcon e183m2bh2"
+          height="56"
+          src="[object Object]"
+          style="border-radius: 5px;"
+          width="56"
+        />
+        <h3>
+          Ruby
+        </h3>
+      </div>
+      <div
+        class="css-1oggtkz-PlatformCard e183m2bh0"
+        data-test-id="platform-ruby-rails"
+      >
+        <div
+          class="css-9g4hn5-StyledPlatformIcon e183m2bh2"
+          style="position: relative;"
+        >
+          <img
+            height="56"
+            src="[object Object]"
+            style="border-radius: 5px;"
+            width="56"
+          />
+          <img
+            src="[object Object]"
+            style="position: absolute; bottom: -1px; right: -1px; height: 30%; width: 30%; border-radius: 2px;"
+          />
+        </div>
+        <h3>
+          Rails
+        </h3>
+      </div>
+    </div>
+    <div
+      class="ref-error css-1qa3xf-Wrap-alertStyles e73vi8e5"
+      type="error"
+    >
+      <span
+        class="css-iaz4p1-Message e73vi8e3"
+      >
+        <h1
+          class="css-9wap5q-Heading e1isf1bc0"
+        >
+          Oops! Something went wrong
+        </h1>
+        <p>
+          
+          It looks like you've hit an issue in our client application. Don't worry though!
+          We use Sentry to monitor Sentry and it's likely we're already looking into this!
+          
+        </p>
+        <p>
+          If you're daring, you may want to try the following:
+        </p>
+        <ul
+          class="css-btt1yy-List-bulletStyle e4p4vya0"
+        >
+          <li
+            class="css-fg0py0-ListItem e4r1zxd1"
+          >
+            <span>
+              <span>
+                Give it a few seconds and 
+              </span>
+              <a>
+                <span>
+                  reload the page
+                </span>
+              </a>
+              <span>
+                .
+              </span>
+            </span>
+          </li>
+          <li
+            class="css-fg0py0-ListItem e4r1zxd1"
+          >
+            <span>
+              <span>
+                If all else fails, 
+              </span>
+              <a
+                href="https://github.com/getsentry/sentry/issues/new/choose"
+              >
+                <span>
+                  contact us
+                </span>
+              </a>
+              <span>
+                 with more details.
+              </span>
+            </span>
+          </li>
+        </ul>
+      </span>
+    </div>
+    <h1
+      class="css-1yv3znu-PageHeading e1k3ddu90"
+    >
+      3. Name your project & assign it a team
+    </h1>
+    <form
+      class="css-8w06rn-CreateProjectForm e1icdt8d6"
+    >
+      <div>
+        <div
+          class="css-1ynor6-FormLabel e1icdt8d5"
+        >
+          Project name
+        </div>
+        <div
+          class="css-1v68q5c-ProjectNameInputWrap e1icdt8d4"
+        >
+          <img
+            class="css-1nk5ijy-StyledPlatformIcon e1icdt8d2"
+            height="20"
+            src="[object Object]"
+            style="border-radius: 3px;"
+            width="20"
+          />
+          <input
+            autocomplete="off"
+            class="css-1xy83h3-Input-inputStyles-ProjectNameInput e1icdt8d3"
+            name="name"
+            placeholder="project-name"
+            type="text"
+            value="another"
+          />
+        </div>
+      </div>
+      <div>
+        <div
+          class="css-1ynor6-FormLabel e1icdt8d5"
+        >
+          Team
+        </div>
+        <div
+          class="css-3884hs-TeamSelectInput e1icdt8d1"
+        >
+          <div
+            class=" css-2b097c-container"
+          >
+            <span
+              aria-atomic="false"
+              aria-live="polite"
+              aria-relevant="additions text"
+              class="css-1f43avz-a11yText-A11yText"
+            />
+            <div
+              class=" css-1lxgacs-Control"
+            >
+              <div
+                class=" css-1kqg4xi-ValueContainer"
+              >
+                <div
+                  class=" css-hpv81y-placeholder"
+                >
+                  Select a Team
+                </div>
+                <div
+                  class="css-ba2ole-Input"
+                >
+                  <div
+                    class=""
+                    style="display: inline-block;"
+                  >
+                    <input
+                      aria-autocomplete="list"
+                      autocapitalize="none"
+                      autocomplete="off"
+                      autocorrect="off"
+                      id="react-select-4-input"
+                      spellcheck="false"
+                      style="box-sizing: content-box; width: 2px; border: 0px; opacity: 1; outline: 0; padding: 0px;"
+                      tabindex="0"
+                      type="text"
+                      value=""
+                    />
+                    <div
+                      style="position: absolute; top: 0px; left: 0px; visibility: hidden; height: 0px; overflow: scroll; white-space: pre;"
+                    />
+                  </div>
+                </div>
+              </div>
+              <div
+                class=" css-1d4abpz-IndicatorsContainer"
+              >
+                <div
+                  class="loading mini"
+                  data-test-id="loading-indicator"
+                  style="height: 20px; width: 20px;"
+                >
+                  <div
+                    class="loading-indicator"
+                    style="width: 20px; height: 20px;"
+                  />
+                  <div
+                    class="loading-message"
+                  />
+                </div>
+                <div
+                  aria-hidden="true"
+                  class=" css-1td69xg-indicatorContainer"
+                >
+                  <svg
+                    class="css-1905w31-IconChevron"
+                    fill="currentColor"
+                    height="14px"
+                    viewBox="0 0 16 16"
+                    width="14px"
+                  >
+                    <path
+                      d="M14,11.75a.74.74,0,0,1-.53-.22L8,6.06,2.53,11.53a.75.75,0,0,1-1.06-1.06l6-6a.75.75,0,0,1,1.06,0l6,6a.75.75,0,0,1,0,1.06A.74.74,0,0,1,14,11.75Z"
+                    />
+                  </svg>
+                </div>
+              </div>
+            </div>
+            <input
+              name="select-team"
+              type="hidden"
+              value=""
+            />
+          </div>
+          <button
+            aria-describedby="tooltip-cmms6uzd9y"
+            aria-disabled="false"
+            aria-label="Create a team"
+            class="css-xtmwpt-StyledButton-getColors-getButtonStyles e1b8u3ky2"
+            data-test-id="create-team"
+            role="button"
+            type="button"
+          >
+            <span
+              class="css-vul34l-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+              role="presentation"
+            />
+            <span
+              class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+            >
+              <span
+                class="css-161yn40-Icon e1b8u3ky0"
+              >
+                <svg
+                  fill="currentColor"
+                  height="16px"
+                  viewBox="0 0 16 16"
+                  width="16px"
+                >
+                  <path
+                    d="M11.28,8.75H4.72a.75.75,0,1,1,0-1.5h6.56a.75.75,0,1,1,0,1.5Z"
+                  />
+                  <path
+                    d="M8,12a.76.76,0,0,1-.75-.75V4.72a.75.75,0,0,1,1.5,0v6.56A.76.76,0,0,1,8,12Z"
+                  />
+                  <path
+                    d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z"
+                  />
+                </svg>
+              </span>
+            </span>
+          </button>
+        </div>
+      </div>
+      <div>
+        <button
+          aria-disabled="false"
+          aria-label="Create Project"
+          class="css-zbzvlb-StyledButton-getColors-getButtonStyles e1b8u3ky2"
+          data-test-id="create-project"
+          role="button"
+          type="submit"
+        >
+          <span
+            class="css-at526y-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+            role="presentation"
+          />
+          <span
+            class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+          >
+            Create Project
+          </span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+`;

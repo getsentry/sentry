@@ -266,8 +266,9 @@ const config: Config.InitialOptions = {
     ],
   ],
 
-  testEnvironment: '<rootDir>/tests/js/instrumentedEnv',
-  testEnvironmentOptions: {
+  // testEnvironment: '<rootDir>/tests/js/instrumentedEnv',
+  testEnvironment: 'jsdom',
+  /* testEnvironmentOptions: {
     sentryConfig: {
       init: {
         // jest project under Sentry organization (dev productivity team)
@@ -288,7 +289,7 @@ const config: Config.InitialOptions = {
       },
     },
     output: path.resolve(__dirname, '.artifacts', 'visual-snapshots', 'jest'),
-  },
+  }, */
 };
 
 export default config;

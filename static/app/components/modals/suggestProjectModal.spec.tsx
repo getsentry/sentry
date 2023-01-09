@@ -17,6 +17,6 @@ describe('SuggestProjectModal', function () {
       ))
     );
 
-    expect(container).toSnapshot();
+    expect(container).toMatchSnapshot();
   });
 });

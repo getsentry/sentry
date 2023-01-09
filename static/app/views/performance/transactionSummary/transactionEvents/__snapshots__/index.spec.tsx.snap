@@ -1,0 +1,282 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Performance GridEditable Table renders basic columns without ops breakdown when not querying for span_ops_breakdown.relative 1`] = `
+<div>
+  <div
+    data-test-id="events-table"
+  >
+    <div
+      class="e17psx6810 css-16qofuy-Panel-Body edxrl2k0"
+    >
+      <div
+        class="css-pemm1r-PanelBody-textStyles eszvord0"
+      >
+        <table
+          class="css-zz710c-Grid e17psx689"
+          data-test-id="grid-editable"
+          style="grid-template-columns:  minmax(90px, auto) minmax(90px, auto) minmax(90px, auto) minmax(90px, auto) minmax(90px, auto) minmax(90px, auto);"
+        >
+          <thead
+            class="css-1q9u44t-GridHead e17psx687"
+          >
+            <tr
+              class="css-3n824k-GridRow e17psx688"
+              data-test-id="grid-head-row"
+            >
+              <th
+                class="css-qf9mh3-GridHeadCell e17psx686"
+                data-test-id="grid-head-cell"
+              >
+                <div
+                  class="css-tgyenk-StyledNonLink e1xb2te61"
+                >
+                  event id
+                </div>
+                <div
+                  class="css-1rqlnfn-GridResizer e17psx680"
+                />
+              </th>
+              <th
+                class="css-1ozbg4v-GridHeadCell e17psx686"
+                data-test-id="grid-head-cell"
+              >
+                <div
+                  class="css-tgyenk-StyledNonLink e1xb2te61"
+                >
+                  user
+                </div>
+                <div
+                  class="css-1rqlnfn-GridResizer e17psx680"
+                />
+              </th>
+              <th
+                class="css-1ozbg4v-GridHeadCell e17psx686"
+                data-test-id="grid-head-cell"
+              >
+                <div
+                  class="css-147s3m8-StyledNonLink e1xb2te61"
+                >
+                  operation duration
+                </div>
+                <div
+                  class="css-1rqlnfn-GridResizer e17psx680"
+                />
+              </th>
+              <th
+                class="css-1ozbg4v-GridHeadCell e17psx686"
+                data-test-id="grid-head-cell"
+              >
+                <div
+                  class="css-tgyenk-StyledNonLink e1xb2te61"
+                >
+                  total duration
+                </div>
+                <div
+                  class="css-1rqlnfn-GridResizer e17psx680"
+                />
+              </th>
+              <th
+                class="css-1ozbg4v-GridHeadCell e17psx686"
+                data-test-id="grid-head-cell"
+              >
+                <div
+                  class="css-tgyenk-StyledNonLink e1xb2te61"
+                >
+                  trace id
+                </div>
+                <div
+                  class="css-1rqlnfn-GridResizer e17psx680"
+                />
+              </th>
+              <th
+                class="css-1ozbg4v-GridHeadCell e17psx686"
+                data-test-id="grid-head-cell"
+              >
+                <div
+                  class="css-147s3m8-StyledNonLink e1xb2te61"
+                >
+                  timestamp
+                </div>
+              </th>
+            </tr>
+          </thead>
+          <tbody
+            class="css-144oias-GridBody e17psx684"
+          >
+            <tr
+              class="css-3n824k-GridRow e17psx688"
+            >
+              <td
+                class="css-jexemf-GridBodyCell-GridStatusWrapper e17psx682"
+              >
+                <div
+                  class="css-10wk7ha-GridStatusFloat e17psx681"
+                >
+                  <div
+                    class="loading"
+                    data-test-id="loading-indicator"
+                  >
+                    <div
+                      class="loading-indicator"
+                    />
+                    <div
+                      class="loading-message"
+                    />
+                  </div>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`Performance GridEditable Table renders replay id 1`] = `
+<div>
+  <div
+    data-test-id="events-table"
+  >
+    <div
+      class="e17psx6810 css-16qofuy-Panel-Body edxrl2k0"
+    >
+      <div
+        class="css-pemm1r-PanelBody-textStyles eszvord0"
+      >
+        <table
+          class="css-zz710c-Grid e17psx689"
+          data-test-id="grid-editable"
+          style="grid-template-columns:  minmax(90px, auto) minmax(90px, auto) minmax(90px, auto) minmax(90px, auto) minmax(90px, auto) minmax(90px, auto) minmax(90px, auto);"
+        >
+          <thead
+            class="css-1q9u44t-GridHead e17psx687"
+          >
+            <tr
+              class="css-3n824k-GridRow e17psx688"
+              data-test-id="grid-head-row"
+            >
+              <th
+                class="css-qf9mh3-GridHeadCell e17psx686"
+                data-test-id="grid-head-cell"
+              >
+                <div
+                  class="css-tgyenk-StyledNonLink e1xb2te61"
+                >
+                  event id
+                </div>
+                <div
+                  class="css-1rqlnfn-GridResizer e17psx680"
+                />
+              </th>
+              <th
+                class="css-1ozbg4v-GridHeadCell e17psx686"
+                data-test-id="grid-head-cell"
+              >
+                <div
+                  class="css-tgyenk-StyledNonLink e1xb2te61"
+                >
+                  user
+                </div>
+                <div
+                  class="css-1rqlnfn-GridResizer e17psx680"
+                />
+              </th>
+              <th
+                class="css-1ozbg4v-GridHeadCell e17psx686"
+                data-test-id="grid-head-cell"
+              >
+                <div
+                  class="css-147s3m8-StyledNonLink e1xb2te61"
+                >
+                  operation duration
+                </div>
+                <div
+                  class="css-1rqlnfn-GridResizer e17psx680"
+                />
+              </th>
+              <th
+                class="css-1ozbg4v-GridHeadCell e17psx686"
+                data-test-id="grid-head-cell"
+              >
+                <div
+                  class="css-tgyenk-StyledNonLink e1xb2te61"
+                >
+                  total duration
+                </div>
+                <div
+                  class="css-1rqlnfn-GridResizer e17psx680"
+                />
+              </th>
+              <th
+                class="css-1ozbg4v-GridHeadCell e17psx686"
+                data-test-id="grid-head-cell"
+              >
+                <div
+                  class="css-tgyenk-StyledNonLink e1xb2te61"
+                >
+                  trace id
+                </div>
+                <div
+                  class="css-1rqlnfn-GridResizer e17psx680"
+                />
+              </th>
+              <th
+                class="css-1ozbg4v-GridHeadCell e17psx686"
+                data-test-id="grid-head-cell"
+              >
+                <div
+                  class="css-147s3m8-StyledNonLink e1xb2te61"
+                >
+                  timestamp
+                </div>
+                <div
+                  class="css-1rqlnfn-GridResizer e17psx680"
+                />
+              </th>
+              <th
+                class="css-1ozbg4v-GridHeadCell e17psx686"
+                data-test-id="grid-head-cell"
+              >
+                <div
+                  class="css-tgyenk-StyledNonLink e1xb2te61"
+                >
+                  replayId
+                </div>
+              </th>
+            </tr>
+          </thead>
+          <tbody
+            class="css-144oias-GridBody e17psx684"
+          >
+            <tr
+              class="css-3n824k-GridRow e17psx688"
+            >
+              <td
+                class="css-jexemf-GridBodyCell-GridStatusWrapper e17psx682"
+              >
+                <div
+                  class="css-10wk7ha-GridStatusFloat e17psx681"
+                >
+                  <div
+                    class="loading"
+                    data-test-id="loading-indicator"
+                  >
+                    <div
+                      class="loading-indicator"
+                    />
+                    <div
+                      class="loading-message"
+                    />
+                  </div>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+`;

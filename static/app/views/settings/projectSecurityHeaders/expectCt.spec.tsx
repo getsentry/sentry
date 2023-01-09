@@ -28,6 +28,6 @@ describe('ProjectExpectCtReports', function () {
       />
     );
 
-    expect(container).toSnapshot();
+    expect(container).toMatchSnapshot();
   });
 });

@@ -1,0 +1,113 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`EventSdkUpdates renders a suggestion to update the sdk and then enable an integration 1`] = `
+<div>
+  <div
+    class=" css-bxfmzo-DataSection e9xr8173"
+  >
+    <div
+      class="css-1o3cuay-SectionContents e11dlz2y1"
+    >
+      <div
+        class="ref-info css-13z2717-Wrap-alertStyles e73vi8e5"
+        type="info"
+      >
+        <div
+          class="css-9ifyx1-IconWrapper e73vi8e4"
+        >
+          <svg
+            fill="currentColor"
+            height="16px"
+            viewBox="0 0 16 16"
+            width="16px"
+          >
+            <path
+              d="M8,11.78A.74.74,0,0,1,7.24,11V7a.75.75,0,0,1,1.5,0v4A.75.75,0,0,1,8,11.78Z"
+            />
+            <circle
+              cx="8"
+              cy="4.78"
+              r="0.76"
+            />
+            <path
+              d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z"
+            />
+          </svg>
+        </div>
+        <span
+          class="css-iaz4p1-Message e73vi8e3"
+        >
+          <span>
+            <span>
+              We recommend you 
+            </span>
+            <span>
+              <span>
+                <span>
+                  <span>
+                    update your SDK from 
+                  </span>
+                  <span>
+                    sentry.python
+                  </span>
+                  <span>
+                    @v
+                  </span>
+                  <span>
+                    0.1.0
+                  </span>
+                  <span>
+                     to 
+                  </span>
+                  <span>
+                    sentry.python
+                  </span>
+                  <span>
+                    @v
+                  </span>
+                  <span>
+                    0.9.0
+                  </span>
+                </span>
+                <span>
+                   so you can:
+                </span>
+              </span>
+              <ul
+                class="css-1upyevb-List-bulletStyle-StyledList e1sh41260"
+              >
+                <li
+                  class="css-fg0py0-ListItem e4r1zxd1"
+                >
+                  <a
+                    class="css-1ecfdi8-Anchor ehytxfi0"
+                    href="https://docs.sentry.io/platforms/python/guides/django/"
+                    rel="noreferrer noopener"
+                    target="_blank"
+                  >
+                    <span>
+                      <span>
+                        enable the 
+                      </span>
+                      <span>
+                        django
+                      </span>
+                      <span>
+                         integration
+                      </span>
+                    </span>
+                  </a>
+                </li>
+              </ul>
+            </span>
+            <span>
+               
+            </span>
+          </span>
+          (All sentry packages should be updated and their versions should match)
+        </span>
+      </div>
+    </div>
+  </div>
+</div>
+`;

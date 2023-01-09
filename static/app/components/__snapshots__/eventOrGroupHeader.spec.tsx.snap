@@ -1,0 +1,283 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`EventOrGroupHeader Event hides level tag 1`] = `
+<div>
+  <div
+    data-test-id="event-issue-header"
+  >
+    <div
+      class="css-ouo8wi-Title-truncateStyles-Title e1weinmj6"
+    >
+      <a
+        class="css-ta9xa3-Link e1ycxor00"
+      >
+        <span
+          class="e1weinmj0 css-yxe4hf-Wrapper-StyledEventOrGroupTitle ejrtwu50"
+        >
+          metadata title
+          
+        </span>
+      </a>
+    </div>
+    
+  </div>
+</div>
+`;
+
+exports[`EventOrGroupHeader Event renders with \`type = csp\` 1`] = `
+<div>
+  <div
+    data-test-id="event-issue-header"
+  >
+    <div
+      class="css-ouo8wi-Title-truncateStyles-Title e1weinmj6"
+    >
+      <a
+        class="css-ta9xa3-Link e1ycxor00"
+      >
+        <span
+          class="e1weinmj0 css-yxe4hf-Wrapper-StyledEventOrGroupTitle ejrtwu50"
+        >
+          metadata directive
+          <span
+            style="display: inline-block; width: 10px;"
+          >
+             
+          </span>
+          <em
+            class="css-15ppkm0-Subtitle ejrtwu51"
+            title="metadata uri"
+          >
+            metadata uri
+          </em>
+          <br />
+        </span>
+      </a>
+    </div>
+    <div
+      class="css-5u5f53-TagAndMessageWrapper-StyledTagAndMessageWrapper e1weinmj4"
+    >
+      <div
+        class="css-1jsaje1-Message-truncateStyles e1weinmj3"
+      >
+        metadata message
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`EventOrGroupHeader Event renders with \`type = default\` 1`] = `
+<div>
+  <div
+    data-test-id="event-issue-header"
+  >
+    <div
+      class="css-ouo8wi-Title-truncateStyles-Title e1weinmj6"
+    >
+      <a
+        class="css-ta9xa3-Link e1ycxor00"
+      >
+        <span
+          class="e1weinmj0 css-yxe4hf-Wrapper-StyledEventOrGroupTitle ejrtwu50"
+        >
+          metadata title
+          
+        </span>
+      </a>
+    </div>
+    
+  </div>
+</div>
+`;
+
+exports[`EventOrGroupHeader Event renders with \`type = error\` 1`] = `
+<div>
+  <div
+    data-test-id="event-issue-header"
+  >
+    <div
+      class="css-ouo8wi-Title-truncateStyles-Title e1weinmj6"
+    >
+      <a
+        class="css-ta9xa3-Link e1ycxor00"
+      >
+        <span
+          class="e1weinmj0 css-yxe4hf-Wrapper-StyledEventOrGroupTitle ejrtwu50"
+        >
+          metadata type
+        </span>
+      </a>
+    </div>
+    <div
+      class="css-5u5f53-TagAndMessageWrapper-StyledTagAndMessageWrapper e1weinmj4"
+    >
+      <div
+        class="css-1jsaje1-Message-truncateStyles e1weinmj3"
+      >
+        metadata value
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`EventOrGroupHeader Group renders with \`type = csp\` 1`] = `
+<div>
+  <div
+    data-test-id="event-issue-header"
+  >
+    <div
+      class="css-ouo8wi-Title-truncateStyles-Title e1weinmj6"
+    >
+      <a
+        class="css-ta9xa3-Link e1ycxor00"
+      >
+        <div
+          aria-describedby="tooltip-w24iuzlw4i"
+          class="css-1yb48yd-GroupLevel e1weinmj1"
+        />
+        <span
+          class="e1weinmj0 css-yxe4hf-Wrapper-StyledEventOrGroupTitle ejrtwu50"
+        >
+          <span
+            class="css-gg42vh-Wrapper ewamzvo2"
+            data-testid="stacktrace-preview"
+          >
+            <span
+              aria-describedby="hovercard-4hrctfmqk9"
+              class="css-1y4rfpo-Container e1lk5gpt0"
+            >
+              metadata directive
+            </span>
+          </span>
+          <span
+            style="display: inline-block; width: 10px;"
+          >
+             
+          </span>
+          <em
+            class="css-15ppkm0-Subtitle ejrtwu51"
+            title="metadata uri"
+          >
+            metadata uri
+          </em>
+          <br />
+        </span>
+      </a>
+    </div>
+    <div
+      class="css-5u5f53-TagAndMessageWrapper-StyledTagAndMessageWrapper e1weinmj4"
+    >
+      <div
+        class="css-1jsaje1-Message-truncateStyles e1weinmj3"
+      >
+        metadata message
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`EventOrGroupHeader Group renders with \`type = default\` 1`] = `
+<div>
+  <div
+    data-test-id="event-issue-header"
+  >
+    <div
+      class="css-ouo8wi-Title-truncateStyles-Title e1weinmj6"
+    >
+      <a
+        class="css-ta9xa3-Link e1ycxor00"
+      >
+        <div
+          aria-describedby="tooltip-9vkypkivot"
+          class="css-1yb48yd-GroupLevel e1weinmj1"
+        />
+        <span
+          class="e1weinmj0 css-yxe4hf-Wrapper-StyledEventOrGroupTitle ejrtwu50"
+        >
+          <span
+            class="css-gg42vh-Wrapper ewamzvo2"
+            data-testid="stacktrace-preview"
+          >
+            <span
+              aria-describedby="hovercard-bpcgav6qpg"
+              class="css-1y4rfpo-Container e1lk5gpt0"
+            >
+              metadata title
+            </span>
+          </span>
+          
+        </span>
+      </a>
+    </div>
+    <div
+      class="css-5u5f53-TagAndMessageWrapper-StyledTagAndMessageWrapper e1weinmj4"
+    >
+      <div
+        class="css-1jsaje1-Message-truncateStyles e1weinmj3"
+      >
+        culprit
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`EventOrGroupHeader Group renders with \`type = error\` 1`] = `
+<div>
+  <div
+    data-test-id="event-issue-header"
+  >
+    <div
+      class="css-ouo8wi-Title-truncateStyles-Title e1weinmj6"
+    >
+      <a
+        class="css-ta9xa3-Link e1ycxor00"
+      >
+        <div
+          aria-describedby="tooltip-zraek1hfm2"
+          class="css-1yb48yd-GroupLevel e1weinmj1"
+        />
+        <span
+          class="e1weinmj0 css-yxe4hf-Wrapper-StyledEventOrGroupTitle ejrtwu50"
+        >
+          <span
+            class="css-gg42vh-Wrapper ewamzvo2"
+            data-testid="stacktrace-preview"
+          >
+            <span
+              aria-describedby="hovercard-65lxvvpsjz"
+              class="css-1y4rfpo-Container e1lk5gpt0"
+            >
+              metadata type
+            </span>
+          </span>
+          <span
+            style="display: inline-block; width: 10px;"
+          >
+             
+          </span>
+          <em
+            class="css-15ppkm0-Subtitle ejrtwu51"
+            title="culprit"
+          >
+            culprit
+          </em>
+          <br />
+        </span>
+      </a>
+    </div>
+    <div
+      class="css-5u5f53-TagAndMessageWrapper-StyledTagAndMessageWrapper e1weinmj4"
+    >
+      <div
+        class="css-1jsaje1-Message-truncateStyles e1weinmj3"
+      >
+        metadata value
+      </div>
+    </div>
+  </div>
+</div>
+`;

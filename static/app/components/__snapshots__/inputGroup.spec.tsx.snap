@@ -1,0 +1,96 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`InputGroup renders disabled input 1`] = `
+<div>
+  <div
+    class="css-2tpzr9-InputGroupWrap e13j5zq05"
+    disabled=""
+  >
+    <input
+      class="css-5d2qqj-Input-inputStyles-StyledInput-getInputStyles e13j5zq03"
+      disabled=""
+    />
+  </div>
+</div>
+`;
+
+exports[`InputGroup renders input 1`] = `
+<div>
+  <div
+    class="css-1biel1q-InputGroupWrap e13j5zq05"
+  >
+    <input
+      class="css-5d2qqj-Input-inputStyles-StyledInput-getInputStyles e13j5zq03"
+      value="Search"
+    />
+  </div>
+</div>
+`;
+
+exports[`InputGroup renders leading elements 1`] = `
+<div>
+  <div
+    class="css-1biel1q-InputGroupWrap e13j5zq05"
+  >
+    <div
+      class="css-w3x6ae-InputItemsWrap-InputLeadingItemsWrap e13j5zq01"
+      data-test-id="input-leading-items"
+    >
+      <button
+        aria-disabled="false"
+        aria-label="Leading Button"
+        class="css-19177tu-StyledButton-getColors-getButtonStyles e1b8u3ky2"
+        role="button"
+        type="button"
+      >
+        <span
+          class="css-vul34l-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+          role="presentation"
+        />
+        <span
+          class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+        >
+          Leading Button
+        </span>
+      </button>
+    </div>
+    <input
+      class="css-92k57e-Input-inputStyles-StyledInput-getInputStyles e13j5zq03"
+    />
+  </div>
+</div>
+`;
+
+exports[`InputGroup renders trailing elements 1`] = `
+<div>
+  <div
+    class="css-1biel1q-InputGroupWrap e13j5zq05"
+  >
+    <input
+      class="css-s5jfkh-Input-inputStyles-StyledInput-getInputStyles e13j5zq03"
+    />
+    <div
+      class="css-vdn3ll-InputItemsWrap-InputTrailingItemsWrap e13j5zq00"
+      data-test-id="input-trailing-items"
+    >
+      <button
+        aria-disabled="false"
+        aria-label="Trailing Button"
+        class="css-19177tu-StyledButton-getColors-getButtonStyles e1b8u3ky2"
+        role="button"
+        type="button"
+      >
+        <span
+          class="css-vul34l-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+          role="presentation"
+        />
+        <span
+          class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+        >
+          Trailing Button
+        </span>
+      </button>
+    </div>
+  </div>
+</div>
+`;

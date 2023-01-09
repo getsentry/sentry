@@ -22,6 +22,6 @@ describe('OrganizationApiKeyDetails', function () {
     );
 
     expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
-    expect(wrapper.container).toSnapshot();
+    expect(wrapper.container).toMatchSnapshot();
   });
 });

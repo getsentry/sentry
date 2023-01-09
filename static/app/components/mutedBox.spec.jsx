@@ -9,14 +9,14 @@ describe('MutedBox', function () {
         <MutedBox statusDetails={{ignoreUntil: '2017-06-21T19:45:10Z'}} />
       );
       expect(screen.getByText(/This issue has been ignored until/)).toBeInTheDocument();
-      expect(container).toSnapshot();
+      expect(container).toMatchSnapshot();
     });
     it('handles ignoreCount', function () {
       const {container} = render(<MutedBox statusDetails={{ignoreUserCount: 100}} />);
       expect(
         screen.getByText(/This issue has been ignored until it affects/)
       ).toBeInTheDocument();
-      expect(container).toSnapshot();
+      expect(container).toMatchSnapshot();
     });
     it('handles ignoreCount with ignoreWindow', function () {
       const {container} = render(
@@ -25,14 +25,14 @@ describe('MutedBox', function () {
       expect(
         screen.getByText(/This issue has been ignored until it occurs/)
       ).toBeInTheDocument();
-      expect(container).toSnapshot();
+      expect(container).toMatchSnapshot();
     });
     it('handles ignoreUserCount', function () {
       const {container} = render(<MutedBox statusDetails={{ignoreUserCount: 100}} />);
       expect(
         screen.getByText(/This issue has been ignored until it affects/)
       ).toBeInTheDocument();
-      expect(container).toSnapshot();
+      expect(container).toMatchSnapshot();
     });
     it('handles ignoreUserCount with ignoreUserWindow', function () {
       const {container} = render(
@@ -41,12 +41,12 @@ describe('MutedBox', function () {
       expect(
         screen.getByText(/This issue has been ignored until it affects/)
       ).toBeInTheDocument();
-      expect(container).toSnapshot();
+      expect(container).toMatchSnapshot();
     });
     it('handles default', function () {
       const {container} = render(<MutedBox statusDetails={{}} />);
       expect(screen.getByText(/This issue has been ignored/)).toBeInTheDocument();
-      expect(container).toSnapshot();
+      expect(container).toMatchSnapshot();
     });
   });
 });

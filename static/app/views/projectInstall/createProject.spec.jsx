@@ -39,7 +39,7 @@ describe('CreateProject', function () {
       context: TestStubs.routerContext([{organization: {id: '1', slug: 'testOrg'}}]),
     });
 
-    expect(wrapper.container).toSnapshot();
+    expect(wrapper.container).toMatchSnapshot();
   });
 
   it('can create a new team', function () {
@@ -71,7 +71,7 @@ describe('CreateProject', function () {
     userEvent.click(screen.getByTestId('platform-apple-ios'));
     expect(screen.getByPlaceholderText('project-name')).toHaveValue('another');
 
-    expect(wrapper.container).toSnapshot();
+    expect(wrapper.container).toMatchSnapshot();
   });
 
   it('should fill in platform name if its provided by url', function () {
@@ -86,7 +86,7 @@ describe('CreateProject', function () {
 
     expect(screen.getByPlaceholderText('project-name')).toHaveValue('Rails');
 
-    expect(wrapper.container).toSnapshot();
+    expect(wrapper.container).toMatchSnapshot();
   });
 
   it('should fill in category name if its provided by url', function () {
@@ -115,7 +115,7 @@ describe('CreateProject', function () {
 
     expect(screen.getByPlaceholderText('project-name')).toHaveValue('');
 
-    expect(wrapper.container).toSnapshot();
+    expect(wrapper.container).toMatchSnapshot();
   });
 
   describe('Issue Alerts Options', () => {

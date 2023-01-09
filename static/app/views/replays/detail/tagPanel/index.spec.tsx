@@ -50,7 +50,7 @@ describe('TagPanel', () => {
     const {container} = renderComponent(null);
 
     await waitFor(() => {
-      expect(container).toSnapshot();
+      expect(container).toMatchSnapshot();
     });
   });
 
@@ -58,7 +58,7 @@ describe('TagPanel', () => {
     const {container} = renderComponent(mockReplay);
 
     await waitFor(() => {
-      expect(container).toSnapshot();
+      expect(container).toMatchSnapshot();
     });
   });
 

@@ -1,0 +1,152 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`ProjectPluginDetails renders 1`] = `
+<div>
+  <div>
+    <div
+      class="css-q8xgg6-SettingsPageHeader e1nr98yc2"
+    >
+      <div
+        class="css-1mfa9vw-TitleAndActions e1nr98yc8"
+      >
+        <div
+          class="css-u3au9h-TitleWrapper e1nr98yc7"
+        >
+          <div
+            class="css-18xqiae-Title e1nr98yc6"
+          >
+            <h4
+              class="css-jz1c1u-HeaderTitle e12cn1y20"
+            >
+              Amazon SQS
+            </h4>
+          </div>
+        </div>
+        <div
+          class="css-1srjsw5-Action e1nr98yc3"
+        >
+          <div
+            class="pull-right"
+          >
+            <button
+              aria-disabled="false"
+              aria-label="Enable Plugin"
+              class="eq4tbyn0 css-ij5vn0-StyledButton-getColors-getButtonStyles-StyledButton e1b8u3ky2"
+              role="button"
+              type="button"
+            >
+              <span
+                class="css-vul34l-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+                role="presentation"
+              />
+              <span
+                class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+              >
+                Enable Plugin
+              </span>
+            </button>
+            <button
+              aria-disabled="false"
+              aria-label="Reset Configuration"
+              class="css-c98s0k-StyledButton-getColors-getButtonStyles e1b8u3ky2"
+              role="button"
+              type="button"
+            >
+              <span
+                class="css-vul34l-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+                role="presentation"
+              />
+              <span
+                class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+              >
+                Reset Configuration
+              </span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div
+      class="row"
+    >
+      <div
+        class="col-md-7"
+      >
+        <div
+          class="plugin-config ref-plugin-config-amazon-sqs css-2fj46w-Panel edxrl2k0"
+          data-test-id="plugin-config"
+        >
+          <div
+            class="css-a8axuq-PanelHeader-getPadding eknsyxy0"
+          >
+            <div
+              class="css-32f4f0-PluginName e1kqgtma4"
+            >
+              <div
+                class="css-7mbwhk-PluginIcon-StyledPluginIcon e1kqgtma3"
+                size="20"
+              />
+              <span>
+                Amazon SQS
+              </span>
+            </div>
+          </div>
+          <div
+            class="css-7d2moi-PanelBody-textStyles-StyledPanelBody e1kqgtma0"
+          >
+            <div />
+          </div>
+        </div>
+      </div>
+      <div
+        class="col-md-4 col-md-offset-1"
+      >
+        <div
+          class="pluginDetails-meta"
+        >
+          <h4>
+            Plugin Information
+          </h4>
+          <dl
+            class="flat"
+          >
+            <dt>
+              Name
+            </dt>
+            <dd>
+              Amazon SQS
+            </dd>
+            <dt>
+              Author
+            </dt>
+            <dd>
+              Sentry Team
+            </dd>
+            <div>
+              <dt>
+                URL
+              </dt>
+              <dd>
+                <a
+                  class="css-1ecfdi8-Anchor ehytxfi0"
+                  href="https://github.com/getsentry/sentry"
+                  rel="noreferrer noopener"
+                  target="_blank"
+                >
+                  github.com/getsentry/sentry
+                </a>
+              </dd>
+            </div>
+            <dt>
+              Version
+            </dt>
+            <dd>
+              8.23.0.dev0
+            </dd>
+          </dl>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+`;

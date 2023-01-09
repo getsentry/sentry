@@ -42,7 +42,7 @@ describe('StackTrace', function () {
     const frames = screen.getByTestId('frames');
     expect(frames.children).toHaveLength(5);
 
-    expect(container).toSnapshot();
+    expect(container).toMatchSnapshot();
   });
 
   it('renders the frame in the correct order', function () {

@@ -94,7 +94,7 @@ describe('ExceptionStacktraceContent', function () {
   it('default behaviour', function () {
     const {container} = render(<ExceptionStacktraceContent {...props} />);
 
-    expect(container).toSnapshot();
+    expect(container).toMatchSnapshot();
   });
 
   it('should return an emptyRender', function () {

@@ -7,7 +7,7 @@ describe('TextField', function () {
   describe('render()', function () {
     it('renders without form context', function () {
       const {container} = render(<TextField name="fieldName" />);
-      expect(container).toSnapshot();
+      expect(container).toMatchSnapshot();
     });
 
     it('renders with form context', function () {
@@ -16,7 +16,7 @@ describe('TextField', function () {
           <TextField name="fieldName" />
         </Form>
       );
-      expect(container).toSnapshot();
+      expect(container).toMatchSnapshot();
     });
   });
 });

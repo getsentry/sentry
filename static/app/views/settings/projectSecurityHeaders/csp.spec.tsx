@@ -36,7 +36,7 @@ describe('ProjectCspReports', function () {
         params={{orgId: organization.slug, projectId: project.slug}}
       />
     );
-    expect(container).toSnapshot();
+    expect(container).toMatchSnapshot();
   });
 
   it('can enable default ignored sources', function () {

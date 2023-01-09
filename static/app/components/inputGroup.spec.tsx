@@ -19,7 +19,7 @@ describe('InputGroup', function () {
     expect(screen.getByRole('textbox')).toBeInTheDocument();
     expect(screen.getByRole('textbox')).toHaveDisplayValue('Search');
 
-    expect(container).toSnapshot();
+    expect(container).toMatchSnapshot();
   });
 
   it('renders disabled input', function () {
@@ -30,7 +30,7 @@ describe('InputGroup', function () {
     );
 
     expect(screen.getByRole('textbox')).toBeDisabled();
-    expect(container).toSnapshot();
+    expect(container).toMatchSnapshot();
   });
 
   it('renders leading elements', function () {
@@ -53,7 +53,7 @@ describe('InputGroup', function () {
     userEvent.tab();
     expect(screen.getByRole('textbox')).toHaveFocus();
 
-    expect(container).toSnapshot();
+    expect(container).toMatchSnapshot();
   });
 
   it('renders trailing elements', function () {
@@ -76,6 +76,6 @@ describe('InputGroup', function () {
     userEvent.tab();
     expect(screen.getByRole('button', {name: 'Trailing Button'})).toHaveFocus();
 
-    expect(container).toSnapshot();
+    expect(container).toMatchSnapshot();
   });
 });

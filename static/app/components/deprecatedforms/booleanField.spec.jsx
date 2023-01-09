@@ -6,7 +6,7 @@ import Form from 'sentry/components/deprecatedforms/form';
 describe('BooleanField', function () {
   it('renders without form context', function () {
     const wrapper = render(<BooleanField name="fieldName" />);
-    expect(wrapper.container).toSnapshot();
+    expect(wrapper.container).toMatchSnapshot();
   });
 
   it('renders with form context', function () {
@@ -15,7 +15,7 @@ describe('BooleanField', function () {
         <BooleanField name="fieldName" />
       </Form>
     );
-    expect(wrapper.container).toSnapshot();
+    expect(wrapper.container).toMatchSnapshot();
   });
 
   it('toggles', function () {

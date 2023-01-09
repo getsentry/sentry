@@ -9,6 +9,6 @@ describe('SimilarSpectrum', function () {
 
   it('renders', function () {
     const {container} = render(<SimilarSpectrum />);
-    expect(container).toSnapshot();
+    expect(container).toMatchSnapshot();
   });
 });

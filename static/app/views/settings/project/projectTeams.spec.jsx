@@ -62,7 +62,7 @@ describe('ProjectTeams', function () {
       />
     );
 
-    expect(container).toSnapshot();
+    expect(container).toMatchSnapshot();
   });
 
   it('can remove a team from project', async function () {

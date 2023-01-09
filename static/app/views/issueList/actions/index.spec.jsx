@@ -67,7 +67,7 @@ describe('IssueListActions', function () {
 
         userEvent.click(screen.getByRole('checkbox'));
 
-        expect(screen.getByTestId('issue-list-select-all-notice')).toSnapshot();
+        expect(screen.getByTestId('issue-list-select-all-notice')).toMatchSnapshot();
       });
 
       it('can bulk select', function () {
@@ -76,7 +76,7 @@ describe('IssueListActions', function () {
         userEvent.click(screen.getByRole('checkbox'));
         userEvent.click(screen.getByTestId('issue-list-select-all-notice-link'));
 
-        expect(screen.getByTestId('issue-list-select-all-notice')).toSnapshot();
+        expect(screen.getByTestId('issue-list-select-all-notice')).toMatchSnapshot();
       });
 
       it('bulk resolves', async function () {
@@ -114,7 +114,7 @@ describe('IssueListActions', function () {
 
         userEvent.click(screen.getByRole('checkbox'));
 
-        expect(screen.getByTestId('issue-list-select-all-notice')).toSnapshot();
+        expect(screen.getByTestId('issue-list-select-all-notice')).toMatchSnapshot();
       });
 
       it('can bulk select', function () {
@@ -124,7 +124,7 @@ describe('IssueListActions', function () {
 
         userEvent.click(screen.getByTestId('issue-list-select-all-notice-link'));
 
-        expect(screen.getByTestId('issue-list-select-all-notice')).toSnapshot();
+        expect(screen.getByTestId('issue-list-select-all-notice')).toMatchSnapshot();
       });
 
       it('bulk resolves', function () {
@@ -143,7 +143,7 @@ describe('IssueListActions', function () {
 
         const modal = screen.getByRole('dialog');
 
-        expect(modal).toSnapshot();
+        expect(modal).toMatchSnapshot();
 
         userEvent.click(within(modal).getByRole('button', {name: 'Bulk resolve issues'}));
 

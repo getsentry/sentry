@@ -1,0 +1,325 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`groupEvents renders 1`] = `
+<div>
+  <div
+    class="css-b3ubg8-Body e1q4ew4a7"
+  >
+    <section
+      class="css-12xv6fc-Main e1q4ew4a1"
+    >
+      <div
+        class="css-1tb5mdx-Wrapper etd8qom0"
+      >
+        <div
+          class="css-2id9i2-FilterSection etd8qom1"
+        >
+          <button
+            aria-disabled="true"
+            aria-expanded="false"
+            aria-haspopup="true"
+            class="e1l0npxz0 e1u0jomf1 css-vgtr8i-StyledButton-getColors-getButtonStyles-StyledButton-PageFilterDropdownButton e1b8u3ky2"
+            data-test-id="page-filter-environment-selector"
+            disabled=""
+            role="button"
+            type="button"
+          >
+            <span
+              class="css-vul34l-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+              role="presentation"
+            />
+            <span
+              class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+            >
+              <div
+                class="css-1c0uqat-DropdownTitle e1kzd3gj0"
+              >
+                <svg
+                  fill="currentColor"
+                  height="16px"
+                  viewBox="0 0 16 16"
+                  width="16px"
+                >
+                  <path
+                    d="M13.25,16H2.75A2.75,2.75,0,0,1,0,13.25V2.75A2.75,2.75,0,0,1,2.75,0h10.5A2.75,2.75,0,0,1,16,2.75v10.5A2.75,2.75,0,0,1,13.25,16ZM2.75,1.5A1.25,1.25,0,0,0,1.5,2.75v10.5A1.25,1.25,0,0,0,2.75,14.5h10.5a1.25,1.25,0,0,0,1.25-1.25V2.75A1.25,1.25,0,0,0,13.25,1.5Z"
+                  />
+                  <rect
+                    height="1.5"
+                    width="14.5"
+                    x="0.75"
+                    y="4.62"
+                  />
+                  <circle
+                    cx="3.17"
+                    cy="3.18"
+                    r="0.76"
+                  />
+                  <circle
+                    cx="5.47"
+                    cy="3.18"
+                    r="0.76"
+                  />
+                  <circle
+                    cx="7.76"
+                    cy="3.18"
+                    r="0.76"
+                  />
+                </svg>
+                <div
+                  class="css-12veufu-TitleContainer-overflowEllipsis e1kzd3gj1"
+                >
+                  Loading…
+                </div>
+              </div>
+            </span>
+          </button>
+          <div
+            class="css-1c3a8h-Container e1e683cn8"
+            data-test-id="smart-search-bar"
+          >
+            <label
+              aria-label="Search events"
+              class="css-t15l72-SearchLabel e1e683cn6"
+              for="smart-search-input"
+            >
+              <svg
+                fill="currentColor"
+                height="16px"
+                viewBox="0 0 16 16"
+                width="16px"
+              >
+                <path
+                  d="M6,12A6,6,0,1,1,12,6,6,6,0,0,1,6,12ZM6,1.54A4.46,4.46,0,1,0,10.45,6,4.46,4.46,0,0,0,6,1.54Z"
+                />
+                <path
+                  d="M15.2,16a.74.74,0,0,1-.53-.22L9.14,10.2A.75.75,0,0,1,10.2,9.14l5.53,5.53a.75.75,0,0,1,0,1.06A.74.74,0,0,1,15.2,16Z"
+                />
+              </svg>
+            </label>
+            <div
+              class="css-16pz7yp-InputWrapper e1e683cn5"
+            >
+              <div
+                class="css-2l9844-Highlight e1e683cn4"
+              >
+                
+              </div>
+              <form>
+                <textarea
+                  autocomplete="off"
+                  class="css-1jo2ix8-SearchInput e1e683cn3"
+                  data-test-id="smart-search-input"
+                  id="smart-search-input"
+                  name="query"
+                  placeholder="Search for events, users, tags, and more"
+                  rows="1"
+                  spellcheck="false"
+                  style="overflow-x: hidden; word-wrap: break-word; overflow-y: hidden;"
+                  type="text"
+                />
+              </form>
+            </div>
+            <div
+              class="e1e683cn2 css-13545yw-ButtonGrid-ActionsBar e1n9g4yq0"
+            />
+          </div>
+        </div>
+        <div
+          data-test-id="events-table"
+        >
+          <div
+            class="e17psx6810 css-16qofuy-Panel-Body edxrl2k0"
+          >
+            <div
+              class="css-pemm1r-PanelBody-textStyles eszvord0"
+            >
+              <table
+                class="css-zz710c-Grid e17psx689"
+                data-test-id="grid-editable"
+                style="grid-template-columns:  minmax(90px, auto) minmax(90px, auto) minmax(90px, auto) minmax(90px, auto) minmax(90px, auto) minmax(90px, auto) minmax(90px, auto) minmax(90px, auto) minmax(90px, auto) minmax(90px, auto) minmax(90px, auto);"
+              >
+                <thead
+                  class="css-1q9u44t-GridHead e17psx687"
+                >
+                  <tr
+                    class="css-3n824k-GridRow e17psx688"
+                    data-test-id="grid-head-row"
+                  >
+                    <th
+                      class="css-qf9mh3-GridHeadCell e17psx686"
+                      data-test-id="grid-head-cell"
+                    >
+                      <div
+                        class="css-tgyenk-StyledNonLink e1xb2te61"
+                      >
+                        event id
+                      </div>
+                      <div
+                        class="css-1rqlnfn-GridResizer e17psx680"
+                      />
+                    </th>
+                    <th
+                      class="css-1ozbg4v-GridHeadCell e17psx686"
+                      data-test-id="grid-head-cell"
+                    >
+                      <div
+                        class="css-tgyenk-StyledNonLink e1xb2te61"
+                      >
+                        transaction
+                      </div>
+                      <div
+                        class="css-1rqlnfn-GridResizer e17psx680"
+                      />
+                    </th>
+                    <th
+                      class="css-1ozbg4v-GridHeadCell e17psx686"
+                      data-test-id="grid-head-cell"
+                    >
+                      <div
+                        class="css-tgyenk-StyledNonLink e1xb2te61"
+                      >
+                        title
+                      </div>
+                      <div
+                        class="css-1rqlnfn-GridResizer e17psx680"
+                      />
+                    </th>
+                    <th
+                      class="css-1ozbg4v-GridHeadCell e17psx686"
+                      data-test-id="grid-head-cell"
+                    >
+                      <div
+                        class="css-tgyenk-StyledNonLink e1xb2te61"
+                      >
+                        release
+                      </div>
+                      <div
+                        class="css-1rqlnfn-GridResizer e17psx680"
+                      />
+                    </th>
+                    <th
+                      class="css-1ozbg4v-GridHeadCell e17psx686"
+                      data-test-id="grid-head-cell"
+                    >
+                      <div
+                        class="css-tgyenk-StyledNonLink e1xb2te61"
+                      >
+                        environment
+                      </div>
+                      <div
+                        class="css-1rqlnfn-GridResizer e17psx680"
+                      />
+                    </th>
+                    <th
+                      class="css-1ozbg4v-GridHeadCell e17psx686"
+                      data-test-id="grid-head-cell"
+                    >
+                      <div
+                        class="css-tgyenk-StyledNonLink e1xb2te61"
+                      >
+                        user
+                      </div>
+                      <div
+                        class="css-1rqlnfn-GridResizer e17psx680"
+                      />
+                    </th>
+                    <th
+                      class="css-1ozbg4v-GridHeadCell e17psx686"
+                      data-test-id="grid-head-cell"
+                    >
+                      <div
+                        class="css-tgyenk-StyledNonLink e1xb2te61"
+                      >
+                        device
+                      </div>
+                      <div
+                        class="css-1rqlnfn-GridResizer e17psx680"
+                      />
+                    </th>
+                    <th
+                      class="css-1ozbg4v-GridHeadCell e17psx686"
+                      data-test-id="grid-head-cell"
+                    >
+                      <div
+                        class="css-tgyenk-StyledNonLink e1xb2te61"
+                      >
+                        os
+                      </div>
+                      <div
+                        class="css-1rqlnfn-GridResizer e17psx680"
+                      />
+                    </th>
+                    <th
+                      class="css-1ozbg4v-GridHeadCell e17psx686"
+                      data-test-id="grid-head-cell"
+                    >
+                      <div
+                        class="css-tgyenk-StyledNonLink e1xb2te61"
+                      >
+                        url
+                      </div>
+                      <div
+                        class="css-1rqlnfn-GridResizer e17psx680"
+                      />
+                    </th>
+                    <th
+                      class="css-1ozbg4v-GridHeadCell e17psx686"
+                      data-test-id="grid-head-cell"
+                    >
+                      <div
+                        class="css-tgyenk-StyledNonLink e1xb2te61"
+                      >
+                        browser
+                      </div>
+                      <div
+                        class="css-1rqlnfn-GridResizer e17psx680"
+                      />
+                    </th>
+                    <th
+                      class="css-1ozbg4v-GridHeadCell e17psx686"
+                      data-test-id="grid-head-cell"
+                    >
+                      <div
+                        class="css-tgyenk-StyledNonLink e1xb2te61"
+                      >
+                        timestamp
+                      </div>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody
+                  class="css-144oias-GridBody e17psx684"
+                >
+                  <tr
+                    class="css-3n824k-GridRow e17psx688"
+                  >
+                    <td
+                      class="css-jexemf-GridBodyCell-GridStatusWrapper e17psx682"
+                    >
+                      <div
+                        class="css-10wk7ha-GridStatusFloat e17psx681"
+                      >
+                        <div
+                          class="loading"
+                          data-test-id="loading-indicator"
+                        >
+                          <div
+                            class="loading-indicator"
+                          />
+                          <div
+                            class="loading-message"
+                          />
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>
+`;

@@ -1,0 +1,465 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`OrganizationAuthList renders 1`] = `
+<div>
+  <div
+    class="sso"
+  >
+    <div
+      class="css-q8xgg6-SettingsPageHeader e1nr98yc2"
+    >
+      <div
+        class="css-1mfa9vw-TitleAndActions e1nr98yc8"
+      >
+        <div
+          class="css-u3au9h-TitleWrapper e1nr98yc7"
+        >
+          <div
+            class="css-18xqiae-Title e1nr98yc6"
+          >
+            <h4
+              class="css-jz1c1u-HeaderTitle e12cn1y20"
+            >
+              Authentication
+            </h4>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div
+      class="ref-warning css-z53rod-Wrap-alertStyles e73vi8e5"
+      data-test-id="org-permission-alert"
+      type="warning"
+    >
+      <div
+        class="css-9ifyx1-IconWrapper e73vi8e4"
+      >
+        <svg
+          fill="currentColor"
+          height="16px"
+          viewBox="0 0 16 16"
+          width="16px"
+        >
+          <path
+            d="M13.87,15.26H2.13A2.1,2.1,0,0,1,0,13.16a2.07,2.07,0,0,1,.27-1L6.17,1.8a2.1,2.1,0,0,1,1.27-1,2.11,2.11,0,0,1,2.39,1L15.7,12.11a2.1,2.1,0,0,1-1.83,3.15ZM8,2.24a.44.44,0,0,0-.16,0,.58.58,0,0,0-.37.28L1.61,12.86a.52.52,0,0,0-.08.3.6.6,0,0,0,.6.6H13.87a.54.54,0,0,0,.3-.08.59.59,0,0,0,.22-.82L8.53,2.54h0a.61.61,0,0,0-.23-.22A.54.54,0,0,0,8,2.24Z"
+          />
+          <path
+            d="M8,10.37a.75.75,0,0,1-.75-.75V5.92a.75.75,0,0,1,1.5,0v3.7A.74.74,0,0,1,8,10.37Z"
+          />
+          <circle
+            cx="8"
+            cy="11.79"
+            r="0.76"
+          />
+        </svg>
+      </div>
+      <span
+        class="css-iaz4p1-Message e73vi8e3"
+      >
+        These settings can only be edited by users with the organization owner or manager role.
+      </span>
+    </div>
+    <div
+      class="css-2fj46w-Panel edxrl2k0"
+    >
+      <div
+        class="css-1v7t0a0-PanelHeader-getPadding eknsyxy0"
+      >
+        Choose a provider
+      </div>
+      <div
+        class="css-pemm1r-PanelBody-textStyles eszvord0"
+      >
+        <div
+          class="ref-info e8p7jd00 css-w2d9f1-Wrap-alertStyles-PanelAlert e73vi8e5"
+          type="info"
+        >
+          <div
+            class="css-9ifyx1-IconWrapper e73vi8e4"
+          >
+            <svg
+              fill="currentColor"
+              height="16px"
+              viewBox="0 0 16 16"
+              width="16px"
+            >
+              <path
+                d="M8,11.78A.74.74,0,0,1,7.24,11V7a.75.75,0,0,1,1.5,0v4A.75.75,0,0,1,8,11.78Z"
+              />
+              <circle
+                cx="8"
+                cy="4.78"
+                r="0.76"
+              />
+              <path
+                d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z"
+              />
+            </svg>
+          </div>
+          <span
+            class="css-iaz4p1-Message e73vi8e3"
+          >
+            <span>
+              <span>
+                Get started with Single Sign-on for your organization by selecting a provider. Read more in our 
+              </span>
+              <a
+                class="css-1ecfdi8-Anchor ehytxfi0"
+                href="https://docs.sentry.io/product/accounts/sso/"
+                rel="noreferrer noopener"
+                target="_blank"
+              >
+                <span>
+                  SSO documentation
+                </span>
+              </a>
+              <span>
+                .
+              </span>
+            </span>
+          </span>
+        </div>
+        <form
+          action="/organizations/org-slug/auth/configure/"
+          method="POST"
+        >
+          <input
+            name="csrfmiddlewaretoken"
+            type="hidden"
+            value=""
+          />
+          <input
+            name="init"
+            type="hidden"
+            value="1"
+          />
+          <div
+            class="css-k9hsmy-PanelItem elsgeq40"
+          >
+            <div
+              class="css-kucmtj-ProviderInfo ehb8hzc6"
+            >
+              <div
+                class="provider-logo dummy-saml css-1w1roxf-ProviderLogo ehb8hzc5"
+              />
+              <div>
+                <div
+                  class="css-6cvnma-ProviderName ehb8hzc4"
+                >
+                  Dummy SAML
+                </div>
+                <div
+                  class="css-1e84nu4-ProviderDescription ehb8hzc3"
+                >
+                  Enable your organization to sign in with Dummy SAML.
+                </div>
+              </div>
+            </div>
+            <div
+              class="css-eadgbg-FeatureBadge ehb8hzc2"
+            >
+              <span
+                aria-describedby="hovercard-z7wa5ytiec"
+                class="css-1y4rfpo-Container e1lk5gpt0"
+              >
+                <span
+                  class="css-13g1j83-TagWrapper e8jgvoh4"
+                  role="status"
+                >
+                  <div
+                    class="css-15z9say-Background e8jgvoh3"
+                    type="default"
+                  >
+                    <span
+                      class="css-19fsj5p-IconWrapper e8jgvoh2"
+                    >
+                      <svg
+                        fill="#80708F"
+                        height="12px"
+                        viewBox="0 0 16 16"
+                        width="12px"
+                      >
+                        <path
+                          d="M11.67,7.94a.75.75,0,0,1-.75-.75V4.34a2.84,2.84,0,1,0-5.67,0V7.19a.75.75,0,1,1-1.5,0V4.34a4.34,4.34,0,1,1,8.67,0V7.19A.76.76,0,0,1,11.67,7.94Z"
+                        />
+                        <path
+                          d="M14.72,6.44H1.44a.75.75,0,0,0-.75.75v8.06a.76.76,0,0,0,.75.75H14.72a.76.76,0,0,0,.75-.75V7.19A.75.75,0,0,0,14.72,6.44ZM8.83,12.19a.75.75,0,0,1-1.5,0V10.05a.75.75,0,0,1,1.5,0Z"
+                        />
+                      </svg>
+                    </span>
+                    <span
+                      class="css-uly9e3-Text e8jgvoh1"
+                      type="default"
+                    >
+                      disabled
+                    </span>
+                  </div>
+                </span>
+              </span>
+            </div>
+            <div>
+              <button
+                aria-disabled="true"
+                aria-label="Configure"
+                class="css-21gw7o-StyledButton-getColors-getButtonStyles e1b8u3ky2"
+                disabled=""
+                name="provider"
+                role="button"
+                type="submit"
+                value="dummy2"
+              >
+                <span
+                  class="css-vul34l-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+                  role="presentation"
+                />
+                <span
+                  class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+                >
+                  Configure
+                </span>
+              </button>
+            </div>
+          </div>
+          <div
+            class="css-k9hsmy-PanelItem elsgeq40"
+          >
+            <div
+              class="css-kucmtj-ProviderInfo ehb8hzc6"
+            >
+              <div
+                class="provider-logo dummy css-1w1roxf-ProviderLogo ehb8hzc5"
+              />
+              <div>
+                <div
+                  class="css-6cvnma-ProviderName ehb8hzc4"
+                >
+                  Dummy
+                </div>
+                <div
+                  class="css-1e84nu4-ProviderDescription ehb8hzc3"
+                >
+                  Enable your organization to sign in with Dummy.
+                </div>
+              </div>
+            </div>
+            <div
+              class="css-eadgbg-FeatureBadge ehb8hzc2"
+            >
+              <span
+                aria-describedby="hovercard-k7p40sqrxn"
+                class="css-1y4rfpo-Container e1lk5gpt0"
+              >
+                <span
+                  class="css-13g1j83-TagWrapper e8jgvoh4"
+                  role="status"
+                >
+                  <div
+                    class="css-15z9say-Background e8jgvoh3"
+                    type="default"
+                  >
+                    <span
+                      class="css-19fsj5p-IconWrapper e8jgvoh2"
+                    >
+                      <svg
+                        fill="#80708F"
+                        height="12px"
+                        viewBox="0 0 16 16"
+                        width="12px"
+                      >
+                        <path
+                          d="M11.67,7.94a.75.75,0,0,1-.75-.75V4.34a2.84,2.84,0,1,0-5.67,0V7.19a.75.75,0,1,1-1.5,0V4.34a4.34,4.34,0,1,1,8.67,0V7.19A.76.76,0,0,1,11.67,7.94Z"
+                        />
+                        <path
+                          d="M14.72,6.44H1.44a.75.75,0,0,0-.75.75v8.06a.76.76,0,0,0,.75.75H14.72a.76.76,0,0,0,.75-.75V7.19A.75.75,0,0,0,14.72,6.44ZM8.83,12.19a.75.75,0,0,1-1.5,0V10.05a.75.75,0,0,1,1.5,0Z"
+                        />
+                      </svg>
+                    </span>
+                    <span
+                      class="css-uly9e3-Text e8jgvoh1"
+                      type="default"
+                    >
+                      disabled
+                    </span>
+                  </div>
+                </span>
+              </span>
+            </div>
+            <div>
+              <button
+                aria-disabled="true"
+                aria-label="Configure"
+                class="css-21gw7o-StyledButton-getColors-getButtonStyles e1b8u3ky2"
+                disabled=""
+                name="provider"
+                role="button"
+                type="submit"
+                value="dummy"
+              >
+                <span
+                  class="css-vul34l-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+                  role="presentation"
+                />
+                <span
+                  class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+                >
+                  Configure
+                </span>
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`OrganizationAuthList renders with no providers 1`] = `
+<div>
+  <div
+    class="sso"
+  >
+    <div
+      class="css-q8xgg6-SettingsPageHeader e1nr98yc2"
+    >
+      <div
+        class="css-1mfa9vw-TitleAndActions e1nr98yc8"
+      >
+        <div
+          class="css-u3au9h-TitleWrapper e1nr98yc7"
+        >
+          <div
+            class="css-18xqiae-Title e1nr98yc6"
+          >
+            <h4
+              class="css-jz1c1u-HeaderTitle e12cn1y20"
+            >
+              Authentication
+            </h4>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div
+      class="ref-warning css-z53rod-Wrap-alertStyles e73vi8e5"
+      data-test-id="org-permission-alert"
+      type="warning"
+    >
+      <div
+        class="css-9ifyx1-IconWrapper e73vi8e4"
+      >
+        <svg
+          fill="currentColor"
+          height="16px"
+          viewBox="0 0 16 16"
+          width="16px"
+        >
+          <path
+            d="M13.87,15.26H2.13A2.1,2.1,0,0,1,0,13.16a2.07,2.07,0,0,1,.27-1L6.17,1.8a2.1,2.1,0,0,1,1.27-1,2.11,2.11,0,0,1,2.39,1L15.7,12.11a2.1,2.1,0,0,1-1.83,3.15ZM8,2.24a.44.44,0,0,0-.16,0,.58.58,0,0,0-.37.28L1.61,12.86a.52.52,0,0,0-.08.3.6.6,0,0,0,.6.6H13.87a.54.54,0,0,0,.3-.08.59.59,0,0,0,.22-.82L8.53,2.54h0a.61.61,0,0,0-.23-.22A.54.54,0,0,0,8,2.24Z"
+          />
+          <path
+            d="M8,10.37a.75.75,0,0,1-.75-.75V5.92a.75.75,0,0,1,1.5,0v3.7A.74.74,0,0,1,8,10.37Z"
+          />
+          <circle
+            cx="8"
+            cy="11.79"
+            r="0.76"
+          />
+        </svg>
+      </div>
+      <span
+        class="css-iaz4p1-Message e73vi8e3"
+      >
+        These settings can only be edited by users with the organization owner or manager role.
+      </span>
+    </div>
+    <div
+      class="css-2fj46w-Panel edxrl2k0"
+    >
+      <div
+        class="css-1v7t0a0-PanelHeader-getPadding eknsyxy0"
+      >
+        Choose a provider
+      </div>
+      <div
+        class="css-pemm1r-PanelBody-textStyles eszvord0"
+      >
+        <div
+          class="ref-info e8p7jd00 css-w2d9f1-Wrap-alertStyles-PanelAlert e73vi8e5"
+          type="info"
+        >
+          <div
+            class="css-9ifyx1-IconWrapper e73vi8e4"
+          >
+            <svg
+              fill="currentColor"
+              height="16px"
+              viewBox="0 0 16 16"
+              width="16px"
+            >
+              <path
+                d="M8,11.78A.74.74,0,0,1,7.24,11V7a.75.75,0,0,1,1.5,0v4A.75.75,0,0,1,8,11.78Z"
+              />
+              <circle
+                cx="8"
+                cy="4.78"
+                r="0.76"
+              />
+              <path
+                d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z"
+              />
+            </svg>
+          </div>
+          <span
+            class="css-iaz4p1-Message e73vi8e3"
+          >
+            <span>
+              <span>
+                Get started with Single Sign-on for your organization by selecting a provider. Read more in our 
+              </span>
+              <a
+                class="css-1ecfdi8-Anchor ehytxfi0"
+                href="https://docs.sentry.io/product/accounts/sso/"
+                rel="noreferrer noopener"
+                target="_blank"
+              >
+                <span>
+                  SSO documentation
+                </span>
+              </a>
+              <span>
+                .
+              </span>
+            </span>
+          </span>
+        </div>
+        <form
+          action="/organizations/org-slug/auth/configure/"
+          method="POST"
+        >
+          <input
+            name="csrfmiddlewaretoken"
+            type="hidden"
+            value=""
+          />
+          <input
+            name="init"
+            type="hidden"
+            value="1"
+          />
+          <div
+            class="css-fvblbb-EmptyMessage-EmptyMessage ege7ww24"
+            data-test-id="empty-message"
+          >
+            <div
+              class="css-u2uxsp-TextBlock-Description ege7ww21"
+            >
+              No authentication providers are available.
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+`;

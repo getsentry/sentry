@@ -93,7 +93,7 @@ describe('RuleBuilder', function () {
     userEvent.click(addButton);
     expect(handleAdd).toHaveBeenCalled();
 
-    expect(container).toSnapshot();
+    expect(container).toMatchSnapshot();
   });
 
   it('renders with suggestions', async function () {
@@ -131,7 +131,7 @@ describe('RuleBuilder', function () {
     const addButton = screen.getByRole('button', {name: 'Add rule'});
     await waitFor(() => expect(addButton).toBeEnabled());
 
-    expect(container).toSnapshot();
+    expect(container).toMatchSnapshot();
 
     userEvent.click(addButton);
     expect(handleAdd).toHaveBeenCalled();

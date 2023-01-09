@@ -1,0 +1,13 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`ProgressBar basic 1`] = `
+<div>
+  <div
+    aria-valuemax="100"
+    aria-valuemin="0"
+    aria-valuenow="50"
+    class="css-hp7dmv-ProgressBar ebj3n9c0"
+    role="progressbar"
+  />
+</div>
+`;

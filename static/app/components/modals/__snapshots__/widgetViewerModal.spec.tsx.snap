@@ -1,0 +1,2087 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Modals -> WidgetViewerModal Discover Widgets Area Chart Widget renders Discover area chart widget viewer 1`] = `
+<div>
+  <div
+    style="padding: 30px;"
+  >
+    <div>
+      <h3>
+        Test Widget
+      </h3>
+    </div>
+    <div>
+      <div
+        class="css-1n8v8qi-Container eteb5ir5"
+        height="300"
+      >
+        <div
+          class="css-ykwm17-ChartWrapper eb7j3e2"
+        >
+          <div
+            class="css-1ez5hvi-ChartContainer-getTooltipStyles e1d3yu8b0"
+            data-test-id="area-chart"
+          >
+            <div
+              style="height: 100%; background: green;"
+            >
+              echarts mock
+            </div>
+          </div>
+        </div>
+      </div>
+      <div
+        class="ref-info css-13z2717-Wrap-alertStyles e73vi8e5"
+        type="info"
+      >
+        <div
+          class="css-9ifyx1-IconWrapper e73vi8e4"
+        >
+          <svg
+            fill="currentColor"
+            height="16px"
+            viewBox="0 0 16 16"
+            width="16px"
+          >
+            <path
+              d="M8,11.78A.74.74,0,0,1,7.24,11V7a.75.75,0,0,1,1.5,0v4A.75.75,0,0,1,8,11.78Z"
+            />
+            <circle
+              cx="8"
+              cy="4.78"
+              r="0.76"
+            />
+            <path
+              d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z"
+            />
+          </svg>
+        </div>
+        <span
+          class="css-iaz4p1-Message e73vi8e3"
+        >
+          This widget was built with multiple queries. Table data can only be displayed for one query at a time. To edit any of the queries, edit the widget.
+        </span>
+      </div>
+      <div
+        class="css-4wv1qb-QueryContainer eteb5ir4"
+      >
+        <div
+          class=" css-2b097c-container"
+        >
+          <span
+            aria-atomic="false"
+            aria-live="polite"
+            aria-relevant="additions text"
+            class="css-1f43avz-a11yText-A11yText"
+          />
+          <div
+            class=" css-1lxgacs-Control"
+          >
+            <div
+              class=" css-1kqg4xi-ValueContainer"
+            >
+              <div
+                class=" css-e44xvf-SingleValue"
+              >
+                Query Name
+              </div>
+              <input
+                aria-autocomplete="list"
+                class="css-wmatm6-dummyInput-DummyInput"
+                id="react-select-5-input"
+                readonly=""
+                tabindex="0"
+                value=""
+              />
+            </div>
+            <div
+              class=" css-1d4abpz-IndicatorsContainer"
+            >
+              <div
+                aria-hidden="true"
+                class=" css-1td69xg-indicatorContainer"
+              >
+                <svg
+                  class="css-1905w31-IconChevron"
+                  fill="currentColor"
+                  height="14px"
+                  viewBox="0 0 16 16"
+                  width="14px"
+                >
+                  <path
+                    d="M14,11.75a.74.74,0,0,1-.53-.22L8,6.06,2.53,11.53a.75.75,0,0,1-1.06-1.06l6-6a.75.75,0,0,1,1.06,0l6,6a.75.75,0,0,1,0,1.06A.74.74,0,0,1,14,11.75Z"
+                  />
+                </svg>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div
+        class="e17psx6810 css-16qofuy-Panel-Body edxrl2k0"
+      >
+        <div
+          class="css-pemm1r-PanelBody-textStyles eszvord0"
+        >
+          <table
+            class="css-zz710c-Grid e17psx689"
+            data-test-id="grid-editable"
+            style="grid-template-columns:  minmax(90px, auto) minmax(90px, auto);"
+          >
+            <thead
+              class="css-1q9u44t-GridHead e17psx687"
+            >
+              <tr
+                class="css-3n824k-GridRow e17psx688"
+                data-test-id="grid-head-row"
+              >
+                <th
+                  class="css-qf9mh3-GridHeadCell e17psx686"
+                  data-test-id="grid-head-cell"
+                >
+                  <a
+                    class="e1xb2te62 css-h9zp3e-Link-StyledLink e1ycxor00"
+                    href="undefined?sort=-title"
+                  >
+                    <div>
+                      title
+                    </div>
+                     
+                  </a>
+                  <div
+                    class="css-hw8tz7-GridResizer e17psx680"
+                  />
+                </th>
+                <th
+                  class="css-1ozbg4v-GridHeadCell e17psx686"
+                  data-test-id="grid-head-cell"
+                >
+                  <a
+                    class="e1xb2te62 css-izzntt-Link-StyledLink e1ycxor00"
+                    href="undefined?sort=count%28%29"
+                  >
+                    <div>
+                      count()
+                    </div>
+                     
+                    <svg
+                      class="e1xb2te60 css-yt2ae6-IconArrow-StyledIconArrow"
+                      fill="currentColor"
+                      height="12px"
+                      viewBox="0 0 16 16"
+                      width="12px"
+                    >
+                      <path
+                        d="M13.76,7.32a.74.74,0,0,1-.53-.22L8,1.87,2.77,7.1A.75.75,0,1,1,1.71,6L7.47.28a.74.74,0,0,1,1.06,0L14.29,6a.75.75,0,0,1,0,1.06A.74.74,0,0,1,13.76,7.32Z"
+                      />
+                      <path
+                        d="M8,15.94a.75.75,0,0,1-.75-.75V.81a.75.75,0,0,1,1.5,0V15.19A.75.75,0,0,1,8,15.94Z"
+                      />
+                    </svg>
+                  </a>
+                </th>
+              </tr>
+            </thead>
+            <tbody
+              class="css-144oias-GridBody e17psx684"
+            >
+              <tr
+                class="css-3n824k-GridRow e17psx688"
+                data-test-id="grid-body-row"
+              >
+                <td
+                  class="css-1tzuxpq-GridBodyCell e17psx683"
+                  data-test-id="grid-body-cell"
+                >
+                  <div
+                    class="css-9ytvk2-Container-overflowEllipsis ej0iif310"
+                  >
+                    /organizations/:orgId/dashboards/
+                  </div>
+                </td>
+                <td
+                  class="css-1tzuxpq-GridBodyCell e17psx683"
+                  data-test-id="grid-body-cell"
+                >
+                  <div
+                    class="css-9ytvk2-Container-overflowEllipsis ej0iif310"
+                  >
+                    <span
+                      class="css-18nv33e-EmptyValueContainer ettn0cm6"
+                    >
+                      (no value)
+                    </span>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div
+        class="css-86upav-ResultsContainer eteb5ir1"
+      >
+        <span>
+          <span>
+            <strong>
+              <span>
+                Total Events:
+              </span>
+            </strong>
+            <span>
+               
+            </span>
+            <span>
+              33,323,612
+            </span>
+          </span>
+        </span>
+        <div
+          class="css-yo4yps-ButtonGrid e1n9g4yq0"
+        >
+          <button
+            aria-disabled="false"
+            aria-label="Edit Widget"
+            class="css-19177tu-StyledButton-getColors-getButtonStyles e1b8u3ky2"
+            role="button"
+            type="button"
+          >
+            <span
+              class="css-vul34l-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+              role="presentation"
+            />
+            <span
+              class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+            >
+              Edit Widget
+            </span>
+          </button>
+          <a
+            aria-disabled="false"
+            aria-label="Open in Discover"
+            class="e1b8u3ky2 css-qok7d0-Link-StyledButton-getColors-getButtonStyles e1ycxor00"
+            href="/organizations/org-slug/discover/results/?environment=prod&environment=dev&field=count%28%29&name=Test%20Widget&project=1&project=2&query=title%3A%2Forganizations%2F%3AorgId%2Fperformance%2Fsummary%2F&statsPeriod=24h&yAxis=count%28%29"
+            role="button"
+          >
+            <span
+              class="css-at526y-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+              role="presentation"
+            />
+            <span
+              class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+            >
+              Open in Discover
+            </span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`Modals -> WidgetViewerModal Discover Widgets Area Chart Widget renders highlighted query text and multiple queries in select dropdown 1`] = `
+<div>
+  <div
+    style="padding: 30px;"
+  >
+    <div>
+      <h3>
+        Test Widget
+      </h3>
+    </div>
+    <div>
+      <div
+        class="css-1n8v8qi-Container eteb5ir5"
+        height="300"
+      >
+        <div
+          class="css-ykwm17-ChartWrapper eb7j3e2"
+        >
+          <div
+            class="css-1ez5hvi-ChartContainer-getTooltipStyles e1d3yu8b0"
+            data-test-id="area-chart"
+          >
+            <div
+              style="height: 100%; background: green;"
+            >
+              echarts mock
+            </div>
+          </div>
+        </div>
+      </div>
+      <div
+        class="ref-info css-13z2717-Wrap-alertStyles e73vi8e5"
+        type="info"
+      >
+        <div
+          class="css-9ifyx1-IconWrapper e73vi8e4"
+        >
+          <svg
+            fill="currentColor"
+            height="16px"
+            viewBox="0 0 16 16"
+            width="16px"
+          >
+            <path
+              d="M8,11.78A.74.74,0,0,1,7.24,11V7a.75.75,0,0,1,1.5,0v4A.75.75,0,0,1,8,11.78Z"
+            />
+            <circle
+              cx="8"
+              cy="4.78"
+              r="0.76"
+            />
+            <path
+              d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z"
+            />
+          </svg>
+        </div>
+        <span
+          class="css-iaz4p1-Message e73vi8e3"
+        >
+          This widget was built with multiple queries. Table data can only be displayed for one query at a time. To edit any of the queries, edit the widget.
+        </span>
+      </div>
+      <div
+        class="css-4wv1qb-QueryContainer eteb5ir4"
+      >
+        <div
+          class=" css-2b097c-container"
+        >
+          <span
+            aria-atomic="false"
+            aria-live="polite"
+            aria-relevant="additions text"
+            class="css-1f43avz-a11yText-A11yText"
+          >
+            <span
+              id="aria-selection"
+            />
+            <span
+              id="aria-context"
+            >
+              option title:/organizations/:orgId/performance/summary/ selected, 1 of 2. 2 results available. Use Up and Down to choose options, press Enter to select the currently focused option, press Escape to exit the menu.
+            </span>
+          </span>
+          <div
+            class=" css-1vnxpkk-Control"
+          >
+            <div
+              class=" css-1kqg4xi-ValueContainer"
+            >
+              <div
+                class=" css-e44xvf-SingleValue"
+              >
+                <span
+                  class="css-1cf4b9t-HighlightContainer eteb5ir2"
+                  display="block"
+                >
+                  
+                  <div>
+                    <span
+                      class="css-1sj8lck-Filter e1t4m3bf12"
+                      data-test-id="filter-token"
+                    >
+                      <span
+                        class="css-m3nvgm-Key-filterCss-Key e1t4m3bf10"
+                      >
+                        title
+                        :
+                      </span>
+                      
+                      <span
+                        class="css-s8nbdf-Value-filterCss e1t4m3bf7"
+                      >
+                        /organizations/:orgId/performance/summary/
+                      </span>
+                    </span>
+                  </div>
+                  
+                </span>
+              </div>
+              <input
+                aria-autocomplete="list"
+                class="css-wmatm6-dummyInput-DummyInput"
+                id="react-select-14-input"
+                readonly=""
+                tabindex="0"
+                value=""
+              />
+            </div>
+            <div
+              class=" css-1d4abpz-IndicatorsContainer"
+            >
+              <div
+                aria-hidden="true"
+                class=" css-1y40dj-indicatorContainer"
+              >
+                <svg
+                  class="css-1905w31-IconChevron"
+                  fill="currentColor"
+                  height="14px"
+                  viewBox="0 0 16 16"
+                  width="14px"
+                >
+                  <path
+                    d="M14,11.75a.74.74,0,0,1-.53-.22L8,6.06,2.53,11.53a.75.75,0,0,1-1.06-1.06l6-6a.75.75,0,0,1,1.06,0l6,6a.75.75,0,0,1,0,1.06A.74.74,0,0,1,14,11.75Z"
+                  />
+                </svg>
+              </div>
+            </div>
+          </div>
+          <div
+            class=" css-1aso0ll-menu"
+          >
+            <div
+              class=" css-4ljt47-MenuList"
+            >
+              <div
+                aria-checked="true"
+                aria-describedby="menuitem-details-t5pat2fdtu"
+                aria-disabled="false"
+                aria-labelledby="menuitem-label-7yqjqdxm70"
+                class="option option--is-focused option--is-selected css-hepm6i-MenuItemWrap eoaj5np8"
+                id="react-select-14-option-0"
+                role="menuitemradio"
+                tabindex="-1"
+                value="0"
+              >
+                <div>
+                  <div
+                    class="css-ii6e7g-InnerWrap eoaj5np7"
+                    data-test-id="0"
+                  >
+                    <span
+                      class="css-d4mkx2-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer-StyledInteractionStateLayer eoaj5np6"
+                      role="presentation"
+                    />
+                    <div
+                      class="css-1st9vgw-LeadingItems eoaj5np4"
+                    >
+                      <div
+                        class="css-z9levw-CheckWrap e12a69680"
+                      >
+                        <svg
+                          data-test-id="icon-check-mark"
+                          fill="currentColor"
+                          height="16px"
+                          viewBox="0 0 16 16"
+                          width="16px"
+                        >
+                          <path
+                            d="M6.19,14.51a.77.77,0,0,1-.57-.25l-4.2-4.8a.75.75,0,0,1,1.13-1l3.56,4.06L13.36,1.82a.75.75,0,0,1,1-.21.76.76,0,0,1,.21,1.05L6.81,14.18a.73.73,0,0,1-.58.33Z"
+                          />
+                        </svg>
+                      </div>
+                    </div>
+                    <div
+                      class="css-192qtgh-ContentWrap eoaj5np5"
+                    >
+                      <div
+                        class="css-yki0ea-LabelWrap eoaj5np3"
+                      >
+                        <div
+                          aria-hidden="true"
+                          class="css-35vlyv-Label-overflowEllipsis eoaj5np2"
+                          data-test-id="menu-list-item-label"
+                          id="menuitem-label-7yqjqdxm70"
+                        >
+                          <span
+                            class="css-1pmcbvq-HighlightContainer eteb5ir2"
+                            display="flex"
+                          >
+                            
+                            <div>
+                              <span
+                                class="css-1sj8lck-Filter e1t4m3bf12"
+                                data-test-id="filter-token"
+                              >
+                                <span
+                                  class="css-m3nvgm-Key-filterCss-Key e1t4m3bf10"
+                                >
+                                  title
+                                  :
+                                </span>
+                                
+                                <span
+                                  class="css-s8nbdf-Value-filterCss e1t4m3bf7"
+                                >
+                                  /organizations/:orgId/performance/summary/
+                                </span>
+                              </span>
+                            </div>
+                            
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div
+                aria-checked="false"
+                aria-describedby="menuitem-details-fahsqavry5"
+                aria-disabled="false"
+                aria-labelledby="menuitem-label-wz5qxepxba"
+                class="option css-hepm6i-MenuItemWrap eoaj5np8"
+                id="react-select-14-option-1"
+                role="menuitemradio"
+                tabindex="-1"
+                value="1"
+              >
+                <div>
+                  <div
+                    class="css-1k37yyt-InnerWrap eoaj5np7"
+                    data-test-id="1"
+                  >
+                    <span
+                      class="css-8qg416-InteractionStateLayer-InteractionStateLayer-StyledInteractionStateLayer eoaj5np6"
+                      role="presentation"
+                    />
+                    <div
+                      class="css-1st9vgw-LeadingItems eoaj5np4"
+                    >
+                      <div
+                        class="css-z9levw-CheckWrap e12a69680"
+                      />
+                    </div>
+                    <div
+                      class="css-192qtgh-ContentWrap eoaj5np5"
+                    >
+                      <div
+                        class="css-yki0ea-LabelWrap eoaj5np3"
+                      >
+                        <p
+                          aria-hidden="true"
+                          class="css-35vlyv-Label-overflowEllipsis eoaj5np2"
+                          data-test-id="menu-list-item-label"
+                          id="menuitem-label-wz5qxepxba"
+                        >
+                          Another Query Name
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div
+        class="e17psx6810 css-16qofuy-Panel-Body edxrl2k0"
+      >
+        <div
+          class="css-pemm1r-PanelBody-textStyles eszvord0"
+        >
+          <table
+            class="css-zz710c-Grid e17psx689"
+            data-test-id="grid-editable"
+            style="grid-template-columns:  minmax(90px, auto) minmax(90px, auto);"
+          >
+            <thead
+              class="css-1q9u44t-GridHead e17psx687"
+            >
+              <tr
+                class="css-3n824k-GridRow e17psx688"
+                data-test-id="grid-head-row"
+              >
+                <th
+                  class="css-qf9mh3-GridHeadCell e17psx686"
+                  data-test-id="grid-head-cell"
+                >
+                  <a
+                    class="e1xb2te62 css-h9zp3e-Link-StyledLink e1ycxor00"
+                    href="undefined?sort=-title"
+                  >
+                    <div>
+                      title
+                    </div>
+                     
+                  </a>
+                  <div
+                    class="css-hw8tz7-GridResizer e17psx680"
+                  />
+                </th>
+                <th
+                  class="css-1ozbg4v-GridHeadCell e17psx686"
+                  data-test-id="grid-head-cell"
+                >
+                  <a
+                    class="e1xb2te62 css-izzntt-Link-StyledLink e1ycxor00"
+                    href="undefined?sort=count%28%29"
+                  >
+                    <div>
+                      count()
+                    </div>
+                     
+                    <svg
+                      class="e1xb2te60 css-yt2ae6-IconArrow-StyledIconArrow"
+                      fill="currentColor"
+                      height="12px"
+                      viewBox="0 0 16 16"
+                      width="12px"
+                    >
+                      <path
+                        d="M13.76,7.32a.74.74,0,0,1-.53-.22L8,1.87,2.77,7.1A.75.75,0,1,1,1.71,6L7.47.28a.74.74,0,0,1,1.06,0L14.29,6a.75.75,0,0,1,0,1.06A.74.74,0,0,1,13.76,7.32Z"
+                      />
+                      <path
+                        d="M8,15.94a.75.75,0,0,1-.75-.75V.81a.75.75,0,0,1,1.5,0V15.19A.75.75,0,0,1,8,15.94Z"
+                      />
+                    </svg>
+                  </a>
+                </th>
+              </tr>
+            </thead>
+            <tbody
+              class="css-144oias-GridBody e17psx684"
+            >
+              <tr
+                class="css-3n824k-GridRow e17psx688"
+                data-test-id="grid-body-row"
+              >
+                <td
+                  class="css-1tzuxpq-GridBodyCell e17psx683"
+                  data-test-id="grid-body-cell"
+                >
+                  <div
+                    class="css-9ytvk2-Container-overflowEllipsis ej0iif310"
+                  >
+                    /organizations/:orgId/dashboards/
+                  </div>
+                </td>
+                <td
+                  class="css-1tzuxpq-GridBodyCell e17psx683"
+                  data-test-id="grid-body-cell"
+                >
+                  <div
+                    class="css-9ytvk2-Container-overflowEllipsis ej0iif310"
+                  >
+                    <span
+                      class="css-18nv33e-EmptyValueContainer ettn0cm6"
+                    >
+                      (no value)
+                    </span>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div
+        class="css-86upav-ResultsContainer eteb5ir1"
+      >
+        <span>
+          <span>
+            <strong>
+              <span>
+                Total Events:
+              </span>
+            </strong>
+            <span>
+               
+            </span>
+            <span>
+              33,323,612
+            </span>
+          </span>
+        </span>
+        <div
+          class="css-yo4yps-ButtonGrid e1n9g4yq0"
+        >
+          <button
+            aria-disabled="false"
+            aria-label="Edit Widget"
+            class="css-19177tu-StyledButton-getColors-getButtonStyles e1b8u3ky2"
+            role="button"
+            type="button"
+          >
+            <span
+              class="css-vul34l-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+              role="presentation"
+            />
+            <span
+              class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+            >
+              Edit Widget
+            </span>
+          </button>
+          <a
+            aria-disabled="false"
+            aria-label="Open in Discover"
+            class="e1b8u3ky2 css-qok7d0-Link-StyledButton-getColors-getButtonStyles e1ycxor00"
+            href="/organizations/org-slug/discover/results/?environment=prod&environment=dev&field=count%28%29&name=Test%20Widget&project=1&project=2&query=title%3A%2Forganizations%2F%3AorgId%2Fperformance%2Fsummary%2F&statsPeriod=24h&yAxis=count%28%29"
+            role="button"
+          >
+            <span
+              class="css-at526y-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+              role="presentation"
+            />
+            <span
+              class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+            >
+              Open in Discover
+            </span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`Modals -> WidgetViewerModal Discover Widgets TopN Chart Widget renders Discover topn chart widget viewer 1`] = `
+<div>
+  <div
+    style="padding: 30px;"
+  >
+    <div>
+      <h3>
+        Test Widget
+      </h3>
+    </div>
+    <div>
+      <div
+        class="css-1n8v8qi-Container eteb5ir5"
+        height="300"
+      >
+        <div
+          class="css-1n6iajw-ChartWrapper eb7j3e2"
+        >
+          <div
+            class="css-91lev7-ChartContainer-getTooltipStyles e1d3yu8b0"
+            data-test-id="area-chart"
+          >
+            <div
+              style="height: 200px; background: green;"
+            >
+              echarts mock
+            </div>
+          </div>
+        </div>
+      </div>
+      <div
+        class="css-4wv1qb-QueryContainer eteb5ir4"
+      >
+        <div
+          class=" css-14jk2my-container"
+        >
+          <span
+            aria-atomic="false"
+            aria-live="polite"
+            aria-relevant="additions text"
+            class="css-1f43avz-a11yText-A11yText"
+          />
+          <div
+            class=" css-1c0jl8b-Control"
+          >
+            <div
+              class=" css-1kqg4xi-ValueContainer"
+            >
+              <div
+                class=" css-e44xvf-SingleValue"
+              >
+                Query Name
+              </div>
+              <input
+                aria-autocomplete="list"
+                class="css-wmatm6-dummyInput-DummyInput"
+                disabled=""
+                id="react-select-23-input"
+                readonly=""
+                tabindex="0"
+                value=""
+              />
+            </div>
+          </div>
+        </div>
+        <span
+          class="eteb5ir3 css-hv9lcn-QuestionIconContainer-StyledQuestionTooltip edfbgzx0"
+        >
+          <div>
+            <svg
+              data-test-id="more-information"
+              fill="currentColor"
+              height="16px"
+              viewBox="0 0 16 16"
+              width="16px"
+            >
+              <path
+                d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z"
+              />
+              <path
+                d="M5.33,6.19a1.93,1.93,0,0,1,.33-1,2.59,2.59,0,0,1,1-.87,3,3,0,0,1,1.47-.34,3.18,3.18,0,0,1,1.38.29,2.28,2.28,0,0,1,.92.78,2,2,0,0,1,.32,1.07,1.69,1.69,0,0,1-.18.8,2.74,2.74,0,0,1-.44.6l-.92.84a3.92,3.92,0,0,0-.29.29,1,1,0,0,0-.17.23,1.8,1.8,0,0,0-.08.21c0,.07,0,.19-.09.37a.6.6,0,0,1-.64.56.64.64,0,0,1-.47-.19.74.74,0,0,1-.19-.54,1.91,1.91,0,0,1,.51-1.36,7.83,7.83,0,0,1,.63-.59c.22-.2.39-.35.49-.46a1.46,1.46,0,0,0,.26-.34.8.8,0,0,0,.1-.41.93.93,0,0,0-.32-.72,1.13,1.13,0,0,0-.82-.3,1.15,1.15,0,0,0-.87.3,2.33,2.33,0,0,0-.47.88c-.12.4-.35.61-.7.61a.65.65,0,0,1-.5-.22A.63.63,0,0,1,5.33,6.19ZM8,12.07a.84.84,0,0,1-.57-.21.75.75,0,0,1-.24-.59.74.74,0,0,1,.23-.57A.78.78,0,0,1,8,10.47a.74.74,0,0,1,.57.23.78.78,0,0,1,.23.57.76.76,0,0,1-.24.59A.83.83,0,0,1,8,12.07Z"
+              />
+            </svg>
+          </div>
+        </span>
+      </div>
+      <div
+        class="e17psx6810 css-16qofuy-Panel-Body edxrl2k0"
+      >
+        <div
+          class="css-pemm1r-PanelBody-textStyles eszvord0"
+        >
+          <table
+            class="css-zz710c-Grid e17psx689"
+            data-test-id="grid-editable"
+            style="grid-template-columns:  minmax(90px, auto) minmax(90px, auto);"
+          >
+            <thead
+              class="css-1q9u44t-GridHead e17psx687"
+            >
+              <tr
+                class="css-3n824k-GridRow e17psx688"
+                data-test-id="grid-head-row"
+              >
+                <th
+                  class="css-qf9mh3-GridHeadCell e17psx686"
+                  data-test-id="grid-head-cell"
+                >
+                  <a
+                    class="e1xb2te62 css-h9zp3e-Link-StyledLink e1ycxor00"
+                    href="undefined?sort=-error.type"
+                  >
+                    <div>
+                      error.type
+                    </div>
+                     
+                  </a>
+                  <div
+                    class="css-1ezj8f0-GridResizer e17psx680"
+                  />
+                </th>
+                <th
+                  class="css-1ozbg4v-GridHeadCell e17psx686"
+                  data-test-id="grid-head-cell"
+                >
+                  <a
+                    class="e1xb2te62 css-izzntt-Link-StyledLink e1ycxor00"
+                    href="undefined?sort=-count%28%29"
+                  >
+                    <div>
+                      count()
+                    </div>
+                     
+                  </a>
+                </th>
+              </tr>
+            </thead>
+            <tbody
+              class="css-144oias-GridBody e17psx684"
+            >
+              <tr
+                class="css-3n824k-GridRow e17psx688"
+                data-test-id="grid-body-row"
+              >
+                <td
+                  class="css-1tzuxpq-GridBodyCell e17psx683"
+                  data-test-id="grid-body-cell"
+                >
+                  <div
+                    class="css-ujsvp9-TopResultsIndicator e1r2bjtv0"
+                  />
+                  <div
+                    class="css-1j1hyrx-ArrayContainer e536ad12"
+                  >
+                    <span
+                      class="css-17n7wez-ArrayItem-overflowEllipsis e536ad11"
+                    >
+                      Test Error 1c
+                    </span>
+                    <div
+                      class="css-15f6xzz-ButtonContainer e536ad10"
+                    >
+                      <button>
+                        [+2 more]
+                      </button>
+                    </div>
+                  </div>
+                </td>
+                <td
+                  class="css-1tzuxpq-GridBodyCell e17psx683"
+                  data-test-id="grid-body-cell"
+                >
+                  <div
+                    class="css-9ytvk2-Container-overflowEllipsis ej0iif310"
+                  >
+                    <span
+                      class="css-18nv33e-EmptyValueContainer ettn0cm6"
+                    >
+                      (no value)
+                    </span>
+                  </div>
+                </td>
+              </tr>
+              <tr
+                class="css-3n824k-GridRow e17psx688"
+                data-test-id="grid-body-row"
+              >
+                <td
+                  class="css-1tzuxpq-GridBodyCell e17psx683"
+                  data-test-id="grid-body-cell"
+                >
+                  <div
+                    class="css-1uakow7-TopResultsIndicator e1r2bjtv0"
+                  />
+                  <div
+                    class="css-1j1hyrx-ArrayContainer e536ad12"
+                  >
+                    <span
+                      class="css-17n7wez-ArrayItem-overflowEllipsis e536ad11"
+                    >
+                      Test Error 2
+                    </span>
+                  </div>
+                </td>
+                <td
+                  class="css-1tzuxpq-GridBodyCell e17psx683"
+                  data-test-id="grid-body-cell"
+                >
+                  <div
+                    class="css-9ytvk2-Container-overflowEllipsis ej0iif310"
+                  >
+                    <span
+                      class="css-18nv33e-EmptyValueContainer ettn0cm6"
+                    >
+                      (no value)
+                    </span>
+                  </div>
+                </td>
+              </tr>
+              <tr
+                class="css-3n824k-GridRow e17psx688"
+                data-test-id="grid-body-row"
+              >
+                <td
+                  class="css-1tzuxpq-GridBodyCell e17psx683"
+                  data-test-id="grid-body-cell"
+                >
+                  <div
+                    class="css-18myzg1-TopResultsIndicator e1r2bjtv0"
+                  />
+                  <div
+                    class="css-1j1hyrx-ArrayContainer e536ad12"
+                  >
+                    <span
+                      class="css-17n7wez-ArrayItem-overflowEllipsis e536ad11"
+                    >
+                      Test Error 3
+                    </span>
+                  </div>
+                </td>
+                <td
+                  class="css-1tzuxpq-GridBodyCell e17psx683"
+                  data-test-id="grid-body-cell"
+                >
+                  <div
+                    class="css-9ytvk2-Container-overflowEllipsis ej0iif310"
+                  >
+                    <span
+                      class="css-18nv33e-EmptyValueContainer ettn0cm6"
+                    >
+                      (no value)
+                    </span>
+                  </div>
+                </td>
+              </tr>
+              <tr
+                class="css-3n824k-GridRow e17psx688"
+                data-test-id="grid-body-row"
+              >
+                <td
+                  class="css-1tzuxpq-GridBodyCell e17psx683"
+                  data-test-id="grid-body-cell"
+                >
+                  <div
+                    class="css-1saucnu-TopResultsIndicator e1r2bjtv0"
+                  />
+                  <div
+                    class="css-1j1hyrx-ArrayContainer e536ad12"
+                  >
+                    <span
+                      class="css-17n7wez-ArrayItem-overflowEllipsis e536ad11"
+                    >
+                      Test Error 4
+                    </span>
+                  </div>
+                </td>
+                <td
+                  class="css-1tzuxpq-GridBodyCell e17psx683"
+                  data-test-id="grid-body-cell"
+                >
+                  <div
+                    class="css-9ytvk2-Container-overflowEllipsis ej0iif310"
+                  >
+                    <span
+                      class="css-18nv33e-EmptyValueContainer ettn0cm6"
+                    >
+                      (no value)
+                    </span>
+                  </div>
+                </td>
+              </tr>
+              <tr
+                class="css-3n824k-GridRow e17psx688"
+                data-test-id="grid-body-row"
+              >
+                <td
+                  class="css-1tzuxpq-GridBodyCell e17psx683"
+                  data-test-id="grid-body-cell"
+                >
+                  <div
+                    class="css-1fi7bor-TopResultsIndicator e1r2bjtv0"
+                  />
+                  <div
+                    class="css-1j1hyrx-ArrayContainer e536ad12"
+                  >
+                    <span
+                      class="css-17n7wez-ArrayItem-overflowEllipsis e536ad11"
+                    >
+                      Test Error 5
+                    </span>
+                  </div>
+                </td>
+                <td
+                  class="css-1tzuxpq-GridBodyCell e17psx683"
+                  data-test-id="grid-body-cell"
+                >
+                  <div
+                    class="css-9ytvk2-Container-overflowEllipsis ej0iif310"
+                  >
+                    <span
+                      class="css-18nv33e-EmptyValueContainer ettn0cm6"
+                    >
+                      (no value)
+                    </span>
+                  </div>
+                </td>
+              </tr>
+              <tr
+                class="css-3n824k-GridRow e17psx688"
+                data-test-id="grid-body-row"
+              >
+                <td
+                  class="css-1tzuxpq-GridBodyCell e17psx683"
+                  data-test-id="grid-body-cell"
+                >
+                  <div
+                    class="css-1j1hyrx-ArrayContainer e536ad12"
+                  >
+                    <span
+                      class="css-17n7wez-ArrayItem-overflowEllipsis e536ad11"
+                    >
+                      Test Error 6
+                    </span>
+                  </div>
+                </td>
+                <td
+                  class="css-1tzuxpq-GridBodyCell e17psx683"
+                  data-test-id="grid-body-cell"
+                >
+                  <div
+                    class="css-9ytvk2-Container-overflowEllipsis ej0iif310"
+                  >
+                    <span
+                      class="css-18nv33e-EmptyValueContainer ettn0cm6"
+                    >
+                      (no value)
+                    </span>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div
+        class="css-gz69kd-Wrapper ewgwd3b1"
+        data-test-id="pagination"
+      >
+        <div
+          class="css-108kfzz-ButtonGrid-MergedStyles e1n9g4yq0"
+        >
+          <button
+            aria-disabled="true"
+            aria-label="Previous"
+            class="css-a4243y-StyledButton-getColors-getButtonStyles e1b8u3ky2"
+            disabled=""
+            role="button"
+            type="button"
+          >
+            <span
+              class="css-vul34l-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+              role="presentation"
+            />
+            <span
+              class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+            >
+              <span
+                class="css-161yn40-Icon e1b8u3ky0"
+              >
+                <svg
+                  class="css-ubc1ky-IconChevron"
+                  fill="currentColor"
+                  height="16px"
+                  viewBox="0 0 16 16"
+                  width="16px"
+                >
+                  <path
+                    d="M14,11.75a.74.74,0,0,1-.53-.22L8,6.06,2.53,11.53a.75.75,0,0,1-1.06-1.06l6-6a.75.75,0,0,1,1.06,0l6,6a.75.75,0,0,1,0,1.06A.74.74,0,0,1,14,11.75Z"
+                  />
+                </svg>
+              </span>
+            </span>
+          </button>
+          <button
+            aria-disabled="false"
+            aria-label="Next"
+            class="css-c98s0k-StyledButton-getColors-getButtonStyles e1b8u3ky2"
+            role="button"
+            type="button"
+          >
+            <span
+              class="css-vul34l-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+              role="presentation"
+            />
+            <span
+              class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+            >
+              <span
+                class="css-161yn40-Icon e1b8u3ky0"
+              >
+                <svg
+                  class="css-grvq9j-IconChevron"
+                  fill="currentColor"
+                  height="16px"
+                  viewBox="0 0 16 16"
+                  width="16px"
+                >
+                  <path
+                    d="M14,11.75a.74.74,0,0,1-.53-.22L8,6.06,2.53,11.53a.75.75,0,0,1-1.06-1.06l6-6a.75.75,0,0,1,1.06,0l6,6a.75.75,0,0,1,0,1.06A.74.74,0,0,1,14,11.75Z"
+                  />
+                </svg>
+              </span>
+            </span>
+          </button>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div
+        class="css-86upav-ResultsContainer eteb5ir1"
+      >
+        <span>
+          <span>
+            <strong>
+              <span>
+                Total Events:
+              </span>
+            </strong>
+            <span>
+               
+            </span>
+            <span>
+              33,323,612
+            </span>
+          </span>
+        </span>
+        <div
+          class="css-yo4yps-ButtonGrid e1n9g4yq0"
+        >
+          <a
+            aria-disabled="false"
+            aria-label="Open in Discover"
+            class="e1b8u3ky2 css-qok7d0-Link-StyledButton-getColors-getButtonStyles e1ycxor00"
+            href="/organizations/org-slug/discover/results/?display=top5&environment=prod&environment=dev&field=error.type&field=count%28%29&fromMetric=true&name=Test%20Widget&project=1&project=2&query=title%3A%2Forganizations%2F%3AorgId%2Fperformance%2Fsummary%2F&statsPeriod=24h&yAxis=count%28%29"
+            role="button"
+          >
+            <span
+              class="css-at526y-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+              role="presentation"
+            />
+            <span
+              class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+            >
+              Open in Discover
+            </span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`Modals -> WidgetViewerModal Discover Widgets World Map Chart Widget renders Discover topn chart widget viewer 1`] = `
+<div>
+  <div
+    style="padding: 30px;"
+  >
+    <div>
+      <h3>
+        Test Widget
+      </h3>
+    </div>
+    <div>
+      <div
+        class="css-1n8v8qi-Container eteb5ir5"
+        height="300"
+      >
+        <div
+          class="css-y2tvc4-ChartWrapper eb7j3e2"
+        >
+          <div
+            class="css-91lev7-ChartContainer-getTooltipStyles e1d3yu8b0"
+          >
+            <div
+              style="height: 200px; background: green;"
+            >
+              echarts mock
+            </div>
+          </div>
+        </div>
+      </div>
+      <div
+        class="css-4wv1qb-QueryContainer eteb5ir4"
+      >
+        <div
+          class=" css-14jk2my-container"
+        >
+          <span
+            aria-atomic="false"
+            aria-live="polite"
+            aria-relevant="additions text"
+            class="css-1f43avz-a11yText-A11yText"
+          />
+          <div
+            class=" css-1c0jl8b-Control"
+          >
+            <div
+              class=" css-1kqg4xi-ValueContainer"
+            >
+              <div
+                class=" css-e44xvf-SingleValue"
+              >
+                Query Name
+              </div>
+              <input
+                aria-autocomplete="list"
+                class="css-wmatm6-dummyInput-DummyInput"
+                disabled=""
+                id="react-select-34-input"
+                readonly=""
+                tabindex="0"
+                value=""
+              />
+            </div>
+          </div>
+        </div>
+        <span
+          class="eteb5ir3 css-hv9lcn-QuestionIconContainer-StyledQuestionTooltip edfbgzx0"
+        >
+          <div>
+            <svg
+              data-test-id="more-information"
+              fill="currentColor"
+              height="16px"
+              viewBox="0 0 16 16"
+              width="16px"
+            >
+              <path
+                d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z"
+              />
+              <path
+                d="M5.33,6.19a1.93,1.93,0,0,1,.33-1,2.59,2.59,0,0,1,1-.87,3,3,0,0,1,1.47-.34,3.18,3.18,0,0,1,1.38.29,2.28,2.28,0,0,1,.92.78,2,2,0,0,1,.32,1.07,1.69,1.69,0,0,1-.18.8,2.74,2.74,0,0,1-.44.6l-.92.84a3.92,3.92,0,0,0-.29.29,1,1,0,0,0-.17.23,1.8,1.8,0,0,0-.08.21c0,.07,0,.19-.09.37a.6.6,0,0,1-.64.56.64.64,0,0,1-.47-.19.74.74,0,0,1-.19-.54,1.91,1.91,0,0,1,.51-1.36,7.83,7.83,0,0,1,.63-.59c.22-.2.39-.35.49-.46a1.46,1.46,0,0,0,.26-.34.8.8,0,0,0,.1-.41.93.93,0,0,0-.32-.72,1.13,1.13,0,0,0-.82-.3,1.15,1.15,0,0,0-.87.3,2.33,2.33,0,0,0-.47.88c-.12.4-.35.61-.7.61a.65.65,0,0,1-.5-.22A.63.63,0,0,1,5.33,6.19ZM8,12.07a.84.84,0,0,1-.57-.21.75.75,0,0,1-.24-.59.74.74,0,0,1,.23-.57A.78.78,0,0,1,8,10.47a.74.74,0,0,1,.57.23.78.78,0,0,1,.23.57.76.76,0,0,1-.24.59A.83.83,0,0,1,8,12.07Z"
+              />
+            </svg>
+          </div>
+        </span>
+      </div>
+      <div
+        class="e17psx6810 css-16qofuy-Panel-Body edxrl2k0"
+      >
+        <div
+          class="css-pemm1r-PanelBody-textStyles eszvord0"
+        >
+          <table
+            class="css-zz710c-Grid e17psx689"
+            data-test-id="grid-editable"
+            style="grid-template-columns:  minmax(90px, auto) minmax(90px, auto);"
+          >
+            <thead
+              class="css-1q9u44t-GridHead e17psx687"
+            >
+              <tr
+                class="css-3n824k-GridRow e17psx688"
+                data-test-id="grid-head-row"
+              >
+                <th
+                  class="css-qf9mh3-GridHeadCell e17psx686"
+                  data-test-id="grid-head-cell"
+                >
+                  <a
+                    class="e1xb2te62 css-h9zp3e-Link-StyledLink e1ycxor00"
+                    href="undefined?sort=-geo.country_code"
+                  >
+                    <div>
+                      geo.country_code
+                    </div>
+                     
+                  </a>
+                  <div
+                    class="css-18kkymi-GridResizer e17psx680"
+                  />
+                </th>
+                <th
+                  class="css-1ozbg4v-GridHeadCell e17psx686"
+                  data-test-id="grid-head-cell"
+                >
+                  <a
+                    class="e1xb2te62 css-izzntt-Link-StyledLink e1ycxor00"
+                    href="undefined?sort=-p75%28measurements.lcp%29"
+                  >
+                    <div>
+                      p75(measurements.lcp)
+                    </div>
+                     
+                  </a>
+                </th>
+              </tr>
+            </thead>
+            <tbody
+              class="css-144oias-GridBody e17psx684"
+            >
+              <tr
+                class="css-3n824k-GridRow e17psx688"
+                data-test-id="grid-body-row"
+              >
+                <td
+                  class="css-1tzuxpq-GridBodyCell e17psx683"
+                  data-test-id="grid-body-cell"
+                >
+                  <div
+                    class="css-9ytvk2-Container-overflowEllipsis ej0iif310"
+                  >
+                    ES
+                  </div>
+                </td>
+                <td
+                  class="css-1tzuxpq-GridBodyCell e17psx683"
+                  data-test-id="grid-body-cell"
+                >
+                  <div
+                    class="css-9ytvk2-Container-overflowEllipsis ej0iif310"
+                  >
+                    <span
+                      class="css-18nv33e-EmptyValueContainer ettn0cm6"
+                    >
+                      (no value)
+                    </span>
+                  </div>
+                </td>
+              </tr>
+              <tr
+                class="css-3n824k-GridRow e17psx688"
+                data-test-id="grid-body-row"
+              >
+                <td
+                  class="css-1tzuxpq-GridBodyCell e17psx683"
+                  data-test-id="grid-body-cell"
+                >
+                  <div
+                    class="css-9ytvk2-Container-overflowEllipsis ej0iif310"
+                  >
+                    SK
+                  </div>
+                </td>
+                <td
+                  class="css-1tzuxpq-GridBodyCell e17psx683"
+                  data-test-id="grid-body-cell"
+                >
+                  <div
+                    class="css-9ytvk2-Container-overflowEllipsis ej0iif310"
+                  >
+                    <span
+                      class="css-18nv33e-EmptyValueContainer ettn0cm6"
+                    >
+                      (no value)
+                    </span>
+                  </div>
+                </td>
+              </tr>
+              <tr
+                class="css-3n824k-GridRow e17psx688"
+                data-test-id="grid-body-row"
+              >
+                <td
+                  class="css-1tzuxpq-GridBodyCell e17psx683"
+                  data-test-id="grid-body-cell"
+                >
+                  <div
+                    class="css-9ytvk2-Container-overflowEllipsis ej0iif310"
+                  >
+                    CO
+                  </div>
+                </td>
+                <td
+                  class="css-1tzuxpq-GridBodyCell e17psx683"
+                  data-test-id="grid-body-cell"
+                >
+                  <div
+                    class="css-9ytvk2-Container-overflowEllipsis ej0iif310"
+                  >
+                    <span
+                      class="css-18nv33e-EmptyValueContainer ettn0cm6"
+                    >
+                      (no value)
+                    </span>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div
+        class="css-86upav-ResultsContainer eteb5ir1"
+      >
+        <span>
+          <span>
+            <strong>
+              <span>
+                Total Events:
+              </span>
+            </strong>
+            <span>
+               
+            </span>
+            <span>
+              33,323,612
+            </span>
+          </span>
+        </span>
+        <div
+          class="css-yo4yps-ButtonGrid e1n9g4yq0"
+        >
+          <a
+            aria-disabled="false"
+            aria-label="Open in Discover"
+            class="e1b8u3ky2 css-qok7d0-Link-StyledButton-getColors-getButtonStyles e1ycxor00"
+            href="/organizations/org-slug/discover/results/?display=worldmap&environment=prod&environment=dev&field=geo.country_code&field=p75%28measurements.lcp%29&fromMetric=true&name=Test%20Widget&project=1&project=2&query=title%3A%2Forganizations%2F%3AorgId%2Fperformance%2Fsummary%2F%20has%3Ageo.country_code&statsPeriod=24h&yAxis=p75%28measurements.lcp%29"
+            role="button"
+          >
+            <span
+              class="css-at526y-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+              role="presentation"
+            />
+            <span
+              class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+            >
+              Open in Discover
+            </span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`Modals -> WidgetViewerModal Issue Table Widget renders Issue table widget viewer 1`] = `
+<div>
+  <div
+    style="padding: 30px;"
+  >
+    <div>
+      <h3>
+        Issue Widget
+      </h3>
+    </div>
+    <div>
+      <div
+        class="css-4wv1qb-QueryContainer eteb5ir4"
+      >
+        <div
+          class=" css-14jk2my-container"
+        >
+          <span
+            aria-atomic="false"
+            aria-live="polite"
+            aria-relevant="additions text"
+            class="css-1f43avz-a11yText-A11yText"
+          />
+          <div
+            class=" css-1c0jl8b-Control"
+          >
+            <div
+              class=" css-1kqg4xi-ValueContainer"
+            >
+              <div
+                class=" css-e44xvf-SingleValue"
+              >
+                Query Name
+              </div>
+              <input
+                aria-autocomplete="list"
+                class="css-wmatm6-dummyInput-DummyInput"
+                disabled=""
+                id="react-select-41-input"
+                readonly=""
+                tabindex="0"
+                value=""
+              />
+            </div>
+          </div>
+        </div>
+        <span
+          class="eteb5ir3 css-hv9lcn-QuestionIconContainer-StyledQuestionTooltip edfbgzx0"
+        >
+          <div>
+            <svg
+              data-test-id="more-information"
+              fill="currentColor"
+              height="16px"
+              viewBox="0 0 16 16"
+              width="16px"
+            >
+              <path
+                d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z"
+              />
+              <path
+                d="M5.33,6.19a1.93,1.93,0,0,1,.33-1,2.59,2.59,0,0,1,1-.87,3,3,0,0,1,1.47-.34,3.18,3.18,0,0,1,1.38.29,2.28,2.28,0,0,1,.92.78,2,2,0,0,1,.32,1.07,1.69,1.69,0,0,1-.18.8,2.74,2.74,0,0,1-.44.6l-.92.84a3.92,3.92,0,0,0-.29.29,1,1,0,0,0-.17.23,1.8,1.8,0,0,0-.08.21c0,.07,0,.19-.09.37a.6.6,0,0,1-.64.56.64.64,0,0,1-.47-.19.74.74,0,0,1-.19-.54,1.91,1.91,0,0,1,.51-1.36,7.83,7.83,0,0,1,.63-.59c.22-.2.39-.35.49-.46a1.46,1.46,0,0,0,.26-.34.8.8,0,0,0,.1-.41.93.93,0,0,0-.32-.72,1.13,1.13,0,0,0-.82-.3,1.15,1.15,0,0,0-.87.3,2.33,2.33,0,0,0-.47.88c-.12.4-.35.61-.7.61a.65.65,0,0,1-.5-.22A.63.63,0,0,1,5.33,6.19ZM8,12.07a.84.84,0,0,1-.57-.21.75.75,0,0,1-.24-.59.74.74,0,0,1,.23-.57A.78.78,0,0,1,8,10.47a.74.74,0,0,1,.57.23.78.78,0,0,1,.23.57.76.76,0,0,1-.24.59A.83.83,0,0,1,8,12.07Z"
+              />
+            </svg>
+          </div>
+        </span>
+      </div>
+      <div
+        class="e17psx6810 css-16qofuy-Panel-Body edxrl2k0"
+      >
+        <div
+          class="css-pemm1r-PanelBody-textStyles eszvord0"
+        >
+          <table
+            class="css-zz710c-Grid e17psx689"
+            data-test-id="grid-editable"
+            style="grid-template-columns:  minmax(90px, auto) minmax(90px, auto) minmax(90px, auto);"
+          >
+            <thead
+              class="css-1q9u44t-GridHead e17psx687"
+            >
+              <tr
+                class="css-3n824k-GridRow e17psx688"
+                data-test-id="grid-head-row"
+              >
+                <th
+                  class="css-qf9mh3-GridHeadCell e17psx686"
+                  data-test-id="grid-head-cell"
+                >
+                  <a
+                    class="e1xb2te62 css-h9zp3e-Link-StyledLink e1ycxor00"
+                    href="undefined?sort=freq"
+                  >
+                    <div>
+                      events
+                    </div>
+                     
+                  </a>
+                  <div
+                    class="css-hw8tz7-GridResizer e17psx680"
+                  />
+                </th>
+                <th
+                  class="css-1ozbg4v-GridHeadCell e17psx686"
+                  data-test-id="grid-head-cell"
+                >
+                  <div
+                    class="css-tgyenk-StyledNonLink e1xb2te61"
+                  >
+                    <div>
+                      status
+                    </div>
+                  </div>
+                  <div
+                    class="css-hw8tz7-GridResizer e17psx680"
+                  />
+                </th>
+                <th
+                  class="css-1ozbg4v-GridHeadCell e17psx686"
+                  data-test-id="grid-head-cell"
+                >
+                  <div
+                    class="css-tgyenk-StyledNonLink e1xb2te61"
+                  >
+                    <div>
+                      title
+                    </div>
+                  </div>
+                </th>
+              </tr>
+            </thead>
+            <tbody
+              class="css-144oias-GridBody e17psx684"
+            >
+              <tr
+                class="css-3n824k-GridRow e17psx688"
+                data-test-id="grid-body-row"
+              >
+                <td
+                  class="css-1tzuxpq-GridBodyCell e17psx683"
+                  data-test-id="grid-body-cell"
+                >
+                  <div
+                    class="css-9ytvk2-Container-overflowEllipsis ej0iif310"
+                  >
+                    <div>
+                      <span>
+                        <span
+                          title="6"
+                        >
+                          6
+                        </span>
+                      </span>
+                    </div>
+                  </div>
+                </td>
+                <td
+                  class="css-1tzuxpq-GridBodyCell e17psx683"
+                  data-test-id="grid-body-cell"
+                >
+                  <div
+                    class="css-9ytvk2-Container-overflowEllipsis ej0iif310"
+                  >
+                    unresolved
+                  </div>
+                </td>
+                <td
+                  class="css-1tzuxpq-GridBodyCell e17psx683"
+                  data-test-id="grid-body-cell"
+                >
+                  <div
+                    class="css-9ytvk2-Container-overflowEllipsis ej0iif310"
+                  >
+                    Error: Failed
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div
+        class="css-gz69kd-Wrapper ewgwd3b1"
+        data-test-id="pagination"
+      >
+        <div
+          class="css-108kfzz-ButtonGrid-MergedStyles e1n9g4yq0"
+        >
+          <button
+            aria-disabled="true"
+            aria-label="Previous"
+            class="css-a4243y-StyledButton-getColors-getButtonStyles e1b8u3ky2"
+            disabled=""
+            role="button"
+            type="button"
+          >
+            <span
+              class="css-vul34l-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+              role="presentation"
+            />
+            <span
+              class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+            >
+              <span
+                class="css-161yn40-Icon e1b8u3ky0"
+              >
+                <svg
+                  class="css-ubc1ky-IconChevron"
+                  fill="currentColor"
+                  height="16px"
+                  viewBox="0 0 16 16"
+                  width="16px"
+                >
+                  <path
+                    d="M14,11.75a.74.74,0,0,1-.53-.22L8,6.06,2.53,11.53a.75.75,0,0,1-1.06-1.06l6-6a.75.75,0,0,1,1.06,0l6,6a.75.75,0,0,1,0,1.06A.74.74,0,0,1,14,11.75Z"
+                  />
+                </svg>
+              </span>
+            </span>
+          </button>
+          <button
+            aria-disabled="false"
+            aria-label="Next"
+            class="css-c98s0k-StyledButton-getColors-getButtonStyles e1b8u3ky2"
+            role="button"
+            type="button"
+          >
+            <span
+              class="css-vul34l-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+              role="presentation"
+            />
+            <span
+              class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+            >
+              <span
+                class="css-161yn40-Icon e1b8u3ky0"
+              >
+                <svg
+                  class="css-grvq9j-IconChevron"
+                  fill="currentColor"
+                  height="16px"
+                  viewBox="0 0 16 16"
+                  width="16px"
+                >
+                  <path
+                    d="M14,11.75a.74.74,0,0,1-.53-.22L8,6.06,2.53,11.53a.75.75,0,0,1-1.06-1.06l6-6a.75.75,0,0,1,1.06,0l6,6a.75.75,0,0,1,0,1.06A.74.74,0,0,1,14,11.75Z"
+                  />
+                </svg>
+              </span>
+            </span>
+          </button>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div
+        class="css-86upav-ResultsContainer eteb5ir1"
+      >
+        <span />
+        <div
+          class="css-yo4yps-ButtonGrid e1n9g4yq0"
+        >
+          <button
+            aria-disabled="false"
+            aria-label="Edit Widget"
+            class="css-19177tu-StyledButton-getColors-getButtonStyles e1b8u3ky2"
+            role="button"
+            type="button"
+          >
+            <span
+              class="css-vul34l-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+              role="presentation"
+            />
+            <span
+              class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+            >
+              Edit Widget
+            </span>
+          </button>
+          <a
+            aria-disabled="false"
+            aria-label="Open in Issues"
+            class="e1b8u3ky2 css-qok7d0-Link-StyledButton-getColors-getButtonStyles e1ycxor00"
+            href="/organizations/org-slug/issues/?environment=prod&environment=dev&project=1&project=2&query=is%3Aunresolved&sort=&statsPeriod=24h"
+            role="button"
+          >
+            <span
+              class="css-at526y-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+              role="presentation"
+            />
+            <span
+              class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+            >
+              Open in Issues
+            </span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`Modals -> WidgetViewerModal Release Health Widgets renders Release widget viewer 1`] = `
+<div>
+  <div
+    style="padding: 30px;"
+  >
+    <div>
+      <h3>
+        Release Widget
+      </h3>
+    </div>
+    <div>
+      <div
+        class="css-1n8v8qi-Container eteb5ir5"
+        height="300"
+      >
+        <div
+          class="css-ykwm17-ChartWrapper eb7j3e2"
+        >
+          <div
+            class="css-1ez5hvi-ChartContainer-getTooltipStyles e1d3yu8b0"
+          >
+            <div
+              style="height: 100%; background: green;"
+            >
+              echarts mock
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div
+        class="e17psx6810 css-16qofuy-Panel-Body edxrl2k0"
+      >
+        <div
+          class="css-pemm1r-PanelBody-textStyles eszvord0"
+        >
+          <table
+            class="css-zz710c-Grid e17psx689"
+            data-test-id="grid-editable"
+            style="grid-template-columns:  minmax(90px, auto) minmax(90px, auto);"
+          >
+            <thead
+              class="css-1q9u44t-GridHead e17psx687"
+            >
+              <tr
+                class="css-3n824k-GridRow e17psx688"
+                data-test-id="grid-head-row"
+              >
+                <th
+                  class="css-qf9mh3-GridHeadCell e17psx686"
+                  data-test-id="grid-head-cell"
+                >
+                  <div
+                    class="css-tgyenk-StyledNonLink e1xb2te61"
+                  >
+                    <div>
+                      release
+                    </div>
+                  </div>
+                  <div
+                    class="css-7mupl8-GridResizer e17psx680"
+                  />
+                </th>
+                <th
+                  class="css-1ozbg4v-GridHeadCell e17psx686"
+                  data-test-id="grid-head-cell"
+                >
+                  <a
+                    class="e1xb2te62 css-izzntt-Link-StyledLink e1ycxor00"
+                    href="undefined?sort=-sum%28session%29"
+                  >
+                    <div>
+                      sum(session)
+                    </div>
+                     
+                  </a>
+                </th>
+              </tr>
+            </thead>
+            <tbody
+              class="css-144oias-GridBody e17psx684"
+            >
+              <tr
+                class="css-3n824k-GridRow e17psx688"
+                data-test-id="grid-body-row"
+              >
+                <td
+                  class="css-1tzuxpq-GridBodyCell e17psx683"
+                  data-test-id="grid-body-cell"
+                >
+                  <div
+                    class="css-1k8e5kg-VersionContainer-overflowEllipsis ej0iif39"
+                  >
+                    <div>
+                      <a
+                        class="css-ta9xa3-Link e1ycxor00"
+                        href="/organizations/org-slug/releases/7a82c130be9143361f20bc77252df783cf91e4fc/"
+                      >
+                        <span
+                          class="css-o1spc8-VersionText eqmhduc3"
+                        >
+                          7a82c130be91
+                        </span>
+                      </a>
+                    </div>
+                  </div>
+                </td>
+                <td
+                  class="css-1tzuxpq-GridBodyCell e17psx683"
+                  data-test-id="grid-body-cell"
+                >
+                  <div
+                    class="css-1o3nwt3-NumberContainer-overflowEllipsis ej0iif38"
+                  >
+                    <span
+                      title="219,826"
+                    >
+                      219k
+                    </span>
+                  </div>
+                </td>
+              </tr>
+              <tr
+                class="css-3n824k-GridRow e17psx688"
+                data-test-id="grid-body-row"
+              >
+                <td
+                  class="css-1tzuxpq-GridBodyCell e17psx683"
+                  data-test-id="grid-body-cell"
+                >
+                  <div
+                    class="css-1k8e5kg-VersionContainer-overflowEllipsis ej0iif39"
+                  >
+                    <div>
+                      <a
+                        class="css-ta9xa3-Link e1ycxor00"
+                        href="/organizations/org-slug/releases/e102abb2c46e7fe8686441091005c12aed90da99/"
+                      >
+                        <span
+                          class="css-o1spc8-VersionText eqmhduc3"
+                        >
+                          e102abb2c46e
+                        </span>
+                      </a>
+                    </div>
+                  </div>
+                </td>
+                <td
+                  class="css-1tzuxpq-GridBodyCell e17psx683"
+                  data-test-id="grid-body-cell"
+                >
+                  <div
+                    class="css-1o3nwt3-NumberContainer-overflowEllipsis ej0iif38"
+                  >
+                    <span
+                      title="6,320"
+                    >
+                      6.3k
+                    </span>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div
+        class="css-gz69kd-Wrapper ewgwd3b1"
+        data-test-id="pagination"
+      >
+        <div
+          class="css-108kfzz-ButtonGrid-MergedStyles e1n9g4yq0"
+        >
+          <button
+            aria-disabled="true"
+            aria-label="Previous"
+            class="css-a4243y-StyledButton-getColors-getButtonStyles e1b8u3ky2"
+            disabled=""
+            role="button"
+            type="button"
+          >
+            <span
+              class="css-vul34l-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+              role="presentation"
+            />
+            <span
+              class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+            >
+              <span
+                class="css-161yn40-Icon e1b8u3ky0"
+              >
+                <svg
+                  class="css-ubc1ky-IconChevron"
+                  fill="currentColor"
+                  height="16px"
+                  viewBox="0 0 16 16"
+                  width="16px"
+                >
+                  <path
+                    d="M14,11.75a.74.74,0,0,1-.53-.22L8,6.06,2.53,11.53a.75.75,0,0,1-1.06-1.06l6-6a.75.75,0,0,1,1.06,0l6,6a.75.75,0,0,1,0,1.06A.74.74,0,0,1,14,11.75Z"
+                  />
+                </svg>
+              </span>
+            </span>
+          </button>
+          <button
+            aria-disabled="false"
+            aria-label="Next"
+            class="css-c98s0k-StyledButton-getColors-getButtonStyles e1b8u3ky2"
+            role="button"
+            type="button"
+          >
+            <span
+              class="css-vul34l-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+              role="presentation"
+            />
+            <span
+              class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+            >
+              <span
+                class="css-161yn40-Icon e1b8u3ky0"
+              >
+                <svg
+                  class="css-grvq9j-IconChevron"
+                  fill="currentColor"
+                  height="16px"
+                  viewBox="0 0 16 16"
+                  width="16px"
+                >
+                  <path
+                    d="M14,11.75a.74.74,0,0,1-.53-.22L8,6.06,2.53,11.53a.75.75,0,0,1-1.06-1.06l6-6a.75.75,0,0,1,1.06,0l6,6a.75.75,0,0,1,0,1.06A.74.74,0,0,1,14,11.75Z"
+                  />
+                </svg>
+              </span>
+            </span>
+          </button>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div
+        class="css-86upav-ResultsContainer eteb5ir1"
+      >
+        <span />
+        <div
+          class="css-yo4yps-ButtonGrid e1n9g4yq0"
+        >
+          <button
+            aria-disabled="false"
+            aria-label="Edit Widget"
+            class="css-19177tu-StyledButton-getColors-getButtonStyles e1b8u3ky2"
+            role="button"
+            type="button"
+          >
+            <span
+              class="css-vul34l-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+              role="presentation"
+            />
+            <span
+              class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+            >
+              Edit Widget
+            </span>
+          </button>
+          <a
+            aria-disabled="false"
+            aria-label="Open in Releases"
+            class="e1b8u3ky2 css-qok7d0-Link-StyledButton-getColors-getButtonStyles e1ycxor00"
+            href="/organizations/org-slug/releases/?environment=prod&environment=dev&project=1&project=2&statsPeriod=24h"
+            role="button"
+          >
+            <span
+              class="css-at526y-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+              role="presentation"
+            />
+            <span
+              class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+            >
+              Open in Releases
+            </span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+`;

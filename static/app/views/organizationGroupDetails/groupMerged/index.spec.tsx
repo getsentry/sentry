@@ -97,6 +97,6 @@ describe('Issues -> Merged View', function () {
 
     await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
 
-    expect(container).toSnapshot();
+    expect(container).toMatchSnapshot();
   });
 });

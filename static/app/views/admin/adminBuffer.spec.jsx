@@ -13,7 +13,7 @@ describe('AdminBuffer', function () {
       });
 
       const wrapper = render(<AdminBuffer params={{}} />);
-      expect(wrapper.container).toSnapshot();
+      expect(wrapper.container).toMatchSnapshot();
     });
   });
 });

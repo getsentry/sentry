@@ -10,7 +10,7 @@ describe('AlertLink', function () {
         This is an external link button
       </AlertLink>
     );
-    expect(container).toSnapshot();
+    expect(container).toMatchSnapshot();
   });
 
   it('renders with icon', function () {
@@ -19,6 +19,6 @@ describe('AlertLink', function () {
         This is an external link button
       </AlertLink>
     );
-    expect(container).toSnapshot();
+    expect(container).toMatchSnapshot();
   });
 });

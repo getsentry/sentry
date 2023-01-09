@@ -17,7 +17,7 @@ describe('ProjectPluginRow', function () {
       }
     );
 
-    expect(container).toSnapshot();
+    expect(container).toMatchSnapshot();
   });
 
   it('calls `onChange` when clicked', function () {

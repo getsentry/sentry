@@ -1,0 +1,56 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`EventOrGroupTitle renders with no subtitle when \`type = default\` 1`] = `
+<div>
+  <span
+    class="css-dspp4e-Wrapper ejrtwu50"
+  >
+    metadata title
+    
+  </span>
+</div>
+`;
+
+exports[`EventOrGroupTitle renders with subtitle when \`type = csp\` 1`] = `
+<div>
+  <span
+    class="css-dspp4e-Wrapper ejrtwu50"
+  >
+    metadata directive
+    <span
+      style="display: inline-block; width: 10px;"
+    >
+       
+    </span>
+    <em
+      class="css-15ppkm0-Subtitle ejrtwu51"
+      title="metadata uri"
+    >
+      metadata uri
+    </em>
+    <br />
+  </span>
+</div>
+`;
+
+exports[`EventOrGroupTitle renders with subtitle when \`type = error\` 1`] = `
+<div>
+  <span
+    class="css-dspp4e-Wrapper ejrtwu50"
+  >
+    metadata type
+    <span
+      style="display: inline-block; width: 10px;"
+    >
+       
+    </span>
+    <em
+      class="css-15ppkm0-Subtitle ejrtwu51"
+      title="culprit"
+    >
+      culprit
+    </em>
+    <br />
+  </span>
+</div>
+`;

@@ -37,7 +37,7 @@ describe('ActorAvatar', function () {
         />
       );
 
-      expect(container).toSnapshot();
+      expect(container).toMatchSnapshot();
     });
 
     it('should not show a gravatar when actor type is a team', function () {
@@ -53,7 +53,7 @@ describe('ActorAvatar', function () {
 
       expect(screen.getByText('CT')).toBeInTheDocument();
 
-      expect(container).toSnapshot();
+      expect(container).toMatchSnapshot();
     });
 
     it('should return null when actor type is a unknown', function () {

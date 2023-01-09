@@ -1,0 +1,228 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`DetailedError can hide support links 1`] = `
+<div>
+  <div
+    class="css-2yosy2-Wrapper efsyap12"
+  >
+    <h4
+      class="css-gfpno6-ErrorHeading efsyap11"
+    >
+      <svg
+        fill="#F32F35"
+        height="20px"
+        viewBox="0 0 16 16"
+        width="20px"
+      >
+        <path
+          d="M1.69,8.43V2.22H13.53l-2,2.65a.78.78,0,0,0,0,.92l2,2.64Zm0-7.7A.74.74,0,0,0,.94.09.75.75,0,0,0,.19.84V15.16a.75.75,0,0,0,1.5,0V9.93H15.06a.75.75,0,0,0,.59-1.21L13,5.33l2.62-3.4a.73.73,0,0,0,.08-.79.75.75,0,0,0-.67-.42H1.69"
+        />
+      </svg>
+      Error heading
+    </h4>
+    <div>
+      Message
+    </div>
+    <div
+      class="css-1qnpmgv-ErrorFooter efsyap10"
+    >
+      <div>
+        <button
+          aria-disabled="false"
+          aria-label="Retry"
+          class="css-19177tu-StyledButton-getColors-getButtonStyles e1b8u3ky2"
+          role="button"
+          type="button"
+        >
+          <span
+            class="css-vul34l-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+            role="presentation"
+          />
+          <span
+            class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+          >
+            Retry
+          </span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`DetailedError hides footer when no "Retry" and no support links 1`] = `
+<div>
+  <div
+    class="css-2yosy2-Wrapper efsyap12"
+  >
+    <h4
+      class="css-gfpno6-ErrorHeading efsyap11"
+    >
+      <svg
+        fill="#F32F35"
+        height="20px"
+        viewBox="0 0 16 16"
+        width="20px"
+      >
+        <path
+          d="M1.69,8.43V2.22H13.53l-2,2.65a.78.78,0,0,0,0,.92l2,2.64Zm0-7.7A.74.74,0,0,0,.94.09.75.75,0,0,0,.19.84V15.16a.75.75,0,0,0,1.5,0V9.93H15.06a.75.75,0,0,0,.59-1.21L13,5.33l2.62-3.4a.73.73,0,0,0,.08-.79.75.75,0,0,0-.67-.42H1.69"
+        />
+      </svg>
+      Error heading
+    </h4>
+    <div>
+      Message
+    </div>
+  </div>
+</div>
+`;
+
+exports[`DetailedError renders 1`] = `
+<div>
+  <div
+    class="css-2yosy2-Wrapper efsyap12"
+  >
+    <h4
+      class="css-gfpno6-ErrorHeading efsyap11"
+    >
+      <svg
+        fill="#F32F35"
+        height="20px"
+        viewBox="0 0 16 16"
+        width="20px"
+      >
+        <path
+          d="M1.69,8.43V2.22H13.53l-2,2.65a.78.78,0,0,0,0,.92l2,2.64Zm0-7.7A.74.74,0,0,0,.94.09.75.75,0,0,0,.19.84V15.16a.75.75,0,0,0,1.5,0V9.93H15.06a.75.75,0,0,0,.59-1.21L13,5.33l2.62-3.4a.73.73,0,0,0,.08-.79.75.75,0,0,0-.67-.42H1.69"
+        />
+      </svg>
+      Error heading
+    </h4>
+    <div>
+      Message
+    </div>
+    <div
+      class="css-1qnpmgv-ErrorFooter efsyap10"
+    >
+      <div />
+      <div
+        class="css-1559evj-ButtonGrid e1n9g4yq0"
+      >
+        <a
+          aria-disabled="false"
+          aria-label="Service status"
+          class="e1b8u3ky2 css-ocjt3b-Anchor-StyledButton-getColors-getButtonStyles ehytxfi0"
+          href="https://status.sentry.io/"
+          rel="noreferrer noopener"
+          role="button"
+          target="_blank"
+        >
+          <span
+            class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+          >
+            Service status
+          </span>
+        </a>
+        <a
+          aria-disabled="false"
+          aria-label="Contact support"
+          class="e1b8u3ky2 css-ocjt3b-Anchor-StyledButton-getColors-getButtonStyles ehytxfi0"
+          href="https://sentry.io/support/"
+          rel="noreferrer noopener"
+          role="button"
+          target="_blank"
+        >
+          <span
+            class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+          >
+            Contact support
+          </span>
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`DetailedError renders with "Retry" button 1`] = `
+<div>
+  <div
+    class="css-2yosy2-Wrapper efsyap12"
+  >
+    <h4
+      class="css-gfpno6-ErrorHeading efsyap11"
+    >
+      <svg
+        fill="#F32F35"
+        height="20px"
+        viewBox="0 0 16 16"
+        width="20px"
+      >
+        <path
+          d="M1.69,8.43V2.22H13.53l-2,2.65a.78.78,0,0,0,0,.92l2,2.64Zm0-7.7A.74.74,0,0,0,.94.09.75.75,0,0,0,.19.84V15.16a.75.75,0,0,0,1.5,0V9.93H15.06a.75.75,0,0,0,.59-1.21L13,5.33l2.62-3.4a.73.73,0,0,0,.08-.79.75.75,0,0,0-.67-.42H1.69"
+        />
+      </svg>
+      Error heading
+    </h4>
+    <div>
+      Message
+    </div>
+    <div
+      class="css-1qnpmgv-ErrorFooter efsyap10"
+    >
+      <div>
+        <button
+          aria-disabled="false"
+          aria-label="Retry"
+          class="css-19177tu-StyledButton-getColors-getButtonStyles e1b8u3ky2"
+          role="button"
+          type="button"
+        >
+          <span
+            class="css-vul34l-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+            role="presentation"
+          />
+          <span
+            class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+          >
+            Retry
+          </span>
+        </button>
+      </div>
+      <div
+        class="css-1559evj-ButtonGrid e1n9g4yq0"
+      >
+        <a
+          aria-disabled="false"
+          aria-label="Service status"
+          class="e1b8u3ky2 css-ocjt3b-Anchor-StyledButton-getColors-getButtonStyles ehytxfi0"
+          href="https://status.sentry.io/"
+          rel="noreferrer noopener"
+          role="button"
+          target="_blank"
+        >
+          <span
+            class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+          >
+            Service status
+          </span>
+        </a>
+        <a
+          aria-disabled="false"
+          aria-label="Contact support"
+          class="e1b8u3ky2 css-ocjt3b-Anchor-StyledButton-getColors-getButtonStyles ehytxfi0"
+          href="https://sentry.io/support/"
+          rel="noreferrer noopener"
+          role="button"
+          target="_blank"
+        >
+          <span
+            class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+          >
+            Contact support
+          </span>
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+`;

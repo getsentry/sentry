@@ -1,0 +1,74 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`InactivePlugins renders plugins list 1`] = `
+<div>
+  <div
+    class="css-2fj46w-Panel edxrl2k0"
+  >
+    <div
+      class="css-1v7t0a0-PanelHeader-getPadding eknsyxy0"
+    >
+      Inactive Integrations
+    </div>
+    <div
+      class="css-pemm1r-PanelBody-textStyles eszvord0"
+    >
+      <div
+        class="css-10d0nyt-Plugins e4awzvo3"
+      >
+        <button
+          class="ref-plugin-enable-amazon-sqs css-d086wh-IntegrationButton e4awzvo2"
+        >
+          <div
+            class="css-dw2jt7-Label e4awzvo1"
+          >
+            <div
+              class="css-7mbwhk-PluginIcon-StyledPluginIcon e4awzvo0"
+              size="20"
+            />
+            <div
+              class="css-1r3o8wo-TextOverflow-overflowEllipsis eyxbn6j0"
+            >
+              Amazon SQS
+            </div>
+          </div>
+        </button>
+        <button
+          class="ref-plugin-enable-github css-d086wh-IntegrationButton e4awzvo2"
+        >
+          <div
+            class="css-dw2jt7-Label e4awzvo1"
+          >
+            <div
+              class="css-7mbwhk-PluginIcon-StyledPluginIcon e4awzvo0"
+              size="20"
+            />
+            <div
+              class="css-1r3o8wo-TextOverflow-overflowEllipsis eyxbn6j0"
+            >
+              GitHub
+            </div>
+          </div>
+        </button>
+        <button
+          class="ref-plugin-enable-hidden-plugin css-d086wh-IntegrationButton e4awzvo2"
+        >
+          <div
+            class="css-dw2jt7-Label e4awzvo1"
+          >
+            <div
+              class="css-7mbwhk-PluginIcon-StyledPluginIcon e4awzvo0"
+              size="20"
+            />
+            <div
+              class="css-1r3o8wo-TextOverflow-overflowEllipsis eyxbn6j0"
+            >
+              Hidden Plugin
+            </div>
+          </div>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+`;

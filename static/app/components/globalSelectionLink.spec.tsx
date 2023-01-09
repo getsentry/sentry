@@ -25,7 +25,7 @@ describe('GlobalSelectionLink', function () {
       <GlobalSelectionLink to={path}>Go somewhere!</GlobalSelectionLink>,
       {context}
     );
-    expect(container).toSnapshot();
+    expect(container).toMatchSnapshot();
     expect(screen.getByText('Go somewhere!')).toHaveAttribute(
       'href',
       'http://some.url/?environment=staging&project=foo&project=bar'
@@ -43,7 +43,7 @@ describe('GlobalSelectionLink', function () {
 
     expect(screen.getByText('Go somewhere!')).toHaveAttribute('href', path);
 
-    expect(container).toSnapshot();
+    expect(container).toMatchSnapshot();
   });
 
   it('combines query parameters with custom query', function () {

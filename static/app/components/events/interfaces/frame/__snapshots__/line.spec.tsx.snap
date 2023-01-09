@@ -1,0 +1,109 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Frame - Line renderContext() should render context lines 1`] = `
+<ol
+  class="undefined context expanded css-o5u8vu-Wrapper e1spsaex0"
+  start="211"
+>
+  <li
+    class="css-bh11i6-StyledContextLine e1spsaex1 expandable"
+  >
+    <div
+      class="css-1i08my2-Context e1ip0x50"
+    >
+      <span
+        class="ws"
+      >
+            
+      </span>
+      <span
+        class="contextline"
+      >
+        # Mark the crashed thread and add its stacktrace to the exception
+      </span>
+    </div>
+  </li>
+  <li
+    class="css-bh11i6-StyledContextLine e1spsaex1 expandable"
+  >
+    <div
+      class="css-1i08my2-Context e1ip0x50"
+    >
+      <span
+        class="ws"
+      >
+            
+      </span>
+      <span
+        class="contextline"
+      >
+        crashed_thread = data['threads'][state.requesting_thread]
+      </span>
+    </div>
+  </li>
+  <li
+    class="css-bh11i6-StyledContextLine e1spsaex1 expandable"
+  >
+    <div
+      class="css-1i08my2-Context e1ip0x50"
+    >
+      <span
+        class="ws"
+      >
+            
+      </span>
+      <span
+        class="contextline"
+      >
+        crashed_thread['crashed'] = True
+      </span>
+    </div>
+  </li>
+</ol>
+`;
+
+exports[`Frame - Line renderOriginalSourceInfo() should render the source map information as a HTML string 1`] = `
+<div>
+  <li
+    class="frame collapsed system-frame leads-to-app css-solfr2-StyledLi e4z9bjt0"
+    data-test-id="line"
+  >
+    <div
+      class="title css-7kw2s3-DefaultLine e4z9bjt5"
+      data-test-id="title"
+    >
+      <div
+        class="css-1u991uj-VertCenterWrapper e4z9bjt8"
+      >
+        <div>
+          <div
+            class="leads-to-app-hint css-1hk6pai-LeadHint-overflowEllipsis e4z9bjt3"
+            width="115px"
+          >
+            Crashed in non-app
+            : 
+          </div>
+          <a
+            aria-describedby="tooltip-s8bvqxcxz"
+            class="in-at original-src"
+          >
+            <svg
+              fill="currentColor"
+              height="12px"
+              viewBox="0 0 16 16"
+              width="12px"
+            >
+              <path
+                d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z"
+              />
+              <path
+                d="M5.33,6.19a1.93,1.93,0,0,1,.33-1,2.59,2.59,0,0,1,1-.87,3,3,0,0,1,1.47-.34,3.18,3.18,0,0,1,1.38.29,2.28,2.28,0,0,1,.92.78,2,2,0,0,1,.32,1.07,1.69,1.69,0,0,1-.18.8,2.74,2.74,0,0,1-.44.6l-.92.84a3.92,3.92,0,0,0-.29.29,1,1,0,0,0-.17.23,1.8,1.8,0,0,0-.08.21c0,.07,0,.19-.09.37a.6.6,0,0,1-.64.56.64.64,0,0,1-.47-.19.74.74,0,0,1-.19-.54,1.91,1.91,0,0,1,.51-1.36,7.83,7.83,0,0,1,.63-.59c.22-.2.39-.35.49-.46a1.46,1.46,0,0,0,.26-.34.8.8,0,0,0,.1-.41.93.93,0,0,0-.32-.72,1.13,1.13,0,0,0-.82-.3,1.15,1.15,0,0,0-.87.3,2.33,2.33,0,0,0-.47.88c-.12.4-.35.61-.7.61a.65.65,0,0,1-.5-.22A.63.63,0,0,1,5.33,6.19ZM8,12.07a.84.84,0,0,1-.57-.21.75.75,0,0,1-.24-.59.74.74,0,0,1,.23-.57A.78.78,0,0,1,8,10.47a.74.74,0,0,1,.57.23.78.78,0,0,1,.23.57.76.76,0,0,1-.24.59A.83.83,0,0,1,8,12.07Z"
+              />
+            </svg>
+          </a>
+        </div>
+      </div>
+    </div>
+  </li>
+</div>
+`;

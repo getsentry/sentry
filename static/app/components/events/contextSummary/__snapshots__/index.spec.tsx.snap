@@ -1,0 +1,1208 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`ContextSummary render() renders at least three contexts 1`] = `
+<div>
+  <div
+    class="css-1ya2art-Wrapper e1sozlaf0"
+  >
+    <div
+      class="css-b1ea3l-ItemContainer-overflowEllipsis et3gjwk0"
+      data-test-id="context-item"
+    >
+      <div
+        class="css-crgm5y-IconContainer et3gjwk1"
+      >
+        <span
+          class="avatar css-eti684-StyledBaseAvatar ery3g4h1"
+          data-test-id="letter_avatar-avatar"
+          style="width: 32px; height: 32px;"
+          title="mail@example.org"
+        >
+          <svg
+            class="css-1jaqko8-LetterAvatar-imageStyle ewkzefl0"
+            viewBox="0 0 120 120"
+          >
+            <rect
+              fill="#4e3fb4"
+              height="120"
+              opacity="100%"
+              rx="15"
+              ry="15"
+              width="120"
+              x="0"
+              y="0"
+            />
+            <text
+              fill="#FFFFFF"
+              font-size="65"
+              style="dominant-baseline: central;"
+              text-anchor="middle"
+              x="50%"
+              y="50%"
+            >
+              M
+            </text>
+          </svg>
+        </span>
+      </div>
+      <div
+        class="css-3raiof-Details et3gjwk2"
+      >
+        <h3
+          data-test-id="user-title"
+        >
+          <span>
+            mail@example.org
+          </span>
+        </h3>
+        <p
+          class="css-1r3o8wo-TextOverflow-overflowEllipsis eyxbn6j0"
+          data-test-id="context-sub-title"
+        >
+          <strong
+            class="css-ntp2p4-Subject eyl6uqx0"
+          >
+            ID:
+          </strong>
+          <span>
+            1
+          </span>
+        </p>
+      </div>
+    </div>
+    <div
+      class="css-b1ea3l-ItemContainer-overflowEllipsis et3gjwk0"
+      data-test-id="context-item"
+    >
+      <div
+        class="css-crgm5y-IconContainer et3gjwk1"
+      >
+        <div
+          class="css-ogxbgd-LoadingMask e1dnwgq10"
+        />
+      </div>
+      <div
+        class="css-3raiof-Details et3gjwk2"
+      >
+        <h3>
+          <span
+            data-test-id="loaded-device-name"
+          >
+            <span>
+              iPhone 8 Plus 
+            </span>
+          </span>
+        </h3>
+        <p
+          class="css-1r3o8wo-TextOverflow-overflowEllipsis eyxbn6j0"
+          data-test-id="context-sub-title"
+        >
+          <strong
+            class="css-ntp2p4-Subject eumrt8l0"
+          >
+            Arch:
+          </strong>
+          <span>
+            x86
+          </span>
+        </p>
+      </div>
+    </div>
+    <div
+      class="css-b1ea3l-ItemContainer-overflowEllipsis et3gjwk0"
+      data-test-id="context-item"
+    >
+      <div
+        class="css-crgm5y-IconContainer et3gjwk1"
+      >
+        <div
+          class="css-ogxbgd-LoadingMask e1dnwgq10"
+        />
+      </div>
+      <div
+        class="css-3raiof-Details et3gjwk2"
+      >
+        <h3
+          data-test-id="no-summary-title"
+        >
+          Unknown Browser
+        </h3>
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`ContextSummary render() renders client_os too 1`] = `
+<div>
+  <div
+    class="css-1ya2art-Wrapper e1sozlaf0"
+  >
+    <div
+      class="css-b1ea3l-ItemContainer-overflowEllipsis et3gjwk0"
+      data-test-id="context-item"
+    >
+      <div
+        class="css-crgm5y-IconContainer et3gjwk1"
+      >
+        <span
+          class="avatar css-eti684-StyledBaseAvatar ery3g4h1"
+          data-test-id="letter_avatar-avatar"
+          style="width: 32px; height: 32px;"
+          title="mail@example.org"
+        >
+          <svg
+            class="css-1jaqko8-LetterAvatar-imageStyle ewkzefl0"
+            viewBox="0 0 120 120"
+          >
+            <rect
+              fill="#4e3fb4"
+              height="120"
+              opacity="100%"
+              rx="15"
+              ry="15"
+              width="120"
+              x="0"
+              y="0"
+            />
+            <text
+              fill="#FFFFFF"
+              font-size="65"
+              style="dominant-baseline: central;"
+              text-anchor="middle"
+              x="50%"
+              y="50%"
+            >
+              M
+            </text>
+          </svg>
+        </span>
+      </div>
+      <div
+        class="css-3raiof-Details et3gjwk2"
+      >
+        <h3
+          data-test-id="user-title"
+        >
+          <span>
+            mail@example.org
+          </span>
+        </h3>
+        <p
+          class="css-1r3o8wo-TextOverflow-overflowEllipsis eyxbn6j0"
+          data-test-id="context-sub-title"
+        >
+          <strong
+            class="css-ntp2p4-Subject eyl6uqx0"
+          >
+            ID:
+          </strong>
+          <span>
+            1
+          </span>
+        </p>
+      </div>
+    </div>
+    <div
+      class="css-b1ea3l-ItemContainer-overflowEllipsis et3gjwk0"
+      data-test-id="context-item"
+    >
+      <div
+        class="css-crgm5y-IconContainer et3gjwk1"
+      >
+        <img
+          class="css-0"
+          height="32px"
+          src="[object Object]"
+          width="32px"
+        />
+      </div>
+      <div
+        class="css-3raiof-Details et3gjwk2"
+      >
+        <h3>
+          <span>
+            Chrome
+          </span>
+        </h3>
+        <p
+          class="css-1r3o8wo-TextOverflow-overflowEllipsis eyxbn6j0"
+        >
+          <strong
+            class="css-ntp2p4-Subject e1xxo2jo0"
+          >
+            Version:
+          </strong>
+          <span>
+            65.0.3325
+          </span>
+        </p>
+      </div>
+    </div>
+    <div
+      class="css-b1ea3l-ItemContainer-overflowEllipsis et3gjwk0"
+      data-test-id="context-item"
+    >
+      <div
+        class="css-crgm5y-IconContainer et3gjwk1"
+      >
+        <img
+          class="css-0"
+          height="32px"
+          src="[object Object]"
+          width="32px"
+        />
+      </div>
+      <div
+        class="css-3raiof-Details et3gjwk2"
+      >
+        <h3>
+          <span>
+            Electron
+          </span>
+        </h3>
+        <p
+          class="css-1r3o8wo-TextOverflow-overflowEllipsis eyxbn6j0"
+        >
+          <strong
+            class="css-ntp2p4-Subject e1xxo2jo0"
+          >
+            Version:
+          </strong>
+          <span>
+            1.7.13
+          </span>
+        </p>
+      </div>
+    </div>
+    <div
+      class="css-b1ea3l-ItemContainer-overflowEllipsis et3gjwk0"
+      data-test-id="context-item"
+    >
+      <div
+        class="css-crgm5y-IconContainer et3gjwk1"
+      >
+        <img
+          class="css-0"
+          height="32px"
+          src="[object Object]"
+          width="32px"
+        />
+      </div>
+      <div
+        class="css-3raiof-Details et3gjwk2"
+      >
+        <h3>
+          <span>
+            Mac OS X
+          </span>
+        </h3>
+        <p
+          class="css-1r3o8wo-TextOverflow-overflowEllipsis eyxbn6j0"
+          data-test-id="context-sub-title"
+        >
+          <strong
+            class="css-ntp2p4-Subject e1xlfyw30"
+          >
+            Version:
+          </strong>
+          <span>
+            10.13.4
+          </span>
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`ContextSummary render() renders nothing with a single user context 1`] = `<div />`;
+
+exports[`ContextSummary render() renders nothing without contexts 1`] = `<div />`;
+
+exports[`ContextSummary render() renders up to four contexts 1`] = `
+<div>
+  <div
+    class="css-1ya2art-Wrapper e1sozlaf0"
+  >
+    <div
+      class="css-b1ea3l-ItemContainer-overflowEllipsis et3gjwk0"
+      data-test-id="context-item"
+    >
+      <div
+        class="css-crgm5y-IconContainer et3gjwk1"
+      >
+        <span
+          class="avatar css-eti684-StyledBaseAvatar ery3g4h1"
+          data-test-id="letter_avatar-avatar"
+          style="width: 32px; height: 32px;"
+          title="mail@example.org"
+        >
+          <svg
+            class="css-1jaqko8-LetterAvatar-imageStyle ewkzefl0"
+            viewBox="0 0 120 120"
+          >
+            <rect
+              fill="#4e3fb4"
+              height="120"
+              opacity="100%"
+              rx="15"
+              ry="15"
+              width="120"
+              x="0"
+              y="0"
+            />
+            <text
+              fill="#FFFFFF"
+              font-size="65"
+              style="dominant-baseline: central;"
+              text-anchor="middle"
+              x="50%"
+              y="50%"
+            >
+              M
+            </text>
+          </svg>
+        </span>
+      </div>
+      <div
+        class="css-3raiof-Details et3gjwk2"
+      >
+        <h3
+          data-test-id="user-title"
+        >
+          <span>
+            mail@example.org
+          </span>
+        </h3>
+        <p
+          class="css-1r3o8wo-TextOverflow-overflowEllipsis eyxbn6j0"
+          data-test-id="context-sub-title"
+        >
+          <strong
+            class="css-ntp2p4-Subject eyl6uqx0"
+          >
+            ID:
+          </strong>
+          <span>
+            1
+          </span>
+        </p>
+      </div>
+    </div>
+    <div
+      class="css-b1ea3l-ItemContainer-overflowEllipsis et3gjwk0"
+      data-test-id="context-item"
+    >
+      <div
+        class="css-crgm5y-IconContainer et3gjwk1"
+      >
+        <img
+          class="css-0"
+          height="32px"
+          src="[object Object]"
+          width="32px"
+        />
+      </div>
+      <div
+        class="css-3raiof-Details et3gjwk2"
+      >
+        <h3>
+          <span>
+            Chrome
+          </span>
+        </h3>
+        <p
+          class="css-1r3o8wo-TextOverflow-overflowEllipsis eyxbn6j0"
+        >
+          <strong
+            class="css-ntp2p4-Subject e1xxo2jo0"
+          >
+            Version:
+          </strong>
+          <span>
+            65.0.3325
+          </span>
+        </p>
+      </div>
+    </div>
+    <div
+      class="css-b1ea3l-ItemContainer-overflowEllipsis et3gjwk0"
+      data-test-id="context-item"
+    >
+      <div
+        class="css-crgm5y-IconContainer et3gjwk1"
+      >
+        <img
+          class="css-0"
+          height="32px"
+          src="[object Object]"
+          width="32px"
+        />
+      </div>
+      <div
+        class="css-3raiof-Details et3gjwk2"
+      >
+        <h3>
+          <span>
+            Electron
+          </span>
+        </h3>
+        <p
+          class="css-1r3o8wo-TextOverflow-overflowEllipsis eyxbn6j0"
+        >
+          <strong
+            class="css-ntp2p4-Subject e1xxo2jo0"
+          >
+            Version:
+          </strong>
+          <span>
+            1.7.13
+          </span>
+        </p>
+      </div>
+    </div>
+    <div
+      class="css-b1ea3l-ItemContainer-overflowEllipsis et3gjwk0"
+      data-test-id="context-item"
+    >
+      <div
+        class="css-crgm5y-IconContainer et3gjwk1"
+      >
+        <img
+          class="css-0"
+          height="32px"
+          src="[object Object]"
+          width="32px"
+        />
+      </div>
+      <div
+        class="css-3raiof-Details et3gjwk2"
+      >
+        <h3>
+          <span>
+            Mac OS X
+          </span>
+        </h3>
+        <p
+          class="css-1r3o8wo-TextOverflow-overflowEllipsis eyxbn6j0"
+          data-test-id="context-sub-title"
+        >
+          <strong
+            class="css-ntp2p4-Subject e1xlfyw30"
+          >
+            Version:
+          </strong>
+          <span>
+            10.13.4
+          </span>
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`ContextSummary render() should bail out with empty contexts 1`] = `<div />`;
+
+exports[`ContextSummary render() should prefer client_os over os 1`] = `
+<div>
+  <div
+    class="css-1ya2art-Wrapper e1sozlaf0"
+  >
+    <div
+      class="css-b1ea3l-ItemContainer-overflowEllipsis et3gjwk0"
+      data-test-id="context-item"
+    >
+      <div
+        class="css-crgm5y-IconContainer et3gjwk1"
+      >
+        <span
+          class="avatar css-eti684-StyledBaseAvatar ery3g4h1"
+          data-test-id="letter_avatar-avatar"
+          style="width: 32px; height: 32px;"
+          title="mail@example.org"
+        >
+          <svg
+            class="css-1jaqko8-LetterAvatar-imageStyle ewkzefl0"
+            viewBox="0 0 120 120"
+          >
+            <rect
+              fill="#4e3fb4"
+              height="120"
+              opacity="100%"
+              rx="15"
+              ry="15"
+              width="120"
+              x="0"
+              y="0"
+            />
+            <text
+              fill="#FFFFFF"
+              font-size="65"
+              style="dominant-baseline: central;"
+              text-anchor="middle"
+              x="50%"
+              y="50%"
+            >
+              M
+            </text>
+          </svg>
+        </span>
+      </div>
+      <div
+        class="css-3raiof-Details et3gjwk2"
+      >
+        <h3
+          data-test-id="user-title"
+        >
+          <span>
+            mail@example.org
+          </span>
+        </h3>
+        <p
+          class="css-1r3o8wo-TextOverflow-overflowEllipsis eyxbn6j0"
+          data-test-id="context-sub-title"
+        >
+          <strong
+            class="css-ntp2p4-Subject eyl6uqx0"
+          >
+            ID:
+          </strong>
+          <span>
+            1
+          </span>
+        </p>
+      </div>
+    </div>
+    <div
+      class="css-b1ea3l-ItemContainer-overflowEllipsis et3gjwk0"
+      data-test-id="context-item"
+    >
+      <div
+        class="css-crgm5y-IconContainer et3gjwk1"
+      >
+        <img
+          class="css-0"
+          height="32px"
+          src="[object Object]"
+          width="32px"
+        />
+      </div>
+      <div
+        class="css-3raiof-Details et3gjwk2"
+      >
+        <h3>
+          <span>
+            Chrome
+          </span>
+        </h3>
+        <p
+          class="css-1r3o8wo-TextOverflow-overflowEllipsis eyxbn6j0"
+        >
+          <strong
+            class="css-ntp2p4-Subject e1xxo2jo0"
+          >
+            Version:
+          </strong>
+          <span>
+            65.0.3325
+          </span>
+        </p>
+      </div>
+    </div>
+    <div
+      class="css-b1ea3l-ItemContainer-overflowEllipsis et3gjwk0"
+      data-test-id="context-item"
+    >
+      <div
+        class="css-crgm5y-IconContainer et3gjwk1"
+      >
+        <img
+          class="css-0"
+          height="32px"
+          src="[object Object]"
+          width="32px"
+        />
+      </div>
+      <div
+        class="css-3raiof-Details et3gjwk2"
+      >
+        <h3>
+          <span>
+            Electron
+          </span>
+        </h3>
+        <p
+          class="css-1r3o8wo-TextOverflow-overflowEllipsis eyxbn6j0"
+        >
+          <strong
+            class="css-ntp2p4-Subject e1xxo2jo0"
+          >
+            Version:
+          </strong>
+          <span>
+            1.7.13
+          </span>
+        </p>
+      </div>
+    </div>
+    <div
+      class="css-b1ea3l-ItemContainer-overflowEllipsis et3gjwk0"
+      data-test-id="context-item"
+    >
+      <div
+        class="css-crgm5y-IconContainer et3gjwk1"
+      >
+        <img
+          class="css-0"
+          height="32px"
+          src="[object Object]"
+          width="32px"
+        />
+      </div>
+      <div
+        class="css-3raiof-Details et3gjwk2"
+      >
+        <h3>
+          <span>
+            Mac OS X
+          </span>
+        </h3>
+        <p
+          class="css-1r3o8wo-TextOverflow-overflowEllipsis eyxbn6j0"
+          data-test-id="context-sub-title"
+        >
+          <strong
+            class="css-ntp2p4-Subject e1xlfyw30"
+          >
+            Version:
+          </strong>
+          <span>
+            10.13.4
+          </span>
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`ContextSummary render() should skip a missing user context 1`] = `
+<div>
+  <div
+    class="css-1ya2art-Wrapper e1sozlaf0"
+  >
+    <div
+      class="css-b1ea3l-ItemContainer-overflowEllipsis et3gjwk0"
+      data-test-id="context-item"
+    >
+      <div
+        class="css-crgm5y-IconContainer et3gjwk1"
+      >
+        <img
+          class="css-0"
+          height="32px"
+          src="[object Object]"
+          width="32px"
+        />
+      </div>
+      <div
+        class="css-3raiof-Details et3gjwk2"
+      >
+        <h3>
+          <span>
+            Electron
+          </span>
+        </h3>
+        <p
+          class="css-1r3o8wo-TextOverflow-overflowEllipsis eyxbn6j0"
+        >
+          <strong
+            class="css-ntp2p4-Subject e1xxo2jo0"
+          >
+            Version:
+          </strong>
+          <span>
+            1.7.13
+          </span>
+        </p>
+      </div>
+    </div>
+    <div
+      class="css-b1ea3l-ItemContainer-overflowEllipsis et3gjwk0"
+      data-test-id="context-item"
+    >
+      <div
+        class="css-crgm5y-IconContainer et3gjwk1"
+      >
+        <img
+          class="css-0"
+          height="32px"
+          src="[object Object]"
+          width="32px"
+        />
+      </div>
+      <div
+        class="css-3raiof-Details et3gjwk2"
+      >
+        <h3>
+          <span>
+            Mac OS X
+          </span>
+        </h3>
+        <p
+          class="css-1r3o8wo-TextOverflow-overflowEllipsis eyxbn6j0"
+          data-test-id="context-sub-title"
+        >
+          <strong
+            class="css-ntp2p4-Subject e1xlfyw30"
+          >
+            Version:
+          </strong>
+          <span>
+            10.13.4
+          </span>
+        </p>
+      </div>
+    </div>
+    <div
+      class="css-b1ea3l-ItemContainer-overflowEllipsis et3gjwk0"
+      data-test-id="context-item"
+    >
+      <div
+        class="css-crgm5y-IconContainer et3gjwk1"
+      >
+        <img
+          class="css-0"
+          height="32px"
+          src="[object Object]"
+          width="32px"
+        />
+      </div>
+      <div
+        class="css-3raiof-Details et3gjwk2"
+      >
+        <h3>
+          <span
+            data-test-id="loaded-device-name"
+          >
+            <span>
+              iPhone 8 Plus 
+            </span>
+          </span>
+        </h3>
+        <p
+          class="css-1r3o8wo-TextOverflow-overflowEllipsis eyxbn6j0"
+          data-test-id="context-sub-title"
+        >
+          <strong
+            class="css-ntp2p4-Subject eumrt8l0"
+          >
+            Arch:
+          </strong>
+          <span>
+            x86
+          </span>
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`ContextSummary render() should skip non-default named contexts 1`] = `
+<div>
+  <div
+    class="css-1ya2art-Wrapper e1sozlaf0"
+  >
+    <div
+      class="css-b1ea3l-ItemContainer-overflowEllipsis et3gjwk0"
+      data-test-id="context-item"
+    >
+      <div
+        class="css-crgm5y-IconContainer et3gjwk1"
+      >
+        <span
+          class="avatar css-eti684-StyledBaseAvatar ery3g4h1"
+          data-test-id="letter_avatar-avatar"
+          style="width: 32px; height: 32px;"
+          title="mail@example.org"
+        >
+          <svg
+            class="css-1jaqko8-LetterAvatar-imageStyle ewkzefl0"
+            viewBox="0 0 120 120"
+          >
+            <rect
+              fill="#4e3fb4"
+              height="120"
+              opacity="100%"
+              rx="15"
+              ry="15"
+              width="120"
+              x="0"
+              y="0"
+            />
+            <text
+              fill="#FFFFFF"
+              font-size="65"
+              style="dominant-baseline: central;"
+              text-anchor="middle"
+              x="50%"
+              y="50%"
+            >
+              M
+            </text>
+          </svg>
+        </span>
+      </div>
+      <div
+        class="css-3raiof-Details et3gjwk2"
+      >
+        <h3
+          data-test-id="user-title"
+        >
+          <span>
+            mail@example.org
+          </span>
+        </h3>
+        <p
+          class="css-1r3o8wo-TextOverflow-overflowEllipsis eyxbn6j0"
+          data-test-id="context-sub-title"
+        >
+          <strong
+            class="css-ntp2p4-Subject eyl6uqx0"
+          >
+            ID:
+          </strong>
+          <span>
+            1
+          </span>
+        </p>
+      </div>
+    </div>
+    <div
+      class="css-b1ea3l-ItemContainer-overflowEllipsis et3gjwk0"
+      data-test-id="context-item"
+    >
+      <div
+        class="css-crgm5y-IconContainer et3gjwk1"
+      >
+        <img
+          class="css-0"
+          height="32px"
+          src="[object Object]"
+          width="32px"
+        />
+      </div>
+      <div
+        class="css-3raiof-Details et3gjwk2"
+      >
+        <h3>
+          <span>
+            Electron
+          </span>
+        </h3>
+        <p
+          class="css-1r3o8wo-TextOverflow-overflowEllipsis eyxbn6j0"
+        >
+          <strong
+            class="css-ntp2p4-Subject e1xxo2jo0"
+          >
+            Version:
+          </strong>
+          <span>
+            1.7.13
+          </span>
+        </p>
+      </div>
+    </div>
+    <div
+      class="css-b1ea3l-ItemContainer-overflowEllipsis et3gjwk0"
+      data-test-id="context-item"
+    >
+      <div
+        class="css-crgm5y-IconContainer et3gjwk1"
+      >
+        <img
+          class="css-0"
+          height="32px"
+          src="[object Object]"
+          width="32px"
+        />
+      </div>
+      <div
+        class="css-3raiof-Details et3gjwk2"
+      >
+        <h3>
+          <span>
+            Mac OS X
+          </span>
+        </h3>
+        <p
+          class="css-1r3o8wo-TextOverflow-overflowEllipsis eyxbn6j0"
+          data-test-id="context-sub-title"
+        >
+          <strong
+            class="css-ntp2p4-Subject e1xlfyw30"
+          >
+            Version:
+          </strong>
+          <span>
+            10.13.4
+          </span>
+        </p>
+      </div>
+    </div>
+    <div
+      class="css-b1ea3l-ItemContainer-overflowEllipsis et3gjwk0"
+      data-test-id="context-item"
+    >
+      <div
+        class="css-crgm5y-IconContainer et3gjwk1"
+      >
+        <img
+          class="css-0"
+          height="32px"
+          src="[object Object]"
+          width="32px"
+        />
+      </div>
+      <div
+        class="css-3raiof-Details et3gjwk2"
+      >
+        <h3>
+          <span
+            data-test-id="loaded-device-name"
+          >
+            <span>
+              iPhone 8 Plus 
+            </span>
+          </span>
+        </h3>
+        <p
+          class="css-1r3o8wo-TextOverflow-overflowEllipsis eyxbn6j0"
+          data-test-id="context-sub-title"
+        >
+          <strong
+            class="css-ntp2p4-Subject eumrt8l0"
+          >
+            Arch:
+          </strong>
+          <span>
+            x86
+          </span>
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`GpuSummary render() renders name and vendor 1`] = `
+<div>
+  <div
+    class="css-b1ea3l-ItemContainer-overflowEllipsis et3gjwk0"
+    data-test-id="context-item"
+  >
+    <div
+      class="css-crgm5y-IconContainer et3gjwk1"
+    >
+      <img
+        class="css-0"
+        height="32px"
+        src="[object Object]"
+        width="32px"
+      />
+    </div>
+    <div
+      class="css-3raiof-Details et3gjwk2"
+    >
+      <h3>
+        <span>
+          Mali-T880
+        </span>
+      </h3>
+      <p
+        class="css-1r3o8wo-TextOverflow-overflowEllipsis eyxbn6j0"
+      >
+        <strong
+          class="css-ntp2p4-Subject e17q4vyd0"
+        >
+          Vendor:
+        </strong>
+        <span>
+          ARM
+        </span>
+      </p>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`GpuSummary render() renders unknown when no vendor 1`] = `
+<div>
+  <div
+    class="css-b1ea3l-ItemContainer-overflowEllipsis et3gjwk0"
+    data-test-id="context-item"
+  >
+    <div
+      class="css-crgm5y-IconContainer et3gjwk1"
+    >
+      <img
+        class="css-0"
+        height="32px"
+        src="[object Object]"
+        width="32px"
+      />
+    </div>
+    <div
+      class="css-3raiof-Details et3gjwk2"
+    >
+      <h3>
+        <span>
+          Apple A8 GPU
+        </span>
+      </h3>
+      <p
+        class="css-1r3o8wo-TextOverflow-overflowEllipsis eyxbn6j0"
+      >
+        <strong
+          class="css-ntp2p4-Subject e17q4vyd0"
+        >
+          Vendor:
+        </strong>
+        <span>
+          Unknown
+        </span>
+      </p>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`OsSummary render() renders the kernel version when no version 1`] = `
+<div>
+  <div
+    class="css-b1ea3l-ItemContainer-overflowEllipsis et3gjwk0"
+    data-test-id="context-item"
+  >
+    <div
+      class="css-crgm5y-IconContainer et3gjwk1"
+    >
+      <img
+        class="css-0"
+        height="32px"
+        src="[object Object]"
+        width="32px"
+      />
+    </div>
+    <div
+      class="css-3raiof-Details et3gjwk2"
+    >
+      <h3>
+        <span>
+          Mac OS X
+        </span>
+      </h3>
+      <p
+        class="css-1r3o8wo-TextOverflow-overflowEllipsis eyxbn6j0"
+        data-test-id="context-sub-title"
+      >
+        <strong
+          class="css-ntp2p4-Subject e1xlfyw30"
+        >
+          Kernel:
+        </strong>
+        <span>
+          17.5.0
+        </span>
+      </p>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`OsSummary render() renders the version string 1`] = `
+<div>
+  <div
+    class="css-b1ea3l-ItemContainer-overflowEllipsis et3gjwk0"
+    data-test-id="context-item"
+  >
+    <div
+      class="css-crgm5y-IconContainer et3gjwk1"
+    >
+      <img
+        class="css-0"
+        height="32px"
+        src="[object Object]"
+        width="32px"
+      />
+    </div>
+    <div
+      class="css-3raiof-Details et3gjwk2"
+    >
+      <h3>
+        <span>
+          Mac OS X
+        </span>
+      </h3>
+      <p
+        class="css-1r3o8wo-TextOverflow-overflowEllipsis eyxbn6j0"
+        data-test-id="context-sub-title"
+      >
+        <strong
+          class="css-ntp2p4-Subject e1xlfyw30"
+        >
+          Version:
+        </strong>
+        <span>
+          10.13.4
+        </span>
+      </p>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`OsSummary render() renders unknown when no version 1`] = `
+<div>
+  <div
+    class="css-b1ea3l-ItemContainer-overflowEllipsis et3gjwk0"
+    data-test-id="context-item"
+  >
+    <div
+      class="css-crgm5y-IconContainer et3gjwk1"
+    >
+      <img
+        class="css-0"
+        height="32px"
+        src="[object Object]"
+        width="32px"
+      />
+    </div>
+    <div
+      class="css-3raiof-Details et3gjwk2"
+    >
+      <h3>
+        <span>
+          Mac OS X
+        </span>
+      </h3>
+      <p
+        class="css-1r3o8wo-TextOverflow-overflowEllipsis eyxbn6j0"
+        data-test-id="context-sub-title"
+      >
+        <strong
+          class="css-ntp2p4-Subject e1xlfyw30"
+        >
+          Version:
+        </strong>
+        <span>
+          Unknown
+        </span>
+      </p>
+    </div>
+  </div>
+</div>
+`;

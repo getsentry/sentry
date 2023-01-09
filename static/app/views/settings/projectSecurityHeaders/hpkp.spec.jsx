@@ -32,6 +32,6 @@ describe('ProjectHpkpReports', function () {
         })}
       />
     );
-    expect(container).toSnapshot();
+    expect(container).toMatchSnapshot();
   });
 });

@@ -1,0 +1,429 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`TransactionReplays should snapshot empty state 1`] = `
+<div>
+  <div
+    class="css-1dy1x80-TabsWrap eneinm40"
+  >
+    <main
+      class="css-ajuirv-PageContent-StyledPageContent e1ehad6a1"
+    >
+      <header
+        class="css-bxbnxl-Header e1q4ew4a3"
+      >
+        <div
+          class="css-1syqweg-HeaderContent e1q4ew4a6"
+        >
+          <nav
+            class="css-186k3a3-BreadcrumbList e11qg6053"
+          >
+            <a
+              class="e11qg6052 css-1fjwnaq-Link-BreadcrumbLink-overflowEllipsis-getBreadcrumbListItemStyles e1ycxor00"
+              data-test-id="breadcrumb-link"
+              href="/organizations/org-slug/performance/?project=1"
+            >
+              Performance
+            </a>
+            <svg
+              class="e11qg6050 css-ooauvb-IconChevron-BreadcrumbDividerIcon"
+              fill="currentColor"
+              height="12px"
+              viewBox="0 0 16 16"
+              width="12px"
+            >
+              <path
+                d="M14,11.75a.74.74,0,0,1-.53-.22L8,6.06,2.53,11.53a.75.75,0,0,1-1.06-1.06l6-6a.75.75,0,0,1,1.06,0l6,6a.75.75,0,0,1,0,1.06A.74.74,0,0,1,14,11.75Z"
+              />
+            </svg>
+            <span
+              class="css-ihnbxl-BreadcrumbItem-overflowEllipsis-getBreadcrumbListItemStyles e11qg6051"
+            >
+              Transaction Summary
+            </span>
+          </nav>
+          <h1
+            class="css-cikbbv-Title-overflowEllipsis e1q4ew4a4"
+          >
+            <div
+              class="css-31c7mr-TransactionName ega7at50"
+            >
+              transaction
+            </div>
+          </h1>
+        </div>
+        <div
+          class="css-1b9q1qx-HeaderActions e1q4ew4a5"
+        >
+          <div
+            class="css-yo4yps-ButtonGrid e1n9g4yq0"
+          >
+            <button
+              aria-disabled="true"
+              aria-label="Star for Team"
+              class="css-a4243y-StyledButton-getColors-getButtonStyles e1b8u3ky2"
+              disabled=""
+              role="button"
+              type="button"
+            >
+              <span
+                class="css-vul34l-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+                role="presentation"
+              />
+              <span
+                class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+              >
+                <span
+                  class="css-1ywt59b-Icon e1b8u3ky0"
+                >
+                  <svg
+                    fill="currentColor"
+                    height="16px"
+                    viewBox="0 0 16 16"
+                    width="16px"
+                  >
+                    <path
+                      d="M12.47,15.63a.73.73,0,0,1-.35-.09L8,13.38,3.88,15.54a.75.75,0,0,1-.79,0,.76.76,0,0,1-.3-.74l.79-4.59L.24,6.91A.75.75,0,0,1,.66,5.63L5.27,5,7.33.79a.78.78,0,0,1,1.34,0L10.73,5l4.61.67a.75.75,0,0,1,.42,1.28l-3.34,3.25.79,4.59a.76.76,0,0,1-.3.74A.79.79,0,0,1,12.47,15.63ZM8,11.78a.85.85,0,0,1,.35.08l3.12,1.65L10.88,10a.78.78,0,0,1,.21-.67L13.62,6.9l-3.49-.51A.74.74,0,0,1,9.56,6L8,2.82,6.44,6a.74.74,0,0,1-.57.41L2.38,6.9,4.91,9.36a.78.78,0,0,1,.21.67l-.59,3.48,3.12-1.65A.85.85,0,0,1,8,11.78Z"
+                    />
+                  </svg>
+                </span>
+                Star for Team
+              </span>
+            </button>
+            <button
+              aria-disabled="false"
+              aria-label="Settings"
+              class="css-c98s0k-StyledButton-getColors-getButtonStyles e1b8u3ky2"
+              data-test-id="set-transaction-threshold"
+              role="button"
+              type="button"
+            >
+              <span
+                class="css-vul34l-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+                role="presentation"
+              />
+              <span
+                class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+              >
+                <span
+                  class="css-161yn40-Icon e1b8u3ky0"
+                >
+                  <svg
+                    fill="currentColor"
+                    height="16px"
+                    viewBox="0 0 16 16"
+                    width="16px"
+                  >
+                    <path
+                      d="M8,10.73A2.73,2.73,0,1,1,10.73,8,2.74,2.74,0,0,1,8,10.73Zm0-4A1.23,1.23,0,1,0,9.23,8,1.23,1.23,0,0,0,8,6.77Z"
+                    />
+                    <path
+                      d="M8.05,16A2.07,2.07,0,0,1,6,13.93a.35.35,0,0,0-.22-.35.37.37,0,0,0-.41.05,2.07,2.07,0,0,1-1.5.64h0a2,2,0,0,1-1.43-.58l0,0a2.07,2.07,0,0,1,0-2.93.37.37,0,0,0,.1-.41.35.35,0,0,0-.31-.21H2.07A2.07,2.07,0,0,1,2.07,6a.35.35,0,0,0,.35-.22.37.37,0,0,0,0-.41,2.07,2.07,0,0,1-.64-1.5,2,2,0,0,1,.58-1.43l0,0a2.07,2.07,0,0,1,2.93,0,.37.37,0,0,0,.41.1l.13,0a.37.37,0,0,0,.13-.27V2.07a2.07,2.07,0,0,1,4.14,0,.36.36,0,0,0,.2.36.35.35,0,0,0,.38-.06,2.07,2.07,0,0,1,1.5-.64h0a2,2,0,0,1,1.43.58l0,0a2.07,2.07,0,0,1,0,2.93.37.37,0,0,0-.1.41.5.5,0,0,1,0,.13.37.37,0,0,0,.27.13h.11a2.07,2.07,0,0,1,0,4.14.36.36,0,0,0-.36.2h0a.36.36,0,0,0,.07.37,2.07,2.07,0,0,1,.64,1.5,2,2,0,0,1-.58,1.43l0,0a2.07,2.07,0,0,1-2.93,0,.37.37,0,0,0-.41-.1.35.35,0,0,0-.21.31v.11A2.07,2.07,0,0,1,8.05,16ZM5.59,12a1.83,1.83,0,0,1,.73.15,1.81,1.81,0,0,1,1.16,1.66.59.59,0,0,0,.57.65.56.56,0,0,0,.57-.57v-.11a1.84,1.84,0,0,1,3.13-1.31.6.6,0,0,0,.84.06l0,0a.56.56,0,0,0,0-.8,1.86,1.86,0,0,1-.41-2.07,1.84,1.84,0,0,1,1.68-1.11A.59.59,0,0,0,14.5,8a.57.57,0,0,0-.57-.57h-.11a1.84,1.84,0,0,1-1.69-1.11,1.33,1.33,0,0,1-.05-.19,1.82,1.82,0,0,1,.43-1.88.6.6,0,0,0,.06-.84l0,0a.56.56,0,0,0-.8,0,1.87,1.87,0,0,1-2.07.41A1.84,1.84,0,0,1,8.57,2.13.59.59,0,0,0,8,1.5a.57.57,0,0,0-.57.57v.11A1.84,1.84,0,0,1,6.32,3.87l-.19,0a1.8,1.8,0,0,1-1.88-.43.6.6,0,0,0-.84-.06l0,0a.56.56,0,0,0,0,.8,1.86,1.86,0,0,1,.41,2.07A1.81,1.81,0,0,1,2.15,7.48a.59.59,0,0,0-.65.57.56.56,0,0,0,.57.57h.11a1.84,1.84,0,0,1,1.31,3.13.6.6,0,0,0-.06.84l0,0a.56.56,0,0,0,.8,0A2,2,0,0,1,5.59,12ZM12.88,10h0Z"
+                    />
+                  </svg>
+                </span>
+              </span>
+            </button>
+          </div>
+        </div>
+        <div
+          class="css-1c3dpo5-TabListOuterWrap ei1cd2h2"
+          style="grid-column: 1 / -1;"
+        >
+          <ul
+            aria-orientation="horizontal"
+            class="css-on4uqa-TabListWrap ei1cd2h1"
+            id="react-aria3622678844-5"
+            role="tablist"
+          >
+            <li
+              aria-selected="false"
+              class="css-1yjb7zp-TabWrap e1duirbi5"
+              data-key="summary"
+              id="react-aria3622678844-5-tab-summary"
+              role="tab"
+              tabindex="-1"
+            >
+              <span
+                class="css-1a1wjpv-TabInnerWrap e1duirbi3"
+                orientation="horizontal"
+              >
+                <span
+                  class="css-1n2qapu-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer-StyledInteractionStateLayer e1duirbi2"
+                  orientation="horizontal"
+                  role="presentation"
+                />
+                <div
+                  class="css-b61ht9-FocusLayer e1duirbi1"
+                  orientation="horizontal"
+                />
+                Overview
+                <div
+                  class="css-aq5cuj-TabSelectionIndicator e1duirbi0"
+                  orientation="horizontal"
+                />
+              </span>
+            </li>
+            <li
+              aria-selected="false"
+              class="css-1yjb7zp-TabWrap e1duirbi5"
+              data-key="events"
+              id="react-aria3622678844-5-tab-events"
+              role="tab"
+              tabindex="-1"
+            >
+              <span
+                class="css-1a1wjpv-TabInnerWrap e1duirbi3"
+                orientation="horizontal"
+              >
+                <span
+                  class="css-1n2qapu-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer-StyledInteractionStateLayer e1duirbi2"
+                  orientation="horizontal"
+                  role="presentation"
+                />
+                <div
+                  class="css-b61ht9-FocusLayer e1duirbi1"
+                  orientation="horizontal"
+                />
+                All Events
+                <div
+                  class="css-aq5cuj-TabSelectionIndicator e1duirbi0"
+                  orientation="horizontal"
+                />
+              </span>
+            </li>
+            <li
+              aria-selected="false"
+              class="css-1yjb7zp-TabWrap e1duirbi5"
+              data-key="tags"
+              id="react-aria3622678844-5-tab-tags"
+              role="tab"
+              tabindex="-1"
+            >
+              <span
+                class="css-1a1wjpv-TabInnerWrap e1duirbi3"
+                orientation="horizontal"
+              >
+                <span
+                  class="css-1n2qapu-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer-StyledInteractionStateLayer e1duirbi2"
+                  orientation="horizontal"
+                  role="presentation"
+                />
+                <div
+                  class="css-b61ht9-FocusLayer e1duirbi1"
+                  orientation="horizontal"
+                />
+                Tags
+                <div
+                  class="css-aq5cuj-TabSelectionIndicator e1duirbi0"
+                  orientation="horizontal"
+                />
+              </span>
+            </li>
+            <li
+              aria-selected="false"
+              class="css-1yjb7zp-TabWrap e1duirbi5"
+              data-key="spans"
+              id="react-aria3622678844-5-tab-spans"
+              role="tab"
+              tabindex="-1"
+            >
+              <span
+                class="css-1a1wjpv-TabInnerWrap e1duirbi3"
+                orientation="horizontal"
+              >
+                <span
+                  class="css-1n2qapu-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer-StyledInteractionStateLayer e1duirbi2"
+                  orientation="horizontal"
+                  role="presentation"
+                />
+                <div
+                  class="css-b61ht9-FocusLayer e1duirbi1"
+                  orientation="horizontal"
+                />
+                Spans
+                <div
+                  class="css-aq5cuj-TabSelectionIndicator e1duirbi0"
+                  orientation="horizontal"
+                />
+              </span>
+            </li>
+            <li
+              aria-disabled="true"
+              aria-selected="false"
+              class="css-1mt14l3-TabWrap e1duirbi5"
+              data-key="anomalies"
+              disabled=""
+              hidden=""
+              id="react-aria3622678844-5-tab-anomalies"
+              role="tab"
+            >
+              <span
+                class="css-1a1wjpv-TabInnerWrap e1duirbi3"
+                orientation="horizontal"
+              >
+                <span
+                  class="css-1n2qapu-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer-StyledInteractionStateLayer e1duirbi2"
+                  orientation="horizontal"
+                  role="presentation"
+                />
+                <div
+                  class="css-b61ht9-FocusLayer e1duirbi1"
+                  orientation="horizontal"
+                />
+                Anomalies
+                <div
+                  class="css-10knnk0-FeatureBadge e1g6bd530"
+                >
+                  <span
+                    class="css-g83agx-Badge-StyledBadge e1g6bd531"
+                    type="alpha"
+                  >
+                    alpha
+                  </span>
+                </div>
+                <div
+                  class="css-aq5cuj-TabSelectionIndicator e1duirbi0"
+                  orientation="horizontal"
+                />
+              </span>
+            </li>
+            <li
+              aria-disabled="true"
+              aria-selected="false"
+              class="css-1mt14l3-TabWrap e1duirbi5"
+              data-key="vitals"
+              disabled=""
+              hidden=""
+              id="react-aria3622678844-5-tab-vitals"
+              role="tab"
+            >
+              <span
+                class="css-1a1wjpv-TabInnerWrap e1duirbi3"
+                orientation="horizontal"
+              >
+                <span
+                  class="css-1n2qapu-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer-StyledInteractionStateLayer e1duirbi2"
+                  orientation="horizontal"
+                  role="presentation"
+                />
+                <div
+                  class="css-b61ht9-FocusLayer e1duirbi1"
+                  orientation="horizontal"
+                />
+                Web Vitals
+                <div
+                  class="css-aq5cuj-TabSelectionIndicator e1duirbi0"
+                  orientation="horizontal"
+                />
+              </span>
+            </li>
+            <li
+              aria-controls="react-aria3622678844-5-tabpanel-replays"
+              aria-disabled="true"
+              aria-selected="true"
+              class="css-1d6swvl-TabWrap e1duirbi5"
+              data-key="replays"
+              disabled=""
+              hidden=""
+              id="react-aria3622678844-5-tab-replays"
+              role="tab"
+            >
+              <span
+                class="css-1a1wjpv-TabInnerWrap e1duirbi3"
+                orientation="horizontal"
+              >
+                <span
+                  class="css-19d4fmo-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer-StyledInteractionStateLayer e1duirbi2"
+                  orientation="horizontal"
+                  role="presentation"
+                />
+                <div
+                  class="css-b61ht9-FocusLayer e1duirbi1"
+                  orientation="horizontal"
+                />
+                Replays
+                <span
+                  class="css-1rxv93e-Badge e1gotaso0"
+                />
+                <div
+                  class="css-10knnk0-FeatureBadge e1g6bd530"
+                >
+                  <span
+                    class="css-183tzml-Badge-StyledBadge e1g6bd531"
+                    type="beta"
+                  >
+                    beta
+                  </span>
+                </div>
+                <div
+                  class="css-alvfku-TabSelectionIndicator e1duirbi0"
+                  orientation="horizontal"
+                />
+              </span>
+            </li>
+            <li
+              aria-disabled="true"
+              aria-selected="false"
+              class="css-1mt14l3-TabWrap e1duirbi5"
+              data-key="profiling"
+              disabled=""
+              hidden=""
+              id="react-aria3622678844-5-tab-profiling"
+              role="tab"
+            >
+              <span
+                class="css-1a1wjpv-TabInnerWrap e1duirbi3"
+                orientation="horizontal"
+              >
+                <span
+                  class="css-1n2qapu-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer-StyledInteractionStateLayer e1duirbi2"
+                  orientation="horizontal"
+                  role="presentation"
+                />
+                <div
+                  class="css-b61ht9-FocusLayer e1duirbi1"
+                  orientation="horizontal"
+                />
+                Profiling
+                <div
+                  class="css-10knnk0-FeatureBadge e1g6bd530"
+                >
+                  <span
+                    class="css-183tzml-Badge-StyledBadge e1g6bd531"
+                    type="beta"
+                  >
+                    beta
+                  </span>
+                </div>
+                <div
+                  class="css-aq5cuj-TabSelectionIndicator e1duirbi0"
+                  orientation="horizontal"
+                />
+              </span>
+            </li>
+          </ul>
+        </div>
+      </header>
+      <div
+        class="css-b3ubg8-Body e1q4ew4a7"
+      >
+        <section
+          class="css-12xv6fc-Main e1q4ew4a1"
+        >
+          <div
+            class="loading"
+            data-test-id="loading-indicator"
+          >
+            <div
+              class="loading-indicator"
+            />
+            <div
+              class="loading-message"
+            />
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+</div>
+`;

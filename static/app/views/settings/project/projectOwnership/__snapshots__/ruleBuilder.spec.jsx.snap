@@ -1,0 +1,1543 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`RuleBuilder renders 1`] = `
+<div>
+  <div
+    class="css-1e7nh0c-BuilderBar e1oeciqa2"
+  >
+    <div
+      class="e1oeciqa1 css-10i55q-container-BuilderSelect"
+    >
+      <span
+        aria-atomic="false"
+        aria-live="polite"
+        aria-relevant="additions text"
+        class="css-1f43avz-a11yText-A11yText"
+      />
+      <div
+        class=" css-1lxgacs-Control"
+      >
+        <div
+          class=" css-1kqg4xi-ValueContainer"
+        >
+          <div
+            class=" css-y9r1cg-singleValue"
+          >
+            <div
+              class="css-up9q07-SingleValueWrap e11mqpwz1"
+            >
+              <div
+                class="css-1h9r4of-SingleValueLabel-overflowEllipsis e11mqpwz0"
+              >
+                Path
+              </div>
+            </div>
+          </div>
+          <div
+            class="css-s57u0a-Input"
+          >
+            <div
+              class=""
+              style="display: inline-block;"
+            >
+              <input
+                aria-autocomplete="list"
+                aria-label="Rule type"
+                autocapitalize="none"
+                autocomplete="off"
+                autocorrect="off"
+                id="react-select-2-input"
+                spellcheck="false"
+                style="box-sizing: content-box; width: 2px; border: 0px; opacity: 1; outline: 0; padding: 0px;"
+                tabindex="0"
+                type="text"
+                value=""
+              />
+              <div
+                style="position: absolute; top: 0px; left: 0px; visibility: hidden; height: 0px; overflow: scroll; white-space: pre;"
+              />
+            </div>
+          </div>
+        </div>
+        <div
+          class=" css-1d4abpz-IndicatorsContainer"
+        >
+          <div
+            aria-hidden="true"
+            class=" css-1td69xg-indicatorContainer"
+          >
+            <svg
+              class="css-1905w31-IconChevron"
+              fill="currentColor"
+              height="14px"
+              viewBox="0 0 16 16"
+              width="14px"
+            >
+              <path
+                d="M14,11.75a.74.74,0,0,1-.53-.22L8,6.06,2.53,11.53a.75.75,0,0,1-1.06-1.06l6-6a.75.75,0,0,1,1.06,0l6,6a.75.75,0,0,1,0,1.06A.74.74,0,0,1,14,11.75Z"
+              />
+            </svg>
+          </div>
+        </div>
+      </div>
+      <input
+        name="select-type"
+        type="hidden"
+        value="path"
+      />
+    </div>
+    <input
+      aria-label="Rule pattern"
+      class="css-1ws5oe1-Input-inputStyles ekvub0m0"
+      placeholder="src/example/*"
+      value=""
+    />
+    <svg
+      class="css-grvq9j-IconChevron"
+      fill="#DBD6E1"
+      height="16px"
+      viewBox="0 0 16 16"
+      width="16px"
+    >
+      <path
+        d="M14,11.75a.74.74,0,0,1-.53-.22L8,6.06,2.53,11.53a.75.75,0,0,1-1.06-1.06l6-6a.75.75,0,0,1,1.06,0l6,6a.75.75,0,0,1,0,1.06A.74.74,0,0,1,14,11.75Z"
+      />
+    </svg>
+    <div
+      class="css-10depfe-container-SelectOwners"
+    >
+      <span
+        aria-atomic="false"
+        aria-live="polite"
+        aria-relevant="additions text"
+        class="css-1f43avz-a11yText-A11yText"
+      />
+      <div
+        class=" css-1lxgacs-Control"
+      >
+        <div
+          class=" css-1kqg4xi-ValueContainer"
+        >
+          <div
+            class=" css-6vsncc-placeholder"
+          >
+            Owners
+          </div>
+          <div
+            class="css-s57u0a-Input"
+          >
+            <div
+              class=""
+              style="display: inline-block;"
+            >
+              <input
+                aria-autocomplete="list"
+                aria-label="Rule owner"
+                autocapitalize="none"
+                autocomplete="off"
+                autocorrect="off"
+                id="react-select-3-input"
+                spellcheck="false"
+                style="box-sizing: content-box; width: 2px; border: 0px; opacity: 1; outline: 0; padding: 0px;"
+                tabindex="0"
+                type="text"
+                value=""
+              />
+              <div
+                style="position: absolute; top: 0px; left: 0px; visibility: hidden; height: 0px; overflow: scroll; white-space: pre;"
+              />
+            </div>
+          </div>
+        </div>
+        <div
+          class=" css-1d4abpz-IndicatorsContainer"
+        >
+          <div
+            aria-hidden="true"
+            class=" css-1td69xg-indicatorContainer"
+          >
+            <svg
+              class="css-1905w31-IconChevron"
+              fill="currentColor"
+              height="14px"
+              viewBox="0 0 16 16"
+              width="14px"
+            >
+              <path
+                d="M14,11.75a.74.74,0,0,1-.53-.22L8,6.06,2.53,11.53a.75.75,0,0,1-1.06-1.06l6-6a.75.75,0,0,1,1.06,0l6,6a.75.75,0,0,1,0,1.06A.74.74,0,0,1,14,11.75Z"
+              />
+            </svg>
+          </div>
+        </div>
+      </div>
+      <div
+        class=" css-1aso0ll-menu"
+      >
+        <div
+          class=" css-4ljt47-MenuList"
+        >
+          <div
+            aria-checked="false"
+            aria-describedby="menuitem-details-ha37cqh5gc"
+            aria-disabled="false"
+            aria-labelledby="menuitem-label-s27tefq3os"
+            class="option option--is-focused css-hepm6i-MenuItemWrap eoaj5np8"
+            id="react-select-3-option-0"
+            role="menuitemcheckbox"
+            tabindex="-1"
+            value="user:1"
+          >
+            <div
+              class="css-scw8h2-InnerWrap eoaj5np7"
+              data-test-id="user:1"
+            >
+              <span
+                class="css-1of4qjf-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer-StyledInteractionStateLayer eoaj5np6"
+                role="presentation"
+              />
+              <div
+                class="css-1st9vgw-LeadingItems eoaj5np4"
+              >
+                <div
+                  class="css-1nt5ksc-CheckWrap e12a69680"
+                />
+              </div>
+              <div
+                class="css-192qtgh-ContentWrap eoaj5np5"
+              >
+                <div
+                  class="css-yki0ea-LabelWrap eoaj5np3"
+                >
+                  <div
+                    aria-hidden="true"
+                    class="css-35vlyv-Label-overflowEllipsis eoaj5np2"
+                    data-test-id="menu-list-item-label"
+                    id="menuitem-label-s27tefq3os"
+                  >
+                    <div
+                      class="css-13isfbg-StyledUserBadge ex0sq0q4"
+                    >
+                      <span
+                        class="avatar ex0sq0q0 css-1be6esu-StyledBaseAvatar-StyledAvatar ery3g4h1"
+                        data-test-id="letter_avatar-avatar"
+                        style="width: 24px; height: 24px;"
+                        title="Jane Bloggs"
+                      >
+                        <svg
+                          class="css-1jaqko8-LetterAvatar-imageStyle ewkzefl0"
+                          viewBox="0 0 120 120"
+                        >
+                          <rect
+                            fill="#4e3fb4"
+                            height="120"
+                            opacity="100%"
+                            rx="15"
+                            ry="15"
+                            width="120"
+                            x="0"
+                            y="0"
+                          />
+                          <text
+                            fill="#FFFFFF"
+                            font-size="65"
+                            style="dominant-baseline: central;"
+                            text-anchor="middle"
+                            x="50%"
+                            y="50%"
+                          >
+                            JB
+                          </text>
+                        </svg>
+                      </span>
+                      <div
+                        class="css-1ylujlu-StyledNameAndEmail ex0sq0q3"
+                      >
+                        <span
+                          class="css-v5l99x-StyledName-overflowEllipsis ex0sq0q1"
+                        >
+                          Jane Bloggs
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div
+            aria-checked="false"
+            aria-describedby="menuitem-details-o3xa7pgivb"
+            aria-disabled="false"
+            aria-labelledby="menuitem-label-ezh2myw313"
+            class="option css-hepm6i-MenuItemWrap eoaj5np8"
+            id="react-select-3-option-1"
+            role="menuitemcheckbox"
+            tabindex="-1"
+            value="team:3"
+          >
+            <div
+              class="css-1k37yyt-InnerWrap eoaj5np7"
+              data-test-id="team:3"
+            >
+              <span
+                class="css-8qg416-InteractionStateLayer-InteractionStateLayer-StyledInteractionStateLayer eoaj5np6"
+                role="presentation"
+              />
+              <div
+                class="css-1st9vgw-LeadingItems eoaj5np4"
+              >
+                <div
+                  class="css-1nt5ksc-CheckWrap e12a69680"
+                />
+              </div>
+              <div
+                class="css-192qtgh-ContentWrap eoaj5np5"
+              >
+                <div
+                  class="css-yki0ea-LabelWrap eoaj5np3"
+                >
+                  <div
+                    aria-hidden="true"
+                    class="css-35vlyv-Label-overflowEllipsis eoaj5np2"
+                    data-test-id="menu-list-item-label"
+                    id="menuitem-label-ezh2myw313"
+                  >
+                    <div
+                      class="css-6orsd0-Wrapper e1vo4o574"
+                    >
+                      <span
+                        class="avatar e1vo4o573 css-pxqgmq-StyledBaseAvatar-StyledAvatar ery3g4h1"
+                        data-test-id="badge-styled-avatar"
+                        style="width: 24px; height: 24px;"
+                        title="cool team"
+                      >
+                        <svg
+                          class="css-h0a6ia-LetterAvatar-imageStyle ewkzefl0"
+                          viewBox="0 0 120 120"
+                        >
+                          <rect
+                            fill="#4e3fb4"
+                            height="120"
+                            opacity="100%"
+                            rx="15"
+                            ry="15"
+                            width="120"
+                            x="0"
+                            y="0"
+                          />
+                          <text
+                            fill="#FFFFFF"
+                            font-size="65"
+                            style="dominant-baseline: central;"
+                            text-anchor="middle"
+                            x="50%"
+                            y="50%"
+                          >
+                            CT
+                          </text>
+                        </svg>
+                      </span>
+                      <div
+                        class="css-ajl783-DisplayNameAndDescription e1vo4o572"
+                      >
+                        <span
+                          class="css-12dq2et-DisplayName e1vo4o571"
+                          data-test-id="badge-display-name"
+                        >
+                          <span
+                            class="css-1exbshj-BadgeDisplayName-overflowEllipsis-BadgeDisplayName evxkoyb0"
+                          >
+                            #cool-team
+                          </span>
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div
+            aria-checked="false"
+            aria-describedby="menuitem-details-uayxpd8xjh"
+            aria-disabled="true"
+            aria-labelledby="menuitem-label-oi82067glb"
+            class="option option--is-disabled css-hepm6i-MenuItemWrap eoaj5np8"
+            id="react-select-3-option-2"
+            role="menuitemcheckbox"
+            tabindex="-1"
+            value="team:4"
+          >
+            <div
+              class="css-1fbug7d-InnerWrap eoaj5np7"
+              data-test-id="team:4"
+            >
+              <span
+                class="css-8qg416-InteractionStateLayer-InteractionStateLayer-StyledInteractionStateLayer eoaj5np6"
+                role="presentation"
+              />
+              <div
+                class="css-mwp7xm-LeadingItems eoaj5np4"
+                disabled=""
+              >
+                <div
+                  class="css-1nt5ksc-CheckWrap e12a69680"
+                />
+              </div>
+              <div
+                class="css-192qtgh-ContentWrap eoaj5np5"
+              >
+                <div
+                  class="css-yki0ea-LabelWrap eoaj5np3"
+                >
+                  <div
+                    aria-hidden="true"
+                    class="css-35vlyv-Label-overflowEllipsis eoaj5np2"
+                    data-test-id="menu-list-item-label"
+                    id="menuitem-label-oi82067glb"
+                  >
+                    <div
+                      class="css-lqw24p-Container e1t7855i3"
+                    >
+                      <div
+                        class="css-i4ejl5-DisabledLabel e1t7855i2"
+                      >
+                        <span
+                          aria-describedby="tooltip-mr5nag0qzl"
+                          class="css-1y4rfpo-Container e1lk5gpt0"
+                        >
+                          <div
+                            class="css-6orsd0-Wrapper e1vo4o574"
+                          >
+                            <span
+                              class="avatar e1vo4o573 css-pxqgmq-StyledBaseAvatar-StyledAvatar ery3g4h1"
+                              data-test-id="badge-styled-avatar"
+                              style="width: 24px; height: 24px;"
+                              title="team not in project"
+                            >
+                              <svg
+                                class="css-h0a6ia-LetterAvatar-imageStyle ewkzefl0"
+                                viewBox="0 0 120 120"
+                              >
+                                <rect
+                                  fill="#4e3fb4"
+                                  height="120"
+                                  opacity="100%"
+                                  rx="15"
+                                  ry="15"
+                                  width="120"
+                                  x="0"
+                                  y="0"
+                                />
+                                <text
+                                  fill="#FFFFFF"
+                                  font-size="65"
+                                  style="dominant-baseline: central;"
+                                  text-anchor="middle"
+                                  x="50%"
+                                  y="50%"
+                                >
+                                  TP
+                                </text>
+                              </svg>
+                            </span>
+                            <div
+                              class="css-ajl783-DisplayNameAndDescription e1vo4o572"
+                            >
+                              <span
+                                class="css-12dq2et-DisplayName e1vo4o571"
+                                data-test-id="badge-display-name"
+                              >
+                                <span
+                                  class="css-1exbshj-BadgeDisplayName-overflowEllipsis-BadgeDisplayName evxkoyb0"
+                                >
+                                  #team-not-in-project
+                                </span>
+                              </span>
+                            </div>
+                          </div>
+                        </span>
+                      </div>
+                      <span
+                        aria-describedby="tooltip-65hwwindy8"
+                        class="css-1y4rfpo-Container e1lk5gpt0"
+                      >
+                        <button
+                          aria-disabled="false"
+                          aria-label="Add #team-not-in-project to project"
+                          class="e1t7855i1 css-1wdf2pz-StyledButton-getColors-getButtonStyles-AddToProjectButton e1b8u3ky2"
+                          role="button"
+                          type="button"
+                        >
+                          <span
+                            class="css-vul34l-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+                            role="presentation"
+                          />
+                          <span
+                            class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+                          >
+                            <span
+                              class="css-161yn40-Icon e1b8u3ky0"
+                            >
+                              <svg
+                                fill="currentColor"
+                                height="16px"
+                                viewBox="0 0 16 16"
+                                width="16px"
+                              >
+                                <path
+                                  d="M11.28,8.75H4.72a.75.75,0,1,1,0-1.5h6.56a.75.75,0,1,1,0,1.5Z"
+                                />
+                                <path
+                                  d="M8,12a.76.76,0,0,1-.75-.75V4.72a.75.75,0,0,1,1.5,0v6.56A.76.76,0,0,1,8,12Z"
+                                />
+                                <path
+                                  d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z"
+                                />
+                              </svg>
+                            </span>
+                          </span>
+                        </button>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div
+            aria-checked="false"
+            aria-describedby="menuitem-details-y41d0oxmf"
+            aria-disabled="true"
+            aria-labelledby="menuitem-label-3cw951afy4"
+            class="option option--is-disabled css-hepm6i-MenuItemWrap eoaj5np8"
+            id="react-select-3-option-3"
+            role="menuitemcheckbox"
+            tabindex="-1"
+            value="user:2"
+          >
+            <div
+              class="css-1fbug7d-InnerWrap eoaj5np7"
+              data-test-id="user:2"
+            >
+              <span
+                class="css-8qg416-InteractionStateLayer-InteractionStateLayer-StyledInteractionStateLayer eoaj5np6"
+                role="presentation"
+              />
+              <div
+                class="css-mwp7xm-LeadingItems eoaj5np4"
+                disabled=""
+              >
+                <div
+                  class="css-1nt5ksc-CheckWrap e12a69680"
+                />
+              </div>
+              <div
+                class="css-192qtgh-ContentWrap eoaj5np5"
+              >
+                <div
+                  class="css-yki0ea-LabelWrap eoaj5np3"
+                >
+                  <div
+                    aria-hidden="true"
+                    class="css-35vlyv-Label-overflowEllipsis eoaj5np2"
+                    data-test-id="menu-list-item-label"
+                    id="menuitem-label-3cw951afy4"
+                  >
+                    <div
+                      class="css-i4ejl5-DisabledLabel e1t7855i2"
+                    >
+                      <span
+                        aria-describedby="tooltip-y0lwyst1in"
+                        class="css-1y4rfpo-Container e1lk5gpt0"
+                      >
+                        <div
+                          class="css-13isfbg-StyledUserBadge ex0sq0q4"
+                        >
+                          <span
+                            class="avatar ex0sq0q0 css-1be6esu-StyledBaseAvatar-StyledAvatar ery3g4h1"
+                            data-test-id="letter_avatar-avatar"
+                            style="width: 24px; height: 24px;"
+                            title="John Smith"
+                          >
+                            <svg
+                              class="css-1jaqko8-LetterAvatar-imageStyle ewkzefl0"
+                              viewBox="0 0 120 120"
+                            >
+                              <rect
+                                fill="#4e3fb4"
+                                height="120"
+                                opacity="100%"
+                                rx="15"
+                                ry="15"
+                                width="120"
+                                x="0"
+                                y="0"
+                              />
+                              <text
+                                fill="#FFFFFF"
+                                font-size="65"
+                                style="dominant-baseline: central;"
+                                text-anchor="middle"
+                                x="50%"
+                                y="50%"
+                              >
+                                JS
+                              </text>
+                            </svg>
+                          </span>
+                          <div
+                            class="css-1ylujlu-StyledNameAndEmail ex0sq0q3"
+                          >
+                            <span
+                              class="css-v5l99x-StyledName-overflowEllipsis ex0sq0q1"
+                            >
+                              John Smith
+                            </span>
+                          </div>
+                        </div>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <input
+          name="owners"
+          type="hidden"
+        />
+      </div>
+    </div>
+    <button
+      aria-disabled="true"
+      aria-label="Add rule"
+      class="css-knu3xv-StyledButton-getColors-getButtonStyles e1b8u3ky2"
+      disabled=""
+      role="button"
+      type="button"
+    >
+      <span
+        class="css-at526y-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+        role="presentation"
+      />
+      <span
+        class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+      >
+        <span
+          class="css-161yn40-Icon e1b8u3ky0"
+        >
+          <svg
+            fill="currentColor"
+            height="16px"
+            viewBox="0 0 16 16"
+            width="16px"
+          >
+            <path
+              d="M11.28,8.75H4.72a.75.75,0,1,1,0-1.5h6.56a.75.75,0,1,1,0,1.5Z"
+            />
+            <path
+              d="M8,12a.76.76,0,0,1-.75-.75V4.72a.75.75,0,0,1,1.5,0v6.56A.76.76,0,0,1,8,12Z"
+            />
+            <path
+              d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z"
+            />
+          </svg>
+        </span>
+      </span>
+    </button>
+  </div>
+</div>
+`;
+
+exports[`RuleBuilder renders with suggestions 1`] = `
+<div>
+  <div
+    class="css-12vmtw4-Candidates e1oeciqa4"
+  >
+    <div
+      aria-label="Path rule candidate"
+      class="css-m8jaae-RuleCandidate e1oeciqa3"
+      role="button"
+    >
+      <svg
+        fill="#DBD6E1"
+        height="16px"
+        viewBox="0 0 16 16"
+        width="16px"
+      >
+        <path
+          d="M11.28,8.75H4.72a.75.75,0,1,1,0-1.5h6.56a.75.75,0,1,1,0,1.5Z"
+        />
+        <path
+          d="M8,12a.76.76,0,0,1-.75-.75V4.72a.75.75,0,0,1,1.5,0v6.56A.76.76,0,0,1,8,12Z"
+        />
+        <path
+          d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z"
+        />
+      </svg>
+      <div
+        class="css-1r3o8wo-TextOverflow-overflowEllipsis eyxbn6j0"
+      >
+        a/bar
+      </div>
+      <span
+        class="css-13g1j83-TagWrapper e8jgvoh4"
+      >
+        <div
+          class="css-15z9say-Background e8jgvoh3"
+          type="default"
+        >
+          <span
+            class="css-uly9e3-Text e8jgvoh1"
+            type="default"
+          >
+            Path
+          </span>
+        </div>
+      </span>
+    </div>
+    <div
+      aria-label="Path rule candidate"
+      class="css-m8jaae-RuleCandidate e1oeciqa3"
+      role="button"
+    >
+      <svg
+        fill="#DBD6E1"
+        height="16px"
+        viewBox="0 0 16 16"
+        width="16px"
+      >
+        <path
+          d="M11.28,8.75H4.72a.75.75,0,1,1,0-1.5h6.56a.75.75,0,1,1,0,1.5Z"
+        />
+        <path
+          d="M8,12a.76.76,0,0,1-.75-.75V4.72a.75.75,0,0,1,1.5,0v6.56A.76.76,0,0,1,8,12Z"
+        />
+        <path
+          d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z"
+        />
+      </svg>
+      <div
+        class="css-1r3o8wo-TextOverflow-overflowEllipsis eyxbn6j0"
+      >
+        a/foo
+      </div>
+      <span
+        class="css-13g1j83-TagWrapper e8jgvoh4"
+      >
+        <div
+          class="css-15z9say-Background e8jgvoh3"
+          type="default"
+        >
+          <span
+            class="css-uly9e3-Text e8jgvoh1"
+            type="default"
+          >
+            Path
+          </span>
+        </div>
+      </span>
+    </div>
+    <div
+      aria-label="URL rule candidate"
+      class="css-m8jaae-RuleCandidate e1oeciqa3"
+      role="button"
+    >
+      <svg
+        fill="#DBD6E1"
+        height="16px"
+        viewBox="0 0 16 16"
+        width="16px"
+      >
+        <path
+          d="M11.28,8.75H4.72a.75.75,0,1,1,0-1.5h6.56a.75.75,0,1,1,0,1.5Z"
+        />
+        <path
+          d="M8,12a.76.76,0,0,1-.75-.75V4.72a.75.75,0,0,1,1.5,0v6.56A.76.76,0,0,1,8,12Z"
+        />
+        <path
+          d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z"
+        />
+      </svg>
+      <div
+        class="css-1r3o8wo-TextOverflow-overflowEllipsis eyxbn6j0"
+      >
+        example.com/a
+      </div>
+      <span
+        class="css-13g1j83-TagWrapper e8jgvoh4"
+      >
+        <div
+          class="css-15z9say-Background e8jgvoh3"
+          type="default"
+        >
+          <span
+            class="css-uly9e3-Text e8jgvoh1"
+            type="default"
+          >
+            URL
+          </span>
+        </div>
+      </span>
+    </div>
+    <div
+      aria-label="URL rule candidate"
+      class="css-m8jaae-RuleCandidate e1oeciqa3"
+      role="button"
+    >
+      <svg
+        fill="#DBD6E1"
+        height="16px"
+        viewBox="0 0 16 16"
+        width="16px"
+      >
+        <path
+          d="M11.28,8.75H4.72a.75.75,0,1,1,0-1.5h6.56a.75.75,0,1,1,0,1.5Z"
+        />
+        <path
+          d="M8,12a.76.76,0,0,1-.75-.75V4.72a.75.75,0,0,1,1.5,0v6.56A.76.76,0,0,1,8,12Z"
+        />
+        <path
+          d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z"
+        />
+      </svg>
+      <div
+        class="css-1r3o8wo-TextOverflow-overflowEllipsis eyxbn6j0"
+      >
+        example.com/a/foo
+      </div>
+      <span
+        class="css-13g1j83-TagWrapper e8jgvoh4"
+      >
+        <div
+          class="css-15z9say-Background e8jgvoh3"
+          type="default"
+        >
+          <span
+            class="css-uly9e3-Text e8jgvoh1"
+            type="default"
+          >
+            URL
+          </span>
+        </div>
+      </span>
+    </div>
+  </div>
+  <div
+    class="css-1e7nh0c-BuilderBar e1oeciqa2"
+  >
+    <div
+      class="e1oeciqa1 css-10i55q-container-BuilderSelect"
+    >
+      <span
+        aria-atomic="false"
+        aria-live="polite"
+        aria-relevant="additions text"
+        class="css-1f43avz-a11yText-A11yText"
+      />
+      <div
+        class=" css-1lxgacs-Control"
+      >
+        <div
+          class=" css-1kqg4xi-ValueContainer"
+        >
+          <div
+            class=" css-y9r1cg-singleValue"
+          >
+            <div
+              class="css-up9q07-SingleValueWrap e11mqpwz1"
+            >
+              <div
+                class="css-1h9r4of-SingleValueLabel-overflowEllipsis e11mqpwz0"
+              >
+                Path
+              </div>
+            </div>
+          </div>
+          <div
+            class="css-s57u0a-Input"
+          >
+            <div
+              class=""
+              style="display: inline-block;"
+            >
+              <input
+                aria-autocomplete="list"
+                aria-label="Rule type"
+                autocapitalize="none"
+                autocomplete="off"
+                autocorrect="off"
+                id="react-select-4-input"
+                spellcheck="false"
+                style="box-sizing: content-box; width: 2px; border: 0px; opacity: 1; outline: 0; padding: 0px;"
+                tabindex="0"
+                type="text"
+                value=""
+              />
+              <div
+                style="position: absolute; top: 0px; left: 0px; visibility: hidden; height: 0px; overflow: scroll; white-space: pre;"
+              />
+            </div>
+          </div>
+        </div>
+        <div
+          class=" css-1d4abpz-IndicatorsContainer"
+        >
+          <div
+            aria-hidden="true"
+            class=" css-1td69xg-indicatorContainer"
+          >
+            <svg
+              class="css-1905w31-IconChevron"
+              fill="currentColor"
+              height="14px"
+              viewBox="0 0 16 16"
+              width="14px"
+            >
+              <path
+                d="M14,11.75a.74.74,0,0,1-.53-.22L8,6.06,2.53,11.53a.75.75,0,0,1-1.06-1.06l6-6a.75.75,0,0,1,1.06,0l6,6a.75.75,0,0,1,0,1.06A.74.74,0,0,1,14,11.75Z"
+              />
+            </svg>
+          </div>
+        </div>
+      </div>
+      <input
+        name="select-type"
+        type="hidden"
+        value="path"
+      />
+    </div>
+    <input
+      aria-label="Rule pattern"
+      class="css-1ws5oe1-Input-inputStyles ekvub0m0"
+      placeholder="src/example/*"
+      value="a/bar"
+    />
+    <svg
+      class="css-grvq9j-IconChevron"
+      fill="#DBD6E1"
+      height="16px"
+      viewBox="0 0 16 16"
+      width="16px"
+    >
+      <path
+        d="M14,11.75a.74.74,0,0,1-.53-.22L8,6.06,2.53,11.53a.75.75,0,0,1-1.06-1.06l6-6a.75.75,0,0,1,1.06,0l6,6a.75.75,0,0,1,0,1.06A.74.74,0,0,1,14,11.75Z"
+      />
+    </svg>
+    <div
+      class="css-10depfe-container-SelectOwners"
+    >
+      <span
+        aria-atomic="false"
+        aria-live="polite"
+        aria-relevant="additions text"
+        class="css-1f43avz-a11yText-A11yText"
+      />
+      <div
+        class=" css-1lxgacs-Control"
+      >
+        <div
+          class=" css-1kqg4xi-ValueContainer"
+        >
+          <a
+            class="css-ek4ucj-ValueWrapper e1t7855i0"
+          >
+            <span
+              aria-describedby="tooltip-4srpva2mjm"
+              class="css-1y4rfpo-Container e1lk5gpt0"
+            >
+              <span
+                class="avatar css-eti684-StyledBaseAvatar ery3g4h1"
+                data-test-id="letter_avatar-avatar"
+                style="width: 28px; height: 28px;"
+                title="Jane Bloggs"
+              >
+                <svg
+                  class="css-1jaqko8-LetterAvatar-imageStyle ewkzefl0"
+                  viewBox="0 0 120 120"
+                >
+                  <rect
+                    fill="#4e3fb4"
+                    height="120"
+                    opacity="100%"
+                    rx="15"
+                    ry="15"
+                    width="120"
+                    x="0"
+                    y="0"
+                  />
+                  <text
+                    fill="#FFFFFF"
+                    font-size="65"
+                    style="dominant-baseline: central;"
+                    text-anchor="middle"
+                    x="50%"
+                    y="50%"
+                  >
+                    JB
+                  </text>
+                </svg>
+              </span>
+            </span>
+          </a>
+          <div
+            class="css-s57u0a-Input"
+          >
+            <div
+              class=""
+              style="display: inline-block;"
+            >
+              <input
+                aria-autocomplete="list"
+                aria-label="Rule owner"
+                autocapitalize="none"
+                autocomplete="off"
+                autocorrect="off"
+                id="react-select-5-input"
+                spellcheck="false"
+                style="box-sizing: content-box; width: 2px; border: 0px; opacity: 1; outline: 0; padding: 0px;"
+                tabindex="0"
+                type="text"
+                value=""
+              />
+              <div
+                style="position: absolute; top: 0px; left: 0px; visibility: hidden; height: 0px; overflow: scroll; white-space: pre;"
+              />
+            </div>
+          </div>
+        </div>
+        <div
+          class=" css-1d4abpz-IndicatorsContainer"
+        >
+          <div
+            aria-hidden="true"
+            class=" css-1td69xg-indicatorContainer"
+          >
+            <svg
+              data-test-id="icon-close"
+              fill="currentColor"
+              height="10px"
+              viewBox="0 0 16 16"
+              width="10px"
+            >
+              <path
+                d="M6.94,8,1.47,13.47a.75.75,0,0,0,0,1.06.75.75,0,0,0,1.06,0L8,9.06l5.47,5.47a.75.75,0,0,0,1.06,0,.75.75,0,0,0,0-1.06L9.06,8l5.47-5.47a.75.75,0,0,0-1.06-1.06L8,6.94,2.53,1.47A.75.75,0,0,0,1.47,2.53Z"
+              />
+            </svg>
+          </div>
+          <div
+            aria-hidden="true"
+            class=" css-1td69xg-indicatorContainer"
+          >
+            <svg
+              class="css-1905w31-IconChevron"
+              fill="currentColor"
+              height="14px"
+              viewBox="0 0 16 16"
+              width="14px"
+            >
+              <path
+                d="M14,11.75a.74.74,0,0,1-.53-.22L8,6.06,2.53,11.53a.75.75,0,0,1-1.06-1.06l6-6a.75.75,0,0,1,1.06,0l6,6a.75.75,0,0,1,0,1.06A.74.74,0,0,1,14,11.75Z"
+              />
+            </svg>
+          </div>
+        </div>
+      </div>
+      <div
+        class=" css-1aso0ll-menu"
+      >
+        <div
+          class=" css-4ljt47-MenuList"
+        >
+          <div
+            aria-checked="true"
+            aria-describedby="menuitem-details-wtnmyow2g2"
+            aria-disabled="false"
+            aria-labelledby="menuitem-label-oru07974vu"
+            class="option option--is-selected css-hepm6i-MenuItemWrap eoaj5np8"
+            id="react-select-5-option-0"
+            role="menuitemcheckbox"
+            tabindex="-1"
+            value="user:1"
+          >
+            <div
+              class="css-1k37yyt-InnerWrap eoaj5np7"
+              data-test-id="user:1"
+            >
+              <span
+                class="css-8qg416-InteractionStateLayer-InteractionStateLayer-StyledInteractionStateLayer eoaj5np6"
+                role="presentation"
+              />
+              <div
+                class="css-1st9vgw-LeadingItems eoaj5np4"
+              >
+                <div
+                  class="css-ouxhcp-CheckWrap e12a69680"
+                >
+                  <svg
+                    data-test-id="icon-check-mark"
+                    fill="#FFFFFF"
+                    height="12px"
+                    viewBox="0 0 16 16"
+                    width="12px"
+                  >
+                    <path
+                      d="M6.19,14.51a.77.77,0,0,1-.57-.25l-4.2-4.8a.75.75,0,0,1,1.13-1l3.56,4.06L13.36,1.82a.75.75,0,0,1,1-.21.76.76,0,0,1,.21,1.05L6.81,14.18a.73.73,0,0,1-.58.33Z"
+                    />
+                  </svg>
+                </div>
+              </div>
+              <div
+                class="css-192qtgh-ContentWrap eoaj5np5"
+              >
+                <div
+                  class="css-yki0ea-LabelWrap eoaj5np3"
+                >
+                  <div
+                    aria-hidden="true"
+                    class="css-35vlyv-Label-overflowEllipsis eoaj5np2"
+                    data-test-id="menu-list-item-label"
+                    id="menuitem-label-oru07974vu"
+                  >
+                    <div
+                      class="css-13isfbg-StyledUserBadge ex0sq0q4"
+                    >
+                      <span
+                        class="avatar ex0sq0q0 css-1be6esu-StyledBaseAvatar-StyledAvatar ery3g4h1"
+                        data-test-id="letter_avatar-avatar"
+                        style="width: 24px; height: 24px;"
+                        title="Jane Bloggs"
+                      >
+                        <svg
+                          class="css-1jaqko8-LetterAvatar-imageStyle ewkzefl0"
+                          viewBox="0 0 120 120"
+                        >
+                          <rect
+                            fill="#4e3fb4"
+                            height="120"
+                            opacity="100%"
+                            rx="15"
+                            ry="15"
+                            width="120"
+                            x="0"
+                            y="0"
+                          />
+                          <text
+                            fill="#FFFFFF"
+                            font-size="65"
+                            style="dominant-baseline: central;"
+                            text-anchor="middle"
+                            x="50%"
+                            y="50%"
+                          >
+                            JB
+                          </text>
+                        </svg>
+                      </span>
+                      <div
+                        class="css-1ylujlu-StyledNameAndEmail ex0sq0q3"
+                      >
+                        <span
+                          class="css-v5l99x-StyledName-overflowEllipsis ex0sq0q1"
+                        >
+                          Jane Bloggs
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div
+            aria-checked="false"
+            aria-describedby="menuitem-details-7tfsk9r766"
+            aria-disabled="false"
+            aria-labelledby="menuitem-label-aef6sd4n52"
+            class="option option--is-focused css-hepm6i-MenuItemWrap eoaj5np8"
+            id="react-select-5-option-1"
+            role="menuitemcheckbox"
+            tabindex="-1"
+            value="team:3"
+          >
+            <div
+              class="css-scw8h2-InnerWrap eoaj5np7"
+              data-test-id="team:3"
+            >
+              <span
+                class="css-1of4qjf-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer-StyledInteractionStateLayer eoaj5np6"
+                role="presentation"
+              />
+              <div
+                class="css-1st9vgw-LeadingItems eoaj5np4"
+              >
+                <div
+                  class="css-1nt5ksc-CheckWrap e12a69680"
+                />
+              </div>
+              <div
+                class="css-192qtgh-ContentWrap eoaj5np5"
+              >
+                <div
+                  class="css-yki0ea-LabelWrap eoaj5np3"
+                >
+                  <div
+                    aria-hidden="true"
+                    class="css-35vlyv-Label-overflowEllipsis eoaj5np2"
+                    data-test-id="menu-list-item-label"
+                    id="menuitem-label-aef6sd4n52"
+                  >
+                    <div
+                      class="css-6orsd0-Wrapper e1vo4o574"
+                    >
+                      <span
+                        class="avatar e1vo4o573 css-pxqgmq-StyledBaseAvatar-StyledAvatar ery3g4h1"
+                        data-test-id="badge-styled-avatar"
+                        style="width: 24px; height: 24px;"
+                        title="cool team"
+                      >
+                        <svg
+                          class="css-h0a6ia-LetterAvatar-imageStyle ewkzefl0"
+                          viewBox="0 0 120 120"
+                        >
+                          <rect
+                            fill="#4e3fb4"
+                            height="120"
+                            opacity="100%"
+                            rx="15"
+                            ry="15"
+                            width="120"
+                            x="0"
+                            y="0"
+                          />
+                          <text
+                            fill="#FFFFFF"
+                            font-size="65"
+                            style="dominant-baseline: central;"
+                            text-anchor="middle"
+                            x="50%"
+                            y="50%"
+                          >
+                            CT
+                          </text>
+                        </svg>
+                      </span>
+                      <div
+                        class="css-ajl783-DisplayNameAndDescription e1vo4o572"
+                      >
+                        <span
+                          class="css-12dq2et-DisplayName e1vo4o571"
+                          data-test-id="badge-display-name"
+                        >
+                          <span
+                            class="css-1exbshj-BadgeDisplayName-overflowEllipsis-BadgeDisplayName evxkoyb0"
+                          >
+                            #cool-team
+                          </span>
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div
+            aria-checked="false"
+            aria-describedby="menuitem-details-qqol0nra6v"
+            aria-disabled="true"
+            aria-labelledby="menuitem-label-bh25jtpv7c"
+            class="option option--is-disabled css-hepm6i-MenuItemWrap eoaj5np8"
+            id="react-select-5-option-2"
+            role="menuitemcheckbox"
+            tabindex="-1"
+            value="team:4"
+          >
+            <div
+              class="css-1fbug7d-InnerWrap eoaj5np7"
+              data-test-id="team:4"
+            >
+              <span
+                class="css-8qg416-InteractionStateLayer-InteractionStateLayer-StyledInteractionStateLayer eoaj5np6"
+                role="presentation"
+              />
+              <div
+                class="css-mwp7xm-LeadingItems eoaj5np4"
+                disabled=""
+              >
+                <div
+                  class="css-1nt5ksc-CheckWrap e12a69680"
+                />
+              </div>
+              <div
+                class="css-192qtgh-ContentWrap eoaj5np5"
+              >
+                <div
+                  class="css-yki0ea-LabelWrap eoaj5np3"
+                >
+                  <div
+                    aria-hidden="true"
+                    class="css-35vlyv-Label-overflowEllipsis eoaj5np2"
+                    data-test-id="menu-list-item-label"
+                    id="menuitem-label-bh25jtpv7c"
+                  >
+                    <div
+                      class="css-lqw24p-Container e1t7855i3"
+                    >
+                      <div
+                        class="css-i4ejl5-DisabledLabel e1t7855i2"
+                      >
+                        <span
+                          aria-describedby="tooltip-778wziz19r"
+                          class="css-1y4rfpo-Container e1lk5gpt0"
+                        >
+                          <div
+                            class="css-6orsd0-Wrapper e1vo4o574"
+                          >
+                            <span
+                              class="avatar e1vo4o573 css-pxqgmq-StyledBaseAvatar-StyledAvatar ery3g4h1"
+                              data-test-id="badge-styled-avatar"
+                              style="width: 24px; height: 24px;"
+                              title="team not in project"
+                            >
+                              <svg
+                                class="css-h0a6ia-LetterAvatar-imageStyle ewkzefl0"
+                                viewBox="0 0 120 120"
+                              >
+                                <rect
+                                  fill="#4e3fb4"
+                                  height="120"
+                                  opacity="100%"
+                                  rx="15"
+                                  ry="15"
+                                  width="120"
+                                  x="0"
+                                  y="0"
+                                />
+                                <text
+                                  fill="#FFFFFF"
+                                  font-size="65"
+                                  style="dominant-baseline: central;"
+                                  text-anchor="middle"
+                                  x="50%"
+                                  y="50%"
+                                >
+                                  TP
+                                </text>
+                              </svg>
+                            </span>
+                            <div
+                              class="css-ajl783-DisplayNameAndDescription e1vo4o572"
+                            >
+                              <span
+                                class="css-12dq2et-DisplayName e1vo4o571"
+                                data-test-id="badge-display-name"
+                              >
+                                <span
+                                  class="css-1exbshj-BadgeDisplayName-overflowEllipsis-BadgeDisplayName evxkoyb0"
+                                >
+                                  #team-not-in-project
+                                </span>
+                              </span>
+                            </div>
+                          </div>
+                        </span>
+                      </div>
+                      <span
+                        aria-describedby="tooltip-vb01gawrk8"
+                        class="css-1y4rfpo-Container e1lk5gpt0"
+                      >
+                        <button
+                          aria-disabled="false"
+                          aria-label="Add #team-not-in-project to project"
+                          class="e1t7855i1 css-1wdf2pz-StyledButton-getColors-getButtonStyles-AddToProjectButton e1b8u3ky2"
+                          role="button"
+                          type="button"
+                        >
+                          <span
+                            class="css-vul34l-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+                            role="presentation"
+                          />
+                          <span
+                            class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+                          >
+                            <span
+                              class="css-161yn40-Icon e1b8u3ky0"
+                            >
+                              <svg
+                                fill="currentColor"
+                                height="16px"
+                                viewBox="0 0 16 16"
+                                width="16px"
+                              >
+                                <path
+                                  d="M11.28,8.75H4.72a.75.75,0,1,1,0-1.5h6.56a.75.75,0,1,1,0,1.5Z"
+                                />
+                                <path
+                                  d="M8,12a.76.76,0,0,1-.75-.75V4.72a.75.75,0,0,1,1.5,0v6.56A.76.76,0,0,1,8,12Z"
+                                />
+                                <path
+                                  d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z"
+                                />
+                              </svg>
+                            </span>
+                          </span>
+                        </button>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div
+            aria-checked="false"
+            aria-describedby="menuitem-details-fa5gekf9qy"
+            aria-disabled="true"
+            aria-labelledby="menuitem-label-lw5gey6c2"
+            class="option option--is-disabled css-hepm6i-MenuItemWrap eoaj5np8"
+            id="react-select-5-option-3"
+            role="menuitemcheckbox"
+            tabindex="-1"
+            value="user:2"
+          >
+            <div
+              class="css-1fbug7d-InnerWrap eoaj5np7"
+              data-test-id="user:2"
+            >
+              <span
+                class="css-8qg416-InteractionStateLayer-InteractionStateLayer-StyledInteractionStateLayer eoaj5np6"
+                role="presentation"
+              />
+              <div
+                class="css-mwp7xm-LeadingItems eoaj5np4"
+                disabled=""
+              >
+                <div
+                  class="css-1nt5ksc-CheckWrap e12a69680"
+                />
+              </div>
+              <div
+                class="css-192qtgh-ContentWrap eoaj5np5"
+              >
+                <div
+                  class="css-yki0ea-LabelWrap eoaj5np3"
+                >
+                  <div
+                    aria-hidden="true"
+                    class="css-35vlyv-Label-overflowEllipsis eoaj5np2"
+                    data-test-id="menu-list-item-label"
+                    id="menuitem-label-lw5gey6c2"
+                  >
+                    <div
+                      class="css-i4ejl5-DisabledLabel e1t7855i2"
+                    >
+                      <span
+                        aria-describedby="tooltip-hlg16d98r6"
+                        class="css-1y4rfpo-Container e1lk5gpt0"
+                      >
+                        <div
+                          class="css-13isfbg-StyledUserBadge ex0sq0q4"
+                        >
+                          <span
+                            class="avatar ex0sq0q0 css-1be6esu-StyledBaseAvatar-StyledAvatar ery3g4h1"
+                            data-test-id="letter_avatar-avatar"
+                            style="width: 24px; height: 24px;"
+                            title="John Smith"
+                          >
+                            <svg
+                              class="css-1jaqko8-LetterAvatar-imageStyle ewkzefl0"
+                              viewBox="0 0 120 120"
+                            >
+                              <rect
+                                fill="#4e3fb4"
+                                height="120"
+                                opacity="100%"
+                                rx="15"
+                                ry="15"
+                                width="120"
+                                x="0"
+                                y="0"
+                              />
+                              <text
+                                fill="#FFFFFF"
+                                font-size="65"
+                                style="dominant-baseline: central;"
+                                text-anchor="middle"
+                                x="50%"
+                                y="50%"
+                              >
+                                JS
+                              </text>
+                            </svg>
+                          </span>
+                          <div
+                            class="css-1ylujlu-StyledNameAndEmail ex0sq0q3"
+                          >
+                            <span
+                              class="css-v5l99x-StyledName-overflowEllipsis ex0sq0q1"
+                            >
+                              John Smith
+                            </span>
+                          </div>
+                        </div>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <input
+          name="owners"
+          type="hidden"
+          value="user:1"
+        />
+      </div>
+    </div>
+    <button
+      aria-disabled="false"
+      aria-label="Add rule"
+      class="css-zbzvlb-StyledButton-getColors-getButtonStyles e1b8u3ky2"
+      role="button"
+      type="button"
+    >
+      <span
+        class="css-at526y-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+        role="presentation"
+      />
+      <span
+        class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+      >
+        <span
+          class="css-161yn40-Icon e1b8u3ky0"
+        >
+          <svg
+            fill="currentColor"
+            height="16px"
+            viewBox="0 0 16 16"
+            width="16px"
+          >
+            <path
+              d="M11.28,8.75H4.72a.75.75,0,1,1,0-1.5h6.56a.75.75,0,1,1,0,1.5Z"
+            />
+            <path
+              d="M8,12a.76.76,0,0,1-.75-.75V4.72a.75.75,0,0,1,1.5,0v6.56A.76.76,0,0,1,8,12Z"
+            />
+            <path
+              d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z"
+            />
+          </svg>
+        </span>
+      </span>
+    </button>
+  </div>
+</div>
+`;

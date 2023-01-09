@@ -39,7 +39,7 @@ describe('Organization Developer Settings', function () {
           screen.getByText('No internal integrations have been created yet.')
         ).toBeInTheDocument();
       });
-      expect(container).toSnapshot();
+      expect(container).toMatchSnapshot();
     });
   });
 

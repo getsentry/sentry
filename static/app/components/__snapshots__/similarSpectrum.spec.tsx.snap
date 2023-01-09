@@ -1,0 +1,31 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`SimilarSpectrum renders 1`] = `
+<div>
+  <div
+    class="css-1ee6db-SimilarSpectrum eliclov1"
+  >
+    <span>
+      Similar
+    </span>
+    <span
+      class="css-h1r3gt-SpectrumItem eliclov0"
+    />
+    <span
+      class="css-1j6o86h-SpectrumItem eliclov0"
+    />
+    <span
+      class="css-1pl5ll-SpectrumItem eliclov0"
+    />
+    <span
+      class="css-w9x78l-SpectrumItem eliclov0"
+    />
+    <span
+      class="css-arcd4a-SpectrumItem eliclov0"
+    />
+    <span>
+      Not Similar
+    </span>
+  </div>
+</div>
+`;

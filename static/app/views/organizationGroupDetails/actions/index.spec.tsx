@@ -40,7 +40,7 @@ describe('GroupActions', function () {
           disabled={false}
         />
       );
-      expect(wrapper.container).toSnapshot();
+      expect(wrapper.container).toMatchSnapshot();
     });
   });
 

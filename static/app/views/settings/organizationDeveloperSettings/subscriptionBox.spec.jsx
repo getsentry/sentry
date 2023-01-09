@@ -25,7 +25,7 @@ describe('SubscriptionBox', () => {
 
   it('renders resource checkbox', () => {
     const {container} = renderComponent();
-    expect(container).toSnapshot();
+    expect(container).toMatchSnapshot();
   });
 
   it('calls onChange prop when checking checkbox', () => {

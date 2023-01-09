@@ -12,7 +12,7 @@ describe('Version', () => {
 
   it('renders', () => {
     const {container} = render(<Version version={VERSION} />);
-    expect(container).toSnapshot();
+    expect(container).toMatchSnapshot();
   });
 
   it('shows correct parsed version', () => {

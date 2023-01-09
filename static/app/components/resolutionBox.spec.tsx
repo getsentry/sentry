@@ -8,7 +8,7 @@ describe('ResolutionBox', function () {
       const {container} = render(
         <ResolutionBox statusDetails={{inNextRelease: true}} projectId="1" />
       );
-      expect(container).toSnapshot();
+      expect(container).toMatchSnapshot();
     });
     it('handles inNextRelease with actor', function () {
       const {container} = render(
@@ -26,7 +26,7 @@ describe('ResolutionBox', function () {
           projectId="1"
         />
       );
-      expect(container).toSnapshot();
+      expect(container).toMatchSnapshot();
     });
     it('handles inRelease', function () {
       const {container} = render(
@@ -37,7 +37,7 @@ describe('ResolutionBox', function () {
           projectId="1"
         />
       );
-      expect(container).toSnapshot();
+      expect(container).toMatchSnapshot();
     });
     it('handles inRelease with actor', function () {
       const {container} = render(
@@ -55,11 +55,11 @@ describe('ResolutionBox', function () {
           projectId="1"
         />
       );
-      expect(container).toSnapshot();
+      expect(container).toMatchSnapshot();
     });
     it('handles default', function () {
       const {container} = render(<ResolutionBox statusDetails={{}} projectId="1" />);
-      expect(container).toSnapshot();
+      expect(container).toMatchSnapshot();
     });
     it('handles inCommit', function () {
       const {container} = render(
@@ -70,7 +70,7 @@ describe('ResolutionBox', function () {
           projectId="1"
         />
       );
-      expect(container).toSnapshot();
+      expect(container).toMatchSnapshot();
     });
   });
 });

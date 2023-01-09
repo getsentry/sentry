@@ -463,7 +463,7 @@ describe('SmartSearchBar', function () {
 
     await screen.findByText('Keys');
 
-    expect(container).toSnapshot();
+    expect(container).toMatchSnapshot();
   });
 
   it('filters keys on name and description', async function () {

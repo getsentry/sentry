@@ -7,12 +7,12 @@ describe('NumberField', function () {
   describe('render()', function () {
     it('renders', function () {
       const wrapper = render(<NumberField name="fieldName" />);
-      expect(wrapper.container).toSnapshot();
+      expect(wrapper.container).toMatchSnapshot();
     });
 
     it('renders with optional attributes', function () {
       const wrapper = render(<NumberField name="fieldName" min={0} max={100} />);
-      expect(wrapper.container).toSnapshot();
+      expect(wrapper.container).toMatchSnapshot();
     });
 
     it('renders with value', function () {

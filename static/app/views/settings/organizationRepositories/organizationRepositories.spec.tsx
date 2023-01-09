@@ -18,7 +18,7 @@ describe('OrganizationRepositories', function () {
         {...routerProps}
       />
     );
-    expect(container).toSnapshot();
+    expect(container).toMatchSnapshot();
   });
 
   it('renders with a repository', function () {
@@ -30,7 +30,7 @@ describe('OrganizationRepositories', function () {
         {...routerProps}
       />
     );
-    expect(container).toSnapshot();
+    expect(container).toMatchSnapshot();
   });
 
   it('renders with a repository and github provider', function () {
@@ -46,6 +46,6 @@ describe('OrganizationRepositories', function () {
         {...routerProps}
       />
     );
-    expect(container).toSnapshot();
+    expect(container).toMatchSnapshot();
   });
 });

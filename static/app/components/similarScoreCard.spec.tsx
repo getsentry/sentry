@@ -24,6 +24,6 @@ describe('SimilarScoreCard', function () {
         ]}
       />
     );
-    expect(container).toSnapshot();
+    expect(container).toMatchSnapshot();
   });
 });

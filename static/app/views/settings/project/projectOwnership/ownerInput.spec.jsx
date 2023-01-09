@@ -54,7 +54,7 @@ describe('Project Ownership Input', function () {
 
     expect(put).toHaveBeenCalled();
 
-    expect(container).toSnapshot();
+    expect(container).toMatchSnapshot();
   });
 
   it('updates on add preserving existing text', async function () {

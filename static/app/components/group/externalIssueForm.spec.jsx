@@ -67,7 +67,7 @@ describe('ExternalIssueForm', () => {
     });
     it('renders', () => {
       const {container} = renderComponent();
-      expect(container).toSnapshot();
+      expect(container).toMatchSnapshot();
     });
   });
   describe('link', () => {
@@ -140,7 +140,7 @@ describe('ExternalIssueForm', () => {
     it('renders and loads options', () => {
       const {container} = renderComponent('Link');
       expect(getFormConfigRequest).toHaveBeenCalled();
-      expect(container).toSnapshot();
+      expect(container).toMatchSnapshot();
     });
 
     describe('options loaded', () => {

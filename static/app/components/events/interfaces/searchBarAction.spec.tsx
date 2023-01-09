@@ -97,7 +97,7 @@ describe('SearchBarAction', () => {
     expect(screen.getByText('info')).toBeInTheDocument();
     expect(screen.getAllByText('Error')[1]).toBeInTheDocument();
 
-    expect(container).toSnapshot();
+    expect(container).toMatchSnapshot();
   });
 
   it('Without Options', () => {

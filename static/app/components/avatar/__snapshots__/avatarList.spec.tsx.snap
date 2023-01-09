@@ -1,0 +1,295 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
+<div>
+  <div
+    class="css-vkef0q-AvatarListWrapper e7y2scs3"
+  >
+    <span
+      aria-describedby="tooltip-qdj0cnxg9s"
+      class="css-1y4rfpo-Container e1lk5gpt0"
+    >
+      <div
+        class="css-16xpc6s-CollapsedUsers-Circle e7y2scs1"
+        data-test-id="avatarList-collapsedusers"
+        size="28"
+      >
+        <span
+          class="css-1b6yh0n-Plus e7y2scs0"
+        >
+          +
+        </span>
+        1
+      </div>
+    </span>
+    <span
+      aria-describedby="tooltip-ryocno0x4d"
+      class="css-1y4rfpo-Container e1lk5gpt0"
+    >
+      <span
+        class="avatar e7y2scs2 css-wlth1c-StyledBaseAvatar-StyledAvatar-Circle ery3g4h1"
+        data-test-id="letter_avatar-avatar"
+        style="width: 28px; height: 28px;"
+        title="AB"
+      >
+        <svg
+          class="css-1jaqko8-LetterAvatar-imageStyle ewkzefl0"
+          viewBox="0 0 120 120"
+        >
+          <rect
+            fill="#315cac"
+            height="120"
+            opacity="100%"
+            rx="15"
+            ry="15"
+            width="120"
+            x="0"
+            y="0"
+          />
+          <text
+            fill="#FFFFFF"
+            font-size="65"
+            style="dominant-baseline: central;"
+            text-anchor="middle"
+            x="50%"
+            y="50%"
+          >
+            A
+          </text>
+        </svg>
+      </span>
+    </span>
+    <span
+      aria-describedby="tooltip-iu5p2sb8zt"
+      class="css-1y4rfpo-Container e1lk5gpt0"
+    >
+      <span
+        class="avatar e7y2scs2 css-wlth1c-StyledBaseAvatar-StyledAvatar-Circle ery3g4h1"
+        data-test-id="letter_avatar-avatar"
+        style="width: 28px; height: 28px;"
+        title="BC"
+      >
+        <svg
+          class="css-1jaqko8-LetterAvatar-imageStyle ewkzefl0"
+          viewBox="0 0 120 120"
+        >
+          <rect
+            fill="#315cac"
+            height="120"
+            opacity="100%"
+            rx="15"
+            ry="15"
+            width="120"
+            x="0"
+            y="0"
+          />
+          <text
+            fill="#FFFFFF"
+            font-size="65"
+            style="dominant-baseline: central;"
+            text-anchor="middle"
+            x="50%"
+            y="50%"
+          >
+            B
+          </text>
+        </svg>
+      </span>
+    </span>
+    <span
+      aria-describedby="tooltip-y495b9a8p6"
+      class="css-1y4rfpo-Container e1lk5gpt0"
+    >
+      <span
+        class="avatar e7y2scs2 css-wlth1c-StyledBaseAvatar-StyledAvatar-Circle ery3g4h1"
+        data-test-id="letter_avatar-avatar"
+        style="width: 28px; height: 28px;"
+        title="CD"
+      >
+        <svg
+          class="css-1jaqko8-LetterAvatar-imageStyle ewkzefl0"
+          viewBox="0 0 120 120"
+        >
+          <rect
+            fill="#315cac"
+            height="120"
+            opacity="100%"
+            rx="15"
+            ry="15"
+            width="120"
+            x="0"
+            y="0"
+          />
+          <text
+            fill="#FFFFFF"
+            font-size="65"
+            style="dominant-baseline: central;"
+            text-anchor="middle"
+            x="50%"
+            y="50%"
+          >
+            C
+          </text>
+        </svg>
+      </span>
+    </span>
+    <span
+      aria-describedby="tooltip-yci8xu1f3c"
+      class="css-1y4rfpo-Container e1lk5gpt0"
+    >
+      <span
+        class="avatar e7y2scs2 css-wlth1c-StyledBaseAvatar-StyledAvatar-Circle ery3g4h1"
+        data-test-id="letter_avatar-avatar"
+        style="width: 28px; height: 28px;"
+        title="DE"
+      >
+        <svg
+          class="css-1jaqko8-LetterAvatar-imageStyle ewkzefl0"
+          viewBox="0 0 120 120"
+        >
+          <rect
+            fill="#315cac"
+            height="120"
+            opacity="100%"
+            rx="15"
+            ry="15"
+            width="120"
+            x="0"
+            y="0"
+          />
+          <text
+            fill="#FFFFFF"
+            font-size="65"
+            style="dominant-baseline: central;"
+            text-anchor="middle"
+            x="50%"
+            y="50%"
+          >
+            D
+          </text>
+        </svg>
+      </span>
+    </span>
+    <span
+      aria-describedby="tooltip-7fu1c94nn9"
+      class="css-1y4rfpo-Container e1lk5gpt0"
+    >
+      <span
+        class="avatar e7y2scs2 css-wlth1c-StyledBaseAvatar-StyledAvatar-Circle ery3g4h1"
+        data-test-id="letter_avatar-avatar"
+        style="width: 28px; height: 28px;"
+        title="EF"
+      >
+        <svg
+          class="css-1jaqko8-LetterAvatar-imageStyle ewkzefl0"
+          viewBox="0 0 120 120"
+        >
+          <rect
+            fill="#315cac"
+            height="120"
+            opacity="100%"
+            rx="15"
+            ry="15"
+            width="120"
+            x="0"
+            y="0"
+          />
+          <text
+            fill="#FFFFFF"
+            font-size="65"
+            style="dominant-baseline: central;"
+            text-anchor="middle"
+            x="50%"
+            y="50%"
+          >
+            E
+          </text>
+        </svg>
+      </span>
+    </span>
+  </div>
+</div>
+`;
+
+exports[`AvatarList renders with user letter avatars 1`] = `
+<div>
+  <div
+    class="css-vkef0q-AvatarListWrapper e7y2scs3"
+  >
+    <span
+      aria-describedby="tooltip-vj47pxnmcc"
+      class="css-1y4rfpo-Container e1lk5gpt0"
+    >
+      <span
+        class="avatar e7y2scs2 css-wlth1c-StyledBaseAvatar-StyledAvatar-Circle ery3g4h1"
+        data-test-id="letter_avatar-avatar"
+        style="width: 28px; height: 28px;"
+        title="AB"
+      >
+        <svg
+          class="css-1jaqko8-LetterAvatar-imageStyle ewkzefl0"
+          viewBox="0 0 120 120"
+        >
+          <rect
+            fill="#315cac"
+            height="120"
+            opacity="100%"
+            rx="15"
+            ry="15"
+            width="120"
+            x="0"
+            y="0"
+          />
+          <text
+            fill="#FFFFFF"
+            font-size="65"
+            style="dominant-baseline: central;"
+            text-anchor="middle"
+            x="50%"
+            y="50%"
+          >
+            A
+          </text>
+        </svg>
+      </span>
+    </span>
+    <span
+      aria-describedby="tooltip-n36fd903hh"
+      class="css-1y4rfpo-Container e1lk5gpt0"
+    >
+      <span
+        class="avatar e7y2scs2 css-wlth1c-StyledBaseAvatar-StyledAvatar-Circle ery3g4h1"
+        data-test-id="letter_avatar-avatar"
+        style="width: 28px; height: 28px;"
+        title="BC"
+      >
+        <svg
+          class="css-1jaqko8-LetterAvatar-imageStyle ewkzefl0"
+          viewBox="0 0 120 120"
+        >
+          <rect
+            fill="#315cac"
+            height="120"
+            opacity="100%"
+            rx="15"
+            ry="15"
+            width="120"
+            x="0"
+            y="0"
+          />
+          <text
+            fill="#FFFFFF"
+            font-size="65"
+            style="dominant-baseline: central;"
+            text-anchor="middle"
+            x="50%"
+            y="50%"
+          >
+            B
+          </text>
+        </svg>
+      </span>
+    </span>
+  </div>
+</div>
+`;

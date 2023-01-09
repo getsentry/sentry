@@ -1,0 +1,153 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`SplitDiff renders 1`] = `
+<div>
+  <table
+    class="css-18p7gye-SplitTable e1fxrp6z5"
+    data-test-id="split-diff"
+  >
+    <tbody
+      class="css-69spau-SplitBody e1fxrp6z4"
+    >
+      <tr>
+        <td
+          class="css-18bd3s4-Cell e1fxrp6z3"
+        >
+          <div
+            class="css-1fil82z-Line e1fxrp6z1"
+          >
+            <span
+              class="css-14ol76t-Word e1fxrp6z0"
+            >
+              restaurant
+            </span>
+          </div>
+        </td>
+        <td
+          class="css-13hcps-Gap e1fxrp6z2"
+        />
+        <td
+          class="css-182lmus-Cell e1fxrp6z3"
+        >
+          <div
+            class="css-1fil82z-Line e1fxrp6z1"
+          >
+            <span
+              class="css-eukqn3-Word e1fxrp6z0"
+            >
+              aura
+            </span>
+          </div>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+`;
+
+exports[`SplitDiff renders with newlines 1`] = `
+<div>
+  <table
+    class="css-18p7gye-SplitTable e1fxrp6z5"
+    data-test-id="split-diff"
+  >
+    <tbody
+      class="css-69spau-SplitBody e1fxrp6z4"
+    >
+      <tr>
+        <td
+          class="css-18bd3s4-Cell e1fxrp6z3"
+        >
+          <div
+            class="css-1fil82z-Line e1fxrp6z1"
+          >
+            <span
+              class="css-14ol76t-Word e1fxrp6z0"
+            >
+              this is my restaurant
+            </span>
+          </div>
+        </td>
+        <td
+          class="css-13hcps-Gap e1fxrp6z2"
+        />
+        <td
+          class="css-182lmus-Cell e1fxrp6z3"
+        >
+          <div
+            class="css-1fil82z-Line e1fxrp6z1"
+          >
+            <span
+              class="css-eukqn3-Word e1fxrp6z0"
+            >
+              aura
+            </span>
+          </div>
+        </td>
+      </tr>
+      <tr>
+        <td
+          class="css-18bd3s4-Cell e1fxrp6z3"
+        >
+          <div
+            class="css-1fil82z-Line e1fxrp6z1"
+          >
+            <span
+              class="css-14ol76t-Word e1fxrp6z0"
+            >
+                  and restaurant
+            </span>
+          </div>
+        </td>
+        <td
+          class="css-13hcps-Gap e1fxrp6z2"
+        />
+        <td
+          class="css-182lmus-Cell e1fxrp6z3"
+        >
+          <div
+            class="css-1fil82z-Line e1fxrp6z1"
+          >
+            <span
+              class="css-eukqn3-Word e1fxrp6z0"
+            >
+                  and your aura
+            </span>
+          </div>
+        </td>
+      </tr>
+      <tr>
+        <td
+          class="css-1kp4lih-Cell e1fxrp6z3"
+        >
+          <div
+            class="css-1fil82z-Line e1fxrp6z1"
+          >
+            <span
+              class="css-16nwljm-Word e1fxrp6z0"
+            >
+                  common
+            </span>
+          </div>
+        </td>
+        <td
+          class="css-13hcps-Gap e1fxrp6z2"
+        />
+        <td
+          class="css-1kp4lih-Cell e1fxrp6z3"
+        >
+          <div
+            class="css-1fil82z-Line e1fxrp6z1"
+          >
+            <span
+              class="css-16nwljm-Word e1fxrp6z0"
+            >
+                  common
+            </span>
+          </div>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+`;

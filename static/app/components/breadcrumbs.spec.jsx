@@ -39,7 +39,7 @@ describe('Breadcrumbs', () => {
 
   it('renders crumbs with icon', () => {
     const wrapper = createWrapper();
-    expect(wrapper.container).toSnapshot();
+    expect(wrapper.container).toMatchSnapshot();
   });
 
   it('generates correct links', () => {

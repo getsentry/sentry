@@ -1,0 +1,349 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`AccountEmails renders with emails 1`] = `
+<div>
+  <div
+    class="css-q8xgg6-SettingsPageHeader e1nr98yc2"
+  >
+    <div
+      class="css-1mfa9vw-TitleAndActions e1nr98yc8"
+    >
+      <div
+        class="css-u3au9h-TitleWrapper e1nr98yc7"
+      >
+        <div
+          class="css-18xqiae-Title e1nr98yc6"
+        >
+          <h4
+            class="css-jz1c1u-HeaderTitle e12cn1y20"
+          >
+            Email Addresses
+          </h4>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div
+    class="css-2fj46w-Panel edxrl2k0"
+  >
+    <div
+      class="css-1v7t0a0-PanelHeader-getPadding eknsyxy0"
+    >
+      Email Addresses
+    </div>
+    <div
+      class="css-pemm1r-PanelBody-textStyles eszvord0"
+    >
+      <div
+        class="css-jx49c0-PanelItem-EmailItem etbgoaq0"
+      >
+        <div
+          class="css-1vfb1fh-EmailTags etbgoaq1"
+        >
+          primary@example.com
+          <span
+            class="css-13g1j83-TagWrapper e8jgvoh4"
+          >
+            <div
+              class="css-174bco3-Background e8jgvoh3"
+              type="success"
+            >
+              <span
+                class="css-uly9e3-Text e8jgvoh1"
+                type="success"
+              >
+                Primary
+              </span>
+            </div>
+          </span>
+        </div>
+        <div
+          class="css-yo4yps-ButtonGrid e1n9g4yq0"
+        />
+      </div>
+      <div
+        class="css-jx49c0-PanelItem-EmailItem etbgoaq0"
+      >
+        <div
+          class="css-1vfb1fh-EmailTags etbgoaq1"
+        >
+          secondary1@example.com
+        </div>
+        <div
+          class="css-yo4yps-ButtonGrid e1n9g4yq0"
+        >
+          <button
+            aria-disabled="false"
+            aria-label="Set as primary"
+            class="css-1qcj53z-StyledButton-getColors-getButtonStyles e1b8u3ky2"
+            role="button"
+            type="button"
+          >
+            <span
+              class="css-vul34l-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+              role="presentation"
+            />
+            <span
+              class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+            >
+              Set as primary
+            </span>
+          </button>
+          <button
+            aria-disabled="false"
+            aria-label="Remove email"
+            class="css-byuhyl-StyledButton-getColors-getButtonStyles e1b8u3ky2"
+            data-test-id="remove"
+            role="button"
+            type="button"
+          >
+            <span
+              class="css-at526y-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+              role="presentation"
+            />
+            <span
+              class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+            >
+              <span
+                class="css-161yn40-Icon e1b8u3ky0"
+              >
+                <svg
+                  fill="currentColor"
+                  height="16px"
+                  viewBox="0 0 16 16"
+                  width="16px"
+                >
+                  <path
+                    d="M14.71,3.94H1.29a.75.75,0,0,1,0-1.5H14.71a.75.75,0,0,1,0,1.5Z"
+                  />
+                  <path
+                    d="M12.69,15.94H3.31a1.75,1.75,0,0,1-1.75-1.75v-11h1.5v11a.25.25,0,0,0,.25.25h9.38a.25.25,0,0,0,.25-.25v-11h1.5v11A1.75,1.75,0,0,1,12.69,15.94Z"
+                  />
+                  <path
+                    d="M5,13a.74.74,0,0,1-.75-.75V6.14a.75.75,0,0,1,1.5,0v6.1A.75.75,0,0,1,5,13Z"
+                  />
+                  <path
+                    d="M8,13a.75.75,0,0,1-.75-.75V6.14a.75.75,0,0,1,1.5,0v6.1A.75.75,0,0,1,8,13Z"
+                  />
+                  <path
+                    d="M11.05,13a.75.75,0,0,1-.75-.75V6.14a.75.75,0,0,1,1.5,0v6.1A.74.74,0,0,1,11.05,13Z"
+                  />
+                  <path
+                    d="M10.51,3.47l-.81-2H6.3l-.81,2L4.1,2.91,5,.77A1.26,1.26,0,0,1,6.13,0H9.87A1.26,1.26,0,0,1,11,.77l.87,2.14Z"
+                  />
+                </svg>
+              </span>
+            </span>
+          </button>
+        </div>
+      </div>
+      <div
+        class="css-jx49c0-PanelItem-EmailItem etbgoaq0"
+      >
+        <div
+          class="css-1vfb1fh-EmailTags etbgoaq1"
+        >
+          secondary2@example.com
+          <span
+            class="css-13g1j83-TagWrapper e8jgvoh4"
+          >
+            <div
+              class="css-8fao5s-Background e8jgvoh3"
+              type="warning"
+            >
+              <span
+                class="css-uly9e3-Text e8jgvoh1"
+                type="warning"
+              >
+                Unverified
+              </span>
+            </div>
+          </span>
+        </div>
+        <div
+          class="css-yo4yps-ButtonGrid e1n9g4yq0"
+        >
+          <button
+            aria-disabled="false"
+            aria-label="Resend verification"
+            class="css-1qcj53z-StyledButton-getColors-getButtonStyles e1b8u3ky2"
+            role="button"
+            type="button"
+          >
+            <span
+              class="css-vul34l-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+              role="presentation"
+            />
+            <span
+              class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+            >
+              Resend verification
+            </span>
+          </button>
+          <button
+            aria-disabled="false"
+            aria-label="Remove email"
+            class="css-byuhyl-StyledButton-getColors-getButtonStyles e1b8u3ky2"
+            data-test-id="remove"
+            role="button"
+            type="button"
+          >
+            <span
+              class="css-at526y-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+              role="presentation"
+            />
+            <span
+              class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+            >
+              <span
+                class="css-161yn40-Icon e1b8u3ky0"
+              >
+                <svg
+                  fill="currentColor"
+                  height="16px"
+                  viewBox="0 0 16 16"
+                  width="16px"
+                >
+                  <path
+                    d="M14.71,3.94H1.29a.75.75,0,0,1,0-1.5H14.71a.75.75,0,0,1,0,1.5Z"
+                  />
+                  <path
+                    d="M12.69,15.94H3.31a1.75,1.75,0,0,1-1.75-1.75v-11h1.5v11a.25.25,0,0,0,.25.25h9.38a.25.25,0,0,0,.25-.25v-11h1.5v11A1.75,1.75,0,0,1,12.69,15.94Z"
+                  />
+                  <path
+                    d="M5,13a.74.74,0,0,1-.75-.75V6.14a.75.75,0,0,1,1.5,0v6.1A.75.75,0,0,1,5,13Z"
+                  />
+                  <path
+                    d="M8,13a.75.75,0,0,1-.75-.75V6.14a.75.75,0,0,1,1.5,0v6.1A.75.75,0,0,1,8,13Z"
+                  />
+                  <path
+                    d="M11.05,13a.75.75,0,0,1-.75-.75V6.14a.75.75,0,0,1,1.5,0v6.1A.74.74,0,0,1,11.05,13Z"
+                  />
+                  <path
+                    d="M10.51,3.47l-.81-2H6.3l-.81,2L4.1,2.91,5,.77A1.26,1.26,0,0,1,6.13,0H9.87A1.26,1.26,0,0,1,11,.77l.87,2.14Z"
+                  />
+                </svg>
+              </span>
+            </span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <form
+    class="form-stacked"
+  >
+    <div>
+      <div>
+        <div
+          class="css-2fj46w-Panel edxrl2k0"
+          id="Add-Secondary-Emails"
+        >
+          <div
+            class="css-1v7t0a0-PanelHeader-getPadding eknsyxy0"
+          >
+            Add Secondary Emails
+          </div>
+          <div
+            class="css-pemm1r-PanelBody-textStyles eszvord0"
+          >
+            <div
+              class="css-1s6sn9m-FieldWrapper-getPadding-inlineStyle-FieldWrapper-FieldWrapper e12z3jxd0"
+            >
+              <label
+                aria-label="Additional Email"
+                class="css-1lqelms-FieldDescription-inlineStyle e1cwyh1y0"
+                for="email"
+              >
+                <div
+                  class="css-1amoduc-FieldLabel ekcr5um0"
+                >
+                  <span>
+                    Additional Email
+                  </span>
+                </div>
+                <div
+                  class="css-14bl5nc-FieldHelp e1mobfxl0"
+                  id="email_help"
+                >
+                  Designate an alternative email for this account
+                </div>
+              </label>
+              <div
+                class="css-msyoo4-FieldControlWrapper e1ap0t511"
+              >
+                <div
+                  class="css-sse8ie-FieldControlStyled e1ap0t510"
+                >
+                  <div
+                    class="css-1biel1q-InputGroupWrap e13j5zq05"
+                  >
+                    <input
+                      aria-describedby="email_help"
+                      class="css-bjpyf7-Input-inputStyles-StyledInput-getInputStyles e13j5zq03"
+                      id="email"
+                      label="Additional Email"
+                      name="email"
+                      placeholder="e.g. secondary@example.com"
+                      type="text"
+                      value=""
+                    />
+                    <div
+                      class="css-vdn3ll-InputItemsWrap-InputTrailingItemsWrap e13j5zq00"
+                      data-test-id="input-trailing-items"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </form>
+  <a
+    class="ear9tuy3 css-l9fiww-Link-StyledLink e1ycxor00"
+  >
+    <span
+      class="css-xaijms-IconWrapper ear9tuy2"
+    >
+      <svg
+        fill="currentColor"
+        height="16px"
+        viewBox="0 0 16 16"
+        width="16px"
+      >
+        <path
+          d="M8,9.87a.76.76,0,0,1-.38-.11L.39,5.59A.74.74,0,0,1,0,4.94a.77.77,0,0,1,.37-.65L7.62.12a.79.79,0,0,1,.76,0l7.23,4.17a.77.77,0,0,1,.37.65.74.74,0,0,1-.37.65L8.38,9.76A.76.76,0,0,1,8,9.87ZM2.27,4.94,8,8.25l5.73-3.31L8,1.64Z"
+        />
+        <path
+          d="M8,12.93a.75.75,0,0,1-.38-.1L.39,8.66a.76.76,0,0,1-.27-1,.75.75,0,0,1,1-.27l6.86,4,6.86-3.95a.75.75,0,0,1,1,.27.76.76,0,0,1-.27,1L8.38,12.83A.75.75,0,0,1,8,12.93Z"
+        />
+        <path
+          d="M8,16a.76.76,0,0,1-.38-.11L.39,11.72a.75.75,0,0,1,.75-1.3l6.86,4,6.86-4a.75.75,0,0,1,1,.28.75.75,0,0,1-.27,1L8.38,15.89A.76.76,0,0,1,8,16Z"
+        />
+      </svg>
+    </span>
+    <div
+      class="css-s2q57m-AlertLinkText ear9tuy0"
+    >
+      Want to change how many emails you get? Use the notifications panel.
+    </div>
+    <span
+      class="css-1awjzu4-IconWrapper-IconLink ear9tuy1"
+    >
+      <svg
+        class="css-grvq9j-IconChevron"
+        fill="currentColor"
+        height="16px"
+        viewBox="0 0 16 16"
+        width="16px"
+      >
+        <path
+          d="M14,11.75a.74.74,0,0,1-.53-.22L8,6.06,2.53,11.53a.75.75,0,0,1-1.06-1.06l6-6a.75.75,0,0,1,1.06,0l6,6a.75.75,0,0,1,0,1.06A.74.74,0,0,1,14,11.75Z"
+        />
+      </svg>
+    </span>
+  </a>
+</div>
+`;

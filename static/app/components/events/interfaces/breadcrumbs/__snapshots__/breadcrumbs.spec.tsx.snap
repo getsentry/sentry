@@ -1,0 +1,2658 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Breadcrumbs replay should not render the replay inline onboarding component when the project is not JS 1`] = `
+<div>
+  <div
+    class=" css-bxfmzo-DataSection e9xr8173"
+  >
+    <div
+      class="css-1urn6d8-SectionHeader-SectionHeader e11dlz2y2"
+      id="breadcrumbs"
+    >
+      <div
+        class="css-jgc6yt-Title e11dlz2y6"
+      >
+        <span
+          class="permalink css-h3mo6t-Permalink e11dlz2y5"
+        >
+          <a
+            class="css-ayx9xx-Anchor-PermalinkAnchor e11dlz2y3"
+            href="#breadcrumbs"
+          >
+            <svg
+              class="css-8lz1ax-StyledIconLink e11dlz2y4"
+              fill="#80708F"
+              height="12px"
+              viewBox="0 0 16 16"
+              width="12px"
+            >
+              <path
+                d="M4.58,9.5a.71.71,0,0,1-.53-.22L1.16,6.4l0,0h0L1,6.22a.49.49,0,0,1-.11-.14A3.68,3.68,0,0,1,6.06.9.49.49,0,0,1,6.2,1L9.26,4.07a.74.74,0,0,1,0,1.06.75.75,0,0,1-1.06,0L5.32,2.24l0,0A2.19,2.19,0,0,0,2.18,5.29L5.11,8.22a.75.75,0,0,1,0,1.06A.74.74,0,0,1,4.58,9.5Z"
+              />
+              <path
+                d="M12.21,15.91A3.68,3.68,0,0,1,9.9,15.1L9.75,15l-3-3.06a.74.74,0,0,1,0-1.06.75.75,0,0,1,1.06,0l2.89,2.9h0a2.18,2.18,0,0,0,3.09-3.09h0l-2.9-2.9a.77.77,0,0,1,0-1.07.75.75,0,0,1,1.06,0L15,9.77l.11.15a3.69,3.69,0,0,1-2.87,6Z"
+              />
+              <path
+                d="M11.92,12.69a.74.74,0,0,1-.53-.22L3.5,4.58A.75.75,0,1,1,4.56,3.52l7.89,7.89a.74.74,0,0,1,0,1.06A.71.71,0,0,1,11.92,12.69Z"
+              />
+            </svg>
+          </a>
+          <h3>
+            Breadcrumbs
+          </h3>
+        </span>
+      </div>
+    </div>
+    <div
+      class="css-1o3cuay-SectionContents e11dlz2y1"
+    >
+      <div
+        class="css-1m3gpcv-SearchAndSortWrapper e1yi7ti21"
+      >
+        <div
+          class="css-c0hg7j-Wrapper e19685a32"
+        >
+          <div
+            class="css-tea0zw-MenuControlWrap ems9bqr7"
+            role="presentation"
+          >
+            <button
+              aria-disabled="false"
+              aria-expanded="false"
+              aria-haspopup="listbox"
+              class="e19685a30 e1u0jomf1 css-17o7lhn-StyledButton-getColors-getButtonStyles-StyledButton-StyledTrigger e1b8u3ky2"
+              id="react-aria6024828887-44"
+              role="button"
+              type="button"
+            >
+              <span
+                class="css-vul34l-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+                role="presentation"
+              />
+              <span
+                class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+              >
+                Filter By
+                <svg
+                  aria-hidden="true"
+                  class="e1u0jomf2 css-tq1qdr-IconChevron-StyledChevron"
+                  fill="currentColor"
+                  height="12px"
+                  viewBox="0 0 16 16"
+                  width="12px"
+                >
+                  <path
+                    d="M14,11.75a.74.74,0,0,1-.53-.22L8,6.06,2.53,11.53a.75.75,0,0,1-1.06-1.06l6-6a.75.75,0,0,1,1.06,0l6,6a.75.75,0,0,1,0,1.06A.74.74,0,0,1,14,11.75Z"
+                  />
+                </svg>
+              </span>
+            </button>
+          </div>
+          <form
+            class="e19685a31 css-8pb9o0-FormWrap-StyledSearchBar e4xnwji2"
+          >
+            <div
+              class="css-1biel1q-InputGroupWrap e13j5zq05"
+            >
+              <div
+                class="css-j206kq-InputItemsWrap-InputLeadingItemsWrap e13j5zq01"
+                data-test-id="input-leading-items"
+              >
+                <svg
+                  fill="#80708F"
+                  height="16px"
+                  viewBox="0 0 16 16"
+                  width="16px"
+                >
+                  <path
+                    d="M6,12A6,6,0,1,1,12,6,6,6,0,0,1,6,12ZM6,1.54A4.46,4.46,0,1,0,10.45,6,4.46,4.46,0,0,0,6,1.54Z"
+                  />
+                  <path
+                    d="M15.2,16a.74.74,0,0,1-.53-.22L9.14,10.2A.75.75,0,0,1,10.2,9.14l5.53,5.53a.75.75,0,0,1,0,1.06A.74.74,0,0,1,15.2,16Z"
+                  />
+                </svg>
+              </div>
+              <input
+                autocomplete="off"
+                class="e4xnwji1 css-1wfpay8-Input-inputStyles-StyledInput-getInputStyles-StyledInput e13j5zq03"
+                name="query"
+                placeholder="Search breadcrumbs"
+                type="text"
+                value=""
+              />
+              <div
+                class="css-lc4in0-InputItemsWrap-InputTrailingItemsWrap e13j5zq00"
+                data-test-id="input-trailing-items"
+              />
+            </div>
+          </form>
+        </div>
+        <div
+          class="css-tea0zw-MenuControlWrap ems9bqr7"
+          role="presentation"
+        >
+          <button
+            aria-disabled="false"
+            aria-expanded="false"
+            aria-haspopup="listbox"
+            class="e1u0jomf1 css-frwl2a-StyledButton-getColors-getButtonStyles-StyledButton e1b8u3ky2"
+            id="react-aria6024828887-47"
+            role="button"
+            type="button"
+          >
+            <span
+              class="css-vul34l-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+              role="presentation"
+            />
+            <span
+              class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+            >
+              <span
+                class="css-1ywt59b-Icon e1b8u3ky0"
+              >
+                <svg
+                  class="css-0"
+                  fill="currentColor"
+                  height="16px"
+                  viewBox="0 0 16 16"
+                  width="16px"
+                >
+                  <path
+                    d="M15.49 11.76a.75.75 0 0 1-.22.53l-2.88 2.88a.75.75 0 0 1-1.06 0l-2.87-2.88a.74.74 0 0 1 0-1.06.75.75 0 0 1 1.06 0l2.34 2.35 2.35-2.35a.75.75 0 0 1 1.06 0 .79.79 0 0 1 .22.53Z"
+                  />
+                  <path
+                    d="M12.61 1.34v13.3a.75.75 0 1 1-1.5 0V1.34a.75.75 0 1 1 1.5 0Z"
+                  />
+                  <path
+                    d="M7.87 4.22a.74.74 0 0 1-.22.53.75.75 0 0 1-1.06 0L4.25 2.4 1.9 4.75A.75.75 0 0 1 .84 3.69L3.72.81a.75.75 0 0 1 1.06 0l2.87 2.88a.74.74 0 0 1 .22.53Z"
+                  />
+                  <path
+                    d="M5 1.34v13.3a.75.75 0 1 1-1.5 0V1.34a.75.75 0 0 1 1.5 0Z"
+                  />
+                </svg>
+              </span>
+              <span
+                class="css-1wc0ez-ButtonLabel-overflowEllipsis ems9bqr6"
+              >
+                Newest
+              </span>
+              <svg
+                aria-hidden="true"
+                class="e1u0jomf2 css-tq1qdr-IconChevron-StyledChevron"
+                fill="currentColor"
+                height="12px"
+                viewBox="0 0 16 16"
+                width="12px"
+              >
+                <path
+                  d="M14,11.75a.74.74,0,0,1-.53-.22L8,6.06,2.53,11.53a.75.75,0,0,1-1.06-1.06l6-6a.75.75,0,0,1,1.06,0l6,6a.75.75,0,0,1,0,1.06A.74.74,0,0,1,14,11.75Z"
+                />
+              </svg>
+            </span>
+          </button>
+        </div>
+      </div>
+      <div
+        class="ek9cpoc4 css-1gd73il-Panel-Wrapper-StyledPanelTable eswnkzd1"
+      >
+        <div
+          class="css-11gnd7u-PanelTableHeader eswnkzd0"
+          data-test-id="table-header"
+        >
+          Type
+        </div>
+        <div
+          class="css-11gnd7u-PanelTableHeader eswnkzd0"
+          data-test-id="table-header"
+        >
+          Category
+        </div>
+        <div
+          class="css-11gnd7u-PanelTableHeader eswnkzd0"
+          data-test-id="table-header"
+        >
+          Description
+        </div>
+        <div
+          class="css-11gnd7u-PanelTableHeader eswnkzd0"
+          data-test-id="table-header"
+        >
+          Level
+        </div>
+        <div
+          class="css-11gnd7u-PanelTableHeader eswnkzd0"
+          data-test-id="table-header"
+        >
+          <div
+            class="css-o72swy-Time ek9cpoc3"
+          >
+            <span
+              aria-describedby="tooltip-ut9ljm1gr"
+              class="css-19485un-Container e1lk5gpt0"
+            >
+              <svg
+                class="ek9cpoc2 css-1fcucwj-IconSort-StyledIconSort"
+                fill="currentColor"
+                height="12px"
+                viewBox="0 0 16 16"
+                width="12px"
+              >
+                <path
+                  d="M15.49 11.76a.75.75 0 0 1-.22.53l-2.88 2.88a.75.75 0 0 1-1.06 0l-2.87-2.88a.74.74 0 0 1 0-1.06.75.75 0 0 1 1.06 0l2.34 2.35 2.35-2.35a.75.75 0 0 1 1.06 0 .79.79 0 0 1 .22.53Z"
+                />
+                <path
+                  d="M12.61 1.34v13.3a.75.75 0 1 1-1.5 0V1.34a.75.75 0 1 1 1.5 0Z"
+                />
+                <path
+                  d="M7.87 4.22a.74.74 0 0 1-.22.53.75.75 0 0 1-1.06 0L4.25 2.4 1.9 4.75A.75.75 0 0 1 .84 3.69L3.72.81a.75.75 0 0 1 1.06 0l2.87 2.88a.74.74 0 0 1 .22.53Z"
+                />
+                <path
+                  d="M5 1.34v13.3a.75.75 0 1 1-1.5 0V1.34a.75.75 0 0 1 1.5 0Z"
+                />
+              </svg>
+            </span>
+            Time
+          </div>
+        </div>
+        <div
+          class="css-11gnd7u-PanelTableHeader eswnkzd0"
+          data-test-id="table-header"
+        />
+        <div
+          class="css-jjg7jw-Content ek9cpoc1"
+        >
+          <div
+            aria-label="grid"
+            aria-readonly="true"
+            class="ReactVirtualized__Grid ReactVirtualized__List css-ylmu2h-StyledList ek9cpoc0"
+            role="grid"
+            style="box-sizing: border-box; direction: ltr; height: 400px; position: relative; width: 100px; will-change: transform; overflow-x: hidden; overflow-y: hidden;"
+            tabindex="0"
+          >
+            <div
+              class="ReactVirtualized__Grid__innerScrollContainer"
+              role="rowgroup"
+              style="width: auto; height: 336px; max-width: 100px; max-height: 336px; overflow: hidden; position: relative;"
+            >
+              <div
+                class="css-155fv93-Wrapper eyhx4920"
+                data-test-id="last-crumb"
+                style="height: 42px; left: 0px; position: absolute; top: 0px; width: 100%;"
+              >
+                <div
+                  class="css-1bnolhm-Wrapper e14ruzvs1"
+                >
+                  <div
+                    aria-describedby="tooltip-0b5koz1v4y"
+                    class="css-15vitan-IconWrapper e14ruzvs0"
+                    color="blue300"
+                  >
+                    <svg
+                      fill="currentColor"
+                      height="12px"
+                      viewBox="0 0 16 16"
+                      width="12px"
+                    >
+                      <path
+                        d="M8,11.78A.74.74,0,0,1,7.24,11V7a.75.75,0,0,1,1.5,0v4A.75.75,0,0,1,8,11.78Z"
+                      />
+                      <circle
+                        cx="8"
+                        cy="4.78"
+                        r="0.76"
+                      />
+                      <path
+                        d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z"
+                      />
+                    </svg>
+                  </div>
+                </div>
+                <div
+                  class="css-1wb02xp-Wrapper e13lusih0"
+                  title="message"
+                >
+                  message
+                </div>
+                <div
+                  class="css-1l59n44-Wrapper e1qu9uwz2"
+                >
+                  <code
+                    class="css-11kferb-StyledCode e1qu9uwz0"
+                  >
+                    ApiException
+                  </code>
+                </div>
+                <div>
+                  <span
+                    class="e1pcrnqj0 css-4nkaoc-TagWrapper-LevelTag e8jgvoh4"
+                  >
+                    <div
+                      class="css-15z9say-Background e8jgvoh3"
+                      type="default"
+                    >
+                      <span
+                        class="css-uly9e3-Text e8jgvoh1"
+                        type="default"
+                      >
+                        undefined
+                      </span>
+                    </div>
+                  </span>
+                </div>
+                <div
+                  class="css-157ouhb-Wrapper e1yaumuq1"
+                >
+                  <span
+                    aria-describedby="tooltip-nrr1z42l0b"
+                    class="css-19485un-Container e1lk5gpt0"
+                  >
+                    18:01:48
+                  </span>
+                </div>
+              </div>
+              <div
+                class="css-155fv93-Wrapper eyhx4920"
+                data-test-id="crumb"
+                style="height: 42px; left: 0px; position: absolute; top: 42px; width: 100%;"
+              >
+                <div
+                  class="css-1bnolhm-Wrapper e14ruzvs1"
+                >
+                  <div
+                    aria-describedby="tooltip-65s3nfuzg7"
+                    class="css-15vitan-IconWrapper e14ruzvs0"
+                    color="blue300"
+                  >
+                    <svg
+                      fill="currentColor"
+                      height="12px"
+                      viewBox="0 0 16 16"
+                      width="12px"
+                    >
+                      <path
+                        d="M8,11.78A.74.74,0,0,1,7.24,11V7a.75.75,0,0,1,1.5,0v4A.75.75,0,0,1,8,11.78Z"
+                      />
+                      <circle
+                        cx="8"
+                        cy="4.78"
+                        r="0.76"
+                      />
+                      <path
+                        d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z"
+                      />
+                    </svg>
+                  </div>
+                </div>
+                <div
+                  class="css-1wb02xp-Wrapper e13lusih0"
+                  title="default"
+                >
+                  default
+                </div>
+                <div
+                  class="css-1l59n44-Wrapper e1qu9uwz2"
+                >
+                  <code
+                    class="css-11kferb-StyledCode e1qu9uwz0"
+                  >
+                    sup
+                  </code>
+                </div>
+                <div>
+                  <span
+                    class="e1pcrnqj0 css-4nkaoc-TagWrapper-LevelTag e8jgvoh4"
+                  >
+                    <div
+                      class="css-venipz-Background e8jgvoh3"
+                      type="info"
+                    >
+                      <span
+                        class="css-uly9e3-Text e8jgvoh1"
+                        type="info"
+                      >
+                        Info
+                      </span>
+                    </div>
+                  </span>
+                </div>
+                <div />
+              </div>
+              <div
+                class="css-155fv93-Wrapper eyhx4920"
+                data-test-id="crumb"
+                style="height: 42px; left: 0px; position: absolute; top: 84px; width: 100%;"
+              >
+                <div
+                  class="css-1bnolhm-Wrapper e14ruzvs1"
+                >
+                  <div
+                    aria-describedby="tooltip-4t6j1v49is"
+                    class="css-15vitan-IconWrapper e14ruzvs0"
+                    color="blue300"
+                  >
+                    <svg
+                      fill="currentColor"
+                      height="12px"
+                      viewBox="0 0 16 16"
+                      width="12px"
+                    >
+                      <path
+                        d="M8,11.78A.74.74,0,0,1,7.24,11V7a.75.75,0,0,1,1.5,0v4A.75.75,0,0,1,8,11.78Z"
+                      />
+                      <circle
+                        cx="8"
+                        cy="4.78"
+                        r="0.76"
+                      />
+                      <path
+                        d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z"
+                      />
+                    </svg>
+                  </div>
+                </div>
+                <div
+                  class="css-1wb02xp-Wrapper e13lusih0"
+                  title="default"
+                >
+                  default
+                </div>
+                <div
+                  class="css-1l59n44-Wrapper e1qu9uwz2"
+                >
+                  <code
+                    class="css-11kferb-StyledCode e1qu9uwz0"
+                  >
+                    sup
+                  </code>
+                </div>
+                <div>
+                  <span
+                    class="e1pcrnqj0 css-4nkaoc-TagWrapper-LevelTag e8jgvoh4"
+                  >
+                    <div
+                      class="css-8fao5s-Background e8jgvoh3"
+                      type="warning"
+                    >
+                      <span
+                        class="css-uly9e3-Text e8jgvoh1"
+                        type="warning"
+                      >
+                        Warning
+                      </span>
+                    </div>
+                  </span>
+                </div>
+                <div />
+              </div>
+              <div
+                class="css-155fv93-Wrapper eyhx4920"
+                data-test-id="crumb"
+                style="height: 42px; left: 0px; position: absolute; top: 126px; width: 100%;"
+              >
+                <div
+                  class="css-1bnolhm-Wrapper e14ruzvs1"
+                >
+                  <div
+                    aria-describedby="tooltip-o87hqnw9fl"
+                    class="css-15vitan-IconWrapper e14ruzvs0"
+                    color="blue300"
+                  >
+                    <svg
+                      fill="currentColor"
+                      height="12px"
+                      viewBox="0 0 16 16"
+                      width="12px"
+                    >
+                      <path
+                        d="M8,11.78A.74.74,0,0,1,7.24,11V7a.75.75,0,0,1,1.5,0v4A.75.75,0,0,1,8,11.78Z"
+                      />
+                      <circle
+                        cx="8"
+                        cy="4.78"
+                        r="0.76"
+                      />
+                      <path
+                        d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z"
+                      />
+                    </svg>
+                  </div>
+                </div>
+                <div
+                  class="css-1wb02xp-Wrapper e13lusih0"
+                  title="error"
+                >
+                  error
+                </div>
+                <div
+                  class="css-1l59n44-Wrapper e1qu9uwz2"
+                >
+                  <code
+                    class="css-11kferb-StyledCode e1qu9uwz0"
+                  >
+                    ok
+                  </code>
+                </div>
+                <div>
+                  <span
+                    class="e1pcrnqj0 css-4nkaoc-TagWrapper-LevelTag e8jgvoh4"
+                  >
+                    <div
+                      class="css-8fao5s-Background e8jgvoh3"
+                      type="warning"
+                    >
+                      <span
+                        class="css-uly9e3-Text e8jgvoh1"
+                        type="warning"
+                      >
+                        Warning
+                      </span>
+                    </div>
+                  </span>
+                </div>
+                <div />
+              </div>
+              <div
+                class="css-155fv93-Wrapper eyhx4920"
+                data-test-id="crumb"
+                style="height: 42px; left: 0px; position: absolute; top: 168px; width: 100%;"
+              >
+                <div
+                  class="css-1bnolhm-Wrapper e14ruzvs1"
+                >
+                  <div
+                    aria-describedby="tooltip-vsyepbe30m"
+                    class="css-15vitan-IconWrapper e14ruzvs0"
+                    color="blue300"
+                  >
+                    <svg
+                      fill="currentColor"
+                      height="12px"
+                      viewBox="0 0 16 16"
+                      width="12px"
+                    >
+                      <path
+                        d="M8,11.78A.74.74,0,0,1,7.24,11V7a.75.75,0,0,1,1.5,0v4A.75.75,0,0,1,8,11.78Z"
+                      />
+                      <circle
+                        cx="8"
+                        cy="4.78"
+                        r="0.76"
+                      />
+                      <path
+                        d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z"
+                      />
+                    </svg>
+                  </div>
+                </div>
+                <div
+                  class="css-1wb02xp-Wrapper e13lusih0"
+                  title="default"
+                >
+                  default
+                </div>
+                <div
+                  class="css-1l59n44-Wrapper e1qu9uwz2"
+                >
+                  <code
+                    class="css-11kferb-StyledCode e1qu9uwz0"
+                  >
+                    bye
+                  </code>
+                </div>
+                <div>
+                  <span
+                    class="e1pcrnqj0 css-4nkaoc-TagWrapper-LevelTag e8jgvoh4"
+                  >
+                    <div
+                      class="css-8fao5s-Background e8jgvoh3"
+                      type="warning"
+                    >
+                      <span
+                        class="css-uly9e3-Text e8jgvoh1"
+                        type="warning"
+                      >
+                        Warning
+                      </span>
+                    </div>
+                  </span>
+                </div>
+                <div />
+              </div>
+              <div
+                class="css-155fv93-Wrapper eyhx4920"
+                data-test-id="crumb"
+                style="height: 42px; left: 0px; position: absolute; top: 210px; width: 100%;"
+              >
+                <div
+                  class="css-1bnolhm-Wrapper e14ruzvs1"
+                >
+                  <div
+                    aria-describedby="tooltip-d2402g06jo"
+                    class="css-15vitan-IconWrapper e14ruzvs0"
+                    color="blue300"
+                  >
+                    <svg
+                      fill="currentColor"
+                      height="12px"
+                      viewBox="0 0 16 16"
+                      width="12px"
+                    >
+                      <path
+                        d="M8,11.78A.74.74,0,0,1,7.24,11V7a.75.75,0,0,1,1.5,0v4A.75.75,0,0,1,8,11.78Z"
+                      />
+                      <circle
+                        cx="8"
+                        cy="4.78"
+                        r="0.76"
+                      />
+                      <path
+                        d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z"
+                      />
+                    </svg>
+                  </div>
+                </div>
+                <div
+                  class="css-1wb02xp-Wrapper e13lusih0"
+                  title="default"
+                >
+                  default
+                </div>
+                <div
+                  class="css-1l59n44-Wrapper e1qu9uwz2"
+                >
+                  <code
+                    class="css-11kferb-StyledCode e1qu9uwz0"
+                  >
+                    hello
+                  </code>
+                </div>
+                <div>
+                  <span
+                    class="e1pcrnqj0 css-4nkaoc-TagWrapper-LevelTag e8jgvoh4"
+                  >
+                    <div
+                      class="css-8fao5s-Background e8jgvoh3"
+                      type="warning"
+                    >
+                      <span
+                        class="css-uly9e3-Text e8jgvoh1"
+                        type="warning"
+                      >
+                        Warning
+                      </span>
+                    </div>
+                  </span>
+                </div>
+                <div />
+              </div>
+              <div
+                class="css-155fv93-Wrapper eyhx4920"
+                data-test-id="crumb"
+                style="height: 42px; left: 0px; position: absolute; top: 252px; width: 100%;"
+              >
+                <div
+                  class="css-1bnolhm-Wrapper e14ruzvs1"
+                >
+                  <div
+                    aria-describedby="tooltip-2tbapmdfk9"
+                    class="css-15vitan-IconWrapper e14ruzvs0"
+                    color="blue300"
+                  >
+                    <svg
+                      fill="currentColor"
+                      height="12px"
+                      viewBox="0 0 16 16"
+                      width="12px"
+                    >
+                      <path
+                        d="M8,11.78A.74.74,0,0,1,7.24,11V7a.75.75,0,0,1,1.5,0v4A.75.75,0,0,1,8,11.78Z"
+                      />
+                      <circle
+                        cx="8"
+                        cy="4.78"
+                        r="0.76"
+                      />
+                      <path
+                        d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z"
+                      />
+                    </svg>
+                  </div>
+                </div>
+                <div
+                  class="css-1wb02xp-Wrapper e13lusih0"
+                  title="error"
+                >
+                  error
+                </div>
+                <div
+                  class="css-1l59n44-Wrapper e1qu9uwz2"
+                >
+                  <code
+                    class="css-11kferb-StyledCode e1qu9uwz0"
+                  >
+                    hey
+                  </code>
+                </div>
+                <div>
+                  <span
+                    class="e1pcrnqj0 css-4nkaoc-TagWrapper-LevelTag e8jgvoh4"
+                  >
+                    <div
+                      class="css-venipz-Background e8jgvoh3"
+                      type="info"
+                    >
+                      <span
+                        class="css-uly9e3-Text e8jgvoh1"
+                        type="info"
+                      >
+                        Info
+                      </span>
+                    </div>
+                  </span>
+                </div>
+                <div />
+              </div>
+              <div
+                class="css-155fv93-Wrapper eyhx4920"
+                data-test-id="crumb"
+                style="height: 42px; left: 0px; position: absolute; top: 294px; width: 100%;"
+              >
+                <div
+                  class="css-1bnolhm-Wrapper e14ruzvs1"
+                >
+                  <div
+                    aria-describedby="tooltip-e10y838g7q"
+                    class="css-15vitan-IconWrapper e14ruzvs0"
+                    color="blue300"
+                  >
+                    <svg
+                      fill="currentColor"
+                      height="12px"
+                      viewBox="0 0 16 16"
+                      width="12px"
+                    >
+                      <path
+                        d="M8,11.78A.74.74,0,0,1,7.24,11V7a.75.75,0,0,1,1.5,0v4A.75.75,0,0,1,8,11.78Z"
+                      />
+                      <circle
+                        cx="8"
+                        cy="4.78"
+                        r="0.76"
+                      />
+                      <path
+                        d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z"
+                      />
+                    </svg>
+                  </div>
+                </div>
+                <div
+                  class="css-1wb02xp-Wrapper e13lusih0"
+                  title="default"
+                >
+                  default
+                </div>
+                <div
+                  class="css-1l59n44-Wrapper e1qu9uwz2"
+                >
+                  <code
+                    class="css-11kferb-StyledCode e1qu9uwz0"
+                  >
+                    sup
+                  </code>
+                </div>
+                <div>
+                  <span
+                    class="e1pcrnqj0 css-4nkaoc-TagWrapper-LevelTag e8jgvoh4"
+                  >
+                    <div
+                      class="css-8fao5s-Background e8jgvoh3"
+                      type="warning"
+                    >
+                      <span
+                        class="css-uly9e3-Text e8jgvoh1"
+                        type="warning"
+                      >
+                        Warning
+                      </span>
+                    </div>
+                  </span>
+                </div>
+                <div />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`Breadcrumbs replay should render a replay when there is a replayId 1`] = `
+<div>
+  <div
+    class=" css-bxfmzo-DataSection e9xr8173"
+  >
+    <div
+      class="css-1urn6d8-SectionHeader-SectionHeader e11dlz2y2"
+      id="breadcrumbs"
+    >
+      <div
+        class="css-jgc6yt-Title e11dlz2y6"
+      >
+        <span
+          class="permalink css-h3mo6t-Permalink e11dlz2y5"
+        >
+          <a
+            class="css-ayx9xx-Anchor-PermalinkAnchor e11dlz2y3"
+            href="#breadcrumbs"
+          >
+            <svg
+              class="css-8lz1ax-StyledIconLink e11dlz2y4"
+              fill="#80708F"
+              height="12px"
+              viewBox="0 0 16 16"
+              width="12px"
+            >
+              <path
+                d="M4.58,9.5a.71.71,0,0,1-.53-.22L1.16,6.4l0,0h0L1,6.22a.49.49,0,0,1-.11-.14A3.68,3.68,0,0,1,6.06.9.49.49,0,0,1,6.2,1L9.26,4.07a.74.74,0,0,1,0,1.06.75.75,0,0,1-1.06,0L5.32,2.24l0,0A2.19,2.19,0,0,0,2.18,5.29L5.11,8.22a.75.75,0,0,1,0,1.06A.74.74,0,0,1,4.58,9.5Z"
+              />
+              <path
+                d="M12.21,15.91A3.68,3.68,0,0,1,9.9,15.1L9.75,15l-3-3.06a.74.74,0,0,1,0-1.06.75.75,0,0,1,1.06,0l2.89,2.9h0a2.18,2.18,0,0,0,3.09-3.09h0l-2.9-2.9a.77.77,0,0,1,0-1.07.75.75,0,0,1,1.06,0L15,9.77l.11.15a3.69,3.69,0,0,1-2.87,6Z"
+              />
+              <path
+                d="M11.92,12.69a.74.74,0,0,1-.53-.22L3.5,4.58A.75.75,0,1,1,4.56,3.52l7.89,7.89a.74.74,0,0,1,0,1.06A.71.71,0,0,1,11.92,12.69Z"
+              />
+            </svg>
+          </a>
+          <h3>
+            Breadcrumbs
+          </h3>
+        </span>
+      </div>
+    </div>
+    <div
+      class="css-1o3cuay-SectionContents e11dlz2y1"
+    >
+      <div
+        class="css-689zz4-FluidHeight-PlayerContainer e1w9aakf5"
+        data-test-id="player-container"
+      >
+        <div
+          class="css-7sr2n5-FluidHeight-StaticPanel e1w9aakf4"
+        >
+          <div
+            class="sentry-block css-1f27uu1-SizingWindow elabtru4"
+          >
+            <div
+              class="css-7rl3k9-PlayerRoot-SentryPlayerRoot elabtru0"
+            >
+              <div
+                class="replayer-wrapper"
+              >
+                <div
+                  class="replayer-mouse"
+                />
+                <canvas
+                  class="replayer-mouse-tail"
+                  style="display: inherit;"
+                />
+                <iframe
+                  sandbox="allow-same-origin"
+                  scrolling="no"
+                  style="display: none; pointer-events: none;"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+        <div
+          class="css-13ulzbc-CTAOverlay e1w9aakf3"
+        >
+          <a
+            aria-disabled="false"
+            aria-label="Open Replay"
+            class="e1b8u3ky2 css-qok7d0-Link-StyledButton-getColors-getButtonStyles e1ycxor00"
+            role="button"
+          >
+            <span
+              class="css-at526y-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+              role="presentation"
+            />
+            <span
+              class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+            >
+              <span
+                class="css-1ywt59b-Icon e1b8u3ky0"
+              >
+                <svg
+                  fill="currentColor"
+                  height="16px"
+                  viewBox="0 0 16 16"
+                  width="16px"
+                >
+                  <path
+                    d="M2.17,15.48a.69.69,0,0,1-.37-.1.73.73,0,0,1-.38-.65V1.27A.73.73,0,0,1,1.8.62a.77.77,0,0,1,.75,0L14.2,7.35a.75.75,0,0,1,0,1.3L2.55,15.38A.75.75,0,0,1,2.17,15.48ZM2.92,2.57V13.43L12.33,8Z"
+                  />
+                </svg>
+              </span>
+              Open Replay
+            </span>
+          </a>
+        </div>
+        <div
+          class="css-1x5wms9-BadgeContainer e1w9aakf2"
+        >
+          <div
+            class="css-1rhnlpg-FeatureText e1w9aakf1"
+          >
+            Replays
+          </div>
+          <div
+            class="css-10knnk0-FeatureBadge e1g6bd530"
+          >
+            <span
+              aria-describedby="tooltip-ufq2jp84ec"
+              class="css-1y4rfpo-Container e1lk5gpt0"
+            >
+              <span
+                class="css-183tzml-Badge-StyledBadge e1g6bd531"
+                type="beta"
+              >
+                beta
+              </span>
+            </span>
+          </div>
+        </div>
+      </div>
+      <div
+        class="css-1m3gpcv-SearchAndSortWrapper e1yi7ti21"
+      >
+        <div
+          class="css-c0hg7j-Wrapper e19685a32"
+        >
+          <div
+            class="css-tea0zw-MenuControlWrap ems9bqr7"
+            role="presentation"
+          >
+            <button
+              aria-disabled="false"
+              aria-expanded="false"
+              aria-haspopup="listbox"
+              class="e19685a30 e1u0jomf1 css-17o7lhn-StyledButton-getColors-getButtonStyles-StyledButton-StyledTrigger e1b8u3ky2"
+              id="react-aria6024828887-50"
+              role="button"
+              type="button"
+            >
+              <span
+                class="css-vul34l-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+                role="presentation"
+              />
+              <span
+                class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+              >
+                Filter By
+                <svg
+                  aria-hidden="true"
+                  class="e1u0jomf2 css-tq1qdr-IconChevron-StyledChevron"
+                  fill="currentColor"
+                  height="12px"
+                  viewBox="0 0 16 16"
+                  width="12px"
+                >
+                  <path
+                    d="M14,11.75a.74.74,0,0,1-.53-.22L8,6.06,2.53,11.53a.75.75,0,0,1-1.06-1.06l6-6a.75.75,0,0,1,1.06,0l6,6a.75.75,0,0,1,0,1.06A.74.74,0,0,1,14,11.75Z"
+                  />
+                </svg>
+              </span>
+            </button>
+          </div>
+          <form
+            class="e19685a31 css-8pb9o0-FormWrap-StyledSearchBar e4xnwji2"
+          >
+            <div
+              class="css-1biel1q-InputGroupWrap e13j5zq05"
+            >
+              <div
+                class="css-j206kq-InputItemsWrap-InputLeadingItemsWrap e13j5zq01"
+                data-test-id="input-leading-items"
+              >
+                <svg
+                  fill="#80708F"
+                  height="16px"
+                  viewBox="0 0 16 16"
+                  width="16px"
+                >
+                  <path
+                    d="M6,12A6,6,0,1,1,12,6,6,6,0,0,1,6,12ZM6,1.54A4.46,4.46,0,1,0,10.45,6,4.46,4.46,0,0,0,6,1.54Z"
+                  />
+                  <path
+                    d="M15.2,16a.74.74,0,0,1-.53-.22L9.14,10.2A.75.75,0,0,1,10.2,9.14l5.53,5.53a.75.75,0,0,1,0,1.06A.74.74,0,0,1,15.2,16Z"
+                  />
+                </svg>
+              </div>
+              <input
+                autocomplete="off"
+                class="e4xnwji1 css-1wfpay8-Input-inputStyles-StyledInput-getInputStyles-StyledInput e13j5zq03"
+                name="query"
+                placeholder="Search breadcrumbs"
+                type="text"
+                value=""
+              />
+              <div
+                class="css-lc4in0-InputItemsWrap-InputTrailingItemsWrap e13j5zq00"
+                data-test-id="input-trailing-items"
+              />
+            </div>
+          </form>
+        </div>
+        <div
+          class="css-tea0zw-MenuControlWrap ems9bqr7"
+          role="presentation"
+        >
+          <button
+            aria-disabled="false"
+            aria-expanded="false"
+            aria-haspopup="listbox"
+            class="e1u0jomf1 css-frwl2a-StyledButton-getColors-getButtonStyles-StyledButton e1b8u3ky2"
+            id="react-aria6024828887-53"
+            role="button"
+            type="button"
+          >
+            <span
+              class="css-vul34l-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+              role="presentation"
+            />
+            <span
+              class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+            >
+              <span
+                class="css-1ywt59b-Icon e1b8u3ky0"
+              >
+                <svg
+                  class="css-0"
+                  fill="currentColor"
+                  height="16px"
+                  viewBox="0 0 16 16"
+                  width="16px"
+                >
+                  <path
+                    d="M15.49 11.76a.75.75 0 0 1-.22.53l-2.88 2.88a.75.75 0 0 1-1.06 0l-2.87-2.88a.74.74 0 0 1 0-1.06.75.75 0 0 1 1.06 0l2.34 2.35 2.35-2.35a.75.75 0 0 1 1.06 0 .79.79 0 0 1 .22.53Z"
+                  />
+                  <path
+                    d="M12.61 1.34v13.3a.75.75 0 1 1-1.5 0V1.34a.75.75 0 1 1 1.5 0Z"
+                  />
+                  <path
+                    d="M7.87 4.22a.74.74 0 0 1-.22.53.75.75 0 0 1-1.06 0L4.25 2.4 1.9 4.75A.75.75 0 0 1 .84 3.69L3.72.81a.75.75 0 0 1 1.06 0l2.87 2.88a.74.74 0 0 1 .22.53Z"
+                  />
+                  <path
+                    d="M5 1.34v13.3a.75.75 0 1 1-1.5 0V1.34a.75.75 0 0 1 1.5 0Z"
+                  />
+                </svg>
+              </span>
+              <span
+                class="css-1wc0ez-ButtonLabel-overflowEllipsis ems9bqr6"
+              >
+                Newest
+              </span>
+              <svg
+                aria-hidden="true"
+                class="e1u0jomf2 css-tq1qdr-IconChevron-StyledChevron"
+                fill="currentColor"
+                height="12px"
+                viewBox="0 0 16 16"
+                width="12px"
+              >
+                <path
+                  d="M14,11.75a.74.74,0,0,1-.53-.22L8,6.06,2.53,11.53a.75.75,0,0,1-1.06-1.06l6-6a.75.75,0,0,1,1.06,0l6,6a.75.75,0,0,1,0,1.06A.74.74,0,0,1,14,11.75Z"
+                />
+              </svg>
+            </span>
+          </button>
+        </div>
+      </div>
+      <div
+        class="ek9cpoc4 css-1gd73il-Panel-Wrapper-StyledPanelTable eswnkzd1"
+      >
+        <div
+          class="css-11gnd7u-PanelTableHeader eswnkzd0"
+          data-test-id="table-header"
+        >
+          Type
+        </div>
+        <div
+          class="css-11gnd7u-PanelTableHeader eswnkzd0"
+          data-test-id="table-header"
+        >
+          Category
+        </div>
+        <div
+          class="css-11gnd7u-PanelTableHeader eswnkzd0"
+          data-test-id="table-header"
+        >
+          Description
+        </div>
+        <div
+          class="css-11gnd7u-PanelTableHeader eswnkzd0"
+          data-test-id="table-header"
+        >
+          Level
+        </div>
+        <div
+          class="css-11gnd7u-PanelTableHeader eswnkzd0"
+          data-test-id="table-header"
+        >
+          <div
+            class="css-o72swy-Time ek9cpoc3"
+          >
+            <span
+              aria-describedby="tooltip-9hrzlajosg"
+              class="css-19485un-Container e1lk5gpt0"
+            >
+              <svg
+                class="ek9cpoc2 css-1fcucwj-IconSort-StyledIconSort"
+                fill="currentColor"
+                height="12px"
+                viewBox="0 0 16 16"
+                width="12px"
+              >
+                <path
+                  d="M15.49 11.76a.75.75 0 0 1-.22.53l-2.88 2.88a.75.75 0 0 1-1.06 0l-2.87-2.88a.74.74 0 0 1 0-1.06.75.75 0 0 1 1.06 0l2.34 2.35 2.35-2.35a.75.75 0 0 1 1.06 0 .79.79 0 0 1 .22.53Z"
+                />
+                <path
+                  d="M12.61 1.34v13.3a.75.75 0 1 1-1.5 0V1.34a.75.75 0 1 1 1.5 0Z"
+                />
+                <path
+                  d="M7.87 4.22a.74.74 0 0 1-.22.53.75.75 0 0 1-1.06 0L4.25 2.4 1.9 4.75A.75.75 0 0 1 .84 3.69L3.72.81a.75.75 0 0 1 1.06 0l2.87 2.88a.74.74 0 0 1 .22.53Z"
+                />
+                <path
+                  d="M5 1.34v13.3a.75.75 0 1 1-1.5 0V1.34a.75.75 0 0 1 1.5 0Z"
+                />
+              </svg>
+            </span>
+            Time
+          </div>
+        </div>
+        <div
+          class="css-11gnd7u-PanelTableHeader eswnkzd0"
+          data-test-id="table-header"
+        />
+        <div
+          class="css-jjg7jw-Content ek9cpoc1"
+        >
+          <div
+            aria-label="grid"
+            aria-readonly="true"
+            class="ReactVirtualized__Grid ReactVirtualized__List css-ylmu2h-StyledList ek9cpoc0"
+            role="grid"
+            style="box-sizing: border-box; direction: ltr; height: 400px; position: relative; width: 100px; will-change: transform; overflow-x: hidden; overflow-y: hidden;"
+            tabindex="0"
+          >
+            <div
+              class="ReactVirtualized__Grid__innerScrollContainer"
+              role="rowgroup"
+              style="width: auto; height: 336px; max-width: 100px; max-height: 336px; overflow: hidden; position: relative;"
+            >
+              <div
+                class="css-155fv93-Wrapper eyhx4920"
+                data-test-id="last-crumb"
+                style="height: 42px; left: 0px; position: absolute; top: 0px; width: 100%;"
+              >
+                <div
+                  class="css-1bnolhm-Wrapper e14ruzvs1"
+                >
+                  <div
+                    aria-describedby="tooltip-digav61akv"
+                    class="css-15vitan-IconWrapper e14ruzvs0"
+                    color="blue300"
+                  >
+                    <svg
+                      fill="currentColor"
+                      height="12px"
+                      viewBox="0 0 16 16"
+                      width="12px"
+                    >
+                      <path
+                        d="M8,11.78A.74.74,0,0,1,7.24,11V7a.75.75,0,0,1,1.5,0v4A.75.75,0,0,1,8,11.78Z"
+                      />
+                      <circle
+                        cx="8"
+                        cy="4.78"
+                        r="0.76"
+                      />
+                      <path
+                        d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z"
+                      />
+                    </svg>
+                  </div>
+                </div>
+                <div
+                  class="css-1wb02xp-Wrapper e13lusih0"
+                  title="message"
+                >
+                  message
+                </div>
+                <div
+                  class="css-1l59n44-Wrapper e1qu9uwz2"
+                >
+                  <code
+                    class="css-11kferb-StyledCode e1qu9uwz0"
+                  >
+                    ApiException
+                  </code>
+                </div>
+                <div>
+                  <span
+                    class="e1pcrnqj0 css-4nkaoc-TagWrapper-LevelTag e8jgvoh4"
+                  >
+                    <div
+                      class="css-15z9say-Background e8jgvoh3"
+                      type="default"
+                    >
+                      <span
+                        class="css-uly9e3-Text e8jgvoh1"
+                        type="default"
+                      >
+                        undefined
+                      </span>
+                    </div>
+                  </span>
+                </div>
+                <div
+                  class="css-157ouhb-Wrapper e1yaumuq1"
+                >
+                  <span
+                    aria-describedby="tooltip-dostcurs77"
+                    class="css-19485un-Container e1lk5gpt0"
+                  >
+                    18:01:48
+                  </span>
+                </div>
+              </div>
+              <div
+                class="css-155fv93-Wrapper eyhx4920"
+                data-test-id="crumb"
+                style="height: 42px; left: 0px; position: absolute; top: 42px; width: 100%;"
+              >
+                <div
+                  class="css-1bnolhm-Wrapper e14ruzvs1"
+                >
+                  <div
+                    aria-describedby="tooltip-xfqn25y702"
+                    class="css-15vitan-IconWrapper e14ruzvs0"
+                    color="blue300"
+                  >
+                    <svg
+                      fill="currentColor"
+                      height="12px"
+                      viewBox="0 0 16 16"
+                      width="12px"
+                    >
+                      <path
+                        d="M8,11.78A.74.74,0,0,1,7.24,11V7a.75.75,0,0,1,1.5,0v4A.75.75,0,0,1,8,11.78Z"
+                      />
+                      <circle
+                        cx="8"
+                        cy="4.78"
+                        r="0.76"
+                      />
+                      <path
+                        d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z"
+                      />
+                    </svg>
+                  </div>
+                </div>
+                <div
+                  class="css-1wb02xp-Wrapper e13lusih0"
+                  title="default"
+                >
+                  default
+                </div>
+                <div
+                  class="css-1l59n44-Wrapper e1qu9uwz2"
+                >
+                  <code
+                    class="css-11kferb-StyledCode e1qu9uwz0"
+                  >
+                    sup
+                  </code>
+                </div>
+                <div>
+                  <span
+                    class="e1pcrnqj0 css-4nkaoc-TagWrapper-LevelTag e8jgvoh4"
+                  >
+                    <div
+                      class="css-venipz-Background e8jgvoh3"
+                      type="info"
+                    >
+                      <span
+                        class="css-uly9e3-Text e8jgvoh1"
+                        type="info"
+                      >
+                        Info
+                      </span>
+                    </div>
+                  </span>
+                </div>
+                <div />
+              </div>
+              <div
+                class="css-155fv93-Wrapper eyhx4920"
+                data-test-id="crumb"
+                style="height: 42px; left: 0px; position: absolute; top: 84px; width: 100%;"
+              >
+                <div
+                  class="css-1bnolhm-Wrapper e14ruzvs1"
+                >
+                  <div
+                    aria-describedby="tooltip-y0eumpz9te"
+                    class="css-15vitan-IconWrapper e14ruzvs0"
+                    color="blue300"
+                  >
+                    <svg
+                      fill="currentColor"
+                      height="12px"
+                      viewBox="0 0 16 16"
+                      width="12px"
+                    >
+                      <path
+                        d="M8,11.78A.74.74,0,0,1,7.24,11V7a.75.75,0,0,1,1.5,0v4A.75.75,0,0,1,8,11.78Z"
+                      />
+                      <circle
+                        cx="8"
+                        cy="4.78"
+                        r="0.76"
+                      />
+                      <path
+                        d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z"
+                      />
+                    </svg>
+                  </div>
+                </div>
+                <div
+                  class="css-1wb02xp-Wrapper e13lusih0"
+                  title="default"
+                >
+                  default
+                </div>
+                <div
+                  class="css-1l59n44-Wrapper e1qu9uwz2"
+                >
+                  <code
+                    class="css-11kferb-StyledCode e1qu9uwz0"
+                  >
+                    sup
+                  </code>
+                </div>
+                <div>
+                  <span
+                    class="e1pcrnqj0 css-4nkaoc-TagWrapper-LevelTag e8jgvoh4"
+                  >
+                    <div
+                      class="css-8fao5s-Background e8jgvoh3"
+                      type="warning"
+                    >
+                      <span
+                        class="css-uly9e3-Text e8jgvoh1"
+                        type="warning"
+                      >
+                        Warning
+                      </span>
+                    </div>
+                  </span>
+                </div>
+                <div />
+              </div>
+              <div
+                class="css-155fv93-Wrapper eyhx4920"
+                data-test-id="crumb"
+                style="height: 42px; left: 0px; position: absolute; top: 126px; width: 100%;"
+              >
+                <div
+                  class="css-1bnolhm-Wrapper e14ruzvs1"
+                >
+                  <div
+                    aria-describedby="tooltip-bq0gqrxyco"
+                    class="css-15vitan-IconWrapper e14ruzvs0"
+                    color="blue300"
+                  >
+                    <svg
+                      fill="currentColor"
+                      height="12px"
+                      viewBox="0 0 16 16"
+                      width="12px"
+                    >
+                      <path
+                        d="M8,11.78A.74.74,0,0,1,7.24,11V7a.75.75,0,0,1,1.5,0v4A.75.75,0,0,1,8,11.78Z"
+                      />
+                      <circle
+                        cx="8"
+                        cy="4.78"
+                        r="0.76"
+                      />
+                      <path
+                        d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z"
+                      />
+                    </svg>
+                  </div>
+                </div>
+                <div
+                  class="css-1wb02xp-Wrapper e13lusih0"
+                  title="error"
+                >
+                  error
+                </div>
+                <div
+                  class="css-1l59n44-Wrapper e1qu9uwz2"
+                >
+                  <code
+                    class="css-11kferb-StyledCode e1qu9uwz0"
+                  >
+                    ok
+                  </code>
+                </div>
+                <div>
+                  <span
+                    class="e1pcrnqj0 css-4nkaoc-TagWrapper-LevelTag e8jgvoh4"
+                  >
+                    <div
+                      class="css-8fao5s-Background e8jgvoh3"
+                      type="warning"
+                    >
+                      <span
+                        class="css-uly9e3-Text e8jgvoh1"
+                        type="warning"
+                      >
+                        Warning
+                      </span>
+                    </div>
+                  </span>
+                </div>
+                <div />
+              </div>
+              <div
+                class="css-155fv93-Wrapper eyhx4920"
+                data-test-id="crumb"
+                style="height: 42px; left: 0px; position: absolute; top: 168px; width: 100%;"
+              >
+                <div
+                  class="css-1bnolhm-Wrapper e14ruzvs1"
+                >
+                  <div
+                    aria-describedby="tooltip-02zj9nm2rm"
+                    class="css-15vitan-IconWrapper e14ruzvs0"
+                    color="blue300"
+                  >
+                    <svg
+                      fill="currentColor"
+                      height="12px"
+                      viewBox="0 0 16 16"
+                      width="12px"
+                    >
+                      <path
+                        d="M8,11.78A.74.74,0,0,1,7.24,11V7a.75.75,0,0,1,1.5,0v4A.75.75,0,0,1,8,11.78Z"
+                      />
+                      <circle
+                        cx="8"
+                        cy="4.78"
+                        r="0.76"
+                      />
+                      <path
+                        d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z"
+                      />
+                    </svg>
+                  </div>
+                </div>
+                <div
+                  class="css-1wb02xp-Wrapper e13lusih0"
+                  title="default"
+                >
+                  default
+                </div>
+                <div
+                  class="css-1l59n44-Wrapper e1qu9uwz2"
+                >
+                  <code
+                    class="css-11kferb-StyledCode e1qu9uwz0"
+                  >
+                    bye
+                  </code>
+                </div>
+                <div>
+                  <span
+                    class="e1pcrnqj0 css-4nkaoc-TagWrapper-LevelTag e8jgvoh4"
+                  >
+                    <div
+                      class="css-8fao5s-Background e8jgvoh3"
+                      type="warning"
+                    >
+                      <span
+                        class="css-uly9e3-Text e8jgvoh1"
+                        type="warning"
+                      >
+                        Warning
+                      </span>
+                    </div>
+                  </span>
+                </div>
+                <div />
+              </div>
+              <div
+                class="css-155fv93-Wrapper eyhx4920"
+                data-test-id="crumb"
+                style="height: 42px; left: 0px; position: absolute; top: 210px; width: 100%;"
+              >
+                <div
+                  class="css-1bnolhm-Wrapper e14ruzvs1"
+                >
+                  <div
+                    aria-describedby="tooltip-lxxx9y3gj2"
+                    class="css-15vitan-IconWrapper e14ruzvs0"
+                    color="blue300"
+                  >
+                    <svg
+                      fill="currentColor"
+                      height="12px"
+                      viewBox="0 0 16 16"
+                      width="12px"
+                    >
+                      <path
+                        d="M8,11.78A.74.74,0,0,1,7.24,11V7a.75.75,0,0,1,1.5,0v4A.75.75,0,0,1,8,11.78Z"
+                      />
+                      <circle
+                        cx="8"
+                        cy="4.78"
+                        r="0.76"
+                      />
+                      <path
+                        d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z"
+                      />
+                    </svg>
+                  </div>
+                </div>
+                <div
+                  class="css-1wb02xp-Wrapper e13lusih0"
+                  title="default"
+                >
+                  default
+                </div>
+                <div
+                  class="css-1l59n44-Wrapper e1qu9uwz2"
+                >
+                  <code
+                    class="css-11kferb-StyledCode e1qu9uwz0"
+                  >
+                    hello
+                  </code>
+                </div>
+                <div>
+                  <span
+                    class="e1pcrnqj0 css-4nkaoc-TagWrapper-LevelTag e8jgvoh4"
+                  >
+                    <div
+                      class="css-8fao5s-Background e8jgvoh3"
+                      type="warning"
+                    >
+                      <span
+                        class="css-uly9e3-Text e8jgvoh1"
+                        type="warning"
+                      >
+                        Warning
+                      </span>
+                    </div>
+                  </span>
+                </div>
+                <div />
+              </div>
+              <div
+                class="css-155fv93-Wrapper eyhx4920"
+                data-test-id="crumb"
+                style="height: 42px; left: 0px; position: absolute; top: 252px; width: 100%;"
+              >
+                <div
+                  class="css-1bnolhm-Wrapper e14ruzvs1"
+                >
+                  <div
+                    aria-describedby="tooltip-xhn6g78kbc"
+                    class="css-15vitan-IconWrapper e14ruzvs0"
+                    color="blue300"
+                  >
+                    <svg
+                      fill="currentColor"
+                      height="12px"
+                      viewBox="0 0 16 16"
+                      width="12px"
+                    >
+                      <path
+                        d="M8,11.78A.74.74,0,0,1,7.24,11V7a.75.75,0,0,1,1.5,0v4A.75.75,0,0,1,8,11.78Z"
+                      />
+                      <circle
+                        cx="8"
+                        cy="4.78"
+                        r="0.76"
+                      />
+                      <path
+                        d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z"
+                      />
+                    </svg>
+                  </div>
+                </div>
+                <div
+                  class="css-1wb02xp-Wrapper e13lusih0"
+                  title="error"
+                >
+                  error
+                </div>
+                <div
+                  class="css-1l59n44-Wrapper e1qu9uwz2"
+                >
+                  <code
+                    class="css-11kferb-StyledCode e1qu9uwz0"
+                  >
+                    hey
+                  </code>
+                </div>
+                <div>
+                  <span
+                    class="e1pcrnqj0 css-4nkaoc-TagWrapper-LevelTag e8jgvoh4"
+                  >
+                    <div
+                      class="css-venipz-Background e8jgvoh3"
+                      type="info"
+                    >
+                      <span
+                        class="css-uly9e3-Text e8jgvoh1"
+                        type="info"
+                      >
+                        Info
+                      </span>
+                    </div>
+                  </span>
+                </div>
+                <div />
+              </div>
+              <div
+                class="css-155fv93-Wrapper eyhx4920"
+                data-test-id="crumb"
+                style="height: 42px; left: 0px; position: absolute; top: 294px; width: 100%;"
+              >
+                <div
+                  class="css-1bnolhm-Wrapper e14ruzvs1"
+                >
+                  <div
+                    aria-describedby="tooltip-mcpa67a2jz"
+                    class="css-15vitan-IconWrapper e14ruzvs0"
+                    color="blue300"
+                  >
+                    <svg
+                      fill="currentColor"
+                      height="12px"
+                      viewBox="0 0 16 16"
+                      width="12px"
+                    >
+                      <path
+                        d="M8,11.78A.74.74,0,0,1,7.24,11V7a.75.75,0,0,1,1.5,0v4A.75.75,0,0,1,8,11.78Z"
+                      />
+                      <circle
+                        cx="8"
+                        cy="4.78"
+                        r="0.76"
+                      />
+                      <path
+                        d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z"
+                      />
+                    </svg>
+                  </div>
+                </div>
+                <div
+                  class="css-1wb02xp-Wrapper e13lusih0"
+                  title="default"
+                >
+                  default
+                </div>
+                <div
+                  class="css-1l59n44-Wrapper e1qu9uwz2"
+                >
+                  <code
+                    class="css-11kferb-StyledCode e1qu9uwz0"
+                  >
+                    sup
+                  </code>
+                </div>
+                <div>
+                  <span
+                    class="e1pcrnqj0 css-4nkaoc-TagWrapper-LevelTag e8jgvoh4"
+                  >
+                    <div
+                      class="css-8fao5s-Background e8jgvoh3"
+                      type="warning"
+                    >
+                      <span
+                        class="css-uly9e3-Text e8jgvoh1"
+                        type="warning"
+                      >
+                        Warning
+                      </span>
+                    </div>
+                  </span>
+                </div>
+                <div />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`Breadcrumbs replay should render the replay inline onboarding component when replays are enabled and the project supports replay 1`] = `
+<div>
+  <div
+    class=" css-bxfmzo-DataSection e9xr8173"
+  >
+    <div
+      class="css-1urn6d8-SectionHeader-SectionHeader e11dlz2y2"
+      id="breadcrumbs"
+    >
+      <div
+        class="css-jgc6yt-Title e11dlz2y6"
+      >
+        <span
+          class="permalink css-h3mo6t-Permalink e11dlz2y5"
+        >
+          <a
+            class="css-ayx9xx-Anchor-PermalinkAnchor e11dlz2y3"
+            href="#breadcrumbs"
+          >
+            <svg
+              class="css-8lz1ax-StyledIconLink e11dlz2y4"
+              fill="#80708F"
+              height="12px"
+              viewBox="0 0 16 16"
+              width="12px"
+            >
+              <path
+                d="M4.58,9.5a.71.71,0,0,1-.53-.22L1.16,6.4l0,0h0L1,6.22a.49.49,0,0,1-.11-.14A3.68,3.68,0,0,1,6.06.9.49.49,0,0,1,6.2,1L9.26,4.07a.74.74,0,0,1,0,1.06.75.75,0,0,1-1.06,0L5.32,2.24l0,0A2.19,2.19,0,0,0,2.18,5.29L5.11,8.22a.75.75,0,0,1,0,1.06A.74.74,0,0,1,4.58,9.5Z"
+              />
+              <path
+                d="M12.21,15.91A3.68,3.68,0,0,1,9.9,15.1L9.75,15l-3-3.06a.74.74,0,0,1,0-1.06.75.75,0,0,1,1.06,0l2.89,2.9h0a2.18,2.18,0,0,0,3.09-3.09h0l-2.9-2.9a.77.77,0,0,1,0-1.07.75.75,0,0,1,1.06,0L15,9.77l.11.15a3.69,3.69,0,0,1-2.87,6Z"
+              />
+              <path
+                d="M11.92,12.69a.74.74,0,0,1-.53-.22L3.5,4.58A.75.75,0,1,1,4.56,3.52l7.89,7.89a.74.74,0,0,1,0,1.06A.71.71,0,0,1,11.92,12.69Z"
+              />
+            </svg>
+          </a>
+          <h3>
+            Breadcrumbs
+          </h3>
+        </span>
+      </div>
+    </div>
+    <div
+      class="css-1o3cuay-SectionContents e11dlz2y1"
+    >
+      <div
+        class="css-1ds8lgp-StyledOnboardingPanel e1u4daa84"
+      >
+        <div>
+          <h3
+            class="css-hj9cty-Heading e1u4daa83"
+          >
+            Configure Session Replay
+          </h3>
+          <p
+            class="css-1diwgxu-Content e1u4daa82"
+          >
+            Playback your app to identify the root cause of errors and latency issues.
+          </p>
+          <div
+            class="css-1tm7vxm-ButtonList e1u4daa80"
+          >
+            <button
+              aria-disabled="false"
+              aria-label="Get Started"
+              class="css-14jq4g8-StyledButton-getColors-getButtonStyles e1b8u3ky2"
+              role="button"
+              type="button"
+            >
+              <span
+                class="css-at526y-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+                role="presentation"
+              />
+              <span
+                class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+              >
+                Get Started
+              </span>
+            </button>
+            <div
+              class="css-108kfzz-ButtonGrid-MergedStyles e1n9g4yq0"
+            >
+              <button
+                aria-disabled="false"
+                aria-label="Snooze"
+                class="css-c98s0k-StyledButton-getColors-getButtonStyles e1b8u3ky2"
+                role="button"
+                type="button"
+              >
+                <span
+                  class="css-vul34l-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+                  role="presentation"
+                />
+                <span
+                  class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+                >
+                  Snooze
+                </span>
+              </button>
+              <button
+                aria-disabled="false"
+                aria-label="Dismiss"
+                class="css-c98s0k-StyledButton-getColors-getButtonStyles e1b8u3ky2"
+                role="button"
+                type="button"
+              >
+                <span
+                  class="css-vul34l-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+                  role="presentation"
+                />
+                <span
+                  class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+                >
+                  Dismiss
+                </span>
+              </button>
+            </div>
+          </div>
+        </div>
+        <img
+          alt=""
+          class="css-1jadpbu-Illustration e1u4daa81"
+          height="112"
+          src="[object Object]"
+          width="220"
+        />
+      </div>
+      <div
+        class="css-1m3gpcv-SearchAndSortWrapper e1yi7ti21"
+      >
+        <div
+          class="css-c0hg7j-Wrapper e19685a32"
+        >
+          <div
+            class="css-tea0zw-MenuControlWrap ems9bqr7"
+            role="presentation"
+          >
+            <button
+              aria-disabled="false"
+              aria-expanded="false"
+              aria-haspopup="listbox"
+              class="e19685a30 e1u0jomf1 css-17o7lhn-StyledButton-getColors-getButtonStyles-StyledButton-StyledTrigger e1b8u3ky2"
+              id="react-aria6024828887-38"
+              role="button"
+              type="button"
+            >
+              <span
+                class="css-vul34l-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+                role="presentation"
+              />
+              <span
+                class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+              >
+                Filter By
+                <svg
+                  aria-hidden="true"
+                  class="e1u0jomf2 css-tq1qdr-IconChevron-StyledChevron"
+                  fill="currentColor"
+                  height="12px"
+                  viewBox="0 0 16 16"
+                  width="12px"
+                >
+                  <path
+                    d="M14,11.75a.74.74,0,0,1-.53-.22L8,6.06,2.53,11.53a.75.75,0,0,1-1.06-1.06l6-6a.75.75,0,0,1,1.06,0l6,6a.75.75,0,0,1,0,1.06A.74.74,0,0,1,14,11.75Z"
+                  />
+                </svg>
+              </span>
+            </button>
+          </div>
+          <form
+            class="e19685a31 css-8pb9o0-FormWrap-StyledSearchBar e4xnwji2"
+          >
+            <div
+              class="css-1biel1q-InputGroupWrap e13j5zq05"
+            >
+              <div
+                class="css-j206kq-InputItemsWrap-InputLeadingItemsWrap e13j5zq01"
+                data-test-id="input-leading-items"
+              >
+                <svg
+                  fill="#80708F"
+                  height="16px"
+                  viewBox="0 0 16 16"
+                  width="16px"
+                >
+                  <path
+                    d="M6,12A6,6,0,1,1,12,6,6,6,0,0,1,6,12ZM6,1.54A4.46,4.46,0,1,0,10.45,6,4.46,4.46,0,0,0,6,1.54Z"
+                  />
+                  <path
+                    d="M15.2,16a.74.74,0,0,1-.53-.22L9.14,10.2A.75.75,0,0,1,10.2,9.14l5.53,5.53a.75.75,0,0,1,0,1.06A.74.74,0,0,1,15.2,16Z"
+                  />
+                </svg>
+              </div>
+              <input
+                autocomplete="off"
+                class="e4xnwji1 css-1wfpay8-Input-inputStyles-StyledInput-getInputStyles-StyledInput e13j5zq03"
+                name="query"
+                placeholder="Search breadcrumbs"
+                type="text"
+                value=""
+              />
+              <div
+                class="css-lc4in0-InputItemsWrap-InputTrailingItemsWrap e13j5zq00"
+                data-test-id="input-trailing-items"
+              />
+            </div>
+          </form>
+        </div>
+        <div
+          class="css-tea0zw-MenuControlWrap ems9bqr7"
+          role="presentation"
+        >
+          <button
+            aria-disabled="false"
+            aria-expanded="false"
+            aria-haspopup="listbox"
+            class="e1u0jomf1 css-frwl2a-StyledButton-getColors-getButtonStyles-StyledButton e1b8u3ky2"
+            id="react-aria6024828887-41"
+            role="button"
+            type="button"
+          >
+            <span
+              class="css-vul34l-InteractionStateLayer-InteractionStateLayer-InteractionStateLayer e1fwp9rx0"
+              role="presentation"
+            />
+            <span
+              class="css-1z0n9wg-ButtonLabel e1b8u3ky1"
+            >
+              <span
+                class="css-1ywt59b-Icon e1b8u3ky0"
+              >
+                <svg
+                  class="css-0"
+                  fill="currentColor"
+                  height="16px"
+                  viewBox="0 0 16 16"
+                  width="16px"
+                >
+                  <path
+                    d="M15.49 11.76a.75.75 0 0 1-.22.53l-2.88 2.88a.75.75 0 0 1-1.06 0l-2.87-2.88a.74.74 0 0 1 0-1.06.75.75 0 0 1 1.06 0l2.34 2.35 2.35-2.35a.75.75 0 0 1 1.06 0 .79.79 0 0 1 .22.53Z"
+                  />
+                  <path
+                    d="M12.61 1.34v13.3a.75.75 0 1 1-1.5 0V1.34a.75.75 0 1 1 1.5 0Z"
+                  />
+                  <path
+                    d="M7.87 4.22a.74.74 0 0 1-.22.53.75.75 0 0 1-1.06 0L4.25 2.4 1.9 4.75A.75.75 0 0 1 .84 3.69L3.72.81a.75.75 0 0 1 1.06 0l2.87 2.88a.74.74 0 0 1 .22.53Z"
+                  />
+                  <path
+                    d="M5 1.34v13.3a.75.75 0 1 1-1.5 0V1.34a.75.75 0 0 1 1.5 0Z"
+                  />
+                </svg>
+              </span>
+              <span
+                class="css-1wc0ez-ButtonLabel-overflowEllipsis ems9bqr6"
+              >
+                Newest
+              </span>
+              <svg
+                aria-hidden="true"
+                class="e1u0jomf2 css-tq1qdr-IconChevron-StyledChevron"
+                fill="currentColor"
+                height="12px"
+                viewBox="0 0 16 16"
+                width="12px"
+              >
+                <path
+                  d="M14,11.75a.74.74,0,0,1-.53-.22L8,6.06,2.53,11.53a.75.75,0,0,1-1.06-1.06l6-6a.75.75,0,0,1,1.06,0l6,6a.75.75,0,0,1,0,1.06A.74.74,0,0,1,14,11.75Z"
+                />
+              </svg>
+            </span>
+          </button>
+        </div>
+      </div>
+      <div
+        class="ek9cpoc4 css-1gd73il-Panel-Wrapper-StyledPanelTable eswnkzd1"
+      >
+        <div
+          class="css-11gnd7u-PanelTableHeader eswnkzd0"
+          data-test-id="table-header"
+        >
+          Type
+        </div>
+        <div
+          class="css-11gnd7u-PanelTableHeader eswnkzd0"
+          data-test-id="table-header"
+        >
+          Category
+        </div>
+        <div
+          class="css-11gnd7u-PanelTableHeader eswnkzd0"
+          data-test-id="table-header"
+        >
+          Description
+        </div>
+        <div
+          class="css-11gnd7u-PanelTableHeader eswnkzd0"
+          data-test-id="table-header"
+        >
+          Level
+        </div>
+        <div
+          class="css-11gnd7u-PanelTableHeader eswnkzd0"
+          data-test-id="table-header"
+        >
+          <div
+            class="css-o72swy-Time ek9cpoc3"
+          >
+            <span
+              aria-describedby="tooltip-rkmh051x5e"
+              class="css-19485un-Container e1lk5gpt0"
+            >
+              <svg
+                class="ek9cpoc2 css-1fcucwj-IconSort-StyledIconSort"
+                fill="currentColor"
+                height="12px"
+                viewBox="0 0 16 16"
+                width="12px"
+              >
+                <path
+                  d="M15.49 11.76a.75.75 0 0 1-.22.53l-2.88 2.88a.75.75 0 0 1-1.06 0l-2.87-2.88a.74.74 0 0 1 0-1.06.75.75 0 0 1 1.06 0l2.34 2.35 2.35-2.35a.75.75 0 0 1 1.06 0 .79.79 0 0 1 .22.53Z"
+                />
+                <path
+                  d="M12.61 1.34v13.3a.75.75 0 1 1-1.5 0V1.34a.75.75 0 1 1 1.5 0Z"
+                />
+                <path
+                  d="M7.87 4.22a.74.74 0 0 1-.22.53.75.75 0 0 1-1.06 0L4.25 2.4 1.9 4.75A.75.75 0 0 1 .84 3.69L3.72.81a.75.75 0 0 1 1.06 0l2.87 2.88a.74.74 0 0 1 .22.53Z"
+                />
+                <path
+                  d="M5 1.34v13.3a.75.75 0 1 1-1.5 0V1.34a.75.75 0 0 1 1.5 0Z"
+                />
+              </svg>
+            </span>
+            Time
+          </div>
+        </div>
+        <div
+          class="css-11gnd7u-PanelTableHeader eswnkzd0"
+          data-test-id="table-header"
+        />
+        <div
+          class="css-jjg7jw-Content ek9cpoc1"
+        >
+          <div
+            aria-label="grid"
+            aria-readonly="true"
+            class="ReactVirtualized__Grid ReactVirtualized__List css-ylmu2h-StyledList ek9cpoc0"
+            role="grid"
+            style="box-sizing: border-box; direction: ltr; height: 400px; position: relative; width: 100px; will-change: transform; overflow-x: hidden; overflow-y: hidden;"
+            tabindex="0"
+          >
+            <div
+              class="ReactVirtualized__Grid__innerScrollContainer"
+              role="rowgroup"
+              style="width: auto; height: 336px; max-width: 100px; max-height: 336px; overflow: hidden; position: relative;"
+            >
+              <div
+                class="css-155fv93-Wrapper eyhx4920"
+                data-test-id="last-crumb"
+                style="height: 42px; left: 0px; position: absolute; top: 0px; width: 100%;"
+              >
+                <div
+                  class="css-1bnolhm-Wrapper e14ruzvs1"
+                >
+                  <div
+                    aria-describedby="tooltip-gg2veozgmk"
+                    class="css-15vitan-IconWrapper e14ruzvs0"
+                    color="blue300"
+                  >
+                    <svg
+                      fill="currentColor"
+                      height="12px"
+                      viewBox="0 0 16 16"
+                      width="12px"
+                    >
+                      <path
+                        d="M8,11.78A.74.74,0,0,1,7.24,11V7a.75.75,0,0,1,1.5,0v4A.75.75,0,0,1,8,11.78Z"
+                      />
+                      <circle
+                        cx="8"
+                        cy="4.78"
+                        r="0.76"
+                      />
+                      <path
+                        d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z"
+                      />
+                    </svg>
+                  </div>
+                </div>
+                <div
+                  class="css-1wb02xp-Wrapper e13lusih0"
+                  title="message"
+                >
+                  message
+                </div>
+                <div
+                  class="css-1l59n44-Wrapper e1qu9uwz2"
+                >
+                  <code
+                    class="css-11kferb-StyledCode e1qu9uwz0"
+                  >
+                    ApiException
+                  </code>
+                </div>
+                <div>
+                  <span
+                    class="e1pcrnqj0 css-4nkaoc-TagWrapper-LevelTag e8jgvoh4"
+                  >
+                    <div
+                      class="css-15z9say-Background e8jgvoh3"
+                      type="default"
+                    >
+                      <span
+                        class="css-uly9e3-Text e8jgvoh1"
+                        type="default"
+                      >
+                        undefined
+                      </span>
+                    </div>
+                  </span>
+                </div>
+                <div
+                  class="css-157ouhb-Wrapper e1yaumuq1"
+                >
+                  <span
+                    aria-describedby="tooltip-4jkf155jn0"
+                    class="css-19485un-Container e1lk5gpt0"
+                  >
+                    18:01:48
+                  </span>
+                </div>
+              </div>
+              <div
+                class="css-155fv93-Wrapper eyhx4920"
+                data-test-id="crumb"
+                style="height: 42px; left: 0px; position: absolute; top: 42px; width: 100%;"
+              >
+                <div
+                  class="css-1bnolhm-Wrapper e14ruzvs1"
+                >
+                  <div
+                    aria-describedby="tooltip-s5pckeqhw8"
+                    class="css-15vitan-IconWrapper e14ruzvs0"
+                    color="blue300"
+                  >
+                    <svg
+                      fill="currentColor"
+                      height="12px"
+                      viewBox="0 0 16 16"
+                      width="12px"
+                    >
+                      <path
+                        d="M8,11.78A.74.74,0,0,1,7.24,11V7a.75.75,0,0,1,1.5,0v4A.75.75,0,0,1,8,11.78Z"
+                      />
+                      <circle
+                        cx="8"
+                        cy="4.78"
+                        r="0.76"
+                      />
+                      <path
+                        d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z"
+                      />
+                    </svg>
+                  </div>
+                </div>
+                <div
+                  class="css-1wb02xp-Wrapper e13lusih0"
+                  title="default"
+                >
+                  default
+                </div>
+                <div
+                  class="css-1l59n44-Wrapper e1qu9uwz2"
+                >
+                  <code
+                    class="css-11kferb-StyledCode e1qu9uwz0"
+                  >
+                    sup
+                  </code>
+                </div>
+                <div>
+                  <span
+                    class="e1pcrnqj0 css-4nkaoc-TagWrapper-LevelTag e8jgvoh4"
+                  >
+                    <div
+                      class="css-venipz-Background e8jgvoh3"
+                      type="info"
+                    >
+                      <span
+                        class="css-uly9e3-Text e8jgvoh1"
+                        type="info"
+                      >
+                        Info
+                      </span>
+                    </div>
+                  </span>
+                </div>
+                <div />
+              </div>
+              <div
+                class="css-155fv93-Wrapper eyhx4920"
+                data-test-id="crumb"
+                style="height: 42px; left: 0px; position: absolute; top: 84px; width: 100%;"
+              >
+                <div
+                  class="css-1bnolhm-Wrapper e14ruzvs1"
+                >
+                  <div
+                    aria-describedby="tooltip-4hp0kb7slz"
+                    class="css-15vitan-IconWrapper e14ruzvs0"
+                    color="blue300"
+                  >
+                    <svg
+                      fill="currentColor"
+                      height="12px"
+                      viewBox="0 0 16 16"
+                      width="12px"
+                    >
+                      <path
+                        d="M8,11.78A.74.74,0,0,1,7.24,11V7a.75.75,0,0,1,1.5,0v4A.75.75,0,0,1,8,11.78Z"
+                      />
+                      <circle
+                        cx="8"
+                        cy="4.78"
+                        r="0.76"
+                      />
+                      <path
+                        d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z"
+                      />
+                    </svg>
+                  </div>
+                </div>
+                <div
+                  class="css-1wb02xp-Wrapper e13lusih0"
+                  title="default"
+                >
+                  default
+                </div>
+                <div
+                  class="css-1l59n44-Wrapper e1qu9uwz2"
+                >
+                  <code
+                    class="css-11kferb-StyledCode e1qu9uwz0"
+                  >
+                    sup
+                  </code>
+                </div>
+                <div>
+                  <span
+                    class="e1pcrnqj0 css-4nkaoc-TagWrapper-LevelTag e8jgvoh4"
+                  >
+                    <div
+                      class="css-8fao5s-Background e8jgvoh3"
+                      type="warning"
+                    >
+                      <span
+                        class="css-uly9e3-Text e8jgvoh1"
+                        type="warning"
+                      >
+                        Warning
+                      </span>
+                    </div>
+                  </span>
+                </div>
+                <div />
+              </div>
+              <div
+                class="css-155fv93-Wrapper eyhx4920"
+                data-test-id="crumb"
+                style="height: 42px; left: 0px; position: absolute; top: 126px; width: 100%;"
+              >
+                <div
+                  class="css-1bnolhm-Wrapper e14ruzvs1"
+                >
+                  <div
+                    aria-describedby="tooltip-2iflh68otg"
+                    class="css-15vitan-IconWrapper e14ruzvs0"
+                    color="blue300"
+                  >
+                    <svg
+                      fill="currentColor"
+                      height="12px"
+                      viewBox="0 0 16 16"
+                      width="12px"
+                    >
+                      <path
+                        d="M8,11.78A.74.74,0,0,1,7.24,11V7a.75.75,0,0,1,1.5,0v4A.75.75,0,0,1,8,11.78Z"
+                      />
+                      <circle
+                        cx="8"
+                        cy="4.78"
+                        r="0.76"
+                      />
+                      <path
+                        d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z"
+                      />
+                    </svg>
+                  </div>
+                </div>
+                <div
+                  class="css-1wb02xp-Wrapper e13lusih0"
+                  title="error"
+                >
+                  error
+                </div>
+                <div
+                  class="css-1l59n44-Wrapper e1qu9uwz2"
+                >
+                  <code
+                    class="css-11kferb-StyledCode e1qu9uwz0"
+                  >
+                    ok
+                  </code>
+                </div>
+                <div>
+                  <span
+                    class="e1pcrnqj0 css-4nkaoc-TagWrapper-LevelTag e8jgvoh4"
+                  >
+                    <div
+                      class="css-8fao5s-Background e8jgvoh3"
+                      type="warning"
+                    >
+                      <span
+                        class="css-uly9e3-Text e8jgvoh1"
+                        type="warning"
+                      >
+                        Warning
+                      </span>
+                    </div>
+                  </span>
+                </div>
+                <div />
+              </div>
+              <div
+                class="css-155fv93-Wrapper eyhx4920"
+                data-test-id="crumb"
+                style="height: 42px; left: 0px; position: absolute; top: 168px; width: 100%;"
+              >
+                <div
+                  class="css-1bnolhm-Wrapper e14ruzvs1"
+                >
+                  <div
+                    aria-describedby="tooltip-h48b0a9td7"
+                    class="css-15vitan-IconWrapper e14ruzvs0"
+                    color="blue300"
+                  >
+                    <svg
+                      fill="currentColor"
+                      height="12px"
+                      viewBox="0 0 16 16"
+                      width="12px"
+                    >
+                      <path
+                        d="M8,11.78A.74.74,0,0,1,7.24,11V7a.75.75,0,0,1,1.5,0v4A.75.75,0,0,1,8,11.78Z"
+                      />
+                      <circle
+                        cx="8"
+                        cy="4.78"
+                        r="0.76"
+                      />
+                      <path
+                        d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z"
+                      />
+                    </svg>
+                  </div>
+                </div>
+                <div
+                  class="css-1wb02xp-Wrapper e13lusih0"
+                  title="default"
+                >
+                  default
+                </div>
+                <div
+                  class="css-1l59n44-Wrapper e1qu9uwz2"
+                >
+                  <code
+                    class="css-11kferb-StyledCode e1qu9uwz0"
+                  >
+                    bye
+                  </code>
+                </div>
+                <div>
+                  <span
+                    class="e1pcrnqj0 css-4nkaoc-TagWrapper-LevelTag e8jgvoh4"
+                  >
+                    <div
+                      class="css-8fao5s-Background e8jgvoh3"
+                      type="warning"
+                    >
+                      <span
+                        class="css-uly9e3-Text e8jgvoh1"
+                        type="warning"
+                      >
+                        Warning
+                      </span>
+                    </div>
+                  </span>
+                </div>
+                <div />
+              </div>
+              <div
+                class="css-155fv93-Wrapper eyhx4920"
+                data-test-id="crumb"
+                style="height: 42px; left: 0px; position: absolute; top: 210px; width: 100%;"
+              >
+                <div
+                  class="css-1bnolhm-Wrapper e14ruzvs1"
+                >
+                  <div
+                    aria-describedby="tooltip-hmtthhml41"
+                    class="css-15vitan-IconWrapper e14ruzvs0"
+                    color="blue300"
+                  >
+                    <svg
+                      fill="currentColor"
+                      height="12px"
+                      viewBox="0 0 16 16"
+                      width="12px"
+                    >
+                      <path
+                        d="M8,11.78A.74.74,0,0,1,7.24,11V7a.75.75,0,0,1,1.5,0v4A.75.75,0,0,1,8,11.78Z"
+                      />
+                      <circle
+                        cx="8"
+                        cy="4.78"
+                        r="0.76"
+                      />
+                      <path
+                        d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z"
+                      />
+                    </svg>
+                  </div>
+                </div>
+                <div
+                  class="css-1wb02xp-Wrapper e13lusih0"
+                  title="default"
+                >
+                  default
+                </div>
+                <div
+                  class="css-1l59n44-Wrapper e1qu9uwz2"
+                >
+                  <code
+                    class="css-11kferb-StyledCode e1qu9uwz0"
+                  >
+                    hello
+                  </code>
+                </div>
+                <div>
+                  <span
+                    class="e1pcrnqj0 css-4nkaoc-TagWrapper-LevelTag e8jgvoh4"
+                  >
+                    <div
+                      class="css-8fao5s-Background e8jgvoh3"
+                      type="warning"
+                    >
+                      <span
+                        class="css-uly9e3-Text e8jgvoh1"
+                        type="warning"
+                      >
+                        Warning
+                      </span>
+                    </div>
+                  </span>
+                </div>
+                <div />
+              </div>
+              <div
+                class="css-155fv93-Wrapper eyhx4920"
+                data-test-id="crumb"
+                style="height: 42px; left: 0px; position: absolute; top: 252px; width: 100%;"
+              >
+                <div
+                  class="css-1bnolhm-Wrapper e14ruzvs1"
+                >
+                  <div
+                    aria-describedby="tooltip-wt1b8r350s"
+                    class="css-15vitan-IconWrapper e14ruzvs0"
+                    color="blue300"
+                  >
+                    <svg
+                      fill="currentColor"
+                      height="12px"
+                      viewBox="0 0 16 16"
+                      width="12px"
+                    >
+                      <path
+                        d="M8,11.78A.74.74,0,0,1,7.24,11V7a.75.75,0,0,1,1.5,0v4A.75.75,0,0,1,8,11.78Z"
+                      />
+                      <circle
+                        cx="8"
+                        cy="4.78"
+                        r="0.76"
+                      />
+                      <path
+                        d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z"
+                      />
+                    </svg>
+                  </div>
+                </div>
+                <div
+                  class="css-1wb02xp-Wrapper e13lusih0"
+                  title="error"
+                >
+                  error
+                </div>
+                <div
+                  class="css-1l59n44-Wrapper e1qu9uwz2"
+                >
+                  <code
+                    class="css-11kferb-StyledCode e1qu9uwz0"
+                  >
+                    hey
+                  </code>
+                </div>
+                <div>
+                  <span
+                    class="e1pcrnqj0 css-4nkaoc-TagWrapper-LevelTag e8jgvoh4"
+                  >
+                    <div
+                      class="css-venipz-Background e8jgvoh3"
+                      type="info"
+                    >
+                      <span
+                        class="css-uly9e3-Text e8jgvoh1"
+                        type="info"
+                      >
+                        Info
+                      </span>
+                    </div>
+                  </span>
+                </div>
+                <div />
+              </div>
+              <div
+                class="css-155fv93-Wrapper eyhx4920"
+                data-test-id="crumb"
+                style="height: 42px; left: 0px; position: absolute; top: 294px; width: 100%;"
+              >
+                <div
+                  class="css-1bnolhm-Wrapper e14ruzvs1"
+                >
+                  <div
+                    aria-describedby="tooltip-k3fr8ggghg"
+                    class="css-15vitan-IconWrapper e14ruzvs0"
+                    color="blue300"
+                  >
+                    <svg
+                      fill="currentColor"
+                      height="12px"
+                      viewBox="0 0 16 16"
+                      width="12px"
+                    >
+                      <path
+                        d="M8,11.78A.74.74,0,0,1,7.24,11V7a.75.75,0,0,1,1.5,0v4A.75.75,0,0,1,8,11.78Z"
+                      />
+                      <circle
+                        cx="8"
+                        cy="4.78"
+                        r="0.76"
+                      />
+                      <path
+                        d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z"
+                      />
+                    </svg>
+                  </div>
+                </div>
+                <div
+                  class="css-1wb02xp-Wrapper e13lusih0"
+                  title="default"
+                >
+                  default
+                </div>
+                <div
+                  class="css-1l59n44-Wrapper e1qu9uwz2"
+                >
+                  <code
+                    class="css-11kferb-StyledCode e1qu9uwz0"
+                  >
+                    sup
+                  </code>
+                </div>
+                <div>
+                  <span
+                    class="e1pcrnqj0 css-4nkaoc-TagWrapper-LevelTag e8jgvoh4"
+                  >
+                    <div
+                      class="css-8fao5s-Background e8jgvoh3"
+                      type="warning"
+                    >
+                      <span
+                        class="css-uly9e3-Text e8jgvoh1"
+                        type="warning"
+                      >
+                        Warning
+                      </span>
+                    </div>
+                  </span>
+                </div>
+                <div />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+`;
