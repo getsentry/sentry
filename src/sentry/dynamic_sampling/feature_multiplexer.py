@@ -38,7 +38,7 @@ class DynamicSamplingBiasesContext:
 
 
 class DynamicSamplingFeatureMultiplexer:
-    def __init__(self, project: Project):
+    def __init__(self, project: "Project"):
         self.project = project
 
     @property
