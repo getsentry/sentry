@@ -32,7 +32,7 @@ export function navigateTo(
           configUrl={configUrl}
           onFinish={path => {
             modalProps.closeModal();
-            return window.setTimeout(() => router.push(path), 0);
+            return window.setTimeout(() => router.push(normalizeUrl(path)), 0);
           }}
         />
       ),

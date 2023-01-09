@@ -181,7 +181,7 @@ function FlamegraphZoomView({
 
     const drawText = () => {
       textRenderer.draw(
-        flamegraphView.configView.transformRect(flamegraphView.configSpaceTransform),
+        flamegraphView.toOriginConfigView(flamegraphView.configView),
         flamegraphView.fromTransformedConfigView(flamegraphCanvas.physicalSpace),
         flamegraphSearch.results
       );
@@ -326,7 +326,10 @@ function FlamegraphZoomView({
             // because the height may have changed due to window resizing and
             // calling it with the old height may result in the flamegraph
             // being drawn into a very small or very large area.
-            canvasPoolManager.dispatch('set config view', [previousPosition]);
+            canvasPoolManager.dispatch('set config view', [
+              previousPosition,
+              flamegraphView,
+            ]);
           }
         }
 
@@ -338,7 +341,7 @@ function FlamegraphZoomView({
             // because the height may have changed due to window resizing and
             // calling it with the old height may result in the flamegraph
             // being drawn into a very small or very large area.
-            canvasPoolManager.dispatch('set config view', [nextPosition]);
+            canvasPoolManager.dispatch('set config view', [nextPosition, flamegraphView]);
           }
         }
 
@@ -438,7 +441,7 @@ function FlamegraphZoomView({
         return;
       }
 
-      canvasPoolManager.dispatch('transform config view', [configDelta]);
+      canvasPoolManager.dispatch('transform config view', [configDelta, flamegraphView]);
       setStartInteractionVector(
         getPhysicalSpacePositionFromOffset(
           evt.nativeEvent.offsetX,
@@ -496,8 +499,6 @@ function FlamegraphZoomView({
   );
 
   useCanvasZoomOrScroll({
-    lastInteraction,
-    configSpaceCursor,
     setConfigSpaceCursor,
     setLastInteraction,
     handleWheel: onWheelCenterZoom,

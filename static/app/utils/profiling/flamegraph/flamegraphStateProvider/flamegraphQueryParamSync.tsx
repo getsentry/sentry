@@ -9,12 +9,6 @@ import {Rect} from 'sentry/utils/profiling/gl/utils';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 
-import {
-  FlamegraphAxisOptions,
-  FlamegraphColorCodings,
-  FlamegraphSorting,
-  FlamegraphViewOptions,
-} from './reducers/flamegraphPreferences';
 import {DEFAULT_FLAMEGRAPH_STATE, FlamegraphState} from './flamegraphContext';
 
 // Intersect the types so we can properly guard
@@ -26,81 +20,104 @@ type PossibleQuery =
 function isColorCoding(
   value: PossibleQuery['colorCoding'] | FlamegraphState['preferences']['colorCoding']
 ): value is FlamegraphState['preferences']['colorCoding'] {
-  const values: FlamegraphColorCodings = [
-    'by symbol name',
-    'by system / application',
-    'by library',
-    'by recursion',
-    'by frequency',
-  ];
+  if (typeof value !== 'string') {
+    return false;
+  }
 
-  return values.includes(value as any);
+  return (
+    value === 'by symbol name' ||
+    value === 'by system / application' ||
+    value === 'by library' ||
+    value === 'by recursion' ||
+    value === 'by frequency'
+  );
 }
 
 function isLayout(
   value: PossibleQuery['colorCoding'] | FlamegraphState['preferences']['colorCoding']
 ): value is FlamegraphState['preferences']['layout'] {
+  if (typeof value !== 'string') {
+    return false;
+  }
   return value === 'table right' || value === 'table bottom' || value === 'table left';
 }
 
 function isSorting(
   value: PossibleQuery['sorting'] | FlamegraphState['preferences']['sorting']
 ): value is FlamegraphState['preferences']['sorting'] {
-  const values: FlamegraphSorting = ['left heavy', 'call order'];
-  return values.includes(value as any);
+  if (typeof value !== 'string') {
+    return false;
+  }
+  return value === 'left heavy' || value === 'call order';
 }
 
 function isView(
   value: PossibleQuery['view'] | FlamegraphState['preferences']['view']
 ): value is FlamegraphState['preferences']['view'] {
-  const values: FlamegraphViewOptions = ['top down', 'bottom up'];
-  return values.includes(value as any);
+  if (typeof value !== 'string') {
+    return false;
+  }
+  return value === 'top down' || value === 'bottom up';
 }
 
 function isXAxis(
   value: PossibleQuery['xAxis'] | FlamegraphState['preferences']['xAxis']
 ): value is FlamegraphState['preferences']['xAxis'] {
-  const values: FlamegraphAxisOptions = ['standalone', 'transaction'];
-  return values.includes(value as any);
+  if (typeof value !== 'string') {
+    return false;
+  }
+  return value === 'profile' || value === 'transaction' || value === 'standalone';
 }
 
 export function decodeFlamegraphStateFromQueryParams(
   query: qs.ParsedQuery
 ): DeepPartial<FlamegraphState> {
-  return {
-    profiles: {
-      highlightFrames:
-        typeof query.frameName === 'string' && typeof query.framePackage === 'string'
-          ? {
-              name: query.frameName,
-              package: query.framePackage,
-            }
-          : null,
-      threadId:
-        typeof query.tid === 'string' && !isNaN(parseInt(query.tid, 10))
-          ? parseInt(query.tid, 10)
-          : null,
-    },
-    position: {view: Rect.decode(query.fov) ?? Rect.Empty()},
-    preferences: {
-      layout: isLayout(query.layout)
-        ? query.layout
-        : DEFAULT_FLAMEGRAPH_STATE.preferences.layout,
-      colorCoding: isColorCoding(query.colorCoding)
-        ? query.colorCoding
-        : DEFAULT_FLAMEGRAPH_STATE.preferences.colorCoding,
-      sorting: isSorting(query.sorting)
-        ? query.sorting
-        : DEFAULT_FLAMEGRAPH_STATE.preferences.sorting,
-      view: isView(query.view) ? query.view : DEFAULT_FLAMEGRAPH_STATE.preferences.view,
-      xAxis: isXAxis(query.xAxis)
-        ? query.xAxis
-        : DEFAULT_FLAMEGRAPH_STATE.preferences.xAxis,
-    },
-    search: {
-      query: typeof query.query === 'string' ? query.query : '',
-    },
-  };
+  const decoded: DeepPartial<FlamegraphState> = {};
+
+  if (typeof query.frameName === 'string' && typeof query.framePackage === 'string') {
+    decoded.profiles = {
+      highlightFrames: {
+        name: query.frameName,
+        package: query.framePackage,
+      },
+    };
+  }
+
+  if (typeof query.tid === 'string' && !isNaN(parseInt(query.tid, 10))) {
+    decoded.profiles = {
+      threadId: parseInt(query.tid, 10),
+    };
+  }
+
+  const fov = Rect.decode(query.fov);
+  if (fov) {
+    decoded.position = {view: fov};
+  }
+
+  decoded.preferences = {};
+  decoded.search = {};
+
+  if (isLayout(query.layout)) {
+    decoded.preferences.layout = query.layout;
+  }
+  if (isColorCoding(query.colorCoding)) {
+    decoded.preferences.colorCoding = query.colorCoding;
+  }
+  if (isSorting(query.sorting)) {
+    decoded.preferences.sorting = query.sorting;
+  }
+
+  if (isView(query.view)) {
+    decoded.preferences.view = query.view;
+  }
+  if (isXAxis(query.xAxis)) {
+    decoded.preferences.xAxis = query.xAxis;
+  }
+  if (typeof query.query === 'string') {
+    decoded.search.query = query.query;
+  }
+
+  return decoded;
 }
 
 export function encodeFlamegraphStateToQueryParams(state: FlamegraphState) {
@@ -163,6 +180,7 @@ export function FlamegraphStateLocalStorageSync() {
       preferences: {
         layout: DEFAULT_FLAMEGRAPH_STATE.preferences.layout,
         timelines: DEFAULT_FLAMEGRAPH_STATE.preferences.timelines,
+        view: DEFAULT_FLAMEGRAPH_STATE.preferences.view,
       },
     }
   );
@@ -172,11 +190,12 @@ export function FlamegraphStateLocalStorageSync() {
       preferences: {
         layout: state.preferences.layout,
         timelines: state.preferences.timelines,
+        view: state.preferences.view,
       },
     });
     // We only want to sync the local storage when the state changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.preferences.layout, state.preferences.timelines]);
+  }, [state.preferences.layout, state.preferences.timelines, state.preferences.view]);
 
   return null;
 }
