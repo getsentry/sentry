@@ -211,6 +211,32 @@ class SnubaTSDB(BaseTSDB):
     def __init__(self, **options):
         super().__init__(**options)
 
+    def __manual_group_on_time_aggregation(self, rollup, time_column_alias) -> Sequence[Any]:
+        def rollup_agg(func: str):
+            return [
+                "toUnixTimestamp",
+                [[func, "timestamp"]],
+                time_column_alias,
+            ]
+
+        rollup_to_start_func = {
+            60: "toStartOfMinute",
+            3600: "toStartOfHour",
+            3600 * 24: "toDate",
+        }
+
+        # if we don't have an explicit function mapped to this rollup, we have to calculate it on the fly
+        # multiply(intDiv(toUInt32(toUnixTimestamp(timestamp)), granularity)))
+        special_rollup = [
+            "multiply",
+            [["intDiv", [["toUInt32", [["toUnixTimestamp", "timestamp"]]], rollup]], rollup],
+            time_column_alias,
+        ]
+
+        rollup_func = rollup_to_start_func.get(rollup)
+
+        return rollup_agg(rollup_func) if rollup_func else special_rollup
+
     def get_data(
         self,
         model,
@@ -240,10 +266,11 @@ class SnubaTSDB(BaseTSDB):
         ]:
             keys = list(set(map(lambda x: int(x), keys)))
 
-        model_ignore_time_series_processing = model in (
+        model_requires_manual_group_on_time = model in (
             TSDBModel.group_profiling,
             TSDBModel.users_affected_by_profile_group,
         )
+        group_on_time_column_alias = "time_t"
 
         model_query_settings = self.model_query_settings.get(model)
 
@@ -262,10 +289,11 @@ class SnubaTSDB(BaseTSDB):
         groupby = []
         if group_on_model and model_group is not None:
             groupby.append(model_group)
-        if group_on_time and not model_ignore_time_series_processing:
-            groupby.append("time")
-        if group_on_time and model_ignore_time_series_processing:
-            groupby.append("client_time")
+        if group_on_time:
+            if not model_requires_manual_group_on_time:
+                groupby.append("time")
+            else:
+                groupby.append(group_on_time_column_alias)
         if aggregation == "count()" and model_aggregate is not None:
             # Special case, because count has different semantics, we change:
             # `COUNT(model_aggregate)` to `COUNT() GROUP BY model_aggregate`
@@ -280,21 +308,16 @@ class SnubaTSDB(BaseTSDB):
 
         aggregated_as = "aggregate"
         aggregations = [[aggregation, model_aggregate, aggregated_as]]
-        if group_on_time and model_ignore_time_series_processing:
-            # aggregations.append(["toUnixTimestamp", "client_timestamp", "client_ts"])
-            # aggregations.append(["toStartOfHour", "client_timestamp", "client_timehour"])
-            aggregations.append(
-                [
-                    "toUnixTimestamp",
-                    [["toStartOfHour", "client_timestamp"]],
-                    "client_time",
-                ]
-            )
 
         # For historical compatibility with bucket-counted TSDB implementations
         # we grab the original bucketed series and add the rollup time to the
         # timestamp of the last bucket to get the end time.
         rollup, series = self.get_optimal_rollup_series(start, end, rollup)
+
+        if group_on_time and model_requires_manual_group_on_time:
+            aggregations.append(
+                self.__manual_group_on_time_aggregation(rollup, group_on_time_column_alias)
+            )
 
         # If jitter_value is provided then we use it to offset the buckets we round start/end to by
         # up  to `rollup` seconds.
@@ -310,12 +333,11 @@ class SnubaTSDB(BaseTSDB):
             # copy because we modify the conditions in snuba.query
 
         orderby = []
-        if group_on_time and not model_ignore_time_series_processing:
-            orderby.append("-time")
-
-        if group_on_time and model_ignore_time_series_processing:
-            orderby.append("-client_time")
-
+        if group_on_time:
+            if not model_requires_manual_group_on_time:
+                orderby.append("-time")
+            else:
+                orderby.append(f"-{group_on_time_column_alias}")
         if group_on_model and model_group is not None:
             orderby.append(model_group)
 
@@ -346,18 +368,18 @@ class SnubaTSDB(BaseTSDB):
         else:
             result = {}
 
-        if group_on_time and not model_ignore_time_series_processing:
-            keys_map["time"] = series
-
-        if group_on_time and model_ignore_time_series_processing:
-            keys_map["client_time"] = series
+        if group_on_time:
+            if not model_requires_manual_group_on_time:
+                keys_map["time"] = series
+            else:
+                keys_map[group_on_time_column_alias] = series
 
         self.zerofill(result, groupby, keys_map)
         self.trim(result, groupby, keys)
 
-        if group_on_time and model_ignore_time_series_processing:
+        if group_on_time and model_requires_manual_group_on_time:
             # unroll aggregated data
-            self.unnest(result, "aggregate")
+            self.unnest(result, aggregated_as)
             return result
         else:
             return result
