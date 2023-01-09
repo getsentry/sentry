@@ -29,6 +29,7 @@ export type Project = {
   groupingAutoUpdate: boolean;
   groupingConfig: string;
   hasAccess: boolean;
+  hasMinifiedStackTrace: boolean;
   hasProfiles: boolean;
   hasReplays: boolean;
   hasSessions: boolean;
