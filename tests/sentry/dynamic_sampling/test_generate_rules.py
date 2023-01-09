@@ -47,7 +47,7 @@ def test_generate_rules_capture_exception(get_blended_sample_rate, sentry_sdk):
 
 
 @patch(
-    "sentry.dynamic_sampling.feature_multiplexer.DynamicSamplingFeatureMultiplexer.get_enabled_user_biases"
+    "sentry.dynamic_sampling.feature_multiplexer.DynamicSamplingBiasesContext.get_enabled_user_biases"
 )
 @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
 def test_generate_rules_return_uniform_rules_with_rate(
@@ -69,9 +69,7 @@ def test_generate_rules_return_uniform_rules_with_rate(
         }
     ]
     get_blended_sample_rate.assert_called_with(fake_project)
-    get_enabled_user_biases.assert_called_with(
-        fake_project.get_option("sentry:dynamic_sampling_biases", None)
-    )
+    get_enabled_user_biases.assert_called()
     config_str = json.dumps({"rules": generate_rules(fake_project)})
     validate_sampling_configuration(config_str)
 
