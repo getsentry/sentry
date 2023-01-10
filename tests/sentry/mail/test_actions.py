@@ -7,12 +7,10 @@ from sentry.models import OrganizationMember, OrganizationMemberTeam, ProjectOwn
 from sentry.notifications.types import ActionTargetType, FallthroughChoiceType
 from sentry.tasks.post_process import post_process_group
 from sentry.testutils import TestCase
-from sentry.testutils.cases import RuleTestCase
+from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.eventprocessing import write_event_to_cache
-from sentry.types.issues import GroupType
-from sentry.utils.samples import load_data
 
 
 class NotifyEmailFormTest(TestCase):
@@ -118,7 +116,7 @@ class NotifyEmailFormTest(TestCase):
         assert form.is_valid()
 
 
-class NotifyEmailTest(RuleTestCase):
+class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase):
     rule_cls = NotifyEmailAction
 
     def test_simple(self):
@@ -244,14 +242,7 @@ class NotifyEmailTest(RuleTestCase):
         assert "uh oh" in sent.subject
 
     def test_full_integration_performance(self):
-        event_data = load_data(
-            "transaction",
-            fingerprint=[f"{GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value}-group1"],
-            timestamp=before_now(minutes=1),
-        )
-        event = self.store_event(data=event_data, project_id=self.project.id)
-        event = event.for_group(event.groups[0])
-
+        event = self.create_performance_issue()
         action_data = {
             "id": "sentry.mail.actions.NotifyEmailAction",
             "targetType": "Member",

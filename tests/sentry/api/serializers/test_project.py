@@ -338,6 +338,16 @@ class ProjectSummarySerializerTest(SnubaTestCase, TestCase):
         result = serialize(self.project, self.user, ProjectSummarySerializer())
         assert result["hasReplays"] is True
 
+    def test_has_minified_stracktrace_flag(self):
+        result = serialize(self.project, self.user, ProjectSummarySerializer())
+        assert result["hasMinifiedStackTrace"] is False
+
+        self.project.first_event = timezone.now()
+        self.project.update(flags=F("flags").bitor(Project.flags.has_minified_stack_trace))
+
+        result = serialize(self.project, self.user, ProjectSummarySerializer())
+        assert result["hasMinifiedStackTrace"] is True
+
     def test_no_environments(self):
         # remove environments and related models
         Deploy.objects.all().delete()

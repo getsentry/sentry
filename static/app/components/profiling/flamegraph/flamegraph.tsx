@@ -1,4 +1,12 @@
-import {Fragment, ReactElement, useCallback, useEffect, useMemo, useState} from 'react';
+import {
+  Fragment,
+  ReactElement,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useState,
+} from 'react';
 import {mat3, vec2} from 'gl-matrix';
 
 import {
@@ -305,7 +313,10 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
     }
   });
 
-  useEffect(() => {
+  // Uses a useLayoutEffect to ensure that these top level/global listeners are added before
+  // any of the children components effects actually run. This way we do not lose events
+  // when we register/unregister these top level listeners.
+  useLayoutEffect(() => {
     if (!flamegraphCanvas || !flamegraphView) {
       return undefined;
     }

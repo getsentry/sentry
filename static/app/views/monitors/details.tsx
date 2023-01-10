@@ -24,7 +24,7 @@ import {Monitor} from './types';
 
 type Props = AsyncView['props'] &
   WithRouteAnalyticsProps &
-  RouteComponentProps<{monitorId: string; orgId: string}, {}> & {
+  RouteComponentProps<{monitorId: string}, {}> & {
     organization: Organization;
   };
 
