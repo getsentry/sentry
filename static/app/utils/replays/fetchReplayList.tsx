@@ -2,7 +2,6 @@ import * as Sentry from '@sentry/react';
 import type {Location} from 'history';
 
 import type {Client} from 'sentry/api';
-import {DEFAULT_PER_PAGE} from 'sentry/constants';
 import type {Organization} from 'sentry/types';
 import type EventView from 'sentry/utils/discover/eventView';
 import {mapResponseToReplayRecord} from 'sentry/utils/replays/replayDataUtils';
@@ -52,7 +51,6 @@ async function fetchReplayList({
       query: {
         ...eventView.getEventsAPIPayload(location),
         cursor: location.query.cursor,
-        per_page: location.query.per_page || DEFAULT_PER_PAGE,
       },
     });
 
