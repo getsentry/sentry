@@ -131,9 +131,15 @@ class GroupDetails extends Component<Props, State> {
       (prevProps.params?.eventId !== this.props.params?.eventId && this.state.group)
     ) {
       // if we are loading events we should record analytics after it's loaded
-      this.getEvent(this.state.group).then(
-        () => this.state.group?.project && this.trackView(this.state.group?.project)
-      );
+      this.getEvent(this.state.group).then(() => {
+        if (!this.state.group?.project) {
+          return;
+        }
+        const project = this.props.projects.find(
+          p => p.id === this.state.group?.project.id
+        );
+        project && this.trackView(project);
+      });
     }
   }
 
@@ -179,7 +185,7 @@ class GroupDetails extends Component<Props, State> {
       error_has_replay: Boolean(event?.tags?.find(({key}) => key === 'replayId')),
       group_has_replay: Boolean(group?.tags?.find(({key}) => key === 'replayId')),
       num_comments: group ? group.numComments : -1,
-      project_has_replay: group?.project.hasReplays,
+      project_has_replay: project.hasReplays,
       project_has_minified_stack_trace: group?.project.hasMinifiedStackTrace,
       project_platform: group?.project.platform,
       has_external_issue: group?.annotations ? group?.annotations.length > 0 : false,
@@ -456,15 +462,14 @@ class GroupDetails extends Component<Props, State> {
         return;
       }
 
-      const project = data.project;
-
-      markEventSeen(api, organization.slug, project.slug, params.groupId);
+      const project = this.props.projects.find(p => p.id === data.project.id);
 
       if (!project) {
         Sentry.withScope(() => {
           Sentry.captureException(new Error('Project not found'));
         });
       } else {
+        markEventSeen(api, organization.slug, project.slug, params.groupId);
         const locationWithProject = {...this.props.location};
         if (
           locationWithProject.query.project === undefined &&
@@ -491,13 +496,13 @@ class GroupDetails extends Component<Props, State> {
         browserHistory.replace(locationWithProject);
       }
 
-      this.setState({project, loadingGroup: false});
+      this.setState({project: project || data.project, loadingGroup: false});
 
       GroupStore.loadInitialData([data]);
 
       if (trackView) {
         // make sure releases have loaded before we track the view
-        groupReleasePromise.then(() => this.trackView(project));
+        groupReleasePromise.then(() => project && this.trackView(project));
       }
     } catch (error) {
       this.handleRequestError(error);
