@@ -94,6 +94,7 @@ function FlamegraphZoomView({
   const dispatch = useDispatchFlamegraphState();
   const scheduler = useCanvasScheduler(canvasPoolManager);
 
+  const canvasContainerRef = useRef<HTMLDivElement | null>(null);
   const [flamegraphState, {previousState, nextState}] = useFlamegraphState();
   const [startInteractionVector, setStartInteractionVector] = useState<vec2 | null>(null);
   const [configSpaceCursor, setConfigSpaceCursor] = useState<vec2 | null>(null);
@@ -510,6 +511,26 @@ function FlamegraphZoomView({
     canvas: flamegraphCanvasRef,
   });
 
+  // When a user click anywhere outside the spans, clear cursor and selected node
+  useEffect(() => {
+    const onClickOutside = (evt: MouseEvent) => {
+      if (
+        !canvasContainerRef.current ||
+        canvasContainerRef.current.contains(evt.target as Node)
+      ) {
+        return;
+      }
+      canvasPoolManager.dispatch('highlight frame', [null, 'selected']);
+      setConfigSpaceCursor(null);
+    };
+
+    document.addEventListener('click', onClickOutside);
+
+    return () => {
+      document.removeEventListener('click', onClickOutside);
+    };
+  });
+
   const hoveredNodeOnContextMenuOpen = useRef<FlamegraphFrame | null>(null);
   const contextMenu = useContextMenu({container: flamegraphCanvasRef});
   const [highlightingAllOccurences, setHighlightingAllOccurences] = useState(
@@ -578,7 +599,7 @@ function FlamegraphZoomView({
   }, []);
 
   return (
-    <CanvasContainer>
+    <CanvasContainer ref={canvasContainerRef}>
       <Canvas
         ref={setFlamegraphCanvasRef}
         onMouseDown={onCanvasMouseDown}
