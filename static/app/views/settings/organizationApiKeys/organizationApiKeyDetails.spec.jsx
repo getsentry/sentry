@@ -13,13 +13,10 @@ describe('OrganizationApiKeyDetails', function () {
   });
 
   it('renders', function () {
-    const wrapper = render(
-      <OrganizationApiKeyDetails params={{apiKey: 1, orgId: 'org-slug'}} />,
-      {
-        context: TestStubs.routerContext(),
-        organization: TestStubs.Organization(),
-      }
-    );
+    const wrapper = render(<OrganizationApiKeyDetails params={{apiKey: 1}} />, {
+      context: TestStubs.routerContext(),
+      organization: TestStubs.Organization(),
+    });
 
     expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
     expect(wrapper.container).toSnapshot();

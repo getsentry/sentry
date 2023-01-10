@@ -1,7 +1,7 @@
 import selectEvent from 'react-select-event';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import IssueAlertOptions from 'sentry/views/projectInstall/issueAlertOptions';
 
@@ -113,5 +113,27 @@ describe('IssueAlertOptions', function () {
 
     render(<IssueAlertOptions {...props} />);
     expect(screen.getByTestId('range-input')).toHaveValue(null);
+  });
+
+  it('should provide fallthroughType with issue action for issue-alert-fallback-targeting', () => {
+    MockApiClient.addMockResponse({
+      url: URL,
+      body: TestStubs.MOCK_RESP_VERBOSE,
+    });
+    const org = {...organization, features: ['issue-alert-fallback-targeting']};
+
+    render(<IssueAlertOptions {...props} organization={org} />);
+    userEvent.click(screen.getByLabelText(/When there are more than/i));
+    expect(props.onChange).toHaveBeenCalledWith(
+      expect.objectContaining({
+        actions: [
+          {
+            id: 'sentry.mail.actions.NotifyEmailAction',
+            targetType: 'IssueOwners',
+            fallthroughType: 'ActiveMembers',
+          },
+        ],
+      })
+    );
   });
 });

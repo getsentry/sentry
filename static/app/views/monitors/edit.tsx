@@ -10,7 +10,7 @@ import MonitorForm from './monitorForm';
 import {Monitor} from './types';
 
 type Props = AsyncView['props'] &
-  RouteComponentProps<{monitorId: string; orgId: string}, {}> & {
+  RouteComponentProps<{monitorId: string}, {}> & {
     organization: Organization;
   };
 
@@ -25,7 +25,7 @@ class EditMonitor extends AsyncView<Props, State> {
 
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {params} = this.props;
-    return [['monitor', `/monitors/${params.monitorId}/`]];
+    return [['monitor', `/organizations/${this.orgSlug}/monitors/${params.monitorId}/`]];
   }
 
   onUpdate = (data: Monitor) =>
@@ -56,7 +56,7 @@ class EditMonitor extends AsyncView<Props, State> {
           <MonitorForm
             monitor={monitor}
             apiMethod="PUT"
-            apiEndpoint={`/monitors/${monitor.id}/`}
+            apiEndpoint={`/organizations/${this.orgSlug}/monitors/${monitor.id}/`}
             onSubmitSuccess={this.onSubmitSuccess}
           />
         </Layout.Main>

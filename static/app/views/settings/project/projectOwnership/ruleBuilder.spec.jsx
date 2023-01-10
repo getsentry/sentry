@@ -136,4 +136,21 @@ describe('RuleBuilder', function () {
     userEvent.click(addButton);
     expect(handleAdd).toHaveBeenCalled();
   });
+
+  it('builds a tag rule', async function () {
+    render(
+      <RuleBuilder project={project} organization={organization} onAddRule={handleAdd} />
+    );
+
+    await selectEvent.select(screen.getByText('Path'), 'Tag');
+    userEvent.type(screen.getByPlaceholderText('tag-name'), 'mytag');
+    userEvent.type(screen.getByPlaceholderText('tag-value'), 'value');
+    await selectEvent.select(
+      screen.getByRole('textbox', {name: 'Rule owner'}),
+      'Jane Bloggs'
+    );
+    userEvent.click(screen.getByRole('button', {name: 'Add rule'}));
+
+    expect(handleAdd).toHaveBeenCalledWith('tags.mytag:value janebloggs@example.com');
+  });
 });

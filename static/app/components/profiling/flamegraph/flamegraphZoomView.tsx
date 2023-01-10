@@ -30,10 +30,10 @@ import {
 import {useContextMenu} from 'sentry/utils/profiling/hooks/useContextMenu';
 import {useInternalFlamegraphDebugMode} from 'sentry/utils/profiling/hooks/useInternalFlamegraphDebugMode';
 import {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
+import {FlamegraphTextRenderer} from 'sentry/utils/profiling/renderers/flamegraphTextRenderer';
 import {GridRenderer} from 'sentry/utils/profiling/renderers/gridRenderer';
 import {SampleTickRenderer} from 'sentry/utils/profiling/renderers/sampleTickRenderer';
 import {SelectedFrameRenderer} from 'sentry/utils/profiling/renderers/selectedFrameRenderer';
-import {TextRenderer} from 'sentry/utils/profiling/renderers/textRenderer';
 import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
 
 import {useCanvasScroll} from './interactions/useCanvasScroll';
@@ -98,11 +98,15 @@ function FlamegraphZoomView({
   const [startInteractionVector, setStartInteractionVector] = useState<vec2 | null>(null);
   const [configSpaceCursor, setConfigSpaceCursor] = useState<vec2 | null>(null);
 
-  const textRenderer: TextRenderer | null = useMemo(() => {
+  const textRenderer: FlamegraphTextRenderer | null = useMemo(() => {
     if (!flamegraphOverlayCanvasRef) {
       return null;
     }
-    return new TextRenderer(flamegraphOverlayCanvasRef, flamegraph, flamegraphTheme);
+    return new FlamegraphTextRenderer(
+      flamegraphOverlayCanvasRef,
+      flamegraphTheme,
+      flamegraph
+    );
   }, [flamegraph, flamegraphOverlayCanvasRef, flamegraphTheme]);
 
   const gridRenderer: GridRenderer | null = useMemo(() => {
@@ -181,7 +185,7 @@ function FlamegraphZoomView({
 
     const drawText = () => {
       textRenderer.draw(
-        flamegraphView.configView.transformRect(flamegraphView.configSpaceTransform),
+        flamegraphView.toOriginConfigView(flamegraphView.configView),
         flamegraphView.fromTransformedConfigView(flamegraphCanvas.physicalSpace),
         flamegraphSearch.results
       );
@@ -326,7 +330,10 @@ function FlamegraphZoomView({
             // because the height may have changed due to window resizing and
             // calling it with the old height may result in the flamegraph
             // being drawn into a very small or very large area.
-            canvasPoolManager.dispatch('set config view', [previousPosition]);
+            canvasPoolManager.dispatch('set config view', [
+              previousPosition,
+              flamegraphView,
+            ]);
           }
         }
 
@@ -338,7 +345,7 @@ function FlamegraphZoomView({
             // because the height may have changed due to window resizing and
             // calling it with the old height may result in the flamegraph
             // being drawn into a very small or very large area.
-            canvasPoolManager.dispatch('set config view', [nextPosition]);
+            canvasPoolManager.dispatch('set config view', [nextPosition, flamegraphView]);
           }
         }
 
@@ -438,7 +445,7 @@ function FlamegraphZoomView({
         return;
       }
 
-      canvasPoolManager.dispatch('transform config view', [configDelta]);
+      canvasPoolManager.dispatch('transform config view', [configDelta, flamegraphView]);
       setStartInteractionVector(
         getPhysicalSpacePositionFromOffset(
           evt.nativeEvent.offsetX,
@@ -496,8 +503,6 @@ function FlamegraphZoomView({
   );
 
   useCanvasZoomOrScroll({
-    lastInteraction,
-    configSpaceCursor,
     setConfigSpaceCursor,
     setLastInteraction,
     handleWheel: onWheelCenterZoom,
