@@ -93,6 +93,7 @@ export enum FieldKey {
   TIMESTAMP_TO_HOUR = 'timestamp.to_hour',
   TIMES_SEEN = 'timesSeen',
   TITLE = 'title',
+  TOTAL_COUNT = 'total.count',
   TRACE = 'trace',
   TRACE_PARENT_SPAN = 'trace.parent_span',
   TRACE_SPAN = 'trace.span',
@@ -853,6 +854,11 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
+  [FieldKey.TOTAL_COUNT]: {
+    desc: t('The total number of events for the current query'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.NUMBER,
+  },
   [FieldKey.TRACE_PARENT_SPAN]: {
     desc: t('Span identification number of the parent to the event'),
     kind: FieldKind.FIELD,
@@ -1061,6 +1067,9 @@ export const DISCOVER_FIELDS = [
   FieldKey.TRACE,
   FieldKey.TRACE_SPAN,
   FieldKey.TRACE_PARENT_SPAN,
+
+  // Meta field that returns total count, usually for equations
+  FieldKey.TOTAL_COUNT,
 
   // Field alises defined in src/sentry/api/event_search.py
   FieldKey.PROJECT,
