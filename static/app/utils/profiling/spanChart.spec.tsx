@@ -278,6 +278,9 @@ describe('spanChart', () => {
         endTimestamp: start + 10,
       }),
       [
+        // If a span belongs to nothing, we dont render it,
+        // for now we only render spans that ultimately belong
+        // to the transaction when the parent_span_id is followed
         s({
           span_id: '1',
           parent_span_id: 'root',
