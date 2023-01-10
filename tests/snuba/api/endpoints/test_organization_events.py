@@ -5643,7 +5643,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
 
         features = {"organizations:discover-basic": True, "organizations:global-views": True}
         query = {
-            "field": ["transaction", "total_count", "count()"],
+            "field": ["transaction", "total.count", "count()"],
             "query": "!transaction:/example",
             "statsPeriod": "24h",
         }
@@ -5651,7 +5651,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         data = response.data["data"]
         assert len(data) == 1
-        assert data[0]["total_count"] == 3
+        assert data[0]["total.count"] == 3
 
     def test_total_count_by_itself(self):
         project1 = self.create_project()
@@ -5660,7 +5660,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
 
         features = {"organizations:discover-basic": True, "organizations:global-views": True}
         query = {
-            "field": ["total_count"],
+            "field": ["total.count"],
             "statsPeriod": "24h",
         }
         response = self.do_request(query, features=features)
@@ -5682,14 +5682,14 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
 
         features = {"organizations:discover-basic": True, "organizations:global-views": True}
         query = {
-            "field": ["transaction", "count()", "total_count", "equation|count()/total_count"],
+            "field": ["transaction", "count()", "total.count", "equation|count()/total.count"],
             "query": "",
-            "orderby": "equation|count()/total_count",
+            "orderby": "equation|count()/total.count",
             "statsPeriod": "24h",
         }
         response = self.do_request(query, features=features)
         assert response.status_code == 200, response.content
         data = response.data["data"]
         assert len(data) == 2
-        assert data[0]["equation|count()/total_count"] == 0.25
-        assert data[1]["equation|count()/total_count"] == 0.75
+        assert data[0]["equation|count()/total.count"] == 0.25
+        assert data[1]["equation|count()/total.count"] == 0.75
