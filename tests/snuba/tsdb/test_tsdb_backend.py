@@ -911,7 +911,7 @@ class SnubaTSDBGroupProfilingTest(TestCase, SnubaTestCase, SearchIssueTestMixin)
 
     def test_get_distinct_counts_totals_users(self):
         assert self.db.get_distinct_counts_totals(
-            TSDBModel.users_affected_by_profile_group,
+            TSDBModel.users_affected_by_generic_group,
             [self.proj1group1.id],
             self.now,
             self.now + timedelta(hours=4),
@@ -921,7 +921,7 @@ class SnubaTSDBGroupProfilingTest(TestCase, SnubaTestCase, SearchIssueTestMixin)
         }
 
         assert self.db.get_distinct_counts_totals(
-            TSDBModel.users_affected_by_profile_group,
+            TSDBModel.users_affected_by_generic_group,
             [self.proj1group1.id],
             self.now,
             self.now,
@@ -932,7 +932,7 @@ class SnubaTSDBGroupProfilingTest(TestCase, SnubaTestCase, SearchIssueTestMixin)
 
         assert (
             self.db.get_distinct_counts_totals(
-                TSDBModel.users_affected_by_profile_group,
+                TSDBModel.users_affected_by_generic_group,
                 [],
                 self.now,
                 self.now + timedelta(hours=4),
