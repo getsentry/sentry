@@ -106,7 +106,6 @@ export function FlamegraphSpans({
       return undefined;
     }
 
-<<<<<<< HEAD
     if (profiledTransaction.type !== 'resolved') {
       return undefined;
     }
@@ -117,10 +116,6 @@ export function FlamegraphSpans({
         spansTextRenderer.canvas.width,
         spansTextRenderer.canvas.height
       );
-=======
-    const drawSpans = () => {
-      spansRenderer.draw(spansView.fromTransformedConfigView(spansCanvas.physicalSpace));
->>>>>>> 873157a2a3 (feat(profiling): offset space and handle negative time)
     };
 
     const drawSpans = () => {
