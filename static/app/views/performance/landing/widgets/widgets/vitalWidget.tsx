@@ -165,9 +165,23 @@ export function VitalWidget(props: PerformanceWidgetProps) {
             provided.widgetData.list.data[selectedListIndex]?.transaction as string,
           ]);
 
+          let requestProps = pick(provided, eventsRequestQueryProps);
+          const showOnlyPoorVitals = organization.features.includes(
+            'performance-new-widget-designs'
+          );
+          if (showOnlyPoorVitals) {
+            const yAxis = Array.isArray(requestProps.yAxis)
+              ? requestProps.yAxis
+              : [requestProps.yAxis];
+            const poorVitalsAxis = yAxis.find(vitalField => vitalField?.includes('poor'));
+            requestProps = {
+              ...requestProps,
+              yAxis: poorVitalsAxis ? [poorVitalsAxis] : requestProps.yAxis,
+            };
+          }
           return (
             <EventsRequest
-              {...pick(provided, eventsRequestQueryProps)}
+              {...requestProps}
               limit={1}
               currentSeriesNames={[sortField]}
               includePrevious={false}
