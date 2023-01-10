@@ -13,7 +13,7 @@ describe('SettingsSearch', function () {
   const routerContext = TestStubs.routerContext([
     {
       router: TestStubs.router({
-        params: {orgId: 'org-slug'},
+        params: {},
       }),
     },
   ]);
@@ -65,7 +65,7 @@ describe('SettingsSearch', function () {
   });
 
   it('renders', function () {
-    render(<SettingsSearch params={{orgId: 'org-slug'}} />);
+    render(<SettingsSearch params={{}} />);
 
     // renders input
     expect(screen.getByPlaceholderText('Search')).toBeInTheDocument();

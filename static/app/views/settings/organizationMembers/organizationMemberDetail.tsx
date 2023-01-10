@@ -43,7 +43,6 @@ const TWO_FACTOR_REQUIRED = t(
 
 type RouteParams = {
   memberId: string;
-  orgId: string;
 };
 
 type Props = {
