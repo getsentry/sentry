@@ -106,11 +106,12 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
     const {id, flags, email, name, pending, user} = member;
 
     // if member is not the only owner, they can leave
+    const isIdpProvisioned = flags['idp:provisioned'];
     const needsSso = !flags['sso:linked'] && requireLink;
     const isCurrentUser = currentUser.email === email;
     const showRemoveButton = !isCurrentUser;
     const showLeaveButton = isCurrentUser;
-    const canRemoveMember = canRemoveMembers && !isCurrentUser;
+    const canRemoveMember = canRemoveMembers && !isCurrentUser && !isIdpProvisioned;
     // member has a `user` property if they are registered with sentry
     // i.e. has accepted an invite to join org
     const has2fa = user && user.has2fa;
@@ -190,7 +191,13 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
               <Button
                 disabled
                 size="sm"
-                title={t('You do not have access to remove members')}
+                title={
+                  isIdpProvisioned
+                    ? t(
+                        "This user is managed through your organization's identity provider."
+                      )
+                    : t('You do not have access to remove members')
+                }
                 icon={<IconSubtract isCircled size="xs" />}
               >
                 {t('Remove')}
@@ -215,9 +222,15 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
                 size="sm"
                 icon={<IconClose size="xs" />}
                 disabled
-                title={t(
-                  'You cannot leave this organization as you are the only organization owner.'
-                )}
+                title={
+                  isIdpProvisioned
+                    ? t(
+                        "Your account is managed through your organization's identity provider."
+                      )
+                    : t(
+                        'You cannot leave this organization as you are the only organization owner.'
+                      )
+                }
               >
                 {t('Leave')}
               </Button>

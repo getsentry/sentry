@@ -144,7 +144,7 @@ class SpanTree {
                 op: 'missing instrumentation',
                 start_timestamp:
                   parent.children[parent.children.length - 1].span.timestamp,
-                timestamp: span.timestamp,
+                timestamp: span.start_timestamp,
                 span_id: uuid4(),
                 data: {},
                 trace_id: span.trace_id,

@@ -92,9 +92,10 @@ const HiddenInput = styled('input')`
   opacity: 0;
   top: 0;
   left: 0;
-  right: 0;
-  bottom: 0;
+  height: 100%;
+  width: 100%;
   margin: 0;
+  padding: 0;
   cursor: pointer;
 
   &.focus-visible + * {
