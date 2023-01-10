@@ -15,6 +15,7 @@ import {Organization, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import Redirect from 'sentry/utils/redirect';
 import testableTransition from 'sentry/utils/testableTransition';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
 import withProjects from 'sentry/utils/withProjects';
 import PageCorners from 'sentry/views/onboarding/components/pageCorners';
@@ -109,7 +110,7 @@ function Onboarding(props: Props) {
     if (step.cornerVariant !== stepObj.cornerVariant) {
       cornerVariantControl.start('none');
     }
-    browserHistory.push(`/onboarding/${props.params.orgId}/${step.id}/`);
+    browserHistory.push(normalizeUrl(`/onboarding/${props.params.orgId}/${step.id}/`));
   };
 
   const goNextStep = (step: StepDescriptor) => {
@@ -118,7 +119,9 @@ function Onboarding(props: Props) {
     if (step.cornerVariant !== nextStep.cornerVariant) {
       cornerVariantControl.start('none');
     }
-    browserHistory.push(`/onboarding/${props.params.orgId}/${nextStep.id}/`);
+    browserHistory.push(
+      normalizeUrl(`/onboarding/${props.params.orgId}/${nextStep.id}/`)
+    );
   };
 
   const handleGoBack = () => {
@@ -135,7 +138,9 @@ function Onboarding(props: Props) {
     if (stepObj.cornerVariant !== previousStep.cornerVariant) {
       cornerVariantControl.start('none');
     }
-    browserHistory.replace(`/onboarding/${props.params.orgId}/${previousStep.id}/`);
+    browserHistory.replace(
+      normalizeUrl(`/onboarding/${props.params.orgId}/${previousStep.id}/`)
+    );
   };
 
   const genSkipOnboardingLink = () => {
@@ -154,7 +159,9 @@ function Onboarding(props: Props) {
             });
           }
         }}
-        to={`/organizations/${organization.slug}/issues/?referrer=onboarding-skip`}
+        to={normalizeUrl(
+          `/organizations/${organization.slug}/issues/?referrer=onboarding-skip`
+        )}
       >
         {t('Skip Onboarding')}
       </SkipOnboardingLink>
@@ -162,7 +169,11 @@ function Onboarding(props: Props) {
   };
 
   if (!stepObj || stepIndex === -1) {
-    return <Redirect to={`/onboarding/${organization.slug}/${onboardingSteps[0].id}/`} />;
+    return (
+      <Redirect
+        to={normalizeUrl(`/onboarding/${organization.slug}/${onboardingSteps[0].id}/`)}
+      />
+    );
   }
   return (
     <OnboardingWrapper data-test-id="targeted-onboarding">
