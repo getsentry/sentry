@@ -249,18 +249,29 @@ export class AssigneeSelectorDropdown extends Component<
           <IconContainer>
             <UserAvatar user={member} size={24} />
           </IconContainer>
-          <div>
+          {this.hasStreamlineTargeting() ? (
+            <div>
+              <AssigneeLabel>
+                <Highlight text={inputValue}>
+                  {sessionUser.id === member.id
+                    ? `${member.name || member.email} ${t('(You)')}`
+                    : member.name || member.email}
+                </Highlight>
+              </AssigneeLabel>
+              <AssigneeLabel>
+                {suggestedReason && <SuggestedReason>{suggestedReason}</SuggestedReason>}
+              </AssigneeLabel>
+            </div>
+          ) : (
             <Label>
               <Highlight text={inputValue}>
                 {sessionUser.id === member.id
                   ? `${member.name || member.email} ${t('(You)')}`
                   : member.name || member.email}
               </Highlight>
+              {suggestedReason && <SuggestedReason>({suggestedReason})</SuggestedReason>}
             </Label>
-            <Label>
-              {suggestedReason && <SuggestedReason>{suggestedReason}</SuggestedReason>}
-            </Label>
-          </div>
+          )}
         </MenuItemWrapper>
       ),
     };
@@ -287,14 +298,21 @@ export class AssigneeSelectorDropdown extends Component<
           <IconContainer>
             <TeamAvatar team={team} size={24} />
           </IconContainer>
-          <div>
+          {this.hasStreamlineTargeting() ? (
+            <div>
+              <AssigneeLabel>
+                <Highlight text={inputValue}>{display}</Highlight>
+              </AssigneeLabel>
+              <AssigneeLabel>
+                {suggestedReason && <SuggestedReason>{suggestedReason}</SuggestedReason>}
+              </AssigneeLabel>
+            </div>
+          ) : (
             <Label>
               <Highlight text={inputValue}>{display}</Highlight>
+              {suggestedReason && <SuggestedReason>({suggestedReason})</SuggestedReason>}
             </Label>
-            <Label>
-              {suggestedReason && <SuggestedReason>{suggestedReason}</SuggestedReason>}
-            </Label>
-          </div>
+          )}
         </MenuItemWrapper>
       ),
     };
@@ -364,21 +382,51 @@ export class AssigneeSelectorDropdown extends Component<
       );
     });
 
-    const dropdownItems: ItemsBeforeFilter = [
-      {
-        label: this.renderDropdownGroupLabel(t('Everyone Else')),
-        id: 'team-header',
-        items: [...filteredSessionUser, ...filteredTeams, ...filteredMembers],
-      },
-    ];
+    // New version combines teams and users into one section
+    const dropdownItems: ItemsBeforeFilter = this.hasStreamlineTargeting()
+      ? [
+          {
+            label: this.renderDropdownGroupLabel(t('Everyone Else')),
+            id: 'team-header',
+            items: [...filteredSessionUser, ...filteredTeams, ...filteredMembers],
+          },
+        ]
+      : [
+          {
+            label: this.renderDropdownGroupLabel(t('Teams')),
+            id: 'team-header',
+            items: filteredTeams,
+          },
+          {
+            label: this.renderDropdownGroupLabel(t('People')),
+            id: 'members-header',
+            items: filteredMembers,
+          },
+        ];
 
-    // session user is first on dropdown
-    if (suggestedAssignees.length) {
-      dropdownItems.unshift({
-        label: this.renderDropdownGroupLabel(t('Suggested Assignees')),
-        id: 'suggested-list',
-        items: filteredSuggestedAssignees,
-      });
+    if (suggestedAssignees.length || filteredSessionUser.length) {
+      // Add suggested assingees
+      if (this.hasStreamlineTargeting()) {
+        dropdownItems.unshift({
+          label: this.renderDropdownGroupLabel(t('Suggested Assignees')),
+          id: 'suggested-list',
+          items: filteredSuggestedAssignees,
+        });
+      } else {
+        dropdownItems.unshift(
+          // session user is first on dropdown
+          {
+            label: this.renderDropdownGroupLabel(t('Suggested')),
+            id: 'suggested-header',
+            items: filteredSessionUser,
+          },
+          {
+            hideGroupLabel: true,
+            id: 'suggested-list',
+            items: filteredSuggestedAssignees,
+          }
+        );
+      }
     }
 
     return dropdownItems;
@@ -510,7 +558,7 @@ export class AssigneeSelectorDropdown extends Component<
         menuFooter={
           assignedTo ? (
             <div>
-              <MenuItemFooterWrapper role="button" onClick={this.clearAssignTo} py={0}>
+              <MenuItemFooterWrapper role="button" onClick={this.clearAssignTo}>
                 <IconContainer>
                   <IconClose color="activeText" isCircled legacySize="14px" />
                 </IconContainer>
@@ -585,7 +633,11 @@ const MenuItemWrapper = styled('div')<{
     `};
 `;
 
-const MenuItemFooterWrapper = styled(MenuItemWrapper)`
+const MenuItemFooterWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+  padding: ${space(0.25)} ${space(1)};
+  border-top: 1px solid ${p => p.theme.innerBorder};
   background-color: ${p => p.theme.tag.highlight.background};
   color: ${p => p.theme.activeText};
   :hover {
@@ -601,6 +653,11 @@ const InviteMemberLink = styled(Link)`
 `;
 
 const Label = styled(TextOverflow)`
+  margin-left: 6px;
+`;
+
+const AssigneeLabel = styled('div')`
+  ${p => p.theme.overflowEllipsis}
   margin-left: ${space(1)};
   max-width: 300px;
 `;
