@@ -6,9 +6,11 @@ import PageFiltersContainer from 'sentry/components/organizations/pageFilters/co
 import PageHeading from 'sentry/components/pageHeading';
 import ReplaysFeatureBadge from 'sentry/components/replays/replaysFeatureBadge';
 import {t} from 'sentry/locale';
+import useReplayPageview from 'sentry/utils/replays/hooks/useReplayPageview';
 import ReplaysList from 'sentry/views/replays/list/replays';
 
 function ReplaysListContainer() {
+  useReplayPageview('replay.list-time-spent');
   return (
     <Fragment>
       <Layout.Header>

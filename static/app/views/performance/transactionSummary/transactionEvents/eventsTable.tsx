@@ -17,7 +17,7 @@ import Tooltip from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import {IssueAttachment, Organization, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
-import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import DiscoverQuery, {
   TableData,
   TableDataRow,
@@ -116,10 +116,8 @@ class EventsTable extends Component<Props, State> {
     return (action: Actions, value: React.ReactText) => {
       const {eventView, location, organization, excludedTags} = this.props;
 
-      trackAnalyticsEvent({
-        eventKey: 'performance_views.transactionEvents.cellaction',
-        eventName: 'Performance Views: Transaction Events Tab Cell Action Clicked',
-        organization_id: parseInt(organization.id, 10),
+      trackAdvancedAnalyticsEvent('performance_views.transactionEvents.cellaction', {
+        organization,
         action,
       });
 
@@ -258,10 +256,8 @@ class EventsTable extends Component<Props, State> {
 
   onSortClick(currentSortKind?: string, currentSortField?: string) {
     const {organization} = this.props;
-    trackAnalyticsEvent({
-      eventKey: 'performance_views.transactionEvents.sort',
-      eventName: 'Performance Views: Transaction Events Tab Sorted',
-      organization_id: parseInt(organization.id, 10),
+    trackAdvancedAnalyticsEvent('performance_views.transactionEvents.sort', {
+      organization,
       field: currentSortField,
       direction: currentSortKind,
     });
