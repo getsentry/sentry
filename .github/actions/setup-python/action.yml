@@ -27,5 +27,5 @@ runs:
 
     - name: Install python deps
       shell: bash
-      run: pip install -r ${{ inputs.dependency-paths }}
+      run: pip install -r ${{ join(inputs.dependency-paths, ' ') }}
       if: steps.cache-virtualenv.outputs.cache-hit != 'true'
