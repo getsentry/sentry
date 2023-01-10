@@ -8,14 +8,14 @@ import {initializeLocale} from '../../../bootstrap/initializeLocale';
 import {Flamegraph} from '../flamegraph';
 import {FlamegraphSearch} from '../flamegraph/flamegraphStateProvider/reducers/flamegraphSearch';
 import {LightFlamegraphTheme} from '../flamegraph/flamegraphTheme';
+import {FlamegraphFrame, getFlamegraphFrameSearchId} from '../flamegraphFrame';
 import {Rect, transformMatrixBetweenRect} from '../gl/utils';
 import androidTrace from '../profile/formats/android/trace.json';
 import ios from '../profile/formats/ios/trace.json';
 import typescriptTrace from '../profile/formats/typescript/trace.json';
 import {importProfile} from '../profile/importProfile';
 
-import {FlamegraphFrame, getFlamegraphFrameSearchId} from './../flamegraphFrame';
-import {TextRenderer} from './textRenderer';
+import {FlamegraphTextRenderer} from './flamegraphTextRenderer';
 
 // This logs an error which is annoying to see in the outputs
 initializeLocale({} as any);
@@ -42,7 +42,7 @@ function benchmark(name: string, callback: () => void) {
 
 global.window = {devicePixelRatio: 1};
 
-const makeDrawFullScreen = (renderer: TextRenderer, flamegraph: Flamegraph) => {
+const makeDrawFullScreen = (renderer: FlamegraphTextRenderer, flamegraph: Flamegraph) => {
   const configView = new Rect(
     0,
     0,
@@ -56,7 +56,10 @@ const makeDrawFullScreen = (renderer: TextRenderer, flamegraph: Flamegraph) => {
   };
 };
 
-const makeDrawCenterScreen = (renderer: TextRenderer, flamegraph: Flamegraph) => {
+const makeDrawCenterScreen = (
+  renderer: FlamegraphTextRenderer,
+  flamegraph: Flamegraph
+) => {
   const configView = new Rect(
     flamegraph.configSpace.width * 0.25, // 25% to left
     0,
@@ -70,7 +73,10 @@ const makeDrawCenterScreen = (renderer: TextRenderer, flamegraph: Flamegraph) =>
   };
 };
 
-const makeDrawRightSideOfScreen = (renderer: TextRenderer, flamegraph: Flamegraph) => {
+const makeDrawRightSideOfScreen = (
+  renderer: FlamegraphTextRenderer,
+  flamegraph: Flamegraph
+) => {
   const configView = new Rect(
     flamegraph.configSpace.width * 0.75, // 75% to left
     0,
@@ -111,7 +117,7 @@ const iosFlamegraph = new Flamegraph(
 );
 
 const makeTextRenderer = flamegraph =>
-  new TextRenderer(
+  new FlamegraphTextRenderer(
     {
       clientWidth: 1000,
       clientHeight: 1000,
@@ -129,8 +135,8 @@ const makeTextRenderer = flamegraph =>
         };
       },
     },
-    flamegraph,
-    LightFlamegraphTheme
+    LightFlamegraphTheme,
+    flamegraph
   );
 
 interface FramePartitionData {
@@ -171,7 +177,11 @@ const makeSearchResults = (flamegraph: Flamegraph): FlamegraphSearch => {
   };
 };
 
-const suite = (name: string, textRenderer: TextRenderer, flamegraph: Flamegraph) => {
+const suite = (
+  name: string,
+  textRenderer: FlamegraphTextRenderer,
+  flamegraph: Flamegraph
+) => {
   const results = makeSearchResults(flamegraph);
   benchmark(`${name} (full profile)`, () =>
     makeDrawFullScreen(textRenderer, flamegraph)(new Map())

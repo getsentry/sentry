@@ -30,10 +30,10 @@ import {
 import {useContextMenu} from 'sentry/utils/profiling/hooks/useContextMenu';
 import {useInternalFlamegraphDebugMode} from 'sentry/utils/profiling/hooks/useInternalFlamegraphDebugMode';
 import {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
+import {FlamegraphTextRenderer} from 'sentry/utils/profiling/renderers/flamegraphTextRenderer';
 import {GridRenderer} from 'sentry/utils/profiling/renderers/gridRenderer';
 import {SampleTickRenderer} from 'sentry/utils/profiling/renderers/sampleTickRenderer';
 import {SelectedFrameRenderer} from 'sentry/utils/profiling/renderers/selectedFrameRenderer';
-import {TextRenderer} from 'sentry/utils/profiling/renderers/textRenderer';
 import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
 
 import {useCanvasScroll} from './interactions/useCanvasScroll';
@@ -98,11 +98,15 @@ function FlamegraphZoomView({
   const [startInteractionVector, setStartInteractionVector] = useState<vec2 | null>(null);
   const [configSpaceCursor, setConfigSpaceCursor] = useState<vec2 | null>(null);
 
-  const textRenderer: TextRenderer | null = useMemo(() => {
+  const textRenderer: FlamegraphTextRenderer | null = useMemo(() => {
     if (!flamegraphOverlayCanvasRef) {
       return null;
     }
-    return new TextRenderer(flamegraphOverlayCanvasRef, flamegraph, flamegraphTheme);
+    return new FlamegraphTextRenderer(
+      flamegraphOverlayCanvasRef,
+      flamegraphTheme,
+      flamegraph
+    );
   }, [flamegraph, flamegraphOverlayCanvasRef, flamegraphTheme]);
 
   const gridRenderer: GridRenderer | null = useMemo(() => {
