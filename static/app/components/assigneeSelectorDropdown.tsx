@@ -28,8 +28,7 @@ import type {
 } from 'sentry/types';
 import {buildTeamId, buildUserId, valueIsEqual} from 'sentry/utils';
 
-export type SuggestedAssignee = {
-  actor: Actor;
+export type SuggestedAssignee = Actor & {
   assignee: AssignableTeam | User;
   suggestedReason: string;
 };
@@ -219,7 +218,7 @@ export class AssigneeSelectorDropdown extends Component<
     if (onAssign) {
       const suggestionType = type === 'member' ? 'user' : type;
       const suggestion = this.getSuggestedAssignees().find(
-        ({actor}) => actor.type === suggestionType && actor.id === assignee.id
+        actor => actor.type === suggestionType && actor.id === assignee.id
       );
       onAssign?.(type, assignee, suggestion);
     }
@@ -330,13 +329,11 @@ export class AssigneeSelectorDropdown extends Component<
     };
     // filter out suggested assignees if a suggestion is already selected
     return this.getSuggestedAssignees()
-      .filter(
-        ({actor}) => !(actor.type === assignedTo?.type && actor.id === assignedTo?.id)
-      )
-      .filter(({actor}) => actor.type === 'user' || actor.type === 'team')
-      .map(({actor, suggestedReason, assignee}) => {
+      .filter(({type, id}) => !(type === assignedTo?.type && id === assignedTo?.id))
+      .filter(({type}) => type === 'user' || type === 'team')
+      .map(({type, suggestedReason, assignee}) => {
         const reason = textReason[suggestedReason] ?? suggestedReason;
-        if (actor.type === 'user') {
+        if (type === 'user') {
           return this.renderMemberNode(assignee as User, reason);
         }
 
@@ -464,8 +461,8 @@ export class AssigneeSelectorDropdown extends Component<
       // Add team or user from store
       return owners
         .map<SuggestedAssignee | null>(owner => {
-          if (owner.actor.type === 'user') {
-            const member = memberList.find(user => user.id === owner.actor.id);
+          if (owner.type === 'user') {
+            const member = memberList.find(user => user.id === owner.id);
             if (member) {
               return {
                 ...owner,
@@ -473,9 +470,9 @@ export class AssigneeSelectorDropdown extends Component<
               };
             }
           }
-          if (owner.actor.type === 'team') {
+          if (owner.type === 'team') {
             const matchingTeam = assignableTeams.find(
-              assignableTeam => assignableTeam.team.id === owner.actor.id
+              assignableTeam => assignableTeam.team.id === owner.id
             );
             if (matchingTeam) {
               return {
@@ -503,11 +500,9 @@ export class AssigneeSelectorDropdown extends Component<
           const member = memberList.find(user => user.id === id);
           if (member) {
             return {
-              actor: {
-                id,
-                type: 'user',
-                name: member.name,
-              },
+              id,
+              type: 'user',
+              name: member.name,
               suggestedReason: owner.type,
               assignee: member,
             };
@@ -518,11 +513,9 @@ export class AssigneeSelectorDropdown extends Component<
           );
           if (matchingTeam) {
             return {
-              actor: {
-                id,
-                type: 'team',
-                name: matchingTeam.team.name,
-              },
+              id,
+              type: 'team',
+              name: matchingTeam.team.name,
               suggestedReason: owner.type,
               assignee: matchingTeam,
             };

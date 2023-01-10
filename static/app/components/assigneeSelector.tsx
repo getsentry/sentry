@@ -41,7 +41,7 @@ function AssigneeSelector({noDropdown, ...props}: AssigneeSelectorProps) {
       codeowners: t('Matching Codeowners Rule'),
     };
     const assignedToSuggestion = suggestedActors.find(
-      ({actor}) => actor.id === assignedTo?.id
+      actor => actor.id === assignedTo?.id
     );
 
     return assignedTo ? (
@@ -66,16 +66,16 @@ function AssigneeSelector({noDropdown, ...props}: AssigneeSelectorProps) {
     ) : suggestedActors && suggestedActors.length > 0 ? (
       <SuggestedAvatarStack
         size={28}
-        owners={suggestedActors.map(({actor}) => actor)}
+        owners={suggestedActors}
         tooltipOptions={{isHoverable: true}}
         tooltip={
           <TooltipWrapper>
             <div>
               {tct('Suggestion: [name]', {
                 name:
-                  suggestedActors[0].actor.type === 'team'
-                    ? `#${suggestedActors[0].actor.name}`
-                    : suggestedActors[0].actor.name,
+                  suggestedActors[0].type === 'team'
+                    ? `#${suggestedActors[0].name}`
+                    : suggestedActors[0].name,
               })}
               {suggestedActors.length > 1 &&
                 tn(' + %s other', ' + %s others', suggestedActors.length - 1)}

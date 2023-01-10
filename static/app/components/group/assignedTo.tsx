@@ -123,7 +123,7 @@ function getOwnerList(
 
   // Convert to suggested assignee format
   return filteredOwners.map(owner => ({
-    actor: owner.actor,
+    ...owner.actor,
     suggestedReason: getSuggestedReason(owner),
   }));
 }
