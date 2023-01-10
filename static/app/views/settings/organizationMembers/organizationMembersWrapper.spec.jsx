@@ -22,7 +22,7 @@ describe('OrganizationMembersWrapper', function () {
 
   const defaultProps = {
     location: {query: {}},
-    params: {orgId: organization.slug},
+    params: {},
   };
 
   beforeEach(function () {

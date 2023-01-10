@@ -32,7 +32,7 @@ const ModalHeader = styled('header')`
 const CloseButton = styled((p: Omit<ButtonProps, 'aria-label'>) => (
   <Button
     aria-label={t('Close Modal')}
-    icon={<IconClose size="10px" />}
+    icon={<IconClose legacySize="10px" />}
     size="zero"
     {...p}
   />

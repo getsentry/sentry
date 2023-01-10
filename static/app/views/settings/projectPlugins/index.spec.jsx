@@ -10,7 +10,7 @@ jest.mock('sentry/actionCreators/plugins', () => ({
 }));
 
 describe('ProjectPluginsContainer', function () {
-  let org, project, plugins, params, organization;
+  let org, project, plugins, params;
 
   beforeEach(function () {
     org = TestStubs.Organization();
@@ -25,12 +25,7 @@ describe('ProjectPluginsContainer', function () {
       },
     ]);
     params = {
-      orgId: org.slug,
       projectId: project.slug,
-    };
-    organization = {
-      id: org.slug,
-      features: [],
     };
 
     MockApiClient.addMockResponse({
@@ -60,7 +55,8 @@ describe('ProjectPluginsContainer', function () {
       <ProjectPluginsContainer
         plugins={{plugins, loading: false}}
         params={params}
-        organization={organization}
+        organization={org}
+        project={project}
       />
     );
   });

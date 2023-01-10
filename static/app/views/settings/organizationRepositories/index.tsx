@@ -3,22 +3,27 @@ import {RouteComponentProps} from 'react-router';
 
 import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
-import {Repository} from 'sentry/types';
+import {Organization, Repository} from 'sentry/types';
 import routeTitleGen from 'sentry/utils/routeTitle';
+import withOrganization from 'sentry/utils/withOrganization';
 import AsyncView from 'sentry/views/asyncView';
 
 import OrganizationRepositories from './organizationRepositories';
 
-type Props = RouteComponentProps<{orgId: string}, {}> & AsyncView['props'];
+type Props = RouteComponentProps<{}, {}> & {
+  organization: Organization;
+} & AsyncView['props'];
 
 type State = AsyncView['state'] & {
   itemList: Repository[] | null;
 };
 
-export default class OrganizationRepositoriesContainer extends AsyncView<Props, State> {
+class OrganizationRepositoriesContainer extends AsyncView<Props, State> {
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
-    const {orgId} = this.props.params;
-    return [['itemList', `/organizations/${orgId}/repos/`, {query: {status: ''}}]];
+    const {organization} = this.props;
+    return [
+      ['itemList', `/organizations/${organization.slug}/repos/`, {query: {status: ''}}],
+    ];
   }
 
   // Callback used by child component to signal state change
@@ -33,8 +38,8 @@ export default class OrganizationRepositoriesContainer extends AsyncView<Props, 
   };
 
   getTitle() {
-    const {orgId} = this.props.params;
-    return routeTitleGen(t('Repositories'), orgId, false);
+    const {organization} = this.props;
+    return routeTitleGen(t('Repositories'), organization.slug, false);
   }
 
   renderBody() {
@@ -54,3 +59,5 @@ export default class OrganizationRepositoriesContainer extends AsyncView<Props, 
     );
   }
 }
+
+export default withOrganization(OrganizationRepositoriesContainer);
