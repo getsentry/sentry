@@ -29,6 +29,7 @@ import {
 } from 'sentry/utils/profiling/gl/utils';
 import {SelectedFrameRenderer} from 'sentry/utils/profiling/renderers/selectedFrameRenderer';
 import {SpanChartRenderer2D} from 'sentry/utils/profiling/renderers/spansRenderer';
+import {SpansTextRenderer} from 'sentry/utils/profiling/renderers/spansTextRenderer';
 import {SpanChart, SpanChartNode} from 'sentry/utils/profiling/spanChart';
 import {useProfileTransaction} from 'sentry/views/profiling/profileGroupProvider';
 
@@ -90,6 +91,14 @@ export function FlamegraphSpans({
     return new SpanChartRenderer2D(spansCanvasRef, spanChart, flamegraphTheme);
   }, [spansCanvasRef, spanChart, flamegraphTheme]);
 
+  const spansTextRenderer = useMemo(() => {
+    if (!spansCanvasRef) {
+      return null;
+    }
+
+    return new SpansTextRenderer(spansCanvasRef, flamegraphTheme, spanChart);
+  }, [spansCanvasRef, spanChart, flamegraphTheme]);
+
   const selectedSpanRenderer = useMemo(() => {
     if (!spansCanvasRef) {
       return null;
@@ -106,13 +115,21 @@ export function FlamegraphSpans({
   }, [configSpaceCursor, spansRenderer]);
 
   useEffect(() => {
-    if (!spansCanvas || !spansView || !spansRenderer) {
+    if (!spansCanvas || !spansView || !spansRenderer || !spansTextRenderer) {
       return undefined;
     }
 
     if (profiledTransaction.type !== 'resolved') {
       return undefined;
     }
+    const clearCanvas = () => {
+      spansTextRenderer.context.clearRect(
+        0,
+        0,
+        spansTextRenderer.canvas.width,
+        spansTextRenderer.canvas.height
+      );
+    };
 
     const drawSpans = () => {
       spansRenderer.draw(
@@ -121,13 +138,31 @@ export function FlamegraphSpans({
       );
     };
 
-    drawSpans();
+    const drawText = () => {
+      spansTextRenderer.draw(
+        spansView.configView.transformRect(spansView.configSpaceTransform),
+        spansView.fromTransformedConfigView(spansCanvas.physicalSpace)
+        // flamegraphSearch.results
+      );
+    };
+
+    scheduler.registerBeforeFrameCallback(clearCanvas);
     scheduler.registerBeforeFrameCallback(drawSpans);
+    scheduler.registerAfterFrameCallback(drawText);
 
     return () => {
       scheduler.unregisterBeforeFrameCallback(drawSpans);
+      scheduler.unregisterBeforeFrameCallback(clearCanvas);
+      scheduler.unregisterAfterFrameCallback(drawText);
     };
-  }, [spansCanvas, spansRenderer, scheduler, spansView, profiledTransaction.type]);
+  }, [
+    spansCanvas,
+    spansRenderer,
+    scheduler,
+    spansView,
+    spansTextRenderer,
+    profiledTransaction.type,
+  ]);
 
   // When spans render, check for span_id presence in qs.
   // If it is present, highlight the span and zoom to it. This allows

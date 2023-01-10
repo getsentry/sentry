@@ -955,6 +955,8 @@ SENTRY_FEATURES = {
     "organizations:active-release-notifications-enable": False,
     # Enables tagging javascript errors from the browser console.
     "organizations:javascript-console-error-tag": False,
+    # Enables codecov integration for stacktrace highlighting.
+    "organizations:codecov-stacktrace-integration": False,
     # Enables automatically deriving of code mappings
     "organizations:derive-code-mappings": False,
     # Enables automatically deriving of code mappings as a dry run for early adopters
