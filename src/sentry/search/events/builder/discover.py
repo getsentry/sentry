@@ -1221,6 +1221,9 @@ class QueryBuilder(BaseQueryBuilder):
         operator = search_filter.operator
         value = search_filter.value.value
 
+        # Some fields aren't valid queries
+        if name in constants.SKIP_FILTER_RESOLUTION:
+            name = f"tags[{name}]"
         lhs = self.resolve_column(name)
 
         if name in constants.ARRAY_FIELDS:

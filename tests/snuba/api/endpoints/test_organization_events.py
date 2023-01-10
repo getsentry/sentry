@@ -5693,3 +5693,31 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert len(data) == 2
         assert data[0]["equation|count()/total.count"] == 0.25
         assert data[1]["equation|count()/total.count"] == 0.75
+
+    def test_total_count_filter(self):
+        project1 = self.create_project()
+        for i in range(3):
+            self.store_event(data=self.load_data(platform="javascript"), project_id=project1.id)
+        self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "transaction": "/example",
+                "message": "how to make fast",
+                "timestamp": self.ten_mins_ago_iso,
+                "tags": {"total.count": ">45"},
+            },
+            project_id=project1.id,
+        )
+
+        features = {"organizations:discover-basic": True, "organizations:global-views": True}
+        query = {
+            "field": ["transaction", "count()", "total.count"],
+            "query": "total.count:>45",
+            "orderby": "count()",
+            "statsPeriod": "24h",
+        }
+        response = self.do_request(query, features=features)
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 1
+        assert data[0]["total.count"] == 1
