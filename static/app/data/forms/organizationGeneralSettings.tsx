@@ -42,6 +42,7 @@ const formGroups: JsonFormObject[] = [
         type: 'boolean',
         label: t('Enable Codecov Access'),
         help: t('Opt-in to connect your codecov account'),
+        visible: ({codecovAccess}) => codecovAccess,
       },
     ],
   },
