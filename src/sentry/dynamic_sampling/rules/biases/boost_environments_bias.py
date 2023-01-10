@@ -38,4 +38,6 @@ class BoostEnvironmentsRulesGenerator(BiasRulesGenerator):
         ]
 
 
-BOOST_ENVIRONMENTS_BIAS = Bias(BoostEnvironmentsDataProvider, BoostEnvironmentsRulesGenerator)
+class BoostEnvironmentsBias(Bias):
+    def __init__(self):
+        super().__init__(BoostEnvironmentsDataProvider, BoostEnvironmentsRulesGenerator)

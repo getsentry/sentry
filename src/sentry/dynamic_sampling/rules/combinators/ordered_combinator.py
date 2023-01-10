@@ -1,17 +1,24 @@
-from typing import List
+import collections
+from typing import OrderedDict
 
-from sentry.dynamic_sampling.rules.biases.base import BiasParams
-from sentry.dynamic_sampling.rules.combinators.base import BiasesRulesCombinator
-from sentry.dynamic_sampling.utils import BaseRule
+from sentry.dynamic_sampling.rules.biases.base import Bias
+from sentry.dynamic_sampling.rules.combinators.base import BiasesCombinator
+from sentry.dynamic_sampling.utils import RuleType
 
 
-class OrderedRulesCombinator(BiasesRulesCombinator):
-    def get_combined_rules(self) -> List[BaseRule]:
-        # Here we can return the ordered list of biases in order to have a
-        # deterministic order that coincides with the cascading calls to "combine".
-        rules = []
+class OrderedBiasesCombinator(BiasesCombinator):
+    def __init__(self):
+        super().__init__()
+        self.order_discriminant = 0
 
-        for bias in self.biases:
-            rules += bias.get_rules(BiasParams(self.project, self.base_sample_rate))
+    def get_next_order_discriminant(self) -> int:
+        order_discriminant = self.order_discriminant
+        self.order_discriminant += 1
+        return order_discriminant
 
-        return rules
+    def get_combined_biases(self) -> OrderedDict[RuleType, Bias]:
+        ordered_biases = list(
+            sorted(self.biases.items(), key=lambda elem: elem[1].order_discriminant)
+        )
+        biases = map(lambda elem: (elem[0], elem[1].bias), ordered_biases)
+        return collections.OrderedDict(biases)

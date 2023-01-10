@@ -34,4 +34,6 @@ class UniformRulesGenerator(BiasRulesGenerator):
         ]
 
 
-UNIFORM_BIAS = Bias(UniformDataProvider, UniformRulesGenerator)
+class UniformBias(Bias):
+    def __init__(self):
+        super().__init__(UniformDataProvider, UniformRulesGenerator)

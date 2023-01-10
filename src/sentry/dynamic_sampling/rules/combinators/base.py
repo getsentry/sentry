@@ -1,29 +1,34 @@
 from abc import ABC, abstractmethod
-from typing import Callable, List
+from typing import Dict, OrderedDict
 
 from sentry.dynamic_sampling.rules.biases.base import Bias
-from sentry.dynamic_sampling.utils import BaseRule
-from sentry.models import Project
+from sentry.dynamic_sampling.utils import RuleType
 
 
-class BiasesRulesCombinator(ABC):
-    def __init__(self, project: Project, base_sample_rate: float):
-        self.project = project
-        self.base_sample_rate = base_sample_rate
-        self.biases: List[Bias] = []
+class OrderedBias:
+    """
+    Internal representation of a bias which has a discriminant that defines a total order between itself and other
+    ordered biases.
+    """
 
-    def combine_if(self, bias: Bias, block: Callable[[], bool]) -> "BiasesRulesCombinator":
-        # This condition is required because a bias cannot be used if a customer has 100% base sample rate. In that
-        # case only the uniform condition can be applied.
-        if block():
-            self.biases.append(bias)
+    def __init__(self, bias: Bias, order_discriminant: float):
+        self.bias = bias
+        self.order_discriminant = order_discriminant
 
-        return self
 
-    def combine(self, bias: Bias) -> "BiasesRulesCombinator":
-        self.biases.append(bias)
-        return self
+class BiasesCombinator(ABC):
+    def __init__(self):
+        self.biases: Dict[RuleType, OrderedBias] = {}
+
+    def combine(self, rule_type: RuleType, bias: Bias) -> None:
+        # We assign to this bias an order discriminant, which can be leveraged by the get_combined_biases to
+        # return an ordered dictionary following a defined total order.
+        self.biases[rule_type] = OrderedBias(bias, self.get_next_order_discriminant())
 
     @abstractmethod
-    def get_combined_rules(self) -> List[BaseRule]:
+    def get_next_order_discriminant(self) -> int:
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_combined_biases(self) -> OrderedDict[RuleType, Bias]:
         raise NotImplementedError

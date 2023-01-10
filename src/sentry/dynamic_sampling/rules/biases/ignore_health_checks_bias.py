@@ -59,4 +59,6 @@ class IgnoreHealthChecksRulesGenerator(BiasRulesGenerator):
         ]
 
 
-IGNORE_HEALTH_CHECKS_BIAS = Bias(IgnoreHealthChecksDataProvider, IgnoreHealthChecksRulesGenerator)
+class IgnoreHealthChecksBias(Bias):
+    def __init__(self):
+        super().__init__(IgnoreHealthChecksDataProvider, IgnoreHealthChecksRulesGenerator)
