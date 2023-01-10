@@ -4,8 +4,10 @@ from django.urls import reverse
 
 from sentry.models import Distribution, File, Release, ReleaseFile
 from sentry.testutils import APITestCase
+from sentry.testutils.silo import region_silo_test
 
 
+@region_silo_test(stable=True)
 class ReleaseFileDetailsTest(APITestCase):
     def test_simple(self):
         self.login_as(user=self.user)
@@ -115,6 +117,7 @@ class ReleaseFileDetailsTest(APITestCase):
         assert response.data["id"] == id
 
 
+@region_silo_test(stable=True)
 class ReleaseFileUpdateTest(APITestCase):
     def test_simple(self):
         self.login_as(user=self.user)
@@ -150,6 +153,7 @@ class ReleaseFileUpdateTest(APITestCase):
         assert releasefile.ident == ReleaseFile.get_ident("foobar")
 
 
+@region_silo_test(stable=True)
 class ReleaseFileDeleteTest(APITestCase):
     def test_simple(self):
         self.login_as(user=self.user)

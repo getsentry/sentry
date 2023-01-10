@@ -49,7 +49,6 @@ from sentry.models import (
     GroupSnooze,
     GroupStatus,
     GroupSubscription,
-    Integration,
     SentryAppInstallationToken,
     Team,
     User,
@@ -67,6 +66,7 @@ from sentry.notifications.types import NotificationSettingTypes
 from sentry.reprocessing2 import get_progress
 from sentry.search.events.constants import RELEASE_STAGE_ALIAS
 from sentry.search.events.filter import convert_search_filter_to_snuba_query
+from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.notifications import notifications_service
 from sentry.services.hybrid_cloud.user import user_service
 from sentry.tagstore.snuba.backend import fix_tag_value_data
@@ -629,14 +629,21 @@ class GroupSerializerBase(Serializer, ABC):
 
         integration_annotations = []
         # find all the integration installs that have issue tracking
-        for integration in Integration.objects.filter(organizations=org_id):
+        integrations = integration_service.get_integrations(organization_id=org_id)
+        for integration in integrations:
             if not (
-                integration.has_feature(IntegrationFeatures.ISSUE_BASIC)
-                or integration.has_feature(IntegrationFeatures.ISSUE_SYNC)
+                integration_service.has_feature(
+                    provider=integration.provider, feature=IntegrationFeatures.ISSUE_BASIC
+                )
+                or integration_service.has_feature(
+                    provider=integration.provider, feature=IntegrationFeatures.ISSUE_SYNC
+                )
             ):
                 continue
 
-            install = integration.get_installation(org_id)
+            install = integration_service.get_installation(
+                integration=integration, organization_id=org_id
+            )
             local_annotations_by_group_id = (
                 safe_execute(
                     install.get_annotations_for_group_list,

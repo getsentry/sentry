@@ -83,21 +83,13 @@ class MissingProjectMembership extends Component<Props, State> {
     }
     if (features.has('open-membership')) {
       return (
-        <Button
-          priority="primary"
-          type="button"
-          onClick={this.joinTeam.bind(this, teamSlug)}
-        >
+        <Button priority="primary" onClick={this.joinTeam.bind(this, teamSlug)}>
           {t('Join Team')}
         </Button>
       );
     }
     return (
-      <Button
-        priority="primary"
-        type="button"
-        onClick={this.joinTeam.bind(this, teamSlug)}
-      >
+      <Button priority="primary" onClick={this.joinTeam.bind(this, teamSlug)}>
         {t('Request Access')}
       </Button>
     );

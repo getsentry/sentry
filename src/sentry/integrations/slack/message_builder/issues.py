@@ -53,13 +53,14 @@ def build_assigned_text(identity: APIIdentity, assignee: str) -> str | None:
     if actor.type == Team:
         assignee_text = f"#{assigned_actor.slug}"
     elif actor.type == User:
-        assignee_identity = identity_service.get_identity_by_provider(
-            user_id=assigned_actor.id, idp_id=identity.idp_id
+        assignee_identity = identity_service.get_identity(
+            provider_id=identity.idp_id,
+            user_id=assigned_actor.id,
         )
         assignee_text = (
-            f"<@{assignee_identity.external_id}>"
-            if assignee_identity is not None
-            else assigned_actor.get_display_name()
+            assigned_actor.get_display_name()
+            if assignee_identity is None
+            else f"<@{assignee_identity.external_id}>"
         )
     else:
         raise NotImplementedError
@@ -136,7 +137,7 @@ def has_releases(project: Project) -> bool:
 def get_action_text(
     text: str,
     actions: Sequence[Any],
-    identity: APIIdentity | None = None,
+    identity: APIIdentity,
 ) -> str:
     return (
         text
@@ -160,7 +161,7 @@ def build_actions(
     identity: APIIdentity | None = None,
 ) -> tuple[Sequence[MessageAction], str, str]:
     """Having actions means a button will be shown on the Slack message e.g. ignore, resolve, assign."""
-    if actions:
+    if actions and identity:
         text += get_action_text(text, actions, identity)
         return [], text, "_actioned_issue"
 

@@ -219,8 +219,7 @@ function EnvironmentSelector({
               <PageFilterRow
                 data-test-id={`environment-${env}`}
                 checked={selectedEnvs.includes(env)}
-                onCheckClick={e => {
-                  e.stopPropagation();
+                onSelectedChange={() => {
                   toggleCheckbox(env);
                 }}
               >

@@ -44,13 +44,11 @@ describe('Performance Transaction Events Content', function () {
   let data;
   let transactionName;
   let eventView;
-  let totalEventCount;
   let initialData;
   const query =
     'transaction.duration:<15m event.type:transaction transaction:/api/0/organizations/{organization_slug}/events/';
   beforeEach(function () {
     transactionName = 'transactionName';
-    totalEventCount = '200';
     fields = [
       'id',
       'user.display',
@@ -103,6 +101,29 @@ describe('Performance Transaction Events Content', function () {
         'spans.total.time': 600,
       },
     ];
+    // Total events count response
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      headers: {
+        Link:
+          '<http://localhost/api/0/organizations/org-slug/events/?cursor=2:0:0>; rel="next"; results="true"; cursor="2:0:0",' +
+          '<http://localhost/api/0/organizations/org-slug/events/?cursor=1:0:0>; rel="previous"; results="false"; cursor="1:0:0"',
+      },
+      body: {
+        meta: {
+          fields: {
+            'count()': 'integer',
+          },
+        },
+        data: [{'count()': 200}],
+      },
+      match: [
+        (_url, options) => {
+          return options.query?.field?.includes('count()');
+        },
+      ],
+    });
+
     // Transaction list response
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
@@ -158,7 +179,6 @@ describe('Performance Transaction Events Content', function () {
     render(
       <OrganizationContext.Provider value={initialData.organization}>
         <EventsPageContent
-          totalEventCount={totalEventCount}
           eventView={eventView}
           organization={initialData.organization}
           location={initialData.router.location}
@@ -180,7 +200,7 @@ describe('Performance Transaction Events Content', function () {
     expect(
       screen.getByPlaceholderText(t('Search for events, users, tags, and more'))
     ).toBeInTheDocument();
-    expect(screen.getByTestId('span-operation-breakdown-filter')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Filter by operation'})).toBeInTheDocument();
 
     const columnTitles = screen
       .getAllByRole('columnheader')
@@ -199,7 +219,6 @@ describe('Performance Transaction Events Content', function () {
     render(
       <OrganizationContext.Provider value={initialData.organization}>
         <EventsPageContent
-          totalEventCount={totalEventCount}
           eventView={eventView}
           organization={initialData.organization}
           location={initialData.router.location}
@@ -222,7 +241,7 @@ describe('Performance Transaction Events Content', function () {
     expect(
       screen.getByPlaceholderText(t('Search for events, users, tags, and more'))
     ).toBeInTheDocument();
-    expect(screen.getByTestId('span-operation-breakdown-filter')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Filter by operation'})).toBeInTheDocument();
 
     const columnTitles = screen
       .getAllByRole('columnheader')

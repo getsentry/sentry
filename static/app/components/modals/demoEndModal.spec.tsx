@@ -1,4 +1,4 @@
-import {renderGlobalModal, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {act, renderGlobalModal, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import DemoEndModal from 'sentry/components/modals/demoEndModal';
@@ -11,18 +11,20 @@ describe('DemoEndModal', function () {
 
     renderGlobalModal();
 
-    openModal(
-      modalProps => (
-        <DemoEndModal {...modalProps} orgSlug={organization.slug} tour="issues" />
-      ),
-      {onClose: closeModal}
+    act(() =>
+      openModal(
+        modalProps => (
+          <DemoEndModal {...modalProps} orgSlug={organization.slug} tour="issues" />
+        ),
+        {onClose: closeModal}
+      )
     );
 
     userEvent.click(screen.getByRole('button', {name: 'Close Modal'}));
     expect(closeModal).toHaveBeenCalled();
   });
 
-  it('restarts tour on button click', function () {
+  it('restarts tour on button click', async function () {
     const finishMock = MockApiClient.addMockResponse({
       method: 'PUT',
       url: '/assistant/',
@@ -34,13 +36,17 @@ describe('DemoEndModal', function () {
       url: '/assistant/',
     });
 
-    renderGlobalModal();
+    const {waitForModalToHide} = renderGlobalModal();
 
-    openModal(modalProps => (
-      <DemoEndModal {...modalProps} orgSlug={organization.slug} tour="issues" />
-    ));
+    act(() =>
+      openModal(modalProps => (
+        <DemoEndModal {...modalProps} orgSlug={organization.slug} tour="issues" />
+      ))
+    );
 
     userEvent.click(screen.getByRole('button', {name: 'Restart Tour'}));
+    await waitForModalToHide();
+
     expect(finishMock).toHaveBeenCalledWith(
       '/assistant/',
       expect.objectContaining({
@@ -56,9 +62,11 @@ describe('DemoEndModal', function () {
   it('opens sign up page on button click', function () {
     renderGlobalModal();
 
-    openModal(modalProps => (
-      <DemoEndModal {...modalProps} orgSlug={organization.slug} tour="issues" />
-    ));
+    act(() =>
+      openModal(modalProps => (
+        <DemoEndModal {...modalProps} orgSlug={organization.slug} tour="issues" />
+      ))
+    );
 
     const signUpButton = screen.getByRole('button', {name: 'Sign up for Sentry'});
     expect(signUpButton).toBeInTheDocument();

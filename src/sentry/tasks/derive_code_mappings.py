@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 import logging
-from typing import Any, List, Mapping, Tuple
+from typing import TYPE_CHECKING, Any, List, Mapping, Tuple
 
 from sentry_sdk import set_tag, set_user
 
@@ -8,11 +10,11 @@ from sentry.db.models.fields.node import NodeData
 from sentry.integrations.utils.code_mapping import CodeMapping, CodeMappingTreesHelper
 from sentry.locks import locks
 from sentry.models import Project
-from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
+from sentry.services.hybrid_cloud.integration import APIOrganizationIntegration, integration_service
 from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.tasks.base import instrumented_task
 from sentry.utils.json import JSONData
@@ -22,6 +24,9 @@ from sentry.utils.safe import get_path
 SUPPORTED_LANGUAGES = ["javascript", "python"]
 
 logger = logging.getLogger(__name__)
+
+if TYPE_CHECKING:
+    from sentry.integrations.base import IntegrationInstallation
 
 
 @instrumented_task(  # type: ignore
@@ -72,7 +77,8 @@ def derive_code_mappings(
 
     try:
         with lock.acquire():
-            trees = installation.get_trees_for_org()
+            # This method is specific to the GithubIntegration
+            trees = installation.get_trees_for_org()  # type: ignore
     except ApiError as error:
         msg = error.text
         if error.json:
@@ -132,29 +138,22 @@ def get_stacktrace(data: NodeData) -> List[Mapping[str, Any]]:
     return []
 
 
-def get_installation(organization: Organization) -> Tuple[Integration, OrganizationIntegration]:
-    integration = None
-    try:
-        integration = Integration.objects.filter(
-            organizations=organization,
-            provider="github",
-        )
-    except Integration.DoesNotExist:
+def get_installation(
+    organization: Organization,
+) -> Tuple[IntegrationInstallation | None, APIOrganizationIntegration | None]:
+    integration, organization_integration = integration_service.get_organization_context(
+        organization_id=organization.id, provider="github"
+    )
+
+    if not integration or not organization_integration:
         logger.exception(f"Github integration not found for {organization.id}")
         return None, None
 
-    if not integration.exists():
-        return None, None
-
-    integration = integration.first()
-    organization_integration = OrganizationIntegration.objects.filter(
-        organization=organization, integration=integration
+    installation = integration_service.get_installation(
+        integration=integration, organization_id=organization.id
     )
-    if not organization_integration.exists():
-        return None, None
 
-    organization_integration = organization_integration.first()
-    return integration.get_installation(organization.id), organization_integration
+    return installation, organization_integration
 
 
 def set_project_codemappings(
@@ -183,7 +182,7 @@ def set_project_codemappings(
             stack_root=code_mapping.stacktrace_root,
             defaults={
                 "repository": repository,
-                "organization_integration": organization_integration,
+                "organization_integration_id": organization_integration.id,
                 "source_root": code_mapping.source_path,
                 "default_branch": code_mapping.repo.branch,
                 "automatically_generated": True,

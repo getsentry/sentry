@@ -198,7 +198,6 @@ function TeamSelector(props: Props) {
           containerDisplayMode="flex"
         >
           <AddToProjectButton
-            type="button"
             size="zero"
             borderless
             disabled={!canAddTeam}

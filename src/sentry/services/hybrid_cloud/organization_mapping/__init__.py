@@ -1,24 +1,46 @@
+from __future__ import annotations
+
 from abc import abstractmethod
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Optional
+from typing import TYPE_CHECKING, Optional
 
 from django.utils import timezone
 
 from sentry.models.user import User
-from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_delegation, stubbed
+from sentry.services.hybrid_cloud import (
+    InterfaceWithLifecycle,
+    PatchableMixin,
+    Unset,
+    UnsetVal,
+    silo_mode_delegation,
+    stubbed,
+)
 from sentry.silo import SiloMode
+
+if TYPE_CHECKING:
+    from sentry.models import Organization
 
 
 @dataclass(frozen=True, eq=True)
 class APIOrganizationMapping:
-    id: int = -1
     organization_id: int = -1
     slug: str = ""
     region_name: str = ""
     date_created: datetime = timezone.now()
     verified: bool = False
     customer_id: Optional[str] = None
+
+
+@dataclass
+class ApiOrganizationMappingUpdate(PatchableMixin["Organization"]):
+    organization_id: int = -1
+    name: Unset[str] = UnsetVal
+    customer_id: Unset[str] = UnsetVal
+
+    @classmethod
+    def from_instance(cls, inst: Organization) -> ApiOrganizationMappingUpdate:
+        return cls(**cls.params_from_instance(inst), organization_id=inst.id)
 
 
 class OrganizationMappingService(InterfaceWithLifecycle):
@@ -53,7 +75,7 @@ class OrganizationMappingService(InterfaceWithLifecycle):
         pass
 
     @abstractmethod
-    def update_customer_id(self, organization_id: int, customer_id: str) -> Any:
+    def update(self, update: ApiOrganizationMappingUpdate) -> None:
         pass
 
 

@@ -10,9 +10,11 @@ from sentry.models import (
     Repository,
 )
 from sentry.testutils import APITestCase
+from sentry.testutils.silo import region_silo_test
 from sentry.utils import json
 
 
+@region_silo_test(stable=True)
 class ReleaseMetaTest(APITestCase):
     def test_multiple_projects(self):
         user = self.create_user(is_staff=False, is_superuser=False)

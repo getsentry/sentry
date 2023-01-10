@@ -51,15 +51,42 @@ function txn(partial: Partial<EventTransaction>): EventTransaction {
 
 describe('spanChart', () => {
   it('iterates over all spans with depth', () => {
-    const tree = new SpanTree(txn({startTimestamp: 0, endTimestamp: 1}), [
-      s({span_id: '1', timestamp: 1, start_timestamp: 0}),
-      s({span_id: '2', timestamp: 0.5, start_timestamp: 0}),
-      s({span_id: '3', timestamp: 0.2, start_timestamp: 0}),
-      s({span_id: '4', timestamp: 1, start_timestamp: 0.5}),
-    ]);
+    const start = Date.now();
+    const tree = new SpanTree(
+      txn({
+        contexts: {trace: {span_id: 'root'}},
+        startTimestamp: start + 0,
+        endTimestamp: start + 1,
+      }),
+      [
+        s({
+          span_id: '1',
+          parent_span_id: 'root',
+          timestamp: start + 1,
+          start_timestamp: start,
+        }),
+        s({
+          span_id: '2',
+          parent_span_id: '1',
+          timestamp: start + 0.5,
+          start_timestamp: start,
+        }),
+        s({
+          span_id: '3',
+          parent_span_id: '2',
+          timestamp: start + 0.2,
+          start_timestamp: start,
+        }),
+        s({
+          span_id: '4',
+          parent_span_id: '1',
+          timestamp: start + 1,
+          start_timestamp: start + 0.5,
+        }),
+      ]
+    );
 
-    expect(tree.root.children[0].children[1].span.span_id).toBe('4');
-
+    expect(tree.root.children[0].children[2].span.span_id).toBe('4');
     const chart = new SpanChart(tree);
 
     chart.forEachSpan(span => {
@@ -75,54 +102,170 @@ describe('spanChart', () => {
     });
   });
 
-  it('sets configView to duration of the spans', () => {
-    const tree = new SpanTree(txn({startTimestamp: 0, endTimestamp: 1}), [
-      s({span_id: '1', timestamp: 1, start_timestamp: 0}),
-      s({span_id: '2', timestamp: 0.5, start_timestamp: 0}),
-      s({span_id: '3', timestamp: 0.2, start_timestamp: 0}),
-      s({span_id: '4', timestamp: 1, start_timestamp: 0.5}),
-    ]);
-
-    expect(tree.root.children[0].children[1].span.span_id).toBe('4');
+  it('keeps track of shortest duration span', () => {
+    const start = Date.now();
+    const tree = new SpanTree(
+      txn({
+        contexts: {trace: {span_id: 'root'}},
+        startTimestamp: start + 0,
+        endTimestamp: start + 10,
+      }),
+      [
+        s({
+          span_id: '1',
+          parent_span_id: 'root',
+          timestamp: start + 10,
+          start_timestamp: start,
+        }),
+        s({
+          span_id: '2',
+          parent_span_id: '1',
+          timestamp: start + 5,
+          start_timestamp: start,
+        }),
+        s({
+          span_id: '3',
+          parent_span_id: '2',
+          timestamp: start + 1,
+          start_timestamp: start,
+        }),
+      ]
+    );
 
     const chart = new SpanChart(tree);
-    expect(chart.configSpace.equals(new Rect(0, 0, 1, 3))).toBe(true);
-  });
-
-  it('remaps spans to start of benchmark', () => {
-    const tree = new SpanTree(txn({startTimestamp: 5, endTimestamp: 10}), [
-      s({span_id: '1', timestamp: 10, start_timestamp: 6}),
-      s({span_id: '2', timestamp: 9, start_timestamp: 8}),
-    ]);
-
-    const chart = new SpanChart(tree);
-    expect(chart.spans[1].start).toBe(1);
-    expect(chart.spans[1].end).toBe(5);
-
-    expect(chart.spans[2].start).toBe(3);
-    expect(chart.spans[2].end).toBe(4);
-  });
-
-  it('converts durations to final unit', () => {
-    const tree = new SpanTree(txn({startTimestamp: 0, endTimestamp: 10}), [
-      s({span_id: '1', timestamp: 3, start_timestamp: 1}),
-    ]);
-
-    const chart = new SpanChart(tree, {unit: 'nanoseconds'});
-    expect(chart.spans[1].start).toBe(1 * 1e6);
-    expect(chart.spans[1].end).toBe(3 * 1e6);
-    expect(chart.spans[1].duration).toBe(2 * 1e6);
+    expect(chart.minSpanDuration).toBe(1 * 1e3);
   });
 
   it('tracks chart depth', () => {
-    const tree = new SpanTree(txn({startTimestamp: 0, endTimestamp: 1}), [
-      s({span_id: '1', timestamp: 1, start_timestamp: 0}),
-      s({span_id: '2', timestamp: 0.5, start_timestamp: 0}),
-      s({span_id: '3', timestamp: 0.2, start_timestamp: 0}),
-      s({span_id: '4', timestamp: 0.1, start_timestamp: 0}),
-    ]);
+    const start = Date.now();
+    const tree = new SpanTree(
+      txn({
+        contexts: {trace: {span_id: 'root'}},
+        startTimestamp: start + 0,
+        endTimestamp: start + 1,
+      }),
+      [
+        s({
+          span_id: '1',
+          parent_span_id: 'root',
+          timestamp: start + 1,
+          start_timestamp: start,
+        }),
+        s({
+          span_id: '2',
+          parent_span_id: '1',
+          timestamp: start + 0.5,
+          start_timestamp: start,
+        }),
+        s({
+          span_id: '3',
+          parent_span_id: '2',
+          timestamp: start + 0.2,
+          start_timestamp: start,
+        }),
+        s({
+          span_id: '4',
+          parent_span_id: '3',
+          timestamp: start + 0.1,
+          start_timestamp: start,
+        }),
+      ]
+    );
 
     const chart = new SpanChart(tree);
     expect(chart.depth).toBe(4);
+  });
+
+  it('initializes configSpace', () => {
+    const start = Date.now();
+    const tree = new SpanTree(
+      txn({
+        contexts: {trace: {span_id: 'root'}},
+        startTimestamp: start + 0,
+        endTimestamp: start + 10,
+      }),
+      [
+        s({
+          span_id: '1',
+          parent_span_id: 'root',
+          timestamp: start + 10,
+          start_timestamp: start,
+        }),
+        s({
+          span_id: '2',
+          parent_span_id: '1',
+          timestamp: start + 5,
+          start_timestamp: start,
+        }),
+        s({
+          span_id: '3',
+          parent_span_id: '2',
+          timestamp: start + 1,
+          start_timestamp: start,
+        }),
+      ]
+    );
+
+    const chart = new SpanChart(tree);
+    expect(chart.configSpace.equals(new Rect(0, 0, 10 * 1e3, 3))).toBe(true);
+  });
+
+  it('remaps spans to start of benchmark', () => {
+    const start = Date.now();
+    const tree = new SpanTree(
+      txn({
+        contexts: {trace: {span_id: 'root'}},
+        startTimestamp: start + 5,
+        endTimestamp: start + 10,
+      }),
+      [
+        s({
+          span_id: '1',
+          parent_span_id: 'root',
+          timestamp: start + 10,
+          start_timestamp: start + 6,
+        }),
+        s({
+          span_id: '2',
+          parent_span_id: '1',
+          timestamp: start + 9,
+          start_timestamp: start + 8,
+        }),
+      ]
+    );
+
+    const chart = new SpanChart(tree);
+    expect(chart.spans[1].start).toBe(1 * 1e3);
+    expect(chart.spans[1].end).toBe(5 * 1e3);
+
+    expect(chart.spans[2].start).toBe(3 * 1e3);
+    expect(chart.spans[2].end).toBe(4 * 1e3);
+  });
+
+  it('converts durations to final unit', () => {
+    const start = Date.now();
+    const tree = new SpanTree(
+      txn({
+        contexts: {trace: {span_id: 'root'}},
+        startTimestamp: start + 1,
+        endTimestamp: start + 11,
+      }),
+      [
+        s({
+          span_id: '1',
+          parent_span_id: 'root',
+          timestamp: start + 4,
+          start_timestamp: start + 2,
+        }),
+      ]
+    );
+
+    const chart = new SpanChart(tree, {unit: 'nanoseconds'});
+    expect(chart.spans[1].start).toBe(1 * 1e9);
+    expect(chart.spans[1].end).toBe(3 * 1e9);
+    expect(chart.spans[1].duration).toBe(2 * 1e9);
+
+    expect(chart.configSpace.height).toBe(1);
+    expect(chart.configSpace.width).toBe(10 * 1e9);
   });
 });

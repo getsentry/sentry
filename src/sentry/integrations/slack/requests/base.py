@@ -56,7 +56,7 @@ class SlackRequest:
     def __init__(self, request: Request) -> None:
         self.request = request
         self._integration: APIIntegration | None = None
-        self._identity: APIIdentity | None = None
+        self._identity: APIIdentity | None
         self._data: MutableMapping[str, Any] = {}
 
     def validate(self) -> None:
@@ -124,15 +124,22 @@ class SlackRequest:
         return {k: v for k, v in data.items() if v}
 
     def get_identity(self) -> APIIdentity | None:
-        self._identity = identity_service.get_by_external_ids(
-            provider_type="slack", provider_ext_id=self.team_id, identity_ext_id=self.user_id
-        )
+        if not hasattr(self, "_identity"):
+            provider = identity_service.get_provider(
+                provider_type="slack", provider_ext_id=self.team_id
+            )
+            self._identity = (
+                identity_service.get_identity(provider_id=provider.id, identity_ext_id=self.user_id)
+                if provider
+                else None
+            )
         return self._identity
 
     def get_identity_user(self) -> APIUser | None:
-        if not self._identity:
-            self.get_identity()
-        return user_service.get_user(self._identity.user_id)
+        identity = self.get_identity()
+        if not identity:
+            return None
+        return user_service.get_user(identity.user_id)
 
     def _validate_data(self) -> None:
         try:
@@ -171,7 +178,7 @@ class SlackRequest:
         return self.data.get("token") == verification_token
 
     def _validate_integration(self) -> None:
-        self._integration = integration_service.get_by_provider_id(
+        self._integration = integration_service.get_integration(
             provider="slack", external_id=self.team_id
         )
         if not self._integration:
@@ -224,8 +231,4 @@ class SlackDMRequest(SlackRequest):
         return command[0], command[1:]
 
     def _validate_identity(self) -> None:
-        identity = self.get_identity()
-        if identity:
-            self.user = self.get_identity_user()
-        else:
-            raise SlackRequestError(status=status_.HTTP_403_FORBIDDEN)
+        self.user = self.get_identity_user()

@@ -474,7 +474,6 @@ class Actions extends Component<Props> {
           </Feature>
           {isResolved || isIgnored ? (
             <ActionButton
-              type="button"
               priority="primary"
               title={
                 isAutoResolved

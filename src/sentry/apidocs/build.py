@@ -91,4 +91,14 @@ OPENAPI_TAGS = [
             "url": "https://github.com/getsentry/sentry-docs/issues/new/?title=API%20Documentation%20Error:%20/api/integration-platform/&template=api_error_template.md",
         },
     },
+    {
+        "name": "Crons",
+        "x-sidebar-name": "Crons (Beta)",
+        "description": "Endpoints for Crons",
+        "x-display-description": True,
+        "externalDocs": {
+            "description": "Found an error? Let us know.",
+            "url": "https://github.com/getsentry/sentry-docs/issues/new/?title=API%20Documentation%20Error:%20/api/integration-platform/&template=api_error_template.md",
+        },
+    },
 ]

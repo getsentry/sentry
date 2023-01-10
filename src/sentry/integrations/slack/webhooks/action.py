@@ -24,6 +24,7 @@ from sentry.integrations.slack.views.unlink_identity import build_unlinking_url
 from sentry.models import Group, InviteStatus, NotificationSetting, OrganizationMember
 from sentry.models.activity import ActivityIntegration
 from sentry.notifications.utils.actions import MessageAction
+from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.user import APIUser
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.types.integrations import ExternalProviders
@@ -95,7 +96,7 @@ def get_group(slack_request: SlackActionRequest) -> Group | None:
     try:
         return Group.objects.select_related("project__organization").get(
             id=group_id,
-            project__organization__organizationintegration__integration=slack_request.integration,
+            project__organization__organizationintegration__integration_id=slack_request.integration.id,
         )
     except Group.DoesNotExist:
         logger.info(
@@ -289,8 +290,10 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
             return self.respond(status=403)
 
         identity = slack_request.get_identity()
+        # Determine the acting user by Slack identity.
+        identity_user = slack_request.get_identity_user()
 
-        if not identity:
+        if not identity or not identity_user:
             associate_url = build_linking_url(
                 integration=slack_request.integration,
                 slack_id=slack_request.user_id,
@@ -372,12 +375,15 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
         return self.respond(body)
 
     def handle_unfurl(self, slack_request: SlackActionRequest, action: str) -> Response:
-        organizations = slack_request.integration.organizations.all()
-        analytics.record(
-            "integrations.slack.chart_unfurl_action",
-            organization_id=organizations[0].id,
-            action=action,
+        organization_integrations = integration_service.get_organization_integrations(
+            integration_id=slack_request.integration.id, limit=1
         )
+        if len(organization_integrations) > 0:
+            analytics.record(
+                "integrations.slack.chart_unfurl_action",
+                organization_id=organization_integrations[0].id,
+                action=action,
+            )
         payload = {"delete_original": "true"}
         try:
             requests_.post(slack_request.response_url, json=payload)
@@ -457,7 +463,7 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
 
         # row should exist because we have access
         member_of_approver = OrganizationMember.objects.get(
-            user=identity_user, organization=organization
+            user_id=identity_user.id, organization=organization
         )
         access = from_member(member_of_approver)
         if not access.has_scope("member:admin"):

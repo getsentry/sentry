@@ -13,7 +13,7 @@ logger.setLevel(logging.INFO)
 # Read this to learn about file extensions for different languages
 # https://github.com/github/linguist/blob/master/lib/linguist/languages.yml
 # We only care about the ones that would show up in stacktraces after symbolication
-EXTENSIONS = ["js", "jsx", "tsx", "ts", "mjs", "py", "rb", "php", "go"]
+EXTENSIONS = ["js", "jsx", "tsx", "ts", "mjs", "py", "rb", "rake", "php", "go"]
 
 
 class Repo(NamedTuple):
@@ -392,7 +392,7 @@ def create_code_mapping(
         stack_root=code_mapping.stacktrace_root,
         defaults={
             "repository": repository,
-            "organization_integration": organization_integration,
+            "organization_integration_id": organization_integration.id,
             "source_root": code_mapping.source_path,
             "default_branch": code_mapping.repo.branch,
             "automatically_generated": True,

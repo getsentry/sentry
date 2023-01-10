@@ -56,8 +56,9 @@ describe('ProjectTeams', function () {
   it('renders', function () {
     const {container} = render(
       <ProjectTeams
-        params={{orgId: org.slug, projectId: project.slug}}
+        params={{projectId: project.slug}}
         organization={org}
+        project={project}
       />
     );
 
@@ -87,8 +88,9 @@ describe('ProjectTeams', function () {
 
     render(
       <ProjectTeams
-        params={{orgId: org.slug, projectId: project.slug}}
+        params={{projectId: project.slug}}
         organization={org}
+        project={project}
       />
     );
 
@@ -158,8 +160,9 @@ describe('ProjectTeams', function () {
 
     render(
       <ProjectTeams
-        params={{orgId: org.slug, projectId: project.slug}}
+        params={{projectId: project.slug}}
         organization={org}
+        project={project}
       />
     );
 
@@ -205,8 +208,9 @@ describe('ProjectTeams', function () {
 
     render(
       <ProjectTeams
-        params={{orgId: org.slug, projectId: project.slug}}
+        params={{projectId: project.slug}}
         organization={org}
+        project={project}
       />
     );
 
@@ -249,7 +253,7 @@ describe('ProjectTeams', function () {
 
     render(
       <ProjectTeams
-        params={{orgId: org.slug, projectId: project.slug}}
+        params={{projectId: project.slug}}
         project={project}
         organization={org}
       />,

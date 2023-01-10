@@ -24,6 +24,7 @@ from sentry.models import (
     ScheduledDeletion,
 )
 from sentry.signals import project_created
+from sentry.silo import SiloMode
 from sentry.testutils import APITestCase, TwoFactorAPITestCase, pytest
 from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
 from sentry.utils import json
@@ -137,7 +138,7 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
             options.delete("store.symbolicate-event-lpq-never")
 
         # TODO(dcramer): We need to pare this down. Lots of duplicate queries for membership data.
-        expected_queries = 44
+        expected_queries = 44 if SiloMode.get_current_mode() == SiloMode.MONOLITH else 45
 
         with self.assertNumQueries(expected_queries, using="default"):
             response = self.get_success_response(self.organization.slug)

@@ -36,8 +36,8 @@ def is_team_linked_to_channel(organization: Organization, slack_request: SlackDM
     """Check if a Slack channel already has a team linked to it"""
     # Explicitly typing to satisfy mypy.
     is_linked: bool = ExternalActor.objects.filter(
-        organization=organization,
-        integration=slack_request.integration,
+        organization_id=organization.id,
+        integration_id=slack_request.integration.id,
         provider=ExternalProviders.SLACK.value,
         external_name=slack_request.channel_name,
         external_id=slack_request.channel_id,

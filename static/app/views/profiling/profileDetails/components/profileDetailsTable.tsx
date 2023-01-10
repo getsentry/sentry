@@ -32,7 +32,7 @@ const RESULTS_PER_PAGE = 50;
 
 export function ProfileDetailsTable() {
   const location = useLocation();
-  const [state] = useProfileGroup();
+  const profileGroup = useProfileGroup();
   const [groupByViewKey, setGroupByView] = useQuerystringState({
     key: 'detailView',
     initialState: 'occurrence',
@@ -54,10 +54,12 @@ export function ProfileDetailsTable() {
 
   const allData = useMemo(() => {
     const data =
-      state.type === 'resolved' ? state.data.profiles.flatMap(collectProfileFrames) : [];
+      profileGroup.type === 'resolved'
+        ? profileGroup.data.profiles.flatMap(collectProfileFrames)
+        : [];
 
     return groupByView.transform(data);
-  }, [state, groupByView]);
+  }, [profileGroup, groupByView]);
 
   const {search} = useFuseSearch(allData, {
     keys: groupByView.search.key,
@@ -189,8 +191,8 @@ export function ProfileDetailsTable() {
       </ActionBar>
 
       <GridEditable
-        isLoading={state.type === 'loading'}
-        error={state.type === 'errored'}
+        isLoading={profileGroup.type === 'loading'}
+        error={profileGroup.type === 'errored'}
         data={data}
         columnOrder={groupByView.columns.map(key => COLUMNS[key])}
         columnSortBy={[currentSort]}

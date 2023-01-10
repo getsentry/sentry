@@ -64,8 +64,8 @@ export class Flamegraph {
 
     // If a custom config space is provided, use it and draw the chart in it
     this.frames = leftHeavy
-      ? this.buildLeftHeavyGraph(profile, configSpace ? configSpace.x : 0)
-      : this.buildCallOrderGraph(profile, configSpace ? configSpace.x : 0);
+      ? this.buildLeftHeavyGraph(profile)
+      : this.buildCallOrderGraph(profile);
 
     this.formatter = makeFormatter(profile.unit);
     this.timelineFormatter = makeTimelineFormatter(profile.unit);
@@ -104,7 +104,7 @@ export class Flamegraph {
     this.root.frame.addToTotalWeight(weight);
   }
 
-  buildCallOrderGraph(profile: Profile, offset: number): FlamegraphFrame[] {
+  buildCallOrderGraph(profile: Profile): FlamegraphFrame[] {
     const frames: FlamegraphFrame[] = [];
     const stack: FlamegraphFrame[] = [];
     let idx = 0;
@@ -119,8 +119,8 @@ export class Flamegraph {
         parent,
         children: [],
         depth: 0,
-        start: offset + value,
-        end: offset + value,
+        start: value,
+        end: value,
       };
 
       if (parent) {
@@ -141,14 +141,14 @@ export class Flamegraph {
         throw new Error('Unbalanced stack');
       }
 
-      stackTop.end = offset + value;
+      stackTop.end = value;
       stackTop.depth = stack.length;
 
       if (stackTop.end - stackTop.start === 0) {
         return;
       }
 
-      frames.unshift(stackTop);
+      frames.push(stackTop);
       this.depth = Math.max(stackTop.depth, this.depth);
     };
 
@@ -156,13 +156,13 @@ export class Flamegraph {
     return frames;
   }
 
-  buildLeftHeavyGraph(profile: Profile, offset: number): FlamegraphFrame[] {
+  buildLeftHeavyGraph(profile: Profile): FlamegraphFrame[] {
     const frames: FlamegraphFrame[] = [];
     const stack: FlamegraphFrame[] = [];
 
     const sortTree = (node: CallTreeNode) => {
       node.children.sort((a, b) => -(a.totalWeight - b.totalWeight));
-      node.children.forEach(c => sortTree(c));
+      node.children.forEach(sortTree);
     };
 
     sortTree(profile.appendOrderTree);
@@ -190,8 +190,8 @@ export class Flamegraph {
         parent,
         children: [],
         depth: 0,
-        start: offset + value,
-        end: offset + value,
+        start: value,
+        end: value,
       };
 
       if (parent) {
@@ -211,14 +211,14 @@ export class Flamegraph {
         throw new Error('Unbalanced stack');
       }
 
-      stackTop.end = offset + value;
+      stackTop.end = value;
       stackTop.depth = stack.length;
 
       // Dont draw 0 width frames
       if (stackTop.end - stackTop.start === 0) {
         return;
       }
-      frames.unshift(stackTop);
+      frames.push(stackTop);
       this.depth = Math.max(stackTop.depth, this.depth);
     };
 
