@@ -24,6 +24,7 @@ GROUP_CATEGORIES_CUSTOM_EMAIL = (GroupCategory.ERROR, GroupCategory.PERFORMANCE)
 # GroupCategories which have customized email templates. If not included here, will fall back to a generic template.
 
 GROUP_TYPE_TO_CATEGORY = {
+    GroupType.PERFORMANCE_CONSECUTIVE_DB_OP: GroupCategory.PERFORMANCE,
     GroupType.ERROR: GroupCategory.ERROR,
     GroupType.PERFORMANCE_SLOW_SPAN: GroupCategory.PERFORMANCE,
     GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN: GroupCategory.PERFORMANCE,

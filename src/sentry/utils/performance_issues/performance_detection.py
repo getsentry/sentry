@@ -3,7 +3,6 @@ from __future__ import annotations
 import hashlib
 import logging
 import os
-import random
 import re
 from abc import ABC, abstractmethod
 from collections import defaultdict, deque
@@ -270,8 +269,6 @@ def _detect_performance_problems(data: Event, sdk_span: Any) -> List[Performance
 
     for detector in detectors:
         run_detector_on_data(detector, data)
-
-    print("\n\n\n DETECTING!!! \n\n\n")
 
     # Metrics reporting only for detection, not created issues.
     report_metrics_for_detectors(data, event_id, detectors, sdk_span)
@@ -795,8 +792,8 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
         self.consecutive_db_spans.append(span)
 
     def _validate_and_store_performance_problem(self):
-        independent_db_spans = self._find_independent_spans(self.consecutive_db_spans)
-        if not len(independent_db_spans):
+        self._set_independent_spans(self.consecutive_db_spans)
+        if not len(self.independent_db_spans):
             return
 
         exceeds_count_threshold = len(self.consecutive_db_spans) >= self.settings.get(
@@ -805,11 +802,11 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
         exceeds_span_duration_threshold = all(
             get_span_duration(span).total_seconds() * 1000
             > self.settings.get("span_duration_threshold")
-            for span in independent_db_spans
+            for span in self.independent_db_spans
         )
 
         exceeds_time_saved_threshold = self._calculate_time_saved(
-            independent_db_spans
+            self.independent_db_spans
         ) > self.settings.get("min_time_saved")
 
         if (
@@ -822,15 +819,19 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
     def _store_performance_problem(self) -> None:
         fingerprint = self._fingerprint()
         offender_span_ids = [span.get("span_id", None) for span in self.consecutive_db_spans]
+        query: str = self.independent_db_spans[0].get("description", None)
+
         self.stored_problems[fingerprint] = PerformanceProblem(
             fingerprint,
             "db",
-            "consecutive db",
-            GroupType.PERFORMANCE_CONSECUTIVE_DB_OP,
+            desc=query,  # TODO - figure out which query to use for description
+            type=GroupType.PERFORMANCE_CONSECUTIVE_DB_OP,
             cause_span_ids=None,
             parent_span_ids=None,
             offender_span_ids=offender_span_ids,
         )
+
+        self._reset_variables()
 
     def _sum_span_duration(self, spans: list[Span]) -> int:
         "Given a list of spans, find the sum of the span durations in milliseconds"
@@ -839,7 +840,7 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
             sum += get_span_duration(span).total_seconds() * 1000
         return sum
 
-    def _find_independent_spans(self, spans: list[Span]) -> list[Span]:
+    def _set_independent_spans(self, spans: list[Span]):
         """
         Given a list of spans, checks if there is at least a single span that is independent of the rest.
         To start, we are just checking for a span in a list of consecutive span without a WHERE clause
@@ -854,7 +855,7 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
                 and not CONTAINS_PARAMETER_REGEX.search(query)
             ):
                 independent_spans.append(span)
-        return independent_spans
+        self.independent_db_spans = independent_spans
 
     def _calculate_time_saved(self, independent_spans: list[Span]) -> float:
         """
@@ -889,6 +890,7 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
 
     def _reset_variables(self) -> None:
         self.consecutive_db_spans = []
+        self.independent_db_spans = []
 
     def _is_db_query(self, span: Span) -> bool:
         op: str = span.get("op", "") or ""

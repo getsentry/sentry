@@ -1049,11 +1049,11 @@ def create_mock_transactions(
                 {
                     "timestamp": (timestamp + timedelta(milliseconds=1000)).timestamp(),
                     "start_timestamp": (timestamp + timedelta(milliseconds=300)).timestamp(),
-                    "description": "SELECT `customer`.`id` FROM `customers` WHERE `customer`.`name` = 'name'",
+                    "description": "SELECT `customer`.`id` FROM `customers` WHERE `customer`.`name` = 'customerName'",
                     "op": "db",
                     "parent_span_id": parent_span_id,
                     "span_id": uuid4().hex[:16],
-                    "hash": "858fea692d4d93e8",
+                    "hash": "858fea692d4d93e9",
                 },
                 {
                     "timestamp": (timestamp + timedelta(milliseconds=2000)).timestamp(),
