@@ -159,11 +159,11 @@ class ListField(Field):
             # Client side UUID validation.  If this fails we use a condition which is always
             # false.  E.g. 1 == 2.  We don't use toUUIDOrZero because our Clickhouse version does
             # not support it.
-            is_valid = _validate_uuids([value])
-            if not is_valid:
+            uuids = _transform_uuids([value])
+            if uuids is None:
                 return Condition(Function("identity", parameters=[1]), Op.EQ, 2)
 
-            v = Function("toUUID", parameters=[value])
+            v = Function("toUUID", parameters=uuids)
         else:
             v = value
 
@@ -185,11 +185,11 @@ class ListField(Field):
             # Client side UUID validation.  If this fails we use a condition which is always
             # false.  E.g. 1 == 2.  We don't use toUUIDOrZero because our Clickhouse version does
             # not support it.
-            is_valid = _validate_uuids(values)
-            if not is_valid:
+            uuids = _transform_uuids(values)
+            if uuids is None:
                 return Condition(Function("identity", parameters=[1]), Op.EQ, 2)
 
-            vs = [Function("toUUID", parameters=[value]) for value in values]
+            vs = [Function("toUUID", parameters=[uid]) for uid in uuids]
         else:
             vs = values
 
@@ -449,9 +449,8 @@ def _wildcard_search_function(value, identifier):
 # Helpers
 
 
-def _validate_uuids(values: List[str]) -> bool:
+def _transform_uuids(values: List[str]) -> Optional[List[str]]:
     try:
-        [uuid.UUID(value) for value in values]
-        return True
+        return [str(uuid.UUID(value)) for value in values]
     except ValueError:
-        return False
+        return None
