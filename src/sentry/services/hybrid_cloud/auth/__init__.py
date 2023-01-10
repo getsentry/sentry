@@ -14,7 +14,7 @@ from rest_framework.request import Request
 from sentry.api.authentication import ApiKeyAuthentication, TokenAuthentication
 from sentry.relay.utils import get_header_relay_id, get_header_relay_signature
 from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_delegation, stubbed
-from sentry.services.hybrid_cloud.organization import ApiOrganizationMember
+from sentry.services.hybrid_cloud.organization import ApiOrganization, ApiOrganizationMember
 from sentry.services.hybrid_cloud.user import APIUser
 from sentry.silo import SiloMode
 from sentry.utils.linksign import find_signature
@@ -132,6 +132,16 @@ class AuthService(InterfaceWithLifecycle):
         This method returns a list of auth providers for an org
         :return:
         """
+        pass
+
+    @abc.abstractmethod
+    def handle_new_membership(
+        self,
+        request: Request,
+        organization: ApiOrganization,
+        auth_identity: ApiAuthIdentity,
+        auth_provider: ApiAuthProvider,
+    ) -> Tuple[APIUser, ApiOrganizationMember | None]:
         pass
 
 
@@ -307,6 +317,14 @@ class ApiAuthProvider:
     organization_id: int = -1
     provider: str = ""
     flags: ApiAuthProviderFlags = field(default_factory=lambda: ApiAuthProviderFlags())
+
+
+@dataclass
+class ApiAuthIdentity:
+    id: int = -1
+    user_id: int = -1
+    provider_id: int = -1
+    ident: str = ""
 
 
 @dataclass(eq=True)

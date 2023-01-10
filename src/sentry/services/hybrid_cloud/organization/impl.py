@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 import dataclasses
 from collections import defaultdict
-from typing import Iterable, List, MutableMapping, Optional, Set, cast
+from typing import TYPE_CHECKING, Iterable, List, MutableMapping, Optional, Set, cast
 
 from sentry.models import (
     Organization,
@@ -17,6 +19,7 @@ from sentry.services.hybrid_cloud import logger
 from sentry.services.hybrid_cloud.organization import (
     ApiOrganization,
     ApiOrganizationFlags,
+    ApiOrganizationInvite,
     ApiOrganizationMember,
     ApiOrganizationMemberFlags,
     ApiOrganizationSummary,
@@ -26,6 +29,10 @@ from sentry.services.hybrid_cloud.organization import (
     ApiUserOrganizationContext,
     OrganizationService,
 )
+from sentry.services.hybrid_cloud.util import flags_to_bits
+
+if TYPE_CHECKING:
+    from sentry.services.hybrid_cloud.user import APIUser
 
 
 def escape_flag_name(flag_name: str) -> str:
@@ -37,23 +44,26 @@ def unescape_flag_name(flag_name: str) -> str:
 
 
 class DatabaseBackedOrganizationService(OrganizationService):
-    def _serialize_member_flags(self, member: "OrganizationMember") -> "ApiOrganizationMemberFlags":
+    @classmethod
+    def _serialize_member_flags(cls, member: OrganizationMember) -> ApiOrganizationMemberFlags:
         result = ApiOrganizationMemberFlags()
         for f in dataclasses.fields(ApiOrganizationMemberFlags):
             setattr(result, f.name, bool(getattr(member.flags, unescape_flag_name(f.name))))
         return result
 
-    def _serialize_member(
-        self,
-        member: "OrganizationMember",
-    ) -> "ApiOrganizationMember":
+    @classmethod
+    def serialize_member(
+        cls,
+        member: OrganizationMember,
+    ) -> ApiOrganizationMember:
         api_member = ApiOrganizationMember(
             id=member.id,
             organization_id=member.organization_id,
             user_id=member.user.id if member.user is not None else None,
             role=member.role,
+            has_global_access=member.has_global_access,
             scopes=list(member.get_scopes()),
-            flags=self._serialize_member_flags(member),
+            flags=cls._serialize_member_flags(member),
         )
 
         omts = OrganizationMemberTeam.objects.filter(
@@ -71,19 +81,21 @@ class DatabaseBackedOrganizationService(OrganizationService):
         for omt in omts:
             omt.organizationmember = member
             api_member.member_teams.append(
-                self._serialize_team_member(omt, project_ids_by_team_id[omt.team_id])
+                cls._serialize_team_member(omt, project_ids_by_team_id[omt.team_id])
             )
         api_member.project_ids = list(all_project_ids)
 
         return api_member
 
-    def _serialize_flags(self, org: "Organization") -> "ApiOrganizationFlags":
+    @classmethod
+    def _serialize_flags(cls, org: Organization) -> ApiOrganizationFlags:
         result = ApiOrganizationFlags()
         for f in dataclasses.fields(result):
             setattr(result, f.name, getattr(org.flags, f.name))
         return result
 
-    def _serialize_team(self, team: Team) -> "ApiTeam":
+    @classmethod
+    def _serialize_team(cls, team: Team) -> ApiTeam:
         return ApiTeam(
             id=team.id,
             status=team.status,
@@ -91,9 +103,10 @@ class DatabaseBackedOrganizationService(OrganizationService):
             slug=team.slug,
         )
 
+    @classmethod
     def _serialize_team_member(
-        self, team_member: OrganizationMemberTeam, project_ids: Iterable[int]
-    ) -> "ApiTeamMember":
+        cls, team_member: OrganizationMemberTeam, project_ids: Iterable[int]
+    ) -> ApiTeamMember:
         result = ApiTeamMember(
             id=team_member.id,
             is_active=team_member.is_active,
@@ -105,7 +118,8 @@ class DatabaseBackedOrganizationService(OrganizationService):
 
         return result
 
-    def _serialize_project(self, project: Project) -> "ApiProject":
+    @classmethod
+    def _serialize_project(cls, project: Project) -> ApiProject:
         return ApiProject(
             id=project.id,
             slug=project.slug,
@@ -114,26 +128,28 @@ class DatabaseBackedOrganizationService(OrganizationService):
             status=project.status,
         )
 
-    def _serialize_organization_summary(self, org: "Organization") -> "ApiOrganizationSummary":
+    def _serialize_organization_summary(self, org: Organization) -> ApiOrganizationSummary:
         return ApiOrganizationSummary(
             slug=org.slug,
             id=org.id,
             name=org.name,
         )
 
-    def _serialize_organization(self, org: "Organization") -> "ApiOrganization":
+    @classmethod
+    def serialize_organization(cls, org: Organization) -> ApiOrganization:
         api_org: ApiOrganization = ApiOrganization(
             slug=org.slug,
             id=org.id,
-            flags=self._serialize_flags(org),
+            flags=cls._serialize_flags(org),
             name=org.name,
             status=org.status,
+            default_role=org.default_role,
         )
 
         projects: List[Project] = Project.objects.filter(organization=org)
         teams: List[Team] = Team.objects.filter(organization=org)
-        api_org.projects.extend(self._serialize_project(project) for project in projects)
-        api_org.teams.extend(self._serialize_team(team) for team in teams)
+        api_org.projects.extend(cls._serialize_project(project) for project in projects)
+        api_org.teams.extend(cls._serialize_team(team) for team in teams)
         return api_org
 
     def check_membership_by_id(
@@ -146,7 +162,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
         except OrganizationMember.DoesNotExist:
             return None
 
-        return self._serialize_member(member)
+        return self.serialize_member(member)
 
     def get_organization_by_id(
         self, *, id: int, user_id: Optional[int]
@@ -155,7 +171,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
         if user_id is not None:
             try:
                 om = OrganizationMember.objects.get(organization_id=id, user_id=user_id)
-                membership = self._serialize_member(om)
+                membership = self.serialize_member(om)
             except OrganizationMember.DoesNotExist:
                 pass
 
@@ -165,7 +181,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
             return None
 
         return ApiUserOrganizationContext(
-            user_id=user_id, organization=self._serialize_organization(org), member=membership
+            user_id=user_id, organization=self.serialize_organization(org), member=membership
         )
 
     def check_membership_by_email(
@@ -176,7 +192,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
         except OrganizationMember.DoesNotExist:
             return None
 
-        return self._serialize_member(member)
+        return self.serialize_member(member)
 
     def check_organization_by_slug(self, *, slug: str, only_visible: bool) -> Optional[int]:
         try:
@@ -235,3 +251,41 @@ class DatabaseBackedOrganizationService(OrganizationService):
             return [r.organization for r in results if scope in r.get_scopes()]
 
         return [r.organization for r in results]
+
+    @staticmethod
+    def _deserialize_member_flags(flags: ApiOrganizationMemberFlags) -> int:
+        return flags_to_bits(flags.sso__linked, flags.sso__invalid, flags.member_limit__restricted)
+
+    def add_organization_member(
+        self,
+        *,
+        organization: ApiOrganization,
+        user: APIUser,
+        flags: ApiOrganizationMemberFlags | None,
+        role: str | None,
+    ) -> ApiOrganizationMember:
+        member = OrganizationMember.objects.create(
+            organization_id=organization.id,
+            user_id=user.id,
+            flags=self._deserialize_member_flags(flags) if flags else 0,
+            role=role or organization.default_role,
+        )
+        return self.serialize_member(member)
+
+    def add_team_member(
+        self, *, team_id: int, organization_member: ApiOrganizationMember
+    ) -> ApiTeamMember:
+        omt = OrganizationMemberTeam.objects.create(
+            team_id=team_id, organizationmember_id=organization_member.id
+        )
+        project_ids = ()  # TODO?
+        return self._serialize_team_member(omt, project_ids)
+
+    def update_membership_flags(self, *, organization_member: ApiOrganizationMember) -> None:
+        model = OrganizationMember.objects.get(id=organization_member.id)
+        model.flags = self._deserialize_member_flags(organization_member.flags)
+        model.save()
+
+    @classmethod
+    def _serialize_invite(cls, om: OrganizationMember) -> ApiOrganizationInvite:
+        return ApiOrganizationInvite(om.id, om.token, om.email)
