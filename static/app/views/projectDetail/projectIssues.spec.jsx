@@ -1,13 +1,18 @@
+import {browserHistory} from 'react-router';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import ProjectIssues from 'sentry/views/projectDetail/projectIssues';
 
 describe('ProjectDetail > ProjectIssues', function () {
   let endpointMock, filteredEndpointMock;
-  const {organization, router, routerContext} = initializeOrg({
+  const {organization, router, routerContext, project} = initializeOrg({
     organization: {
       features: ['discover-basic'],
+    },
+    project: {
+      platform: 'android',
     },
   });
 
@@ -44,6 +49,12 @@ describe('ProjectDetail > ProjectIssues', function () {
     });
 
     expect(await screen.findAllByTestId('group')).toHaveLength(2);
+    expect(screen.getByText('Unhandled')).toBeInTheDocument();
+    expect(screen.getByText('Regressed')).toBeInTheDocument();
+    expect(screen.getByText('Resolved')).toBeInTheDocument();
+    expect(screen.getByText('All Issues')).toBeInTheDocument();
+    expect(screen.getByText('New Issues')).toBeInTheDocument();
+    expect(screen.queryByText('ANR Issues')).not.toBeInTheDocument();
   });
 
   it('renders a link to Issues', function () {
@@ -118,5 +129,42 @@ describe('ProjectDetail > ProjectIssues', function () {
         sort: 'freq',
       },
     });
+  });
+
+  it('renders a ANR Issues tab', async function () {
+    const mockAnrRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/?limit=5&query=mechanism%3AANR&sort=freq&statsPeriod=14d',
+      body: [TestStubs.Group(), TestStubs.Group({id: '2'})],
+    });
+    organization.features = ['discover-basic', 'anr-rate'];
+    render(
+      <ProjectIssues
+        organization={organization}
+        location={router.location}
+        project={project}
+      />,
+      {
+        context: routerContext,
+        organization,
+      }
+    );
+
+    expect(await screen.findAllByTestId('group')).toHaveLength(2);
+    expect(screen.getByText('Unhandled')).toBeInTheDocument();
+    expect(screen.getByText('Regressed')).toBeInTheDocument();
+    expect(screen.getByText('Resolved')).toBeInTheDocument();
+    expect(screen.getByText('All Issues')).toBeInTheDocument();
+    expect(screen.getByText('New Issues')).toBeInTheDocument();
+    expect(screen.getByText('ANR Issues')).toBeInTheDocument();
+
+    screen.getByText('ANR Issues').click();
+
+    expect(browserHistory.replace).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: {issuesType: 'anr'},
+      })
+    );
+
+    await waitFor(() => expect(mockAnrRequest).toHaveBeenCalledTimes(1));
   });
 });

@@ -18,7 +18,7 @@ import {DEFAULT_RELATIVE_PERIODS, DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
+import {Organization, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {decodeScalar} from 'sentry/utils/queryString';
 
@@ -30,6 +30,7 @@ enum IssuesType {
   REGRESSED = 'regressed',
   RESOLVED = 'resolved',
   ALL = 'all',
+  ANR = 'anr',
 }
 
 enum IssuesQuery {
@@ -37,11 +38,13 @@ enum IssuesQuery {
   UNHANDLED = 'error.unhandled:true is:unresolved',
   REGRESSED = 'regressed_in_release:latest',
   RESOLVED = 'is:resolved',
+  ANR = 'mechanism:ANR',
   ALL = '',
 }
 
 type Count = {
   all: number;
+  anr: number;
   new: number;
   regressed: number;
   resolved: number;
@@ -53,10 +56,11 @@ type Props = {
   location: Location;
   organization: Organization;
   projectId: number;
+  project?: Project;
   query?: string;
 };
 
-function ProjectIssues({organization, location, projectId, query, api}: Props) {
+function ProjectIssues({organization, location, projectId, query, api, project}: Props) {
   const [pageLinks, setPageLinks] = useState<string | undefined>();
   const [onCursor, setOnCursor] = useState<(() => void) | undefined>();
   const [issuesType, setIssuesType] = useState<IssuesType | string>(
@@ -68,6 +72,7 @@ function ProjectIssues({organization, location, projectId, query, api}: Props) {
     regressed: 0,
     resolved: 0,
     unhandled: 0,
+    anr: 0,
   });
 
   const fetchIssuesCount = useCallback(async () => {
@@ -83,6 +88,9 @@ function ProjectIssues({organization, location, projectId, query, api}: Props) {
       `${IssuesQuery.UNHANDLED}`,
       `${IssuesQuery.REGRESSED}`,
     ];
+    if (organization.features.includes('anr-rate') && project?.platform === 'android') {
+      params.push(`${IssuesQuery.ANR}`);
+    }
     const queryParams = params.map(param => param);
     const queryParameters = {
       project: projectId,
@@ -106,6 +114,7 @@ function ProjectIssues({organization, location, projectId, query, api}: Props) {
         resolved: data[`${IssuesQuery.RESOLVED}`] || 0,
         unhandled: data[`${IssuesQuery.UNHANDLED}`] || 0,
         regressed: data[`${IssuesQuery.REGRESSED}`] || 0,
+        anr: data[`${IssuesQuery.ANR}`] || 0,
       });
     } catch {
       // do nothing
@@ -117,7 +126,9 @@ function ProjectIssues({organization, location, projectId, query, api}: Props) {
     location.query.environment,
     location.query.start,
     location.query.statsPeriod,
+    organization.features,
     organization.slug,
+    project?.platform,
     projectId,
   ]);
   useEffect(() => {
@@ -237,6 +248,14 @@ function ProjectIssues({organization, location, projectId, query, api}: Props) {
       issueCount: issuesCount.resolved,
     },
   ];
+
+  if (organization.features.includes('anr-rate') && project?.platform === 'android') {
+    issuesTypes.push({
+      value: IssuesType.ANR,
+      label: t('ANR Issues'),
+      issueCount: issuesCount.anr,
+    });
+  }
 
   return (
     <Fragment>

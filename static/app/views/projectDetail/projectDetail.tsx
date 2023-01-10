@@ -307,6 +307,7 @@ class ProjectDetail extends AsyncView<Props, State> {
                       projectId={selection.projects[0]}
                       query={query}
                       api={this.api}
+                      project={project}
                     />
                   </Fragment>
                 )}
