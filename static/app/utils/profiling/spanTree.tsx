@@ -84,8 +84,11 @@ export class SpanTreeNode {
 class SpanTree {
   root: SpanTreeNode;
   orphanedSpans: RawSpanType[] = [];
+  transaction: EventTransaction;
 
   constructor(transaction: EventTransaction, spans: RawSpanType[]) {
+    this.transaction = transaction;
+
     this.root = SpanTreeNode.Root({
       description: transaction.title,
       start_timestamp: transaction.startTimestamp,
@@ -144,7 +147,7 @@ class SpanTree {
                 op: 'missing instrumentation',
                 start_timestamp:
                   parent.children[parent.children.length - 1].span.timestamp,
-                timestamp: span.timestamp,
+                timestamp: span.start_timestamp,
                 span_id: uuid4(),
                 data: {},
                 trace_id: span.trace_id,

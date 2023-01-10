@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
 import Alert from 'sentry/components/alert';
+import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {t, tct} from 'sentry/locale';
@@ -119,7 +120,9 @@ function RouteError({error, disableLogSentry, disableReport, project}: Props) {
         </ListItem>
         <ListItem>
           {tct(`If all else fails, [link:contact us] with more details.`, {
-            link: <a href="https://github.com/getsentry/sentry/issues/new/choose" />,
+            link: (
+              <ExternalLink href="https://github.com/getsentry/sentry/issues/new/choose" />
+            ),
           })}
         </ListItem>
       </List>

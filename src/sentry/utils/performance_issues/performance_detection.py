@@ -9,15 +9,15 @@ from abc import ABC, abstractmethod
 from collections import defaultdict, deque
 from datetime import timedelta
 from enum import Enum
-from typing import Any, Dict, List, Optional, Sequence, Tuple
+from typing import Any, Dict, List, Optional, Sequence, Tuple, cast
 from urllib.parse import urlparse
 
 import sentry_sdk
 from symbolic import ProguardMapper  # type: ignore
 
-from sentry import nodestore, options, projectoptions
+from sentry import features, nodestore, options, projectoptions
 from sentry.eventstore.models import Event
-from sentry.models import Project, ProjectDebugFile, ProjectOption
+from sentry.models import Organization, Project, ProjectDebugFile, ProjectOption
 from sentry.types.issues import GroupType
 from sentry.utils import metrics
 from sentry.utils.event_frames import get_sdk_name
@@ -78,6 +78,7 @@ DETECTOR_TYPE_ISSUE_CREATION_TO_SYSTEM_OPTION = {
     DetectorType.N_PLUS_ONE_DB_QUERIES: "performance.issues.n_plus_one_db.problem-creation",
     DetectorType.N_PLUS_ONE_DB_QUERIES_EXTENDED: "performance.issues.n_plus_one_db_ext.problem-creation",
     DetectorType.CONSECUTIVE_DB_OP: "performance.issues.consecutive_db.problem-creation",
+    DetectorType.N_PLUS_ONE_API_CALLS: "performance.issues.n_plus_one_api_calls.problem-creation",
 }
 
 
@@ -144,14 +145,14 @@ PerformanceProblemsMap = Dict[str, PerformanceProblem]
 
 
 # Facade in front of performance detection to limit impact of detection on our events ingestion
-def detect_performance_problems(data: Event) -> List[PerformanceProblem]:
+def detect_performance_problems(data: Event, project: Project) -> List[PerformanceProblem]:
     try:
         # Add an experimental tag to be able to find these spans in production while developing. Should be removed later.
         sentry_sdk.set_tag("_did_analyze_performance_issue", "true")
         with metrics.timer(
             "performance.detect_performance_issue", sample_rate=0.01
         ), sentry_sdk.start_span(op="py.detect_performance_issue", description="none") as sdk_span:
-            return _detect_performance_problems(data, sdk_span)
+            return _detect_performance_problems(data, sdk_span, project)
     except Exception:
         logging.exception("Failed to detect performance problems")
     return []
@@ -160,7 +161,7 @@ def detect_performance_problems(data: Event) -> List[PerformanceProblem]:
 # Gets the thresholds to perform performance detection.
 # Duration thresholds are in milliseconds.
 # Allowed span ops are allowed span prefixes. (eg. 'http' would work for a span with 'http.client' as its op)
-def get_detection_settings(project_id: Optional[str] = None) -> Dict[DetectorType, Any]:
+def get_detection_settings(project_id: Optional[int] = None) -> Dict[DetectorType, Any]:
     default_project_settings = (
         projectoptions.get_well_known_default(
             "sentry:performance_issue_settings",
@@ -252,9 +253,11 @@ def get_detection_settings(project_id: Optional[str] = None) -> Dict[DetectorTyp
     }
 
 
-def _detect_performance_problems(data: Event, sdk_span: Any) -> List[PerformanceProblem]:
+def _detect_performance_problems(
+    data: Event, sdk_span: Any, project: Project
+) -> List[PerformanceProblem]:
     event_id = data.get("event_id", None)
-    project_id = data.get("project")
+    project_id = cast(int, project.id)
 
     detection_settings = get_detection_settings(project_id)
     detectors: List[PerformanceDetector] = [
@@ -274,15 +277,22 @@ def _detect_performance_problems(data: Event, sdk_span: Any) -> List[Performance
     # Metrics reporting only for detection, not created issues.
     report_metrics_for_detectors(data, event_id, detectors, sdk_span)
 
-    # Get list of detectors that are allowed to create issues.
-    allowed_detector_types = get_allowed_issue_creation_detectors(project_id)
+    organization = cast(Organization, project.organization)
+    if project is None or organization is None:
+        return []
 
     problems: List[PerformanceProblem] = []
     for detector in detectors:
-        if detector.type not in allowed_detector_types:
+        if all(
+            [
+                detector.is_creation_allowed_for_system(),
+                detector.is_creation_allowed_for_organization(organization),
+                detector.is_creation_allowed_for_project(project),
+            ]
+        ):
+            problems.extend(detector.stored_problems.values())
+        else:
             continue
-
-        problems.extend(detector.stored_problems.values())
 
     truncated_problems = problems[:PERFORMANCE_GROUP_COUNT_LIMIT]
 
@@ -312,17 +322,6 @@ def run_detector_on_data(detector, data):
         detector.visit_span(span)
 
     detector.on_complete()
-
-
-# Uses options and flags to determine which orgs and which detectors automatically create performance issues.
-def get_allowed_issue_creation_detectors(project_id: str):
-    allowed_detectors = set()
-    for detector_type, system_option in DETECTOR_TYPE_ISSUE_CREATION_TO_SYSTEM_OPTION.items():
-        rate = options.get(system_option)
-        if rate and rate > random.random():
-            allowed_detectors.add(detector_type)
-
-    return allowed_detectors
 
 
 def fingerprint_group(transaction_name, span_op, hash, problem_class):
@@ -456,6 +455,25 @@ class PerformanceDetector(ABC):
     @abstractmethod
     def stored_problems(self) -> PerformanceProblemsMap:
         raise NotImplementedError
+
+    def is_creation_allowed_for_system(self) -> bool:
+        system_option = DETECTOR_TYPE_ISSUE_CREATION_TO_SYSTEM_OPTION.get(self.__class__.type, None)
+
+        if not system_option:
+            return False
+
+        try:
+            rate = options.get(system_option)
+        except options.UnknownOption:
+            rate = 0
+
+        return rate > random.random()
+
+    def is_creation_allowed_for_organization(self, organization: Organization) -> bool:
+        return False  # Creation is off by default. Ideally, it should auto-generate the feature flag name, and check its value
+
+    def is_creation_allowed_for_project(self, project: Project) -> bool:
+        return False  # Creation is off by default. Ideally, it should auto-generate the project option name, and check its value
 
     @classmethod
     def is_event_eligible(cls, event):
@@ -649,6 +667,14 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         else:
             self._maybe_store_problem()
             self.spans = [span]
+
+    def is_creation_allowed_for_organization(self, organization: Organization) -> bool:
+        return features.has(
+            "organizations:performance-n-plus-one-api-calls-detector", organization, actor=None
+        )
+
+    def is_creation_allowed_for_project(self, project: Project) -> bool:
+        return True  # Detection always allowed by project for now
 
     @classmethod
     def is_event_eligible(cls, event):
@@ -957,6 +983,12 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
         root_span = get_path(self._event, "contexts", "trace")
         if root_span:
             self.potential_parents[root_span.get("span_id")] = root_span
+
+    def is_creation_allowed_for_organization(self, organization: Optional[Organization]) -> bool:
+        return True  # This detector is fully rolled out
+
+    def is_creation_allowed_for_project(self, project: Optional[Project]) -> bool:
+        return True  # This should probably use the `n_plus_one_db.problem-creation` option, which is currently not in use
 
     def visit_span(self, span: Span) -> None:
         span_id = span.get("span_id", None)
