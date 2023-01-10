@@ -80,10 +80,10 @@ export function makeTimelineFormatter(from: ProfilingFormatterUnit | string) {
   }
 
   return (value: number) => {
-    const s = value * multiplier;
+    const s = Math.abs(value * multiplier);
     const m = s / 60;
     const ms = s * 1e3;
 
-    return `${pad(m, 2)}:${pad(s % 60, 2)}.${pad(ms % 1e3, 3)}`;
+    return `${value < 0 ? '-' : ''}${pad(m, 2)}:${pad(s % 60, 2)}.${pad(ms % 1e3, 3)}`;
   };
 }
