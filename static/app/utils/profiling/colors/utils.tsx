@@ -223,8 +223,7 @@ export function makeColorMapByImage(
     if (!reverseFrameToImageIndex[key]) {
       reverseFrameToImageIndex[key] = [];
     }
-    // we initialize an empty array above, so this is safe
-    reverseFrameToImageIndex[key]!.push(frame);
+    reverseFrameToImageIndex[key].push(frame);
   }
 
   for (let i = 0; i < sortedFrames.length; i++) {
@@ -245,7 +244,40 @@ export function makeColorMapByImage(
   return colors;
 }
 
-export function makeColorMapBySystemVsApplication(
+export function makeColorMapBySystemFrame(
+  frames: ReadonlyArray<FlamegraphFrame>,
+  colorBucket: FlamegraphTheme['COLORS']['COLOR_BUCKET']
+): Map<FlamegraphFrame['frame']['key'], ColorChannels> {
+  const colors = new Map<FlamegraphFrame['key'], ColorChannels>();
+
+  const uniqueSystemFrames: Record<string, FlamegraphFrame[]> = {};
+
+  for (let i = 0; i < frames.length; i++) {
+    if (frames[i].frame.is_application) {
+      continue;
+    }
+
+    const uniqueByProperty = frames[i].frame.name + frames[i].frame.image;
+    if (!uniqueSystemFrames[uniqueByProperty]) {
+      uniqueSystemFrames[uniqueByProperty] = [];
+    }
+
+    uniqueSystemFrames[uniqueByProperty].push(frames[i]);
+  }
+
+  const uniqueSystemFramesArray = Array.from(uniqueSystemFrames);
+
+  for (let i = 0; i < uniqueSystemFramesArray.length; i++) {
+    colors.set(
+      uniqueSystemFramesArray[i].key,
+      colorBucket(i / uniqueSystemFramesArray.length)
+    );
+  }
+
+  return colors;
+}
+
+export function makeColorMapByApplicationFrame(
   frames: ReadonlyArray<FlamegraphFrame>,
   colorBucket: FlamegraphTheme['COLORS']['COLOR_BUCKET']
 ): Map<FlamegraphFrame['frame']['key'], ColorChannels> {
