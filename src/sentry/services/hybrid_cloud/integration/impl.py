@@ -184,7 +184,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
         *,
         integration_ids: List[int],
         name: str | None = None,
-        metadata: Dict[str | Any] | None = None,
+        metadata: Dict[str, Any] | None = None,
         status: int | None = None,
     ) -> List[APIIntegration]:
         integrations = Integration.objects.filter(id__in=integration_ids)

@@ -194,7 +194,7 @@ class IntegrationService(InterfaceWithLifecycle):
         *,
         integration_ids: List[int],
         name: str | None = None,
-        metadata: Dict[str | Any] | None = None,
+        metadata: Dict[str, Any] | None = None,
         status: int | None = None,
     ) -> List[APIIntegration]:
         """
