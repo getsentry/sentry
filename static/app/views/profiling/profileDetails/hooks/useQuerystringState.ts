@@ -17,12 +17,6 @@ export function useQuerystringState<T extends string | string[] = string>({
     (location.query[key] as T) ?? (initialState as T)
   );
 
-  // there is a chance that a key we're tracking is not explicitly set
-  // via this hook's setState, at which point we must always keep state in sync here
-  if (location.query[key] !== state) {
-    setState(location.query[key] as T);
-  }
-
   const createLocationDescriptor = useCallback(
     (nextState: T | undefined) => {
       // we can't use the result of `useLocation` here
