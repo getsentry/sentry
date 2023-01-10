@@ -48,7 +48,6 @@ describe('OrganizationMembersList', function () {
   });
   const defaultProps = {
     organization,
-    params: {orgId: organization.slug},
     router: {routes: []},
     location: {query: {}},
   };
@@ -387,14 +386,9 @@ describe('OrganizationMembersList', function () {
         method: 'PUT',
       });
 
-      render(
-        <OrganizationMembersList
-          {...defaultProps}
-          organization={org}
-          params={{orgId: org.slug}}
-        />,
-        {context: TestStubs.routerContext([{organization: org}])}
-      );
+      render(<OrganizationMembersList {...defaultProps} organization={org} />, {
+        context: TestStubs.routerContext([{organization: org}]),
+      });
 
       expect(screen.getByText('Pending Members')).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Approve'})).toBeDisabled();

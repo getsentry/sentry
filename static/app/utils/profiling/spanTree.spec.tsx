@@ -86,6 +86,37 @@ describe('SpanTree', () => {
     expect(tree.root.children[0].span.span_id).toBe('1');
     expect(tree.root.children[0].children[0].span.span_id).toBe('2');
   });
+
+  it('creates missing instrumentation node', () => {
+    const start = Date.now();
+    const tree = new SpanTree(
+      txn({
+        title: 'transaction root',
+        startTimestamp: start,
+        endTimestamp: start + 10,
+        contexts: {trace: {span_id: 'root'}},
+      }),
+      [
+        s({
+          span_id: '1',
+          parent_span_id: 'root',
+          timestamp: start + 5,
+          start_timestamp: start,
+        }),
+        s({
+          span_id: '2',
+          parent_span_id: 'root',
+          timestamp: start + 10,
+          start_timestamp: start + 6,
+        }),
+      ]
+    );
+    expect(tree.orphanedSpans.length).toBe(0);
+    expect(tree.root.children[0].span.span_id).toBe('1');
+    expect(tree.root.children[1].span.op).toBe('missing instrumentation');
+    expect(tree.root.children[2].span.span_id).toBe('2');
+  });
+
   it('pushes consecutive span', () => {
     const start = Date.now();
     const tree = new SpanTree(
@@ -99,27 +130,21 @@ describe('SpanTree', () => {
         s({
           span_id: '1',
           parent_span_id: 'root',
-          timestamp: start + 1,
+          timestamp: start + 0.05,
           start_timestamp: start,
         }),
         s({
           span_id: '2',
-          parent_span_id: '1',
-          timestamp: start + 0.5,
-          start_timestamp: start,
-        }),
-        s({
-          span_id: '3',
-          parent_span_id: '1',
-          timestamp: start + 0.8,
-          start_timestamp: start + 0.5,
+          parent_span_id: 'root',
+          timestamp: start + 0.08,
+          start_timestamp: start + 0.05,
         }),
       ]
     );
 
     expect(tree.orphanedSpans.length).toBe(0);
-    expect(tree.root.children[0].children[0].span.span_id).toBe('2');
-    expect(tree.root.children[0].children[1].span.span_id).toBe('3');
+    expect(tree.root.children[0].span.span_id).toBe('1');
+    expect(tree.root.children[1].span.span_id).toBe('2');
   });
   it('marks span as orphaned if parent_id does not match', () => {
     const tree = new SpanTree(

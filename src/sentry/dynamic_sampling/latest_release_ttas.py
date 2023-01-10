@@ -21,7 +21,7 @@ from typing import Optional
 # ORDER BY s1.p_p
 #
 # The aforementioned query has been simplified for the scope of this comment. In order to get more in-depth
-# explainations a research document has been written on Notion at:
+# explanations a research document has been written on Notion at:
 # https://www.notion.so/sentry/Exploration-of-Static-Time-to-Adoption-bbd98781ecb94c33be15108b0200db8e
 LATEST_RELEASE_TTAS = {
     "android": 43747,

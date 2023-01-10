@@ -16,7 +16,7 @@ import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 import UpgradeGrouping from './upgradeGrouping';
 
-type Props = RouteComponentProps<{orgId: string; projectId: string}, {}> & {
+type Props = RouteComponentProps<{projectId: string}, {}> & {
   organization: Organization;
   project: Project;
 };

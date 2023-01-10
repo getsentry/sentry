@@ -5,7 +5,7 @@ import {LightFlamegraphTheme as Theme} from 'sentry/utils/profiling/flamegraph/f
 import {Rect, trimTextCenter} from 'sentry/utils/profiling/gl/utils';
 import {EventedProfile} from 'sentry/utils/profiling/profile/eventedProfile';
 import {createFrameIndex} from 'sentry/utils/profiling/profile/utils';
-import {TextRenderer} from 'sentry/utils/profiling/renderers/textRenderer';
+import {FlamegraphTextRenderer} from 'sentry/utils/profiling/renderers/flamegraphTextRenderer';
 
 const makeBaseFlamegraph = (): Flamegraph => {
   const profile = EventedProfile.FromProfile(
@@ -43,10 +43,10 @@ describe('TextRenderer', () => {
       getContext: jest.fn().mockReturnValue(context),
     };
 
-    const textRenderer = new TextRenderer(
+    const textRenderer = new FlamegraphTextRenderer(
       canvas as HTMLCanvasElement,
-      makeBaseFlamegraph(),
-      Theme
+      Theme,
+      makeBaseFlamegraph()
     );
 
     textRenderer.measureAndCacheText('test');
@@ -70,10 +70,10 @@ describe('TextRenderer', () => {
       getContext: jest.fn().mockReturnValue(context),
     };
 
-    const textRenderer = new TextRenderer(
+    const textRenderer = new FlamegraphTextRenderer(
       canvas as HTMLCanvasElement,
-      makeBaseFlamegraph(),
-      Theme
+      Theme,
+      makeBaseFlamegraph()
     );
     textRenderer.measureAndCacheText('text');
     textRenderer.measureAndCacheText('text');
@@ -114,9 +114,13 @@ describe('TextRenderer', () => {
       getContext: jest.fn().mockReturnValue(context),
     };
 
-    const textRenderer = new TextRenderer(canvas as HTMLCanvasElement, flamegraph, Theme);
+    const textRenderer = new FlamegraphTextRenderer(
+      canvas as HTMLCanvasElement,
+      Theme,
+      flamegraph
+    );
 
-    textRenderer.draw(new Rect(0, 0, 200, 2), mat3.identity(mat3.create()), new Map());
+    textRenderer.draw(new Rect(0, 0, 200, 2), mat3.create(), new Map());
 
     expect(context.fillText).toHaveBeenCalledTimes(2);
   });
@@ -152,11 +156,15 @@ describe('TextRenderer', () => {
       getContext: jest.fn().mockReturnValue(context),
     };
 
-    const textRenderer = new TextRenderer(canvas as HTMLCanvasElement, flamegraph, Theme);
+    const textRenderer = new FlamegraphTextRenderer(
+      canvas as HTMLCanvasElement,
+      Theme,
+      flamegraph
+    );
 
     textRenderer.draw(
       new Rect(0, 0, Math.floor(longFrameName.length / 2), 10),
-      mat3.identity(mat3.create()),
+      mat3.create(),
       new Map()
     );
 
@@ -202,7 +210,11 @@ describe('TextRenderer', () => {
       getContext: jest.fn().mockReturnValue(context),
     };
 
-    const textRenderer = new TextRenderer(canvas as HTMLCanvasElement, flamegraph, Theme);
+    const textRenderer = new FlamegraphTextRenderer(
+      canvas as HTMLCanvasElement,
+      Theme,
+      flamegraph
+    );
 
     textRenderer.draw(
       new Rect(
@@ -211,7 +223,7 @@ describe('TextRenderer', () => {
         Math.floor(longFrameName.length / 2 / 2),
         10
       ),
-      mat3.identity(mat3.create()),
+      mat3.create(),
       new Map()
     );
 
