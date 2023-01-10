@@ -388,10 +388,11 @@ class FlamegraphRenderer {
       return null;
     }
 
-    if (
-      configSpaceCursor[0] < this.flamegraph.configSpace.left ||
-      configSpaceCursor[0] > this.flamegraph.configSpace.right
-    ) {
+    if (configSpaceCursor[0] < this.flamegraph.configSpace.left) {
+      return null;
+    }
+
+    if (configSpaceCursor[0] > this.flamegraph.configSpace.right) {
       return null;
     }
 
