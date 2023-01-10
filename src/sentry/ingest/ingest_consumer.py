@@ -380,7 +380,7 @@ def process_individual_attachment(message, projects) -> None:
     attachment = attachment_cache.get_from_chunks(
         key=cache_key, type=attachment.pop("attachment_type"), **attachment
     )
-    if attachment.type != "event.attachment":
+    if attachment.type not in ("event.attachment", "event.view_hierarchy"):
         logger.exception("invalid individual attachment type: %s", attachment.type)
         return
 
