@@ -33,9 +33,7 @@ describe('Organization Developer Settings', function () {
         url: `/organizations/${org.slug}/sentry-apps/`,
         body: [],
       });
-      const {container} = render(
-        <OrganizationDeveloperSettings params={{orgId: org.slug}} organization={org} />
-      );
+      const {container} = render(<OrganizationDeveloperSettings organization={org} />);
       await waitFor(() => {
         expect(
           screen.getByText('No internal integrations have been created yet.')
@@ -54,10 +52,7 @@ describe('Organization Developer Settings', function () {
     });
 
     it('internal integrations list is empty', () => {
-      render(
-        <OrganizationDeveloperSettings params={{orgId: org.slug}} organization={org} />,
-        {organization: org}
-      );
+      render(<OrganizationDeveloperSettings organization={org} />, {organization: org});
       expect(
         screen.getByText('No internal integrations have been created yet.')
       ).toBeInTheDocument();
@@ -66,7 +61,6 @@ describe('Organization Developer Settings', function () {
     it('public integrations list contains 1 item', () => {
       render(
         <OrganizationDeveloperSettings
-          params={{orgId: org.slug}}
           organization={org}
           location={{query: {type: 'public'}}}
         />,
@@ -84,7 +78,6 @@ describe('Organization Developer Settings', function () {
       });
       render(
         <OrganizationDeveloperSettings
-          params={{orgId: org.slug}}
           organization={org}
           location={{query: {type: 'public'}}}
         />
@@ -115,7 +108,6 @@ describe('Organization Developer Settings', function () {
 
       render(
         <OrganizationDeveloperSettings
-          params={{orgId: org.slug}}
           organization={org}
           location={{query: {type: 'public'}}}
         />
@@ -180,7 +172,6 @@ describe('Organization Developer Settings', function () {
     it('shows the published status', () => {
       render(
         <OrganizationDeveloperSettings
-          params={{orgId: org.slug}}
           organization={org}
           location={{query: {type: 'public'}}}
         />
@@ -191,7 +182,6 @@ describe('Organization Developer Settings', function () {
     it('trash button is disabled', async () => {
       render(
         <OrganizationDeveloperSettings
-          params={{orgId: org.slug}}
           organization={org}
           location={{query: {type: 'public'}}}
         />
@@ -203,7 +193,6 @@ describe('Organization Developer Settings', function () {
     it('publish button is disabled', async () => {
       render(
         <OrganizationDeveloperSettings
-          params={{orgId: org.slug}}
           organization={org}
           location={{query: {type: 'public'}}}
         />
@@ -224,17 +213,13 @@ describe('Organization Developer Settings', function () {
     });
 
     it('allows deleting', async () => {
-      render(
-        <OrganizationDeveloperSettings params={{orgId: org.slug}} organization={org} />
-      );
+      render(<OrganizationDeveloperSettings organization={org} />);
       const deleteButton = await screen.findByRole('button', {name: 'Delete'});
       expect(deleteButton).toHaveAttribute('aria-disabled', 'false');
     });
 
     it('publish button does not exist', () => {
-      render(
-        <OrganizationDeveloperSettings params={{orgId: org.slug}} organization={org} />
-      );
+      render(<OrganizationDeveloperSettings organization={org} />);
       expect(screen.queryByText('Publish')).not.toBeInTheDocument();
     });
   });
@@ -250,7 +235,6 @@ describe('Organization Developer Settings', function () {
     it('trash button is disabled', async () => {
       render(
         <OrganizationDeveloperSettings
-          params={{orgId: newOrg.slug}}
           organization={newOrg}
           location={{query: {type: 'public'}}}
         />
@@ -262,7 +246,6 @@ describe('Organization Developer Settings', function () {
     it('publish button is disabled', async () => {
       render(
         <OrganizationDeveloperSettings
-          params={{orgId: newOrg.slug}}
           organization={newOrg}
           location={{query: {type: 'public'}}}
         />

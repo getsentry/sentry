@@ -60,7 +60,7 @@ const fuseOptions = {
   keys: ['slug', 'key', 'name', 'id'],
 };
 
-type Props = RouteComponentProps<{orgId: string}, {}> & {
+type Props = RouteComponentProps<{}, {}> & {
   hideHeader: boolean;
   organization: Organization;
 };
@@ -171,18 +171,18 @@ export class IntegrationListDirectory extends AsyncComponent<
   }
 
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
-    const {orgId} = this.props.params;
+    const {organization} = this.props;
     const baseEndpoints: ([string, string, any] | [string, string])[] = [
-      ['config', `/organizations/${orgId}/config/integrations/`],
+      ['config', `/organizations/${organization.slug}/config/integrations/`],
       [
         'integrations',
-        `/organizations/${orgId}/integrations/`,
+        `/organizations/${organization.slug}/integrations/`,
         {query: {includeConfig: 0}},
       ],
-      ['orgOwnedApps', `/organizations/${orgId}/sentry-apps/`],
+      ['orgOwnedApps', `/organizations/${organization.slug}/sentry-apps/`],
       ['publishedApps', '/sentry-apps/', {query: {status: 'published'}}],
-      ['appInstalls', `/organizations/${orgId}/sentry-app-installations/`],
-      ['plugins', `/organizations/${orgId}/plugins/configs/`],
+      ['appInstalls', `/organizations/${organization.slug}/sentry-app-installations/`],
+      ['plugins', `/organizations/${organization.slug}/plugins/configs/`],
       ['docIntegrations', '/doc-integrations/'],
     ];
     /**
@@ -480,9 +480,7 @@ export class IntegrationListDirectory extends AsyncComponent<
   };
 
   renderBody() {
-    const {
-      params: {orgId},
-    } = this.props;
+    const {organization} = this.props;
     const {displayedList, list, searchInput, selectedCategory} = this.state;
 
     const title = t('Integrations');
@@ -490,7 +488,7 @@ export class IntegrationListDirectory extends AsyncComponent<
 
     return (
       <Fragment>
-        <SentryDocumentTitle title={title} orgSlug={orgId} />
+        <SentryDocumentTitle title={title} orgSlug={organization.slug} />
 
         {!this.props.hideHeader && (
           <SettingsPageHeader

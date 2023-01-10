@@ -9,6 +9,7 @@ import {
 } from 'react';
 import styled from '@emotion/styled';
 import {vec2} from 'gl-matrix';
+import * as qs from 'query-string';
 
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {BoundTooltip} from 'sentry/components/profiling/boundTooltip';
@@ -109,8 +110,15 @@ export function FlamegraphSpans({
       return undefined;
     }
 
+    if (profiledTransaction.type !== 'resolved') {
+      return undefined;
+    }
+
     const drawSpans = () => {
-      spansRenderer.draw(spansView.fromConfigView(spansCanvas.physicalSpace));
+      spansRenderer.draw(
+        spansView.configView.transformRect(spansView.configSpaceTransform),
+        spansView.fromConfigView(spansCanvas.physicalSpace)
+      );
     };
 
     drawSpans();
@@ -119,7 +127,33 @@ export function FlamegraphSpans({
     return () => {
       scheduler.unregisterBeforeFrameCallback(drawSpans);
     };
-  }, [spansCanvas, spansRenderer, scheduler, spansView]);
+  }, [spansCanvas, spansRenderer, scheduler, spansView, profiledTransaction.type]);
+
+  // When spans render, check for span_id presence in qs.
+  // If it is present, highlight the span and zoom to it. This allows
+  // us to link to specific spans via id without knowing their exact
+  // without knowing their exact position in the view.
+  useEffect(() => {
+    if (!spansView || !spanChart || !spanChart.spans.length) {
+      return;
+    }
+
+    const span_id = qs.parse(window.location.search).spanId;
+    if (!span_id) {
+      return;
+    }
+    const span = spanChart.spans.find(s => s.node.span.span_id === span_id);
+    if (!span) {
+      return;
+    }
+
+    selectedSpansRef.current = [span];
+    canvasPoolManager.dispatch('highlight span', [span ? [span] : null, 'selected']);
+    canvasPoolManager.dispatch('set config view', [
+      new Rect(span.start, span.depth, span.duration, 1),
+      spansView,
+    ]);
+  }, [canvasPoolManager, spansView, spanChart]);
 
   const onMouseDrag = useCallback(
     (evt: React.MouseEvent<HTMLCanvasElement>) => {
@@ -139,7 +173,7 @@ export function FlamegraphSpans({
         return;
       }
 
-      canvasPoolManager.dispatch('transform config view', [configDelta]);
+      canvasPoolManager.dispatch('transform config view', [configDelta, spansView]);
       setStartInteractionVector(
         getPhysicalSpacePositionFromOffset(
           evt.nativeEvent.offsetX,
@@ -182,8 +216,6 @@ export function FlamegraphSpans({
   const onCanvasScroll = useCanvasScroll(spansCanvas, spansView, canvasPoolManager);
 
   useCanvasZoomOrScroll({
-    lastInteraction,
-    configSpaceCursor,
     setConfigSpaceCursor,
     setLastInteraction,
     handleWheel: onWheelCenterZoom,
@@ -241,6 +273,10 @@ export function FlamegraphSpans({
       evt.preventDefault();
       evt.stopPropagation();
 
+      if (!spansView) {
+        return;
+      }
+
       if (!configSpaceCursor) {
         setLastInteraction(null);
         setStartInteractionVector(null);
@@ -258,8 +294,8 @@ export function FlamegraphSpans({
           selectedSpansRef.current = [hoveredNode];
           // If double click is fired on a node, then zoom into it
           canvasPoolManager.dispatch('set config view', [
-            // nextPosition.withHeight(flamegraphView.configView.height),
-            new Rect(hoveredNode.start, 0, hoveredNode.duration, 1),
+            new Rect(hoveredNode.start, hoveredNode.depth, hoveredNode.duration, 1),
+            spansView,
           ]);
         }
 
@@ -272,7 +308,7 @@ export function FlamegraphSpans({
       setLastInteraction(null);
       setStartInteractionVector(null);
     },
-    [configSpaceCursor, hoveredNode, canvasPoolManager, lastInteraction]
+    [configSpaceCursor, hoveredNode, spansView, canvasPoolManager, lastInteraction]
   );
 
   return (
@@ -305,6 +341,11 @@ export function FlamegraphSpans({
         >
           <FlamegraphTooltipFrameMainInfo>
             <FlamegraphTooltipColorIndicator
+              backgroundImage={
+                hoveredNode.node.span.op === 'missing instrumentation'
+                  ? `url(${spansRenderer.patternDataUrl})`
+                  : 'none'
+              }
               backgroundColor={formatColorForSpan(hoveredNode, spansRenderer)}
             />
             {spanChart.formatter(hoveredNode.duration)}{' '}

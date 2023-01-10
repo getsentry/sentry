@@ -1,10 +1,10 @@
-import unittest
 from typing import List
 from unittest.mock import Mock, call
 
 import pytest
 
 from sentry.eventstore.models import Event
+from sentry.testutils import TestCase
 from sentry.testutils.performance_issues.event_generators import get_event
 from sentry.testutils.silo import region_silo_test
 from sentry.types.issues import GroupType
@@ -19,7 +19,7 @@ from sentry.utils.performance_issues.performance_detection import (
 
 @region_silo_test
 @pytest.mark.django_db
-class MNPlusOneDBDetectorTest(unittest.TestCase):
+class MNPlusOneDBDetectorTest(TestCase):
     def setUp(self):
         super().setUp()
         self.settings = get_detection_settings()
@@ -82,7 +82,7 @@ class MNPlusOneDBDetectorTest(unittest.TestCase):
     def test_m_n_plus_one_detector_enabled(self):
         event = get_event("m-n-plus-one-db/m-n-plus-one-graphql")
         sdk_span_mock = Mock()
-        _detect_performance_problems(event, sdk_span_mock)
+        _detect_performance_problems(event, sdk_span_mock, self.create_project())
         sdk_span_mock.containing_transaction.set_tag.assert_has_calls(
             [
                 call("_pi_all_issue_count", 1),

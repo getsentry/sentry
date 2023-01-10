@@ -955,6 +955,8 @@ SENTRY_FEATURES = {
     "organizations:active-release-notifications-enable": False,
     # Enables tagging javascript errors from the browser console.
     "organizations:javascript-console-error-tag": False,
+    # Enables codecov integration for stacktrace highlighting.
+    "organizations:codecov-stacktrace-integration": False,
     # Enables automatically deriving of code mappings
     "organizations:derive-code-mappings": False,
     # Enables automatically deriving of code mappings as a dry run for early adopters
@@ -1134,6 +1136,8 @@ SENTRY_FEATURES = {
     "organizations:performance-mep-bannerless-ui": False,
     # Enable updated landing page widget designs
     "organizations:performance-new-widget-designs": False,
+    # Enable consecutive db performance issue type
+    "organizations:performance-consecutive-db-issue": False,
     # Enable slow DB performance issue type
     "organizations:performance-slow-db-issue": False,
     # Enable N+1 API Calls performance issue type
