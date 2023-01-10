@@ -9,7 +9,7 @@ from sentry.discover.models import TeamKeyTransaction
 from sentry.dynamic_sampling.rules.base import generate_rules
 from sentry.dynamic_sampling.rules.biases.ignore_health_checks_bias import HEALTH_CHECK_GLOBS
 from sentry.dynamic_sampling.rules.data.latest_releases import get_redis_client_for_ds
-from sentry.dynamic_sampling.utils import BOOSTED_KEY_TRANSACTION_LIMIT
+from sentry.dynamic_sampling.rules.utils import BOOSTED_KEY_TRANSACTION_LIMIT
 from sentry.models import ProjectTeam
 from sentry.testutils.factories import Factories
 from sentry.utils import json

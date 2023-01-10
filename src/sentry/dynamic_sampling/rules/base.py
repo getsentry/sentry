@@ -3,10 +3,10 @@ from typing import List, OrderedDict, Set
 import sentry_sdk
 
 from sentry import quotas
-from sentry.dynamic_sampling.logging import log_rules
 from sentry.dynamic_sampling.rules.biases.base import Bias, BiasParams
 from sentry.dynamic_sampling.rules.combine import DEFAULT_COMBINATOR
-from sentry.dynamic_sampling.utils import BaseRule, RuleType, get_enabled_user_biases
+from sentry.dynamic_sampling.rules.logging import log_rules
+from sentry.dynamic_sampling.rules.utils import BaseRule, RuleType, get_enabled_user_biases
 from sentry.models import Project
 
 ALWAYS_ALLOWED_RULE_TYPES = {RuleType.UNIFORM_RULE}

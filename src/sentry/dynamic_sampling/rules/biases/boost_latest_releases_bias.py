@@ -11,7 +11,12 @@ from sentry.dynamic_sampling.rules.biases.base import (
     BiasRulesGenerator,
 )
 from sentry.dynamic_sampling.rules.data.latest_releases import ProjectBoostedReleases
-from sentry.dynamic_sampling.utils import RELEASE_BOOST_FACTOR, RESERVED_IDS, BaseRule, RuleType
+from sentry.dynamic_sampling.rules.utils import (
+    RELEASE_BOOST_FACTOR,
+    RESERVED_IDS,
+    BaseRule,
+    RuleType,
+)
 
 
 class BoostLatestReleasesDataProvider(BiasDataProvider):

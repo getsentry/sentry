@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from typing import Dict, OrderedDict
 
 from sentry.dynamic_sampling.rules.biases.base import Bias
-from sentry.dynamic_sampling.utils import RuleType
+from sentry.dynamic_sampling.rules.utils import RuleType
 
 
 class OrderedBias:

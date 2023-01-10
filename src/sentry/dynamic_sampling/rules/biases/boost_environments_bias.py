@@ -7,7 +7,7 @@ from sentry.dynamic_sampling.rules.biases.base import (
     BiasParams,
     BiasRulesGenerator,
 )
-from sentry.dynamic_sampling.utils import RESERVED_IDS, BaseRule, RuleType
+from sentry.dynamic_sampling.rules.utils import RESERVED_IDS, BaseRule, RuleType
 
 
 class BoostEnvironmentsDataProvider(BiasDataProvider):

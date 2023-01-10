@@ -7,7 +7,7 @@ from sentry.dynamic_sampling.rules.biases.base import (
     BiasParams,
     BiasRulesGenerator,
 )
-from sentry.dynamic_sampling.utils import (
+from sentry.dynamic_sampling.rules.utils import (
     HEALTH_CHECK_DROPPING_FACTOR,
     RESERVED_IDS,
     BaseRule,

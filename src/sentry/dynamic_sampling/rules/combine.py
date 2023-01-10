@@ -6,7 +6,7 @@ from sentry.dynamic_sampling.rules.biases.boost_latest_releases_bias import Boos
 from sentry.dynamic_sampling.rules.biases.ignore_health_checks_bias import IgnoreHealthChecksBias
 from sentry.dynamic_sampling.rules.biases.uniform_bias import UniformBias
 from sentry.dynamic_sampling.rules.combinators.ordered_combinator import OrderedBiasesCombinator
-from sentry.dynamic_sampling.utils import RuleType
+from sentry.dynamic_sampling.rules.utils import RuleType
 
 # We use the ordered combinator here, which will preserve the insertion order, which means that the first rule will
 # be first in the output.

@@ -8,7 +8,7 @@ from sentry.dynamic_sampling.rules.biases.base import (
     BiasRulesGenerator,
 )
 from sentry.dynamic_sampling.rules.data.key_transactions import get_key_transactions
-from sentry.dynamic_sampling.utils import (
+from sentry.dynamic_sampling.rules.utils import (
     KEY_TRANSACTION_BOOST_FACTOR,
     RESERVED_IDS,
     BaseRule,

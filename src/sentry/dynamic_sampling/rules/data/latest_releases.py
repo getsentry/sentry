@@ -8,7 +8,7 @@ from django.conf import settings
 from pytz import UTC
 
 from sentry.dynamic_sampling.rules.data.time_to_adoptions import Platform
-from sentry.dynamic_sampling.utils import BOOSTED_RELEASES_LIMIT
+from sentry.dynamic_sampling.rules.utils import BOOSTED_RELEASES_LIMIT
 from sentry.models import Project, Release
 from sentry.utils import redis
 
