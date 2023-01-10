@@ -150,7 +150,7 @@ jobs:
         uses: ./.github/actions/setup-python
         with:
           python-version: 3.8.13
-          dependency-paths: requirements-dev-frozen.txt
+          requirement-files: requirements-dev-frozen.txt
       - name: check requirements
         run: |
           python -m pip install -q --constraint pip-tools
@@ -202,9 +202,7 @@ jobs:
         uses: ./.github/actions/setup-python
         with:
           python-version: 3.8.13
-          dependency-paths: |
-            requirements-dev.txt
-            requirements-dev-frozen.txt
+          requirement-files: requirements-dev-frozen.txt
 
       - uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7  # v3.0.11
         with:
@@ -216,9 +214,10 @@ jobs:
         # requirements-dev.txt as a fast path.
         # We don't need pre-commit install --install-hooks since we're just interested
         # in running the hooks.
-        run: |
-          pip install -r requirements-dev.txt -c requirements-dev-frozen.txt
-          pre-commit install-hooks
+        run: pre-commit install-hooks
+        # run: |
+        #   pip install -r requirements-dev.txt -c requirements-dev-frozen.txt
+        #   pre-commit install-hooks
 
       - name: Run pre-commit on changed files
         run: |
@@ -428,11 +427,11 @@ jobs:
         uses: ./.github/actions/setup-python
         with:
           python-version: 3.8.13
-          dependency-paths: requirements-dev-frozen.txt
+          requirement-files: requirements-dev-frozen.txt
 
       # We don't call setup-sentry, because we don't need devservices.
-      - name: Setup backend typing
-        run: pip install -r requirements-dev-frozen.txt
+      # - name: Setup backend typing
+      #   run: pip install -r requirements-dev-frozen.txt
 
       - name: Run backend typing (${{ steps.setup.outputs.matrix-instance-number }} of ${{ strategy.job-total }})
         run: make backend-typing

@@ -4,8 +4,8 @@ inputs:
   python-version:
     description: "Version range or exact version of Python or PyPy to use, using SemVer's version range syntax."
     required: true
-  dependency-paths:
-    description: "Used to specify the path to dependency files. Supports wildcards or a list of file names for caching multiple dependencies."
+  requirement-files:
+    description: "Used to specify the path to requirement files."
     required: true
 runs:
   using: 'composite'
@@ -18,14 +18,14 @@ runs:
     - uses: syphar/restore-virtualenv@e536692e76315a068b4905f792e25febfe6d4391 # v1.3
       id: cache-virtualenv
       with:
-        requirement_files: ${{ inputs.dependency-paths }}
+        requirement_files: ${{ inputs.requirement-files }}
 
     - uses: syphar/restore-pip-download-cache@0b350c2ce930145e820c087e73d5479c2eb44afb # v1.2
       if: steps.cache-virtualenv.outputs.cache-hit != 'true'
       with:
-        requirement_files: ${{ inputs.dependency-paths }}
+        requirement_files: ${{ inputs.requirement-files }}
 
     - name: Install python deps
       shell: bash
-      run: pip install -r ${{ join(inputs.dependency-paths, ' ') }}
+      run: pip install -r ${{ join(inputs.requirement-files, ' -r ') }}
       if: steps.cache-virtualenv.outputs.cache-hit != 'true'
