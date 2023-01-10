@@ -1339,7 +1339,7 @@ function buildRoutes() {
 
   const replayChildRoutes = (
     <Fragment>
-      <IndexRoute component={make(() => import('sentry/views/replays/replays'))} />
+      <IndexRoute component={make(() => import('sentry/views/replays/list/container'))} />
       <Route
         path=":replaySlug/"
         component={make(() => import('sentry/views/replays/details'))}

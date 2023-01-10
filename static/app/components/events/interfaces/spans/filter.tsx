@@ -114,7 +114,7 @@ function Filter({
       triggerProps={{
         icon: <IconFilter />,
         priority: checkedQuantity > 0 ? 'primary' : 'default',
-        'data-test-id': 'operation-filter-dropdown-trigger',
+        'aria-label': t('Filter by operation'),
       }}
     />
   );
