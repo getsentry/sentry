@@ -18,12 +18,12 @@ runs:
     - uses: syphar/restore-virtualenv@e536692e76315a068b4905f792e25febfe6d4391 # v1.3
       id: cache-virtualenv
       with:
-        requirement_files: requirements*.txt
+        requirement_files: ${{ inputs.dependency-paths }}
 
     - uses: syphar/restore-pip-download-cache@0b350c2ce930145e820c087e73d5479c2eb44afb # v1.2
       if: steps.cache-virtualenv.outputs.cache-hit != 'true'
       with:
-        requirement_files: requirements*.txt
+        requirement_files: ${{ inputs.dependency-paths }}
 
     - name: Install python deps
       shell: bash
