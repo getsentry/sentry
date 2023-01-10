@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime, timezone
-from typing import Any, Mapping, MutableMapping, Optional, Sequence, TypedDict, Union, cast
+from typing import Any, Mapping, Optional, Sequence, TypedDict, Union, cast
 
 from arroyo import Topic
 from arroyo.backends.kafka import KafkaConsumer, KafkaPayload
@@ -93,11 +93,10 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
         commit: Commit,
     ) -> None:
         self.__commit = commit
-        self.__ready_to_commit: MutableMapping[Partition, int] = {}
         self.__closed = False
 
     def poll(self) -> None:
-        self._bulk_commit()
+        pass
 
     def terminate(self) -> None:
         self.close()
@@ -110,10 +109,7 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
 
         payload = self._get_payload(message)
         self._produce_billing_outcomes(payload)
-        # TODO(markus): Perhaps call _bulk_commit directly here instead of
-        # manually accumulating offsets? Might be more in line with other
-        # consumers.
-        self._mark_commit_ready(message)
+        self.__commit(message.committable)
 
     def _get_payload(self, message: Message[KafkaPayload]) -> MetricsBucket:
         payload = json.loads(message.payload.value.decode("utf-8"), use_rapid_json=True)
@@ -152,12 +148,5 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
             quantity=quantity,
         )
 
-    def _mark_commit_ready(self, message: Message[KafkaPayload]) -> None:
-        self.__ready_to_commit.update(message.committable)
-
     def join(self, timeout: Optional[float] = None) -> None:
-        self._bulk_commit(force=True)
-
-    def _bulk_commit(self, force=False) -> None:
-        self.__commit(self.__ready_to_commit, force=force)
-        self.__ready_to_commit = {}
+        self.__commit({}, force=True)
