@@ -53,7 +53,6 @@ from sentry.constants import (
     DataCategory,
 )
 from sentry.culprit import generate_culprit
-from sentry.dynamic_sampling.feature_multiplexer import DynamicSamplingFeatureMultiplexer
 from sentry.dynamic_sampling.rules.data.latest_releases import (
     LatestReleaseBias,
     LatestReleaseParams,
@@ -914,9 +913,10 @@ def _get_or_create_release_many(jobs: Sequence[Job], projects: ProjectsMapping) 
                 # Dynamic Sampling - Boosting latest release functionality
                 if (
                     options.get("dynamic-sampling:boost-latest-release")
-                    and DynamicSamplingFeatureMultiplexer(
-                        project=projects[project_id]
-                    ).is_on_dynamic_sampling
+                    and features.has(
+                        "organizations:dynamic-sampling", projects[project_id].organization
+                    )
+                    and options.get("dynamic-sampling:enabled-biases")
                     and data.get("type") == "transaction"
                 ):
                     with sentry_sdk.start_span(
@@ -2216,7 +2216,9 @@ def _calculate_span_grouping(jobs: Sequence[Job], projects: ProjectsMapping) -> 
 @metrics.wraps("save_event.detect_performance_problems")
 def _detect_performance_problems(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
     for job in jobs:
-        job["performance_problems"] = detect_performance_problems(job["data"])
+        job["performance_problems"] = detect_performance_problems(
+            job["data"], projects[job["project_id"]]
+        )
 
 
 class PerformanceJob(TypedDict, total=False):

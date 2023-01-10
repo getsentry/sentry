@@ -53,17 +53,20 @@ class ProjectPerformance extends AsyncView<Props, State> {
 
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {params, organization} = this.props;
-    const {orgId, projectId} = params;
+    const {projectId} = params;
 
     const endpoints: ReturnType<AsyncView['getEndpoints']> = [
-      ['threshold', `/projects/${orgId}/${projectId}/transaction-threshold/configure/`],
-      ['project', `/projects/${orgId}/${projectId}/`],
+      [
+        'threshold',
+        `/projects/${organization.slug}/${projectId}/transaction-threshold/configure/`,
+      ],
+      ['project', `/projects/${organization.slug}/${projectId}/`],
     ];
 
     if (organization.features.includes('performance-issues-dev')) {
       const performanceIssuesEndpoint = [
         'performance_issue_settings',
-        `/projects/${orgId}/${projectId}/performance-issues/configure/`,
+        `/projects/${organization.slug}/${projectId}/performance-issues/configure/`,
       ] as [string, string];
 
       endpoints.push(performanceIssuesEndpoint);
@@ -196,6 +199,15 @@ class ProjectPerformance extends AsyncView<Props, State> {
         min: 0,
         max: 1000000.0,
         defaultValue: 500,
+      },
+      {
+        name: 'n_plus_one_api_calls_detection_rate',
+        type: 'range',
+        label: t('N+1 API Calls Detection Rate'),
+        min: 0.0,
+        max: 1.0,
+        step: 0.01,
+        defaultValue: 0,
       },
     ];
   }

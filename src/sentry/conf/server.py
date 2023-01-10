@@ -574,6 +574,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.commits",
     "sentry.tasks.commit_context",
     "sentry.tasks.deletion",
+    "sentry.tasks.deliver_from_outbox",
     "sentry.tasks.digests",
     "sentry.tasks.email",
     "sentry.tasks.files",
@@ -752,6 +753,11 @@ CELERYBEAT_SCHEDULE = {
         "task": "sentry.tasks.collect_project_platforms",
         "schedule": crontab_with_minute_jitter(hour=3),
         "options": {"expires": 3600 * 24},
+    },
+    "deliver-from-outbox": {
+        "task": "sentry.tasks.enqueue_outbox_jobs",
+        "schedule": timedelta(minutes=1),
+        "options": {"expires": 30},
     },
     "update-user-reports": {
         "task": "sentry.tasks.update_user_reports",
@@ -949,6 +955,8 @@ SENTRY_FEATURES = {
     "organizations:active-release-notifications-enable": False,
     # Enables tagging javascript errors from the browser console.
     "organizations:javascript-console-error-tag": False,
+    # Enables codecov integration for stacktrace highlighting.
+    "organizations:codecov-stacktrace-integration": False,
     # Enables automatically deriving of code mappings
     "organizations:derive-code-mappings": False,
     # Enables automatically deriving of code mappings as a dry run for early adopters
@@ -1101,8 +1109,6 @@ SENTRY_FEATURES = {
     "organizations:issue-actions-v2": False,
     # Enable new issue alert "issue owners" fallback
     "organizations:issue-alert-fallback-targeting": False,
-    # Enable "Owned By" and "Assigned To" on issue details
-    "organizations:issue-details-owners": False,
     # Enable removing issue from issue list if action taken.
     "organizations:issue-list-removal-action": False,
     # Prefix host with organization ID when giving users DSNs (can be
@@ -1130,6 +1136,12 @@ SENTRY_FEATURES = {
     "organizations:performance-mep-bannerless-ui": False,
     # Enable updated landing page widget designs
     "organizations:performance-new-widget-designs": False,
+    # Enable consecutive db performance issue type
+    "organizations:performance-consecutive-db-issue": False,
+    # Enable slow DB performance issue type
+    "organizations:performance-slow-db-issue": False,
+    # Enable N+1 API Calls performance issue type
+    "organizations:performance-n-plus-one-api-calls-detector": False,
     # Enable the new Related Events feature
     "organizations:related-events": False,
     # Enable populating suggested assignees with release committers
@@ -1146,6 +1158,8 @@ SENTRY_FEATURES = {
     "organizations:session-replay-sdk-errors-only": False,
     # Enable experimental session replay UI
     "organizations:session-replay-ui": False,
+    # Enable the new suggested assignees feature
+    "organizations:streamline-targeting-context": False,
     # Enable Session Stats down to a minute resolution
     "organizations:minute-resolution-sessions": True,
     # Notify all project members when fallthrough is disabled, instead of just the auto-assignee
@@ -2875,7 +2889,6 @@ SENTRY_FUNCTIONS_REGION = "us-central1"
 # Settings related to SiloMode
 SILO_MODE = os.environ.get("SENTRY_SILO_MODE", None)
 FAIL_ON_UNAVAILABLE_API_CALL = False
-SILO_MODE_UNSTABLE_TESTS = bool(os.environ.get("SENTRY_SILO_MODE_UNSTABLE_TESTS", False))
 
 DISALLOWED_CUSTOMER_DOMAINS = []
 

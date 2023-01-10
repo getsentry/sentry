@@ -9,12 +9,12 @@ from sentry.sdk_updates import SdkIndexState
 from sentry.testutils import TestCase
 from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.performance_issues.event_generators import get_event
 from sentry.testutils.silo import region_silo_test
 from sentry.utils import json
 from sentry.utils.samples import load_data
 from tests.sentry.event_manager.test_event_manager import make_event
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
-from tests.sentry.utils.performance_issues.test_performance_detection import EVENTS
 
 
 @region_silo_test
@@ -400,7 +400,7 @@ class DetailedEventSerializerTest(TestCase):
     def test_performance_problem(self):
         self.project.update_option("sentry:performance_issue_creation_rate", 1.0)
         with mock.patch("sentry_sdk.tracing.Span.containing_transaction"):
-            manager = EventManager(make_event(**EVENTS["n-plus-one-in-django-index-view"]))
+            manager = EventManager(make_event(**get_event("n-plus-one-in-django-index-view")))
             manager.normalize()
             event = manager.save(self.project.id)
         group_event = event.for_group(event.groups[0])
@@ -435,7 +435,7 @@ class DetailedEventSerializerTest(TestCase):
         with mock.patch("sentry_sdk.tracing.Span.containing_transaction"), mock.patch(
             "sentry.event_manager.EventPerformanceProblem"
         ):
-            manager = EventManager(make_event(**EVENTS["n-plus-one-in-django-index-view"]))
+            manager = EventManager(make_event(**get_event("n-plus-one-in-django-index-view")))
             manager.normalize()
             event = manager.save(self.project.id)
         group_event = event.for_group(event.groups[0])

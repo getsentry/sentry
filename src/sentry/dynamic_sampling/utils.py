@@ -1,7 +1,6 @@
 from enum import Enum
-from typing import Any, Dict, List, Optional, TypedDict, Union
+from typing import Any, Dict, List, Optional, Set, TypedDict, Union
 
-from sentry.dynamic_sampling.rules.data.latest_releases import ProjectBoostedReleases
 from sentry.utils import json
 
 BOOSTED_RELEASES_LIMIT = 10
@@ -84,8 +83,7 @@ def get_rule_type(rule: BaseRule) -> Optional[RuleType]:
     if (
         RESERVED_IDS[RuleType.BOOST_LATEST_RELEASES_RULE]
         <= rule["id"]
-        < RESERVED_IDS[RuleType.BOOST_LATEST_RELEASES_RULE]
-        + ProjectBoostedReleases.BOOSTED_RELEASES_LIMIT
+        < RESERVED_IDS[RuleType.BOOST_LATEST_RELEASES_RULE] + BOOSTED_RELEASES_LIMIT
     ):
         return RuleType.BOOST_LATEST_RELEASES_RULE
 
@@ -112,3 +110,26 @@ def _deep_sorted(value: Union[Any, Dict[Any, Any]]) -> Union[Any, Dict[Any, Any]
         return {key: _deep_sorted(value) for key, value in sorted(value.items())}
     else:
         return value
+
+
+def get_user_biases(user_set_biases: Optional[List[Bias]]) -> List[Bias]:
+    if user_set_biases is None:
+        return DEFAULT_BIASES
+
+    id_to_user_bias = {bias["id"]: bias for bias in user_set_biases}
+    returned_biases = []
+    for bias in DEFAULT_BIASES:
+        if bias["id"] in id_to_user_bias:
+            returned_biases.append(id_to_user_bias[bias["id"]])
+        else:
+            returned_biases.append(bias)
+    return returned_biases
+
+
+def get_enabled_user_biases(user_set_biases: Optional[List[Bias]]) -> Set[str]:
+    users_biases = get_user_biases(user_set_biases)
+    return {bias["id"] for bias in users_biases if bias["active"]}
+
+
+def get_supported_biases_ids() -> Set[str]:
+    return {bias["id"] for bias in DEFAULT_BIASES}

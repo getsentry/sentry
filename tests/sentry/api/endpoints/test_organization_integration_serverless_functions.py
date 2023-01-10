@@ -39,7 +39,7 @@ class AbstractServerlessTest(APITestCase):
         return ProjectKey.get_default(project=self.project).get_dsn(public=True)
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class OrganizationIntegrationServerlessFunctionsGetTest(AbstractServerlessTest):
     method = "get"
 

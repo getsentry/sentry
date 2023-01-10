@@ -112,13 +112,10 @@ def resolved_in_commit(instance, created, **kwargs):
 
                 if user_list:
                     acting_user: APIUser = user_list[0]
-                    user_options = user_option_service.get_many(
+                    self_assign_issue: str = user_option_service.query_options(
                         user_ids=[acting_user.id], keys=["self_assign_issue"]
-                    )
+                    ).get_one(default="0")
 
-                    self_assign_issue = "0"
-                    if len(user_options) > 0:
-                        self_assign_issue = user_options[0].value or "0"
                     if self_assign_issue == "1" and not group.assignee_set.exists():
                         GroupAssignee.objects.assign(
                             group=group, assigned_to=acting_user, acting_user=acting_user

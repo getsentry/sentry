@@ -64,7 +64,7 @@ export const OpenInContainer = styled('div')<{columnQuantity: number}>`
   font-family: ${p => p.theme.text.family};
   border-bottom: 1px solid ${p => p.theme.border};
   padding: ${space(0.25)} ${space(3)};
-  box-shadow: ${p => p.theme.dropShadowLightest};
+  box-shadow: ${p => p.theme.dropShadowLight};
   text-indent: initial;
   overflow: auto;
   white-space: nowrap;

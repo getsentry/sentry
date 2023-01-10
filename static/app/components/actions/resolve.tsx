@@ -297,7 +297,20 @@ export default withOrganization(ResolveActions);
 const ResolveButton = styled(Button)<{priority?: 'primary'}>`
   box-shadow: none;
   border-radius: ${p => p.theme.borderRadiusLeft};
-  ${p => (p.priority === 'primary' ? `border-right-color: ${p.theme.background};` : '')}
+  ${p =>
+    p.priority === 'primary'
+      ? `
+     &::after {
+       content: '';
+       position: absolute;
+       top: -1px;
+       bottom: -1px;
+       right: -1px;
+       border-right: solid 1px currentColor;
+       opacity: 0.25;
+     }
+  `
+      : ''}
 `;
 
 const DropdownTrigger = styled(Button)`

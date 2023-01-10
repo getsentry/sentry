@@ -178,6 +178,7 @@ class GroupDetails extends Component<Props, State> {
       group_has_replay: Boolean(group?.tags?.find(({key}) => key === 'replayId')),
       num_comments: group ? group.numComments : -1,
       project_has_replay: group?.project.hasReplays,
+      project_has_minified_stack_trace: group?.project.hasMinifiedStackTrace,
       project_platform: group?.project.platform,
       has_external_issue: group?.annotations ? group?.annotations.length > 0 : false,
       has_owner: group?.owners ? group?.owners.length > 0 : false,
