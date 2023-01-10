@@ -264,7 +264,8 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                 result["commitSha"] = None
                 githubIntegration = GitHubIntegration(integrations[0], project.organization_id)
                 try:
-                    line_no = int(ctx.get("line_no"))
+                    line_no_str = ctx.get("line_no")
+                    line_no = int(line_no_str) if line_no_str else 0
                     git_blame_list = githubIntegration.get_blame_for_file(
                         repo=current_config["repository"],
                         filepath=filepath,
