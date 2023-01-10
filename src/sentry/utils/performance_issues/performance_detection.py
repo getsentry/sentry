@@ -9,7 +9,7 @@ from abc import ABC, abstractmethod
 from collections import defaultdict, deque
 from datetime import timedelta
 from enum import Enum
-from typing import Any, Dict, List, Optional, Sequence, Tuple
+from typing import Any, Dict, List, Optional, Sequence, Tuple, cast
 from urllib.parse import urlparse
 
 import sentry_sdk
@@ -17,7 +17,7 @@ from symbolic import ProguardMapper  # type: ignore
 
 from sentry import nodestore, options, projectoptions
 from sentry.eventstore.models import Event
-from sentry.models import Project, ProjectDebugFile, ProjectOption
+from sentry.models import Organization, Project, ProjectDebugFile, ProjectOption
 from sentry.types.issues import GroupType
 from sentry.utils import metrics
 from sentry.utils.event_frames import get_sdk_name
@@ -143,14 +143,14 @@ PerformanceProblemsMap = Dict[str, PerformanceProblem]
 
 
 # Facade in front of performance detection to limit impact of detection on our events ingestion
-def detect_performance_problems(data: Event) -> List[PerformanceProblem]:
+def detect_performance_problems(data: Event, project: Project) -> List[PerformanceProblem]:
     try:
         # Add an experimental tag to be able to find these spans in production while developing. Should be removed later.
         sentry_sdk.set_tag("_did_analyze_performance_issue", "true")
         with metrics.timer(
             "performance.detect_performance_issue", sample_rate=0.01
         ), sentry_sdk.start_span(op="py.detect_performance_issue", description="none") as sdk_span:
-            return _detect_performance_problems(data, sdk_span)
+            return _detect_performance_problems(data, sdk_span, project)
     except Exception:
         logging.exception("Failed to detect performance problems")
     return []
@@ -159,7 +159,7 @@ def detect_performance_problems(data: Event) -> List[PerformanceProblem]:
 # Gets the thresholds to perform performance detection.
 # Duration thresholds are in milliseconds.
 # Allowed span ops are allowed span prefixes. (eg. 'http' would work for a span with 'http.client' as its op)
-def get_detection_settings(project_id: Optional[str] = None) -> Dict[DetectorType, Any]:
+def get_detection_settings(project_id: Optional[int] = None) -> Dict[DetectorType, Any]:
     default_project_settings = (
         projectoptions.get_well_known_default(
             "sentry:performance_issue_settings",
@@ -225,10 +225,8 @@ def get_detection_settings(project_id: Optional[str] = None) -> Dict[DetectorTyp
             "duration_threshold": settings["n_plus_one_db_duration_threshold"],  # ms
         },
         DetectorType.CONSECUTIVE_DB_OP: {
-            # Duration of all consecutive spans, useful because we want to check if it worth the independent spans being in parallel
-            "total_duration_threshold": 200,  # ms
-            # Duration of all the independent spans in a set of consecutive spans
-            "duration_threshold": 100,  # ms
+            # time saved by running all queries in parallel
+            "min_time_saved": 50,  # ms
             # The minimum duration of a single independent span in ms, used to prevent scenarios with a ton of small spans
             "span_duration_threshold": 30,  # ms
             "consecutive_count_threshold": 2,
@@ -253,9 +251,11 @@ def get_detection_settings(project_id: Optional[str] = None) -> Dict[DetectorTyp
     }
 
 
-def _detect_performance_problems(data: Event, sdk_span: Any) -> List[PerformanceProblem]:
+def _detect_performance_problems(
+    data: Event, sdk_span: Any, project: Project
+) -> List[PerformanceProblem]:
     event_id = data.get("event_id", None)
-    project_id = data.get("project")
+    project_id = cast(int, project.id)
 
     detection_settings = get_detection_settings(project_id)
     detectors: List[PerformanceDetector] = [
@@ -275,15 +275,22 @@ def _detect_performance_problems(data: Event, sdk_span: Any) -> List[Performance
     # Metrics reporting only for detection, not created issues.
     report_metrics_for_detectors(data, event_id, detectors, sdk_span)
 
-    # Get list of detectors that are allowed to create issues.
-    allowed_detector_types = get_allowed_issue_creation_detectors(project_id)
+    organization = cast(Organization, project.organization)
+    if project is None or organization is None:
+        return []
 
     problems: List[PerformanceProblem] = []
     for detector in detectors:
-        if detector.type not in allowed_detector_types:
+        if all(
+            [
+                detector.is_creation_allowed_for_system(),
+                detector.is_creation_allowed_for_organization(organization),
+                detector.is_creation_allowed_for_project(project),
+            ]
+        ):
+            problems.extend(detector.stored_problems.values())
+        else:
             continue
-
-        problems.extend(detector.stored_problems.values())
 
     truncated_problems = problems[:PERFORMANCE_GROUP_COUNT_LIMIT]
 
@@ -313,17 +320,6 @@ def run_detector_on_data(detector, data):
         detector.visit_span(span)
 
     detector.on_complete()
-
-
-# Uses options and flags to determine which orgs and which detectors automatically create performance issues.
-def get_allowed_issue_creation_detectors(project_id: str):
-    allowed_detectors = set()
-    for detector_type, system_option in DETECTOR_TYPE_ISSUE_CREATION_TO_SYSTEM_OPTION.items():
-        rate = options.get(system_option)
-        if rate and rate > random.random():
-            allowed_detectors.add(detector_type)
-
-    return allowed_detectors
 
 
 def fingerprint_group(transaction_name, span_op, hash, problem_class):
@@ -457,6 +453,25 @@ class PerformanceDetector(ABC):
     @abstractmethod
     def stored_problems(self) -> PerformanceProblemsMap:
         raise NotImplementedError
+
+    def is_creation_allowed_for_system(self) -> bool:
+        system_option = DETECTOR_TYPE_ISSUE_CREATION_TO_SYSTEM_OPTION.get(self.__class__.type, None)
+
+        if not system_option:
+            return False
+
+        try:
+            rate = options.get(system_option)
+        except options.UnknownOption:
+            rate = 0
+
+        return rate > random.random()
+
+    def is_creation_allowed_for_organization(self, organization: Organization) -> bool:
+        return False  # Creation is off by default. Ideally, it should auto-generate the feature flag name, and check its value
+
+    def is_creation_allowed_for_project(self, project: Project) -> bool:
+        return False  # Creation is off by default. Ideally, it should auto-generate the project option name, and check its value
 
     @classmethod
     def is_event_eligible(cls, event):
@@ -651,6 +666,12 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
             self._maybe_store_problem()
             self.spans = [span]
 
+    def is_creation_allowed_for_organization(self, organization: Organization) -> bool:
+        return False  # Fully turned off
+
+    def is_creation_allowed_for_project(self, project: Project) -> bool:
+        return False  # Fully turned off
+
     @classmethod
     def is_event_eligible(cls, event):
         trace_op = event.get("contexts", {}).get("trace", {}).get("op")
@@ -808,18 +829,15 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
             > self.settings.get("span_duration_threshold")
             for span in independent_db_spans
         )
-        exceeds_total_duration_threshold = exceeds_duration_threshold = self._sum_span_duration(
-            self.consecutive_db_spans
-        ) > self.settings.get("total_duration_threshold")
-        exceeds_duration_threshold = self._sum_span_duration(
+
+        exceeds_time_saved_threshold = self._calculate_time_saved(
             independent_db_spans
-        ) > self.settings.get("duration_threshold")
+        ) > self.settings.get("min_time_saved")
 
         if (
             exceeds_count_threshold
             and exceeds_span_duration_threshold
-            and exceeds_total_duration_threshold
-            and exceeds_duration_threshold
+            and exceeds_time_saved_threshold
         ):
             self._store_performance_problem()
 
@@ -859,6 +877,27 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
             ):
                 independent_spans.append(span)
         return independent_spans
+
+    def _calculate_time_saved(self, independent_spans: list[Span]) -> float:
+        """
+        Calculates the cost saved by running spans in parallel,
+        this is the maximum time saved of running all independent queries in parallel
+        note, maximum means it does not account for db connection times and overhead associated with parallelization,
+        this is where thresholds come in
+        """
+        consecutive_spans = self.consecutive_db_spans
+        total_duration = self._sum_span_duration(consecutive_spans)
+
+        max_independent_span_duration = max(
+            [get_span_duration(span).total_seconds() * 1000 for span in independent_spans]
+        )
+
+        sum_of_dependent_span_durations = 0
+        for span in consecutive_spans:
+            if span not in independent_spans:
+                sum_of_dependent_span_durations += get_span_duration(span).total_seconds() * 1000
+
+        return total_duration - max(max_independent_span_duration, sum_of_dependent_span_durations)
 
     def _overlaps_last_span(self, span: Span) -> bool:
         if len(self.consecutive_db_spans) == 0:
@@ -935,6 +974,12 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
         root_span = get_path(self._event, "contexts", "trace")
         if root_span:
             self.potential_parents[root_span.get("span_id")] = root_span
+
+    def is_creation_allowed_for_organization(self, organization: Optional[Organization]) -> bool:
+        return True  # This detector is fully rolled out
+
+    def is_creation_allowed_for_project(self, project: Optional[Project]) -> bool:
+        return True  # This should probably use the `n_plus_one_db.problem-creation` option, which is currently not in use
 
     def visit_span(self, span: Span) -> None:
         span_id = span.get("span_id", None)
@@ -1349,10 +1394,10 @@ class ContinuingMNPlusOne(MNPlusOneState):
         # We've broken the MN pattern, so return to the Searching state. If it
         # is a significant problem, also return a PerformanceProblem.
         times_occurred = int(len(self.spans) / len(self.pattern))
-        self.spans.append(span)
         start_index = len(self.pattern) * times_occurred
+        remaining_spans = self.spans[start_index:] + [span]
         return (
-            SearchingForMNPlusOne(self.settings, self.spans[start_index:]),
+            SearchingForMNPlusOne(self.settings, remaining_spans),
             self._maybe_performance_problem(),
         )
 

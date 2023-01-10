@@ -168,6 +168,6 @@ class DatabaseBackedUserService(UserService):
                     JOIN sentry_userrole_users
                       ON sentry_userrole_users.role_id=sentry_userrole.id
                    WHERE user_id=auth_user.id""",
-                "options": "select array_agg(row_to_json(sentry_useroption)) from sentry_useroption where user_id=auth_user.id",
+                "useremails": "select array_agg(row_to_json(sentry_useremail)) from sentry_useremail where user_id=auth_user.id",
             }
         )

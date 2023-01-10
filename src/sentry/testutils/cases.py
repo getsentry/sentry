@@ -31,7 +31,6 @@ __all__ = (
     "ReplaysSnubaTestCase",
     "MonitorTestCase",
 )
-
 import hashlib
 import inspect
 import os.path
@@ -127,6 +126,7 @@ from sentry.snuba.metrics.datasource import get_series
 from sentry.tagstore.snuba import SnubaTagStorage
 from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
 from sentry.testutils.helpers.slack import install_slack
 from sentry.types.integrations import ExternalProviders
 from sentry.types.issues import GroupType
@@ -227,10 +227,11 @@ class BaseTestCase(Fixtures):
         self.client.cookies[name] = value
         self.client.cookies[name].update({k.replace("_", "-"): v for k, v in params.items()})
 
-    def make_request(self, user=None, auth=None, method=None, is_superuser=False):
+    def make_request(self, user=None, auth=None, method=None, is_superuser=False, path="/"):
         request = HttpRequest()
         if method:
             request.method = method
+        request.path = path
         request.META["REMOTE_ADDR"] = "127.0.0.1"
         request.META["SERVER_NAME"] = "testserver"
         request.META["SERVER_PORT"] = 80
@@ -962,6 +963,14 @@ class SnubaTestCase(BaseTestCase):
         self.snuba_tagstore = SnubaTagStorage()
 
     def store_event(self, *args, **kwargs):
+        """
+        Simulates storing an event for testing.
+
+        To set event title:
+        - use "message": "{title}" field for errors
+        - use "transaction": "{title}" field for transactions
+        More info on event payloads: https://develop.sentry.dev/sdk/event-payloads/
+        """
         with mock.patch("sentry.eventstream.insert", self.snuba_eventstream.insert):
             stored_event = Factories.store_event(*args, **kwargs)
 
@@ -2089,6 +2098,29 @@ class SlackActivityNotificationTest(ActivityTestCase):
         )
         self.name = self.user.get_display_name()
         self.short_id = self.group.qualified_short_id
+
+    def assert_performance_issue_attachments(
+        self, attachment, project_slug, referrer, alert_type="workflow"
+    ):
+        assert attachment["title"] == "N+1 Query"
+        assert (
+            attachment["text"]
+            == "db - SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21"
+        )
+        assert (
+            attachment["footer"]
+            == f"{project_slug} | production | <http://testserver/settings/account/notifications/{alert_type}/?referrer={referrer}|Notification Settings>"
+        )
+
+    def assert_generic_issue_attachments(
+        self, attachment, project_slug, referrer, alert_type="workflow"
+    ):
+        assert attachment["title"] == TEST_ISSUE_OCCURRENCE.issue_title
+        assert attachment["text"] == TEST_ISSUE_OCCURRENCE.evidence_display[0].value
+        assert (
+            attachment["footer"]
+            == f"{project_slug} | <http://testserver/settings/account/notifications/{alert_type}/?referrer={referrer}|Notification Settings>"
+        )
 
 
 class MSTeamsActivityNotificationTest(ActivityTestCase):

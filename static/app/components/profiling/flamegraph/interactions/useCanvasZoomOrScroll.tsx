@@ -7,16 +7,12 @@ export function useCanvasZoomOrScroll({
   handleWheel,
   handleScroll,
   canvas,
-  configSpaceCursor,
   setConfigSpaceCursor,
-  lastInteraction,
   setLastInteraction,
 }: {
   canvas: HTMLCanvasElement | null;
-  configSpaceCursor: vec2 | null;
   handleScroll: (evt: WheelEvent) => void;
   handleWheel: (evt: WheelEvent) => void;
-  lastInteraction: 'pan' | 'click' | 'zoom' | 'scroll' | 'select' | 'resize' | null;
   setConfigSpaceCursor: React.Dispatch<React.SetStateAction<vec2 | null>>;
   setLastInteraction: React.Dispatch<
     React.SetStateAction<'pan' | 'click' | 'zoom' | 'scroll' | 'select' | 'resize' | null>
@@ -36,6 +32,9 @@ export function useCanvasZoomOrScroll({
         setLastInteraction(null);
       }, 300);
 
+      // We need to prevent the default behavior of the wheel event or we
+      // risk triggering back/forward browser navigation
+      evt.preventDefault();
       // When we zoom, we want to clear cursor so that any tooltips
       // rendered on the flamegraph are removed from the flamegraphView
       setConfigSpaceCursor(null);
@@ -50,22 +49,13 @@ export function useCanvasZoomOrScroll({
       }
     }
 
-    const options: AddEventListenerOptions & EventListenerOptions = {passive: true};
-    canvas.addEventListener('wheel', onCanvasWheel, options);
+    canvas.addEventListener('wheel', onCanvasWheel);
 
     return () => {
       if (wheelStopTimeoutId.current !== undefined) {
         window.cancelAnimationFrame(wheelStopTimeoutId.current);
       }
-      canvas.removeEventListener('wheel', onCanvasWheel, options);
+      canvas.removeEventListener('wheel', onCanvasWheel);
     };
-  }, [
-    canvas,
-    handleWheel,
-    handleScroll,
-    configSpaceCursor,
-    lastInteraction,
-    setConfigSpaceCursor,
-    setLastInteraction,
-  ]);
+  }, [canvas, handleWheel, handleScroll, setConfigSpaceCursor, setLastInteraction]);
 }

@@ -547,7 +547,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             self.wait_until_loaded()
 
             # Interact with ops filter dropdown
-            self.browser.elements('[data-test-id="operation-filter-dropdown-trigger"]')[0].click()
+            self.browser.elements('[aria-label="Filter by operation"]')[0].click()
 
             # select django.middleware
             self.browser.elements('[data-test-id="django.middleware"]')[0].click()
