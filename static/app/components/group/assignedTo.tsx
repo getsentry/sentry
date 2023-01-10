@@ -141,6 +141,9 @@ function AssignedTo({group, project, event, disableDropdown = false}: AssignedTo
   const organization = useOrganization();
   const api = useApi();
   const [eventOwners, setEventOwners] = useState<EventOwners | null>(null);
+  const hasStreamlineTargetingFeature = organization.features.includes(
+    'streamline-targeting-context'
+  );
   const {data} = useCommitters(
     {
       eventId: event?.id ?? '',
@@ -148,10 +151,7 @@ function AssignedTo({group, project, event, disableDropdown = false}: AssignedTo
     },
     {
       notifyOnChangeProps: ['data'],
-      enabled:
-        organization.features.includes('') &&
-        !defined(event?.id) &&
-        !defined(group.assignedTo),
+      enabled: hasStreamlineTargetingFeature || !defined(event?.id),
     }
   );
 
@@ -161,7 +161,7 @@ function AssignedTo({group, project, event, disableDropdown = false}: AssignedTo
   }, [api, organization, project]);
 
   useEffect(() => {
-    if (!event || !organization.features.includes('')) {
+    if (!event || !organization.features.includes('streamline-targeting-context')) {
       return () => {};
     }
 
@@ -184,7 +184,9 @@ function AssignedTo({group, project, event, disableDropdown = false}: AssignedTo
     };
   }, [api, event, organization, project.slug]);
 
-  const owners = getOwnerList(data?.committers ?? [], eventOwners, group.assignedTo);
+  const owners = hasStreamlineTargetingFeature
+    ? getOwnerList(data?.committers ?? [], eventOwners, group.assignedTo)
+    : undefined;
 
   return (
     <SidebarSection.Wrap data-test-id="assigned-to">
