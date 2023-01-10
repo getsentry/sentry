@@ -12,7 +12,6 @@ import {vec2} from 'gl-matrix';
 import * as qs from 'query-string';
 
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {BoundTooltip} from 'sentry/components/profiling/boundTooltip';
 import {t} from 'sentry/locale';
 import {
   CanvasPoolManager,
@@ -22,7 +21,6 @@ import {CanvasView} from 'sentry/utils/profiling/canvasView';
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
 import {
-  formatColorForSpan,
   getConfigViewTranslationBetweenVectors,
   getPhysicalSpacePositionFromOffset,
   Rect,
@@ -39,18 +37,7 @@ import {useDrawHoveredBorderEffect} from './interactions/useDrawHoveredBorderEff
 import {useDrawSelectedBorderEffect} from './interactions/useDrawSelectedBorderEffect';
 import {useInteractionViewCheckPoint} from './interactions/useInteractionViewCheckPoint';
 import {useWheelCenterZoom} from './interactions/useWheelCenterZoom';
-import {
-  FlamegraphTooltipColorIndicator,
-  FlamegraphTooltipFrameMainInfo,
-  FlamegraphTooltipTimelineInfo,
-} from './flamegraphTooltip';
-
-export function formatWeightToTransactionDuration(
-  span: SpanChartNode,
-  spanChart: SpanChart
-) {
-  return `(${Math.round((span.duration / spanChart.root.duration) * 100)}%)`;
-}
+import {FlamegraphSpanTooltip} from './flamegraphSpanTooltip';
 
 interface FlamegraphSpansProps {
   canvasBounds: Rect;
@@ -368,36 +355,15 @@ export function FlamegraphSpans({
         <MessageContainer>{t('Transaction has no spans')}</MessageContainer>
       ) : null}
       {hoveredNode && spansRenderer && configSpaceCursor && spansCanvas && spansView ? (
-        <BoundTooltip
-          bounds={canvasBounds}
-          cursor={configSpaceCursor}
-          canvas={spansCanvas}
-          canvasView={spansView}
-        >
-          <FlamegraphTooltipFrameMainInfo>
-            <FlamegraphTooltipColorIndicator
-              backgroundImage={
-                hoveredNode.node.span.op === 'missing instrumentation'
-                  ? `url(${spansRenderer.patternDataUrl})`
-                  : 'none'
-              }
-              backgroundColor={formatColorForSpan(hoveredNode, spansRenderer)}
-            />
-            {spanChart.formatter(hoveredNode.duration)}{' '}
-            {formatWeightToTransactionDuration(hoveredNode, spanChart)}{' '}
-            {hoveredNode.node.span.description}
-          </FlamegraphTooltipFrameMainInfo>
-          <FlamegraphTooltipTimelineInfo>
-            {hoveredNode.node.span.op ? `${t('op')}:${hoveredNode.node.span.op} ` : null}
-            {hoveredNode.node.span.status
-              ? `${t('status')}:${hoveredNode.node.span.status}`
-              : null}
-          </FlamegraphTooltipTimelineInfo>
-          <FlamegraphTooltipTimelineInfo>
-            {spansRenderer.spanChart.timelineFormatter(hoveredNode.start)} {' \u2014 '}
-            {spansRenderer.spanChart.timelineFormatter(hoveredNode.end)}
-          </FlamegraphTooltipTimelineInfo>
-        </BoundTooltip>
+        <FlamegraphSpanTooltip
+          spanChart={spanChart}
+          configSpaceCursor={configSpaceCursor}
+          spansCanvas={spansCanvas}
+          spansView={spansView}
+          spansRenderer={spansRenderer}
+          hoveredNode={hoveredNode}
+          canvasBounds={canvasBounds}
+        />
       ) : null}
     </Fragment>
   );
