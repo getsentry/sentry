@@ -301,7 +301,14 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
 
       return newView;
     },
-    [spanChart, spansCanvas, xAxis, flamegraph.profile.startedAt, flamegraphTheme.SIZES]
+    [
+      spanChart,
+      spansCanvas,
+      xAxis,
+      flamegraphView,
+      flamegraph.profile.startedAt,
+      flamegraphTheme.SIZES,
+    ]
   );
 
   // We want to make sure that the views have the same min zoom levels so that
