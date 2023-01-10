@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import logging
 import os
+import random
 import re
 from abc import ABC, abstractmethod
 from collections import defaultdict, deque
@@ -317,7 +318,9 @@ def run_detector_on_data(detector, data):
 def get_allowed_issue_creation_detectors(project_id: str):
     allowed_detectors = set()
     for detector_type, system_option in DETECTOR_TYPE_ISSUE_CREATION_TO_SYSTEM_OPTION.items():
-        allowed_detectors.add(detector_type)
+        rate = options.get(system_option)
+        if rate and rate > random.random():
+            allowed_detectors.add(detector_type)
 
     return allowed_detectors
 
