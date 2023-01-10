@@ -6,6 +6,7 @@ import * as PropTypes from 'prop-types';
 
 import {fetchOrganizationEnvironments} from 'sentry/actionCreators/environments';
 import {Client} from 'sentry/api';
+import {shouldDisplaySetupSourceMapsAlert} from 'sentry/components/events/interfaces/crashContent/exception/setupSourceMapsAlert';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
@@ -160,7 +161,7 @@ class GroupDetails extends Component<Props, State> {
 
   trackView(project: Project) {
     const {group, event} = this.state;
-    const {params, location} = this.props;
+    const {params, location, organization, router} = this.props;
     const {alert_date, alert_rule_id, alert_type} = location.query;
 
     this.props.setEventNames('issue_details.viewed', 'Issue Details: Viewed');
@@ -191,6 +192,11 @@ class GroupDetails extends Component<Props, State> {
       alert_rule_id: typeof alert_rule_id === 'string' ? alert_rule_id : undefined,
       alert_type: typeof alert_type === 'string' ? alert_type : undefined,
       has_otel: event?.contexts?.otel !== undefined,
+      has_setup_source_maps_alert: shouldDisplaySetupSourceMapsAlert(
+        organization,
+        router.location.query.project,
+        event
+      ),
     });
   }
 

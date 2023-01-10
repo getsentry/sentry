@@ -75,6 +75,17 @@ class NPlusOneAPICallsDetectorTest(TestCase):
         event = get_event("n-plus-one-api-calls/not-n-plus-one-api-calls")
         assert self.find_problems(event) == []
 
+    def test_respects_feature_flag(self):
+        project = self.create_project()
+        event = get_event("n-plus-one-api-calls/n-plus-one-api-calls-in-issue-stream")
+
+        detector = NPlusOneAPICallsDetector(self.settings, event)
+
+        assert not detector.is_creation_allowed_for_organization(project.organization)
+
+        with self.feature({"organizations:performance-n-plus-one-api-calls-detector": True}):
+            assert detector.is_creation_allowed_for_organization(project.organization)
+
     def test_respects_project_option(self):
         project = self.create_project()
         event = get_event("n-plus-one-api-calls/n-plus-one-api-calls-in-issue-stream")

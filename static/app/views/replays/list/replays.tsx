@@ -7,6 +7,7 @@ import Button from 'sentry/components/button';
 import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView from 'sentry/utils/discover/eventView';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {DEFAULT_SORT, REPLAY_LIST_FIELDS} from 'sentry/utils/replays/fetchReplayList';
@@ -77,6 +78,10 @@ function ReplaysList() {
           <Pagination
             pageLinks={pageLinks}
             onCursor={(cursor, path, searchQuery) => {
+              trackAdvancedAnalyticsEvent('replay.list-paginated', {
+                organization,
+                direction: cursor?.endsWith(':1') ? 'prev' : 'next',
+              });
               browserHistory.push({
                 pathname: path,
                 query: {...searchQuery, cursor},

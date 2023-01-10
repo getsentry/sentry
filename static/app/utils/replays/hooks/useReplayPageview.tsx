@@ -7,7 +7,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
-function useReplayPageview() {
+function useReplayPageview(type: 'replay.details-time-spent' | 'replay.list-time-spent') {
   const config = useLegacyStore(ConfigStore);
   const location = useLocation();
   const organization = useOrganization();
@@ -24,13 +24,13 @@ function useReplayPageview() {
 
     return () => {
       const endTime = Date.now();
-      trackAdvancedAnalyticsEvent('replay.details-time-spent', {
+      trackAdvancedAnalyticsEvent(type, {
         organization,
         seconds: (endTime - startTime) / 1000,
         user_email: config.user.email,
       });
     };
-  }, [organization, location.query.referrer, config.user.email]);
+  }, [organization, type, location.query.referrer, config.user.email]);
 }
 
 export default useReplayPageview;
