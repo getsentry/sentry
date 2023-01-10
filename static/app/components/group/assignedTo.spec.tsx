@@ -180,8 +180,8 @@ describe('Group > AssignedTo', () => {
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/events/1/owners/',
       body: {
-        owners: [],
-        rules: [],
+        owners: [{type: 'team', ...TEAM_1}],
+        rules: [[['codeowners', '/./app/components'], [['team', TEAM_1.name]]]],
       },
     });
 
@@ -190,6 +190,7 @@ describe('Group > AssignedTo', () => {
     });
     await openMenu();
 
-    expect(await screen.findByText('Suspect commit author')).toBeInTheDocument();
+    expect(screen.getByText('Suspect commit author')).toBeInTheDocument();
+    expect(screen.getByText('Owner of codeowners:/./app/components')).toBeInTheDocument();
   });
 });

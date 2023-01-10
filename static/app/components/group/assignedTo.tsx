@@ -54,7 +54,7 @@ function getSuggestedReason(owner: IssueOwner) {
     return t('Suspect commit author');
   }
 
-  if (owner.rules) {
+  if (owner.rules?.length) {
     const firstRule = owner.rules[0];
     return t('Owner of %s', firstRule.join(':'));
   }
