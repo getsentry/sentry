@@ -13,60 +13,73 @@ EVENT_PAYLOAD_SCHEMA: Mapping[str, Any] = {
         # "title": {"type": "string", "minLength": 1}, leaving this out, for now
         # non-required properties
         "breadcrumbs": {
-            "type": "array",
+            "type": ["array", "null"],
             "items": {"type": "object"},
         },
         "contexts": {
-            "type": "object",
+            "type": ["object", "null"],
             "additionalProperties": {
                 "type": "object",
-                "additionalProperties": {"type": "string", "minLength": 1},
+                "additionalProperties": {"type": ["string", "null"], "minLength": 1},
             },
         },
         "dist": {
-            "type": "object",
+            "type": ["object", "null"],
             "properties": {
                 "dist": {"type": "string", "minLength": 1},
                 "release": {"type": "string", "minLength": 1},
             },
             "required": ["dist", "release"],
         },
-        "environment": {"type": "string", "minLength": 1},
-        "extra": {"type": "object"},
+        "environment": {
+            "type": ["string", "null"],
+            "minLength": 1,
+        },
+        "extra": {
+            "type": ["object", "null"],
+        },
         "message": {
-            "type": "object",
+            "type": ["object", "null"],
             "properties": {
-                "formatted": {"type": "string", "minLength": 1},
-                "message": {"type": "string", "minLength": 1},
-                "params": {"type": "array"},
+                "formatted": {"type": ["string", "null"], "minLength": 1},
+                "message": {"type": ["string", "null"], "minLength": 1},
+                "params": {"type": ["array", "object"]},
             },
             "required": ["formatted"],
         },
-        "modules": {"type": "object"},
-        "release": {"type": "string", "minLength": 1},
+        "modules": {
+            "type": ["object", "null"],
+            "additionalProperties": {
+                "type": ["string", "null"],
+            },
+        },
+        "release": {"type": ["string", "null"], "minLength": 1},
         "request": {
-            "type": "object",
+            "type": ["object", "null"],
             "properties": {
-                "body_size": {"type": "number"},
-                "cookies": {"type": ["array", "object"]},
+                "body_size": {"type": ["number", "null"]},
+                "cookies": {"type": ["array", "object", "null"]},
                 "data": {},
-                "env": {"type": "object"},
-                "fragment": {"type": "string", "minLength": 1},
-                "headers": {"type": ["array", "object"]},
-                "inferred_content_type": {"type": "string", "minLength": 1},
-                "method": {"type": "string", "minLength": 1},
-                "query_string": {"type": ["array", "object"]},
-                "url": {"type": "string"},
+                "env": {"type": ["object", "null"]},
+                "fragment": {"type": ["string", "null"], "minLength": 1},
+                "headers": {"type": ["array", "object", "null"]},
+                "inferred_content_type": {"type": ["string", "null"], "minLength": 1},
+                "method": {"type": ["string", "null"], "minLength": 1},
+                "query_string": {"type": ["array", "object", "null"]},
+                "url": {"type": ["string", "null"]},
             },
             "additionalProperties": False,
         },
         "sdk": {
-            "type": "object",
+            "type": ["object", "null"],
             "properties": {
-                "integrations": {"type": "array"},
+                "integrations": {
+                    "type": ["array", "null"],
+                    "items": {"type": ["string", "null"], "minLength": 1},
+                },
                 "name": {"type": "string", "minLength": 1},
                 "packages": {
-                    "type": "object",
+                    "type": ["object", "null"],
                     "properties": {
                         "name": {"type": "string", "minLength": 1},
                         "version": {"type": "string", "minLength": 1},
@@ -82,10 +95,30 @@ EVENT_PAYLOAD_SCHEMA: Mapping[str, Any] = {
             "required": ["name", "version"],
             "additionalProperties": False,
         },
-        "server_name": {"type": "string", "minLength": 1},
-        "trace_id": {"type": "string", "minLength": 1},
-        "transaction": {"type": "string", "minLength": 1},
-        "user": {"type": "object"},
+        "server_name": {"type": ["string", "null"], "minLength": 1},
+        "trace_id": {"type": ["string", "null"], "minLength": 1},
+        "transaction": {"type": ["string", "null"], "minLength": 1},
+        "user": {
+            "type": ["object", "null"],
+            "properties": {
+                "data": {"type": ["object", "null"]},
+                "email": {"type": ["string", "null"], "minLength": 1},
+                "geo": {
+                    "type": ["object", "null"],
+                    "properties": {
+                        "city": {"type": ["string", "null"], "minLength": 1},
+                        "country_code": {"type": ["string", "null"], "minLength": 1},
+                        "region": {"type": ["string", "null"], "minLength": 1},
+                    },
+                    "additionalProperties": False,
+                },
+                "id": {"type": ["string", "null"], "minLength": 1},
+                "ip_address": {"type": ["string", "null"], "minLength": 1},
+                "segment": {"type": ["string", "null"], "minLength": 1},
+                "username": {"type": ["string", "null"], "minLength": 1},
+            },
+            "additionalProperties": False,
+        },
     },
     "required": [
         "event_id",
