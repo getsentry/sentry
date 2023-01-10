@@ -94,7 +94,7 @@ class UserIdentityConfigSerializerTest(TestCase):
         result = serialize(view)
 
         org_serial = result.pop("organization")
-        assert org_serial["id"] == str(org.id)
+        assert org_serial["id"] == org.id
         assert org_serial["slug"] == org.slug
 
         assert result == {

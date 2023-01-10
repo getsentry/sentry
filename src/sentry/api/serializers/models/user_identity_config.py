@@ -116,7 +116,7 @@ class UserIdentityConfigSerializer(Serializer):
     def get_attrs(
         self, item_list: Sequence[UserIdentityConfig], user: User
     ) -> MutableMapping[UserIdentityConfig, MutableMapping[str, Any]]:
-        org_ids = [i.organization.id for i in item_list]
+        org_ids = [i.organization.id for i in item_list if i.organization]
         organizations = {
             org.id: dataclasses.asdict(org)
             for org in organization_service.get_organizations(
