@@ -558,10 +558,6 @@ class TimeRangeSelector extends PureComponent<Props, State> {
   }
 }
 
-const TimeRangeRoot = styled('div')`
-  position: relative;
-`;
-
 const StyledDropdownAutoComplete = styled(DropdownAutoComplete)`
   font-size: ${p => p.theme.fontSizeMedium};
   position: absolute;
@@ -596,5 +592,3 @@ const StyledPinButton = styled(PageFilterPinButton)`
 `;
 
 export default withSentryRouter(TimeRangeSelector);
-
-export {TimeRangeRoot};
