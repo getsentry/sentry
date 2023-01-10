@@ -42,12 +42,12 @@ def get_test_message(
 
     if include_event:
         payload["event"] = {
-            "event_id": str(uuid.uuid4().hex),
+            "event_id": uuid.uuid4().hex,
             "project_id": project_id,
             "platform": "genesis",
             "tags": {},
             "timestamp": now.isoformat(),
-            "message_timestamp": now.isoformat(),
+            "received": now.isoformat(),
         }
 
     payload.update(overrides)

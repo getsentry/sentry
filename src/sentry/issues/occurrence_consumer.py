@@ -123,7 +123,7 @@ def _get_kwargs(payload: Mapping[str, Any]) -> Optional[Mapping[str, Any]]:
                     "platform": event_payload.get("platform"),
                     "tags": event_payload.get("tags"),
                     "timestamp": event_payload.get("timestamp"),
-                    "message_timestamp": event_payload.get("message_timestamp", timezone.now()),
+                    "received": event_payload.get("received", timezone.now()),
                 }
 
                 optional_params = [

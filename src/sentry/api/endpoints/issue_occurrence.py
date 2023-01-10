@@ -21,7 +21,7 @@ class BasicEventSerializer(serializers.Serializer):
     platform = serializers.CharField()
     tags = serializers.DictField()
     timestamp = serializers.DateTimeField()
-    message_timestamp = serializers.DateTimeField()
+    received = serializers.DateTimeField()
 
 
 class IssueOccurrenceSerializer(serializers.Serializer):
@@ -64,7 +64,7 @@ class IssueOccurrenceEndpoint(Endpoint):
                 "platform": "python",
                 "tags": {"environment": "prod"},
                 "timestamp": ensure_aware(datetime.now()),
-                "message_timestamp": ensure_aware(datetime.now()),
+                "received": ensure_aware(datetime.now()),
             }
         else:
             event = request.data.pop("event", None)

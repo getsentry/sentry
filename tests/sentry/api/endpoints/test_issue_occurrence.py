@@ -24,7 +24,7 @@ class IssueOccurrenceTest(APITestCase):
             "platform": "python",
             "tags": {"environment": "prod"},
             "timestamp": ensure_aware(datetime.now()),
-            "message_timestamp": ensure_aware(datetime.now()),
+            "received": ensure_aware(datetime.now()),
         }
         self.data = {
             "id": "55f1419e73884cd2b45c79918f4b6dc5",
