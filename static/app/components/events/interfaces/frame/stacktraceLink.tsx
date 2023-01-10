@@ -153,6 +153,7 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
     ...(frame.absPath && {absPath: frame.absPath}),
     ...(frame.module && {module: frame.module}),
     ...(frame.package && {package: frame.package}),
+    lineNo: frame.lineNo,
   };
   const {
     data: match,

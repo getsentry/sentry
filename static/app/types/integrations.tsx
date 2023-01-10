@@ -147,6 +147,7 @@ export type SentryAppSchemaStacktraceLink = {
 export type StacktraceLinkResult = {
   integrations: Integration[];
   attemptedUrl?: string;
+  commitSha?: string | null;
   config?: RepositoryProjectPathConfigWithIntegration;
   error?: StacktraceErrorMessage;
   sourceUrl?: string;
