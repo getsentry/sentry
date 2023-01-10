@@ -85,6 +85,9 @@ class DatabaseBackedIntegrationService(IntegrationService):
         if org_integration_status is not None:
             integration_kwargs["organizationintegration__status"] = org_integration_status
 
+        if not integration_kwargs:
+            return []
+
         integrations = Integration.objects.filter(**integration_kwargs)
 
         if limit is not None:
@@ -106,6 +109,9 @@ class DatabaseBackedIntegrationService(IntegrationService):
             integration_kwargs["provider"] = provider
         if external_id is not None:
             integration_kwargs["external_id"] = external_id
+
+        if not integration_kwargs:
+            return None
 
         integration = Integration.objects.filter(**integration_kwargs).first()
         return self._serialize_integration(integration) if integration else None
@@ -135,6 +141,10 @@ class DatabaseBackedIntegrationService(IntegrationService):
             oi_kwargs["integration__provider__in"] = providers
         if has_grace_period is not None:
             oi_kwargs["grace_period_end__isnull"] = not has_grace_period
+
+        if not oi_kwargs:
+            return []
+
         ois = OrganizationIntegration.objects.filter(**oi_kwargs)
 
         if limit is not None:
@@ -199,6 +209,9 @@ class DatabaseBackedIntegrationService(IntegrationService):
         if status is not None:
             integration_kwargs["status"] = status
 
+        if not integration_kwargs:
+            return []
+
         integrations.update(**integration_kwargs)
 
         return [self._serialize_integration(integration) for integration in integrations]
@@ -241,6 +254,9 @@ class DatabaseBackedIntegrationService(IntegrationService):
         if grace_period_end is not None or set_grace_period_end_null:
             gpe_value = grace_period_end if not set_grace_period_end_null else None
             oi_kwargs["grace_period_end"] = gpe_value
+
+        if not oi_kwargs:
+            return []
 
         ois.update(**oi_kwargs)
 
