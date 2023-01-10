@@ -204,6 +204,7 @@ default_manager.add("organizations:source-maps-cta", OrganizationFeature, True)
 default_manager.add("organizations:team-insights", OrganizationFeature)
 default_manager.add("organizations:derive-code-mappings", OrganizationFeature)
 default_manager.add("organizations:derive-code-mappings-dry-run", OrganizationFeature)
+default_manager.add("organizations:codecov-stacktrace-integration", OrganizationFeature, True)
 
 # Project scoped features
 default_manager.add("projects:alert-filters", ProjectFeature)
