@@ -37,6 +37,12 @@ const formGroups: JsonFormObject[] = [
         label: t('Early Adopter'),
         help: t("Opt-in to new features before they're released to the public"),
       },
+      {
+        name: 'codecovAccess',
+        type: 'boolean',
+        label: t('Enable Codecov Access'),
+        help: t('Opt-in to connect your codecov account'),
+      },
     ],
   },
 

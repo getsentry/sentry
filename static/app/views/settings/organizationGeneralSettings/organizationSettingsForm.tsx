@@ -41,6 +41,9 @@ class OrganizationSettingsForm extends AsyncComponent<Props, State> {
       location: this.props.location,
       disabled: !access.has('org:write'),
     };
+    const codecovAccess = organization.features.includes(
+      'codecov-stacktrace-integration'
+    );
 
     return (
       <Form
@@ -58,7 +61,11 @@ class OrganizationSettingsForm extends AsyncComponent<Props, State> {
         }}
         onSubmitError={() => addErrorMessage('Unable to save change')}
       >
-        <JsonForm {...jsonFormSettings} forms={organizationSettingsFields} />
+        <JsonForm
+          {...jsonFormSettings}
+          forms={organizationSettingsFields}
+          additionalFieldProps={{codecovAccess}}
+        />
         <AvatarChooser
           type="organization"
           allowGravatar={false}

@@ -56,6 +56,25 @@ describe('OrganizationGeneralSettings', function () {
     });
   });
 
+  it('can enable "codecov access"', async function () {
+    render(<OrganizationGeneralSettings {...defaultProps} />);
+    const mock = MockApiClient.addMockResponse({
+      url: ENDPOINT,
+      method: 'PUT',
+    });
+
+    userEvent.click(screen.getByRole('checkbox', {name: /codecov access/i}));
+
+    await waitFor(() => {
+      expect(mock).toHaveBeenCalledWith(
+        ENDPOINT,
+        expect.objectContaining({
+          data: {codecovAccess: true},
+        })
+      );
+    });
+  });
+
   it('changes org slug and redirects to new slug', async function () {
     render(<OrganizationGeneralSettings {...defaultProps} />);
     const mock = MockApiClient.addMockResponse({
