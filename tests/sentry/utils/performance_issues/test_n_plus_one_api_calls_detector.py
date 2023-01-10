@@ -1,9 +1,9 @@
-import unittest
 from typing import List
 
 import pytest
 
 from sentry.eventstore.models import Event
+from sentry.testutils import TestCase
 from sentry.testutils.performance_issues.event_generators import get_event
 from sentry.testutils.silo import region_silo_test
 from sentry.types.issues import GroupType
@@ -17,7 +17,7 @@ from sentry.utils.performance_issues.performance_detection import (
 
 @region_silo_test
 @pytest.mark.django_db
-class NPlusOneAPICallsDetectorTest(unittest.TestCase):
+class NPlusOneAPICallsDetectorTest(TestCase):
     def setUp(self):
         super().setUp()
         self.settings = get_detection_settings()
@@ -73,6 +73,17 @@ class NPlusOneAPICallsDetectorTest(unittest.TestCase):
     def test_does_not_detect_problem_with_concurrent_calls_to_different_urls(self):
         event = get_event("n-plus-one-api-calls/not-n-plus-one-api-calls")
         assert self.find_problems(event) == []
+
+    def test_respects_feature_flag(self):
+        project = self.create_project()
+        event = get_event("n-plus-one-api-calls/n-plus-one-api-calls-in-issue-stream")
+
+        detector = NPlusOneAPICallsDetector(self.settings, event)
+
+        assert not detector.is_creation_allowed_for_organization(project.organization)
+
+        with self.feature({"organizations:performance-n-plus-one-api-calls-detector": True}):
+            assert detector.is_creation_allowed_for_organization(project.organization)
 
 
 @pytest.mark.parametrize(

@@ -15,7 +15,7 @@ from urllib.parse import urlparse
 import sentry_sdk
 from symbolic import ProguardMapper  # type: ignore
 
-from sentry import nodestore, options, projectoptions
+from sentry import features, nodestore, options, projectoptions
 from sentry.eventstore.models import Event
 from sentry.models import Organization, Project, ProjectDebugFile, ProjectOption
 from sentry.types.issues import GroupType
@@ -77,6 +77,7 @@ DETECTOR_TYPE_TO_GROUP_TYPE = {
 DETECTOR_TYPE_ISSUE_CREATION_TO_SYSTEM_OPTION = {
     DetectorType.N_PLUS_ONE_DB_QUERIES: "performance.issues.n_plus_one_db.problem-creation",
     DetectorType.N_PLUS_ONE_DB_QUERIES_EXTENDED: "performance.issues.n_plus_one_db_ext.problem-creation",
+    DetectorType.N_PLUS_ONE_API_CALLS: "performance.issues.n_plus_one_api_calls.problem-creation",
 }
 
 
@@ -667,10 +668,12 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
             self.spans = [span]
 
     def is_creation_allowed_for_organization(self, organization: Organization) -> bool:
-        return False  # Fully turned off
+        return features.has(
+            "organizations:performance-n-plus-one-api-calls-detector", organization, actor=None
+        )
 
     def is_creation_allowed_for_project(self, project: Project) -> bool:
-        return False  # Fully turned off
+        return True  # Detection always allowed by project for now
 
     @classmethod
     def is_event_eligible(cls, event):
