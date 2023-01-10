@@ -84,8 +84,11 @@ export class SpanTreeNode {
 class SpanTree {
   root: SpanTreeNode;
   orphanedSpans: RawSpanType[] = [];
+  transaction: EventTransaction;
 
   constructor(transaction: EventTransaction, spans: RawSpanType[]) {
+    this.transaction = transaction;
+
     this.root = SpanTreeNode.Root({
       description: transaction.title,
       start_timestamp: transaction.startTimestamp,

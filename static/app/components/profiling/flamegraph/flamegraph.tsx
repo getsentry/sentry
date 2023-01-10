@@ -184,7 +184,7 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
           configSpaceTransform:
             xAxis === 'transaction'
               ? new Rect(flamegraph.profile.startedAt, 0, 0, 0)
-              : Rect.Empty(),
+              : undefined,
         },
       });
 
@@ -288,6 +288,11 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
           minWidth: spanChart.minSpanDuration,
           barHeight: flamegraphTheme.SIZES.SPANS_BAR_HEIGHT,
           depthOffset: flamegraphTheme.SIZES.SPANS_DEPTH_OFFSET,
+          configSpaceTransform:
+            // When a standalone axis is selected, the spans need to be relative to profile start time
+            xAxis === 'standalone'
+              ? new Rect(-flamegraph.profile.startedAt, 0, 0, 0)
+              : undefined,
         },
       });
 
@@ -296,9 +301,14 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
 
       return newView;
     },
-    // We skip position.view dependency because it will go into an infinite loop
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [spanChart, spansCanvas, flamegraphTheme.SIZES]
+    [
+      spanChart,
+      spansCanvas,
+      xAxis,
+      flamegraphView,
+      flamegraph.profile.startedAt,
+      flamegraphTheme.SIZES,
+    ]
   );
 
   // We want to make sure that the views have the same min zoom levels so that
