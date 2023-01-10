@@ -5,7 +5,7 @@ import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {
   makeColorMapByApplicationFrame,
   makeColorMapByFrequency,
-  makeColorMapByImage,
+  makeColorMapByLibrary,
   makeColorMapByRecursion,
   makeColorMapBySystemFrame,
 } from 'sentry/utils/profiling/colors/utils';
@@ -39,7 +39,7 @@ function FlamegraphThemeProvider(
         return {...base, COLORS: {...base.COLORS, COLOR_MAP: makeColorMapByRecursion}};
       }
       case 'by library': {
-        return {...base, COLORS: {...base.COLORS, COLOR_MAP: makeColorMapByImage}};
+        return {...base, COLORS: {...base.COLORS, COLOR_MAP: makeColorMapByLibrary}};
       }
       case 'by system frame': {
         return {

@@ -3,6 +3,33 @@ import {SpanChart, SpanChartNode} from 'sentry/utils/profiling/spanChart';
 import {ColorChannels, FlamegraphTheme, LCH} from '../flamegraph/flamegraphTheme';
 import {FlamegraphFrame} from '../flamegraphFrame';
 
+function uniqueCountBy<T>(
+  arr: ReadonlyArray<T>,
+  predicate: (t: T) => string | boolean
+): number {
+  const visited = {};
+
+  let count = 0;
+  for (let i = 0; i < arr.length; i++) {
+    const key = predicate(arr[i]);
+
+    if (key === true) {
+      count++;
+      continue;
+    } else if (key === false) {
+      continue;
+    }
+
+    if (visited[key]) {
+      continue;
+    }
+
+    visited[key] = 1;
+    count++;
+  }
+  return count;
+}
+
 function uniqueBy<T>(arr: ReadonlyArray<T>, predicate: (t: T) => unknown): Array<T> {
   const cb = typeof predicate === 'function' ? predicate : (o: T) => o[predicate];
 
@@ -150,26 +177,25 @@ export function makeColorBucketTheme(
 
 export function makeColorMap(
   frames: ReadonlyArray<FlamegraphFrame>,
-  colorBucket: FlamegraphTheme['COLORS']['COLOR_BUCKET'],
-  sortBy: (a: FlamegraphFrame, b: FlamegraphFrame) => number = defaultFrameSort
+  colorBucket: FlamegraphTheme['COLORS']['COLOR_BUCKET']
 ): Map<FlamegraphFrame['frame']['key'], ColorChannels> {
-  const colors = new Map<FlamegraphFrame['frame']['key'], ColorChannels>();
+  const colors = new Map<FlamegraphFrame['key'], ColorChannels>();
+  const colorCache: Map<string, ColorChannels> = new Map();
 
-  const sortedFrames = [...frames].sort(sortBy);
-  const uniqueFrames = uniqueBy(frames, f => f.frame.name + f.frame.image);
-
-  const colorsByName = new Map<FlamegraphFrame['frame']['key'], ColorChannels>();
+  const sortedFrames: FlamegraphFrame[] = [...frames].sort(defaultFrameSort);
+  const uniqueCount = uniqueCountBy(sortedFrames, t => t.frame.name + t.frame.image);
 
   for (let i = 0; i < sortedFrames.length; i++) {
-    const frame = sortedFrames[i]!;
-    const nameKey = frame.frame.name + frame.frame.image ?? '';
+    const frame = sortedFrames[i];
 
-    if (!colorsByName.has(nameKey)) {
-      const color = colorBucket(Math.floor((255 * i) / uniqueFrames.length) / 256);
-      colorsByName.set(nameKey, color);
+    const key = frame.frame.name + frame.frame.image;
+
+    if (!colorCache.has(key)) {
+      const color = colorBucket(Math.floor((255 * i) / uniqueCount) / 256);
+      colorCache.set(key, color);
     }
 
-    colors.set(frame.key, colorsByName.get(nameKey)!);
+    colors.set(frame.key, colorCache.get(key)!);
   }
 
   return colors;
@@ -180,65 +206,57 @@ export function makeColorMapByRecursion(
   colorBucket: FlamegraphTheme['COLORS']['COLOR_BUCKET']
 ): Map<FlamegraphFrame['frame']['key'], ColorChannels> {
   const colors = new Map<FlamegraphFrame['frame']['key'], ColorChannels>();
+  const colorCache = new Map<FlamegraphFrame['frame']['key'], ColorChannels>();
 
-  const sortedFrames = [...frames]
-    .sort((a, b) => a.frame.name.localeCompare(b.frame.name))
-    .filter(f => f.node.isRecursive());
-
-  const colorsByName = new Map<FlamegraphFrame['frame']['key'], ColorChannels>();
+  const sortedFrames = [...frames].sort(defaultFrameSort);
+  const uniqueCount = uniqueCountBy(sortedFrames, t => t.node.isRecursive());
 
   for (let i = 0; i < sortedFrames.length; i++) {
+    if (!sortedFrames[i].node.isRecursive()) {
+      continue;
+    }
     const frame = sortedFrames[i]!;
-    const nameKey = frame.frame.name + frame.frame.image ?? '';
+    const key = frame.frame.name + frame.frame.image;
 
-    if (!colorsByName.has(nameKey)) {
-      const color = colorBucket(Math.floor((255 * i) / sortedFrames.length) / 256);
-
-      colorsByName.set(nameKey, color);
+    if (!colorCache.has(key)) {
+      const color = colorBucket(Math.floor((255 * i) / uniqueCount) / 256);
+      colorCache.set(key, color);
     }
 
-    colors.set(frame.key, colorsByName.get(nameKey)!);
+    colors.set(frame.key, colorCache.get(key)!);
   }
 
   return colors;
 }
 
-export function makeColorMapByImage(
+export function makeColorMapByLibrary(
   frames: ReadonlyArray<FlamegraphFrame>,
   colorBucket: FlamegraphTheme['COLORS']['COLOR_BUCKET']
 ): Map<FlamegraphFrame['frame']['key'], ColorChannels> {
-  const colors = new Map<FlamegraphFrame['frame']['key'], ColorChannels>();
+  const colors = new Map<FlamegraphFrame['key'], ColorChannels>();
+  const colorCache: Map<string, ColorChannels> = new Map();
 
-  const reverseFrameToImageIndex: Record<string, FlamegraphFrame[]> = {};
+  const sortedFrames: FlamegraphFrame[] = [...frames].sort((a, b) => {
+    return (a.frame.image ?? '').localeCompare(b.frame.image ?? '');
+  });
 
-  const uniqueFrames = uniqueBy(frames, f => f.frame.image);
-  const sortedFrames = [...uniqueFrames].sort((a, b) =>
-    (a.frame.image ?? '') > (b.frame.image ?? '') ? 1 : -1
+  const uniqueCount = uniqueCountBy(sortedFrames, t =>
+    t.frame.image ? t.frame.image : false
   );
 
-  for (let i = 0; i < frames.length; i++) {
-    const frame = frames[i]!;
-    const key = frame.frame.image ?? '';
-
-    if (!reverseFrameToImageIndex[key]) {
-      reverseFrameToImageIndex[key] = [];
-    }
-    reverseFrameToImageIndex[key].push(frame);
-  }
-
   for (let i = 0; i < sortedFrames.length; i++) {
-    const imageFrames = reverseFrameToImageIndex[sortedFrames[i]?.frame?.image ?? ''];
-    if (!imageFrames) {
+    const frame = sortedFrames[i];
+
+    if (!frame.frame.image) {
       continue;
     }
 
-    for (let j = 0; j < imageFrames.length; j++) {
-      const frame = imageFrames[j]!;
-      colors.set(
-        frame.key,
-        colorBucket(Math.floor((255 * i) / sortedFrames.length) / 256)
-      );
-    }
+    const color =
+      colorCache.get(frame.frame.image) ||
+      colorBucket(Math.floor((255 * i) / uniqueCount) / 256);
+
+    colorCache.set(frame.frame.image, color);
+    colors.set(frame.key, color);
   }
 
   return colors;
@@ -249,29 +267,25 @@ export function makeColorMapBySystemFrame(
   colorBucket: FlamegraphTheme['COLORS']['COLOR_BUCKET']
 ): Map<FlamegraphFrame['frame']['key'], ColorChannels> {
   const colors = new Map<FlamegraphFrame['key'], ColorChannels>();
+  const colorCache: Map<string, ColorChannels> = new Map();
 
-  const uniqueSystemFrames: Record<string, FlamegraphFrame[]> = {};
+  const sortedFrames: FlamegraphFrame[] = [...frames].sort((a, b) => {
+    return (a.frame.name + a.frame.image).localeCompare(b.frame.name + b.frame.image);
+  });
 
-  for (let i = 0; i < frames.length; i++) {
-    if (frames[i].frame.is_application) {
+  const uniqueCount = uniqueCountBy(sortedFrames, t => t.frame.name + t.frame.image);
+  for (let i = 0; i < sortedFrames.length; i++) {
+    if (sortedFrames[i].frame.is_application) {
       continue;
     }
 
-    const uniqueByProperty = frames[i].frame.name + frames[i].frame.image;
-    if (!uniqueSystemFrames[uniqueByProperty]) {
-      uniqueSystemFrames[uniqueByProperty] = [];
+    const key = sortedFrames[i].frame.name + sortedFrames[i].frame.image;
+    if (!colorCache.has(key)) {
+      const color = colorBucket(Math.floor((255 * i) / uniqueCount) / 256);
+      colorCache.set(key, color);
     }
 
-    uniqueSystemFrames[uniqueByProperty].push(frames[i]);
-  }
-
-  const uniqueSystemFramesArray = Array.from(uniqueSystemFrames);
-
-  for (let i = 0; i < uniqueSystemFramesArray.length; i++) {
-    colors.set(
-      uniqueSystemFramesArray[i].key,
-      colorBucket(i / uniqueSystemFramesArray.length)
-    );
+    colors.set(sortedFrames[i].key, colorCache.get(key)!);
   }
 
   return colors;
@@ -282,16 +296,25 @@ export function makeColorMapByApplicationFrame(
   colorBucket: FlamegraphTheme['COLORS']['COLOR_BUCKET']
 ): Map<FlamegraphFrame['frame']['key'], ColorChannels> {
   const colors = new Map<FlamegraphFrame['key'], ColorChannels>();
+  const colorCache: Map<string, ColorChannels> = new Map();
 
-  for (let i = 0; i < frames.length; i++) {
-    const frame = frames[i]!; // iterating over non empty array
+  const sortedFrames: FlamegraphFrame[] = [...frames].sort((a, b) => {
+    return (a.frame.name + a.frame.image).localeCompare(b.frame.name + b.frame.image);
+  });
 
-    if (frame.frame.is_application) {
-      colors.set(frame.key, colorBucket(0.7));
+  const uniqueCount = uniqueCountBy(sortedFrames, t => t.frame.name + t.frame.image);
+  for (let i = 0; i < sortedFrames.length; i++) {
+    if (!sortedFrames[i].frame.is_application) {
       continue;
     }
 
-    colors.set(frame.key, colorBucket(0.09));
+    const key = sortedFrames[i].frame.name + sortedFrames[i].frame.image;
+    if (!colorCache.has(key)) {
+      const color = colorBucket(Math.floor((255 * i) / uniqueCount) / 256);
+      colorCache.set(key, color);
+    }
+
+    colors.set(sortedFrames[i].key, colorCache.get(key)!);
   }
 
   return colors;
