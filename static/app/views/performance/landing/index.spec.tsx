@@ -311,12 +311,7 @@ describe('Performance > Landing > Index', function () {
 
   describe('With transaction search feature', function () {
     it('does not search for empty string transaction', async function () {
-      const data = initializeData({
-        features: [
-          'performance-transaction-name-only-search',
-          'performance-transaction-name-only-search-indexed',
-        ],
-      });
+      const data = initializeData();
 
       render(<WrappedComponent data={data} withStaticFilters />, data.routerContext);
 
@@ -329,7 +324,6 @@ describe('Performance > Landing > Index', function () {
       addMetricsDataMock();
 
       const data = initializeData({
-        features: ['performance-transaction-name-only-search'],
         query: {
           field: 'test',
         },
@@ -344,12 +338,7 @@ describe('Performance > Landing > Index', function () {
     });
 
     it('extracts free text from the query', async function () {
-      const data = initializeData({
-        features: [
-          'performance-transaction-name-only-search',
-          'performance-transaction-name-only-search-indexed',
-        ],
-      });
+      const data = initializeData();
 
       wrapper = render(<WrappedComponent data={data} />, data.routerContext);
 
