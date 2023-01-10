@@ -983,8 +983,6 @@ SENTRY_FEATURES = {
     "organizations:discover": False,
     # Enable using All Events as the landing page for Discover
     "organizations:discover-query-builder-as-landing-page": True,
-    # Enables events endpoint rate limit
-    "organizations:discover-events-rate-limit": False,
     # Enable attaching arbitrary files to events.
     "organizations:event-attachments": True,
     # Allow organizations to configure all symbol sources.

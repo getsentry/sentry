@@ -80,26 +80,15 @@ DEFAULT_EVENTS_RATE_LIMIT_CONFIG = {
 
 
 def rate_limit_events(request: Request, organization_slug=None, *args, **kwargs) -> RateLimitConfig:
-    try:
-        organization = Organization.objects.get_from_cache(slug=organization_slug)
-    except Organization.DoesNotExist:
-        return DEFAULT_EVENTS_RATE_LIMIT_CONFIG
-    # Check for feature flag to enforce rate limit otherwise use default rate limit
-    if features.has("organizations:discover-events-rate-limit", organization, actor=request.user):
-        return {
-            "GET": {
-                RateLimitCategory.IP: RateLimit(
-                    RATE_LIMIT, RATE_LIMIT_WINDOW, CONCURRENT_RATE_LIMIT
-                ),
-                RateLimitCategory.USER: RateLimit(
-                    RATE_LIMIT, RATE_LIMIT_WINDOW, CONCURRENT_RATE_LIMIT
-                ),
-                RateLimitCategory.ORGANIZATION: RateLimit(
-                    RATE_LIMIT, RATE_LIMIT_WINDOW, CONCURRENT_RATE_LIMIT
-                ),
-            }
+    return {
+        "GET": {
+            RateLimitCategory.IP: RateLimit(RATE_LIMIT, RATE_LIMIT_WINDOW, CONCURRENT_RATE_LIMIT),
+            RateLimitCategory.USER: RateLimit(RATE_LIMIT, RATE_LIMIT_WINDOW, CONCURRENT_RATE_LIMIT),
+            RateLimitCategory.ORGANIZATION: RateLimit(
+                RATE_LIMIT, RATE_LIMIT_WINDOW, CONCURRENT_RATE_LIMIT
+            ),
         }
-    return DEFAULT_EVENTS_RATE_LIMIT_CONFIG
+    }
 
 
 @extend_schema(tags=["Discover"])

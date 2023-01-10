@@ -5418,10 +5418,8 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         }
         with freeze_time("2000-01-01"):
             for _ in range(15):
-                self.do_request(query, features={"organizations:discover-events-rate-limit": True})
-            response = self.do_request(
-                query, features={"organizations:discover-events-rate-limit": True}
-            )
+                self.do_request(query)
+            response = self.do_request(query)
             assert response.status_code == 429, response.content
 
     @override_settings(SENTRY_SELF_HOSTED=False)
