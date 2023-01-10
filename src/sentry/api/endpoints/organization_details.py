@@ -385,6 +385,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
                 "disable_shared_issues": org.flags.disable_shared_issues.is_set,
                 "early_adopter": org.flags.early_adopter.is_set,
                 "require_2fa": org.flags.require_2fa.is_set,
+                "codecov_access": org.flags.codecov_access.is_set,
             },
         }
 
