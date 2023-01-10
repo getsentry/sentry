@@ -242,6 +242,18 @@ class UserService(InterfaceWithLifecycle):
                     for e in user.useremails
                 }
             )
+        else:
+            # This ensures emails is always populated, regardless of how the user object was fetched.
+            useremails = frozenset(
+                {
+                    APIUserEmail(
+                        id=e.id,
+                        email=e.email,
+                        is_verified=e.is_verified,
+                    )
+                    for e in user.emails.all()
+                }
+            )
         args["useremails"] = useremails
         avatar = user.avatar.first()
         if avatar is not None:

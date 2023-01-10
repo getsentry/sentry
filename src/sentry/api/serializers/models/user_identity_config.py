@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+import dataclasses
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
-from typing import Optional, Union
+from typing import Any, MutableMapping, Optional, Sequence, Union
 
 import sentry.integrations
 from sentry.api.serializers import Serializer, register, serialize
@@ -11,6 +12,8 @@ from sentry.auth.provider import Provider
 from sentry.exceptions import NotRegistered
 from sentry.identity import is_login_provider
 from sentry.models import AuthIdentity, Identity, Organization
+from sentry.models.user import User
+from sentry.services.hybrid_cloud.organization import organization_service
 from social_auth.models import UserSocialAuth
 
 from . import user_social_auth
@@ -110,6 +113,29 @@ class UserIdentityConfig:
 
 @register(UserIdentityConfig)
 class UserIdentityConfigSerializer(Serializer):
+    def get_attrs(
+        self, item_list: Sequence[UserIdentityConfig], user: User
+    ) -> MutableMapping[UserIdentityConfig, MutableMapping[str, Any]]:
+        org_ids = [i.organization.id for i in item_list]
+        organizations = {
+            org.id: dataclasses.asdict(org)
+            for org in organization_service.get_organizations(
+                user_id=None,
+                scope=None,
+                only_visible=True,
+                organization_ids=org_ids,
+            )
+        }
+
+        data: MutableMapping[UserIdentityConfig, MutableMapping[str, Any]] = {}
+        for item in item_list:
+            data[item] = {
+                "organization": organizations.get(item.organization.id)
+                if item.organization is not None
+                else None,
+            }
+        return data
+
     def serialize(self, obj: UserIdentityConfig, attrs, user, **kwargs):
         return {
             "category": obj.category,
@@ -118,7 +144,7 @@ class UserIdentityConfigSerializer(Serializer):
             "name": obj.name,
             "status": obj.status.value,
             "isLogin": obj.is_login,
-            "organization": serialize(obj.organization),
+            "organization": attrs["organization"],
             "dateAdded": serialize(obj.date_added),
             "dateVerified": serialize(obj.date_verified),
             "dateSynced": serialize(obj.date_synced),

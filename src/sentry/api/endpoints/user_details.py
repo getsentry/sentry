@@ -218,6 +218,7 @@ class UserDetailsEndpoint(UserEndpoint):
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
         # from `frontend/remove_account.py`
+        # TODO(hybrid-cloud): Refactor this to query org memberships for appropriate roles, then query orgs for visibility
         org_list = Organization.objects.filter(
             member_set__role__in=[x.id for x in roles.with_scope("org:admin")],
             member_set__user=user,

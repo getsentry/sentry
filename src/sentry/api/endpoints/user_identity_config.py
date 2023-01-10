@@ -1,4 +1,3 @@
-import itertools
 from typing import Iterable, Optional
 
 from django.db import transaction
@@ -71,7 +70,7 @@ def get_identities(user: User) -> Iterable[UserIdentityConfig]:
         for obj in AuthIdentity.objects.filter(user=user).select_related()
     )
 
-    return itertools.chain(social_identities, global_identities, org_identities)
+    return list(social_identities) + list(global_identities) + list(org_identities)
 
 
 @control_silo_endpoint

@@ -5,7 +5,7 @@ from sentry.testutils import APITestCase
 from sentry.testutils.silo import control_silo_test
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class UserEmailsTest(APITestCase):
     def setUp(self):
         super().setUp()
@@ -80,7 +80,7 @@ class UserEmailsTest(APITestCase):
         mail_to_del = "altemail1@example.com"
         UserEmail.objects.create(user=self.user, email=mail_to_del)
         UserOption.objects.create(
-            user=self.user, project=self.project, key="mail:email", value=mail_to_del
+            user_id=self.user.id, project=self.project, key="mail:email", value=mail_to_del
         )
 
         response = self.client.delete(self.url, data={"email": mail_to_del})

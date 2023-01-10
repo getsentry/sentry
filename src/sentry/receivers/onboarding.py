@@ -92,7 +92,7 @@ def record_new_project(project, user, **kwargs):
     success = OrganizationOnboardingTask.objects.record(
         organization_id=project.organization_id,
         task=OnboardingTask.FIRST_PROJECT,
-        user_id=user.id,
+        user_id=user_id,
         status=OnboardingTaskStatus.COMPLETE,
         project_id=project.id,
     )
@@ -100,7 +100,7 @@ def record_new_project(project, user, **kwargs):
         OrganizationOnboardingTask.objects.record(
             organization_id=project.organization_id,
             task=OnboardingTask.SECOND_PLATFORM,
-            user_id=user.id,
+            user_id=user_id,
             status=OnboardingTaskStatus.PENDING,
             project_id=project.id,
         )

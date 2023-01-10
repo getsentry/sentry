@@ -4,6 +4,7 @@ from abc import abstractmethod
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, List, Optional
 
+from bitfield.models import BitField
 from sentry.models.organization import OrganizationStatus
 from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_delegation, stubbed
 from sentry.silo import SiloMode
@@ -32,6 +33,7 @@ class OrganizationService(InterfaceWithLifecycle):
         user_id: Optional[int],
         scope: Optional[str],
         only_visible: bool,
+        flags: Optional[BitField] = None,
         organization_ids: Optional[List[int]] = None,
     ) -> List[ApiOrganizationSummary]:
         """
