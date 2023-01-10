@@ -52,5 +52,5 @@ class BoostKeyTransactionsRulesGenerator(BiasRulesGenerator):
 
 
 class BoostKeyTransactionsBias(Bias):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(BoostKeyTransactionsDataProvider, BoostKeyTransactionsRulesGenerator)

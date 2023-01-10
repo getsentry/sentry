@@ -17,7 +17,7 @@ class OrderedBias:
 
 
 class BiasesCombinator(ABC):
-    def __init__(self):
+    def __init__(self) -> None:
         self.biases: Dict[RuleType, OrderedBias] = {}
 
     def combine(self, rule_type: RuleType, bias: Bias) -> None:

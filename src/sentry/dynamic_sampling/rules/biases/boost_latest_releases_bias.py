@@ -73,5 +73,5 @@ class BoostLatestReleasesRulesGenerator(BiasRulesGenerator):
 
 
 class BoostLatestReleasesBias(Bias):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(BoostLatestReleasesDataProvider, BoostLatestReleasesRulesGenerator)
