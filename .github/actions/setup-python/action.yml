@@ -1,0 +1,31 @@
+name: 'Python setup'
+description: 'configures python, install dependencies and cache virtual env'
+inputs:
+  python-version:
+    description: "Version range or exact version of Python or PyPy to use, using SemVer's version range syntax."
+    required: true
+  dependency-paths:
+    description: "Used to specify the path to dependency files. Supports wildcards or a list of file names for caching multiple dependencies."
+    required: true
+runs:
+  using: 'composite'
+  steps:
+    - uses: actions/setup-python@13ae5bb136fac2878aff31522b9efb785519f984  # v4.3.0
+      id: setuppython
+      with:
+        python-version: ${{ inputs.python-version }}
+
+    - uses: syphar/restore-virtualenv@e536692e76315a068b4905f792e25febfe6d4391 # v1.3
+      id: cache-virtualenv
+      with:
+        requirement_files: requirements*.txt
+
+    - uses: syphar/restore-pip-download-cache@0b350c2ce930145e820c087e73d5479c2eb44afb # v1.2
+      if: steps.cache-virtualenv.outputs.cache-hit != 'true'
+      with:
+        requirement_files: requirements*.txt
+
+    - name: Install python deps
+      shell: bash
+      run: pip install -r ${{ inputs.dependency-paths }}
+      if: steps.cache-virtualenv.outputs.cache-hit != 'true'
