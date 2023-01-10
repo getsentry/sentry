@@ -222,8 +222,6 @@ class GitlabIssuesTest(GitLabTestCase):
             config={
                 "project_issue_defaults": {str(self.group.project_id): {"project": project_id}}
             },
-            status=self.installation.org_integration.status,
-            grace_period_end=self.installation.org_integration.grace_period_end,
         )
 
         responses.add(
@@ -290,8 +288,6 @@ class GitlabIssuesTest(GitLabTestCase):
             config={
                 "project_issue_defaults": {str(self.group.project_id): {"project": project_id}}
             },
-            status=self.installation.org_integration.status,
-            grace_period_end=self.installation.org_integration.grace_period_end,
         )
 
         responses.add(

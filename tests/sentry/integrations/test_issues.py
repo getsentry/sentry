@@ -140,8 +140,6 @@ class IssueDefaultTest(TestCase):
         self.installation.org_integration = integration_service.update_organization_integration(
             org_integration_id=self.installation.org_integration.id,
             config={"project_issue_defaults": {str(self.group.project_id): {"repo": "user/repo2"}}},
-            status=self.installation.org_integration.status,
-            grace_period_end=self.installation.org_integration.grace_period_end,
         )
         self.installation.get_repositories = lambda: [
             {"name": "repo1", "identifier": "user/repo1"},

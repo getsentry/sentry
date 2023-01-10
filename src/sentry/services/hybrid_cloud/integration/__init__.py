@@ -189,17 +189,48 @@ class IntegrationService(InterfaceWithLifecycle):
         pass
 
     @abstractmethod
+    def update_integrations(
+        self,
+        *,
+        integration_ids: List[int],
+        name: str | None = None,
+        metadata: Dict[str | Any] | None = None,
+        status: int | None = None,
+    ) -> List[APIIntegration]:
+        """
+        Returns a list of APIIntegrations after updating the fields provided.
+        To set a field as null, use the `set_{FIELD}_null` keyword argument.
+        """
+        pass
+
+    @abstractmethod
     def update_integration(
         self,
         *,
         integration_id: int,
-        name: str,
-        metadata: Dict[str, Any],
-        status: int,
+        name: str | None = None,
+        metadata: Dict[str, Any] | None = None,
+        status: int | None = None,
     ) -> APIIntegration | None:
         """
-        Returns an APIIntegration when the associated integration is updated.
-        Every field must be provided and will be updated, as no defaults are set.
+        Returns an APIIntegration after updating the fields provided.
+        To set a field as null, use the `set_{FIELD}_null` keyword argument.
+        """
+        pass
+
+    @abstractmethod
+    def update_organization_integrations(
+        self,
+        *,
+        org_integration_ids: List[int],
+        config: Dict[str, Any] | None = None,
+        status: int | None = None,
+        grace_period_end: datetime | None = None,
+        set_grace_period_end_null: bool | None = None,
+    ) -> List[APIOrganizationIntegration]:
+        """
+        Returns a list of APIOrganizationIntegrations after updating the fields provided.
+        To set a field as null, use the `set_{FIELD}_null` keyword argument.
         """
         pass
 
@@ -208,13 +239,14 @@ class IntegrationService(InterfaceWithLifecycle):
         self,
         *,
         org_integration_id: int,
-        config: Dict[str, Any],
-        status: int,
-        grace_period_end: datetime | None,
+        config: Dict[str, Any] | None = None,
+        status: int | None = None,
+        grace_period_end: datetime | None = None,
+        set_grace_period_end_null: bool | None = None,
     ) -> APIOrganizationIntegration | None:
         """
-        Returns an APIOrganizationIntegration when the associated org_integration is updated.
-        Every field must be provided and will be updated, as no defaults are set.
+        Returns an APIOrganizationIntegration after updating the fields provided.
+        To set a field as null, use the `set_{FIELD}_null` keyword argument.
         """
         pass
 

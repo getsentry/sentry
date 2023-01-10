@@ -259,8 +259,6 @@ class JiraIntegrationTest(APITestCase):
             installation.org_integration = integration_service.update_organization_integration(
                 org_integration_id=installation.org_integration.id,
                 config={"issues_ignored_fields": ["customfield_10200"]},
-                status=installation.org_integration.status,
-                grace_period_end=installation.org_integration.grace_period_end,
             )
 
             fields = installation.get_create_issue_config(group, self.user)
@@ -293,8 +291,6 @@ class JiraIntegrationTest(APITestCase):
         installation.org_integration = integration_service.update_organization_integration(
             org_integration_id=installation.org_integration.id,
             config={"project_issue_defaults": {str(group.project_id): {"project": "10001"}}},
-            status=installation.org_integration.status,
-            grace_period_end=installation.org_integration.grace_period_end,
         )
 
         with mock.patch.object(installation, "get_client", get_client):
@@ -327,8 +323,6 @@ class JiraIntegrationTest(APITestCase):
         installation.org_integration = integration_service.update_organization_integration(
             org_integration_id=installation.org_integration.id,
             config={"project_issue_defaults": {str(group.project_id): {"project": "10001"}}},
-            status=installation.org_integration.status,
-            grace_period_end=installation.org_integration.grace_period_end,
         )
 
         with mock.patch.object(installation, "get_client", get_client):
@@ -362,8 +356,6 @@ class JiraIntegrationTest(APITestCase):
         installation.org_integration = integration_service.update_organization_integration(
             org_integration_id=installation.org_integration.id,
             config={"project_issue_defaults": {str(group.project_id): {"project": "10004"}}},
-            status=installation.org_integration.status,
-            grace_period_end=installation.org_integration.grace_period_end,
         )
 
         with mock.patch.object(installation, "get_client", get_client):
@@ -409,8 +401,6 @@ class JiraIntegrationTest(APITestCase):
         installation.org_integration = integration_service.update_organization_integration(
             org_integration_id=installation.org_integration.id,
             config={"project_issue_defaults": {str(group.project_id): {"labels": label_default}}},
-            status=installation.org_integration.status,
-            grace_period_end=installation.org_integration.grace_period_end,
         )
 
         with mock.patch.object(installation, "get_client", get_client):

@@ -311,8 +311,6 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase):
             config={
                 "project_issue_defaults": {str(group.project_id): {"repo": "getsentry/sentry"}}
             },
-            status=self.integration.org_integration.status,
-            grace_period_end=self.integration.org_integration.grace_period_end,
         )
         fields = self.integration.get_link_issue_config(group)
         for field in fields:
@@ -348,8 +346,6 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase):
             config={
                 "project_issue_defaults": {str(group.project_id): {"repo": "getsentry/sentry"}}
             },
-            status=self.integration.org_integration.status,
-            grace_period_end=self.integration.org_integration.grace_period_end,
         )
         fields = self.integration.get_create_issue_config(group, self.user)
         for field in fields:

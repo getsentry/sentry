@@ -107,8 +107,6 @@ class MsTeamsClient(MsTeamsAbstractClient):
 
             self.integration = integration_service.update_integration(
                 integration_id=self.integration.id,
-                name=self.integration.name,
-                status=self.integration.status,
                 metadata=new_metadata,
             )
         return access_token

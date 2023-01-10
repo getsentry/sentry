@@ -73,19 +73,19 @@ class DatabaseBackedIntegrationService(IntegrationService):
         org_integration_status: int | None = None,
         limit: int | None = 5,
     ) -> List[APIIntegration]:
-        int_kwargs: Dict[str, Any] = {}
+        integration_kwargs: Dict[str, Any] = {}
         if integration_ids is not None:
-            int_kwargs["id__in"] = integration_ids
+            integration_kwargs["id__in"] = integration_ids
         if organization_id is not None:
-            int_kwargs["organizationintegration__organization_id"] = organization_id
+            integration_kwargs["organizationintegration__organization_id"] = organization_id
         if status is not None:
-            int_kwargs["status"] = status
+            integration_kwargs["status"] = status
         if providers is not None:
-            int_kwargs["provider__in"] = providers
+            integration_kwargs["provider__in"] = providers
         if org_integration_status is not None:
-            int_kwargs["organizationintegration__status"] = org_integration_status
+            integration_kwargs["organizationintegration__status"] = org_integration_status
 
-        integrations = Integration.objects.filter(**int_kwargs)
+        integrations = Integration.objects.filter(**integration_kwargs)
 
         if limit is not None:
             integrations = integrations[:limit]
@@ -179,40 +179,87 @@ class DatabaseBackedIntegrationService(IntegrationService):
             self._serialize_organization_integration(organization_integration),
         )
 
+    def update_integrations(
+        self,
+        *,
+        integration_ids: List[int],
+        name: str | None = None,
+        metadata: Dict[str | Any] | None = None,
+        status: int | None = None,
+    ) -> List[APIIntegration]:
+        integrations = Integration.objects.filter(id__in=integration_ids)
+        if not integrations.exists():
+            return []
+
+        integration_kwargs: Dict[str, Any] = {}
+        if name is not None:
+            integration_kwargs["name"] = name
+        if metadata is not None:
+            integration_kwargs["metadata"] = metadata
+        if status is not None:
+            integration_kwargs["status"] = status
+
+        integrations.update(**integration_kwargs)
+
+        return [self._serialize_integration(integration) for integration in integrations]
+
     def update_integration(
         self,
         *,
         integration_id: int,
-        name: str,
-        metadata: Dict[str, Any],
-        status: int,
+        name: str | None = None,
+        metadata: Dict[str, Any] | None = None,
+        status: int | None = None,
     ) -> APIIntegration | None:
-        integration = Integration.objects.filter(id=integration_id).first()
-        if not integration:
-            return None
-        integration.update(
+        integrations = self.update_integrations(
+            integration_ids=[integration_id],
             name=name,
-            metadata=metadata,
             status=status,
+            metadata=metadata,
         )
-        return self._serialize_integration(integration)
+        return self._serialize_integration(integrations[0]) if len(integrations) > 0 else None
+
+    def update_organization_integrations(
+        self,
+        *,
+        org_integration_ids: List[int],
+        config: Dict[str, Any] | None = None,
+        status: int | None = None,
+        grace_period_end: datetime | None = None,
+        set_grace_period_end_null: bool | None = None,
+    ) -> List[APIOrganizationIntegration]:
+        ois = OrganizationIntegration.objects.filter(id__in=org_integration_ids)
+        if not ois.exists():
+            return []
+
+        oi_kwargs: Dict[str, Any] = {}
+
+        if config is not None:
+            oi_kwargs["config"] = config
+        if status is not None:
+            oi_kwargs["status"] = status
+        if grace_period_end is not None or set_grace_period_end_null:
+            gpe_value = grace_period_end if not set_grace_period_end_null else None
+            oi_kwargs["grace_period_end"] = gpe_value
+
+        ois.update(**oi_kwargs)
+
+        return [self._serialize_organization_integration(oi) for oi in ois]
 
     def update_organization_integration(
         self,
         *,
         org_integration_id: int,
-        config: Dict[str, Any],
-        status: int,
-        grace_period_end: datetime | None,
+        config: Dict[str, Any] | None = None,
+        status: int | None = None,
+        grace_period_end: datetime | None = None,
+        set_grace_period_end_null: bool | None = None,
     ) -> APIOrganizationIntegration | None:
-        organization_integration = OrganizationIntegration.objects.filter(
-            id=org_integration_id
-        ).first()
-        if not organization_integration:
-            return None
-        organization_integration.update(
+        ois = self.update_organization_integrations(
+            org_integration_ids=[org_integration_id],
             config=config,
             status=status,
             grace_period_end=grace_period_end,
+            set_grace_period_end_null=set_grace_period_end_null,
         )
-        return self._serialize_organization_integration(organization_integration)
+        return self._serialize_organization_integration(ois[0]) if len(ois) > 0 else None

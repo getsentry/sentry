@@ -117,8 +117,6 @@ class BitbucketIssueTest(APITestCase):
             config={
                 "project_issue_defaults": {str(self.group.project_id): {"repo": "myaccount/repo1"}}
             },
-            status=self.org_integration.status,
-            grace_period_end=self.org_integration.grace_period_end,
         )
         installation = self.integration.get_installation(self.organization.id)
         fields = installation.get_link_issue_config(self.group)
@@ -143,8 +141,6 @@ class BitbucketIssueTest(APITestCase):
             config={
                 "project_issue_defaults": {str(self.group.project_id): {"repo": "myaccount/repo1"}}
             },
-            status=self.org_integration.status,
-            grace_period_end=self.org_integration.grace_period_end,
         )
         installation = self.integration.get_installation(self.organization.id)
         fields = installation.get_create_issue_config(self.group, self.user)

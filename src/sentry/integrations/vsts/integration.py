@@ -297,8 +297,6 @@ class VstsIntegration(IntegrationInstallation, RepositoryMixin, VstsIssueSync): 
         self.org_integration = integration_service.update_organization_integration(
             org_integration_id=self.org_integration.id,
             config=config,
-            status=self.org_integration.status,
-            grace_period_end=self.org_integration.grace_period_end,
         )
 
     def get_config_data(self) -> Mapping[str, Any]:

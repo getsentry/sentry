@@ -189,8 +189,6 @@ class IssueBasicMixin:
             self.org_integration = integration_service.update_organization_integration(
                 org_integration_id=self.org_integration.id,
                 config=new_config,
-                status=self.org_integration.status,
-                grace_period_end=self.org_integration.grace_period_end,
             )
 
         user_persisted_fields = self.get_persisted_user_default_config_fields()

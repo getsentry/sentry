@@ -436,8 +436,6 @@ class VstsIssueFormTest(VstsIssueBase):
         self.integration.org_integration = integration_service.update_organization_integration(
             org_integration_id=self.integration.org_integration.id,
             config={"project_issue_defaults": {str(self.group.project_id): defaults}},
-            status=self.integration.org_integration.status,
-            grace_period_end=self.integration.org_integration.grace_period_end,
         )
 
     def assert_project_field(self, fields, default_value, choices):
