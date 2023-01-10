@@ -155,7 +155,9 @@ function Onboarding(props: Props) {
             });
           }
         }}
-        to={`/organizations/${organization.slug}/issues/?referrer=onboarding-skip`}
+        to={normalizeUrl(
+          `/organizations/${organization.slug}/issues/?referrer=onboarding-skip`
+        )}
       >
         {t('Skip Onboarding')}
       </SkipOnboardingLink>
@@ -163,7 +165,11 @@ function Onboarding(props: Props) {
   };
 
   if (!stepObj || stepIndex === -1) {
-    return <Redirect to={`/onboarding/${organization.slug}/${onboardingSteps[0].id}/`} />;
+    return (
+      <Redirect
+        to={normalizeUrl(`/onboarding/${organization.slug}/${onboardingSteps[0].id}/`)}
+      />
+    );
   }
   return (
     <OnboardingWrapper data-test-id="targeted-onboarding">

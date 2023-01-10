@@ -5,7 +5,6 @@ import sentry_sdk
 from pytz import UTC
 
 from sentry import quotas
-from sentry.dynamic_sampling.feature_multiplexer import DynamicSamplingFeatureMultiplexer
 from sentry.dynamic_sampling.key_transactions import get_key_transactions
 from sentry.dynamic_sampling.latest_release_booster import ProjectBoostedReleases
 from sentry.dynamic_sampling.logging import log_rules
@@ -17,6 +16,7 @@ from sentry.dynamic_sampling.utils import (
     BaseRule,
     ReleaseRule,
     RuleType,
+    get_enabled_user_biases,
 )
 from sentry.models import Project
 
@@ -171,10 +171,10 @@ def generate_rules(project: Project) -> List[BaseRule]:
             sentry_sdk.capture_exception()
     else:
         if sample_rate < 1.0:
-
-            enabled_biases = DynamicSamplingFeatureMultiplexer.get_enabled_user_biases(
+            enabled_biases = get_enabled_user_biases(
                 project.get_option("sentry:dynamic_sampling_biases", None)
             )
+
             # Key Transaction boost
             if RuleType.BOOST_KEY_TRANSACTIONS_RULE.value in enabled_biases:
                 key_transactions = get_key_transactions(project)
