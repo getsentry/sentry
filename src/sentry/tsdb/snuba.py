@@ -8,7 +8,6 @@ from typing import Any, Optional, Sequence
 from sentry.constants import DataCategory
 from sentry.ingest.inbound_filters import FILTER_STAT_KEYS_TO_VALUES
 from sentry.tsdb.base import BaseTSDB, TSDBModel
-from sentry.types.issues import PROFILE_TYPES
 from sentry.utils import outcomes, snuba
 from sentry.utils.dates import to_datetime
 
@@ -65,11 +64,6 @@ class SnubaTSDB(BaseTSDB):
     # ``non_outcomes_query_settings`` are all the query settings for non outcomes based TSDB models.
     # Single tenant reads Snuba for these models, and writes to DummyTSDB. It reads and writes to Redis for all the
     # other models.
-    search_issues_profile_condition = [
-        "occurrence_type_id",
-        "IN",
-        PROFILE_TYPES,
-    ]
     non_outcomes_query_settings = {
         TSDBModel.project: SnubaModelQuerySettings(
             snuba.Dataset.Events, "project_id", None, [events_type_condition]
@@ -84,11 +78,11 @@ class SnubaTSDB(BaseTSDB):
             [],
             [["arrayJoin", "group_ids", "group_id"]],
         ),
-        TSDBModel.group_profiling: SnubaModelQuerySettings(
+        TSDBModel.group_generic: SnubaModelQuerySettings(
             snuba.Dataset.IssuePlatform,
             "group_id",
             None,
-            [search_issues_profile_condition],
+            [],
         ),
         TSDBModel.release: SnubaModelQuerySettings(
             snuba.Dataset.Events, "tags[sentry:release]", None, [events_type_condition]
@@ -103,11 +97,11 @@ class SnubaTSDB(BaseTSDB):
             [],
             [["arrayJoin", "group_ids", "group_id"]],
         ),
-        TSDBModel.users_affected_by_profile_group: SnubaModelQuerySettings(
+        TSDBModel.users_affected_by_generic_group: SnubaModelQuerySettings(
             snuba.Dataset.IssuePlatform,
             "group_id",
             "tags[sentry:user]",
-            [search_issues_profile_condition],
+            [],
         ),
         TSDBModel.users_affected_by_project: SnubaModelQuerySettings(
             snuba.Dataset.Events, "project_id", "tags[sentry:user]", [events_type_condition]
@@ -267,10 +261,10 @@ class SnubaTSDB(BaseTSDB):
             keys = list(set(map(lambda x: int(x), keys)))
 
         model_requires_manual_group_on_time = model in (
-            TSDBModel.group_profiling,
-            TSDBModel.users_affected_by_profile_group,
+            TSDBModel.group_generic,
+            TSDBModel.users_affected_by_generic_group,
         )
-        group_on_time_column_alias = "time_t"
+        group_on_time_column_alias = "grouped_time"
 
         model_query_settings = self.model_query_settings.get(model)
 

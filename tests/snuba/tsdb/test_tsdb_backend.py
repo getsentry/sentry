@@ -799,7 +799,7 @@ class SnubaTSDBGroupProfilingTest(TestCase, SnubaTestCase, SearchIssueTestMixin)
 
         group = groups[0]
         assert self.db.get_range(
-            TSDBModel.group_profiling,
+            TSDBModel.group_generic,
             [group.id],
             dts[0],
             dts[-1],
@@ -838,7 +838,7 @@ class SnubaTSDBGroupProfilingTest(TestCase, SnubaTestCase, SearchIssueTestMixin)
         group = groups[0]
         dts = [now + timedelta(hours=i) for i in range(4)]
         assert self.db.get_range(
-            TSDBModel.group_profiling,
+            TSDBModel.group_generic,
             [group.id],
             dts[0],
             dts[-1],
@@ -856,7 +856,7 @@ class SnubaTSDBGroupProfilingTest(TestCase, SnubaTestCase, SearchIssueTestMixin)
         dts = [self.now + timedelta(hours=i) for i in range(4)]
         # Multiple groups
         assert self.db.get_range(
-            TSDBModel.group_profiling,
+            TSDBModel.group_generic,
             [self.proj1group1.id, self.proj1group2.id],
             dts[0],
             dts[-1],
@@ -876,11 +876,11 @@ class SnubaTSDBGroupProfilingTest(TestCase, SnubaTestCase, SearchIssueTestMixin)
             ],
         }
 
-        assert self.db.get_range(TSDBModel.group_profiling, [], dts[0], dts[-1], rollup=3600) == {}
+        assert self.db.get_range(TSDBModel.group_generic, [], dts[0], dts[-1], rollup=3600) == {}
 
     def test_get_distinct_counts_totals_users(self):
         assert self.db.get_distinct_counts_totals(
-            TSDBModel.users_affected_by_profile_group,
+            TSDBModel.users_affected_by_generic_group,
             [self.proj1group1.id],
             self.now,
             self.now + timedelta(hours=4),
@@ -890,7 +890,7 @@ class SnubaTSDBGroupProfilingTest(TestCase, SnubaTestCase, SearchIssueTestMixin)
         }
 
         assert self.db.get_distinct_counts_totals(
-            TSDBModel.users_affected_by_profile_group,
+            TSDBModel.users_affected_by_generic_group,
             [self.proj1group1.id],
             self.now,
             self.now,
@@ -901,7 +901,7 @@ class SnubaTSDBGroupProfilingTest(TestCase, SnubaTestCase, SearchIssueTestMixin)
 
         assert (
             self.db.get_distinct_counts_totals(
-                TSDBModel.users_affected_by_profile_group,
+                TSDBModel.users_affected_by_generic_group,
                 [],
                 self.now,
                 self.now + timedelta(hours=4),
