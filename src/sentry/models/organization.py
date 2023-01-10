@@ -159,6 +159,10 @@ class Organization(Model, SnowflakeIdMixin):
                 "early_adopter",
                 "Enable early adopter status, gaining access to features prior to public release.",
             ),
+            (
+                "codecov_access",
+                "Enable codecov integration.",
+            ),
             ("require_2fa", "Require and enforce two-factor authentication for all members."),
             (
                 "disable_new_visibility_features",
