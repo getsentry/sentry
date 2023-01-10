@@ -3400,7 +3400,7 @@ class DSLatestReleaseBoostTest(TestCase):
 
     @freeze_time()
     @mock.patch(
-        "sentry.dynamic_sampling.latest_release_booster.ProjectBoostedReleases.BOOSTED_RELEASES_LIMIT",
+        "sentry.dynamic_sampling.latest_release_booster.BOOSTED_RELEASES_LIMIT",
         2,
     )
     def test_least_recently_boosted_release_is_removed_if_limit_is_exceeded(self):
@@ -3482,7 +3482,7 @@ class DSLatestReleaseBoostTest(TestCase):
 
     @freeze_time()
     @mock.patch(
-        "sentry.dynamic_sampling.latest_release_booster.ProjectBoostedReleases.BOOSTED_RELEASES_LIMIT",
+        "sentry.dynamic_sampling.latest_release_booster.BOOSTED_RELEASES_LIMIT",
         2,
     )
     def test_removed_boost_not_added_again_if_limit_is_exceeded(self):

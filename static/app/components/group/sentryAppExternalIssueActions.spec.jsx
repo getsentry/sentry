@@ -75,7 +75,7 @@ describe('SentryAppExternalIssueActions', () => {
     }
   });
 
-  it('links to an existing Issue', () => {
+  it('links to an existing Issue', async () => {
     const request = MockApiClient.addMockResponse({
       url: submitUrl,
       method: 'POST',
@@ -88,7 +88,7 @@ describe('SentryAppExternalIssueActions', () => {
         sentryAppComponent={component}
       />
     );
-    renderGlobalModal();
+    const {waitForModalToHide} = renderGlobalModal();
 
     // Open The Modal
     userEvent.click(
@@ -100,6 +100,8 @@ describe('SentryAppExternalIssueActions', () => {
 
     userEvent.type(screen.getByRole('textbox', {name: 'Issue'}), '99');
     userEvent.click(screen.getByRole('button', {name: 'Save Changes'}));
+
+    await waitForModalToHide();
 
     expect(request).toHaveBeenCalledWith(
       submitUrl,
@@ -113,7 +115,7 @@ describe('SentryAppExternalIssueActions', () => {
     );
   });
 
-  it('creates a new Issue', () => {
+  it('creates a new Issue', async () => {
     const request = MockApiClient.addMockResponse({
       url: submitUrl,
       method: 'POST',
@@ -126,7 +128,7 @@ describe('SentryAppExternalIssueActions', () => {
         sentryAppComponent={component}
       />
     );
-    renderGlobalModal();
+    const {waitForModalToHide} = renderGlobalModal();
 
     // Open The Modal
     userEvent.click(
@@ -140,6 +142,8 @@ describe('SentryAppExternalIssueActions', () => {
     userEvent.type(screen.getByRole('textbox', {name: 'Description'}), 'bar');
 
     userEvent.click(screen.getByRole('button', {name: 'Save Changes'}));
+
+    await waitForModalToHide();
 
     expect(request).toHaveBeenCalledWith(
       submitUrl,

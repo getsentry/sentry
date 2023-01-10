@@ -5,7 +5,7 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {removeTeam, updateTeamSuccess} from 'sentry/actionCreators/teams';
 import Button from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
-import Field from 'sentry/components/forms/field';
+import FieldGroup from 'sentry/components/forms/fieldGroup';
 import Form, {FormProps} from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import {Panel, PanelHeader} from 'sentry/components/panels';
@@ -13,6 +13,7 @@ import teamSettingsFields from 'sentry/data/forms/teamSettingsFields';
 import {IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {Organization, Scope, Team} from 'sentry/types';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
 import AsyncView from 'sentry/views/asyncView';
 
@@ -32,30 +33,33 @@ class TeamSettings extends AsyncView<Props, State> {
     return [];
   }
 
-  handleSubmitSuccess: FormProps['onSubmitSuccess'] = (resp, model, id) => {
+  handleSubmitSuccess: FormProps['onSubmitSuccess'] = (resp, _model, id) => {
+    const {organization} = this.props;
+
     // Use the old slug when triggering the update so we correctly replace the
     // previous team in the store
     updateTeamSuccess(this.props.team.slug, resp);
     if (id === 'slug') {
       addSuccessMessage(t('Team name changed'));
       browserHistory.replace(
-        `/settings/${this.props.params.orgId}/teams/${model.getValue(id)}/settings/`
+        normalizeUrl(`/settings/${organization.slug}/teams/${resp.slug}/settings/`)
       );
       this.setState({loading: true});
     }
   };
 
   handleRemoveTeam = async () => {
+    const {organization, params} = this.props;
     try {
-      await removeTeam(this.api, this.props.params);
-      browserHistory.replace(`/settings/${this.props.params.orgId}/teams/`);
+      await removeTeam(this.api, {orgId: organization.slug, teamId: params.teamId});
+      browserHistory.replace(normalizeUrl(`/settings/${organization.slug}/teams/`));
     } catch {
       // removeTeam already displays an error message
     }
   };
 
   renderBody() {
-    const {organization, team, params} = this.props;
+    const {organization, team} = this.props;
 
     const access = new Set<Scope>(organization.access);
 
@@ -63,7 +67,7 @@ class TeamSettings extends AsyncView<Props, State> {
       <Fragment>
         <Form
           apiMethod="PUT"
-          apiEndpoint={`/teams/${params.orgId}/${team.slug}/`}
+          apiEndpoint={`/teams/${organization.slug}/${team.slug}/`}
           saveOnBlur
           allowUndo
           onSubmitSuccess={this.handleSubmitSuccess}
@@ -78,7 +82,7 @@ class TeamSettings extends AsyncView<Props, State> {
 
         <Panel>
           <PanelHeader>{t('Remove Team')}</PanelHeader>
-          <Field
+          <FieldGroup
             help={t(
               "This may affect team members' access to projects and associated alert delivery."
             )}
@@ -101,7 +105,7 @@ class TeamSettings extends AsyncView<Props, State> {
                 </Button>
               </Confirm>
             </div>
-          </Field>
+          </FieldGroup>
         </Panel>
       </Fragment>
     );

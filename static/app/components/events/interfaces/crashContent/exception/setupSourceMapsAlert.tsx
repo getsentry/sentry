@@ -1,9 +1,9 @@
 import Alert from 'sentry/components/alert';
-import Button from 'sentry/components/button';
 import {isEventFromBrowserJavaScriptSDK} from 'sentry/components/events/interfaces/spans/utils';
+import ExternalLink from 'sentry/components/links/externalLink';
 import {PlatformKey, sourceMaps} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
-import {EntryType, Event, EventTransaction} from 'sentry/types';
+import {EntryType, Event, EventTransaction, Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {eventHasSourceMaps} from 'sentry/utils/events';
@@ -42,25 +42,20 @@ function isLocalhost(url?: string) {
   return url.includes('localhost') || url.includes('127.0.0.1');
 }
 
-type Props = {
-  event: Event;
-};
-
-export function SetupSourceMapsAlert({event}: Props) {
-  const organization = useOrganization();
-  const router = useRouter();
+export function shouldDisplaySetupSourceMapsAlert(
+  organization: Organization,
+  projectId: string | undefined,
+  event: Event | undefined
+): boolean {
+  if (!defined(projectId) || !defined(event)) {
+    return false;
+  }
 
   if (!organization.features?.includes('source-maps-cta')) {
-    return null;
+    return false;
   }
 
-  const projectId = router.location.query.project;
-
-  if (!defined(projectId)) {
-    return null;
-  }
-
-  const eventPlatform = event.platform ?? 'other';
+  const eventPlatform = event?.platform ?? 'other';
   const eventFromBrowserJavaScriptSDK = isEventFromBrowserJavaScriptSDK(
     event as EventTransaction
   );
@@ -70,11 +65,31 @@ export function SetupSourceMapsAlert({event}: Props) {
     !eventFromBrowserJavaScriptSDK &&
     !sourceMaps.includes(eventPlatform as PlatformKey)
   ) {
-    return null;
+    return false;
   }
 
   // If the event already has source maps, we do not want to show this alert
   if (eventHasSourceMaps(event)) {
+    return false;
+  }
+
+  return true;
+}
+
+type Props = {
+  event: Event;
+};
+
+export function SetupSourceMapsAlert({event}: Props) {
+  const organization = useOrganization();
+  const router = useRouter();
+  const projectId = router.location.query.project;
+  const eventPlatform = event.platform ?? 'other';
+  const eventFromBrowserJavaScriptSDK = isEventFromBrowserJavaScriptSDK(
+    event as EventTransaction
+  );
+
+  if (!shouldDisplaySetupSourceMapsAlert(organization, projectId, event)) {
     return null;
   }
 
@@ -97,11 +112,8 @@ export function SetupSourceMapsAlert({event}: Props) {
       type="info"
       showIcon
       trailingItems={
-        <Button
-          priority="link"
-          size="zero"
+        <ExternalLink
           href={docUrl}
-          external
           onClick={() => {
             trackAdvancedAnalyticsEvent(
               'issue_group_details.stack_traces.setup_source_maps_alert.clicked',
@@ -114,7 +126,7 @@ export function SetupSourceMapsAlert({event}: Props) {
           }}
         >
           {t('Upload Source Maps')}
-        </Button>
+        </ExternalLink>
       }
     >
       {isLocalhost(url)

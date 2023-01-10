@@ -1,6 +1,8 @@
 import {useEffect, useMemo} from 'react';
 import {mat3} from 'gl-matrix';
 
+import {CanvasView} from 'sentry/utils/profiling/canvasView';
+
 import {Rect} from './gl/utils';
 import {FlamegraphFrame} from './flamegraphFrame';
 import {SpanChartNode} from './spanChart';
@@ -15,9 +17,9 @@ export interface FlamegraphEvents {
   ) => void;
   ['highlight span']: (frame: SpanChartNode[] | null, mode: 'hover' | 'selected') => void;
   ['reset zoom']: () => void;
-  ['set config view']: (configView: Rect) => void;
+  ['set config view']: (configView: Rect, source: CanvasView<any>) => void;
   ['show in table view']: (frame: FlamegraphFrame) => void;
-  ['transform config view']: (transform: mat3) => void;
+  ['transform config view']: (transform: mat3, source: CanvasView<any>) => void;
   ['zoom at frame']: (frame: FlamegraphFrame, strategy: 'min' | 'exact') => void;
   ['zoom at span']: (frame: SpanChartNode, strategy: 'min' | 'exact') => void;
 }

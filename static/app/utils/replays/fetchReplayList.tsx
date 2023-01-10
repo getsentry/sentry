@@ -24,7 +24,6 @@ export const REPLAY_LIST_FIELDS = [
 
 type State = {
   fetchError: undefined | RequestError;
-  isFetching: boolean;
   pageLinks: null | string;
   replays: undefined | ReplayListRecord[];
 };
@@ -59,7 +58,6 @@ async function fetchReplayList({
 
     return {
       fetchError: undefined,
-      isFetching: false,
       pageLinks,
       replays: data.map(mapResponseToReplayRecord),
     };
@@ -67,7 +65,6 @@ async function fetchReplayList({
     if (error.responseJSON?.detail) {
       return {
         fetchError: error.responseJSON.detail,
-        isFetching: false,
         pageLinks: null,
         replays: [],
       };
@@ -75,7 +72,6 @@ async function fetchReplayList({
     Sentry.captureException(error);
     return {
       fetchError: error,
-      isFetching: false,
       pageLinks: null,
       replays: [],
     };
