@@ -2,12 +2,16 @@ import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
+import {openCreateOwnershipRule} from 'sentry/actionCreators/modal';
+import Access from 'sentry/components/acl/access';
 import {
   AssigneeSelectorDropdown,
   AssigneeSelectorDropdownProps,
   SuggestedAssignee,
 } from 'sentry/components/assigneeSelectorDropdown';
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
+import Button from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
 import {AutoCompleteRoot} from 'sentry/components/dropdownAutoComplete/menu';
 import {
   findMatchedRules,
@@ -15,7 +19,7 @@ import {
 } from 'sentry/components/group/suggestedOwners/findMatchedRules';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import * as SidebarSection from 'sentry/components/sidebarSection';
-import {IconChevron, IconUser} from 'sentry/icons';
+import {IconAdd, IconChevron, IconSettings, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import MemberListStore from 'sentry/stores/memberListStore';
 import TeamStore from 'sentry/stores/teamStore';
@@ -151,7 +155,7 @@ function AssignedTo({group, project, event, disableDropdown = false}: AssignedTo
     },
     {
       notifyOnChangeProps: ['data'],
-      enabled: hasStreamlineTargetingFeature || !defined(event?.id),
+      enabled: hasStreamlineTargetingFeature && defined(event?.id),
     }
   );
 
@@ -190,7 +194,29 @@ function AssignedTo({group, project, event, disableDropdown = false}: AssignedTo
 
   return (
     <SidebarSection.Wrap data-test-id="assigned-to">
-      <SidebarSection.Title>{t('Assigned To')}</SidebarSection.Title>
+      <StyledSidebarTitle>
+        {t('Assigned To')}
+        <ButtonBar>
+          <Access access={['project:write']}>
+            <Button
+              onClick={() => {
+                openCreateOwnershipRule({project, organization, issueId: group.id});
+              }}
+              aria-label={t('Create Ownership Rule')}
+              icon={<IconAdd />}
+              borderless
+              size="xs"
+            />
+          </Access>
+          <Button
+            to={`/settings/${organization.slug}/projects/${project.slug}/ownership/`}
+            aria-label={t('Issue Owners Settings')}
+            icon={<IconSettings />}
+            borderless
+            size="xs"
+          />
+        </ButtonBar>
+      </StyledSidebarTitle>
       <StyledSidebarSectionContent>
         <AssigneeSelectorDropdown
           organization={organization}
@@ -238,6 +264,7 @@ const DropdownButton = styled('div')`
   align-items: center;
   justify-content: space-between;
   gap: ${space(1)};
+  padding-right: ${space(0.25)};
 `;
 
 const ActorWrapper = styled('div')`
@@ -262,6 +289,13 @@ const StyledSidebarSectionContent = styled(SidebarSection.Content)`
   ${AutoCompleteRoot} {
     display: block;
   }
+`;
+
+const StyledSidebarTitle = styled(SidebarSection.Title)`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-right: -${space(1)};
 `;
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`

@@ -269,7 +269,7 @@ export class AssigneeSelectorDropdown extends Component<
                   ? `${member.name || member.email} ${t('(You)')}`
                   : member.name || member.email}
               </Highlight>
-              {suggestedReason && <SuggestedReason>({suggestedReason})</SuggestedReason>}
+              {suggestedReason && <SuggestedReason> ({suggestedReason})</SuggestedReason>}
             </Label>
           )}
         </MenuItemWrapper>
@@ -310,7 +310,7 @@ export class AssigneeSelectorDropdown extends Component<
           ) : (
             <Label>
               <Highlight text={inputValue}>{display}</Highlight>
-              {suggestedReason && <SuggestedReason>({suggestedReason})</SuggestedReason>}
+              {suggestedReason && <SuggestedReason> ({suggestedReason})</SuggestedReason>}
             </Label>
           )}
         </MenuItemWrapper>
@@ -387,7 +387,7 @@ export class AssigneeSelectorDropdown extends Component<
       ? [
           {
             label: this.renderDropdownGroupLabel(t('Everyone Else')),
-            id: 'team-header',
+            id: 'everyone-else',
             items: [...filteredSessionUser, ...filteredTeams, ...filteredMembers],
           },
         ]
