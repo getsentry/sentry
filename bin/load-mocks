@@ -899,7 +899,7 @@ def create_mock_transactions(
                 if slow:
                     time.sleep(0.05)
 
-    if not load_performance_issues:
+    if load_performance_issues:
 
         def load_performance_issues():
             print(f"    > Loading performance issues data")  # NOQA
