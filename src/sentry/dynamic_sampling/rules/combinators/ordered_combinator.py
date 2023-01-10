@@ -17,8 +17,6 @@ class OrderedBiasesCombinator(BiasesCombinator):
         return order_discriminant
 
     def get_combined_biases(self) -> OrderedDict[RuleType, Bias]:
-        ordered_biases = list(
-            sorted(self.biases.items(), key=lambda elem: elem[1].order_discriminant)
-        )
+        ordered_biases = list(sorted(self.biases.items(), key=lambda elem: elem[1].order_number))
         biases = map(lambda elem: (elem[0], elem[1].bias), ordered_biases)
         return collections.OrderedDict(biases)

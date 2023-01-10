@@ -15,7 +15,7 @@ def _get_default_combinator() -> BiasesCombinator:
     return OrderedBiasesCombinator()
 
 
-def get_relay_biases_combinator():
+def get_relay_biases_combinator() -> BiasesCombinator:
     default_combinator = _get_default_combinator()
 
     # The combination depends on the default_combinator used but in case of the ordered combinator the first combined
@@ -29,3 +29,5 @@ def get_relay_biases_combinator():
     default_combinator.combine(RuleType.IGNORE_HEALTH_CHECKS_RULE, IgnoreHealthChecksBias())
     default_combinator.combine(RuleType.BOOST_LATEST_RELEASES_RULE, BoostLatestReleasesBias())
     default_combinator.combine(RuleType.UNIFORM_RULE, UniformBias())
+
+    return default_combinator
