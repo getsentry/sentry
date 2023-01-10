@@ -242,7 +242,7 @@ describe('Performance > Landing > Index', function () {
           interval: '15m',
           partial: '1',
           project: [],
-          query: 'transaction.duration:<15m event.type:transaction',
+          query: 'event.type:transaction',
           referrer: 'api.performance.generic-widget-chart.user-misery-area',
           statsPeriod: '48h',
           yAxis: ['user_misery()', 'tpm()', 'failure_rate()'],
