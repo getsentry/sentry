@@ -16,15 +16,15 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
 
     def get(self, request: Request, project: Project, event_id: str) -> Response:
         """
-        Retrieve Committer information for an event
+        Retrieve information about source maps for a given event.
         ```````````````````````````````````````````
 
-        Return committers on an individual event, plus a per-frame breakdown.
+        Return a list of source map errors for a given event.
 
         :pparam string project_slug: the slug of the project the event
                                      belongs to.
         :pparam string event_id: the hexadecimal ID of the event to
-                                 retrieve (as reported by the raven client).
+                                 retrieve.
         :auth: frame: the integer representing the frame index
         """
         if not self.has_feature(project.organization, request):
