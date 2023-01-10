@@ -90,7 +90,7 @@ class ProjectTransactionThresholdEndpoint(ProjectEndpoint):
                 )
                 project_threshold.threshold = data.get("threshold") or project_threshold.threshold
                 project_threshold.metric = data.get("metric") or project_threshold.metric
-                project_threshold._id = request.user.id
+                project_threshold.edited_by_id = request.user.id
                 project_threshold.save()
 
                 created = False
