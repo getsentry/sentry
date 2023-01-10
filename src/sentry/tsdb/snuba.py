@@ -206,6 +206,13 @@ class SnubaTSDB(BaseTSDB):
         super().__init__(**options)
 
     def __manual_group_on_time_aggregation(self, rollup, time_column_alias) -> Sequence[Any]:
+        """
+        Explicitly builds an aggregation expression in-place of using a `TimeSeriesProcessor` on the snuba entity.
+        Older tables and queries that target that table had syntactic sugar on the `time` column and would apply
+        additional processing to re-write the query. For entities/models that don't have that special processing,
+        we need to manually insert the equivalent query to get the same result.
+        """
+
         def rollup_agg(func: str):
             return [
                 "toUnixTimestamp",
