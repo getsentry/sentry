@@ -123,6 +123,7 @@ def get_user_biases(user_set_biases: Optional[List[Bias]]) -> List[Bias]:
             returned_biases.append(id_to_user_bias[bias["id"]])
         else:
             returned_biases.append(bias)
+
     return returned_biases
 
 

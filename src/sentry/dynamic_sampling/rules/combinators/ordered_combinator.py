@@ -11,7 +11,7 @@ class OrderedBiasesCombinator(BiasesCombinator):
         super().__init__()
         self.order_discriminant = 0
 
-    def get_next_order_discriminant(self) -> int:
+    def get_next_order_number(self) -> int:
         order_discriminant = self.order_discriminant
         self.order_discriminant += 1
         return order_discriminant

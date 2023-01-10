@@ -4,7 +4,7 @@ import sentry_sdk
 
 from sentry import quotas
 from sentry.dynamic_sampling.rules.biases.base import Bias, BiasParams
-from sentry.dynamic_sampling.rules.combine import DEFAULT_COMBINATOR
+from sentry.dynamic_sampling.rules.combine import get_relay_biases_combinator
 from sentry.dynamic_sampling.rules.logging import log_rules
 from sentry.dynamic_sampling.rules.utils import BaseRule, RuleType, get_enabled_user_biases
 from sentry.models import Project
@@ -46,7 +46,12 @@ def generate_rules(project: Project) -> List[BaseRule]:
             project,
             _get_guarded_blended_sample_rate(project),
             get_enabled_user_biases(project.get_option("sentry:dynamic_sampling_biases", None)),
-            DEFAULT_COMBINATOR.get_combined_biases(),
+            # To add new biases you will need:
+            # * Data provider
+            # * Rules generator
+            # * Bias
+            # check in the dynamic_sampling/bias/ folder how existing biases are implemented.
+            get_relay_biases_combinator().get_combined_biases(),
         )
     except Exception as e:
         sentry_sdk.capture_exception(e)

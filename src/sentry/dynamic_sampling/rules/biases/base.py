@@ -9,12 +9,20 @@ BiasParams = namedtuple("BiasParams", "project base_sample_rate")
 
 
 class BiasDataProvider(ABC):
+    """
+    Base class representing the provider of data needed to generate a rule connected to a bias.
+    """
+
     @abstractmethod
     def get_bias_data(self, bias_params: BiasParams) -> BiasData:
         raise NotImplementedError
 
 
 class BiasRulesGenerator(ABC):
+    """
+    Base class representing the generator of rules connected to a bias.
+    """
+
     def __init__(self, data_provider: BiasDataProvider):
         self.data_provider = data_provider
 
@@ -27,6 +35,14 @@ class BiasRulesGenerator(ABC):
 
 
 class Bias(ABC):
+    """
+    Base class containing business logic that automatically handles the execution flow and inter-dependencies of the
+    data provider and rules generator.
+
+    The goal of this class is to abstract away the interaction between the provider and generator, in order to make
+    this abstractions work like a small framework.
+    """
+
     def __init__(
         self,
         data_provider_cls: Type[BiasDataProvider],
