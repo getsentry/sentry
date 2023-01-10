@@ -191,12 +191,6 @@ function importSentrySampledProfile(
     activeProfileIndex: 0,
     measurements: {},
     metadata: {
-      // androidAPILevel: number;
-      // deviceClassification: string;
-      // organizationID: number;
-      // projectID: number;
-      // received: string;
-
       deviceLocale: input.device.locale,
       deviceManufacturer: input.device.manufacturer,
       deviceModel: input.device.model,
