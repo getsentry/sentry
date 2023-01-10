@@ -333,6 +333,23 @@ export function FlamegraphSpans({
     [configSpaceCursor, hoveredNode, spansView, canvasPoolManager, lastInteraction]
   );
 
+  // When a user click anywhere outside the spans, clear cursor and selected node
+  useEffect(() => {
+    const onClickOutside = (evt: MouseEvent) => {
+      if (!spansCanvasRef || spansCanvasRef.contains(evt.target as Node)) {
+        return;
+      }
+      canvasPoolManager.dispatch('highlight span', [null, 'selected']);
+      setConfigSpaceCursor(null);
+    };
+
+    document.addEventListener('click', onClickOutside);
+
+    return () => {
+      document.removeEventListener('click', onClickOutside);
+    };
+  });
+
   return (
     <Fragment>
       <Canvas
