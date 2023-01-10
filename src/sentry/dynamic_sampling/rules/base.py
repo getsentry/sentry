@@ -3,10 +3,9 @@ from typing import List, OrderedDict, Set
 import sentry_sdk
 
 from sentry import quotas
-from sentry.dynamic_sampling.feature_multiplexer import DynamicSamplingFeatureMultiplexer
 from sentry.dynamic_sampling.rules.biases.base import Bias, BiasParams
 from sentry.dynamic_sampling.rules.combine import DEFAULT_COMBINATOR
-from sentry.dynamic_sampling.utils import BaseRule, RuleType
+from sentry.dynamic_sampling.utils import BaseRule, RuleType, get_enabled_user_biases
 from sentry.models import Project
 
 ALWAYS_ALLOWED_RULE_TYPES = {RuleType.UNIFORM_RULE}
@@ -43,9 +42,7 @@ def generate_rules(project: Project) -> List[BaseRule]:
         return _get_rules_of_enabled_biases(
             project,
             _get_guarded_blended_sample_rate(project),
-            DynamicSamplingFeatureMultiplexer.get_enabled_user_biases(
-                project.get_option("sentry:dynamic_sampling_biases", None)
-            ),
+            get_enabled_user_biases(project.get_option("sentry:dynamic_sampling_biases", None)),
             DEFAULT_COMBINATOR.get_combined_biases(),
         )
     except Exception as e:
