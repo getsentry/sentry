@@ -52,9 +52,9 @@ type TreeData<T> = T & {id: string; children?: TreeData<T>[]};
 type TreeProps<T> = {
   data: TreeData<T>;
   getNodeLabel: (data: TreeData<T>) => string;
-  selectedNodeId: string;
   isRoot?: boolean;
   onNodeSelection?: (data: TreeData<T>) => void;
+  selectedNodeId?: string;
 };
 
 function Tree<T>({
