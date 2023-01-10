@@ -12,7 +12,7 @@ import {
   Project,
   ReleaseProject,
 } from 'sentry/types';
-import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {statsPeriodToDays} from 'sentry/utils/dates';
 import EventView from 'sentry/utils/discover/eventView';
 import {TRACING_FIELDS} from 'sentry/utils/discover/fields';
@@ -194,10 +194,8 @@ export function handleTrendsClick({
   organization: Organization;
   projectPlatforms: string;
 }) {
-  trackAnalyticsEvent({
-    eventKey: 'performance_views.change_view',
-    eventName: 'Performance Views: Change View',
-    organization_id: parseInt(organization.id, 10),
+  trackAdvancedAnalyticsEvent('performance_views.change_view', {
+    organization,
     view_name: 'TRENDS',
     project_platforms: projectPlatforms,
   });

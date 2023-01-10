@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
-import AttachmentUrl from 'sentry/components/attachmentUrl';
 import DateTime from 'sentry/components/dateTime';
+import AttachmentUrl from 'sentry/components/events/attachmentUrl';
 import EventAttachmentActions from 'sentry/components/events/eventAttachmentActions';
 import FileSize from 'sentry/components/fileSize';
 import Link from 'sentry/components/links/link';

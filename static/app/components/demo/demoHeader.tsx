@@ -31,8 +31,7 @@ export default function DemoHeader() {
           trackAdvancedAnalyticsEvent('growth.demo_click_docs', {organization: null})
         }
         href={urlAttachQueryParams('https://docs.sentry.io/', extraSearchParams)}
-        target="_blank"
-        rel="noreferrer noopener"
+        external
       >
         {t('Documentation')}
       </DocsDemoBtn>
@@ -46,8 +45,7 @@ export default function DemoHeader() {
           })
         }
         href={urlAttachQueryParams('https://sentry.io/_/demo/', extraSearchParams)}
-        target="_blank"
-        rel="noreferrer noopener"
+        external
       >
         {t('Request a Demo')}
       </NewRequestDemoBtn>
@@ -72,8 +70,6 @@ export default function DemoHeader() {
             organization: null,
           });
         }}
-        target="_blank"
-        rel="noreferrer noopener"
       >
         <FreeTrialTextLong>
           {sandboxData?.cta?.title || t('Start Free Trial')}
@@ -104,8 +100,7 @@ export default function DemoHeader() {
           })
         }
         href={urlAttachQueryParams('https://sentry.io/_/demo/', extraSearchParams)}
-        target="_blank"
-        rel="noreferrer noopener"
+        external
       >
         {t('Request a Demo')}
       </RequestDemoBtn>
@@ -130,8 +125,6 @@ export default function DemoHeader() {
             organization: null,
           });
         }}
-        target="_blank"
-        rel="noreferrer noopener"
       >
         <GetStartedTextLong>
           {sandboxData?.cta?.title || t('Sign Up for Free')}

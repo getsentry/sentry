@@ -44,8 +44,8 @@ class CronJobValidator(serializers.Serializer):
         choices=list(zip(SCHEDULE_TYPES.keys(), SCHEDULE_TYPES.keys()))
     )
     schedule = ObjectField()
-    checkin_margin = EmptyIntegerField(required=False, default=None)
-    max_runtime = EmptyIntegerField(required=False, default=None)
+    checkin_margin = EmptyIntegerField(required=False, allow_null=True, default=None)
+    max_runtime = EmptyIntegerField(required=False, allow_null=True, default=None)
 
     def validate_schedule_type(self, value):
         if value:
