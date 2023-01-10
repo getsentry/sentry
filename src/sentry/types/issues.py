@@ -36,6 +36,7 @@ GROUP_TYPE_TO_CATEGORY = {
 
 GROUP_TYPE_TO_TEXT = {
     GroupType.ERROR: "Error",
+    GroupType.PERFORMANCE_CONSECUTIVE_DB_OP: "Consecutive DB Queries",
     GroupType.PERFORMANCE_SLOW_SPAN: "Slow Span",
     GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN: "Render Blocking Asset Span",
     GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES: "N+1 Query",

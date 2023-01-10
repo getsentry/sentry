@@ -77,6 +77,7 @@ DETECTOR_TYPE_TO_GROUP_TYPE = {
 DETECTOR_TYPE_ISSUE_CREATION_TO_SYSTEM_OPTION = {
     DetectorType.N_PLUS_ONE_DB_QUERIES: "performance.issues.n_plus_one_db.problem-creation",
     DetectorType.N_PLUS_ONE_DB_QUERIES_EXTENDED: "performance.issues.n_plus_one_db_ext.problem-creation",
+    DetectorType.CONSECUTIVE_DB_OP: "performance.issues.consecutive_db.problem-creation",
 }
 
 
@@ -270,6 +271,8 @@ def _detect_performance_problems(data: Event, sdk_span: Any) -> List[Performance
     for detector in detectors:
         run_detector_on_data(detector, data)
 
+    print("\n\n\n DETECTING!!! \n\n\n")
+
     # Metrics reporting only for detection, not created issues.
     report_metrics_for_detectors(data, event_id, detectors, sdk_span)
 
@@ -317,9 +320,7 @@ def run_detector_on_data(detector, data):
 def get_allowed_issue_creation_detectors(project_id: str):
     allowed_detectors = set()
     for detector_type, system_option in DETECTOR_TYPE_ISSUE_CREATION_TO_SYSTEM_OPTION.items():
-        rate = options.get(system_option)
-        if rate and rate > random.random():
-            allowed_detectors.add(detector_type)
+        allowed_detectors.add(detector_type)
 
     return allowed_detectors
 
