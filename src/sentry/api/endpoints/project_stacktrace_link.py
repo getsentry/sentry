@@ -63,6 +63,7 @@ def generate_context(parameters: Dict[str, Optional[str]]) -> Dict[str, Optional
         "abs_path": parameters.get("absPath"),
         "module": parameters.get("module"),
         "package": parameters.get("package"),
+        "line_no": parameters.get("lineNo"),
     }
 
 
@@ -260,16 +261,21 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                     else:
                         scope.set_tag("stacktrace_link.error", "file_not_found")
 
-                result["gitBlame"] = None
+                result["commitSha"] = None
                 githubIntegration = GitHubIntegration(integrations[0], project.organization_id)
                 try:
+                    line_no = int(ctx.get("line_no"))
                     git_blame_list = githubIntegration.get_blame_for_file(
                         repo=current_config["repository"],
                         filepath=filepath,
                         ref=current_config["config"]["defaultBranch"],
-                        lineno=1,
+                        lineno=line_no,
                     )
-                    result["gitBlame"] = git_blame_list
+
+                    for blame in git_blame_list:
+                        if line_no >= blame["startingLine"] and line_no <= blame["endingLine"]:
+                            result["commitSha"] = blame["commit"]["oid"]
+                            break
                 except Exception:
                     logger.exception("Could not get git blame")
 

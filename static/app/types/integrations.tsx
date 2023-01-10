@@ -149,7 +149,6 @@ export type StacktraceLinkResult = {
   attemptedUrl?: string;
   config?: RepositoryProjectPathConfigWithIntegration;
   error?: StacktraceErrorMessage;
-  gitBlame?: GitBlame[] | null;
   sourceUrl?: string;
 };
 
@@ -554,23 +553,4 @@ export type SentryFunction = {
   }>;
   events?: string[];
   overview?: string;
-};
-
-/**
- * Stacktrace Git blame
- */
-
-export type GitBlame = {
-  age: number;
-  commit: {
-    author: {
-      email: string;
-      name: string;
-    };
-    commitedDate: string;
-    message: string;
-    oid: string;
-  };
-  endingLine: number;
-  startingLine: number;
 };
