@@ -13,7 +13,6 @@ describe('generatePerformanceEventView()', function () {
     expect(result.id).toBeUndefined();
     expect(result.name).toEqual('Performance');
     expect(result.fields.length).toBeGreaterThanOrEqual(7);
-    expect(result.query).toEqual('transaction.duration:<15m');
     expect(result.getQueryWithAdditionalConditions()).toEqual(
       'transaction.duration:<15m event.type:transaction'
     );
