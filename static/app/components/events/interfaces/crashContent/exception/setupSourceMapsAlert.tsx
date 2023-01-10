@@ -47,11 +47,6 @@ export function shouldDisplaySetupSourceMapsAlert(
   projectId: string | undefined,
   event: Event | undefined
 ): boolean {
-  const eventPlatform = event?.platform ?? 'other';
-  const eventFromBrowserJavaScriptSDK = isEventFromBrowserJavaScriptSDK(
-    event as EventTransaction
-  );
-
   if (!defined(projectId) || !defined(event)) {
     return false;
   }
@@ -59,6 +54,11 @@ export function shouldDisplaySetupSourceMapsAlert(
   if (!organization.features?.includes('source-maps-cta')) {
     return false;
   }
+
+  const eventPlatform = event?.platform ?? 'other';
+  const eventFromBrowserJavaScriptSDK = isEventFromBrowserJavaScriptSDK(
+    event as EventTransaction
+  );
 
   // We would like to filter out all platforms that do not have the concept of source maps
   if (
