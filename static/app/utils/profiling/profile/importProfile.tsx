@@ -168,6 +168,7 @@ function importSentrySampledProfile(
         samples: samplesByThread[key],
       },
     };
+
     profiles.push(
       wrapWithSpan(
         options.transaction,
@@ -187,12 +188,6 @@ function importSentrySampledProfile(
     name: firstTransaction?.name ?? '',
     activeProfileIndex: 0,
     metadata: {
-      // androidAPILevel: number;
-      // deviceClassification: string;
-      // organizationID: number;
-      // projectID: number;
-      // received: string;
-
       deviceLocale: input.device.locale,
       deviceManufacturer: input.device.manufacturer,
       deviceModel: input.device.model,

@@ -29,17 +29,41 @@ export class SampledProfile extends Profile {
       );
     }
 
-    for (let i = 0; i < sampledProfile.samples.length; i++) {
-      const stack = sampledProfile.samples[i];
-      let weight = sampledProfile.weights[i];
+    const samples = sampledProfile.samples;
 
-      let resolvedStack = stack.map(n => {
-        if (!frameIndex[n]) {
-          throw new Error(`Could not resolve frame ${n} in frame index`);
+    function resolveStack(n: number) {
+      if (!frameIndex[n]) {
+        throw new Error(`Could not resolve frame ${n} in frame index`);
+      }
+
+      return frameIndex[n];
+    }
+
+    function sortSamples(a, b) {
+      const max = Math.max(a.stack.length, b.stack.length);
+      for (let i = 0; i < max; i++) {
+        if (a.stack[i] < b.stack[i]) {
+          return -1;
         }
+        if (a.stack[i] > b.stack[i]) {
+          return 1;
+        }
+      }
+      return 0;
+    }
 
-        return frameIndex[n];
-      });
+    const samplesWithWeight = samples
+      .map((s, i) => {
+        return {
+          stack: s.map(resolveStack),
+          weight: sampledProfile.weights[i],
+        };
+      })
+      .sort(sortSamples);
+
+    for (let i = 0; i < samplesWithWeight.length; i++) {
+      let stack = samplesWithWeight[i].stack;
+      let weight = samplesWithWeight[i].weight;
 
       if (
         i > 0 &&
@@ -48,12 +72,12 @@ export class SampledProfile extends Profile {
         // There is a good chance that this logic will at some point live on the backend
         // and when that happens, we do not want to enter this case as the GC will already
         // be placed at the top of the previous stack and the new stack length will be > 2
-        resolvedStack.length <= 2 &&
-        resolvedStack[resolvedStack.length - 1]?.name ===
-          '(garbage collector) [native code]'
+        stack.length <= 2 &&
+        // If last node in stack is gc node
+        stack[stack.length - 1]?.name === '(garbage collector) [native code]'
       ) {
         // The next stack we append will be previous stack + gc frame placed on top of it
-        resolvedStack = sampledProfile.samples[i - 1]
+        stack = samples[i - 1]
           .map(n => {
             if (!frameIndex[n]) {
               throw new Error(`Could not resolve frame ${n} in frame index`);
@@ -61,26 +85,25 @@ export class SampledProfile extends Profile {
 
             return frameIndex[n];
           })
-          .concat(resolvedStack[resolvedStack.length - 1]);
+          .concat(stack[stack.length - 1]);
 
         // Now collect all weights of all the consecutive gc frames and skip the samples
         while (
-          sampledProfile.samples[i + 1] &&
+          samples[i + 1] &&
           // We check for size <= 2 because we have so far only seen node profiles
           // where GC is either marked as the root node or is directly under the root node.
           // There is a good chance that this logic will at some point live on the backend
           // and when that happens, we do not want to enter this case as the GC will already
           // be placed at the top of the previous stack and the new stack length will be > 2
-          sampledProfile.samples[i + 1].length <= 2 &&
-          frameIndex[
-            sampledProfile.samples[i + 1][sampledProfile.samples[i + 1].length - 1]
-          ]?.name === '(garbage collector) [native code]'
+          samples[i + 1].length <= 2 &&
+          frameIndex[samples[i + 1][samples[i + 1].length - 1]]?.name ===
+            '(garbage collector) [native code]'
         ) {
-          weight += sampledProfile.weights[++i];
+          weight += samplesWithWeight[++i].weight;
         }
       }
 
-      profile.appendSampleWithWeight(resolvedStack, weight);
+      profile.appendSampleWithWeight(stack, weight);
     }
 
     return profile.build();
