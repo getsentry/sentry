@@ -184,7 +184,7 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
           configSpaceTransform:
             xAxis === 'transaction'
               ? new Rect(flamegraph.profile.startedAt, 0, 0, 0)
-              : Rect.Empty(),
+              : undefined,
         },
       });
 
@@ -292,7 +292,7 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
             // When a standalone axis is selected, the spans need to be relative to profile start time
             xAxis === 'standalone'
               ? new Rect(-flamegraph.profile.startedAt, 0, 0, 0)
-              : Rect.Empty(),
+              : undefined,
         },
       });
 
