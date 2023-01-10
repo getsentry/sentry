@@ -61,7 +61,7 @@ function ReplaysFromUser({replayId, user}: Props) {
       },
       gridRef,
       columnCount: COLUMNS.length,
-      dyanmicColumnIndex: 0,
+      dynamicColumnIndex: 0,
       deps: [rows],
     });
 
