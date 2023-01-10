@@ -10,6 +10,16 @@
   "culprit": "/pokedex/",
   "environment": "production",
   "location": "/pokedex/",
+  "contexts": {
+    "trace": {
+      "trace_id": "10d0b72df0fe4392a6788bce71ec2028",
+      "span_id": "1756e116945a4360",
+      "parent_span_id": "d71f841b69164c33",
+      "op": "http.server",
+      "status": "ok",
+      "type": "trace"
+    }
+  },
   "spans": [
     {
       "timestamp": 1669236003.406264,
