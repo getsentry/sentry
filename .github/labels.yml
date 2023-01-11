@@ -205,6 +205,9 @@
 - name: 'Team: Enterprise'
   color: '8D5494'
   description: ''
+- name: 'Team: Front End'
+  color: '8D5494'
+  description: app-frontend
 - name: 'Team: Growth'
   color: '8D5494'
   description: ''
