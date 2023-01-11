@@ -8,6 +8,7 @@ import ButtonBar from 'sentry/components/buttonBar';
 import GlobalEventProcessingAlert from 'sentry/components/globalEventProcessingAlert';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
+import PageHeading from 'sentry/components/pageHeading';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import QueryCount from 'sentry/components/queryCount';
 import {Item, TabList, Tabs} from 'sentry/components/tabs';
@@ -142,7 +143,7 @@ function IssueListHeader({
   return (
     <Layout.Header>
       <Layout.HeaderContent>
-        <StyledLayoutTitle>
+        <StyledHeading>
           {t('Issues')}
           <PageHeadingQuestionTooltip
             title={tct(
@@ -150,7 +151,7 @@ function IssueListHeader({
               {link: <ExternalLink href="https://docs.sentry.io/product/issues/" />}
             )}
           />
-        </StyledLayoutTitle>
+        </StyledHeading>
       </Layout.HeaderContent>
       <Layout.HeaderActions>
         <ButtonBar gap={1}>
@@ -228,10 +229,6 @@ function IssueListHeader({
 
 export default IssueListHeader;
 
-const StyledLayoutTitle = styled(Layout.Title)`
-  margin-top: ${space(0.5)};
-`;
-
 const StyledGlobalEventProcessingAlert = styled(GlobalEventProcessingAlert)`
   grid-column: 1/-1;
   margin-top: ${space(1)};
@@ -245,4 +242,8 @@ const StyledGlobalEventProcessingAlert = styled(GlobalEventProcessingAlert)`
 
 const StyledTabs = styled(Tabs)`
   grid-column: 1/-1;
+`;
+
+const StyledHeading = styled(PageHeading)`
+  line-height: 40px;
 `;
