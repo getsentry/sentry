@@ -1,3 +1,5 @@
+from typing import Any, Mapping, MutableMapping
+
 from django.db import IntegrityError, transaction
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -6,15 +8,42 @@ from sentry import features
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import GroupEndpoint
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.integration import IntegrationIssueConfigSerializer
+from sentry.api.serializers.models.integration import IntegrationSerializer
 from sentry.integrations import IntegrationFeatures
 from sentry.models import Activity, ExternalIssue, GroupLink
+from sentry.models.group import Group
+from sentry.models.user import User
 from sentry.services.hybrid_cloud.integration import APIIntegration, integration_service
 from sentry.shared_integrations.exceptions import IntegrationError, IntegrationFormError
 from sentry.signals import integration_issue_created, integration_issue_linked
 from sentry.types.activity import ActivityType
+from sentry.utils.json import JSONData
 
 MISSING_FEATURE_MESSAGE = "Your organization does not have access to this feature."
+
+
+class IntegrationIssueConfigSerializer(IntegrationSerializer):
+    def __init__(
+        self,
+        group: Group,
+        action: str,
+        config: Mapping[str, Any],
+    ) -> None:
+        self.group = group
+        self.action = action
+        self.config = config
+
+    def serialize(
+        self, obj: APIIntegration, attrs: Mapping[str, Any], user: User, **kwargs: Any
+    ) -> MutableMapping[str, JSONData]:
+        data = super().serialize(obj, attrs, user)
+
+        if self.action == "link":
+            data["linkIssueConfig"] = self.config
+        if self.action == "create":
+            data["createIssueConfig"] = self.config
+
+        return data
 
 
 @region_silo_endpoint
