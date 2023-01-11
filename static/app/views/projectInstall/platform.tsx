@@ -20,7 +20,6 @@ import {
 } from 'sentry/data/platformCategories';
 import platforms from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
-import {PageHeader} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import Projects from 'sentry/utils/projects';
@@ -260,7 +259,9 @@ const StyledButtonBar = styled(ButtonBar)`
   }
 `;
 
-const StyledPageHeader = styled(PageHeader)`
+const StyledPageHeader = styled('div')`
+  display: flex;
+  justify-content: space-between;
   margin-bottom: ${space(3)};
 
   h2 {
