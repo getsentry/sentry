@@ -42,7 +42,7 @@ import {DashboardsMEPConsumer, DashboardsMEPProvider} from './dashboardsMEPConte
 import WidgetCardChartContainer from './widgetCardChartContainer';
 import WidgetCardContextMenu from './widgetCardContextMenu';
 
-const SESSION_DURATION_INGESTION_STOP_DATE = new Date('2023-01-12');
+export const SESSION_DURATION_INGESTION_STOP_DATE = new Date('2023-01-12');
 
 type DraggableProps = Pick<ReturnType<typeof useSortable>, 'attributes' | 'listeners'>;
 
