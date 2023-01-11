@@ -794,6 +794,8 @@ class MetricsQueryBuilder(QueryBuilder):
 
 
 class AlertMetricsQueryBuilder(MetricsQueryBuilder):
+    is_alerts_query = True
+
     def __init__(
         self,
         *args: Any,
@@ -828,7 +830,7 @@ class AlertMetricsQueryBuilder(MetricsQueryBuilder):
             snuba_queries, _ = SnubaQueryBuilder(
                 projects=self.params.projects,
                 metrics_query=transform_mqb_query_to_metrics_query(
-                    snuba_request.query, is_alerts_query=True
+                    snuba_request.query, is_alerts_query=self.is_alerts_query
                 ),
                 use_case_id=UseCaseKey.PERFORMANCE
                 if self.is_performance
@@ -1031,7 +1033,9 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
             snuba_query = self.get_snql_query()[0].query
             try:
                 with sentry_sdk.start_span(op="metric_layer", description="transform_query"):
-                    metric_query = transform_mqb_query_to_metrics_query(snuba_query)
+                    metric_query = transform_mqb_query_to_metrics_query(
+                        snuba_query, self.is_alerts_query
+                    )
                 with sentry_sdk.start_span(op="metric_layer", description="run_query"):
                     metrics_data = get_series(
                         projects=self.params.projects,
@@ -1064,7 +1068,9 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
                     for meta in metric_layer_result["meta"]:
                         if meta["name"] not in data:
                             data[meta["name"]] = self.get_default_value(meta["type"])
+
                 return metric_layer_result
+
         queries = self.get_snql_query()
         if self.dry_run:
             return {
