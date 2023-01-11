@@ -213,7 +213,7 @@ class SnubaTSDB(BaseTSDB):
         we need to manually insert the equivalent query to get the same result.
         """
 
-        def stuff(rollup_granularity, alias):
+        def rollup_agg(rollup_granularity, alias):
             if rollup_granularity == 60:
                 return ["toUnixTimestamp", [["toStartOfMinute", "timestamp"]], alias]
             elif rollup_granularity == 3600:
@@ -235,7 +235,7 @@ class SnubaTSDB(BaseTSDB):
             time_column_alias,
         ]
 
-        known_rollups = stuff(rollup, time_column_alias)
+        known_rollups = rollup_agg(rollup, time_column_alias)
 
         return known_rollups if known_rollups else synthetic_rollup
 
