@@ -941,6 +941,9 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
             "organizations:performance-consecutive-db-issue", organization, actor=None
         )
 
+    def is_creation_allowed_for_project(self, project: Project) -> bool:
+        return True  # Detection always allowed by project for now
+
 
 class NPlusOneDBSpanDetector(PerformanceDetector):
     """
