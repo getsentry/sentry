@@ -173,7 +173,7 @@ function useOverlay({
       open && popperUpdate?.();
     },
   });
-  const {buttonProps} = useButton({onPress: openState.open}, triggerRef);
+  const {buttonProps} = useButton({onPress: openState.toggle}, triggerRef);
   const {triggerProps, overlayProps: overlayTriggerProps} = useOverlayTrigger(
     {type},
     openState,
@@ -191,7 +191,11 @@ function useOverlay({
       isDismissable,
       shouldCloseOnBlur,
       isKeyboardDismissDisabled,
-      shouldCloseOnInteractOutside,
+      shouldCloseOnInteractOutside: target =>
+        target &&
+        triggerRef.current !== target &&
+        !triggerRef.current?.contains(target) &&
+        (shouldCloseOnInteractOutside?.(target) ?? true),
     },
     overlayRef
   );

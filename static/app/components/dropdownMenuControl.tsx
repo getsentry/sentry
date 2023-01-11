@@ -157,11 +157,7 @@ function DropdownMenuControl({
     position,
     isDismissable: !isSubmenu && isDismissable,
     shouldCloseOnBlur: !isSubmenu && shouldCloseOnBlur,
-    shouldCloseOnInteractOutside: target =>
-      !isSubmenu &&
-      target &&
-      triggerRef.current !== target &&
-      !triggerRef.current?.contains(target),
+    shouldCloseOnInteractOutside: () => !isSubmenu,
     // Necessary for submenus to be correctly positioned
     ...(isSubmenu && {preventOverflowOptions: {boundary: document.body, altAxis: true}}),
   });
