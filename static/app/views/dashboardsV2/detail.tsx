@@ -33,6 +33,7 @@ import EventView from 'sentry/utils/discover/eventView';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import withApi from 'sentry/utils/withApi';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
 import withProjects from 'sentry/utils/withProjects';
 import {
@@ -174,13 +175,15 @@ class DashboardDetail extends Component<Props, State> {
           onEdit: () => {
             const widgetIndex = dashboard.widgets.indexOf(widget);
             if (dashboardId) {
-              router.push({
-                pathname: `/organizations/${organization.slug}/dashboard/${dashboardId}/widget/${widgetIndex}/edit/`,
-                query: {
-                  ...location.query,
-                  source: DashboardWidgetSource.DASHBOARDS,
-                },
-              });
+              router.push(
+                normalizeUrl({
+                  pathname: `/organizations/${organization.slug}/dashboard/${dashboardId}/widget/${widgetIndex}/edit/`,
+                  query: {
+                    ...location.query,
+                    source: DashboardWidgetSource.DASHBOARDS,
+                  },
+                })
+              );
               return;
             }
           },
@@ -464,13 +467,15 @@ class DashboardDetail extends Component<Props, State> {
     });
 
     if (dashboardId) {
-      router.push({
-        pathname: `/organizations/${organization.slug}/dashboard/${dashboardId}/widget/new/`,
-        query: {
-          ...location.query,
-          source: DashboardWidgetSource.DASHBOARDS,
-        },
-      });
+      router.push(
+        normalizeUrl({
+          pathname: `/organizations/${organization.slug}/dashboard/${dashboardId}/widget/new/`,
+          query: {
+            ...location.query,
+            source: DashboardWidgetSource.DASHBOARDS,
+          },
+        })
+      );
       return;
     }
   };

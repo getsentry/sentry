@@ -2339,10 +2339,13 @@ def _save_aggregate_performance(jobs: Sequence[PerformanceJob], projects: Projec
                         tags={"platform": event.platform or "unknown"},
                         sample_rate=1.0,
                     ) as metric_tags, transaction.atomic():
-                        span.set_tag("create_group_transaction.outcome", "no_group")
-                        metric_tags["create_group_transaction.outcome"] = "no_group"
-
                         problem = performance_problems_by_hash[new_grouphash]
+
+                        span.set_tag("create_group_transaction.outcome", "no_group")
+                        span.set_tag("group_type", problem.type.name)
+                        metric_tags["create_group_transaction.outcome"] = "no_group"
+                        metric_tags["group_type"] = problem.type.name
+
                         group_kwargs = kwargs.copy()
                         group_kwargs["type"] = problem.type.value
 

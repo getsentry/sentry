@@ -9,7 +9,6 @@ import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import platforms from 'sentry/data/platforms';
 import {t} from 'sentry/locale';
-import {PageHeader} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
 import {IntegrationProvider, Organization, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
@@ -25,7 +24,7 @@ import PlatformHeaderButtonBar from './components/platformHeaderButtonBar';
 type Props = {
   integrationSlug: string;
   organization: Organization;
-} & RouteComponentProps<{orgId: string; platform: string; projectId: string}, {}> &
+} & RouteComponentProps<{platform: string; projectId: string}, {}> &
   AsyncComponent['props'];
 
 type State = {
@@ -82,9 +81,10 @@ class PlatformIntegrationSetup extends AsyncComponent<Props, State> {
   };
 
   redirectToNeutralDocs() {
-    const {orgId, projectId} = this.props.params;
+    const {organization} = this.props;
+    const {projectId} = this.props.params;
 
-    const url = `/organizations/${orgId}/projects/${projectId}/getting-started/`;
+    const url = `/organizations/${organization.slug}/projects/${projectId}/getting-started/`;
 
     browserHistory.push(url);
   }
@@ -106,14 +106,14 @@ class PlatformIntegrationSetup extends AsyncComponent<Props, State> {
   render() {
     const {organization, params} = this.props;
     const {installed, project} = this.state;
-    const {projectId, orgId, platform} = params;
+    const {projectId, platform} = params;
     const provider = this.provider;
 
     const platformIntegration = platforms.find(p => p.id === platform);
     if (!provider || !platformIntegration || !project) {
       return null;
     }
-    const gettingStartedLink = `/organizations/${orgId}/projects/${projectId}/getting-started/`;
+    const gettingStartedLink = `/organizations/${organization.slug}/projects/${projectId}/getting-started/`;
 
     // TODO: make dynamic when adding more integrations
     const docsLink =
@@ -121,16 +121,16 @@ class PlatformIntegrationSetup extends AsyncComponent<Props, State> {
 
     return (
       <OuterWrapper>
-        <StyledPageHeader>
+        <InnerWrapper>
           <StyledTitle>
             {t('Automatically instrument %s', platformIntegration.name)}
           </StyledTitle>
-          <PlatformHeaderButtonBar
-            gettingStartedLink={gettingStartedLink}
-            docsLink={docsLink}
-          />
-        </StyledPageHeader>
-        <InnerWrapper>
+          <HeaderButtons>
+            <PlatformHeaderButtonBar
+              gettingStartedLink={gettingStartedLink}
+              docsLink={docsLink}
+            />
+          </HeaderButtons>
           {!installed ? (
             <Fragment>
               <AddInstallationInstructions />
@@ -186,7 +186,7 @@ const StyledButtonBar = styled(ButtonBar)`
 `;
 
 const InnerWrapper = styled('div')`
-  width: 850px;
+  max-width: 850px;
 `;
 
 const OuterWrapper = styled('div')`
@@ -196,12 +196,14 @@ const OuterWrapper = styled('div')`
   margin-top: 50px;
 `;
 
-const StyledPageHeader = styled(PageHeader)`
+const HeaderButtons = styled('div')`
+  width: min-content;
   margin-bottom: ${space(3)};
 `;
 
 const StyledTitle = styled('h2')`
-  margin: 0 ${space(3)} 0 0;
+  margin: 0;
+  margin-bottom: ${space(2)};
 `;
 
 export default withOrganization(PlatformIntegrationSetup);
