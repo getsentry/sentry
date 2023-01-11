@@ -21,7 +21,7 @@ import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAna
 import Projects from 'sentry/utils/projects';
 
 import FilterBar from '../../filterBar';
-import {Incident} from '../../types';
+import {Incident, Tab} from '../../types';
 import {getQueryStatus, getTeamParams} from '../../utils';
 import AlertHeader from '../header';
 import Onboarding from '../onboarding';
@@ -260,7 +260,7 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
     return (
       <SentryDocumentTitle title={t('Alerts')} orgSlug={organization.slug}>
         <PageFiltersContainer>
-          <AlertHeader router={router} activeTab="stream" />
+          <AlertHeader router={router} activeTab={Tab.HISTORY} />
           <Layout.Body>
             <Layout.Main fullWidth>
               {!this.tryRenderOnboarding() && (

@@ -55,6 +55,11 @@ export type ActivityType = ActivityTypeDraft & {
   eventStats?: {data: Data};
 };
 
+export enum Tab {
+  RULES = 'rules',
+  HISTORY = 'history',
+}
+
 export enum IncidentActivityType {
   CREATED = 0,
   DETECTED = 1,

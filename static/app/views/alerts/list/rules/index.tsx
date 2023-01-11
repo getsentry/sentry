@@ -19,7 +19,7 @@ import Teams from 'sentry/utils/teams';
 import withPageFilters from 'sentry/utils/withPageFilters';
 
 import FilterBar from '../../filterBar';
-import {AlertRuleType, CombinedMetricIssueAlerts} from '../../types';
+import {AlertRuleType, CombinedMetricIssueAlerts, Tab} from '../../types';
 import {getTeamParams, isIssueAlert} from '../../utils';
 import AlertHeader from '../header';
 
@@ -261,7 +261,7 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
     return (
       <SentryDocumentTitle title={t('Alerts')} orgSlug={organization.slug}>
         <PageFiltersContainer>
-          <AlertHeader router={router} activeTab="rules" />
+          <AlertHeader router={router} activeTab={Tab.RULES} />
           {this.renderList()}
         </PageFiltersContainer>
       </SentryDocumentTitle>

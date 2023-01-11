@@ -5,6 +5,8 @@ import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import AlertHeader from 'sentry/views/alerts/list/header';
 
+import {Tab} from '../types';
+
 describe('AlertHeader', () => {
   const project = TestStubs.Project();
   const {routerContext, organization} = initializeOrg();
@@ -28,7 +30,7 @@ describe('AlertHeader', () => {
   });
 
   it('should pass global selection project to create alert button', () => {
-    render(<AlertHeader activeTab="stream" router={TestStubs.router()} />, {
+    render(<AlertHeader activeTab={Tab.HISTORY} router={TestStubs.router()} />, {
       context: routerContext,
       organization,
     });
