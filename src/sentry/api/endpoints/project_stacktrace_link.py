@@ -196,7 +196,6 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
         except Exception:
             logger.exception("There was a failure sorting the code mappings")
 
-        derived = False
         current_config = None
         with configure_scope() as scope:
             set_top_tags(scope, project, ctx, len(configs) > 0)
@@ -206,11 +205,6 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                     # Later on, if there are matching code mappings this will be overwritten
                     result["error"] = "stack_root_mismatch"
                     continue
-                if (
-                    filepath.startswith(config.stack_root)
-                    and config.automatically_generated is True
-                ):
-                    derived = True
 
                 outcome = {}
                 munging_outcome = {}
@@ -233,6 +227,7 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                     scope.set_tag("stacktrace_link.munged", True)
 
                 current_config = {"config": serialize(config, request.user), "outcome": outcome}
+
                 # use the provider key to be able to split up stacktrace
                 # link metrics by integration type
                 provider = current_config["config"]["provider"]["key"]
@@ -246,11 +241,14 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
             # Post-processing before exiting scope context
             found: bool = result["sourceUrl"] is not None
             scope.set_tag("stacktrace_link.found", found)
-            scope.set_tag("stacktrace_link.auto_derived", derived)
             scope.set_tag("stacktrace_link.source_url", result.get("sourceUrl"))
             scope.set_tag("stacktrace_link.tried_url", result.get("attemptedUrl"))
             if current_config:
                 result["config"] = current_config["config"]
+                scope.set_tag(
+                    "stacktrace_link.auto_derived",
+                    result["config"]["automaticallyGenerated"] is True,
+                )
                 scope.set_tag("stacktrace_link.empty_root", result["config"]["stackRoot"] == "")
                 if not found:
                     result["error"] = current_config["outcome"]["error"]
