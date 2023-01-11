@@ -8,7 +8,7 @@ from sentry_sdk import capture_exception
 
 from sentry.integrations.slack.requests.base import SlackRequestError
 from sentry.integrations.slack.webhooks.base import SlackDMEndpoint
-from sentry.models.integrations import Integration, OrganizationIntegration
+from sentry.services.hybrid_cloud.integration import APIIntegration, integration_service
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.utils.signing import unsign
 
@@ -42,7 +42,7 @@ class SlackRequestParser(BaseRequestParser):
     Django views which will not map to an existing integration
     """
 
-    def get_integration(self) -> Integration | None:
+    def get_integration(self) -> APIIntegration | None:
         view_class_name = self.match.func.view_class.__name__
         if view_class_name in self.endpoint_classes:
             # We need convert the raw Django request to a Django Rest Framework request
@@ -60,13 +60,12 @@ class SlackRequestParser(BaseRequestParser):
                 )
                 return None
             return slack_request.integration
+
         elif view_class_name in self.django_view_classes:
             # Parse the signed params and ensure the organization is associated with the
             params = unsign(self.match.kwargs.get("signed_params"))
-            organization_integration = OrganizationIntegration.objects.filter(
-                integration_id=params.get("integration_id"),
-            ).first()
-            return organization_integration.integration
+            return integration_service.get_integration(integration_id=params.get("integration_id"))
+
         elif view_class_name in self.installation_view_classes:
             return None
 

@@ -302,9 +302,6 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
             )
             return self.respond_ephemeral(LINK_IDENTITY_MESSAGE.format(associate_url=associate_url))
 
-        # Determine the acting user by Slack identity.
-        identity_user = slack_request.get_identity_user()
-
         original_tags_from_request = slack_request.get_tags()
         # Handle status dialog submission
         if (
