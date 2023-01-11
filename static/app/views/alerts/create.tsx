@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import PageHeading from 'sentry/components/pageHeading';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {Member, Organization, Project} from 'sentry/types';
@@ -121,9 +122,8 @@ class Create extends Component<Props, State> {
     return (
       <Fragment>
         <SentryDocumentTitle title={title} projectSlug={project.slug} />
-
         <Layout.Header>
-          <StyledHeaderContent>
+          <Layout.HeaderContent>
             <BuilderBreadCrumbs
               organization={organization}
               alertName={t('Set Conditions')}
@@ -134,12 +134,12 @@ class Create extends Component<Props, State> {
               location={location}
               canChangeProject
             />
-            <Layout.Title>
+            <StyledHeading>
               {wizardAlertType
                 ? `${t('Set Conditions for')} ${AlertWizardAlertNames[wizardAlertType]}`
                 : title}
-            </Layout.Title>
-          </StyledHeaderContent>
+            </StyledHeading>
+          </Layout.HeaderContent>
         </Layout.Header>
         <Body>
           <Teams provideUserTeams>
@@ -188,8 +188,8 @@ class Create extends Component<Props, State> {
   }
 }
 
-const StyledHeaderContent = styled(Layout.HeaderContent)`
-  overflow: visible;
+const StyledHeading = styled(PageHeading)`
+  line-height: 40px;
 `;
 
 const Body = styled(Layout.Body)`
