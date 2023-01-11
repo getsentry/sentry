@@ -46,6 +46,36 @@ def test_generate_rules_capture_exception(get_blended_sample_rate, sentry_sdk):
     validate_sampling_configuration(config_str)
 
 
+@pytest.mark.django_db
+@patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
+def test_generate_rules_return_only_uniform_if_sample_rate_is_100_and_other_rules_are_enabled(
+    get_blended_sample_rate, default_project
+):
+    get_blended_sample_rate.return_value = 1.0
+    default_project.update_option(
+        "sentry:dynamic_sampling_biases",
+        [
+            {"id": "boostEnvironments", "active": True},
+            {"id": "ignoreHealthChecks", "active": True},
+            {"id": "boostLatestRelease", "active": True},
+            {"id": "boostKeyTransactions", "active": True},
+        ],
+    )
+
+    assert generate_rules(default_project) == [
+        {
+            "active": True,
+            "condition": {"inner": [], "op": "and"},
+            "id": 1000,
+            "sampleRate": 1.0,
+            "type": "trace",
+        },
+    ]
+    get_blended_sample_rate.assert_called_with(default_project)
+    config_str = json.dumps({"rules": generate_rules(default_project)})
+    validate_sampling_configuration(config_str)
+
+
 @patch("sentry.dynamic_sampling.rules.base.get_enabled_user_biases")
 @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
 def test_generate_rules_return_uniform_rules_with_rate(
