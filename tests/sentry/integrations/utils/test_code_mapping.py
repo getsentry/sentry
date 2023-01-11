@@ -40,9 +40,9 @@ UNSUPPORTED_FRAME_FILENAMES = [
     "README",  # no extension
     "ssl.py",
     # XXX: The following will need to be supported
+    "C:\\Users\\Donia\\AppData\\Roaming\\Adobe\\UXP\\Plugins\\External\\452f92d2_0.13.0\\main.js",
     "initialization.dart",
     "backburner.js",
-    "C:\\Users\\Donia\\AppData\\Roaming\\Adobe\\UXP\\Plugins\\External\\452f92d2_0.13.0\\main.js",
 ]
 
 
@@ -299,3 +299,24 @@ class TestDerivedCodeMappings(TestCase):
         )
         assert stacktrace_root == "./"
         assert source_path == "app/foo/"
+
+    def test_normalized_stack_and_source_roots_starts_with_app(self):
+        stacktrace_root, source_path = self.code_mapping_helper._normalized_stack_and_source_roots(
+            "app:///utils/", "utils/"
+        )
+        assert stacktrace_root == "app:///"
+        assert source_path == ""
+
+    def test_normalized_stack_and_source_roots_starts_with_multiple_dot_dot_slash(self):
+        stacktrace_root, source_path = self.code_mapping_helper._normalized_stack_and_source_roots(
+            "../../../../../../packages/", "packages/"
+        )
+        assert stacktrace_root == "../../../../../../"
+        assert source_path == ""
+
+    def test_normalized_stack_and_source_roots_starts_with_app_dot_dot_slash(self):
+        stacktrace_root, source_path = self.code_mapping_helper._normalized_stack_and_source_roots(
+            "app:///../services/", "services/"
+        )
+        assert stacktrace_root == "app:///../"
+        assert source_path == ""
