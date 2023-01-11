@@ -365,7 +365,7 @@ class ProjectProcessingIssues extends Component<Props, State> {
                 "Paste this command into your shell and we'll attempt to upload the missing symbols from your machine:"
               )}
             </label>
-            <TextCopyInput monospace>{'curl -sL "{fixLink}" | bash'}</TextCopyInput>
+            <TextCopyInput monospace>{`curl -sL "${fixLink}" | bash`}</TextCopyInput>
           </PanelBody>
         </Panel>
       );
