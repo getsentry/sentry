@@ -15,9 +15,10 @@ import Link from 'sentry/components/links/link';
 import Placeholder from 'sentry/components/placeholder';
 import type {PlatformKey} from 'sentry/data/platformCategories';
 import {IconClose} from 'sentry/icons/iconClose';
+import {IconWarning} from 'sentry/icons/iconWarning';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import type {Event, Frame, Organization, Project} from 'sentry/types';
+import {CodecovStatusCode, Event, Frame, Organization, Project} from 'sentry/types';
 import {StacktraceLinkEvents} from 'sentry/utils/analytics/integrations/stacktraceLinkAnalyticsEvents';
 import {getAnalyicsDataForEvent} from 'sentry/utils/events';
 import {
@@ -97,6 +98,36 @@ function StacktraceLinkSetup({organization, project, event}: StacktraceLinkSetup
         <IconClose size="xs" aria-label={t('Close')} />
       </CloseButton>
     </CodeMappingButtonContainer>
+  );
+}
+
+interface CodecovLinkProps {
+  codecovStatusCode: CodecovStatusCode;
+  sourceUrl: string | undefined;
+}
+
+function CodecovLink({sourceUrl, codecovStatusCode}: CodecovLinkProps) {
+  if (codecovStatusCode === CodecovStatusCode.NO_COVERAGE_DATA) {
+    return (
+      <CodecovWarning>
+        <span style={{padding: '0 4px'}}>{t('Code Coverage not found')}</span>
+        <StyledIconWrapper>
+          <IconWarning size="xs" color="errorText" />
+        </StyledIconWrapper>
+      </CodecovWarning>
+    );
+  }
+
+  const codecovUrl = sourceUrl?.replaceAll(
+    new RegExp('github.com/.[^/]*', 'g'),
+    'app.codecov.io/gh'
+  );
+
+  return (
+    <OpenInLink href={`${codecovUrl}`} openInNewTab>
+      {t('View Coverage Tests on Codecov')}
+      <StyledIconWrapper>{getIntegrationIcon('codecov', 'sm')}</StyledIconWrapper>
+    </OpenInLink>
   );
 }
 
@@ -213,12 +244,9 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
   if (match.config && match.sourceUrl) {
     const showCodecovFeatures =
       organization.features.includes('codecov-stacktrace-integration') &&
-      organization.codecovAccess;
-
-    const codecovUrl = match.sourceUrl.replaceAll(
-      new RegExp('github.com/.[^/]*', 'g'),
-      'app.codecov.io/gh'
-    );
+      organization.codecovAccess &&
+      (match.codecovStatusCode === CodecovStatusCode.COVERAGE_EXISTS ||
+        match.codecovStatusCode === CodecovStatusCode.NO_COVERAGE_DATA);
 
     return (
       <CodeMappingButtonContainer columnQuantity={2}>
@@ -233,10 +261,10 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
           {t('Open this line in %s', match.config.provider.name)}
         </OpenInLink>
         {showCodecovFeatures && (
-          <OpenInLink href={`${codecovUrl}`} openInNewTab>
-            {t('View Coverage Tests on Codecov')}
-            <StyledIconWrapper>{getIntegrationIcon('codecov', 'sm')}</StyledIconWrapper>
-          </OpenInLink>
+          <CodecovLink
+            sourceUrl={match.sourceUrl}
+            codecovStatusCode={match.codecovStatusCode}
+          />
         )}
       </CodeMappingButtonContainer>
     );
@@ -341,4 +369,8 @@ const OpenInLink = styled(ExternalLink)`
 const StyledLink = styled(Link)`
   ${LinkStyles}
   color: ${p => p.theme.gray300};
+`;
+
+const CodecovWarning = styled('span')`
+  color: ${p => p.theme.errorText};
 `;
