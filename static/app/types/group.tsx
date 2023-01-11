@@ -72,7 +72,11 @@ type CapabilityInfo = {
  */
 export type IssueCategoryCapabilities = {
   /**
-   * Are codeowner features enabled for this issue
+   * Is the Attachments tab shown for this issue
+   */
+  attachments: CapabilityInfo;
+  /**
+   * Are codeowner features shown for this issue
    */
   codeowners: CapabilityInfo;
   /**
@@ -84,6 +88,10 @@ export type IssueCategoryCapabilities = {
    */
   deleteAndDiscard: CapabilityInfo;
   /**
+   * Is the Grouping tab shown for this issue
+   */
+  grouping: CapabilityInfo;
+  /**
    * Can the issue be ignored (and the dropdown options)
    */
   ignore: CapabilityInfo;
@@ -92,9 +100,25 @@ export type IssueCategoryCapabilities = {
    */
   merge: CapabilityInfo;
   /**
+   * Is the Merged Issues tab shown for this issue
+   */
+  mergedIssues: CapabilityInfo;
+  /**
+   * Is the Replays tab shown for this issue
+   */
+  replays: CapabilityInfo;
+  /**
    * Can the issue be shared
    */
   share: CapabilityInfo;
+  /**
+   * Is the Similar Issues tab shown for this issue
+   */
+  similarIssues: CapabilityInfo;
+  /**
+   * Is the User Feedback tab enabled for this issue
+   */
+  userFeedback: CapabilityInfo;
 };
 
 // endpoint: /api/0/issues/:issueId/attachments/?limit=50
