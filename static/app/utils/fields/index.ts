@@ -677,7 +677,6 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
   [FieldKey.LEVEL]: {
     kind: FieldKind.FIELD,
     desc: t('Severity of the event (i.e., fatal, error, warning)'),
-    keywords: ['fatal', 'critical', 'error', 'warning', 'log', 'info', 'debug'],
     valueType: FieldValueType.STRING,
   },
   [FieldKey.LOCATION]: {
