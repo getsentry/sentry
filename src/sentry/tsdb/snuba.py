@@ -213,30 +213,31 @@ class SnubaTSDB(BaseTSDB):
         we need to manually insert the equivalent query to get the same result.
         """
 
-        def rollup_agg(func: str):
-            return [
-                "toUnixTimestamp",
-                [[func, "timestamp"]],
-                time_column_alias,
-            ]
-
-        rollup_to_start_func = {
-            60: "toStartOfMinute",
-            3600: "toStartOfHour",
-            3600 * 24: "toDate",
-        }
+        def stuff(rollup_granularity, alias):
+            if rollup_granularity == 60:
+                return ["toUnixTimestamp", [["toStartOfMinute", "timestamp"]], alias]
+            elif rollup_granularity == 3600:
+                return ["toUnixTimestamp", [["toStartOfHour", "timestamp"]], alias]
+            elif rollup_granularity == 3600 * 24:
+                return [
+                    "toUnixTimestamp",
+                    [["toDateTime", [["toDate", "timestamp"]]]],
+                    time_column_alias,
+                ]
+            else:
+                return None
 
         # if we don't have an explicit function mapped to this rollup, we have to calculate it on the fly
         # multiply(intDiv(toUInt32(toUnixTimestamp(timestamp)), granularity)))
-        special_rollup = [
+        synthetic_rollup = [
             "multiply",
             [["intDiv", [["toUInt32", [["toUnixTimestamp", "timestamp"]]], rollup]], rollup],
             time_column_alias,
         ]
 
-        rollup_func = rollup_to_start_func.get(rollup)
+        known_rollups = stuff(rollup, time_column_alias)
 
-        return rollup_agg(rollup_func) if rollup_func else special_rollup
+        return known_rollups if known_rollups else synthetic_rollup
 
     def get_data(
         self,
