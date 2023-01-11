@@ -4,8 +4,6 @@ import JsonForm from 'sentry/components/forms/jsonForm';
 import accountDetailsFields from 'sentry/data/forms/accountDetails';
 import {fields} from 'sentry/data/forms/projectGeneralSettings';
 
-import {Field} from './types';
-
 const user = TestStubs.User();
 
 describe('JsonForm', function () {
@@ -32,9 +30,7 @@ describe('JsonForm', function () {
     it('should ALWAYS hide panel, if all fields have visible set to false  AND there is no renderHeader & renderFooter -  visible prop is of type boolean', function () {
       const modifiedAccountDetails = accountDetailsFields.map(accountDetailsField => ({
         ...accountDetailsField,
-        fields: accountDetailsField.fields.map(
-          field => ({...field, visible: false} as Field)
-        ),
+        fields: accountDetailsField.fields.map(field => ({...field, visible: false})),
       }));
 
       render(<JsonForm forms={modifiedAccountDetails} additionalFieldProps={{user}} />);
@@ -45,13 +41,10 @@ describe('JsonForm', function () {
     it('should ALWAYS hide panel, if all fields have visible set to false AND there is no renderHeader & renderFooter -  visible prop is of type func', function () {
       const modifiedAccountDetails = accountDetailsFields.map(accountDetailsField => ({
         ...accountDetailsField,
-        fields: accountDetailsField.fields.map(
-          field =>
-            ({
-              ...field,
-              visible: () => false,
-            } as Field)
-        ),
+        fields: accountDetailsField.fields.map(field => ({
+          ...field,
+          visible: () => false,
+        })),
       }));
 
       render(<JsonForm forms={modifiedAccountDetails} additionalFieldProps={{user}} />);
@@ -70,9 +63,7 @@ describe('JsonForm', function () {
     it('should NOT hide panel, if all fields have visible set to false AND a prop renderHeader is passed', function () {
       const modifiedAccountDetails = accountDetailsFields.map(accountDetailsField => ({
         ...accountDetailsField,
-        fields: accountDetailsField.fields.map(
-          field => ({...field, visible: false} as Field)
-        ),
+        fields: accountDetailsField.fields.map(field => ({...field, visible: false})),
       }));
 
       render(

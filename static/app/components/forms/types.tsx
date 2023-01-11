@@ -212,7 +212,7 @@ export type Field = (
 ) &
   BaseField;
 
-export type FieldObject = Field | (() => React.ReactElement | null);
+export type FieldObject = Field | Function;
 
 export type JsonFormObject = {
   fields: FieldObject[];

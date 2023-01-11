@@ -1,5 +1,6 @@
 import {RouteComponentProps} from 'react-router';
 import {Location} from 'history';
+import cloneDeep from 'lodash/cloneDeep';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {updateOrganization} from 'sentry/actionCreators/organizations';
@@ -8,6 +9,7 @@ import AvatarChooser from 'sentry/components/avatarChooser';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import organizationSettingsFields from 'sentry/data/forms/organizationGeneralSettings';
+import {t} from 'sentry/locale';
 import {Organization, Scope} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
 
@@ -41,9 +43,19 @@ class OrganizationSettingsForm extends AsyncComponent<Props, State> {
       location: this.props.location,
       disabled: !access.has('org:write'),
     };
-    const codecovAccess = organization.features.includes(
-      'codecov-stacktrace-integration'
-    );
+
+    const forms = cloneDeep(organizationSettingsFields);
+    if (organization.features.includes('codecov-stacktrace-integration')) {
+      forms[0].fields = [
+        ...forms[0].fields,
+        {
+          name: 'codecovAccess',
+          type: 'boolean',
+          label: t('Enable Codecov Access'),
+          help: t('Opt-in to connect your codecov account'),
+        },
+      ];
+    }
 
     return (
       <Form
@@ -61,11 +73,7 @@ class OrganizationSettingsForm extends AsyncComponent<Props, State> {
         }}
         onSubmitError={() => addErrorMessage('Unable to save change')}
       >
-        <JsonForm
-          {...jsonFormSettings}
-          forms={organizationSettingsFields}
-          additionalFieldProps={{codecovAccess}}
-        />
+        <JsonForm {...jsonFormSettings} forms={forms} />
         <AvatarChooser
           type="organization"
           allowGravatar={false}
