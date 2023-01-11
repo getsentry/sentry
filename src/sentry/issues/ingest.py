@@ -210,6 +210,7 @@ def send_issue_occurrence_to_eventstream(
         primary_hash=occurrence.fingerprint[0],
         received_timestamp=group_event.data.get("received") or group_event.datetime,
         skip_consume=False,
+        group_id=group_info.group.id,
         group_states=[
             {
                 "id": group_info.group.id,
