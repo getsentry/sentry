@@ -85,6 +85,7 @@ export interface FlamegraphTheme {
     MINIMAP_POSITION_OVERLAY_BORDER_WIDTH: number;
     SPANS_BAR_HEIGHT: number;
     SPANS_DEPTH_OFFSET: number;
+    SPANS_FONT_SIZE: number;
     SPANS_HEIGHT: number;
     TIMELINE_HEIGHT: number;
     TOOLTIP_FONT_SIZE: number;
@@ -108,15 +109,15 @@ export const LCH_DARK = {
 };
 
 const SPAN_LCH_LIGHT = {
-  C_0: 0.25,
-  C_d: 0.2,
-  L_0: 0.7,
-  L_d: 0.25,
+  C_0: 0.3,
+  C_d: 0.25,
+  L_0: 0.8,
+  L_d: 0.15,
 };
 
 const SPANS_LCH_DARK = {
-  C_0: 0.2,
-  C_d: 0.1,
+  C_0: 0.3,
+  C_d: 0.15,
   L_0: 0.2,
   L_d: 0.1,
 };
@@ -137,7 +138,8 @@ const SIZES: FlamegraphTheme['SIZES'] = {
   MINIMAP_HEIGHT: 100,
   MINIMAP_POSITION_OVERLAY_BORDER_WIDTH: 2,
   SPANS_HEIGHT: 160,
-  SPANS_BAR_HEIGHT: 16,
+  SPANS_BAR_HEIGHT: 20,
+  SPANS_FONT_SIZE: 11,
   TIMELINE_HEIGHT: 20,
   TOOLTIP_FONT_SIZE: 12,
 };
