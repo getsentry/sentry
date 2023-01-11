@@ -252,7 +252,7 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
             # Post-processing before exiting scope context
             if current_config:
                 result["config"] = current_config["config"]
-                if result.get("sourceUrl"):
+                if not result.get("sourceUrl"):
                     result["error"] = current_config["outcome"]["error"]
                     # When no code mapping have been matched we have not attempted a URL
                     if current_config["outcome"].get("attemptedUrl"):
