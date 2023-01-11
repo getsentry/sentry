@@ -2,6 +2,7 @@ import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
 import space from 'sentry/styles/space';
+import {defined} from 'sentry/utils';
 
 import KeyValueList from '../interfaces/keyValueList';
 
@@ -23,7 +24,7 @@ function DetailsPanel({data, getTitle}: DetailsPanelProps) {
 
   return (
     <Container>
-      {!!getTitle && <Title>{getTitle(data)}</Title>}
+      {defined(getTitle) && <Title>{getTitle(data)}</Title>}
       <KeyValueList data={keyValueData} />
     </Container>
   );
