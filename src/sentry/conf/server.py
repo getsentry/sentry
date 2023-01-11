@@ -1032,7 +1032,7 @@ SENTRY_FEATURES = {
     # Enable issue alert test notifications
     "organizations:issue-alert-test-notifications": False,
     # Enable issue platform
-    "organizations:issue-platform": False,
+    "organizations:issue-platform": True,
     # Whether to allow issue only search on the issue list
     "organizations:issue-search-allow-postgres-only-search": False,
     # Flags for enabling CdcEventsDatasetSnubaSearchBackend in sentry.io. No effect in open-source
@@ -1887,7 +1887,7 @@ SENTRY_WATCHERS = (
 # generate fake data for local testing. You can also manually enable relay with the `--ingest` flag to `devserver`.
 # XXX: This is disabled by default as typical development workflows do not require end-to-end services running
 # and disabling optional services reduces resource consumption and complexity
-SENTRY_USE_RELAY = False
+SENTRY_USE_RELAY = True
 SENTRY_RELAY_PORT = 7899
 
 # Controls whether we'll run the snuba subscription processor. If enabled, we'll run
@@ -1913,7 +1913,7 @@ SENTRY_USE_CDC_DEV = False
 SENTRY_USE_PROFILING = False
 
 # This flag activates consuming issue platform occurrence data in the development environment
-SENTRY_USE_ISSUE_OCCURRENCE = False
+SENTRY_USE_ISSUE_OCCURRENCE = True
 
 # This flag activates code paths that are specific for customer domains
 SENTRY_USE_CUSTOMER_DOMAINS = False

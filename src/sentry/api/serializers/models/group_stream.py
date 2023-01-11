@@ -218,7 +218,7 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
                 ),
                 environment_ids=self.environment_ids,
             )
-            stats = partial_get_stats()
+            # stats = partial_get_stats()
             filtered_stats = (
                 partial_get_stats(conditions=self.conditions)
                 if self.conditions and not self._collapse("filtered")
@@ -227,7 +227,7 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
             for item in item_list:
                 if filtered_stats:
                     attrs[item].update({"filtered_stats": filtered_stats[item.id]})
-                attrs[item].update({"stats": stats[item.id]})
+                # attrs[item].update({"stats": stats[item.id]})
 
             if self._expand("sessions"):
                 uniq_project_ids = list({item.project_id for item in item_list})

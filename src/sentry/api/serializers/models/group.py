@@ -541,7 +541,8 @@ class GroupSerializerBase(Serializer, ABC):
         if seen_stats:
             for item in seen_stats.values():
                 if last_seen is None or (item["last_seen"] and last_seen > item["last_seen"]):
-                    last_seen = item["last_seen"]
+                    # last_seen = item["last_seen"]
+                    pass
 
         if last_seen is None:
             return datetime.now(pytz.utc) - timedelta(days=30)
