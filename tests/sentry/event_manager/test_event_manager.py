@@ -2456,9 +2456,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
 
             # The group should not be created, but there should be a tag on the transaction
             assert len(last_event.groups) == 0
-            assert transaction.set_tag.assert_called_with(
-                "_will_smith_will_create_slow_db_issue", "true"
-            )
+            transaction.set_tag.assert_called_with("_will_create_slow_db_issue", "true")
 
 
 class AutoAssociateCommitTest(TestCase, EventManagerTestMixin):
