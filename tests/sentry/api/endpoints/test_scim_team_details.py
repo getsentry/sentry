@@ -74,6 +74,7 @@ class SCIMTeamDetailsTests(SCIMTestCase):
         assert response.status_code == 204, response.content
         assert Team.objects.get(id=team.id).slug == "newname"
         assert Team.objects.get(id=team.id).name == "newName"
+        assert Team.objects.get(id=team.id).idp_provisioned
 
     def test_scim_team_details_patch_add(self):
         team = self.create_team(organization=self.organization)
@@ -103,6 +104,7 @@ class SCIMTeamDetailsTests(SCIMTestCase):
         assert OrganizationMemberTeam.objects.filter(
             team_id=str(team.id), organizationmember_id=member1.id
         ).exists()
+        assert Team.objects.get(id=team.id).idp_provisioned
 
     def test_scim_team_details_patch_remove(self):
         team = self.create_team(organization=self.organization)
@@ -129,6 +131,7 @@ class SCIMTeamDetailsTests(SCIMTestCase):
         assert not OrganizationMemberTeam.objects.filter(
             team_id=team.id, organizationmember_id=member1.id
         ).exists()
+        assert Team.objects.get(id=team.id).idp_provisioned
 
     def test_team_details_replace_members_list(self):
         team = self.create_team(organization=self.organization)
@@ -173,6 +176,7 @@ class SCIMTeamDetailsTests(SCIMTestCase):
         assert OrganizationMemberTeam.objects.filter(
             team_id=team.id, organizationmember_id=member3.id
         ).exists()
+        assert Team.objects.get(id=team.id).idp_provisioned
 
     def test_team_doesnt_exist(self):
         url = reverse(
@@ -281,6 +285,7 @@ class SCIMTeamDetailsTests(SCIMTestCase):
         )
         assert response.status_code == 204, response.content
         assert Team.objects.get(id=self.team.id).slug == "thenewname"
+        assert Team.objects.get(id=self.team.id).idp_provisioned
 
     def test_delete_team(self):
         team = self.create_team(organization=self.organization)
@@ -314,6 +319,7 @@ class SCIMTeamDetailsTests(SCIMTestCase):
         assert not OrganizationMemberTeam.objects.filter(
             team_id=self.team.id, organizationmember_id=member1.id
         ).exists()
+        assert Team.objects.get(id=self.team.id).idp_provisioned
 
     def test_remove_member_not_on_team(self):
         member1_no_team = self.create_member(
@@ -341,3 +347,4 @@ class SCIMTeamDetailsTests(SCIMTestCase):
         assert not OrganizationMemberTeam.objects.filter(
             team_id=self.team.id, organizationmember_id=member1_no_team.id
         ).exists()
+        assert Team.objects.get(id=self.team.id).idp_provisioned
