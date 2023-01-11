@@ -171,7 +171,7 @@ class Monitors extends AsyncView<Props, State> {
                 </p>
                 <ButtonList gap={1}>
                   <Button href="https://docs.sentry.io/product/crons" external>
-                    {t('View the docs')}
+                    {t('Read Docs')}
                   </Button>
                   <NewMonitorButton>{t('Set up first cron monitor')}</NewMonitorButton>
                 </ButtonList>
