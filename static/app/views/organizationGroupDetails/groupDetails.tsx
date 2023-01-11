@@ -260,14 +260,16 @@ class GroupDetails extends Component<Props, State> {
   }
 
   getCurrentRouteInfo(group: Group): {baseUrl: string; currentTab: Tab} {
-    const {organization, router} = this.props;
+    const {organization, params} = this.props;
     const {event} = this.state;
 
     const currentTab = this.getCurrentTab();
 
-    const baseUrl = `/organizations/${organization.slug}/issues/${group.id}/${
-      router.params.eventId && event ? `events/${event.id}/` : ''
-    }`;
+    const baseUrl = normalizeUrl(
+      `/organizations/${organization.slug}/issues/${group.id}/${
+        params.eventId && event ? `events/${event.id}/` : ''
+      }`
+    );
 
     return {baseUrl, currentTab};
   }
