@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Dict, List, Mapping, Optional
+from typing import Any, Dict, Iterable, List, Mapping, Optional, Union
 
 import requests
 from rest_framework.request import Request
@@ -19,7 +19,7 @@ from sentry.utils.json import JSONData
 logger = logging.getLogger(__name__)
 
 CODECOV_URL = "https://api.codecov.io/api/v2/service/owner_username/repos/repo_name/report"
-CODECOV_TOKEN = None  # Put your token here for testing
+CODECOV_TOKEN = ""  # Put your token here for testing
 
 
 def get_link(
@@ -186,7 +186,7 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
 
     def get_codecov_line_coverage(
         self, config: JSONData, source_url: str, access_token: str
-    ) -> Any:
+    ) -> Iterable[Union[Any, Optional[int]]]:
         repo_name = config["repoName"].split("/")
         url = (
             CODECOV_URL.replace("service", config["provider"]["key"])
@@ -194,6 +194,7 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
             .replace("repo_name", repo_name[1])
         )
         path = self.get_codecov_path(source_url)
+        status_code = None
         if path:
             params = {"branch": config["defaultBranch"], "path": path}
             try:
@@ -201,11 +202,14 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                     url, params=params, headers={"Authorization": "tokenAuth %s" % access_token}
                 )
                 response_json = response.json()
-                return response_json["files"][0]["line_coverage"]
+                status_code = response.status_code
+                return response_json["files"][0]["line_coverage"], status_code
             except Exception:
-                logger.exception("Could not make codecov call")
-                return None
-        return None
+                if status_code != 404:
+                    logger.exception("Could not make codecov call")
+                return None, status_code
+        logger.error("Could not find codecov path")
+        return None, None
 
     def get(self, request: Request, project: Project) -> Response:
         ctx = generate_context(request.GET)
@@ -301,10 +305,17 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                         scope.set_tag("stacktrace_link.error", "file_not_found")
 
                 result["lineCoverage"] = None
-                if features.has(
-                    "organizations:codecov-stacktrace-integration", project.organization
+                result["codecovStatusCode"] = None
+                if (
+                    features.has(
+                        "organizations:codecov-stacktrace-integration", project.organization
+                    )
+                    and project.organization.flags.codecov_access
                 ):
-                    result["lineCoverage"] = self.get_codecov_line_coverage(
+                    (
+                        result["lineCoverage"],
+                        result["codecovStatusCode"],
+                    ) = self.get_codecov_line_coverage(
                         current_config["config"],
                         result["sourceUrl"],
                         CODECOV_TOKEN,

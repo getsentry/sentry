@@ -1,8 +1,6 @@
 from typing import Any, Mapping
 from unittest import mock
 
-import responses
-
 from sentry.api.endpoints.project_stacktrace_link import ProjectStacktraceLinkEndpoint
 from sentry.integrations.example.integration import ExampleIntegration
 from sentry.models import Integration, OrganizationIntegration
@@ -228,16 +226,18 @@ class ProjectStacktraceLinkTest(BaseProjectStacktraceLink):
         assert response.data["error"] == "stack_root_mismatch"
         assert response.data["integrations"] == [serialized_integration(self.integration)]
 
-    @responses.activate
     @with_feature("organizations:codecov-stacktrace-integration")
     @mock.patch(
         "sentry.api.endpoints.project_stacktrace_link.ProjectStacktraceLinkEndpoint.get_codecov_line_coverage"
     )
     @mock.patch.object(ExampleIntegration, "get_stacktrace_link")
-    def test_codecov(self, mock_integration, mock_codecov):
+    def test_codecov_result(self, mock_integration, mock_codecov):
+        self.organization.flags.codecov_access = True
+        self.organization.save()
         expected_line_coverage = [[1, 0], [3, 1], [4, 0]]
+        expected_status_code = 200
         mock_integration.return_value = "https://github.com/repo/path/to/file.py"
-        mock_codecov.return_value = expected_line_coverage
+        mock_codecov.return_value = (expected_line_coverage, expected_status_code)
         response = self.get_success_response(
             self.organization.slug,
             self.project.slug,
@@ -249,6 +249,7 @@ class ProjectStacktraceLinkTest(BaseProjectStacktraceLink):
             },
         )
         assert response.data["lineCoverage"] == expected_line_coverage
+        assert response.data["codecovStatusCode"] == expected_status_code
 
     def test_get_codecov_path(self):
         project_stacktrace_link_endpoint = ProjectStacktraceLinkEndpoint()
