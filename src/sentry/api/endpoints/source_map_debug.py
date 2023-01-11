@@ -1,12 +1,11 @@
-from __future__ import annotations
-
-from typing import List
+from typing import List, Union
 
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.exceptions import NotFound
 from rest_framework.request import Request
 from rest_framework.response import Response
+from typing_extensions import TypedDict
 
 from sentry import eventstore, features
 from sentry.api.base import region_silo_endpoint
@@ -17,18 +16,19 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models import Organization, Project, SourceMapError
 
 
-class SourceMapErrorResponse:
+class SourceMapErrorResponse(TypedDict):
     type: str
     message: str
-    data: dict | None
+    data: Union[dict, None]
 
 
-class SourceMapResponse:
+class SourceMapResponse(TypedDict):
     errorCount: int
     errors: List[SourceMapErrorResponse]
 
 
 @region_silo_endpoint
+@extend_schema(tags=["Events"])
 class SourceMapDebugEndpoint(ProjectEndpoint):
     public = {"GET"}
 
