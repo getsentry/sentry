@@ -3,6 +3,7 @@ import {browserHistory, RouteComponentProps} from 'react-router';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
 import AsyncView from 'sentry/views/asyncView';
 
@@ -32,7 +33,7 @@ class EditMonitor extends AsyncView<Props, State> {
     this.setState(state => ({monitor: {...state.monitor, ...data}}));
 
   onSubmitSuccess = (data: Monitor) =>
-    browserHistory.push(`/organizations/${this.orgSlug}/crons/${data.id}/`);
+    browserHistory.push(normalizeUrl(`/organizations/${this.orgSlug}/crons/${data.id}/`));
 
   getTitle() {
     if (this.state.monitor) {

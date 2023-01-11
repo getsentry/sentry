@@ -195,10 +195,12 @@ class DashboardDetail extends Component<Props, State> {
         });
       } else {
         // Replace the URL if the widget isn't found and raise an error in toast
-        router.replace({
-          pathname: `/organizations/${organization.slug}/dashboard/${dashboard.id}/`,
-          query: location.query,
-        });
+        router.replace(
+          normalizeUrl({
+            pathname: `/organizations/${organization.slug}/dashboard/${dashboard.id}/`,
+            query: location.query,
+          })
+        );
         addErrorMessage(t('Widget not found'));
       }
     }

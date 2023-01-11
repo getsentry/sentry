@@ -14,6 +14,7 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {logException} from 'sentry/utils/logging';
 import useApi from 'sentry/utils/useApi';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 import CronsFeedbackButton from './cronsFeedbackButton';
 import {Monitor} from './types';
@@ -36,7 +37,7 @@ const MonitorHeaderActions = ({monitor, orgId, onUpdate}: Props) => {
         method: 'DELETE',
       })
       .then(() => {
-        browserHistory.push(redirectPath);
+        browserHistory.push(normalizeUrl(redirectPath));
       })
       .catch(() => {
         addErrorMessage(t('Unable to remove monitor.'));
