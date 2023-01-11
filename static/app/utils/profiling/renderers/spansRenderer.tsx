@@ -30,7 +30,7 @@ function makePatternCanvas(
   const canvas = document.createElement('canvas');
 
   // Extend by width
-  const lineWidth = 2 * dpr;
+  const lineWidth = 4 * dpr;
   const width = barHeight * dpr + lineWidth;
 
   canvas.width = width;
