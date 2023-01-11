@@ -2,6 +2,7 @@ from datetime import timedelta
 from uuid import UUID
 
 from django.utils import timezone
+from django.utils.http import urlquote
 from freezegun import freeze_time
 
 from sentry.models import CheckInStatus, Monitor, MonitorCheckIn, MonitorStatus, MonitorType
@@ -18,75 +19,83 @@ class CreateMonitorCheckInTest(MonitorTestCase):
     def setUp(self):
         super().setUp()
 
+    def test_headers_on_creation(self):
+        self.login_as(self.user)
+
+        for path_func in self._get_path_functions():
+            monitor = self._create_monitor()
+            path = path_func(monitor)
+
+            resp = self.client.post(path, {"status": "ok"})
+            assert resp.status_code == 201, resp.content
+
+            # XXX(dcramer): pretty gross assertion but due to the pathing theres no easier way
+            assert (
+                resp["Link"]
+                == f'<http://testserver{urlquote(path)}checkins/latest/>; rel="latest">'
+            )
+            assert resp["Location"] == f'http://testserver{path}checkins/{resp.data["id"]}/'
+
     def test_passing(self):
         self.login_as(self.user)
 
-        with self.feature("organizations:monitors"):
-            for path_func in self._get_path_functions():
-                monitor = self._create_monitor()
-                path = path_func(monitor)
+        for path_func in self._get_path_functions():
+            monitor = self._create_monitor()
+            path = path_func(monitor)
 
-                resp = self.client.post(path, {"status": "ok"})
-                assert resp.status_code == 201, resp.content
+            resp = self.client.post(path, {"status": "ok"})
+            assert resp.status_code == 201, resp.content
 
-                checkin = MonitorCheckIn.objects.get(guid=resp.data["id"])
-                assert checkin.status == CheckInStatus.OK
+            checkin = MonitorCheckIn.objects.get(guid=resp.data["id"])
+            assert checkin.status == CheckInStatus.OK
 
-                monitor = Monitor.objects.get(id=monitor.id)
-                assert monitor.status == MonitorStatus.OK
-                assert monitor.last_checkin == checkin.date_added
-                assert monitor.next_checkin == monitor.get_next_scheduled_checkin(
-                    checkin.date_added
-                )
+            monitor = Monitor.objects.get(id=monitor.id)
+            assert monitor.status == MonitorStatus.OK
+            assert monitor.last_checkin == checkin.date_added
+            assert monitor.next_checkin == monitor.get_next_scheduled_checkin(checkin.date_added)
 
     def test_failing(self):
         self.login_as(self.user)
 
-        with self.feature("organizations:monitors"):
-            for path_func in self._get_path_functions():
-                monitor = self._create_monitor()
-                path = path_func(monitor)
+        for path_func in self._get_path_functions():
+            monitor = self._create_monitor()
+            path = path_func(monitor)
 
-                resp = self.client.post(path, {"status": "error"})
-                assert resp.status_code == 201, resp.content
+            resp = self.client.post(path, {"status": "error"})
+            assert resp.status_code == 201, resp.content
 
-                checkin = MonitorCheckIn.objects.get(guid=resp.data["id"])
-                assert checkin.status == CheckInStatus.ERROR
+            checkin = MonitorCheckIn.objects.get(guid=resp.data["id"])
+            assert checkin.status == CheckInStatus.ERROR
 
-                monitor = Monitor.objects.get(id=monitor.id)
-                assert monitor.status == MonitorStatus.ERROR
-                assert monitor.last_checkin == checkin.date_added
-                assert monitor.next_checkin == monitor.get_next_scheduled_checkin(
-                    checkin.date_added
-                )
+            monitor = Monitor.objects.get(id=monitor.id)
+            assert monitor.status == MonitorStatus.ERROR
+            assert monitor.last_checkin == checkin.date_added
+            assert monitor.next_checkin == monitor.get_next_scheduled_checkin(checkin.date_added)
 
     def test_disabled(self):
         self.login_as(self.user)
 
-        with self.feature("organizations:monitors"):
-            for path_func in self._get_path_functions():
-                monitor = Monitor.objects.create(
-                    organization_id=self.organization.id,
-                    project_id=self.project.id,
-                    next_checkin=timezone.now() - timedelta(minutes=1),
-                    type=MonitorType.CRON_JOB,
-                    status=MonitorStatus.DISABLED,
-                    config={"schedule": "* * * * *"},
-                )
-                path = path_func(monitor)
+        for path_func in self._get_path_functions():
+            monitor = Monitor.objects.create(
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                next_checkin=timezone.now() - timedelta(minutes=1),
+                type=MonitorType.CRON_JOB,
+                status=MonitorStatus.DISABLED,
+                config={"schedule": "* * * * *"},
+            )
+            path = path_func(monitor)
 
-                resp = self.client.post(path, {"status": "error"})
-                assert resp.status_code == 201, resp.content
+            resp = self.client.post(path, {"status": "error"})
+            assert resp.status_code == 201, resp.content
 
-                checkin = MonitorCheckIn.objects.get(guid=resp.data["id"])
-                assert checkin.status == CheckInStatus.ERROR
+            checkin = MonitorCheckIn.objects.get(guid=resp.data["id"])
+            assert checkin.status == CheckInStatus.ERROR
 
-                monitor = Monitor.objects.get(id=monitor.id)
-                assert monitor.status == MonitorStatus.DISABLED
-                assert monitor.last_checkin == checkin.date_added
-                assert monitor.next_checkin == monitor.get_next_scheduled_checkin(
-                    checkin.date_added
-                )
+            monitor = Monitor.objects.get(id=monitor.id)
+            assert monitor.status == MonitorStatus.DISABLED
+            assert monitor.last_checkin == checkin.date_added
+            assert monitor.next_checkin == monitor.get_next_scheduled_checkin(checkin.date_added)
 
     def test_pending_deletion(self):
         self.login_as(self.user)
@@ -100,12 +109,11 @@ class CreateMonitorCheckInTest(MonitorTestCase):
             config={"schedule": "* * * * *"},
         )
 
-        with self.feature("organizations:monitors"):
-            for path_func in self._get_path_functions():
-                path = path_func(monitor)
+        for path_func in self._get_path_functions():
+            path = path_func(monitor)
 
-                resp = self.client.post(path, {"status": "error"})
-                assert resp.status_code == 404
+            resp = self.client.post(path, {"status": "error"})
+            assert resp.status_code == 404
 
     def test_deletion_in_progress(self):
         self.login_as(self.user)
@@ -119,29 +127,27 @@ class CreateMonitorCheckInTest(MonitorTestCase):
             config={"schedule": "* * * * *"},
         )
 
-        with self.feature("organizations:monitors"):
-            for path_func in self._get_path_functions():
-                path = path_func(monitor)
+        for path_func in self._get_path_functions():
+            path = path_func(monitor)
 
-                resp = self.client.post(path, {"status": "error"})
-                assert resp.status_code == 404
+            resp = self.client.post(path, {"status": "error"})
+            assert resp.status_code == 404
 
     def test_with_dsn_auth(self):
         project_key = self.create_project_key(project=self.project)
 
-        with self.feature("organizations:monitors"):
-            for path_func in self._get_path_functions():
-                monitor = self._create_monitor()
-                path = path_func(monitor)
+        for path_func in self._get_path_functions():
+            monitor = self._create_monitor()
+            path = path_func(monitor)
 
-                resp = self.client.post(
-                    path, {"status": "ok"}, HTTP_AUTHORIZATION=f"DSN {project_key.dsn_public}"
-                )
-                assert resp.status_code == 201, resp.content
+            resp = self.client.post(
+                path, {"status": "ok"}, HTTP_AUTHORIZATION=f"DSN {project_key.dsn_public}"
+            )
+            assert resp.status_code == 201, resp.content
 
-                # DSN auth should only return id
-                assert list(resp.data.keys()) == ["id"]
-                assert UUID(resp.data["id"])
+            # DSN auth should only return id
+            assert list(resp.data.keys()) == ["id"]
+            assert UUID(resp.data["id"])
 
     def test_with_dsn_auth_invalid_project(self):
         project2 = self.create_project()
@@ -155,24 +161,22 @@ class CreateMonitorCheckInTest(MonitorTestCase):
             config={"schedule": "* * * * *"},
         )
 
-        with self.feature("organizations:monitors"):
-            for path_func in self._get_path_functions():
-                path = path_func(monitor)
+        for path_func in self._get_path_functions():
+            path = path_func(monitor)
 
-                resp = self.client.post(
-                    path,
-                    {"status": "ok"},
-                    HTTP_AUTHORIZATION=f"DSN {project_key.dsn_public}",
-                )
+            resp = self.client.post(
+                path,
+                {"status": "ok"},
+                HTTP_AUTHORIZATION=f"DSN {project_key.dsn_public}",
+            )
 
-                assert resp.status_code == 400, resp.content
+            assert resp.status_code == 400, resp.content
 
     def test_mismatched_org_slugs(self):
         monitor = self._create_monitor()
-        path = f"/api/0/monitors/asdf/{monitor.guid}/checkins/"
+        path = f"/api/0/organizations/asdf/monitors/{monitor.guid}/checkins/"
         self.login_as(user=self.user)
 
-        with self.feature("organizations:monitors"):
-            resp = self.client.post(path)
+        resp = self.client.post(path)
 
-            assert resp.status_code == 400
+        assert resp.status_code == 400

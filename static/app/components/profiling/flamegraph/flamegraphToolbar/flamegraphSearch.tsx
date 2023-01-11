@@ -297,7 +297,6 @@ function FlamegraphSearch({
               }/${search.results.size}`}
             </StyledTrailingText>
             <SearchBarTrailingButton
-              type="button"
               size="zero"
               borderless
               icon={<IconChevron size="xs" />}
@@ -305,7 +304,6 @@ function FlamegraphSearch({
               onClick={onPreviousSearchClick}
             />
             <SearchBarTrailingButton
-              type="button"
               size="zero"
               borderless
               icon={<IconChevron size="xs" direction="down" />}

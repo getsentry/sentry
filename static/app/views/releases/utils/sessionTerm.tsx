@@ -13,6 +13,8 @@ export enum SessionTerm {
   UNHANDLED = 'unhandled',
   STABILITY = 'stability',
   ADOPTION = 'adoption',
+  ANR_RATE = 'anr-rate',
+  FOREGROUND_ANR_RATE = 'foreground-anr-rate',
 }
 
 export const sessionTerm = {
@@ -25,6 +27,8 @@ export const sessionTerm = {
   [SessionTerm.ERRORED]: t('Errored'),
   [SessionTerm.UNHANDLED]: t('Unhandled'),
   [SessionTerm.ADOPTION]: t('Adoption'),
+  [SessionTerm.ANR_RATE]: t('ANR Rate'),
+  [SessionTerm.FOREGROUND_ANR_RATE]: t('Foreground ANR Rate'),
   duration: t('Session Duration'),
   otherCrashed: t('Other Crashed'),
   otherAbnormal: t('Other Abnormal'),
@@ -160,6 +164,12 @@ function getTermDescriptions(platform: PlatformKey | null) {
         [SessionTerm.HEALTHY]: mobileTermsDescription.healthy,
         [SessionTerm.ERRORED]: mobileTermsDescription.errored,
         [SessionTerm.UNHANDLED]: mobileTermsDescription.unhandled,
+        [SessionTerm.ANR_RATE]: t(
+          'Percentage of unique users that experienced an App Not Responding (ANR) error'
+        ),
+        [SessionTerm.FOREGROUND_ANR_RATE]: t(
+          'Percentage of unique users that experienced an App Not Responding (ANR) error when the app was running in the foreground'
+        ),
       };
   }
 }

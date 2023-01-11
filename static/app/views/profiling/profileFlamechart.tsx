@@ -1,5 +1,6 @@
-import {Fragment, useEffect, useMemo} from 'react';
+import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
+import * as qs from 'query-string';
 
 import Alert from 'sentry/components/alert';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -27,10 +28,13 @@ import {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
 import {Profile} from 'sentry/utils/profiling/profile/profile';
 import {SpanTree} from 'sentry/utils/profiling/spanTree';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
-import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
-import {useProfileGroup, useProfileTransaction} from './profileGroupProvider';
+import {
+  useProfileGroup,
+  useProfileTransaction,
+  useSetProfileGroup,
+} from './profileGroupProvider';
 
 function collectAllSpanEntriesFromTransaction(
   transaction: EventTransaction
@@ -61,16 +65,16 @@ const LoadingGroup: ProfileGroup = {
   profiles: [Profile.Empty],
 };
 
-const LoadingSpanTree = SpanTree.Empty();
+const LoadingSpanTree = SpanTree.Empty;
 
 function ProfileFlamegraph(): React.ReactElement {
-  const location = useLocation();
   const organization = useOrganization();
-  const [profileGroup, setProfileGroup] = useProfileGroup();
+  const profileGroup = useProfileGroup();
+  const setProfileGroup = useSetProfileGroup();
   const profiledTransaction = useProfileTransaction();
 
   const hasFlameChartSpans = useMemo(() => {
-    return organization.features.includes('organizations:profiling-flamechart-spans');
+    return organization.features.includes('profiling-flamechart-spans');
   }, [organization.features]);
 
   const spanTree: SpanTree = useMemo(() => {
@@ -87,7 +91,10 @@ function ProfileFlamegraph(): React.ReactElement {
   const [storedPreferences] = useLocalStorageState<DeepPartial<FlamegraphState>>(
     FLAMEGRAPH_LOCALSTORAGE_PREFERENCES_KEY,
     {
-      preferences: {layout: DEFAULT_FLAMEGRAPH_STATE.preferences.layout},
+      preferences: {
+        layout: DEFAULT_FLAMEGRAPH_STATE.preferences.layout,
+        view: DEFAULT_FLAMEGRAPH_STATE.preferences.view,
+      },
     }
   );
 
@@ -97,18 +104,27 @@ function ProfileFlamegraph(): React.ReactElement {
     });
   }, [organization]);
 
-  const onImport: ProfileDragDropImportProps['onImport'] = profiles => {
-    setProfileGroup({type: 'resolved', data: profiles});
-  };
+  const onImport: ProfileDragDropImportProps['onImport'] = useCallback(
+    profiles => {
+      setProfileGroup({type: 'resolved', data: profiles});
+    },
+    [setProfileGroup]
+  );
 
   const initialFlamegraphPreferencesState = useMemo((): DeepPartial<FlamegraphState> => {
-    const queryStringState = decodeFlamegraphStateFromQueryParams(location.query);
+    const queryStringState = decodeFlamegraphStateFromQueryParams(
+      qs.parse(window.location.search)
+    );
 
     return {
       ...queryStringState,
       preferences: {
         ...storedPreferences.preferences,
         ...queryStringState.preferences,
+        timelines: {
+          ...DEFAULT_FLAMEGRAPH_STATE.preferences.timelines,
+          ...(storedPreferences?.preferences?.timelines ?? {}),
+        },
         layout:
           storedPreferences?.preferences?.layout ??
           queryStringState.preferences?.layout ??

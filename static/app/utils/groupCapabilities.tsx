@@ -42,5 +42,5 @@ export function getIssueCapability(
   issueCategory: IssueCategory,
   capability: keyof IssueCategoryCapabilities
 ) {
-  return ISSUE_CATEGORY_CAPABILITIES[issueCategory][capability] ?? {enabled: false};
+  return ISSUE_CATEGORY_CAPABILITIES[issueCategory]?.[capability] ?? {enabled: false};
 }

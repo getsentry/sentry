@@ -1,5 +1,5 @@
 from dataclasses import fields
-from typing import Any, Optional
+from typing import Optional
 
 from django.db import transaction
 
@@ -7,6 +7,7 @@ from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.user import User
 from sentry.services.hybrid_cloud.organization_mapping import (
     APIOrganizationMapping,
+    ApiOrganizationMappingUpdate,
     OrganizationMappingService,
 )
 
@@ -55,10 +56,10 @@ class DatabaseBackedOrganizationMappingService(OrganizationMappingService):
         }
         return APIOrganizationMapping(**args)
 
-    def update_customer_id(self, organization_id: int, customer_id: str) -> Any:
+    def update(self, update: ApiOrganizationMappingUpdate) -> None:
         with transaction.atomic():
-            return (
-                OrganizationMapping.objects.filter(organization_id=organization_id)
+            (
+                OrganizationMapping.objects.filter(organization_id=update.organization_id)
                 .select_for_update()
-                .update(customer_id=customer_id)
+                .update(**update.as_update())
             )

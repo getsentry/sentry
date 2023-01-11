@@ -202,7 +202,6 @@ export default class Form extends Component<FormProps> {
                   <Observer>
                     {() => (
                       <Button
-                        type="button"
                         disabled={this.model.isSaving}
                         onClick={onCancel}
                         style={{marginLeft: 5}}

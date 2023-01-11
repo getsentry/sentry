@@ -154,7 +154,7 @@ class GroupAssigneeTestCase(TestCase):
                 GroupAssignee.objects.assign(self.group, self.user)
 
                 mock_sync_assignee_outbound.assert_called_with(
-                    external_issue, user_service.serialize_user(self.user), assign=True
+                    external_issue, user_service.get_user(self.user.id), assign=True
                 )
 
                 assert GroupAssignee.objects.filter(

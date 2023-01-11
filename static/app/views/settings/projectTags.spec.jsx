@@ -29,7 +29,7 @@ describe('ProjectTags', function () {
 
   it('renders', function () {
     const {container} = render(
-      <ProjectTags params={{orgId: org.slug, projectId: project.slug}} />
+      <ProjectTags organization={org} params={{projectId: project.slug}} />
     );
 
     expect(container).toSnapshot();
@@ -43,7 +43,7 @@ describe('ProjectTags', function () {
       body: [],
     });
 
-    render(<ProjectTags params={{orgId: org.slug, projectId: project.slug}} />);
+    render(<ProjectTags organization={org} params={{projectId: project.slug}} />);
     expect(screen.getByTestId('empty-message')).toBeInTheDocument();
   });
 
@@ -52,7 +52,7 @@ describe('ProjectTags', function () {
       organization: TestStubs.Organization({access: []}),
     };
 
-    render(<ProjectTags params={{orgId: org.slug, projectId: project.slug}} />, {
+    render(<ProjectTags organization={org} params={{projectId: project.slug}} />, {
       context: TestStubs.routerContext([context]),
     });
 
@@ -62,7 +62,7 @@ describe('ProjectTags', function () {
   });
 
   it('deletes tag', async function () {
-    render(<ProjectTags params={{orgId: org.slug, projectId: project.slug}} />);
+    render(<ProjectTags organization={org} params={{projectId: project.slug}} />);
 
     // First tag exists
     const tagCount = screen.getAllByTestId('tag-row').length;

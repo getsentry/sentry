@@ -193,7 +193,7 @@ export class Line extends Component<Props, State> {
           tooltipProps={isHoverPreviewed ? {delay: SLOW_TOOLTIP_DELAY} : undefined}
           onClick={this.toggleContext}
         >
-          <IconChevron direction={isExpanded ? 'up' : 'down'} size="8px" />
+          <IconChevron direction={isExpanded ? 'up' : 'down'} legacySize="8px" />
         </ToggleContextButton>
       </ToggleContextButtonWrapper>
     );

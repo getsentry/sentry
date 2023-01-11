@@ -65,4 +65,4 @@ class OrganizationEventsMetaTest(APITestCase, SnubaTestCase):
         ]
 
         assert response.status_code == 200, response.content
-        assert response.data["data"] == expected
+        assert sorted(response.data["data"], key=lambda v: v["id"]) == expected
