@@ -164,7 +164,7 @@ def process_profile_task(
 
     metrics.gauge(
         "process_profile.kafka_producer.queue.size",
-        len(_profiles_kafka_producer.__producer),
+        len(_profiles_kafka_producer._KafkaProducer__producer),
         sample_rate=1.0,
     )
 
