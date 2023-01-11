@@ -1,4 +1,4 @@
-import {CSSProperties} from 'react';
+import {CSSProperties, forwardRef} from 'react';
 import styled from '@emotion/styled';
 
 import FileSize from 'sentry/components/fileSize';
@@ -176,4 +176,4 @@ const Text = styled('div')`
   overflow: hidden;
 `;
 
-export default NetworkTableCell;
+export default forwardRef<HTMLDivElement, Props>(NetworkTableCell);
