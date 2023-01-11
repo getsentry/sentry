@@ -197,6 +197,7 @@ const ReleasesPromo = ({organization, project}: Props) => {
       ),
     };
   };
+
   return renderComponent(
     <Panel>
       <Container>

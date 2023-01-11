@@ -9,6 +9,7 @@ import uniqBy from 'lodash/uniqBy';
 
 import {Client} from 'sentry/api';
 import Button from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
@@ -141,9 +142,9 @@ function Dashboard({teams, organization, loadingTeams, error, router, location}:
       <SentryDocumentTitle title={t('Projects Dashboard')} orgSlug={organization.slug} />
       {projects.length > 0 && (
         <Fragment>
-          <ProjectsHeader>
-            <Title>
-              <PageHeading>
+          <Layout.Header>
+            <Layout.HeaderContent>
+              <StyledHeading>
                 {t('Projects')}
                 <PageHeadingQuestionTooltip
                   title={tct(
@@ -155,10 +156,10 @@ function Dashboard({teams, organization, loadingTeams, error, router, location}:
                     }
                   )}
                 />
-              </PageHeading>
-            </Title>
+              </StyledHeading>
+            </Layout.HeaderContent>
             <Layout.HeaderActions>
-              <ButtonContainer>
+              <ButtonBar gap={1}>
                 <Button
                   size="sm"
                   icon={<IconUser size="xs" />}
@@ -188,10 +189,10 @@ function Dashboard({teams, organization, loadingTeams, error, router, location}:
                 >
                   {t('Create Project')}
                 </Button>
-              </ButtonContainer>
+              </ButtonBar>
             </Layout.HeaderActions>
-          </ProjectsHeader>
-          <Body>
+          </Layout.Header>
+          <Layout.Body>
             <Layout.Main fullWidth>
               <SearchAndSelectorWrapper>
                 <TeamFilter
@@ -210,7 +211,7 @@ function Dashboard({teams, organization, loadingTeams, error, router, location}:
               </SearchAndSelectorWrapper>
               <ProjectCardList projects={filteredProjects} />
             </Layout.Main>
-          </Body>
+          </Layout.Body>
           {showResources && <Resources organization={organization} />}
         </Fragment>
       )}
@@ -224,22 +225,8 @@ const OrganizationDashboard = (props: Props) => (
   </OrganizationDashboardWrapper>
 );
 
-const ProjectsHeader = styled(Layout.Header)`
-  border-bottom: none;
-  align-items: end;
-
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
-    padding: 26px ${space(4)} 0 ${space(4)};
-  }
-`;
-
-const Title = styled(Layout.HeaderContent)`
-  margin-bottom: 0;
-`;
-
-const ButtonContainer = styled('div')`
-  display: inline-flex;
-  gap: ${space(1)};
+const StyledHeading = styled(PageHeading)`
+  line-height: 40px;
 `;
 
 const SearchAndSelectorWrapper = styled('div')`
@@ -264,11 +251,6 @@ const StyledSearchBar = styled(SearchBar)`
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     margin-top: ${space(1)};
   }
-`;
-
-const Body = styled(Layout.Body)`
-  padding-top: ${space(2)} !important;
-  background-color: ${p => p.theme.surface100};
 `;
 
 const ProjectCards = styled('div')`

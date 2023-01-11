@@ -13,6 +13,7 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import Link from 'sentry/components/links/link';
 import OnboardingPanel from 'sentry/components/onboardingPanel';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import PageHeading from 'sentry/components/pageHeading';
 import Pagination from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
@@ -107,9 +108,9 @@ class Monitors extends AsyncView<Props, State> {
       <StyledPageContent>
         <Layout.Header>
           <Layout.HeaderContent>
-            <HeaderTitle>
+            <StyledHeading>
               {t('Cron Monitors')} <FeatureBadge type="beta" />
-            </HeaderTitle>
+            </StyledHeading>
           </Layout.HeaderContent>
           <Layout.HeaderActions>
             <ButtonBar gap={1}>
@@ -187,8 +188,8 @@ const StyledPageContent = styled(PageContent)`
   padding: 0;
 `;
 
-const HeaderTitle = styled(Layout.Title)`
-  margin-top: 0;
+const StyledHeading = styled(PageHeading)`
+  line-height: 40px;
 `;
 
 const StyledLink = styled(Link)`

@@ -28,7 +28,6 @@ import {
 } from 'sentry/constants';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t, tct} from 'sentry/locale';
-import {PageHeader} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
 import {DataCategory, DateString, Organization, PageFilters, Project} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -344,28 +343,25 @@ export class OrganizationStats extends Component<Props> {
     return (
       <SentryDocumentTitle title="Usage Stats">
         <PageFiltersContainer>
-          {hasTeamInsights && (
+          {hasTeamInsights ? (
             <HeaderTabs organization={organization} activeTab="stats" />
+          ) : (
+            <Layout.Header>
+              <Layout.HeaderContent>
+                <StyledHeading>{t('Organization Usage Stats')}</StyledHeading>
+                <HeadingSubtitle>
+                  {tct(
+                    'A view of the usage data that Sentry has received across your entire organization. [link: Read the docs].',
+                    {
+                      link: <ExternalLink href="https://docs.sentry.io/product/stats/" />,
+                    }
+                  )}
+                </HeadingSubtitle>
+              </Layout.HeaderContent>
+            </Layout.Header>
           )}
           <Body>
             <Layout.Main fullWidth>
-              {!hasTeamInsights && (
-                <Fragment>
-                  <PageHeader>
-                    <PageHeading>{t('Organization Usage Stats')}</PageHeading>
-                  </PageHeader>
-                  <p>
-                    {tct(
-                      'A view of the usage data that Sentry has received across your entire organization. [link: Read the docs].',
-                      {
-                        link: (
-                          <ExternalLink href="https://docs.sentry.io/product/stats/" />
-                        ),
-                      }
-                    )}
-                  </p>
-                </Fragment>
-              )}
               <HookHeader organization={organization} />
               {this.renderProjectPageControl()}
               <PageGrid>
@@ -407,6 +403,10 @@ export class OrganizationStats extends Component<Props> {
 }
 
 export default withPageFilters(withOrganization(OrganizationStats));
+
+const StyledHeading = styled(PageHeading)`
+  line-height: 40px;
+`;
 
 const PageGrid = styled('div')`
   display: grid;
@@ -451,6 +451,11 @@ const Body = styled(Layout.Body)`
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
     display: block;
   }
+`;
+
+const HeadingSubtitle = styled('p')`
+  margin-top: ${space(0.5)};
+  margin-bottom: 0;
 `;
 
 const PageControl = styled('div')`

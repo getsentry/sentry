@@ -1,12 +1,11 @@
 import {Fragment, useMemo} from 'react';
 import {browserHistory} from 'react-router';
 import {useTheme} from '@emotion/react';
-import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
+import * as Layout from 'sentry/components/layouts/thirds';
 import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
-import {PageContent} from 'sentry/styles/organization';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView from 'sentry/utils/discover/eventView';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -56,59 +55,56 @@ function ReplaysList() {
   const {hasSentOneReplay, activateSidebar} = useReplayOnboardingSidebarPanel();
 
   return (
-    <StyledPageContent>
-      <ReplaysFilters />
-      {hasSentOneReplay ? (
-        <Fragment>
-          <ReplayTable
-            fetchError={fetchError}
-            isFetching={isFetching}
-            replays={replays}
-            sort={eventView.sorts[0]}
-            visibleColumns={[
-              ReplayColumns.session,
-              ...(hasRoomForColumns
-                ? [ReplayColumns.projectId, ReplayColumns.startedAt]
-                : []),
-              ReplayColumns.duration,
-              ReplayColumns.countErrors,
-              ReplayColumns.activity,
-            ]}
-          />
-          <Pagination
-            pageLinks={pageLinks}
-            onCursor={(cursor, path, searchQuery) => {
-              trackAdvancedAnalyticsEvent('replay.list-paginated', {
-                organization,
-                direction: cursor?.endsWith(':1') ? 'prev' : 'next',
-              });
-              browserHistory.push({
-                pathname: path,
-                query: {...searchQuery, cursor},
-              });
-            }}
-          />
-        </Fragment>
-      ) : (
-        <ReplayOnboardingPanel>
-          <Button onClick={activateSidebar} priority="primary">
-            {t('Get Started')}
-          </Button>
-          <Button
-            href="https://docs.sentry.io/platforms/javascript/session-replay/"
-            external
-          >
-            {t('Read Docs')}
-          </Button>
-        </ReplayOnboardingPanel>
-      )}
-    </StyledPageContent>
+    <Layout.Body>
+      <Layout.Main fullWidth>
+        <ReplaysFilters />
+        {hasSentOneReplay ? (
+          <Fragment>
+            <ReplayTable
+              fetchError={fetchError}
+              isFetching={isFetching}
+              replays={replays}
+              sort={eventView.sorts[0]}
+              visibleColumns={[
+                ReplayColumns.session,
+                ...(hasRoomForColumns
+                  ? [ReplayColumns.projectId, ReplayColumns.startedAt]
+                  : []),
+                ReplayColumns.duration,
+                ReplayColumns.countErrors,
+                ReplayColumns.activity,
+              ]}
+            />
+            <Pagination
+              pageLinks={pageLinks}
+              onCursor={(cursor, path, searchQuery) => {
+                trackAdvancedAnalyticsEvent('replay.list-paginated', {
+                  organization,
+                  direction: cursor?.endsWith(':1') ? 'prev' : 'next',
+                });
+                browserHistory.push({
+                  pathname: path,
+                  query: {...searchQuery, cursor},
+                });
+              }}
+            />
+          </Fragment>
+        ) : (
+          <ReplayOnboardingPanel>
+            <Button onClick={activateSidebar} priority="primary">
+              {t('Get Started')}
+            </Button>
+            <Button
+              href="https://docs.sentry.io/platforms/javascript/session-replay/"
+              external
+            >
+              {t('Read Docs')}
+            </Button>
+          </ReplayOnboardingPanel>
+        )}
+      </Layout.Main>
+    </Layout.Body>
   );
 }
-
-const StyledPageContent = styled(PageContent)`
-  box-shadow: 0px 0px 1px ${p => p.theme.gray200};
-  background-color: ${p => p.theme.background};
-`;
 
 export default ReplaysList;

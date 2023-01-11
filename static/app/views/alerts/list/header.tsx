@@ -8,11 +8,11 @@ import CreateAlertButton from 'sentry/components/createAlertButton';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
+import PageHeading from 'sentry/components/pageHeading';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {IconSettings} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import space from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
@@ -44,7 +44,7 @@ const AlertHeader = ({router, activeTab}: Props) => {
   return (
     <Layout.Header>
       <Layout.HeaderContent>
-        <StyledLayoutTitle>
+        <StyledHeading>
           {t('Alerts')}
           <PageHeadingQuestionTooltip
             title={tct(
@@ -52,10 +52,10 @@ const AlertHeader = ({router, activeTab}: Props) => {
               {link: <ExternalLink href="https://docs.sentry.io/product/alerts/" />}
             )}
           />
-        </StyledLayoutTitle>
+        </StyledHeading>
       </Layout.HeaderContent>
       <Layout.HeaderActions>
-        <Actions gap={1}>
+        <ButtonBar gap={1}>
           <CreateAlertButton
             organization={organization}
             iconProps={{size: 'sm'}}
@@ -78,7 +78,7 @@ const AlertHeader = ({router, activeTab}: Props) => {
             icon={<IconSettings size="sm" />}
             aria-label={t('Settings')}
           />
-        </Actions>
+        </ButtonBar>
       </Layout.HeaderActions>
       <Layout.HeaderNavTabs underlined>
         {alertRulesLink}
@@ -94,10 +94,6 @@ const AlertHeader = ({router, activeTab}: Props) => {
 
 export default AlertHeader;
 
-const StyledLayoutTitle = styled(Layout.Title)`
-  margin-top: ${space(0.5)};
-`;
-
-const Actions = styled(ButtonBar)`
-  height: 32px;
+const StyledHeading = styled(PageHeading)`
+  line-height: 40px;
 `;

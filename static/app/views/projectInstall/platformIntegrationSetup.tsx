@@ -9,7 +9,6 @@ import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import platforms from 'sentry/data/platforms';
 import {t} from 'sentry/locale';
-import {PageHeader} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
 import {IntegrationProvider, Organization, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
@@ -122,16 +121,16 @@ class PlatformIntegrationSetup extends AsyncComponent<Props, State> {
 
     return (
       <OuterWrapper>
-        <StyledPageHeader>
+        <InnerWrapper>
           <StyledTitle>
             {t('Automatically instrument %s', platformIntegration.name)}
           </StyledTitle>
-          <PlatformHeaderButtonBar
-            gettingStartedLink={gettingStartedLink}
-            docsLink={docsLink}
-          />
-        </StyledPageHeader>
-        <InnerWrapper>
+          <HeaderButtons>
+            <PlatformHeaderButtonBar
+              gettingStartedLink={gettingStartedLink}
+              docsLink={docsLink}
+            />
+          </HeaderButtons>
           {!installed ? (
             <Fragment>
               <AddInstallationInstructions />
@@ -187,7 +186,7 @@ const StyledButtonBar = styled(ButtonBar)`
 `;
 
 const InnerWrapper = styled('div')`
-  width: 850px;
+  max-width: 850px;
 `;
 
 const OuterWrapper = styled('div')`
@@ -197,12 +196,14 @@ const OuterWrapper = styled('div')`
   margin-top: 50px;
 `;
 
-const StyledPageHeader = styled(PageHeader)`
+const HeaderButtons = styled('div')`
+  width: min-content;
   margin-bottom: ${space(3)};
 `;
 
 const StyledTitle = styled('h2')`
-  margin: 0 ${space(3)} 0 0;
+  margin: 0;
+  margin-bottom: ${space(2)};
 `;
 
 export default withOrganization(PlatformIntegrationSetup);
