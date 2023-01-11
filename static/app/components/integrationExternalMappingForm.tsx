@@ -77,6 +77,7 @@ export default class IntegrationExternalMappingForm extends Component<Props> {
     } = this.props;
     const fields: Field[] = [
       {
+        flexibleControlStateSize: true,
         name: `${type}Id`,
         type: 'select_async',
         required: true,
@@ -95,6 +96,7 @@ export default class IntegrationExternalMappingForm extends Component<Props> {
       fields.unshift({
         name: 'externalName',
         type: 'string',
+        flexibleControlStateSize: true,
         required: true,
         label: isInline ? undefined : tct('External [type]', {type: capitalize(type)}),
         placeholder: type === 'user' ? t('@username') : t('@org/teamname'),
@@ -165,4 +167,5 @@ export default class IntegrationExternalMappingForm extends Component<Props> {
 // Prevents errors from appearing off the modal
 const FormWrapper = styled('div')`
   position: relative;
+  width: inherit;
 `;
