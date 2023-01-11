@@ -163,7 +163,7 @@ class Monitors extends AsyncView<Props, State> {
               </Fragment>
             ) : (
               <OnboardingPanel image={<img src={onboardingImg} />}>
-                <h3>{t('Let Sentry Monitor Your Recurring Jobs')}</h3>
+                <h3>{t('Let Sentry monitor your recurring jobs')}</h3>
                 <p>
                   {t(
                     "We'll tell you if your recurring jobs are running on schedule, failing, or succeeding."
@@ -171,9 +171,9 @@ class Monitors extends AsyncView<Props, State> {
                 </p>
                 <ButtonList gap={1}>
                   <Button href="https://docs.sentry.io/product/crons" external>
-                    {t('View the Docs')}
+                    {t('Read Docs')}
                   </Button>
-                  <NewMonitorButton>{t('Set Up First Cron Monitor')}</NewMonitorButton>
+                  <NewMonitorButton>{t('Set up first cron monitor')}</NewMonitorButton>
                 </ButtonList>
               </OnboardingPanel>
             )}
