@@ -32,14 +32,7 @@ from sentry.auth.idpmigration import (
 from sentry.auth.provider import MigratingIdentityId, Provider
 from sentry.auth.superuser import is_active_superuser
 from sentry.locks import locks
-from sentry.models import (
-    AuditLogEntry,
-    AuthIdentity,
-    AuthProvider,
-    Organization,
-    OrganizationMember,
-    User,
-)
+from sentry.models import AuditLogEntry, AuthIdentity, AuthProvider, Organization, User
 from sentry.pipeline import Pipeline, PipelineSessionStore
 from sentry.pipeline.provider import PipelineProvider
 from sentry.services.hybrid_cloud.audit import AuditLogMetadata, audit_log_service
@@ -463,10 +456,10 @@ class AuthIdentityHandler:
             # we only allow this flow to happen if the existing user has
             # membership, otherwise we short circuit because it might be
             # an attempt to hijack membership of another organization
-            has_membership = OrganizationMember.objects.filter(
-                user=self._app_user, organization=self.organization
-            ).exists()
-            if has_membership:
+            membership = organization_service.check_membership_by_id(
+                user_id=self._app_user.id, organization_id=self.organization.id
+            )
+            if membership is not None:
                 try:
                     self._login(self.user)
                 except self._NotCompletedSecurityChecks:
