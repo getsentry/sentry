@@ -9,6 +9,7 @@ import {CreateAlertFromViewButton} from 'sentry/components/createAlertButton';
 import FeatureBadge from 'sentry/components/featureBadge';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
+import PageHeading from 'sentry/components/pageHeading';
 import {isProfilingSupportedOrProjectHasProfiles} from 'sentry/components/profiling/ProfilingOnboarding/util';
 import ReplayCountBadge from 'sentry/components/replays/replayCountBadge';
 import ReplaysFeatureBadge from 'sentry/components/replays/replaysFeatureBadge';
@@ -123,19 +124,17 @@ function TransactionHeader({
           }}
           tab={currentTab}
         />
-        <Layout.Title>
-          <TransactionName>
-            {project && (
-              <IdBadge
-                project={project}
-                avatarSize={28}
-                hideName
-                avatarProps={{hasTooltip: true, tooltip: project.slug}}
-              />
-            )}
-            {transactionName}
-          </TransactionName>
-        </Layout.Title>
+        <TransactionName>
+          {project && (
+            <IdBadge
+              project={project}
+              avatarSize={28}
+              hideName
+              avatarProps={{hasTooltip: true, tooltip: project.slug}}
+            />
+          )}
+          {transactionName}
+        </TransactionName>
       </Layout.HeaderContent>
       <Layout.HeaderActions>
         <ButtonBar gap={1}>
@@ -226,10 +225,10 @@ function TransactionHeader({
   );
 }
 
-const TransactionName = styled('div')`
-  display: grid;
-  grid-template-columns: max-content 1fr;
-  grid-column-gap: ${space(1)};
+const TransactionName = styled(PageHeading)`
+  line-height: 40px;
+  display: flex;
+  gap: ${space(1)};
   align-items: center;
 `;
 

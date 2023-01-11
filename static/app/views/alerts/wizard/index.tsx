@@ -10,6 +10,7 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
+import PageHeading from 'sentry/components/pageHeading';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
@@ -173,7 +174,7 @@ class AlertWizard extends Component<Props, State> {
               location={location}
               canChangeProject
             />
-            <Layout.Title>{t('Select Alert')}</Layout.Title>
+            <StyledHeading>{t('Select Alert')}</StyledHeading>
           </StyledHeaderContent>
         </Layout.Header>
         <Layout.Body>
@@ -232,6 +233,10 @@ class AlertWizard extends Component<Props, State> {
 
 const StyledHeaderContent = styled(Layout.HeaderContent)`
   overflow: visible;
+`;
+
+const StyledHeading = styled(PageHeading)`
+  line-height: 40px;
 `;
 
 const CategoryTitle = styled('h2')`

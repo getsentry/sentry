@@ -83,8 +83,7 @@ const RuleTitle = styled(PageHeading, {
 })<{loading: boolean}>`
   ${p => p.loading && 'opacity: 0'};
   line-height: 40px;
-  display: grid;
-  grid-template-columns: max-content 1fr;
-  grid-column-gap: ${space(1)};
+  display: flex;
+  gap: ${space(1)};
   align-items: center;
 `;
