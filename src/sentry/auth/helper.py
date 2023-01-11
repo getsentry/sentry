@@ -452,7 +452,7 @@ class AuthIdentityHandler:
                 is_account_verified = self.has_verified_account(verification_value)
 
         is_new_account = not self.user.is_authenticated  # stateful
-        if self._app_user and self.identity.get("email_verified") or is_account_verified:
+        if self._app_user and (self.identity.get("email_verified") or is_account_verified):
             # we only allow this flow to happen if the existing user has
             # membership, otherwise we short circuit because it might be
             # an attempt to hijack membership of another organization
