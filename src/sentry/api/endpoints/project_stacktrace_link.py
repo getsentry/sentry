@@ -13,6 +13,7 @@ from sentry.integrations import IntegrationFeatures
 from sentry.models import Integration, Project, RepositoryProjectPathConfig
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.event_frames import munged_filename_and_frames
+from sentry.utils.json import JSONData
 
 logger = logging.getLogger(__name__)
 
@@ -114,7 +115,7 @@ def try_path_munging(
     return result
 
 
-def set_tags(scope: Scope, result: Dict[str, Optional[str]]) -> None:
+def set_tags(scope: Scope, result: JSONData) -> None:
     scope.set_tag("stacktrace_link.found", result.get("sourceUrl", False))
     scope.set_tag("stacktrace_link.source_url", result.get("sourceUrl"))
     scope.set_tag("stacktrace_link.error", result.get("error"))
@@ -184,7 +185,7 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
         if not filepath:
             return Response({"detail": "Filepath is required"}, status=400)
 
-        result: Dict[str, Optional[str]] = {"config": None, "sourceUrl": None}
+        result: JSONData = {"config": None, "sourceUrl": None}
 
         integrations = Integration.objects.filter(organizations=project.organization_id)
         # TODO(meredith): should use get_provider.has_feature() instead once this is
