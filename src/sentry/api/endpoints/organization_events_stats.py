@@ -11,7 +11,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEventsV2EndpointBase
 from sentry.constants import MAX_TOP_EVENTS
 from sentry.models import Organization
-from sentry.snuba import discover, metrics_enhanced_performance, metrics_performance
+from sentry.snuba import discover, metrics_enhanced_performance, metrics_performance, issue_platform
 from sentry.snuba.referrer import Referrer
 from sentry.utils.snuba import SnubaTSResult
 
@@ -166,6 +166,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):  # type
 
             use_custom_dataset = use_metrics or use_profiles
             dataset = self.get_dataset(request) if use_custom_dataset else discover
+            dataset = issue_platform # hard coding it here for now, but the front end should send it as a request param
             metrics_enhanced = dataset in {metrics_performance, metrics_enhanced_performance}
 
             allow_metric_aggregates = request.GET.get("preventMetricAggregates") != "1"

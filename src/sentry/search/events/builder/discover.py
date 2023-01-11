@@ -1597,10 +1597,8 @@ class TimeseriesQueryBuilder(UnresolvedQuery):
 
 
 class GenericTimeSeriesQueryBuilder(TimeseriesQueryBuilder):
+    from snuba_sdk import Function
     """The IssuePlatform dataset isn't using the TimeSeriesProcessor which does the translation of 'time' to 'timestamp'."""
-
-    time_column = Column("timestamp")
-    # time_column = Function("toUnixTimestamp", Function(func_name, "timestamp"), alias=time_column_alias)
 
     def __init__(
         self,
@@ -1626,6 +1624,20 @@ class GenericTimeSeriesQueryBuilder(TimeseriesQueryBuilder):
             has_metrics=has_metrics,
             skip_tag_resolution=skip_tag_resolution,
         )
+        rollup_to_start_func = {
+            60: "toStartOfMinute",
+            3600: "toStartOfHour",
+            3600 * 24: "toDate",
+        }
+        rollup_func = rollup_to_start_func.get(interval)
+        # print("interval: ", interval)
+        # print("rollup_func: ", rollup_func)
+        if rollup_func:
+            time_column = Function("toUnixTimestamp", Function(rollup_func, "timestamp"), alias="grouped_time")
+        else:
+            time_column = Column("timestamp")
+            # time_column = Function("multiply", Function([["intDiv", [["toUInt32", [["toUnixTimestamp", "timestamp"]]], interval]], interval]), alias="grouped_time")
+            # this is obviously wrong but working on the above one first
 
 
 class TopEventsQueryBuilder(TimeseriesQueryBuilder):
