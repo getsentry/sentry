@@ -542,6 +542,10 @@ class SlowSpanDetector(PerformanceDetector):
     def is_creation_allowed_for_project(self, project: Optional[Project]) -> bool:
         return True
 
+    # TODO: Temporarily set to true for now, but issues will not be created.
+    def is_creation_allowed_for_system(self) -> bool:
+        return True
+
     @classmethod
     def is_span_eligible(cls, span: Span) -> bool:
         description = span.get("description", None)

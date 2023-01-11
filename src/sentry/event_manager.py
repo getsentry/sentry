@@ -2312,6 +2312,7 @@ def _save_aggregate_performance(jobs: Sequence[PerformanceJob], projects: Projec
 
                     new_grouphashes = new_grouphashes - groups_to_ignore
 
+                delete_slow_span_group_hashes(new_grouphashes, performance_problems)
                 new_grouphashes_count = len(new_grouphashes)
 
                 with metrics.timer("performance.performance_issue.check_write_limits"):
@@ -2449,6 +2450,14 @@ def should_create_group(client: Any, grouphash: str, type: GroupType) -> bool:
         else:
             client.expire(grouphash, 60 * 60 * 24)  # 24 hour expiration from last seen
             return False
+
+
+def delete_slow_span_group_hashes(
+    group_hashes: set[str], performance_problems: Sequence[PerformanceProblem]
+):
+    for problem in performance_problems:
+        if problem.type == GroupType.PERFORMANCE_SLOW_SPAN and problem.fingerprint in group_hashes:
+            group_hashes.remove(problem.fingerprint)
 
 
 @metrics.wraps("event_manager.save_transaction_events")
