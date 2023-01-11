@@ -162,6 +162,12 @@ def process_profile_task(
         )
         return
 
+    metrics.gauge(
+        "process_profile.kafka_producer.queue.size",
+        len(_profiles_kafka_producer.__producer),
+        sample_rate=1.0,
+    )
+
     _track_outcome(profile=profile, project=project, outcome=Outcome.ACCEPTED)
 
 
