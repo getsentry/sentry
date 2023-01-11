@@ -231,7 +231,7 @@ def get_client_config(request=None):
     }
     if user and user.is_authenticated:
         (serialized_user,) = user_service.serialize_users(
-            [user.id],
+            user_ids=[user.id],
             detailed=UserSerializeType.SELF_DETAILED,
             auth_context=AuthenticationContext(
                 auth=getattr(request, "auth", None),

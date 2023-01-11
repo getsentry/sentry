@@ -40,7 +40,7 @@ import {getDiscoverLandingUrl} from 'sentry/utils/discover/urls';
 import theme from 'sentry/utils/theme';
 import useMedia from 'sentry/utils/useMedia';
 
-import {ProfilingOnboardingSidebar} from '../profiling/ProfilingOnboarding/proflingOnboardingSidebar';
+import {ProfilingOnboardingSidebar} from '../profiling/ProfilingOnboarding/profilingOnboardingSidebar';
 
 import Broadcasts from './broadcasts';
 import SidebarHelp from './help';

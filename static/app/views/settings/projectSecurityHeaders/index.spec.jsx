@@ -22,7 +22,7 @@ describe('ProjectSecurityHeaders', function () {
         organization={org}
         project={project}
         {...TestStubs.routerProps({
-          params: {orgId: org.slug, projectId: project.slug},
+          params: {projectId: project.slug},
           location: TestStubs.location({pathname: url}),
         })}
       />

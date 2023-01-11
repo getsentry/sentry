@@ -104,12 +104,7 @@ function TextCopyInput({
       />
       <InputTrailingItems>
         <Clipboard hideUnsupported value={children}>
-          <StyledCopyButton
-            type="button"
-            borderless
-            disabled={disabled}
-            onClick={handleCopyClick}
-          >
+          <StyledCopyButton borderless disabled={disabled} onClick={handleCopyClick}>
             <IconCopy size={size === 'xs' ? 'xs' : 'sm'} />
           </StyledCopyButton>
         </Clipboard>

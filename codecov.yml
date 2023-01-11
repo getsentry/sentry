@@ -6,15 +6,13 @@ coverage:
     patch:
       default: false
       frontend:
-        # codecov should not fail status checks
-        informational: true
+        # codecov will not fail status checks for master
         only_pulls: true
         target: 60%
         flags:
         - frontend
       backend:
-        # codecov should not fail status checks
-        informational: true
+        # codecov will not fail status checks for master
         only_pulls: true
         target: 90%
         flags:

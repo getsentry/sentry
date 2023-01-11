@@ -180,6 +180,7 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
             (models.GroupEmailThread, "date", None),
             (models.GroupRuleStatus, "date_added", None),
             (models.RuleFireHistory, "date_added", None),
+            (models.MonitorCheckIn, "date_added", None),
         ] + EXTRA_BULK_QUERY_DELETES
 
         # Deletions that use the `deletions` code path (which handles their child relations)

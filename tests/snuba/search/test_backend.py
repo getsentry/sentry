@@ -10,6 +10,7 @@ from django.utils import timezone
 from sentry import options
 from sentry.api.issue_search import convert_query_values, issue_search_config, parse_search_query
 from sentry.exceptions import InvalidSearchQuery
+from sentry.issues.occurrence_consumer import process_event_and_issue_occurrence
 from sentry.models import (
     Environment,
     Group,
@@ -32,6 +33,7 @@ from sentry.testutils import SnubaTestCase, TestCase, xfail_if_not_postgres
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.types.issues import GroupType
 from sentry.utils.snuba import SENTRY_SNUBA_MAP, SnubaError
+from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 
 def date_to_query_format(date):
@@ -2294,6 +2296,174 @@ class EventsTransactionsSnubaSearchTest(SharedSnubaTest):
         error_and_perf_issues = self.make_query(search_filter_query="!message:else")
 
         assert set(error_and_perf_issues) > set(error_issues_only)
+
+
+class EventsGenericSnubaSearchTest(SharedSnubaTest, OccurrenceTestMixin):
+    @property
+    def backend(self):
+        return EventsDatasetSnubaSearchBackend()
+
+    def setUp(self):
+        super().setUp()
+        self.base_datetime = (datetime.utcnow() - timedelta(days=3)).replace(tzinfo=pytz.utc)
+
+        _, group_info = process_event_and_issue_occurrence(
+            self.build_occurrence_data(),
+            {
+                "event_id": uuid.uuid4().hex,
+                "project_id": self.project.id,
+                "title": "some problem",
+                "platform": "python",
+                "tags": {"my_tag": "1"},
+                "timestamp": before_now(minutes=1).isoformat(),
+                "message_timestamp": before_now(minutes=1).isoformat(),
+            },
+        )
+        self.profile_group_1 = group_info.group
+
+        _, group_info = process_event_and_issue_occurrence(
+            self.build_occurrence_data(fingerprint=["put-me-in-group-2"]),
+            {
+                "event_id": uuid.uuid4().hex,
+                "project_id": self.project.id,
+                "title": "some other problem",
+                "platform": "python",
+                "tags": {"my_tag": "1"},
+                "timestamp": before_now(minutes=2).isoformat(),
+                "message_timestamp": before_now(minutes=2).isoformat(),
+            },
+        )
+        self.profile_group_2 = group_info.group
+
+        process_event_and_issue_occurrence(
+            self.build_occurrence_data(fingerprint=["put-me-in-group-3"]),
+            {
+                "event_id": uuid.uuid4().hex,
+                "project_id": self.project.id,
+                "title": "some other problem",
+                "platform": "python",
+                "tags": {"my_tag": "2"},
+                "timestamp": before_now(minutes=2).isoformat(),
+                "message_timestamp": before_now(minutes=2).isoformat(),
+            },
+        )
+
+        error_event_data = {
+            "timestamp": iso_format(self.base_datetime - timedelta(days=20)),
+            "message": "bar",
+            "environment": "staging",
+            "tags": {
+                "server": "example.com",
+                "url": "http://example.com",
+                "sentry:user": "event2@example.com",
+                "my_tag": 1,
+            },
+        }
+
+        error_event = self.store_event(
+            data={
+                **error_event_data,
+                "fingerprint": ["put-me-in-error_group_1"],
+                "event_id": "c" * 32,
+                "stacktrace": {"frames": [{"module": "error_group_1"}]},
+            },
+            project_id=self.project.id,
+        )
+        self.error_group_1 = error_event.group
+
+        error_event_2 = self.store_event(
+            data={
+                **error_event_data,
+                "fingerprint": ["put-me-in-error_group_2"],
+                "event_id": "d" * 32,
+                "stacktrace": {"frames": [{"module": "error_group_2"}]},
+            },
+            project_id=self.project.id,
+        )
+        self.error_group_2 = error_event_2.group
+
+    def test_no_feature(self):
+        results = self.make_query(search_filter_query="issue.category:profile my_tag:1")
+        assert list(results) == []
+
+    def test_generic_query(self):
+        with self.feature("organizations:issue-platform"):
+            results = self.make_query(search_filter_query="issue.category:profile my_tag:1")
+        assert list(results) == [self.profile_group_1, self.profile_group_2]
+
+        with self.feature("organizations:issue-platform"):
+            results = self.make_query(
+                search_filter_query="issue.type:profile_blocked_thread my_tag:1"
+            )
+        assert list(results) == [self.profile_group_1, self.profile_group_2]
+
+    def test_error_generic_query(self):
+        with self.feature("organizations:issue-platform"):
+            results = self.make_query(search_filter_query="my_tag:1")
+        assert list(results) == [
+            self.profile_group_1,
+            self.profile_group_2,
+            self.error_group_2,
+            self.error_group_1,
+        ]
+        with self.feature("organizations:issue-platform"):
+            results = self.make_query(
+                search_filter_query="issue.category:[profile, error] my_tag:1"
+            )
+        assert list(results) == [
+            self.profile_group_1,
+            self.profile_group_2,
+            self.error_group_2,
+            self.error_group_1,
+        ]
+
+        with self.feature("organizations:issue-platform"):
+            results = self.make_query(
+                search_filter_query="issue.type:[profile_blocked_thread, error] my_tag:1"
+            )
+        assert list(results) == [
+            self.profile_group_1,
+            self.profile_group_2,
+            self.error_group_2,
+            self.error_group_1,
+        ]
+
+    def test_cursor_performance_issues(self):
+        with self.feature("organizations:issue-platform"):
+            results = self.make_query(
+                projects=[self.project],
+                search_filter_query="issue.category:profile my_tag:1",
+                sort_by="date",
+                limit=1,
+                count_hits=True,
+            )
+
+        assert list(results) == [self.profile_group_1]
+        assert results.hits == 2
+
+        with self.feature("organizations:issue-platform"):
+            results = self.make_query(
+                projects=[self.project],
+                search_filter_query="issue.category:profile my_tag:1",
+                sort_by="date",
+                limit=1,
+                cursor=results.next,
+                count_hits=True,
+            )
+        assert list(results) == [self.profile_group_2]
+        assert results.hits == 2
+
+        with self.feature("organizations:issue-platform"):
+            results = self.make_query(
+                projects=[self.project],
+                search_filter_query="issue.category:profile my_tag:1",
+                sort_by="date",
+                limit=1,
+                cursor=results.next,
+                count_hits=True,
+            )
+        assert list(results) == []
+        assert results.hits == 2
 
 
 class CdcEventsSnubaSearchTest(SharedSnubaTest):

@@ -1,17 +1,31 @@
+from __future__ import annotations
+
+from logging import Logger
+from typing import Any
+
+from rest_framework.request import Request
+
 from sentry import audit_log
 from sentry.models import (
     ApiKey,
     AuditLogEntry,
+    DeletedEntry,
     DeletedOrganization,
     DeletedProject,
     DeletedTeam,
     Organization,
     Project,
     Team,
+    User,
 )
 
 
-def create_audit_entry(request, transaction_id=None, logger=None, **kwargs):
+def create_audit_entry(
+    request: Request,
+    transaction_id: int | str | None = None,
+    logger: Logger | None = None,
+    **kwargs: Any,
+) -> AuditLogEntry:
     user = kwargs.pop("actor", request.user if request.user.is_authenticated else None)
     api_key = get_api_key_for_audit_log(request)
 
@@ -21,8 +35,13 @@ def create_audit_entry(request, transaction_id=None, logger=None, **kwargs):
 
 
 def create_audit_entry_from_user(
-    user, api_key=None, ip_address=None, transaction_id=None, logger=None, **kwargs
-):
+    user: User | None,
+    api_key: ApiKey | None = None,
+    ip_address: str | None = None,
+    transaction_id: int | str | None = None,
+    logger: Logger | None = None,
+    **kwargs: Any,
+) -> AuditLogEntry:
     entry = AuditLogEntry(
         actor_id=user.id if user else None, actor_key=api_key, ip_address=ip_address, **kwargs
     )
@@ -33,13 +52,13 @@ def create_audit_entry_from_user(
         entry.save_or_write_to_kafka()
 
     if entry.event == audit_log.get_event_id("ORG_REMOVE"):
-        create_org_delete_log(entry)
+        _create_org_delete_log(entry)
 
     elif entry.event == audit_log.get_event_id("PROJECT_REMOVE"):
-        create_project_delete_log(entry)
+        _create_project_delete_log(entry)
 
     elif entry.event == audit_log.get_event_id("TEAM_REMOVE"):
-        create_team_delete_log(entry)
+        _create_team_delete_log(entry)
 
     extra = {
         "ip_address": entry.ip_address,
@@ -66,11 +85,11 @@ def create_audit_entry_from_user(
     return entry
 
 
-def get_api_key_for_audit_log(request):
+def get_api_key_for_audit_log(request: Request) -> ApiKey | None:
     return request.auth if hasattr(request, "auth") and isinstance(request.auth, ApiKey) else None
 
 
-def create_org_delete_log(entry):
+def _create_org_delete_log(entry: AuditLogEntry) -> None:
     delete_log = DeletedOrganization()
     organization = Organization.objects.get(id=entry.target_object)
 
@@ -78,10 +97,10 @@ def create_org_delete_log(entry):
     delete_log.slug = organization.slug
     delete_log.date_created = organization.date_added
 
-    complete_delete_log(delete_log, entry)
+    _complete_delete_log(delete_log, entry)
 
 
-def create_project_delete_log(entry):
+def _create_project_delete_log(entry: AuditLogEntry) -> None:
     delete_log = DeletedProject()
 
     project = Project.objects.get(id=entry.target_object)
@@ -94,10 +113,10 @@ def create_project_delete_log(entry):
     delete_log.organization_name = entry.organization.name
     delete_log.organization_slug = entry.organization.slug
 
-    complete_delete_log(delete_log, entry)
+    _complete_delete_log(delete_log, entry)
 
 
-def create_team_delete_log(entry):
+def _create_team_delete_log(entry: AuditLogEntry) -> None:
     delete_log = DeletedTeam()
 
     team = Team.objects.get(id=entry.target_object)
@@ -109,10 +128,10 @@ def create_team_delete_log(entry):
     delete_log.organization_name = entry.organization.name
     delete_log.organization_slug = entry.organization.slug
 
-    complete_delete_log(delete_log, entry)
+    _complete_delete_log(delete_log, entry)
 
 
-def complete_delete_log(delete_log, entry):
+def _complete_delete_log(delete_log: DeletedEntry, entry: AuditLogEntry) -> None:
     """
     Adds common information on a delete log from an audit entry and
     saves that delete log.
@@ -124,7 +143,9 @@ def complete_delete_log(delete_log, entry):
     delete_log.save()
 
 
-def create_system_audit_entry(transaction_id=None, logger=None, **kwargs):
+def create_system_audit_entry(
+    transaction_id: int | str | None = None, logger: Logger | None = None, **kwargs: Any
+) -> AuditLogEntry:
     """
     Creates an audit log entry for events that are triggered by Sentry's
     systems and do not have an associated Sentry user as the "actor".

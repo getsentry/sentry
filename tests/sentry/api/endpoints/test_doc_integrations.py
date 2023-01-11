@@ -7,9 +7,11 @@ from sentry.api.serializers.base import serialize
 from sentry.models import DocIntegration, IntegrationFeature
 from sentry.models.integrations.integration_feature import IntegrationTypes
 from sentry.testutils import APITestCase
+from sentry.testutils.silo import control_silo_test
 from sentry.utils.json import JSONData
 
 
+@control_silo_test(stable=True)
 class DocIntegrationsTest(APITestCase):
     endpoint = "sentry-api-0-doc-integrations"
 
@@ -29,6 +31,7 @@ class DocIntegrationsTest(APITestCase):
         return [doc.get("avatar") for doc in response.data]
 
 
+@control_silo_test(stable=True)
 class GetDocIntegrationsTest(DocIntegrationsTest):
     method = "GET"
 
@@ -75,6 +78,7 @@ class GetDocIntegrationsTest(DocIntegrationsTest):
             assert serialize(feature) in serialize(self.doc_3)["features"]
 
 
+@control_silo_test(stable=True)
 class PostDocIntegrationsTest(DocIntegrationsTest):
     method = "POST"
     payload = {

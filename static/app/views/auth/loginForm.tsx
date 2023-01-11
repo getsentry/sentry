@@ -28,27 +28,17 @@ const LoginProviders = ({
   <ProviderWrapper>
     <ProviderHeading>{t('External Account Login')}</ProviderHeading>
     {googleLoginLink && (
-      <Button
-        align="left"
-        size="sm"
-        icon={<IconGoogle size="xs" />}
-        href={googleLoginLink}
-      >
+      <Button size="sm" icon={<IconGoogle size="xs" />} href={googleLoginLink}>
         {t('Sign in with Google')}
       </Button>
     )}
     {githubLoginLink && (
-      <Button
-        align="left"
-        size="sm"
-        icon={<IconGithub size="xs" />}
-        href={githubLoginLink}
-      >
+      <Button size="sm" icon={<IconGithub size="xs" />} href={githubLoginLink}>
         {t('Sign in with GitHub')}
       </Button>
     )}
     {vstsLoginLink && (
-      <Button align="left" size="sm" icon={<IconVsts size="xs" />} href={vstsLoginLink}>
+      <Button size="sm" icon={<IconVsts size="xs" />} href={vstsLoginLink}>
         {t('Sign in with Azure DevOps')}
       </Button>
     )}

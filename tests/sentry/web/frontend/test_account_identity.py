@@ -29,7 +29,7 @@ class AccountIdentityTest(TestCase):
         resp = self.client.get(path)
 
         assert resp.status_code == 200
-        assert resp.context["organization"] == organization
+        assert resp.context["organization"].id == organization.id
         assert isinstance(resp.context["provider"], DummyProvider)
 
         resp = self.client.post(path)

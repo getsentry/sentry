@@ -18,9 +18,9 @@ from sentry.api.validators import AuthVerifyValidator
 from sentry.auth.authenticators.u2f import U2fInterface
 from sentry.auth.superuser import Superuser
 from sentry.models import Authenticator, Organization
+from sentry.services.hybrid_cloud.auth.impl import promote_request_api_user
 from sentry.utils import auth, json, metrics
 from sentry.utils.auth import has_completed_sso, initiate_login
-from sentry.utils.functional import extract_lazy_object
 from sentry.utils.settings import is_self_hosted
 
 logger: logging.Logger = logging.getLogger(__name__)
@@ -90,7 +90,9 @@ class AuthIndexEndpoint(Endpoint):
                 )
         # attempt password authentication
         elif "password" in validator.validated_data:
-            authenticated = request.user.check_password(validator.validated_data["password"])
+            authenticated = promote_request_api_user(request).check_password(
+                validator.validated_data["password"]
+            )
             return authenticated
         return False
 
@@ -131,7 +133,7 @@ class AuthIndexEndpoint(Endpoint):
         if not request.user.is_authenticated:
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
-        user = extract_lazy_object(request._request.user)
+        user = promote_request_api_user(request)
         return Response(serialize(user, user, DetailedSelfUserSerializer()))
 
     def post(self, request: Request) -> Response:
@@ -225,7 +227,7 @@ class AuthIndexEndpoint(Endpoint):
 
         try:
             # Must use the httprequest object instead of request
-            auth.login(request._request, request.user)
+            auth.login(request._request, promote_request_api_user(request))
             metrics.incr(
                 "sudo_modal.success",
                 sample_rate=1.0,
@@ -257,6 +259,7 @@ class AuthIndexEndpoint(Endpoint):
 
         Deauthenticate all active sessions for this user.
         """
+        # For signals to work here, we must promote the request.user to a full user object
         logout(request._request)
         request.user = AnonymousUser()
         return Response(status=status.HTTP_204_NO_CONTENT)
