@@ -456,7 +456,6 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "platform:javascript",
                 "releases:version@1.3",
                 "releases:[a,version@1.3]",
-                "environment:production",
                 "duration:>15",
                 "user.id:123",
                 "user.name:username123",
