@@ -352,13 +352,14 @@ const StyledActions = styled('div')`
   }
 `;
 
-const TemplateSwitch = styled('div')`
+const TemplateSwitch = styled('label')`
+  font-weight: normal;
   font-size: ${p => p.theme.fontSizeLarge};
-  display: grid;
+  display: flex;
   align-items: center;
-  grid-auto-flow: column;
   gap: ${space(1)};
   width: max-content;
+  margin: 0;
 `;
 
 const TemplateContainer = styled('div')`
