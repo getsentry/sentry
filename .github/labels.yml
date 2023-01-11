@@ -187,9 +187,6 @@
 - name: 'Team: Backend'
   color: '8D5494'
   description: app-backend
-- name: 'Team: Core UI'
-  color: '8D5494'
-  description: ''
 - name: 'Team: Design'
   color: '8D5494'
   description: ''
@@ -205,9 +202,6 @@
 - name: 'Team: Enterprise'
   color: '8D5494'
   description: ''
-- name: 'Team: Front End'
-  color: '8D5494'
-  description: app-frontend
 - name: 'Team: Growth'
   color: '8D5494'
   description: ''
