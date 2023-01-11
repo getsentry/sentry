@@ -10,7 +10,7 @@ import MonitorForm from './monitorForm';
 import {Monitor} from './types';
 
 type Props = AsyncView['props'] &
-  RouteComponentProps<{monitorId: string; orgId: string}, {}> & {
+  RouteComponentProps<{monitorId: string}, {}> & {
     organization: Organization;
   };
 
@@ -36,9 +36,9 @@ class EditMonitor extends AsyncView<Props, State> {
 
   getTitle() {
     if (this.state.monitor) {
-      return `${this.state.monitor.name} - Monitors - ${this.orgSlug}`;
+      return `${this.state.monitor.name} - Crons - ${this.orgSlug}`;
     }
-    return `Monitors - ${this.orgSlug}`;
+    return `Crons - ${this.orgSlug}`;
   }
 
   renderBody() {

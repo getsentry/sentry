@@ -84,8 +84,11 @@ export class SpanTreeNode {
 class SpanTree {
   root: SpanTreeNode;
   orphanedSpans: RawSpanType[] = [];
+  transaction: EventTransaction;
 
   constructor(transaction: EventTransaction, spans: RawSpanType[]) {
+    this.transaction = transaction;
+
     this.root = SpanTreeNode.Root({
       description: transaction.title,
       start_timestamp: transaction.startTimestamp,
@@ -135,7 +138,8 @@ class SpanTree {
         // updating anything before span.start_timestamp.
         if (
           parent.children.length > 0 &&
-          span.timestamp - parent.children[parent.children.length - 1].span.timestamp >
+          span.start_timestamp -
+            parent.children[parent.children.length - 1].span.timestamp >
             MISSING_INSTRUMENTATION_THRESHOLD_S
         ) {
           parent.children.push(
@@ -144,7 +148,7 @@ class SpanTree {
                 op: 'missing instrumentation',
                 start_timestamp:
                   parent.children[parent.children.length - 1].span.timestamp,
-                timestamp: span.timestamp,
+                timestamp: span.start_timestamp,
                 span_id: uuid4(),
                 data: {},
                 trace_id: span.trace_id,

@@ -72,7 +72,7 @@ export class Flamegraph {
 
     if (this.profile.duration > 0) {
       this.configSpace = new Rect(
-        configSpace ? configSpace.x : this.profile.startedAt,
+        0,
         0,
         configSpace ? configSpace.width : this.profile.duration,
         this.depth
