@@ -78,6 +78,12 @@ class SnubaTSDB(BaseTSDB):
             [],
             [["arrayJoin", "group_ids", "group_id"]],
         ),
+        TSDBModel.group_generic: SnubaModelQuerySettings(
+            snuba.Dataset.IssuePlatform,
+            "group_id",
+            None,
+            [],
+        ),
         TSDBModel.release: SnubaModelQuerySettings(
             snuba.Dataset.Events, "tags[sentry:release]", None, [events_type_condition]
         ),
@@ -90,6 +96,12 @@ class SnubaTSDB(BaseTSDB):
             "tags[sentry:user]",
             [],
             [["arrayJoin", "group_ids", "group_id"]],
+        ),
+        TSDBModel.users_affected_by_generic_group: SnubaModelQuerySettings(
+            snuba.Dataset.IssuePlatform,
+            "group_id",
+            "tags[sentry:user]",
+            [],
         ),
         TSDBModel.users_affected_by_project: SnubaModelQuerySettings(
             snuba.Dataset.Events, "project_id", "tags[sentry:user]", [events_type_condition]
@@ -193,6 +205,39 @@ class SnubaTSDB(BaseTSDB):
     def __init__(self, **options):
         super().__init__(**options)
 
+    def __manual_group_on_time_aggregation(self, rollup, time_column_alias) -> Sequence[Any]:
+        """
+        Explicitly builds an aggregation expression in-place of using a `TimeSeriesProcessor` on the snuba entity.
+        Older tables and queries that target that table had syntactic sugar on the `time` column and would apply
+        additional processing to re-write the query. For entities/models that don't have that special processing,
+        we need to manually insert the equivalent query to get the same result.
+        """
+
+        def rollup_agg(func: str):
+            return [
+                "toUnixTimestamp",
+                [[func, "timestamp"]],
+                time_column_alias,
+            ]
+
+        rollup_to_start_func = {
+            60: "toStartOfMinute",
+            3600: "toStartOfHour",
+            3600 * 24: "toDate",
+        }
+
+        # if we don't have an explicit function mapped to this rollup, we have to calculate it on the fly
+        # multiply(intDiv(toUInt32(toUnixTimestamp(timestamp)), granularity)))
+        special_rollup = [
+            "multiply",
+            [["intDiv", [["toUInt32", [["toUnixTimestamp", "timestamp"]]], rollup]], rollup],
+            time_column_alias,
+        ]
+
+        rollup_func = rollup_to_start_func.get(rollup)
+
+        return rollup_agg(rollup_func) if rollup_func else special_rollup
+
     def get_data(
         self,
         model,
@@ -222,6 +267,12 @@ class SnubaTSDB(BaseTSDB):
         ]:
             keys = list(set(map(lambda x: int(x), keys)))
 
+        model_requires_manual_group_on_time = model in (
+            TSDBModel.group_generic,
+            TSDBModel.users_affected_by_generic_group,
+        )
+        group_on_time_column_alias = "grouped_time"
+
         model_query_settings = self.model_query_settings.get(model)
 
         if model_query_settings is None:
@@ -240,7 +291,10 @@ class SnubaTSDB(BaseTSDB):
         if group_on_model and model_group is not None:
             groupby.append(model_group)
         if group_on_time:
-            groupby.append("time")
+            if not model_requires_manual_group_on_time:
+                groupby.append("time")
+            else:
+                groupby.append(group_on_time_column_alias)
         if aggregation == "count()" and model_aggregate is not None:
             # Special case, because count has different semantics, we change:
             # `COUNT(model_aggregate)` to `COUNT() GROUP BY model_aggregate`
@@ -261,6 +315,11 @@ class SnubaTSDB(BaseTSDB):
         # timestamp of the last bucket to get the end time.
         rollup, series = self.get_optimal_rollup_series(start, end, rollup)
 
+        if group_on_time and model_requires_manual_group_on_time:
+            aggregations.append(
+                self.__manual_group_on_time_aggregation(rollup, group_on_time_column_alias)
+            )
+
         # If jitter_value is provided then we use it to offset the buckets we round start/end to by
         # up  to `rollup` seconds.
         series = self._add_jitter_to_series(series, start, rollup, jitter_value)
@@ -276,8 +335,10 @@ class SnubaTSDB(BaseTSDB):
 
         orderby = []
         if group_on_time:
-            orderby.append("-time")
-
+            if not model_requires_manual_group_on_time:
+                orderby.append("-time")
+            else:
+                orderby.append(f"-{group_on_time_column_alias}")
         if group_on_model and model_group is not None:
             orderby.append(model_group)
 
@@ -309,12 +370,20 @@ class SnubaTSDB(BaseTSDB):
             result = {}
 
         if group_on_time:
-            keys_map["time"] = series
+            if not model_requires_manual_group_on_time:
+                keys_map["time"] = series
+            else:
+                keys_map[group_on_time_column_alias] = series
 
         self.zerofill(result, groupby, keys_map)
         self.trim(result, groupby, keys)
 
-        return result
+        if group_on_time and model_requires_manual_group_on_time:
+            # unroll aggregated data
+            self.unnest(result, aggregated_as)
+            return result
+        else:
+            return result
 
     def zerofill(self, result, groups, flat_keys):
         """

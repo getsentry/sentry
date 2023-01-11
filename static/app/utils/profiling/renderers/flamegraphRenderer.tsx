@@ -426,7 +426,7 @@ class FlamegraphRenderer {
     return hoveredNode;
   }
 
-  setSearchResults(searchResults: FlamegraphSearch['results']) {
+  setSearchResults(searchResults: FlamegraphSearch['results']['frames']) {
     const matchedFrame = new Float32Array(6).fill(1);
     const unMatchedFrame = new Float32Array(6).fill(0);
 

@@ -10,10 +10,11 @@ import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import CompactSelect from 'sentry/components/compactSelect';
-import {Title} from 'sentry/components/layouts/thirds';
+import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
+import PageHeading from 'sentry/components/pageHeading';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import SearchBar from 'sentry/components/searchBar';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -276,9 +277,9 @@ class ManageDashboards extends AsyncView<Props, State> {
         <SentryDocumentTitle title={t('Dashboards')} orgSlug={organization.slug}>
           <StyledPageContent>
             <NoProjectMessage organization={organization}>
-              <PageContent>
-                <StyledPageHeader>
-                  <StyledTitle>
+              <Layout.Header>
+                <Layout.HeaderContent>
+                  <StyledHeading>
                     {t('Dashboards')}
                     <PageHeadingQuestionTooltip
                       title={tct(
@@ -290,7 +291,9 @@ class ManageDashboards extends AsyncView<Props, State> {
                         }
                       )}
                     />
-                  </StyledTitle>
+                  </StyledHeading>
+                </Layout.HeaderContent>
+                <Layout.HeaderActions>
                   <ButtonBar gap={1.5}>
                     <TemplateSwitch>
                       {t('Show Templates')}
@@ -313,11 +316,15 @@ class ManageDashboards extends AsyncView<Props, State> {
                       {t('Create Dashboard')}
                     </Button>
                   </ButtonBar>
-                </StyledPageHeader>
-                {showTemplates && this.renderTemplates()}
-                {this.renderActions()}
-                {this.renderDashboards()}
-              </PageContent>
+                </Layout.HeaderActions>
+              </Layout.Header>
+              <Layout.Body>
+                <Layout.Main fullWidth>
+                  {showTemplates && this.renderTemplates()}
+                  {this.renderActions()}
+                  {this.renderDashboards()}
+                </Layout.Main>
+              </Layout.Body>
             </NoProjectMessage>
           </StyledPageContent>
         </SentryDocumentTitle>
@@ -326,19 +333,12 @@ class ManageDashboards extends AsyncView<Props, State> {
   }
 }
 
-const StyledTitle = styled(Title)`
-  width: auto;
-`;
-
 const StyledPageContent = styled(PageContent)`
   padding: 0;
 `;
 
-const StyledPageHeader = styled('div')`
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  margin-bottom: ${space(2)};
+const StyledHeading = styled(PageHeading)`
+  line-height: 40px;
 `;
 
 const StyledActions = styled('div')`
@@ -365,7 +365,7 @@ const TemplateSwitch = styled('label')`
 const TemplateContainer = styled('div')`
   display: grid;
   gap: ${space(2)};
-  margin-bottom: ${space(2)};
+  margin-bottom: ${space(0.5)};
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     grid-template-columns: repeat(2, minmax(200px, 1fr));
