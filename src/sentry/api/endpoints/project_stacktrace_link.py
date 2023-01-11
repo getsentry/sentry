@@ -1,11 +1,12 @@
 import logging
-from typing import Dict, List, Mapping, Optional
+from typing import Any, Dict, List, Mapping, Optional
 
+import requests
 from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_sdk import Scope, configure_scope
 
-from sentry import analytics
+from sentry import analytics, features
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
@@ -16,6 +17,9 @@ from sentry.utils.event_frames import munged_filename_and_frames
 from sentry.utils.json import JSONData
 
 logger = logging.getLogger(__name__)
+
+CODECOV_URL = "https://api.codecov.io/api/v2/service/owner_username/repos/repo_name/report"
+CODECOV_TOKEN = None  # Put your token here for testing
 
 
 def get_link(
@@ -167,6 +171,42 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                     sorted_configs.insert(0, config)
         return sorted_configs
 
+    def get_codecov_path(self, source_url: str) -> Optional[str]:
+        source_url_split = source_url.split("/")
+        codecov_path_index = 0
+
+        # Extract path from URL from "blob/<sha_or_branch>/" onwards
+        for i, path in enumerate(source_url_split):
+            if path == "blob":
+                codecov_path_index = i + 2
+                break
+        if codecov_path_index:
+            return "/".join(source_url_split[codecov_path_index:])
+        return None
+
+    def get_codecov_line_coverage(
+        self, config: JSONData, source_url: str, access_token: str
+    ) -> Any:
+        repo_name = config["repoName"].split("/")
+        url = (
+            CODECOV_URL.replace("service", config["provider"]["key"])
+            .replace("owner_username", repo_name[0])
+            .replace("repo_name", repo_name[1])
+        )
+        path = self.get_codecov_path(source_url)
+        if path:
+            params = {"branch": config["defaultBranch"], "path": path}
+            try:
+                response = requests.get(
+                    url, params=params, headers={"Authorization": "tokenAuth %s" % access_token}
+                )
+                response_json = response.json()
+                return response_json["files"][0]["line_coverage"]
+            except Exception:
+                logger.exception("Could not make codecov call")
+                return None
+        return None
+
     def get(self, request: Request, project: Project) -> Response:
         ctx = generate_context(request.GET)
         filepath = ctx.get("file")
@@ -259,6 +299,16 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                         scope.set_tag("stacktrace_link.error", "stack_root_mismatch")
                     else:
                         scope.set_tag("stacktrace_link.error", "file_not_found")
+
+                result["lineCoverage"] = None
+                if features.has(
+                    "organizations:codecov-stacktrace-integration", project.organization
+                ):
+                    result["lineCoverage"] = self.get_codecov_line_coverage(
+                        current_config["config"],
+                        result["sourceUrl"],
+                        CODECOV_TOKEN,
+                    )
 
         if result["config"]:
             analytics.record(
