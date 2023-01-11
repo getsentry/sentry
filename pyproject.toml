@@ -49,4 +49,3 @@ filterwarnings = [
     "ignore:The --looponfail command line argument.*",
 ]
 looponfailroots = ["src", "tests"]
-timeout_func_only = true
