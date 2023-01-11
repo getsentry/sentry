@@ -33,7 +33,7 @@ import useProjects from 'sentry/utils/useProjects';
 
 import {OpenInContainer} from './openInContextLine';
 import StacktraceLinkModal from './stacktraceLinkModal';
-import UseStacktraceLink from './useStacktraceLink';
+import useStacktraceLink from './useStacktraceLink';
 
 const supportedStacktracePlatforms: PlatformKey[] = [
   'go',
@@ -144,7 +144,7 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
     data: match,
     isLoading,
     refetch,
-  } = UseStacktraceLink({
+  } = useStacktraceLink({
     event,
     frame,
     orgSlug: organization.slug,

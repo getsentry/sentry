@@ -14,7 +14,7 @@ const stacktraceLinkQueryKey = (
   query: any
 ): QueryKey => [`/projects/${orgSlug}/${projectSlug}/stacktrace-link/`, {query}];
 
-function UseStacktraceLink({event, frame, orgSlug, projectSlug}: UseStacktraceLinkProps) {
+function useStacktraceLink({event, frame, orgSlug, projectSlug}: UseStacktraceLinkProps) {
   const query = {
     file: frame.filename,
     platform: event.platform,
@@ -33,4 +33,4 @@ function UseStacktraceLink({event, frame, orgSlug, projectSlug}: UseStacktraceLi
     }
   );
 }
-export default UseStacktraceLink;
+export default useStacktraceLink;
