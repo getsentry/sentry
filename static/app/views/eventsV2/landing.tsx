@@ -11,6 +11,7 @@ import AsyncComponent from 'sentry/components/asyncComponent';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 import Button from 'sentry/components/button';
 import CompactSelect from 'sentry/components/compactSelect';
+import * as Layout from 'sentry/components/layouts/thirds';
 import {Title} from 'sentry/components/layouts/thirds';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import SearchBar from 'sentry/components/searchBar';
@@ -297,8 +298,8 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
         <SentryDocumentTitle title={t('Discover')} orgSlug={organization.slug}>
           <StyledPageContent>
             <NoProjectMessage organization={organization}>
-              <PageContent>
-                <StyledPageHeader>
+              <Layout.Header>
+                <Layout.HeaderContent>
                   {organization.features.includes(
                     'discover-query-builder-as-landing-page'
                   ) ? (
@@ -310,7 +311,9 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
                       </GuideAnchor>
                     </Title>
                   )}
-                  <StyledButton
+                </Layout.HeaderContent>
+                <Layout.HeaderActions>
+                  <Button
                     data-test-id="build-new-query"
                     to={to}
                     size="sm"
@@ -322,12 +325,16 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
                     }}
                   >
                     {t('Build a new query')}
-                  </StyledButton>
-                </StyledPageHeader>
-                {this.renderBanner()}
-                {this.renderActions()}
-                {this.renderComponent()}
-              </PageContent>
+                  </Button>
+                </Layout.HeaderActions>
+              </Layout.Header>
+              <Layout.Body>
+                <Layout.Main fullWidth>
+                  {this.renderBanner()}
+                  {this.renderActions()}
+                  {this.renderComponent()}
+                </Layout.Main>
+              </Layout.Body>
             </NoProjectMessage>
           </StyledPageContent>
         </SentryDocumentTitle>
@@ -348,15 +355,6 @@ const SwitchLabel = styled('div')`
   padding-right: 8px;
 `;
 
-const StyledPageHeader = styled('div')`
-  display: flex;
-  align-items: flex-end;
-  font-size: ${p => p.theme.headerFontSize};
-  color: ${p => p.theme.textColor};
-  justify-content: space-between;
-  margin-bottom: ${space(2)};
-`;
-
 const StyledSearchBar = styled(SearchBar)`
   flex-grow: 1;
 `;
@@ -371,10 +369,6 @@ const StyledActions = styled('div')`
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     grid-template-columns: auto;
   }
-`;
-
-const StyledButton = styled(Button)`
-  white-space: nowrap;
 `;
 
 export default withOrganization(DiscoverLanding);

@@ -14,11 +14,11 @@ function ReplaysListContainer() {
   return (
     <Fragment>
       <Layout.Header>
-        <StyledLayoutHeaderContent>
+        <Layout.HeaderContent>
           <StyledHeading>
             {t('Replays')} <ReplaysFeatureBadge space={1} />
           </StyledHeading>
-        </StyledLayoutHeaderContent>
+        </Layout.HeaderContent>
       </Layout.Header>
       <PageFiltersContainer>
         <ReplaysList />
@@ -27,15 +27,8 @@ function ReplaysListContainer() {
   );
 }
 
-const StyledLayoutHeaderContent = styled(Layout.HeaderContent)`
-  display: flex;
-  justify-content: space-between;
-  flex-direction: row;
-`;
-
 const StyledHeading = styled(PageHeading)`
   line-height: 40px;
-  display: flex;
 `;
 
 export default ReplaysListContainer;

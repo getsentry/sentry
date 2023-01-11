@@ -19,8 +19,8 @@ import {
   PlatformKey,
 } from 'sentry/data/platformCategories';
 import platforms from 'sentry/data/platforms';
+import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {PageHeader} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import Projects from 'sentry/utils/projects';
@@ -111,8 +111,12 @@ class ProjectInstallPlatform extends Component<Props, State> {
         <StyledPageHeader>
           <h2>{t('Configure %(platform)s', {platform: platform.name})}</h2>
           <ButtonBar gap={1}>
-            <Button size="sm" to={gettingStartedLink}>
-              {t('< Back')}
+            <Button
+              icon={<IconChevron direction="left" size="sm" />}
+              size="sm"
+              to={gettingStartedLink}
+            >
+              {t('Back')}
             </Button>
             <Button size="sm" href={platformLink} external>
               {t('Full Documentation')}
@@ -266,7 +270,9 @@ const StyledButtonBar = styled(ButtonBar)`
   }
 `;
 
-const StyledPageHeader = styled(PageHeader)`
+const StyledPageHeader = styled('div')`
+  display: flex;
+  justify-content: space-between;
   margin-bottom: ${space(3)};
 
   h2 {
