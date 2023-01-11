@@ -16,6 +16,7 @@ export interface SpanChartNode {
   node: SpanTree['root'];
   parent: SpanChartNode | null;
   start: number;
+  text: string;
 }
 
 class SpanChart {
@@ -23,6 +24,7 @@ class SpanChart {
   root: SpanChartNode = {
     parent: null,
     node: SpanTreeNode.Root(),
+    text: 'root',
     duration: 0,
     depth: -1,
     start: 0,
@@ -102,6 +104,10 @@ class SpanChart {
           duration: this.toFinalUnit(duration),
           start: this.toFinalUnit(start),
           end: this.toFinalUnit(end),
+          text:
+            node.span.op && node.span.description
+              ? node.span.op + ': ' + node.span.description
+              : node.span.op || node.span.description || '<unknown span>',
           node,
           depth,
           parent,
