@@ -63,7 +63,10 @@ export class FlamegraphDomRenderer {
     return null;
   }
 
-  draw(configViewToPhysicalSpace: mat3, _searchResults: FlamegraphSearch['results']) {
+  draw(
+    configViewToPhysicalSpace: mat3,
+    _searchResults: FlamegraphSearch['results']['frames']
+  ) {
     if (!this.container) {
       throw new Error('No container to render into');
     }

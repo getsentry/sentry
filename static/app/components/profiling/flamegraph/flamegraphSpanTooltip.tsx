@@ -67,10 +67,7 @@ export function FlamegraphSpanTooltip({
           backgroundColor={formatColorForSpan(hoveredNode, spansRenderer)}
         />
         {spanChart.formatter(hoveredNode.duration)}{' '}
-        {formatWeightToTransactionDuration(hoveredNode, spanChart)}{' '}
-        {hoveredNode.node.span.op === 'missing instrumentation'
-          ? t('Missing instrumentation')
-          : hoveredNode.node.span.description}
+        {formatWeightToTransactionDuration(hoveredNode, spanChart)} {hoveredNode.text}
       </FlamegraphTooltipFrameMainInfo>
       <FlamegraphTooltipTimelineInfo>
         {hoveredNode.node.span.op ? `${t('op')}:${hoveredNode.node.span.op} ` : null}

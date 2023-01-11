@@ -161,7 +161,7 @@ function FlamegraphZoomView({
     if (!flamegraphRenderer) {
       return;
     }
-    flamegraphRenderer.setSearchResults(flamegraphSearch.results);
+    flamegraphRenderer.setSearchResults(flamegraphSearch.results.frames);
   }, [flamegraphRenderer, flamegraphSearch.results]);
 
   useEffect(() => {
@@ -188,7 +188,7 @@ function FlamegraphZoomView({
       textRenderer.draw(
         flamegraphView.toOriginConfigView(flamegraphView.configView),
         flamegraphView.fromTransformedConfigView(flamegraphCanvas.physicalSpace),
-        flamegraphSearch.results
+        flamegraphSearch.results.frames
       );
     };
 
@@ -243,7 +243,7 @@ function FlamegraphZoomView({
     flamegraphRenderer,
     sampleTickRenderer,
     canvasPoolManager,
-    flamegraphSearch,
+    flamegraphSearch.results.frames,
   ]);
 
   const selectedFramesRef = useRef<FlamegraphFrame[] | null>(null);

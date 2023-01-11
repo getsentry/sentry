@@ -33,7 +33,7 @@ class FlamegraphTextRenderer extends TextRenderer {
   draw(
     configView: Rect,
     configViewToPhysicalSpace: mat3,
-    flamegraphSearchResults: FlamegraphSearch['results']
+    flamegraphSearchResults: FlamegraphSearch['results']['frames']
   ): void {
     // Make sure we set font size before we measure text for the first draw
     const FONT_SIZE = this.theme.SIZES.BAR_FONT_SIZE * window.devicePixelRatio;
