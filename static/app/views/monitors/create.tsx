@@ -20,7 +20,7 @@ type Props = AsyncView['props'] &
 
 class CreateMonitor extends AsyncView<Props, AsyncView['state']> {
   getTitle() {
-    return `Monitors - ${this.orgSlug}`;
+    return `Crons - ${this.orgSlug}`;
   }
 
   get orgSlug() {

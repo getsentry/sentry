@@ -78,7 +78,7 @@ class Monitors extends AsyncView<Props, State> {
   }
 
   getTitle() {
-    return `Monitors - ${this.orgSlug}`;
+    return `Crons - ${this.orgSlug}`;
   }
 
   onRequestSuccess(response): void {
