@@ -17,6 +17,7 @@ import {WebVital} from 'sentry/utils/fields';
 import {PerformanceEventViewProvider} from 'sentry/utils/performance/contexts/performanceEventViewContext';
 import {decodeScalar} from 'sentry/utils/queryString';
 import withApi from 'sentry/utils/withApi';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import withProjects from 'sentry/utils/withProjects';
@@ -93,12 +94,14 @@ class VitalDetail extends Component<Props, State> {
     const {organization, location, router, api} = this.props;
     const {eventView} = this.state;
     if (!eventView) {
-      browserHistory.replace({
-        pathname: `/organizations/${organization.slug}/performance/`,
-        query: {
-          ...location.query,
-        },
-      });
+      browserHistory.replace(
+        normalizeUrl({
+          pathname: `/organizations/${organization.slug}/performance/`,
+          query: {
+            ...location.query,
+          },
+        })
+      );
       return null;
     }
 
