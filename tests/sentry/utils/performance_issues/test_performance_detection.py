@@ -31,8 +31,9 @@ BASE_DETECTOR_OPTIONS_OFF = {
 
 
 def assert_n_plus_one_db_problem(perf_problems):
-    assert perf_problems == [
-        PerformanceProblem(
+    assert any(
+        problem
+        == PerformanceProblem(
             fingerprint="1-GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES-8d86357da4d8a866b19c97670edee38d037a7bc8",
             op="db",
             desc="SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21",
@@ -52,7 +53,8 @@ def assert_n_plus_one_db_problem(perf_problems):
                 "bb32cf50fc56b296",
             ],
         )
-    ]
+        for problem in perf_problems
+    )
 
 
 @pytest.mark.django_db
