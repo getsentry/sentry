@@ -4,6 +4,7 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {IconClose} from 'sentry/icons';
+import ConfigStore from 'sentry/stores/configStore';
 import {slideInLeft} from 'sentry/styles/animations';
 import space from 'sentry/styles/space';
 
@@ -79,6 +80,13 @@ function SidebarPanel({
         return;
       }
 
+      // If we are in Sandbox, don't hide panel when the modal is clicked (before the email is added)
+      if (
+        ConfigStore.get('demoMode') &&
+        window.localStorage.getItem('addedEmail') !== '1'
+      ) {
+        return;
+      }
       hidePanel();
     },
     [hidePanel]
