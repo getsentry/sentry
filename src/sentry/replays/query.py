@@ -289,17 +289,29 @@ def _sorted_aggregated_urls(agg_urls_column, alias):
 # Filter
 
 replay_url_parser_config = SearchConfig(
-    numeric_keys={"duration", "countErrors", "countSegments", "countUrls", "activity"},
+    numeric_keys={
+        "activity",
+        "duration",
+        "countErrors",
+        "count_errors",
+        "countSegments",
+        "count_segments",
+        "countUrls",
+        "count_urls",
+    },
 )
 
 
 class ReplayQueryConfig(QueryConfig):
     # Numeric filters.
+    activity = Number()
     duration = Number()
     count_errors = Number(name="countErrors")
+    count_error = Number(field_alias="count_errors", query_alias="countErrors")
     count_segments = Number(name="countSegments")
-    count_urls = Number(name="countUrls")
-    activity = Number()
+    count_segment = Number(field_alias="count_segments", query_alias="countSegments")
+    countUrls = Number(name="countUrls")
+    count_urls = Number(query_alias="countUrls")
 
     # String filters.
     replay_id = String(field_alias="id")
@@ -465,8 +477,11 @@ FIELD_QUERY_ALIAS_MAP: Dict[str, List[str]] = {
     "urls": ["urls_sorted", "agg_urls"],
     "url": ["urls_sorted", "agg_urls"],
     "countErrors": ["countErrors"],
+    "count_errors": ["countErrors"],
     "countUrls": ["countUrls", "urls_sorted", "agg_urls"],
+    "count_urls": ["countUrls", "urls_sorted", "agg_urls"],
     "countSegments": ["countSegments"],
+    "count_segments": ["countSegments"],
     "isArchived": ["isArchived"],
     "activity": ["activity", "countErrors", "urls_sorted", "agg_urls"],
     "user": ["user_id", "user_email", "user_name", "user_ipAddress"],
