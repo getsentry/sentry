@@ -1596,6 +1596,38 @@ class TimeseriesQueryBuilder(UnresolvedQuery):
         return raw_snql_query(self.get_snql_query(), referrer, use_cache)
 
 
+class GenericTimeSeriesQueryBuilder(TimeseriesQueryBuilder):
+    """The IssuePlatform dataset isn't using the TimeSeriesProcessor which does the translation of 'time' to 'timestamp'."""
+
+    time_column = Column("timestamp")
+    # time_column = Function("toUnixTimestamp", Function(func_name, "timestamp"), alias=time_column_alias)
+
+    def __init__(
+        self,
+        dataset: Dataset,
+        params: ParamsType,
+        interval: int,
+        query: Optional[str] = None,
+        selected_columns: Optional[List[str]] = None,
+        equations: Optional[List[str]] = None,
+        functions_acl: Optional[List[str]] = None,
+        limit: Optional[int] = 10000,
+        has_metrics: bool = False,
+        skip_tag_resolution: bool = False,
+    ):
+        super().__init__(
+            dataset,
+            params,
+            interval,
+            query=query,
+            selected_columns=selected_columns,
+            equations=equations,
+            functions_acl=functions_acl,
+            has_metrics=has_metrics,
+            skip_tag_resolution=skip_tag_resolution,
+        )
+
+
 class TopEventsQueryBuilder(TimeseriesQueryBuilder):
     """Create one of two top events queries, which is used for the Top Period &
     Top Daily displays
