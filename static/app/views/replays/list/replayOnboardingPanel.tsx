@@ -13,7 +13,7 @@ interface Props {
 export default function ReplayOnboardingPanel(props: Props) {
   return (
     <OnboardingPanel image={<HeroImage src={emptyStateImg} />}>
-      <h3>{t('Get to the root cause of errors faster.')}</h3>
+      <h3>{t('Get to the root cause faster')}</h3>
       <p>
         {t(
           'See a video-like reproduction of your user sessions so you can see what happened before, during, and after an error or latency issue occurred.'
