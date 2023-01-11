@@ -1,4 +1,5 @@
 from .discover import (  # NOQA
+    GenericTimeSeriesQueryBuilder,
     HistogramQueryBuilder,
     QueryBuilder,
     TimeseriesQueryBuilder,
@@ -22,6 +23,7 @@ __all__ = [
     "HistogramQueryBuilder",
     "QueryBuilder",
     "TimeseriesQueryBuilder",
+    "GenericTimeSeriesQueryBuilder",
     "TopEventsQueryBuilder",
     "UnresolvedQuery",
     "AlertMetricsQueryBuilder",
