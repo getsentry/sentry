@@ -23,6 +23,7 @@ from sentry.utils.performance_issues.performance_detection import (
 BASE_DETECTOR_OPTIONS = {
     "performance.issues.n_plus_one_db.problem-creation": 1.0,
     "performance.issues.n_plus_one_db_ext.problem-creation": 1.0,
+    "performance.issues.slow_span.problem-creation": 0.0,
 }
 BASE_DETECTOR_OPTIONS_OFF = {
     "performance.issues.n_plus_one_db.problem-creation": 0.0,
