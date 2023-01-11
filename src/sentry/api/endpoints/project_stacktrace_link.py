@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Dict, Iterable, List, Mapping, Optional, Union
+from typing import Dict, List, Mapping, Optional, Sequence, Tuple
 
 import requests
 from rest_framework.request import Request
@@ -18,7 +18,7 @@ from sentry.utils.json import JSONData
 
 logger = logging.getLogger(__name__)
 
-CODECOV_URL = "https://api.codecov.io/api/v2/service/owner_username/repos/repo_name/report"
+CODECOV_URL = "https://api.codecov.io/api/v2/{service}/{owner_username}/repos/{repo_name}/report"
 CODECOV_TOKEN = ""  # Put your token here for testing
 
 
@@ -184,26 +184,19 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
         return sorted_configs
 
     def get_codecov_path(self, source_url: str) -> Optional[str]:
-        source_url_split = source_url.split("/")
-        codecov_path_index = 0
-
         # Extract path from URL from "blob/<sha_or_branch>/" onwards
-        for i, path in enumerate(source_url_split):
-            if path == "blob":
-                codecov_path_index = i + 2
-                break
-        if codecov_path_index:
-            return "/".join(source_url_split[codecov_path_index:])
+        blob_index = source_url.find("blob")
+        if blob_index != -1:
+            codecov_path_index = source_url.find("/", blob_index + len("blob/")) + len("/")
+            return source_url[codecov_path_index:]
         return None
 
     def get_codecov_line_coverage(
         self, config: JSONData, source_url: str, access_token: str
-    ) -> Iterable[Union[Any, Optional[int]]]:
-        repo_name = config["repoName"].split("/")
-        url = (
-            CODECOV_URL.replace("service", config["provider"]["key"])
-            .replace("owner_username", repo_name[0])
-            .replace("repo_name", repo_name[1])
+    ) -> Tuple[Optional[Sequence[Tuple[int, int]]], Optional[int]]:
+        owner_username, repo_name = config["repoName"].split("/")
+        url = CODECOV_URL.format(
+            service=config["provider"]["key"], owner_username=owner_username, repo_name=repo_name
         )
         path = self.get_codecov_path(source_url)
         status_code = None
@@ -218,7 +211,7 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                 return response_json["files"][0]["line_coverage"], status_code
             except Exception:
                 if status_code != 404:
-                    logger.exception("Could not make codecov call")
+                    logger.exception("Failed to get coverage from Codecov")
                 return None, status_code
         logger.error("Could not find codecov path")
         return None, None
@@ -302,10 +295,6 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                     # When no code mapping have been matched we have not attempted a URL
                     if current_config["outcome"].get("attemptedUrl"):
                         result["attemptedUrl"] = current_config["outcome"]["attemptedUrl"]
-            try:
-                set_tags(scope, result)
-            except Exception:
-                logger.exception("Failed to set tags.")
 
                 result["lineCoverage"] = None
                 result["codecovStatusCode"] = None
@@ -323,6 +312,10 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                         result["sourceUrl"],
                         CODECOV_TOKEN,
                     )
+            try:
+                set_tags(scope, result)
+            except Exception:
+                logger.exception("Failed to set tags.")
 
         if result["config"]:
             analytics.record(
