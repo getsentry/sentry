@@ -19,6 +19,7 @@ import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import SearchBar from 'sentry/components/searchBar';
 import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
+import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -77,7 +78,7 @@ class Monitors extends AsyncView<Props, State> {
   }
 
   getTitle() {
-    return `Monitors - ${this.orgSlug}`;
+    return `Crons - ${this.orgSlug}`;
   }
 
   onRequestSuccess(response): void {
@@ -103,7 +104,7 @@ class Monitors extends AsyncView<Props, State> {
     const {organization} = this.props;
 
     return (
-      <Fragment>
+      <StyledPageContent>
         <Layout.Header>
           <Layout.HeaderContent>
             <HeaderTitle>
@@ -177,10 +178,14 @@ class Monitors extends AsyncView<Props, State> {
             )}
           </Layout.Main>
         </Layout.Body>
-      </Fragment>
+      </StyledPageContent>
     );
   }
 }
+
+const StyledPageContent = styled(PageContent)`
+  padding: 0;
+`;
 
 const HeaderTitle = styled(Layout.Title)`
   margin-top: 0;
