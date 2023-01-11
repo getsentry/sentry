@@ -5,7 +5,7 @@ import logging
 from typing import Any, Mapping, Optional, Union
 
 from arroyo.backends.kafka import KafkaConsumer, KafkaPayload
-from arroyo.commit import IMMEDIATE
+from arroyo.commit import CommitPolicy
 from arroyo.processing import StreamProcessor
 from arroyo.processing.strategies import ProcessingStrategy
 from arroyo.processing.strategies import ProcessingStrategy as ProcessingStep
@@ -92,8 +92,6 @@ class MetricsConsumerStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         max_msg_batch_time: float,
         max_parallel_batch_size: int,
         max_parallel_batch_time: float,
-        max_batch_size: int,
-        max_batch_time: float,
         processes: int,
         input_block_size: int,
         output_block_size: int,
@@ -111,10 +109,6 @@ class MetricsConsumerStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         self.__max_parallel_batch_size = max_parallel_batch_size
         self.__max_parallel_batch_time = max_parallel_batch_time
 
-        # This is the batch size used to decide when to commit on Kafka.
-        self.__commit_max_batch_size = max_batch_size
-        self.__commit_max_batch_time = max_batch_time
-
         self.__processes = processes
 
         self.__input_block_size = input_block_size
@@ -129,8 +123,6 @@ class MetricsConsumerStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         producer = get_metrics_producer_strategy(
             config=self.__config,
             commit=commit,
-            commit_max_batch_size=self.__commit_max_batch_size,
-            commit_max_batch_time_ms=self.__commit_max_batch_time,
             slicing_router=self.__slicing_router,
         )
         parallel_strategy = ParallelTransformStep(
@@ -164,8 +156,6 @@ class MetricsConsumerStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
 def get_metrics_producer_strategy(
     config: MetricsIngestConfiguration,
     commit: Commit,
-    commit_max_batch_size: int,
-    commit_max_batch_time_ms: float,
     slicing_router: Optional[SlicingRouter],
 ) -> Any:
     if config.is_output_sliced:
@@ -178,9 +168,6 @@ def get_metrics_producer_strategy(
     else:
         return SimpleProduceStep(
             commit_function=commit,
-            commit_max_batch_size=commit_max_batch_size,
-            # convert to seconds
-            commit_max_batch_time=commit_max_batch_time_ms / 1000,
             output_topic=config.output_topic,
         )
 
@@ -206,8 +193,6 @@ def get_parallel_metrics_consumer(
         max_msg_batch_time=max_msg_batch_time,
         max_parallel_batch_size=max_parallel_batch_size,
         max_parallel_batch_time=max_parallel_batch_time,
-        max_batch_size=max_batch_size,
-        max_batch_time=max_batch_time,
         processes=processes,
         input_block_size=input_block_size,
         output_block_size=output_block_size,
@@ -222,5 +207,9 @@ def get_parallel_metrics_consumer(
         KafkaConsumer(get_config(indexer_profile.input_topic, group_id, auto_offset_reset)),
         Topic(indexer_profile.input_topic),
         processing_factory,
-        IMMEDIATE,
+        CommitPolicy(
+            min_commit_frequency_sec=max_batch_time / 1000,
+            # TODO(markus): honor CLI params or remove them
+            min_commit_messages=None,
+        ),
     )

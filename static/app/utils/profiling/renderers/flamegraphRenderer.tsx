@@ -382,6 +382,20 @@ class FlamegraphRenderer {
   }
 
   findHoveredNode(configSpaceCursor: vec2): FlamegraphFrame | null {
+    // ConfigSpace origin is at top of rectangle, so we need to offset bottom by 1
+    // to account for size of renderered rectangle.
+    if (configSpaceCursor[1] > this.flamegraph.configSpace.bottom + 1) {
+      return null;
+    }
+
+    if (configSpaceCursor[0] < this.flamegraph.configSpace.left) {
+      return null;
+    }
+
+    if (configSpaceCursor[0] > this.flamegraph.configSpace.right) {
+      return null;
+    }
+
     let hoveredNode: FlamegraphFrame | null = null;
     const queue = [...this.roots];
 

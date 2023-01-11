@@ -4,6 +4,7 @@ from abc import abstractmethod
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, List, Optional
 
+from sentry.models.organization import OrganizationStatus
 from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_delegation, stubbed
 from sentry.silo import SiloMode
 
@@ -202,6 +203,7 @@ class ApiOrganization(ApiOrganizationSummary):
     projects: List[ApiProject] = field(default_factory=list)
 
     flags: ApiOrganizationFlags = field(default_factory=lambda: ApiOrganizationFlags())
+    status: OrganizationStatus = OrganizationStatus.VISIBLE
 
 
 @dataclass

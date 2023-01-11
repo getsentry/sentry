@@ -165,9 +165,23 @@ export function VitalWidget(props: PerformanceWidgetProps) {
             provided.widgetData.list.data[selectedListIndex]?.transaction as string,
           ]);
 
+          let requestProps = pick(provided, eventsRequestQueryProps);
+          const showOnlyPoorVitals = organization.features.includes(
+            'performance-new-widget-designs'
+          );
+          if (showOnlyPoorVitals) {
+            const yAxis = Array.isArray(requestProps.yAxis)
+              ? requestProps.yAxis
+              : [requestProps.yAxis];
+            const poorVitalsAxis = yAxis.find(vitalField => vitalField?.includes('poor'));
+            requestProps = {
+              ...requestProps,
+              yAxis: poorVitalsAxis ? [poorVitalsAxis] : requestProps.yAxis,
+            };
+          }
           return (
             <EventsRequest
-              {...pick(provided, eventsRequestQueryProps)}
+              {...requestProps}
               limit={1}
               currentSeriesNames={[sortField]}
               includePrevious={false}
@@ -205,6 +219,20 @@ export function VitalWidget(props: PerformanceWidgetProps) {
   const handleViewAllClick = () => {
     // TODO(k-fish): Add analytics.
   };
+
+  const assembleAccordionItems = provided =>
+    getItems(provided).map(item => ({header: item, content: getChart(provided)}));
+
+  const getChart = provided => () =>
+    (
+      <_VitalChart
+        {...provided.widgetData.chart}
+        {...provided}
+        field={field}
+        vitalFields={vitalFields}
+        grid={provided.grid}
+      />
+    );
 
   const getItems = provided =>
     provided.widgetData.list.data.slice(0, 3).map(listItem => () => {
@@ -278,16 +306,7 @@ export function VitalWidget(props: PerformanceWidgetProps) {
             <Accordion
               expandedIndex={selectedListIndex}
               setExpandedIndex={setSelectListIndex}
-              headers={getItems(provided)}
-              content={
-                <_VitalChart
-                  {...provided.widgetData.chart}
-                  {...provided}
-                  field={field}
-                  vitalFields={vitalFields}
-                  grid={provided.grid}
-                />
-              }
+              items={assembleAccordionItems(provided)}
             />
           ),
           // accordion items height + chart height

@@ -23,7 +23,7 @@ import {Panel, PanelHeader} from 'sentry/components/panels';
 import {IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Config, Member, Organization, TeamMember} from 'sentry/types';
+import {Config, Member, Organization, Team, TeamMember} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
 import withConfig from 'sentry/utils/withConfig';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -39,6 +39,7 @@ type Props = {
   api: Client;
   config: Config;
   organization: Organization;
+  team: Team;
 } & RouteComponentProps<RouteParams, {}>;
 
 type State = {
@@ -209,7 +210,7 @@ class TeamMembers extends AsyncView<Props, State> {
   };
 
   renderDropdown(hasWriteAccess: boolean) {
-    const {organization, params} = this.props;
+    const {organization, params, team} = this.props;
     const {orgMembers} = this.state;
     const existingMembers = new Set(this.state.teamMembers.map(member => member.id));
 
@@ -263,9 +264,15 @@ class TeamMembers extends AsyncView<Props, State> {
         onChange={this.handleMemberFilterChange}
         busy={this.state.dropdownBusy}
         onClose={() => this.debouncedFetchMembersRequest('')}
+        disabled={team.flags['idp:provisioned']}
       >
         {({isOpen}) => (
-          <DropdownButton isOpen={isOpen} size="xs" data-test-id="add-member">
+          <DropdownButton
+            isOpen={isOpen}
+            size="xs"
+            data-test-id="add-member"
+            disabled={team.flags['idp:provisioned']}
+          >
             {t('Add Member')}
           </DropdownButton>
         )}

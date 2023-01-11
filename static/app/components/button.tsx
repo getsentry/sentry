@@ -23,14 +23,7 @@ type TooltipProps = React.ComponentProps<typeof Tooltip>;
 type ButtonSize = 'zero' | 'xs' | 'sm' | 'md';
 
 interface BaseButtonProps
-  extends Omit<
-    React.ButtonHTMLAttributes<ButtonElement>,
-    'ref' | 'label' | 'size' | 'title'
-  > {
-  /**
-   * Positions the text within the button.
-   */
-  align?: 'center' | 'left' | 'right';
+  extends Omit<React.ButtonHTMLAttributes<ButtonElement>, 'label' | 'size' | 'title'> {
   /**
    * Used when you want to overwrite the default Reload event key for analytics
    */
@@ -56,10 +49,6 @@ interface BaseButtonProps
    * Indicates that the button is "doing" something.
    */
   busy?: boolean;
-  /**
-   * Test ID for the button.
-   */
-  'data-test-id'?: string;
   /**
    * Disables the button, assigning appropriate aria attributes and disallows
    * interactions with the button.
@@ -105,17 +94,9 @@ interface BaseButtonProps
    */
   priority?: 'default' | 'primary' | 'danger' | 'link';
   /**
-   * @deprecated Use `external`
-   */
-  rel?: HTMLAnchorElement['rel'];
-  /**
    * The size of the button
    */
   size?: ButtonSize;
-  /**
-   * @deprecated Use `external`
-   */
-  target?: HTMLAnchorElement['target'];
   /**
    * Display a tooltip for the button.
    */
@@ -135,17 +116,16 @@ interface BaseButtonProps
   translucentBorder?: boolean;
 }
 
-export interface ButtonPropsWithoutAriaLabel extends BaseButtonProps {
+interface ButtonPropsWithoutAriaLabel extends BaseButtonProps {
   children: React.ReactNode;
 }
-export interface ButtonPropsWithAriaLabel extends BaseButtonProps {
+
+interface ButtonPropsWithAriaLabel extends BaseButtonProps {
   'aria-label': string;
   children?: never;
 }
 
 export type ButtonProps = ButtonPropsWithoutAriaLabel | ButtonPropsWithAriaLabel;
-
-type Url = ButtonProps['to'] | ButtonProps['href'];
 
 function BaseButton({
   size = 'md',
@@ -158,7 +138,6 @@ function BaseButton({
   'aria-label': ariaLabel,
   borderless,
   translucentBorder,
-  align = 'center',
   priority,
   disabled = false,
   tooltipProps,
@@ -195,19 +174,10 @@ function BaseButton({
       }
 
       buttonTracking?.();
-
-      if (typeof onClick !== 'function') {
-        return;
-      }
-
-      onClick(e);
+      onClick?.(e);
     },
     [disabled, busy, onClick, buttonTracking]
   );
-
-  function getUrl<T extends Url>(prop: T): T | undefined {
-    return disabled ? undefined : prop;
-  }
 
   const hasChildren = Array.isArray(children)
     ? children.some(child => !!child)
@@ -222,8 +192,8 @@ function BaseButton({
       aria-disabled={disabled}
       busy={busy}
       disabled={disabled}
-      to={getUrl(to)}
-      href={getUrl(href)}
+      to={!disabled ? to : undefined}
+      href={!disabled ? href : undefined}
       size={size}
       priority={priority}
       borderless={borderless}
@@ -237,7 +207,7 @@ function BaseButton({
           higherOpacity={priority && ['primary', 'danger'].includes(priority)}
         />
       )}
-      <ButtonLabel align={align} size={size} borderless={borderless}>
+      <ButtonLabel size={size} borderless={borderless}>
         {icon && (
           <Icon size={size} hasChildren={hasChildren}>
             {icon}
@@ -288,9 +258,9 @@ const getBoxShadow = ({
   }
 
   return `
-      box-shadow: ${translucentBorderString} ${theme.dropShadowLight};
+      box-shadow: ${translucentBorderString} ${theme.dropShadowMedium};
       &:active {
-        box-shadow: ${translucentBorderString} inset ${theme.dropShadowLight};
+        box-shadow: ${translucentBorderString} inset ${theme.dropShadowMedium};
       }
     `;
 };
@@ -393,16 +363,16 @@ const getSizeStyles = ({size = 'md', translucentBorder, theme}: StyledButtonProp
   };
 };
 
-export const getButtonStyles = ({theme, ...props}: StyledButtonProps) => {
+export const getButtonStyles = (props: StyledButtonProps) => {
   return css`
     position: relative;
     display: inline-block;
-    border-radius: ${theme.borderRadius};
+    border-radius: ${props.theme.borderRadius};
     text-transform: none;
     font-weight: 600;
-    ${getColors({...props, theme})};
-    ${getSizeStyles({...props, theme})};
-    ${getBoxShadow({...props, theme})};
+    ${getColors(props)};
+    ${getSizeStyles(props)};
+    ${getBoxShadow(props)};
     cursor: ${props.disabled ? 'not-allowed' : 'pointer'};
     opacity: ${(props.busy || props.disabled) && '0.65'};
     transition: background 0.1s, border 0.1s, box-shadow 0.1s;
@@ -469,8 +439,8 @@ const StyledButton = styled(
   ${getButtonStyles};
 `;
 
-const buttonLabelPropKeys = ['size', 'borderless', 'align'];
-type ButtonLabelProps = Pick<ButtonProps, 'size' | 'borderless' | 'align'>;
+const buttonLabelPropKeys = ['size', 'borderless'];
+type ButtonLabelProps = Pick<ButtonProps, 'size' | 'borderless'>;
 
 const ButtonLabel = styled('span', {
   shouldForwardProp: prop =>
@@ -479,7 +449,7 @@ const ButtonLabel = styled('span', {
   height: 100%;
   display: flex;
   align-items: center;
-  justify-content: ${p => p.align};
+  justify-content: center;
   white-space: nowrap;
 `;
 
@@ -512,4 +482,4 @@ const Icon = styled('span')<IconProps & Omit<StyledButtonProps, 'theme'>>`
 /**
  * Also export these styled components so we can use them as selectors
  */
-export {StyledButton, ButtonLabel, Icon};
+export {Button, StyledButton, ButtonLabel, Icon};

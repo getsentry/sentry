@@ -6,9 +6,9 @@ export type FlamegraphColorCodings = [
   'by frequency'
 ];
 
-export type FlamegraphSorting = ['left heavy', 'call order'];
-export type FlamegraphViewOptions = ['top down', 'bottom up'];
-export type FlamegraphAxisOptions = ['standalone', 'transaction'];
+export type FlamegraphSorting = 'left heavy' | 'call order';
+export type FlamegraphViewOptions = 'top down' | 'bottom up';
+export type FlamegraphAxisOptions = 'profile' | 'transaction';
 
 export interface FlamegraphPreferences {
   colorCoding: FlamegraphColorCodings[number];

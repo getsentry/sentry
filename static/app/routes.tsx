@@ -239,6 +239,7 @@ function buildRoutes() {
           component={errorHandler(withDomainRequired(OrganizationContextContainer))}
           key="orgless-onboarding"
         >
+          <IndexRedirect to="welcome/" />
           <Route
             path=":step/"
             component={make(() => import('sentry/views/onboarding/onboarding'))}
@@ -1339,7 +1340,7 @@ function buildRoutes() {
 
   const replayChildRoutes = (
     <Fragment>
-      <IndexRoute component={make(() => import('sentry/views/replays/replays'))} />
+      <IndexRoute component={make(() => import('sentry/views/replays/list/container'))} />
       <Route
         path=":replaySlug/"
         component={make(() => import('sentry/views/replays/details'))}

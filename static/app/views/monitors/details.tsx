@@ -24,7 +24,7 @@ import {Monitor} from './types';
 
 type Props = AsyncView['props'] &
   WithRouteAnalyticsProps &
-  RouteComponentProps<{monitorId: string; orgId: string}, {}> & {
+  RouteComponentProps<{monitorId: string}, {}> & {
     organization: Organization;
   };
 
@@ -39,7 +39,13 @@ class MonitorDetails extends AsyncView<Props, State> {
 
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {params, location} = this.props;
-    return [['monitor', `/monitors/${params.monitorId}/`, {query: location.query}]];
+    return [
+      [
+        'monitor',
+        `/organizations/${this.orgSlug}/monitors/${params.monitorId}/`,
+        {query: location.query},
+      ],
+    ];
   }
 
   getTitle() {
@@ -82,14 +88,14 @@ class MonitorDetails extends AsyncView<Props, State> {
                   <DatePageFilter alignDropdown="left" />
                 </StyledPageFilterBar>
 
-                <MonitorStats monitor={monitor} />
+                <MonitorStats monitor={monitor} orgId={this.orgSlug} />
 
                 <MonitorIssues monitor={monitor} orgId={this.orgSlug} />
 
                 <Panel>
                   <PanelHeader>{t('Recent Check-ins')}</PanelHeader>
 
-                  <MonitorCheckIns monitor={monitor} />
+                  <MonitorCheckIns monitor={monitor} orgId={this.orgSlug} />
                 </Panel>
               </Fragment>
             )}

@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import findIndex from 'lodash/findIndex';
 import groupBy from 'lodash/groupBy';
 import moment from 'moment';
 
@@ -40,12 +41,13 @@ class AccountSubscriptions extends AsyncView<AsyncView['props'], State> {
     return 'Subscriptions';
   }
 
-  handleToggle = (subscription: Subscription, index: number, _e: React.MouseEvent) => {
+  handleToggle = (subscription: Subscription, listId: number, _e: React.MouseEvent) => {
     const subscribed = !subscription.subscribed;
     const oldSubscriptions = this.state.subscriptions;
 
     this.setState(state => {
       const newSubscriptions = state.subscriptions.slice();
+      const index = findIndex(newSubscriptions, {listId});
       newSubscriptions[index] = {
         ...subscription,
         subscribed,
@@ -109,7 +111,7 @@ class AccountSubscriptions extends AsyncView<AsyncView['props'], State> {
                       </Heading>
                     )}
 
-                    {subscriptions.map((subscription, index) => (
+                    {subscriptions.map(subscription => (
                       <PanelItem center key={subscription.listId}>
                         <SubscriptionDetails>
                           <SubscriptionName>{subscription.listName}</SubscriptionName>
@@ -139,7 +141,11 @@ class AccountSubscriptions extends AsyncView<AsyncView['props'], State> {
                           <Switch
                             isActive={subscription.subscribed}
                             size="lg"
-                            toggle={this.handleToggle.bind(this, subscription, index)}
+                            toggle={this.handleToggle.bind(
+                              this,
+                              subscription,
+                              subscription.listId
+                            )}
                           />
                         </div>
                       </PanelItem>

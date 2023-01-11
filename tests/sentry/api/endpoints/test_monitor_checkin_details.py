@@ -16,6 +16,28 @@ class UpdateMonitorCheckInTest(APITestCase):
         super().setUp()
         self.login_as(self.user)
 
+    def test_noop_in_progerss(self):
+        monitor = Monitor.objects.create(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            next_checkin=timezone.now() - timedelta(minutes=1),
+            type=MonitorType.CRON_JOB,
+            config={"schedule": "* * * * *"},
+            date_added=timezone.now() - timedelta(minutes=1),
+        )
+        checkin = MonitorCheckIn.objects.create(
+            monitor=monitor,
+            project_id=self.project.id,
+            date_added=monitor.date_added,
+            status=CheckInStatus.IN_PROGRESS,
+        )
+
+        self.get_success_response(monitor.guid, checkin.guid)
+
+        checkin = MonitorCheckIn.objects.get(id=checkin.id)
+        assert checkin.status == CheckInStatus.IN_PROGRESS
+        assert checkin.date_updated > checkin.date_added
+
     def test_passing(self):
         monitor = Monitor.objects.create(
             organization_id=self.organization.id,
