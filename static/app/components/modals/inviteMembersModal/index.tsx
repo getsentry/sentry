@@ -515,7 +515,7 @@ const StatusMessage = styled('div')<{status?: 'success' | 'error'}>`
 
 export const modalCss = css`
   width: 100%;
-  max-width: 800px;
+  max-width: 900px;
   margin: 50px auto;
 `;
 
