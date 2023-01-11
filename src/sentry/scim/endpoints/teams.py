@@ -393,7 +393,6 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
         try:
             with transaction.atomic():
                 team.idp_provisioned = True
-                team.save()
 
                 for operation in operations:
                     op = operation["op"].lower()

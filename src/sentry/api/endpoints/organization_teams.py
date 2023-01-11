@@ -158,7 +158,7 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
                     team = Team.objects.create(
                         name=result.get("name") or result["slug"],
                         slug=result.get("slug"),
-                        idp_provisioned=result.get("idp_provisioned"),
+                        idp_provisioned=result.get("idp_provisioned", False),
                         organization=organization,
                     )
             except IntegrityError:
