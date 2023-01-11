@@ -13,7 +13,6 @@ from sentry.integrations import IntegrationFeatures
 from sentry.models import Integration, Project, RepositoryProjectPathConfig
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.event_frames import munged_filename_and_frames
-from sentry.utils.json import JSONData
 
 logger = logging.getLogger(__name__)
 
@@ -115,6 +114,18 @@ def try_path_munging(
     return result
 
 
+def set_tags(scope: Scope, result: Dict[str, Optional[str]]) -> None:
+    scope.set_tag("stacktrace_link.found", result.get("sourceUrl", False))
+    scope.set_tag("stacktrace_link.source_url", result.get("sourceUrl"))
+    scope.set_tag("stacktrace_link.error", result.get("error"))
+    scope.set_tag("stacktrace_link.tried_url", result.get("attemptedUrl"))
+    if result["config"]:
+        scope.set_tag("stacktrace_link.empty_root", result["config"]["stackRoot"] == "")
+        scope.set_tag(
+            "stacktrace_link.auto_derived", result["config"]["automaticallyGenerated"] is True
+        )
+
+
 @region_silo_endpoint
 class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
     """
@@ -173,7 +184,7 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
         if not filepath:
             return Response({"detail": "Filepath is required"}, status=400)
 
-        result: JSONData = {"config": None, "sourceUrl": None}
+        result: Dict[str, Optional[str]] = {"config": None, "sourceUrl": None}
 
         integrations = Integration.objects.filter(organizations=project.organization_id)
         # TODO(meredith): should use get_provider.has_feature() instead once this is
@@ -239,26 +250,17 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                     break
 
             # Post-processing before exiting scope context
-            found: bool = result["sourceUrl"] is not None
-            scope.set_tag("stacktrace_link.found", found)
-            scope.set_tag("stacktrace_link.source_url", result.get("sourceUrl"))
-            scope.set_tag("stacktrace_link.tried_url", result.get("attemptedUrl"))
             if current_config:
                 result["config"] = current_config["config"]
-                scope.set_tag(
-                    "stacktrace_link.auto_derived",
-                    result["config"]["automaticallyGenerated"] is True,
-                )
-                scope.set_tag("stacktrace_link.empty_root", result["config"]["stackRoot"] == "")
-                if not found:
+                if result.get("sourceUrl"):
                     result["error"] = current_config["outcome"]["error"]
                     # When no code mapping have been matched we have not attempted a URL
                     if current_config["outcome"].get("attemptedUrl"):
                         result["attemptedUrl"] = current_config["outcome"]["attemptedUrl"]
-                    if result["error"] == "stack_root_mismatch":
-                        scope.set_tag("stacktrace_link.error", "stack_root_mismatch")
-                    else:
-                        scope.set_tag("stacktrace_link.error", "file_not_found")
+            try:
+                set_tags(scope, result)
+            except Exception:
+                logger.exception("Failed to set tags.")
 
         if result["config"]:
             analytics.record(
