@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from typing import Any, Mapping
+from unittest.mock import patch
 
 from django.urls import reverse
 
@@ -13,6 +14,7 @@ from sentry.integrations.slack.message_builder.incidents import SlackIncidentsMe
 from sentry.integrations.slack.message_builder.issues import (
     SlackIssuesMessageBuilder,
     SlackReleaseIssuesMessageBuilder,
+    get_option_groups,
 )
 from sentry.integrations.slack.message_builder.metric_alerts import SlackMetricAlertMessageBuilder
 from sentry.models import Group, Team, User
@@ -87,7 +89,7 @@ def build_test_message(
     }
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTestMixin):
     def test_build_group_attachment(self):
         group = self.create_group(project=self.project)
@@ -119,6 +121,24 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             event=event,
             link_to_event=True,
         )
+
+    @patch(
+        "sentry.integrations.slack.message_builder.issues.get_option_groups",
+        wraps=get_option_groups,
+    )
+    def test_build_group_attachment_prune_duplicate_assignees(self, mock_get_option_groups):
+        user2 = self.create_user()
+        team2 = self.create_team(organization=self.organization, members=[self.user])
+        self.create_member(user=user2, organization=self.organization, teams=[team2])
+        project2 = self.create_project(organization=self.organization, teams=[self.team, team2])
+        group = self.create_group(project=project2)
+
+        SlackIssuesMessageBuilder(group).build()
+        assert mock_get_option_groups.called
+
+        team_option_groups, member_option_groups = mock_get_option_groups(group)
+        assert len(team_option_groups["options"]) == 2
+        assert len(member_option_groups["options"]) == 2
 
     def test_build_group_attachment_issue_alert(self):
         issue_alert_group = self.create_group(project=self.project)
