@@ -8,15 +8,11 @@ import KeyValueList from '../interfaces/keyValueList';
 import {ViewHierarchyWindow} from '.';
 
 type DetailsPanelProps = {
-  data: ViewHierarchyWindow | null;
+  data: ViewHierarchyWindow;
   getTitle?: (data: ViewHierarchyWindow) => string;
 };
 
 function DetailsPanel({data, getTitle}: DetailsPanelProps) {
-  if (!data) {
-    return null;
-  }
-
   const keyValueData = Object.entries(omit(data, 'id', 'children')).map(
     ([key, value]) => ({
       key,

@@ -2,6 +2,7 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import space from 'sentry/styles/space';
+import {defined} from 'sentry/utils';
 
 import {DetailsPanel} from './detailsPanel';
 import {RenderingSystem} from './renderingSystem';
@@ -55,7 +56,9 @@ function ViewHierarchy({viewHierarchy}: ViewHierarchyProps) {
           selectedNodeId={selectedNode?.id ?? ''}
         />
       </TreeContainer>
-      <DetailsPanel data={selectedNode} getTitle={getNodeLabel} />
+      {defined(selectedNode) && (
+        <DetailsPanel data={selectedNode} getTitle={getNodeLabel} />
+      )}
     </Fragment>
   );
 }
