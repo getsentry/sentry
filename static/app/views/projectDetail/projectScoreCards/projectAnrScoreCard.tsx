@@ -41,7 +41,7 @@ export function ProjectAnrScoreCard({
     useState<SessionApiResponse | null>(null);
 
   useEffect(() => {
-    const unmounted = false;
+    let unmounted = false;
 
     const requestData = {
       orgSlug: organization.slug,
@@ -61,10 +61,13 @@ export function ProjectAnrScoreCard({
         setSessionsData(response);
       }
     );
+    return () => {
+      unmounted = true;
+    };
   }, [api, datetime, environments, organization.slug, projects, query]);
 
   useEffect(() => {
-    const unmounted = false;
+    let unmounted = false;
     if (
       !shouldFetchPreviousPeriod({
         start,
@@ -73,37 +76,41 @@ export function ProjectAnrScoreCard({
       })
     ) {
       setPreviousSessionsData(null);
-      return;
-    }
+    } else {
+      const requestData = {
+        orgSlug: organization.slug,
+        field: ['foreground_anr_rate()'],
+        environment: environments,
+        project: projects,
+        query,
+        includeSeries: false,
+      };
 
-    const requestData = {
-      orgSlug: organization.slug,
-      field: ['foreground_anr_rate()'],
-      environment: environments,
-      project: projects,
-      query,
-      includeSeries: false,
-    };
+      const {start: previousStart} = parseStatsPeriod(
+        getPeriod({period, start: undefined, end: undefined}, {shouldDoublePeriod: true})
+          .statsPeriod!
+      );
 
-    const {start: previousStart} = parseStatsPeriod(
-      getPeriod({period, start: undefined, end: undefined}, {shouldDoublePeriod: true})
-        .statsPeriod!
-    );
+      const {start: previousEnd} = parseStatsPeriod(
+        getPeriod({period, start: undefined, end: undefined}, {shouldDoublePeriod: false})
+          .statsPeriod!
+      );
 
-    const {start: previousEnd} = parseStatsPeriod(
-      getPeriod({period, start: undefined, end: undefined}, {shouldDoublePeriod: false})
-        .statsPeriod!
-    );
-
-    doSessionsRequest(api, {...requestData, start: previousStart, end: previousEnd}).then(
-      response => {
+      doSessionsRequest(api, {
+        ...requestData,
+        start: previousStart,
+        end: previousEnd,
+      }).then(response => {
         if (unmounted) {
           return;
         }
 
         setPreviousSessionsData(response);
-      }
-    );
+      });
+    }
+    return () => {
+      unmounted = true;
+    };
   }, [start, end, period, api, organization.slug, environments, projects, query]);
 
   const value = sessionsData
@@ -116,7 +123,7 @@ export function ProjectAnrScoreCard({
 
   const hasCurrentAndPrevious = previousValue && value;
   const trend = hasCurrentAndPrevious ? round(value - previousValue, 4) : null;
-  const trendStatus = !trend ? null : trend < 0 ? 'good' : 'bad';
+  const trendStatus = !trend ? undefined : trend < 0 ? 'good' : 'bad';
 
   if (!isProjectStabilized) {
     return null;
@@ -141,7 +148,7 @@ export function ProjectAnrScoreCard({
       help={getSessionTermDescription(SessionTerm.FOREGROUND_ANR_RATE, null)}
       score={value ? formatPercentage(value, 3) : '\u2014'}
       trend={renderTrend()}
-      trendStatus={trendStatus as React.ComponentProps<typeof ScoreCard>['trendStatus']}
+      trendStatus={trendStatus}
     />
   );
 }

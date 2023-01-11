@@ -3,7 +3,7 @@ import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 import {PageFilters} from 'sentry/types';
 import {ProjectAnrScoreCard} from 'sentry/views/projectDetail/projectScoreCards/projectAnrScoreCard';
 
-describe('ProjectDetail > ProjectApdex', function () {
+describe('ProjectDetail > ProjectAnr', function () {
   let endpointMock, endpointMockPreviousPeriod;
 
   const organization = TestStubs.Organization();
@@ -57,7 +57,7 @@ describe('ProjectDetail > ProjectApdex', function () {
     MockApiClient.clearMockResponses();
   });
 
-  it('calls api with apdex', async function () {
+  it('calls api with anr rate', async function () {
     render(
       <ProjectAnrScoreCard
         organization={{...organization}}
