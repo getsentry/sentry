@@ -2441,7 +2441,8 @@ def should_create_group(client: Any, grouphash: str, type: GroupType) -> bool:
             # This is in place to confirm whether the above rate limit is effective in preventing spikes
             # and inaccuracies.
             if type == GroupType.PERFORMANCE_SLOW_SPAN:
-                span.containing_transaction.set_tag("_will_create_slow_db_issue", "true")
+                if span.containing_transaction:
+                    span.containing_transaction.set_tag("_will_create_slow_db_issue", "true")
                 return False
 
             return True
