@@ -164,6 +164,41 @@ export function StackedBarsChartListWidget(props: PerformanceWidgetProps) {
     chart: chartQuery,
   };
 
+  const assembleAccordionItems = provided =>
+    getHeaders(provided).map(header => ({header, content: getChart(provided)}));
+
+  const getChart = provided => () =>
+    (
+      <BarChart
+        {...provided.widgetData.chart}
+        {...provided}
+        colors={colors}
+        series={provided.widgetData.chart.data}
+        stacked
+        animation
+        isGroupedByDate
+        showTimeInTooltip
+        xAxis={{
+          show: false,
+          axisLabel: {show: true, margin: 8},
+          axisLine: {show: false},
+        }}
+        tooltip={{
+          valueFormatter: value => tooltipFormatter(value, 'duration'),
+        }}
+        start={
+          provided.widgetData.chart.start
+            ? new Date(provided.widgetData.chart.start)
+            : undefined
+        }
+        end={
+          provided.widgetData.chart.end
+            ? new Date(provided.widgetData.chart.end)
+            : undefined
+        }
+      />
+    );
+
   const getHeaders = provided =>
     provided.widgetData.list.data.map(listItem => () => {
       const transaction = (listItem.transaction as string | undefined) ?? '';
@@ -216,45 +251,13 @@ export function StackedBarsChartListWidget(props: PerformanceWidgetProps) {
       Queries={Queries}
       Visualizations={[
         {
-          component: provided => {
-            return (
-              <Accordion
-                expandedIndex={selectedListIndex}
-                setExpandedIndex={setSelectListIndex}
-                content={
-                  <BarChart
-                    {...provided.widgetData.chart}
-                    {...provided}
-                    colors={colors}
-                    series={provided.widgetData.chart.data}
-                    stacked
-                    animation
-                    isGroupedByDate
-                    showTimeInTooltip
-                    xAxis={{
-                      show: false,
-                      axisLabel: {show: true, margin: 8},
-                      axisLine: {show: false},
-                    }}
-                    tooltip={{
-                      valueFormatter: value => tooltipFormatter(value, 'duration'),
-                    }}
-                    start={
-                      provided.widgetData.chart.start
-                        ? new Date(provided.widgetData.chart.start)
-                        : undefined
-                    }
-                    end={
-                      provided.widgetData.chart.end
-                        ? new Date(provided.widgetData.chart.end)
-                        : undefined
-                    }
-                  />
-                }
-                headers={getHeaders(provided)}
-              />
-            );
-          },
+          component: provided => (
+            <Accordion
+              expandedIndex={selectedListIndex}
+              setExpandedIndex={setSelectListIndex}
+              items={assembleAccordionItems(provided)}
+            />
+          ),
           height: 124 + props.chartHeight,
           noPadding: true,
         },
