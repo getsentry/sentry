@@ -936,6 +936,11 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
     def on_complete(self) -> None:
         self._validate_and_store_performance_problem()
 
+    def is_creation_allowed_for_organization(self, organization: Organization) -> bool:
+        return features.has(
+            "organizations:performance-consecutive-db-issue", organization, actor=None
+        )
+
 
 class NPlusOneDBSpanDetector(PerformanceDetector):
     """
