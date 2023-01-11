@@ -8,6 +8,7 @@ import SelectField from 'sentry/components/forms/fields/selectField';
 import TextField from 'sentry/components/forms/fields/textField';
 import Form, {FormProps} from 'sentry/components/forms/form';
 import FormModel from 'sentry/components/forms/model';
+import ExternalLink from 'sentry/components/links/externalLink';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
@@ -192,7 +193,9 @@ class MonitorForm extends Component<Props> {
                           help={tct(
                             'Any schedule changes will be applied to the next check-in. See [link:Wikipedia] for crontab syntax.',
                             {
-                              link: <a href="https://en.wikipedia.org/wiki/Cron" />,
+                              link: (
+                                <ExternalLink href="https://en.wikipedia.org/wiki/Cron" />
+                              ),
                             }
                           )}
                         />

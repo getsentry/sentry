@@ -51,6 +51,7 @@ export const HeaderActions = styled('div')`
   flex-direction: column;
   justify-content: normal;
   min-width: max-content;
+  margin-top: ${space(0.25)};
 
   @media (max-width: ${p => p.theme.breakpoints.medium}) {
     width: max-content;
