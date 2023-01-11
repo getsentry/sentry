@@ -482,4 +482,4 @@ const Icon = styled('span')<IconProps & Omit<StyledButtonProps, 'theme'>>`
 /**
  * Also export these styled components so we can use them as selectors
  */
-export {StyledButton, ButtonLabel, Icon};
+export {Button, StyledButton, ButtonLabel, Icon};

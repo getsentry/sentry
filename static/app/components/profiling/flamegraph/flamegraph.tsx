@@ -48,7 +48,7 @@ import {
 } from 'sentry/utils/profiling/gl/utils';
 import {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
 import {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
-import {SpanChart} from 'sentry/utils/profiling/spanChart';
+import {SpanChart, SpanChartNode} from 'sentry/utils/profiling/spanChart';
 import {SpanTree} from 'sentry/utils/profiling/spanTree';
 import {formatTo, ProfilingFormatterUnit} from 'sentry/utils/profiling/units/units';
 import {useDevicePixelRatio} from 'sentry/utils/useDevicePixelRatio';
@@ -263,7 +263,10 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
         !position.view.isEmpty() &&
         previousView?.model === FALLBACK_FLAMEGRAPH
       ) {
-        newView.setConfigView(position.view);
+        // We allow min width to be initialize to lower than view.minWidth because
+        // there is a chance that user zoomed into a span duration which may have been updated
+        // after the model was loaded (see L320)
+        newView.setConfigView(position.view, {width: {min: 0}});
       }
 
       return newView;
@@ -297,7 +300,7 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
       });
 
       // Initialize configView to whatever the flamegraph configView is
-      newView.setConfigView(flamegraphView?.configView);
+      newView.setConfigView(flamegraphView.configView, {width: {min: 0}});
 
       return newView;
     },
@@ -396,8 +399,24 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
 
       flamegraphView.setConfigView(newConfigView);
       if (spansView) {
+        spansView.setConfigView(newConfigView.withHeight(spansView.configView.height));
+      }
+      canvasPoolManager.draw();
+    };
+
+    const onZoomIntoSpan = (span: SpanChartNode, strategy: 'min' | 'exact') => {
+      const newConfigView = computeConfigViewWithStrategy(
+        strategy,
+        flamegraphView.configView,
+        new Rect(span.start, span.depth, span.end - span.start, 1)
+      );
+
+      if (spansView) {
         spansView.setConfigView(newConfigView);
       }
+      flamegraphView.setConfigView(
+        newConfigView.withHeight(flamegraphView.configView.height)
+      );
       canvasPoolManager.draw();
     };
 
@@ -405,12 +424,14 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
     scheduler.on('transform config view', onTransformConfigView);
     scheduler.on('reset zoom', onResetZoom);
     scheduler.on('zoom at frame', onZoomIntoFrame);
+    scheduler.on('zoom at span', onZoomIntoSpan);
 
     return () => {
       scheduler.off('set config view', onConfigViewChange);
       scheduler.off('transform config view', onTransformConfigView);
       scheduler.off('reset zoom', onResetZoom);
       scheduler.off('zoom at frame', onZoomIntoFrame);
+      scheduler.off('zoom at span', onZoomIntoSpan);
     };
   }, [
     canvasPoolManager,
