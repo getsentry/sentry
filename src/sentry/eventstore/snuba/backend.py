@@ -6,11 +6,9 @@ from datetime import datetime, timedelta
 import sentry_sdk
 from django.utils import timezone
 
-from sentry import features
 from sentry.eventstore.base import EventStorage
 from sentry.eventstore.models import Event
 from sentry.models.group import Group
-from sentry.models.organization import Organization
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.events import Columns
 from sentry.utils import snuba
@@ -202,9 +200,7 @@ class SnubaEventStorage(EventStorage):
             # Set passed group_id if not a transaction
             if event.get_event_type() == "transaction":
                 logger.warning("eventstore.passed-group-id-for-transaction")
-                org = Organization.objects.get(project__id=project_id)
-                if features.has("organizations:performance-issues", org):
-                    return event.for_group(Group.objects.get(id=group_id))
+                return event.for_group(Group.objects.get(id=group_id))
             else:
                 event.group_id = group_id
 
@@ -218,8 +214,12 @@ class SnubaEventStorage(EventStorage):
                 raw_query_kwargs["conditions"] = [
                     ["timestamp", ">", datetime.fromtimestamp(random.randint(0, 1000000000))]
                 ]
+            dataset = (
+                Dataset.IssuePlatform if event.get_event_type() == "generic" else Dataset.Events
+            )
             try:
                 result = snuba.raw_query(
+                    dataset=dataset,
                     selected_columns=["group_id"],
                     start=event.datetime,
                     end=event.datetime + timedelta(seconds=1),

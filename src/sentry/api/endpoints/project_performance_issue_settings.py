@@ -17,6 +17,9 @@ class ProjectPerformanceIssueSettingsSerializer(serializers.Serializer):
     n_plus_one_db_duration_threshold = serializers.IntegerField(
         required=False, min_value=0, max_value=MAX_VALUE
     )
+    n_plus_one_api_calls_detection_rate = serializers.FloatField(
+        required=False, min_value=0, max_value=1
+    )
 
 
 @region_silo_endpoint
@@ -27,8 +30,6 @@ class ProjectPerformanceIssueSettingsEndpoint(ProjectEndpoint):
     def has_feature(self, project, request) -> bool:
         return features.has(
             "organizations:performance-view", project.organization, actor=request.user
-        ) and features.has(
-            "organizations:performance-issues", project.organization, actor=request.user
         )
 
     def get(self, request: Request, project) -> Response:

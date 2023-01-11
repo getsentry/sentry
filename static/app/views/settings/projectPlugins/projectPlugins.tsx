@@ -12,7 +12,7 @@ import {
   PanelItem,
 } from 'sentry/components/panels';
 import {t, tct} from 'sentry/locale';
-import {Plugin, Project} from 'sentry/types';
+import {Organization, Plugin, Project} from 'sentry/types';
 import RouteError from 'sentry/views/routeError';
 
 import ProjectPluginRow from './projectPluginRow';
@@ -21,14 +21,14 @@ type Props = {
   error: React.ComponentProps<typeof RouteError>['error'];
   loading: boolean;
   onChange: React.ComponentProps<typeof ProjectPluginRow>['onChange'];
+  organization: Organization;
   plugins: Plugin[];
   project: Project;
-} & RouteComponentProps<{orgId: string}, {}>;
+} & RouteComponentProps<{}, {}>;
 
 class ProjectPlugins extends Component<Props> {
   render() {
-    const {plugins, loading, error, onChange, routes, params, project} = this.props;
-    const {orgId} = this.props.params;
+    const {plugins, loading, error, onChange, routes, organization, project} = this.props;
     const hasError = error;
     const isLoading = !hasError && loading;
 
@@ -39,6 +39,7 @@ class ProjectPlugins extends Component<Props> {
     if (isLoading) {
       return <LoadingIndicator />;
     }
+    const params = {orgId: organization.slug, projectId: project.slug};
 
     return (
       <Panel>
@@ -54,7 +55,7 @@ class ProjectPlugins extends Component<Props> {
                   ? tct(
                       "Legacy Integrations must be configured per-project. It's recommended to prefer organization integrations over the legacy project integrations when available. Visit the [link:organization integrations] settings to manage them.",
                       {
-                        link: <Link to={`/settings/${orgId}/integrations`} />,
+                        link: <Link to={`/settings/${organization.slug}/integrations`} />,
                       }
                     )
                   : t(

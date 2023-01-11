@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from datetime import datetime
 from hashlib import md5
-from typing import Any, Mapping, Optional, TypedDict, cast
+from typing import Any, Mapping, Optional, Tuple, TypedDict, cast
 
 import sentry_sdk
 from django.conf import settings
@@ -33,7 +33,9 @@ ISSUE_QUOTA = Quota(3600, 60, 5)
 logger = logging.getLogger(__name__)
 
 
-def save_issue_occurrence(occurrence_data: IssueOccurrenceData, event: Event) -> IssueOccurrence:
+def save_issue_occurrence(
+    occurrence_data: IssueOccurrenceData, event: Event
+) -> Tuple[IssueOccurrence, Optional[GroupInfo]]:
     process_occurrence_data(occurrence_data)
     # Convert occurrence data to `IssueOccurrence`
     occurrence = IssueOccurrence.from_dict(occurrence_data)
@@ -49,7 +51,7 @@ def save_issue_occurrence(occurrence_data: IssueOccurrenceData, event: Event) ->
         send_issue_occurrence_to_eventstream(event, occurrence, group_info)
         # TODO: Create group related releases here
 
-    return occurrence
+    return occurrence, group_info
 
 
 def process_occurrence_data(occurrence_data: IssueOccurrenceData) -> None:

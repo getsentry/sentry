@@ -42,6 +42,7 @@ from sentry.snuba.metrics.fields.snql import (
     all_sessions,
     all_transactions,
     all_users,
+    anr_users,
     apdex,
     complement,
     count_transaction_name_snql_factory,
@@ -52,6 +53,7 @@ from sentry.snuba.metrics.fields.snql import (
     errored_all_users,
     errored_preaggr_sessions,
     failure_count_transaction,
+    foreground_anr_users,
     histogram_snql_factory,
     miserable_users,
     rate_snql_factory,
@@ -1302,6 +1304,22 @@ DERIVED_METRICS: Mapping[str, DerivedMetricExpression] = {
             ),
         ),
         SingularEntityDerivedMetric(
+            metric_mri=SessionMRI.ANR_USER.value,
+            metrics=[SessionMRI.USER.value],
+            unit="users",
+            snql=lambda project_ids, org_id, metric_ids, alias=None: anr_users(
+                org_id, metric_ids, alias=alias
+            ),
+        ),
+        SingularEntityDerivedMetric(
+            metric_mri=SessionMRI.FOREGROUND_ANR_USER.value,
+            metrics=[SessionMRI.USER.value],
+            unit="users",
+            snql=lambda project_ids, org_id, metric_ids, alias=None: foreground_anr_users(
+                org_id, metric_ids, alias=alias
+            ),
+        ),
+        SingularEntityDerivedMetric(
             metric_mri=SessionMRI.CRASH_RATE.value,
             metrics=[SessionMRI.CRASHED.value, SessionMRI.ALL.value],
             unit="percentage",
@@ -1318,6 +1336,28 @@ DERIVED_METRICS: Mapping[str, DerivedMetricExpression] = {
             unit="percentage",
             snql=lambda crashed_user_count, all_user_count, project_ids, org_id, metric_ids, alias=None: division_float(
                 crashed_user_count, all_user_count, alias=alias
+            ),
+        ),
+        SingularEntityDerivedMetric(
+            metric_mri=SessionMRI.ANR_RATE.value,
+            metrics=[
+                SessionMRI.ANR_USER.value,
+                SessionMRI.ALL_USER.value,
+            ],
+            unit="percentage",
+            snql=lambda anr_user_count, all_user_count, project_ids, org_id, metric_ids, alias=None: division_float(
+                anr_user_count, all_user_count, alias=alias
+            ),
+        ),
+        SingularEntityDerivedMetric(
+            metric_mri=SessionMRI.FOREGROUND_ANR_RATE.value,
+            metrics=[
+                SessionMRI.FOREGROUND_ANR_USER.value,
+                SessionMRI.ALL_USER.value,
+            ],
+            unit="percentage",
+            snql=lambda foreground_anr_user_count, all_user_count, project_ids, org_id, metric_ids, alias=None: division_float(
+                foreground_anr_user_count, all_user_count, alias=alias
             ),
         ),
         SingularEntityDerivedMetric(

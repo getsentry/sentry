@@ -1,10 +1,16 @@
+import {useLayoutEffect, useState} from 'react';
 import Fuse from 'fuse.js';
 import {mat3, vec2} from 'gl-matrix';
 
+import {CanvasView} from 'sentry/utils/profiling/canvasView';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
 
+import {CanvasPoolManager} from '../canvasScheduler';
 import {clamp} from '../colors/utils';
+import {FlamegraphCanvas} from '../flamegraphCanvas';
+import {SpanChartRenderer2D} from '../renderers/spansRenderer';
+import {SpanChartNode} from '../spanChart';
 
 export function createShader(
   gl: WebGLRenderingContext,
@@ -50,8 +56,6 @@ export function createProgram(
 // Create a projection matrix with origins at 0,0 in top left corner, scaled to width/height
 export function makeProjectionMatrix(width: number, height: number): mat3 {
   const projectionMatrix = mat3.create();
-
-  mat3.identity(projectionMatrix);
   mat3.translate(projectionMatrix, projectionMatrix, vec2.fromValues(-1, 1));
   mat3.scale(
     projectionMatrix,
@@ -106,11 +110,11 @@ function onResize(entries: ResizeObserverEntry[]) {
 
 export const watchForResize = (
   canvas: HTMLCanvasElement[],
-  callback?: () => void
+  callback?: (entries: ResizeObserverEntry[], observer: ResizeObserver) => void
 ): ResizeObserver => {
-  const handler: ResizeObserverCallback = entries => {
+  const handler: ResizeObserverCallback = (entries, observer) => {
     onResize(entries);
-    callback?.();
+    callback?.(entries, observer);
   };
 
   for (const c of canvas) {
@@ -307,13 +311,9 @@ export class Rect {
 
   containsRect(rect: Rect): boolean {
     return (
-      // left bound
       this.left <= rect.left &&
-      // right bound
       rect.right <= this.right &&
-      // top bound
       this.top <= rect.top &&
-      // bottom bound
       rect.bottom <= this.bottom
     );
   }
@@ -338,7 +338,7 @@ export class Rect {
     return this.overlapsX(other) && this.overlapsY(other);
   }
 
-  transformRect(transform: mat3): Rect {
+  transformRect(transform: mat3 | Readonly<mat3>): Rect {
     const x = this.x * transform[0] + this.y * transform[3] + transform[6];
     const y = this.x * transform[1] + this.y * transform[4] + transform[7];
     const width = this.width * transform[0] + this.height * transform[3];
@@ -496,6 +496,24 @@ export function findRangeBinarySearch(
       high = mid;
     }
   }
+}
+
+export function formatColorForSpan(
+  frame: SpanChartNode,
+  renderer: SpanChartRenderer2D
+): string {
+  const color = renderer.getColorForFrame(frame);
+  if (Array.isArray(color)) {
+    if (color.length === 4) {
+      return `rgba(${color
+        .slice(0, 3)
+        .map(n => n * 255)
+        .join(',')}, ${color[3]})`;
+    }
+
+    return `rgba(${color.map(n => n * 255).join(',')}, 1.0)`;
+  }
+  return '';
 }
 
 export function formatColorForFrame(
@@ -681,4 +699,177 @@ export function computeConfigViewWithStrategy(
   }
 
   return frame.withHeight(view.height);
+}
+
+// Compute the X and Y position based on offset and canvas resolution
+export function getPhysicalSpacePositionFromOffset(offsetX: number, offsetY: number) {
+  const logicalMousePos = vec2.fromValues(offsetX, offsetY);
+  return vec2.scale(vec2.create(), logicalMousePos, window.devicePixelRatio);
+}
+
+export function getCenterScaleMatrix(
+  scale: number,
+  offsetX: number,
+  offsetY: number,
+  view: CanvasView<any>,
+  canvas: FlamegraphCanvas
+): mat3 {
+  const configSpaceMouse = view.getConfigViewCursor(
+    vec2.fromValues(offsetX, offsetY),
+    canvas
+  );
+
+  const configCenter = vec2.fromValues(configSpaceMouse[0], view.configView.y);
+
+  const invertedConfigCenter = vec2.multiply(
+    vec2.create(),
+    vec2.fromValues(-1, -1),
+    configCenter
+  );
+
+  const centerScaleMatrix = mat3.create();
+  mat3.fromTranslation(centerScaleMatrix, configCenter);
+  mat3.scale(centerScaleMatrix, centerScaleMatrix, vec2.fromValues(scale, 1));
+  mat3.translate(centerScaleMatrix, centerScaleMatrix, invertedConfigCenter);
+  return centerScaleMatrix;
+}
+
+export function getConfigViewTranslationBetweenVectors(
+  offsetX: number,
+  offsetY: number,
+  start: vec2,
+  view: CanvasView<any>,
+  canvas: FlamegraphCanvas,
+  invert?: boolean
+): mat3 | null {
+  const physicalMousePos = getPhysicalSpacePositionFromOffset(offsetX, offsetY);
+  const physicalDelta = invert
+    ? vec2.subtract(vec2.create(), physicalMousePos, start)
+    : vec2.subtract(vec2.create(), start, physicalMousePos);
+
+  if (physicalDelta[0] === 0 && physicalDelta[1] === 0) {
+    return null;
+  }
+
+  const physicalToConfig = mat3.invert(
+    mat3.create(),
+    view.fromConfigView(canvas.physicalSpace)
+  );
+  const [m00, m01, m02, m10, m11, m12] = physicalToConfig;
+
+  const configDelta = vec2.transformMat3(vec2.create(), physicalDelta, [
+    m00,
+    m01,
+    m02,
+    m10,
+    m11,
+    m12,
+    0,
+    0,
+    0,
+  ]);
+
+  return mat3.fromTranslation(mat3.create(), configDelta);
+}
+
+export function getConfigSpaceTranslationBetweenVectors(
+  offsetX: number,
+  offsetY: number,
+  start: vec2,
+  view: CanvasView<any>,
+  canvas: FlamegraphCanvas,
+  invert?: boolean
+): mat3 | null {
+  const physicalMousePos = getPhysicalSpacePositionFromOffset(offsetX, offsetY);
+  const physicalDelta = invert
+    ? vec2.subtract(vec2.create(), physicalMousePos, start)
+    : vec2.subtract(vec2.create(), start, physicalMousePos);
+
+  if (physicalDelta[0] === 0 && physicalDelta[1] === 0) {
+    return null;
+  }
+
+  const physicalToConfig = mat3.invert(
+    mat3.create(),
+    view.fromConfigSpace(canvas.physicalSpace)
+  );
+  const [m00, m01, m02, m10, m11, m12] = physicalToConfig;
+  const configDelta = vec2.transformMat3(vec2.create(), physicalDelta, [
+    m00,
+    m01,
+    m02,
+    m10,
+    m11,
+    m12,
+    0,
+    0,
+    0,
+  ]);
+
+  return mat3.fromTranslation(mat3.create(), configDelta);
+}
+
+export function getMinimapCanvasCursor(
+  configView: Rect | undefined,
+  configSpaceCursor: vec2 | null,
+  borderWidth: number
+) {
+  if (!configView || !configSpaceCursor) {
+    return 'col-resize';
+  }
+
+  const nearestEdge = Math.min(
+    Math.abs(configView.left - configSpaceCursor[0]),
+    Math.abs(configView.right - configSpaceCursor[0])
+  );
+  const isWithinBorderSize = nearestEdge <= borderWidth;
+  if (isWithinBorderSize) {
+    return 'ew-resize';
+  }
+
+  if (configView.contains(configSpaceCursor)) {
+    return 'grab';
+  }
+
+  return 'col-resize';
+}
+
+export function useResizeCanvasObserver(
+  canvases: (HTMLCanvasElement | null)[],
+  canvasPoolManager: CanvasPoolManager,
+  canvas: FlamegraphCanvas | null,
+  view: CanvasView<any> | null
+): Rect {
+  const [bounds, setCanvasBounds] = useState<Rect>(Rect.Empty());
+
+  useLayoutEffect(() => {
+    if (!canvas || !canvases.length) {
+      return undefined;
+    }
+
+    if (canvases.some(c => c === null)) {
+      return undefined;
+    }
+
+    const observer = watchForResize(canvases as HTMLCanvasElement[], entries => {
+      const contentRect =
+        entries[0].contentRect ?? entries[0].target.getBoundingClientRect();
+
+      setCanvasBounds(
+        new Rect(contentRect.x, contentRect.y, contentRect.width, contentRect.height)
+      );
+
+      canvas.initPhysicalSpace();
+      if (view) {
+        view.resizeConfigSpace(canvas);
+      }
+      canvasPoolManager.drawSync();
+    });
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [canvases, canvas, view, canvasPoolManager]);
+
+  return bounds;
 }

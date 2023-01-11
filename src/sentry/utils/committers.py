@@ -26,6 +26,7 @@ from sentry.api.serializers.models.release import Author, ReleaseSerializer
 from sentry.eventstore.models import Event
 from sentry.models import Commit, CommitFileChange, Group, Project, Release, ReleaseCommit
 from sentry.models.groupowner import GroupOwner, GroupOwnerType, get_release_committers_for_group
+from sentry.services.hybrid_cloud.user import user_service
 from sentry.utils import metrics
 from sentry.utils.event_frames import find_stack_frames, get_sdk_name, munged_filename_and_frames
 from sentry.utils.hashlib import hash_values
@@ -310,7 +311,11 @@ def get_serialized_event_file_committers(
         if not owner:
             return []
         commit = Commit.objects.get(id=owner.context.get("commitId"))
-        author = serialize(owner.user) if owner.user else {"email": commit.author.email}
+        author = (
+            user_service.serialize_users(user_ids=[owner.user_id])[0]
+            if owner.user
+            else {"email": commit.author.email}
+        )
 
         return [
             {

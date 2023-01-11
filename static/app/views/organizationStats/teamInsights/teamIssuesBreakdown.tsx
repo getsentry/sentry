@@ -180,8 +180,7 @@ class TeamIssuesBreakdown extends AsyncComponent<Props, State> {
                     <AlignRight key={action}>{action}</AlignRight>
                   )),
                   <AlignRight key="total">
-                    {t('total')}{' '}
-                    <IconArrow direction="down" size="12px" color="gray300" />
+                    {t('total')} <IconArrow direction="down" size="xs" color="gray300" />
                   </AlignRight>,
                 ]}
                 isLoading={loading}

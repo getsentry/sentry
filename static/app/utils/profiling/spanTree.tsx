@@ -1,13 +1,50 @@
-import {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
+import {uuid4} from '@sentry/utils';
 
-interface SpanChartNode {
-  depth: number;
-  end: number;
-  node: SpanTreeNode;
-  start: number;
+import {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
+import {EventOrGroupType, EventTransaction} from 'sentry/types';
+
+// Empty transaction to use as a default value with duration of 1 second
+const EmptyEventTransaction: EventTransaction = {
+  id: '',
+  projectID: '',
+  user: {},
+  contexts: {},
+  entries: [],
+  errors: [],
+  dateCreated: '',
+  startTimestamp: Date.now(),
+  endTimestamp: Date.now() + 1000,
+  title: '',
+  type: EventOrGroupType.TRANSACTION,
+  culprit: '',
+  dist: null,
+  eventID: '',
+  fingerprints: [],
+  dateReceived: new Date().toISOString(),
+  message: '',
+  metadata: {},
+  size: 0,
+  tags: [],
+  occurrence: null,
+  location: '',
+  crashFile: null,
+};
+
+function sortByStartTimeAndDuration(a: RawSpanType, b: RawSpanType) {
+  if (a.start_timestamp < b.start_timestamp) {
+    return -1;
+  }
+  // if the start times are the same, we want to sort by end time
+  if (a.start_timestamp === b.start_timestamp) {
+    if (a.timestamp < b.timestamp) {
+      return 1; // a is a child of b
+    }
+    return -1; // b is a child of a
+  }
+  return 1;
 }
 
-class SpanTreeNode {
+export class SpanTreeNode {
   parent?: SpanTreeNode | null = null;
   span: RawSpanType;
   children: SpanTreeNode[] = [];
@@ -17,7 +54,7 @@ class SpanTreeNode {
     this.parent = parent;
   }
 
-  static Root() {
+  static Root(partial: Partial<RawSpanType> = {}): SpanTreeNode {
     return new SpanTreeNode(
       {
         description: 'root',
@@ -27,9 +64,10 @@ class SpanTreeNode {
         timestamp: Number.MAX_SAFE_INTEGER,
         parent_span_id: '',
         data: {},
-        span_id: '',
+        span_id: '<root>',
         trace_id: '',
         hash: '',
+        ...partial,
       },
       null
     );
@@ -37,76 +75,93 @@ class SpanTreeNode {
 
   contains(span: RawSpanType) {
     return (
-      span.start_timestamp >= this.span.start_timestamp &&
-      span.timestamp <= this.span.timestamp
+      this.span.start_timestamp <= span.start_timestamp &&
+      this.span.timestamp >= span.timestamp
     );
   }
 }
 
 class SpanTree {
-  spans: RawSpanType[];
-  spanTree: SpanTreeNode = SpanTreeNode.Root();
+  root: SpanTreeNode;
   orphanedSpans: RawSpanType[] = [];
+  transaction: EventTransaction;
 
-  constructor(spans: RawSpanType[]) {
-    this.spans = spans;
-    this.buildCollapsedSpanTree();
-  }
+  constructor(transaction: EventTransaction, spans: RawSpanType[]) {
+    this.transaction = transaction;
 
-  buildCollapsedSpanTree() {
-    const spansSortedByStartTime = [...this.spans].sort((a, b) => {
-      if (a.start_timestamp < b.start_timestamp) {
-        return -1;
-      }
-      // if the start times are the same, we want to sort by end time
-      if (a.start_timestamp === b.start_timestamp) {
-        if (a.timestamp < b.timestamp) {
-          return 1; // a is a child of b
-        }
-        return -1; // b is a child of a
-      }
-      return 1;
+    this.root = SpanTreeNode.Root({
+      description: transaction.title,
+      start_timestamp: transaction.startTimestamp,
+      timestamp: transaction.endTimestamp,
+      exclusive_time: transaction.contexts?.trace?.exclusive_time ?? undefined,
+      span_id: transaction.contexts?.trace?.span_id ?? undefined,
+      parent_span_id: undefined,
+      op: 'transaction',
     });
 
-    for (const span of spansSortedByStartTime) {
-      const queue = [...this.spanTree.children];
-      let parent: SpanTreeNode | null = null;
-
-      // If this is the first span, just push it to the root
-      if (!this.spanTree.children.length) {
-        this.spanTree.children.push(new SpanTreeNode(span, this.spanTree));
-        continue;
-      }
-
-      while (queue.length > 0) {
-        const current = queue.pop()!;
-        if (current.contains(span)) {
-          parent = current;
-          queue.push(...current.children);
-        }
-      }
-
-      // if we didn't find a parent, we have an orphaned span
-      if (parent === null) {
-        this.orphanedSpans.push(span);
-        continue;
-      }
-      parent.children.push(new SpanTreeNode(span, parent));
-    }
+    this.buildCollapsedSpanTree(spans);
   }
 
-  forEach(cb: (node: SpanChartNode) => void) {
-    const queue: SpanTreeNode[] = [...this.spanTree.children];
-    let depth = 0;
+  static Empty = new SpanTree(EmptyEventTransaction, []);
 
-    while (queue.length) {
-      let children_at_depth = queue.length;
-      while (children_at_depth-- !== 0) {
-        const node = queue.pop()!;
-        queue.push(...node.children);
-        cb({start: node.span.start_timestamp, end: node.span.timestamp, node, depth});
+  isEmpty(): boolean {
+    return this === SpanTree.Empty;
+  }
+
+  buildCollapsedSpanTree(spans: RawSpanType[]) {
+    const spansSortedByStartTime = [...spans].sort(sortByStartTimeAndDuration);
+    const MISSING_INSTRUMENTATION_THRESHOLD_S = 0.1;
+
+    for (let i = 0; i < spansSortedByStartTime.length; i++) {
+      const span = spansSortedByStartTime[i];
+      let parent = this.root;
+
+      while (parent.contains(span)) {
+        let nextParent: SpanTreeNode | null = null;
+        for (let j = 0; j < parent.children.length; j++) {
+          const child = parent.children[j];
+          if (child.span.op !== 'missing instrumentation' && child.contains(span)) {
+            nextParent = child;
+            break;
+          }
+        }
+        if (nextParent === null) {
+          break;
+        }
+        parent = nextParent;
       }
-      depth++;
+
+      if (parent.span.span_id === span.parent_span_id) {
+        // If the missing instrumentation threshold is exceeded, add a span to
+        // indicate that there is a gap in instrumentation. We can rely on this check
+        // because the spans are sorted by start time, so we know that we will not be
+        // updating anything before span.start_timestamp.
+        if (
+          parent.children.length > 0 &&
+          span.timestamp - parent.children[parent.children.length - 1].span.timestamp >
+            MISSING_INSTRUMENTATION_THRESHOLD_S
+        ) {
+          parent.children.push(
+            new SpanTreeNode(
+              {
+                op: 'missing instrumentation',
+                start_timestamp:
+                  parent.children[parent.children.length - 1].span.timestamp,
+                timestamp: span.start_timestamp,
+                span_id: uuid4(),
+                data: {},
+                trace_id: span.trace_id,
+              },
+              parent
+            )
+          );
+        }
+        // Insert child span
+        parent.children.push(new SpanTreeNode(span, parent));
+        continue;
+      }
+
+      this.orphanedSpans.push(span);
     }
   }
 }

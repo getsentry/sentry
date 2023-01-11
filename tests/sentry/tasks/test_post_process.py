@@ -1134,7 +1134,6 @@ class PostProcessGroupErrorTest(
 
 
 @region_silo_test
-@apply_feature_flag_on_cls("organizations:performance-issues-post-process-group")
 class PostProcessGroupPerformanceTest(
     TestCase,
     SnubaTestCase,
@@ -1213,7 +1212,6 @@ class PostProcessGroupPerformanceTest(
         assert mock_processor.call_count == 0
         assert run_post_process_job_mock.call_count == 0
 
-    @with_feature("organizations:performance-issues-post-process-group")
     @patch("sentry.tasks.post_process.run_post_process_job")
     @patch("sentry.rules.processor.RuleProcessor")
     @patch("sentry.signals.transaction_processed.send_robust")

@@ -1,6 +1,5 @@
 import {forwardRef} from 'react';
-
-import theme from 'sentry/utils/theme';
+import {useTheme} from '@emotion/react';
 
 import {SvgIcon, SVGIconProps} from './svgIcon';
 
@@ -10,6 +9,8 @@ interface Props extends SVGIconProps {
 
 const IconPanel = forwardRef<SVGSVGElement, Props>(
   ({direction = 'up', ...props}, ref) => {
+    const theme = useTheme();
+
     return (
       <SvgIcon
         {...props}

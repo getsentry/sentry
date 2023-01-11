@@ -17,7 +17,7 @@ from django.utils import timezone
 from django.utils.http import urlencode, urlquote
 from django.utils.translation import ugettext_lazy as _
 
-from sentry import eventstore, eventtypes, features, tagstore
+from sentry import eventstore, eventtypes, tagstore
 from sentry.constants import DEFAULT_LOGGER_NAME, LOG_LEVELS, MAX_CULPRIT_LENGTH
 from sentry.db.models import (
     BaseManager,
@@ -190,15 +190,6 @@ def get_oldest_or_latest_event_for_environments(
 
     if len(environments) > 0:
         conditions.append(["environment", "IN", environments])
-
-    if (
-        not features.has("organizations:performance-issues", group.organization)
-        and group.issue_category == GroupCategory.PERFORMANCE
-    ):
-        # Generally we shouldn't arrive here, since if the feature flag is disabled we shouldn't
-        # be loading performance issues. Regardless, if the flag is disabled we should always return
-        # None here.
-        return None
 
     if group.issue_category == GroupCategory.PERFORMANCE:
         apply_performance_conditions(conditions, group)
@@ -449,6 +440,10 @@ class Group(Model):
             (
                 GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN.value,
                 _("Render Blocking Asset Span"),
+            ),
+            (
+                GroupType.PERFORMANCE_N_PLUS_ONE_API_CALLS.value,
+                _("N+1 API Calls"),
             ),
             # TODO add more group types when detection starts outputting them
         ),

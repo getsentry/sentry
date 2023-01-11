@@ -1,4 +1,6 @@
-import {EntrySpans} from 'sentry/types/event';
+import {EntrySpans, EventOrGroupType, EventTransaction} from 'sentry/types/event';
+
+import {SpanTree} from './spanTree';
 
 function s(partial: Partial<EntrySpans['data'][0]>): EntrySpans['data'][0] {
   return {
@@ -16,54 +18,152 @@ function s(partial: Partial<EntrySpans['data'][0]>): EntrySpans['data'][0] {
   };
 }
 
-import {SpanTree} from './spanTree';
+function txn(partial: Partial<EventTransaction>): EventTransaction {
+  return {
+    id: '',
+    projectID: '',
+    user: {},
+    contexts: {},
+    entries: [],
+    errors: [],
+    dateCreated: '',
+    startTimestamp: Date.now(),
+    endTimestamp: Date.now() + 1000,
+    title: '',
+    type: EventOrGroupType.TRANSACTION,
+    culprit: '',
+    dist: null,
+    eventID: '',
+    fingerprints: [],
+    dateReceived: new Date().toISOString(),
+    message: '',
+    metadata: {},
+    size: 0,
+    tags: [],
+    occurrence: null,
+    location: '',
+    crashFile: null,
+    ...partial,
+  };
+}
 
 describe('SpanTree', () => {
-  it('appends to parent that contains span', () => {
-    const tree = new SpanTree([
-      s({span_id: '1', timestamp: 1, start_timestamp: 0}),
-      s({span_id: '2', timestamp: 0.5, start_timestamp: 0}),
-    ]);
-    expect(tree.spanTree.children[0].span.span_id).toBe('1');
-    expect(tree.spanTree.children[0].children[0].span.span_id).toBe('2');
-  });
-  it('pushes consequtive span', () => {
-    const tree = new SpanTree([
-      s({span_id: '1', timestamp: 1, start_timestamp: 0}),
-      s({span_id: '2', timestamp: 0.5, start_timestamp: 0}),
-      s({span_id: '3', timestamp: 0.8, start_timestamp: 0.5}),
-    ]);
-    expect(tree.spanTree.children[0].children[0].span.span_id).toBe('2');
-    expect(tree.spanTree.children[0].children[1].span.span_id).toBe('3');
-  });
-  it('marks span as orphaned if end overlaps', () => {
-    const tree = new SpanTree([
-      s({span_id: '1', timestamp: 1, start_timestamp: 0}),
-      s({span_id: '2', timestamp: 1.1, start_timestamp: 0.1}),
-    ]);
-    expect(tree.orphanedSpans[0].span_id).toBe('2');
-  });
-
-  it('iterates over all spans with depth', () => {
-    const tree = new SpanTree([
-      s({span_id: '1', timestamp: 1, start_timestamp: 0}),
-      s({span_id: '2', timestamp: 0.5, start_timestamp: 0}),
-      s({span_id: '3', timestamp: 0.2, start_timestamp: 0}),
-      s({span_id: '4', timestamp: 1, start_timestamp: 0.5}),
-    ]);
-
-    expect(tree.spanTree.children[0].children[1].span.span_id).toBe('4');
-
-    tree.forEach(span => {
-      if (span.node.span.span_id === '1') {
-        expect(span.depth).toBe(0);
-      } else if (span.node.span.span_id === '2') {
-        expect(span.depth).toBe(1);
-      } else if (span.node.span.span_id === '3') {
-        expect(span.depth).toBe(2);
-      } else if (span.node.span.span_id === '4') {
-        expect(span.depth).toBe(1);
-      }
+  it('initializes the root to txn', () => {
+    const transaction = txn({
+      title: 'transaction root',
+      startTimestamp: Date.now(),
+      endTimestamp: Date.now() + 1000,
     });
+    const tree = new SpanTree(transaction, []);
+    expect(tree.root.span.start_timestamp).toBe(transaction.startTimestamp);
+    expect(tree.root.span.timestamp).toBe(transaction.endTimestamp);
+  });
+  it('appends to parent that contains span', () => {
+    const start = Date.now();
+    const tree = new SpanTree(
+      txn({
+        title: 'transaction root',
+        startTimestamp: start,
+        endTimestamp: start + 10,
+        contexts: {trace: {span_id: 'root'}},
+      }),
+      [
+        s({
+          span_id: '1',
+          parent_span_id: 'root',
+          timestamp: start + 10,
+          start_timestamp: start,
+        }),
+        s({
+          span_id: '2',
+          parent_span_id: '1',
+          timestamp: start + 5,
+          start_timestamp: start,
+        }),
+      ]
+    );
+    expect(tree.orphanedSpans.length).toBe(0);
+    expect(tree.root.children[0].span.span_id).toBe('1');
+    expect(tree.root.children[0].children[0].span.span_id).toBe('2');
+  });
+
+  it('creates missing instrumentation node', () => {
+    const start = Date.now();
+    const tree = new SpanTree(
+      txn({
+        title: 'transaction root',
+        startTimestamp: start,
+        endTimestamp: start + 10,
+        contexts: {trace: {span_id: 'root'}},
+      }),
+      [
+        s({
+          span_id: '1',
+          parent_span_id: 'root',
+          timestamp: start + 5,
+          start_timestamp: start,
+        }),
+        s({
+          span_id: '2',
+          parent_span_id: 'root',
+          timestamp: start + 10,
+          start_timestamp: start + 6,
+        }),
+      ]
+    );
+    expect(tree.orphanedSpans.length).toBe(0);
+    expect(tree.root.children[0].span.span_id).toBe('1');
+    expect(tree.root.children[1].span.op).toBe('missing instrumentation');
+    expect(tree.root.children[2].span.span_id).toBe('2');
+  });
+
+  it('pushes consecutive span', () => {
+    const start = Date.now();
+    const tree = new SpanTree(
+      txn({
+        title: 'transaction root',
+        startTimestamp: start,
+        endTimestamp: start + 1000,
+        contexts: {trace: {span_id: 'root'}},
+      }),
+      [
+        s({
+          span_id: '1',
+          parent_span_id: 'root',
+          timestamp: start + 0.05,
+          start_timestamp: start,
+        }),
+        s({
+          span_id: '2',
+          parent_span_id: 'root',
+          timestamp: start + 0.08,
+          start_timestamp: start + 0.05,
+        }),
+      ]
+    );
+
+    expect(tree.orphanedSpans.length).toBe(0);
+    expect(tree.root.children[0].span.span_id).toBe('1');
+    expect(tree.root.children[1].span.span_id).toBe('2');
+  });
+  it('marks span as orphaned if parent_id does not match', () => {
+    const tree = new SpanTree(
+      txn({
+        title: 'transaction root',
+        startTimestamp: Date.now(),
+        endTimestamp: Date.now() + 1000,
+        contexts: {trace: {span_id: 'root'}},
+      }),
+      [
+        s({span_id: '1', parent_span_id: 'root', timestamp: 1, start_timestamp: 0}),
+        s({
+          span_id: '2',
+          parent_span_id: 'orphaned',
+          timestamp: 1.1,
+          start_timestamp: 0.1,
+        }),
+      ]
+    );
+    expect(tree.orphanedSpans[0].span_id).toBe('2');
   });
 });

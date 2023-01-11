@@ -11,6 +11,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import audit_log, features
+from sentry import options as sentry_options
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.api.decorators import sudo_required
@@ -19,9 +20,11 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.project import DetailedProjectSerializer
 from sentry.api.serializers.rest_framework.list import EmptyListField, ListField
 from sentry.api.serializers.rest_framework.origin import OriginField
+from sentry.auth.superuser import is_active_superuser
 from sentry.constants import RESERVED_PROJECT_SLUGS
 from sentry.datascrubbing import validate_pii_config_update
-from sentry.dynamic_sampling.feature_multiplexer import DynamicSamplingFeatureMultiplexer
+from sentry.dynamic_sampling.rules_generator import generate_rules
+from sentry.dynamic_sampling.utils import get_supported_biases_ids, get_user_biases
 from sentry.grouping.enhancer import Enhancements, InvalidEnhancerConfig
 from sentry.grouping.fingerprinting import FingerprintingRules, InvalidFingerprintingConfig
 from sentry.ingest.inbound_filters import FilterTypes
@@ -66,9 +69,7 @@ def clean_newline_inputs(value, case_insensitive=True):
 
 
 class DynamicSamplingBiasSerializer(serializers.Serializer):
-    id = serializers.ChoiceField(
-        required=True, choices=DynamicSamplingFeatureMultiplexer.get_supported_biases_ids()
-    )
+    id = serializers.ChoiceField(required=True, choices=get_supported_biases_ids())
     active = serializers.BooleanField(default=False)
 
     def validate(self, data):
@@ -369,21 +370,25 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         if "hasAlertIntegration" in expand:
             data["hasAlertIntegrationInstalled"] = has_alert_integration(project)
 
-        ds_feature_multiplexer = DynamicSamplingFeatureMultiplexer(project)
-
         # Dynamic Sampling Logic
-        if ds_feature_multiplexer.is_on_dynamic_sampling:
+        if features.has(
+            "organizations:dynamic-sampling", project.organization
+        ) and sentry_options.get("dynamic-sampling:enabled-biases"):
             ds_bias_serializer = DynamicSamplingBiasSerializer(
-                data=ds_feature_multiplexer.get_user_biases(
-                    project.get_option("sentry:dynamic_sampling_biases", None)
-                ),
+                data=get_user_biases(project.get_option("sentry:dynamic_sampling_biases", None)),
                 many=True,
             )
             if not ds_bias_serializer.is_valid():
                 return Response(ds_bias_serializer.errors, status=400)
             data["dynamicSamplingBiases"] = ds_bias_serializer.data
+
+            include_rules = request.GET.get("includeDynamicSamplingRules") == "1"
+            if include_rules and is_active_superuser(request):
+                data["dynamicSamplingRules"] = generate_rules(project)
         else:
             data["dynamicSamplingBiases"] = None
+            data["dynamicSamplingRules"] = None
+
         return Response(data)
 
     def put(self, request: Request, project) -> Response:
@@ -408,6 +413,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         :auth: required
         """
 
+        old_data = serialize(project, request.user, DetailedProjectSerializer())
         has_project_write = request.access and request.access.has_scope("project:write")
 
         changed_proj_settings = {}
@@ -424,8 +430,10 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
         result = serializer.validated_data
 
-        ds_flags_multiplexer = DynamicSamplingFeatureMultiplexer(project)
-        if result.get("dynamicSamplingBiases") and not ds_flags_multiplexer.is_on_dynamic_sampling:
+        if result.get("dynamicSamplingBiases") and not (
+            features.has("organizations:dynamic-sampling", project.organization)
+            and sentry_options.get("dynamic-sampling:enabled-biases")
+        ):
             return Response(
                 {"detail": ["dynamicSamplingBiases is not a valid field"]},
                 status=403,
@@ -596,9 +604,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             )
 
         if "dynamicSamplingBiases" in result:
-            updated_biases = ds_flags_multiplexer.get_user_biases(
-                user_set_biases=result["dynamicSamplingBiases"]
-            )
+            updated_biases = get_user_biases(user_set_biases=result["dynamicSamplingBiases"])
             if project.update_option("sentry:dynamic_sampling_biases", updated_biases):
                 changed_proj_settings["sentry:dynamic_sampling_biases"] = result[
                     "dynamicSamplingBiases"
@@ -627,7 +633,8 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 )
             if "sentry:safe_fields" in options:
                 project.update_option(
-                    "sentry:safe_fields", [s.strip().lower() for s in options["sentry:safe_fields"]]
+                    "sentry:safe_fields",
+                    [s.strip().lower() for s in options["sentry:safe_fields"]],
                 )
             if "sentry:store_crash_reports" in options:
                 project.update_option(
@@ -638,7 +645,8 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 )
             if "sentry:relay_pii_config" in options:
                 project.update_option(
-                    "sentry:relay_pii_config", options["sentry:relay_pii_config"].strip() or None
+                    "sentry:relay_pii_config",
+                    options["sentry:relay_pii_config"].strip() or None,
                 )
             if "sentry:sensitive_fields" in options:
                 project.update_option(
@@ -682,7 +690,8 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 )
             if "sentry:reprocessing_active" in options:
                 project.update_option(
-                    "sentry:reprocessing_active", bool(options["sentry:reprocessing_active"])
+                    "sentry:reprocessing_active",
+                    bool(options["sentry:reprocessing_active"]),
                 )
             if "filters:blacklisted_ips" in options:
                 project.update_option(
@@ -716,6 +725,17 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 if not project.copy_settings_from(result["copy_from_project"]):
                     return Response({"detail": ["Copy project settings failed."]}, status=409)
 
+            if "sentry:dynamic_sampling_biases" in changed_proj_settings:
+                self.dynamic_sampling_biases_audit_log(
+                    project,
+                    request,
+                    old_data.get("dynamicSamplingBiases"),
+                    result.get("dynamicSamplingBiases"),
+                )
+                if len(changed_proj_settings) == 1:
+                    data = serialize(project, request.user, DetailedProjectSerializer())
+                    return Response(data)
+
         self.create_audit_entry(
             request=request,
             organization=project.organization,
@@ -725,7 +745,10 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         )
 
         data = serialize(project, request.user, DetailedProjectSerializer())
-        if not ds_flags_multiplexer.is_on_dynamic_sampling:
+        if not (
+            features.has("organizations:dynamic-sampling", project.organization)
+            and sentry_options.get("dynamic-sampling:enabled-biases")
+        ):
             data["dynamicSamplingBiases"] = None
         # If here because the case of when no dynamic sampling is enabled at all, you would want to kick
         # out both keys actually
@@ -772,3 +795,39 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             project.rename_on_pending_deletion()
 
         return Response(status=204)
+
+    def dynamic_sampling_biases_audit_log(
+        self, project, request, old_raw_dynamic_sampling_biases, new_raw_dynamic_sampling_biases
+    ):
+        """
+        Compares the previous and next dynamic sampling biases object, triggering audit logs according to the changes.
+        We are currently verifying the following cases:
+
+        Enabling
+            We make a loop through the whole object, comparing next with previous biases.
+            If we detect that the current bias is disabled and the updated same bias is enabled, this is triggered
+
+        Disabling
+            We make a loop through the whole object, comparing next with previous biases.
+            If we detect that the current bias is enabled and the updated same bias is disabled, this is triggered
+
+
+        :old_raw_dynamic_sampling_biases: The dynamic sampling biases object before the changes
+        :new_raw_dynamic_sampling_biases: The updated dynamic sampling biases object
+        """
+
+        if old_raw_dynamic_sampling_biases is None:
+            return
+
+        for index, rule in enumerate(new_raw_dynamic_sampling_biases):
+            if rule["active"] != old_raw_dynamic_sampling_biases[index]["active"]:
+                self.create_audit_entry(
+                    request=request,
+                    organization=project.organization,
+                    target_object=project.id,
+                    event=audit_log.get_event_id(
+                        "SAMPLING_BIAS_ENABLED" if rule["active"] else "SAMPLING_BIAS_DISABLED"
+                    ),
+                    data={**project.get_audit_log_data(), "name": rule["id"]},
+                )
+                return

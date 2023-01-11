@@ -52,6 +52,7 @@ import findBestThread from './interfaces/threads/threadSelector/findBestThread';
 import getThreadException from './interfaces/threads/threadSelector/getThreadException';
 import EventEntry from './eventEntry';
 import EventTagsAndScreenshot from './eventTagsAndScreenshot';
+import {EventViewHierarchy} from './eventViewHierarchy';
 
 const MINIFIED_DATA_JAVA_EVENT_REGEX_MATCH =
   /^(([\w\$]\.[\w\$]{1,2})|([\w\$]{2}\.[\w\$]\.[\w\$]))(\.|$)/g;
@@ -371,6 +372,18 @@ const EventEntries = ({
       {event && !objectIsEmpty(event.context) && <EventExtraData event={event} />}
       {event && !objectIsEmpty(event.packages) && <EventPackageData event={event} />}
       {event && !objectIsEmpty(event.device) && <EventDevice event={event} />}
+      {!isShare &&
+        organization.features?.includes('mobile-view-hierarchies') &&
+        hasEventAttachmentsFeature &&
+        !!attachments.filter(attachment => attachment.type === 'event.view_hierarchy')
+          .length && (
+          <EventViewHierarchy
+            projectSlug={projectSlug}
+            viewHierarchies={attachments.filter(
+              attachment => attachment.type === 'event.view_hierarchy'
+            )}
+          />
+        )}
       {!isShare && hasEventAttachmentsFeature && (
         <EventAttachments
           event={event}
@@ -463,10 +476,7 @@ function Entries({
     return null;
   }
 
-  if (
-    group?.issueCategory === IssueCategory.PERFORMANCE &&
-    organization.features?.includes('performance-issues')
-  ) {
+  if (group?.issueCategory === IssueCategory.PERFORMANCE) {
     injectResourcesEntry(definedEvent);
   }
 

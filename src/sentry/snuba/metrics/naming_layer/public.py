@@ -49,6 +49,8 @@ class SessionMetricKey(Enum):
     HEALTHY_USER = "session.healthy_user"
     CRASH_USER_RATE = "session.crash_user_rate"
     CRASH_FREE_USER_RATE = "session.crash_free_user_rate"
+    ANR_RATE = "session.anr_rate"
+    FOREGROUND_ANR_RATE = "session.foreground_anr_rate"
 
 
 class TransactionMetricKey(Enum):

@@ -6,7 +6,7 @@ from django.db import IntegrityError, transaction
 from django.db.models import Q
 from django.utils import timezone
 
-from sentry.api.base import pending_silo_endpoint
+from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers import AdminBroadcastSerializer, BroadcastSerializer, serialize
@@ -22,7 +22,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 
-@pending_silo_endpoint
+@control_silo_endpoint
 class BroadcastIndexEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationPermission,)
 

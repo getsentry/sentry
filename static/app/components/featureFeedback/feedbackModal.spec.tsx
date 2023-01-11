@@ -1,8 +1,20 @@
 import {Fragment} from 'react';
-import {BrowserClient} from '@sentry/react';
+import {
+  BrowserClient,
+  defaultIntegrations,
+  defaultStackParser,
+  makeFetchTransport,
+} from '@sentry/react';
+import * as Sentry from '@sentry/react';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {renderGlobalModal, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  renderGlobalModal,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
 import * as indicators from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
@@ -30,16 +42,24 @@ function ComponentProviders({children}: {children: React.ReactNode}) {
 
 describe('FeatureFeedback', function () {
   describe('default', function () {
-    it('submits modal on click', function () {
+    it('submits modal on click', async function () {
       jest.spyOn(indicators, 'addSuccessMessage');
+
+      const feedbackClient = new Sentry.BrowserClient({
+        transport: makeFetchTransport,
+        stackParser: defaultStackParser,
+        integrations: defaultIntegrations,
+      });
 
       renderGlobalModal();
 
-      openModal(modalProps => (
-        <ComponentProviders>
-          <FeedbackModal {...modalProps} featureName="test" />
-        </ComponentProviders>
-      ));
+      act(() =>
+        openModal(modalProps => (
+          <ComponentProviders>
+            <FeedbackModal {...modalProps} featureName="test" />
+          </ComponentProviders>
+        ))
+      );
 
       // Form fields
       expect(screen.getByText('Select type of feedback')).toBeInTheDocument();
@@ -74,6 +94,16 @@ describe('FeatureFeedback', function () {
 
       userEvent.click(screen.getByRole('button', {name: 'Submit Feedback'}));
 
+      await waitFor(() =>
+        expect(feedbackClient.captureEvent).toHaveBeenCalledWith(
+          expect.objectContaining({
+            request: {
+              url: 'http://localhost/',
+            },
+          })
+        )
+      );
+
       expect(indicators.addSuccessMessage).toHaveBeenCalledWith(
         'Thanks for taking the time to provide us feedback!'
       );
@@ -82,15 +112,17 @@ describe('FeatureFeedback', function () {
     it('renders provided feedbackTypes', function () {
       renderGlobalModal();
 
-      openModal(modalProps => (
-        <ComponentProviders>
-          <FeedbackModal
-            {...modalProps}
-            featureName="test"
-            feedbackTypes={['Custom feedback type A', 'Custom feedback type B']}
-          />
-        </ComponentProviders>
-      ));
+      act(() =>
+        openModal(modalProps => (
+          <ComponentProviders>
+            <FeedbackModal
+              {...modalProps}
+              featureName="test"
+              feedbackTypes={['Custom feedback type A', 'Custom feedback type B']}
+            />
+          </ComponentProviders>
+        ))
+      );
 
       userEvent.click(screen.getByText('Select type of feedback'));
 
@@ -105,15 +137,17 @@ describe('FeatureFeedback', function () {
     it('renders an arbitrary secondary action', function () {
       renderGlobalModal();
 
-      openModal(modalProps => (
-        <ComponentProviders>
-          <FeedbackModal
-            {...modalProps}
-            featureName="test"
-            secondaryAction={<a href="#">Test Secondary Action Link</a>}
-          />
-        </ComponentProviders>
-      ));
+      act(() =>
+        openModal(modalProps => (
+          <ComponentProviders>
+            <FeedbackModal
+              {...modalProps}
+              featureName="test"
+              secondaryAction={<a href="#">Test Secondary Action Link</a>}
+            />
+          </ComponentProviders>
+        ))
+      );
 
       userEvent.click(screen.getByText('Select type of feedback'));
 
@@ -134,55 +168,57 @@ describe('FeatureFeedback', function () {
 
       renderGlobalModal();
 
-      openModal(modalProps => (
-        <ComponentProviders>
-          <FeedbackModal
-            {...modalProps}
-            featureName="test"
-            initialData={{step: 0, name: null, surname: null}}
-          >
-            {({Header, Body, Footer, state, onFieldChange}) => {
-              if (state.step === 0) {
+      act(() =>
+        openModal(modalProps => (
+          <ComponentProviders>
+            <FeedbackModal
+              {...modalProps}
+              featureName="test"
+              initialData={{step: 0, name: null, surname: null}}
+            >
+              {({Header, Body, Footer, state, onFieldChange}) => {
+                if (state.step === 0) {
+                  return (
+                    <Fragment>
+                      <Header>First Step</Header>
+                      <Body>
+                        <TextField
+                          label="Name"
+                          value={state.name}
+                          name="name"
+                          onChange={value => onFieldChange('name', value)}
+                        />
+                      </Body>
+                      <Footer onNext={() => onFieldChange('step', 1)} />
+                    </Fragment>
+                  );
+                }
+
                 return (
                   <Fragment>
-                    <Header>First Step</Header>
+                    <Header>Last Step</Header>
                     <Body>
                       <TextField
-                        label="Name"
-                        value={state.name}
-                        name="name"
-                        onChange={value => onFieldChange('name', value)}
+                        label="Surname"
+                        value={state.surname}
+                        name="surname"
+                        onChange={value => onFieldChange('surname', value)}
                       />
                     </Body>
-                    <Footer onNext={() => onFieldChange('step', 1)} />
+                    <Footer
+                      onBack={() => onFieldChange('step', 0)}
+                      primaryDisabledReason={
+                        !state.surname ? 'Please answer at least one question' : undefined
+                      }
+                      submitEventData={{message: 'Feedback: test'}}
+                    />
                   </Fragment>
                 );
-              }
-
-              return (
-                <Fragment>
-                  <Header>Last Step</Header>
-                  <Body>
-                    <TextField
-                      label="Surname"
-                      value={state.surname}
-                      name="surname"
-                      onChange={value => onFieldChange('surname', value)}
-                    />
-                  </Body>
-                  <Footer
-                    onBack={() => onFieldChange('step', 0)}
-                    primaryDisabledReason={
-                      !state.surname ? 'Please answer at least one question' : undefined
-                    }
-                    submitEventData={{message: 'Feedback: test'}}
-                  />
-                </Fragment>
-              );
-            }}
-          </FeedbackModal>
-        </ComponentProviders>
-      ));
+              }}
+            </FeedbackModal>
+          </ComponentProviders>
+        ))
+      );
 
       // Does not render the default form
       expect(screen.queryByText('Select type of feedback')).not.toBeInTheDocument();

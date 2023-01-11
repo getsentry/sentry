@@ -1,6 +1,5 @@
+import {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
-
-import {Theme} from 'sentry/utils/theme';
 
 type Variant = 'small' | 'large';
 

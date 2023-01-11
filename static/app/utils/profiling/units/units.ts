@@ -15,6 +15,15 @@ const durationMappings: Record<ProfilingFormatterUnit, number> = {
   seconds: 1,
 };
 
+export function makeFormatTo(
+  from: ProfilingFormatterUnit | string,
+  to: ProfilingFormatterUnit | string
+) {
+  if (from === to) {
+    return (v: number) => v;
+  }
+  return (v: number) => formatTo(v, from, to);
+}
 export function formatTo(
   v: number,
   from: ProfilingFormatterUnit | string,
@@ -28,6 +37,9 @@ export function formatTo(
 }
 
 const format = (v: number, abbrev: string, precision: number) => {
+  if (v === 0) {
+    return '0' + abbrev;
+  }
   return v.toFixed(precision) + abbrev;
 };
 
@@ -68,10 +80,10 @@ export function makeTimelineFormatter(from: ProfilingFormatterUnit | string) {
   }
 
   return (value: number) => {
-    const s = value * multiplier;
+    const s = Math.abs(value * multiplier);
     const m = s / 60;
     const ms = s * 1e3;
 
-    return `${pad(m, 2)}:${pad(s % 60, 2)}.${pad(ms % 1e3, 3)}`;
+    return `${value < 0 ? '-' : ''}${pad(m, 2)}:${pad(s % 60, 2)}.${pad(ms % 1e3, 3)}`;
   };
 }

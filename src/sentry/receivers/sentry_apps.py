@@ -108,7 +108,7 @@ def send_workflow_webhooks(
     if features.has("organizations:sentry-functions", organization, actor=user):
         if user:
             data["user"] = user_service.serialize_users(
-                [user.id], detailed=UserSerializeType.SIMPLE
+                user_ids=[user.id], detailed=UserSerializeType.SIMPLE
             )[0]
         for fn in SentryFunction.objects.get_sentry_functions(organization, "issue"):
             send_sentry_function_webhook.delay(fn.external_id, event, issue.id, data)

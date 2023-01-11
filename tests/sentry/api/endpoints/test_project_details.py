@@ -1189,6 +1189,86 @@ class TestProjectDetailsDynamicSamplingBase(APITestCase, ABC):
 
 
 @region_silo_test
+class TestProjectDetailsDynamicSamplingRules(TestProjectDetailsDynamicSamplingBase):
+    endpoint = "sentry-api-0-project-details"
+
+    def setUp(self):
+        super().setUp()
+        self.url = reverse(
+            "sentry-api-0-project-details",
+            kwargs={
+                "organization_slug": self.project.organization.slug,
+                "project_slug": self.project.slug,
+            },
+        )
+        self.login_as(user=self.user, superuser=True)
+        token = ApiToken.objects.create(user=self.user, scope_list=["project:write"])
+        self.authorization = f"Bearer {token.token}"
+
+    @mock.patch("sentry.dynamic_sampling.rules_generator.quotas.get_blended_sample_rate")
+    def test_get_dynamic_sampling_rules_for_superuser_user(self, get_blended_sample_rate):
+        get_blended_sample_rate.return_value = 0.1
+        new_biases = [
+            {"id": "boostEnvironments", "active": True},
+            {
+                "id": "boostLatestRelease",
+                "active": False,
+            },
+            {"id": "ignoreHealthChecks", "active": False},
+            {"id": "boostKeyTransactions", "active": False},
+        ]
+        self.project.update_option("sentry:dynamic_sampling_biases", new_biases)
+        with Feature(
+            {
+                self.new_ds_flag: True,
+            }
+        ):
+            response = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                method="get",
+                includeDynamicSamplingRules=1,
+            )
+            # we expect 2 rules 1 for boostEnvironments and uniform rule
+            assert len(response.data["dynamicSamplingRules"]) == 2
+            # 1001 is dev bias rule id
+            assert response.data["dynamicSamplingRules"][0]["id"] == 1001
+            # 1000 uniform rule id
+            assert response.data["dynamicSamplingRules"][1]["id"] == 1000
+
+    def test_get_dynamic_sampling_rules_disabled_if_no_feature_flag(self):
+        with Feature(
+            {
+                self.new_ds_flag: False,
+            }
+        ):
+            response = self.get_success_response(
+                self.organization.slug, self.project.slug, method="get"
+            )
+            assert response.data["dynamicSamplingRules"] is None
+
+    def test_non_superuser_user_trying_to_access_dynamic_sampling_rules(self):
+        user = self.create_user(is_staff=False, is_superuser=False)
+        self.org = self.create_organization()
+        self.org.save()
+
+        team = self.create_team(organization=self.org)
+        self.project = self.create_project(name="foo", organization=self.org, teams=[team])
+
+        self.create_member(teams=[team], user=user, organization=self.org)
+        self.login_as(user=user)
+        with Feature(
+            {
+                self.new_ds_flag: True,
+            }
+        ):
+            response = self.get_success_response(
+                self.org.slug, self.project.slug, method="get", includeDynamicSamplingRules=1
+            )
+            assert "dynamicSamplingRules" not in response.data
+
+
+@region_silo_test
 class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingBase):
     endpoint = "sentry-api-0-project-details"
 
@@ -1271,6 +1351,92 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
                 {"id": "ignoreHealthChecks", "active": True},
                 {"id": "boostKeyTransactions", "active": True},
             ]
+
+    def test_dynamic_sampling_bias_activation(self):
+        """
+        Tests that when sending a request to enable a dynamic sampling bias,
+        the bias will be successfully enabled and the audit log 'SAMPLING_BIAS_ENABLED' will be triggered
+        """
+
+        project = self.project  # force creation
+        project.update_option(
+            "sentry:dynamic_sampling_biases",
+            [
+                {"id": "boostEnvironments", "active": False},
+            ],
+        )
+        self.login_as(self.user)
+
+        token = ApiToken.objects.create(user=self.user, scope_list=["project:write"])
+        authorization = f"Bearer {token.token}"
+
+        url = reverse(
+            "sentry-api-0-project-details",
+            kwargs={
+                "organization_slug": self.project.organization.slug,
+                "project_slug": self.project.slug,
+            },
+        )
+
+        with Feature({self.new_ds_flag: True}):
+            self.client.put(
+                url,
+                format="json",
+                HTTP_AUTHORIZATION=authorization,
+                data={
+                    "dynamicSamplingBiases": [
+                        {"id": "boostEnvironments", "active": True},
+                    ]
+                },
+            )
+
+            assert AuditLogEntry.objects.filter(
+                organization=self.project.organization,
+                event=audit_log.get_event_id("SAMPLING_BIAS_ENABLED"),
+            ).exists()
+
+    def test_dynamic_sampling_bias_deactivation(self):
+        """
+        Tests that when sending a request to disable a dynamic sampling bias,
+        the bias will be successfully disabled and the audit log 'SAMPLING_BIAS_DISABLED' will be triggered
+        """
+
+        project = self.project  # force creation
+        project.update_option(
+            "sentry:dynamic_sampling_biases",
+            [
+                {"id": "boostEnvironments", "active": True},
+            ],
+        )
+        self.login_as(self.user)
+
+        token = ApiToken.objects.create(user=self.user, scope_list=["project:write"])
+        authorization = f"Bearer {token.token}"
+
+        url = reverse(
+            "sentry-api-0-project-details",
+            kwargs={
+                "organization_slug": self.project.organization.slug,
+                "project_slug": self.project.slug,
+            },
+        )
+
+        with Feature({self.new_ds_flag: True}):
+            self.client.put(
+                url,
+                format="json",
+                HTTP_AUTHORIZATION=authorization,
+                data={
+                    "dynamicSamplingBiases": [
+                        {"id": "boostEnvironments", "active": False},
+                    ]
+                },
+            )
+
+            assert AuditLogEntry.objects.filter(
+                organization=self.project.organization,
+                event=audit_log.get_event_id("SAMPLING_BIAS_DISABLED"),
+            ).exists()
 
     def test_put_dynamic_sampling_after_migrating_to_new_plan_default_biases_with_missing_flags(
         self,

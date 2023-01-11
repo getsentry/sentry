@@ -42,10 +42,8 @@ describe('Version', () => {
     expect(screen.queryByText(VERSION)).not.toBeInTheDocument();
 
     // Activate tooltip
-    act(() => {
-      userEvent.hover(screen.getByText('1.0.0 (20200101)'));
-      jest.advanceTimersByTime(50);
-    });
+    userEvent.hover(screen.getByText('1.0.0 (20200101)'));
+    act(() => jest.advanceTimersByTime(50));
 
     expect(screen.getByText(VERSION)).toBeInTheDocument();
   });

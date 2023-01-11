@@ -5,11 +5,11 @@ from rest_framework.response import Response
 
 from sentry.identity.pipeline import IdentityProviderPipeline
 from sentry.models import IdentityProvider
-from sentry.web.frontend.base import OrganizationView
+from sentry.web.frontend.base import ControlSiloOrganizationView
 from sentry.web.helpers import render_to_response
 
 
-class AccountIdentityAssociateView(OrganizationView):
+class AccountIdentityAssociateView(ControlSiloOrganizationView):
     @never_cache
     def handle(self, request: Request, organization, provider_key, external_id) -> Response:
         try:

@@ -366,7 +366,6 @@ class ActionsPanel extends PureComponent<Props> {
                       availableAction.settings ? (
                       <Button
                         icon={<IconSettings />}
-                        type="button"
                         disabled={actionDisabled}
                         onClick={() => {
                           openModal(
@@ -435,7 +434,6 @@ class ActionsPanel extends PureComponent<Props> {
         })}
         <ActionSection>
           <Button
-            type="button"
             disabled={disabled || loading}
             icon={<IconAdd isCircled color="gray300" />}
             onClick={this.handleAddAction}

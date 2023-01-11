@@ -558,7 +558,7 @@ class DetailedOrganizationSerializerWithProjectsAndTeams(DetailedOrganizationSer
         team_list = self._team_list(obj, access)
         project_list = self._project_list(obj, access)
 
-        context["teams"] = serialize(team_list, user, TeamSerializer())
-        context["projects"] = serialize(project_list, user, ProjectSummarySerializer())
+        context["teams"] = serialize(team_list, user, TeamSerializer(access=access))
+        context["projects"] = serialize(project_list, user, ProjectSummarySerializer(access=access))
 
         return context

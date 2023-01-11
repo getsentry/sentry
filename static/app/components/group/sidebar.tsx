@@ -18,7 +18,6 @@ import ExternalIssueList from 'sentry/components/group/externalIssuesList';
 import OwnedBy from 'sentry/components/group/ownedBy';
 import GroupReleaseStats from 'sentry/components/group/releaseStats';
 import SuggestedOwners from 'sentry/components/group/suggestedOwners/suggestedOwners';
-import SuspectReleases from 'sentry/components/group/suspectReleases';
 import GroupTagDistributionMeter from 'sentry/components/group/tagDistributionMeter';
 import Placeholder from 'sentry/components/placeholder';
 import QuestionTooltip from 'sentry/components/questionTooltip';
@@ -189,7 +188,6 @@ class BaseGroupSidebar extends Component<Props, State> {
           <QuestionTooltip
             size="sm"
             position="top"
-            color="gray200"
             title={t('People who have resolved, ignored, or added a comment')}
           />
         </StyledSidebarSectionTitle>
@@ -216,7 +214,6 @@ class BaseGroupSidebar extends Component<Props, State> {
           <QuestionTooltip
             size="sm"
             position="top"
-            color="gray200"
             title={t('People who have viewed this issue')}
           />
         </StyledSidebarSectionTitle>
@@ -294,10 +291,6 @@ class BaseGroupSidebar extends Component<Props, State> {
           group={group}
           currentRelease={currentRelease}
         />
-
-        <Feature organization={organization} features={['active-release-monitor-alpha']}>
-          <SuspectReleases group={group} />
-        </Feature>
 
         {event && (
           <ErrorBoundary mini>

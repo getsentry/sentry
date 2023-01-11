@@ -10,6 +10,7 @@ import {STACK_TYPE} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
 
 import {Mechanism} from './mechanism';
+import {SetupSourceMapsAlert} from './setupSourceMapsAlert';
 import StackTrace from './stackTrace';
 
 type StackTraceProps = React.ComponentProps<typeof StackTrace>;
@@ -62,6 +63,7 @@ export function Content({
         {exc.mechanism && (
           <Mechanism data={exc.mechanism} meta={meta?.[excIdx]?.mechanism} />
         )}
+        <SetupSourceMapsAlert event={event} />
         <StackTrace
           data={
             type === STACK_TYPE.ORIGINAL

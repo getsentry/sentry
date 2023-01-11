@@ -1,4 +1,5 @@
 import {cloneElement, isValidElement} from 'react';
+import {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
@@ -6,11 +7,12 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import Link, {LinkProps} from 'sentry/components/links/link';
 import Tooltip from 'sentry/components/tooltip';
 import {IconClose, IconOpen} from 'sentry/icons';
+import {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import theme, {Color, Theme} from 'sentry/utils/theme';
+import theme, {Color} from 'sentry/utils/theme';
 
 const TAG_HEIGHT = '20px';
 
@@ -63,8 +65,8 @@ function Tag({
   textMaxWidth = 150,
   ...props
 }: Props) {
-  const iconsProps = {
-    size: '11px',
+  const iconsProps: SVGIconProps = {
+    size: 'xs',
     color: theme.tag[type].iconColor as Color,
   };
 

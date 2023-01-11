@@ -34,6 +34,7 @@ from sentry.models import (
     User,
 )
 from sentry.pipeline import PipelineView
+from sentry.services.hybrid_cloud.user import APIUser
 from sentry.shared_integrations.exceptions import (
     ApiError,
     ApiHostError,
@@ -959,7 +960,7 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
     def sync_assignee_outbound(
         self,
         external_issue: ExternalIssue,
-        user: Optional[User],
+        user: Optional[APIUser],
         assign: bool = True,
         **kwargs: Any,
     ) -> None:
@@ -970,9 +971,9 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
 
         jira_user = None
         if user and assign:
-            for ue in user.emails.filter(is_verified=True):
+            for ue in user.emails:
                 try:
-                    possible_users = client.search_users_for_issue(external_issue.key, ue.email)
+                    possible_users = client.search_users_for_issue(external_issue.key, ue)
                 except (ApiUnauthorized, ApiError):
                     continue
                 for possible_user in possible_users:
@@ -983,7 +984,7 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
                         email = client.get_email(account_id)
                     # match on lowercase email
                     # TODO(steve): add check against display name when JIRA_USE_EMAIL_SCOPE is false
-                    if email and email.lower() == ue.email.lower():
+                    if email and email.lower() == ue.lower():
                         jira_user = possible_user
                         break
             if jira_user is None:

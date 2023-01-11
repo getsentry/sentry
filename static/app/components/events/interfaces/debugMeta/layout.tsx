@@ -1,4 +1,4 @@
-import {Theme} from 'sentry/utils/theme';
+import {Theme} from '@emotion/react';
 
 const layout = (theme: Theme, scrollbarWidth?: number) => `
 display: grid;

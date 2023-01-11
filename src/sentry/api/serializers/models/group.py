@@ -35,7 +35,6 @@ from sentry.auth.superuser import is_active_superuser
 from sentry.constants import LOG_LEVELS
 from sentry.models import (
     ActorTuple,
-    ApiToken,
     Commit,
     Environment,
     Group,
@@ -55,6 +54,8 @@ from sentry.models import (
     Team,
     User,
 )
+from sentry.models.apitoken import is_api_token_auth
+from sentry.models.organizationmember import OrganizationMember
 from sentry.notifications.helpers import (
     collect_groups_by_project,
     get_groups_for_query,
@@ -67,6 +68,7 @@ from sentry.reprocessing2 import get_progress
 from sentry.search.events.constants import RELEASE_STAGE_ALIAS
 from sentry.search.events.filter import convert_search_filter_to_snuba_query
 from sentry.services.hybrid_cloud.notifications import notifications_service
+from sentry.services.hybrid_cloud.user import user_service
 from sentry.tagstore.snuba.backend import fix_tag_value_data
 from sentry.tagstore.types import GroupTagValue
 from sentry.tsdb.snuba import SnubaTSDB
@@ -206,12 +208,12 @@ class GroupSerializerBase(Serializer, ABC):
 
         if user.is_authenticated and item_list:
             bookmarks = set(
-                GroupBookmark.objects.filter(user=user, group__in=item_list).values_list(
+                GroupBookmark.objects.filter(user_id=user.id, group__in=item_list).values_list(
                     "group_id", flat=True
                 )
             )
             seen_groups = dict(
-                GroupSeen.objects.filter(user=user, group__in=item_list).values_list(
+                GroupSeen.objects.filter(user_id=user.id, group__in=item_list).values_list(
                     "group_id", "last_seen"
                 )
             )
@@ -234,8 +236,10 @@ class GroupSerializerBase(Serializer, ABC):
         actor_ids = {r[-1] for r in release_resolutions.values()}
         actor_ids.update(r.actor_id for r in ignore_items.values())
         if actor_ids:
-            users = list(User.objects.filter(id__in=actor_ids, is_active=True))
-            actors = {u.id: d for u, d in zip(users, serialize(users, user))}
+            serialized_users = user_service.serialize_users(
+                user_ids=actor_ids, as_user=user, is_active=True
+            )
+            actors = {id: u for id, u in zip(actor_ids, serialized_users)}
         else:
             actors = {}
 
@@ -371,6 +375,12 @@ class GroupSerializerBase(Serializer, ABC):
     ) -> Mapping[Group, SeenStats]:
         pass
 
+    @abstractmethod
+    def _seen_stats_generic(
+        self, generic_issue_list: Sequence[Group], user
+    ) -> Mapping[Group, SeenStats]:
+        pass
+
     def _expand(self, key) -> bool:
         if self.expand is None:
             return False
@@ -456,11 +466,20 @@ class GroupSerializerBase(Serializer, ABC):
         perf_issues = [
             group for group in item_list if GroupCategory.PERFORMANCE == group.issue_category
         ]
+        generic_issues = [
+            group
+            for group in item_list
+            if group.issue_category
+            and group.issue_category not in (GroupCategory.ERROR, GroupCategory.PERFORMANCE)
+        ]
 
         # bulk query for the seen_stats by type
         error_stats = (self._seen_stats_error(error_issues, user) if error_issues else {}) or {}
         perf_stats = (self._seen_stats_performance(perf_issues, user) if perf_issues else {}) or {}
-        agg_stats = {**error_stats, **perf_stats}
+        generic_stats = (
+            self._seen_stats_generic(generic_issues, user) if generic_issues else {}
+        ) or {}
+        agg_stats = {**error_stats, **perf_stats, **generic_stats}
         # combine results back
         return {group: agg_stats.get(group, {}) for group in item_list}
 
@@ -553,7 +572,7 @@ class GroupSerializerBase(Serializer, ABC):
             )
         )
         query_groups = get_groups_for_query(groups_by_project, notification_settings_by_scope, user)
-        subscriptions = GroupSubscription.objects.filter(group__in=query_groups, user=user)
+        subscriptions = GroupSubscription.objects.filter(group__in=query_groups, user_id=user.id)
         subscriptions_by_group_id = {
             subscription.group_id: subscription for subscription in subscriptions
         }
@@ -673,7 +692,7 @@ class GroupSerializerBase(Serializer, ABC):
         # If user is not logged in and member of the organization,
         # do not return the permalink which contains private information i.e. org name.
         request = env.request
-        if request and is_active_superuser(request) and request.user == user:
+        if request and is_active_superuser(request) and request.user.id == user.id:
             return True
 
         # If user is a sentry_app then it's a proxy user meaning we can't do a org lookup via `get_orgs()`
@@ -682,14 +701,19 @@ class GroupSerializerBase(Serializer, ABC):
         if (
             request
             and getattr(request.user, "is_sentry_app", False)
-            and isinstance(request.auth, ApiToken)
+            and is_api_token_auth(request.auth)
         ):
             if SentryAppInstallationToken.objects.has_organization_access(
                 request.auth, organization_id
             ):
                 return True
 
-        return user.is_authenticated and user.get_orgs().filter(id=organization_id).exists()
+        return (
+            user.is_authenticated
+            and OrganizationMember.objects.filter(
+                user_id=user.id, organization_id=organization_id
+            ).exists()
+        )
 
     @staticmethod
     def _get_permalink(attrs, obj: Group):
@@ -736,6 +760,15 @@ class GroupSerializer(GroupSerializerBase):
             perf_issue_list,
             tagstore.get_perf_groups_user_counts,
             tagstore.get_perf_group_list_tag_value,
+        )
+
+    def _seen_stats_generic(
+        self, generic_issue_list: Sequence[Group], user
+    ) -> Mapping[Group, SeenStats]:
+        return self.__seen_stats_impl(
+            generic_issue_list,
+            tagstore.get_generic_groups_user_counts,
+            tagstore.get_generic_group_list_tag_value,
         )
 
     def __seen_stats_impl(
@@ -909,6 +942,22 @@ class GroupSerializerSnuba(GroupSerializerBase):
             self.environment_ids,
         )
 
+    def _seen_stats_generic(
+        self, generic_issue_list: Sequence[Group], user
+    ) -> Mapping[Group, SeenStats]:
+        return self._parse_seen_stats_results(
+            self._execute_generic_seen_stats_query(
+                item_list=generic_issue_list,
+                start=self.start,
+                end=self.end,
+                conditions=self.conditions,
+                environment_ids=self.environment_ids,
+            ),
+            generic_issue_list,
+            bool(self.start or self.end or self.conditions),
+            self.environment_ids,
+        )
+
     @staticmethod
     def _execute_error_seen_stats_query(
         item_list, start=None, end=None, conditions=None, environment_ids=None
@@ -963,6 +1012,32 @@ class GroupSerializerSnuba(GroupSerializerBase):
             filter_keys=filters,
             aggregations=aggregations,
             referrer="serializers.GroupSerializerSnuba._execute_perf_seen_stats_query",
+        )
+
+    @staticmethod
+    def _execute_generic_seen_stats_query(
+        item_list, start=None, end=None, conditions=None, environment_ids=None
+    ):
+        project_ids = list({item.project_id for item in item_list})
+        group_ids = [item.id for item in item_list]
+        aggregations = [
+            ["count()", "", "times_seen"],
+            ["min", "timestamp", "first_seen"],
+            ["max", "timestamp", "last_seen"],
+            ["uniq", "tags[sentry:user]", "count"],
+        ]
+        filters = {"project_id": project_ids, "group_id": group_ids}
+        if environment_ids:
+            filters["environment"] = environment_ids
+        return aliased_query(
+            dataset=Dataset.IssuePlatform,
+            start=start,
+            end=end,
+            groupby=["group_id"],
+            conditions=conditions,
+            filter_keys=filters,
+            aggregations=aggregations,
+            referrer="serializers.GroupSerializerSnuba._execute_generic_seen_stats_query",
         )
 
     @staticmethod

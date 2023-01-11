@@ -276,7 +276,7 @@ export function FlamegraphTreeTable({
           <div ref={hoveredGhostRowRef} />
           <div ref={clickedGhostRowRef} />
           <div
-            ref={ref => setScrollContainerRef(ref)}
+            ref={setScrollContainerRef}
             style={scrollContainerStyles}
             onContextMenu={contextMenu.handleContextMenu}
           >

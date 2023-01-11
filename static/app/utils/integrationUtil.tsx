@@ -34,6 +34,8 @@ import {
 } from 'sentry/utils/analytics/integrations';
 import makeAnalyticsFunction from 'sentry/utils/analytics/makeAnalyticsFunction';
 
+import {IconSize} from './theme';
+
 const mapIntegrationParams = analyticsParams => {
   // Reload expects integration_status even though it's not relevant for non-sentry apps
   // Passing in a dummy value of published in those cases
@@ -196,8 +198,10 @@ export const safeGetQsParam = (param: string) => {
   }
 };
 
-export const getIntegrationIcon = (integrationType?: string, size?: string) => {
-  const iconSize = size || 'md';
+export const getIntegrationIcon = (
+  integrationType?: string,
+  iconSize: IconSize = 'md'
+) => {
   switch (integrationType) {
     case 'asana':
       return <IconAsana size={iconSize} />;

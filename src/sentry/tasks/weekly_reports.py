@@ -16,7 +16,6 @@ from snuba_sdk.function import Function
 from snuba_sdk.orderby import Direction, OrderBy
 from snuba_sdk.query import Limit, Query
 
-from sentry import features
 from sentry.api.serializers.snuba import zerofill
 from sentry.constants import DataCategory
 from sentry.db.models.fields import PickledObjectField
@@ -462,8 +461,6 @@ def project_key_transactions(ctx, project):
 
 def project_key_performance_issues(ctx, project):
     if not project.first_event:
-        return
-    if not features.has("organizations:performance-issues", ctx.organization):
         return
 
     with sentry_sdk.start_span(op="weekly_reports.project_key_performance_issues"):

@@ -7,20 +7,18 @@ from sentry import projectoptions
 from sentry.eventstore.models import Event
 from sentry.testutils import TestCase
 from sentry.testutils.helpers import override_options
-from sentry.testutils.performance_issues.event_generators import EVENTS, create_event, create_span
+from sentry.testutils.performance_issues.event_generators import get_event
 from sentry.testutils.silo import region_silo_test
 from sentry.types.issues import GroupType
 from sentry.utils.performance_issues.performance_detection import (
     DETECTOR_TYPE_TO_GROUP_TYPE,
     DetectorType,
     EventPerformanceProblem,
+    NPlusOneDBSpanDetector,
     PerformanceProblem,
     _detect_performance_problems,
-    detect_performance_problems,
-    prepare_problem_for_grouping,
     total_span_time,
 )
-from sentry.utils.performance_issues.performance_span_issue import PerformanceSpanProblem
 
 BASE_DETECTOR_OPTIONS = {
     "performance.issues.n_plus_one_db.problem-creation": 1.0,
@@ -58,7 +56,7 @@ def assert_n_plus_one_db_problem(perf_problems):
 
 
 @pytest.mark.django_db
-class PerformanceDetectionTest(unittest.TestCase):
+class PerformanceDetectionTest(TestCase):
     def setUp(self):
         super().setUp()
         patch_project_option_get = patch("sentry.models.ProjectOption.objects.get_value")
@@ -73,50 +71,29 @@ class PerformanceDetectionTest(unittest.TestCase):
         self.organization_mock = patch_organization.start()
         self.addCleanup(patch_organization.stop)
 
-        self.features = ["organizations:performance-issues-ingest"]
-
-        def has_feature(feature, org):
-            return feature in self.features
-
-        patch_features = patch("sentry.features.has")
-        self.features_mock = patch_features.start()
-        self.features_mock.side_effect = has_feature
-        self.addCleanup(patch_features.stop)
-
-    @patch("sentry.utils.performance_issues.performance_detection._detect_performance_problems")
-    def test_options_disabled(self, mock):
-        event = {}
-        detect_performance_problems(event)
-        assert mock.call_count == 0
-
-    @patch("sentry.utils.performance_issues.performance_detection._detect_performance_problems")
-    def test_options_enabled(self, mock):
-        event = {}
-        with override_options({"performance.issues.all.problem-detection": 1.0}):
-            detect_performance_problems(event)
-        assert mock.call_count == 1
+        self.project = self.create_project()
 
     @override_options(BASE_DETECTOR_OPTIONS)
     def test_project_option_overrides_default(self):
-        n_plus_one_event = EVENTS["n-plus-one-in-django-index-view"]
+        n_plus_one_event = get_event("n-plus-one-in-django-index-view")
         sdk_span_mock = Mock()
 
-        perf_problems = _detect_performance_problems(n_plus_one_event, sdk_span_mock)
+        perf_problems = _detect_performance_problems(n_plus_one_event, sdk_span_mock, self.project)
         assert_n_plus_one_db_problem(perf_problems)
 
         self.project_option_mock.return_value = {
             "n_plus_one_db_duration_threshold": 100000,
         }
 
-        perf_problems = _detect_performance_problems(n_plus_one_event, sdk_span_mock)
+        perf_problems = _detect_performance_problems(n_plus_one_event, sdk_span_mock, self.project)
         assert perf_problems == []
 
     @override_options(BASE_DETECTOR_OPTIONS)
     def test_n_plus_one_extended_detection_no_parent_span(self):
-        n_plus_one_event = EVENTS["n-plus-one-db-root-parent-span"]
+        n_plus_one_event = get_event("n-plus-one-db-root-parent-span")
         sdk_span_mock = Mock()
 
-        perf_problems = _detect_performance_problems(n_plus_one_event, sdk_span_mock)
+        perf_problems = _detect_performance_problems(n_plus_one_event, sdk_span_mock, self.project)
         assert perf_problems == [
             PerformanceProblem(
                 fingerprint="1-GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES-25f4aa547724c350ef3abdaef2cf78e62399f96e",
@@ -142,50 +119,43 @@ class PerformanceDetectionTest(unittest.TestCase):
 
     @override_options(BASE_DETECTOR_OPTIONS)
     def test_n_plus_one_extended_detection_matches_previous_group(self):
-        n_plus_one_event = EVENTS["n-plus-one-in-django-index-view"]
+        n_plus_one_event = get_event("n-plus-one-in-django-index-view")
         sdk_span_mock = Mock()
 
         with override_options({"performance.issues.n_plus_one_db.problem-creation": 0.0}):
             n_plus_one_extended_problems = _detect_performance_problems(
-                n_plus_one_event, sdk_span_mock
+                n_plus_one_event, sdk_span_mock, self.project
             )
 
         with override_options({"performance.issues.n_plus_one_db_ext.problem-creation": 0.0}):
             n_plus_one_original_problems = _detect_performance_problems(
-                n_plus_one_event, sdk_span_mock
+                n_plus_one_event, sdk_span_mock, self.project
             )
 
         assert n_plus_one_original_problems == n_plus_one_extended_problems
 
     @override_options(BASE_DETECTOR_OPTIONS)
     def test_overlap_detector_problems(self):
-        n_plus_one_event = EVENTS["n-plus-one-db-root-parent-span"]
+        n_plus_one_event = get_event("n-plus-one-db-root-parent-span")
         sdk_span_mock = Mock()
 
-        n_plus_one_problems = _detect_performance_problems(n_plus_one_event, sdk_span_mock)
+        n_plus_one_problems = _detect_performance_problems(
+            n_plus_one_event, sdk_span_mock, self.project
+        )
 
         assert len(n_plus_one_problems)
 
-    @override_options(BASE_DETECTOR_OPTIONS)
-    def test_no_feature_flag_disables_creation(self):
-        self.features = []
-        n_plus_one_event = EVENTS["n-plus-one-in-django-index-view"]
-        sdk_span_mock = Mock()
-
-        perf_problems = _detect_performance_problems(n_plus_one_event, sdk_span_mock)
-        assert perf_problems == []
-
     @override_options(BASE_DETECTOR_OPTIONS_OFF)
     def test_system_option_disables_detector_issue_creation(self):
-        n_plus_one_event = EVENTS["n-plus-one-in-django-index-view"]
+        n_plus_one_event = get_event("n-plus-one-in-django-index-view")
         sdk_span_mock = Mock()
 
-        perf_problems = _detect_performance_problems(n_plus_one_event, sdk_span_mock)
+        perf_problems = _detect_performance_problems(n_plus_one_event, sdk_span_mock, self.project)
         assert perf_problems == []
 
     @override_options(BASE_DETECTOR_OPTIONS)
     def test_system_option_used_when_project_option_is_default(self):
-        n_plus_one_event = EVENTS["n-plus-one-in-django-index-view"]
+        n_plus_one_event = get_event("n-plus-one-in-django-index-view")
         sdk_span_mock = Mock()
 
         self.project_option_mock.return_value = projectoptions.get_well_known_default(
@@ -197,7 +167,9 @@ class PerformanceDetectionTest(unittest.TestCase):
                 "performance.issues.n_plus_one_db.duration_threshold": 100,
             }
         ):
-            perf_problems = _detect_performance_problems(n_plus_one_event, sdk_span_mock)
+            perf_problems = _detect_performance_problems(
+                n_plus_one_event, sdk_span_mock, self.project
+            )
             assert perf_problems == []
 
         with override_options(
@@ -206,53 +178,53 @@ class PerformanceDetectionTest(unittest.TestCase):
                 "performance.issues.n_plus_one_db.duration_threshold": 100,
             }
         ):
-            perf_problems = _detect_performance_problems(n_plus_one_event, sdk_span_mock)
+            perf_problems = _detect_performance_problems(
+                n_plus_one_event, sdk_span_mock, self.project
+            )
             assert_n_plus_one_db_problem(perf_problems)
 
-    def test_calls_detect_slow_span(self):
-        no_slow_span_event = create_event([create_span("db", 999.0)] * 1)
-        slow_span_event = create_event([create_span("db", 1001.0)] * 1)
-        slow_not_allowed_op_span_event = create_event([create_span("random", 1001.0, "example")])
-
+    @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
+    def test_respects_organization_creation_permissions(self):
+        n_plus_one_event = get_event("n-plus-one-in-django-index-view")
         sdk_span_mock = Mock()
 
-        _detect_performance_problems(no_slow_span_event, sdk_span_mock)
-        assert sdk_span_mock.containing_transaction.set_tag.call_count == 0
+        with patch.object(
+            NPlusOneDBSpanDetector, "is_creation_allowed_for_organization", return_value=False
+        ):
 
-        _detect_performance_problems(slow_not_allowed_op_span_event, sdk_span_mock)
-        assert sdk_span_mock.containing_transaction.set_tag.call_count == 0
+            perf_problems = _detect_performance_problems(
+                n_plus_one_event, sdk_span_mock, self.project
+            )
+            assert perf_problems == []
 
-        _detect_performance_problems(slow_span_event, sdk_span_mock)
-        assert sdk_span_mock.containing_transaction.set_tag.call_count == 4
-        sdk_span_mock.containing_transaction.set_tag.assert_has_calls(
-            [
-                call(
-                    "_pi_all_issue_count",
-                    1,
-                ),
-                call(
-                    "_pi_sdk_name",
-                    "sentry.python",
-                ),
-                call(
-                    "_pi_transaction",
-                    "aaaaaaaaaaaaaaaa",
-                ),
-                call(
-                    "_pi_slow_span",
-                    "bbbbbbbbbbbbbbbb",
-                ),
-            ]
-        )
+        perf_problems = _detect_performance_problems(n_plus_one_event, sdk_span_mock, self.project)
+        assert_n_plus_one_db_problem(perf_problems)
+
+    @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
+    def test_respects_project_creation_permissions(self):
+        n_plus_one_event = get_event("n-plus-one-in-django-index-view")
+        sdk_span_mock = Mock()
+
+        with patch.object(
+            NPlusOneDBSpanDetector, "is_creation_allowed_for_project", return_value=False
+        ):
+
+            perf_problems = _detect_performance_problems(
+                n_plus_one_event, sdk_span_mock, self.project
+            )
+            assert perf_problems == []
+
+        perf_problems = _detect_performance_problems(n_plus_one_event, sdk_span_mock, self.project)
+        assert_n_plus_one_db_problem(perf_problems)
 
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
     def test_detects_multiple_performance_issues_in_n_plus_one_query(self):
-        n_plus_one_event = EVENTS["n-plus-one-in-django-index-view"]
+        n_plus_one_event = get_event("n-plus-one-in-django-index-view")
         sdk_span_mock = Mock()
 
-        perf_problems = _detect_performance_problems(n_plus_one_event, sdk_span_mock)
+        perf_problems = _detect_performance_problems(n_plus_one_event, sdk_span_mock, self.project)
 
-        assert sdk_span_mock.containing_transaction.set_tag.call_count == 8
+        assert sdk_span_mock.containing_transaction.set_tag.call_count == 9
         sdk_span_mock.containing_transaction.set_tag.assert_has_calls(
             [
                 call(
@@ -266,6 +238,10 @@ class PerformanceDetectionTest(unittest.TestCase):
                 call(
                     "_pi_transaction",
                     "da78af6000a6400aaa87cf6e14ddeb40",
+                ),
+                call(
+                    "_pi_slow_span_fp",
+                    "1-GroupType.PERFORMANCE_SLOW_SPAN-8dbbcc64ef67d2d9d390327411669ebe29b0ea45",
                 ),
                 call("_pi_slow_span", "b33db57efd994615"),
                 call(
@@ -284,65 +260,16 @@ class PerformanceDetectionTest(unittest.TestCase):
 
     @patch("sentry.utils.metrics.incr")
     def test_does_not_report_metric_on_non_truncated_n_plus_one_query(self, incr_mock):
-        n_plus_one_event = EVENTS["n-plus-one-in-django-new-view"]
-        _detect_performance_problems(n_plus_one_event, Mock())
+        n_plus_one_event = get_event("n-plus-one-in-django-new-view")
+        _detect_performance_problems(n_plus_one_event, Mock(), self.project)
         unexpected_call = call("performance.performance_issue.truncated_np1_db")
         assert unexpected_call not in incr_mock.mock_calls
 
     @patch("sentry.utils.metrics.incr")
     def test_reports_metric_on_truncated_query_n_plus_one(self, incr_mock):
-        truncated_duplicates_event = EVENTS["n-plus-one-in-django-new-view-truncated-duplicates"]
-        _detect_performance_problems(truncated_duplicates_event, Mock())
+        truncated_duplicates_event = get_event("n-plus-one-in-django-new-view-truncated-duplicates")
+        _detect_performance_problems(truncated_duplicates_event, Mock(), self.project)
         incr_mock.assert_has_calls([call("performance.performance_issue.truncated_np1_db")])
-
-    def test_detects_file_io_main_thread(self):
-        file_io_event = EVENTS["file-io-on-main-thread"]
-        sdk_span_mock = Mock()
-
-        _detect_performance_problems(file_io_event, sdk_span_mock)
-
-        assert sdk_span_mock.containing_transaction.set_tag.call_count == 5
-        sdk_span_mock.containing_transaction.set_tag.assert_has_calls(
-            [
-                call("_pi_all_issue_count", 1),
-                call("_pi_sdk_name", "sentry.java.android.timber"),
-                call("_pi_transaction", "c119e45a9d724b1891df4651ebf9e6db"),
-                call(
-                    "_pi_file_io_main_thread_fp",
-                    "1-GroupType.PERFORMANCE_FILE_IO_MAIN_THREAD-153198dd61706844cf3d9a922f6f82543df8125f",
-                ),
-                call("_pi_file_io_main_thread", "054ba3a374d543eb"),
-            ]
-        )
-
-    def test_does_not_detect_file_io_main_thread(self):
-        file_io_event = EVENTS["file-io-on-main-thread"]
-        file_io_event["spans"][0]["data"]["blocked_main_thread"] = False
-        sdk_span_mock = Mock()
-
-        _detect_performance_problems(file_io_event, sdk_span_mock)
-
-        assert sdk_span_mock.containing_transaction.set_tag.call_count == 0
-
-
-class PrepareProblemForGroupingTest(unittest.TestCase):
-    def test(self):
-        n_plus_one_event = EVENTS["n-plus-one-in-django-index-view"]
-        assert prepare_problem_for_grouping(
-            PerformanceSpanProblem(
-                "97b250f72d59f230", "http.client", ["b3fdeea42536dbf1", "b2d4826e7b618f1b"], "hello"
-            ),
-            n_plus_one_event,
-            DetectorType.N_PLUS_ONE_DB_QUERIES,
-        ) == PerformanceProblem(
-            fingerprint="1-GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES-562b149a55f0c195bd0a5fb5d7d9f9baea86ecea",
-            op="db",
-            type=GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
-            desc="SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21",
-            parent_span_ids=None,
-            cause_span_ids=None,
-            offender_span_ids=["b3fdeea42536dbf1", "b2d4826e7b618f1b"],
-        )
 
 
 @region_silo_test

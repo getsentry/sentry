@@ -4,7 +4,6 @@ Metrics Service Layer Tests for Release Health
 import time
 
 import pytest
-from django.utils import timezone
 from django.utils.datastructures import MultiValueDict
 from freezegun import freeze_time
 from snuba_sdk import Limit, Offset
@@ -20,11 +19,11 @@ from sentry.testutils import BaseMetricsLayerTestCase, TestCase
 pytestmark = pytest.mark.sentry_metrics
 
 
-@freeze_time("2022-09-29 10:00:00")
+@freeze_time(BaseMetricsLayerTestCase.MOCK_DATETIME)
 class ReleaseHealthMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
     @property
     def now(self):
-        return timezone.now()
+        return BaseMetricsLayerTestCase.MOCK_DATETIME
 
     def test_valid_filter_include_meta(self):
         self.create_release(version="foo", project=self.project)
@@ -68,6 +67,7 @@ class ReleaseHealthMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                 "field": [
                     "session.errored",
                     "session.healthy",
+                    "session.anr_rate",
                 ],
                 "includeSeries": "0",
             }
@@ -82,6 +82,7 @@ class ReleaseHealthMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             [
                 {"name": "session.errored", "type": "Float64"},
                 {"name": "session.healthy", "type": "Float64"},
+                {"name": "session.anr_rate", "type": "Float64"},
             ],
             key=lambda elem: elem["name"],
         )
@@ -141,11 +142,11 @@ class ReleaseHealthMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             ("exited", [4, 5, 6, 1, 2, 3]),
             ("crashed", [7, 8, 9]),
         ):
-            for v in d_value:
+            for value in d_value:
                 self.store_release_health_metric(
                     name=SessionMRI.RAW_DURATION.value,
                     tags={"session.status": tag_value},
-                    value=v,
+                    value=value,
                 )
 
         metrics_query = self.build_metrics_query(
@@ -238,3 +239,59 @@ class ReleaseHealthMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                 limit=Limit(limit=51),
                 offset=Offset(offset=0),
             )
+
+    def test_anr_rate_operations(self):
+        for tag_value, count_value, anr_mechanism in (
+            ("abnormal", 1, None),
+            ("abnormal", 2, "anr_background"),
+            ("abnormal", 3, "anr_foreground"),
+            ("init", 4, None),
+        ):
+            tags = {"session.status": tag_value}
+            if anr_mechanism:
+                tags.update({"abnormal_mechanism": anr_mechanism})
+
+            self.store_release_health_metric(
+                name=SessionMRI.USER.value,
+                tags=tags,
+                value=count_value,
+                minutes_before_now=4,
+            )
+
+        metrics_query = self.build_metrics_query(
+            before_now="6m",
+            granularity="1m",
+            select=[
+                MetricField(
+                    op=None,
+                    metric_mri=str(SessionMRI.ANR_RATE.value),
+                    alias="anr_alias",
+                ),
+                MetricField(
+                    op=None,
+                    metric_mri=str(SessionMRI.FOREGROUND_ANR_RATE.value),
+                    alias="foreground_anr_alias",
+                ),
+            ],
+            limit=Limit(limit=51),
+            offset=Offset(offset=0),
+        )
+        data = get_series(
+            [self.project],
+            metrics_query=metrics_query,
+            include_meta=True,
+            use_case_id=UseCaseKey.RELEASE_HEALTH,
+        )
+        group = data["groups"][0]
+        assert group["totals"]["anr_alias"] == 0.5
+        assert group["totals"]["foreground_anr_alias"] == 0.25
+        assert group["series"]["anr_alias"] == [None, 0.5, None, None, None, None]
+        assert group["series"]["foreground_anr_alias"] == [None, 0.25, None, None, None, None]
+        assert data["meta"] == sorted(
+            [
+                {"name": "anr_alias", "type": "Float64"},
+                {"name": "bucketed_time", "type": "DateTime('Universal')"},
+                {"name": "foreground_anr_alias", "type": "Float64"},
+            ],
+            key=lambda elem: elem["name"],
+        )

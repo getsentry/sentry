@@ -25,7 +25,7 @@ type Props = {
     plugins: Plugin[];
   };
   project: Project;
-} & RouteComponentProps<{orgId: string; pluginId: string; projectId: string}, {}>;
+} & RouteComponentProps<{pluginId: string; projectId: string}, {}>;
 
 type State = {
   pluginDetails?: Plugin;
@@ -71,8 +71,14 @@ class ProjectPluginDetails extends AsyncView<Props, State> {
   }
 
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
-    const {projectId, orgId, pluginId} = this.props.params;
-    return [['pluginDetails', `/projects/${orgId}/${projectId}/plugins/${pluginId}/`]];
+    const {organization} = this.props;
+    const {projectId, pluginId} = this.props.params;
+    return [
+      [
+        'pluginDetails',
+        `/projects/${organization.slug}/${projectId}/plugins/${pluginId}/`,
+      ],
+    ];
   }
 
   trimSchema(value) {
@@ -80,7 +86,8 @@ class ProjectPluginDetails extends AsyncView<Props, State> {
   }
 
   handleReset = () => {
-    const {projectId, orgId, pluginId} = this.props.params;
+    const {organization} = this.props;
+    const {projectId, pluginId} = this.props.params;
 
     addLoadingMessage(t('Saving changes\u2026'));
     trackIntegrationAnalytics('integrations.uninstall_clicked', {
@@ -90,7 +97,7 @@ class ProjectPluginDetails extends AsyncView<Props, State> {
       organization: this.props.organization,
     });
 
-    this.api.request(`/projects/${orgId}/${projectId}/plugins/${pluginId}/`, {
+    this.api.request(`/projects/${organization.slug}/${projectId}/plugins/${pluginId}/`, {
       method: 'POST',
       data: {reset: true},
       success: pluginDetails => {
@@ -110,12 +117,14 @@ class ProjectPluginDetails extends AsyncView<Props, State> {
   };
 
   handleEnable = () => {
-    enablePlugin(this.props.params);
+    const {organization, params} = this.props;
+    enablePlugin({...params, orgId: organization.slug});
     this.analyticsChangeEnableStatus(true);
   };
 
   handleDisable = () => {
-    disablePlugin(this.props.params);
+    const {organization, params} = this.props;
+    disablePlugin({...params, orgId: organization.slug});
     this.analyticsChangeEnableStatus(false);
   };
 

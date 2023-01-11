@@ -26,7 +26,7 @@ class SaveIssueOccurrenceTest(OccurrenceTestMixin, TestCase):  # type: ignore
         # TODO: We should make this a platform event once we have one
         event = self.store_event(data={}, project_id=self.project.id)
         occurrence = self.build_occurrence(event_id=event.event_id)
-        saved_occurrence = save_issue_occurrence(occurrence.to_dict(), event)
+        saved_occurrence = save_issue_occurrence(occurrence.to_dict(), event)[0]
         occurrence = replace(
             occurrence,
             fingerprint=[md5(fp.encode("utf-8")).hexdigest() for fp in occurrence.fingerprint],

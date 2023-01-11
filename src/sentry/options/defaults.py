@@ -556,28 +556,19 @@ register("sentry-metrics.cardinality-limiter.orgs-rollout-rate", default=0.0)
 # Flag to determine whether abnormal_mechanism tag should be extracted
 register("sentry-metrics.releasehealth.abnormal-mechanism-extraction-rate", default=0.0)
 
-# Performance issue options to change both detection (which we can monitor with metrics),
-# and the creation of performance problems, which will eventually get turned into issues.
-register("performance.issues.all.problem-detection", default=0.0)
-register("performance.issues.all.problem-creation", default=0.0)
-register(
-    "performance.issues.all.early-adopter-rollout", default=0.0
-)  # Only used for EA rollout, bound to the feature flag handler for performance-issue-ingest
-register(
-    "performance.issues.all.general-availability-rollout", default=0.0
-)  # Only used for GA rollout, bound to the feature flag handler for performance-issue-ingest
-register(
-    "performance.issues.all.post-process-group-early-adopter-rollout", default=0.0
-)  # EA rollout for processing transactions in post_process_group
-register(
-    "performance.issues.all.post-process-group-ga-rollout", default=0.0
-)  # GA rollout for processing transactions in post_process_group
-
 # Individual system-wide options in case we need to turn off specific detectors for load concerns, ignoring the set project options.
+register("performance.issues.consecutive_db.problem-creation", default=0.0)
+register("performance.issues.consecutive_db.la-rollout", default=0.0)
+register("performance.issues.consecutive_db.ea-rollout", default=0.0)
+register("performance.issues.consecutive_db.ga-rollout", default=0.0)
 register("performance.issues.n_plus_one_db.problem-detection", default=0.0)
 register("performance.issues.n_plus_one_db.problem-creation", default=0.0)
 register("performance.issues.n_plus_one_db_ext.problem-creation", default=0.0)
 register("performance.issues.file_io_main_thread-creation", default=0.0)
+register("performance.issues.n_plus_one_api_calls.problem-creation", default=0.0)
+register("performance.issues.n_plus_one_api_calls.la-rollout", default=0.0)
+register("performance.issues.n_plus_one_api_calls.ea-rollout", default=0.0)
+register("performance.issues.n_plus_one_api_calls.ga-rollout", default=0.0)
 
 # System-wide options for default performance detection settings for any org opted into the performance-issues-ingest feature. Meant for rollout.
 register("performance.issues.n_plus_one_db.count_threshold", default=5)
@@ -600,3 +591,4 @@ register("derive-code-mappings.dry-run.early-adopter-rollout", default=0.0)
 register("derive-code-mappings.dry-run.general-availability-rollout", default=0.0)
 # Allows adjusting the GA percentage
 register("derive-code-mappings.general-availability-rollout", default=0.0)
+register("hybrid_cloud.outbox_rate", default=0.0)

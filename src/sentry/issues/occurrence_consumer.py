@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Dict, Mapping, Optional
+from typing import Any, Dict, Mapping, Optional, Tuple
 
 import rapidjson
 from arroyo import Topic
@@ -11,10 +11,12 @@ from arroyo.processing.strategies import ProcessingStrategy, ProcessingStrategyF
 from arroyo.types import Commit, Message, Partition
 from django.conf import settings
 
+from sentry.event_manager import GroupInfo
 from sentry.eventstore.models import Event
 from sentry.issues.ingest import save_issue_occurrence
 from sentry.issues.issue_occurrence import IssueOccurrence, IssueOccurrenceData
 from sentry.utils import json, metrics
+from sentry.utils.batching_kafka_consumer import create_topics
 from sentry.utils.canonical import CanonicalKeyDict
 from sentry.utils.kafka_config import get_kafka_consumer_cluster_options
 
@@ -30,10 +32,12 @@ def get_occurrences_ingest_consumer(
 def create_ingest_occurences_consumer(
     topic_name: str, **options: Any
 ) -> StreamProcessor[KafkaPayload]:
+    kafka_cluster = settings.KAFKA_TOPICS[topic_name]["cluster"]
+    create_topics(kafka_cluster, [topic_name])
 
     consumer = KafkaConsumer(
         build_kafka_consumer_configuration(
-            get_kafka_consumer_cluster_options(settings.KAFKA_TOPICS[topic_name]["cluster"]),
+            get_kafka_consumer_cluster_options(kafka_cluster),
             auto_offset_reset="latest",
             group_id="occurrence-consumer",
         )
@@ -70,7 +74,7 @@ def save_event_from_occurrence(
 
 def process_event_and_issue_occurrence(
     occurrence_data: IssueOccurrenceData, event_data: Dict[str, Any]
-) -> Optional[IssueOccurrence]:
+) -> Optional[Tuple[IssueOccurrence, Optional[GroupInfo]]]:
     try:
         event = save_event_from_occurrence(event_data)
     except Exception:
@@ -94,7 +98,6 @@ def _get_kwargs(payload: Mapping[str, Any]) -> Optional[Mapping[str, Any]]:
             kwargs = {
                 "occurrence_data": {
                     "id": payload["id"],
-                    "event_id": payload["event_id"],
                     "fingerprint": payload["fingerprint"],
                     "issue_title": payload["issue_title"],
                     "subtitle": payload["subtitle"],
@@ -105,6 +108,8 @@ def _get_kwargs(payload: Mapping[str, Any]) -> Optional[Mapping[str, Any]]:
                     "detection_time": payload["detection_time"],
                 }
             }
+            if "event_id" in payload:
+                kwargs["occurrence_data"]["event_id"] = payload["event_id"]
 
             if "event" in payload:
                 payload_event = payload["event"]
@@ -116,6 +121,7 @@ def _get_kwargs(payload: Mapping[str, Any]) -> Optional[Mapping[str, Any]]:
                     "timestamp": payload_event["timestamp"],
                     # TODO add other params as per the spec
                 }
+                kwargs["occurrence_data"]["event_id"] = payload_event["event_id"]
 
             return kwargs
 
@@ -124,7 +130,9 @@ def _get_kwargs(payload: Mapping[str, Any]) -> Optional[Mapping[str, Any]]:
         return None
 
 
-def _process_message(message: Mapping[str, Any]) -> Optional[IssueOccurrence]:
+def _process_message(
+    message: Mapping[str, Any]
+) -> Optional[Tuple[IssueOccurrence, Optional[GroupInfo]]]:
     kwargs = _get_kwargs(message)
     if not kwargs:
         return None

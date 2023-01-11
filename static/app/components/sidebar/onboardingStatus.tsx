@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {css} from '@emotion/react';
+import {css, Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import OnboardingSidebar from 'sentry/components/onboardingWizard/sidebar';
@@ -16,7 +16,7 @@ import {OnboardingTaskStatus, Organization, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {isDemoWalkthrough} from 'sentry/utils/demoMode';
 import {useSandboxSidebarTasks} from 'sentry/utils/demoWalkthrough';
-import theme, {Theme} from 'sentry/utils/theme';
+import theme from 'sentry/utils/theme';
 import withProjects from 'sentry/utils/withProjects';
 import {usePersistedOnboardingState} from 'sentry/views/onboarding/utils';
 

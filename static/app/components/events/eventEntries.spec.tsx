@@ -6,9 +6,7 @@ import EventEntries from 'sentry/components/events/eventEntries';
 import {Group, IssueCategory} from 'sentry/types';
 import {EntryType, Event} from 'sentry/types/event';
 
-const {organization, project} = initializeData({
-  features: ['performance-issues'],
-});
+const {organization, project} = initializeData();
 
 const api = new MockApiClient();
 

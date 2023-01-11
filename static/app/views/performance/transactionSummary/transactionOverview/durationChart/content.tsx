@@ -1,4 +1,5 @@
 import {InjectedRouter} from 'react-router';
+import {Theme} from '@emotion/react';
 import {Query} from 'history';
 
 import {AreaChart} from 'sentry/components/charts/areaChart';
@@ -18,7 +19,6 @@ import {
 } from 'sentry/utils/discover/charts';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import getDynamicText from 'sentry/utils/getDynamicText';
-import {Theme} from 'sentry/utils/theme';
 
 type Props = {
   errored: boolean;

@@ -16,7 +16,6 @@ from sentry.db.models import (
     FlexibleForeignKey,
     Model,
     control_silo_only_model,
-    region_silo_only_model,
 )
 from sentry.db.models.fields.jsonfield import JSONField
 from sentry.types.integrations import ExternalProviders
@@ -174,7 +173,7 @@ class IdentityManager(BaseManager):
         return identity_model
 
 
-@region_silo_only_model
+@control_silo_only_model
 class Identity(Model):
     """
     A verified link between a user and a third party identity.

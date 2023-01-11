@@ -205,7 +205,7 @@ function hasTrace(event: Event) {
 /**
  * Function to determine if an event has source maps
  */
-function eventHasSourceMaps(event: Event) {
+export function eventHasSourceMaps(event: Event) {
   return event.entries?.some(entry => {
     return (
       entry.type === EntryType.EXCEPTION &&

@@ -60,7 +60,7 @@ describe('MetricAlertDetails', () => {
         routes={router.routes}
         routeParams={router.params}
         location={router.location}
-        params={{orgId: organization.slug, ruleId: rule.id}}
+        params={{ruleId: rule.id}}
       />,
       {context: routerContext, organization}
     );
@@ -111,7 +111,7 @@ describe('MetricAlertDetails', () => {
         routes={router.routes}
         routeParams={router.params}
         location={{...router.location, query: {alert: incident.id}}}
-        params={{orgId: organization.slug, ruleId: rule.id}}
+        params={{ruleId: rule.id}}
       />,
       {context: routerContext, organization}
     );

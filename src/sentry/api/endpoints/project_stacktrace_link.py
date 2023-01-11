@@ -80,6 +80,9 @@ def set_top_tags(
         scope.set_tag("stacktrace_link.platform", ctx["platform"])
         scope.set_tag("stacktrace_link.code_mappings", has_code_mappings)
         scope.set_tag("stacktrace_link.file", ctx["file"])
+        # Add tag if filepath is Windows
+        if ctx["file"] and ctx["file"].find(":\\") > -1:
+            scope.set_tag("stacktrace_link.windows", True)
         scope.set_tag("stacktrace_link.abs_path", ctx["abs_path"])
         if ctx["platform"] == "python":
             # This allows detecting a file that belongs to Python's 3rd party modules
@@ -216,10 +219,14 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                     munging_outcome = try_path_munging(config, filepath, ctx)
                 if not munging_outcome:
                     outcome = get_link(config, filepath, ctx["commit_id"])
+                    # XXX: I want to remove this whole block logic as I believe it is wrong
                     # In some cases the stack root matches and it can either be that we have
                     # an invalid code mapping or that munging is expect it to work
                     if not outcome.get("sourceUrl"):
                         munging_outcome = try_path_munging(config, filepath, ctx)
+                        if munging_outcome:
+                            # Let's send the error to Sentry in order to investigate
+                            logger.error("We should never be able to reach this code.")
                 # If we failed to munge we should keep the original outcome
                 if munging_outcome:
                     outcome = munging_outcome
@@ -240,8 +247,11 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
             found: bool = result["sourceUrl"] is not None
             scope.set_tag("stacktrace_link.found", found)
             scope.set_tag("stacktrace_link.auto_derived", derived)
+            scope.set_tag("stacktrace_link.source_url", result.get("sourceUrl"))
+            scope.set_tag("stacktrace_link.tried_url", result.get("attemptedUrl"))
             if current_config:
                 result["config"] = current_config["config"]
+                scope.set_tag("stacktrace_link.empty_root", result["config"]["stackRoot"] == "")
                 if not found:
                     result["error"] = current_config["outcome"]["error"]
                     # When no code mapping have been matched we have not attempted a URL

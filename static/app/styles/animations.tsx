@@ -1,6 +1,4 @@
-import {keyframes} from '@emotion/react';
-
-import {Theme} from 'sentry/utils/theme';
+import {keyframes, Theme} from '@emotion/react';
 
 export const growIn = keyframes`
   0% {

@@ -17,6 +17,7 @@ import {shouldUse24Hours} from 'sentry/utils/dates';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import {knowDynamicSamplingBiases} from 'sentry/views/settings/project/dynamicSampling/dynamicSampling';
 
 const avatarStyle = {
   width: 36,
@@ -54,7 +55,13 @@ const addUsernameDisplay = (logEntryUser: User | undefined) => {
   return null;
 };
 
-function AuditNote({entry, orgSlug}: {entry: AuditLog; orgSlug: Organization['slug']}) {
+function AuditNote({
+  entry,
+  orgSlug,
+}: {
+  entry: NonNullable<AuditLog>;
+  orgSlug: Organization['slug'];
+}) {
   const {projects} = useProjects();
   const project = projects.find(p => p.id === String(entry.data.id));
 
@@ -62,14 +69,16 @@ function AuditNote({entry, orgSlug}: {entry: AuditLog; orgSlug: Organization['sl
     return <Note>{entry.note}</Note>;
   }
 
-  const projectSlug = (
-    <Link to={`/settings/${orgSlug}/projects/${project.slug}/`}>{entry.data.slug}</Link>
-  );
-
   if (entry.event === 'project.create') {
     return (
       <Note>
-        {tct('Created project [project-slug]', {['project-slug']: projectSlug})}
+        {tct('Created project [projectSettingsLink]', {
+          projectSettingsLink: (
+            <Link to={`/settings/${orgSlug}/projects/${project.slug}/`}>
+              {entry.data.slug}
+            </Link>
+          ),
+        })}
       </Note>
     );
   }
@@ -92,60 +101,60 @@ function AuditNote({entry, orgSlug}: {entry: AuditLog; orgSlug: Organization['sl
 
     return (
       <Note>
-        {tct('Edited project [project-slug] [note]', {
-          ['project-slug']: projectSlug,
+        {tct('Edited project [projectSettingsLink] [note]', {
+          projectSettingsLink: (
+            <Link to={`/settings/${orgSlug}/projects/${project.slug}/`}>
+              {entry.data.slug}
+            </Link>
+          ),
           note: entry.note.replace('edited project settings ', ''),
         })}
       </Note>
     );
   }
 
-  if (entry.event === 'sampling.add') {
+  if (
+    entry.event === 'sampling_priority.enabled' &&
+    knowDynamicSamplingBiases[entry.data.name]
+  ) {
     return (
       <Note>
-        {tct('Added server-side sampling rule in the project [project-slug]', {
-          ['project-slug']: projectSlug,
-        })}
+        {tct(
+          'Enabled dynamic sampling priority "[biasLabel]" in project [samplingInProjectSettingsLink]',
+          {
+            samplingInProjectSettingsLink: (
+              <Link
+                to={`/settings/${orgSlug}/projects/${project.slug}/dynamic-sampling/`}
+              >
+                {entry.data.slug}
+              </Link>
+            ),
+            biasLabel: knowDynamicSamplingBiases[entry.data.name].label,
+          }
+        )}
       </Note>
     );
   }
 
-  if (entry.event === 'sampling.remove') {
+  if (
+    entry.event === 'sampling_priority.disabled' &&
+    knowDynamicSamplingBiases[entry.data.name]
+  ) {
     return (
       <Note>
-        {tct('Deleted server-side sampling rule in the project [project-slug]', {
-          ['project-slug']: projectSlug,
-        })}
-      </Note>
-    );
-  }
-
-  if (entry.event === 'sampling.edit') {
-    return (
-      <Note>
-        {tct('Edited server-side sampling rule in the project [project-slug]', {
-          ['project-slug']: projectSlug,
-        })}
-      </Note>
-    );
-  }
-
-  if (entry.event === 'sampling.activate') {
-    return (
-      <Note>
-        {tct('Enabled server-side sampling rule in the project [project-slug]', {
-          ['project-slug']: projectSlug,
-        })}
-      </Note>
-    );
-  }
-
-  if (entry.event === 'sampling.deactivate') {
-    return (
-      <Note>
-        {tct('Disabled server-side sampling rule in the project [project-slug]', {
-          ['project-slug']: projectSlug,
-        })}
+        {tct(
+          'Disabled dynamic sampling priority "[biasLabel]" in project [samplingInProjectSettingsLink]',
+          {
+            samplingInProjectSettingsLink: (
+              <Link
+                to={`/settings/${orgSlug}/projects/${project.slug}/dynamic-sampling/`}
+              >
+                {entry.data.slug}
+              </Link>
+            ),
+            biasLabel: knowDynamicSamplingBiases[entry.data.name].label,
+          }
+        )}
       </Note>
     );
   }
@@ -205,7 +214,10 @@ const AuditLogList = ({
         emptyMessage={t('No audit entries available')}
         isLoading={isLoading}
       >
-        {entries?.map(entry => {
+        {(entries ?? []).map(entry => {
+          if (!entry) {
+            return null;
+          }
           return (
             <Fragment key={entry.id}>
               <UserInfo>
@@ -280,6 +292,7 @@ const NameContainer = styled('div')`
 const Note = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
   word-break: break-word;
+  margin-top: ${space(0.5)};
 `;
 
 const FlexCenter = styled('div')`

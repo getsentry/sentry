@@ -8,7 +8,7 @@ from sentry.testutils.silo import region_silo_test
 from sentry.types.integrations import get_provider_string
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class OrganizationTeamsListTest(APITestCase):
     def test_simple(self):
         user = self.create_user()
@@ -160,7 +160,7 @@ class OrganizationTeamsListTest(APITestCase):
         assert response.status_code == 200, response.content
 
 
-@region_silo_test
+@region_silo_test  # TODO(hybrid-cloud): stable blocked on org members
 class OrganizationTeamsCreateTest(APITestCase):
     endpoint = "sentry-api-0-organization-teams"
     method = "post"

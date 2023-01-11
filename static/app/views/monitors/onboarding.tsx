@@ -1,79 +1,27 @@
-import styled from '@emotion/styled';
+import onboardingImg from 'sentry-images/spot/onboarding-preview.svg';
 
-import {CodeSnippet} from 'sentry/components/codeSnippet';
-import ExternalLink from 'sentry/components/links/externalLink';
-import Link from 'sentry/components/links/link';
-import List from 'sentry/components/list';
-import ListItem from 'sentry/components/list/listItem';
-import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
-import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
-import useOrganization from 'sentry/utils/useOrganization';
+import Button from 'sentry/components/button';
+import OnboardingPanel from 'sentry/components/onboardingPanel';
+import {t} from 'sentry/locale';
 
-import {Monitor} from './types';
-
-type Props = {
-  monitor: Monitor;
-};
-
-const MonitorOnboarding = ({monitor}: Props) => {
-  const checkInUrl = `https://sentry.io/api/0/monitors/${monitor.id}/checkins/`;
-  const checkInDetailsUrl = `${checkInUrl}{checkInId}/`;
-
-  const organization = useOrganization();
+const MonitorOnboarding = () => {
   return (
-    <Panel>
-      <PanelHeader>{t('How to instrument a cron monitor:')}</PanelHeader>
-      <PanelBody withPadding>
-        <List symbol="bullet">
-          <StyledListItem>
-            <OnboardingText>
-              {tct('Use your [linkProjectDSN:DSN] to report the start of a cron job.', {
-                linkDocs: (
-                  <ExternalLink href="https://docs.sentry.io/api/auth/#dsn-authentication" />
-                ),
-                linkProjectDSN: (
-                  <Link
-                    to={`/settings/${organization.slug}/projects/${monitor.project.slug}/keys/`}
-                  />
-                ),
-              })}
-            </OnboardingText>
-            <CodeSnippet language="text" hideActionBar>
-              {`curl -X POST \\\n'${checkInUrl}' \\\n--header 'Authorization: DSN {DSN}' \\\n--header 'Content-Type: application/json' \\\n--data-raw '{"status": "in_progress"}'`}
-            </CodeSnippet>
-          </StyledListItem>
-          <StyledListItem>
-            <OnboardingText>
-              {t(
-                'The above request will then return a check-in id which you can use to modify the check-in upon job completion'
-              )}
-            </OnboardingText>
-            <OnboardingText>
-              {t('For reflecting successful execution, (with optional duration in ms).')}
-            </OnboardingText>
-            <CodeSnippet language="json" hideActionBar>
-              {`curl -X PUT \\\n'${checkInDetailsUrl}' \\\n--header 'Authorization: DSN {DSN}' \\\n--header 'Content-Type: application/json' \\\n--data-raw '{"status": "ok", "duration": 3000}'`}
-            </CodeSnippet>
-            <OnboardingText>
-              {t('For reflecting failed execution, (with optional duration in ms).')}
-            </OnboardingText>
-            <CodeSnippet language="json" hideActionBar>
-              {`curl -X PUT \\\n'${checkInDetailsUrl}' \\\n--header 'Authorization: DSN {DSN}' \\\n--header 'Content-Type: application/json' \\\n--data-raw '{"status": "error", "duration": 3000}'`}
-            </CodeSnippet>
-          </StyledListItem>
-        </List>
-      </PanelBody>
-    </Panel>
+    <OnboardingPanel image={<img src={onboardingImg} />}>
+      <h3>{t('Learn how to instrument your cron monitor')}</h3>
+      <p>
+        {t(
+          "We'll tell you if this recurring job is running on schedule, failing, or succeeding."
+        )}
+      </p>
+      <Button
+        priority="primary"
+        href="https://docs.sentry.io/product/crons/getting-started/#step-2-set-up-health-checks"
+        external
+      >
+        {t('Start Setup')}
+      </Button>
+    </OnboardingPanel>
   );
 };
-
-const OnboardingText = styled('p')`
-  font-size: ${p => p.theme.fontSizeLarge};
-`;
-
-const StyledListItem = styled(ListItem)`
-  margin-bottom: ${space(2)};
-`;
 
 export default MonitorOnboarding;

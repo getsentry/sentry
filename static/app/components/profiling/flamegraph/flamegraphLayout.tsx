@@ -1,14 +1,18 @@
-import {cloneElement, useMemo, useRef} from 'react';
+import {cloneElement, useCallback, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
+import {t} from 'sentry/locale';
 import {FlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphPreferences';
 import {FlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphPreferences';
+import {useDispatchFlamegraphState} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphState';
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import {
   useResizableDrawer,
   UseResizableDrawerOptions,
 } from 'sentry/utils/profiling/hooks/useResizableDrawer';
+
+import {CollapsibleTimeline} from './collapsibleTimeline';
 
 // 664px is approximately the width where we start to scroll inside
 // 30px is the min height to where the drawer can still be resized
@@ -17,19 +21,20 @@ interface FlamegraphLayoutProps {
   flamegraph: React.ReactElement;
   flamegraphDrawer: React.ReactElement;
   minimap: React.ReactElement;
+  spans: React.ReactElement | null;
 }
 
 export function FlamegraphLayout(props: FlamegraphLayoutProps) {
   const flamegraphTheme = useFlamegraphTheme();
-  const {layout} = useFlamegraphPreferences();
+  const {layout, timelines} = useFlamegraphPreferences();
+  const dispatch = useDispatchFlamegraphState();
   const flamegraphDrawerRef = useRef<HTMLDivElement>(null);
 
   const resizableOptions: UseResizableDrawerOptions = useMemo(() => {
     const initialDimensions: [number, number] = [
       // Half the screen minus the ~sidebar width
       Math.max(window.innerWidth * 0.5 - 220, MIN_FLAMEGRAPH_DRAWER_DIMENSIONS[0]),
-      (flamegraphTheme.SIZES.FLAMEGRAPH_DEPTH_OFFSET + 2) *
-        flamegraphTheme.SIZES.BAR_HEIGHT,
+      180,
     ];
 
     const onResize = (
@@ -64,24 +69,73 @@ export function FlamegraphLayout(props: FlamegraphLayoutProps) {
           : 'vertical',
       min: MIN_FLAMEGRAPH_DRAWER_DIMENSIONS,
     };
-  }, [
-    flamegraphTheme.SIZES.FLAMEGRAPH_DEPTH_OFFSET,
-    flamegraphTheme.SIZES.BAR_HEIGHT,
-    layout,
-  ]);
+  }, [layout]);
 
   const {onMouseDown} = useResizableDrawer(resizableOptions);
+
+  const onOpenMinimap = useCallback(
+    () =>
+      dispatch({type: 'toggle timeline', payload: {timeline: 'minimap', value: true}}),
+    [dispatch]
+  );
+
+  const onCloseMinimap = useCallback(
+    () =>
+      dispatch({type: 'toggle timeline', payload: {timeline: 'minimap', value: false}}),
+    [dispatch]
+  );
+
+  const onOpenSpans = useCallback(
+    () =>
+      dispatch({
+        type: 'toggle timeline',
+        payload: {timeline: 'transaction_spans', value: true},
+      }),
+    [dispatch]
+  );
+
+  const onCloseSpans = useCallback(
+    () =>
+      dispatch({
+        type: 'toggle timeline',
+        payload: {timeline: 'transaction_spans', value: false},
+      }),
+    [dispatch]
+  );
 
   return (
     <FlamegraphLayoutContainer>
       <FlamegraphGrid layout={layout}>
-        <MinimapContainer height={flamegraphTheme.SIZES.MINIMAP_HEIGHT}>
-          {props.minimap}
+        <MinimapContainer
+          height={timelines.minimap ? flamegraphTheme.SIZES.MINIMAP_HEIGHT : 20}
+        >
+          <CollapsibleTimeline
+            title="Minimap"
+            open={timelines.minimap}
+            onOpen={onOpenMinimap}
+            onClose={onCloseMinimap}
+          >
+            {props.minimap}
+          </CollapsibleTimeline>
         </MinimapContainer>
+        {props.spans ? (
+          <SpansContainer
+            height={timelines.transaction_spans ? flamegraphTheme.SIZES.SPANS_HEIGHT : 20}
+          >
+            <CollapsibleTimeline
+              title={t('Transaction')}
+              open={timelines.transaction_spans}
+              onOpen={onOpenSpans}
+              onClose={onCloseSpans}
+            >
+              {props.spans}
+            </CollapsibleTimeline>
+          </SpansContainer>
+        ) : null}
         <ZoomViewContainer>{props.flamegraph}</ZoomViewContainer>
-        <FLAMEGRAPH_DRAWERContainer ref={flamegraphDrawerRef} layout={layout}>
+        <FlamegraphDrawerContainer ref={flamegraphDrawerRef} layout={layout}>
           {cloneElement(props.flamegraphDrawer, {onResize: onMouseDown})}
-        </FLAMEGRAPH_DRAWERContainer>
+        </FlamegraphDrawerContainer>
       </FlamegraphGrid>
     </FlamegraphLayoutContainer>
   );
@@ -99,10 +153,10 @@ const FlamegraphGrid = styled('div')<{
   width: 100%;
   grid-template-rows: ${({layout}) =>
     layout === 'table bottom'
-      ? 'auto 1fr'
+      ? 'auto auto 1fr'
       : layout === 'table right'
-      ? '100px auto'
-      : '100px auto'};
+      ? 'min-content min-content 1fr'
+      : 'min-content min-content 1fr'};
   grid-template-columns: ${({layout}) =>
     layout === 'table bottom'
       ? '100%'
@@ -116,17 +170,20 @@ const FlamegraphGrid = styled('div')<{
     layout === 'table bottom'
       ? `
         'minimap'
+        'spans'
         'flamegraph'
         'frame-stack'
         `
       : layout === 'table right'
       ? `
         'minimap    frame-stack'
+        'spans     frame-stack'
         'flamegraph frame-stack'
       `
       : layout === 'table left'
       ? `
         'frame-stack minimap'
+        'frame-stack spans'
         'frame-stack flamegraph'
     `
       : ''};
@@ -138,6 +195,8 @@ const MinimapContainer = styled('div')<{
   position: relative;
   height: ${p => p.height}px;
   grid-area: minimap;
+  display: flex;
+  flex-direction: column;
 `;
 
 const ZoomViewContainer = styled('div')`
@@ -148,7 +207,15 @@ const ZoomViewContainer = styled('div')`
   position: relative;
 `;
 
-const FLAMEGRAPH_DRAWERContainer = styled('div')<{
+const SpansContainer = styled('div')<{
+  height: FlamegraphTheme['SIZES']['SPANS_HEIGHT'];
+}>`
+  position: relative;
+  height: ${p => p.height}px;
+  grid-area: spans;
+`;
+
+const FlamegraphDrawerContainer = styled('div')<{
   layout: FlamegraphPreferences['layout'];
 }>`
   grid-area: frame-stack;

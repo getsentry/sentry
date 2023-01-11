@@ -143,7 +143,7 @@ class TeamIssuesAge extends AsyncComponent<Props, State> {
             <RightAligned key="events">{t('Events')}</RightAligned>,
             <RightAligned key="users">{t('Users')}</RightAligned>,
             <RightAligned key="age">
-              {t('Age')} <IconArrow direction="down" size="12px" color="gray300" />
+              {t('Age')} <IconArrow direction="down" size="xs" color="gray300" />
             </RightAligned>,
           ]}
           isLoading={loading}

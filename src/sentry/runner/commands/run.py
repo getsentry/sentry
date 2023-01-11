@@ -10,6 +10,7 @@ import click
 from sentry.bgtasks.api import managed_bgtasks
 from sentry.ingest.types import ConsumerType
 from sentry.runner.decorators import configuration, log_options
+from sentry.sentry_metrics.consumers.indexer.slicing_router import get_slicing_router
 
 DEFAULT_BLOCK_SIZE = int(32 * 1e6)
 
@@ -630,8 +631,11 @@ def metrics_parallel_consumer(**options):
     use_case = UseCaseKey(options["ingest_profile"])
     db_backend = IndexerStorage(options["indexer_db"])
     ingest_config = get_ingest_config(use_case, db_backend)
+    slicing_router = get_slicing_router(ingest_config)
 
-    streamer = get_parallel_metrics_consumer(indexer_profile=ingest_config, **options)
+    streamer = get_parallel_metrics_consumer(
+        indexer_profile=ingest_config, slicing_router=slicing_router, **options
+    )
 
     def handler(signum, frame):
         streamer.signal_shutdown()

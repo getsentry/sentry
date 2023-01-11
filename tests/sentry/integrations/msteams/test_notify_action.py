@@ -124,8 +124,7 @@ class MsTeamsNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
             json={},
         )
 
-        with self.feature("organizations:performance-issues"):
-            results[0].callback(event, futures=[])
+        results[0].callback(event, futures=[])
 
         data = json.loads(responses.calls[0].request.body)
         assert "attachments" in data
