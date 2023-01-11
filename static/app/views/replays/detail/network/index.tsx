@@ -10,6 +10,7 @@ import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import NetworkFilters from 'sentry/views/replays/detail/network/networkFilters';
 import NetworkHeaderCell, {
+  BODY_HEIGHT,
   COLUMN_COUNT,
   HEADER_HEIGHT,
 } from 'sentry/views/replays/detail/network/networkHeaderCell';
@@ -56,6 +57,7 @@ function NetworkList({networkSpans, startTimestampMs}: Props) {
   const {cache, getColumnWidth, onScrollbarPresenceChange, onWrapperResize} =
     useVirtualizedGrid({
       cellMeasurer: {
+        defaultHeight: BODY_HEIGHT,
         defaultWidth: 100,
         fixedHeight: true,
       },
@@ -65,7 +67,7 @@ function NetworkList({networkSpans, startTimestampMs}: Props) {
       deps: [items, searchTerm],
     });
 
-  const renderTableRow = ({columnIndex, rowIndex, key, style, parent}: GridCellProps) => {
+  const cellRenderer = ({columnIndex, rowIndex, key, style, parent}: GridCellProps) => {
     const network = items[rowIndex - 1];
 
     return (
@@ -76,27 +78,37 @@ function NetworkList({networkSpans, startTimestampMs}: Props) {
         parent={parent}
         rowIndex={rowIndex}
       >
-        {rowIndex === 0 ? (
-          <NetworkHeaderCell
-            handleSort={handleSort}
-            index={columnIndex}
-            sortConfig={sortConfig}
-            style={style}
-          />
-        ) : (
-          <NetworkTableCell
-            columnIndex={columnIndex}
-            handleClick={handleClick}
-            handleMouseEnter={handleMouseEnter}
-            handleMouseLeave={handleMouseLeave}
-            isCurrent={network.id === current?.id}
-            isHovered={network.id === hovered?.id}
-            sortConfig={sortConfig}
-            span={network}
-            startTimestampMs={startTimestampMs}
-            style={style}
-          />
-        )}
+        {({
+          measure: _,
+          registerChild,
+        }: {
+          measure: () => void;
+          registerChild?: (element?: Element) => void;
+        }) =>
+          rowIndex === 0 ? (
+            <NetworkHeaderCell
+              ref={e => e && registerChild?.(e)}
+              handleSort={handleSort}
+              index={columnIndex}
+              sortConfig={sortConfig}
+              style={{...style, height: HEADER_HEIGHT}}
+            />
+          ) : (
+            <NetworkTableCell
+              ref={e => e && registerChild?.(e)}
+              columnIndex={columnIndex}
+              handleClick={handleClick}
+              handleMouseEnter={handleMouseEnter}
+              handleMouseLeave={handleMouseLeave}
+              isCurrent={network.id === current?.id}
+              isHovered={network.id === hovered?.id}
+              sortConfig={sortConfig}
+              span={network}
+              startTimestampMs={startTimestampMs}
+              style={{...style, height: BODY_HEIGHT}}
+            />
+          )
+        }
       </CellMeasurer>
     );
   };
@@ -110,10 +122,12 @@ function NetworkList({networkSpans, startTimestampMs}: Props) {
             {({width, height}) => (
               <MultiGrid
                 ref={gridRef}
+                cellRenderer={cellRenderer}
                 columnCount={COLUMN_COUNT}
                 columnWidth={getColumnWidth(width)}
-                cellRenderer={renderTableRow}
                 deferredMeasurementCache={cache}
+                estimatedColumnSize={width}
+                estimatedRowSize={HEADER_HEIGHT + items.length * BODY_HEIGHT}
                 fixedRowCount={1}
                 height={height}
                 noContentRenderer={() => (
@@ -128,7 +142,7 @@ function NetworkList({networkSpans, startTimestampMs}: Props) {
                 overscanColumnCount={COLUMN_COUNT}
                 overscanRowCount={5}
                 rowCount={items.length + 1}
-                rowHeight={({index}) => (index === 0 ? HEADER_HEIGHT : 28)}
+                rowHeight={({index}) => (index === 0 ? HEADER_HEIGHT : BODY_HEIGHT)}
                 width={width}
               />
             )}
