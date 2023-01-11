@@ -305,12 +305,16 @@ class ReplayQueryConfig(QueryConfig):
     platform = String()
     agg_environment = String(field_alias="environment")
     releases = ListField()
+    release = ListField(query_alias="releases")
     dist = String()
-    urls = ListField(field_alias="urls", query_alias="urls_sorted")
+    urls = ListField(query_alias="urls_sorted")
+    url = ListField(query_alias="urls_sorted")
     user_id = String(field_alias="user.id", query_alias="user_id")
     user_email = String(field_alias="user.email", query_alias="user_email")
     user_name = String(field_alias="user.name", query_alias="user_name")
+    user_username = String(field_alias="user.username", query_alias="user_name")
     user_ip_address = String(field_alias="user.ipAddress", query_alias="user_ipAddress")
+    user_ip = String(field_alias="user.ip", query_alias="user_ipAddress")
     os_name = String(field_alias="os.name", query_alias="os_name")
     os_version = String(field_alias="os.version", query_alias="os_version")
     browser_name = String(field_alias="browser.name", query_alias="browser_name")
@@ -319,6 +323,7 @@ class ReplayQueryConfig(QueryConfig):
     device_brand = String(field_alias="device.brand", query_alias="device_brand")
     device_family = String(field_alias="device.family", query_alias="device_family")
     device_model = String(field_alias="device.model", query_alias="device_model")
+    device_model_id = String(field_alias="device.model_id", query_alias="device_model")
     sdk_name = String(field_alias="sdk.name", query_alias="sdk_name")
     sdk_version = String(field_alias="sdk.version", query_alias="sdk_version")
 
@@ -442,6 +447,7 @@ FIELD_QUERY_ALIAS_MAP: Dict[str, List[str]] = {
     "platform": ["platform"],
     "environment": ["agg_environment"],
     "releases": ["releases"],
+    "release": ["releases"],
     "dist": ["dist"],
     "traceIds": ["traceIds"],
     "errorIds": ["errorIds"],
@@ -449,6 +455,7 @@ FIELD_QUERY_ALIAS_MAP: Dict[str, List[str]] = {
     "finishedAt": ["finishedAt"],
     "duration": ["duration", "startedAt", "finishedAt"],
     "urls": ["urls_sorted", "agg_urls"],
+    "url": ["urls_sorted", "agg_urls"],
     "countErrors": ["countErrors"],
     "countUrls": ["urls_sorted"],
     "countSegments": ["countSegments"],
@@ -464,7 +471,9 @@ FIELD_QUERY_ALIAS_MAP: Dict[str, List[str]] = {
     "user.id": ["user_id"],
     "user.email": ["user_email"],
     "user.name": ["user_name"],
+    "user.username": ["user_name"],
     "user.ipAddress": ["user_ipAddress"],
+    "user.ip": ["user_ipAddress"],
     "os.name": ["os_name"],
     "os.version": ["os_version"],
     "browser.name": ["browser_name"],
@@ -473,6 +482,7 @@ FIELD_QUERY_ALIAS_MAP: Dict[str, List[str]] = {
     "device.brand": ["device_brand"],
     "device.family": ["device_family"],
     "device.model": ["device_model"],
+    "device.model_id": ["device_model"],
     "sdk.name": ["sdk_name"],
     "sdk.version": ["sdk_version"],
 }
