@@ -28,7 +28,7 @@ const MonitorHeader = ({monitor, orgId, onUpdate}: Props) => {
   const crumbs = [
     {
       label: t('Crons'),
-      to: `/organizations/${orgId}/crons`,
+      to: `/organizations/${orgId}/crons/`,
     },
     {
       label: t('Cron Monitor Details'),
