@@ -534,6 +534,12 @@ class SlowSpanDetector(PerformanceDetector):
                 offender_span_ids=spans_involved,
             )
 
+    def is_creation_allowed_for_organization(self, organization: Optional[Organization]) -> bool:
+        return True  # This detector is fully rolled out
+
+    def is_creation_allowed_for_project(self, project: Optional[Project]) -> bool:
+        return True  # This should probably use the `n_plus_one_db.problem-creation` option, which is currently not in use
+
     @classmethod
     def is_span_eligible(cls, span: Span) -> bool:
         description = span.get("description", None)

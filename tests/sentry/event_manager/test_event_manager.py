@@ -2435,6 +2435,31 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
             assert data2["hashes"] == []
             assert data3["hashes"] == [expected_hash]
 
+    @override_options(
+        {
+            "performance.issues.slow_span.problem-creation": 1.0,
+            "performance_issue_creation_rate": 1.0,
+        }
+    )
+    @override_settings(SENTRY_PERFORMANCE_ISSUES_REDUCE_NOISE=True)
+    def test_perf_issue_slow_db_issue_not_created(self):
+        self.project.update_option("sentry:performance_issue_creation_rate", 1.0)
+
+        with mock.patch("sentry_sdk.tracing.Span.containing_transaction") as transaction:
+            last_event = None
+
+            for _ in range(100):
+                manager = EventManager(make_event(**get_event("slow-db-spans")))
+                manager.normalize()
+                event = manager.save(self.project.id)
+                last_event = event
+
+            # The group should not be created, but there should be a tag on the transaction
+            assert len(last_event.groups) == 0
+            assert transaction.set_tag.assert_called_with(
+                "_will_smith_will_create_slow_db_issue", "true"
+            )
+
 
 class AutoAssociateCommitTest(TestCase, EventManagerTestMixin):
     def setUp(self):

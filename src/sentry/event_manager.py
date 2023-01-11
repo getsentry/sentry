@@ -2418,32 +2418,36 @@ def _save_aggregate_performance(jobs: Sequence[PerformanceJob], projects: Projec
 
 @metrics.wraps("performance.performance_issue.should_create_group", sample_rate=1.0)
 def should_create_group(client: Any, grouphash: str, type: GroupType) -> bool:
-    times_seen = client.incr(f"grouphash:{grouphash}")
-    metrics.incr(
-        "performance.performance_issue.grouphash_counted",
-        tags={"times_seen": times_seen, "group_type": GROUP_TYPE_TO_TEXT.get(type, "Unknown Type")},
-        sample_rate=1.0,
-    )
-
-    if times_seen >= GROUPHASH_IGNORE_LIMIT_MAP.get(type, DEFAULT_GROUPHASH_IGNORE_LIMIT):
-        client.delete(grouphash)
+    with sentry_sdk.start_span(op="event_manager.should_create_group") as span:
+        times_seen = client.incr(f"grouphash:{grouphash}")
         metrics.incr(
-            "performance.performance_issue.issue_will_be_created",
-            tags={"group_type": GROUP_TYPE_TO_TEXT.get(type, "Unknown Type")},
+            "performance.performance_issue.grouphash_counted",
+            tags={
+                "times_seen": times_seen,
+                "group_type": GROUP_TYPE_TO_TEXT.get(type, "Unknown Type"),
+            },
             sample_rate=1.0,
         )
 
-        # TODO: Experimental flag to indicate when a Slow DB Issue would have been created.
-        # This is in place to confirm whether the above rate limit is effective in preventing spikes
-        # and inaccuracies.
-        if type == GroupType.PERFORMANCE_SLOW_SPAN:
-            sentry_sdk.set_tag("_will_create_slow_db_issue", "true")
-            return False
+        if times_seen >= GROUPHASH_IGNORE_LIMIT_MAP.get(type, DEFAULT_GROUPHASH_IGNORE_LIMIT):
+            client.delete(grouphash)
+            metrics.incr(
+                "performance.performance_issue.issue_will_be_created",
+                tags={"group_type": GROUP_TYPE_TO_TEXT.get(type, "Unknown Type")},
+                sample_rate=1.0,
+            )
 
-        return True
-    else:
-        client.expire(grouphash, 60 * 60 * 24)  # 24 hour expiration from last seen
-        return False
+            # TODO: Experimental tag to indicate when a Slow DB Issue would have been created.
+            # This is in place to confirm whether the above rate limit is effective in preventing spikes
+            # and inaccuracies.
+            if type == GroupType.PERFORMANCE_SLOW_SPAN:
+                span.containing_transaction.set_tag("_will_create_slow_db_issue", "true")
+                return False
+
+            return True
+        else:
+            client.expire(grouphash, 60 * 60 * 24)  # 24 hour expiration from last seen
+            return False
 
 
 @metrics.wraps("event_manager.save_transaction_events")
