@@ -234,9 +234,7 @@ class AuthIdentityHandler:
             login_redirect_url = absolute_uri(login_redirect_url, url_prefix=url_prefix)
         return login_redirect_url
 
-    def _handle_new_membership(
-        self, auth_identity: ApiAuthIdentity
-    ) -> ApiOrganizationMember | None:
+    def _handle_new_membership(self, auth_identity: ApiAuthIdentity) -> ApiOrganizationMember:
         user, om = auth_service.handle_new_membership(
             self.request, self.organization, auth_identity, self.auth_provider
         )
@@ -320,8 +318,7 @@ class AuthIdentityHandler:
 
         if member is None:
             member = self._get_organization_member(auth_identity)
-        if member is not None:
-            self._set_linked_flag(member)
+        self._set_linked_flag(member)
 
         if auth_is_new:
             audit_log_service.log_auth_identity(
@@ -364,7 +361,7 @@ class AuthIdentityHandler:
 
         return deletion_result
 
-    def _get_organization_member(self, auth_identity: AuthIdentity) -> ApiOrganizationMember | None:
+    def _get_organization_member(self, auth_identity: AuthIdentity) -> ApiOrganizationMember:
         """
         Check to see if the user has a member associated, if not, create a new membership
         based on the auth_identity email.

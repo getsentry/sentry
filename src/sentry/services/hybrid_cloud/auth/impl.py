@@ -263,7 +263,7 @@ class DatabaseBackedAuthService(AuthService):
         organization: ApiOrganization,
         auth_identity: ApiAuthIdentity,
         auth_provider: ApiAuthProvider,
-    ) -> Tuple[APIUser, ApiOrganizationMember | None]:
+    ) -> Tuple[APIUser, ApiOrganizationMember]:
         # TODO: Might be able to keep hold of the APIUser object whose ID was
         #  originally passed to construct the ApiAuthIdentity object
         user = User.objects.get(id=auth_identity.user_id)

@@ -141,7 +141,7 @@ class AuthService(InterfaceWithLifecycle):
         organization: ApiOrganization,
         auth_identity: ApiAuthIdentity,
         auth_provider: ApiAuthProvider,
-    ) -> Tuple[APIUser, ApiOrganizationMember | None]:
+    ) -> Tuple[APIUser, ApiOrganizationMember]:
         pass
 
 
