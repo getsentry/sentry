@@ -289,7 +289,7 @@ def _sorted_aggregated_urls(agg_urls_column, alias):
 # Filter
 
 replay_url_parser_config = SearchConfig(
-    numeric_keys={"duration", "countErrors", "countSegments"},
+    numeric_keys={"duration", "countErrors", "countSegments", "countUrls", "activity"},
 )
 
 
@@ -298,17 +298,22 @@ class ReplayQueryConfig(QueryConfig):
     duration = Number()
     count_errors = Number(name="countErrors")
     count_segments = Number(name="countSegments")
+    count_urls = Number(name="countUrls")
     activity = Number()
 
     # String filters.
     replay_id = String(field_alias="id")
+    replay_type = String(field_alias="replayType", query_alias="replayType")
     platform = String()
-    agg_environment = String(field_alias="environment")
     releases = ListField()
     release = ListField(query_alias="releases")
     dist = String()
     urls = ListField(query_alias="urls_sorted")
     url = ListField(query_alias="urls_sorted")
+    error_ids = ListField(field_alias="errorIds", query_alias="error_ids", is_uuid=True)
+    error_id = ListField(query_alias="error_ids", is_uuid=True)
+    trace_ids = ListField(field_alias="traceIds", query_alias="trace_ids", is_uuid=True)
+    trace = ListField(query_alias="trace_ids", is_uuid=True)
     user_id = String(field_alias="user.id", query_alias="user_id")
     user_email = String(field_alias="user.email", query_alias="user_email")
     user_name = String(field_alias="user.name", query_alias="user_name")
@@ -331,6 +336,7 @@ class ReplayQueryConfig(QueryConfig):
     tags = Tag(field_alias="*")
 
     # Sort keys
+    agg_environment = String(field_alias="environment", is_filterable=False)
     started_at = String(name="startedAt", is_filterable=False)
     finished_at = String(name="finishedAt", is_filterable=False)
     # Dedicated url parameter should be used.
@@ -451,13 +457,15 @@ FIELD_QUERY_ALIAS_MAP: Dict[str, List[str]] = {
     "dist": ["dist"],
     "traceIds": ["traceIds"],
     "errorIds": ["errorIds"],
+    "trace": ["traceIds"],
+    "error_id": ["errorIds"],
     "startedAt": ["startedAt"],
     "finishedAt": ["finishedAt"],
     "duration": ["duration", "startedAt", "finishedAt"],
     "urls": ["urls_sorted", "agg_urls"],
     "url": ["urls_sorted", "agg_urls"],
     "countErrors": ["countErrors"],
-    "countUrls": ["urls_sorted"],
+    "countUrls": ["countUrls", "urls_sorted", "agg_urls"],
     "countSegments": ["countSegments"],
     "isArchived": ["isArchived"],
     "activity": ["activity", "countErrors", "urls_sorted", "agg_urls"],
@@ -548,6 +556,11 @@ QUERY_ALIAS_COLUMN_MAP = {
         "uniqArray",
         parameters=[Column("error_ids")],
         alias="countErrors",
+    ),
+    "countUrls": Function(
+        "length",
+        parameters=[Column("urls_sorted")],
+        alias="countUrls",
     ),
     "isArchived": Function(
         "notEmpty",
