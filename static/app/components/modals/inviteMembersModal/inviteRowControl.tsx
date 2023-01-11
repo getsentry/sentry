@@ -129,7 +129,6 @@ function InviteRowControl({
       <Button
         borderless
         icon={<IconClose />}
-        size="zero"
         onClick={onRemove}
         disabled={disableRemove}
         aria-label={t('Remove')}
