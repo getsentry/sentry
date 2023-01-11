@@ -423,6 +423,7 @@ class MetricsLayerReleaseHealthBackend(ReleaseHealthBackend):
     ) -> SessionsQueryResult:
         return run_sessions_query(org_id, query, span_op)
 
+    # TODO reevaluate if we want to use the metric layer (at the moment we don't)
     def get_release_sessions_time_bounds(
         self,
         project_id: ProjectId,
@@ -660,8 +661,48 @@ class MetricsLayerReleaseHealthBackend(ReleaseHealthBackend):
         Returns a set of all release versions that have health data within a given period of time.
         """
 
-        raise NotImplementedError()
+        projects, org_id = self._get_projects_and_org_id(project_ids)
 
+        select = [MetricField(metric_mri=SessionMRI.SESSION.value, alias="value", op="sum")]
+        groupby = [MetricGroupByField(field="release")]
+        where_clause = [
+            Condition(
+                lhs=Column(name="tags[release]"),
+                op=Op.IN,
+                rhs=release_versions,
+            )
+        ]
+
+        query = MetricsQuery(
+            org_id=org_id,
+            project_ids=project_ids,
+            select=select,
+            start=start,
+            end=end,
+            granularity=Granularity(60),
+            groupby=groupby,
+            where=where_clause,
+            include_series=False,
+            include_totals=True,
+        )
+
+        raw_result = get_series(
+            projects=projects,
+            metrics_query=query,
+            use_case_id=USE_CASE_ID,
+        )
+
+        groups = raw_result["groups"]
+
+        ret_val = set()
+        for group in groups:
+            by = group.get("by", {})
+            release = by.get("release")
+            if release is not None:
+                ret_val.add(release)
+        return ret_val
+
+    # TODO implement
     def get_release_health_data_overview(
         self,
         project_releases: Sequence[ProjectRelease],
@@ -679,6 +720,7 @@ class MetricsLayerReleaseHealthBackend(ReleaseHealthBackend):
 
         raise NotImplementedError()
 
+    # TODO implement
     def get_crash_free_breakdown(
         self,
         project_id: ProjectId,
@@ -689,6 +731,7 @@ class MetricsLayerReleaseHealthBackend(ReleaseHealthBackend):
     ) -> Sequence[CrashFreeBreakdown]:
         """Get stats about crash free sessions and stats for the last 1, 2, 7, 14 and 30 days"""
 
+    # TODO implement
     def get_changed_project_release_model_adoptions(
         self,
         project_ids: Sequence[ProjectId],
@@ -700,6 +743,7 @@ class MetricsLayerReleaseHealthBackend(ReleaseHealthBackend):
         """
         raise NotImplementedError()
 
+    # TODO implement
     def get_oldest_health_data_for_releases(
         self,
         project_releases: Sequence[ProjectRelease],
@@ -710,6 +754,7 @@ class MetricsLayerReleaseHealthBackend(ReleaseHealthBackend):
         """
         raise NotImplementedError()
 
+    # TODO implement
     def get_project_releases_count(
         self,
         organization_id: OrganizationId,
@@ -723,6 +768,7 @@ class MetricsLayerReleaseHealthBackend(ReleaseHealthBackend):
         """
         raise NotImplementedError()
 
+    # TODO implement
     def get_project_release_stats(
         self,
         project_id: ProjectId,
@@ -735,6 +781,7 @@ class MetricsLayerReleaseHealthBackend(ReleaseHealthBackend):
     ) -> Union[ProjectReleaseUserStats, ProjectReleaseSessionStats]:
         raise NotImplementedError()
 
+    # TODO implement
     def get_project_sessions_count(
         self,
         project_id: ProjectId,
@@ -749,6 +796,7 @@ class MetricsLayerReleaseHealthBackend(ReleaseHealthBackend):
         """
         raise NotImplementedError()
 
+    # TODO implement
     def get_num_sessions_per_project(
         self,
         project_ids: Sequence[ProjectId],
@@ -763,6 +811,7 @@ class MetricsLayerReleaseHealthBackend(ReleaseHealthBackend):
         """
         raise NotImplementedError()
 
+    # TODO implement
     def get_project_releases_by_stability(
         self,
         project_ids: Sequence[ProjectId],
