@@ -2458,6 +2458,26 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
             assert len(last_event.groups) == 0
             transaction.set_tag.assert_called_with("_will_create_slow_db_issue", "true")
 
+    @override_options(
+        {
+            "performance.issues.slow_span.problem-creation": 1.0,
+            "performance_issue_creation_rate": 1.0,
+        }
+    )
+    @override_settings(SENTRY_PERFORMANCE_ISSUES_REDUCE_NOISE=False)
+    def test_perf_issue_slow_db_issue_not_created_with_noise_flag_false(self):
+        self.project.update_option("sentry:performance_issue_creation_rate", 1.0)
+
+        last_event = None
+
+        for _ in range(100):
+            manager = EventManager(make_event(**get_event("slow-db-spans")))
+            manager.normalize()
+            event = manager.save(self.project.id)
+            last_event = event
+
+        assert len(last_event.groups) == 0
+
 
 class AutoAssociateCommitTest(TestCase, EventManagerTestMixin):
     def setUp(self):
