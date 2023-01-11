@@ -17,7 +17,6 @@ describe('ProjectInstallPlatform', function () {
       const props = {
         ...baseProps,
         params: {
-          orgId: baseProps.organization.slug,
           projectId: baseProps.project.slug,
           platform: 'other',
         },
@@ -39,7 +38,6 @@ describe('ProjectInstallPlatform', function () {
       const props = {
         ...baseProps,
         params: {
-          orgId: baseProps.organization.slug,
           projectId: baseProps.project.slug,
           platform: 'lua',
         },
@@ -61,7 +59,6 @@ describe('ProjectInstallPlatform', function () {
       const props = {
         ...baseProps,
         params: {
-          orgId: baseProps.organization.slug,
           projectId: baseProps.project.slug,
           platform: 'node',
         },

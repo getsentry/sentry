@@ -30,7 +30,7 @@ import withOrganization from 'sentry/utils/withOrganization';
 type Props = {
   api: Client;
   organization: Organization;
-} & RouteComponentProps<{orgId: string; platform: string; projectId: string}, {}>;
+} & RouteComponentProps<{platform: string; projectId: string}, {}>;
 
 type State = {
   error: boolean;
@@ -62,13 +62,18 @@ class ProjectInstallPlatform extends Component<Props, State> {
   }
 
   fetchData = async () => {
-    const {api, params} = this.props;
-    const {orgId, projectId, platform} = params;
+    const {api, organization, params} = this.props;
+    const {projectId, platform} = params;
 
     this.setState({loading: true});
 
     try {
-      const {html} = await loadDocs(api, orgId, projectId, platform as PlatformKey);
+      const {html} = await loadDocs(
+        api,
+        organization.slug,
+        projectId,
+        platform as PlatformKey
+      );
       this.setState({html});
     } catch (error) {
       this.setState({error});
@@ -78,16 +83,17 @@ class ProjectInstallPlatform extends Component<Props, State> {
   };
 
   redirectToNeutralDocs() {
-    const {orgId, projectId} = this.props.params;
+    const {organization} = this.props;
+    const {projectId} = this.props.params;
 
-    const url = `/organizations/${orgId}/projects/${projectId}/getting-started/`;
+    const url = `/organizations/${organization.slug}/projects/${projectId}/getting-started/`;
 
     browserHistory.push(url);
   }
 
   render() {
-    const {params} = this.props;
-    const {orgId, projectId} = params;
+    const {organization, params} = this.props;
+    const {projectId} = params;
 
     const platform = platforms.find(p => p.id === params.platform);
 
@@ -95,9 +101,9 @@ class ProjectInstallPlatform extends Component<Props, State> {
       return <NotFound />;
     }
 
-    const issueStreamLink = `/organizations/${orgId}/issues/`;
-    const performanceOverviewLink = `/organizations/${orgId}/performance/`;
-    const gettingStartedLink = `/organizations/${orgId}/projects/${projectId}/getting-started/`;
+    const issueStreamLink = `/organizations/${organization.slug}/issues/`;
+    const performanceOverviewLink = `/organizations/${organization.slug}/performance/`;
+    const gettingStartedLink = `/organizations/${organization.slug}/projects/${projectId}/getting-started/`;
     const platformLink = platform.link ?? undefined;
 
     return (
@@ -144,8 +150,8 @@ class ProjectInstallPlatform extends Component<Props, State> {
 
           {this.isGettingStarted && (
             <Projects
-              key={`${orgId}-${projectId}`}
-              orgId={orgId}
+              key={`${organization.slug}-${projectId}`}
+              orgId={organization.slug}
               slugs={[projectId]}
               passthroughPlaceholderProject={false}
             >

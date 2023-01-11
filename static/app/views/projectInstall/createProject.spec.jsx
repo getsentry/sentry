@@ -16,7 +16,6 @@ describe('CreateProject', function () {
     teams: [teamNoAccess],
     params: {
       projectId: '',
-      orgId: 'testOrg',
     },
     setEventNames: jest.fn(),
   };

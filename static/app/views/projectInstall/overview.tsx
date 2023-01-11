@@ -17,7 +17,7 @@ import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHea
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import {ProjectKey} from 'sentry/views/settings/project/projectKeys/types';
 
-type Props = RouteComponentProps<{orgId: string; projectId: string}, {}> & {
+type Props = RouteComponentProps<{projectId: string}, {}> & {
   organization: Organization;
 } & AsyncComponent['props'];
 
@@ -31,15 +31,17 @@ class ProjectInstallOverview extends AsyncComponent<Props, State> {
   }
 
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
-    const {orgId, projectId} = this.props.params;
-    return [['keyList', `/projects/${orgId}/${projectId}/keys/`]];
+    const {organization} = this.props;
+    const {projectId} = this.props.params;
+    return [['keyList', `/projects/${organization.slug}/${projectId}/keys/`]];
   }
 
   redirectToDocs = (platform: PlatformKey | null) => {
-    const {orgId, projectId} = this.props.params;
+    const {organization} = this.props;
+    const {projectId} = this.props.params;
 
     const installUrl = this.isGettingStarted
-      ? `/organizations/${orgId}/projects/${projectId}/getting-started/${platform}/`
+      ? `/organizations/${organization.slug}/projects/${projectId}/getting-started/${platform}/`
       : recreateRoute(`${platform}/`, {
           ...this.props,
           stepBack: -1,
@@ -53,10 +55,11 @@ class ProjectInstallOverview extends AsyncComponent<Props, State> {
   };
 
   render() {
-    const {orgId, projectId} = this.props.params;
+    const {organization} = this.props;
+    const {projectId} = this.props.params;
     const {keyList, showDsn} = this.state;
 
-    const issueStreamLink = `/organizations/${orgId}/issues/#welcome`;
+    const issueStreamLink = `/organizations/${organization.slug}/issues/#welcome`;
 
     return (
       <div>
