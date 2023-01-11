@@ -227,12 +227,12 @@ class PerformanceDetectionTest(TestCase):
 
         perf_problems = _detect_performance_problems(n_plus_one_event, sdk_span_mock, self.project)
 
-        assert sdk_span_mock.containing_transaction.set_tag.call_count == 9
+        assert sdk_span_mock.containing_transaction.set_tag.call_count == 7
         sdk_span_mock.containing_transaction.set_tag.assert_has_calls(
             [
                 call(
                     "_pi_all_issue_count",
-                    3,
+                    2,
                 ),
                 call(
                     "_pi_sdk_name",
@@ -242,11 +242,6 @@ class PerformanceDetectionTest(TestCase):
                     "_pi_transaction",
                     "da78af6000a6400aaa87cf6e14ddeb40",
                 ),
-                call(
-                    "_pi_slow_span_fp",
-                    "1-GroupType.PERFORMANCE_SLOW_SPAN-8dbbcc64ef67d2d9d390327411669ebe29b0ea45",
-                ),
-                call("_pi_slow_span", "b33db57efd994615"),
                 call(
                     "_pi_n_plus_one_db_fp",
                     "1-GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES-8d86357da4d8a866b19c97670edee38d037a7bc8",
