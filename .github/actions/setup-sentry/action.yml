@@ -108,12 +108,12 @@ runs:
           echo "TOTAL_TEST_GROUPS=$MATRIX_INSTANCE_TOTAL" >> $GITHUB_ENV
         fi
 
-    - name: Setup python
-      uses: actions/setup-python@13ae5bb136fac2878aff31522b9efb785519f984  # v4.3.0
+    - uses: getsentry/action-setup-venv@30b11e1a66aabba7a6370b0d84d1e4e59795928a # v1.0.3
+      id: venv
       with:
         python-version: ${{ inputs.python-version }}
-        cache: pip
         cache-dependency-path: ${{ inputs.workdir }}/requirements-dev-frozen.txt
+        install-cmd: pip install -r requirements-dev-frozen.txt
 
     - name: Set up outputs
       id: config
@@ -126,7 +126,7 @@ runs:
         echo "matrix-instance-total=$(($MATRIX_INSTANCE_TOTAL))" >> "$GITHUB_OUTPUT"
         echo "acceptance-dir=.artifacts/visual-snapshots/acceptance" >> "$GITHUB_OUTPUT"
 
-    - name: Install python dependencies
+    - name: Install sentry cli
       shell: bash
       env:
         # This is necessary when other repositories (e.g. relay) want to take advantage of this workflow
@@ -134,7 +134,6 @@ runs:
         WORKDIR: ${{ inputs.workdir }}
       run: |
         cd "$WORKDIR"
-        pip install -r requirements-dev-frozen.txt
         # We need to install editable otherwise things like check migration will fail.
         SENTRY_LIGHT_BUILD=1 pip install --no-deps -e .
 
