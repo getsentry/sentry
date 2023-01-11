@@ -1,0 +1,52 @@
+---
+created: '2023-01-11T11:41:28.760089Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: "c52ebcc2d9d0780a23c7d99831678830"
+  component:
+    app*
+      chained-exception*
+        exception*
+          stacktrace*
+            frame*
+              filename*
+                "baz.py"
+          type*
+            "ValueError"
+          value (ignored because stacktrace takes precedence)
+            "hello world"
+        exception*
+          stacktrace
+            frame (non app frame)
+              filename*
+                "baz.py"
+          type*
+            "ValueError"
+          value*
+            "hello world"
+--------------------------------------------------------------------------
+system:
+  hash: "669cb6664e0f5fed38665da04e464f7e"
+  component:
+    system*
+      chained-exception*
+        exception*
+          stacktrace*
+            frame*
+              filename*
+                "baz.py"
+          type*
+            "ValueError"
+          value (ignored because stacktrace takes precedence)
+            "hello world"
+        exception*
+          stacktrace*
+            frame*
+              filename*
+                "baz.py"
+          type*
+            "ValueError"
+          value (ignored because stacktrace takes precedence)
+            "hello world"

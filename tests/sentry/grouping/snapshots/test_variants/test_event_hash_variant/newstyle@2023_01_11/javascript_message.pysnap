@@ -1,0 +1,11 @@
+---
+created: '2023-01-11T11:41:28.247477Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+default:
+  hash: "4119639092e62c55ea8be348e4d9260d"
+  component:
+    default*
+      message*
+        "event"
