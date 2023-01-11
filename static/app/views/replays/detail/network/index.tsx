@@ -10,9 +10,7 @@ import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import NetworkFilters from 'sentry/views/replays/detail/network/networkFilters';
 import NetworkHeaderCell, {
-  BODY_HEIGHT,
   COLUMN_COUNT,
-  HEADER_HEIGHT,
 } from 'sentry/views/replays/detail/network/networkHeaderCell';
 import NetworkTableCell from 'sentry/views/replays/detail/network/networkTableCell';
 import useNetworkFilters from 'sentry/views/replays/detail/network/useNetworkFilters';
@@ -20,6 +18,9 @@ import useSortNetwork from 'sentry/views/replays/detail/network/useSortNetwork';
 import NoRowRenderer from 'sentry/views/replays/detail/noRowRenderer';
 import useVirtualizedGrid from 'sentry/views/replays/detail/useVirtualizedGrid';
 import type {NetworkSpan} from 'sentry/views/replays/types';
+
+const HEADER_HEIGHT = 25;
+const BODY_HEIGHT = 28;
 
 type Props = {
   networkSpans: undefined | NetworkSpan[];

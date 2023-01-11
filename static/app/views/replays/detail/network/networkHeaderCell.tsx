@@ -14,9 +14,6 @@ type Props = {
   style: CSSProperties;
 };
 
-export const HEADER_HEIGHT = 25;
-export const BODY_HEIGHT = 28;
-
 const COLUMNS: {
   field: SortConfig['by'];
   label: string;
