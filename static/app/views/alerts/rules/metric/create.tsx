@@ -3,6 +3,7 @@ import {RouteComponentProps} from 'react-router';
 import {Organization, Project} from 'sentry/types';
 import {metric} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {
   createDefaultRule,
   createRuleFromEventView,
@@ -37,16 +38,15 @@ function MetricRulesCreate(props: Props) {
       : undefined;
 
     metric.endTransaction({name: 'saveAlertRule'});
-    router.push(
-      alertRuleId
-        ? {
-            pathname: `/organizations/${organization.slug}/alerts/rules/details/${alertRuleId}/`,
-          }
-        : {
-            pathname: `/organizations/${organization.slug}/alerts/rules/`,
-            query: {project: project.id},
-          }
-    );
+    const target = alertRuleId
+      ? {
+          pathname: `/organizations/${organization.slug}/alerts/rules/details/${alertRuleId}/`,
+        }
+      : {
+          pathname: `/organizations/${organization.slug}/alerts/rules/`,
+          query: {project: project.id},
+        };
+    router.push(normalizeUrl(target));
   }
 
   const {project, eventView, wizardTemplate, sessionId, userTeamIds, ...otherProps} =

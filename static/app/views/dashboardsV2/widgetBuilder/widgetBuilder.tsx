@@ -34,6 +34,7 @@ import {
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import useApi from 'sentry/utils/useApi';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import withTags from 'sentry/utils/withTags';
 import {
@@ -730,7 +731,7 @@ function WidgetBuilder({
     nextWidgetList = generateWidgetsAfterCompaction(nextWidgetList);
 
     onSave(nextWidgetList);
-    router.push(previousLocation);
+    router.push(normalizeUrl(previousLocation));
   }
 
   async function handleSave() {
@@ -861,17 +862,21 @@ function WidgetBuilder({
         : undefined;
 
     if (id === NEW_DASHBOARD_ID) {
-      router.push({
-        pathname: `/organizations/${organization.slug}/dashboards/new/`,
-        query: pathQuery,
-      });
+      router.push(
+        normalizeUrl({
+          pathname: `/organizations/${organization.slug}/dashboards/new/`,
+          query: pathQuery,
+        })
+      );
       return;
     }
 
-    router.push({
-      pathname: `/organizations/${organization.slug}/dashboard/${id}/`,
-      query: pathQuery,
-    });
+    router.push(
+      normalizeUrl({
+        pathname: `/organizations/${organization.slug}/dashboard/${id}/`,
+        query: pathQuery,
+      })
+    );
   }
 
   function isFormInvalid() {

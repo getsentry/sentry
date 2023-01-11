@@ -20,6 +20,7 @@ import {
   trackIntegrationAnalytics,
 } from 'sentry/utils/integrationUtil';
 import {singleLineRenderer} from 'sentry/utils/marked';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import AsyncView from 'sentry/views/asyncView';
 import AddIntegration from 'sentry/views/organizationIntegrations/addIntegration';
 
@@ -132,7 +133,7 @@ export default class IntegrationOrganizationLink extends AsyncView<Props, State>
     const {organization} = this.state;
     const orgId = organization && organization.slug;
     this.props.router.push(
-      `/settings/${orgId}/integrations/${data.provider.key}/${data.id}/`
+      normalizeUrl(`/settings/${orgId}/integrations/${data.provider.key}/${data.id}/`)
     );
   };
 

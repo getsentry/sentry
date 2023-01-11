@@ -12,6 +12,7 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Integration, IntegrationProvider, ObjectStatus} from 'sentry/types';
 import {getAlertText} from 'sentry/utils/integrationUtil';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
 
 import AbstractIntegrationDetailedView from './abstractIntegrationDetailedView';
@@ -126,7 +127,9 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
     // send the user to the configure integration view for that integration
     const {orgId} = this.props.params;
     this.props.router.push(
-      `/settings/${orgId}/integrations/${integration.provider.key}/${integration.id}/`
+      normalizeUrl(
+        `/settings/${orgId}/integrations/${integration.provider.key}/${integration.id}/`
+      )
     );
   };
 

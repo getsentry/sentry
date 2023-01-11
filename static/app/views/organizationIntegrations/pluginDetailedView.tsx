@@ -8,6 +8,7 @@ import ContextPickerModal from 'sentry/components/contextPickerModal';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {PluginProjectItem, PluginWithProjectList} from 'sentry/types';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
 
 import AbstractIntegrationDetailedView from './abstractIntegrationDetailedView';
@@ -115,7 +116,7 @@ class PluginDetailedView extends AbstractIntegrationDetailedView<
           needOrg={false}
           onFinish={path => {
             modalProps.closeModal();
-            router.push(path);
+            router.push(normalizeUrl(path));
           }}
         />
       ),

@@ -21,6 +21,7 @@ import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import useApi from 'sentry/utils/useApi';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {
   DashboardDetails,
   DashboardListItem,
@@ -130,13 +131,15 @@ function AddToDashboardModal({
         ? `/organizations/${organization.slug}/dashboards/new/widget/new/`
         : `/organizations/${organization.slug}/dashboard/${selectedDashboardId}/widget/new/`;
 
-    router.push({
-      pathname,
-      query: {
-        ...widgetAsQueryParams,
-        ...(selectedDashboard ? getSavedPageFilters(selectedDashboard) : {}),
-      },
-    });
+    router.push(
+      normalizeUrl({
+        pathname,
+        query: {
+          ...widgetAsQueryParams,
+          ...(selectedDashboard ? getSavedPageFilters(selectedDashboard) : {}),
+        },
+      })
+    );
     closeModal();
   }
 
