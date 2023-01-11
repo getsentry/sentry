@@ -138,7 +138,8 @@ class SpanTree {
         // updating anything before span.start_timestamp.
         if (
           parent.children.length > 0 &&
-          span.timestamp - parent.children[parent.children.length - 1].span.timestamp >
+          span.start_timestamp -
+            parent.children[parent.children.length - 1].span.timestamp >
             MISSING_INSTRUMENTATION_THRESHOLD_S
         ) {
           parent.children.push(
