@@ -12,6 +12,7 @@ import type {User} from './user';
  */
 export interface OrganizationSummary {
   avatar: Avatar;
+  codecovAccess: boolean;
   dateCreated: string;
   features: string[];
   id: string;
