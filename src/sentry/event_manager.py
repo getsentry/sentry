@@ -2454,7 +2454,7 @@ def should_create_group(client: Any, grouphash: str, type: GroupType) -> bool:
 
 def delete_slow_span_group_hashes(
     group_hashes: set[str], performance_problems: Sequence[PerformanceProblem]
-):
+) -> None:
     for problem in performance_problems:
         if problem.type == GroupType.PERFORMANCE_SLOW_SPAN and problem.fingerprint in group_hashes:
             group_hashes.remove(problem.fingerprint)
