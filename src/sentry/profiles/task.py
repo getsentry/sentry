@@ -162,13 +162,13 @@ def process_profile_task(
         )
         return
 
+    _track_outcome(profile=profile, project=project, outcome=Outcome.ACCEPTED)
+
     metrics.gauge(
         "process_profile.kafka_producer.queue.size",
-        len(_profiles_kafka_producer._KafkaProducer__producer),
+        len(_profiles_kafka_producer._KafkaProducer__producer),  # type: ignore
         sample_rate=1.0,
     )
-
-    _track_outcome(profile=profile, project=project, outcome=Outcome.ACCEPTED)
 
 
 SHOULD_SYMBOLICATE = frozenset(["cocoa", "rust"])
