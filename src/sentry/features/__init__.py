@@ -129,6 +129,7 @@ default_manager.add("organizations:performance-consecutive-db-issue", Organizati
 default_manager.add("organizations:performance-slow-db-issue", OrganizationFeature, True)
 default_manager.add("organizations:profiling", OrganizationFeature)
 default_manager.add("organizations:profiling-flamechart-spans", OrganizationFeature, True)
+default_manager.add("organizations:profiling-dashboard-redesign", OrganizationFeature, True)
 default_manager.add("organizations:project-event-date-limit", OrganizationFeature, True)
 default_manager.add("organizations:project-stats", OrganizationFeature, True)
 default_manager.add("organizations:related-events", OrganizationFeature)

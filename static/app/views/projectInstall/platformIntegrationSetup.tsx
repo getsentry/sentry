@@ -25,7 +25,7 @@ import PlatformHeaderButtonBar from './components/platformHeaderButtonBar';
 type Props = {
   integrationSlug: string;
   organization: Organization;
-} & RouteComponentProps<{orgId: string; platform: string; projectId: string}, {}> &
+} & RouteComponentProps<{platform: string; projectId: string}, {}> &
   AsyncComponent['props'];
 
 type State = {
@@ -82,9 +82,10 @@ class PlatformIntegrationSetup extends AsyncComponent<Props, State> {
   };
 
   redirectToNeutralDocs() {
-    const {orgId, projectId} = this.props.params;
+    const {organization} = this.props;
+    const {projectId} = this.props.params;
 
-    const url = `/organizations/${orgId}/projects/${projectId}/getting-started/`;
+    const url = `/organizations/${organization.slug}/projects/${projectId}/getting-started/`;
 
     browserHistory.push(url);
   }
@@ -106,14 +107,14 @@ class PlatformIntegrationSetup extends AsyncComponent<Props, State> {
   render() {
     const {organization, params} = this.props;
     const {installed, project} = this.state;
-    const {projectId, orgId, platform} = params;
+    const {projectId, platform} = params;
     const provider = this.provider;
 
     const platformIntegration = platforms.find(p => p.id === platform);
     if (!provider || !platformIntegration || !project) {
       return null;
     }
-    const gettingStartedLink = `/organizations/${orgId}/projects/${projectId}/getting-started/`;
+    const gettingStartedLink = `/organizations/${organization.slug}/projects/${projectId}/getting-started/`;
 
     // TODO: make dynamic when adding more integrations
     const docsLink =
