@@ -18,6 +18,20 @@ def process_message(message: Message[KafkaPayload]) -> None:
         metrics.timing("profiles.consumer.profile.size", len(message_dict["payload"]))
         profile = json.loads(message_dict["payload"], use_rapid_json=True)
 
+    tags = {"platform": profile["platform"]}
+
+    if "version" in profile and profile["version"]:
+        tags["version"] = profile["version"]
+        tags["format"] = "sample"
+    else:
+        tags["format"] = "legacy"
+
+    metrics.incr(
+        "process_profile.profile.format",
+        tags=tags,
+        sample_rate=1.0,
+    )
+
     profile.update(
         {
             "organization_id": message_dict["organization_id"],
