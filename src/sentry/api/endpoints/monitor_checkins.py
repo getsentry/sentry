@@ -22,7 +22,8 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.parameters import GLOBAL_PARAMS, MONITOR_PARAMS
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.models import CheckInStatus, Monitor, MonitorCheckIn, MonitorStatus, ProjectKey
+from sentry.models import CheckInStatus, Monitor, MonitorCheckIn, MonitorStatus, Project, ProjectKey
+from sentry.signals import first_cron_checkin_received, first_cron_monitor_created
 
 
 @region_silo_endpoint
@@ -127,6 +128,17 @@ class MonitorCheckInsEndpoint(MonitorEndpoint):
                 duration=result.get("duration"),
                 status=getattr(CheckInStatus, result["status"].upper()),
             )
+
+            if not project.flags.has_cron_checkins:
+                # Backfill users that already have cron monitors
+                if not project.flags.has_cron_monitors:
+                    first_cron_monitor_created.send_robust(
+                        project=project, user=None, sender=Project
+                    )
+                first_cron_checkin_received.send_robust(
+                    project=project, monitor_id=str(monitor.guid), sender=Project
+                )
+
             if checkin.status == CheckInStatus.ERROR and monitor.status != MonitorStatus.DISABLED:
                 if not monitor.mark_failed(last_checkin=checkin.date_added):
                     if isinstance(request.auth, ProjectKey):
