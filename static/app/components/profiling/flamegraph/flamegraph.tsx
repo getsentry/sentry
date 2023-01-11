@@ -263,7 +263,10 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
         !position.view.isEmpty() &&
         previousView?.model === FALLBACK_FLAMEGRAPH
       ) {
-        newView.setConfigView(position.view);
+        // We allow min width to be initialize to lower than view.minWidth because
+        // there is a chance that user zoomed into a span duration which may have been updated
+        // after the model was loaded (see L320)
+        newView.setConfigView(position.view, {width: {min: 0}});
       }
 
       return newView;
@@ -297,7 +300,7 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
       });
 
       // Initialize configView to whatever the flamegraph configView is
-      newView.setConfigView(flamegraphView?.configView);
+      newView.setConfigView(flamegraphView.configView, {width: {min: 0}});
 
       return newView;
     },
