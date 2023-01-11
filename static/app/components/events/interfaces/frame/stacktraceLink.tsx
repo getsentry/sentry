@@ -224,6 +224,15 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
 
   // Match found - display link to source
   if (match.config && match.sourceUrl) {
+    const showCodecovFeatures =
+      organization.features.includes('codecov-stacktrace-integration') &&
+      organization.codecovAccess;
+
+    const codecovUrl = match.sourceUrl.replaceAll(
+      new RegExp('github.com/.[^/]*', 'g'),
+      'app.codecov.io/gh'
+    );
+
     return (
       <CodeMappingButtonContainer columnQuantity={2}>
         <OpenInLink
@@ -236,6 +245,12 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
           </StyledIconWrapper>
           {t('Open this line in %s', match.config.provider.name)}
         </OpenInLink>
+        {showCodecovFeatures && (
+          <OpenInLink href={`${codecovUrl}`} openInNewTab>
+            {t('View Coverage Tests on Codecov')}
+            <StyledIconWrapper>{getIntegrationIcon('codecov', 'sm')}</StyledIconWrapper>
+          </OpenInLink>
+        )}
       </CodeMappingButtonContainer>
     );
   }

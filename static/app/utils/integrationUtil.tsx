@@ -11,6 +11,7 @@ import {
   IconJira,
   IconVsts,
 } from 'sentry/icons';
+import {IconCodeCov} from 'sentry/icons/iconCodeCov';
 import {t} from 'sentry/locale';
 import HookStore from 'sentry/stores/hookStore';
 import {
@@ -217,6 +218,8 @@ export const getIntegrationIcon = (
       return <IconJira size={iconSize} />;
     case 'vsts':
       return <IconVsts size={iconSize} />;
+    case 'codecov':
+      return <IconCodeCov size={iconSize} />;
     default:
       return <IconGeneric size={iconSize} />;
   }
