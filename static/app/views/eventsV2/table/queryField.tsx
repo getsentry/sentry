@@ -328,16 +328,7 @@ class QueryField extends Component<Props> {
           },
         };
       }
-      // Likely a tag that was deleted but left behind in a saved query
-      // Cook up a tag option so select control works.
-      return {
-        kind: FieldValueKind.TAG,
-        meta: {
-          name,
-          dataType: 'string',
-          unknown: true,
-        },
-      };
+      return null;
     }
     return null;
   }
