@@ -62,11 +62,3 @@ export const UserIcon = styled(IconUser)`
   margin-left: ${space(1)};
   color: ${p => p.theme.gray400};
 `;
-
-export const ActorContainer = styled('div')`
-  display: flex;
-  justify-content: center;
-  :hover {
-    cursor: default;
-  }
-`;
