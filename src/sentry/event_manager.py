@@ -2434,7 +2434,7 @@ def should_create_group(client: Any, grouphash: str, type: GroupType) -> bool:
             client.delete(grouphash)
             metrics.incr(
                 "performance.performance_issue.issue_will_be_created",
-                tags={"group_type": GROUP_TYPE_TO_TEXT.get(type, "Unknown Type")},
+                tags={"group_type": type.name},
                 sample_rate=1.0,
             )
 
