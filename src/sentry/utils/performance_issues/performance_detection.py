@@ -534,11 +534,13 @@ class SlowSpanDetector(PerformanceDetector):
                 offender_span_ids=spans_involved,
             )
 
+    # TODO: Temporarily set to true for now, but issues will not be created.
     def is_creation_allowed_for_organization(self, organization: Optional[Organization]) -> bool:
-        return True  # This detector is fully rolled out
+        return True
 
+    # TODO: Temporarily set to true for now, but issues will not be created.
     def is_creation_allowed_for_project(self, project: Optional[Project]) -> bool:
-        return True  # This should probably use the `n_plus_one_db.problem-creation` option, which is currently not in use
+        return True
 
     @classmethod
     def is_span_eligible(cls, span: Span) -> bool:
