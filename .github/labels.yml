@@ -187,6 +187,9 @@
 - name: 'Team: Backend'
   color: '8D5494'
   description: app-backend
+- name: 'Team: Core UI'
+  color: '8D5494'
+  description: ''
 - name: 'Team: Design'
   color: '8D5494'
   description: ''
