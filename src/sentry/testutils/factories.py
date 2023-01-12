@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import io
 import os
 import random
@@ -7,7 +5,7 @@ from binascii import hexlify
 from datetime import datetime
 from hashlib import sha1
 from importlib import import_module
-from typing import Any, List, Mapping, Optional, Sequence
+from typing import Any, List, Optional, Sequence
 from unittest import mock
 from uuid import uuid4
 
@@ -1082,9 +1080,9 @@ class Factories:
 
     @staticmethod
     @exempt_from_silo_limits()
-    def create_integration_external_issue(group=None, integration=None, key=None, **kwargs):
+    def create_integration_external_issue(group=None, integration=None, key=None):
         external_issue = ExternalIssue.objects.create(
-            organization_id=group.organization.id, integration_id=integration.id, key=key, **kwargs
+            organization_id=group.organization.id, integration_id=integration.id, key=key
         )
 
         GroupLink.objects.create(
@@ -1283,14 +1281,10 @@ class Factories:
     @staticmethod
     @exempt_from_silo_limits()
     def create_integration(
-        organization: Organization,
-        external_id: str,
-        oi_params: Mapping[str, Any] | None = None,
-        **integration_params: Any,
+        organization: Organization, external_id: str, **kwargs: Any
     ) -> Integration:
-        integration = Integration.objects.create(external_id=external_id, **integration_params)
-        organization_integration = integration.add_organization(organization)
-        organization_integration.update(**(oi_params or {}))
+        integration = Integration.objects.create(external_id=external_id, **kwargs)
+        integration.add_organization(organization)
 
         return integration
 

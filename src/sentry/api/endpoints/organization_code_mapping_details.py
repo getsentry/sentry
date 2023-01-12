@@ -10,8 +10,7 @@ from sentry.api.bases.organization import (
     OrganizationIntegrationsLoosePermission,
 )
 from sentry.api.serializers import serialize
-from sentry.models import RepositoryProjectPathConfig
-from sentry.services.hybrid_cloud.integration import integration_service
+from sentry.models import OrganizationIntegration, RepositoryProjectPathConfig
 
 from .organization_code_mappings import (
     OrganizationIntegrationMixin,
@@ -25,13 +24,13 @@ class OrganizationCodeMappingDetailsEndpoint(OrganizationEndpoint, OrganizationI
 
     def convert_args(self, request: Request, organization_slug, config_id, *args, **kwargs):
         args, kwargs = super().convert_args(request, organization_slug, config_id, *args, **kwargs)
-        ois = integration_service.get_organization_integrations(
-            organization_id=kwargs["organization"].id
-        )
+
         try:
             kwargs["config"] = RepositoryProjectPathConfig.objects.get(
                 id=config_id,
-                organization_integration__in=[oi.id for oi in ois],
+                organization_integration__in=OrganizationIntegration.objects.filter(
+                    organization=kwargs["organization"]
+                ).values_list("id", flat=True),
             )
         except RepositoryProjectPathConfig.DoesNotExist:
             raise Http404

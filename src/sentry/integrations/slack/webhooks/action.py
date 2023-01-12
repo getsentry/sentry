@@ -24,7 +24,6 @@ from sentry.integrations.slack.views.unlink_identity import build_unlinking_url
 from sentry.models import Group, InviteStatus, NotificationSetting, OrganizationMember
 from sentry.models.activity import ActivityIntegration
 from sentry.notifications.utils.actions import MessageAction
-from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.user import APIUser
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.types.integrations import ExternalProviders
@@ -371,15 +370,12 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
         return self.respond(body)
 
     def handle_unfurl(self, slack_request: SlackActionRequest, action: str) -> Response:
-        organization_integrations = integration_service.get_organization_integrations(
-            integration_id=slack_request.integration.id, limit=1
+        organizations = slack_request.integration.organizations.all()
+        analytics.record(
+            "integrations.slack.chart_unfurl_action",
+            organization_id=organizations[0].id,
+            action=action,
         )
-        if len(organization_integrations) > 0:
-            analytics.record(
-                "integrations.slack.chart_unfurl_action",
-                organization_id=organization_integrations[0].id,
-                action=action,
-            )
         payload = {"delete_original": "true"}
         try:
             requests_.post(slack_request.response_url, json=payload)

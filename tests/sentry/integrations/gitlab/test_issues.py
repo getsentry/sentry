@@ -5,7 +5,6 @@ import responses
 
 from fixtures.gitlab import GitLabTestCase
 from sentry.models import ExternalIssue
-from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -217,12 +216,11 @@ class GitlabIssuesTest(GitLabTestCase):
         )
         project_id = 10
         project_name = "This_is / a_project"
-        self.installation.org_integration = integration_service.update_organization_integration(
-            org_integration_id=self.installation.org_integration.id,
-            config={
-                "project_issue_defaults": {str(self.group.project_id): {"project": project_id}}
-            },
-        )
+        org_integration = self.installation.org_integration
+        org_integration.config["project_issue_defaults"] = {
+            str(self.group.project_id): {"project": project_id}
+        }
+        org_integration.save()
 
         responses.add(
             responses.GET,
@@ -283,12 +281,11 @@ class GitlabIssuesTest(GitLabTestCase):
         )
         project_id = 10
         project_name = "This_is / a_project"
-        self.installation.org_integration = integration_service.update_organization_integration(
-            org_integration_id=self.installation.org_integration.id,
-            config={
-                "project_issue_defaults": {str(self.group.project_id): {"project": project_id}}
-            },
-        )
+        org_integration = self.installation.org_integration
+        org_integration.config["project_issue_defaults"] = {
+            str(self.group.project_id): {"project": project_id}
+        }
+        org_integration.save()
 
         responses.add(
             responses.GET,

@@ -30,7 +30,8 @@ from sentry.utils.audit import create_audit_entry
 from sentry.utils.cursors import Cursor
 from sentry.utils.dates import to_datetime
 from sentry.utils.http import is_valid_origin, origin_from_request
-from sentry.utils.sdk import capture_exception
+from sentry.utils.numbers import format_grouped_length
+from sentry.utils.sdk import capture_exception, set_measurement
 
 from .authentication import ApiKeyAuthentication, TokenAuthentication
 from .paginator import BadPaginationError, Paginator
@@ -46,12 +47,6 @@ __all__ = [
 ]
 
 from ..services.hybrid_cloud.auth import ApiAuthentication, ApiAuthenticatorType
-from ..utils.pagination_factory import (
-    annotate_span_with_pagination_args,
-    clamp_pagination_per_page,
-    get_cursor,
-    get_paginator,
-)
 
 ONE_MINUTE = 60
 ONE_HOUR = ONE_MINUTE * 60
@@ -349,19 +344,24 @@ class Endpoint(APIView):
 
     def get_per_page(self, request: Request, default_per_page=100, max_per_page=100):
         try:
-            return clamp_pagination_per_page(
-                request.GET.get("per_page", default_per_page),
-                default_per_page=default_per_page,
-                max_per_page=max_per_page,
-            )
-        except ValueError as e:
-            raise ParseError(detail=str(e))
+            per_page = int(request.GET.get("per_page", default_per_page))
+        except ValueError:
+            raise ParseError(detail="Invalid per_page parameter.")
+
+        max_per_page = max(max_per_page, default_per_page)
+        if per_page > max_per_page:
+            raise ParseError(detail=f"Invalid per_page value. Cannot exceed {max_per_page}.")
+
+        return per_page
 
     def get_cursor_from_request(self, request: Request, cursor_cls=Cursor):
+        if not request.GET.get(self.cursor_name):
+            return
+
         try:
-            return get_cursor(request.GET.get(self.cursor_name), cursor_cls)
-        except ValueError as e:
-            raise ParseError(detail=str(e))
+            return cursor_cls.from_string(request.GET.get(self.cursor_name))
+        except ValueError:
+            raise ParseError(detail="Invalid cursor parameter.")
 
     def paginate(
         self,
@@ -377,26 +377,37 @@ class Endpoint(APIView):
         count_hits=None,
         **paginator_kwargs,
     ):
+        assert (paginator and not paginator_kwargs) or (paginator_cls and paginator_kwargs)
+
+        if response_kwargs is None:
+            response_kwargs = {}
+
+        per_page = self.get_per_page(request, default_per_page, max_per_page)
+
+        input_cursor = self.get_cursor_from_request(request, cursor_cls=cursor_cls)
+
+        if not paginator:
+            paginator = paginator_cls(**paginator_kwargs)
+
         try:
-            per_page = self.get_per_page(request, default_per_page, max_per_page)
-            cursor = self.get_cursor_from_request(request, cursor_cls)
             with sentry_sdk.start_span(
                 op="base.paginate.get_result",
                 description=type(self).__name__,
             ) as span:
-                annotate_span_with_pagination_args(span, per_page)
-                paginator = get_paginator(paginator, paginator_cls, paginator_kwargs)
-                result_args = dict(count_hits=count_hits) if count_hits is not None else dict()
+                span.set_data("Limit", per_page)
+                set_measurement("query.per_page", per_page)
+                sentry_sdk.set_tag("query.per_page", per_page)
+                sentry_sdk.set_tag(
+                    "query.per_page.grouped", format_grouped_length(per_page, [1, 10, 50, 100])
+                )
+                result_kwargs = {}
+                if count_hits is not None:
+                    result_kwargs["count_hits"] = count_hits
                 cursor_result = paginator.get_result(
-                    limit=per_page,
-                    cursor=cursor,
-                    **result_args,
+                    limit=per_page, cursor=input_cursor, **result_kwargs
                 )
         except BadPaginationError as e:
             raise ParseError(detail=str(e))
-
-        if response_kwargs is None:
-            response_kwargs = {}
 
         # map results based on callback
         if on_results:
@@ -409,7 +420,9 @@ class Endpoint(APIView):
             results = cursor_result.results
 
         response = response_cls(results, **response_kwargs)
+
         self.add_cursor_headers(request, response, cursor_result)
+
         return response
 
 

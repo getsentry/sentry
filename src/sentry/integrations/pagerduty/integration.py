@@ -88,7 +88,7 @@ class PagerDutyIntegration(IntegrationInstallation):
 
             with transaction.atomic():
                 existing_service_items = PagerDutyService.objects.filter(
-                    organization_integration_id=self.org_integration.id
+                    organization_integration=self.org_integration
                 )
 
                 for service_item in existing_service_items:
@@ -108,7 +108,7 @@ class PagerDutyIntegration(IntegrationInstallation):
                     service_name = row["service"]
                     key = row["integration_key"]
                     PagerDutyService.objects.create(
-                        organization_integration_id=self.org_integration.id,
+                        organization_integration=self.org_integration,
                         service_name=service_name,
                         integration_key=key,
                     )
@@ -123,9 +123,7 @@ class PagerDutyIntegration(IntegrationInstallation):
 
     @property
     def services(self):
-        services = PagerDutyService.objects.filter(
-            organization_integration_id=self.org_integration.id
-        )
+        services = PagerDutyService.objects.filter(organization_integration=self.org_integration)
 
         return services
 

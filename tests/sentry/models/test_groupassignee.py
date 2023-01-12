@@ -4,7 +4,14 @@ import pytest
 
 from sentry.integrations.example.integration import ExampleIntegration
 from sentry.integrations.utils import sync_group_assignee_inbound
-from sentry.models import Activity, ExternalIssue, GroupAssignee, GroupLink
+from sentry.models import (
+    Activity,
+    ExternalIssue,
+    GroupAssignee,
+    GroupLink,
+    Integration,
+    OrganizationIntegration,
+)
 from sentry.services.hybrid_cloud.user import user_service
 from sentry.testutils import TestCase
 from sentry.testutils.silo import region_silo_test
@@ -115,19 +122,19 @@ class GroupAssigneeTestCase(TestCase):
     @mock.patch.object(ExampleIntegration, "sync_assignee_outbound")
     def test_assignee_sync_outbound_assign(self, mock_sync_assignee_outbound):
         group = self.group
-        integration = self.create_integration(
-            organization=group.organization,
-            external_id="123456",
-            provider="example",
-            oi_params={
-                "config": {
-                    "sync_comments": True,
-                    "sync_status_outbound": True,
-                    "sync_status_inbound": True,
-                    "sync_assignee_outbound": True,
-                    "sync_assignee_inbound": True,
-                }
-            },
+        integration = Integration.objects.create(provider="example", external_id="123456")
+        integration.add_organization(group.organization, self.user)
+
+        OrganizationIntegration.objects.filter(
+            integration_id=integration.id, organization_id=group.organization.id
+        ).update(
+            config={
+                "sync_comments": True,
+                "sync_status_outbound": True,
+                "sync_status_inbound": True,
+                "sync_assignee_outbound": True,
+                "sync_assignee_inbound": True,
+            }
         )
 
         external_issue = ExternalIssue.objects.create(
@@ -165,20 +172,19 @@ class GroupAssigneeTestCase(TestCase):
     @mock.patch.object(ExampleIntegration, "sync_assignee_outbound")
     def test_assignee_sync_outbound_unassign(self, mock_sync_assignee_outbound):
         group = self.group
+        integration = Integration.objects.create(provider="example", external_id="123456")
+        integration.add_organization(group.organization, self.user)
 
-        integration = self.create_integration(
-            organization=group.organization,
-            external_id="123456",
-            provider="example",
-            oi_params={
-                "config": {
-                    "sync_comments": True,
-                    "sync_status_outbound": True,
-                    "sync_status_inbound": True,
-                    "sync_assignee_outbound": True,
-                    "sync_assignee_inbound": True,
-                }
-            },
+        OrganizationIntegration.objects.filter(
+            integration_id=integration.id, organization_id=group.organization.id
+        ).update(
+            config={
+                "sync_comments": True,
+                "sync_status_outbound": True,
+                "sync_status_inbound": True,
+                "sync_assignee_outbound": True,
+                "sync_assignee_inbound": True,
+            }
         )
 
         external_issue = ExternalIssue.objects.create(
@@ -212,20 +218,19 @@ class GroupAssigneeTestCase(TestCase):
         group = self.group
         user_no_access = self.create_user()
         user_w_access = self.user
+        integration = Integration.objects.create(provider="example", external_id="123456")
+        integration.add_organization(group.organization, user_no_access)
 
-        integration = self.create_integration(
-            organization=group.organization,
-            external_id="123456",
-            provider="example",
-            oi_params={
-                "config": {
-                    "sync_comments": True,
-                    "sync_status_outbound": True,
-                    "sync_status_inbound": True,
-                    "sync_assignee_outbound": True,
-                    "sync_assignee_inbound": True,
-                }
-            },
+        OrganizationIntegration.objects.filter(
+            integration_id=integration.id, organization_id=group.organization.id
+        ).update(
+            config={
+                "sync_comments": True,
+                "sync_status_outbound": True,
+                "sync_status_inbound": True,
+                "sync_assignee_outbound": True,
+                "sync_assignee_inbound": True,
+            }
         )
 
         external_issue = ExternalIssue.objects.create(
@@ -270,19 +275,19 @@ class GroupAssigneeTestCase(TestCase):
 
     def test_assignee_sync_inbound_deassign(self):
         group = self.group
-        integration = self.create_integration(
-            organization=group.organization,
-            external_id="123456",
-            provider="example",
-            oi_params={
-                "config": {
-                    "sync_comments": True,
-                    "sync_status_outbound": True,
-                    "sync_status_inbound": True,
-                    "sync_assignee_outbound": True,
-                    "sync_assignee_inbound": True,
-                }
-            },
+        integration = Integration.objects.create(provider="example", external_id="123456")
+        integration.add_organization(group.organization, self.user)
+
+        OrganizationIntegration.objects.filter(
+            integration_id=integration.id, organization_id=group.organization.id
+        ).update(
+            config={
+                "sync_comments": True,
+                "sync_status_outbound": True,
+                "sync_status_inbound": True,
+                "sync_assignee_outbound": True,
+                "sync_assignee_inbound": True,
+            }
         )
 
         external_issue = ExternalIssue.objects.create(

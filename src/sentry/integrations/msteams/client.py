@@ -3,7 +3,6 @@ from urllib.parse import urlencode
 
 from sentry import options
 from sentry.integrations.client import ApiClient
-from sentry.services.hybrid_cloud.integration import integration_service
 
 # five minutes which is industry standard clock skew tolerance
 CLOCK_SKEW = 60 * 5
@@ -97,18 +96,10 @@ class MsTeamsClient(MsTeamsAbstractClient):
 
         # if the token is expired, refresh it and save  it
         if expires_at <= int(time.time()):
-            from copy import deepcopy
-
-            new_metadata = deepcopy(self.integration.metadata)
-
             token_data = get_token_data()
             access_token = token_data["access_token"]
-            new_metadata.update(token_data)
-
-            self.integration = integration_service.update_integration(
-                integration_id=self.integration.id,
-                metadata=new_metadata,
-            )
+            self.metadata.update(token_data)
+            self.integration.save()
         return access_token
 
 

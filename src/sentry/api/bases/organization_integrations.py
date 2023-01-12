@@ -3,11 +3,7 @@ from rest_framework.request import Request
 
 from sentry.api.bases.integration import IntegrationEndpoint
 from sentry.api.bases.organization import OrganizationIntegrationsPermission
-from sentry.services.hybrid_cloud.integration import (
-    APIIntegration,
-    APIOrganizationIntegration,
-    integration_service,
-)
+from sentry.models import Integration, OrganizationIntegration
 
 
 class OrganizationIntegrationBaseEndpoint(IntegrationEndpoint):
@@ -35,7 +31,7 @@ class OrganizationIntegrationBaseEndpoint(IntegrationEndpoint):
             raise Http404
 
     @staticmethod
-    def get_organization_integration(organization, integration_id) -> APIOrganizationIntegration:
+    def get_organization_integration(organization, integration_id):
         """
         Get just the cross table entry.
         Note: This will still return organization integrations that are pending deletion.
@@ -44,15 +40,16 @@ class OrganizationIntegrationBaseEndpoint(IntegrationEndpoint):
         :param integration_id:
         :return:
         """
-        org_integration = integration_service.get_organization_integration(
-            integration_id=integration_id, organization_id=organization.id
-        )
-        if not org_integration:
+        try:
+            return OrganizationIntegration.objects.get(
+                integration_id=integration_id,
+                organization=organization,
+            )
+        except OrganizationIntegration.DoesNotExist:
             raise Http404
-        return org_integration
 
     @staticmethod
-    def get_integration(organization, integration_id) -> APIIntegration:
+    def get_integration(organization, integration_id):
         """
         Note: The integration may still exist even when the
         OrganizationIntegration cross table entry has been deleted.
@@ -61,9 +58,7 @@ class OrganizationIntegrationBaseEndpoint(IntegrationEndpoint):
         :param integration_id:
         :return:
         """
-        integration, org_integration = integration_service.get_organization_context(
-            organization_id=organization, integration_id=integration_id
-        )
-        if not integration or not org_integration:
+        try:
+            return Integration.objects.get(id=integration_id, organizations=organization)
+        except Integration.DoesNotExist:
             raise Http404
-        return integration

@@ -17,7 +17,6 @@ from sentry.models import (
     IntegrationExternalProject,
     OrganizationIntegration,
 )
-from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.user import user_service
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.testutils import APITestCase
@@ -312,11 +311,12 @@ class JiraServerIntegrationTest(APITestCase):
                 "reporter",
                 "versions",
             ]
+
+            self.installation.org_integration.config = {
+                "issues_ignored_fields": ["customfield_10200"]
+            }
             # After ignoring "customfield_10200", it no longer shows up
-            self.installation.org_integration = integration_service.update_organization_integration(
-                org_integration_id=self.installation.org_integration.id,
-                config={"issues_ignored_fields": ["customfield_10200"]},
-            )
+            self.installation.org_integration.save()
             fields = self.installation.get_create_issue_config(group, self.user)
             field_names = [field["name"] for field in fields]
             assert field_names == [
@@ -349,11 +349,10 @@ class JiraServerIntegrationTest(APITestCase):
             project_id=self.project.id,
         )
         group = event.group
-
-        self.installation.org_integration = integration_service.update_organization_integration(
-            org_integration_id=self.installation.org_integration.id,
-            config={"project_issue_defaults": {str(group.project_id): {"project": "10001"}}},
-        )
+        self.installation.org_integration.config = {
+            "project_issue_defaults": {str(group.project_id): {"project": "10001"}}
+        }
+        self.installation.org_integration.save()
 
         with mock.patch.object(self.installation, "get_client", get_client):
             fields = self.installation.get_create_issue_config(
@@ -381,10 +380,10 @@ class JiraServerIntegrationTest(APITestCase):
             project_id=self.project.id,
         )
         group = event.group
-        self.installation.org_integration = integration_service.update_organization_integration(
-            org_integration_id=self.installation.org_integration.id,
-            config={"project_issue_defaults": {str(group.project_id): {"project": "10001"}}},
-        )
+        self.installation.org_integration.config = {
+            "project_issue_defaults": {str(group.project_id): {"project": "10001"}}
+        }
+        self.installation.org_integration.save()
 
         with mock.patch.object(self.installation, "get_client", get_client):
             fields = self.installation.get_create_issue_config(group, self.user)
@@ -411,10 +410,10 @@ class JiraServerIntegrationTest(APITestCase):
             project_id=self.project.id,
         )
         group = event.group
-        self.installation.org_integration = integration_service.update_organization_integration(
-            org_integration_id=self.installation.org_integration.id,
-            config={"project_issue_defaults": {str(group.project_id): {"project": "10004"}}},
-        )
+        self.installation.org_integration.config = {
+            "project_issue_defaults": {str(group.project_id): {"project": "10004"}}
+        }
+        self.installation.org_integration.save()
 
         with mock.patch.object(self.installation, "get_client", get_client):
             mock_get_issue_fields_return_value = json.loads(
@@ -455,10 +454,10 @@ class JiraServerIntegrationTest(APITestCase):
         group = event.group
         label_default = "hi"
 
-        self.installation.org_integration = integration_service.update_organization_integration(
-            org_integration_id=self.installation.org_integration.id,
-            config={"project_issue_defaults": {str(group.project_id): {"labels": label_default}}},
-        )
+        self.installation.org_integration.config = {
+            "project_issue_defaults": {str(group.project_id): {"labels": label_default}}
+        }
+        self.installation.org_integration.save()
 
         with mock.patch.object(self.installation, "get_client", get_client):
             fields = self.installation.get_create_issue_config(group, self.user)
