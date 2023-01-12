@@ -67,10 +67,6 @@ export interface Organization extends OrganizationSummary {
   teamRoleList: TeamRole[];
   trustedRelays: Relay[];
   orgRole?: string;
-  /**
-   * @deprecated use orgRole instead
-   */
-  role?: string;
 }
 
 export type Team = {

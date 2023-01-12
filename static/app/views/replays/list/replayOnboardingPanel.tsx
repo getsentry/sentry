@@ -5,14 +5,38 @@ import emptyStateImg from 'sentry-images/spot/replays-empty-state.svg';
 import ButtonBar from 'sentry/components/buttonBar';
 import OnboardingPanel from 'sentry/components/onboardingPanel';
 import {t} from 'sentry/locale';
+import PreferencesStore from 'sentry/stores/preferencesStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 
 interface Props {
   children?: React.ReactNode;
 }
+type Breakpoints = {
+  large: string;
+  medium: string;
+  small: string;
+  xlarge: string;
+};
 
 export default function ReplayOnboardingPanel(props: Props) {
+  const preferences = useLegacyStore(PreferencesStore);
+
+  const breakpoints = preferences.collapsed
+    ? {
+        small: '800px',
+        medium: '992px',
+        large: '1210px',
+        xlarge: '1450px',
+      }
+    : {
+        small: '800px',
+        medium: '1175px',
+        large: '1375px',
+        xlarge: '1450px',
+      };
+
   return (
-    <OnboardingPanel image={<HeroImage src={emptyStateImg} />}>
+    <OnboardingPanel image={<HeroImage src={emptyStateImg} breakpoints={breakpoints} />}>
       <h3>{t('Get to the root cause faster')}</h3>
       <p>
         {t(
@@ -24,8 +48,8 @@ export default function ReplayOnboardingPanel(props: Props) {
   );
 }
 
-const HeroImage = styled('img')`
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+const HeroImage = styled('img')<{breakpoints: Breakpoints}>`
+  @media (min-width: ${p => p.breakpoints.small}) {
     user-select: none;
     position: absolute;
     top: 0;
@@ -37,19 +61,19 @@ const HeroImage = styled('img')`
     left: 50%;
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.breakpoints.medium}) {
     transform: translateX(-55%);
     width: 300px;
     min-width: 300px;
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
+  @media (min-width: ${p => p.breakpoints.large}) {
     transform: translateX(-60%);
     width: 380px;
     min-width: 380px;
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
+  @media (min-width: ${p => p.breakpoints.xlarge}) {
     transform: translateX(-65%);
     width: 420px;
     min-width: 420px;
