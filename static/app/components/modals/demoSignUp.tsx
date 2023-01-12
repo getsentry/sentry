@@ -11,18 +11,14 @@ import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import {
-  extraQueryParameter,
-  extraQueryParameterWithEmailV2,
-  urlAttachQueryParams,
-} from 'sentry/utils/demoMode';
+import {extraQueryParameter, urlAttachQueryParams} from 'sentry/utils/demoMode';
 
 type Props = ModalRenderProps;
 
-const DemoSignUpModalV2 = ({closeModal}: Props) => {
+const DemoSignUpModal = ({closeModal}: Props) => {
   const signupUrl = urlAttachQueryParams(
     'https://sentry.io/signup/',
-    extraQueryParameterWithEmailV2()
+    extraQueryParameter()
   );
   const demoUrl = urlAttachQueryParams(
     'https://sentry.io/_/demo/',
@@ -141,4 +137,4 @@ const CloseButton = styled(Button)`
   color: ${p => p.theme.textColor};
 `;
 
-export default DemoSignUpModalV2;
+export default DemoSignUpModal;

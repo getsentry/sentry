@@ -261,8 +261,8 @@ export async function openReprocessEventModal({
   openModal(deps => <ReprocessingEventModal {...deps} {...options} />, {onClose});
 }
 
-export async function demoSignupModalV2(options: ModalOptions = {}) {
-  const mod = await import('sentry/components/modals/demoSignUpV2');
+export async function demoSignupModal(options: ModalOptions = {}) {
+  const mod = await import('sentry/components/modals/demoSignUp');
   const {default: Modal, modalCss} = mod;
 
   openModal(deps => <Modal {...deps} {...options} />, {modalCss});

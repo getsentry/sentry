@@ -6,7 +6,7 @@ import ConfigStore from 'sentry/stores/configStore';
 
 export default function getGuidesContent(orgSlug: string | null): GuidesContent {
   if (ConfigStore.get('demoMode')) {
-    return getDemoModeGuidesV2();
+    return getDemoModeGuides();
   }
   return [
     {
@@ -261,7 +261,7 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
   ];
 }
 
-function getDemoModeGuidesV2(): GuidesContent {
+function getDemoModeGuides(): GuidesContent {
   return [
     {
       guide: 'sidebar_v2',
