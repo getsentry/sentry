@@ -170,7 +170,6 @@ export enum ReleaseComparisonChartType {
   ERROR_COUNT = 'errorCount',
   TRANSACTION_COUNT = 'transactionCount',
   FAILURE_RATE = 'failureRate',
-  SESSION_DURATION = 'sessionDuration',
 }
 
 export enum HealthStatsPeriodOption {

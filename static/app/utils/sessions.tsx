@@ -157,31 +157,6 @@ export function getSessionStatusRateSeries(
   );
 }
 
-export function getSessionP50Series(
-  groups: SessionApiResponse['groups'] = [],
-  intervals: SessionApiResponse['intervals'] = [],
-  field: SessionFieldWithOperation,
-  valueFormatter?: (value: number) => number
-): SeriesDataUnit[] {
-  return compact(
-    intervals.map((interval, i) => {
-      const meanValue = mean(
-        groups.map(group => group.series[field][i]).filter(v => !!v)
-      );
-
-      if (!meanValue) {
-        return null;
-      }
-
-      return {
-        name: interval,
-        value:
-          typeof valueFormatter === 'function' ? valueFormatter(meanValue) : meanValue,
-      };
-    })
-  );
-}
-
 export function getAdoptionSeries(
   releaseGroups: SessionApiResponse['groups'] = [],
   allGroups: SessionApiResponse['groups'] = [],
