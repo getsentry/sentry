@@ -19,7 +19,6 @@ import TextOverflow from 'sentry/components/textOverflow';
 import Tooltip from 'sentry/components/tooltip';
 import {IconAdd, IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {PageHeader} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
 import {Organization, Project, SentryApp} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
@@ -201,13 +200,13 @@ const ReleasesPromo = ({organization, project}: Props) => {
   return renderComponent(
     <Panel>
       <Container>
-        <StyledPageHeader>
+        <ContainerHeader>
           <h3>{t('Set up Releases')}</h3>
 
           <Button priority="default" size="sm" href={releasesSetupUrl} external>
             {t('Full Documentation')}
           </Button>
-        </StyledPageHeader>
+        </ContainerHeader>
 
         <p>
           {t(
@@ -327,8 +326,12 @@ const ReleasesPromo = ({organization, project}: Props) => {
   );
 };
 
-const StyledPageHeader = styled(PageHeader)`
+const ContainerHeader = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: ${space(3)};
+  min-height: 32px;
 
   h3 {
     margin: 0;
