@@ -11,18 +11,30 @@ type Props = {
   title: React.ReactNode;
   className?: string;
   help?: React.ReactNode;
+  renderOpenButton?: () => React.ReactNode;
   score?: React.ReactNode;
   trend?: React.ReactNode;
   trendStatus?: 'good' | 'bad';
 };
 
-function ScoreCard({title, score, help, trend, trendStatus, className}: Props) {
+function ScoreCard({
+  title,
+  score,
+  help,
+  trend,
+  trendStatus,
+  className,
+  renderOpenButton,
+}: Props) {
   return (
     <ScorePanel className={className}>
-      <HeaderTitle>
-        <Title>{title}</Title>
-        {help && <QuestionTooltip title={help} size="sm" position="top" />}
-      </HeaderTitle>
+      <HeaderWrapper>
+        <HeaderTitle>
+          <Title>{title}</Title>
+          {help && <QuestionTooltip title={help} size="sm" position="top" />}
+        </HeaderTitle>
+        {renderOpenButton?.()}
+      </HeaderWrapper>
 
       <ScoreWrapper>
         <Score>{score ?? '\u2014'}</Score>
@@ -68,6 +80,13 @@ export const Title = styled('div')`
   color: ${p => p.theme.headingColor};
   ${p => p.theme.overflowEllipsis};
   font-weight: 600;
+`;
+
+const HeaderWrapper = styled('div')`
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
 `;
 
 export const ScoreWrapper = styled('div')`

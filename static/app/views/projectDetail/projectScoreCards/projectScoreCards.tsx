@@ -1,4 +1,5 @@
 import styled from '@emotion/styled';
+import {Location} from 'history';
 
 import space from 'sentry/styles/space';
 import {
@@ -16,6 +17,7 @@ import ProjectVelocityScoreCard from './projectVelocityScoreCard';
 type Props = {
   hasSessions: boolean | null;
   isProjectStabilized: boolean;
+  location: Location;
   organization: Organization;
   selection: PageFilters;
   hasTransactions?: boolean;
@@ -30,6 +32,7 @@ function ProjectScoreCards({
   hasSessions,
   hasTransactions,
   query,
+  location,
   project,
 }: Props) {
   return (
@@ -65,6 +68,7 @@ function ProjectScoreCards({
           selection={selection}
           isProjectStabilized={isProjectStabilized}
           query={query}
+          location={location}
         />
       ) : (
         <ProjectApdexScoreCard
