@@ -8,7 +8,6 @@ import * as qs from 'query-string';
 import CompactSelect from 'sentry/components/compactSelect';
 import CompositeSelect from 'sentry/components/compositeSelect';
 import DropdownButton from 'sentry/components/dropdownButton';
-import TextOverflow from 'sentry/components/textOverflow';
 import {IconEllipsis} from 'sentry/icons/iconEllipsis';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -244,15 +243,18 @@ export const WidgetInteractiveTitle = ({
       options={menuOptions}
       value={chartSetting}
       onChange={handleChange}
-      renderWrapAs={TextOverflow}
       triggerProps={{borderless: true, size: 'zero'}}
     />
   );
 };
 
 const StyledCompactSelect = styled(CompactSelect)`
+  min-width: 0;
+  font-weight: 400;
+  margin: -${space(0.5)} -${space(0.75)} 0;
+
   button {
-    padding: ${space(0)};
+    padding: ${space(0.5)} ${space(0.75)};
     font-size: ${p => p.theme.fontSizeLarge};
   }
 `;
