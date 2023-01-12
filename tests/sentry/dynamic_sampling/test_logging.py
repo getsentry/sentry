@@ -1,7 +1,6 @@
 from unittest.mock import patch
 
-from sentry.dynamic_sampling.rules.logging import should_log_rules_change
-from sentry.dynamic_sampling.rules.utils import get_rule_hash
+from sentry.dynamic_sampling.rules import get_rule_hash, should_log_rules_change
 
 
 @patch(

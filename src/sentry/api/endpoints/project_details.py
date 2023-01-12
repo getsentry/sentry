@@ -23,8 +23,7 @@ from sentry.api.serializers.rest_framework.origin import OriginField
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import RESERVED_PROJECT_SLUGS
 from sentry.datascrubbing import validate_pii_config_update
-from sentry.dynamic_sampling.rules.base import generate_rules
-from sentry.dynamic_sampling.rules.utils import get_supported_biases_ids, get_user_biases
+from sentry.dynamic_sampling.rules import generate_rules, get_supported_biases_ids, get_user_biases
 from sentry.grouping.enhancer import Enhancements, InvalidEnhancerConfig
 from sentry.grouping.fingerprinting import FingerprintingRules, InvalidFingerprintingConfig
 from sentry.ingest.inbound_filters import FilterTypes

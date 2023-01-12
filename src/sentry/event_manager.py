@@ -53,10 +53,7 @@ from sentry.constants import (
     DataCategory,
 )
 from sentry.culprit import generate_culprit
-from sentry.dynamic_sampling.rules.data.latest_releases import (
-    LatestReleaseBias,
-    LatestReleaseParams,
-)
+from sentry.dynamic_sampling.rules import LatestReleaseBias, LatestReleaseParams
 from sentry.eventstore.processing import event_processing_store
 from sentry.eventtypes import (
     CspEvent,

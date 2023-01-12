@@ -6,10 +6,13 @@ import pytest
 from freezegun import freeze_time
 
 from sentry.constants import ObjectStatus
-from sentry.dynamic_sampling.rules.biases.ignore_health_checks_bias import HEALTH_CHECK_GLOBS
-from sentry.dynamic_sampling.rules.data.latest_releases import get_redis_client_for_ds
-from sentry.dynamic_sampling.rules.data.time_to_adoptions import Platform
-from sentry.dynamic_sampling.rules.utils import RESERVED_IDS, RuleType
+from sentry.dynamic_sampling.rules import (
+    HEALTH_CHECK_GLOBS,
+    RESERVED_IDS,
+    Platform,
+    RuleType,
+    get_redis_client_for_ds,
+)
 from sentry.models import ProjectKey
 from sentry.models.transaction_threshold import TransactionMetric
 from sentry.relay.config import ProjectConfig, get_project_config

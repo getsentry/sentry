@@ -6,7 +6,7 @@ from django.urls import reverse
 
 from sentry import audit_log
 from sentry.constants import RESERVED_PROJECT_SLUGS
-from sentry.dynamic_sampling.rules.utils import DEFAULT_BIASES
+from sentry.dynamic_sampling.rules import DEFAULT_BIASES
 from sentry.models import (
     ApiToken,
     AuditLogEntry,
