@@ -249,12 +249,13 @@ export const WidgetInteractiveTitle = ({
 };
 
 const StyledCompactSelect = styled(CompactSelect)`
+  /* Reset font-weight set by HeaderTitleLegend, buttons are already bold and
+   * setting this higher up causes it to trickle into the menues */
+  font-weight: normal;
+  margin: 0 -${space(0.5)};
   min-width: 0;
-  font-weight: 400;
-  margin: -${space(0.5)} -${space(0.75)} 0;
 
   button {
-    padding: ${space(0.5)} ${space(0.75)};
     font-size: ${p => p.theme.fontSizeLarge};
   }
 `;
