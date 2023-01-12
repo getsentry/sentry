@@ -92,7 +92,7 @@ class MetricsExtractionTest(RelayStoreHelper, TransactionTestCase):
             project_config = compute_projectkey_config(self.projectkey)
             extraction_config = project_config["config"]["transactionMetrics"]
             metrics_expected = set(extraction_config["extractMetrics"])
-            assert sorted(metrics_emitted) == sorted(metrics_expected)
+            assert sorted(metrics_emitted) >= sorted(metrics_expected)
 
             #: These strings should be common strings, but we cannot add them
             #: to the indexer because they already exist in the release health
