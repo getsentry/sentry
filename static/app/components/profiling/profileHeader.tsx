@@ -12,22 +12,22 @@ import {
 } from 'sentry/utils/profiling/routes';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useParams} from 'sentry/utils/useParams';
 import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
 
 interface ProfileHeaderProps {
+  eventId: string;
+  projectId: string;
   transaction: Event | null;
 }
 
-function ProfileHeader({transaction}: ProfileHeaderProps) {
-  const params = useParams();
+function ProfileHeader({transaction, projectId, eventId}: ProfileHeaderProps) {
   const location = useLocation();
   const organization = useOrganization();
-  const [profileGroup] = useProfileGroup();
+  const profileGroup = useProfileGroup();
 
   const transactionName = profileGroup.type === 'resolved' ? profileGroup.data.name : '';
-  const profileId = params.eventId ?? '';
-  const projectSlug = params.projectId ?? '';
+  const profileId = eventId ?? '';
+  const projectSlug = projectId ?? '';
 
   const transactionTarget = transaction?.id
     ? getTransactionDetailsUrl(organization.slug, `${projectSlug}:${transaction.id}`)

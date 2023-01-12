@@ -66,6 +66,7 @@ from sentry.models import (
     Integration,
     IntegrationFeature,
     Organization,
+    OrganizationMapping,
     OrganizationMember,
     OrganizationMemberTeam,
     PlatformExternalIssue,
@@ -91,7 +92,6 @@ from sentry.models import (
     UserReport,
 )
 from sentry.models.integrations.integration_feature import Feature, IntegrationTypes
-from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.releasefile import update_artifact_index
 from sentry.signals import project_created
 from sentry.snuba.dataset import Dataset
@@ -253,15 +253,17 @@ class Factories:
 
         org = Organization.objects.create(name=name, **kwargs)
         if owner:
-            Factories.create_member(organization=org, user=owner, role="owner")
+            Factories.create_member(organization=org, user_id=owner.id, role="owner")
         return org
 
     @staticmethod
     @exempt_from_silo_limits()
-    def create_organization_mapping(org, **kwargs):
-        kwargs.setdefault("slug", org.slug)
-        mapping = OrganizationMapping.objects.create(organization_id=org.id, **kwargs)
-        return mapping
+    def create_org_mapping(org, **kwds):
+        kwds.setdefault("organization_id", org.id)
+        kwds.setdefault("slug", org.slug)
+        kwds.setdefault("idempotency_key", uuid4().hex)
+        kwds.setdefault("region_name", "test-region")
+        return OrganizationMapping.objects.create(**kwds)
 
     @staticmethod
     @exempt_from_silo_limits()

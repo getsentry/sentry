@@ -64,9 +64,7 @@ describe('makeStackToColor', () => {
     const frames = [f(0, 'a')];
 
     const {colorBuffer} = makeFn(frames, makeColorMap, makeColorBucketTheme(LCH_LIGHT));
-    expect(colorBuffer.slice(0, 4)).toEqual([
-      0.9750000000000001, 0.7250000000000001, 0.7250000000000001, 1,
-    ]);
+    expect(colorBuffer.slice(0, 4)).toEqual([0.9625, 0.7125, 0.7125, 1]);
     expect(
       getDominantColor(colorBuffer.slice(0, 4) as [number, number, number, number])
     ).toBe('red');

@@ -5,6 +5,7 @@ import {Location} from 'history';
 
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -53,7 +54,7 @@ function ProfilingContent({location, router}: ProfilingContentProps) {
   const query = decodeScalar(location.query.query, '');
 
   const sort = formatSort<FieldType>(decodeScalar(location.query.sort), FIELDS, {
-    key: 'count()',
+    key: 'p99()',
     order: 'desc',
   });
 
@@ -125,7 +126,7 @@ function ProfilingContent({location, router}: ProfilingContentProps) {
         <NoProjectMessage organization={organization}>
           <StyledPageContent>
             <Layout.Header>
-              <StyledLayoutHeaderContent>
+              <Layout.HeaderContent>
                 <StyledHeading>
                   {t('Profiling')}
                   <PageHeadingQuestionTooltip
@@ -139,7 +140,9 @@ function ProfilingContent({location, router}: ProfilingContentProps) {
                     )}
                   />
                 </StyledHeading>
-                <HeadingActions>
+              </Layout.HeaderContent>
+              <Layout.HeaderActions>
+                <ButtonBar gap={1}>
                   <Button size="sm" onClick={onSetupProfilingClick}>
                     {t('Set Up Profiling')}
                   </Button>
@@ -159,8 +162,8 @@ function ProfilingContent({location, router}: ProfilingContentProps) {
                   >
                     {t('Join Discord')}
                   </Button>
-                </HeadingActions>
-              </StyledLayoutHeaderContent>
+                </ButtonBar>
+              </Layout.HeaderActions>
             </Layout.Header>
             <Layout.Body>
               <Layout.Main fullWidth>
@@ -243,21 +246,6 @@ type FieldType = typeof FIELDS[number];
 
 const StyledPageContent = styled(PageContent)`
   padding: 0;
-`;
-
-const StyledLayoutHeaderContent = styled(Layout.HeaderContent)`
-  display: flex;
-  justify-content: space-between;
-  flex-direction: row;
-`;
-
-const HeadingActions = styled('div')`
-  display: flex;
-  align-items: center;
-
-  button:not(:last-child) {
-    margin-right: ${space(1)};
-  }
 `;
 
 const StyledHeading = styled(PageHeading)`

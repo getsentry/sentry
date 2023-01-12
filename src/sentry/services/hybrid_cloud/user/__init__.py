@@ -21,6 +21,7 @@ class APIUser:
     pk: int = -1
     name: str = ""
     email: str = ""
+    emails: FrozenSet[str] = frozenset()
     username: str = ""
     actor_id: int = -1
     display_name: str = ""
@@ -39,6 +40,7 @@ class APIUser:
     roles: FrozenSet[str] = frozenset()
     permissions: FrozenSet[str] = frozenset()
     avatar: Optional[APIAvatar] = None
+    useremails: FrozenSet[APIUserEmail] = frozenset()
 
     def has_usable_password(self) -> bool:
         return self.password_usable
@@ -70,6 +72,13 @@ class APIAvatar:
     file_id: int = 0
     ident: str = ""
     avatar_type: str = "letter_avatar"
+
+
+@dataclass(frozen=True, eq=True)
+class APIUserEmail:
+    id: int = 0
+    email: str = ""
+    is_verified: bool = False
 
 
 class UserSerializeType(IntEnum):
@@ -144,21 +153,37 @@ class UserService(InterfaceWithLifecycle):
         else:
             return None
 
+    @abstractmethod
+    def query_users(
+        self,
+        user_ids: Optional[List[int]] = None,
+        is_active: Optional[bool] = None,
+        organization_id: Optional[int] = None,
+        project_ids: Optional[List[int]] = None,
+        team_ids: Optional[List[int]] = None,
+        is_active_memberteam: Optional[bool] = None,
+        emails: Optional[List[str]] = None,
+    ) -> List[User]:
+        pass
+
     # NOTE: In the future if this becomes RPC, we can avoid the double serialization problem by using a special type
     # with its own json serialization that allows pass through (ie, a string type that does not serialize into a string,
     # but rather validates itself as valid json and renders 'as is'.   Like "unescaped json text".
     @abstractmethod
     def serialize_users(
         self,
-        user_ids: Optional[List[int]] = None,
         *,
         detailed: UserSerializeType = UserSerializeType.SIMPLE,
         auth_context: AuthenticationContext
         | None = None,  # TODO: replace this with the as_user attribute
         as_user: User | APIUser | None = None,
         # Query filters:
+        user_ids: Optional[List[int]] = None,
         is_active: Optional[bool] = None,
         organization_id: Optional[int] = None,
+        project_ids: Optional[List[int]] = None,
+        team_ids: Optional[List[int]] = None,
+        is_active_memberteam: Optional[bool] = None,
         emails: Optional[List[str]] = None,
     ) -> List[Any]:
         """
@@ -182,6 +207,7 @@ class UserService(InterfaceWithLifecycle):
         args["is_superuser"] = user.is_superuser
         args["is_sentry_app"] = user.is_sentry_app
         args["password_usable"] = user.has_usable_password()
+        args["emails"] = frozenset([email.email for email in user.get_verified_emails()])
 
         # And process the _base_user_query special data additions
         permissions: FrozenSet[str] = frozenset({})
@@ -194,6 +220,19 @@ class UserService(InterfaceWithLifecycle):
             roles = frozenset(flatten(user.roles))
         args["roles"] = roles
 
+        useremails: FrozenSet[APIUserEmail] = frozenset({})
+        if hasattr(user, "useremails") and user.useremails is not None:
+            useremails = frozenset(
+                {
+                    APIUserEmail(
+                        id=e["id"],
+                        email=e["email"],
+                        is_verified=e["is_verified"],
+                    )
+                    for e in user.useremails
+                }
+            )
+        args["useremails"] = useremails
         avatar = user.avatar.first()
         if avatar is not None:
             avatar = APIAvatar(

@@ -246,7 +246,6 @@ class AvatarChooser extends Component<Props, State> {
               <AvatarSubmit className="form-actions">
                 {help && <AvatarHelp>{help}</AvatarHelp>}
                 <Button
-                  type="button"
                   priority="primary"
                   onClick={this.handleSaveSettings}
                   disabled={disabled || (avatarType === 'upload' && !dataUrl)}

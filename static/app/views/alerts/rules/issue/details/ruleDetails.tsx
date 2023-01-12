@@ -16,6 +16,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {ChangeData} from 'sentry/components/organizations/timeRangeSelector';
+import PageHeading from 'sentry/components/pageHeading';
 import PageTimeRangeSelector from 'sentry/components/pageTimeRangeSelector';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconCopy, IconEdit} from 'sentry/icons';
@@ -34,7 +35,7 @@ import Sidebar from './sidebar';
 type Props = AsyncComponent['props'] & {
   organization: Organization;
   project: Project;
-} & RouteComponentProps<{orgId: string; projectId: string; ruleId: string}, {}>;
+} & RouteComponentProps<{projectId: string; ruleId: string}, {}>;
 
 type State = AsyncComponent['state'] & {
   memberList: Member[];
@@ -61,12 +62,12 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
   }
 
   componentDidUpdate(prevProps: Props) {
-    const {params: prevParams} = prevProps;
-    const {params: currParams} = this.props;
+    const {organization: prevOrg, params: prevParams} = prevProps;
+    const {organization: currOrg, params: currParams} = this.props;
 
     if (
       prevParams.ruleId !== currParams.ruleId ||
-      prevParams.orgId !== currParams.orgId ||
+      prevOrg.slug !== currOrg.slug ||
       prevParams.projectId !== currParams.projectId
     ) {
       this.reloadData();
@@ -82,15 +83,20 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
   }
 
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
-    const {orgId, ruleId, projectId} = this.props.params;
+    const {organization} = this.props;
+    const {ruleId, projectId} = this.props.params;
     return [
       [
         'rule',
-        `/projects/${orgId}/${projectId}/rules/${ruleId}/`,
+        `/projects/${organization.slug}/${projectId}/rules/${ruleId}/`,
         {query: {expand: 'lastTriggered'}},
         {allowError: error => error.status === 404},
       ],
-      ['memberList', `/organizations/${orgId}/users/`, {query: {projectSlug: projectId}}],
+      [
+        'memberList',
+        `/organizations/${organization.slug}/users/`,
+        {query: {projectSlug: projectId}},
+      ],
     ];
   }
 
@@ -187,7 +193,8 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
   }
 
   renderIncompatibleAlert() {
-    const {orgId, projectId, ruleId} = this.props.params;
+    const {organization} = this.props;
+    const {projectId, ruleId} = this.props.params;
 
     const incompatibleRule = findIncompatibleRules(this.state.rule);
     if (
@@ -201,7 +208,7 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
             {
               link: (
                 <a
-                  href={`/organizations/${orgId}/alerts/rules/${projectId}/${ruleId}/`}
+                  href={`/organizations/${organization.slug}/alerts/rules/${projectId}/${ruleId}/`}
                 />
               ),
             }
@@ -214,7 +221,7 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
 
   renderBody() {
     const {params, location, organization, project} = this.props;
-    const {orgId, ruleId, projectId} = params;
+    const {ruleId, projectId} = params;
     const {cursor} = location.query;
     const {period, start, end, utc} = this.getDataDatetime();
     const {rule, memberList} = this.state;
@@ -236,7 +243,7 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
     }
 
     const duplicateLink = {
-      pathname: `/organizations/${orgId}/alerts/new/issue/`,
+      pathname: `/organizations/${organization.slug}/alerts/new/issue/`,
       query: {
         project: project.slug,
         duplicateRuleId: rule.id,
@@ -252,30 +259,35 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
         shouldForceProject
         forceProject={project}
       >
-        <SentryDocumentTitle title={rule.name} orgSlug={orgId} projectSlug={projectId} />
+        <SentryDocumentTitle
+          title={rule.name}
+          orgSlug={organization.slug}
+          projectSlug={projectId}
+        />
 
         <Layout.Header>
           <Layout.HeaderContent>
             <Breadcrumbs
               crumbs={[
-                {label: t('Alerts'), to: `/organizations/${orgId}/alerts/rules/`},
+                {
+                  label: t('Alerts'),
+                  to: `/organizations/${organization.slug}/alerts/rules/`,
+                },
                 {
                   label: rule.name,
                   to: null,
                 },
               ]}
             />
-            <Layout.Title>
-              <RuleName>
-                <IdBadge
-                  project={project}
-                  avatarSize={28}
-                  hideName
-                  avatarProps={{hasTooltip: true, tooltip: project.slug}}
-                />
-                {rule.name}
-              </RuleName>
-            </Layout.Title>
+            <RuleName>
+              <IdBadge
+                project={project}
+                avatarSize={28}
+                hideName
+                avatarProps={{hasTooltip: true, tooltip: project.slug}}
+              />
+              {rule.name}
+            </RuleName>
           </Layout.HeaderContent>
           <Layout.HeaderActions>
             <ButtonBar gap={1}>
@@ -285,7 +297,7 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
               <Button
                 size="sm"
                 icon={<IconEdit />}
-                to={`/organizations/${orgId}/alerts/rules/${projectId}/${ruleId}/`}
+                to={`/organizations/${organization.slug}/alerts/rules/${projectId}/${ruleId}/`}
                 onClick={() =>
                   trackAdvancedAnalyticsEvent('issue_alert_rule_details.edit_clicked', {
                     organization,
@@ -311,7 +323,6 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
             />
             <AlertChart
               organization={organization}
-              orgId={orgId}
               project={project}
               rule={rule}
               period={period ?? ''}
@@ -345,10 +356,10 @@ const StyledPageTimeRangeSelector = styled(PageTimeRangeSelector)`
   margin-bottom: ${space(2)};
 `;
 
-const RuleName = styled('div')`
-  display: grid;
-  grid-template-columns: max-content 1fr;
-  grid-column-gap: ${space(1)};
+const RuleName = styled(PageHeading)`
+  line-height: 40px;
+  display: flex;
+  gap: ${space(1)};
   align-items: center;
 `;
 

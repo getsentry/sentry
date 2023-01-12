@@ -19,6 +19,7 @@ from sentry.issues.ingest import save_issue_occurrence
 from sentry.issues.issue_occurrence import IssueOccurrence, IssueOccurrenceData
 from sentry.issues.json_schemas import EVENT_PAYLOAD_SCHEMA
 from sentry.utils import json, metrics
+from sentry.utils.batching_kafka_consumer import create_topics
 from sentry.utils.canonical import CanonicalKeyDict
 from sentry.utils.kafka_config import get_kafka_consumer_cluster_options
 
@@ -38,10 +39,12 @@ def get_occurrences_ingest_consumer(
 def create_ingest_occurences_consumer(
     topic_name: str, **options: Any
 ) -> StreamProcessor[KafkaPayload]:
+    kafka_cluster = settings.KAFKA_TOPICS[topic_name]["cluster"]
+    create_topics(kafka_cluster, [topic_name])
 
     consumer = KafkaConsumer(
         build_kafka_consumer_configuration(
-            get_kafka_consumer_cluster_options(settings.KAFKA_TOPICS[topic_name]["cluster"]),
+            get_kafka_consumer_cluster_options(kafka_cluster),
             auto_offset_reset="latest",
             group_id="occurrence-consumer",
         )

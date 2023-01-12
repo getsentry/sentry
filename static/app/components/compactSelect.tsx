@@ -109,7 +109,6 @@ export const CompactSelectControl = ({
           {isLoading && <StyledLoadingIndicator size={12} mini />}
           {hasValue && isClearable && !isLoading && (
             <ClearButton
-              type="button"
               size="zero"
               borderless
               onClick={() => props.clearValue()}

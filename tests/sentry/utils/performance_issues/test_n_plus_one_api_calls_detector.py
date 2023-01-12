@@ -1,10 +1,11 @@
-import unittest
 from typing import List
 
 import pytest
 
 from sentry.eventstore.models import Event
-from sentry.testutils.performance_issues.event_generators import EVENTS
+from sentry.models import ProjectOption
+from sentry.testutils import TestCase
+from sentry.testutils.performance_issues.event_generators import get_event
 from sentry.testutils.silo import region_silo_test
 from sentry.types.issues import GroupType
 from sentry.utils.performance_issues.performance_detection import (
@@ -17,7 +18,7 @@ from sentry.utils.performance_issues.performance_detection import (
 
 @region_silo_test
 @pytest.mark.django_db
-class NPlusOneAPICallsDetectorTest(unittest.TestCase):
+class NPlusOneAPICallsDetectorTest(TestCase):
     def setUp(self):
         super().setUp()
         self.settings = get_detection_settings()
@@ -28,7 +29,7 @@ class NPlusOneAPICallsDetectorTest(unittest.TestCase):
         return list(detector.stored_problems.values())
 
     def test_detects_problems_with_many_concurrent_calls_to_same_url(self):
-        event = EVENTS["n-plus-one-api-calls/n-plus-one-api-calls-in-issue-stream"]
+        event = get_event("n-plus-one-api-calls/n-plus-one-api-calls-in-issue-stream")
 
         problems = self.find_problems(event)
         assert self.find_problems(event) == [
@@ -71,8 +72,40 @@ class NPlusOneAPICallsDetectorTest(unittest.TestCase):
         assert problems[0].title == "N+1 API Calls"
 
     def test_does_not_detect_problem_with_concurrent_calls_to_different_urls(self):
-        event = EVENTS["n-plus-one-api-calls/not-n-plus-one-api-calls"]
+        event = get_event("n-plus-one-api-calls/not-n-plus-one-api-calls")
         assert self.find_problems(event) == []
+
+    def test_respects_feature_flag(self):
+        project = self.create_project()
+        event = get_event("n-plus-one-api-calls/n-plus-one-api-calls-in-issue-stream")
+
+        detector = NPlusOneAPICallsDetector(self.settings, event)
+
+        assert not detector.is_creation_allowed_for_organization(project.organization)
+
+        with self.feature({"organizations:performance-n-plus-one-api-calls-detector": True}):
+            assert detector.is_creation_allowed_for_organization(project.organization)
+
+    def test_respects_project_option(self):
+        project = self.create_project()
+        event = get_event("n-plus-one-api-calls/n-plus-one-api-calls-in-issue-stream")
+        event["project_id"] = project.id
+
+        settings = get_detection_settings(project.id)
+        detector = NPlusOneAPICallsDetector(settings, event)
+
+        assert detector.is_creation_allowed_for_project(project)
+
+        ProjectOption.objects.set_value(
+            project=project,
+            key="sentry:performance_issue_settings",
+            value={"n_plus_one_api_calls_detection_rate": 0.0},
+        )
+
+        settings = get_detection_settings(project.id)
+        detector = NPlusOneAPICallsDetector(settings, event)
+
+        assert not detector.is_creation_allowed_for_project(project)
 
 
 @pytest.mark.parametrize(
@@ -160,7 +193,7 @@ def test_rejects_ineligible_spans(span):
 
 @pytest.mark.parametrize(
     "event",
-    [EVENTS["n-plus-one-api-calls/not-n-plus-one-api-calls"]],
+    [get_event("n-plus-one-api-calls/not-n-plus-one-api-calls")],
 )
 def test_allows_eligible_events(event):
     assert NPlusOneAPICallsDetector.is_event_eligible(event)

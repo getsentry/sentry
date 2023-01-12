@@ -6,6 +6,7 @@ import {Location} from 'history';
 import Feature from 'sentry/components/acl/feature';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
+import PageHeading from 'sentry/components/pageHeading';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
@@ -70,19 +71,17 @@ export default function SpanDetailsContentWrapper(props: Props) {
             tab={Tab.Spans}
             spanSlug={spanSlug}
           />
-          <Layout.Title>
-            <TransactionName>
-              {project && (
-                <IdBadge
-                  project={project}
-                  avatarSize={28}
-                  hideName
-                  avatarProps={{hasTooltip: true, tooltip: project.slug}}
-                />
-              )}
-              {transactionName}
-            </TransactionName>
-          </Layout.Title>
+          <TransactionName>
+            {project && (
+              <IdBadge
+                project={project}
+                avatarSize={28}
+                hideName
+                avatarProps={{hasTooltip: true, tooltip: project.slug}}
+              />
+            )}
+            {transactionName}
+          </TransactionName>
         </Layout.HeaderContent>
       </Layout.Header>
       <Layout.Body>
@@ -155,10 +154,10 @@ export default function SpanDetailsContentWrapper(props: Props) {
   );
 }
 
-const TransactionName = styled('div')`
-  display: grid;
-  grid-template-columns: max-content 1fr;
-  grid-column-gap: ${space(1)};
+const TransactionName = styled(PageHeading)`
+  line-height: 40px;
+  display: flex;
+  gap: ${space(1)};
   align-items: center;
 `;
 

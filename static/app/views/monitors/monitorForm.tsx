@@ -2,12 +2,13 @@ import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 import {Observer} from 'mobx-react';
 
-import Field from 'sentry/components/forms/field';
+import FieldGroup from 'sentry/components/forms/fieldGroup';
 import NumberField from 'sentry/components/forms/fields/numberField';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import TextField from 'sentry/components/forms/fields/textField';
 import Form, {FormProps} from 'sentry/components/forms/form';
 import FormModel from 'sentry/components/forms/model';
+import ExternalLink from 'sentry/components/links/externalLink';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
@@ -135,11 +136,11 @@ class MonitorForm extends Component<Props> {
 
           <PanelBody>
             {monitor && (
-              <Field label={t('ID')}>
+              <FieldGroup label={t('ID')}>
                 <div className="controls">
                   <TextCopyInput>{monitor.id}</TextCopyInput>
                 </div>
-              </Field>
+              </FieldGroup>
             )}
             <SelectField
               name="project"
@@ -192,7 +193,9 @@ class MonitorForm extends Component<Props> {
                           help={tct(
                             'Any schedule changes will be applied to the next check-in. See [link:Wikipedia] for crontab syntax.',
                             {
-                              link: <a href="https://en.wikipedia.org/wiki/Cron" />,
+                              link: (
+                                <ExternalLink href="https://en.wikipedia.org/wiki/Cron" />
+                              ),
                             }
                           )}
                         />
@@ -209,8 +212,8 @@ class MonitorForm extends Component<Props> {
                   case 'interval':
                     return (
                       <Fragment>
-                        <FieldGroup>
-                          <Field
+                        <CombinedField>
+                          <FieldGroup
                             label={t('Frequency')}
                             help={t(
                               'The amount of time between each job execution. Example, every 5 hours.'
@@ -232,7 +235,7 @@ class MonitorForm extends Component<Props> {
                             hideLabel
                             required
                           />
-                        </FieldGroup>
+                        </CombinedField>
                         <NumberField
                           name="config.checkin_margin"
                           label={t('Check-in Margin')}
@@ -255,7 +258,7 @@ class MonitorForm extends Component<Props> {
   }
 }
 
-const FieldGroup = styled('div')`
+const CombinedField = styled('div')`
   display: grid;
   grid-template-columns: 50% 1fr 1fr;
   align-items: center;

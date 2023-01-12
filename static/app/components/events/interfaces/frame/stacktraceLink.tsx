@@ -17,13 +17,7 @@ import type {PlatformKey} from 'sentry/data/platformCategories';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import type {
-  Event,
-  Frame,
-  Organization,
-  Project,
-  StacktraceLinkResult,
-} from 'sentry/types';
+import type {Event, Frame, Organization, Project} from 'sentry/types';
 import {StacktraceLinkEvents} from 'sentry/utils/analytics/integrations/stacktraceLinkAnalyticsEvents';
 import {getAnalyicsDataForEvent} from 'sentry/utils/events';
 import {
@@ -32,13 +26,14 @@ import {
 } from 'sentry/utils/integrationUtil';
 import {isMobilePlatform} from 'sentry/utils/platform';
 import {promptIsDismissed} from 'sentry/utils/promptIsDismissed';
-import {useQuery, useQueryClient} from 'sentry/utils/queryClient';
+import {useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 
 import {OpenInContainer} from './openInContextLine';
 import StacktraceLinkModal from './stacktraceLinkModal';
+import useStacktraceLink from './useStacktraceLink';
 
 const supportedStacktracePlatforms: PlatformKey[] = [
   'go',
@@ -98,7 +93,7 @@ function StacktraceLinkSetup({organization, project, event}: StacktraceLinkSetup
         <StyledIconWrapper>{getIntegrationIcon('github', 'sm')}</StyledIconWrapper>
         {t('Add the GitHub or GitLab integration to jump straight to your source code')}
       </StyledLink>
-      <CloseButton type="button" priority="link" onClick={dismissPrompt}>
+      <CloseButton priority="link" onClick={dismissPrompt}>
         <IconClose size="xs" aria-label={t('Close')} />
       </CloseButton>
     </CodeMappingButtonContainer>
@@ -145,25 +140,17 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
 
   const isMobile = isMobileLanguage(event);
 
-  const query = {
-    file: frame.filename,
-    platform: event.platform,
-    commitId: event.release?.lastCommit?.id,
-    ...(event.sdk?.name && {sdkName: event.sdk.name}),
-    ...(frame.absPath && {absPath: frame.absPath}),
-    ...(frame.module && {module: frame.module}),
-    ...(frame.package && {package: frame.package}),
-  };
   const {
     data: match,
     isLoading,
     refetch,
-  } = useQuery<StacktraceLinkResult>(
-    [`/projects/${organization.slug}/${project?.slug}/stacktrace-link/`, {query}],
-    {staleTime: Infinity, retry: false}
-  );
+  } = useStacktraceLink({
+    event,
+    frame,
+    orgSlug: organization.slug,
+    projectSlug: project?.slug,
+  });
 
-  // Track stacktrace analytics after loaded
   useEffect(() => {
     if (isLoading || prompt.isLoading || !match) {
       return;
@@ -261,7 +248,6 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
     return (
       <CodeMappingButtonContainer columnQuantity={2}>
         <FixMappingButton
-          type="button"
           priority="link"
           icon={
             sourceCodeProviders.length === 1

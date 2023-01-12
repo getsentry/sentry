@@ -15,7 +15,9 @@ import FormModel from 'sentry/components/forms/model';
 import {Field} from 'sentry/components/forms/types';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
-import {SentryFunction} from 'sentry/types';
+import {Organization, SentryFunction} from 'sentry/types';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import withOrganization from 'sentry/utils/withOrganization';
 
 import SentryFunctionEnvironmentVariables from './sentryFunctionsEnvironmentVariables';
 import SentryFunctionSubscriptions from './sentryFunctionSubscriptions';
@@ -91,10 +93,10 @@ const formFields: Field[] = [
 function SentryFunctionDetails(props: Props) {
   const [form] = useState(() => new FormModel({transformData}));
 
-  const {orgId, functionSlug} = props.params;
-  const {sentryFunction} = props;
+  const {functionSlug} = props.params;
+  const {organization, sentryFunction} = props;
   const method = functionSlug ? 'PUT' : 'POST';
-  let endpoint = `/organizations/${orgId}/functions/`;
+  let endpoint = `/organizations/${organization.slug}/functions/`;
   if (functionSlug) {
     endpoint += `${functionSlug}/`;
   }
@@ -131,14 +133,14 @@ function SentryFunctionDetails(props: Props) {
 
   const handleSubmitSuccess = data => {
     addSuccessMessage(t('Sentry Function successfully saved.', data.name));
-    const baseUrl = `/settings/${orgId}/developer-settings/sentry-functions/`;
+    const baseUrl = `/settings/${organization.slug}/developer-settings/sentry-functions/`;
     const url = `${baseUrl}${data.slug}/`;
     if (sentryFunction) {
       addSuccessMessage(t('%s successfully saved.', data.name));
     } else {
       addSuccessMessage(t('%s successfully created.', data.name));
     }
-    browserHistory.push(url);
+    browserHistory.push(normalizeUrl(url));
   };
 
   function handleEditorChange(value, _event) {
@@ -209,14 +211,21 @@ type WrapperState = {
 } & AsyncComponent['state'];
 
 type WrapperProps = {
-  params: {orgId: string; functionSlug?: string};
+  organization: Organization;
+  params: {functionSlug?: string};
 } & AsyncComponent['props'];
 
 class SentryFunctionsWrapper extends AsyncComponent<WrapperProps, WrapperState> {
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
-    const {functionSlug, orgId} = this.props.params;
+    const {functionSlug} = this.props.params;
+    const {organization} = this.props;
     if (functionSlug) {
-      return [['sentryFunction', `/organizations/${orgId}/functions/${functionSlug}/`]];
+      return [
+        [
+          'sentryFunction',
+          `/organizations/${organization.slug}/functions/${functionSlug}/`,
+        ],
+      ];
     }
     return [];
   }
@@ -227,4 +236,4 @@ class SentryFunctionsWrapper extends AsyncComponent<WrapperProps, WrapperState> 
   }
 }
 
-export default SentryFunctionsWrapper;
+export default withOrganization(SentryFunctionsWrapper);

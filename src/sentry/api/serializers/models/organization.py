@@ -387,6 +387,7 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     access: frozenset[str]
     pendingAccessRequests: int
     onboardingTasks: OnboardingTasksSerializerResponse
+    codecovAccess: bool
 
 
 class DetailedOrganizationSerializer(OrganizationSerializer):
@@ -489,6 +490,7 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                     obj.get_option("sentry:join_requests", JOIN_REQUESTS_DEFAULT)
                 ),
                 "relayPiiConfig": str(obj.get_option("sentry:relay_pii_config") or "") or None,
+                "codecovAccess": bool(obj.flags.codecov_access),
             }
         )
 

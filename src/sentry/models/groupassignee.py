@@ -98,7 +98,7 @@ class GroupAssigneeManager(BaseManager):
 
         return {"new_assignment": created, "updated_assignment": bool(not created and affected)}
 
-    def deassign(self, group: Group, acting_user: User | None = None) -> None:
+    def deassign(self, group: Group, acting_user: User | APIUser | None = None) -> None:
         from sentry import features
         from sentry.integrations.utils import sync_group_assignee_outbound
         from sentry.models import Activity

@@ -77,7 +77,7 @@ function RuleListRow({
   function renderLastIncidentDate(): React.ReactNode {
     if (isIssueAlert(rule)) {
       if (!rule.lastTriggered) {
-        return t('Alerts not triggered yet');
+        return t('Alert not triggered yet');
       }
       return (
         <div>
@@ -88,7 +88,7 @@ function RuleListRow({
     }
 
     if (!rule.latestIncident) {
-      return t('Alerts not triggered yet');
+      return t('Alert not triggered yet');
     }
 
     if (activeIncident) {
@@ -393,7 +393,6 @@ function RuleListRow({
               position="bottom-end"
               triggerProps={{
                 'aria-label': t('Show more'),
-                'data-test-id': 'alert-row-actions',
                 size: 'xs',
                 icon: <IconEllipsis size="xs" />,
                 showChevron: false,

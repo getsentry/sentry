@@ -1,6 +1,6 @@
 import logging
 import warnings
-from typing import TYPE_CHECKING, Any, Sequence
+from typing import TYPE_CHECKING, Any, List, Sequence
 
 from django.contrib.auth.models import AbstractBaseUser
 from django.contrib.auth.models import UserManager as DjangoUserManager
@@ -23,6 +23,7 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.models import LostPasswordHash
+from sentry.models.outbox import ControlOutbox, OutboxCategory, OutboxScope, find_regions_for_user
 from sentry.services.hybrid_cloud.user import APIUser
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.utils.http import absolute_uri
@@ -284,6 +285,19 @@ class User(BaseModel, AbstractBaseUser):
         email_list = self.get_unverified_emails()
         for email in email_list:
             self.send_confirm_email_singular(email, is_new_user)
+
+    @staticmethod
+    def outboxes_for_update(identifier: int) -> List[ControlOutbox]:
+        return [
+            ControlOutbox(
+                shard_scope=OutboxScope.USER_SCOPE,
+                shard_identifier=identifier,
+                object_identifier=identifier,
+                category=OutboxCategory.USER_UPDATE,
+                region_name=region_name,
+            )
+            for region_name in find_regions_for_user(identifier)
+        ]
 
     def merge_to(from_user, to_user):
         # TODO: we could discover relations automatically and make this useful

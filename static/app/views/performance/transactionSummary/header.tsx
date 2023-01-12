@@ -9,6 +9,7 @@ import {CreateAlertFromViewButton} from 'sentry/components/createAlertButton';
 import FeatureBadge from 'sentry/components/featureBadge';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
+import PageHeading from 'sentry/components/pageHeading';
 import {isProfilingSupportedOrProjectHasProfiles} from 'sentry/components/profiling/ProfilingOnboarding/util';
 import ReplayCountBadge from 'sentry/components/replays/replayCountBadge';
 import ReplaysFeatureBadge from 'sentry/components/replays/replaysFeatureBadge';
@@ -17,7 +18,7 @@ import {Item, TabList} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
-import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView from 'sentry/utils/discover/eventView';
 import {MetricsCardinalityContext} from 'sentry/utils/performance/contexts/metricsCardinality';
 import HasMeasurementsQuery from 'sentry/utils/performance/vitals/hasMeasurementsQuery';
@@ -57,10 +58,8 @@ function TransactionHeader({
   hasWebVitals,
 }: Props) {
   function handleCreateAlertSuccess() {
-    trackAnalyticsEvent({
-      eventKey: 'performance_views.summary.create_alert_clicked',
-      eventName: 'Performance Views: Create alert clicked',
-      organization_id: organization.id,
+    trackAdvancedAnalyticsEvent('performance_views.summary.create_alert_clicked', {
+      organization,
     });
   }
 
@@ -125,19 +124,17 @@ function TransactionHeader({
           }}
           tab={currentTab}
         />
-        <Layout.Title>
-          <TransactionName>
-            {project && (
-              <IdBadge
-                project={project}
-                avatarSize={28}
-                hideName
-                avatarProps={{hasTooltip: true, tooltip: project.slug}}
-              />
-            )}
-            {transactionName}
-          </TransactionName>
-        </Layout.Title>
+        <TransactionName>
+          {project && (
+            <IdBadge
+              project={project}
+              avatarSize={28}
+              hideName
+              avatarProps={{hasTooltip: true, tooltip: project.slug}}
+            />
+          )}
+          {transactionName}
+        </TransactionName>
       </Layout.HeaderContent>
       <Layout.HeaderActions>
         <ButtonBar gap={1}>
@@ -228,10 +225,10 @@ function TransactionHeader({
   );
 }
 
-const TransactionName = styled('div')`
-  display: grid;
-  grid-template-columns: max-content 1fr;
-  grid-column-gap: ${space(1)};
+const TransactionName = styled(PageHeading)`
+  line-height: 40px;
+  display: flex;
+  gap: ${space(1)};
   align-items: center;
 `;
 

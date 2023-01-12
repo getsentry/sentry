@@ -25,6 +25,7 @@ import withRouteAnalytics, {
 } from 'sentry/utils/routeAnalytics/withRouteAnalytics';
 import slugify from 'sentry/utils/slugify';
 import withApi from 'sentry/utils/withApi';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
 // eslint-disable-next-line no-restricted-imports
 import withSentryRouter from 'sentry/utils/withSentryRouter';
@@ -123,7 +124,6 @@ class CreateProject extends Component<Props, State> {
             <Button
               borderless
               data-test-id="create-team"
-              type="button"
               icon={<IconAdd isCircled />}
               onClick={() =>
                 openCreateTeamModal({
@@ -138,6 +138,7 @@ class CreateProject extends Component<Props, State> {
         </div>
         <div>
           <Button
+            type="submit"
             data-test-id="create-project"
             priority="primary"
             disabled={!this.canSubmitForm}
@@ -237,7 +238,7 @@ class CreateProject extends Component<Props, State> {
 
       const platformKey = platform || 'other';
       const nextUrl = `/${organization.slug}/${projectData.slug}/getting-started/${platformKey}/`;
-      browserHistory.push(nextUrl);
+      browserHistory.push(normalizeUrl(nextUrl));
     } catch (err) {
       this.setState({
         inFlight: false,

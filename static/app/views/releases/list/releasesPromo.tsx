@@ -197,6 +197,7 @@ const ReleasesPromo = ({organization, project}: Props) => {
       ),
     };
   };
+
   return renderComponent(
     <Panel>
       <Container>
@@ -287,7 +288,7 @@ const ReleasesPromo = ({organization, project}: Props) => {
                       >
                         <MenuItemFooterWrapper>
                           <IconContainer>
-                            <IconAdd color="activeText" isCircled size="14px" />
+                            <IconAdd color="activeText" isCircled legacySize="14px" />
                           </IconContainer>
                           <Label>{t('Create New Integration')}</Label>
                         </MenuItemFooterWrapper>

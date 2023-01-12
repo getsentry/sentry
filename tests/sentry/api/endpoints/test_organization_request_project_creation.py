@@ -5,7 +5,7 @@ from sentry.testutils.silo import region_silo_test
 from sentry.utils.http import absolute_uri
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class OrganizationIntegrationRequestTest(APITestCase):
     endpoint = "sentry-api-0-organization-request-project-creation"
     method = "post"
