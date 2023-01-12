@@ -126,7 +126,6 @@ function NetworkList({networkSpans, startTimestampMs}: Props) {
                 cellRenderer={cellRenderer}
                 columnCount={COLUMN_COUNT}
                 columnWidth={getColumnWidth(width)}
-                deferredMeasurementCache={cache}
                 estimatedColumnSize={width}
                 estimatedRowSize={HEADER_HEIGHT + items.length * BODY_HEIGHT}
                 fixedRowCount={1}
