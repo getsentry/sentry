@@ -5,11 +5,12 @@ import pytest
 from django.utils import timezone
 from freezegun import freeze_time
 
-from sentry.dynamic_sampling.rules.biases.boost_latest_releases_bias import (
+from sentry.dynamic_sampling.rules import (
+    LATEST_RELEASE_TTAS,
     BoostLatestReleasesRulesGenerator,
+    ExtendedBoostedRelease,
+    Platform,
 )
-from sentry.dynamic_sampling.rules.data.latest_releases import ExtendedBoostedRelease
-from sentry.dynamic_sampling.rules.data.time_to_adoptions import LATEST_RELEASE_TTAS, Platform
 
 ONE_DAY_AGO = timezone.now() - timedelta(days=1)
 MOCK_DATETIME = ONE_DAY_AGO.replace(hour=10, minute=0, second=0, microsecond=0)

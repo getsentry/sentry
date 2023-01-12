@@ -3,20 +3,18 @@ from typing import List, cast
 
 from pytz import UTC
 
-from sentry.dynamic_sampling.rules.biases.base import (
-    Bias,
+from sentry.dynamic_sampling.rules import (
+    RELEASE_BOOST_FACTOR,
+    RESERVED_IDS,
+    BaseRule,
     BiasData,
     BiasDataProvider,
     BiasParams,
     BiasRulesGenerator,
-)
-from sentry.dynamic_sampling.rules.data.latest_releases import ProjectBoostedReleases
-from sentry.dynamic_sampling.rules.utils import (
-    RELEASE_BOOST_FACTOR,
-    RESERVED_IDS,
-    BaseRule,
+    ProjectBoostedReleases,
     RuleType,
 )
+from sentry.dynamic_sampling.rules.biases.base import Bias
 
 
 class BoostLatestReleasesDataProvider(BiasDataProvider):

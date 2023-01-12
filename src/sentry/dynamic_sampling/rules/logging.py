@@ -3,7 +3,7 @@ from typing import Dict, List, Union
 
 import sentry_sdk
 
-from sentry.dynamic_sampling.rules.utils import BaseRule, RuleType, get_rule_hash, get_rule_type
+from sentry.dynamic_sampling.rules import BaseRule, RuleType, get_rule_hash, get_rule_type
 
 logger = logging.getLogger("sentry.dynamic_sampling")
 

@@ -1,18 +1,16 @@
 from typing import List
 
-from sentry.dynamic_sampling.rules.biases.base import (
-    Bias,
+from sentry.dynamic_sampling.rules import (
+    HEALTH_CHECK_DROPPING_FACTOR,
+    RESERVED_IDS,
+    BaseRule,
     BiasData,
     BiasDataProvider,
     BiasParams,
     BiasRulesGenerator,
-)
-from sentry.dynamic_sampling.rules.utils import (
-    HEALTH_CHECK_DROPPING_FACTOR,
-    RESERVED_IDS,
-    BaseRule,
     RuleType,
 )
+from sentry.dynamic_sampling.rules.biases.base import Bias
 
 # https://kubernetes.io/docs/reference/using-api/health-checks/
 # Also it covers: livez, readyz

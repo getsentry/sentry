@@ -2,9 +2,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from sentry.dynamic_sampling.rules.biases.boost_environments_bias import (
-    BoostEnvironmentsRulesGenerator,
-)
+from sentry.dynamic_sampling.rules import BoostEnvironmentsRulesGenerator
 
 
 @pytest.mark.django_db

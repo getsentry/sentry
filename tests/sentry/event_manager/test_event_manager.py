@@ -25,10 +25,10 @@ from sentry.attachments import CachedAttachment, attachment_cache
 from sentry.constants import MAX_VERSION_LENGTH, DataCategory
 from sentry.dynamic_sampling.rules import (
     ExtendedBoostedRelease,
+    Platform,
     ProjectBoostedReleases,
     get_redis_client_for_ds,
 )
-from sentry.dynamic_sampling.rules.data.time_to_adoptions import Platform
 from sentry.event_manager import (
     EventManager,
     EventUser,
