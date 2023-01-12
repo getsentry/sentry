@@ -54,7 +54,7 @@ function ProfilingContent({location, router}: ProfilingContentProps) {
   const query = decodeScalar(location.query.query, '');
 
   const sort = formatSort<FieldType>(decodeScalar(location.query.sort), FIELDS, {
-    key: 'count()',
+    key: 'p99()',
     order: 'desc',
   });
 
