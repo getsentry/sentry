@@ -306,10 +306,15 @@ class ReplayQueryConfig(QueryConfig):
     replay_type = String(query_alias="replay_type")
     platform = String()
     releases = ListField()
+    release = ListField(query_alias="releases")
     dist = String()
     error_ids = ListField(query_alias="error_ids", is_uuid=True)
+    error_id = ListField(query_alias="error_ids", is_uuid=True)
     trace_ids = ListField(query_alias="trace_ids", is_uuid=True)
-    urls = ListField(field_alias="urls", query_alias="urls_sorted")
+    trace_id = ListField(query_alias="trace_ids", is_uuid=True)
+    trace = ListField(query_alias="trace_ids", is_uuid=True)
+    urls = ListField(query_alias="urls_sorted")
+    url = ListField(query_alias="urls_sorted")
     user_id = String(field_alias="user.id", query_alias="user_id")
     user_email = String(field_alias="user.email", query_alias="user_email")
     user_name = String(field_alias="user.name", query_alias="user_name")
@@ -446,13 +451,18 @@ FIELD_QUERY_ALIAS_MAP: Dict[str, List[str]] = {
     "platform": ["platform"],
     "environment": ["agg_environment"],
     "releases": ["releases"],
+    "release": ["releases"],
     "dist": ["dist"],
     "trace_ids": ["trace_ids"],
+    "trace_id": ["trace_ids"],
+    "trace": ["trace_ids"],
     "error_ids": ["error_ids"],
+    "error_id": ["error_ids"],
     "started_at": ["started_at"],
     "finished_at": ["finished_at"],
     "duration": ["duration", "started_at", "finished_at"],
     "urls": ["urls_sorted", "agg_urls"],
+    "url": ["urls_sorted", "agg_urls"],
     "count_errors": ["count_errors"],
     "count_urls": ["count_urls", "urls_sorted", "agg_urls"],
     "count_segments": ["count_segments"],
