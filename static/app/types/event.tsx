@@ -608,9 +608,9 @@ export type EventUser = {
 
 export type PerformanceDetectorData = {
   causeSpanIds: string[];
+  issueType: IssueType;
   offenderSpanIds: string[];
   parentSpanIds: string[];
-  issueType?: IssueType;
 };
 
 type EventEvidenceDisplay = {

@@ -83,11 +83,11 @@ const SpanEvidencePreviewBody = ({
 
   const spanInfo = data && getSpanInfoFromTransactionEvent(data);
 
-  if (spanInfo && data) {
+  if (spanInfo && data?.perfProblem) {
     return (
       <SpanEvidencePreviewWrapper data-test-id="span-evidence-preview-body">
         <SpanEvidenceKeyValueList
-          issueType={data?.perfProblem?.issueType}
+          issueType={data.perfProblem.issueType}
           transactionName={data.title}
           parentSpan={spanInfo.parentSpan}
           offendingSpans={spanInfo.offendingSpans}
