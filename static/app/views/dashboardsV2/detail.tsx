@@ -21,6 +21,7 @@ import {
 } from 'sentry/components/modals/widgetViewerModal/utils';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
+import PageHeading from 'sentry/components/pageHeading';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {usingCustomerDomain} from 'sentry/constants';
 import {t} from 'sentry/locale';
@@ -33,6 +34,7 @@ import EventView from 'sentry/utils/discover/eventView';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import withApi from 'sentry/utils/withApi';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
 import withProjects from 'sentry/utils/withProjects';
 import {
@@ -174,13 +176,15 @@ class DashboardDetail extends Component<Props, State> {
           onEdit: () => {
             const widgetIndex = dashboard.widgets.indexOf(widget);
             if (dashboardId) {
-              router.push({
-                pathname: `/organizations/${organization.slug}/dashboard/${dashboardId}/widget/${widgetIndex}/edit/`,
-                query: {
-                  ...location.query,
-                  source: DashboardWidgetSource.DASHBOARDS,
-                },
-              });
+              router.push(
+                normalizeUrl({
+                  pathname: `/organizations/${organization.slug}/dashboard/${dashboardId}/widget/${widgetIndex}/edit/`,
+                  query: {
+                    ...location.query,
+                    source: DashboardWidgetSource.DASHBOARDS,
+                  },
+                })
+              );
               return;
             }
           },
@@ -464,13 +468,15 @@ class DashboardDetail extends Component<Props, State> {
     });
 
     if (dashboardId) {
-      router.push({
-        pathname: `/organizations/${organization.slug}/dashboard/${dashboardId}/widget/new/`,
-        query: {
-          ...location.query,
-          source: DashboardWidgetSource.DASHBOARDS,
-        },
-      });
+      router.push(
+        normalizeUrl({
+          pathname: `/organizations/${organization.slug}/dashboard/${dashboardId}/widget/new/`,
+          query: {
+            ...location.query,
+            source: DashboardWidgetSource.DASHBOARDS,
+          },
+        })
+      );
       return;
     }
   };
@@ -626,13 +632,13 @@ class DashboardDetail extends Component<Props, State> {
         <PageContent>
           <NoProjectMessage organization={organization}>
             <StyledPageHeader>
-              <StyledTitle>
+              <StyledHeading>
                 <DashboardTitle
                   dashboard={modifiedDashboard ?? dashboard}
                   onUpdate={this.setModifiedDashboard}
                   isEditing={this.isEditing}
                 />
-              </StyledTitle>
+              </StyledHeading>
               <Controls
                 organization={organization}
                 dashboards={dashboards}
@@ -759,13 +765,13 @@ class DashboardDetail extends Component<Props, State> {
                       },
                     ]}
                   />
-                  <Layout.Title>
+                  <StyledHeading>
                     <DashboardTitle
                       dashboard={modifiedDashboard ?? dashboard}
                       onUpdate={this.setModifiedDashboard}
                       isEditing={this.isEditing}
                     />
-                  </Layout.Title>
+                  </StyledHeading>
                 </Layout.HeaderContent>
                 <Layout.HeaderActions>
                   <Controls
@@ -921,8 +927,8 @@ const StyledPageHeader = styled('div')`
   }
 `;
 
-const StyledTitle = styled(Layout.Title)`
-  margin-top: 0;
+const StyledHeading = styled(PageHeading)`
+  line-height: 40px;
 `;
 
 const StyledPageContent = styled(PageContent)`

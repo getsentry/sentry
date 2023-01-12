@@ -5,6 +5,7 @@ import {SectionHeading} from 'sentry/components/charts/styles';
 import Clipboard from 'sentry/components/clipboard';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
+import PageHeading from 'sentry/components/pageHeading';
 import TimeSince from 'sentry/components/timeSince';
 import {IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -28,7 +29,7 @@ const MonitorHeader = ({monitor, orgId, onUpdate}: Props) => {
   const crumbs = [
     {
       label: t('Crons'),
-      to: `/organizations/${orgId}/crons`,
+      to: `/organizations/${orgId}/crons/`,
     },
     {
       label: t('Cron Monitor Details'),
@@ -39,17 +40,15 @@ const MonitorHeader = ({monitor, orgId, onUpdate}: Props) => {
     <Layout.Header>
       <Layout.HeaderContent>
         <Breadcrumbs crumbs={crumbs} />
-        <Layout.Title>
-          <MonitorName>
-            <IdBadge
-              project={monitor.project}
-              avatarSize={28}
-              hideName
-              avatarProps={{hasTooltip: true, tooltip: monitor.project.slug}}
-            />
-            {monitor.name}
-          </MonitorName>
-        </Layout.Title>
+        <MonitorName>
+          <IdBadge
+            project={monitor.project}
+            avatarSize={28}
+            hideName
+            avatarProps={{hasTooltip: true, tooltip: monitor.project.slug}}
+          />
+          {monitor.name}
+        </MonitorName>
         <Clipboard value={monitor.id}>
           <MonitorId>
             {monitor.id} <IconCopy size="xs" />
@@ -74,10 +73,10 @@ const MonitorHeader = ({monitor, orgId, onUpdate}: Props) => {
   );
 };
 
-const MonitorName = styled('div')`
-  display: grid;
-  grid-template-columns: max-content 1fr;
-  grid-column-gap: ${space(1)};
+const MonitorName = styled(PageHeading)`
+  line-height: 40px;
+  display: flex;
+  gap: ${space(1)};
   align-items: center;
 `;
 
@@ -94,6 +93,7 @@ const MonitorStats = styled('div')`
   grid-column-gap: ${space(4)};
   grid-row-gap: ${space(0.5)};
   margin-bottom: ${space(2)};
+  margin-top: ${space(1)};
 `;
 
 const MonitorStatLabel = styled(SectionHeading)`

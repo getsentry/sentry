@@ -16,6 +16,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {ChangeData} from 'sentry/components/organizations/timeRangeSelector';
+import PageHeading from 'sentry/components/pageHeading';
 import PageTimeRangeSelector from 'sentry/components/pageTimeRangeSelector';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconCopy, IconEdit} from 'sentry/icons';
@@ -278,17 +279,15 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
                 },
               ]}
             />
-            <Layout.Title>
-              <RuleName>
-                <IdBadge
-                  project={project}
-                  avatarSize={28}
-                  hideName
-                  avatarProps={{hasTooltip: true, tooltip: project.slug}}
-                />
-                {rule.name}
-              </RuleName>
-            </Layout.Title>
+            <RuleName>
+              <IdBadge
+                project={project}
+                avatarSize={28}
+                hideName
+                avatarProps={{hasTooltip: true, tooltip: project.slug}}
+              />
+              {rule.name}
+            </RuleName>
           </Layout.HeaderContent>
           <Layout.HeaderActions>
             <ButtonBar gap={1}>
@@ -357,10 +356,10 @@ const StyledPageTimeRangeSelector = styled(PageTimeRangeSelector)`
   margin-bottom: ${space(2)};
 `;
 
-const RuleName = styled('div')`
-  display: grid;
-  grid-template-columns: max-content 1fr;
-  grid-column-gap: ${space(1)};
+const RuleName = styled(PageHeading)`
+  line-height: 40px;
+  display: flex;
+  gap: ${space(1)};
   align-items: center;
 `;
 
