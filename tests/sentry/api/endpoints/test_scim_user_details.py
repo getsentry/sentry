@@ -188,7 +188,7 @@ class SCIMMemberRoleUpdateTests(SCIMTestCase):
         with self.feature({"organizations:scim-orgmember-roles": True}):
             # If we're updating a role, then the user is saying that they want the IDP to manage the role
 
-            # current Unrestricted Default role + default sentryOrgRole -> No Change
+            # current Unrestricted Default role + default sentryOrgRole -> restrected default role
             resp = self.get_success_response(
                 self.organization.slug,
                 self.unrestricted_default_role_member.id,
@@ -200,48 +200,102 @@ class SCIMMemberRoleUpdateTests(SCIMTestCase):
             self.unrestricted_default_role_member.refresh_from_db()
             assert resp.data["sentryOrgRole"] == self.organization.default_role
             assert self.unrestricted_default_role_member.role == self.organization.default_role
-            assert not self.unrestricted_default_role_member.flags["idp:role-restricted"]
+            assert self.unrestricted_default_role_member.flags["idp:role-restricted"]
 
-            # current Unrestricted custom role + blank sentryOrgRole -> No Change
-            # This user is currently managed in the sentry app
+            # current Unrestricted custom role + default sentryOrgRole -> restricted default role
             resp = self.get_success_response(
                 self.organization.slug,
                 self.unrestricted_custom_role_member.id,
                 method="put",
-                **generate_put_data(self.unrestricted_custom_role_member),
+                **generate_put_data(
+                    self.unrestricted_custom_role_member, role=self.organization.default_role
+                ),
             )
             self.unrestricted_custom_role_member.refresh_from_db()
-            assert resp.data["sentryOrgRole"] == self.unrestricted_custom_role_member.role
-            assert self.unrestricted_custom_role_member.role == "manager"
-            assert not self.unrestricted_custom_role_member.flags["idp:role-restricted"]
+            assert resp.data["sentryOrgRole"] == self.organization.default_role
+            assert self.unrestricted_custom_role_member.role == self.organization.default_role
+            assert self.unrestricted_custom_role_member.flags["idp:role-restricted"]
 
-            # current restricted default role + blank sentryOrgRole -> unrestricted default role
+            # current restricted default role + default sentryOrgRole -> restricted default role (no change)
             resp = self.get_success_response(
                 self.organization.slug,
                 self.restricted_default_role_member.id,
                 method="put",
-                **generate_put_data(self.restricted_default_role_member),
+                **generate_put_data(
+                    self.restricted_default_role_member, role=self.organization.default_role
+                ),
             )
             self.restricted_default_role_member.refresh_from_db()
             assert resp.data["sentryOrgRole"] == self.organization.default_role
             assert self.restricted_default_role_member.role == self.organization.default_role
-            assert not self.restricted_default_role_member.flags["idp:role-restricted"]
+            assert self.restricted_default_role_member.flags["idp:role-restricted"]
 
-            # current restricted custom role + blank sentryOrgRole -> unrestricted default role
-            # IDP no longer wants to manage the role
+            # current restricted custom role + default sentryOrgRole -> restricted default role
             resp = self.get_success_response(
                 self.organization.slug,
                 self.restricted_custom_role_member.id,
                 method="put",
-                **generate_put_data(self.restricted_custom_role_member),
+                **generate_put_data(
+                    self.restricted_custom_role_member, role=self.organization.default_role
+                ),
             )
             self.restricted_custom_role_member.refresh_from_db()
             assert resp.data["sentryOrgRole"] == self.organization.default_role
             assert self.restricted_custom_role_member.role == self.organization.default_role
-            assert not self.restricted_custom_role_member.flags["idp:role-restricted"]
+            assert self.restricted_custom_role_member.flags["idp:role-restricted"]
 
     def test_set_to_new_role(self):
-        """"""
+        new_role = "admin"
+        with self.feature({"organizations:scim-orgmember-roles": True}):
+            # If we're updating a role, then the user is saying that they want the IDP to manage the role
+
+            # current Unrestricted Default role + custom sentryOrgRole -> restrected custom role
+            resp = self.get_success_response(
+                self.organization.slug,
+                self.unrestricted_default_role_member.id,
+                method="put",
+                **generate_put_data(self.unrestricted_default_role_member, role=new_role),
+            )
+            self.unrestricted_default_role_member.refresh_from_db()
+            assert resp.data["sentryOrgRole"] == new_role
+            assert self.unrestricted_default_role_member.role == new_role
+            assert self.unrestricted_default_role_member.flags["idp:role-restricted"]
+
+            # current Unrestricted custom role + different custom sentryOrgRole -> restricted different custom role
+            resp = self.get_success_response(
+                self.organization.slug,
+                self.unrestricted_custom_role_member.id,
+                method="put",
+                **generate_put_data(self.unrestricted_custom_role_member, role=new_role),
+            )
+            self.unrestricted_custom_role_member.refresh_from_db()
+            assert resp.data["sentryOrgRole"] == new_role
+            assert self.unrestricted_custom_role_member.role == new_role
+            assert self.unrestricted_custom_role_member.flags["idp:role-restricted"]
+
+            # current restricted default role + custom sentryOrgRole -> restricted custom role
+            resp = self.get_success_response(
+                self.organization.slug,
+                self.restricted_default_role_member.id,
+                method="put",
+                **generate_put_data(self.restricted_default_role_member, role=new_role),
+            )
+            self.restricted_default_role_member.refresh_from_db()
+            assert resp.data["sentryOrgRole"] == new_role
+            assert self.restricted_default_role_member.role == new_role
+            assert self.restricted_default_role_member.flags["idp:role-restricted"]
+
+            # current restricted custom role + different custom sentryOrgRole -> restricted new custom role
+            resp = self.get_success_response(
+                self.organization.slug,
+                self.restricted_custom_role_member.id,
+                method="put",
+                **generate_put_data(self.restricted_custom_role_member, role=new_role),
+            )
+            self.restricted_custom_role_member.refresh_from_db()
+            assert resp.data["sentryOrgRole"] == new_role
+            assert self.restricted_custom_role_member.role == new_role
+            assert self.restricted_custom_role_member.flags["idp:role-restricted"]
 
 
 class SCIMMemberDetailsTests(SCIMTestCase):
