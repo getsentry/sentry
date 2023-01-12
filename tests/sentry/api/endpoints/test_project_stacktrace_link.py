@@ -5,7 +5,6 @@ from sentry.api.endpoints.project_stacktrace_link import ProjectStacktraceLinkEn
 from sentry.integrations.example.integration import ExampleIntegration
 from sentry.models import Integration, OrganizationIntegration
 from sentry.testutils import APITestCase
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import region_silo_test
 
 example_base_url = "https://example.com/getsentry/sentry/blob/master"
@@ -247,6 +246,26 @@ class ProjectStacktraceLinkTest(BaseProjectStacktraceLink):
         assert response.data["error"] == "stack_root_mismatch"
         assert response.data["integrations"] == [serialized_integration(self.integration)]
 
+    @mock.patch("sentry.integrations.github.integration.GitHubIntegration.get_blame_for_file")
+    def test_get_commit_sha_valid_line_no(self, mock_blame):
+        mock_blame.return_value = git_blame
+        project_stacktrace_link_endpoint = ProjectStacktraceLinkEndpoint()
+        current_config = {"repository": self.repo, "config": {"defaultBranch": "main"}}
+        commit_sha = project_stacktrace_link_endpoint.get_commit_sha(
+            self.integration, self.organization.id, 26, "test/path/file.py", current_config
+        )
+        assert commit_sha == "5c7dc040fe713f718193e28972b43db94e5097b4"
+
+    @mock.patch("sentry.integrations.github.integration.GitHubIntegration.get_blame_for_file")
+    def test_get_commit_sha_invalid_line_no(self, mock_blame):
+        mock_blame.return_value = git_blame
+        project_stacktrace_link_endpoint = ProjectStacktraceLinkEndpoint()
+        current_config = {"repository": self.repo, "config": {"defaultBranch": "main"}}
+        commit_sha = project_stacktrace_link_endpoint.get_commit_sha(
+            self.integration, self.organization.id, 80, "test/path/file.py", current_config
+        )
+        assert commit_sha is None
+
 
 @region_silo_test
 class ProjectStacktraceLinkTestMobile(BaseProjectStacktraceLink):
@@ -310,28 +329,6 @@ class ProjectStacktraceLinkTestMobile(BaseProjectStacktraceLink):
         )
         assert response.data["config"] == self.expected_configurations(self.code_mapping1)
         assert response.data["sourceUrl"] == f"{example_base_url}/{file_path}"
-
-    @with_feature("organizations:codecov-stacktrace-integration")
-    @mock.patch("sentry.integrations.github.integration.GitHubIntegration.get_blame_for_file")
-    def test_get_commit_sha_valid_line_no(self, mock_blame):
-        mock_blame.return_value = git_blame
-        project_stacktrace_link_endpoint = ProjectStacktraceLinkEndpoint()
-        current_config = {"repository": self.repo, "config": {"defaultBranch": "main"}}
-        commit_sha = project_stacktrace_link_endpoint.get_commit_sha(
-            self.integration, self.organization.id, 26, "test/path/file.py", current_config
-        )
-        assert commit_sha == "5c7dc040fe713f718193e28972b43db94e5097b4"
-
-    @with_feature("organizations:codecov-stacktrace-integration")
-    @mock.patch("sentry.integrations.github.integration.GitHubIntegration.get_blame_for_file")
-    def test_get_commit_sha_invalid_line_no(self, mock_blame):
-        mock_blame.return_value = git_blame
-        project_stacktrace_link_endpoint = ProjectStacktraceLinkEndpoint()
-        current_config = {"repository": self.repo, "config": {"defaultBranch": "main"}}
-        commit_sha = project_stacktrace_link_endpoint.get_commit_sha(
-            self.integration, self.organization.id, 80, "test/path/file.py", current_config
-        )
-        assert commit_sha is None
 
 
 class ProjectStacktraceLinkTestMultipleMatches(BaseProjectStacktraceLink):

@@ -290,9 +290,13 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                     if current_config["outcome"].get("attemptedUrl"):
                         result["attemptedUrl"] = current_config["outcome"]["attemptedUrl"]
 
-                result["commitSha"] = None
-                if features.has(
-                    "organizations:codecov-stacktrace-integration", project.organization
+                if (
+                    features.has(
+                        "organizations:codecov-stacktrace-integration",
+                        project.organization,
+                        actor=request.user,
+                    )
+                    and project.organization.flags.codecov_access
                 ):
                     integration = integrations.filter(provider="github")[0]
                     line_no = ctx.get("line_no")
@@ -304,6 +308,7 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                             filepath,
                             current_config,
                         )
+
             try:
                 set_tags(scope, result)
             except Exception:
