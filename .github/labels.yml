@@ -253,6 +253,9 @@
 - name: 'Team: Workflow'
   color: '8D5494'
   description: ''
+- name: 'Team: Crons'
+  color: '8D5494'
+  description: ''
 
 # Deploy types
 - name: 'Deploy: Monitored'
