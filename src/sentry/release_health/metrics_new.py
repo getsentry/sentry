@@ -765,6 +765,60 @@ class MetricsLayerReleaseHealthBackend(ReleaseHealthBackend):
         return ret_val
 
     @staticmethod
+    def _get_errored_sessions_for_overview(
+        projects: Sequence[Project],
+        where: List[Condition],
+        org_id: int,
+        granularity: int,
+        start: datetime,
+        end: datetime,
+    ) -> Mapping[Tuple[int, str], int]:
+        """
+        Count of errored sessions, incl fatal (abnormal, crashed) sessions,
+        excl errored *preaggregated* sessions
+        """
+        project_ids = [p.id for p in projects]
+
+        select = [
+            MetricField(metric_mri=SessionMRI.ERRORED_SET.value, alias="value", op=None),
+        ]
+
+        groupby = [
+            MetricGroupByField(field="project_id"),
+            MetricGroupByField(field="release"),
+        ]
+
+        query = MetricsQuery(
+            org_id=org_id,
+            project_ids=project_ids,
+            select=select,
+            start=start,
+            end=end,
+            granularity=Granularity(granularity),
+            groupby=groupby,
+            where=where,
+            include_series=False,
+            include_totals=True,
+        )
+        raw_result = get_series(
+            projects=projects,
+            metrics_query=query,
+            use_case_id=USE_CASE_ID,
+        )
+        groups = raw_result["groups"]
+
+        ret_val = {}
+
+        for group in groups:
+            by = group.get("by", {})
+            proj_id = by.get("project_id")
+            release = by.get("release")
+
+            value = get_path(group, "totals", "value")
+            ret_val[(proj_id, release)] = value
+        return ret_val
+
+    @staticmethod
     def _get_health_stats_for_overview(
         projects: Sequence[Project],
         where: List[Condition],
@@ -868,9 +922,17 @@ class MetricsLayerReleaseHealthBackend(ReleaseHealthBackend):
         rv_durations = self._get_session_duration_data_for_overview(
             projects, where, org_id, rollup, summary_start, now
         )
+        rv_errored_sessions = self._get_errored_sessions_for_overview(
+            projects, where, org_id, rollup, summary_start, now
+        )
+        # rv_sessions = self._get_session_by_status_for_overview(
+        #     projects, where, org_id, rollup, summary_start, now
+        # )
 
         pprint(health_stats_data)
         pprint(rv_durations)
+        pprint(rv_errored_sessions)
+        # pprint(rv_sessions)
         raise NotImplementedError()
 
     # TODO implement
