@@ -108,16 +108,14 @@ class GroupEvents extends Component<Props, State> {
     return (
       <Layout.Body>
         <Layout.Main fullWidth>
-          <Wrapper>
-            {this.renderSearchBar()}
-            <AllEventsTable
-              issueId={this.props.group.id}
-              location={this.props.location}
-              organization={this.props.organization}
-              group={this.props.group}
-              excludedTags={excludedTags}
-            />
-          </Wrapper>
+          <AllEventsFilters>{this.renderSearchBar()}</AllEventsFilters>
+          <AllEventsTable
+            issueId={this.props.group.id}
+            location={this.props.location}
+            organization={this.props.organization}
+            group={this.props.group}
+            excludedTags={excludedTags}
+          />
         </Layout.Main>
       </Layout.Body>
     );
@@ -130,9 +128,8 @@ const FilterSection = styled('div')`
   grid-template-columns: max-content 1fr;
 `;
 
-const Wrapper = styled('div')`
-  display: grid;
-  gap: ${space(2)};
+const AllEventsFilters = styled('div')`
+  margin-bottom: ${space(2)};
 `;
 
 export {GroupEvents};
