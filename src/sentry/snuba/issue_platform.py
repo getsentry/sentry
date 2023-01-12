@@ -5,6 +5,47 @@ from sentry.snuba import discover
 from sentry.utils.snuba import Dataset, SnubaTSResult
 
 
+def query(
+    selected_columns,
+    query,
+    params,
+    snuba_params=None,
+    equations=None,
+    orderby=None,
+    offset=None,
+    limit=50,
+    referrer=None,
+    auto_fields=False,
+    auto_aggregations=False,
+    use_aggregate_conditions=False,
+    allow_metric_aggregates=True,
+    conditions=None,
+    functions_acl=None,
+    dry_run=False,
+    transform_alias_to_input_format=False,
+    has_metrics: bool = True,
+    use_metrics_layer: bool = False,
+):
+    return discover.query(
+        selected_columns,
+        query,
+        params,
+        equations=equations,
+        orderby=orderby,
+        offset=offset,
+        limit=limit,
+        referrer=referrer,
+        auto_fields=auto_fields,
+        auto_aggregations=auto_aggregations,
+        use_aggregate_conditions=use_aggregate_conditions,
+        conditions=conditions,
+        functions_acl=functions_acl,
+        transform_alias_to_input_format=transform_alias_to_input_format,
+        has_metrics=has_metrics,
+        dataset=Dataset.IssuePlatform,
+    )
+
+
 def timeseries_query(
     selected_columns: Sequence[str],
     query: str,
