@@ -197,12 +197,12 @@ describe('TransactionReplays', () => {
       body: {
         data: [
           {
-            countErrors: 1,
+            count_errors: 1,
             duration: 52346,
-            finishedAt: '2022-09-15T06:54:00+00:00',
+            finished_at: '2022-09-15T06:54:00+00:00',
             id: '346789a703f6454384f1de473b8b9fcc',
-            projectId: '2',
-            startedAt: '2022-09-15T06:50:03+00:00',
+            project_id: '2',
+            started_at: '2022-09-15T06:50:03+00:00',
             urls: [
               'https://dev.getsentry.net:7999/organizations/sentry-emerging-tech/replays/',
               '/organizations/sentry-emerging-tech/replays/?project=2',
@@ -211,17 +211,17 @@ describe('TransactionReplays', () => {
               id: '147086',
               name: '',
               email: '',
-              ip_address: '127.0.0.1',
-              displayName: 'testDisplayName',
+              ip: '127.0.0.1',
+              display_name: 'testDisplayName',
             },
           },
           {
-            countErrors: 4,
+            count_errors: 4,
             duration: 400,
-            finishedAt: '2022-09-21T21:40:38+00:00',
+            finished_at: '2022-09-21T21:40:38+00:00',
             id: 'b05dae9b6be54d21a4d5ad9f8f02b780',
-            projectId: '2',
-            startedAt: '2022-09-21T21:30:44+00:00',
+            project_id: '2',
+            started_at: '2022-09-21T21:30:44+00:00',
             urls: [
               'https://dev.getsentry.net:7999/organizations/sentry-emerging-tech/replays/?project=2&statsPeriod=24h',
               '/organizations/sentry-emerging-tech/issues/',
@@ -231,8 +231,8 @@ describe('TransactionReplays', () => {
               id: '147086',
               name: '',
               email: '',
-              ip_address: '127.0.0.1',
-              displayName: 'testDisplayName',
+              ip: '127.0.0.1',
+              display_name: 'testDisplayName',
             },
           },
         ],
@@ -284,7 +284,7 @@ describe('TransactionReplays', () => {
     expect(screen.getByText('7 days ago')).toBeInTheDocument();
   });
 
-  it('should be able to click the `Start Time` column and request data sorted by startedAt query', async () => {
+  it('should be able to click the `Start Time` column and request data sorted by started_at query', async () => {
     const {rerender} = renderComponent();
 
     await waitFor(() => {
@@ -292,19 +292,19 @@ describe('TransactionReplays', () => {
         mockUrl,
         expect.objectContaining({
           query: expect.objectContaining({
-            sort: '-startedAt',
+            sort: '-started_at',
           }),
         })
       );
     });
 
-    // Click on the start time header and expect the sort to be startedAt
+    // Click on the start time header and expect the sort to be started_at
     userEvent.click(screen.getByRole('columnheader', {name: 'Start Time'}));
 
     expect(mockRouterContext.context.router.push).toHaveBeenCalledWith({
       pathname: '/organizations/org-slug/replays/',
       query: {
-        sort: 'startedAt',
+        sort: 'started_at',
         project: '1',
         transaction: 'transaction',
       },
@@ -316,7 +316,7 @@ describe('TransactionReplays', () => {
         getComponent({
           location: {
             query: {
-              sort: 'startedAt',
+              sort: 'started_at',
               project: '1',
               transaction: 'transaction',
             },
@@ -331,7 +331,7 @@ describe('TransactionReplays', () => {
         mockUrl,
         expect.objectContaining({
           query: expect.objectContaining({
-            sort: 'startedAt',
+            sort: 'started_at',
           }),
         })
       );
@@ -354,7 +354,7 @@ describe('TransactionReplays', () => {
         mockUrl,
         expect.objectContaining({
           query: expect.objectContaining({
-            sort: '-startedAt',
+            sort: '-started_at',
           }),
         })
       );
@@ -416,7 +416,7 @@ describe('TransactionReplays', () => {
         mockUrl,
         expect.objectContaining({
           query: expect.objectContaining({
-            sort: '-startedAt',
+            sort: '-started_at',
           }),
         })
       );
@@ -462,7 +462,7 @@ describe('TransactionReplays', () => {
     });
   });
 
-  it('should be able to click the `Activity` column and request data sorted by startedAt query', async () => {
+  it('should be able to click the `Activity` column and request data sorted by started_at query', async () => {
     const mockApi = MockApiClient.addMockResponse({
       url: mockUrl,
       body: {
@@ -478,7 +478,7 @@ describe('TransactionReplays', () => {
         mockUrl,
         expect.objectContaining({
           query: expect.objectContaining({
-            sort: '-startedAt',
+            sort: '-started_at',
           }),
         })
       );
