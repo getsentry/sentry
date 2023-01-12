@@ -13,6 +13,7 @@ import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
 import {PageFilters, Project, SelectValue} from 'sentry/types';
+import commonTheme from 'sentry/utils/theme';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import withProjects from 'sentry/utils/withProjects';
 
@@ -198,6 +199,7 @@ class MonitorForm extends Component<Props> {
                               ),
                             }
                           )}
+                          css={{input: {fontFamily: commonTheme.text.familyMono}}}
                         />
                         <NumberField
                           name="config.checkin_margin"
