@@ -1,12 +1,13 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from logging import Logger
-from typing import Any, Dict, Tuple
+from typing import Any, Dict
 
 from django.utils.crypto import constant_time_compare
 from rest_framework.request import Request
 
-from sentry import audit_log, features
+from sentry import features
 from sentry.models import (
     Authenticator,
     AuthIdentity,
@@ -16,9 +17,9 @@ from sentry.models import (
     User,
     UserEmail,
 )
+from sentry.services.hybrid_cloud.user import APIUser
 from sentry.signals import member_joined
 from sentry.utils import metrics
-from sentry.utils.audit import create_audit_entry
 
 
 def add_invite_details_to_session(request: Request, member_id: int, token: str) -> None:
@@ -33,16 +34,34 @@ def remove_invite_details_from_session(request: Request) -> None:
     request.session.pop("invite_token", None)
 
 
-def get_invite_details(request: Request) -> Tuple[str, int]:
-    """Returns tuple of (token, member_id) from request session"""
-    return request.session.get("invite_token", None), request.session.get("invite_member_id", None)
+@dataclass(frozen=True, eq=True)
+class InviteDetail:
+    token: str | None
+    member_id: int | None
+    user_id: int | None
+    is_authenticated: bool
+    is_verified: bool
+
+
+def get_invite_details(request: Request) -> InviteDetail:
+    """Extracts invite details from request session"""
+    user = request.user
+    primary_email = UserEmail.objects.get_primary_email(user) if isinstance(user, User) else None
+
+    return InviteDetail(
+        token=request.session.get("invite_token", None),
+        member_id=request.session.get("invite_member_id", None),
+        user_id=user.id,
+        is_authenticated=user.is_authenticated,
+        is_verified=primary_email.is_verified if primary_email else False,
+    )
 
 
 class ApiInviteHelper:
     @classmethod
     def from_session_or_email(
         cls,
-        request: Request,
+        detail: InviteDetail,
         organization: Organization,
         email: str,
         instance: Any | None = None,
@@ -53,11 +72,9 @@ class ApiInviteHelper:
         member via the currently set pending invite details in the session, or
         via the passed email if no cookie is currently set.
         """
-        invite_token, invite_member_id = get_invite_details(request)
-
         try:
-            if invite_token and invite_member_id:
-                om = OrganizationMember.objects.get(token=invite_token, id=invite_member_id)
+            if detail.token and detail.member_id:
+                om = OrganizationMember.objects.get(token=detail.token, id=detail.member_id)
             else:
                 om = OrganizationMember.objects.get(
                     email=email, organization=organization, user=None
@@ -67,9 +84,7 @@ class ApiInviteHelper:
             # the invite helper.
             return None
 
-        return cls(
-            request=request, member_id=om.id, token=om.token, instance=instance, logger=logger
-        )
+        return cls(detail=detail, member_id=om.id, token=om.token, instance=instance, logger=logger)
 
     @classmethod
     def from_session(
@@ -78,16 +93,16 @@ class ApiInviteHelper:
         instance: Any | None = None,
         logger: Logger | None = None,
     ) -> ApiInviteHelper | None:
-        invite_token, invite_member_id = get_invite_details(request)
+        detail = get_invite_details(request)
 
-        if not invite_token or not invite_member_id:
+        if not detail.token or not detail.member_id:
             return None
 
         try:
             return ApiInviteHelper(
-                request=request,
-                member_id=invite_member_id,
-                token=invite_token,
+                detail=detail,
+                member_id=detail.member_id,
+                token=detail.token,
                 instance=instance,
                 logger=logger,
             )
@@ -98,13 +113,18 @@ class ApiInviteHelper:
 
     def __init__(
         self,
-        request: Request,
+        detail: InviteDetail,
         member_id: int,
         token: str | None,
         instance: Any | None = None,
         logger: Logger | None = None,
     ) -> None:
-        self.request = request
+        if detail.member_id is not None and detail.member_id != member_id:
+            raise ValueError("Mismatched member_id")
+        if detail.token is not None and detail.token != token:
+            raise ValueError("Mismatched token")
+
+        self.detail = detail
         self.member_id = member_id
         self.token = token
         self.instance = instance
@@ -123,14 +143,14 @@ class ApiInviteHelper:
         if self.logger:
             self.logger.info(
                 "Pending org invite not accepted - User already org member",
-                extra={"organization_id": self.organization.id, "user_id": self.request.user.id},
+                extra={"organization_id": self.organization.id, "user_id": self.detail.user_id},
             )
 
     def handle_member_has_no_sso(self) -> None:
         if self.logger:
             self.logger.info(
                 "Pending org invite not accepted - User did not have SSO",
-                extra={"organization_id": self.organization.id, "user_id": self.request.user.id},
+                extra={"organization_id": self.organization.id, "user_id": self.detail.user_id},
             )
 
     def handle_invite_not_approved(self) -> None:
@@ -160,7 +180,7 @@ class ApiInviteHelper:
 
     @property
     def user_authenticated(self) -> bool:
-        return self.request.user.is_authenticated  # type: ignore[no-any-return]
+        return self.detail.is_authenticated  # type: ignore[no-any-return]
 
     @property
     def member_already_exists(self) -> bool:
@@ -168,7 +188,7 @@ class ApiInviteHelper:
             return False
 
         query = OrganizationMember.objects.filter(
-            organization=self.organization, user=self.request.user
+            organization=self.organization, user_id=self.detail.user_id
         )
         return query.exists()  # type: ignore[no-any-return]
 
@@ -182,11 +202,9 @@ class ApiInviteHelper:
             and not any(self.get_onboarding_steps().values())
         )
 
-    def accept_invite(self, user: User | None = None) -> OrganizationMember | None:
+    def accept_invite(self, user: APIUser | None = None) -> OrganizationMember | None:
         om = self.om
-
-        if user is None:
-            user = self.request.user
+        user_id = user.id if user else self.detail.user_id
 
         if self.member_already_exists:
             self.handle_member_already_exists()
@@ -201,22 +219,23 @@ class ApiInviteHelper:
         # If SSO is required, check for valid AuthIdentity
         if provider and not provider.flags.allow_unlinked:
             # AuthIdentity has a unique constraint on provider and user
-            if not AuthIdentity.objects.filter(auth_provider=provider, user=user).exists():
+            if not AuthIdentity.objects.filter(auth_provider=provider, user_id=user_id).exists():
                 self.handle_member_has_no_sso()
                 return None
 
-        om.set_user(user)
+        om.set_user_by_id(user_id)
         om.save()
 
-        create_audit_entry(
-            self.request,
-            actor=user,
-            organization=om.organization,
-            target_object=om.id,
-            target_user=user,
-            event=audit_log.get_event_id("MEMBER_ACCEPT"),
-            data=om.get_audit_log_data(),
-        )
+        # TODO: Fix this
+        # create_audit_entry(
+        #     self.request,
+        #     actor=user,
+        #     organization=om.organization,
+        #     target_object=om.id,
+        #     target_user=user,
+        #     event=audit_log.get_event_id("MEMBER_ACCEPT"),
+        #     data=om.get_audit_log_data(),
+        # )
 
         self.handle_success()
         metrics.incr("organization.invite-accepted", sample_rate=1.0)
@@ -225,22 +244,15 @@ class ApiInviteHelper:
 
     def _needs_2fa(self) -> bool:
         org_requires_2fa = self.organization.flags.require_2fa.is_set
-        user_has_2fa = Authenticator.objects.user_has_2fa(self.request.user.id)
+        user_has_2fa = Authenticator.objects.user_has_2fa(self.detail.user_id)
         return org_requires_2fa and not user_has_2fa
 
     def _needs_email_verification(self) -> bool:
-        organization = self.organization
-        if not (
-            features.has("organizations:required-email-verification", organization)
-            and organization.flags.require_email_verification
-        ):
-            return False
-
-        user = self.request.user
-        primary_email_is_verified = (
-            isinstance(user, User) and UserEmail.objects.get_primary_email(user).is_verified
+        return (
+            features.has("organizations:required-email-verification", self.organization)
+            and self.organization.flags.require_email_verification
+            and not self.detail.is_verified
         )
-        return not primary_email_is_verified
 
     def get_onboarding_steps(self) -> Dict[str, bool]:
         return {

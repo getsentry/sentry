@@ -21,7 +21,7 @@ from django.utils.translation import ugettext_lazy as _
 from django.views import View
 
 from sentry import audit_log, features
-from sentry.api.invite_helper import remove_invite_details_from_session
+from sentry.api.invite_helper import get_invite_details, remove_invite_details_from_session
 from sentry.api.utils import generate_organization_url
 from sentry.auth.email import AmbiguousUserFromEmail, resolve_email_to_user
 from sentry.auth.exceptions import IdentityNotValid
@@ -229,7 +229,10 @@ class AuthIdentityHandler:
 
     def _handle_new_membership(self, auth_identity: ApiAuthIdentity) -> ApiOrganizationMember:
         user, om = auth_service.handle_new_membership(
-            self.request, self.organization, auth_identity, self.auth_provider
+            detail=get_invite_details(self.request),
+            organization=self.organization,
+            auth_identity=auth_identity,
+            auth_provider=self.auth_provider,
         )
 
         if om is not None:

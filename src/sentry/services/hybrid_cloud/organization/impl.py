@@ -4,6 +4,7 @@ import dataclasses
 from collections import defaultdict
 from typing import TYPE_CHECKING, Iterable, List, MutableMapping, Optional, Set, cast
 
+from sentry.api.invite_helper import ApiInviteHelper, InviteDetail
 from sentry.models import (
     Organization,
     OrganizationMember,
@@ -289,3 +290,29 @@ class DatabaseBackedOrganizationService(OrganizationService):
     @classmethod
     def _serialize_invite(cls, om: OrganizationMember) -> ApiOrganizationInvite:
         return ApiOrganizationInvite(om.id, om.token, om.email)
+
+    def handle_invite(
+        self, detail: InviteDetail, organization: ApiOrganization, user: APIUser
+    ) -> ApiOrganizationMember | None:
+        org_model = Organization.objects.get(id=organization.id)
+
+        # If the user is either currently *pending* invite acceptance (as indicated
+        # from the invite token and member id in the session) OR an existing invite exists on this
+        # organization for the email provided by the identity provider.
+        invite_helper = ApiInviteHelper.from_session_or_email(
+            detail=detail, organization=org_model, email=user.email
+        )
+
+        # If we are able to accept an existing invite for the user for this
+        # organization, do so, otherwise handle new membership
+        if invite_helper:
+            if invite_helper.invite_approved:
+                om = invite_helper.accept_invite(user)
+                return DatabaseBackedOrganizationService.serialize_member(om)
+
+            # It's possible the user has an _invite request_ that hasn't been approved yet,
+            # and is able to join the organization without an invite through the SSO flow.
+            # In that case, delete the invite request and create a new membership.
+            invite_helper.handle_invite_not_approved()
+
+        return None

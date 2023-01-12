@@ -12,6 +12,7 @@ from rest_framework.authentication import BaseAuthentication
 from rest_framework.request import Request
 
 from sentry.api.authentication import ApiKeyAuthentication, TokenAuthentication
+from sentry.api.invite_helper import InviteDetail
 from sentry.relay.utils import get_header_relay_id, get_header_relay_signature
 from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_delegation, stubbed
 from sentry.services.hybrid_cloud.organization import ApiOrganization, ApiOrganizationMember
@@ -137,7 +138,7 @@ class AuthService(InterfaceWithLifecycle):
     @abc.abstractmethod
     def handle_new_membership(
         self,
-        request: Request,
+        detail: InviteDetail,
         organization: ApiOrganization,
         auth_identity: ApiAuthIdentity,
         auth_provider: ApiAuthProvider,

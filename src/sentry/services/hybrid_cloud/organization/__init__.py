@@ -4,6 +4,7 @@ from abc import abstractmethod
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, List, Optional
 
+from sentry.api.invite_helper import InviteDetail
 from sentry.models.organization import OrganizationStatus
 from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_delegation, stubbed
 from sentry.services.hybrid_cloud.user import APIUser
@@ -105,6 +106,12 @@ class OrganizationService(InterfaceWithLifecycle):
 
     @abstractmethod
     def update_membership_flags(self, *, organization_member: ApiOrganizationMember) -> None:
+        pass
+
+    @abstractmethod
+    def handle_invite(
+        self, detail: InviteDetail, organization: ApiOrganization, user: APIUser
+    ) -> ApiOrganizationMember | None:
         pass
 
 

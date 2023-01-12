@@ -6,22 +6,13 @@ from typing import List, Mapping, Tuple
 
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import Count, F
-from rest_framework.request import Request
 
 from sentry import features, roles
-from sentry.api.invite_helper import ApiInviteHelper
+from sentry.api.invite_helper import InviteDetail
 from sentry.auth.access import get_permissions_for_user
 from sentry.auth.system import SystemToken
 from sentry.middleware.auth import RequestAuthenticationMiddleware
-from sentry.models import (
-    ApiKey,
-    ApiToken,
-    AuthIdentity,
-    AuthProvider,
-    Organization,
-    OrganizationMember,
-    User,
-)
+from sentry.models import ApiKey, ApiToken, AuthIdentity, AuthProvider, OrganizationMember, User
 from sentry.services.hybrid_cloud.auth import (
     ApiAuthenticatorType,
     ApiAuthIdentity,
@@ -42,7 +33,6 @@ from sentry.services.hybrid_cloud.organization import (
     ApiOrganizationMemberFlags,
     organization_service,
 )
-from sentry.services.hybrid_cloud.organization.impl import DatabaseBackedOrganizationService
 from sentry.services.hybrid_cloud.user import APIUser, user_service
 from sentry.silo import SiloMode
 from sentry.utils.auth import AuthUserPasswordExpired
@@ -259,7 +249,7 @@ class DatabaseBackedAuthService(AuthService):
 
     def handle_new_membership(
         self,
-        request: Request,
+        detail: InviteDetail,
         organization: ApiOrganization,
         auth_identity: ApiAuthIdentity,
         auth_provider: ApiAuthProvider,
@@ -269,33 +259,14 @@ class DatabaseBackedAuthService(AuthService):
         user = User.objects.get(id=auth_identity.user_id)
         serial_user = user_service.serialize_user(user)
 
-        # This raises an AvailabilityError
-        # TODO: Extract ApiInviteHelper methods into new service methods
-        orm_org = Organization.objects.get(id=organization.id)
-
-        # If the user is either currently *pending* invite acceptance (as indicated
-        # from the invite token and member id in the session) OR an existing invite exists on this
-        # organization for the email provided by the identity provider.
-        invite_helper = ApiInviteHelper.from_session_or_email(
-            request=request, organization=orm_org, email=user.email
-        )
-
-        # If we are able to accept an existing invite for the user for this
-        # organization, do so, otherwise handle new membership
-        if invite_helper:
-            if invite_helper.invite_approved:
-                om = invite_helper.accept_invite(user)
-                return serial_user, DatabaseBackedOrganizationService.serialize_member(om)
-
-            # It's possible the user has an _invite request_ that hasn't been approved yet,
-            # and is able to join the organization without an invite through the SSO flow.
-            # In that case, delete the invite request and create a new membership.
-            invite_helper.handle_invite_not_approved()
+        accepted_invite = organization_service.handle_invite(detail, organization, serial_user)
+        if accepted_invite is not None:
+            return serial_user, accepted_invite
 
         flags = ApiOrganizationMemberFlags(sso__linked=True)
         # if the org doesn't have the ability to add members then anyone who got added
         # this way should be disabled until the org upgrades
-        if not features.has("organizations:invite-members", orm_org):
+        if not features.has("organizations:invite-members", organization):
             flags.member_limit__restricted = True
 
         # Otherwise create a new membership

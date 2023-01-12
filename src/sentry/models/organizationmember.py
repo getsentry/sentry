@@ -182,6 +182,12 @@ class OrganizationMember(Model):
         self.token = None
         self.token_expires_at = None
 
+    def set_user_by_id(self, user_id: int) -> None:
+        self.user_id = user_id
+        self.email = None
+        self.token = None
+        self.token_expires_at = None
+
     def remove_user(self):
         self.email = self.get_email()
         self.user = None
