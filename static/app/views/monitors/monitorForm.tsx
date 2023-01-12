@@ -5,6 +5,7 @@ import {Observer} from 'mobx-react';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import NumberField from 'sentry/components/forms/fields/numberField';
 import SelectField from 'sentry/components/forms/fields/selectField';
+import SentryProjectSelectorField from 'sentry/components/forms/fields/sentryProjectSelectorField';
 import TextField from 'sentry/components/forms/fields/textField';
 import Form, {FormProps} from 'sentry/components/forms/form';
 import FormModel from 'sentry/components/forms/model';
@@ -142,12 +143,11 @@ class MonitorForm extends Component<Props> {
                 </div>
               </FieldGroup>
             )}
-            <SelectField
+            <SentryProjectSelectorField
               name="project"
               label={t('Project')}
-              options={this.props.projects
-                .filter(p => p.isMember)
-                .map(p => ({value: p.slug, label: p.slug}))}
+              projects={this.props.projects.filter(project => project.isMember)}
+              valueIsSlug
               help={t(
                 "Select the project which contains the recurring job you'd like to monitor."
               )}

@@ -16,12 +16,16 @@ const defaultProps = {
 
 // projects can be passed as a direct prop as well
 export interface RenderFieldProps extends InputFieldProps {
+  avatarSize?: number;
   projects?: Project[];
+  /**
+   * Use the slug as the select field value. Without setting this the numeric id
+   * of the project will be used.
+   */
+  valueIsSlug?: boolean;
 }
 
-interface RenderProps
-  extends Omit<Partial<Readonly<typeof defaultProps>>, 'placeholder'>,
-    RenderFieldProps {
+interface RenderProps extends RenderFieldProps {
   projects: Project[]; // can't use AvatarProject since we need the ID
 }
 
@@ -51,7 +55,7 @@ class RenderField extends Component<RenderProps> {
     } = this.props;
 
     const projectOptions = projects.map(project => ({
-      value: project.id,
+      value: project[this.props.valueIsSlug ? 'slug' : 'id'],
       label: project.slug,
       leadingItems: (
         <IdBadge
