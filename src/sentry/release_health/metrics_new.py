@@ -3,6 +3,7 @@ import logging
 
 # from collections import defaultdict
 from datetime import datetime, timedelta
+from pprint import pprint
 
 # from operator import itemgetter
 from typing import Any, Dict, List, Literal, Mapping, Optional, Sequence, Set, Tuple, TypeVar, Union
@@ -49,6 +50,7 @@ from sentry.sentry_metrics.utils import (  # reverse_resolve,
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.metrics import MetricField, MetricGroupByField, MetricsQuery, get_series
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
+from sentry.snuba.sessions import get_rollup_starts_and_buckets
 from sentry.snuba.sessions_v2 import AllowedResolution, QueryDefinition
 from sentry.utils.safe import get_path
 from sentry.utils.snuba import raw_snql_query
@@ -702,6 +704,120 @@ class MetricsLayerReleaseHealthBackend(ReleaseHealthBackend):
                 ret_val.add(release)
         return ret_val
 
+    @staticmethod
+    def _get_session_duration_data_for_overview(
+        projects: Sequence[Project],
+        where: List[Condition],
+        org_id: int,
+        granularity: int,
+        start: datetime,
+        end: datetime,
+    ) -> Mapping[Tuple[int, str], Any]:
+        """
+        Percentiles of session duration
+        """
+        project_ids = [p.id for p in projects]
+
+        select = [
+            MetricField(metric_mri=SessionMRI.DURATION.value, alias="p50", op="p50"),
+            MetricField(metric_mri=SessionMRI.DURATION.value, alias="p90", op="p90"),
+        ]
+
+        session_status_cond = Condition(lhs=Column("tags[session.status]"), op=Op.EQ, rhs="exited")
+        where = [*where, session_status_cond]
+
+        groupby = [
+            MetricGroupByField(field="project_id"),
+            MetricGroupByField(field="release"),
+        ]
+
+        query = MetricsQuery(
+            org_id=org_id,
+            project_ids=project_ids,
+            select=select,
+            start=start,
+            end=end,
+            granularity=Granularity(granularity),
+            groupby=groupby,
+            where=where,
+            include_series=False,
+            include_totals=True,
+        )
+        raw_result = get_series(
+            projects=projects,
+            metrics_query=query,
+            use_case_id=USE_CASE_ID,
+        )
+        groups = raw_result["groups"]
+
+        ret_val = {}
+        for group in groups:
+            by = group.get("by", {})
+            proj_id = by.get("project_id")
+            release = by.get("release")
+
+            totals = group.get("totals", {})
+            p50 = totals.get("p50")
+            p90 = totals.get("p90")
+
+            ret_val[(proj_id, release)] = {"duration_p50": p50, "duration_p90": p90}
+
+        return ret_val
+
+    @staticmethod
+    def _get_health_stats_for_overview(
+        projects: Sequence[Project],
+        where: List[Condition],
+        org_id: int,
+        stat: OverviewStat,
+        granularity: int,
+        start: datetime,
+        end: datetime,
+    ) -> Mapping[ProjectRelease, List[int]]:
+
+        project_ids = [p.id for p in projects]
+
+        metric_field = {
+            "users": MetricField(metric_mri=SessionMRI.ALL_USER.value, alias="value", op=None),
+            "sessions": MetricField(metric_mri=SessionMRI.ALL.value, alias="value", op=None),
+        }[stat]
+
+        groupby = [
+            MetricGroupByField(field="release"),
+            MetricGroupByField(field="project_id"),
+        ]
+
+        query = MetricsQuery(
+            org_id=org_id,
+            project_ids=project_ids,
+            select=[metric_field],
+            start=start,
+            end=end,
+            granularity=Granularity(granularity),
+            groupby=groupby,
+            where=where,
+            include_series=True,
+            include_totals=False,
+        )
+
+        raw_result = get_series(
+            projects=projects,
+            metrics_query=query,
+            use_case_id=USE_CASE_ID,
+        )
+        groups = raw_result["groups"]
+        ret_val = {}
+
+        for group in groups:
+            proj_id = get_path(group, "by", "project_id")
+            release = get_path(group, "by", "release")
+            series = get_path(group, "series", "value")
+            ret_val[(proj_id, release)] = series
+
+        # NOTE: Changed from original impl. series is now [val,val...] used to be [(timestamp,val),(timestamp,val)...]
+        # if we need the timestamps return them as an additional vector (taken from raw_result["intervals"])
+        return ret_val
+
     # TODO implement
     def get_release_health_data_overview(
         self,
@@ -717,7 +833,44 @@ class MetricsLayerReleaseHealthBackend(ReleaseHealthBackend):
         tuples.  The return value is a set of all the project releases that have health
         data.
         """
+        if stat is None:
+            stat = "sessions"
+        assert stat in ("sessions", "users")
 
+        if now is None:
+            now = datetime.now(pytz.utc)
+
+        project_ids = [proj_id for proj_id, _release in project_releases]
+        projects, org_id = self._get_projects_and_org_id(project_ids)
+
+        granularity, summary_start, _ = get_rollup_starts_and_buckets(
+            summary_stats_period or "24h", now=now
+        )
+        # NOTE: for backward compatibility with previous implementation some queries use the granularity calculated from
+        # stats_period and others use the legacy_session_rollup
+        rollup = LEGACY_SESSIONS_DEFAULT_ROLLUP
+
+        where = [filter_projects_by_project_release(project_releases)]
+
+        if health_stats_period:
+            health_stats_data = self._get_health_stats_for_overview(
+                projects=projects,
+                where=where,
+                org_id=org_id,
+                stat=stat,
+                granularity=granularity,
+                start=summary_start,
+                end=now,
+            )
+        else:
+            health_stats_data = {}
+
+        rv_durations = self._get_session_duration_data_for_overview(
+            projects, where, org_id, rollup, summary_start, now
+        )
+
+        pprint(health_stats_data)
+        pprint(rv_durations)
         raise NotImplementedError()
 
     # TODO implement
