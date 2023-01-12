@@ -1,5 +1,4 @@
-import {useRef} from 'react';
-import {AutoSizer, CellMeasurer, GridCellProps, MultiGrid} from 'react-virtualized';
+import {AutoSizer} from 'react-virtualized';
 import styled from '@emotion/styled';
 
 import Placeholder from 'sentry/components/placeholder';
@@ -16,7 +15,10 @@ import NetworkTableCell from 'sentry/views/replays/detail/network/networkTableCe
 import useNetworkFilters from 'sentry/views/replays/detail/network/useNetworkFilters';
 import useSortNetwork from 'sentry/views/replays/detail/network/useSortNetwork';
 import NoRowRenderer from 'sentry/views/replays/detail/noRowRenderer';
-import useVirtualizedGrid from 'sentry/views/replays/detail/useVirtualizedGrid';
+import VirtualGrid, {
+  BodyRendererProps,
+  HeaderRendererProps,
+} from 'sentry/views/replays/detail/virtualGrid';
 import type {NetworkSpan} from 'sentry/views/replays/types';
 
 const HEADER_HEIGHT = 25;
@@ -27,16 +29,63 @@ type Props = {
   startTimestampMs: number;
 };
 
+type ItemData = {
+  current: ReturnType<typeof getPrevReplayEvent>;
+  hovered: ReturnType<typeof getPrevReplayEvent>;
+  startTimestampMs: Props['startTimestampMs'];
+} & ReturnType<typeof useCrumbHandlers> &
+  ReturnType<typeof useSortNetwork>;
+
+const HeadCell = ({columnIndex, style, data}: HeaderRendererProps<ItemData>) => {
+  const {handleSort, sortConfig} = data;
+  return (
+    <NetworkHeaderCell
+      handleSort={handleSort}
+      index={columnIndex}
+      sortConfig={sortConfig}
+      style={{...style}}
+    />
+  );
+};
+
+const BodyCell = ({columnIndex, rowIndex, style, data}: BodyRendererProps<ItemData>) => {
+  const {
+    items,
+    current,
+    handleClick,
+    handleMouseEnter,
+    handleMouseLeave,
+    hovered,
+    sortConfig,
+    startTimestampMs,
+  } = data;
+  const network = items[rowIndex];
+  return (
+    <NetworkTableCell
+      columnIndex={columnIndex}
+      handleClick={handleClick}
+      handleMouseEnter={handleMouseEnter}
+      handleMouseLeave={handleMouseLeave}
+      isCurrent={network.id === current?.id}
+      isHovered={network.id === hovered?.id}
+      sortConfig={sortConfig}
+      span={network}
+      startTimestampMs={startTimestampMs}
+      style={{...style, height: BODY_HEIGHT}}
+    />
+  );
+};
+
 function NetworkList({networkSpans, startTimestampMs}: Props) {
   const {currentTime, currentHoverTime} = useReplayContext();
 
   const filterProps = useNetworkFilters({networkSpans: networkSpans || []});
-  const {items: filteredItems, searchTerm, setSearchTerm} = filterProps;
+  const {items: filteredItems, setSearchTerm} = filterProps;
   const clearSearchTerm = () => setSearchTerm('');
-  const {handleSort, items, sortConfig} = useSortNetwork({items: filteredItems});
+  const sortResult = useSortNetwork({items: filteredItems});
+  const {items} = sortResult;
 
-  const {handleMouseEnter, handleMouseLeave, handleClick} =
-    useCrumbHandlers(startTimestampMs);
+  const crumbHandlers = useCrumbHandlers(startTimestampMs);
 
   const current = getPrevReplayEvent({
     items,
@@ -52,101 +101,45 @@ function NetworkList({networkSpans, startTimestampMs}: Props) {
         allowEqual: true,
         allowExact: true,
       })
-    : null;
-
-  const gridRef = useRef<MultiGrid>(null);
-  const {cache, getColumnWidth, onScrollbarPresenceChange, onWrapperResize} =
-    useVirtualizedGrid({
-      cellMeasurer: {
-        defaultHeight: BODY_HEIGHT,
-        defaultWidth: 100,
-        fixedHeight: true,
-      },
-      gridRef,
-      columnCount: COLUMN_COUNT,
-      dynamicColumnIndex: 1,
-      deps: [items, searchTerm],
-    });
-
-  const cellRenderer = ({columnIndex, rowIndex, key, style, parent}: GridCellProps) => {
-    const network = items[rowIndex - 1];
-
-    return (
-      <CellMeasurer
-        cache={cache}
-        columnIndex={columnIndex}
-        key={key}
-        parent={parent}
-        rowIndex={rowIndex}
-      >
-        {({
-          measure: _,
-          registerChild,
-        }: {
-          measure: () => void;
-          registerChild?: (element?: Element) => void;
-        }) =>
-          rowIndex === 0 ? (
-            <NetworkHeaderCell
-              ref={e => e && registerChild?.(e)}
-              handleSort={handleSort}
-              index={columnIndex}
-              sortConfig={sortConfig}
-              style={{...style, height: HEADER_HEIGHT}}
-            />
-          ) : (
-            <NetworkTableCell
-              ref={e => e && registerChild?.(e)}
-              columnIndex={columnIndex}
-              handleClick={handleClick}
-              handleMouseEnter={handleMouseEnter}
-              handleMouseLeave={handleMouseLeave}
-              isCurrent={network.id === current?.id}
-              isHovered={network.id === hovered?.id}
-              sortConfig={sortConfig}
-              span={network}
-              startTimestampMs={startTimestampMs}
-              style={{...style, height: BODY_HEIGHT}}
-            />
-          )
-        }
-      </CellMeasurer>
-    );
-  };
+    : undefined;
 
   return (
     <NetworkContainer>
       <NetworkFilters networkSpans={networkSpans} {...filterProps} />
       <NetworkTable>
         {networkSpans ? (
-          <AutoSizer onResize={onWrapperResize}>
-            {({width, height}) => (
-              <MultiGrid
-                ref={gridRef}
-                cellRenderer={cellRenderer}
-                columnCount={COLUMN_COUNT}
-                columnWidth={getColumnWidth(width)}
-                deferredMeasurementCache={cache}
-                estimatedColumnSize={width}
-                estimatedRowSize={HEADER_HEIGHT + items.length * BODY_HEIGHT}
-                fixedRowCount={1}
-                height={height}
-                noContentRenderer={() => (
+          <AutoSizer>
+            {({width, height}) =>
+              items.length ? (
+                <VirtualGrid<ItemData>
+                  itemData={{
+                    current,
+                    hovered,
+                    startTimestampMs,
+                    ...sortResult,
+                    ...crumbHandlers,
+                  }}
+                  bodyRenderer={BodyCell}
+                  columnCount={COLUMN_COUNT}
+                  columnWidth={() => 100}
+                  headerHeight={`${HEADER_HEIGHT}px`}
+                  headerRenderer={HeadCell}
+                  height={height}
+                  rowCount={items.length}
+                  rowHeight={() => BODY_HEIGHT}
+                  width={width}
+                />
+              ) : (
+                <div style={{width, height}}>
                   <NoRowRenderer
                     unfilteredItems={networkSpans}
                     clearSearchTerm={clearSearchTerm}
                   >
                     {t('No network requests recorded')}
                   </NoRowRenderer>
-                )}
-                onScrollbarPresenceChange={onScrollbarPresenceChange}
-                overscanColumnCount={COLUMN_COUNT}
-                overscanRowCount={5}
-                rowCount={items.length + 1}
-                rowHeight={({index}) => (index === 0 ? HEADER_HEIGHT : BODY_HEIGHT)}
-                width={width}
-              />
-            )}
+                </div>
+              )
+            }
           </AutoSizer>
         ) : (
           <Placeholder height="100%" />
