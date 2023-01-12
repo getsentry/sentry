@@ -3,7 +3,6 @@ These settings act as the default (base) settings for the Sentry-provided web-se
 """
 import os
 import os.path
-import platform
 import re
 import socket
 import sys
@@ -1953,11 +1952,6 @@ def build_cdc_postgres_init_db_volume(settings):
     )
 
 
-# platform.processor() changed at some point between these:
-# 11.2.3: arm
-# 12.3.1: arm64
-APPLE_ARM64 = sys.platform == "darwin" and platform.processor() in {"arm", "arm64"}
-
 SENTRY_DEVSERVICES = {
     "redis": lambda settings, options: (
         {
@@ -2037,12 +2031,7 @@ SENTRY_DEVSERVICES = {
     ),
     "clickhouse": lambda settings, options: (
         {
-            "image": "ghcr.io/getsentry/image-mirror-yandex-clickhouse-server:20.3.9.70"
-            if not APPLE_ARM64
-            # altinity provides clickhouse support to other companies
-            # Official support: https://github.com/ClickHouse/ClickHouse/issues/22222
-            # This image is build with this script https://gist.github.com/filimonov/5f9732909ff66d5d0a65b8283382590d
-            else "ghcr.io/getsentry/image-mirror-altinity-clickhouse-server:21.6.1.6734-testing-arm",
+            "image": "docker.io/clickhouse/clickhouse-server:22.3.3.44-alpine",
             "pull": True,
             "ports": {"9000/tcp": 9000, "9009/tcp": 9009, "8123/tcp": 8123},
             "ulimits": [{"name": "nofile", "soft": 262144, "hard": 262144}],
