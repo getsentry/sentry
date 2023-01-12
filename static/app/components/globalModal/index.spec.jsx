@@ -85,8 +85,8 @@ describe('GlobalModal', function () {
     expect(closeSpy).toHaveBeenCalled();
   });
 
-  it('calls ignores click out when the allowClickClose option is false', async function () {
-    renderGlobalModal();
+  it("ignores click out with preventClose: 'backdrop-click'", async function () {
+    const {waitForModalToHide} = renderGlobalModal();
     render(<div data-test-id="outside-test">Hello</div>);
 
     act(() =>
@@ -96,19 +96,49 @@ describe('GlobalModal', function () {
             <Header closeButton>Header</Header>Hi
           </div>
         ),
-        {allowClickClose: false}
+        {preventClose: 'backdrop-click'}
       )
     );
 
     expect(screen.getByTestId('modal-test')).toBeInTheDocument();
 
+    // Clicking outside of modal doesn't close
     userEvent.click(screen.getByTestId('outside-test'));
+    expect(screen.getByTestId('modal-test')).toBeInTheDocument();
 
+    // Pressing escape _does_ close
+    userEvent.keyboard('{Escape}');
+    expect(screen.getByTestId('modal-test')).toBeInTheDocument();
+    await waitForModalToHide();
+  });
+
+  it("ignores backdrop click and escape key when with preventClose: 'always'", async function () {
+    const {waitForModalToHide} = renderGlobalModal();
+    render(<div data-test-id="outside-test">Hello</div>);
+
+    act(() =>
+      openModal(
+        ({Header}) => (
+          <div data-test-id="modal-test">
+            <Header closeButton>Header</Header>Hi
+          </div>
+        ),
+        {preventClose: 'always'}
+      )
+    );
+
+    expect(screen.getByTestId('modal-test')).toBeInTheDocument();
+
+    // Clicking outside of modal doesn't close
+    userEvent.click(screen.getByTestId('outside-test'));
+    expect(screen.getByTestId('modal-test')).toBeInTheDocument();
+
+    // Pressing escape doesn't close
+    userEvent.keyboard('{Escape}');
     expect(screen.getByTestId('modal-test')).toBeInTheDocument();
 
     userEvent.click(screen.getByRole('button', {name: 'Close Modal'}));
 
-    await waitForElementToBeRemoved(screen.queryByTestId('modal-test'));
-    expect(screen.queryByTestId('modal-test')).not.toBeInTheDocument();
+    await waitForModalToHide();
   });
 });

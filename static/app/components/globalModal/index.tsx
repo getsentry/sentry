@@ -18,17 +18,11 @@ import {makeClosableHeader, makeCloseButton, ModalBody, ModalFooter} from './com
 
 type ModalOptions = {
   /**
-   * Set to `false` to disable the ability to click outside the modal to
-   * close it. This is useful for modals containing user input which will
-   * disappear on an accidental click. Defaults to `true`.
-   */
-  allowClickClose?: boolean;
-  /**
    * Set to `false` to disable the backdrop from being rendered. Set to
    * `static` to disable the 'click outside' behavior from closing the modal.
    * Set to true (the default) to show a translucent backdrop
    */
-  backdrop?: 'static' | boolean;
+  backdrop?: boolean;
   /**
    * Additional CSS which will be applied to the modals `role="dialog"`
    * component. You may use the `[role="document"]` selector to target the
@@ -39,6 +33,21 @@ type ModalOptions = {
    * Callback for when the modal is closed
    */
   onClose?: () => void;
+  /**
+   * By default, the modal is closed when the backdrop is clicked or the
+   * escape key is pressed. This prop allows you to disable that behavior.
+   * Only use when completely necessary!
+   *
+   * 'always' - the modal cannot be dismissed with either the mouse or the
+   *   keyboard. The modal will need to be closed manually with `closeModal()`.
+   *   This should only be used when a modal requires user input and cannot be
+   *   dismissed, which is rare.
+   * 'backdrop-click' - the modal cannot be dismissed by clicking on the backdrop.
+   *   This is useful for modals containing user input which will disappear on an
+   *   accidental click.
+   * 'escape-key' - the modal cannot be dimissed by pressing the escape key.
+   */
+  preventClose?: 'always' | 'backdrop-click' | 'escape-key';
 };
 
 type ModalRenderProps = {
@@ -104,8 +113,18 @@ function GlobalModal({onClose}: Props) {
   }, [options, onClose]);
 
   const handleEscapeClose = useCallback(
-    (e: KeyboardEvent) => e.key === 'Escape' && closeModal(),
-    [closeModal]
+    (e: KeyboardEvent) => {
+      if (
+        e.key !== 'Escape' ||
+        options.preventClose === 'always' ||
+        options.preventClose === 'escape-key'
+      ) {
+        return;
+      }
+
+      closeModal();
+    },
+    [closeModal, options.preventClose]
   );
 
   const portal = getModalPortal();
@@ -163,13 +182,13 @@ function GlobalModal({onClose}: Props) {
   // Default to enabled backdrop
   const backdrop = options.backdrop ?? true;
 
-  // Default to enabled click close
-  const allowClickClose = options.allowClickClose ?? true;
+  const allowBackdropClickClose =
+    options.preventClose !== 'always' && options.preventClose !== 'backdrop-click';
 
   // Only close when we directly click outside of the modal.
   const containerRef = useRef<HTMLDivElement>(null);
   const clickClose = (e: React.MouseEvent) =>
-    containerRef.current === e.target && allowClickClose && closeModal();
+    containerRef.current === e.target && allowBackdropClickClose && closeModal();
 
   return createPortal(
     <Fragment>
@@ -179,7 +198,7 @@ function GlobalModal({onClose}: Props) {
       <Container
         ref={containerRef}
         style={{pointerEvents: visible ? 'auto' : 'none'}}
-        onClick={backdrop === true ? clickClose : undefined}
+        onClick={backdrop ? clickClose : undefined}
       >
         <AnimatePresence>
           {visible && (

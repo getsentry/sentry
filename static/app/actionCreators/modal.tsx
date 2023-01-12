@@ -140,7 +140,10 @@ export async function openEditOwnershipRules(options: EditOwnershipRulesModalOpt
   const mod = await import('sentry/components/modals/editOwnershipRulesModal');
   const {default: Modal, modalCss} = mod;
 
-  openModal(deps => <Modal {...deps} {...options} />, {backdrop: 'static', modalCss});
+  openModal(deps => <Modal {...deps} {...options} />, {
+    preventClose: 'backdrop-click',
+    modalCss,
+  });
 }
 
 export async function openCommandPalette(options: ModalOptions = {}) {
@@ -240,14 +243,20 @@ export async function openWidgetBuilderOverwriteModal(
   const mod = await import('sentry/components/modals/widgetBuilder/overwriteWidgetModal');
   const {default: Modal, modalCss} = mod;
 
-  openModal(deps => <Modal {...deps} {...options} />, {backdrop: 'static', modalCss});
+  openModal(deps => <Modal {...deps} {...options} />, {
+    preventClose: 'backdrop-click',
+    modalCss,
+  });
 }
 
 export async function openAddToDashboardModal(options) {
   const mod = await import('sentry/components/modals/widgetBuilder/addToDashboardModal');
   const {default: Modal, modalCss} = mod;
 
-  openModal(deps => <Modal {...deps} {...options} />, {backdrop: 'static', modalCss});
+  openModal(deps => <Modal {...deps} {...options} />, {
+    preventClose: 'backdrop-click',
+    modalCss,
+  });
 }
 
 export async function openReprocessEventModal({
@@ -286,7 +295,10 @@ export async function openDashboardWidgetQuerySelectorModal(
   const mod = await import('sentry/components/modals/dashboardWidgetQuerySelectorModal');
   const {default: Modal, modalCss} = mod;
 
-  openModal(deps => <Modal {...deps} {...options} />, {backdrop: 'static', modalCss});
+  openModal(deps => <Modal {...deps} {...options} />, {
+    preventClose: 'backdrop-click',
+    modalCss,
+  });
 }
 
 export async function openWidgetViewerModal({
@@ -297,7 +309,7 @@ export async function openWidgetViewerModal({
   const {default: Modal, modalCss} = mod;
 
   openModal(deps => <Modal {...deps} {...options} />, {
-    backdrop: 'static',
+    preventClose: 'backdrop-click',
     modalCss,
     onClose,
   });

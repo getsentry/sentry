@@ -120,7 +120,7 @@ class PluginDetailedView extends AbstractIntegrationDetailedView<
           }}
         />
       ),
-      {allowClickClose: false}
+      {preventClose: 'backdrop-click'}
     );
   };
 

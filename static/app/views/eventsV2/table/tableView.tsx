@@ -425,7 +425,7 @@ function TableView(props: TableViewProps) {
           customMeasurements={customMeasurements}
         />
       ),
-      {modalCss, backdrop: 'static'}
+      {modalCss, preventClose: 'backdrop-click'}
     );
   }
 
