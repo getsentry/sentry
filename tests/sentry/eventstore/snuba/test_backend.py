@@ -63,7 +63,7 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase):
 
         event_data_2 = load_data(
             platform="transaction",
-            fingerprint=[f"{GroupType.PERFORMANCE_SLOW_SPAN.value}-group3"],
+            fingerprint=[f"{GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN.value}-group3"],
         )
         event_data_2["timestamp"] = iso_format(before_now(seconds=30))
         event_data_2["start_timestamp"] = iso_format(before_now(seconds=31))

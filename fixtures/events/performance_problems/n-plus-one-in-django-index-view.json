@@ -168,7 +168,7 @@
       "same_process_as_parent": true
     },
     {
-      "timestamp": 1661959871.418989,
+      "timestamp": 1661957871.249481,
       "start_timestamp": 1661957871.249481,
       "exclusive_time": 169.507981,
       "description": "\n                SELECT VERSION(),\n                       @@sql_mode,\n                       @@default_storage_engine,\n                       @@sql_auto_is_null,\n                       @@lower_case_table_names,\n                       CONVERT_TZ('2001-01-01 01:00:00', 'UTC', 'UTC') IS NOT NULL\n            ",

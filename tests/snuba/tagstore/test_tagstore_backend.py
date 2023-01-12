@@ -139,7 +139,7 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin):
             "culprit": "app/components/events/eventEntries in map",
             "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
             "environment": env_name,
-            "fingerprint": [f"{GroupType.PERFORMANCE_SLOW_SPAN.value}-group"],
+            "fingerprint": [f"{GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN.value}-group"],
         }
         env = Environment.objects.get(name=env_name)
 
@@ -1003,7 +1003,7 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin):
                 "start_timestamp": iso_format(self.now - timedelta(seconds=1)),
                 "tags": {"foo": "bar"},
                 # same fingerprint as group
-                "fingerprint": [f"{GroupType.PERFORMANCE_SLOW_SPAN.value}-group"],
+                "fingerprint": [f"{GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN.value}-group"],
             },
             project_id=self.project.id,
         )
@@ -1064,7 +1064,7 @@ class PerfTagStorageTest(TestCase, SnubaTestCase, PerfIssueTransactionTestMixin)
         self.ts = SnubaTagStorage()
 
     def test_get_perf_groups_user_counts_simple(self):
-        first_group_fingerprint = f"{GroupType.PERFORMANCE_SLOW_SPAN.value}-group1"
+        first_group_fingerprint = f"{GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN.value}-group1"
         first_group_timestamp_start = timezone.now() - timedelta(days=5)
         self.store_transaction(
             self.project.id,
@@ -1095,7 +1095,9 @@ class PerfTagStorageTest(TestCase, SnubaTestCase, PerfIssueTransactionTestMixin)
         )
         first_group = event_with_first_group.groups[0]
 
-        second_group_fingerprint = f"{GroupType.PERFORMANCE_SLOW_SPAN.value}-group2"
+        second_group_fingerprint = (
+            f"{GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN.value}-group2"
+        )
         second_group_timestamp_start = timezone.now() - timedelta(hours=5)
         self.store_transaction(
             self.project.id,
@@ -1139,7 +1141,7 @@ class PerfTagStorageTest(TestCase, SnubaTestCase, PerfIssueTransactionTestMixin)
         ) == {first_group.id: 3, second_group.id: 3}
 
     def test_get_perf_group_list_tag_value_by_environment(self):
-        group_fingerprint = f"{GroupType.PERFORMANCE_SLOW_SPAN.value}-group1"
+        group_fingerprint = f"{GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN.value}-group1"
         start_timestamp = timezone.now() - timedelta(hours=1)
         first_event_ts = start_timestamp + timedelta(minutes=1)
         self.store_transaction(
