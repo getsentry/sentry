@@ -7,7 +7,6 @@ import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
-import SearchBar from 'sentry/components/events/searchBar';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -18,17 +17,14 @@ import TransactionNameSearchBar from 'sentry/components/performance/searchBar';
 import * as TeamKeyTransactionManager from 'sentry/components/performance/teamKeyTransactionsManager';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import {Item, TabList, TabPanels, Tabs} from 'sentry/components/tabs';
-import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters, Project} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
-import {generateAggregateFields} from 'sentry/utils/discover/fields';
 import {GenericQueryBatcher} from 'sentry/utils/performance/contexts/genericQueryBatcher';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {
-  canUseMetricsData,
   MEPConsumer,
   MEPSettingProvider,
   MEPState,
@@ -149,11 +145,6 @@ export function PerformanceLanding(props: Props) {
     ? SearchContainerWithFilterAndMetrics
     : SearchContainerWithFilter;
 
-  const shouldShowTransactionNameOnlySearch = canUseMetricsData(organization);
-  const shouldForceTransactionNameOnlySearch = organization.features.includes(
-    'performance-transaction-name-only-search-indexed'
-  );
-
   return (
     <StyledPageContent data-test-id="performance-landing-v3">
       <PageErrorProvider>
@@ -243,45 +234,21 @@ export function PerformanceLanding(props: Props) {
                                 <SearchFilterContainer>
                                   {pageFilters}
                                   <MEPConsumer>
-                                    {({metricSettingState}) => {
-                                      return (metricSettingState ===
-                                        MEPState.metricsOnly &&
-                                        shouldShowTransactionNameOnlySearch) ||
-                                        shouldForceTransactionNameOnlySearch ? (
-                                        // TODO replace `handleSearch prop` with transaction name search once
-                                        // transaction name search becomes the default search bar
-                                        <TransactionNameSearchBar
-                                          organization={organization}
-                                          eventView={eventView}
-                                          onSearch={(query: string) => {
-                                            handleSearch(
-                                              query,
-                                              metricSettingState ?? undefined
-                                            );
-                                          }}
-                                          query={getFreeTextFromQuery(derivedQuery)}
-                                        />
-                                      ) : (
-                                        <SearchBar
-                                          searchSource="performance_landing"
-                                          organization={organization}
-                                          projectIds={eventView.project}
-                                          query={derivedQuery}
-                                          fields={generateAggregateFields(
-                                            organization,
-                                            [...eventView.fields, {field: 'tps()'}],
-                                            ['epm()', 'eps()']
-                                          )}
-                                          onSearch={(query: string) =>
-                                            handleSearch(
-                                              query,
-                                              metricSettingState ?? undefined
-                                            )
-                                          }
-                                          maxQueryLength={MAX_QUERY_LENGTH}
-                                        />
-                                      );
-                                    }}
+                                    {({metricSettingState}) => (
+                                      // TODO replace `handleSearch prop` with transaction name search once
+                                      // transaction name search becomes the default search bar
+                                      <TransactionNameSearchBar
+                                        organization={organization}
+                                        eventView={eventView}
+                                        onSearch={(query: string) => {
+                                          handleSearch(
+                                            query,
+                                            metricSettingState ?? undefined
+                                          );
+                                        }}
+                                        query={getFreeTextFromQuery(derivedQuery)}
+                                      />
+                                    )}
                                   </MEPConsumer>
                                   <MetricsEventsDropdown />
                                 </SearchFilterContainer>
