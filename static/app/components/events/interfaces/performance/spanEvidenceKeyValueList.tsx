@@ -47,7 +47,7 @@ export function SpanEvidenceKeyValueList({
   } else if (issueType === IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS) {
     data.push({
       key: '1',
-      subject: t('Repeating Span'),
+      subject: t('Offending Span'),
       value: getSpanEvidenceValue(offendingSpans[0]),
       subjectDataTestId: `${TEST_ID_NAMESPACE}.offending-spans`,
     });
