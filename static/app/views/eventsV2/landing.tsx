@@ -12,8 +12,8 @@ import Breadcrumbs from 'sentry/components/breadcrumbs';
 import Button from 'sentry/components/button';
 import CompactSelect from 'sentry/components/compactSelect';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {Title} from 'sentry/components/layouts/thirds';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
+import PageHeading from 'sentry/components/pageHeading';
 import SearchBar from 'sentry/components/searchBar';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import Switch from 'sentry/components/switchButton';
@@ -210,7 +210,7 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
           onSearch={this.handleSearchQuery}
         />
         <PrebuiltSwitch>
-          <SwitchLabel>Show Prebuilt</SwitchLabel>
+          Show Prebuilt
           <Switch
             isActive={renderPrebuilt}
             isDisabled={renderPrebuilt && (savedQueries ?? []).length === 0}
@@ -305,11 +305,11 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
                   ) ? (
                     this.renderBreadcrumbs()
                   ) : (
-                    <Title>
+                    <StyledHeading>
                       <GuideAnchor target="discover_landing_header">
                         {t('Discover')}
                       </GuideAnchor>
-                    </Title>
+                    </StyledHeading>
                   )}
                 </Layout.HeaderContent>
                 <Layout.HeaderActions>
@@ -347,12 +347,16 @@ const StyledPageContent = styled(PageContent)`
   padding: 0;
 `;
 
-const PrebuiltSwitch = styled('div')`
-  display: flex;
+const StyledHeading = styled(PageHeading)`
+  line-height: 40px;
 `;
 
-const SwitchLabel = styled('div')`
-  padding-right: 8px;
+const PrebuiltSwitch = styled('label')`
+  display: flex;
+  align-items: center;
+  gap: ${space(1.5)};
+  font-weight: normal;
+  margin: 0;
 `;
 
 const StyledSearchBar = styled(SearchBar)`
