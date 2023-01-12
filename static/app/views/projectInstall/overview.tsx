@@ -12,6 +12,7 @@ import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import recreateRoute from 'sentry/utils/recreateRoute';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
@@ -47,7 +48,7 @@ class ProjectInstallOverview extends AsyncComponent<Props, State> {
           stepBack: -1,
         });
 
-    browserHistory.push(installUrl);
+    browserHistory.push(normalizeUrl(installUrl));
   };
 
   toggleDsn = () => {

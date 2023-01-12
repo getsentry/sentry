@@ -19,6 +19,7 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
+import PageHeading from 'sentry/components/pageHeading';
 import MissingProjectMembership from 'sentry/components/projects/missingProjectMembership';
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {IconSettings} from 'sentry/icons';
@@ -28,6 +29,7 @@ import space from 'sentry/styles/space';
 import {Organization, PageFilters, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import routeTitleGen from 'sentry/utils/routeTitle';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import withProjects from 'sentry/utils/withProjects';
 import AsyncView from 'sentry/views/asyncView';
@@ -84,14 +86,16 @@ class ProjectDetail extends AsyncView<Props, State> {
 
     // if we change project in global header, we need to sync the project slug in the URL
     if (newlySelectedProject?.id) {
-      router.replace({
-        pathname: `/organizations/${organization.slug}/projects/${newlySelectedProject.slug}/`,
-        query: {
-          ...location.query,
-          project: newlySelectedProject.id,
-          environment: undefined,
-        },
-      });
+      router.replace(
+        normalizeUrl({
+          pathname: `/organizations/${organization.slug}/projects/${newlySelectedProject.slug}/`,
+          query: {
+            ...location.query,
+            project: newlySelectedProject.id,
+            environment: undefined,
+          },
+        })
+      );
     }
   };
 
@@ -211,16 +215,18 @@ class ProjectDetail extends AsyncView<Props, State> {
                     {label: t('Project Details')},
                   ]}
                 />
-                <Layout.Title>
-                  {project && (
+                <ProjectTitle>
+                  {project ? (
                     <IdBadge
                       project={project}
                       avatarSize={28}
                       hideOverflow="100%"
                       disableLink
+                      hideName
                     />
-                  )}
-                </Layout.Title>
+                  ) : null}
+                  {project?.slug}
+                </ProjectTitle>
               </Layout.HeaderContent>
 
               <Layout.HeaderActions>
@@ -283,6 +289,7 @@ class ProjectDetail extends AsyncView<Props, State> {
                   hasTransactions={hasTransactions}
                   query={query}
                   project={project}
+                  location={location}
                 />
                 {isProjectStabilized && (
                   <Fragment>
@@ -345,6 +352,13 @@ class ProjectDetail extends AsyncView<Props, State> {
 
 const StyledPageContent = styled(PageContent)`
   padding: 0;
+`;
+
+const ProjectTitle = styled(PageHeading)`
+  line-height: 40px;
+  display: flex;
+  gap: ${space(1)};
+  align-items: center;
 `;
 
 const ProjectFiltersWrapper = styled('div')`

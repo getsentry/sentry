@@ -16,7 +16,7 @@ function ReplaysListContainer() {
       <Layout.Header>
         <Layout.HeaderContent>
           <StyledHeading>
-            {t('Replays')} <ReplaysFeatureBadge space={1} />
+            {t('Session Replay')} <ReplaysFeatureBadge space={1} />
           </StyledHeading>
         </Layout.HeaderContent>
       </Layout.Header>

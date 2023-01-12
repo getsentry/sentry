@@ -12,6 +12,7 @@ import SearchBar from 'sentry/components/events/searchBar';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
+import PageHeading from 'sentry/components/pageHeading';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {t} from 'sentry/locale';
@@ -229,7 +230,7 @@ class TrendsContent extends Component<Props, State> {
                 },
               ]}
             />
-            <Layout.Title>{t('Trends')}</Layout.Title>
+            <StyledHeading>{t('Trends')}</StyledHeading>
           </Layout.HeaderContent>
         </Layout.Header>
         <Layout.Body>
@@ -336,6 +337,10 @@ class DefaultTrends extends Component<DefaultTrendsProps> {
     return null;
   }
 }
+
+const StyledHeading = styled(PageHeading)`
+  line-height: 40px;
+`;
 
 const FilterActions = styled('div')`
   display: grid;
