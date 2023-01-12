@@ -1156,7 +1156,7 @@ SENTRY_FEATURES = {
     # Enable Sentry Functions
     "organizations:sentry-functions": False,
     # Enable experimental session replay backend APIs
-    "organizations:session-replay": False,
+    "organizations:session-replay": True,
     # Enable experimental session replay SDK for recording on Sentry
     "organizations:session-replay-sdk": False,
     "organizations:session-replay-sdk-errors-only": False,
