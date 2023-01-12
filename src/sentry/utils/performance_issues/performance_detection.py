@@ -1380,7 +1380,7 @@ class ContinuingMNPlusOne(MNPlusOneState):
         self.pattern = pattern
 
         # The full list of spans involved in the MN pattern.
-        self.spans = pattern.copy()
+        self.spans: Sequence[Span] = pattern.copy()
         self.spans.append(first_span)
         self.pattern_index = 1
 
@@ -1417,7 +1417,7 @@ class ContinuingMNPlusOne(MNPlusOneState):
         offender_spans = self.spans[:offender_span_count]
 
         total_duration_threshold = self.settings["total_duration_threshold"]
-        total_duration = sum(map(get_span_duration, offender_spans), timedelta(0))
+        total_duration = self._total_span_duration(offender_spans)
         if total_duration < timedelta(milliseconds=total_duration_threshold):
             return None
 
@@ -1430,6 +1430,25 @@ class ContinuingMNPlusOne(MNPlusOneState):
             parent_span_ids=[],
             cause_span_ids=[],
             offender_span_ids=[span["span_id"] for span in offender_spans],
+        )
+
+    def _total_span_duration(self, spans: Sequence[Span]) -> timedelta:
+        """Returns the sum of time taken by spans, without double-counting overlaps."""
+        discrete_ranges = deque()
+        for span in spans:
+            start_time = timedelta(seconds=span.get("start_timestamp", 0))
+            end_time = timedelta(seconds=span.get("timestamp", 0))
+            if len(discrete_ranges) == 0:
+                discrete_ranges.append((start_time, end_time))
+            else:
+                last_start_time, last_end_time = discrete_ranges.pop()
+                if start_time < last_end_time:
+                    discrete_ranges.append((last_start_time, max(end_time, last_end_time)))
+                else:
+                    discrete_ranges.append((start_time, end_time))
+        return sum(
+            map(lambda range: range[1] - range[0], discrete_ranges),
+            timedelta(0),
         )
 
     def _first_db_span(self) -> Optional[Span]:
