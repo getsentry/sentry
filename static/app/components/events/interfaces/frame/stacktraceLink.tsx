@@ -102,8 +102,8 @@ function StacktraceLinkSetup({organization, project, event}: StacktraceLinkSetup
 }
 
 interface CodecovLinkProps {
-  codecovStatusCode: CodecovStatusCode;
   sourceUrl: string | undefined;
+  codecovStatusCode?: CodecovStatusCode;
 }
 
 function CodecovLink({sourceUrl, codecovStatusCode}: CodecovLinkProps) {
@@ -118,17 +118,20 @@ function CodecovLink({sourceUrl, codecovStatusCode}: CodecovLinkProps) {
     );
   }
 
-  const codecovUrl = sourceUrl?.replaceAll(
-    new RegExp('github.com/.[^/]*', 'g'),
-    'app.codecov.io/gh'
-  );
+  if (codecovStatusCode === CodecovStatusCode.COVERAGE_EXISTS) {
+    const codecovUrl = sourceUrl?.replaceAll(
+      new RegExp('github.com/.[^/]*', 'g'),
+      'app.codecov.io/gh'
+    );
 
-  return (
-    <OpenInLink href={`${codecovUrl}`} openInNewTab>
-      {t('View Coverage Tests on Codecov')}
-      <StyledIconWrapper>{getIntegrationIcon('codecov', 'sm')}</StyledIconWrapper>
-    </OpenInLink>
-  );
+    return (
+      <OpenInLink href={`${codecovUrl}`} openInNewTab>
+        {t('View Coverage Tests on Codecov')}
+        <StyledIconWrapper>{getIntegrationIcon('codecov', 'sm')}</StyledIconWrapper>
+      </OpenInLink>
+    );
+  }
+  return null;
 }
 
 interface StacktraceLinkProps {
