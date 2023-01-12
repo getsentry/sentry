@@ -525,7 +525,7 @@ class SnubaTSDBGroupPerformanceTest(TestCase, SnubaTestCase, PerfIssueTransactio
         )[0]
         defaultenv = ""
 
-        group1_fingerprint = f"{GroupType.PERFORMANCE_SLOW_SPAN.value}-group1"
+        group1_fingerprint = f"{GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN.value}-group1"
         group2_fingerprint = f"{GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value}-group2"
 
         for r in range(0, 14400, 600):  # Every 10 min for 4 hours
@@ -673,7 +673,7 @@ class SnubaTSDBGroupPerformanceTest(TestCase, SnubaTestCase, PerfIssueTransactio
         now = (datetime.utcnow() - timedelta(days=1)).replace(
             hour=10, minute=0, second=0, microsecond=0, tzinfo=pytz.UTC
         )
-        group_fingerprint = f"{GroupType.PERFORMANCE_SLOW_SPAN.value}-group5"
+        group_fingerprint = f"{GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN.value}-group5"
         # for r in range(0, 14400, 600):  # Every 10 min for 4 hours
         # for r in [1, 2, 3, 4, 5, 6, 7, 8]:
         ids = ["a", "b", "c", "d", "e"]  # , "f"]
