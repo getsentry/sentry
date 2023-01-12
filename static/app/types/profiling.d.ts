@@ -148,6 +148,20 @@ declare namespace Profiling {
     shared: {
       frames: ReadonlyArray<Omit<FrameInfo, 'key'>>;
     };
+    measurements?: {
+      screen_frame_rates?: {
+        unit: string;
+        values: {elapsed_since_start_ns: number; value: number}[];
+      };
+      frozen_frame_renders?: {
+        unit: string;
+        values: {elapsed_since_start_ns: number; value: number}[];
+      };
+      slow_frame_renders?: {
+        unit: string;
+        values: {elapsed_since_start_ns: number; value: number}[];
+      };
+    };
     activeProfileIndex?: number;
     metadata: {
       androidAPILevel: number;
