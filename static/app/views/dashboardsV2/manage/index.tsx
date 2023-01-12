@@ -14,14 +14,12 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
-import PageHeading from 'sentry/components/pageHeading';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import SearchBar from 'sentry/components/searchBar';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import Switch from 'sentry/components/switchButton';
 import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
 import {Organization, SelectValue} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
@@ -185,9 +183,9 @@ class ManageDashboards extends AsyncView<Props, State> {
 
   renderNoAccess() {
     return (
-      <PageContent>
+      <Layout.Page>
         <Alert type="warning">{t("You don't have access to this feature")}</Alert>
-      </PageContent>
+      </Layout.Page>
     );
   }
 
@@ -263,9 +261,9 @@ class ManageDashboards extends AsyncView<Props, State> {
 
   renderLoading() {
     return (
-      <PageContent>
+      <Layout.Page withPadding>
         <LoadingIndicator />
-      </PageContent>
+      </Layout.Page>
     );
   }
 
@@ -280,11 +278,11 @@ class ManageDashboards extends AsyncView<Props, State> {
         renderDisabled={this.renderNoAccess}
       >
         <SentryDocumentTitle title={t('Dashboards')} orgSlug={organization.slug}>
-          <StyledPageContent>
+          <Layout.Page>
             <NoProjectMessage organization={organization}>
               <Layout.Header>
                 <Layout.HeaderContent>
-                  <StyledHeading>
+                  <Layout.Title>
                     {t('Dashboards')}
                     <PageHeadingQuestionTooltip
                       title={tct(
@@ -296,7 +294,7 @@ class ManageDashboards extends AsyncView<Props, State> {
                         }
                       )}
                     />
-                  </StyledHeading>
+                  </Layout.Title>
                 </Layout.HeaderContent>
                 <Layout.HeaderActions>
                   <ButtonBar gap={1.5}>
@@ -331,20 +329,12 @@ class ManageDashboards extends AsyncView<Props, State> {
                 </Layout.Main>
               </Layout.Body>
             </NoProjectMessage>
-          </StyledPageContent>
+          </Layout.Page>
         </SentryDocumentTitle>
       </Feature>
     );
   }
 }
-
-const StyledPageContent = styled(PageContent)`
-  padding: 0;
-`;
-
-const StyledHeading = styled(PageHeading)`
-  line-height: 40px;
-`;
 
 const StyledActions = styled('div')`
   display: grid;

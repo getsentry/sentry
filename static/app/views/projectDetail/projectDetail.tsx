@@ -19,12 +19,10 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
-import PageHeading from 'sentry/components/pageHeading';
 import MissingProjectMembership from 'sentry/components/projects/missingProjectMembership';
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
@@ -158,20 +156,20 @@ class ProjectDetail extends AsyncView<Props, State> {
     const {organization} = this.props;
 
     return (
-      <PageContent>
+      <Layout.Page>
         <MissingProjectMembership organization={organization} project={project} />
-      </PageContent>
+      </Layout.Page>
     );
   }
 
   renderProjectNotFound() {
     return (
-      <PageContent>
+      <Layout.Page withPadding>
         <LoadingError
           message={t('This project could not be found.')}
           onRetry={this.onRetryProjects}
         />
-      </PageContent>
+      </Layout.Page>
     );
   }
 
@@ -203,7 +201,7 @@ class ProjectDetail extends AsyncView<Props, State> {
     return (
       <PageFiltersContainer skipLoadLastUsed showAbsolute={!hasOnlyBasicChart}>
         <NoProjectMessage organization={organization}>
-          <StyledPageContent>
+          <Layout.Page>
             <Layout.Header>
               <Layout.HeaderContent>
                 <Breadcrumbs
@@ -215,7 +213,7 @@ class ProjectDetail extends AsyncView<Props, State> {
                     {label: t('Project Details')},
                   ]}
                 />
-                <ProjectTitle>
+                <Layout.Title>
                   {project ? (
                     <IdBadge
                       project={project}
@@ -226,7 +224,7 @@ class ProjectDetail extends AsyncView<Props, State> {
                     />
                   ) : null}
                   {project?.slug}
-                </ProjectTitle>
+                </Layout.Title>
               </Layout.HeaderContent>
 
               <Layout.HeaderActions>
@@ -343,23 +341,12 @@ class ProjectDetail extends AsyncView<Props, State> {
                 />
               </Layout.Side>
             </Layout.Body>
-          </StyledPageContent>
+          </Layout.Page>
         </NoProjectMessage>
       </PageFiltersContainer>
     );
   }
 }
-
-const StyledPageContent = styled(PageContent)`
-  padding: 0;
-`;
-
-const ProjectTitle = styled(PageHeading)`
-  line-height: 40px;
-  display: flex;
-  gap: ${space(1)};
-  align-items: center;
-`;
 
 const ProjectFiltersWrapper = styled('div')`
   margin-bottom: ${space(2)};

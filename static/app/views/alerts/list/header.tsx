@@ -1,5 +1,4 @@
 import {InjectedRouter} from 'react-router';
-import styled from '@emotion/styled';
 
 import {navigateTo} from 'sentry/actionCreators/navigation';
 import Button from 'sentry/components/button';
@@ -8,7 +7,6 @@ import CreateAlertButton from 'sentry/components/createAlertButton';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
-import PageHeading from 'sentry/components/pageHeading';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {IconSettings} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -44,7 +42,7 @@ const AlertHeader = ({router, activeTab}: Props) => {
   return (
     <Layout.Header>
       <Layout.HeaderContent>
-        <StyledHeading>
+        <Layout.Title>
           {t('Alerts')}
           <PageHeadingQuestionTooltip
             title={tct(
@@ -52,7 +50,7 @@ const AlertHeader = ({router, activeTab}: Props) => {
               {link: <ExternalLink href="https://docs.sentry.io/product/alerts/" />}
             )}
           />
-        </StyledHeading>
+        </Layout.Title>
       </Layout.HeaderContent>
       <Layout.HeaderActions>
         <ButtonBar gap={1}>
@@ -93,7 +91,3 @@ const AlertHeader = ({router, activeTab}: Props) => {
 };
 
 export default AlertHeader;
-
-const StyledHeading = styled(PageHeading)`
-  line-height: 40px;
-`;

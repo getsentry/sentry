@@ -21,11 +21,9 @@ import {
 } from 'sentry/components/modals/widgetViewerModal/utils';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
-import PageHeading from 'sentry/components/pageHeading';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {usingCustomerDomain} from 'sentry/constants';
 import {t} from 'sentry/locale';
-import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
@@ -639,16 +637,16 @@ class DashboardDetail extends Component<Props, State> {
           },
         }}
       >
-        <PageContent>
+        <Layout.Page withPadding>
           <NoProjectMessage organization={organization}>
             <StyledPageHeader>
-              <StyledHeading>
+              <Layout.Title>
                 <DashboardTitle
                   dashboard={modifiedDashboard ?? dashboard}
                   onUpdate={this.setModifiedDashboard}
                   isEditing={this.isEditing}
                 />
-              </StyledHeading>
+              </Layout.Title>
               <Controls
                 organization={organization}
                 dashboards={dashboards}
@@ -700,7 +698,7 @@ class DashboardDetail extends Component<Props, State> {
               </MetricsDataSwitcher>
             </MetricsCardinalityProvider>
           </NoProjectMessage>
-        </PageContent>
+        </Layout.Page>
       </PageFiltersContainer>
     );
   }
@@ -760,7 +758,7 @@ class DashboardDetail extends Component<Props, State> {
             },
           }}
         >
-          <StyledPageContent>
+          <Layout.Page>
             <NoProjectMessage organization={organization}>
               <Layout.Header>
                 <Layout.HeaderContent>
@@ -775,13 +773,13 @@ class DashboardDetail extends Component<Props, State> {
                       },
                     ]}
                   />
-                  <StyledHeading>
+                  <Layout.Title>
                     <DashboardTitle
                       dashboard={modifiedDashboard ?? dashboard}
                       onUpdate={this.setModifiedDashboard}
                       isEditing={this.isEditing}
                     />
-                  </StyledHeading>
+                  </Layout.Title>
                 </Layout.HeaderContent>
                 <Layout.HeaderActions>
                   <Controls
@@ -904,7 +902,7 @@ class DashboardDetail extends Component<Props, State> {
                 </Layout.Main>
               </Layout.Body>
             </NoProjectMessage>
-          </StyledPageContent>
+          </Layout.Page>
         </PageFiltersContainer>
       </SentryDocumentTitle>
     );
@@ -937,14 +935,6 @@ const StyledPageHeader = styled('div')`
     grid-column-gap: ${space(2)};
     height: 40px;
   }
-`;
-
-const StyledHeading = styled(PageHeading)`
-  line-height: 40px;
-`;
-
-const StyledPageContent = styled(PageContent)`
-  padding: 0;
 `;
 
 export default withProjects(withApi(withOrganization(DashboardDetail)));

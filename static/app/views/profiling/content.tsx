@@ -13,7 +13,6 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
-import PageHeading from 'sentry/components/pageHeading';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import Pagination from 'sentry/components/pagination';
 import {ProfileEventsTable} from 'sentry/components/profiling/profileEventsTable';
@@ -25,7 +24,6 @@ import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t, tct} from 'sentry/locale';
 import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
-import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {
@@ -124,10 +122,10 @@ function ProfilingContent({location, router}: ProfilingContentProps) {
     <SentryDocumentTitle title={t('Profiling')} orgSlug={organization.slug}>
       <PageFiltersContainer>
         <NoProjectMessage organization={organization}>
-          <StyledPageContent>
+          <Layout.Page>
             <Layout.Header>
               <Layout.HeaderContent>
-                <StyledHeading>
+                <Layout.Title>
                   {t('Profiling')}
                   <PageHeadingQuestionTooltip
                     title={tct(
@@ -139,7 +137,7 @@ function ProfilingContent({location, router}: ProfilingContentProps) {
                       }
                     )}
                   />
-                </StyledHeading>
+                </Layout.Title>
               </Layout.HeaderContent>
               <Layout.HeaderActions>
                 <ButtonBar gap={1}>
@@ -225,7 +223,7 @@ function ProfilingContent({location, router}: ProfilingContentProps) {
                 )}
               </Layout.Main>
             </Layout.Body>
-          </StyledPageContent>
+          </Layout.Page>
         </NoProjectMessage>
       </PageFiltersContainer>
     </SentryDocumentTitle>
@@ -243,14 +241,6 @@ const FIELDS = [
 ] as const;
 
 type FieldType = typeof FIELDS[number];
-
-const StyledPageContent = styled(PageContent)`
-  padding: 0;
-`;
-
-const StyledHeading = styled(PageHeading)`
-  line-height: 40px;
-`;
 
 const ActionBar = styled('div')`
   display: grid;

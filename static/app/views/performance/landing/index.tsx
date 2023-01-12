@@ -11,14 +11,12 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import PageHeading from 'sentry/components/pageHeading';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import TransactionNameSearchBar from 'sentry/components/performance/searchBar';
 import * as TeamKeyTransactionManager from 'sentry/components/performance/teamKeyTransactionsManager';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import {Item, TabList, TabPanels, Tabs} from 'sentry/components/tabs';
 import {t, tct} from 'sentry/locale';
-import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters, Project} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
@@ -146,7 +144,7 @@ export function PerformanceLanding(props: Props) {
     : SearchContainerWithFilter;
 
   return (
-    <StyledPageContent data-test-id="performance-landing-v3">
+    <Layout.Page data-test-id="performance-landing-v3">
       <PageErrorProvider>
         <Tabs
           value={landingDisplay.field}
@@ -156,7 +154,7 @@ export function PerformanceLanding(props: Props) {
         >
           <Layout.Header>
             <Layout.HeaderContent>
-              <StyledHeading>
+              <Layout.Title>
                 {t('Performance')}
                 <PageHeadingQuestionTooltip
                   title={tct(
@@ -168,7 +166,7 @@ export function PerformanceLanding(props: Props) {
                     }
                   )}
                 />
-              </StyledHeading>
+              </Layout.Title>
             </Layout.HeaderContent>
             <Layout.HeaderActions>
               {!showOnboarding && (
@@ -279,17 +277,9 @@ export function PerformanceLanding(props: Props) {
           </Layout.Body>
         </Tabs>
       </PageErrorProvider>
-    </StyledPageContent>
+    </Layout.Page>
   );
 }
-
-const StyledPageContent = styled(PageContent)`
-  padding: 0;
-`;
-
-const StyledHeading = styled(PageHeading)`
-  line-height: 40px;
-`;
 
 const SearchContainerWithFilter = styled('div')`
   display: grid;
