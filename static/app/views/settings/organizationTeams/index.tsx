@@ -14,7 +14,7 @@ type Props = {
   api: Client;
   organization: Organization;
   teams: Team[];
-} & RouteComponentProps<{orgId: string}, {}>;
+} & RouteComponentProps<{}, {}>;
 
 type State = AsyncView['state'] & {
   requestList: AccessRequest[];
@@ -22,9 +22,9 @@ type State = AsyncView['state'] & {
 
 class OrganizationTeamsContainer extends AsyncView<Props, State> {
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
-    const {orgId} = this.props.params;
+    const {organization} = this.props;
 
-    return [['requestList', `/organizations/${orgId}/access-requests/`]];
+    return [['requestList', `/organizations/${organization.slug}/access-requests/`]];
   }
 
   componentDidMount() {
@@ -32,8 +32,9 @@ class OrganizationTeamsContainer extends AsyncView<Props, State> {
   }
 
   fetchStats() {
+    const {organization} = this.props;
     loadStats(this.props.api, {
-      orgId: this.props.params.orgId,
+      orgId: organization.slug,
       query: {
         since: (new Date().getTime() / 1000 - 3600 * 24).toString(),
         stat: 'generated',
