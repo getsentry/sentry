@@ -199,22 +199,24 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
             service=config["provider"]["key"], owner_username=owner_username, repo_name=repo_name
         )
         path = self.get_codecov_path(source_url)
-        status_code = None
+        line_coverage, status_code = None, None
         if path:
             params = {"branch": config["defaultBranch"], "path": path}
             try:
                 response = requests.get(
                     url, params=params, headers={"Authorization": "tokenAuth %s" % access_token}
                 )
-                response_json = response.json()
-                status_code = response.status_code
-                return response_json["files"][0]["line_coverage"], status_code
+                line_coverage, status_code = (
+                    response.json()["files"][0]["line_coverage"],
+                    response.status_code,
+                )
             except Exception:
                 if status_code != 404:
                     logger.exception("Failed to get coverage from Codecov")
-                return None, status_code
-        logger.error("Could not find codecov path")
-        return None, None
+                line_coverage = None
+        else:
+            logger.error("Could not find codecov path")
+        return line_coverage, status_code
 
     def get(self, request: Request, project: Project) -> Response:
         ctx = generate_context(request.GET)
