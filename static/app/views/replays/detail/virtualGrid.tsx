@@ -6,11 +6,11 @@ import {
 } from 'react-window';
 
 export type HeaderRendererProps<T> = Omit<GridChildComponentProps<T>, 'isScrolling'>;
-export type BodyRendererProps<T> = GridChildComponentProps<T>;
+export type CellRendererProps<T> = GridChildComponentProps<T>;
 
 type Props<T> = {
-  bodyRenderer: (props: BodyRendererProps<T>) => ReactElement;
-  headerHeight: `${number}px`;
+  cellRenderer: (props: CellRendererProps<T>) => ReactElement;
+  headerHeight: number;
   headerRenderer: (props: HeaderRendererProps<T>) => ReactElement | null;
 } & Omit<VariableSizeGridProps<T>, 'children'>;
 
@@ -26,7 +26,7 @@ const StickyGridContext = createContext<GridContextType>({
   Header: () => null,
   columnCount: 0,
   columnWidth: () => 0,
-  headerHeight: '0px',
+  headerHeight: 0,
   itemData: undefined,
 });
 StickyGridContext.displayName = 'StickyGridContext';
@@ -61,14 +61,20 @@ const innerElementType = forwardRef<HTMLDivElement>(({children, ...rest}, ref) =
             <div
               style={{
                 position: 'sticky',
-                height: headerHeight,
                 top: 0,
                 zIndex: 2,
               }}
             >
               {headers}
             </div>
-            <div style={{position: 'relative'}}>{children}</div>
+            <div
+              style={{
+                position: 'relative',
+                top: headerHeight,
+              }}
+            >
+              {children}
+            </div>
           </div>
         );
       }}
@@ -76,22 +82,20 @@ const innerElementType = forwardRef<HTMLDivElement>(({children, ...rest}, ref) =
   );
 });
 
-function VirtualGrid<T>({
-  bodyRenderer,
-  headerRenderer,
-  headerHeight,
-  ...gridProps
-}: Props<T>) {
+const VirtualGrid = forwardRef(function grid<T>(
+  {cellRenderer, headerRenderer, headerHeight, ...gridProps}: Props<T>,
+  ref
+) {
   const {columnCount, columnWidth, itemData} = gridProps;
   return (
     <StickyGridContext.Provider
       value={{Header: headerRenderer, columnCount, columnWidth, headerHeight, itemData}}
     >
-      <VariableSizeGrid innerElementType={innerElementType} {...gridProps}>
-        {bodyRenderer}
+      <VariableSizeGrid ref={ref} innerElementType={innerElementType} {...gridProps}>
+        {cellRenderer}
       </VariableSizeGrid>
     </StickyGridContext.Provider>
   );
-}
+});
 
 export default VirtualGrid;

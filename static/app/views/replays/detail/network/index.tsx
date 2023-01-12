@@ -1,3 +1,4 @@
+import {ComponentProps, useRef} from 'react';
 import {AutoSizer} from 'react-virtualized';
 import styled from '@emotion/styled';
 
@@ -15,14 +16,10 @@ import NetworkTableCell from 'sentry/views/replays/detail/network/networkTableCe
 import useNetworkFilters from 'sentry/views/replays/detail/network/useNetworkFilters';
 import useSortNetwork from 'sentry/views/replays/detail/network/useSortNetwork';
 import NoRowRenderer from 'sentry/views/replays/detail/noRowRenderer';
-import VirtualGrid, {
-  BodyRendererProps,
-  HeaderRendererProps,
-} from 'sentry/views/replays/detail/virtualGrid';
+import VirtualGrid from 'sentry/views/replays/detail/virtualGrid';
 import type {NetworkSpan} from 'sentry/views/replays/types';
 
-const HEADER_HEIGHT = 25;
-const BODY_HEIGHT = 28;
+// import useVirtualGridMeasurements from '../useVirtualGridMeasurements';
 
 type Props = {
   networkSpans: undefined | NetworkSpan[];
@@ -36,19 +33,28 @@ type ItemData = {
 } & ReturnType<typeof useCrumbHandlers> &
   ReturnType<typeof useSortNetwork>;
 
-const HeadCell = ({columnIndex, style, data}: HeaderRendererProps<ItemData>) => {
-  const {handleSort, sortConfig} = data;
+const HeadCell: ComponentProps<typeof VirtualGrid>['headerRenderer'] = ({
+  columnIndex,
+  style,
+  data,
+}) => {
+  const {handleSort, sortConfig} = data as ItemData;
   return (
     <NetworkHeaderCell
       handleSort={handleSort}
       index={columnIndex}
       sortConfig={sortConfig}
-      style={{...style}}
+      style={style}
     />
   );
 };
 
-const BodyCell = ({columnIndex, rowIndex, style, data}: BodyRendererProps<ItemData>) => {
+const BodyCell: ComponentProps<typeof VirtualGrid>['cellRenderer'] = ({
+  columnIndex,
+  rowIndex,
+  style,
+  data,
+}) => {
   const {
     items,
     current,
@@ -58,7 +64,7 @@ const BodyCell = ({columnIndex, rowIndex, style, data}: BodyRendererProps<ItemDa
     hovered,
     sortConfig,
     startTimestampMs,
-  } = data;
+  } = data as ItemData;
   const network = items[rowIndex];
   return (
     <NetworkTableCell
@@ -71,7 +77,7 @@ const BodyCell = ({columnIndex, rowIndex, style, data}: BodyRendererProps<ItemDa
       sortConfig={sortConfig}
       span={network}
       startTimestampMs={startTimestampMs}
-      style={{...style, height: BODY_HEIGHT}}
+      style={style}
     />
   );
 };
@@ -103,30 +109,59 @@ function NetworkList({networkSpans, startTimestampMs}: Props) {
       })
     : undefined;
 
+  const itemData = {
+    current,
+    hovered,
+    startTimestampMs,
+    ...sortResult,
+    ...crumbHandlers,
+  };
+
+  // const {cellMeasurer, columnWidth, onResize, rowHeight, maxHeights, maxWidths} =
+  //   useVirtualGridMeasurements({
+  //     rowHeight: 28,
+  //     widths: [100, 100, 100, 100, 100, 100],
+  //   });
+  // console.log('render table', {maxHeights, maxWidths});
+
+  const grid = useRef<typeof VirtualGrid>(null);
+  const onResize = () => {
+    // @ts-expect-error
+    grid.current?.resetAfterColumnIndex(1);
+  };
+  const cellMeasurer = c => c;
+  const columnWidth = (fullWidth: number) => {
+    const widths = [79, 0, 114, 60, 94, 102];
+
+    return (index: number) => {
+      if (widths[index]) {
+        return widths[index];
+      }
+      const colWidth = widths.reduce((remaining, width) => remaining - width, fullWidth);
+      return Math.max(colWidth, 200);
+    };
+  };
+  const rowHeight = () => 28;
+
   return (
     <NetworkContainer>
       <NetworkFilters networkSpans={networkSpans} {...filterProps} />
       <NetworkTable>
         {networkSpans ? (
-          <AutoSizer>
+          <AutoSizer onResize={onResize}>
             {({width, height}) =>
               items.length ? (
-                <VirtualGrid<ItemData>
-                  itemData={{
-                    current,
-                    hovered,
-                    startTimestampMs,
-                    ...sortResult,
-                    ...crumbHandlers,
-                  }}
-                  bodyRenderer={BodyCell}
+                <VirtualGrid
+                  ref={grid}
+                  itemData={itemData}
+                  cellRenderer={cellMeasurer(BodyCell)}
                   columnCount={COLUMN_COUNT}
-                  columnWidth={() => 100}
-                  headerHeight={`${HEADER_HEIGHT}px`}
+                  columnWidth={columnWidth(width)}
+                  headerHeight={25}
                   headerRenderer={HeadCell}
                   height={height}
                   rowCount={items.length}
-                  rowHeight={() => BODY_HEIGHT}
+                  rowHeight={rowHeight}
                   width={width}
                 />
               ) : (
