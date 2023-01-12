@@ -15,7 +15,6 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
-import PageHeading from 'sentry/components/pageHeading';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import SearchBar from 'sentry/components/searchBar';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -144,7 +143,7 @@ function Dashboard({teams, organization, loadingTeams, error, router, location}:
         <Fragment>
           <Layout.Header>
             <Layout.HeaderContent>
-              <StyledHeading>
+              <Layout.Title>
                 {t('Projects')}
                 <PageHeadingQuestionTooltip
                   title={tct(
@@ -156,7 +155,7 @@ function Dashboard({teams, organization, loadingTeams, error, router, location}:
                     }
                   )}
                 />
-              </StyledHeading>
+              </Layout.Title>
             </Layout.HeaderContent>
             <Layout.HeaderActions>
               <ButtonBar gap={1}>
@@ -224,10 +223,6 @@ const OrganizationDashboard = (props: Props) => (
     <Dashboard {...props} />
   </OrganizationDashboardWrapper>
 );
-
-const StyledHeading = styled(PageHeading)`
-  line-height: 40px;
-`;
 
 const SearchAndSelectorWrapper = styled('div')`
   display: flex;
