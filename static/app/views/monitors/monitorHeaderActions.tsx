@@ -77,6 +77,7 @@ const MonitorHeaderActions = ({monitor, orgId, onUpdate}: Props) => {
       </Button>
       <Confirm
         onConfirm={handleDelete}
+        priority="danger"
         message={t('Are you sure you want to permanently delete this cron monitor?')}
       >
         <Button size="sm" icon={<IconDelete size="xs" />}>
