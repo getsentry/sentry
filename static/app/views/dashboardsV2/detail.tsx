@@ -373,10 +373,12 @@ class DashboardDetail extends Component<Props, State> {
       return;
     }
     trackAdvancedAnalyticsEvent('dashboards2.create.cancel', {organization});
-    browserHistory.replace({
-      pathname: `/organizations/${organization.slug}/dashboards/`,
-      query: location.query,
-    });
+    browserHistory.replace(
+      normalizeUrl({
+        pathname: `/organizations/${organization.slug}/dashboards/`,
+        query: location.query,
+      })
+    );
   };
 
   handleChangeFilter = (activeFilters: DashboardFilters) => {
@@ -437,12 +439,14 @@ class DashboardDetail extends Component<Props, State> {
         }
         addSuccessMessage(t('Dashboard updated'));
         if (dashboard && newDashboard.id !== dashboard.id) {
-          browserHistory.replace({
-            pathname: `/organizations/${organization.slug}/dashboard/${newDashboard.id}/`,
-            query: {
-              ...location.query,
-            },
-          });
+          browserHistory.replace(
+            normalizeUrl({
+              pathname: `/organizations/${organization.slug}/dashboard/${newDashboard.id}/`,
+              query: {
+                ...location.query,
+              },
+            })
+          );
           return;
         }
       },
@@ -518,12 +522,14 @@ class DashboardDetail extends Component<Props, State> {
               });
 
               // redirect to new dashboard
-              browserHistory.replace({
-                pathname: `/organizations/${organization.slug}/dashboard/${newDashboard.id}/`,
-                query: {
-                  query: omit(location.query, Object.values(DashboardFilterKeys)),
-                },
-              });
+              browserHistory.replace(
+                normalizeUrl({
+                  pathname: `/organizations/${organization.slug}/dashboard/${newDashboard.id}/`,
+                  query: {
+                    query: omit(location.query, Object.values(DashboardFilterKeys)),
+                  },
+                })
+              );
             },
             () => undefined
           );
@@ -553,12 +559,14 @@ class DashboardDetail extends Component<Props, State> {
               });
 
               if (dashboard && newDashboard.id !== dashboard.id) {
-                browserHistory.replace({
-                  pathname: `/organizations/${organization.slug}/dashboard/${newDashboard.id}/`,
-                  query: {
-                    ...location.query,
-                  },
-                });
+                browserHistory.replace(
+                  normalizeUrl({
+                    pathname: `/organizations/${organization.slug}/dashboard/${newDashboard.id}/`,
+                    query: {
+                      ...location.query,
+                    },
+                  })
+                );
                 return;
               }
             },
@@ -857,13 +865,15 @@ class DashboardDetail extends Component<Props, State> {
                                     });
                                   }
                                   addSuccessMessage(t('Dashboard filters updated'));
-                                  browserHistory.replace({
-                                    pathname: `/organizations/${organization.slug}/dashboard/${newDashboard.id}/`,
-                                    query: omit(
-                                      location.query,
-                                      Object.values(DashboardFilterKeys)
-                                    ),
-                                  });
+                                  browserHistory.replace(
+                                    normalizeUrl({
+                                      pathname: `/organizations/${organization.slug}/dashboard/${newDashboard.id}/`,
+                                      query: omit(
+                                        location.query,
+                                        Object.values(DashboardFilterKeys)
+                                      ),
+                                    })
+                                  );
                                 },
                                 () => undefined
                               );

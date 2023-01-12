@@ -49,6 +49,7 @@ import marked from 'sentry/utils/marked';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import withApi from 'sentry/utils/withApi';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 
@@ -324,7 +325,7 @@ export class Results extends Component<Props, State> {
       this.setState({savedQuery, eventView: nextEventView});
     }
     browserHistory.replace(
-      nextEventView.getResultsViewUrlTarget(organization.slug, isHomepage)
+      normalizeUrl(nextEventView.getResultsViewUrlTarget(organization.slug, isHomepage))
     );
   }
 
