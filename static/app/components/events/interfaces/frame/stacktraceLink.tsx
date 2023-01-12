@@ -145,7 +145,7 @@ function CodecovLink({sourceUrl, codecovStatusCode}: CodecovLinkProps) {
     if (!sourceUrl) {
       return null;
     }
-    const codecovUrl = sourceUrl?.replaceAll(
+    const codecovUrl = sourceUrl.replaceAll(
       new RegExp('github.com/.[^/]*', 'g'),
       'app.codecov.io/gh'
     );
