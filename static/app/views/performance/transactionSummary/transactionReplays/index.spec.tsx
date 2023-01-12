@@ -400,7 +400,7 @@ describe('TransactionReplays', () => {
     });
   });
 
-  it('should be able to click the `Errors` column and request data sorted by countErrors query', async () => {
+  it('should be able to click the `Errors` column and request data sorted by count_errors query', async () => {
     const mockApi = MockApiClient.addMockResponse({
       url: mockUrl,
       body: {
@@ -422,13 +422,13 @@ describe('TransactionReplays', () => {
       );
     });
 
-    // Click on the errors header and expect the sort to be countErrors
+    // Click on the errors header and expect the sort to be count_errors
     userEvent.click(screen.getByRole('columnheader', {name: 'Errors'}));
 
     expect(mockRouterContext.context.router.push).toHaveBeenCalledWith({
       pathname: '/organizations/org-slug/replays/',
       query: {
-        sort: '-countErrors',
+        sort: '-count_errors',
         project: '1',
         transaction: 'transaction',
       },
@@ -440,7 +440,7 @@ describe('TransactionReplays', () => {
         getComponent({
           location: {
             query: {
-              sort: '-countErrors',
+              sort: '-count_errors',
               project: '1',
               transaction: 'transaction',
             },
@@ -455,7 +455,7 @@ describe('TransactionReplays', () => {
         mockUrl,
         expect.objectContaining({
           query: expect.objectContaining({
-            sort: '-countErrors',
+            sort: '-count_errors',
           }),
         })
       );
