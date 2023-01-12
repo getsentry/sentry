@@ -451,11 +451,13 @@ class EventsSnubaSearchTest(SharedSnubaTest):
         )
         group_4 = event_4.group
         group_4.update(type=GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN.value)
-        results = self.make_query(search_filter_query="issue.type:performance_slow_span")
+        results = self.make_query(
+            search_filter_query="issue.type:performance_render_blocking_asset_span"
+        )
         assert set(results) == {group_4}
 
         results = self.make_query(
-            search_filter_query="issue.type:[performance_slow_span, performance_n_plus_one_db_queries, error]"
+            search_filter_query="issue.type:[performance_render_blocking_asset_span, performance_n_plus_one_db_queries, error]"
         )
         assert set(results) == {self.group1, self.group2, group_3, group_4}
 
@@ -2102,7 +2104,7 @@ class EventsTransactionsSnubaSearchTest(SharedSnubaTest):
         assert list(results) == [self.perf_group_1, self.perf_group_2]
 
         results = self.make_query(
-            search_filter_query="issue.type:[performance_n_plus_one_db_queries, performance_slow_span] my_tag:1"
+            search_filter_query="issue.type:[performance_n_plus_one_db_queries, performance_render_blocking_asset_span] my_tag:1"
         )
         assert list(results) == [self.perf_group_1, self.perf_group_2]
 
@@ -2125,7 +2127,7 @@ class EventsTransactionsSnubaSearchTest(SharedSnubaTest):
         ]
 
         results = self.make_query(
-            search_filter_query="issue.type:[performance_slow_span, error] my_tag:1"
+            search_filter_query="issue.type:[performance_render_blocking_asset_span, error] my_tag:1"
         )
         assert list(results) == [
             self.perf_group_1,
