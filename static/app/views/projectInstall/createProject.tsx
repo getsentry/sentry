@@ -151,7 +151,7 @@ class CreateProject extends Component<Props, State> {
     return (
       <Fragment>
         <PageHeading withMargins>
-          {t('3. Name your project & assign it a team')}
+          {t('3. Name your project and assign it a team')}
         </PageHeading>
         {createProjectForm}
       </Fragment>
