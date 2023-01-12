@@ -5,6 +5,7 @@ import {Location} from 'history';
 
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -24,7 +25,6 @@ import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t, tct} from 'sentry/locale';
 import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
-import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {
@@ -53,7 +53,7 @@ function ProfilingContent({location, router}: ProfilingContentProps) {
   const query = decodeScalar(location.query.query, '');
 
   const sort = formatSort<FieldType>(decodeScalar(location.query.sort), FIELDS, {
-    key: 'count()',
+    key: 'p99()',
     order: 'desc',
   });
 
@@ -123,9 +123,9 @@ function ProfilingContent({location, router}: ProfilingContentProps) {
     <SentryDocumentTitle title={t('Profiling')} orgSlug={organization.slug}>
       <PageFiltersContainer>
         <NoProjectMessage organization={organization}>
-          <StyledPageContent>
+          <Layout.Page>
             <Layout.Header>
-              <StyledLayoutHeaderContent>
+              <Layout.HeaderContent>
                 <StyledHeading>
                   {t('Profiling')}
                   <PageHeadingQuestionTooltip
@@ -139,7 +139,9 @@ function ProfilingContent({location, router}: ProfilingContentProps) {
                     )}
                   />
                 </StyledHeading>
-                <HeadingActions>
+              </Layout.HeaderContent>
+              <Layout.HeaderActions>
+                <ButtonBar gap={1}>
                   <Button size="sm" onClick={onSetupProfilingClick}>
                     {t('Set Up Profiling')}
                   </Button>
@@ -159,8 +161,8 @@ function ProfilingContent({location, router}: ProfilingContentProps) {
                   >
                     {t('Join Discord')}
                   </Button>
-                </HeadingActions>
-              </StyledLayoutHeaderContent>
+                </ButtonBar>
+              </Layout.HeaderActions>
             </Layout.Header>
             <Layout.Body>
               <Layout.Main fullWidth>
@@ -222,7 +224,7 @@ function ProfilingContent({location, router}: ProfilingContentProps) {
                 )}
               </Layout.Main>
             </Layout.Body>
-          </StyledPageContent>
+          </Layout.Page>
         </NoProjectMessage>
       </PageFiltersContainer>
     </SentryDocumentTitle>
@@ -240,25 +242,6 @@ const FIELDS = [
 ] as const;
 
 type FieldType = typeof FIELDS[number];
-
-const StyledPageContent = styled(PageContent)`
-  padding: 0;
-`;
-
-const StyledLayoutHeaderContent = styled(Layout.HeaderContent)`
-  display: flex;
-  justify-content: space-between;
-  flex-direction: row;
-`;
-
-const HeadingActions = styled('div')`
-  display: flex;
-  align-items: center;
-
-  button:not(:last-child) {
-    margin-right: ${space(1)};
-  }
-`;
 
 const StyledHeading = styled(PageHeading)`
   line-height: 40px;

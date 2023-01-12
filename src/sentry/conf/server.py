@@ -1003,6 +1003,8 @@ SENTRY_FEATURES = {
     "organizations:profiling": False,
     # Enable performance spans in flamecharts
     "organizations:profiling-flamechart-spans": False,
+    # Enable the profiling dashboard redesign
+    "organizations:profiling-dashboard-redesign": False,
     # Enable multi project selection
     "organizations:global-views": False,
     # Enable experimental new version of Merged Issues where sub-hashes are shown
@@ -1140,6 +1142,8 @@ SENTRY_FEATURES = {
     "organizations:performance-slow-db-issue": False,
     # Enable N+1 API Calls performance issue type
     "organizations:performance-n-plus-one-api-calls-detector": False,
+    # Enable compressed assets performance issue type
+    "organizations:performance-issues-compressed-assets-detector": False,
     # Enable the new Related Events feature
     "organizations:related-events": False,
     # Enable populating suggested assignees with release committers
