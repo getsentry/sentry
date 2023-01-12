@@ -12,6 +12,7 @@ import type {User} from './user';
  */
 export interface OrganizationSummary {
   avatar: Avatar;
+  codecovAccess: boolean;
   dateCreated: string;
   features: string[];
   id: string;
@@ -66,10 +67,6 @@ export interface Organization extends OrganizationSummary {
   teamRoleList: TeamRole[];
   trustedRelays: Relay[];
   orgRole?: string;
-  /**
-   * @deprecated use orgRole instead
-   */
-  role?: string;
 }
 
 export type Team = {

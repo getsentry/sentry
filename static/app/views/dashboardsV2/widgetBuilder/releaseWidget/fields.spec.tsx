@@ -39,23 +39,6 @@ describe('generateReleaseWidgetFieldOptions', function () {
           },
         },
       },
-      'function:avg': {
-        label: 'avg(…)',
-        value: {
-          kind: 'function',
-          meta: {
-            name: 'avg',
-            parameters: [
-              {
-                columnTypes: ['duration'],
-                defaultValue: 'session.duration',
-                kind: 'column',
-                required: true,
-              },
-            ],
-          },
-        },
-      },
       'function:count_abnormal': {
         label: 'count_abnormal(…)',
         value: {
@@ -168,91 +151,6 @@ describe('generateReleaseWidgetFieldOptions', function () {
               {
                 columnTypes: ['integer', 'string'],
                 defaultValue: 'session',
-                kind: 'column',
-                required: true,
-              },
-            ],
-          },
-        },
-      },
-      'function:max': {
-        label: 'max(…)',
-        value: {
-          kind: 'function',
-          meta: {
-            name: 'max',
-            parameters: [
-              {
-                columnTypes: ['duration'],
-                defaultValue: 'session.duration',
-                kind: 'column',
-                required: true,
-              },
-            ],
-          },
-        },
-      },
-      'function:p50': {
-        label: 'p50(…)',
-        value: {
-          kind: 'function',
-          meta: {
-            name: 'p50',
-            parameters: [
-              {
-                columnTypes: ['duration'],
-                defaultValue: 'session.duration',
-                kind: 'column',
-                required: true,
-              },
-            ],
-          },
-        },
-      },
-      'function:p75': {
-        label: 'p75(…)',
-        value: {
-          kind: 'function',
-          meta: {
-            name: 'p75',
-            parameters: [
-              {
-                columnTypes: ['duration'],
-                defaultValue: 'session.duration',
-                kind: 'column',
-                required: true,
-              },
-            ],
-          },
-        },
-      },
-      'function:p95': {
-        label: 'p95(…)',
-        value: {
-          kind: 'function',
-          meta: {
-            name: 'p95',
-            parameters: [
-              {
-                columnTypes: ['duration'],
-                defaultValue: 'session.duration',
-                kind: 'column',
-                required: true,
-              },
-            ],
-          },
-        },
-      },
-      'function:p99': {
-        label: 'p99(…)',
-        value: {
-          kind: 'function',
-          meta: {
-            name: 'p99',
-            parameters: [
-              {
-                columnTypes: ['duration'],
-                defaultValue: 'session.duration',
                 kind: 'column',
                 required: true,
               },

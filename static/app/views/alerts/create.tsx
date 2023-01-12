@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import PageHeading from 'sentry/components/pageHeading';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {Member, Organization, Project} from 'sentry/types';
@@ -13,6 +14,7 @@ import withRouteAnalytics, {
   WithRouteAnalyticsProps,
 } from 'sentry/utils/routeAnalytics/withRouteAnalytics';
 import Teams from 'sentry/utils/teams';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import BuilderBreadCrumbs from 'sentry/views/alerts/builder/builderBreadCrumbs';
 import IssueRuleEditor from 'sentry/views/alerts/rules/issue';
 import MetricRulesCreate from 'sentry/views/alerts/rules/metric/create';
@@ -57,15 +59,17 @@ class Create extends Component<Props, State> {
       !(aggregate && dataset && eventTypes) &&
       !createFromDuplicate
     ) {
-      router.replace({
-        ...location,
-        pathname: `/organizations/${organization.slug}/alerts/new/${alertType}`,
-        query: {
-          ...location.query,
-          ...DEFAULT_WIZARD_TEMPLATE,
-          project: project.slug,
-        },
-      });
+      router.replace(
+        normalizeUrl({
+          ...location,
+          pathname: `/organizations/${organization.slug}/alerts/new/${alertType}`,
+          query: {
+            ...location.query,
+            ...DEFAULT_WIZARD_TEMPLATE,
+            project: project.slug,
+          },
+        })
+      );
     }
 
     return {alertType};
@@ -118,9 +122,8 @@ class Create extends Component<Props, State> {
     return (
       <Fragment>
         <SentryDocumentTitle title={title} projectSlug={project.slug} />
-
         <Layout.Header>
-          <StyledHeaderContent>
+          <Layout.HeaderContent>
             <BuilderBreadCrumbs
               organization={organization}
               alertName={t('Set Conditions')}
@@ -131,12 +134,12 @@ class Create extends Component<Props, State> {
               location={location}
               canChangeProject
             />
-            <Layout.Title>
+            <StyledHeading>
               {wizardAlertType
                 ? `${t('Set Conditions for')} ${AlertWizardAlertNames[wizardAlertType]}`
                 : title}
-            </Layout.Title>
-          </StyledHeaderContent>
+            </StyledHeading>
+          </Layout.HeaderContent>
         </Layout.Header>
         <Body>
           <Teams provideUserTeams>
@@ -185,8 +188,8 @@ class Create extends Component<Props, State> {
   }
 }
 
-const StyledHeaderContent = styled(Layout.HeaderContent)`
-  overflow: visible;
+const StyledHeading = styled(PageHeading)`
+  line-height: 40px;
 `;
 
 const Body = styled(Layout.Body)`

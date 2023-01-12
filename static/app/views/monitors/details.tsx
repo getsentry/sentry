@@ -76,7 +76,7 @@ class MonitorDetails extends AsyncView<Props, State> {
     }
 
     return (
-      <Fragment>
+      <Layout.Page>
         <MonitorHeader monitor={monitor} orgId={this.orgSlug} onUpdate={this.onUpdate} />
         <Layout.Body>
           <Layout.Main fullWidth>
@@ -101,7 +101,7 @@ class MonitorDetails extends AsyncView<Props, State> {
             )}
           </Layout.Main>
         </Layout.Body>
-      </Fragment>
+      </Layout.Page>
     );
   }
 }
