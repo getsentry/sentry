@@ -872,6 +872,67 @@ class MetricsLayerReleaseHealthBackend(ReleaseHealthBackend):
         # if we need the timestamps return them as an additional vector (taken from raw_result["intervals"])
         return ret_val
 
+    @staticmethod
+    def _get_session_by_status_for_overview(
+        projects: Sequence[Project],
+        where: List[Condition],
+        org_id: int,
+        granularity: int,
+        start: datetime,
+        end: datetime,
+    ) -> Mapping[Tuple[int, str, str], int]:
+        """
+        Counts of init, abnormal and crashed sessions, purpose-built for overview
+        """
+        project_ids = [p.id for p in projects]
+
+        select = [
+            MetricField(metric_mri=SessionMRI.ABNORMAL.value, alias="abnormal", op=None),
+            MetricField(metric_mri=SessionMRI.CRASHED.value, alias="crashed", op=None),
+            MetricField(metric_mri=SessionMRI.ALL.value, alias="init", op=None),
+            MetricField(
+                metric_mri=SessionMRI.ERRORED_PREAGGREGATED.value, alias="errored_preaggr", op=None
+            ),
+        ]
+
+        groupby = [
+            MetricGroupByField(field="project_id"),
+            MetricGroupByField(field="release"),
+        ]
+
+        query = MetricsQuery(
+            org_id=org_id,
+            project_ids=project_ids,
+            select=select,
+            start=start,
+            end=end,
+            granularity=Granularity(granularity),
+            groupby=groupby,
+            where=where,
+            include_series=False,
+            include_totals=True,
+        )
+        raw_result = get_series(
+            projects=projects,
+            metrics_query=query,
+            use_case_id=USE_CASE_ID,
+        )
+        groups = raw_result["groups"]
+
+        ret_val = {}
+        for group in groups:
+            by = group.get("by", {})
+            proj_id = by.get("project_id")
+            release = by.get("release")
+
+            totals = group.get("totals", {})
+            for status in ["abnormal", "crashed", "init", "errored_preaggr"]:
+                value = totals.get(status)
+                if value is not None and value != 0.0:
+                    ret_val[(proj_id, release, status)] = value
+
+        return ret_val
+
     # TODO implement
     def get_release_health_data_overview(
         self,
@@ -925,14 +986,14 @@ class MetricsLayerReleaseHealthBackend(ReleaseHealthBackend):
         rv_errored_sessions = self._get_errored_sessions_for_overview(
             projects, where, org_id, rollup, summary_start, now
         )
-        # rv_sessions = self._get_session_by_status_for_overview(
-        #     projects, where, org_id, rollup, summary_start, now
-        # )
+        rv_sessions = self._get_session_by_status_for_overview(
+            projects, where, org_id, rollup, summary_start, now
+        )
 
         pprint(health_stats_data)
         pprint(rv_durations)
         pprint(rv_errored_sessions)
-        # pprint(rv_sessions)
+        pprint(rv_sessions)
         raise NotImplementedError()
 
     # TODO implement

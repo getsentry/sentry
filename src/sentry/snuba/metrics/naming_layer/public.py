@@ -39,6 +39,7 @@ class SessionMetricKey(Enum):
     ABNORMAL = "session.abnormal"
     CRASHED = "session.crashed"
     ERRORED = "session.errored"
+    ERRORED_PREAGGREGATED = "session.errored_preaggregated"
     HEALTHY = "session.healthy"
     CRASH_RATE = "session.crash_rate"
     CRASH_FREE_RATE = "session.crash_free_rate"
