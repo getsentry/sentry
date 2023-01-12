@@ -1046,7 +1046,7 @@ class QueryBuilder(BaseQueryBuilder):
         # There might not be any columns during the resolve_groupby step
         if self.columns and self.requires_other_aggregates and len(self.aggregates) == 0:
             raise InvalidSearchQuery(
-                "Another aggregate function needs to be selected in order to use the total_count() function"
+                "Another aggregate function needs to be selected in order to use the total.count field"
             )
         for column in self.columns:
             if column in self.aggregates:

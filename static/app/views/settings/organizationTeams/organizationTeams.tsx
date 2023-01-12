@@ -28,13 +28,12 @@ type Props = {
   onRemoveAccessRequest: (id: string, isApproved: boolean) => void;
   organization: Organization;
   requestList: AccessRequest[];
-} & RouteComponentProps<{orgId: string}, {}>;
+} & RouteComponentProps<{}, {}>;
 
 function OrganizationTeams({
   organization,
   access,
   features,
-  params,
   requestList,
   onRemoveAccessRequest,
 }: Props) {
@@ -86,7 +85,7 @@ function OrganizationTeams({
       <SettingsPageHeader title={title} action={action} />
 
       <OrganizationAccessRequests
-        orgId={params.orgId}
+        orgId={organization.slug}
         requestList={requestList}
         onRemoveAccessRequest={onRemoveAccessRequest}
       />

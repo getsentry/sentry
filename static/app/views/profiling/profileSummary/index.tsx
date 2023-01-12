@@ -10,6 +10,7 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
+import PageHeading from 'sentry/components/pageHeading';
 import {Breadcrumb} from 'sentry/components/profiling/breadcrumb';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import SmartSearchBar, {SmartSearchBarProps} from 'sentry/components/smartSearchBar';
@@ -120,31 +121,31 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
         specificProjectSlugs={defined(project) ? [project.slug] : []}
       >
         <NoProjectMessage organization={organization}>
-          {project && transaction && (
-            <Fragment>
-              <Layout.Header>
-                <Layout.HeaderContent>
-                  <Breadcrumb
-                    organization={organization}
-                    trails={[
-                      {
-                        type: 'landing',
-                        payload: {
-                          query: props.location.query,
+          <Layout.Page>
+            {project && transaction && (
+              <Fragment>
+                <Layout.Header>
+                  <Layout.HeaderContent>
+                    <Breadcrumb
+                      organization={organization}
+                      trails={[
+                        {
+                          type: 'landing',
+                          payload: {
+                            query: props.location.query,
+                          },
                         },
-                      },
-                      {
-                        type: 'profile summary',
-                        payload: {
-                          projectSlug: project.slug,
-                          query: props.location.query,
-                          transaction,
+                        {
+                          type: 'profile summary',
+                          payload: {
+                            projectSlug: project.slug,
+                            query: props.location.query,
+                            transaction,
+                          },
                         },
-                      },
-                    ]}
-                  />
-                  <Layout.Title>
-                    <Title>
+                      ]}
+                    />
+                    <ProfileTitle>
                       {project ? (
                         <IdBadge
                           project={project}
@@ -154,47 +155,49 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
                         />
                       ) : null}
                       {transaction}
-                    </Title>
-                  </Layout.Title>
-                </Layout.HeaderContent>
-              </Layout.Header>
-              <Layout.Body>
-                <Layout.Main fullWidth>
-                  <ActionBar>
-                    <PageFilterBar condensed>
-                      <EnvironmentPageFilter />
-                      <DatePageFilter alignDropdown="left" />
-                    </PageFilterBar>
-                    <SmartSearchBar
-                      organization={organization}
-                      hasRecentSearches
-                      searchSource="profile_summary"
-                      supportedTags={profileFilters}
-                      query={rawQuery}
-                      onSearch={handleSearch}
-                      maxQueryLength={MAX_QUERY_LENGTH}
+                    </ProfileTitle>
+                  </Layout.HeaderContent>
+                </Layout.Header>
+                <Layout.Body>
+                  <Layout.Main fullWidth>
+                    <ActionBar>
+                      <PageFilterBar condensed>
+                        <EnvironmentPageFilter />
+                        <DatePageFilter alignDropdown="left" />
+                      </PageFilterBar>
+                      <SmartSearchBar
+                        organization={organization}
+                        hasRecentSearches
+                        searchSource="profile_summary"
+                        supportedTags={profileFilters}
+                        query={rawQuery}
+                        onSearch={handleSearch}
+                        maxQueryLength={MAX_QUERY_LENGTH}
+                      />
+                    </ActionBar>
+                    <ProfileSummaryContent
+                      location={props.location}
+                      project={project}
+                      selection={props.selection}
+                      transaction={transaction}
+                      query={query}
                     />
-                  </ActionBar>
-                  <ProfileSummaryContent
-                    location={props.location}
-                    project={project}
-                    selection={props.selection}
-                    transaction={transaction}
-                    query={query}
-                  />
-                </Layout.Main>
-              </Layout.Body>
-            </Fragment>
-          )}
+                  </Layout.Main>
+                </Layout.Body>
+              </Fragment>
+            )}
+          </Layout.Page>
         </NoProjectMessage>
       </PageFiltersContainer>
     </SentryDocumentTitle>
   );
 }
 
-const Title = styled('div')`
+const ProfileTitle = styled(PageHeading)`
+  line-height: 40px;
   display: flex;
   gap: ${space(1)};
+  align-items: center;
 `;
 
 const ActionBar = styled('div')`

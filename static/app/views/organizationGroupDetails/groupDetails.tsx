@@ -37,6 +37,7 @@ import withRouteAnalytics, {
   WithRouteAnalyticsProps,
 } from 'sentry/utils/routeAnalytics/withRouteAnalytics';
 import withApi from 'sentry/utils/withApi';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 import {ERROR_TYPES} from './constants';
 import GroupHeader from './header';
@@ -259,14 +260,16 @@ class GroupDetails extends Component<Props, State> {
   }
 
   getCurrentRouteInfo(group: Group): {baseUrl: string; currentTab: Tab} {
-    const {organization, router} = this.props;
+    const {organization, params} = this.props;
     const {event} = this.state;
 
     const currentTab = this.getCurrentTab();
 
-    const baseUrl = `/organizations/${organization.slug}/issues/${group.id}/${
-      router.params.eventId && event ? `events/${event.id}/` : ''
-    }`;
+    const baseUrl = normalizeUrl(
+      `/organizations/${organization.slug}/issues/${group.id}/${
+        params.eventId && event ? `events/${event.id}/` : ''
+      }`
+    );
 
     return {baseUrl, currentTab};
   }
@@ -623,7 +626,7 @@ class GroupDetails extends Component<Props, State> {
       if (group.id !== event?.groupID && !eventError) {
         // if user pastes only the event id into the url, but it's from another group, redirect to correct group/event
         const redirectUrl = `/organizations/${organization.slug}/issues/${event?.groupID}/events/${event?.id}/`;
-        router.push(redirectUrl);
+        router.push(normalizeUrl(redirectUrl));
       } else {
         childProps = {
           ...childProps,

@@ -29,7 +29,6 @@ export const sessionTerm = {
   [SessionTerm.ADOPTION]: t('Adoption'),
   [SessionTerm.ANR_RATE]: t('ANR Rate'),
   [SessionTerm.FOREGROUND_ANR_RATE]: t('Foreground ANR Rate'),
-  duration: t('Session Duration'),
   otherCrashed: t('Other Crashed'),
   otherAbnormal: t('Other Abnormal'),
   otherErrored: t('Other Errored'),

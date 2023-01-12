@@ -75,7 +75,7 @@ function SetupWizard({hash = false}: Props) {
           <div className="row">
             <h5>{t('Return to your terminal to complete your setup')}</h5>
             <MinWidthButtonBar gap={1}>
-              <Button priority="primary" to="">
+              <Button priority="primary" to="/">
                 {t('View Issues')}
               </Button>
               <Button href={docsLink} external>

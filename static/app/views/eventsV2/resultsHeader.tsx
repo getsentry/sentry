@@ -9,9 +9,9 @@ import {fetchSavedQuery} from 'sentry/actionCreators/discoverSavedQueries';
 import {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import {Title} from 'sentry/components/layouts/thirds';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
+import PageHeading from 'sentry/components/pageHeading';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import TimeSince from 'sentry/components/timeSince';
 import {t, tct} from 'sentry/locale';
@@ -145,9 +145,9 @@ class ResultsHeader extends Component<Props, State> {
 
     return (
       <Layout.Header>
-        <StyledHeaderContent>
+        <Layout.HeaderContent>
           {isHomepage ? (
-            <StyledTitle>
+            <StyledHeading>
               <GuideAnchor target="discover_landing_header">
                 {t('Discover')}
                 <PageHeadingQuestionTooltip
@@ -161,7 +161,7 @@ class ResultsHeader extends Component<Props, State> {
                   )}
                 />
               </GuideAnchor>
-            </StyledTitle>
+            </StyledHeading>
           ) : (
             <Fragment>
               <DiscoverBreadcrumb
@@ -179,7 +179,7 @@ class ResultsHeader extends Component<Props, State> {
             </Fragment>
           )}
           {this.renderAuthor()}
-        </StyledHeaderContent>
+        </Layout.HeaderContent>
         <Layout.HeaderActions>
           <SavedQueryButtonGroup
             setSavedQuery={setSavedQuery}
@@ -222,17 +222,12 @@ const Subtitle = styled('h4')`
   margin: ${space(0.5)} 0 0 0;
 `;
 
-const StyledHeaderContent = styled(Layout.HeaderContent)`
-  overflow: unset;
+const StyledHeading = styled(PageHeading)`
+  line-height: 40px;
 `;
 
 const BannerWrapper = styled('div')`
   grid-column: 1 / -1;
-`;
-
-const StyledTitle = styled(Title)`
-  overflow: unset;
-  margin-top: 0;
 `;
 
 export default withApi(ResultsHeader);
