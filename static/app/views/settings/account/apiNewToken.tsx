@@ -9,6 +9,7 @@ import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {API_ACCESS_SCOPES, DEFAULT_API_ACCESS_SCOPES} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
@@ -17,11 +18,11 @@ const API_INDEX_ROUTE = '/settings/account/api/auth-tokens/';
 
 export default class ApiNewToken extends Component {
   onCancel = () => {
-    browserHistory.push(API_INDEX_ROUTE);
+    browserHistory.push(normalizeUrl(API_INDEX_ROUTE));
   };
 
   onSubmitSuccess = () => {
-    browserHistory.push(API_INDEX_ROUTE);
+    browserHistory.push(normalizeUrl(API_INDEX_ROUTE));
   };
 
   render() {

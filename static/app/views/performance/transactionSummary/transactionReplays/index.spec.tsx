@@ -92,6 +92,13 @@ describe('TransactionReplays', () => {
       url: '/organizations/org-slug/events-has-measurements/',
       body: {measurements: false},
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/replay-count/',
+      body: {
+        data: [],
+      },
+      statusCode: 200,
+    });
     eventsMockApi = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
       body: {

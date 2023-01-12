@@ -12,6 +12,7 @@ import type {User} from './user';
  */
 export interface OrganizationSummary {
   avatar: Avatar;
+  codecovAccess: boolean;
   dateCreated: string;
   features: string[];
   id: string;
@@ -66,15 +67,14 @@ export interface Organization extends OrganizationSummary {
   teamRoleList: TeamRole[];
   trustedRelays: Relay[];
   orgRole?: string;
-  /**
-   * @deprecated use orgRole instead
-   */
-  role?: string;
 }
 
 export type Team = {
   avatar: Avatar;
   externalTeams: ExternalTeam[];
+  flags: {
+    'idp:provisioned': boolean;
+  };
   hasAccess: boolean;
   id: string;
   isMember: boolean;
@@ -111,6 +111,8 @@ export interface Member {
   email: string;
   expired: boolean;
   flags: {
+    'idp:provisioned': boolean;
+    'idp:role-restricted': boolean;
     'member-limit:restricted': boolean;
     'sso:invalid': boolean;
     'sso:linked': boolean;

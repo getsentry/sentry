@@ -9,18 +9,17 @@ import DatePageFilter from 'sentry/components/datePageFilter';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import EventUserFeedback from 'sentry/components/events/userFeedback';
 import CompactIssue from 'sentry/components/issues/compactIssue';
+import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
-import PageHeading from 'sentry/components/pageHeading';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import Pagination from 'sentry/components/pagination';
 import {Panel} from 'sentry/components/panels';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import {t, tct} from 'sentry/locale';
-import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
 import {Organization, UserReport} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -124,24 +123,26 @@ class OrganizationUserFeedback extends AsyncView<Props, State> {
 
     return (
       <PageFiltersContainer>
-        <PageContent>
-          <NoProjectMessage organization={organization}>
-            <div data-test-id="user-feedback">
-              <Header>
-                <PageHeading>
-                  {t('User Feedback')}
-                  <PageHeadingQuestionTooltip
-                    title={tct(
-                      'Feedback submitted by users who experienced an error while using your application, including their name, email address, and any additional comments. [link: Read the docs].',
-                      {
-                        link: (
-                          <ExternalLink href="https://docs.sentry.io/product/user-feedback/" />
-                        ),
-                      }
-                    )}
-                  />
-                </PageHeading>
-              </Header>
+        <NoProjectMessage organization={organization}>
+          <Layout.Header>
+            <Layout.HeaderContent>
+              <Layout.Title>
+                {t('User Feedback')}
+                <PageHeadingQuestionTooltip
+                  title={tct(
+                    'Feedback submitted by users who experienced an error while using your application, including their name, email address, and any additional comments. [link: Read the docs].',
+                    {
+                      link: (
+                        <ExternalLink href="https://docs.sentry.io/product/user-feedback/" />
+                      ),
+                    }
+                  )}
+                />
+              </Layout.Title>
+            </Layout.HeaderContent>
+          </Layout.Header>
+          <Layout.Body data-test-id="user-feedback">
+            <Layout.Main fullWidth>
               <Filters>
                 <PageFilterBar>
                   <ProjectPageFilter />
@@ -159,22 +160,15 @@ class OrganizationUserFeedback extends AsyncView<Props, State> {
               </Filters>
               {this.renderStreamBody()}
               <Pagination pageLinks={reportListPageLinks} />
-            </div>
-          </NoProjectMessage>
-        </PageContent>
+            </Layout.Main>
+          </Layout.Body>
+        </NoProjectMessage>
       </PageFiltersContainer>
     );
   }
 }
 
 export default withOrganization(withProfiler(OrganizationUserFeedback));
-
-const Header = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: ${space(2)};
-`;
 
 const Filters = styled('div')`
   display: grid;

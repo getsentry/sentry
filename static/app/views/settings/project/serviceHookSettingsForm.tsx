@@ -9,6 +9,7 @@ import FormField from 'sentry/components/forms/formField';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
 import {ServiceHook} from 'sentry/types';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 const EVENT_CHOICES = ['event.alert', 'event.created'];
 
@@ -22,7 +23,7 @@ type Props = {
 export default class ServiceHookSettingsForm extends Component<Props> {
   onSubmitSuccess = () => {
     const {orgId, projectId} = this.props;
-    browserHistory.push(`/settings/${orgId}/projects/${projectId}/hooks/`);
+    browserHistory.push(normalizeUrl(`/settings/${orgId}/projects/${projectId}/hooks/`));
   };
 
   render() {

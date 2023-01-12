@@ -6,13 +6,14 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Organization} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import useApi from 'sentry/utils/useApi';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 import {fetchIncident} from './utils/apiCalls';
 import {alertDetailsLink} from './utils';
 
 type Props = {
   organization: Organization;
-} & RouteComponentProps<{alertId: string; orgId: string}, {}>;
+} & RouteComponentProps<{alertId: string}, {}>;
 
 /**
  * Reirects from an incident to the incident's metric alert details page
@@ -32,15 +33,17 @@ function IncidentRedirect({organization, params}: Props) {
     setHasError(false);
 
     try {
-      const incident = await fetchIncident(api, params.orgId, params.alertId);
-      browserHistory.replace({
-        pathname: alertDetailsLink(organization, incident),
-        query: {alert: incident.identifier},
-      });
+      const incident = await fetchIncident(api, organization.slug, params.alertId);
+      browserHistory.replace(
+        normalizeUrl({
+          pathname: alertDetailsLink(organization, incident),
+          query: {alert: incident.identifier},
+        })
+      );
     } catch (err) {
       setHasError(true);
     }
-  }, [setHasError, api, params.orgId, params.alertId, organization]);
+  }, [setHasError, api, params.alertId, organization]);
 
   useEffect(() => {
     fetchData();

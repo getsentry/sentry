@@ -77,7 +77,7 @@ runs:
 
         ### pytest configuration ###
         echo "PY_COLORS=1" >> "$GITHUB_ENV"
-        echo "PYTEST_ADDOPTS=--reruns=5 --durations=10" >> $GITHUB_ENV
+        echo "PYTEST_ADDOPTS=--reruns=5 --durations=10 --fail-slow=60s" >> $GITHUB_ENV
 
         ### pytest-sentry configuration ###
         if [ "$GITHUB_REPOSITORY" = "getsentry/sentry" ]; then
@@ -108,12 +108,11 @@ runs:
           echo "TOTAL_TEST_GROUPS=$MATRIX_INSTANCE_TOTAL" >> $GITHUB_ENV
         fi
 
-    - name: Setup python
-      uses: actions/setup-python@13ae5bb136fac2878aff31522b9efb785519f984  # v4.3.0
+    - uses: getsentry/action-setup-venv@64876d2bb1817c9bb6f391ad765677b109704af5 # v1.0.4
       with:
         python-version: ${{ inputs.python-version }}
-        cache: pip
         cache-dependency-path: ${{ inputs.workdir }}/requirements-dev-frozen.txt
+        install-cmd: pip install -r requirements-dev-frozen.txt
 
     - name: Set up outputs
       id: config
@@ -134,7 +133,6 @@ runs:
         WORKDIR: ${{ inputs.workdir }}
       run: |
         cd "$WORKDIR"
-        pip install -r requirements-dev-frozen.txt
         # We need to install editable otherwise things like check migration will fail.
         SENTRY_LIGHT_BUILD=1 pip install --no-deps -e .
 

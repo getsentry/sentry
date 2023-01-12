@@ -174,7 +174,6 @@ class GroupTagValues extends AsyncComponent<
                     containerDisplayMode: 'flex',
                   }}
                   size="sm"
-                  type="button"
                   aria-label={t('Show more')}
                   icon={<IconEllipsis size="xs" />}
                 />

@@ -194,7 +194,6 @@ class ResolveActions extends Component<Props> {
         trigger={triggerProps => (
           <DropdownTrigger
             {...triggerProps}
-            type="button"
             size={size}
             priority={priority}
             aria-label={t('More resolve options')}
@@ -274,7 +273,6 @@ class ResolveActions extends Component<Props> {
       <Tooltip disabled={!projectFetchError} title={t('Error fetching project')}>
         <ButtonBar merged>
           <ResolveButton
-            type="button"
             priority={priority}
             size={size}
             title={t(
@@ -299,7 +297,20 @@ export default withOrganization(ResolveActions);
 const ResolveButton = styled(Button)<{priority?: 'primary'}>`
   box-shadow: none;
   border-radius: ${p => p.theme.borderRadiusLeft};
-  ${p => (p.priority === 'primary' ? `border-right-color: ${p.theme.background};` : '')}
+  ${p =>
+    p.priority === 'primary'
+      ? `
+     &::after {
+       content: '';
+       position: absolute;
+       top: -1px;
+       bottom: -1px;
+       right: -1px;
+       border-right: solid 1px currentColor;
+       opacity: 0.25;
+     }
+  `
+      : ''}
 `;
 
 const DropdownTrigger = styled(Button)`

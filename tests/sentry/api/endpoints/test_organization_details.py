@@ -24,6 +24,7 @@ from sentry.models import (
     ScheduledDeletion,
 )
 from sentry.signals import project_created
+from sentry.silo import SiloMode
 from sentry.testutils import APITestCase, TwoFactorAPITestCase, pytest
 from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
 from sentry.utils import json
@@ -137,7 +138,7 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
             options.delete("store.symbolicate-event-lpq-never")
 
         # TODO(dcramer): We need to pare this down. Lots of duplicate queries for membership data.
-        expected_queries = 44
+        expected_queries = 44 if SiloMode.get_current_mode() == SiloMode.MONOLITH else 45
 
         with self.assertNumQueries(expected_queries, using="default"):
             response = self.get_success_response(self.organization.slug)
@@ -292,6 +293,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         data = {
             "openMembership": False,
             "isEarlyAdopter": True,
+            "codecovAccess": True,
             "allowSharedIssues": False,
             "enhancedPrivacy": True,
             "dataScrubber": True,
@@ -319,6 +321,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert initial != org.get_audit_log_data()
 
         assert org.flags.early_adopter
+        assert org.flags.codecov_access
         assert not org.flags.allow_joinleave
         assert org.flags.disable_shared_issues
         assert org.flags.enhanced_privacy
@@ -344,6 +347,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert "to {}".format(data["defaultRole"]) in log.data["default_role"]
         assert "to {}".format(data["openMembership"]) in log.data["allow_joinleave"]
         assert "to {}".format(data["isEarlyAdopter"]) in log.data["early_adopter"]
+        assert "to {}".format(data["codecovAccess"]) in log.data["codecov_access"]
         assert "to {}".format(data["enhancedPrivacy"]) in log.data["enhanced_privacy"]
         assert "to {}".format(not data["allowSharedIssues"]) in log.data["disable_shared_issues"]
         assert "to {}".format(data["require2FA"]) in log.data["require_2fa"]

@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import noop from 'lodash/noop';
 
 import Checkbox from 'sentry/components/checkbox';
+import space from 'sentry/styles/space';
 
 type CheckboxValue = string | number;
 
@@ -110,6 +111,8 @@ const MultipleCheckboxWrapper = styled('div')`
 `;
 
 const Label = styled('label')`
+  display: inline-flex;
+  align-items: center;
   font-weight: normal;
   white-space: nowrap;
   margin-right: 10px;
@@ -118,7 +121,7 @@ const Label = styled('label')`
 `;
 
 const CheckboxLabel = styled('span')`
-  margin-left: 3px;
+  margin-left: ${space(1)};
 `;
 
 const LabelContainer = styled('div')`

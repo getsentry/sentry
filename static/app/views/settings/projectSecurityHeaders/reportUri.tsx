@@ -1,4 +1,4 @@
-import Field from 'sentry/components/forms/field';
+import FieldGroup from 'sentry/components/forms/fieldGroup';
 import Link from 'sentry/components/links/link';
 import {Panel, PanelAlert, PanelBody, PanelHeader} from 'sentry/components/panels';
 import TextCopyInput from 'sentry/components/textCopyInput';
@@ -35,9 +35,9 @@ export default function ReportUri({keyList, orgId, projectId}: Props) {
             }
           )}
         </PanelAlert>
-        <Field inline={false} flexibleControlStateSize>
+        <FieldGroup inline={false} flexibleControlStateSize>
           <TextCopyInput>{getSecurityDsn(keyList)}</TextCopyInput>
-        </Field>
+        </FieldGroup>
       </PanelBody>
     </Panel>
   );

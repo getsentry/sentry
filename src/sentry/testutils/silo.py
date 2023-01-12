@@ -7,7 +7,6 @@ from typing import Any, Callable, Generator, Iterable, Tuple, cast
 from unittest import TestCase
 
 import pytest
-from django.conf import settings
 from django.test import override_settings
 
 from sentry.silo import SiloMode
@@ -27,14 +26,11 @@ class SiloModeTest:
     """Decorate a test case that is expected to work in a given silo mode.
 
     Tests marked to work in monolith mode are always executed.
-    Tests marked additionally to work in silo or control mode only do so when either
-    1. the test is marked as stable=True
-    2. the test is being run with SILO_MODE_UNSTABLE_TESTS=1
+    Tests marked additionally to work in silo or control mode only do so when the test is marked as stable=True
     """
 
     def __init__(self, *silo_modes: SiloMode) -> None:
         self.silo_modes = frozenset(silo_modes)
-        self.run_unstable_tests = bool(settings.SILO_MODE_UNSTABLE_TESTS)
 
     @staticmethod
     def _find_all_test_methods(test_class: type) -> Iterable[TestMethod]:
@@ -128,7 +124,7 @@ class SiloModeTest:
             raise ValueError("@SiloModeTest must decorate a function or TestCase class")
 
         # Only run non monolith tests when they are marked stable or we are explicitly running for that mode.
-        if not stable and not self.run_unstable_tests:
+        if not stable:
             # In this case, simply force the current silo mode (monolith)
             return decorated_obj
 

@@ -6,16 +6,17 @@ import {
   makeFlamegraph,
 } from 'sentry-test/profiling/utils';
 
+import {CanvasView} from 'sentry/utils/profiling/canvasView';
 import {FlamegraphSearch} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphSearch';
 import {
   LightFlamegraphTheme,
   LightFlamegraphTheme as theme,
 } from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
-import {FlamegraphView} from 'sentry/utils/profiling/flamegraphView';
 import {Rect} from 'sentry/utils/profiling/gl/utils';
 import {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
 
+import {Flamegraph} from '../flamegraph';
 import {getFlamegraphFrameSearchId} from '../flamegraphFrame';
 
 const originalDpr = window.devicePixelRatio;
@@ -142,7 +143,7 @@ describe('flamegraphRenderer', () => {
     );
 
     expect(renderer.getColorForFrame(flamegraph.frames[0])).toEqual([
-      0.9750000000000001, 0.7250000000000001, 0.7250000000000001,
+      0.9625, 0.7125, 0.7125,
     ]);
     expect(
       renderer.getColorForFrame({
@@ -228,13 +229,18 @@ describe('flamegraphRenderer', () => {
         [{name: 'f0'}, {name: 'f1'}]
       );
 
-      const results: FlamegraphSearch['results'] = new Map();
+      const results: FlamegraphSearch['results']['frames'] = new Map();
 
       const flamegraphCanvas = new FlamegraphCanvas(canvas, vec2.fromValues(0, 0));
-      const flamegraphView = new FlamegraphView({
+      const flamegraphView = new CanvasView<Flamegraph>({
         canvas: flamegraphCanvas,
-        flamegraph,
-        theme,
+        model: flamegraph,
+        options: {
+          inverted: flamegraph.inverted,
+          minWidth: flamegraph.profile.minFrameDuration,
+          barHeight: theme.SIZES.BAR_HEIGHT,
+          depthOffset: theme.SIZES.FLAMEGRAPH_DEPTH_OFFSET,
+        },
       });
       const renderer = new FlamegraphRenderer(canvas, flamegraph, theme);
 
@@ -287,10 +293,15 @@ describe('flamegraphRenderer', () => {
       );
 
       const flamegraphCanvas = new FlamegraphCanvas(canvas, vec2.fromValues(0, 0));
-      const flamegraphView = new FlamegraphView({
+      const flamegraphView = new CanvasView<Flamegraph>({
         canvas: flamegraphCanvas,
-        flamegraph,
-        theme,
+        model: flamegraph,
+        options: {
+          inverted: flamegraph.inverted,
+          minWidth: flamegraph.profile.minFrameDuration,
+          barHeight: theme.SIZES.BAR_HEIGHT,
+          depthOffset: theme.SIZES.FLAMEGRAPH_DEPTH_OFFSET,
+        },
       });
       const renderer = new FlamegraphRenderer(canvas, flamegraph, theme);
 

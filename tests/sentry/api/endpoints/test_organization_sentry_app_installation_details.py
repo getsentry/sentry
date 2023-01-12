@@ -6,8 +6,10 @@ from django.urls import reverse
 from sentry.constants import SentryAppInstallationStatus
 from sentry.mediators.token_exchange import GrantExchanger
 from sentry.testutils import APITestCase
+from sentry.testutils.silo import control_silo_test
 
 
+@control_silo_test()  # TODO(hybrid-cloud): Not marking stable until all requests use api user. src/sentry/mediators/sentry_app_installations/destroyer.py#17
 class SentryAppInstallationDetailsTest(APITestCase):
     def setUp(self):
         self.superuser = self.create_user(email="a@example.com", is_superuser=True)
@@ -45,6 +47,7 @@ class SentryAppInstallationDetailsTest(APITestCase):
         )
 
 
+@control_silo_test()
 class GetSentryAppInstallationDetailsTest(SentryAppInstallationDetailsTest):
     def test_access_within_installs_organization(self):
         self.login_as(user=self.user)
@@ -68,6 +71,7 @@ class GetSentryAppInstallationDetailsTest(SentryAppInstallationDetailsTest):
         assert response.status_code == 404
 
 
+@control_silo_test()
 class DeleteSentryAppInstallationDetailsTest(SentryAppInstallationDetailsTest):
     @responses.activate
     def test_delete_install(self):
@@ -86,6 +90,7 @@ class DeleteSentryAppInstallationDetailsTest(SentryAppInstallationDetailsTest):
         assert response.status_code == 403
 
 
+@control_silo_test()
 class MarkInstalledSentryAppInstallationsTest(SentryAppInstallationDetailsTest):
     def setUp(self):
         super().setUp()
