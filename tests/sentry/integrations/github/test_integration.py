@@ -1,4 +1,3 @@
-import logging
 from unittest.mock import MagicMock, patch
 from urllib.parse import urlencode, urlparse
 
@@ -71,10 +70,6 @@ class GitHubPlugin(IssueTrackingPlugin2):
 class GitHubIntegrationTest(IntegrationTestCase):
     provider = GitHubIntegrationProvider
     base_url = "https://api.github.com"
-
-    @pytest.fixture(autouse=True)
-    def inject_fixtures(self, caplog):
-        self._caplog = caplog
 
     def setUp(self):
         super().setUp()
@@ -643,33 +638,22 @@ class GitHubIntegrationTest(IntegrationTestCase):
             ),
         }
 
-        with patch("sentry.integrations.utils.code_mapping.logger") as logger:
-            assert not cache.get("githubtrees:repositories:Test-Organization")
-            # This allows checking for caching related output
-            self._caplog.set_level(logging.INFO, logger="sentry")
-            # Check that the cache is clear
-            repo_key = "github:repo:Test-Organization/foo:source-code"
-            assert cache.get("githubtrees:repositories:foo:Test-Organization") is None
-            assert cache.get(repo_key) is None
-            trees = installation.get_trees_for_org()
+        assert not cache.get("githubtrees:repositories:Test-Organization")
+        # Check that the cache is clear
+        repo_key = "github:repo:Test-Organization/foo:source-code"
+        assert cache.get("githubtrees:repositories:foo:Test-Organization") is None
+        assert cache.get(repo_key) is None
+        trees = installation.get_trees_for_org()
 
-            # These checks are useful since they will be available in the GCP logs
-            for msg in [
-                "The Github App does not have access to Test-Organization/baz.",
-                "Caching trees for Test-Organization",
-            ]:
-                assert logger.info.called_with(msg)
+        assert cache.get("githubtrees:repositories:foo:Test-Organization") == [
+            {"full_name": "Test-Organization/foo", "default_branch": "master"},
+            {"full_name": "Test-Organization/bar", "default_branch": "main"},
+            {"full_name": "Test-Organization/baz", "default_branch": "master"},
+            {"full_name": "Test-Organization/xyz", "default_branch": "master"},
+        ]
+        assert cache.get(repo_key) == ["src/sentry/api/endpoints/auth_login.py"]
+        assert trees == expected_trees
 
-            assert cache.get("githubtrees:repositories:foo:Test-Organization") == [
-                {"full_name": "Test-Organization/foo", "default_branch": "master"},
-                {"full_name": "Test-Organization/bar", "default_branch": "main"},
-                {"full_name": "Test-Organization/baz", "default_branch": "master"},
-                {"full_name": "Test-Organization/xyz", "default_branch": "master"},
-            ]
-            assert cache.get(repo_key) == ["src/sentry/api/endpoints/auth_login.py"]
-            assert trees == expected_trees
-
-            # Calling a second time should produce the same results
-            trees = installation.get_trees_for_org()
-            assert logger.info.called_with("Using cached trees for Test-Organization.")
-            assert trees == expected_trees
+        # Calling a second time should produce the same results
+        trees = installation.get_trees_for_org()
+        assert trees == expected_trees
