@@ -2,7 +2,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from sentry.dynamic_sampling.rules import IgnoreHealthChecksRulesGenerator
+from sentry.dynamic_sampling.rules.biases import IgnoreHealthChecksRulesGenerator
 
 
 @pytest.mark.django_db

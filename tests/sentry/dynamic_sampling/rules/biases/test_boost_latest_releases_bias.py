@@ -5,9 +5,9 @@ import pytest
 from django.utils import timezone
 from freezegun import freeze_time
 
-from sentry.dynamic_sampling.rules import (
+from sentry.dynamic_sampling.rules.biases import BoostLatestReleasesRulesGenerator
+from sentry.dynamic_sampling.rules.helpers import (
     LATEST_RELEASE_TTAS,
-    BoostLatestReleasesRulesGenerator,
     ExtendedBoostedRelease,
     Platform,
 )

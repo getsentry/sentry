@@ -72,7 +72,7 @@ class ReleaseCommitError(Exception):
 class ReleaseProjectModelManager(BaseManager):
     @staticmethod
     def _on_post(project, trigger):
-        from sentry.dynamic_sampling.rules import ProjectBoostedReleases
+        from sentry.dynamic_sampling.rules.helpers import ProjectBoostedReleases
 
         project_boosted_releases = ProjectBoostedReleases(project.id)
         # We want to invalidate the project config only if dynamic sampling is enabled and there exists boosted releases

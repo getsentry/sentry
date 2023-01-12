@@ -2,7 +2,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from sentry.dynamic_sampling.rules import BoostKeyTransactionsRulesGenerator
+from sentry.dynamic_sampling.rules.biases import BoostKeyTransactionsRulesGenerator
 
 
 @pytest.mark.django_db

@@ -6,12 +6,9 @@ from freezegun import freeze_time
 from sentry_relay.processing import validate_sampling_configuration
 
 from sentry.discover.models import TeamKeyTransaction
-from sentry.dynamic_sampling.rules import (
-    BOOSTED_KEY_TRANSACTION_LIMIT,
-    HEALTH_CHECK_GLOBS,
-    generate_rules,
-    get_redis_client_for_ds,
-)
+from sentry.dynamic_sampling.rules import BOOSTED_KEY_TRANSACTION_LIMIT, generate_rules
+from sentry.dynamic_sampling.rules.biases import HEALTH_CHECK_GLOBS
+from sentry.dynamic_sampling.rules.helpers import get_redis_client_for_ds
 from sentry.models import ProjectTeam
 from sentry.testutils.factories import Factories
 from sentry.utils import json
