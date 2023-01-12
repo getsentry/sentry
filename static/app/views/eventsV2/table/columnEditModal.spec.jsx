@@ -442,7 +442,7 @@ describe('EventsV2 -> ColumnEditModal', function () {
       // Apply the changes so we can see the new columns.
       userEvent.click(screen.getByRole('button', {name: 'Apply'}));
       expect(onApply).toHaveBeenCalledWith([
-        {kind: 'function', function: ['count_unique', 'user', undefined, undefined]},
+        {kind: 'function', function: ['count_unique', '300', undefined, undefined]},
       ]);
     });
 

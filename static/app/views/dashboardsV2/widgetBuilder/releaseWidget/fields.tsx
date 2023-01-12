@@ -83,6 +83,11 @@ export const SESSIONS_FIELDS: Readonly<Partial<Record<SessionField, SessionsMeta
     ],
     type: 'string',
   },
+  [SessionField.SESSION_DURATION]: {
+    name: 'session.duration',
+    operations: [],
+    type: 'duration',
+  },
 };
 
 export const SESSIONS_OPERATIONS: Readonly<
