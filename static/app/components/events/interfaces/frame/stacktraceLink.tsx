@@ -110,22 +110,25 @@ function CodecovLink({sourceUrl, codecovStatusCode}: CodecovLinkProps) {
   if (codecovStatusCode === CodecovStatusCode.NO_COVERAGE_DATA) {
     return (
       <CodecovWarning>
-        <span style={{padding: '0 4px'}}>{t('Code Coverage not found')}</span>
-        <StyledIconWrapper>
+        {t('Code Coverage not found')}
+        <WarningIcon>
           <IconWarning size="xs" color="errorText" />
-        </StyledIconWrapper>
+        </WarningIcon>
       </CodecovWarning>
     );
   }
 
   if (codecovStatusCode === CodecovStatusCode.COVERAGE_EXISTS) {
+    if (!sourceUrl) {
+      return null;
+    }
     const codecovUrl = sourceUrl?.replaceAll(
       new RegExp('github.com/.[^/]*', 'g'),
       'app.codecov.io/gh'
     );
 
     return (
-      <OpenInLink href={`${codecovUrl}`} openInNewTab>
+      <OpenInLink href={codecovUrl} openInNewTab>
         {t('View Coverage Tests on Codecov')}
         <StyledIconWrapper>{getIntegrationIcon('codecov', 'sm')}</StyledIconWrapper>
       </OpenInLink>
@@ -245,7 +248,7 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
 
   // Match found - display link to source
   if (match.config && match.sourceUrl) {
-    const showCodecovFeatures =
+    const shouldshowCodecovFeatures =
       organization.features.includes('codecov-stacktrace-integration') &&
       organization.codecovAccess &&
       (match.codecovStatusCode === CodecovStatusCode.COVERAGE_EXISTS ||
@@ -263,7 +266,7 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
           </StyledIconWrapper>
           {t('Open this line in %s', match.config.provider.name)}
         </OpenInLink>
-        {showCodecovFeatures && (
+        {shouldshowCodecovFeatures && (
           <CodecovLink
             sourceUrl={match.sourceUrl}
             codecovStatusCode={match.codecovStatusCode}
@@ -374,6 +377,16 @@ const StyledLink = styled(Link)`
   color: ${p => p.theme.gray300};
 `;
 
-const CodecovWarning = styled('span')`
+const Flex = styled('div')`
+  display: flex;
+`;
+
+const CodecovWarning = styled(Flex)`
   color: ${p => p.theme.errorText};
+  gap: ${space(0.75)};
+`;
+
+const WarningIcon = styled(Flex)`
+  display: flex;
+  align-items: center;
 `;
