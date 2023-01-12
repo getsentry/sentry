@@ -32,8 +32,8 @@ def latest_release_only(default_project):
     )
 
 
-@patch("sentry.dynamic_sampling.rules.base.sentry_sdk")
-@patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
+@patch("sentry.dynamic_sampling.rules.sentry_sdk")
+@patch("sentry.dynamic_sampling.rules.quotas.get_blended_sample_rate")
 def test_generate_rules_capture_exception(get_blended_sample_rate, sentry_sdk):
     get_blended_sample_rate.return_value = None
     # since we mock get_blended_sample_rate function
@@ -49,7 +49,7 @@ def test_generate_rules_capture_exception(get_blended_sample_rate, sentry_sdk):
 
 
 @pytest.mark.django_db
-@patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
+@patch("sentry.dynamic_sampling.rules.quotas.get_blended_sample_rate")
 def test_generate_rules_return_only_uniform_if_sample_rate_is_100_and_other_rules_are_enabled(
     get_blended_sample_rate, default_project
 ):
@@ -78,8 +78,8 @@ def test_generate_rules_return_only_uniform_if_sample_rate_is_100_and_other_rule
     validate_sampling_configuration(config_str)
 
 
-@patch("sentry.dynamic_sampling.rules.base.get_enabled_user_biases")
-@patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
+@patch("sentry.dynamic_sampling.rules.get_enabled_user_biases")
+@patch("sentry.dynamic_sampling.rules.quotas.get_blended_sample_rate")
 def test_generate_rules_return_uniform_rules_with_rate(
     get_blended_sample_rate, get_enabled_user_biases
 ):
@@ -107,7 +107,7 @@ def test_generate_rules_return_uniform_rules_with_rate(
 
 
 @pytest.mark.django_db
-@patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
+@patch("sentry.dynamic_sampling.rules.quotas.get_blended_sample_rate")
 def test_generate_rules_return_uniform_rules_and_env_rule(get_blended_sample_rate, default_project):
     get_blended_sample_rate.return_value = 0.1
     # since we mock get_blended_sample_rate function
@@ -161,7 +161,7 @@ def test_generate_rules_return_uniform_rules_and_env_rule(get_blended_sample_rat
 
 
 @pytest.mark.django_db
-@patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
+@patch("sentry.dynamic_sampling.rules.quotas.get_blended_sample_rate")
 def test_generate_rules_return_uniform_rules_and_key_transaction_rule(
     get_blended_sample_rate, default_project, default_team
 ):
@@ -217,7 +217,7 @@ def test_generate_rules_return_uniform_rules_and_key_transaction_rule(
 
 
 @pytest.mark.django_db
-@patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
+@patch("sentry.dynamic_sampling.rules.quotas.get_blended_sample_rate")
 def test_generate_rules_return_uniform_rules_and_key_transaction_rule_with_dups(
     get_blended_sample_rate, default_project, default_team
 ):
@@ -282,7 +282,7 @@ def test_generate_rules_return_uniform_rules_and_key_transaction_rule_with_dups(
 
 
 @pytest.mark.django_db
-@patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
+@patch("sentry.dynamic_sampling.rules.quotas.get_blended_sample_rate")
 def test_generate_rules_return_uniform_rules_and_key_transaction_rule_with_many_records(
     get_blended_sample_rate, default_project, default_team
 ):
@@ -340,7 +340,7 @@ def test_generate_rules_return_uniform_rules_and_key_transaction_rule_with_many_
     validate_sampling_configuration(config_str)
 
 
-@patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
+@patch("sentry.dynamic_sampling.rules.quotas.get_blended_sample_rate")
 def test_generate_rules_return_uniform_rule_with_100_rate_and_without_env_rule(
     get_blended_sample_rate,
 ):
@@ -363,7 +363,7 @@ def test_generate_rules_return_uniform_rule_with_100_rate_and_without_env_rule(
 
 
 @freeze_time("2022-10-21 18:50:25+00:00")
-@patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
+@patch("sentry.dynamic_sampling.rules.quotas.get_blended_sample_rate")
 @pytest.mark.django_db
 @pytest.mark.parametrize(
     ["version", "platform", "end"],
@@ -429,7 +429,7 @@ def test_generate_rules_with_different_project_platforms(
 
 @pytest.mark.django_db
 @freeze_time("2022-10-21 18:50:25+00:00")
-@patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
+@patch("sentry.dynamic_sampling.rules.quotas.get_blended_sample_rate")
 def test_generate_rules_return_uniform_rules_and_latest_release_rule(
     get_blended_sample_rate, default_project, latest_release_only
 ):
@@ -510,7 +510,7 @@ def test_generate_rules_return_uniform_rules_and_latest_release_rule(
 
 @pytest.mark.django_db
 @freeze_time("2022-10-21 18:50:25+00:00")
-@patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
+@patch("sentry.dynamic_sampling.rules.quotas.get_blended_sample_rate")
 def test_generate_rules_does_not_return_rule_with_deleted_release(
     get_blended_sample_rate, default_project, latest_release_only
 ):
@@ -565,7 +565,7 @@ def test_generate_rules_does_not_return_rule_with_deleted_release(
 
 
 @pytest.mark.django_db
-@patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
+@patch("sentry.dynamic_sampling.rules.quotas.get_blended_sample_rate")
 def test_generate_rules_return_uniform_rule_with_100_rate_and_without_latest_release_rule(
     get_blended_sample_rate, default_project, latest_release_only
 ):
@@ -587,7 +587,7 @@ def test_generate_rules_return_uniform_rule_with_100_rate_and_without_latest_rel
 
 
 @pytest.mark.django_db
-@patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
+@patch("sentry.dynamic_sampling.rules.quotas.get_blended_sample_rate")
 def test_generate_rules_return_uniform_rule_with_non_existent_releases(
     get_blended_sample_rate, default_project, latest_release_only
 ):

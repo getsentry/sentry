@@ -1205,7 +1205,7 @@ class TestProjectDetailsDynamicSamplingRules(TestProjectDetailsDynamicSamplingBa
         token = ApiToken.objects.create(user=self.user, scope_list=["project:write"])
         self.authorization = f"Bearer {token.token}"
 
-    @mock.patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
+    @mock.patch("sentry.dynamic_sampling.rules.quotas.get_blended_sample_rate")
     def test_get_dynamic_sampling_rules_for_superuser_user(self, get_blended_sample_rate):
         get_blended_sample_rate.return_value = 0.1
         new_biases = [

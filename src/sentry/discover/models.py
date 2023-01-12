@@ -12,7 +12,6 @@ from sentry.db.models import (
 )
 from sentry.db.models.fields import JSONField
 from sentry.db.models.fields.bounded import BoundedBigIntegerField
-from sentry.dynamic_sampling.rules.utils import RuleType, get_enabled_user_biases
 from sentry.models.projectteam import ProjectTeam
 from sentry.tasks.relay import schedule_invalidate_project_config
 
@@ -102,6 +101,8 @@ class TeamKeyTransactionModelManager(BaseManager):
         if features.has("organizations:dynamic-sampling", project.organization) and options.get(
             "dynamic-sampling:enabled-biases"
         ):
+            from sentry.dynamic_sampling.rules import RuleType, get_enabled_user_biases
+
             # check if option is enabled
             enabled_biases = get_enabled_user_biases(
                 project.get_option("sentry:dynamic_sampling_biases", None)
