@@ -16,7 +16,7 @@ def _get_guarded_blended_sample_rate(project: Project) -> float:
     sample_rate = quotas.get_blended_sample_rate(project)
 
     if sample_rate is None:
-        raise Exception("The method get_blended_sample_rate() returned None")
+        raise Exception("get_blended_sample_rate returns none")
 
     return float(sample_rate)
 
