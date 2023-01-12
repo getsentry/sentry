@@ -12,7 +12,7 @@ from sentry.models import Project
 ALWAYS_ALLOWED_RULE_TYPES = {RuleType.UNIFORM_RULE}
 
 
-def _get_guarded_blended_sample_rate(project: Project) -> float:
+def get_guarded_blended_sample_rate(project: Project) -> float:
     sample_rate = quotas.get_blended_sample_rate(project)
 
     if sample_rate is None:
@@ -44,7 +44,7 @@ def generate_rules(project: Project) -> List[BaseRule]:
     try:
         return _get_rules_of_enabled_biases(
             project,
-            _get_guarded_blended_sample_rate(project),
+            get_guarded_blended_sample_rate(project),
             get_enabled_user_biases(project.get_option("sentry:dynamic_sampling_biases", None)),
             # To add new biases you will need:
             # * Data provider

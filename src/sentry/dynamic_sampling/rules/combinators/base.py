@@ -26,7 +26,7 @@ class BiasesCombinator(ABC):
     def __init__(self) -> None:
         self.biases: Dict[RuleType, OrderedBias] = {}
 
-    def combine(self, rule_type: RuleType, bias: Bias) -> None:
+    def add(self, rule_type: RuleType, bias: Bias) -> None:
         # We assign to this bias an order discriminant, which can be leveraged by the get_combined_biases to
         # return an ordered dictionary following a defined total order.
         self.biases[rule_type] = OrderedBias(bias, self.get_next_order_number())
