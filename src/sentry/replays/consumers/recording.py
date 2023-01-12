@@ -64,11 +64,16 @@ class ProcessReplayRecordingStrategyFactory(ProcessingStrategyFactory[KafkaPaylo
 
 def move_chunks_to_cache_or_skip(message: Message[KafkaPayload]) -> MessageContext:
     """Move chunk messages to cache or skip."""
-    transaction = sentry_sdk.start_transaction(
-        name="replays.consumer.process_recording",
-        op="replays.consumer",
-        sampled=random.random()
-        < getattr(settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_APM_SAMPLING", 0),
+    # This is technically a `Union[Transaction, NoOpSpan]`.
+    # Casting it to just `Transaction` for simplicity here.
+    transaction = cast(
+        Transaction,
+        sentry_sdk.start_transaction(
+            name="replays.consumer.process_recording",
+            op="replays.consumer",
+            sampled=random.random()
+            < getattr(settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_APM_SAMPLING", 0),
+        ),
     )
 
     message_dict = msgpack.unpackb(message.payload.value)
