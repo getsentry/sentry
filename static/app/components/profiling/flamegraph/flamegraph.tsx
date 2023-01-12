@@ -536,6 +536,8 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
   // of model to search through. This will become useful as we  build
   // differential flamecharts or start comparing different profiles/charts
   const flamegraphs = useMemo(() => [flamegraph], [flamegraph]);
+  const spans = useMemo(() => (spanChart ? [spanChart] : []), [spanChart]);
+
   return (
     <Fragment>
       <FlamegraphToolbar>
@@ -551,6 +553,7 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
           onViewChange={onViewChange}
         />
         <FlamegraphSearch
+          spans={spans}
           flamegraphs={flamegraphs}
           canvasPoolManager={canvasPoolManager}
         />

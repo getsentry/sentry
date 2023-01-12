@@ -79,6 +79,11 @@ DETECTOR_TYPE_ISSUE_CREATION_TO_SYSTEM_OPTION = {
     DetectorType.N_PLUS_ONE_DB_QUERIES_EXTENDED: "performance.issues.n_plus_one_db_ext.problem-creation",
     DetectorType.CONSECUTIVE_DB_OP: "performance.issues.consecutive_db.problem-creation",
     DetectorType.N_PLUS_ONE_API_CALLS: "performance.issues.n_plus_one_api_calls.problem-creation",
+    # NOTE: Slow Span issues are not allowed for creation yet, the addition of this line is temporary so that we can
+    # record some metrics for issues of this type that *should* be created. We won't actually create any of these issues atm.
+    # This is handled within `event_manager.py` before the issue gets created.
+    # TODO: Remove this once we've verified that quality issues will be created, and not during spikes.
+    DetectorType.SLOW_SPAN: "performance.issues.slow_span.problem-creation",
 }
 
 
@@ -203,6 +208,7 @@ def get_detection_settings(project_id: Optional[int] = None) -> Dict[DetectorTyp
             "render_blocking_fcp_ratio": options.get(
                 "performance.issues.render_blocking_assets.fcp_ratio_threshold"
             ),
+            "n_plus_one_api_calls_detection_rate": 1.0,
         }
     )
 
@@ -240,6 +246,7 @@ def get_detection_settings(project_id: Optional[int] = None) -> Dict[DetectorTyp
             }
         ],
         DetectorType.N_PLUS_ONE_API_CALLS: {
+            "detection_rate": settings["n_plus_one_api_calls_detection_rate"],
             "duration_threshold": 50,  # ms
             "concurrency_threshold": 5,  # ms
             "count": 10,
@@ -530,6 +537,18 @@ class SlowSpanDetector(PerformanceDetector):
                 offender_span_ids=spans_involved,
             )
 
+    # TODO: Temporarily set to true for now, but issues will not be created.
+    def is_creation_allowed_for_organization(self, organization: Optional[Organization]) -> bool:
+        return True
+
+    # TODO: Temporarily set to true for now, but issues will not be created.
+    def is_creation_allowed_for_project(self, project: Optional[Project]) -> bool:
+        return True
+
+    # TODO: Temporarily set to true for now, but issues will not be created.
+    def is_creation_allowed_for_system(self) -> bool:
+        return True
+
     @classmethod
     def is_span_eligible(cls, span: Span) -> bool:
         description = span.get("description", None)
@@ -674,7 +693,7 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         )
 
     def is_creation_allowed_for_project(self, project: Project) -> bool:
-        return True  # Detection always allowed by project for now
+        return self.settings["detection_rate"] > random.random()
 
     @classmethod
     def is_event_eligible(cls, event):
@@ -935,6 +954,14 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
 
     def on_complete(self) -> None:
         self._validate_and_store_performance_problem()
+
+    def is_creation_allowed_for_organization(self, organization: Organization) -> bool:
+        return features.has(
+            "organizations:performance-consecutive-db-issue", organization, actor=None
+        )
+
+    def is_creation_allowed_for_project(self, project: Project) -> bool:
+        return True  # Detection always allowed by project for now
 
 
 class NPlusOneDBSpanDetector(PerformanceDetector):

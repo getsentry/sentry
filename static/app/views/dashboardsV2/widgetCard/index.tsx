@@ -12,7 +12,7 @@ import ErrorPanel from 'sentry/components/charts/errorPanel';
 import {HeaderTitle} from 'sentry/components/charts/styles';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import ExternalLink from 'sentry/components/links/externalLink';
-import {Panel} from 'sentry/components/panels';
+import {Panel, PanelAlert} from 'sentry/components/panels';
 import Placeholder from 'sentry/components/placeholder';
 import {parseSearch} from 'sentry/components/searchSyntax/parser';
 import Tooltip from 'sentry/components/tooltip';
@@ -21,6 +21,7 @@ import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
+import {getFormattedDate} from 'sentry/utils/dates';
 import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import {AggregationOutputType, parseFunction} from 'sentry/utils/discover/fields';
 import {
@@ -40,6 +41,16 @@ import {DEFAULT_RESULTS_LIMIT} from '../widgetBuilder/utils';
 import {DashboardsMEPConsumer, DashboardsMEPProvider} from './dashboardsMEPContext';
 import WidgetCardChartContainer from './widgetCardChartContainer';
 import WidgetCardContextMenu from './widgetCardContextMenu';
+
+const SESSION_DURATION_INGESTION_STOP_DATE = new Date('2023-01-12');
+export const SESSION_DURATION_ALERT = (
+  <PanelAlert type="warning">
+    {t(
+      'session.duration is no longer being recorded as of %s. Data in this widget may be incomplete.',
+      getFormattedDate(SESSION_DURATION_INGESTION_STOP_DATE, 'MMM D, YYYY')
+    )}
+  </PanelAlert>
+);
 
 type DraggableProps = Pick<ReturnType<typeof useSortable>, 'attributes' | 'listeners'>;
 
@@ -246,6 +257,10 @@ class WidgetCard extends Component<Props, State> {
       widget.limit = DEFAULT_RESULTS_LIMIT;
     }
 
+    const hasSessionDuration = widget.queries.some(query =>
+      query.aggregates.some(aggregate => aggregate.includes('session.duration'))
+    );
+
     function conditionalWrapWithDashboardsMEPProvider(component: React.ReactNode) {
       if (noDashboardsMEPProvider) {
         return component;
@@ -282,6 +297,7 @@ class WidgetCard extends Component<Props, State> {
                 </Tooltip>
                 {this.renderContextMenu()}
               </WidgetHeader>
+              {hasSessionDuration && SESSION_DURATION_ALERT}
               {isWidgetInvalid ? (
                 <Fragment>
                   {renderErrorMessage?.('Widget query condition is invalid.')}

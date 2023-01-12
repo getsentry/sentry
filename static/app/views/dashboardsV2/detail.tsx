@@ -21,10 +21,10 @@ import {
 } from 'sentry/components/modals/widgetViewerModal/utils';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
+import PageHeading from 'sentry/components/pageHeading';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {usingCustomerDomain} from 'sentry/constants';
 import {t} from 'sentry/locale';
-import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
@@ -195,10 +195,12 @@ class DashboardDetail extends Component<Props, State> {
         });
       } else {
         // Replace the URL if the widget isn't found and raise an error in toast
-        router.replace({
-          pathname: `/organizations/${organization.slug}/dashboard/${dashboard.id}/`,
-          query: location.query,
-        });
+        router.replace(
+          normalizeUrl({
+            pathname: `/organizations/${organization.slug}/dashboard/${dashboard.id}/`,
+            query: location.query,
+          })
+        );
         addErrorMessage(t('Widget not found'));
       }
     }
@@ -370,10 +372,12 @@ class DashboardDetail extends Component<Props, State> {
       return;
     }
     trackAdvancedAnalyticsEvent('dashboards2.create.cancel', {organization});
-    browserHistory.replace({
-      pathname: `/organizations/${organization.slug}/dashboards/`,
-      query: location.query,
-    });
+    browserHistory.replace(
+      normalizeUrl({
+        pathname: `/organizations/${organization.slug}/dashboards/`,
+        query: location.query,
+      })
+    );
   };
 
   handleChangeFilter = (activeFilters: DashboardFilters) => {
@@ -434,12 +438,14 @@ class DashboardDetail extends Component<Props, State> {
         }
         addSuccessMessage(t('Dashboard updated'));
         if (dashboard && newDashboard.id !== dashboard.id) {
-          browserHistory.replace({
-            pathname: `/organizations/${organization.slug}/dashboard/${newDashboard.id}/`,
-            query: {
-              ...location.query,
-            },
-          });
+          browserHistory.replace(
+            normalizeUrl({
+              pathname: `/organizations/${organization.slug}/dashboard/${newDashboard.id}/`,
+              query: {
+                ...location.query,
+              },
+            })
+          );
           return;
         }
       },
@@ -515,12 +521,14 @@ class DashboardDetail extends Component<Props, State> {
               });
 
               // redirect to new dashboard
-              browserHistory.replace({
-                pathname: `/organizations/${organization.slug}/dashboard/${newDashboard.id}/`,
-                query: {
-                  query: omit(location.query, Object.values(DashboardFilterKeys)),
-                },
-              });
+              browserHistory.replace(
+                normalizeUrl({
+                  pathname: `/organizations/${organization.slug}/dashboard/${newDashboard.id}/`,
+                  query: {
+                    query: omit(location.query, Object.values(DashboardFilterKeys)),
+                  },
+                })
+              );
             },
             () => undefined
           );
@@ -550,12 +558,14 @@ class DashboardDetail extends Component<Props, State> {
               });
 
               if (dashboard && newDashboard.id !== dashboard.id) {
-                browserHistory.replace({
-                  pathname: `/organizations/${organization.slug}/dashboard/${newDashboard.id}/`,
-                  query: {
-                    ...location.query,
-                  },
-                });
+                browserHistory.replace(
+                  normalizeUrl({
+                    pathname: `/organizations/${organization.slug}/dashboard/${newDashboard.id}/`,
+                    query: {
+                      ...location.query,
+                    },
+                  })
+                );
                 return;
               }
             },
@@ -628,16 +638,16 @@ class DashboardDetail extends Component<Props, State> {
           },
         }}
       >
-        <PageContent>
+        <Layout.Page withPadding>
           <NoProjectMessage organization={organization}>
             <StyledPageHeader>
-              <StyledTitle>
+              <StyledHeading>
                 <DashboardTitle
                   dashboard={modifiedDashboard ?? dashboard}
                   onUpdate={this.setModifiedDashboard}
                   isEditing={this.isEditing}
                 />
-              </StyledTitle>
+              </StyledHeading>
               <Controls
                 organization={organization}
                 dashboards={dashboards}
@@ -689,7 +699,7 @@ class DashboardDetail extends Component<Props, State> {
               </MetricsDataSwitcher>
             </MetricsCardinalityProvider>
           </NoProjectMessage>
-        </PageContent>
+        </Layout.Page>
       </PageFiltersContainer>
     );
   }
@@ -749,7 +759,7 @@ class DashboardDetail extends Component<Props, State> {
             },
           }}
         >
-          <StyledPageContent>
+          <Layout.Page>
             <NoProjectMessage organization={organization}>
               <Layout.Header>
                 <Layout.HeaderContent>
@@ -764,13 +774,13 @@ class DashboardDetail extends Component<Props, State> {
                       },
                     ]}
                   />
-                  <Layout.Title>
+                  <StyledHeading>
                     <DashboardTitle
                       dashboard={modifiedDashboard ?? dashboard}
                       onUpdate={this.setModifiedDashboard}
                       isEditing={this.isEditing}
                     />
-                  </Layout.Title>
+                  </StyledHeading>
                 </Layout.HeaderContent>
                 <Layout.HeaderActions>
                   <Controls
@@ -854,13 +864,15 @@ class DashboardDetail extends Component<Props, State> {
                                     });
                                   }
                                   addSuccessMessage(t('Dashboard filters updated'));
-                                  browserHistory.replace({
-                                    pathname: `/organizations/${organization.slug}/dashboard/${newDashboard.id}/`,
-                                    query: omit(
-                                      location.query,
-                                      Object.values(DashboardFilterKeys)
-                                    ),
-                                  });
+                                  browserHistory.replace(
+                                    normalizeUrl({
+                                      pathname: `/organizations/${organization.slug}/dashboard/${newDashboard.id}/`,
+                                      query: omit(
+                                        location.query,
+                                        Object.values(DashboardFilterKeys)
+                                      ),
+                                    })
+                                  );
                                 },
                                 () => undefined
                               );
@@ -891,7 +903,7 @@ class DashboardDetail extends Component<Props, State> {
                 </Layout.Main>
               </Layout.Body>
             </NoProjectMessage>
-          </StyledPageContent>
+          </Layout.Page>
         </PageFiltersContainer>
       </SentryDocumentTitle>
     );
@@ -926,12 +938,8 @@ const StyledPageHeader = styled('div')`
   }
 `;
 
-const StyledTitle = styled(Layout.Title)`
-  margin-top: 0;
-`;
-
-const StyledPageContent = styled(PageContent)`
-  padding: 0;
+const StyledHeading = styled(PageHeading)`
+  line-height: 40px;
 `;
 
 export default withProjects(withApi(withOrganization(DashboardDetail)));

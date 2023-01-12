@@ -12,13 +12,12 @@ import Breadcrumbs from 'sentry/components/breadcrumbs';
 import Button from 'sentry/components/button';
 import CompactSelect from 'sentry/components/compactSelect';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {Title} from 'sentry/components/layouts/thirds';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
+import PageHeading from 'sentry/components/pageHeading';
 import SearchBar from 'sentry/components/searchBar';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import Switch from 'sentry/components/switchButton';
 import {t} from 'sentry/locale';
-import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
 import {Organization, SavedQuery, SelectValue} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
@@ -210,7 +209,7 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
           onSearch={this.handleSearchQuery}
         />
         <PrebuiltSwitch>
-          <SwitchLabel>Show Prebuilt</SwitchLabel>
+          Show Prebuilt
           <Switch
             isActive={renderPrebuilt}
             isDisabled={renderPrebuilt && (savedQueries ?? []).length === 0}
@@ -240,9 +239,9 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
 
   renderNoAccess() {
     return (
-      <PageContent>
+      <Layout.Page withPadding>
         <Alert type="warning">{t("You don't have access to this feature")}</Alert>
-      </PageContent>
+      </Layout.Page>
     );
   }
 
@@ -296,7 +295,7 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
         renderDisabled={this.renderNoAccess}
       >
         <SentryDocumentTitle title={t('Discover')} orgSlug={organization.slug}>
-          <StyledPageContent>
+          <Layout.Page>
             <NoProjectMessage organization={organization}>
               <Layout.Header>
                 <Layout.HeaderContent>
@@ -305,11 +304,11 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
                   ) ? (
                     this.renderBreadcrumbs()
                   ) : (
-                    <Title>
+                    <StyledHeading>
                       <GuideAnchor target="discover_landing_header">
                         {t('Discover')}
                       </GuideAnchor>
-                    </Title>
+                    </StyledHeading>
                   )}
                 </Layout.HeaderContent>
                 <Layout.HeaderActions>
@@ -336,23 +335,23 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
                 </Layout.Main>
               </Layout.Body>
             </NoProjectMessage>
-          </StyledPageContent>
+          </Layout.Page>
         </SentryDocumentTitle>
       </Feature>
     );
   }
 }
 
-const StyledPageContent = styled(PageContent)`
-  padding: 0;
+const StyledHeading = styled(PageHeading)`
+  line-height: 40px;
 `;
 
-const PrebuiltSwitch = styled('div')`
+const PrebuiltSwitch = styled('label')`
   display: flex;
-`;
-
-const SwitchLabel = styled('div')`
-  padding-right: 8px;
+  align-items: center;
+  gap: ${space(1.5)};
+  font-weight: normal;
+  margin: 0;
 `;
 
 const StyledSearchBar = styled(SearchBar)`

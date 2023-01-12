@@ -21,12 +21,12 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import Switch from 'sentry/components/switchButton';
 import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
 import {Organization, SelectValue} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {decodeScalar} from 'sentry/utils/queryString';
 import withApi from 'sentry/utils/withApi';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
 import AsyncView from 'sentry/views/asyncView';
 
@@ -184,9 +184,9 @@ class ManageDashboards extends AsyncView<Props, State> {
 
   renderNoAccess() {
     return (
-      <PageContent>
+      <Layout.Page>
         <Alert type="warning">{t("You don't have access to this feature")}</Alert>
-      </PageContent>
+      </Layout.Page>
     );
   }
 
@@ -215,10 +215,12 @@ class ManageDashboards extends AsyncView<Props, State> {
       organization,
     });
 
-    browserHistory.push({
-      pathname: `/organizations/${organization.slug}/dashboards/new/`,
-      query: location.query,
-    });
+    browserHistory.push(
+      normalizeUrl({
+        pathname: `/organizations/${organization.slug}/dashboards/new/`,
+        query: location.query,
+      })
+    );
   }
 
   async onAdd(dashboard: DashboardDetails) {
@@ -250,17 +252,19 @@ class ManageDashboards extends AsyncView<Props, State> {
       dashboard_id: dashboardId,
     });
 
-    browserHistory.push({
-      pathname: `/organizations/${organization.slug}/dashboards/new/${dashboardId}/`,
-      query: location.query,
-    });
+    browserHistory.push(
+      normalizeUrl({
+        pathname: `/organizations/${organization.slug}/dashboards/new/${dashboardId}/`,
+        query: location.query,
+      })
+    );
   }
 
   renderLoading() {
     return (
-      <PageContent>
+      <Layout.Page withPadding>
         <LoadingIndicator />
-      </PageContent>
+      </Layout.Page>
     );
   }
 
@@ -275,7 +279,7 @@ class ManageDashboards extends AsyncView<Props, State> {
         renderDisabled={this.renderNoAccess}
       >
         <SentryDocumentTitle title={t('Dashboards')} orgSlug={organization.slug}>
-          <StyledPageContent>
+          <Layout.Page>
             <NoProjectMessage organization={organization}>
               <Layout.Header>
                 <Layout.HeaderContent>
@@ -326,16 +330,12 @@ class ManageDashboards extends AsyncView<Props, State> {
                 </Layout.Main>
               </Layout.Body>
             </NoProjectMessage>
-          </StyledPageContent>
+          </Layout.Page>
         </SentryDocumentTitle>
       </Feature>
     );
   }
 }
-
-const StyledPageContent = styled(PageContent)`
-  padding: 0;
-`;
 
 const StyledHeading = styled(PageHeading)`
   line-height: 40px;
