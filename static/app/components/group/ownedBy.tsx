@@ -64,7 +64,6 @@ function OwnedBy({group, project, organization}: OwnedByProps) {
               'Set rules on which user or team owns an issue based on path, module, tag, or URL'
             )}
             size="sm"
-            color="gray200"
           />
         </TitleWrapper>
 

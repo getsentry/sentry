@@ -15,7 +15,7 @@ from urllib.parse import urlparse
 import sentry_sdk
 from symbolic import ProguardMapper  # type: ignore
 
-from sentry import nodestore, options, projectoptions
+from sentry import features, nodestore, options, projectoptions
 from sentry.eventstore.models import Event
 from sentry.models import Organization, Project, ProjectDebugFile, ProjectOption
 from sentry.types.issues import GroupType
@@ -77,6 +77,8 @@ DETECTOR_TYPE_TO_GROUP_TYPE = {
 DETECTOR_TYPE_ISSUE_CREATION_TO_SYSTEM_OPTION = {
     DetectorType.N_PLUS_ONE_DB_QUERIES: "performance.issues.n_plus_one_db.problem-creation",
     DetectorType.N_PLUS_ONE_DB_QUERIES_EXTENDED: "performance.issues.n_plus_one_db_ext.problem-creation",
+    DetectorType.CONSECUTIVE_DB_OP: "performance.issues.consecutive_db.problem-creation",
+    DetectorType.N_PLUS_ONE_API_CALLS: "performance.issues.n_plus_one_api_calls.problem-creation",
 }
 
 
@@ -201,6 +203,7 @@ def get_detection_settings(project_id: Optional[int] = None) -> Dict[DetectorTyp
             "render_blocking_fcp_ratio": options.get(
                 "performance.issues.render_blocking_assets.fcp_ratio_threshold"
             ),
+            "n_plus_one_api_calls_detection_rate": 1.0,
         }
     )
 
@@ -238,6 +241,7 @@ def get_detection_settings(project_id: Optional[int] = None) -> Dict[DetectorTyp
             }
         ],
         DetectorType.N_PLUS_ONE_API_CALLS: {
+            "detection_rate": settings["n_plus_one_api_calls_detection_rate"],
             "duration_threshold": 50,  # ms
             "concurrency_threshold": 5,  # ms
             "count": 10,
@@ -667,10 +671,12 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
             self.spans = [span]
 
     def is_creation_allowed_for_organization(self, organization: Organization) -> bool:
-        return False  # Fully turned off
+        return features.has(
+            "organizations:performance-n-plus-one-api-calls-detector", organization, actor=None
+        )
 
     def is_creation_allowed_for_project(self, project: Project) -> bool:
-        return False  # Fully turned off
+        return self.settings["detection_rate"] > random.random()
 
     @classmethod
     def is_event_eligible(cls, event):
@@ -817,8 +823,8 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
         self.consecutive_db_spans.append(span)
 
     def _validate_and_store_performance_problem(self):
-        independent_db_spans = self._find_independent_spans(self.consecutive_db_spans)
-        if not len(independent_db_spans):
+        self._set_independent_spans(self.consecutive_db_spans)
+        if not len(self.independent_db_spans):
             return
 
         exceeds_count_threshold = len(self.consecutive_db_spans) >= self.settings.get(
@@ -827,11 +833,11 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
         exceeds_span_duration_threshold = all(
             get_span_duration(span).total_seconds() * 1000
             > self.settings.get("span_duration_threshold")
-            for span in independent_db_spans
+            for span in self.independent_db_spans
         )
 
         exceeds_time_saved_threshold = self._calculate_time_saved(
-            independent_db_spans
+            self.independent_db_spans
         ) > self.settings.get("min_time_saved")
 
         if (
@@ -844,15 +850,19 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
     def _store_performance_problem(self) -> None:
         fingerprint = self._fingerprint()
         offender_span_ids = [span.get("span_id", None) for span in self.consecutive_db_spans]
+        query: str = self.independent_db_spans[0].get("description", None)
+
         self.stored_problems[fingerprint] = PerformanceProblem(
             fingerprint,
             "db",
-            "consecutive db",
-            GroupType.PERFORMANCE_CONSECUTIVE_DB_OP,
+            desc=query,  # TODO - figure out which query to use for description
+            type=GroupType.PERFORMANCE_CONSECUTIVE_DB_OP,
             cause_span_ids=None,
             parent_span_ids=None,
             offender_span_ids=offender_span_ids,
         )
+
+        self._reset_variables()
 
     def _sum_span_duration(self, spans: list[Span]) -> int:
         "Given a list of spans, find the sum of the span durations in milliseconds"
@@ -861,7 +871,7 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
             sum += get_span_duration(span).total_seconds() * 1000
         return sum
 
-    def _find_independent_spans(self, spans: list[Span]) -> list[Span]:
+    def _set_independent_spans(self, spans: list[Span]):
         """
         Given a list of spans, checks if there is at least a single span that is independent of the rest.
         To start, we are just checking for a span in a list of consecutive span without a WHERE clause
@@ -876,7 +886,7 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
                 and not CONTAINS_PARAMETER_REGEX.search(query)
             ):
                 independent_spans.append(span)
-        return independent_spans
+        self.independent_db_spans = independent_spans
 
     def _calculate_time_saved(self, independent_spans: list[Span]) -> float:
         """
@@ -911,6 +921,7 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
 
     def _reset_variables(self) -> None:
         self.consecutive_db_spans = []
+        self.independent_db_spans = []
 
     def _is_db_query(self, span: Span) -> bool:
         op: str = span.get("op", "") or ""
@@ -926,6 +937,14 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
 
     def on_complete(self) -> None:
         self._validate_and_store_performance_problem()
+
+    def is_creation_allowed_for_organization(self, organization: Organization) -> bool:
+        return features.has(
+            "organizations:performance-consecutive-db-issue", organization, actor=None
+        )
+
+    def is_creation_allowed_for_project(self, project: Project) -> bool:
+        return True  # Detection always allowed by project for now
 
 
 class NPlusOneDBSpanDetector(PerformanceDetector):

@@ -7,6 +7,7 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {Panel, PanelHeader} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
+import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import withRouteAnalytics, {
@@ -24,7 +25,7 @@ import {Monitor} from './types';
 
 type Props = AsyncView['props'] &
   WithRouteAnalyticsProps &
-  RouteComponentProps<{monitorId: string; orgId: string}, {}> & {
+  RouteComponentProps<{monitorId: string}, {}> & {
     organization: Organization;
   };
 
@@ -76,7 +77,7 @@ class MonitorDetails extends AsyncView<Props, State> {
     }
 
     return (
-      <Fragment>
+      <StyledPageContent>
         <MonitorHeader monitor={monitor} orgId={this.orgSlug} onUpdate={this.onUpdate} />
         <Layout.Body>
           <Layout.Main fullWidth>
@@ -101,10 +102,14 @@ class MonitorDetails extends AsyncView<Props, State> {
             )}
           </Layout.Main>
         </Layout.Body>
-      </Fragment>
+      </StyledPageContent>
     );
   }
 }
+
+const StyledPageContent = styled(PageContent)`
+  padding: 0;
+`;
 
 const StyledPageFilterBar = styled(PageFilterBar)`
   margin-bottom: ${space(2)};

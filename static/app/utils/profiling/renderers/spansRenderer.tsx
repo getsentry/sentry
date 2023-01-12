@@ -1,5 +1,6 @@
 import {mat3, vec2} from 'gl-matrix';
 
+import {FlamegraphSearch} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphSearch';
 import {FlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 import {
   getContext,
@@ -30,7 +31,7 @@ function makePatternCanvas(
   const canvas = document.createElement('canvas');
 
   // Extend by width
-  const lineWidth = 2 * dpr;
+  const lineWidth = 4 * dpr;
   const width = barHeight * dpr + lineWidth;
 
   canvas.width = width;
@@ -62,6 +63,7 @@ export class SpanChartRenderer2D {
   canvas: HTMLCanvasElement | null;
   spanChart: SpanChart;
   theme: FlamegraphTheme;
+  searchResults: FlamegraphSearch['results']['spans'] = new Map();
 
   pattern: CanvasPattern;
   patternDataUrl: string;
@@ -100,6 +102,10 @@ export class SpanChartRenderer2D {
     return (
       this.colors.get(span.node.span.span_id) ?? this.theme.COLORS.FRAME_FALLBACK_COLOR
     );
+  }
+
+  setSearchResults(searchResults: FlamegraphSearch['results']['spans']) {
+    this.searchResults = searchResults;
   }
 
   findHoveredNode(configSpaceCursor: vec2): SpanChartNode | null {
@@ -196,7 +202,9 @@ export class SpanChartRenderer2D {
       } else {
         this.context.beginPath();
         this.context.setTransform(1, 0, 0, 1, 0, 0);
-        this.context.fillStyle = colorComponentsToRgba(color);
+        this.context.fillStyle = this.searchResults.has(span.node.span.span_id)
+          ? this.theme.COLORS.SEARCH_RESULT_SPAN_COLOR
+          : colorComponentsToRgba(color);
         this.context.fillRect(
           rect.x + BORDER_WIDTH / 2,
           rect.y + BORDER_WIDTH / 2,

@@ -10,10 +10,11 @@ import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import CompactSelect from 'sentry/components/compactSelect';
-import {Title} from 'sentry/components/layouts/thirds';
+import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
+import PageHeading from 'sentry/components/pageHeading';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import SearchBar from 'sentry/components/searchBar';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -26,6 +27,7 @@ import {Organization, SelectValue} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {decodeScalar} from 'sentry/utils/queryString';
 import withApi from 'sentry/utils/withApi';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
 import AsyncView from 'sentry/views/asyncView';
 
@@ -214,10 +216,12 @@ class ManageDashboards extends AsyncView<Props, State> {
       organization,
     });
 
-    browserHistory.push({
-      pathname: `/organizations/${organization.slug}/dashboards/new/`,
-      query: location.query,
-    });
+    browserHistory.push(
+      normalizeUrl({
+        pathname: `/organizations/${organization.slug}/dashboards/new/`,
+        query: location.query,
+      })
+    );
   }
 
   async onAdd(dashboard: DashboardDetails) {
@@ -249,10 +253,12 @@ class ManageDashboards extends AsyncView<Props, State> {
       dashboard_id: dashboardId,
     });
 
-    browserHistory.push({
-      pathname: `/organizations/${organization.slug}/dashboards/new/${dashboardId}/`,
-      query: location.query,
-    });
+    browserHistory.push(
+      normalizeUrl({
+        pathname: `/organizations/${organization.slug}/dashboards/new/${dashboardId}/`,
+        query: location.query,
+      })
+    );
   }
 
   renderLoading() {
@@ -276,9 +282,9 @@ class ManageDashboards extends AsyncView<Props, State> {
         <SentryDocumentTitle title={t('Dashboards')} orgSlug={organization.slug}>
           <StyledPageContent>
             <NoProjectMessage organization={organization}>
-              <PageContent>
-                <StyledPageHeader>
-                  <StyledTitle>
+              <Layout.Header>
+                <Layout.HeaderContent>
+                  <StyledHeading>
                     {t('Dashboards')}
                     <PageHeadingQuestionTooltip
                       title={tct(
@@ -290,7 +296,9 @@ class ManageDashboards extends AsyncView<Props, State> {
                         }
                       )}
                     />
-                  </StyledTitle>
+                  </StyledHeading>
+                </Layout.HeaderContent>
+                <Layout.HeaderActions>
                   <ButtonBar gap={1.5}>
                     <TemplateSwitch>
                       {t('Show Templates')}
@@ -313,11 +321,15 @@ class ManageDashboards extends AsyncView<Props, State> {
                       {t('Create Dashboard')}
                     </Button>
                   </ButtonBar>
-                </StyledPageHeader>
-                {showTemplates && this.renderTemplates()}
-                {this.renderActions()}
-                {this.renderDashboards()}
-              </PageContent>
+                </Layout.HeaderActions>
+              </Layout.Header>
+              <Layout.Body>
+                <Layout.Main fullWidth>
+                  {showTemplates && this.renderTemplates()}
+                  {this.renderActions()}
+                  {this.renderDashboards()}
+                </Layout.Main>
+              </Layout.Body>
             </NoProjectMessage>
           </StyledPageContent>
         </SentryDocumentTitle>
@@ -326,19 +338,12 @@ class ManageDashboards extends AsyncView<Props, State> {
   }
 }
 
-const StyledTitle = styled(Title)`
-  width: auto;
-`;
-
 const StyledPageContent = styled(PageContent)`
   padding: 0;
 `;
 
-const StyledPageHeader = styled('div')`
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  margin-bottom: ${space(2)};
+const StyledHeading = styled(PageHeading)`
+  line-height: 40px;
 `;
 
 const StyledActions = styled('div')`
@@ -352,19 +357,20 @@ const StyledActions = styled('div')`
   }
 `;
 
-const TemplateSwitch = styled('div')`
+const TemplateSwitch = styled('label')`
+  font-weight: normal;
   font-size: ${p => p.theme.fontSizeLarge};
-  display: grid;
+  display: flex;
   align-items: center;
-  grid-auto-flow: column;
   gap: ${space(1)};
   width: max-content;
+  margin: 0;
 `;
 
 const TemplateContainer = styled('div')`
   display: grid;
   gap: ${space(2)};
-  margin-bottom: ${space(2)};
+  margin-bottom: ${space(0.5)};
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     grid-template-columns: repeat(2, minmax(200px, 1fr));

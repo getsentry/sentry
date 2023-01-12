@@ -23,10 +23,7 @@ type TooltipProps = React.ComponentProps<typeof Tooltip>;
 type ButtonSize = 'zero' | 'xs' | 'sm' | 'md';
 
 interface BaseButtonProps
-  extends Omit<
-    React.ButtonHTMLAttributes<ButtonElement>,
-    'ref' | 'label' | 'size' | 'title'
-  > {
+  extends Omit<React.ButtonHTMLAttributes<ButtonElement>, 'label' | 'size' | 'title'> {
   /**
    * Used when you want to overwrite the default Reload event key for analytics
    */
@@ -130,8 +127,6 @@ interface ButtonPropsWithAriaLabel extends BaseButtonProps {
 
 export type ButtonProps = ButtonPropsWithoutAriaLabel | ButtonPropsWithAriaLabel;
 
-type Url = ButtonProps['to'] | ButtonProps['href'];
-
 function BaseButton({
   size = 'md',
   to,
@@ -179,19 +174,10 @@ function BaseButton({
       }
 
       buttonTracking?.();
-
-      if (typeof onClick !== 'function') {
-        return;
-      }
-
-      onClick(e);
+      onClick?.(e);
     },
     [disabled, busy, onClick, buttonTracking]
   );
-
-  function getUrl<T extends Url>(prop: T): T | undefined {
-    return disabled ? undefined : prop;
-  }
 
   const hasChildren = Array.isArray(children)
     ? children.some(child => !!child)
@@ -206,8 +192,8 @@ function BaseButton({
       aria-disabled={disabled}
       busy={busy}
       disabled={disabled}
-      to={getUrl(to)}
-      href={getUrl(href)}
+      to={!disabled ? to : undefined}
+      href={!disabled ? href : undefined}
       size={size}
       priority={priority}
       borderless={borderless}
@@ -377,16 +363,16 @@ const getSizeStyles = ({size = 'md', translucentBorder, theme}: StyledButtonProp
   };
 };
 
-export const getButtonStyles = ({theme, ...props}: StyledButtonProps) => {
+export const getButtonStyles = (props: StyledButtonProps) => {
   return css`
     position: relative;
     display: inline-block;
-    border-radius: ${theme.borderRadius};
+    border-radius: ${props.theme.borderRadius};
     text-transform: none;
     font-weight: 600;
-    ${getColors({...props, theme})};
-    ${getSizeStyles({...props, theme})};
-    ${getBoxShadow({...props, theme})};
+    ${getColors(props)};
+    ${getSizeStyles(props)};
+    ${getBoxShadow(props)};
     cursor: ${props.disabled ? 'not-allowed' : 'pointer'};
     opacity: ${(props.busy || props.disabled) && '0.65'};
     transition: background 0.1s, border 0.1s, box-shadow 0.1s;
@@ -496,4 +482,4 @@ const Icon = styled('span')<IconProps & Omit<StyledButtonProps, 'theme'>>`
 /**
  * Also export these styled components so we can use them as selectors
  */
-export {StyledButton, ButtonLabel, Icon};
+export {Button, StyledButton, ButtonLabel, Icon};

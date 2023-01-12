@@ -14,13 +14,14 @@ import {PageContent} from 'sentry/styles/organization';
 import useReplayData from 'sentry/utils/replays/hooks/useReplayData';
 import useReplayLayout from 'sentry/utils/replays/hooks/useReplayLayout';
 import useReplayPageview from 'sentry/utils/replays/hooks/useReplayPageview';
+import useOrganization from 'sentry/utils/useOrganization';
 import Layout from 'sentry/views/replays/detail/layout';
 import Page from 'sentry/views/replays/detail/page';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 import {getInitialTimeOffset} from 'sentry/views/replays/utils';
 
 type Props = RouteComponentProps<
-  {orgId: string; replaySlug: string},
+  {replaySlug: string},
   {},
   any,
   {event_t: string; t: number}
@@ -33,9 +34,10 @@ function ReplayDetails({
       t: initialTimeOffset, // Time, in seconds, where the video should start
     },
   },
-  params: {orgId: orgSlug, replaySlug},
+  params: {replaySlug},
 }: Props) {
-  useReplayPageview();
+  useReplayPageview('replay.details-time-spent');
+  const orgSlug = useOrganization().slug;
 
   const {fetching, onRetry, replay, replayRecord, fetchError} = useReplayData({
     replaySlug,
