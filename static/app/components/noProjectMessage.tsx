@@ -6,7 +6,7 @@ import img from 'sentry-images/spot/hair-on-fire.svg';
 
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import PageHeading from 'sentry/components/pageHeading';
+import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import space from 'sentry/styles/space';
@@ -77,7 +77,7 @@ function NoProjectMessage({
       <HeightWrapper>
         <img src={img} height={350} alt={t('Nothing to see')} />
         <Content>
-          <StyledPageHeading>{t('Remain Calm')}</StyledPageHeading>
+          <Layout.Title>{t('Remain Calm')}</Layout.Title>
           <HelpMessage>{t('You need at least one project to use this view')}</HelpMessage>
           <Actions gap={1}>
             {!orgHasProjects ? (
@@ -94,11 +94,6 @@ function NoProjectMessage({
     </Wrapper>
   );
 }
-
-const StyledPageHeading = styled(PageHeading)`
-  font-size: 28px;
-  margin-bottom: ${space(1.5)};
-`;
 
 const HelpMessage = styled('div')`
   margin-bottom: ${space(2)};

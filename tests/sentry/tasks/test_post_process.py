@@ -1228,7 +1228,7 @@ class PostProcessGroupPerformanceTest(
             project_id=self.project.id,
             user_id=self.create_user(name="user1").name,
             fingerprint=[
-                f"{GroupType.PERFORMANCE_SLOW_SPAN.value}-group1",
+                f"{GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN.value}-group1",
                 f"{GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value}-group2",
             ],
             environment=None,
