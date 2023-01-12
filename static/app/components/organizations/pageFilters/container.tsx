@@ -9,9 +9,9 @@ import {
   updateEnvironments,
   updateProjects,
 } from 'sentry/actionCreators/pageFilters';
+import * as Layout from 'sentry/components/layouts/thirds';
 import DesyncedFilterAlert from 'sentry/components/organizations/pageFilters/desyncedFiltersAlert';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
-import {PageContent} from 'sentry/styles/organization';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
@@ -167,7 +167,7 @@ function Container({skipLoadLastUsed, children, ...props}: Props) {
 
   // Wait for global selection to be ready before rendering children
   if (!isReady) {
-    return <PageContent />;
+    return <Layout.Page withPadding />;
   }
 
   return (

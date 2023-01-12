@@ -18,7 +18,6 @@ import * as TeamKeyTransactionManager from 'sentry/components/performance/teamKe
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import {Item, TabList, TabPanels, Tabs} from 'sentry/components/tabs';
 import {t, tct} from 'sentry/locale';
-import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters, Project} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
@@ -146,7 +145,7 @@ export function PerformanceLanding(props: Props) {
     : SearchContainerWithFilter;
 
   return (
-    <StyledPageContent data-test-id="performance-landing-v3">
+    <Layout.Page data-test-id="performance-landing-v3">
       <PageErrorProvider>
         <Tabs
           value={landingDisplay.field}
@@ -279,13 +278,9 @@ export function PerformanceLanding(props: Props) {
           </Layout.Body>
         </Tabs>
       </PageErrorProvider>
-    </StyledPageContent>
+    </Layout.Page>
   );
 }
-
-const StyledPageContent = styled(PageContent)`
-  padding: 0;
-`;
 
 const StyledHeading = styled(PageHeading)`
   line-height: 40px;
