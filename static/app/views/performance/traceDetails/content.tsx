@@ -10,6 +10,7 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import PageHeading from 'sentry/components/pageHeading';
 import TimeSince from 'sentry/components/timeSince';
 import {t, tct, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -330,9 +331,9 @@ class TraceDetailsContent extends Component<Props, State> {
               location={location}
               traceSlug={traceSlug}
             />
-            <Layout.Title data-test-id="trace-header">
+            <StyledHeading data-test-id="trace-header">
               {t('Trace ID: %s', traceSlug)}
-            </Layout.Title>
+            </StyledHeading>
           </Layout.HeaderContent>
           <Layout.HeaderActions>
             <ButtonBar gap={1}>
@@ -360,6 +361,10 @@ class TraceDetailsContent extends Component<Props, State> {
     );
   }
 }
+
+const StyledHeading = styled(PageHeading)`
+  line-height: 40px;
+`;
 
 const Margin = styled('div')`
   margin-top: ${space(2)};

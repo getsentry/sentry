@@ -1,3 +1,5 @@
+import styled from '@emotion/styled';
+
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
@@ -5,6 +7,7 @@ import EditableText from 'sentry/components/editableText';
 import {FeatureFeedback} from 'sentry/components/featureFeedback';
 import * as Layout from 'sentry/components/layouts/thirds';
 import type {LinkProps} from 'sentry/components/links/link';
+import PageHeading from 'sentry/components/pageHeading';
 import {t} from 'sentry/locale';
 
 import {DashboardDetails} from '../types';
@@ -40,7 +43,7 @@ export function Header({
             {label: t('Widget Builder')},
           ]}
         />
-        <Layout.Title>
+        <StyledHeading>
           <EditableText
             aria-label={t('Widget title')}
             value={title}
@@ -48,7 +51,7 @@ export function Header({
             errorMessage={t('Widget title is required')}
             maxLength={255}
           />
-        </Layout.Title>
+        </StyledHeading>
       </Layout.HeaderContent>
 
       <Layout.HeaderActions>
@@ -66,3 +69,7 @@ export function Header({
     </Layout.Header>
   );
 }
+
+const StyledHeading = styled(PageHeading)`
+  line-height: 40px;
+`;

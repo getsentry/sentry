@@ -12,8 +12,8 @@ import Breadcrumbs from 'sentry/components/breadcrumbs';
 import Button from 'sentry/components/button';
 import CompactSelect from 'sentry/components/compactSelect';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {Title} from 'sentry/components/layouts/thirds';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
+import PageHeading from 'sentry/components/pageHeading';
 import SearchBar from 'sentry/components/searchBar';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import Switch from 'sentry/components/switchButton';
@@ -305,11 +305,11 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
                   ) ? (
                     this.renderBreadcrumbs()
                   ) : (
-                    <Title>
+                    <StyledHeading>
                       <GuideAnchor target="discover_landing_header">
                         {t('Discover')}
                       </GuideAnchor>
-                    </Title>
+                    </StyledHeading>
                   )}
                 </Layout.HeaderContent>
                 <Layout.HeaderActions>
@@ -345,6 +345,10 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
 
 const StyledPageContent = styled(PageContent)`
   padding: 0;
+`;
+
+const StyledHeading = styled(PageHeading)`
+  line-height: 40px;
 `;
 
 const PrebuiltSwitch = styled('div')`

@@ -1,10 +1,8 @@
 import {PlainRoute} from 'react-router';
-import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import Breadcrumbs, {Crumb, CrumbDropdown} from 'sentry/components/breadcrumbs';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 
 interface Props {
@@ -39,11 +37,7 @@ function BuilderBreadCrumbs({title, alertName, projectSlug, organization}: Props
     crumbs.push({label: alertName});
   }
 
-  return <StyledBreadcrumbs crumbs={crumbs} />;
+  return <Breadcrumbs crumbs={crumbs} />;
 }
-
-const StyledBreadcrumbs = styled(Breadcrumbs)`
-  margin-bottom: ${space(1)};
-`;
 
 export default BuilderBreadCrumbs;

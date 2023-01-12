@@ -46,6 +46,7 @@ function Controls({
     return (
       <Button
         data-test-id="dashboard-cancel"
+        size="sm"
         onClick={e => {
           e.preventDefault();
           onCancel();
@@ -66,12 +67,13 @@ function Controls({
           onConfirm={onDelete}
           disabled={dashboards.length <= 1}
         >
-          <Button data-test-id="dashboard-delete" priority="danger">
+          <Button size="sm" data-test-id="dashboard-delete" priority="danger">
             {t('Delete')}
           </Button>
         </Confirm>
         <Button
           data-test-id="dashboard-commit"
+          size="sm"
           onClick={e => {
             e.preventDefault();
             onCommit();
@@ -90,6 +92,7 @@ function Controls({
         {renderCancelButton()}
         <Button
           data-test-id="dashboard-commit"
+          size="sm"
           onClick={e => {
             e.preventDefault();
             onCommit();
@@ -108,6 +111,7 @@ function Controls({
         {renderCancelButton(t('Go Back'))}
         <Button
           data-test-id="dashboard-commit"
+          size="sm"
           onClick={e => {
             e.preventDefault();
             onCommit();

@@ -11,6 +11,7 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
 import ListLink from 'sentry/components/links/listLink';
 import NavTabs from 'sentry/components/navTabs';
+import PageHeading from 'sentry/components/pageHeading';
 import Tooltip from 'sentry/components/tooltip';
 import Version from 'sentry/components/version';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
@@ -97,28 +98,26 @@ const ReleaseHeader = ({
             {label: t('Release Details')},
           ]}
         />
-        <Layout.Title>
-          <ReleaseName>
-            <IdBadge project={project} avatarSize={28} hideName />
-            <StyledVersion version={version} anchor={false} truncate />
+        <StyledHeading>
+          <IdBadge project={project} avatarSize={28} hideName />
+          <StyledVersion version={version} anchor={false} truncate />
+          <IconWrapper>
+            <Tooltip title={version} containerDisplayMode="flex">
+              <Clipboard value={version}>
+                <IconCopy />
+              </Clipboard>
+            </Tooltip>
+          </IconWrapper>
+          {!!url && (
             <IconWrapper>
-              <Tooltip title={version} containerDisplayMode="flex">
-                <Clipboard value={version}>
-                  <IconCopy />
-                </Clipboard>
+              <Tooltip title={url}>
+                <ExternalLink href={url}>
+                  <IconOpen />
+                </ExternalLink>
               </Tooltip>
             </IconWrapper>
-            {!!url && (
-              <IconWrapper>
-                <Tooltip title={url}>
-                  <ExternalLink href={url}>
-                    <IconOpen />
-                  </ExternalLink>
-                </Tooltip>
-              </IconWrapper>
-            )}
-          </ReleaseName>
-        </Layout.Title>
+          )}
+        </StyledHeading>
       </Layout.HeaderContent>
 
       <Layout.HeaderActions>
@@ -149,7 +148,8 @@ const ReleaseHeader = ({
   );
 };
 
-const ReleaseName = styled('div')`
+const StyledHeading = styled(PageHeading)`
+  line-height: 40px;
   display: flex;
   align-items: center;
 `;

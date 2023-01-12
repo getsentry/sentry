@@ -1,3 +1,5 @@
+import {Fragment} from 'react';
+
 import EditableText from 'sentry/components/editableText';
 import {t} from 'sentry/locale';
 
@@ -11,7 +13,7 @@ type Props = {
 
 function DashboardTitle({dashboard, isEditing, onUpdate}: Props) {
   return (
-    <div>
+    <Fragment>
       {!dashboard ? (
         t('Dashboards')
       ) : (
@@ -23,7 +25,7 @@ function DashboardTitle({dashboard, isEditing, onUpdate}: Props) {
           autoSelect
         />
       )}
-    </div>
+    </Fragment>
   );
 }
 
