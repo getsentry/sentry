@@ -1,13 +1,12 @@
-from sentry.dynamic_sampling.rules import (
-    BiasesCombinator,
-    BoostEnvironmentsBias,
+from sentry.dynamic_sampling.rules import RuleType, UniformBias
+from sentry.dynamic_sampling.rules.biases.boost_environments_bias import BoostEnvironmentsBias
+from sentry.dynamic_sampling.rules.biases.boost_key_transactions_bias import (
     BoostKeyTransactionsBias,
-    BoostLatestReleasesBias,
-    IgnoreHealthChecksBias,
-    OrderedBiasesCombinator,
-    RuleType,
-    UniformBias,
 )
+from sentry.dynamic_sampling.rules.biases.boost_latest_releases_bias import BoostLatestReleasesBias
+from sentry.dynamic_sampling.rules.biases.ignore_health_checks_bias import IgnoreHealthChecksBias
+from sentry.dynamic_sampling.rules.combinators.base import BiasesCombinator
+from sentry.dynamic_sampling.rules.combinators.ordered_combinator import OrderedBiasesCombinator
 
 
 def get_relay_biases_combinator() -> BiasesCombinator:

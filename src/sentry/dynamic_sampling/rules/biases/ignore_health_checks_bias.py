@@ -1,14 +1,16 @@
 from typing import List
 
-from sentry.dynamic_sampling.rules import (
-    HEALTH_CHECK_DROPPING_FACTOR,
-    RESERVED_IDS,
-    BaseRule,
+from sentry.dynamic_sampling.rules.biases.base import (
     Bias,
     BiasData,
     BiasDataProvider,
     BiasParams,
     BiasRulesGenerator,
+)
+from sentry.dynamic_sampling.rules.utils import (
+    HEALTH_CHECK_DROPPING_FACTOR,
+    RESERVED_IDS,
+    BaseRule,
     RuleType,
 )
 

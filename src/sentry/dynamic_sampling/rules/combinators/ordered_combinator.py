@@ -1,7 +1,9 @@
 import collections
 from typing import OrderedDict
 
-from sentry.dynamic_sampling.rules import Bias, BiasesCombinator, RuleType
+from sentry.dynamic_sampling.rules.biases.base import Bias
+from sentry.dynamic_sampling.rules.combinators.base import BiasesCombinator
+from sentry.dynamic_sampling.rules.utils import RuleType
 
 
 class OrderedBiasesCombinator(BiasesCombinator):

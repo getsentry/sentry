@@ -1,7 +1,7 @@
 from typing import TYPE_CHECKING, List
 
 from sentry.discover.models import TeamKeyTransaction
-from sentry.dynamic_sampling.rules import BOOSTED_KEY_TRANSACTION_LIMIT
+from sentry.dynamic_sampling.rules.utils import BOOSTED_KEY_TRANSACTION_LIMIT
 
 if TYPE_CHECKING:
     from sentry.models import Project

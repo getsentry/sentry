@@ -1,16 +1,18 @@
 from typing import List
 
-from sentry.dynamic_sampling.rules import (
-    KEY_TRANSACTION_BOOST_FACTOR,
-    RESERVED_IDS,
-    BaseRule,
+from sentry.dynamic_sampling.rules.biases.base import (
     Bias,
     BiasData,
     BiasDataProvider,
     BiasParams,
     BiasRulesGenerator,
+)
+from sentry.dynamic_sampling.rules.helpers.key_transactions import get_key_transactions
+from sentry.dynamic_sampling.rules.utils import (
+    KEY_TRANSACTION_BOOST_FACTOR,
+    RESERVED_IDS,
+    BaseRule,
     RuleType,
-    get_key_transactions,
 )
 
 

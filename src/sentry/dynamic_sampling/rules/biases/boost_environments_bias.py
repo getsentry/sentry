@@ -1,15 +1,13 @@
 from typing import List
 
-from sentry.dynamic_sampling.rules import (
-    RESERVED_IDS,
-    BaseRule,
+from sentry.dynamic_sampling.rules.biases.base import (
     Bias,
     BiasData,
     BiasDataProvider,
     BiasParams,
     BiasRulesGenerator,
-    RuleType,
 )
+from sentry.dynamic_sampling.rules.utils import RESERVED_IDS, BaseRule, RuleType
 
 
 class BoostEnvironmentsDataProvider(BiasDataProvider):
