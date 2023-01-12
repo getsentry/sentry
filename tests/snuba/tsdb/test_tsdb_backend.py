@@ -781,7 +781,7 @@ class SnubaTSDBGroupProfilingTest(TestCase, SnubaTestCase, SearchIssueTestMixin)
     def test_range_group_manual_group_time_rollup(self):
         project = self.create_project()
 
-        # these are the only granularities/rollups that will are 'optimal'
+        # these are the only granularities/rollups that be actually be used
         GRANULARITIES = [
             (10, timedelta(seconds=10), 5),
             (60 * 60, timedelta(hours=1), 6),
