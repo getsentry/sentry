@@ -69,7 +69,7 @@ function ReplaysOnboardingSidebar(props: CommonSidebarProps) {
     >
       <TopRightBackgroundImage src={HighlightTopRightPattern} />
       <TaskList>
-        <Heading>{t('Getting Started with Replays')}</Heading>
+        <Heading>{t('Getting Started with Session Replay')}</Heading>
         <DropdownMenuControl
           items={items}
           triggerLabel={
@@ -126,7 +126,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
       <Fragment>
         <div>
           {tct(
-            'Fiddlesticks. Session Replay isn’t available for your [platform] project yet but we’re definitely still working on it. Stay tuned.',
+            'Session Replay isn’t available for your [platform] project. It supports all browser JavaScript applications. It is built to work with @sentry/browser and our browser framework SDKs.',
             {platform: currentPlatform?.name || currentProject.slug}
           )}
         </div>

@@ -27,7 +27,7 @@ function DetailsPageBreadcrumbs({orgSlug, replayRecord}: Props) {
             pathname: `/organizations/${orgSlug}/replays/`,
             query: eventView.generateQueryStringObject(),
           },
-          label: t('Replays'),
+          label: t('Session Replay'),
         },
         {
           label: labelTitle ? (
