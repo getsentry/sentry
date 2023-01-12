@@ -50,7 +50,7 @@ export function SpanEvidenceKeyValueList({
       IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
       IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS,
     ].includes(issueType)
-      ? t('Repeating Span')
+      ? t('Repeating Spans (%s)', offendingSpans.length)
       : t('Offending Span'),
     value: getSpanEvidenceValue(offendingSpans[0]),
     subjectDataTestId: `${TEST_ID_NAMESPACE}.offending-spans`,
