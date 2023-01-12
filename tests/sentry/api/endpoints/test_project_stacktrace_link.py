@@ -70,6 +70,7 @@ class BaseProjectStacktraceLink(APITestCase):
 
     def expected_configurations(self, code_mapping) -> Mapping[str, Any]:
         return {
+            "automaticallyGenerated": code_mapping.automatically_generated,
             "defaultBranch": "master",
             "id": str(code_mapping.id),
             "integrationId": str(self.integration.id),

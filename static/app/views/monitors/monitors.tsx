@@ -13,12 +13,14 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import Link from 'sentry/components/links/link';
 import OnboardingPanel from 'sentry/components/onboardingPanel';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import PageHeading from 'sentry/components/pageHeading';
 import Pagination from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import SearchBar from 'sentry/components/searchBar';
 import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
+import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -77,7 +79,7 @@ class Monitors extends AsyncView<Props, State> {
   }
 
   getTitle() {
-    return `Monitors - ${this.orgSlug}`;
+    return `Crons - ${this.orgSlug}`;
   }
 
   onRequestSuccess(response): void {
@@ -103,12 +105,12 @@ class Monitors extends AsyncView<Props, State> {
     const {organization} = this.props;
 
     return (
-      <Fragment>
+      <StyledPageContent>
         <Layout.Header>
           <Layout.HeaderContent>
-            <HeaderTitle>
+            <StyledHeading>
               {t('Cron Monitors')} <FeatureBadge type="beta" />
-            </HeaderTitle>
+            </StyledHeading>
           </Layout.HeaderContent>
           <Layout.HeaderActions>
             <ButtonBar gap={1}>
@@ -161,7 +163,7 @@ class Monitors extends AsyncView<Props, State> {
               </Fragment>
             ) : (
               <OnboardingPanel image={<img src={onboardingImg} />}>
-                <h3>{t('Let Sentry Monitor Your Recurring Jobs')}</h3>
+                <h3>{t('Let Sentry monitor your recurring jobs')}</h3>
                 <p>
                   {t(
                     "We'll tell you if your recurring jobs are running on schedule, failing, or succeeding."
@@ -169,21 +171,25 @@ class Monitors extends AsyncView<Props, State> {
                 </p>
                 <ButtonList gap={1}>
                   <Button href="https://docs.sentry.io/product/crons" external>
-                    {t('View the Docs')}
+                    {t('Read Docs')}
                   </Button>
-                  <NewMonitorButton>{t('Set Up First Cron Monitor')}</NewMonitorButton>
+                  <NewMonitorButton>{t('Set up first cron monitor')}</NewMonitorButton>
                 </ButtonList>
               </OnboardingPanel>
             )}
           </Layout.Main>
         </Layout.Body>
-      </Fragment>
+      </StyledPageContent>
     );
   }
 }
 
-const HeaderTitle = styled(Layout.Title)`
-  margin-top: 0;
+const StyledPageContent = styled(PageContent)`
+  padding: 0;
+`;
+
+const StyledHeading = styled(PageHeading)`
+  line-height: 40px;
 `;
 
 const StyledLink = styled(Link)`
