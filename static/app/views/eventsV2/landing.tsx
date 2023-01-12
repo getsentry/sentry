@@ -210,7 +210,7 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
           onSearch={this.handleSearchQuery}
         />
         <PrebuiltSwitch>
-          <SwitchLabel>Show Prebuilt</SwitchLabel>
+          Show Prebuilt
           <Switch
             isActive={renderPrebuilt}
             isDisabled={renderPrebuilt && (savedQueries ?? []).length === 0}
@@ -351,12 +351,12 @@ const StyledHeading = styled(PageHeading)`
   line-height: 40px;
 `;
 
-const PrebuiltSwitch = styled('div')`
+const PrebuiltSwitch = styled('label')`
   display: flex;
-`;
-
-const SwitchLabel = styled('div')`
-  padding-right: 8px;
+  align-items: center;
+  gap: ${space(1.5)};
+  font-weight: normal;
+  margin: 0;
 `;
 
 const StyledSearchBar = styled(SearchBar)`
