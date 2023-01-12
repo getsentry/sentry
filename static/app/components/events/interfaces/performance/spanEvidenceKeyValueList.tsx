@@ -46,10 +46,12 @@ export function SpanEvidenceKeyValueList({
 
   data.push({
     key: '2',
-    subject:
-      issueType === IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES
-        ? t('Repeating Span')
-        : t('Offending Span'),
+    subject: [
+      IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
+      IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS,
+    ].includes(issueType)
+      ? t('Repeating Span')
+      : t('Offending Span'),
     value: getSpanEvidenceValue(offendingSpans[0]),
     subjectDataTestId: `${TEST_ID_NAMESPACE}.offending-spans`,
   });
