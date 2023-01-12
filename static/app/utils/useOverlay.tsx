@@ -108,8 +108,8 @@ function useOverlay({
     isOpen,
     defaultOpen,
     onOpenChange: open => {
-      onOpenChange?.(open);
       open && popperUpdate?.();
+      onOpenChange?.(open);
     },
   });
 
