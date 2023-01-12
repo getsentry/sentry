@@ -5,6 +5,7 @@ from sentry.api.endpoints.project_stacktrace_link import ProjectStacktraceLinkEn
 from sentry.integrations.example.integration import ExampleIntegration
 from sentry.models import Integration, OrganizationIntegration
 from sentry.testutils import APITestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import region_silo_test
 
 example_base_url = "https://example.com/getsentry/sentry/blob/master"
@@ -12,14 +13,25 @@ git_blame = [
     {
         "commit": {
             "oid": "5c7dc040fe713f718193e28972b43db94e5097b3",
-            "author": {"name": "Jodi Jang", "email": "jodi@DPQCDXF9QV-Jodi-Jang.local"},
+            "author": {"name": "Jodi Jang", "email": "jodi@example.com"},
             "message": "initial commit",
             "committedDate": "2022-10-20T17:17:15Z",
         },
         "startingLine": 1,
         "endingLine": 23,
         "age": 10,
-    }
+    },
+    {
+        "commit": {
+            "oid": "5c7dc040fe713f718193e28972b43db94e5097b4",
+            "author": {"name": "Jodi Jang", "email": "jodi@example.com"},
+            "message": "commit2",
+            "committedDate": "2022-10-20T17:17:15Z",
+        },
+        "startingLine": 24,
+        "endingLine": 27,
+        "age": 10,
+    },
 ]
 
 
@@ -133,10 +145,8 @@ class ProjectStacktraceLinkTest(BaseProjectStacktraceLink):
             "integrations": [serialized_integration(self.integration)],
         }
 
-    @mock.patch("sentry.integrations.github.integration.GitHubIntegration.get_blame_for_file")
-    def test_file_not_found_error(self, mock_git_blame):
+    def test_file_not_found_error(self):
         """File matches code mapping but it cannot be found in the source repository."""
-        mock_git_blame.return_value = None
         response = self.get_success_response(
             self.organization.slug, self.project.slug, qs_params={"file": self.filepath}
         )
@@ -159,13 +169,11 @@ class ProjectStacktraceLinkTest(BaseProjectStacktraceLink):
         assert response.data["error"] == "stack_root_mismatch"
         assert response.data["integrations"] == [serialized_integration(self.integration)]
 
-    @mock.patch("sentry.integrations.github.integration.GitHubIntegration.get_blame_for_file")
-    def test_config_and_source_url(self, mock_git_blame):
+    def test_config_and_source_url(self):
         """Having a different source url should also work"""
         with mock.patch.object(
             ExampleIntegration, "get_stacktrace_link", return_value="https://sourceurl.com/"
         ):
-            mock_git_blame.return_value = git_blame
             response = self.get_success_response(
                 self.organization.slug, self.project.slug, qs_params={"file": self.filepath}
             )
@@ -173,14 +181,10 @@ class ProjectStacktraceLinkTest(BaseProjectStacktraceLink):
             assert response.data["sourceUrl"] == "https://sourceurl.com/"
             assert response.data["integrations"] == [serialized_integration(self.integration)]
 
-    @mock.patch("sentry.integrations.github.integration.GitHubIntegration.get_blame_for_file")
     @mock.patch("sentry.api.endpoints.project_stacktrace_link.munged_filename_and_frames")
     @mock.patch.object(ExampleIntegration, "get_stacktrace_link")
-    def test_file_not_found_and_munge_frame_fallback_not_found(
-        self, mock_integration, mock_munger, mock_git_blame
-    ):
+    def test_file_not_found_and_munge_frame_fallback_not_found(self, mock_integration, mock_munger):
         mock_integration.return_value = None
-        mock_git_blame.return_value = None
         mock_munger.return_value = None
 
         response = self.get_success_response(
@@ -203,14 +207,10 @@ class ProjectStacktraceLinkTest(BaseProjectStacktraceLink):
             == f"https://example.com/{self.repo.name}/blob/master/src/sentry/src/sentry/utils/safe.py"
         )
 
-    @mock.patch("sentry.integrations.github.integration.GitHubIntegration.get_blame_for_file")
     @mock.patch("sentry.api.endpoints.project_stacktrace_link.munged_filename_and_frames")
     @mock.patch.object(ExampleIntegration, "get_stacktrace_link")
-    def test_file_not_found_munge_frame_fallback_success(
-        self, mock_integration, mock_munger, mock_git_blame
-    ):
+    def test_file_not_found_munge_frame_fallback_success(self, mock_integration, mock_munger):
         mock_integration.side_effect = [None, "https://github.com/repo/path/to/munged/file.py"]
-        mock_git_blame.return_value = git_blame
         mock_munger.return_value = (
             "munged_filename",
             [{"munged_filename": "usr/src/getsentry/file.py"}],
@@ -260,11 +260,9 @@ class ProjectStacktraceLinkTestMobile(BaseProjectStacktraceLink):
             source_root="",
         )
 
-    @mock.patch("sentry.integrations.github.integration.GitHubIntegration.get_blame_for_file")
     @mock.patch.object(ExampleIntegration, "get_stacktrace_link")
-    def test_munge_android_worked(self, mock_integration, mock_git_blame):
+    def test_munge_android_worked(self, mock_integration):
         mock_integration.side_effect = [f"{example_base_url}/usr/src/getsentry/file.java"]
-        mock_git_blame.return_value = git_blame
         response = self.get_success_response(
             self.organization.slug,
             self.project.slug,
@@ -278,12 +276,10 @@ class ProjectStacktraceLinkTestMobile(BaseProjectStacktraceLink):
         assert response.data["config"] == self.expected_configurations(self.code_mapping1)
         assert response.data["sourceUrl"] == f"{example_base_url}/{file_path}"
 
-    @mock.patch("sentry.integrations.github.integration.GitHubIntegration.get_blame_for_file")
     @mock.patch.object(ExampleIntegration, "get_stacktrace_link")
-    def test_munge_cocoa_worked(self, mock_integration, mock_git_blame):
+    def test_munge_cocoa_worked(self, mock_integration):
         file_path = "SampleProject/Classes/App Delegate/AppDelegate.swift"
         mock_integration.side_effect = [f"{example_base_url}/{file_path}"]
-        mock_git_blame.return_value = git_blame
         response = self.get_success_response(
             self.organization.slug,
             self.project.slug,
@@ -297,12 +293,10 @@ class ProjectStacktraceLinkTestMobile(BaseProjectStacktraceLink):
         assert response.data["config"] == self.expected_configurations(self.code_mapping1)
         assert response.data["sourceUrl"] == f"{example_base_url}/{file_path}"
 
-    @mock.patch("sentry.integrations.github.integration.GitHubIntegration.get_blame_for_file")
     @mock.patch.object(ExampleIntegration, "get_stacktrace_link")
-    def test_munge_flutter_worked(self, mock_integration, mock_git_blame):
+    def test_munge_flutter_worked(self, mock_integration):
         file_path = "a/b/main.dart"
         mock_integration.side_effect = [f"{example_base_url}/{file_path}"]
-        mock_git_blame.return_value = git_blame
         response = self.get_success_response(
             self.organization.slug,
             self.project.slug,
@@ -316,6 +310,28 @@ class ProjectStacktraceLinkTestMobile(BaseProjectStacktraceLink):
         )
         assert response.data["config"] == self.expected_configurations(self.code_mapping1)
         assert response.data["sourceUrl"] == f"{example_base_url}/{file_path}"
+
+    @with_feature("organizations:codecov-stacktrace-integration")
+    @mock.patch("sentry.integrations.github.integration.GitHubIntegration.get_blame_for_file")
+    def test_get_commit_sha_valid_line_no(self, mock_blame):
+        mock_blame.return_value = git_blame
+        project_stacktrace_link_endpoint = ProjectStacktraceLinkEndpoint()
+        current_config = {"repository": self.repo, "config": {"defaultBranch": "main"}}
+        commit_sha = project_stacktrace_link_endpoint.get_commit_sha(
+            self.integration, self.organization.id, 26, "test/path/file.py", current_config
+        )
+        assert commit_sha == "5c7dc040fe713f718193e28972b43db94e5097b4"
+
+    @with_feature("organizations:codecov-stacktrace-integration")
+    @mock.patch("sentry.integrations.github.integration.GitHubIntegration.get_blame_for_file")
+    def test_get_commit_sha_invalid_line_no(self, mock_blame):
+        mock_blame.return_value = git_blame
+        project_stacktrace_link_endpoint = ProjectStacktraceLinkEndpoint()
+        current_config = {"repository": self.repo, "config": {"defaultBranch": "main"}}
+        commit_sha = project_stacktrace_link_endpoint.get_commit_sha(
+            self.integration, self.organization.id, 80, "test/path/file.py", current_config
+        )
+        assert commit_sha is None
 
 
 class ProjectStacktraceLinkTestMultipleMatches(BaseProjectStacktraceLink):
@@ -392,14 +408,12 @@ class ProjectStacktraceLinkTestMultipleMatches(BaseProjectStacktraceLink):
         sorted_configs = project_stacktrace_link_endpoint.sort_code_mapping_configs(configs)
         assert sorted_configs == expected_config_order
 
-    @mock.patch("sentry.integrations.github.integration.GitHubIntegration.get_blame_for_file")
-    def test_multiple_code_mapping_matches(self, mock_git_blame):
+    def test_multiple_code_mapping_matches(self):
         with mock.patch.object(
             ExampleIntegration,
             "get_stacktrace_link",
             return_value="https://github.com/usr/src/getsentry/src/sentry/src/sentry/utils/safe.py",
         ):
-            mock_git_blame.return_value = git_blame
             response = self.get_success_response(
                 self.organization.slug, self.project.slug, qs_params={"file": self.filepath}
             )

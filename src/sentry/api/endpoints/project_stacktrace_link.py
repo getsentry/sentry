@@ -5,7 +5,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_sdk import Scope, configure_scope
 
-from sentry import analytics
+from sentry import analytics, features
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
@@ -181,6 +181,29 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                     sorted_configs.insert(0, config)
         return sorted_configs
 
+    def get_commit_sha(
+        self,
+        integration: Integration,
+        organization_id: str,
+        line_no: int,
+        filepath: str,
+        current_config: JSONData,
+    ) -> Optional[str]:
+        githubIntegration = GitHubIntegration(integration, organization_id)
+        try:
+            git_blame_list = githubIntegration.get_blame_for_file(
+                current_config["repository"],
+                filepath,
+                current_config["config"]["defaultBranch"],
+                line_no,
+            )
+            for blame in git_blame_list:
+                if line_no >= blame["startingLine"] and line_no <= blame["endingLine"]:
+                    return str(blame["commit"]["oid"])
+        except Exception:
+            logger.exception("Could not get git blame")
+        return None
+
     def get(self, request: Request, project: Project) -> Response:
         ctx = generate_context(request.GET)
         filepath = ctx.get("file")
@@ -270,23 +293,22 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                 logger.exception("Failed to set tags.")
 
                 result["commitSha"] = None
-                githubIntegration = GitHubIntegration(integrations[0], project.organization_id)
-                try:
+                if features.has(
+                    "organizations:codecov-stacktrace-integration", project.organization
+                ):
+                    integration = Integration.objects.filter(organizations=project.organization_id)[
+                        0
+                    ]
                     line_no_str = ctx.get("line_no")
-                    line_no = int(line_no_str) if line_no_str else 0
-                    git_blame_list = githubIntegration.get_blame_for_file(
-                        repo=current_config["repository"],
-                        filepath=filepath,
-                        ref=current_config["config"]["defaultBranch"],
-                        lineno=line_no,
-                    )
-
-                    for blame in git_blame_list:
-                        if line_no >= blame["startingLine"] and line_no <= blame["endingLine"]:
-                            result["commitSha"] = blame["commit"]["oid"]
-                            break
-                except Exception:
-                    logger.exception("Could not get git blame")
+                    line_no = int(line_no_str) if line_no_str else None
+                    if line_no:
+                        result["commitSha"] = self.get_commit_sha(
+                            integration,
+                            project.organization_id,
+                            line_no,
+                            filepath,
+                            current_config,
+                        )
 
         if result["config"]:
             analytics.record(
