@@ -339,6 +339,7 @@ class ReplayQueryConfig(QueryConfig):
     finished_at = String(is_filterable=False)
     # Dedicated url parameter should be used.
     project_id = String(query_alias="projectId", is_filterable=False)
+    project = String(query_alias="projectId", is_filterable=False)
 
 
 # Pagination.
@@ -448,6 +449,7 @@ FIELD_QUERY_ALIAS_MAP: Dict[str, List[str]] = {
     "id": ["replay_id"],
     "replay_type": ["replay_type"],
     "project_id": ["project_id"],
+    "project": ["project_id"],
     "platform": ["platform"],
     "environment": ["agg_environment"],
     "releases": ["releases"],
