@@ -28,7 +28,7 @@ import NOT_AVAILABLE_MESSAGES from 'sentry/constants/notAvailableMessages';
 import {t} from 'sentry/locale';
 import {Organization, Project, SelectValue} from 'sentry/types';
 import {defined} from 'sentry/utils';
-import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import withApi from 'sentry/utils/withApi';
@@ -289,12 +289,10 @@ class ProjectCharts extends Component<Props, State> {
 
   handleDisplayModeChange = (value: string) => {
     const {location, chartId, chartIndex, organization} = this.props;
-
-    trackAnalyticsEvent({
-      eventKey: `project_detail.change_chart${chartIndex + 1}`,
-      eventName: `Project Detail: Change Chart #${chartIndex + 1}`,
-      organization_id: parseInt(organization.id, 10),
+    trackAdvancedAnalyticsEvent('project_detail.change_chart', {
+      organization,
       metric: value,
+      chart_index: chartIndex,
     });
 
     browserHistory.push({

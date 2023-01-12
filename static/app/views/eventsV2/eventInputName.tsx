@@ -2,11 +2,12 @@ import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
 import EditableText from 'sentry/components/editableText';
-import {Title} from 'sentry/components/layouts/thirds';
+import PageHeading from 'sentry/components/pageHeading';
 import {t} from 'sentry/locale';
 import {Organization, SavedQuery} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import useApi from 'sentry/utils/useApi';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 import {handleUpdateQueryName} from './savedQuery/utils';
 
@@ -49,7 +50,9 @@ function EventInputName({organization, eventView, savedQuery, isHomepage}: Props
         const renamedEventView = eventView.clone();
         renamedEventView.name = nextQueryName;
 
-        browserHistory.push(renamedEventView.getResultsViewUrlTarget(organization.slug));
+        browserHistory.push(
+          normalizeUrl(renamedEventView.getResultsViewUrlTarget(organization.slug))
+        );
       }
     );
   }
@@ -57,19 +60,19 @@ function EventInputName({organization, eventView, savedQuery, isHomepage}: Props
   const value = isHomepage ? HOMEPAGE_DEFAULT : eventView.name || NAME_DEFAULT;
 
   return (
-    <StyledTitle data-test-id={`discover2-query-name-${value}`}>
+    <StyledHeading data-test-id={`discover2-query-name-${value}`}>
       <EditableText
         value={value}
         onChange={handleChange}
         isDisabled={!eventView.id || isHomepage}
         errorMessage={t('Please set a name for this query')}
       />
-    </StyledTitle>
+    </StyledHeading>
   );
 }
 
-const StyledTitle = styled(Title)`
-  overflow: unset;
+const StyledHeading = styled(PageHeading)`
+  line-height: 40px;
 `;
 
 export default EventInputName;

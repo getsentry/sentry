@@ -1,4 +1,4 @@
-import {CSSProperties} from 'react';
+import {CSSProperties, forwardRef} from 'react';
 import styled from '@emotion/styled';
 
 import {IconArrow} from 'sentry/icons';
@@ -13,8 +13,6 @@ type Props = {
   sortConfig: SortConfig;
   style: CSSProperties;
 };
-
-export const HEADER_HEIGHT = 25;
 
 const COLUMNS: {
   field: SortConfig['by'];
@@ -68,4 +66,4 @@ const HeaderButton = styled('button')`
   }
 `;
 
-export default NetworkHeaderCell;
+export default forwardRef<HTMLButtonElement, Props>(NetworkHeaderCell);

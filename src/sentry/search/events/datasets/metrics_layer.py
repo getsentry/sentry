@@ -11,7 +11,7 @@ from sentry.search.events import builder, constants, fields
 from sentry.search.events.datasets import field_aliases, filter_aliases
 from sentry.search.events.datasets.metrics import MetricsDatasetConfig
 from sentry.search.events.types import SelectType, WhereType
-from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
+from sentry.snuba.metrics.naming_layer.mri import SessionMRI, TransactionMRI
 from sentry.utils.numbers import format_grouped_length
 
 
@@ -244,6 +244,23 @@ class MetricsLayerDatasetConfig(MetricsDatasetConfig):
                     result_type_fn=self.reflective_result_type(),
                 ),
                 fields.MetricsFunction(
+                    "sumIf",
+                    required_args=[
+                        # Values domain restricted because of
+                        # sentry.snuba.entity_subscription.MetricsCountersEntitySubscription.get_snql_aggregations.
+                        fields.MetricArg("if_col", allowed_columns=["session.status"]),
+                        fields.SnQLStringArg("if_val", allowed_strings=["init", "crashed"]),
+                    ],
+                    snql_metric_layer=lambda args, alias: Function(
+                        "sum_if_column",
+                        # We use the metric mri specified in
+                        # sentry.snuba.entity_subscription.MetricsCountersEntitySubscription.metric_key.
+                        [Column(SessionMRI.SESSION.value), args["if_col"], args["if_val"]],
+                        alias,
+                    ),
+                    default_result_type="integer",
+                ),
+                fields.MetricsFunction(
                     "percentile",
                     required_args=[
                         fields.with_default(
@@ -276,29 +293,28 @@ class MetricsLayerDatasetConfig(MetricsDatasetConfig):
                 fields.MetricsFunction(
                     "uniq",
                     snql_metric_layer=lambda args, alias: Function(
-                        "uniq",
-                        [Column(self.resolve_metric(args["column"]))],
+                        "count_unique",
+                        # We use the metric mri specified in
+                        # sentry.snuba.entity_subscription.MetricsSetsEntitySubscription.metric_key.
+                        [
+                            Column(SessionMRI.USER.value),
+                        ],
                         alias,
                     ),
                 ),
                 fields.MetricsFunction(
                     "uniqIf",
                     required_args=[
-                        fields.ColumnTagArg("if_col"),
-                        fields.FunctionArg("if_val"),
-                    ],
-                    calculated_args=[
-                        {
-                            "name": "resolved_val",
-                            "fn": lambda args: self.resolve_value(args["if_val"]),
-                        }
+                        # Values domain restricted because of
+                        # sentry.snuba.entity_subscription.MetricsSetsEntitySubscription.get_snql_aggregations.
+                        fields.MetricArg("if_col", allowed_columns=["session.status"]),
+                        fields.SnQLStringArg("if_val", allowed_strings=["crashed"]),
                     ],
                     snql_metric_layer=lambda args, alias: Function(
-                        "uniqIf",
-                        [
-                            Column(self.resolve_metric(args["column"])),
-                            Function("equals", [args["if_col"], args["resolved_val"]]),
-                        ],
+                        "uniq_if_column",
+                        # We use the metric mri specified in
+                        # sentry.snuba.entity_subscription.MetricsSetsEntitySubscription.metric_key.
+                        [Column(SessionMRI.USER.value), args["if_col"], args["if_val"]],
                         alias,
                     ),
                     default_result_type="integer",

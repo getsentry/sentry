@@ -25,6 +25,7 @@ import withRouteAnalytics, {
 } from 'sentry/utils/routeAnalytics/withRouteAnalytics';
 import slugify from 'sentry/utils/slugify';
 import withApi from 'sentry/utils/withApi';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
 // eslint-disable-next-line no-restricted-imports
 import withSentryRouter from 'sentry/utils/withSentryRouter';
@@ -237,7 +238,7 @@ class CreateProject extends Component<Props, State> {
 
       const platformKey = platform || 'other';
       const nextUrl = `/${organization.slug}/${projectData.slug}/getting-started/${platformKey}/`;
-      browserHistory.push(nextUrl);
+      browserHistory.push(normalizeUrl(nextUrl));
     } catch (err) {
       this.setState({
         inFlight: false,

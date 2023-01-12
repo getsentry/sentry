@@ -566,7 +566,7 @@ function getDemoModeGuidesV2(): GuidesContent {
           title: t('Release-specfic trends'),
           target: 'release_version',
           description: t(
-            `Select the latest release to review new and regressed issues, and business critical metrics like crash rate, user adoption, and session duration.`
+            `Select the latest release to review new and regressed issues, and business critical metrics like crash rate, and user adoption.`
           ),
         },
       ],

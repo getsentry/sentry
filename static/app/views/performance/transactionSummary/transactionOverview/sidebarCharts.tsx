@@ -34,6 +34,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import useRouter from 'sentry/utils/useRouter';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {getTermHelp, PERFORMANCE_TERM} from 'sentry/views/performance/data';
 
 import {
@@ -193,7 +194,7 @@ function SidebarCharts({
                           projectID: decodeScalar(location.query.project),
                           transaction: transactionName,
                         });
-                        browserHistory.push(target);
+                        browserHistory.push(normalizeUrl(target));
                       },
                     })),
                     symbol: 'circle',
