@@ -35,7 +35,7 @@ class MNPlusOneDBDetectorTest(TestCase):
         problems = self.find_problems(event)
         assert problems == [
             PerformanceProblem(
-                fingerprint="1-GroupType.PERFORMANCE_M_N_PLUS_ONE_DB_QUERIES-de75036b0dce394e0b23aaabf553ad9f8156f22b",
+                fingerprint="1-GroupType.PERFORMANCE_M_N_PLUS_ONE_DB_QUERIES-6807a9d5bedb6fdb175b006448cddf8cdf18fbd8",
                 op="db",
                 type=GroupType.PERFORMANCE_M_N_PLUS_ONE_DB_QUERIES,
                 desc="SELECT id, name FROM authors INNER JOIN book_authors ON author_id = id WHERE book_id = $1",
@@ -90,7 +90,7 @@ class MNPlusOneDBDetectorTest(TestCase):
                 call("_pi_transaction", "3818ae4f54ba4fa6ac6f68c9e32793c4"),
                 call(
                     "_pi_m_n_plus_one_db_fp",
-                    "1-GroupType.PERFORMANCE_M_N_PLUS_ONE_DB_QUERIES-de75036b0dce394e0b23aaabf553ad9f8156f22b",
+                    "1-GroupType.PERFORMANCE_M_N_PLUS_ONE_DB_QUERIES-6807a9d5bedb6fdb175b006448cddf8cdf18fbd8",
                 ),
                 call("_pi_m_n_plus_one_db", "9c5049407f37a364"),
             ]
