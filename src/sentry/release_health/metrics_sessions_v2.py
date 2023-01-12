@@ -545,12 +545,12 @@ def run_sessions_query(
         orderby_sequence = [orderby]
 
     metrics_query = MetricsQuery(
-        org_id,
-        project_ids,
-        list({column for field in fields.values() for column in field.metric_fields}),
-        query.start,
-        query.end,
-        Granularity(query.rollup),
+        org_id=org_id,
+        project_ids=project_ids,
+        select=list({column for field in fields.values() for column in field.metric_fields}),
+        granularity=Granularity(query.rollup),
+        start=query.start,
+        end=query.end,
         where=where,
         groupby=list(
             {

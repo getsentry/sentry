@@ -1,4 +1,5 @@
 import inspect
+from typing import Set
 
 from snuba_sdk import AliasedExpression, Column, Condition, Function, Granularity, Op
 from snuba_sdk.query import Query
@@ -31,7 +32,7 @@ def _get_derived_op_metric_field_from_snuba_function(function: Function):
         raise MQBQueryTransformationException(
             "The first parameter of a function should be a column of the metric MRI"
         )
-    default_args_for_snql_func = {"aggregate_filter", "org_id", "alias"}
+    default_args_for_snql_func = {"aggregate_filter", "org_id", "alias", "use_case_id"}
 
     metric_field_params = {}
     function_params = function.parameters[1:]
@@ -175,7 +176,7 @@ def _transform_groupby(query_groupby):
     return mq_groupby if len(mq_groupby) > 0 else None, include_series, interval
 
 
-def _get_mq_dict_params_from_where(query_where):
+def _get_mq_dict_params_from_where(query_where, is_alerts_query):
     mq_dict = {}
     where = []
     for condition in query_where:
@@ -192,7 +193,8 @@ def _get_mq_dict_params_from_where(query_where):
                     mq_dict["start"] = condition.rhs
                 elif condition.op == Op.LT:
                     mq_dict["end"] = condition.rhs
-            elif condition.lhs.name in FILTERABLE_TAGS:
+            # In case this is an alerts query, we relax restrictions.
+            elif (condition.lhs.name in FILTERABLE_TAGS) or is_alerts_query:
                 where.append(condition)
             else:
                 raise MQBQueryTransformationException(f"Unsupported column for where {condition}")
@@ -416,9 +418,21 @@ def _transform_team_key_transaction_fake_mri(mq_dict):
     }
 
 
-def transform_mqb_query_to_metrics_query(query: Query) -> MetricsQuery:
+def _get_supported_entities(is_alerts_query: bool) -> Set[str]:
+    supported_entities = {"generic_metrics_distributions", "generic_metrics_sets"}
+
+    if is_alerts_query:
+        supported_entities.update({"metrics_distributions", "metrics_sets"})
+
+    return supported_entities
+
+
+def transform_mqb_query_to_metrics_query(
+    query: Query,
+    is_alerts_query: bool = False,
+) -> MetricsQuery:
     # Validate that we only support this transformation for the generic_metrics dataset
-    if query.match.name not in {"generic_metrics_distributions", "generic_metrics_sets"}:
+    if query.match.name not in _get_supported_entities(is_alerts_query):
         raise MQBQueryTransformationException(
             f"Unsupported entity name for {query.match.name} MQB to MetricsQuery " f"Transformation"
         )
@@ -440,7 +454,8 @@ def transform_mqb_query_to_metrics_query(query: Query) -> MetricsQuery:
         "granularity": query.granularity if query.granularity is not None else Granularity(3600),
         "orderby": _transform_orderby(query.orderby),
         "interval": interval,
-        **_get_mq_dict_params_from_where(query.where),
+        "is_alerts_query": is_alerts_query,
+        **_get_mq_dict_params_from_where(query.where, is_alerts_query),
     }
 
     # This code is just an edge case specific for the team_key_transaction derived operation.

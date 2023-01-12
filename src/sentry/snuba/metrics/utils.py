@@ -84,6 +84,8 @@ MetricOperationType = Literal[
     "count_web_vitals",
     "count_transaction_name",
     "team_key_transaction",
+    "sum_if_column",
+    "uniq_if_column",
 ]
 MetricUnit = Literal[
     "nanosecond",
@@ -243,6 +245,8 @@ DERIVED_OPERATIONS = (
     "count_transaction_name",
     "team_key_transaction",
     "transform_null_to_unparameterized",
+    "sum_if_column",
+    "uniq_if_column",
 )
 OPERATIONS = (
     (
@@ -333,6 +337,6 @@ def get_intervals(start: datetime, end: datetime, granularity: int, interval: Op
         end = datetime.fromtimestamp(int(end.timestamp() / interval) * interval, timezone.utc)
         assert interval > 0
         delta = timedelta(seconds=interval)
-    while start < end:
+    while start and end and start < end:
         yield start
         start += delta

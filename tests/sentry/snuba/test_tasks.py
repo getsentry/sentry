@@ -31,6 +31,7 @@ from sentry.snuba.tasks import (
     update_subscription_in_snuba,
 )
 from sentry.testutils import TestCase
+from sentry.testutils.helpers import Feature
 from sentry.utils import json
 from sentry.utils.snuba import _snuba_pool
 
@@ -367,20 +368,39 @@ class BuildSnqlQueryTest(TestCase):
                 ],
             },
             Dataset.Metrics: {
-                "percentage(sessions_crashed, sessions) as _crash_rate_alert_aggregate": lambda org_id, **kwargs: [
+                "percentage(sessions_crashed, sessions) as _crash_rate_alert_aggregate": lambda org_id, metric_mri, **kwargs: [
                     Function(
                         function="sumIf",
                         parameters=[
                             Column(name="value"),
                             Function(
-                                function="equals",
+                                function="and",
                                 parameters=[
-                                    Column(
-                                        name=resolve_tag_key(
-                                            UseCaseKey.RELEASE_HEALTH, org_id, "session.status"
-                                        )
+                                    Function(
+                                        function="equals",
+                                        parameters=[
+                                            Column(name="metric_id"),
+                                            resolve_tag_value(
+                                                UseCaseKey.RELEASE_HEALTH, org_id, metric_mri
+                                            ),
+                                        ],
+                                        alias=None,
                                     ),
-                                    resolve_tag_value(UseCaseKey.RELEASE_HEALTH, org_id, "init"),
+                                    Function(
+                                        function="equals",
+                                        parameters=[
+                                            Column(
+                                                name=resolve_tag_key(
+                                                    UseCaseKey.RELEASE_HEALTH,
+                                                    org_id,
+                                                    "session.status",
+                                                )
+                                            ),
+                                            resolve_tag_value(
+                                                UseCaseKey.RELEASE_HEALTH, org_id, "init"
+                                            ),
+                                        ],
+                                    ),
                                 ],
                             ),
                         ],
@@ -391,25 +411,54 @@ class BuildSnqlQueryTest(TestCase):
                         parameters=[
                             Column(name="value"),
                             Function(
-                                function="equals",
+                                function="and",
                                 parameters=[
-                                    Column(
-                                        name=resolve_tag_key(
-                                            UseCaseKey.RELEASE_HEALTH, org_id, "session.status"
-                                        )
+                                    Function(
+                                        function="equals",
+                                        parameters=[
+                                            Column(name="metric_id"),
+                                            resolve_tag_value(
+                                                UseCaseKey.RELEASE_HEALTH, org_id, metric_mri
+                                            ),
+                                        ],
+                                        alias=None,
                                     ),
-                                    resolve_tag_value(UseCaseKey.RELEASE_HEALTH, org_id, "crashed"),
+                                    Function(
+                                        function="equals",
+                                        parameters=[
+                                            Column(
+                                                name=resolve_tag_key(
+                                                    UseCaseKey.RELEASE_HEALTH,
+                                                    org_id,
+                                                    "session.status",
+                                                )
+                                            ),
+                                            resolve_tag_value(
+                                                UseCaseKey.RELEASE_HEALTH, org_id, "crashed"
+                                            ),
+                                        ],
+                                    ),
                                 ],
                             ),
                         ],
                         alias="crashed",
                     ),
                 ],
-                "percentage(users_crashed, users) AS _crash_rate_alert_aggregate": lambda org_id, **kwargs: [
+                "percentage(users_crashed, users) AS _crash_rate_alert_aggregate": lambda org_id, metric_mri, **kwargs: [
                     Function(
-                        function="uniq",
+                        function="uniqIf",
                         parameters=[
                             Column(name="value"),
+                            Function(
+                                function="equals",
+                                parameters=[
+                                    Column(name="metric_id"),
+                                    resolve_tag_value(
+                                        UseCaseKey.RELEASE_HEALTH, org_id, metric_mri
+                                    ),
+                                ],
+                                alias=None,
+                            ),
                         ],
                         alias="count",
                     ),
@@ -418,14 +467,33 @@ class BuildSnqlQueryTest(TestCase):
                         parameters=[
                             Column(name="value"),
                             Function(
-                                function="equals",
+                                function="and",
                                 parameters=[
-                                    Column(
-                                        name=resolve_tag_key(
-                                            UseCaseKey.RELEASE_HEALTH, org_id, "session.status"
-                                        )
+                                    Function(
+                                        function="equals",
+                                        parameters=[
+                                            Column(name="metric_id"),
+                                            resolve_tag_value(
+                                                UseCaseKey.RELEASE_HEALTH, org_id, metric_mri
+                                            ),
+                                        ],
+                                        alias=None,
                                     ),
-                                    resolve_tag_value(UseCaseKey.RELEASE_HEALTH, org_id, "crashed"),
+                                    Function(
+                                        function="equals",
+                                        parameters=[
+                                            Column(
+                                                name=resolve_tag_key(
+                                                    UseCaseKey.RELEASE_HEALTH,
+                                                    org_id,
+                                                    "session.status",
+                                                )
+                                            ),
+                                            resolve_tag_value(
+                                                UseCaseKey.RELEASE_HEALTH, org_id, "crashed"
+                                            ),
+                                        ],
+                                    ),
                                 ],
                             ),
                         ],
@@ -448,6 +516,9 @@ class BuildSnqlQueryTest(TestCase):
         environment=None,
         granularity=None,
         aggregate_kwargs=None,
+        # This flag is used to expect None clauses instead of [], it has been done in order to account for how the
+        # metrics layer generates snql.
+        use_none_clauses=False,
     ):
         aggregate_kwargs = aggregate_kwargs if aggregate_kwargs else {}
         time_window = 3600
@@ -484,9 +555,9 @@ class BuildSnqlQueryTest(TestCase):
             match=Entity(get_entity_key_from_query_builder(query_builder).value),
             select=select,
             where=expected_conditions,
-            groupby=[],
-            having=[],
-            orderby=[],
+            groupby=None if use_none_clauses else [],
+            having=None if use_none_clauses else [],
+            orderby=None if use_none_clauses else [],
         )
         if granularity is not None:
             expected_query = expected_query.set_granularity(granularity)
@@ -525,21 +596,23 @@ class BuildSnqlQueryTest(TestCase):
         )
 
     def test_simple_performance_metrics(self):
-        metric_id = resolve(UseCaseKey.PERFORMANCE, self.organization.id, METRICS_MAP["user"])
-        self.run_test(
-            SnubaQuery.Type.PERFORMANCE,
-            Dataset.Metrics,
-            "count_unique(user)",
-            "",
-            [
-                Condition(Column("project_id"), Op.IN, [self.project.id]),
-                Condition(Column("org_id"), Op.EQ, self.organization.id),
-                Condition(Column("metric_id"), Op.IN, [metric_id]),
-            ],
-            entity_extra_fields={"org_id": self.organization.id},
-            aggregate_kwargs={"metric_id": metric_id},
-            granularity=60,
-        )
+        with Feature("organizations:use-metrics-layer"):
+            metric_id = resolve(UseCaseKey.PERFORMANCE, self.organization.id, METRICS_MAP["user"])
+            self.run_test(
+                SnubaQuery.Type.PERFORMANCE,
+                Dataset.Metrics,
+                "count_unique(user)",
+                "",
+                [
+                    Condition(Column("org_id"), Op.EQ, self.organization.id),
+                    Condition(Column("project_id"), Op.IN, [self.project.id]),
+                    Condition(Column("metric_id"), Op.IN, [metric_id]),
+                ],
+                entity_extra_fields={"org_id": self.organization.id},
+                aggregate_kwargs={"metric_id": metric_id},
+                granularity=60,
+                use_none_clauses=True,
+            )
 
     def test_aliased_query_events(self):
         self.create_release(self.project, version="something")
@@ -582,34 +655,38 @@ class BuildSnqlQueryTest(TestCase):
         )
 
     def test_aliased_query_performance_metrics(self):
-        version = "something"
-        self.create_release(self.project, version=version)
-        metric_id = resolve(
-            UseCaseKey.PERFORMANCE, self.organization.id, METRICS_MAP["transaction.duration"]
-        )
-        perf_indexer_record(self.organization.id, "release")
-        perf_indexer_record(self.organization.id, version)
-        expected_conditions = [
-            Condition(
-                Column(resolve_tag_key(UseCaseKey.PERFORMANCE, self.organization.id, "release")),
-                Op.EQ,
-                resolve_tag_value(UseCaseKey.PERFORMANCE, self.organization.id, version),
-            ),
-            Condition(Column("project_id"), Op.IN, [self.project.id]),
-            Condition(Column("org_id"), Op.EQ, self.organization.id),
-            Condition(Column("metric_id"), Op.IN, [metric_id]),
-        ]
+        with Feature("organizations:use-metrics-layer"):
+            version = "something"
+            self.create_release(self.project, version=version)
+            metric_id = resolve(
+                UseCaseKey.PERFORMANCE, self.organization.id, METRICS_MAP["transaction.duration"]
+            )
+            perf_indexer_record(self.organization.id, "release")
+            perf_indexer_record(self.organization.id, version)
+            expected_conditions = [
+                Condition(Column("org_id"), Op.EQ, self.organization.id),
+                Condition(Column("project_id"), Op.IN, [self.project.id]),
+                Condition(
+                    Column(
+                        resolve_tag_key(UseCaseKey.PERFORMANCE, self.organization.id, "release")
+                    ),
+                    Op.EQ,
+                    resolve_tag_value(UseCaseKey.PERFORMANCE, self.organization.id, version),
+                ),
+                Condition(Column("metric_id"), Op.IN, [metric_id]),
+            ]
 
-        self.run_test(
-            SnubaQuery.Type.PERFORMANCE,
-            Dataset.Metrics,
-            "percentile(transaction.duration,.95)",
-            f"release:{version}",
-            expected_conditions,
-            entity_extra_fields={"org_id": self.organization.id},
-            aggregate_kwargs={"metric_id": metric_id},
-            granularity=60,
-        )
+            self.run_test(
+                SnubaQuery.Type.PERFORMANCE,
+                Dataset.Metrics,
+                "percentile(transaction.duration,.95)",
+                f"release:{version}",
+                expected_conditions,
+                entity_extra_fields={"org_id": self.organization.id},
+                aggregate_kwargs={"metric_id": metric_id},
+                granularity=60,
+                use_none_clauses=True,
+            )
 
     def test_user_query(self):
         expected_conditions = [
@@ -650,37 +727,39 @@ class BuildSnqlQueryTest(TestCase):
         )
 
     def test_tag_query_performance_metrics(self):
-        # Note: We don't support user queries on the performance metrics dataset, so using a
-        # different tag here.
-        metric_id = resolve(
-            UseCaseKey.PERFORMANCE, self.organization.id, METRICS_MAP["transaction.duration"]
-        )
-        tag_key = "some_tag"
-        tag_value = "some_value"
-        perf_indexer_record(self.organization.id, tag_key)
-        perf_indexer_record(self.organization.id, tag_value)
+        with Feature("organizations:use-metrics-layer"):
+            # Note: We don't support user queries on the performance metrics dataset, so using a
+            # different tag here.
+            metric_id = resolve(
+                UseCaseKey.PERFORMANCE, self.organization.id, METRICS_MAP["transaction.duration"]
+            )
+            tag_key = "some_tag"
+            tag_value = "some_value"
+            perf_indexer_record(self.organization.id, tag_key)
+            perf_indexer_record(self.organization.id, tag_value)
 
-        expected_conditions = [
-            Condition(
-                Column(resolve_tag_key(UseCaseKey.PERFORMANCE, self.organization.id, tag_key)),
-                Op.EQ,
-                resolve_tag_value(UseCaseKey.PERFORMANCE, self.organization.id, tag_value),
-            ),
-            Condition(Column("project_id"), Op.IN, [self.project.id]),
-            Condition(Column("org_id"), Op.EQ, self.organization.id),
-            Condition(Column("metric_id"), Op.IN, [metric_id]),
-        ]
+            expected_conditions = [
+                Condition(Column("org_id"), Op.EQ, self.organization.id),
+                Condition(Column("project_id"), Op.IN, [self.project.id]),
+                Condition(
+                    Column(resolve_tag_key(UseCaseKey.PERFORMANCE, self.organization.id, tag_key)),
+                    Op.EQ,
+                    resolve_tag_value(UseCaseKey.PERFORMANCE, self.organization.id, tag_value),
+                ),
+                Condition(Column("metric_id"), Op.IN, [metric_id]),
+            ]
 
-        self.run_test(
-            SnubaQuery.Type.PERFORMANCE,
-            Dataset.Metrics,
-            "p95()",
-            f"{tag_key}:{tag_value}",
-            expected_conditions,
-            entity_extra_fields={"org_id": self.organization.id},
-            aggregate_kwargs={"metric_id": metric_id},
-            granularity=60,
-        )
+            self.run_test(
+                SnubaQuery.Type.PERFORMANCE,
+                Dataset.Metrics,
+                "p95()",
+                f"{tag_key}:{tag_value}",
+                expected_conditions,
+                entity_extra_fields={"org_id": self.organization.id},
+                aggregate_kwargs={"metric_id": metric_id},
+                granularity=60,
+                use_none_clauses=True,
+            )
 
     def test_boolean_query(self):
         self.create_release(self.project, version="something")
@@ -853,173 +932,227 @@ class BuildSnqlQueryTest(TestCase):
         )
 
     def test_simple_sessions_for_metrics(self):
-        org_id = self.organization.id
-        for tag in [SessionMRI.SESSION.value, "session.status", "crashed", "init"]:
-            rh_indexer_record(org_id, tag)
-        expected_conditions = [
-            Condition(Column(name="project_id"), Op.IN, [self.project.id]),
-            Condition(Column(name="org_id"), Op.EQ, self.organization.id),
-            Condition(
-                Column(name="metric_id"),
-                Op.EQ,
-                resolve(UseCaseKey.RELEASE_HEALTH, self.organization.id, SessionMRI.SESSION.value),
-            ),
-            Condition(
-                Column(
-                    name=resolve_tag_key(
-                        UseCaseKey.RELEASE_HEALTH, self.organization.id, "session.status"
-                    )
+        with Feature("organizations:use-metrics-layer"):
+            org_id = self.organization.id
+            for tag in [SessionMRI.SESSION.value, "session.status", "crashed", "init"]:
+                rh_indexer_record(org_id, tag)
+            expected_conditions = [
+                Condition(Column(name="org_id"), Op.EQ, self.organization.id),
+                Condition(Column(name="project_id"), Op.IN, [self.project.id]),
+                Condition(
+                    Column(
+                        name=resolve_tag_key(
+                            UseCaseKey.RELEASE_HEALTH, self.organization.id, "session.status"
+                        )
+                    ),
+                    Op.IN,
+                    [
+                        resolve_tag_value(
+                            UseCaseKey.RELEASE_HEALTH, self.organization.id, "crashed"
+                        ),
+                        resolve_tag_value(UseCaseKey.RELEASE_HEALTH, self.organization.id, "init"),
+                    ],
                 ),
-                Op.IN,
-                [
-                    resolve_tag_value(UseCaseKey.RELEASE_HEALTH, self.organization.id, "crashed"),
-                    resolve_tag_value(UseCaseKey.RELEASE_HEALTH, self.organization.id, "init"),
-                ],
-            ),
-        ]
-        self.run_test(
-            SnubaQuery.Type.CRASH_RATE,
-            Dataset.Metrics,
-            "percentage(sessions_crashed, sessions) as _crash_rate_alert_aggregate",
-            "",
-            expected_conditions,
-            entity_extra_fields={"org_id": self.organization.id},
-            granularity=10,
-        )
+                Condition(
+                    Column(name="metric_id"),
+                    Op.IN,
+                    [
+                        resolve(
+                            UseCaseKey.RELEASE_HEALTH,
+                            self.organization.id,
+                            SessionMRI.SESSION.value,
+                        )
+                    ],
+                ),
+            ]
+            self.run_test(
+                SnubaQuery.Type.CRASH_RATE,
+                Dataset.Metrics,
+                "percentage(sessions_crashed, sessions) as _crash_rate_alert_aggregate",
+                "",
+                expected_conditions,
+                entity_extra_fields={"org_id": self.organization.id},
+                granularity=10,
+                use_none_clauses=True,
+                aggregate_kwargs={"metric_mri": SessionMRI.SESSION.value},
+            )
 
     def test_simple_users_for_metrics(self):
-        org_id = self.organization.id
-        for tag in [SessionMRI.USER.value, "session.status", "crashed"]:
-            rh_indexer_record(org_id, tag)
+        with Feature("organizations:use-metrics-layer"):
+            org_id = self.organization.id
+            for tag in [SessionMRI.USER.value, "session.status", "crashed"]:
+                rh_indexer_record(org_id, tag)
 
-        expected_conditions = [
-            Condition(Column(name="project_id"), Op.IN, [self.project.id]),
-            Condition(Column(name="org_id"), Op.EQ, self.organization.id),
-            Condition(
-                Column(name="metric_id"),
-                Op.EQ,
-                resolve(UseCaseKey.RELEASE_HEALTH, self.organization.id, SessionMRI.USER.value),
-            ),
-        ]
-        self.run_test(
-            SnubaQuery.Type.CRASH_RATE,
-            Dataset.Metrics,
-            "percentage(users_crashed, users) AS _crash_rate_alert_aggregate",
-            "",
-            expected_conditions,
-            entity_extra_fields={"org_id": self.organization.id},
-            granularity=10,
-        )
+            expected_conditions = [
+                Condition(Column(name="org_id"), Op.EQ, self.organization.id),
+                Condition(Column(name="project_id"), Op.IN, [self.project.id]),
+                Condition(
+                    Column(name="metric_id"),
+                    Op.IN,
+                    [
+                        resolve(
+                            UseCaseKey.RELEASE_HEALTH, self.organization.id, SessionMRI.USER.value
+                        )
+                    ],
+                ),
+            ]
+            self.run_test(
+                SnubaQuery.Type.CRASH_RATE,
+                Dataset.Metrics,
+                "percentage(users_crashed, users) AS _crash_rate_alert_aggregate",
+                "",
+                expected_conditions,
+                entity_extra_fields={"org_id": self.organization.id},
+                granularity=10,
+                use_none_clauses=True,
+                aggregate_kwargs={"metric_mri": SessionMRI.USER.value},
+            )
 
     def test_query_and_environment_sessions_metrics(self):
-        env = self.create_environment(self.project, name="development")
-        org_id = self.organization.id
-        for tag in [
-            SessionMRI.SESSION.value,
-            "session.status",
-            "environment",
-            "development",
-            "init",
-            "crashed",
-            "release",
-            "ahmed@12.2",
-        ]:
-            rh_indexer_record(org_id, tag)
+        with Feature("organizations:use-metrics-layer"):
+            env = self.create_environment(self.project, name="development")
+            org_id = self.organization.id
+            for tag in [
+                SessionMRI.SESSION.value,
+                "session.status",
+                "environment",
+                "development",
+                "init",
+                "crashed",
+                "release",
+                "ahmed@12.2",
+            ]:
+                rh_indexer_record(org_id, tag)
 
-        expected_conditions = [
-            Condition(
-                Column(
-                    name=resolve_tag_key(UseCaseKey.RELEASE_HEALTH, self.organization.id, "release")
+            expected_conditions = [
+                Condition(Column(name="org_id"), Op.EQ, self.organization.id),
+                Condition(Column(name="project_id"), Op.IN, [self.project.id]),
+                Condition(
+                    Column(
+                        name=resolve_tag_key(
+                            UseCaseKey.RELEASE_HEALTH, self.organization.id, "release"
+                        )
+                    ),
+                    Op.EQ,
+                    resolve_tag_value(
+                        UseCaseKey.RELEASE_HEALTH, self.organization.id, "ahmed@12.2"
+                    ),
                 ),
-                Op.EQ,
-                resolve_tag_value(UseCaseKey.RELEASE_HEALTH, self.organization.id, "ahmed@12.2"),
-            ),
-            Condition(Column(name="project_id"), Op.IN, [self.project.id]),
-            Condition(Column(name="org_id"), Op.EQ, self.organization.id),
-            Condition(
-                Column(name="metric_id"),
-                Op.EQ,
-                resolve(UseCaseKey.RELEASE_HEALTH, self.organization.id, SessionMRI.SESSION.value),
-            ),
-            Condition(
-                Column(
-                    name=resolve_tag_key(
-                        UseCaseKey.RELEASE_HEALTH, self.organization.id, "session.status"
-                    )
+                Condition(
+                    Column(
+                        name=resolve_tag_key(
+                            UseCaseKey.RELEASE_HEALTH, self.organization.id, "session.status"
+                        )
+                    ),
+                    Op.IN,
+                    [
+                        resolve_tag_value(
+                            UseCaseKey.RELEASE_HEALTH, self.organization.id, "crashed"
+                        ),
+                        resolve_tag_value(UseCaseKey.RELEASE_HEALTH, self.organization.id, "init"),
+                    ],
                 ),
-                Op.IN,
-                [
-                    resolve_tag_value(UseCaseKey.RELEASE_HEALTH, self.organization.id, "crashed"),
-                    resolve_tag_value(UseCaseKey.RELEASE_HEALTH, self.organization.id, "init"),
-                ],
-            ),
-            Condition(
-                Column(
-                    resolve_tag_key(UseCaseKey.RELEASE_HEALTH, self.organization.id, "environment")
+                Condition(
+                    Column(
+                        resolve_tag_key(
+                            UseCaseKey.RELEASE_HEALTH, self.organization.id, "environment"
+                        )
+                    ),
+                    Op.EQ,
+                    resolve_tag_value(UseCaseKey.RELEASE_HEALTH, self.organization.id, env.name),
                 ),
-                Op.EQ,
-                resolve_tag_value(UseCaseKey.RELEASE_HEALTH, self.organization.id, env.name),
-            ),
-        ]
-        self.run_test(
-            SnubaQuery.Type.CRASH_RATE,
-            Dataset.Metrics,
-            "percentage(sessions_crashed, sessions) as _crash_rate_alert_aggregate",
-            "release:ahmed@12.2",
-            expected_conditions,
-            environment=env,
-            entity_extra_fields={"org_id": self.organization.id},
-            granularity=10,
-        )
+                Condition(
+                    Column(name="metric_id"),
+                    Op.IN,
+                    [
+                        resolve(
+                            UseCaseKey.RELEASE_HEALTH,
+                            self.organization.id,
+                            SessionMRI.SESSION.value,
+                        )
+                    ],
+                ),
+            ]
+            self.run_test(
+                SnubaQuery.Type.CRASH_RATE,
+                Dataset.Metrics,
+                "percentage(sessions_crashed, sessions) as _crash_rate_alert_aggregate",
+                "release:ahmed@12.2",
+                expected_conditions,
+                environment=env,
+                entity_extra_fields={"org_id": self.organization.id},
+                granularity=10,
+                use_none_clauses=True,
+                aggregate_kwargs={
+                    "metric_mri": SessionMRI.SESSION.value,
+                },
+            )
 
     def test_query_and_environment_users_metrics(self):
-        env = self.create_environment(self.project, name="development")
-        org_id = self.organization.id
-        for tag in [
-            SessionMRI.USER.value,
-            "session.status",
-            "environment",
-            "development",
-            "init",
-            "crashed",
-            "release",
-            "ahmed@12.2",
-        ]:
-            rh_indexer_record(org_id, tag)
+        with Feature("organizations:use-metrics-layer"):
+            env = self.create_environment(self.project, name="development")
+            org_id = self.organization.id
+            for tag in [
+                SessionMRI.USER.value,
+                "session.status",
+                "environment",
+                "development",
+                "init",
+                "crashed",
+                "release",
+                "ahmed@12.2",
+            ]:
+                rh_indexer_record(org_id, tag)
 
-        expected_conditions = [
-            Condition(
-                Column(
-                    name=resolve_tag_key(UseCaseKey.RELEASE_HEALTH, self.organization.id, "release")
+            expected_conditions = [
+                Condition(Column(name="org_id"), Op.EQ, self.organization.id),
+                Condition(Column(name="project_id"), Op.IN, [self.project.id]),
+                Condition(
+                    Column(
+                        name=resolve_tag_key(
+                            UseCaseKey.RELEASE_HEALTH, self.organization.id, "release"
+                        )
+                    ),
+                    Op.EQ,
+                    resolve_tag_value(
+                        UseCaseKey.RELEASE_HEALTH, self.organization.id, "ahmed@12.2"
+                    ),
                 ),
-                Op.EQ,
-                resolve_tag_value(UseCaseKey.RELEASE_HEALTH, self.organization.id, "ahmed@12.2"),
-            ),
-            Condition(Column(name="project_id"), Op.IN, [self.project.id]),
-            Condition(Column(name="org_id"), Op.EQ, self.organization.id),
-            Condition(
-                Column(name="metric_id"),
-                Op.EQ,
-                resolve(UseCaseKey.RELEASE_HEALTH, self.organization.id, SessionMRI.USER.value),
-            ),
-            Condition(
-                Column(
-                    resolve_tag_key(UseCaseKey.RELEASE_HEALTH, self.organization.id, "environment")
+                Condition(
+                    Column(
+                        resolve_tag_key(
+                            UseCaseKey.RELEASE_HEALTH, self.organization.id, "environment"
+                        )
+                    ),
+                    Op.EQ,
+                    resolve_tag_value(UseCaseKey.RELEASE_HEALTH, self.organization.id, env.name),
                 ),
-                Op.EQ,
-                resolve_tag_value(UseCaseKey.RELEASE_HEALTH, self.organization.id, env.name),
-            ),
-        ]
-        self.run_test(
-            SnubaQuery.Type.CRASH_RATE,
-            Dataset.Metrics,
-            "percentage(users_crashed, users) AS _crash_rate_alert_aggregate",
-            "release:ahmed@12.2",
-            expected_conditions,
-            environment=env,
-            entity_extra_fields={"org_id": self.organization.id},
-            granularity=10,
-        )
+                Condition(
+                    Column(name="metric_id"),
+                    Op.IN,
+                    [
+                        resolve(
+                            UseCaseKey.RELEASE_HEALTH, self.organization.id, SessionMRI.USER.value
+                        )
+                    ],
+                ),
+            ]
+            self.run_test(
+                SnubaQuery.Type.CRASH_RATE,
+                Dataset.Metrics,
+                "percentage(users_crashed, users) AS _crash_rate_alert_aggregate",
+                "release:ahmed@12.2",
+                expected_conditions,
+                environment=env,
+                entity_extra_fields={
+                    "org_id": self.organization.id,
+                },
+                granularity=10,
+                use_none_clauses=True,
+                aggregate_kwargs={
+                    "metric_mri": SessionMRI.USER.value,
+                },
+            )
 
 
 class TestApplyDatasetQueryConditions(TestCase):

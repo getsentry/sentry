@@ -30,8 +30,8 @@ class MetricsQueryBuilder:
         self.org_id: int = 1
         self.project_ids: Sequence[int] = [1, 2]
         self.select: Sequence[MetricField] = [self.AVG_DURATION_METRIC]
-        self.start: datetime = now - timedelta(hours=1)
-        self.end: datetime = now
+        self.start: Optional[datetime] = now - timedelta(hours=1)
+        self.end: Optional[datetime] = now
         self.granularity: Granularity = Granularity(3600)
         self.orderby: Optional[ConditionGroup] = None
         self.where: Optional[Sequence[Groupable]] = None
@@ -41,6 +41,7 @@ class MetricsQueryBuilder:
         self.include_series: bool = True
         self.include_totals: bool = True
         self.interval: Optional[int] = None
+        self.is_alerts_query: bool = False
 
     def with_select(self, select: Sequence[MetricField]) -> "MetricsQueryBuilder":
         self.select = select
@@ -102,6 +103,7 @@ class MetricsQueryBuilder:
             "include_series": self.include_series,
             "include_totals": self.include_totals,
             "interval": self.interval,
+            "is_alerts_query": self.is_alerts_query,
         }
 
 
@@ -602,6 +604,19 @@ def test_validate_interval(select, interval, series):
 
     with pytest.raises(
         InvalidParams, match="Interval is only supported for timeseries performance queries"
+    ):
+        MetricsQuery(**metrics_query_dict)
+
+
+def test_validate_is_alerts_query():
+    metrics_query = MetricsQueryBuilder()
+    metrics_query.start = None
+    metrics_query.end = None
+    metrics_query_dict = metrics_query.to_metrics_query_dict()
+
+    with pytest.raises(
+        InvalidParams,
+        match="start and env fields can only be None if the query is needed by alerts",
     ):
         MetricsQuery(**metrics_query_dict)
 
