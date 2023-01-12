@@ -28,20 +28,22 @@ export default {
 
 export const _6633Layout = () => (
   <Container>
-    <Layout.Header>
-      <Layout.HeaderContent>
-        <Layout.Title>Some heading content</Layout.Title>
-      </Layout.HeaderContent>
-    </Layout.Header>
-    <Layout.Body>
-      <Layout.Main>
-        <h1>Content Region</h1>
-        <p>Some text here</p>
-      </Layout.Main>
-      <Layout.Side>
-        <h3>Sidebar content</h3>
-      </Layout.Side>
-    </Layout.Body>
+    <Layout.Page>
+      <Layout.Header>
+        <Layout.HeaderContent>
+          <Layout.Title>Some heading content</Layout.Title>
+        </Layout.HeaderContent>
+      </Layout.Header>
+      <Layout.Body>
+        <Layout.Main>
+          <h1>Content Region</h1>
+          <p>Some text here</p>
+        </Layout.Main>
+        <Layout.Side>
+          <h3>Sidebar content</h3>
+        </Layout.Side>
+      </Layout.Body>
+    </Layout.Page>
   </Container>
 );
 
@@ -56,28 +58,30 @@ _6633Layout.parameters = {
 
 export const _6633WithHeaderControls = () => (
   <Container>
-    <Layout.Header>
-      <Layout.HeaderContent>
-        <Breadcrumbs crumbs={crumbs} />
-        <Layout.Title>Some heading content</Layout.Title>
-      </Layout.HeaderContent>
-      <Layout.HeaderActions>
-        <ButtonBar gap={1}>
-          <Button>Save</Button>
-          <Button>Delete</Button>
-          <Button>Update</Button>
-        </ButtonBar>
-      </Layout.HeaderActions>
-    </Layout.Header>
-    <Layout.Body>
-      <Layout.Main>
-        <h1>Content Region</h1>
-        <p>Some text here</p>
-      </Layout.Main>
-      <Layout.Side>
-        <h3>Sidebar content</h3>
-      </Layout.Side>
-    </Layout.Body>
+    <Layout.Page>
+      <Layout.Header>
+        <Layout.HeaderContent>
+          <Breadcrumbs crumbs={crumbs} />
+          <Layout.Title>Some heading content</Layout.Title>
+        </Layout.HeaderContent>
+        <Layout.HeaderActions>
+          <ButtonBar gap={1}>
+            <Button>Save</Button>
+            <Button>Delete</Button>
+            <Button>Update</Button>
+          </ButtonBar>
+        </Layout.HeaderActions>
+      </Layout.Header>
+      <Layout.Body>
+        <Layout.Main>
+          <h1>Content Region</h1>
+          <p>Some text here</p>
+        </Layout.Main>
+        <Layout.Side>
+          <h3>Sidebar content</h3>
+        </Layout.Side>
+      </Layout.Body>
+    </Layout.Page>
   </Container>
 );
 
@@ -92,34 +96,36 @@ _6633WithHeaderControls.parameters = {
 
 export const _6633WithManyHeaderControls = () => (
   <Container>
-    <Layout.Header>
-      <Layout.HeaderContent>
-        <Breadcrumbs crumbs={crumbs} />
-        <Layout.Title>Heading text</Layout.Title>
-      </Layout.HeaderContent>
-      <Layout.HeaderActions>
-        <MarginedButtonBar gap={1}>
-          <Button size="sm">Save</Button>
-          <Button size="sm">Update</Button>
-        </MarginedButtonBar>
-        <ButtonBar gap={1}>
-          <Button size="sm">rollup</Button>
-          <Button size="sm">modify</Button>
-          <Button size="sm">create</Button>
-          <Button size="sm">update</Button>
-          <Button size="sm">delete</Button>
-        </ButtonBar>
-      </Layout.HeaderActions>
-    </Layout.Header>
-    <Layout.Body>
-      <Layout.Main>
-        <h1>Content Region</h1>
-        <p>Some text here</p>
-      </Layout.Main>
-      <Layout.Side>
-        <h3>Sidebar content</h3>
-      </Layout.Side>
-    </Layout.Body>
+    <Layout.Page>
+      <Layout.Header>
+        <Layout.HeaderContent>
+          <Breadcrumbs crumbs={crumbs} />
+          <Layout.Title>Heading text</Layout.Title>
+        </Layout.HeaderContent>
+        <Layout.HeaderActions>
+          <MarginedButtonBar gap={1}>
+            <Button size="sm">Save</Button>
+            <Button size="sm">Update</Button>
+          </MarginedButtonBar>
+          <ButtonBar gap={1}>
+            <Button size="sm">rollup</Button>
+            <Button size="sm">modify</Button>
+            <Button size="sm">create</Button>
+            <Button size="sm">update</Button>
+            <Button size="sm">delete</Button>
+          </ButtonBar>
+        </Layout.HeaderActions>
+      </Layout.Header>
+      <Layout.Body>
+        <Layout.Main>
+          <h1>Content Region</h1>
+          <p>Some text here</p>
+        </Layout.Main>
+        <Layout.Side>
+          <h3>Sidebar content</h3>
+        </Layout.Side>
+      </Layout.Body>
+    </Layout.Page>
   </Container>
 );
 
@@ -134,27 +140,29 @@ _6633WithManyHeaderControls.parameters = {
 
 export const SingleColumnMode = () => (
   <Container>
-    <Layout.Header>
-      <Layout.HeaderContent>
-        <Breadcrumbs crumbs={crumbs} />
-        <Layout.Title>Some heading content</Layout.Title>
-      </Layout.HeaderContent>
-      <Layout.HeaderActions>
-        <ButtonBar gap={1}>
-          <Button size="sm">clicker</Button>
-          <Button size="sm">clicker</Button>
-        </ButtonBar>
-      </Layout.HeaderActions>
-    </Layout.Header>
-    <Layout.Body>
-      <Layout.Main fullWidth>
-        <h1>Content Region</h1>
-        <p>
-          Some text here, that goes on and on. It should strecth the full width of the
-          container, and have no space on the right.
-        </p>
-      </Layout.Main>
-    </Layout.Body>
+    <Layout.Page>
+      <Layout.Header>
+        <Layout.HeaderContent>
+          <Breadcrumbs crumbs={crumbs} />
+          <Layout.Title>Some heading content</Layout.Title>
+        </Layout.HeaderContent>
+        <Layout.HeaderActions>
+          <ButtonBar gap={1}>
+            <Button size="sm">clicker</Button>
+            <Button size="sm">clicker</Button>
+          </ButtonBar>
+        </Layout.HeaderActions>
+      </Layout.Header>
+      <Layout.Body>
+        <Layout.Main fullWidth>
+          <h1>Content Region</h1>
+          <p>
+            Some text here, that goes on and on. It should strecth the full width of the
+            container, and have no space on the right.
+          </p>
+        </Layout.Main>
+      </Layout.Body>
+    </Layout.Page>
   </Container>
 );
 
@@ -169,36 +177,38 @@ SingleColumnMode.parameters = {
 
 export const _6633WithTabNavigation = () => (
   <Container>
-    <BorderlessHeader>
-      <Layout.HeaderContent>
-        <StyledLayoutTitle>Alerts</StyledLayoutTitle>
-      </Layout.HeaderContent>
-      <Layout.HeaderActions>
-        <ButtonBar gap={1}>
-          <Button size="sm">clicker</Button>
-          <Button size="sm">clicker</Button>
-        </ButtonBar>
-      </Layout.HeaderActions>
-    </BorderlessHeader>
-    <TabLayoutHeader>
-      <Layout.HeaderNavTabs underlined>
-        <li className="active">
-          <Link to="#">Active</Link>
-        </li>
-        <li>
-          <Link to="#">Inactive</Link>
-        </li>
-      </Layout.HeaderNavTabs>
-    </TabLayoutHeader>
-    <Layout.Body>
-      <Layout.Main>
-        <h1>Content Region</h1>
-        <p>Some text here</p>
-      </Layout.Main>
-      <Layout.Side>
-        <h3>Sidebar content</h3>
-      </Layout.Side>
-    </Layout.Body>
+    <Layout.Page>
+      <BorderlessHeader>
+        <Layout.HeaderContent>
+          <StyledLayoutTitle>Alerts</StyledLayoutTitle>
+        </Layout.HeaderContent>
+        <Layout.HeaderActions>
+          <ButtonBar gap={1}>
+            <Button size="sm">clicker</Button>
+            <Button size="sm">clicker</Button>
+          </ButtonBar>
+        </Layout.HeaderActions>
+      </BorderlessHeader>
+      <TabLayoutHeader>
+        <Layout.HeaderNavTabs underlined>
+          <li className="active">
+            <Link to="#">Active</Link>
+          </li>
+          <li>
+            <Link to="#">Inactive</Link>
+          </li>
+        </Layout.HeaderNavTabs>
+      </TabLayoutHeader>
+      <Layout.Body>
+        <Layout.Main>
+          <h1>Content Region</h1>
+          <p>Some text here</p>
+        </Layout.Main>
+        <Layout.Side>
+          <h3>Sidebar content</h3>
+        </Layout.Side>
+      </Layout.Body>
+    </Layout.Page>
   </Container>
 );
 

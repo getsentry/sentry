@@ -1,37 +1,85 @@
-import {DependencyList, RefObject, useEffect, useMemo} from 'react';
+import {
+  DependencyList,
+  RefObject,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
 import {CellMeasurerCache, CellMeasurerCacheParams, MultiGrid} from 'react-virtualized';
 
 type Opts = {
+  /**
+   * Options for the CellMeasurerCache constructor
+   */
   cellMeasurer: CellMeasurerCacheParams;
+  /**
+   * How many columns are being rendered
+   * */
+  columnCount: number;
+  /**
+   * List of other values that should trigger re-computing column sizes
+   * */
   deps: DependencyList;
-  ref: RefObject<MultiGrid>;
-  wrapperRef: RefObject<HTMLDivElement>;
+  /**
+   * There must be one column with a dynamic width, so the table can fill all available width inside the container
+   */
+  dynamicColumnIndex: number;
+  /**
+   * The <MultiGrid> elem.
+   */
+  gridRef: RefObject<MultiGrid>;
 };
-function useVirtualizedGrid({cellMeasurer, deps, ref, wrapperRef}: Opts) {
+function useVirtualizedGrid({
+  cellMeasurer,
+  columnCount,
+  deps,
+  dynamicColumnIndex,
+  gridRef,
+}: Opts) {
   const cache = useMemo(() => new CellMeasurerCache(cellMeasurer), [cellMeasurer]);
+  const [scrollBarWidth, setScrollBarWidth] = useState(0);
 
-  // Clear cache when items changes
-  useEffect(() => {
-    cache.clearAll();
-    ref.current?.recomputeGridSize({columnIndex: 1});
-  }, [cache, ref, deps]);
+  const onWrapperResize = useCallback(() => {
+    // TODO: debounce?
+    gridRef.current?.recomputeGridSize({columnIndex: dynamicColumnIndex});
+  }, [gridRef, dynamicColumnIndex]);
 
-  // Clear cache when wrapper div is resized
-  useEffect(() => {
-    if (!wrapperRef.current) {
-      return () => {};
-    }
+  // Recompute the width of the dynamic column when deps change (ie: a search/filter is applied)
+  useEffect(onWrapperResize, [onWrapperResize, deps]);
 
-    const observer = new ResizeObserver(() => {
-      ref.current?.recomputeGridSize({columnIndex: 1});
-    });
-    observer.observe(wrapperRef.current);
+  const onScrollbarPresenceChange = useCallback(({vertical, size}) => {
+    setScrollBarWidth(vertical ? size : 0);
+  }, []);
 
-    return () => observer.disconnect();
-  }, [ref, wrapperRef, deps]);
+  const getColumnWidth = useCallback(
+    (width: number) =>
+      ({index}) => {
+        if (index !== dynamicColumnIndex) {
+          return cache.columnWidth({index});
+        }
+
+        const columns = Array.from(new Array(columnCount));
+        const fullWidth = width - scrollBarWidth;
+        // Take the full width available, and remove all the static/cached widths
+        // so we know how much space is available for our dynamic column.
+        const colWidth = columns.reduce(
+          (remainingWidth, _, i) =>
+            i === dynamicColumnIndex
+              ? remainingWidth
+              : remainingWidth - cache.columnWidth({index: i}),
+          fullWidth
+        );
+        return Math.max(colWidth, 200);
+      },
+    [cache, columnCount, dynamicColumnIndex, scrollBarWidth]
+  );
 
   return {
     cache,
+    getColumnWidth,
+    onScrollbarPresenceChange,
+    onWrapperResize,
   };
 }
 

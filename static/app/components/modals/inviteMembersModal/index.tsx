@@ -376,7 +376,8 @@ class InviteMembersModal extends AsyncComponent<Props, State> {
 
         <AddButton
           disabled={disableInputs}
-          priority="link"
+          size="sm"
+          borderless
           onClick={this.addInviteRow}
           icon={<IconAdd size="xs" isCircled />}
         >
@@ -514,7 +515,7 @@ const StatusMessage = styled('div')<{status?: 'success' | 'error'}>`
 
 export const modalCss = css`
   width: 100%;
-  max-width: 800px;
+  max-width: 900px;
   margin: 50px auto;
 `;
 

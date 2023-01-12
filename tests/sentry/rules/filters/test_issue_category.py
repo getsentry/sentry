@@ -53,7 +53,7 @@ class IssueCategoryFilterPerformanceTest(
         tx_event = self.store_transaction(
             self.project.id,
             "test_transaction_category",
-            [f"{GroupType.PERFORMANCE_SLOW_SPAN.value}-group1"],
+            [f"{GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN.value}-group1"],
         )
 
         group_events = list(tx_event.build_group_events())

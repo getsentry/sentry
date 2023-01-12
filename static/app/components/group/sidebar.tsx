@@ -188,7 +188,6 @@ class BaseGroupSidebar extends Component<Props, State> {
           <QuestionTooltip
             size="sm"
             position="top"
-            color="gray200"
             title={t('People who have resolved, ignored, or added a comment')}
           />
         </StyledSidebarSectionTitle>
@@ -215,7 +214,6 @@ class BaseGroupSidebar extends Component<Props, State> {
           <QuestionTooltip
             size="sm"
             position="top"
-            color="gray200"
             title={t('People who have viewed this issue')}
           />
         </StyledSidebarSectionTitle>
