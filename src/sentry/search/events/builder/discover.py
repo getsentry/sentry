@@ -1631,19 +1631,28 @@ class GenericTimeSeriesQueryBuilder(TimeseriesQueryBuilder):
             3600 * 24: "toDate",
         }
         rollup_func = rollup_to_start_func.get(interval)
-        # print("interval: ", interval)
-        # print("rollup_func: ", rollup_func)
         if rollup_func:
             self.time_column = Function(
-                "toUnixTimestamp", [Function(rollup_func, [Column("timestamp")])], alias="time"
+                "toUnixTimestamp",
+                [Function("toDateTime", [Function(rollup_func, [Column("timestamp")])])],
+                alias="time",
             )
         else:
-            self.time_column = Column("timestamp")
-            # time_column = Function(
-            #     "multiply", [Function([["intDiv", [["toUInt32", [["toUnixTimestamp", "timestamp"]]], interval]], interval])],
-            #     alias="time"
-            #     )
-            # this is obviously wrong but working on the above one first
+            self.time_column = Function(
+                "multiply",
+                [
+                    Function("intDiv"),
+                    [
+                        Function(
+                            "toUInt32",
+                            [Function("toUnixTimestamp", [Column("timestamp")]), interval],
+                        )
+                    ],
+                    interval,
+                ],
+                alias="time",
+            )
+
         self.groupby = [self.time_column]
 
 
