@@ -7,6 +7,7 @@ import {t} from 'sentry/locale';
 import {Organization, SavedQuery} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import useApi from 'sentry/utils/useApi';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 import {handleUpdateQueryName} from './savedQuery/utils';
 
@@ -49,7 +50,9 @@ function EventInputName({organization, eventView, savedQuery, isHomepage}: Props
         const renamedEventView = eventView.clone();
         renamedEventView.name = nextQueryName;
 
-        browserHistory.push(renamedEventView.getResultsViewUrlTarget(organization.slug));
+        browserHistory.push(
+          normalizeUrl(renamedEventView.getResultsViewUrlTarget(organization.slug))
+        );
       }
     );
   }
