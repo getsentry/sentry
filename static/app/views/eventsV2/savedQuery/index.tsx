@@ -31,6 +31,7 @@ import EventView from 'sentry/utils/discover/eventView';
 import {getDiscoverQueriesUrl} from 'sentry/utils/discover/urls';
 import useOverlay from 'sentry/utils/useOverlay';
 import withApi from 'sentry/utils/withApi';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withProjects from 'sentry/utils/withProjects';
 import {handleAddQueryToDashboard} from 'sentry/views/eventsV2/utils';
 
@@ -259,7 +260,9 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
 
         Banner.dismiss('discover');
         this.setState({queryName: ''});
-        browserHistory.push(view.getResultsViewUrlTarget(organization.slug));
+        browserHistory.push(
+          normalizeUrl(view.getResultsViewUrlTarget(organization.slug))
+        );
       }
     );
   };
@@ -289,10 +292,12 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
     const {api, organization, eventView} = this.props;
 
     handleDeleteQuery(api, organization, eventView).then(() => {
-      browserHistory.push({
-        pathname: getDiscoverQueriesUrl(organization),
-        query: {},
-      });
+      browserHistory.push(
+        normalizeUrl({
+          pathname: getDiscoverQueriesUrl(organization),
+          query: {},
+        })
+      );
     });
   };
 

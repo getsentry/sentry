@@ -238,6 +238,38 @@ const performanceOptionDefinitions: Field[] = [
     ),
     ...HIGH_THROUGHPUT_RATE_OPTION,
   },
+  {
+    key: 'performance.issues.compressed_assets.problem-creation',
+    label: t('Problem Creation Rate'),
+    help: t(
+      'Controls the overall rate at which performance problems are detected by the compressed assets detector.'
+    ),
+    ...HIGH_THROUGHPUT_RATE_OPTION,
+  },
+  {
+    key: 'performance.issues.compressed_assets.la-rollout',
+    label: t('Limited Availability Detection Rate'),
+    help: t(
+      'Controls the rate at which performance problems are detected by the compressed assets detector for LA organizations.'
+    ),
+    ...HIGH_THROUGHPUT_RATE_OPTION,
+  },
+  {
+    key: 'performance.issues.compressed_assets.ea-rollout',
+    label: t('Early Adopter Detection Rate'),
+    help: t(
+      'Controls the rate at which performance problems are detected by the compressed assets detector for EA organizations.'
+    ),
+    ...HIGH_THROUGHPUT_RATE_OPTION,
+  },
+  {
+    key: 'performance.issues.compressed_assets.ga-rollout',
+    label: t('General Availability Detection Rate'),
+    help: t(
+      'Controls the rate at which performance problems are detected by the compressed assets detector for GA organizations.'
+    ),
+    ...HIGH_THROUGHPUT_RATE_OPTION,
+  },
 ];
 
 // This are ordered based on their display order visually

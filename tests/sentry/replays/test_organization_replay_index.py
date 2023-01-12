@@ -449,10 +449,13 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
         with self.feature(REPLAYS_FEATURES):
             # Run all the queries individually to determine compliance.
             queries = [
+                "replayType:session",
+                "errorIds:a3a62ef6ac86415b83c2416fc2f76db1",
+                "traceIds:4491657243ba4dbebd2f6bd62b733080",
+                "countUrls:1",
                 "platform:javascript",
                 "releases:version@1.3",
                 "releases:[a,version@1.3]",
-                "environment:production",
                 "duration:>15",
                 "user.id:123",
                 "user.name:username123",
@@ -484,12 +487,14 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 # Implicit And.
                 f"(id:{replay1_id} OR id:b) OR (duration:>15 platform:javascript)",
                 # Tag filters.
+                "tags[a]:m",
                 "a:m",
                 "a:[n,o]",
                 "c:*st",
                 "!c:*zz",
                 "urls:example.com",
                 "activity:3",
+                "activity:>2",
             ]
 
             for query in queries:
@@ -508,6 +513,11 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
 
             # Assert returns empty result sets.
             null_queries = [
+                "!replayType:session",
+                "!errorIds:a3a62ef6ac86415b83c2416fc2f76db1",
+                "errorIds:123",
+                "!traceIds:4491657243ba4dbebd2f6bd62b733080",
+                "countUrls:0",
                 f"id:{replay1_id} AND id:b",
                 f"id:{replay1_id} AND duration:>1000",
                 "id:b OR duration:>1000",
@@ -520,6 +530,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "c:*zz",
                 "!c:*st",
                 "!activity:3",
+                "activity:<2",
             ]
             for query in null_queries:
                 response = self.client.get(self.url + f"?field=id&query={query}")
