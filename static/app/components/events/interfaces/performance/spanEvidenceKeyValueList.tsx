@@ -7,7 +7,7 @@ import {RawSpanType} from '../spans/types';
 import {TraceContextSpanProxy} from './spanEvidence';
 
 type SpanEvidenceKeyValueListProps = {
-  issueType: IssueType | undefined;
+  issueType: IssueType;
   offendingSpans: Array<RawSpanType | TraceContextSpanProxy>;
   parentSpan: RawSpanType | TraceContextSpanProxy | null;
   transactionName: string;
