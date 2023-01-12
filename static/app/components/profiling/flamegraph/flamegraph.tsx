@@ -63,6 +63,7 @@ import {FlamegraphDrawer} from './flamegraphDrawer/flamegraphDrawer';
 import {FlamegraphWarnings} from './flamegraphOverlays/FlamegraphWarnings';
 import {FlamegraphLayout} from './flamegraphLayout';
 import {FlamegraphSpans} from './flamegraphSpans';
+import {FlamegraphUIFrames} from './flamegraphUIFrames';
 
 function getTransactionConfigSpace(
   profileGroup: ProfileGroup,
@@ -139,11 +140,11 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
   const scheduler = useCanvasScheduler(canvasPoolManager);
 
   const hasFlameChartSpans = useMemo(() => {
-    return organization.features.includes('profiling-flamechart-spans');
+    return organization.features.includes('profiling-flamechart-spans') || true;
   }, [organization.features]);
 
   const hasUIFrames = useMemo(() => {
-    return organization.features.includes('profiling-ui-frames');
+    return organization.features.includes('profiling-ui-frames') || true;
   }, [organization.features]);
 
   const profile = useMemo(() => {
@@ -621,7 +622,18 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
       </FlamegraphToolbar>
 
       <FlamegraphLayout
-        uiFrames={hasUIFrames ? null : null}
+        uiFrames={
+          hasUIFrames ? (
+            <FlamegraphUIFrames
+              canvasBounds={flamegraphCanvasBounds}
+              canvasPoolManager={canvasPoolManager}
+              flamegraphCanvas={flamegraphCanvas}
+              flamegraphCanvasRef={flamegraphCanvasRef}
+              flamegraphView={flamegraphView}
+              uiFrames={uiFrames}
+            />
+          ) : null
+        }
         spans={
           spanChart ? (
             <FlamegraphSpans
