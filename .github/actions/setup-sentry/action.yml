@@ -108,7 +108,7 @@ runs:
           echo "TOTAL_TEST_GROUPS=$MATRIX_INSTANCE_TOTAL" >> $GITHUB_ENV
         fi
 
-    - uses: getsentry/action-setup-venv@30b11e1a66aabba7a6370b0d84d1e4e59795928a # v1.0.3
+    - uses: getsentry/action-setup-venv@64876d2bb1817c9bb6f391ad765677b109704af5 # v1.0.4
       with:
         python-version: ${{ inputs.python-version }}
         cache-dependency-path: ${{ inputs.workdir }}/requirements-dev-frozen.txt

@@ -146,7 +146,7 @@ jobs:
           app_id: ${{ secrets.SENTRY_INTERNAL_APP_ID }}
           private_key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
       - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8  # v3.1.0
-      - uses: getsentry/action-setup-venv@30b11e1a66aabba7a6370b0d84d1e4e59795928a # v1.0.3
+      - uses: getsentry/action-setup-venv@64876d2bb1817c9bb6f391ad765677b109704af5 # v1.0.4
         with:
           python-version: 3.8.13
           cache-depedency: requirements-dev-frozen.txt
@@ -197,7 +197,7 @@ jobs:
               - added|modified: '**/*.py'
               - added|modified: 'requirements-*.txt'
 
-      - uses: getsentry/action-setup-venv@30b11e1a66aabba7a6370b0d84d1e4e59795928a # v1.0.3
+      - uses: getsentry/action-setup-venv@64876d2bb1817c9bb6f391ad765677b109704af5 # v1.0.4
         with:
           python-version: 3.8.13
           cache-dependency-path: |
@@ -422,7 +422,7 @@ jobs:
     steps:
       - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8  # v3.1.0
 
-      - uses: getsentry/action-setup-venv@30b11e1a66aabba7a6370b0d84d1e4e59795928a # v1.0.3
+      - uses: getsentry/action-setup-venv@64876d2bb1817c9bb6f391ad765677b109704af5 # v1.0.4
         with:
           python-version: 3.8.13
           cache-dependency-path: requirements-dev-frozen.txt
