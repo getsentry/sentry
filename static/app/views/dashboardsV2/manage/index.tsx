@@ -27,6 +27,7 @@ import {Organization, SelectValue} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {decodeScalar} from 'sentry/utils/queryString';
 import withApi from 'sentry/utils/withApi';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
 import AsyncView from 'sentry/views/asyncView';
 
@@ -215,10 +216,12 @@ class ManageDashboards extends AsyncView<Props, State> {
       organization,
     });
 
-    browserHistory.push({
-      pathname: `/organizations/${organization.slug}/dashboards/new/`,
-      query: location.query,
-    });
+    browserHistory.push(
+      normalizeUrl({
+        pathname: `/organizations/${organization.slug}/dashboards/new/`,
+        query: location.query,
+      })
+    );
   }
 
   async onAdd(dashboard: DashboardDetails) {
@@ -250,10 +253,12 @@ class ManageDashboards extends AsyncView<Props, State> {
       dashboard_id: dashboardId,
     });
 
-    browserHistory.push({
-      pathname: `/organizations/${organization.slug}/dashboards/new/${dashboardId}/`,
-      query: location.query,
-    });
+    browserHistory.push(
+      normalizeUrl({
+        pathname: `/organizations/${organization.slug}/dashboards/new/${dashboardId}/`,
+        query: location.query,
+      })
+    );
   }
 
   renderLoading() {

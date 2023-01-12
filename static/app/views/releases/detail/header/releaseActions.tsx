@@ -18,6 +18,7 @@ import space from 'sentry/styles/space';
 import {Organization, Release, ReleaseMeta} from 'sentry/types';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import {formatVersion} from 'sentry/utils/formatters';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 import {isReleaseArchived} from '../../utils';
 
@@ -45,7 +46,7 @@ function ReleaseActions({
         projectSlug,
         releaseVersion: release.version,
       });
-      browserHistory.push(`/organizations/${organization.slug}/releases/`);
+      browserHistory.push(normalizeUrl(`/organizations/${organization.slug}/releases/`));
     } catch {
       // do nothing, action creator is already displaying error message
     }

@@ -44,7 +44,9 @@ export function redirectToRemainingOrganization({
 
   // Let's be smart and select the best org to redirect to
   const firstRemainingOrg = allOrgs[0];
-  browserHistory.push(`/${firstRemainingOrg.slug}/`);
+  // TODO(domains) Need to find a good way to handle this. useResolveRoute()
+  // doesn't currently work because it is a hook.
+  browserHistory.push(`/organizations/${firstRemainingOrg.slug}/issues/`);
 
   // Remove org from SidebarDropdown
   if (removeOrg) {

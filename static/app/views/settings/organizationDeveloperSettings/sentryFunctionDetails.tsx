@@ -16,6 +16,7 @@ import {Field} from 'sentry/components/forms/types';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
 import {Organization, SentryFunction} from 'sentry/types';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
 
 import SentryFunctionEnvironmentVariables from './sentryFunctionsEnvironmentVariables';
@@ -139,7 +140,7 @@ function SentryFunctionDetails(props: Props) {
     } else {
       addSuccessMessage(t('%s successfully created.', data.name));
     }
-    browserHistory.push(url);
+    browserHistory.push(normalizeUrl(url));
   };
 
   function handleEditorChange(value, _event) {

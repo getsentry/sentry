@@ -25,6 +25,7 @@ import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import Projects from 'sentry/utils/projects';
 import withApi from 'sentry/utils/withApi';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
 
 type Props = {
@@ -88,7 +89,7 @@ class ProjectInstallPlatform extends Component<Props, State> {
 
     const url = `/organizations/${organization.slug}/projects/${projectId}/getting-started/`;
 
-    browserHistory.push(url);
+    browserHistory.push(normalizeUrl(url));
   }
 
   render() {

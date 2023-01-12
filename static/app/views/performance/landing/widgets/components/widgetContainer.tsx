@@ -19,6 +19,7 @@ import {DisplayModes} from 'sentry/utils/discover/types';
 import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {usePerformanceDisplayType} from 'sentry/utils/performance/contexts/performanceDisplayContext';
 import useOrganization from 'sentry/utils/useOrganization';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
 
 import {GenericPerformanceWidgetDataType} from '../types';
@@ -232,7 +233,9 @@ export const WidgetInteractiveTitle = ({
 
   const handleChange = option => {
     if (option.value === 'open_in_discover') {
-      browserHistory.push(getEventViewDiscoverPath(organization, eventView));
+      browserHistory.push(
+        normalizeUrl(getEventViewDiscoverPath(organization, eventView))
+      );
     } else {
       setChartSetting(option.value);
     }
@@ -292,7 +295,9 @@ export const WidgetContainerActions = ({
 
   function handleWidgetActionChange(value) {
     if (value === 'open_in_discover') {
-      browserHistory.push(getEventViewDiscoverPath(organization, eventView));
+      browserHistory.push(
+        normalizeUrl(getEventViewDiscoverPath(organization, eventView))
+      );
     }
   }
 
