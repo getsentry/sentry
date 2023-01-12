@@ -18,7 +18,14 @@ import {IconClose} from 'sentry/icons/iconClose';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {CodecovStatusCode, Event, Frame, Organization, Project} from 'sentry/types';
+import {
+  CodecovStatusCode,
+  Event,
+  Frame,
+  Organization,
+  Project,
+  StacktraceLinkResult,
+} from 'sentry/types';
 import {StacktraceLinkEvents} from 'sentry/utils/analytics/integrations/stacktraceLinkAnalyticsEvents';
 import {getAnalyicsDataForEvent} from 'sentry/utils/events';
 import {
@@ -99,6 +106,22 @@ function StacktraceLinkSetup({organization, project, event}: StacktraceLinkSetup
       </CloseButton>
     </CodeMappingButtonContainer>
   );
+}
+
+function shouldshowCodecovFeatures(
+  organization: Organization,
+  match: StacktraceLinkResult
+) {
+  const enabled =
+    organization.features.includes('codecov-stacktrace-integration') &&
+    organization.codecovAccess;
+
+  const validStatus = [
+    CodecovStatusCode.COVERAGE_EXISTS,
+    CodecovStatusCode.NO_COVERAGE_DATA,
+  ].includes(match.codecovStatusCode!);
+
+  return enabled && validStatus && match.config?.provider.key === 'github';
 }
 
 interface CodecovLinkProps {
@@ -248,12 +271,6 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
 
   // Match found - display link to source
   if (match.config && match.sourceUrl) {
-    const shouldshowCodecovFeatures =
-      organization.features.includes('codecov-stacktrace-integration') &&
-      organization.codecovAccess &&
-      (match.codecovStatusCode === CodecovStatusCode.COVERAGE_EXISTS ||
-        match.codecovStatusCode === CodecovStatusCode.NO_COVERAGE_DATA);
-
     return (
       <CodeMappingButtonContainer columnQuantity={2}>
         <OpenInLink
@@ -266,7 +283,7 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
           </StyledIconWrapper>
           {t('Open this line in %s', match.config.provider.name)}
         </OpenInLink>
-        {shouldshowCodecovFeatures && (
+        {shouldshowCodecovFeatures(organization, match) && (
           <CodecovLink
             sourceUrl={match.sourceUrl}
             codecovStatusCode={match.codecovStatusCode}
