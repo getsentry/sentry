@@ -95,11 +95,6 @@ describe('SpanEvidenceKeyValueList', () => {
         screen.getByTestId('span-evidence-key-value-list.transaction-name')
       ).toHaveTextContent('/');
 
-      expect(screen.getByRole('cell', {name: 'Parent Span'})).toBeInTheDocument();
-      expect(
-        screen.getByTestId('span-evidence-key-value-list.parent-name')
-      ).toHaveTextContent('pageload');
-
       expect(screen.getByRole('cell', {name: 'Offending Span'})).toBeInTheDocument();
       expect(
         screen.getByTestId('span-evidence-key-value-list.offending-spans')

@@ -28,22 +28,31 @@ export function SpanEvidenceKeyValueList({
       value: transactionName,
       subjectDataTestId: `${TEST_ID_NAMESPACE}.transaction-name`,
     },
-    {
+  ];
+
+  if (
+    [
+      IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
+      IssueType.PERFORMANCE_FILE_IO_MAIN_THREAD,
+    ].includes(issueType)
+  ) {
+    data.push({
       key: '1',
       subject: t('Parent Span'),
       value: getSpanEvidenceValue(parentSpan),
       subjectDataTestId: `${TEST_ID_NAMESPACE}.parent-name`,
-    },
-    {
-      key: '2',
-      subject:
-        issueType === IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES
-          ? t('Repeating Span')
-          : t('Offending Span'),
-      value: getSpanEvidenceValue(offendingSpans[0]),
-      subjectDataTestId: `${TEST_ID_NAMESPACE}.offending-spans`,
-    },
-  ];
+    });
+  }
+
+  data.push({
+    key: '2',
+    subject:
+      issueType === IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES
+        ? t('Repeating Span')
+        : t('Offending Span'),
+    value: getSpanEvidenceValue(offendingSpans[0]),
+    subjectDataTestId: `${TEST_ID_NAMESPACE}.offending-spans`,
+  });
 
   let problemParameters;
   if (issueType === IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS) {
