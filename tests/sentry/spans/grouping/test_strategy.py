@@ -277,6 +277,7 @@ def test_remove_http_client_query_string_strategy(
         # op is not `redis`
         (SpanBuilder().with_description("INCRBY 'key' 1").build(), None),
         (SpanBuilder().with_op("redis").with_description("INCRBY 'key' 1").build(), ["INCRBY"]),
+        (SpanBuilder().with_op("db.redis").with_description("INCRBY 'key' 1").build(), ["INCRBY"]),
     ],
 )
 def test_remove_redis_command_arguments_strategy(
