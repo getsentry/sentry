@@ -4,6 +4,7 @@ from sentry.dynamic_sampling.rules import (
     KEY_TRANSACTION_BOOST_FACTOR,
     RESERVED_IDS,
     BaseRule,
+    Bias,
     BiasData,
     BiasDataProvider,
     BiasParams,
@@ -11,7 +12,6 @@ from sentry.dynamic_sampling.rules import (
     RuleType,
     get_key_transactions,
 )
-from sentry.dynamic_sampling.rules.biases.base import Bias
 
 
 class BoostKeyTransactionsDataProvider(BiasDataProvider):

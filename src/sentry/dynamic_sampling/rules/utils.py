@@ -11,7 +11,7 @@ KEY_TRANSACTION_BOOST_FACTOR = 5
 HEALTH_CHECK_DROPPING_FACTOR = 5
 
 
-class Bias(TypedDict):
+class StatefulBias(TypedDict):
     id: str
     active: bool
 
@@ -26,7 +26,7 @@ class RuleType(Enum):
     BOOST_KEY_TRANSACTIONS_RULE = "boostKeyTransactions"
 
 
-DEFAULT_BIASES: List[Bias] = [
+DEFAULT_BIASES: List[StatefulBias] = [
     {"id": RuleType.BOOST_ENVIRONMENTS_RULE.value, "active": True},
     {
         "id": RuleType.BOOST_LATEST_RELEASES_RULE.value,
@@ -112,7 +112,7 @@ def _deep_sorted(value: Union[Any, Dict[Any, Any]]) -> Union[Any, Dict[Any, Any]
         return value
 
 
-def get_user_biases(user_set_biases: Optional[List[Bias]]) -> List[Bias]:
+def get_user_biases(user_set_biases: Optional[List[StatefulBias]]) -> List[StatefulBias]:
     if user_set_biases is None:
         return DEFAULT_BIASES
 
@@ -127,7 +127,7 @@ def get_user_biases(user_set_biases: Optional[List[Bias]]) -> List[Bias]:
     return returned_biases
 
 
-def get_enabled_user_biases(user_set_biases: Optional[List[Bias]]) -> Set[str]:
+def get_enabled_user_biases(user_set_biases: Optional[List[StatefulBias]]) -> Set[str]:
     users_biases = get_user_biases(user_set_biases)
     return {bias["id"] for bias in users_biases if bias["active"]}
 

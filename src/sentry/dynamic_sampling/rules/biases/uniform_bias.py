@@ -3,13 +3,13 @@ from typing import List
 from sentry.dynamic_sampling.rules import (
     RESERVED_IDS,
     BaseRule,
+    Bias,
     BiasData,
     BiasDataProvider,
     BiasParams,
     BiasRulesGenerator,
     RuleType,
 )
-from sentry.dynamic_sampling.rules.biases.base import Bias
 
 
 class UniformDataProvider(BiasDataProvider):
