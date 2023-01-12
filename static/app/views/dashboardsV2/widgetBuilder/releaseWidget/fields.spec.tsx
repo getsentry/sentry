@@ -19,6 +19,16 @@ describe('generateReleaseWidgetFieldOptions', function () {
           },
         },
       },
+      'field:session.duration': {
+        label: 'session.duration',
+        value: {
+          kind: 'metric',
+          meta: {
+            dataType: 'duration',
+            name: 'session.duration',
+          },
+        },
+      },
       'field:user': {
         label: 'user',
         value: {
