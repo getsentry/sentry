@@ -5,7 +5,6 @@ import Breadcrumbs from 'sentry/components/breadcrumbs';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageHeading from 'sentry/components/pageHeading';
 import {t} from 'sentry/locale';
-import {PageContent} from 'sentry/styles/organization';
 import {Organization} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
 import AsyncView from 'sentry/views/asyncView';
@@ -53,7 +52,7 @@ class EditMonitor extends AsyncView<Props, State> {
     }
 
     return (
-      <StyledPageContent>
+      <Layout.Page>
         <Layout.Header>
           <Layout.HeaderContent>
             <Breadcrumbs
@@ -80,14 +79,10 @@ class EditMonitor extends AsyncView<Props, State> {
             />
           </Layout.Main>
         </Layout.Body>
-      </StyledPageContent>
+      </Layout.Page>
     );
   }
 }
-
-const StyledPageContent = styled(PageContent)`
-  padding: 0;
-`;
 
 const StyledHeading = styled(PageHeading)`
   line-height: 40px;

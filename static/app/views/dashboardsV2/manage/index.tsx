@@ -21,7 +21,6 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import Switch from 'sentry/components/switchButton';
 import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
 import {Organization, SelectValue} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
@@ -184,9 +183,9 @@ class ManageDashboards extends AsyncView<Props, State> {
 
   renderNoAccess() {
     return (
-      <PageContent>
+      <Layout.Page>
         <Alert type="warning">{t("You don't have access to this feature")}</Alert>
-      </PageContent>
+      </Layout.Page>
     );
   }
 
@@ -258,9 +257,9 @@ class ManageDashboards extends AsyncView<Props, State> {
 
   renderLoading() {
     return (
-      <PageContent>
+      <Layout.Page withPadding>
         <LoadingIndicator />
-      </PageContent>
+      </Layout.Page>
     );
   }
 
@@ -275,7 +274,7 @@ class ManageDashboards extends AsyncView<Props, State> {
         renderDisabled={this.renderNoAccess}
       >
         <SentryDocumentTitle title={t('Dashboards')} orgSlug={organization.slug}>
-          <StyledPageContent>
+          <Layout.Page>
             <NoProjectMessage organization={organization}>
               <Layout.Header>
                 <Layout.HeaderContent>
@@ -326,16 +325,12 @@ class ManageDashboards extends AsyncView<Props, State> {
                 </Layout.Main>
               </Layout.Body>
             </NoProjectMessage>
-          </StyledPageContent>
+          </Layout.Page>
         </SentryDocumentTitle>
       </Feature>
     );
   }
 }
-
-const StyledPageContent = styled(PageContent)`
-  padding: 0;
-`;
 
 const StyledHeading = styled(PageHeading)`
   line-height: 40px;

@@ -1,15 +1,14 @@
 import {Component} from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
-import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
 import {Client} from 'sentry/api';
+import * as Layout from 'sentry/components/layouts/thirds';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import {PageContent} from 'sentry/styles/organization';
 import {Organization, PageFilters, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView from 'sentry/utils/discover/eventView';
@@ -112,7 +111,7 @@ class VitalDetail extends Component<Props, State> {
       <SentryDocumentTitle title={this.getDocumentTitle()} orgSlug={organization.slug}>
         <PerformanceEventViewProvider value={{eventView: this.state.eventView}}>
           <PageFiltersContainer>
-            <StyledPageContent>
+            <Layout.Page>
               <NoProjectMessage organization={organization}>
                 <VitalDetailContent
                   location={location}
@@ -123,16 +122,12 @@ class VitalDetail extends Component<Props, State> {
                   api={api}
                 />
               </NoProjectMessage>
-            </StyledPageContent>
+            </Layout.Page>
           </PageFiltersContainer>
         </PerformanceEventViewProvider>
       </SentryDocumentTitle>
     );
   }
 }
-
-const StyledPageContent = styled(PageContent)`
-  padding: 0;
-`;
 
 export default withApi(withPageFilters(withProjects(withOrganization(VitalDetail))));

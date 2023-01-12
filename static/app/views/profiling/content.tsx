@@ -25,7 +25,6 @@ import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t, tct} from 'sentry/locale';
 import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
-import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {
@@ -124,7 +123,7 @@ function ProfilingContent({location, router}: ProfilingContentProps) {
     <SentryDocumentTitle title={t('Profiling')} orgSlug={organization.slug}>
       <PageFiltersContainer>
         <NoProjectMessage organization={organization}>
-          <StyledPageContent>
+          <Layout.Page>
             <Layout.Header>
               <Layout.HeaderContent>
                 <StyledHeading>
@@ -225,7 +224,7 @@ function ProfilingContent({location, router}: ProfilingContentProps) {
                 )}
               </Layout.Main>
             </Layout.Body>
-          </StyledPageContent>
+          </Layout.Page>
         </NoProjectMessage>
       </PageFiltersContainer>
     </SentryDocumentTitle>
@@ -243,10 +242,6 @@ const FIELDS = [
 ] as const;
 
 type FieldType = typeof FIELDS[number];
-
-const StyledPageContent = styled(PageContent)`
-  padding: 0;
-`;
 
 const StyledHeading = styled(PageHeading)`
   line-height: 40px;

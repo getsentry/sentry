@@ -11,7 +11,6 @@ import PageFiltersContainer from 'sentry/components/organizations/pageFilters/co
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {Tabs} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
-import {PageContent} from 'sentry/styles/organization';
 import {Organization, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
@@ -187,7 +186,7 @@ function PageLayout(props: Props) {
             specificProjectSlugs={defined(project) ? [project.slug] : []}
           >
             <Tabs value={tab} onChange={onTabChange}>
-              <StyledPageContent>
+              <Layout.Page>
                 <NoProjectMessage organization={organization}>
                   <TransactionHeader
                     eventView={eventView}
@@ -223,7 +222,7 @@ function PageLayout(props: Props) {
                     />
                   </Layout.Body>
                 </NoProjectMessage>
-              </StyledPageContent>
+              </Layout.Page>
             </Tabs>
           </PageFiltersContainer>
         </PerformanceEventViewProvider>
@@ -235,10 +234,6 @@ function PageLayout(props: Props) {
 export function NoAccess() {
   return <Alert type="warning">{t("You don't have access to this feature")}</Alert>;
 }
-
-const StyledPageContent = styled(PageContent)`
-  padding: 0;
-`;
 
 const StyledAlert = styled(Alert)`
   grid-column: 1/3;

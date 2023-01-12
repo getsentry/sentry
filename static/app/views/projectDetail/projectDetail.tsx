@@ -24,7 +24,6 @@ import MissingProjectMembership from 'sentry/components/projects/missingProjectM
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
@@ -155,20 +154,20 @@ class ProjectDetail extends AsyncView<Props, State> {
     const {organization} = this.props;
 
     return (
-      <PageContent>
+      <Layout.Page>
         <MissingProjectMembership organization={organization} project={project} />
-      </PageContent>
+      </Layout.Page>
     );
   }
 
   renderProjectNotFound() {
     return (
-      <PageContent>
+      <Layout.Page withPadding>
         <LoadingError
           message={t('This project could not be found.')}
           onRetry={this.onRetryProjects}
         />
-      </PageContent>
+      </Layout.Page>
     );
   }
 
@@ -200,7 +199,7 @@ class ProjectDetail extends AsyncView<Props, State> {
     return (
       <PageFiltersContainer skipLoadLastUsed showAbsolute={!hasOnlyBasicChart}>
         <NoProjectMessage organization={organization}>
-          <StyledPageContent>
+          <Layout.Page>
             <Layout.Header>
               <Layout.HeaderContent>
                 <Breadcrumbs
@@ -339,16 +338,12 @@ class ProjectDetail extends AsyncView<Props, State> {
                 />
               </Layout.Side>
             </Layout.Body>
-          </StyledPageContent>
+          </Layout.Page>
         </NoProjectMessage>
       </PageFiltersContainer>
     );
   }
 }
-
-const StyledPageContent = styled(PageContent)`
-  padding: 0;
-`;
 
 const ProjectTitle = styled(PageHeading)`
   line-height: 40px;
