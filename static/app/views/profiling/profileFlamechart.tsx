@@ -77,6 +77,10 @@ function ProfileFlamegraph(): React.ReactElement {
     return organization.features.includes('profiling-flamechart-spans');
   }, [organization.features]);
 
+  const hasUIFrames = useMemo(() => {
+    return organization.features.includes('profiling-ui-frames');
+  }, [organization.features]);
+
   const spanTree: SpanTree = useMemo(() => {
     if (profiledTransaction.type === 'resolved' && profiledTransaction.data) {
       return new SpanTree(
@@ -155,6 +159,7 @@ function ProfileFlamegraph(): React.ReactElement {
                   onImport={onImport}
                   profiles={LoadingGroup}
                   spanTree={hasFlameChartSpans ? LoadingSpanTree : null}
+                  uiFrames={null}
                 />
                 <LoadingIndicatorContainer>
                   <LoadingIndicator />
@@ -165,6 +170,7 @@ function ProfileFlamegraph(): React.ReactElement {
                 onImport={onImport}
                 profiles={profileGroup.data}
                 spanTree={hasFlameChartSpans ? spanTree : null}
+                uiFrames={hasUIFrames ? null : null}
               />
             ) : null}
           </FlamegraphContainer>

@@ -17,6 +17,7 @@ export interface FlamegraphPreferences {
   timelines: {
     minimap: boolean;
     transaction_spans: boolean;
+    ui_frames: boolean;
   };
   view: FlamegraphViewOptions[number];
   xAxis: FlamegraphAxisOptions[number];

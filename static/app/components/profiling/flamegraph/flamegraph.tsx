@@ -83,6 +83,7 @@ interface FlamegraphProps {
   onImport: ProfileDragDropImportProps['onImport'];
   profiles: ProfileGroup;
   spanTree: SpanTree | null;
+  uiFrames: null;
 }
 
 function Flamegraph(props: FlamegraphProps): ReactElement {
@@ -561,6 +562,7 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
       </FlamegraphToolbar>
 
       <FlamegraphLayout
+        uiFrames={null}
         spans={
           spanChart ? (
             <FlamegraphSpans
