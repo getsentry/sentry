@@ -1,6 +1,5 @@
 import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
-import styled from '@emotion/styled';
 
 import AsyncComponent from 'sentry/components/asyncComponent';
 import Button from 'sentry/components/button';
@@ -17,7 +16,6 @@ import RootSpanStatus from 'sentry/components/events/rootSpanStatus';
 import FileSize from 'sentry/components/fileSize';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
-import PageHeading from 'sentry/components/pageHeading';
 import {TransactionProfileIdProvider} from 'sentry/components/profiling/transactionProfileIdProvider';
 import {TransactionToProfileButton} from 'sentry/components/profiling/transactionToProfileButton';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -173,9 +171,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                       }}
                       eventSlug={eventSlug}
                     />
-                    <StyledHeading data-test-id="event-header">
-                      {event.title}
-                    </StyledHeading>
+                    <Layout.Title data-test-id="event-header">{event.title}</Layout.Title>
                   </Layout.HeaderContent>
                   <Layout.HeaderActions>
                     <ButtonBar gap={1}>
@@ -313,9 +309,5 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
     );
   }
 }
-
-const StyledHeading = styled(PageHeading)`
-  line-height: 40px;
-`;
 
 export default EventDetailsContent;

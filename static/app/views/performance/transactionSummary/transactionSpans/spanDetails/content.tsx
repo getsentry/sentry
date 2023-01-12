@@ -1,13 +1,10 @@
 import {Fragment} from 'react';
-import styled from '@emotion/styled';
 import {setTag} from '@sentry/react';
 import {Location} from 'history';
 
 import Feature from 'sentry/components/acl/feature';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
-import PageHeading from 'sentry/components/pageHeading';
-import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
@@ -71,7 +68,7 @@ export default function SpanDetailsContentWrapper(props: Props) {
             tab={Tab.Spans}
             spanSlug={spanSlug}
           />
-          <TransactionName>
+          <Layout.Title>
             {project && (
               <IdBadge
                 project={project}
@@ -81,7 +78,7 @@ export default function SpanDetailsContentWrapper(props: Props) {
               />
             )}
             {transactionName}
-          </TransactionName>
+          </Layout.Title>
         </Layout.HeaderContent>
       </Layout.Header>
       <Layout.Body>
@@ -153,13 +150,6 @@ export default function SpanDetailsContentWrapper(props: Props) {
     </Fragment>
   );
 }
-
-const TransactionName = styled(PageHeading)`
-  line-height: 40px;
-  display: flex;
-  gap: ${space(1)};
-  align-items: center;
-`;
 
 type ContentProps = {
   eventView: EventView;

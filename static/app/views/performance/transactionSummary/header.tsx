@@ -1,5 +1,4 @@
 import {useCallback} from 'react';
-import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import Feature from 'sentry/components/acl/feature';
@@ -9,14 +8,12 @@ import {CreateAlertFromViewButton} from 'sentry/components/createAlertButton';
 import FeatureBadge from 'sentry/components/featureBadge';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
-import PageHeading from 'sentry/components/pageHeading';
 import {isProfilingSupportedOrProjectHasProfiles} from 'sentry/components/profiling/ProfilingOnboarding/util';
 import ReplayCountBadge from 'sentry/components/replays/replayCountBadge';
 import ReplaysFeatureBadge from 'sentry/components/replays/replaysFeatureBadge';
 import useReplaysCount from 'sentry/components/replays/useReplaysCount';
 import {Item, TabList} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView from 'sentry/utils/discover/eventView';
@@ -124,7 +121,7 @@ function TransactionHeader({
           }}
           tab={currentTab}
         />
-        <TransactionName>
+        <Layout.Title>
           {project && (
             <IdBadge
               project={project}
@@ -134,7 +131,7 @@ function TransactionHeader({
             />
           )}
           {transactionName}
-        </TransactionName>
+        </Layout.Title>
       </Layout.HeaderContent>
       <Layout.HeaderActions>
         <ButtonBar gap={1}>
@@ -224,12 +221,5 @@ function TransactionHeader({
     </Layout.Header>
   );
 }
-
-const TransactionName = styled(PageHeading)`
-  line-height: 40px;
-  display: flex;
-  gap: ${space(1)};
-  align-items: center;
-`;
 
 export default TransactionHeader;

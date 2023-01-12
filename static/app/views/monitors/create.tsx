@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 import * as Layout from 'sentry/components/layouts/thirds';
-import PageHeading from 'sentry/components/pageHeading';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
@@ -50,7 +49,7 @@ class CreateMonitor extends AsyncView<Props, AsyncView['state']> {
                 },
               ]}
             />
-            <StyledHeading>{t('Set Up Cron Monitor')}</StyledHeading>
+            <Layout.Title>{t('Set Up Cron Monitor')}</Layout.Title>
           </Layout.HeaderContent>
           <Layout.HeaderActions>
             <CronsFeedbackButton />
@@ -76,10 +75,6 @@ class CreateMonitor extends AsyncView<Props, AsyncView['state']> {
   }
 }
 export default withOrganization(CreateMonitor);
-
-const StyledHeading = styled(PageHeading)`
-  line-height: 40px;
-`;
 
 const HelpText = styled('p')`
   color: ${p => p.theme.subText};

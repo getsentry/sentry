@@ -10,7 +10,6 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
-import PageHeading from 'sentry/components/pageHeading';
 import {Breadcrumb} from 'sentry/components/profiling/breadcrumb';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import SmartSearchBar, {SmartSearchBarProps} from 'sentry/components/smartSearchBar';
@@ -145,7 +144,7 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
                         },
                       ]}
                     />
-                    <ProfileTitle>
+                    <Layout.Title>
                       {project ? (
                         <IdBadge
                           project={project}
@@ -155,7 +154,7 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
                         />
                       ) : null}
                       {transaction}
-                    </ProfileTitle>
+                    </Layout.Title>
                   </Layout.HeaderContent>
                 </Layout.Header>
                 <Layout.Body>
@@ -192,13 +191,6 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
     </SentryDocumentTitle>
   );
 }
-
-const ProfileTitle = styled(PageHeading)`
-  line-height: 40px;
-  display: flex;
-  gap: ${space(1)};
-  align-items: center;
-`;
 
 const ActionBar = styled('div')`
   display: grid;

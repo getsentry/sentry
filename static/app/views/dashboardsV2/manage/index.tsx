@@ -14,7 +14,6 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
-import PageHeading from 'sentry/components/pageHeading';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import SearchBar from 'sentry/components/searchBar';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -283,7 +282,7 @@ class ManageDashboards extends AsyncView<Props, State> {
             <NoProjectMessage organization={organization}>
               <Layout.Header>
                 <Layout.HeaderContent>
-                  <StyledHeading>
+                  <Layout.Title>
                     {t('Dashboards')}
                     <PageHeadingQuestionTooltip
                       title={tct(
@@ -295,7 +294,7 @@ class ManageDashboards extends AsyncView<Props, State> {
                         }
                       )}
                     />
-                  </StyledHeading>
+                  </Layout.Title>
                 </Layout.HeaderContent>
                 <Layout.HeaderActions>
                   <ButtonBar gap={1.5}>
@@ -336,10 +335,6 @@ class ManageDashboards extends AsyncView<Props, State> {
     );
   }
 }
-
-const StyledHeading = styled(PageHeading)`
-  line-height: 40px;
-`;
 
 const StyledActions = styled('div')`
   display: grid;

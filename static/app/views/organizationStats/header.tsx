@@ -1,10 +1,7 @@
-import styled from '@emotion/styled';
-
 import {FeatureFeedback} from 'sentry/components/featureFeedback';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
-import PageHeading from 'sentry/components/pageHeading';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {t, tct} from 'sentry/locale';
 import {Organization} from 'sentry/types';
@@ -18,7 +15,7 @@ function StatsHeader({organization, activeTab}: Props) {
   return (
     <Layout.Header>
       <Layout.HeaderContent>
-        <StyledHeading>
+        <Layout.Title>
           {t('Stats')}
           <PageHeadingQuestionTooltip
             title={tct(
@@ -26,7 +23,7 @@ function StatsHeader({organization, activeTab}: Props) {
               {link: <ExternalLink href="https://docs.sentry.io/product/stats/" />}
             )}
           />
-        </StyledHeading>
+        </Layout.Title>
       </Layout.HeaderContent>
       <Layout.HeaderActions>
         {activeTab !== 'stats' && (
@@ -53,7 +50,3 @@ function StatsHeader({organization, activeTab}: Props) {
 }
 
 export default StatsHeader;
-
-const StyledHeading = styled(PageHeading)`
-  line-height: 40px;
-`;

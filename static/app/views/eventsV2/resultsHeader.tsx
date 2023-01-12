@@ -11,7 +11,6 @@ import Feature from 'sentry/components/acl/feature';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
-import PageHeading from 'sentry/components/pageHeading';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import TimeSince from 'sentry/components/timeSince';
 import {t, tct} from 'sentry/locale';
@@ -147,8 +146,8 @@ class ResultsHeader extends Component<Props, State> {
       <Layout.Header>
         <Layout.HeaderContent>
           {isHomepage ? (
-            <StyledHeading>
-              <GuideAnchor target="discover_landing_header">
+            <GuideAnchor target="discover_landing_header">
+              <Layout.Title>
                 {t('Discover')}
                 <PageHeadingQuestionTooltip
                   title={tct(
@@ -160,8 +159,8 @@ class ResultsHeader extends Component<Props, State> {
                     }
                   )}
                 />
-              </GuideAnchor>
-            </StyledHeading>
+              </Layout.Title>
+            </GuideAnchor>
           ) : (
             <Fragment>
               <DiscoverBreadcrumb
@@ -220,10 +219,6 @@ const Subtitle = styled('h4')`
   font-weight: normal;
   color: ${p => p.theme.gray300};
   margin: ${space(0.5)} 0 0 0;
-`;
-
-const StyledHeading = styled(PageHeading)`
-  line-height: 40px;
 `;
 
 const BannerWrapper = styled('div')`

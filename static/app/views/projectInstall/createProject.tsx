@@ -8,8 +8,8 @@ import {openCreateTeamModal} from 'sentry/actionCreators/modal';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import Input from 'sentry/components/input';
+import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
-import PageHeading from 'sentry/components/pageHeading';
 import PlatformPicker from 'sentry/components/platformPicker';
 import TeamSelector from 'sentry/components/teamSelector';
 import categoryList from 'sentry/data/platformCategories';
@@ -151,9 +151,9 @@ class CreateProject extends Component<Props, State> {
 
     return (
       <Fragment>
-        <PageHeading withMargins>
+        <Layout.Title withMargins>
           {t('3. Name your project and assign it a team')}
-        </PageHeading>
+        </Layout.Title>
         {createProjectForm}
       </Fragment>
     );
@@ -285,7 +285,7 @@ class CreateProject extends Component<Props, State> {
         {error && <Alert type="error">{error}</Alert>}
 
         <div data-test-id="onboarding-info">
-          <PageHeading withMargins>{t('Create a new project in 3 steps')}</PageHeading>
+          <Layout.Title withMargins>{t('Create a new project in 3 steps')}</Layout.Title>
           <HelpText>
             {tct(
               'Set up a separate project for each part of your application (for example, your API server and frontend client), to quickly pinpoint which part of your application errors are coming from. [link: Read the docs].',
@@ -296,7 +296,7 @@ class CreateProject extends Component<Props, State> {
               }
             )}
           </HelpText>
-          <PageHeading withMargins>{t('1. Choose your platform')}</PageHeading>
+          <Layout.Title withMargins>{t('1. Choose your platform')}</Layout.Title>
           <PlatformPicker
             platform={platform}
             defaultCategory={this.defaultCategory}

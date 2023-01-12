@@ -1,9 +1,7 @@
 import {browserHistory, RouteComponentProps} from 'react-router';
-import styled from '@emotion/styled';
 
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 import * as Layout from 'sentry/components/layouts/thirds';
-import PageHeading from 'sentry/components/pageHeading';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
@@ -67,7 +65,7 @@ class EditMonitor extends AsyncView<Props, State> {
                 },
               ]}
             />
-            <StyledHeading>{t('Edit Monitor')}</StyledHeading>
+            <Layout.Title>{t('Edit Monitor')}</Layout.Title>
           </Layout.HeaderContent>
         </Layout.Header>
         <Layout.Body>
@@ -84,9 +82,5 @@ class EditMonitor extends AsyncView<Props, State> {
     );
   }
 }
-
-const StyledHeading = styled(PageHeading)`
-  line-height: 40px;
-`;
 
 export default withOrganization(EditMonitor);
