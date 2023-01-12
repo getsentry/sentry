@@ -3,6 +3,7 @@ from __future__ import annotations
 import enum
 import logging
 from collections import defaultdict
+from copy import deepcopy
 from typing import Any, Mapping, Sequence
 
 from sentry.integrations.utils import where_should_sync
@@ -15,6 +16,7 @@ from sentry.notifications.utils import (
     get_span_evidence_value,
     get_span_evidence_value_problem,
 )
+from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.user import APIUser
 from sentry.services.hybrid_cloud.user_option import user_option_service
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
@@ -180,10 +182,14 @@ class IssueBasicMixin:
         persisted_fields = self.get_persisted_default_config_fields()
         if persisted_fields:
             project_defaults = {k: v for k, v in data.items() if k in persisted_fields}
-            self.org_integration.config.setdefault("project_issue_defaults", {}).setdefault(
+            new_config = deepcopy(self.org_integration.config)
+            new_config.setdefault("project_issue_defaults", {}).setdefault(
                 str(project.id), {}
             ).update(project_defaults)
-            self.org_integration.save()
+            self.org_integration = integration_service.update_organization_integration(
+                org_integration_id=self.org_integration.id,
+                config=new_config,
+            )
 
         user_persisted_fields = self.get_persisted_user_default_config_fields()
         if user_persisted_fields:
@@ -191,9 +197,7 @@ class IssueBasicMixin:
             user_option_key = dict(key="issue:defaults", project_id=project.id)
             options = user_option_service.query_options(user_ids=[user.id], **user_option_key)
             new_user_defaults = options.get_one(default={})
-            new_user_defaults.setdefault(self.org_integration.integration.provider, {}).update(
-                user_defaults
-            )
+            new_user_defaults.setdefault(self.model.provider, {}).update(user_defaults)
             if user_defaults != new_user_defaults:
                 user_option_service.set_option(
                     user_id=user.id, value=new_user_defaults, **user_option_key
@@ -204,7 +208,7 @@ class IssueBasicMixin:
 
         user_option_key = dict(user=user, key="issue:defaults", project=project)
         user_defaults = UserOption.objects.get_value(default={}, **user_option_key).get(
-            self.org_integration.integration.provider, {}
+            self.model.provider, {}
         )
 
         defaults = {}

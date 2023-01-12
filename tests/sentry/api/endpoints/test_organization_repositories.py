@@ -4,7 +4,7 @@ from django.urls import reverse
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.example import ExampleRepositoryProvider
-from sentry.models import Integration, OrganizationIntegration, Repository
+from sentry.models import Repository
 from sentry.plugins.providers.dummy.repository import DummyRepositoryProvider
 from sentry.testutils import APITestCase
 from sentry.testutils.silo import region_silo_test
@@ -51,10 +51,10 @@ class OrganizationRepositoriesListTest(APITestCase):
     def test_status_unmigratable(self):
         self.url = self.url + "?status=unmigratable"
 
-        integration = Integration.objects.create(provider="github")
-
-        OrganizationIntegration.objects.create(
-            organization_id=self.org.id, integration_id=integration.id
+        self.create_integration(
+            organization=self.org,
+            provider="github",
+            external_id="github:1",
         )
 
         unmigratable_repo = Repository.objects.create(
@@ -74,7 +74,11 @@ class OrganizationRepositoriesListTest(APITestCase):
     def test_status_unmigratable_missing_org_integration(self):
         self.url = self.url + "?status=unmigratable"
 
-        Integration.objects.create(provider="github")
+        self.create_integration(
+            organization=self.create_organization(),
+            provider="github",
+            external_id="github:1",
+        )
 
         unmigratable_repo = Repository.objects.create(
             name="NotConnected/foo", organization_id=self.org.id
@@ -95,10 +99,11 @@ class OrganizationRepositoriesListTest(APITestCase):
     def test_status_unmigratable_disabled_integration(self):
         self.url = self.url + "?status=unmigratable"
 
-        integration = Integration.objects.create(provider="github", status=ObjectStatus.DISABLED)
-
-        OrganizationIntegration.objects.create(
-            integration_id=integration.id, organization_id=self.org.id
+        self.create_integration(
+            organization=self.org,
+            provider="github",
+            external_id="github:1",
+            status=ObjectStatus.DISABLED,
         )
 
         unmigratable_repo = Repository.objects.create(
@@ -123,11 +128,11 @@ class OrganizationRepositoriesListTest(APITestCase):
 
     def test_status_unmigratable_disabled_org_integration(self):
         self.url = self.url + "?status=unmigratable"
-
-        integration = Integration.objects.create(provider="github")
-
-        OrganizationIntegration.objects.create(
-            integration_id=integration.id, organization_id=self.org.id, status=ObjectStatus.DISABLED
+        self.create_integration(
+            organization=self.org,
+            provider="github",
+            external_id="github:1",
+            oi_params={"status": ObjectStatus.DISABLED},
         )
 
         unmigratable_repo = Repository.objects.create(
@@ -205,8 +210,9 @@ class OrganizationIntegrationRepositoriesCreateTest(APITestCase):
     def setUp(self):
         super().setUp()
         self.org = self.create_organization(owner=self.user, name="baz")
-        self.integration = Integration.objects.create(provider="example")
-        self.integration.add_organization(self.org, self.user)
+        self.integraiton = self.create_integration(
+            organization=self.org, provider="example", external_id="example:1"
+        )
         self.url = reverse("sentry-api-0-organization-repositories", args=[self.org.slug])
         self.login_as(user=self.user)
         self.repo_config_data = {
