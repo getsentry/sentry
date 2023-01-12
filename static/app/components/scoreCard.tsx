@@ -11,7 +11,7 @@ type Props = {
   title: React.ReactNode;
   className?: string;
   help?: React.ReactNode;
-  renderButton?: () => React.ReactNode;
+  renderOpenButton?: () => React.ReactNode;
   score?: React.ReactNode;
   trend?: React.ReactNode;
   trendStatus?: 'good' | 'bad';
@@ -24,7 +24,7 @@ function ScoreCard({
   trend,
   trendStatus,
   className,
-  renderButton,
+  renderOpenButton,
 }: Props) {
   return (
     <ScorePanel className={className}>
@@ -33,7 +33,7 @@ function ScoreCard({
           <Title>{title}</Title>
           {help && <QuestionTooltip title={help} size="sm" position="top" />}
         </HeaderTitle>
-        {renderButton?.()}
+        {renderOpenButton?.()}
       </HeaderWrapper>
 
       <ScoreWrapper>

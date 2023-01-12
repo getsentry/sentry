@@ -178,7 +178,7 @@ export function ProjectAnrScoreCard({
       score={value ? formatPercentage(value, 3) : '\u2014'}
       trend={renderTrend()}
       trendStatus={trendStatus}
-      renderButton={renderButton}
+      renderOpenButton={renderButton}
     />
   );
 }
