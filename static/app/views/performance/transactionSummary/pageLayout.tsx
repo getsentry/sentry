@@ -250,12 +250,14 @@ export function redirectToPerformanceHomepage(
   location: Location
 ) {
   // If there is no transaction name, redirect to the Performance landing page
-  browserHistory.replace({
-    pathname: `/organizations/${organization.slug}/performance/`,
-    query: {
-      ...location.query,
-    },
-  });
+  browserHistory.replace(
+    normalizeUrl({
+      pathname: `/organizations/${organization.slug}/performance/`,
+      query: {
+        ...location.query,
+      },
+    })
+  );
 }
 
 export default PageLayout;
