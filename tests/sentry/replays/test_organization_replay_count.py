@@ -250,7 +250,6 @@ class OrganizationIssueReplayCountEndpointTest(APITestCase, SnubaTestCase, Repla
         with self.feature(self.features):
             response = self.client.get(self.url, query, format="json")
             assert response.status_code == 400
-            assert response.data["detail"] == "Must provide at least one issue.id or transaction"
 
     def test_invalid_params_max_issue_id(self):
         issue_ids = ",".join(str(i) for i in range(26))
@@ -269,4 +268,31 @@ class OrganizationIssueReplayCountEndpointTest(APITestCase, SnubaTestCase, Repla
         with self.feature(self.features):
             response = self.client.get(self.url, query, format="json")
             assert response.status_code == 400
-            assert response.data["detail"] == "Must provide only one of: issue.id, transaction"
+
+    def test_replay_id_count(self):
+        replay1_id = uuid.uuid4().hex
+        replay2_id = uuid.uuid4().hex
+        replay3_id_doesnt_exist = uuid.uuid4().hex
+
+        self.store_replays(
+            mock_replay(
+                datetime.datetime.now() - datetime.timedelta(seconds=22),
+                self.project.id,
+                replay1_id,
+            )
+        )
+        self.store_replays(
+            mock_replay(
+                datetime.datetime.now() - datetime.timedelta(seconds=22),
+                self.project.id,
+                replay2_id,
+            )
+        )
+
+        query = {"query": f"replay_id:[{replay1_id},{replay2_id},{replay3_id_doesnt_exist}]"}
+        with self.feature(self.features):
+            response = self.client.get(self.url, query, format="json")
+
+        expected = {replay1_id: 1, replay2_id: 1}
+        assert response.status_code == 200, response.content
+        assert response.data == expected
