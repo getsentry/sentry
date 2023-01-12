@@ -2,7 +2,7 @@ import datetime
 import functools
 from abc import abstractmethod
 from datetime import timedelta
-from typing import Any, Mapping, Optional, Set, Union
+from typing import Any, Callable, Mapping, Optional, Set, Union
 
 import rapidjson
 from arroyo.backends.kafka import KafkaConsumer, KafkaPayload
@@ -164,7 +164,7 @@ class LastSeenUpdaterStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
             result.update(value.payload)
             return result
 
-        initial_value: Set[int] = set()
+        initial_value: Callable[[], Set[int]] = lambda: set()
 
         def do_update(message: Message[Set[int]]) -> None:
             table = TABLE_MAPPING[self.__use_case_id]
