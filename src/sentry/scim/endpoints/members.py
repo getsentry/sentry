@@ -166,6 +166,7 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
                     "name": {"familyName": "N/A", "givenName": "N/A"},
                     "active": True,
                     "meta": {"resourceType": "User"},
+                    "sentryOrgRole": "member",
                 },
                 status_codes=["200"],
             ),
@@ -250,6 +251,83 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
         self._delete_member(request, organization, member)
         return Response(status=204)
 
+    @extend_schema(
+        operation_id="Update an Organization Member's Attributes",
+        parameters=[GLOBAL_PARAMS.ORG_SLUG, SCIM_PARAMS.MEMBER_ID],
+        request=inline_serializer(
+            "SCIMMemberProvision", fields={"sentryOrgRole": serializers.CharField()}
+        ),
+        responses={
+            201: OrganizationMemberSCIMSerializer,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOTFOUND,
+        },
+        examples=[  # TODO: see if this can go on serializer object instead
+            OpenApiExample(
+                "Update a user",
+                response_only=True,
+                value={
+                    "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
+                    "id": "242",
+                    "userName": "test.user@okta.local",
+                    "emails": [{"primary": True, "value": "test.user@okta.local", "type": "work"}],
+                    "active": True,
+                    "name": {"familyName": "N/A", "givenName": "N/A"},
+                    "meta": {"resourceType": "User"},
+                },
+                status_codes=["201"],
+            ),
+        ],
+    )
+    def put(self, request: Request, organization, member):
+        """
+        Update an organization member
+
+        Currently only updates organization role
+        """
+        if features.has("organizations:scim-orgmember-roles", organization, actor=None):
+
+            if "sentryOrgRole" in request.data and request.data["sentryOrgRole"]:
+                # Only do an update if something is changing
+                if (
+                    member.flags["idp:role-restricted"]
+                    and member.role.lower() == request.data["sentryOrgRole"].lower()
+                ):
+                    context = serialize(
+                        member, serializer=_scim_member_serializer_with_expansion(organization)
+                    )
+                    return Response(context, status=200)
+                requested_role = request.data["sentryOrgRole"].lower()
+                idp_role_restricted = True
+            else:
+                # Only reset role if current role isn't the default
+                if (
+                    member.role != organization.default_role
+                    and not member.flags["idp:role-restricted"]
+                ):
+                    context = serialize(
+                        member, serializer=_scim_member_serializer_with_expansion(organization)
+                    )
+                    return Response(context, status=200)
+                idp_role_restricted = False
+                requested_role = organization.default_role
+
+            # Allow any role as long as it doesn't have `org:admin` permissions
+            allowed_roles = {role.id for role in roles.get_all() if not role.has_scope("org:admin")}
+            if requested_role not in allowed_roles:
+                raise SCIMApiError(detail=SCIM_400_INVALID_ORGROLE)
+
+            member.role = requested_role
+            member.flags["idp:role-restricted"] = idp_role_restricted
+            member.save()
+
+        context = serialize(
+            member,
+            serializer=_scim_member_serializer_with_expansion(organization),
+        )
+        return Response(context, status=200)
+
 
 @region_silo_endpoint
 class OrganizationSCIMMemberIndex(SCIMEndpoint):
@@ -287,6 +365,7 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
                             "name": {"familyName": "N/A", "givenName": "N/A"},
                             "active": True,
                             "meta": {"resourceType": "User"},
+                            "sentryOrgRole": "member",
                         }
                     ],
                 },
@@ -361,6 +440,7 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
                     "active": True,
                     "name": {"familyName": "N/A", "givenName": "N/A"},
                     "meta": {"resourceType": "User"},
+                    "sentryOrgRole": "member",
                 },
                 status_codes=["201"],
             ),
