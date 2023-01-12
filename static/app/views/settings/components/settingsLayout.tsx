@@ -3,10 +3,10 @@ import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
+import * as Layout from 'sentry/components/layouts/thirds';
 import {IconClose, IconMenu} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {fadeIn, slideInLeft} from 'sentry/styles/animations';
-import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
 
 import SettingsBreadcrumb from './settingsBreadcrumb';
@@ -178,10 +178,10 @@ const Content = styled('div')`
   }
 
   /**
-   * PageContent is not normally used in settings but <PermissionDenied /> uses it under the hood.
-   * This prevents double padding.
+   * Layout.Page is not normally used in settings but <PermissionDenied /> uses
+   * it under the hood. This prevents double padding.
    */
-  ${PageContent} {
+  ${Layout.Page} {
     padding: 0;
   }
 `;

@@ -1,12 +1,10 @@
 import {Fragment} from 'react';
-import styled from '@emotion/styled';
 import {setTag} from '@sentry/react';
 import {Location} from 'history';
 
 import Feature from 'sentry/components/acl/feature';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
-import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
@@ -71,17 +69,15 @@ export default function SpanDetailsContentWrapper(props: Props) {
             spanSlug={spanSlug}
           />
           <Layout.Title>
-            <TransactionName>
-              {project && (
-                <IdBadge
-                  project={project}
-                  avatarSize={28}
-                  hideName
-                  avatarProps={{hasTooltip: true, tooltip: project.slug}}
-                />
-              )}
-              {transactionName}
-            </TransactionName>
+            {project && (
+              <IdBadge
+                project={project}
+                avatarSize={28}
+                hideName
+                avatarProps={{hasTooltip: true, tooltip: project.slug}}
+              />
+            )}
+            {transactionName}
           </Layout.Title>
         </Layout.HeaderContent>
       </Layout.Header>
@@ -154,13 +150,6 @@ export default function SpanDetailsContentWrapper(props: Props) {
     </Fragment>
   );
 }
-
-const TransactionName = styled('div')`
-  display: grid;
-  grid-template-columns: max-content 1fr;
-  grid-column-gap: ${space(1)};
-  align-items: center;
-`;
 
 type ContentProps = {
   eventView: EventView;

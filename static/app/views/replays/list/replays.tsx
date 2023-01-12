@@ -92,7 +92,7 @@ function ReplaysList() {
         ) : (
           <ReplayOnboardingPanel>
             <Button onClick={activateSidebar} priority="primary">
-              {t('Get Started')}
+              {t('Set Up Replays')}
             </Button>
             <Button
               href="https://docs.sentry.io/platforms/javascript/session-replay/"
