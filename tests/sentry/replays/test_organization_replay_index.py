@@ -9,6 +9,7 @@ from sentry.testutils.helpers.features import apply_feature_flag_on_cls
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.cursors import Cursor
 
+NO_REPLAYS = {"organizations:session-replay": False}
 REPLAYS_FEATURES = {"organizations:session-replay": True}
 
 
@@ -23,9 +24,10 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
         self.url = reverse(self.endpoint, args=(self.organization.slug,))
 
     def test_feature_flag_disabled(self):
-        """Test replays can be disabled."""
-        response = self.client.get(self.url)
-        assert response.status_code == 404
+        with self.feature(NO_REPLAYS):
+            """Test replays can be disabled."""
+            response = self.client.get(self.url)
+            assert response.status_code == 404
 
     def test_no_projects(self):
         """Test replays must be used with a project(s)."""

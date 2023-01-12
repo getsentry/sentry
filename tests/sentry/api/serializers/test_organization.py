@@ -62,6 +62,7 @@ class OrganizationSerializerTest(TestCase):
             "minute-resolution-sessions",
             "open-membership",
             "relay",
+            "session-replay",
             "shared-issues",
             "sso-basic",
             "sso-saml2",
