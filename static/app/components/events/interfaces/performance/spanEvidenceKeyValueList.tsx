@@ -47,13 +47,6 @@ export function SpanEvidenceKeyValueList({
   } else if (issueType === IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS) {
     data.push({
       key: '1',
-      subject: t('Parent Span'),
-      value: getSpanEvidenceValue(parentSpan),
-      subjectDataTestId: `${TEST_ID_NAMESPACE}.parent-name`,
-    });
-
-    data.push({
-      key: '2',
       subject: t('Repeating Span'),
       value: getSpanEvidenceValue(offendingSpans[0]),
       subjectDataTestId: `${TEST_ID_NAMESPACE}.offending-spans`,
@@ -66,7 +59,7 @@ export function SpanEvidenceKeyValueList({
 
     if (problemParameters?.length > 0) {
       data.push({
-        key: '3',
+        key: '2',
         subject: t('Problem Parameter'),
         value: problemParameters,
         subjectDataTestId: `${TEST_ID_NAMESPACE}.problem-parameters`,
