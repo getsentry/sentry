@@ -213,7 +213,6 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
             except Exception:
                 if status_code != 404:
                     logger.exception("Failed to get coverage from Codecov")
-                line_coverage = None
         else:
             logger.error("Could not find codecov path")
         return line_coverage, status_code
@@ -298,11 +297,11 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                     if current_config["outcome"].get("attemptedUrl"):
                         result["attemptedUrl"] = current_config["outcome"]["attemptedUrl"]
 
-                result["lineCoverage"] = None
-                result["codecovStatusCode"] = None
                 if (
                     features.has(
-                        "organizations:codecov-stacktrace-integration", project.organization
+                        "organizations:codecov-stacktrace-integration",
+                        project.organization,
+                        actor=request.user,
                     )
                     and project.organization.flags.codecov_access
                 ):
@@ -314,6 +313,7 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                         result["sourceUrl"],
                         CODECOV_TOKEN,
                     )
+
             try:
                 set_tags(scope, result)
             except Exception:
