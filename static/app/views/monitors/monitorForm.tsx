@@ -11,7 +11,7 @@ import FormModel from 'sentry/components/forms/model';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import TextCopyInput from 'sentry/components/textCopyInput';
-import {t, tct} from 'sentry/locale';
+import {t, tct, tn} from 'sentry/locale';
 import {PageFilters, Project, SelectValue} from 'sentry/types';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import withProjects from 'sentry/utils/withProjects';
@@ -25,13 +25,13 @@ const SCHEDULE_TYPES: SelectValue<ScheduleType>[] = [
 
 const DEFAULT_MONITOR_TYPE = 'cron_job';
 
-const INTERVALS: SelectValue<string>[] = [
-  {value: 'minute', label: 'minute(s)'},
-  {value: 'hour', label: 'hour(s)'},
-  {value: 'day', label: 'day(s)'},
-  {value: 'week', label: 'week(s)'},
-  {value: 'month', label: 'month(s)'},
-  {value: 'year', label: 'year(s)'},
+const getIntervals = (n: number): SelectValue<string>[] => [
+  {value: 'minute', label: tn('minute', 'minutes', n)},
+  {value: 'hour', label: tn('hour', 'hours', n)},
+  {value: 'day', label: tn('day', 'days', n)},
+  {value: 'week', label: tn('week', 'weeks', n)},
+  {value: 'month', label: tn('month', 'months', n)},
+  {value: 'year', label: tn('year', 'years', n)},
 ];
 
 type Props = {
@@ -231,7 +231,9 @@ class MonitorForm extends Component<Props> {
                           <StyledSelectField
                             name="config.schedule.interval"
                             label={t('Interval')}
-                            options={INTERVALS}
+                            options={getIntervals(
+                              Number(this.form.getValue('config.schedule.frequency') ?? 1)
+                            )}
                             hideLabel
                             required
                           />
