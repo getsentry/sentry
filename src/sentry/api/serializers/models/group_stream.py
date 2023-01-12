@@ -356,7 +356,6 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
             )
         if generic_issue_ids:
             results.update(get_range(model=snuba_tsdb.models.group_generic, keys=generic_issue_ids))
-
         return results
 
     def _seen_stats_error(

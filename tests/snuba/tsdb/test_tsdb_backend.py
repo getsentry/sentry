@@ -875,7 +875,6 @@ class SnubaTSDBGroupProfilingTest(TestCase, SnubaTestCase, SearchIssueTestMixin)
                 (timestamp(dts[3]), 3),
             ],
         }
-
         assert self.db.get_range(TSDBModel.group_generic, [], dts[0], dts[-1], rollup=3600) == {}
 
     def test_get_distinct_counts_totals_users(self):
@@ -909,6 +908,14 @@ class SnubaTSDBGroupProfilingTest(TestCase, SnubaTestCase, SearchIssueTestMixin)
             )
             == {}
         )
+
+    def test_get_sums(self):
+        assert self.db.get_sums(
+            model=TSDBModel.group_generic,
+            keys=[self.proj1group1.id, self.proj1group2.id],
+            start=self.now,
+            end=self.now + timedelta(hours=4),
+        ) == {self.proj1group1.id: 12, self.proj1group2.id: 12}
 
 
 class AddJitterToSeriesTest(TestCase):
