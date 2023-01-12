@@ -6,7 +6,6 @@ from sentry.api.bases.organization_integrations import OrganizationIntegrationBa
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.constants import ObjectStatus
 from sentry.integrations.mixins import RepositoryMixin
-from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions import IntegrationError
 
 
@@ -29,9 +28,7 @@ class OrganizationIntegrationReposEndpoint(OrganizationIntegrationBaseEndpoint):
             context = {"repos": []}
             return self.respond(context)
 
-        install = integration_service.get_installation(
-            integration=integration, organization_id=organization.id
-        )
+        install = integration.get_installation(organization.id)
 
         if isinstance(install, RepositoryMixin):
             try:

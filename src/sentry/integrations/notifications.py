@@ -7,7 +7,6 @@ from sentry.constants import ObjectStatus
 from sentry.models import ExternalActor, Integration, Organization, Team, User
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.services.hybrid_cloud.identity import APIIdentity, APIIdentityProvider, identity_service
-from sentry.services.hybrid_cloud.integration import APIIntegration, integration_service
 from sentry.services.hybrid_cloud.user import APIUser
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 
@@ -29,7 +28,7 @@ def get_channel_and_integration_by_user(
     user: User,
     organization: Organization,
     provider: ExternalProviders,
-) -> Mapping[str, APIIntegration]:
+) -> Mapping[str, Integration]:
 
     identities = identity_service.get_user_identities_by_provider_type(
         user_id=user.id,
@@ -48,16 +47,10 @@ def get_channel_and_integration_by_user(
         for identity in identities
     }
 
-    all_integrations = integration_service.get_integrations(
-        organization_id=organization.id,
-        status=ObjectStatus.ACTIVE,
-        org_integration_status=ObjectStatus.ACTIVE,
-        limit=None,
-        providers=[EXTERNAL_PROVIDERS[provider]],
+    integrations = Integration.objects.get_active_integrations(organization.id).filter(
+        provider=EXTERNAL_PROVIDERS[provider],
+        external_id__in=[identity_id_to_idp[identity.id].external_id for identity in identities],
     )
-    all_external_ids = [identity_id_to_idp[identity.id].external_id for identity in identities]
-
-    integrations = [i for i in all_integrations if i.external_id in all_external_ids]
 
     channels_to_integration = {}
     for identity in identities:
@@ -94,10 +87,8 @@ def get_channel_and_integration_by_team(
 
 def get_integrations_by_channel_by_recipient(
     organization: Organization, recipients: Iterable[Team | User], provider: ExternalProviders
-) -> MutableMapping[Team | User, Mapping[str, APIIntegration | Integration]]:
-    output: MutableMapping[Team | User, Mapping[str, APIIntegration | Integration]] = defaultdict(
-        dict
-    )
+) -> MutableMapping[Team | User, Mapping[str, Integration]]:
+    output: MutableMapping[Team | User, Mapping[str, Integration]] = defaultdict(dict)
     for recipient in recipients:
         channels_to_integrations = (
             get_channel_and_integration_by_user(recipient, organization, provider)

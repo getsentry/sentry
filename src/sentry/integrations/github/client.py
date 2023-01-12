@@ -10,7 +10,6 @@ from sentry.integrations.client import ApiClient
 from sentry.integrations.github.utils import get_jwt, get_next_link
 from sentry.integrations.utils.code_mapping import Repo, RepoTree, filter_source_code_files
 from sentry.models import Integration, Repository
-from sentry.services.hybrid_cloud.integration import APIIntegration, integration_service
 from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.utils import jwt
 from sentry.utils.cache import cache
@@ -328,8 +327,6 @@ class GitHubClientMixin(ApiClient):  # type: ignore
         Should the token have expired, a new token will be generated and
         automatically persisted into the integration.
         """
-        self.integration: APIIntegration
-
         token: str | None = self.integration.metadata.get("access_token")
         expires_at: str | None = self.integration.metadata.get("expires_at")
 
@@ -339,16 +336,12 @@ class GitHubClientMixin(ApiClient):  # type: ignore
             or (datetime.strptime(expires_at, "%Y-%m-%dT%H:%M:%S") < datetime.utcnow())
             or force_refresh
         ):
-            from copy import deepcopy
-
             res = self.create_token()
             token = res["token"]
             expires_at = datetime.strptime(res["expires_at"], "%Y-%m-%dT%H:%M:%SZ").isoformat()
-            new_metadata = deepcopy(self.integration.metadata)
-            new_metadata.update({"access_token": token, "expires_at": expires_at})
-            self.integration = integration_service.update_integration(  # type: ignore
-                integration_id=self.integration.id, metadata=new_metadata
-            )
+
+            self.integration.metadata.update({"access_token": token, "expires_at": expires_at})
+            self.integration.save()
 
         return token or ""
 

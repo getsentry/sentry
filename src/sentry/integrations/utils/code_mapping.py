@@ -417,7 +417,7 @@ def create_code_mapping(
         stack_root=code_mapping.stacktrace_root,
         defaults={
             "repository": repository,
-            "organization_integration_id": organization_integration.id,
+            "organization_integration": organization_integration,
             "source_root": code_mapping.source_path,
             "default_branch": code_mapping.repo.branch,
             "automatically_generated": True,

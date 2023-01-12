@@ -4,7 +4,13 @@ from django.core import mail
 
 from sentry import roles
 from sentry.api.endpoints.organization_member.index import OrganizationMemberSerializer
-from sentry.models import Authenticator, InviteStatus, OrganizationMember, OrganizationMemberTeam
+from sentry.models import (
+    Authenticator,
+    Integration,
+    InviteStatus,
+    OrganizationMember,
+    OrganizationMemberTeam,
+)
 from sentry.testutils import APITestCase, TestCase
 from sentry.testutils.helpers import Feature, with_feature
 from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
@@ -518,9 +524,10 @@ class OrganizationMemberPermissionRoleTest(OrganizationMemberListTestBase):
 
     def test_user_has_external_user_associations_across_multiple_orgs(self):
         organization = self.create_organization(owner=self.user2)
-        integration = self.create_integration(
-            organization=self.organization, external_id="github:2", name="GitHub", provider="github"
+        integration = Integration.objects.create(
+            provider="github", name="GitHub", external_id="github:2"
         )
+        integration.add_organization(organization, self.user2)
         self.create_external_user(self.user2, organization, integration=integration)
 
         response = self.get_success_response(

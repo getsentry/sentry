@@ -1,6 +1,4 @@
-from __future__ import annotations
-
-from typing import Any, Mapping
+from typing import Any
 
 import pytest
 from django.utils.functional import cached_property
@@ -391,7 +389,7 @@ class Fixtures:
 
     def create_slack_integration(
         self,
-        organization: Organization,
+        organization: "Organization",
         external_id: str = "TXXXXXXX1",
         user: APIUser = None,
         identity_external_id: str = "UXXXXXXX1",
@@ -409,13 +407,9 @@ class Fixtures:
         return integration
 
     def create_integration(
-        self,
-        organization: Organization,
-        external_id: str,
-        oi_params: Mapping[str, Any] | None = None,
-        **kwargs: Any,
+        self, organization: Organization, external_id: str, **kwargs: Any
     ) -> Integration:
-        return Factories.create_integration(organization, external_id, oi_params, **kwargs)
+        return Factories.create_integration(organization, external_id, **kwargs)
 
     def create_identity(self, *args, **kwargs):
         return Factories.create_identity(*args, **kwargs)

@@ -1,5 +1,6 @@
 from unittest.mock import patch
 
+from sentry.models import Integration
 from sentry.testutils import APITestCase
 from sentry.testutils.silo import region_silo_test
 
@@ -11,9 +12,8 @@ class OrganizationIntegrationReposTest(APITestCase):
 
         self.login_as(user=self.user)
         self.org = self.create_organization(owner=self.user, name="baz")
-        self.integration = self.create_integration(
-            organization=self.org, provider="github", name="Example", external_id="github:1"
-        )
+        self.integration = Integration.objects.create(provider="github", name="Example")
+        self.integration.add_organization(self.org, self.user)
         self.path = (
             f"/api/0/organizations/{self.org.slug}/integrations/{self.integration.id}/repos/"
         )
@@ -36,9 +36,8 @@ class OrganizationIntegrationReposTest(APITestCase):
         }
 
     def test_no_repository_method(self):
-        integration = self.create_integration(
-            organization=self.org, provider="example", name="Example", external_id="example:1"
-        )
+        integration = Integration.objects.create(provider="example", name="Example")
+        integration.add_organization(self.org, self.user)
         path = f"/api/0/organizations/{self.org.slug}/integrations/{integration.id}/repos/"
         response = self.client.get(path, format="json")
 
