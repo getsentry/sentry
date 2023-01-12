@@ -18,7 +18,6 @@ import SearchBar from 'sentry/components/searchBar';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import Switch from 'sentry/components/switchButton';
 import {t} from 'sentry/locale';
-import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
 import {Organization, SavedQuery, SelectValue} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
@@ -240,9 +239,9 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
 
   renderNoAccess() {
     return (
-      <PageContent>
+      <Layout.Page withPadding>
         <Alert type="warning">{t("You don't have access to this feature")}</Alert>
-      </PageContent>
+      </Layout.Page>
     );
   }
 
@@ -296,7 +295,7 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
         renderDisabled={this.renderNoAccess}
       >
         <SentryDocumentTitle title={t('Discover')} orgSlug={organization.slug}>
-          <StyledPageContent>
+          <Layout.Page>
             <NoProjectMessage organization={organization}>
               <Layout.Header>
                 <Layout.HeaderContent>
@@ -336,16 +335,12 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
                 </Layout.Main>
               </Layout.Body>
             </NoProjectMessage>
-          </StyledPageContent>
+          </Layout.Page>
         </SentryDocumentTitle>
       </Feature>
     );
   }
 }
-
-const StyledPageContent = styled(PageContent)`
-  padding: 0;
-`;
 
 const StyledHeading = styled(PageHeading)`
   line-height: 40px;

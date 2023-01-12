@@ -15,6 +15,7 @@ import {addMessage} from 'sentry/actionCreators/indicator';
 import {fetchOrgMembers, indexMembersByProject} from 'sentry/actionCreators/members';
 import {fetchTagValues, loadOrganizationTags} from 'sentry/actionCreators/tags';
 import {Client} from 'sentry/api';
+import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
 import Pagination, {CursorHandler} from 'sentry/components/pagination';
@@ -24,7 +25,6 @@ import ProcessingIssueList from 'sentry/components/stream/processingIssueList';
 import {DEFAULT_QUERY, DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t, tct, tn} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
-import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
 import {
   BaseGroup,
@@ -955,9 +955,9 @@ class IssueListOverview extends Component<Props, State> {
 
   renderLoading(): React.ReactNode {
     return (
-      <PageContent>
+      <Layout.Page withPadding>
         <LoadingIndicator />
-      </PageContent>
+      </Layout.Page>
     );
   }
 
@@ -1175,7 +1175,7 @@ class IssueListOverview extends Component<Props, State> {
     );
 
     return (
-      <StyledPageContent>
+      <Layout.Page>
         <IssueListHeader
           organization={organization}
           query={query}
@@ -1254,7 +1254,7 @@ class IssueListOverview extends Component<Props, State> {
             sort={this.getSort()}
           />
         </StyledBody>
-      </StyledPageContent>
+      </Layout.Page>
     );
   }
 }
@@ -1305,8 +1305,4 @@ const StyledPagination = styled(Pagination)`
 
 const StyledQueryCount = styled(QueryCount)`
   margin-left: 0;
-`;
-
-const StyledPageContent = styled(PageContent)`
-  padding: 0;
 `;

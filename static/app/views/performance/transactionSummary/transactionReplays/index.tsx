@@ -6,7 +6,6 @@ import Alert from 'sentry/components/alert';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import {PageContent} from 'sentry/styles/organization';
 import type {Organization, Project} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import {
@@ -35,9 +34,9 @@ type Props = {
 
 function renderNoAccess() {
   return (
-    <PageContent>
+    <Layout.Page withPadding>
       <Alert type="warning">{t("You don't have access to this feature")}</Alert>
-    </PageContent>
+    </Layout.Page>
   );
 }
 

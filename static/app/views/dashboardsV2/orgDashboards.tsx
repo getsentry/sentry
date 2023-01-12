@@ -6,10 +6,10 @@ import isEqual from 'lodash/isEqual';
 import {Client} from 'sentry/api';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import NotFound from 'sentry/components/errors/notFound';
+import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import {PageContent} from 'sentry/styles/organization';
 import {Organization} from 'sentry/types';
 import withRouteAnalytics, {
   WithRouteAnalyticsProps,
@@ -143,9 +143,9 @@ class OrgDashboards extends AsyncComponent<Props, State> {
 
   renderLoading() {
     return (
-      <PageContent>
+      <Layout.Page withPadding>
         <LoadingIndicator />
-      </PageContent>
+      </Layout.Page>
     );
   }
 

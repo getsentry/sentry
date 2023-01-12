@@ -5,8 +5,8 @@ import * as Sentry from '@sentry/react';
 import {Location} from 'history';
 import first from 'lodash/first';
 
+import * as Layout from 'sentry/components/layouts/thirds';
 import Pagination from 'sentry/components/pagination';
-import {PageContent} from 'sentry/styles/organization';
 import type {Group, Organization} from 'sentry/types';
 import {TableData} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
@@ -93,7 +93,7 @@ function GroupReplays({group}: Props) {
 
   if (!eventView) {
     return (
-      <StyledPageContent>
+      <StyledLayoutPage withPadding>
         <ReplayTable
           fetchError={fetchError}
           isFetching
@@ -108,7 +108,7 @@ function GroupReplays({group}: Props) {
           ]}
         />
         <Pagination pageLinks={null} />
-      </StyledPageContent>
+      </StyledLayoutPage>
     );
   }
   return (
@@ -140,7 +140,7 @@ const GroupReplaysTable = ({
   });
 
   return (
-    <StyledPageContent>
+    <StyledLayoutPage withPadding>
       <ReplayTable
         fetchError={fetchError}
         isFetching={isFetching}
@@ -155,11 +155,11 @@ const GroupReplaysTable = ({
         ]}
       />
       <Pagination pageLinks={pageLinks} />
-    </StyledPageContent>
+    </StyledLayoutPage>
   );
 };
 
-const StyledPageContent = styled(PageContent)`
+const StyledLayoutPage = styled(Layout.Page)`
   box-shadow: 0px 0px 1px ${p => p.theme.gray200};
   background-color: ${p => p.theme.background};
 `;

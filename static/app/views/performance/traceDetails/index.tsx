@@ -1,14 +1,13 @@
 import {Component} from 'react';
 import {RouteComponentProps} from 'react-router';
-import styled from '@emotion/styled';
 
 import {Client} from 'sentry/api';
+import * as Layout from 'sentry/components/layouts/thirds';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
-import {PageContent} from 'sentry/styles/organization';
 import {Organization} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
@@ -142,18 +141,14 @@ class TraceSummary extends Component<Props> {
 
     return (
       <SentryDocumentTitle title={this.getDocumentTitle()} orgSlug={organization.slug}>
-        <StyledPageContent>
+        <Layout.Page>
           <NoProjectMessage organization={organization}>
             {this.renderContent()}
           </NoProjectMessage>
-        </StyledPageContent>
+        </Layout.Page>
       </SentryDocumentTitle>
     );
   }
 }
 
 export default withOrganization(withApi(TraceSummary));
-
-const StyledPageContent = styled(PageContent)`
-  padding: 0;
-`;

@@ -20,7 +20,6 @@ import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import SearchBar from 'sentry/components/searchBar';
 import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
-import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -105,7 +104,7 @@ class Monitors extends AsyncView<Props, State> {
     const {organization} = this.props;
 
     return (
-      <StyledPageContent>
+      <Layout.Page>
         <Layout.Header>
           <Layout.HeaderContent>
             <StyledHeading>
@@ -170,23 +169,19 @@ class Monitors extends AsyncView<Props, State> {
                   )}
                 </p>
                 <ButtonList gap={1}>
-                  <Button href="https://docs.sentry.io/product/crons" external>
-                    {t('Read Docs')}
-                  </Button>
                   <NewMonitorButton>{t('Set up first cron monitor')}</NewMonitorButton>
+                  <Button href="https://docs.sentry.io/product/crons" external>
+                    {t('Read docs')}
+                  </Button>
                 </ButtonList>
               </OnboardingPanel>
             )}
           </Layout.Main>
         </Layout.Body>
-      </StyledPageContent>
+      </Layout.Page>
     );
   }
 }
-
-const StyledPageContent = styled(PageContent)`
-  padding: 0;
-`;
 
 const StyledHeading = styled(PageHeading)`
   line-height: 40px;

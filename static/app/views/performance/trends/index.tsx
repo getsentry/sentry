@@ -1,12 +1,11 @@
 import {Component} from 'react';
-import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import {Client} from 'sentry/api';
+import * as Layout from 'sentry/components/layouts/thirds';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import {PageContent} from 'sentry/styles/organization';
 import {Organization, PageFilters, Project} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import withApi from 'sentry/utils/withApi';
@@ -74,18 +73,14 @@ class TrendsSummary extends Component<Props, State> {
 
     return (
       <SentryDocumentTitle title={this.getDocumentTitle()} orgSlug={organization.slug}>
-        <StyledPageContent>
+        <Layout.Page>
           <NoProjectMessage organization={organization}>
             {this.renderContent()}
           </NoProjectMessage>
-        </StyledPageContent>
+        </Layout.Page>
       </SentryDocumentTitle>
     );
   }
 }
 
 export default withOrganization(withProjects(withPageFilters(withApi(TrendsSummary))));
-
-const StyledPageContent = styled(PageContent)`
-  padding: 0;
-`;

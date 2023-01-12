@@ -7,10 +7,10 @@ import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {Client, ResponseMeta} from 'sentry/api';
 import Alert from 'sentry/components/alert';
 import DateTime from 'sentry/components/dateTime';
+import * as Layout from 'sentry/components/layouts/thirds';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import {PageContent} from 'sentry/styles/organization';
 import {Organization, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {getUtcDateString} from 'sentry/utils/dates';
@@ -192,13 +192,13 @@ class MetricAlertDetails extends Component<Props, State> {
     const {error} = this.state;
 
     return (
-      <PageContent>
+      <Layout.Page withPadding>
         <Alert type="error" showIcon>
           {error?.status === 404
             ? t('This alert rule could not be found.')
             : t('An error occurred while fetching the alert rule.')}
         </Alert>
-      </PageContent>
+      </Layout.Page>
     );
   }
 
