@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from typing import Any
 
 from rest_framework import status
 from rest_framework.response import Response
@@ -111,7 +112,7 @@ def get_replay_id_mappings(
     return replay_id_to_issue_map
 
 
-def get_select_column(query: str) -> str:
+def get_select_column(query: str) -> tuple[str, list[Any]]:
     parsed_query = parse_search_query(query)
 
     select_column_conditions = [
