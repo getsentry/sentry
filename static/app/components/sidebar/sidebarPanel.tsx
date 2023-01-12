@@ -12,6 +12,9 @@ import {CommonSidebarProps} from './types';
 
 type PositionProps = Pick<CommonSidebarProps, 'orientation' | 'collapsed'>;
 
+// localStorage key to determine if user has entered email for Sandbox
+const sandboxEmailKey = 'sandbox_email_added';
+
 const PanelContainer = styled('div')<PositionProps>`
   position: fixed;
   bottom: 0;
@@ -83,7 +86,7 @@ function SidebarPanel({
       // If we are in Sandbox, don't hide panel when the modal is clicked (before the email is added)
       if (
         ConfigStore.get('demoMode') &&
-        window.localStorage.getItem('addedEmail') !== '1'
+        window.localStorage.getItem(sandboxEmailKey) !== '1'
       ) {
         return;
       }
