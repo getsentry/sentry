@@ -20,9 +20,10 @@ from typing import (
 
 from snuba_sdk import Column, Condition, Op
 
+from sentry import features
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS, CRASH_RATE_ALERT_SESSION_COUNT_ALIAS
 from sentry.exceptions import InvalidQuerySubscription, UnsupportedQuerySubscription
-from sentry.models import Environment
+from sentry.models import Environment, Organization
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.utils import (
     MetricIndexNotFound,
@@ -301,10 +302,9 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
             )
         self.org_id = extra_fields["org_id"]
         self.time_window = time_window
-        # We are going to use this flag across the class and its subclasses to explicitly signal that we want to query
-        # metrics via the metrics layer. This flag and all of the connected conditions can be removed once we
-        # exclusively want to use the metrics layer.
-        self.use_metrics_layer = self.dataset in {Dataset.Metrics, Dataset.PerformanceMetrics}
+        self.use_metrics_layer = features.has(
+            "organizations:use-metrics-layer", Organization.objects.get_from_cache(id=self.org_id)
+        )
 
     @abstractmethod
     def get_snql_aggregations(self) -> List[str]:
@@ -362,7 +362,6 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
             params = {}
 
         query = apply_dataset_query_conditions(self.query_type, query, None)
-
         params["project_id"] = project_ids
         qb = AlertMetricsQueryBuilder(
             dataset=Dataset(self.dataset.value),
