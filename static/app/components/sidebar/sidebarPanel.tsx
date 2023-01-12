@@ -4,16 +4,13 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {IconClose} from 'sentry/icons';
-import ConfigStore from 'sentry/stores/configStore';
+import HookStore from 'sentry/stores/hookStore';
 import {slideInLeft} from 'sentry/styles/animations';
 import space from 'sentry/styles/space';
 
 import {CommonSidebarProps} from './types';
 
 type PositionProps = Pick<CommonSidebarProps, 'orientation' | 'collapsed'>;
-
-// localStorage key to determine if user has entered email for Sandbox
-const sandboxEmailKey = 'sandbox_email_added';
 
 const PanelContainer = styled('div')<PositionProps>`
   position: fixed;
@@ -84,10 +81,8 @@ function SidebarPanel({
       }
 
       // If we are in Sandbox, don't hide panel when the modal is clicked (before the email is added)
-      if (
-        ConfigStore.get('demoMode') &&
-        window.localStorage.getItem(sandboxEmailKey) !== '1'
-      ) {
+      const blockHideSidebar = HookStore.get('onboarding:block-hide-sidebar')[0]?.();
+      if (blockHideSidebar) {
         return;
       }
       hidePanel();
