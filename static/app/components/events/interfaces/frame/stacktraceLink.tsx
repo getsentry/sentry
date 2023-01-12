@@ -134,9 +134,7 @@ function CodecovLink({sourceUrl, codecovStatusCode}: CodecovLinkProps) {
     return (
       <CodecovWarning>
         {t('Code Coverage not found')}
-        <WarningIcon>
-          <IconWarning size="xs" color="errorText" />
-        </WarningIcon>
+        <IconWarning size="xs" color="errorText" />
       </CodecovWarning>
     );
   }
@@ -398,9 +396,5 @@ const CodecovWarning = styled('div')`
   display: flex;
   color: ${p => p.theme.errorText};
   gap: ${space(0.75)};
-`;
-
-const WarningIcon = styled('div')`
-  display: flex;
   align-items: center;
 `;
