@@ -14,7 +14,7 @@ pytestmark = pytest.mark.sentry_metrics
 
 
 @region_silo_test
-class OrganizationIssueReplayCountEndpointTest(APITestCase, SnubaTestCase, ReplaysSnubaTestCase):
+class OrganizationReplayCountEndpointTest(APITestCase, SnubaTestCase, ReplaysSnubaTestCase):
     def setUp(self):
         super().setUp()
         self.min_ago = before_now(minutes=1)
