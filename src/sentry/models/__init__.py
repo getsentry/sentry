@@ -105,7 +105,7 @@ from .scheduledjob import *  # NOQA
 from .search_common import *  # NOQA
 from .sentryfunction import *  # NOQA
 from .servicehook import *  # NOQA
-from .sourcemaperror import *  # NOQA
+from .sourcemapprocessingissue import *  # NOQA
 from .team import *  # NOQA
 from .tombstone import *  # NOQA
 from .transaction_threshold import *  # NOQA

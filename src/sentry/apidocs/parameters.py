@@ -169,10 +169,10 @@ class EVENT_PARAMS:
         description="The id of the event",
     )
 
-    FRAME = OpenApiParameter(
-        name="frame",
+    FRAME_IDX = OpenApiParameter(
+        name="frame_idx",
         location="query",
         required=True,  # TODO: make not required
         type=int,
-        description="Position of the frame that should be used for source map resolution.",
+        description="Index of the frame that should be used for source map resolution.",
     )

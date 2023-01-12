@@ -27,7 +27,7 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         )
         assert (
             resp.data["detail"]
-            == "Endpoint not avaialable without 'organizations:fix-source-map-cta' feature flag"
+            == "Endpoint not available without 'organizations:fix-source-map-cta' feature flag"
         )
 
     @with_feature("organizations:fix-source-map-cta")
@@ -36,7 +36,7 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
             self.organization.slug,
             self.project.slug,
             "invalid_id",
-            frame=0,
+            frame_idx=0,
             status_code=status.HTTP_404_NOT_FOUND,
         )
         assert resp.data["detail"] == "Event not found"
@@ -52,7 +52,7 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
             event.event_id,
             status_code=status.HTTP_400_BAD_REQUEST,
         )
-        assert resp.data["detail"] == "Query parameter 'frame' is required"
+        assert resp.data["detail"] == "Query parameter 'frame_idx' is required"
 
     @with_feature("organizations:fix-source-map-cta")
     def test_no_errors(self):
@@ -60,9 +60,8 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
             data={"event_id": "a" * 32, "release": "my-release"}, project_id=self.project.id
         )
         resp = self.get_success_response(
-            self.organization.slug, self.project.slug, event.event_id, frame=0
+            self.organization.slug, self.project.slug, event.event_id, frame_idx=0
         )
-        assert resp.data["errorCount"] == 0
         assert resp.data["errors"] == []
 
     @with_feature("organizations:fix-source-map-cta")
@@ -73,9 +72,8 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         )
 
         resp = self.get_success_response(
-            self.organization.slug, self.project.slug, event.event_id, frame=0
+            self.organization.slug, self.project.slug, event.event_id, frame_idx=0
         )
-        assert resp.data["errorCount"] == 1
         error = resp.data["errors"][0]
         assert error["type"] == "no_release_on_event"
-        assert error["message"] == "The event is not tagged with a release"
+        assert error["message"] == "The event is missing a release"
