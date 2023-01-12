@@ -155,6 +155,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     scrubIPAddresses = serializers.BooleanField(required=False)
     scrapeJavaScript = serializers.BooleanField(required=False)
     isEarlyAdopter = serializers.BooleanField(required=False)
+    codecovAccess = serializers.BooleanField(required=False)
     require2FA = serializers.BooleanField(required=False)
     requireEmailVerification = serializers.BooleanField(required=False)
     trustedRelays = ListField(child=TrustedRelaySerializer(), required=False)
@@ -360,6 +361,8 @@ class OrganizationSerializer(BaseOrganizationSerializer):
             org.flags.enhanced_privacy = data["enhancedPrivacy"]
         if "isEarlyAdopter" in data:
             org.flags.early_adopter = data["isEarlyAdopter"]
+        if "codecovAccess" in data:
+            org.flags.codecov_access = data["codecovAccess"]
         if "require2FA" in data:
             org.flags.require_2fa = data["require2FA"]
         if (
@@ -382,6 +385,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
                 "disable_shared_issues": org.flags.disable_shared_issues.is_set,
                 "early_adopter": org.flags.early_adopter.is_set,
                 "require_2fa": org.flags.require_2fa.is_set,
+                "codecov_access": org.flags.codecov_access.is_set,
             },
         }
 

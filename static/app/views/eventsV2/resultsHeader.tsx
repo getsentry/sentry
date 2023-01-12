@@ -9,7 +9,6 @@ import {fetchSavedQuery} from 'sentry/actionCreators/discoverSavedQueries';
 import {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import {Title} from 'sentry/components/layouts/thirds';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
@@ -145,10 +144,10 @@ class ResultsHeader extends Component<Props, State> {
 
     return (
       <Layout.Header>
-        <StyledHeaderContent>
+        <Layout.HeaderContent>
           {isHomepage ? (
-            <StyledTitle>
-              <GuideAnchor target="discover_landing_header">
+            <GuideAnchor target="discover_landing_header">
+              <Layout.Title>
                 {t('Discover')}
                 <PageHeadingQuestionTooltip
                   title={tct(
@@ -160,8 +159,8 @@ class ResultsHeader extends Component<Props, State> {
                     }
                   )}
                 />
-              </GuideAnchor>
-            </StyledTitle>
+              </Layout.Title>
+            </GuideAnchor>
           ) : (
             <Fragment>
               <DiscoverBreadcrumb
@@ -179,7 +178,7 @@ class ResultsHeader extends Component<Props, State> {
             </Fragment>
           )}
           {this.renderAuthor()}
-        </StyledHeaderContent>
+        </Layout.HeaderContent>
         <Layout.HeaderActions>
           <SavedQueryButtonGroup
             setSavedQuery={setSavedQuery}
@@ -222,17 +221,8 @@ const Subtitle = styled('h4')`
   margin: ${space(0.5)} 0 0 0;
 `;
 
-const StyledHeaderContent = styled(Layout.HeaderContent)`
-  overflow: unset;
-`;
-
 const BannerWrapper = styled('div')`
   grid-column: 1 / -1;
-`;
-
-const StyledTitle = styled(Title)`
-  overflow: unset;
-  margin-top: 0;
 `;
 
 export default withApi(ResultsHeader);

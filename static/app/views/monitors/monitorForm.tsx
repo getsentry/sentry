@@ -5,13 +5,16 @@ import {Observer} from 'mobx-react';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import NumberField from 'sentry/components/forms/fields/numberField';
 import SelectField from 'sentry/components/forms/fields/selectField';
+import SentryProjectSelectorField from 'sentry/components/forms/fields/sentryProjectSelectorField';
 import TextField from 'sentry/components/forms/fields/textField';
 import Form, {FormProps} from 'sentry/components/forms/form';
 import FormModel from 'sentry/components/forms/model';
+import ExternalLink from 'sentry/components/links/externalLink';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import TextCopyInput from 'sentry/components/textCopyInput';
-import {t, tct} from 'sentry/locale';
+import {t, tct, tn} from 'sentry/locale';
 import {PageFilters, Project, SelectValue} from 'sentry/types';
+import commonTheme from 'sentry/utils/theme';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import withProjects from 'sentry/utils/withProjects';
 
@@ -24,13 +27,13 @@ const SCHEDULE_TYPES: SelectValue<ScheduleType>[] = [
 
 const DEFAULT_MONITOR_TYPE = 'cron_job';
 
-const INTERVALS: SelectValue<string>[] = [
-  {value: 'minute', label: 'minute(s)'},
-  {value: 'hour', label: 'hour(s)'},
-  {value: 'day', label: 'day(s)'},
-  {value: 'week', label: 'week(s)'},
-  {value: 'month', label: 'month(s)'},
-  {value: 'year', label: 'year(s)'},
+const getIntervals = (n: number): SelectValue<string>[] => [
+  {value: 'minute', label: tn('minute', 'minutes', n)},
+  {value: 'hour', label: tn('hour', 'hours', n)},
+  {value: 'day', label: tn('day', 'days', n)},
+  {value: 'week', label: tn('week', 'weeks', n)},
+  {value: 'month', label: tn('month', 'months', n)},
+  {value: 'year', label: tn('year', 'years', n)},
 ];
 
 type Props = {
@@ -141,12 +144,11 @@ class MonitorForm extends Component<Props> {
                 </div>
               </FieldGroup>
             )}
-            <SelectField
+            <SentryProjectSelectorField
               name="project"
               label={t('Project')}
-              options={this.props.projects
-                .filter(p => p.isMember)
-                .map(p => ({value: p.slug, label: p.slug}))}
+              projects={this.props.projects.filter(project => project.isMember)}
+              valueIsSlug
               help={t(
                 "Select the project which contains the recurring job you'd like to monitor."
               )}
@@ -192,9 +194,12 @@ class MonitorForm extends Component<Props> {
                           help={tct(
                             'Any schedule changes will be applied to the next check-in. See [link:Wikipedia] for crontab syntax.',
                             {
-                              link: <a href="https://en.wikipedia.org/wiki/Cron" />,
+                              link: (
+                                <ExternalLink href="https://en.wikipedia.org/wiki/Cron" />
+                              ),
                             }
                           )}
+                          css={{input: {fontFamily: commonTheme.text.familyMono}}}
                         />
                         <NumberField
                           name="config.checkin_margin"
@@ -228,7 +233,9 @@ class MonitorForm extends Component<Props> {
                           <StyledSelectField
                             name="config.schedule.interval"
                             label={t('Interval')}
-                            options={INTERVALS}
+                            options={getIntervals(
+                              Number(this.form.getValue('config.schedule.frequency') ?? 1)
+                            )}
                             hideLabel
                             required
                           />

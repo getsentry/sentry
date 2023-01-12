@@ -629,10 +629,12 @@ class ReplayOrganizationTagKeyValuesTest(OrganizationTagKeyTestCase, ReplaysSnub
 
     def test_simple(self):
         self.run_test("fruit", expected=[("orange", 2), ("apple", 1)])
+        self.run_test("replay_type", expected=[("session", 3)])
+        self.run_test("environment", expected=[("production", 3)])
+        self.run_test("dist", expected=[("abc123", 3)])
         self.run_test(
             "url", expected=[("http://localhost:3000/login", 3), ("http://localhost:3000/", 3)]
         )
-        self.run_test("dist", expected=[("abc123", 3)])
         self.run_test("platform", expected=[("javascript", 3)])
         self.run_test("release", expected=[("version@1.3", 3)])
         self.run_test("user.id", expected=[("123", 3)])

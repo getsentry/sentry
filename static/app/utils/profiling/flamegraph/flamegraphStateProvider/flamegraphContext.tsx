@@ -32,7 +32,10 @@ export const DEFAULT_FLAMEGRAPH_STATE: FlamegraphState = {
   },
   search: {
     index: null,
-    results: new Map(),
+    results: {
+      frames: new Map(),
+      spans: new Map(),
+    },
     query: '',
   },
 };

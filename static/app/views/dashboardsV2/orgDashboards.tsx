@@ -6,14 +6,15 @@ import isEqual from 'lodash/isEqual';
 import {Client} from 'sentry/api';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import NotFound from 'sentry/components/errors/notFound';
+import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import {PageContent} from 'sentry/styles/organization';
 import {Organization} from 'sentry/types';
 import withRouteAnalytics, {
   WithRouteAnalyticsProps,
 } from 'sentry/utils/routeAnalytics/withRouteAnalytics';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 import {assignTempId} from './layoutUtils';
 import {DashboardDetails, DashboardListItem} from './types';
@@ -130,20 +131,21 @@ class OrgDashboards extends AsyncComponent<Props, State> {
     // If we don't have a selected dashboard, and one isn't going to arrive
     // we can redirect to the first dashboard in the list.
     const dashboardId = data.length ? data[0].id : 'default-overview';
-    const url = `/organizations/${organization.slug}/dashboard/${dashboardId}/`;
-    browserHistory.replace({
-      pathname: url,
-      query: {
-        ...location.query,
-      },
-    });
+    browserHistory.replace(
+      normalizeUrl({
+        pathname: `/organizations/${organization.slug}/dashboard/${dashboardId}/`,
+        query: {
+          ...location.query,
+        },
+      })
+    );
   }
 
   renderLoading() {
     return (
-      <PageContent>
+      <Layout.Page withPadding>
         <LoadingIndicator />
-      </PageContent>
+      </Layout.Page>
     );
   }
 
@@ -190,12 +192,14 @@ class OrgDashboards extends AsyncComponent<Props, State> {
 
     if (!organization.features.includes('dashboards-basic')) {
       // Redirect to Dashboards v1
-      browserHistory.replace({
-        pathname: `/organizations/${organization.slug}/dashboards/`,
-        query: {
-          ...location.query,
-        },
-      });
+      browserHistory.replace(
+        normalizeUrl({
+          pathname: `/organizations/${organization.slug}/dashboards/`,
+          query: {
+            ...location.query,
+          },
+        })
+      );
       return null;
     }
 

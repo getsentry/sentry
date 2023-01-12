@@ -279,15 +279,13 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
               ]}
             />
             <Layout.Title>
-              <RuleName>
-                <IdBadge
-                  project={project}
-                  avatarSize={28}
-                  hideName
-                  avatarProps={{hasTooltip: true, tooltip: project.slug}}
-                />
-                {rule.name}
-              </RuleName>
+              <IdBadge
+                project={project}
+                avatarSize={28}
+                hideName
+                avatarProps={{hasTooltip: true, tooltip: project.slug}}
+              />
+              {rule.name}
             </Layout.Title>
           </Layout.HeaderContent>
           <Layout.HeaderActions>
@@ -355,13 +353,6 @@ export default AlertRuleDetails;
 
 const StyledPageTimeRangeSelector = styled(PageTimeRangeSelector)`
   margin-bottom: ${space(2)};
-`;
-
-const RuleName = styled('div')`
-  display: grid;
-  grid-template-columns: max-content 1fr;
-  grid-column-gap: ${space(1)};
-  align-items: center;
 `;
 
 const StyledLoadingError = styled(LoadingError)`

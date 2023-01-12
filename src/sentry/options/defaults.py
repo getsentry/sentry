@@ -557,6 +557,10 @@ register("sentry-metrics.cardinality-limiter.orgs-rollout-rate", default=0.0)
 register("sentry-metrics.releasehealth.abnormal-mechanism-extraction-rate", default=0.0)
 
 # Individual system-wide options in case we need to turn off specific detectors for load concerns, ignoring the set project options.
+register("performance.issues.compressed_assets.problem-creation", default=0.0)
+register("performance.issues.compressed_assets.la-rollout", default=0.0)
+register("performance.issues.compressed_assets.ea-rollout", default=0.0)
+register("performance.issues.compressed_assets.ga-rollout", default=0.0)
 register("performance.issues.consecutive_db.problem-creation", default=0.0)
 register("performance.issues.consecutive_db.la-rollout", default=0.0)
 register("performance.issues.consecutive_db.ea-rollout", default=0.0)

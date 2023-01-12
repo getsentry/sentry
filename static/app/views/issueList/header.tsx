@@ -142,7 +142,7 @@ function IssueListHeader({
   return (
     <Layout.Header>
       <Layout.HeaderContent>
-        <StyledLayoutTitle>
+        <Layout.Title>
           {t('Issues')}
           <PageHeadingQuestionTooltip
             title={tct(
@@ -150,7 +150,7 @@ function IssueListHeader({
               {link: <ExternalLink href="https://docs.sentry.io/product/issues/" />}
             )}
           />
-        </StyledLayoutTitle>
+        </Layout.Title>
       </Layout.HeaderContent>
       <Layout.HeaderActions>
         <ButtonBar gap={1}>
@@ -227,10 +227,6 @@ function IssueListHeader({
 }
 
 export default IssueListHeader;
-
-const StyledLayoutTitle = styled(Layout.Title)`
-  margin-top: ${space(0.5)};
-`;
 
 const StyledGlobalEventProcessingAlert = styled(GlobalEventProcessingAlert)`
   grid-column: 1/-1;

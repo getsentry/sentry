@@ -206,7 +206,9 @@ describe('OrganizationMembersList', function () {
 
     expect(deleteMock).toHaveBeenCalled();
     expect(browserHistory.push).toHaveBeenCalledTimes(1);
-    expect(browserHistory.push).toHaveBeenCalledWith(`/${secondOrg.slug}/`);
+    expect(browserHistory.push).toHaveBeenCalledWith(
+      `/organizations/${secondOrg.slug}/issues/`
+    );
     expect(OrganizationsStore.getAll()).toEqual([secondOrg]);
   });
 

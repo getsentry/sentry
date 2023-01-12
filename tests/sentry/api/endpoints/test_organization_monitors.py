@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from sentry.models import Monitor, MonitorStatus, MonitorType, ScheduleType
 from sentry.testutils import APITestCase
 from sentry.testutils.silo import region_silo_test
@@ -32,7 +34,8 @@ class ListOrganizationMonitorsTest(OrganizationMonitorsTestBase):
 class CreateOrganizationMonitorTest(OrganizationMonitorsTestBase):
     method = "post"
 
-    def test_simple(self):
+    @patch("sentry.analytics.record")
+    def test_simple(self, mock_record):
         data = {
             "project": self.project.slug,
             "name": "My Monitor",
@@ -55,3 +58,13 @@ class CreateOrganizationMonitorTest(OrganizationMonitorsTestBase):
             "checkin_margin": None,
             "max_runtime": None,
         }
+
+        self.project.refresh_from_db()
+        assert self.project.flags.has_cron_monitors
+
+        mock_record.assert_called_with(
+            "first_cron_monitor.created",
+            user_id=self.user.id,
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+        )
