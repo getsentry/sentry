@@ -1,11 +1,15 @@
 import {Fragment, useEffect, useState} from 'react';
+import {Location} from 'history';
+import pick from 'lodash/pick';
 import round from 'lodash/round';
 
 import {doSessionsRequest} from 'sentry/actionCreators/sessions';
+import Button from 'sentry/components/button';
 import {shouldFetchPreviousPeriod} from 'sentry/components/charts/utils';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {parseStatsPeriod} from 'sentry/components/organizations/timeRangeSelector/utils';
 import ScoreCard from 'sentry/components/scoreCard';
+import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {IconArrow} from 'sentry/icons/iconArrow';
 import {t} from 'sentry/locale';
 import {PageFilters} from 'sentry/types';
@@ -20,6 +24,7 @@ import {
 
 type Props = {
   isProjectStabilized: boolean;
+  location: Location;
   organization: Organization;
   selection: PageFilters;
   query?: string;
@@ -29,6 +34,7 @@ export function ProjectAnrScoreCard({
   isProjectStabilized,
   organization,
   selection,
+  location,
   query,
 }: Props) {
   const {environments, projects, datetime} = selection;
@@ -142,6 +148,29 @@ export function ProjectAnrScoreCard({
     ) : null;
   }
 
+  const endpointPath = `/organizations/${organization.slug}/issues/`;
+
+  const issueQuery = ['mechanism:ANR', query].join(' ').trim();
+
+  const queryParams = {
+    ...normalizeDateTimeParams(pick(location.query, [...Object.values(URL_PARAM)])),
+    query: issueQuery,
+    sort: 'freq',
+  };
+
+  const issueSearch = {
+    pathname: endpointPath,
+    query: queryParams,
+  };
+
+  function renderButton() {
+    return (
+      <Button data-test-id="issues-open" size="xs" to={issueSearch}>
+        {t('Open in Issues')}
+      </Button>
+    );
+  }
+
   return (
     <ScoreCard
       title={t('Foreground ANR Rate')}
@@ -149,6 +178,7 @@ export function ProjectAnrScoreCard({
       score={value ? formatPercentage(value, 3) : '\u2014'}
       trend={renderTrend()}
       trendStatus={trendStatus}
+      renderButton={renderButton}
     />
   );
 }
