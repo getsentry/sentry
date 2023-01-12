@@ -2342,7 +2342,7 @@ urlpatterns = [
     url(
         r"^profiling/projects/(?P<project_id>[\w_-]+)/profile/(?P<profile_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/",
         ProjectProfilingEventEndpoint.as_view(),
-        name="",
+        name="sentry-api-0-profiling-project-profile",
     ),
     # Groups
     url(r"^(?:issues|groups)/", include(GROUP_URLS)),
