@@ -9,7 +9,6 @@ import userEvent from '@testing-library/user-event'; // eslint-disable-line no-r
 import {makeTestQueryClient} from 'sentry-test/queryClient';
 
 import GlobalModal from 'sentry/components/globalModal';
-import {ROOT_ELEMENT} from 'sentry/constants';
 import {Organization} from 'sentry/types';
 import {QueryClientProvider} from 'sentry/utils/queryClient';
 import {lightTheme} from 'sentry/utils/theme';
@@ -113,12 +112,7 @@ function render(ui: React.ReactElement, options?: Options) {
 const fireEvent = rtl.fireEvent;
 
 function renderGlobalModal(options?: Options) {
-  const result = render(
-    <div id={ROOT_ELEMENT}>
-      <GlobalModal />
-    </div>,
-    options
-  );
+  const result = render(<GlobalModal />, options);
 
   /**
    * Helper that waits for the modal to be removed from the DOM. You may need to

@@ -127,20 +127,18 @@ function GlobalModal({onClose}: Props) {
     const body = document.querySelector('body');
     const root = document.getElementById(ROOT_ELEMENT);
 
-    if (!body || !root) {
-      return () => void 0;
-    }
-
     const reset = () => {
-      body.style.removeProperty('overflow');
-      root.removeAttribute('aria-hidden');
+      body?.style.removeProperty('overflow');
+      root?.removeAttribute('aria-hidden');
       focusTrap.current?.deactivate();
       document.removeEventListener('keydown', handleEscapeClose);
     };
 
     if (visible) {
-      body.style.overflow = 'hidden';
-      root.setAttribute('aria-hidden', 'true');
+      if (body) {
+        body.style.overflow = 'hidden';
+      }
+      root?.setAttribute('aria-hidden', 'true');
       focusTrap.current?.activate();
 
       document.addEventListener('keydown', handleEscapeClose);
