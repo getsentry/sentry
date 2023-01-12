@@ -246,7 +246,7 @@ class ProjectStacktraceLinkTest(BaseProjectStacktraceLink):
         assert response.data["error"] == "stack_root_mismatch"
         assert response.data["integrations"] == [serialized_integration(self.integration)]
 
-    @mock.patch("sentry.integrations.github.integration.GitHubIntegration.get_blame_for_file")
+    @mock.patch.object(ExampleIntegration, "get_blame_for_file")
     def test_get_commit_sha_valid_line_no(self, mock_blame):
         mock_blame.return_value = git_blame
         project_stacktrace_link_endpoint = ProjectStacktraceLinkEndpoint()
@@ -256,7 +256,7 @@ class ProjectStacktraceLinkTest(BaseProjectStacktraceLink):
         )
         assert commit_sha == "5c7dc040fe713f718193e28972b43db94e5097b4"
 
-    @mock.patch("sentry.integrations.github.integration.GitHubIntegration.get_blame_for_file")
+    @mock.patch.object(ExampleIntegration, "get_blame_for_file")
     def test_get_commit_sha_invalid_line_no(self, mock_blame):
         mock_blame.return_value = git_blame
         project_stacktrace_link_endpoint = ProjectStacktraceLinkEndpoint()

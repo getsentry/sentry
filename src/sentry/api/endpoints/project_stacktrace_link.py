@@ -10,7 +10,6 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
 from sentry.integrations import IntegrationFeatures
-from sentry.integrations.github.integration import GitHubIntegration
 from sentry.models import Integration, Project, RepositoryProjectPathConfig
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.event_frames import munged_filename_and_frames
@@ -190,9 +189,9 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
         current_config: JSONData,
     ) -> Optional[str]:
         commitSha = None
-        githubIntegration = GitHubIntegration(integration, organization_id)
+        integrationInstallation = integration.get_installation(organization_id=organization_id)
         try:
-            git_blame_list = githubIntegration.get_blame_for_file(
+            git_blame_list = integrationInstallation.get_blame_for_file(
                 current_config["repository"],
                 filepath,
                 current_config["config"]["defaultBranch"],
