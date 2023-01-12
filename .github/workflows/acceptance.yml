@@ -108,6 +108,9 @@ jobs:
           save-only: true
           snapshot-path: .artifacts/visual-snapshots
 
+      # This job runs when FE or BE changes happen.
+      # In order to prevent codecov confusion because we use the carryforward flag we should
+      # post to a different codecov flag
       - name: Handle artifacts
         uses: ./.github/actions/artifacts
         with:
@@ -185,9 +188,16 @@ jobs:
           save-only: true
           snapshot-path: .artifacts/visual-snapshots
 
+      # This job runs when FE or BE changes happen. This is because FE changes could affect the
+      # set up for running the acceptance tests.
+      # We only want to upload code coverage data for BE changes since the FE changes do not
+      # affect the code coverage score
       - name: Handle artifacts
         uses: ./.github/actions/artifacts
         if: needs.files-changed.outputs.backend_all == 'true'
+        with:
+          files: .artifacts/*.coverage.xml
+          type: backend
 
   chartcuterie:
     if: needs.files-changed.outputs.acceptance == 'true'
@@ -248,9 +258,16 @@ jobs:
           save-only: true
           snapshot-path: .artifacts/visual-snapshots
 
+      # This job runs when FE or BE changes happen. This is because FE changes could affect the
+      # set up for running the acceptance tests.
+      # We only want to upload code coverage data for BE changes since the FE changes do not
+      # affect the code coverage score
       - name: Handle artifacts
         uses: ./.github/actions/artifacts
         if: needs.files-changed.outputs.backend_all == 'true'
+        with:
+          files: .artifacts/*.coverage.xml
+          type: backend
 
   visual-diff:
     if: always()
