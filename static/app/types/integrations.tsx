@@ -162,12 +162,12 @@ export type LineCoverage = {
 };
 
 export type StacktraceLinkResult = {
-  codecovStatusCode: CodecovStatusCode;
   integrations: Integration[];
-  lineCoverage: LineCoverage[];
   attemptedUrl?: string;
+  codecovStatusCode?: CodecovStatusCode;
   config?: RepositoryProjectPathConfigWithIntegration;
   error?: StacktraceErrorMessage;
+  lineCoverage?: LineCoverage[];
   sourceUrl?: string;
 };
 
