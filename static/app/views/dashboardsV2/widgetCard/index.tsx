@@ -42,7 +42,15 @@ import {DashboardsMEPConsumer, DashboardsMEPProvider} from './dashboardsMEPConte
 import WidgetCardChartContainer from './widgetCardChartContainer';
 import WidgetCardContextMenu from './widgetCardContextMenu';
 
-export const SESSION_DURATION_INGESTION_STOP_DATE = new Date('2023-01-12');
+const SESSION_DURATION_INGESTION_STOP_DATE = new Date('2023-01-12');
+export const SESSION_DURATION_ALERT = (
+  <PanelAlert type="warning">
+    {t(
+      'session.duration is no longer being recorded as of %s. Data in this widget may be incomplete.',
+      getFormattedDate(SESSION_DURATION_INGESTION_STOP_DATE, 'MMM D, YYYY')
+    )}
+  </PanelAlert>
+);
 
 type DraggableProps = Pick<ReturnType<typeof useSortable>, 'attributes' | 'listeners'>;
 
@@ -289,14 +297,7 @@ class WidgetCard extends Component<Props, State> {
                 </Tooltip>
                 {this.renderContextMenu()}
               </WidgetHeader>
-              {hasSessionDuration && (
-                <PanelAlert type="warning">
-                  {t(
-                    'session.duration is no longer being recorded as of %s. Data in this widget may be incomplete.',
-                    getFormattedDate(SESSION_DURATION_INGESTION_STOP_DATE, 'MMM D, YYYY')
-                  )}
-                </PanelAlert>
-              )}
+              {hasSessionDuration && SESSION_DURATION_ALERT}
               {isWidgetInvalid ? (
                 <Fragment>
                   {renderErrorMessage?.('Widget query condition is invalid.')}

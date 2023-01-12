@@ -24,7 +24,6 @@ import GridEditable, {
   GridColumnOrder,
 } from 'sentry/components/gridEditable';
 import Pagination from 'sentry/components/pagination';
-import {PanelAlert} from 'sentry/components/panels';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {parseSearch} from 'sentry/components/searchSyntax/parser';
 import HighlightQuery from 'sentry/components/searchSyntax/renderer';
@@ -34,7 +33,7 @@ import {Organization, PageFilters, SelectValue} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import {getFormattedDate, getUtcDateString} from 'sentry/utils/dates';
+import {getUtcDateString} from 'sentry/utils/dates';
 import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {
@@ -60,7 +59,7 @@ import {
   getWidgetIssueUrl,
   getWidgetReleasesUrl,
 } from 'sentry/views/dashboardsV2/utils';
-import {SESSION_DURATION_INGESTION_STOP_DATE} from 'sentry/views/dashboardsV2/widgetCard';
+import {SESSION_DURATION_ALERT} from 'sentry/views/dashboardsV2/widgetCard';
 import WidgetCardChart, {
   AugmentedEChartDataZoomHandler,
   SLIDER_HEIGHT,
@@ -796,14 +795,7 @@ function WidgetViewerModal(props: Props) {
   function renderWidgetViewer() {
     return (
       <Fragment>
-        {hasSessionDuration && (
-          <PanelAlert type="warning">
-            {t(
-              'session.duration is no longer being recorded as of %s. Data in this widget may be incomplete.',
-              getFormattedDate(SESSION_DURATION_INGESTION_STOP_DATE, 'MMM D, YYYY')
-            )}
-          </PanelAlert>
-        )}
+        {hasSessionDuration && SESSION_DURATION_ALERT}
         {widget.displayType !== DisplayType.TABLE && (
           <Container
             height={
