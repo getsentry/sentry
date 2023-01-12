@@ -23,7 +23,7 @@ describe('OrganizationApiKeysList', function () {
 
     render(
       <OrganizationApiKeysList
-        params={{orgId: 'org-slug'}}
+        params={{}}
         routes={routes}
         keys={[TestStubs.ApiKey()]}
         router={router}

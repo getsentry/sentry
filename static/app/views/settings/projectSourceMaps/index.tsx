@@ -4,11 +4,7 @@ import {RouteComponentProps} from 'react-router';
 import {Organization, Project} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
 
-type RouteParams = {
-  orgId: string;
-};
-
-type Props = RouteComponentProps<RouteParams, {}> & {
+type Props = RouteComponentProps<{}, {}> & {
   children: React.ReactNode;
   organization: Organization;
   project: Project;
