@@ -189,6 +189,7 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
         filepath: str,
         current_config: JSONData,
     ) -> Optional[str]:
+        commitSha = None
         githubIntegration = GitHubIntegration(integration, organization_id)
         try:
             git_blame_list = githubIntegration.get_blame_for_file(
@@ -199,10 +200,11 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
             )
             for blame in git_blame_list:
                 if line_no >= blame["startingLine"] and line_no <= blame["endingLine"]:
-                    return str(blame["commit"]["oid"])
+                    commitSha = str(blame["commit"]["oid"])
+                    break
         except Exception:
             logger.exception("Could not get git blame")
-        return None
+        return commitSha
 
     def get(self, request: Request, project: Project) -> Response:
         ctx = generate_context(request.GET)
@@ -287,28 +289,25 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                     # When no code mapping have been matched we have not attempted a URL
                     if current_config["outcome"].get("attemptedUrl"):
                         result["attemptedUrl"] = current_config["outcome"]["attemptedUrl"]
-            try:
-                set_tags(scope, result)
-            except Exception:
-                logger.exception("Failed to set tags.")
 
                 result["commitSha"] = None
                 if features.has(
                     "organizations:codecov-stacktrace-integration", project.organization
                 ):
-                    integration = Integration.objects.filter(organizations=project.organization_id)[
-                        0
-                    ]
-                    line_no_str = ctx.get("line_no")
-                    line_no = int(line_no_str) if line_no_str else None
+                    integration = integrations.filter(provider="github")[0]
+                    line_no = ctx.get("line_no")
                     if line_no:
                         result["commitSha"] = self.get_commit_sha(
                             integration,
                             project.organization_id,
-                            line_no,
+                            int(line_no),
                             filepath,
                             current_config,
                         )
+            try:
+                set_tags(scope, result)
+            except Exception:
+                logger.exception("Failed to set tags.")
 
         if result["config"]:
             analytics.record(
