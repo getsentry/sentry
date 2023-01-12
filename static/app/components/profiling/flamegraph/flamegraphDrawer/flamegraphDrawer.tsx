@@ -16,6 +16,7 @@ import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
 import {invertCallTree} from 'sentry/utils/profiling/profile/utils';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
+import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 
 import {FlamegraphTreeTable} from './flamegraphTreeTable';
@@ -35,6 +36,7 @@ interface FlamegraphDrawerProps {
 
 const FlamegraphDrawer = memo(function FlamegraphDrawer(props: FlamegraphDrawerProps) {
   const params = useParams();
+  const orgSlug = useOrganization().slug;
   const flamegraphPreferences = useFlamegraphPreferences();
   const dispatch = useDispatchFlamegraphState();
 
@@ -191,13 +193,9 @@ const FlamegraphDrawer = memo(function FlamegraphDrawer(props: FlamegraphDrawerP
           <ExportProfileButton
             variant="xs"
             eventId={params.eventId}
-            orgId={params.orgId}
+            orgId={orgSlug}
             projectId={params.projectId}
-            disabled={
-              params.eventId === undefined ||
-              params.orgId === undefined ||
-              params.projectId === undefined
-            }
+            disabled={params.eventId === undefined || params.projectId === undefined}
           />
         </ProfilingDetailsListItem>
         <Separator />

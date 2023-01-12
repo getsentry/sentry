@@ -38,7 +38,7 @@ import {Monitor} from './types';
 
 type Props = AsyncView['props'] &
   WithRouteAnalyticsProps &
-  WithRouterProps<{orgId: string}> & {
+  WithRouterProps<{}> & {
     organization: Organization;
   };
 

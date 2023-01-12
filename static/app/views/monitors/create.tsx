@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {browserHistory, RouteComponentProps} from 'react-router';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
 import Breadcrumbs from 'sentry/components/breadcrumbs';
@@ -15,10 +15,9 @@ import CronsFeedbackButton from './cronsFeedbackButton';
 import MonitorForm from './monitorForm';
 import {Monitor} from './types';
 
-type Props = AsyncView['props'] &
-  RouteComponentProps<{orgId: string}, {}> & {
-    organization: Organization;
-  };
+type Props = AsyncView['props'] & {
+  organization: Organization;
+};
 
 class CreateMonitor extends AsyncView<Props, AsyncView['state']> {
   getTitle() {

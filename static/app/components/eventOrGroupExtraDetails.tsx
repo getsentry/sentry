@@ -16,7 +16,6 @@ import space from 'sentry/styles/space';
 import {Group, Organization} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import projectSupportsReplay from 'sentry/utils/replays/projectSupportsReplay';
-import {useParams} from 'sentry/utils/useParams';
 import withOrganization from 'sentry/utils/withOrganization';
 
 type Props = {
@@ -32,7 +31,6 @@ function EventOrGroupExtraDetails({
   showInboxTime,
   organization,
 }: Props) {
-  const params = useParams();
   const {
     id,
     lastSeen,
@@ -49,7 +47,7 @@ function EventOrGroupExtraDetails({
     inbox,
   } = data as Group;
 
-  const issuesPath = `/organizations/${params.orgId}/issues/`;
+  const issuesPath = `/organizations/${organization.slug}/issues/`;
 
   const showReplayCount =
     organization.features.includes('session-replay-ui') && projectSupportsReplay(project);
