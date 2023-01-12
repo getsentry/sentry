@@ -1,11 +1,9 @@
 import {RouteComponentProps} from 'react-router';
-import styled from '@emotion/styled';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import PageHeading from 'sentry/components/pageHeading';
 import Pagination from 'sentry/components/pagination';
 import {Panel} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
@@ -64,7 +62,7 @@ class OrganizationActivity extends AsyncView<Props, State> {
       <Layout.Page>
         <Layout.Header>
           <Layout.HeaderContent>
-            <StyledHeading>{t('Activity')}</StyledHeading>
+            <Layout.Title>{t('Activity')}</Layout.Title>
           </Layout.HeaderContent>
         </Layout.Header>
         <Layout.Body>
@@ -98,9 +96,5 @@ class OrganizationActivity extends AsyncView<Props, State> {
     );
   }
 }
-
-const StyledHeading = styled(PageHeading)`
-  line-height: 40px;
-`;
 
 export default withOrganization(OrganizationActivity);

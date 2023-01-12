@@ -72,21 +72,23 @@ export const HeaderActions = styled('div')`
 `;
 
 /**
- * Heading container that includes margins.
+ * Heading title
+ *
+ * Includes flex gap for additional items placed with the text (such as feature
+ * badges or ID badges)
  */
-export const Title = styled('h1')`
+export const Title = styled('h1')<{withMargins?: boolean}>`
+  ${p => p.theme.overflowEllipsis};
   ${p => p.theme.text.pageTitle};
   color: ${p => p.theme.headingColor};
-  margin-top: ${space(2)};
-  /* TODO(bootstrap) Remove important when bootstrap headings are removed */
-  margin-bottom: 0 !important;
-  min-height: 30px;
-  align-self: center;
-  ${p => p.theme.overflowEllipsis};
+  margin: 0;
+  margin-bottom: ${p => p.withMargins && space(3)};
+  margin-top: ${p => p.withMargins && space(1)};
+  line-height: 40px;
 
-  @media (max-width: ${p => p.theme.breakpoints.medium}) {
-    margin-top: ${space(1)};
-  }
+  display: flex;
+  gap: ${space(1)};
+  align-items: center;
 `;
 
 /**
