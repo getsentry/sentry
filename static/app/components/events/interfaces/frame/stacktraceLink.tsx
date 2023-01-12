@@ -394,16 +394,13 @@ const StyledLink = styled(Link)`
   color: ${p => p.theme.gray300};
 `;
 
-const Flex = styled('div')`
+const CodecovWarning = styled('div')`
   display: flex;
-`;
-
-const CodecovWarning = styled(Flex)`
   color: ${p => p.theme.errorText};
   gap: ${space(0.75)};
 `;
 
-const WarningIcon = styled(Flex)`
+const WarningIcon = styled('div')`
   display: flex;
   align-items: center;
 `;
