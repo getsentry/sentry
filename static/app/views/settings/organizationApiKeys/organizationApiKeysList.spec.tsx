@@ -19,10 +19,14 @@ describe('OrganizationApiKeysList', function () {
       {path: 'api-keys/', name: 'API Key'},
     ];
 
-    const {router, route} = initializeOrg({...initializeOrg(), router: {routes}});
+    const {organization, router, route} = initializeOrg({
+      ...initializeOrg(),
+      router: {routes},
+    });
 
     render(
       <OrganizationApiKeysList
+        organization={organization}
         params={{}}
         routes={routes}
         keys={[TestStubs.ApiKey()]}
