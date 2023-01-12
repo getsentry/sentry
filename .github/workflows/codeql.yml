@@ -12,6 +12,11 @@
 name: "CodeQL"
 
 on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    # The branches below must be a subset of the branches above
+    branches: [ "master" ]
   schedule:
     - cron: '44 12 * * *'
 
@@ -44,7 +49,7 @@ jobs:
         # If you wish to specify custom queries, you can do so here or in a config file.
         # By default, queries listed here will override any specified in a config file.
         # Prefix the list here with "+" to use these queries and those in the config file.
-        # queries: ./path/to/local/query, your-org/your-repo/queries@main
+        queries: security-extended
 
     # Autobuild attempts to build any compiled languages  (C/C++, C#, or Java).
     # If this step fails, then you should remove it and run the build manually (see below)
@@ -64,3 +69,5 @@ jobs:
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@3e7e3b32d0fb8283594bb0a76cc60a00918b0969  # v2
+      with:
+        category: "/language:${{matrix.language}}"
