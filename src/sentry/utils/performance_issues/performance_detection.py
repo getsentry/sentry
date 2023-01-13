@@ -68,7 +68,7 @@ DETECTOR_TYPE_TO_GROUP_TYPE = {
     DetectorType.N_PLUS_ONE_DB_QUERIES: GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
     DetectorType.N_PLUS_ONE_DB_QUERIES_EXTENDED: GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
     DetectorType.N_PLUS_ONE_API_CALLS: GroupType.PERFORMANCE_N_PLUS_ONE_API_CALLS,
-    DetectorType.CONSECUTIVE_DB_OP: GroupType.PERFORMANCE_CONSECUTIVE_DB_QUERIES,
+    DetectorType.CONSECUTIVE_DB_OP: GroupType.PERFORMANCE_CONSECUTIVE_DB_OP,
     DetectorType.FILE_IO_MAIN_THREAD: GroupType.PERFORMANCE_FILE_IO_MAIN_THREAD,
     DetectorType.M_N_PLUS_ONE_DB: GroupType.PERFORMANCE_M_N_PLUS_ONE_DB_QUERIES,
 }
@@ -873,7 +873,7 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
             fingerprint,
             "db",
             desc=query,  # TODO - figure out which query to use for description
-            type=GroupType.PERFORMANCE_CONSECUTIVE_DB_QUERIES,
+            type=GroupType.PERFORMANCE_CONSECUTIVE_DB_OP,
             cause_span_ids=None,
             parent_span_ids=None,
             offender_span_ids=offender_span_ids,
@@ -949,7 +949,7 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
 
     def _fingerprint(self) -> str:
         hashed_spans = fingerprint_spans(self.consecutive_db_spans)
-        problem_class = GroupType.PERFORMANCE_CONSECUTIVE_DB_QUERIES
+        problem_class = GroupType.PERFORMANCE_CONSECUTIVE_DB_OP
         return f"1-{problem_class}-{hashed_spans}"
 
     def on_complete(self) -> None:
