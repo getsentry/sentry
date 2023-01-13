@@ -1,4 +1,4 @@
-import React, {Fragment, isValidElement} from 'react';
+import {Fragment, isValidElement} from 'react';
 
 import ContextData from 'sentry/components/contextData';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';

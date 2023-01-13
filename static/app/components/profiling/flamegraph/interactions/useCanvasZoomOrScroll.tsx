@@ -1,4 +1,4 @@
-import React, {useEffect} from 'react';
+import {useEffect} from 'react';
 import {vec2} from 'gl-matrix';
 
 import {requestAnimationFrameTimeout} from 'sentry/views/profiling/utils';

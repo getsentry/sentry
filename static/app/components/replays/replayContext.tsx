@@ -1,4 +1,4 @@
-import React, {useCallback, useContext, useEffect, useRef, useState} from 'react';
+import {createContext, useCallback, useContext, useEffect, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import {Replayer, ReplayerEvents} from 'rrweb';
 
@@ -150,7 +150,7 @@ type ReplayPlayerContextProps = {
   toggleSkipInactive: (skip: boolean) => void;
 };
 
-const ReplayPlayerContext = React.createContext<ReplayPlayerContextProps>({
+const ReplayPlayerContext = createContext<ReplayPlayerContextProps>({
   clearAllHighlights: () => {},
   currentHoverTime: undefined,
   currentTime: 0,
