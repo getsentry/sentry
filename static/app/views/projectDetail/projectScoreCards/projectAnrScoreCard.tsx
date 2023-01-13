@@ -51,7 +51,7 @@ export function ProjectAnrScoreCard({
 
     const requestData = {
       orgSlug: organization.slug,
-      field: ['foreground_anr_rate()'],
+      field: ['anr_rate()'],
       environment: environments,
       project: projects,
       query,
@@ -85,7 +85,7 @@ export function ProjectAnrScoreCard({
     } else {
       const requestData = {
         orgSlug: organization.slug,
-        field: ['foreground_anr_rate()'],
+        field: ['anr_rate()'],
         environment: environments,
         project: projects,
         query,
@@ -119,12 +119,10 @@ export function ProjectAnrScoreCard({
     };
   }, [start, end, period, api, organization.slug, environments, projects, query]);
 
-  const value = sessionsData
-    ? sessionsData.groups[0].totals['foreground_anr_rate()']
-    : null;
+  const value = sessionsData ? sessionsData.groups[0].totals['anr_rate()'] : null;
 
   const previousValue = previousSessionData
-    ? previousSessionData.groups[0].totals['foreground_anr_rate()']
+    ? previousSessionData.groups[0].totals['anr_rate()']
     : null;
 
   const hasCurrentAndPrevious = previousValue && value;
@@ -166,15 +164,15 @@ export function ProjectAnrScoreCard({
   function renderButton() {
     return (
       <Button data-test-id="issues-open" size="xs" to={issueSearch}>
-        {t('Open in Issues')}
+        {t('View Issues')}
       </Button>
     );
   }
 
   return (
     <ScoreCard
-      title={t('Foreground ANR Rate')}
-      help={getSessionTermDescription(SessionTerm.FOREGROUND_ANR_RATE, null)}
+      title={t('ANR Rate')}
+      help={getSessionTermDescription(SessionTerm.ANR_RATE, null)}
       score={value ? formatPercentage(value, 3) : '\u2014'}
       trend={renderTrend()}
       trendStatus={trendStatus}
