@@ -2,7 +2,7 @@ import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Alert from 'sentry/components/alert';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import {t} from 'sentry/locale';
 import {Organization, PluginWithProjectList} from 'sentry/types';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';

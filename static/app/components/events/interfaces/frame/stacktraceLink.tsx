@@ -9,7 +9,7 @@ import {
   promptsUpdate,
   usePromptsCheck,
 } from 'sentry/actionCreators/prompts';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import Placeholder from 'sentry/components/placeholder';

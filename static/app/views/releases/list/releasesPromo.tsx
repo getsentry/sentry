@@ -9,7 +9,7 @@ import statsImage from 'sentry-images/spot/releases-tour-stats.svg';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openCreateReleaseIntegration} from 'sentry/actionCreators/modal';
 import Access from 'sentry/components/acl/access';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
 import {Item} from 'sentry/components/dropdownAutoComplete/types';
 import Link from 'sentry/components/links/link';

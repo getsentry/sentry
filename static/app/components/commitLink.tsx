@@ -1,4 +1,4 @@
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {IconBitbucket, IconGithub, IconGitlab, IconVsts} from 'sentry/icons';
 import {t} from 'sentry/locale';

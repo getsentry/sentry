@@ -3,7 +3,7 @@ import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
 import capitalize from 'lodash/capitalize';
 
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import {Body, Hovercard} from 'sentry/components/hovercard';
 import {IconAdd, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
