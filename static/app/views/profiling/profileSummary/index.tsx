@@ -10,13 +10,11 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
-import PageHeading from 'sentry/components/pageHeading';
 import {Breadcrumb} from 'sentry/components/profiling/breadcrumb';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import SmartSearchBar, {SmartSearchBarProps} from 'sentry/components/smartSearchBar';
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {t} from 'sentry/locale';
-import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
 import {PageFilters, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
@@ -122,7 +120,7 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
         specificProjectSlugs={defined(project) ? [project.slug] : []}
       >
         <NoProjectMessage organization={organization}>
-          <StyledPageContent>
+          <Layout.Page>
             {project && transaction && (
               <Fragment>
                 <Layout.Header>
@@ -146,7 +144,7 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
                         },
                       ]}
                     />
-                    <ProfileTitle>
+                    <Layout.Title>
                       {project ? (
                         <IdBadge
                           project={project}
@@ -156,7 +154,7 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
                         />
                       ) : null}
                       {transaction}
-                    </ProfileTitle>
+                    </Layout.Title>
                   </Layout.HeaderContent>
                 </Layout.Header>
                 <Layout.Body>
@@ -187,23 +185,12 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
                 </Layout.Body>
               </Fragment>
             )}
-          </StyledPageContent>
+          </Layout.Page>
         </NoProjectMessage>
       </PageFiltersContainer>
     </SentryDocumentTitle>
   );
 }
-
-const StyledPageContent = styled(PageContent)`
-  padding: 0;
-`;
-
-const ProfileTitle = styled(PageHeading)`
-  line-height: 40px;
-  display: flex;
-  gap: ${space(1)};
-  align-items: center;
-`;
 
 const ActionBar = styled('div')`
   display: grid;

@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import PageHeading from 'sentry/components/pageHeading';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {Member, Organization, Project} from 'sentry/types';
@@ -81,7 +80,7 @@ class ProjectAlertsEditor extends Component<Props, State> {
               routes={routes}
               location={location}
             />
-            <StyledHeading>{this.getTitle()}</StyledHeading>
+            <Layout.Title>{this.getTitle()}</Layout.Title>
           </Layout.HeaderContent>
         </Layout.Header>
         <EditConditionsBody>
@@ -122,10 +121,6 @@ const EditConditionsBody = styled(Layout.Body)`
   *:not(img) {
     max-width: 1000px;
   }
-`;
-
-const StyledHeading = styled(PageHeading)`
-  line-height: 40px;
 `;
 
 export default ProjectAlertsEditor;

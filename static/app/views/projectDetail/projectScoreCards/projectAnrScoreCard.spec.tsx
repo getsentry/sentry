@@ -1,3 +1,4 @@
+import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {PageFilters} from 'sentry/types';
@@ -6,7 +7,16 @@ import {ProjectAnrScoreCard} from 'sentry/views/projectDetail/projectScoreCards/
 describe('ProjectDetail > ProjectAnr', function () {
   let endpointMock, endpointMockPreviousPeriod;
 
-  const organization = TestStubs.Organization();
+  const {organization, router, routerContext} = initializeOrg({
+    ...initializeOrg(),
+    router: {
+      ...initializeOrg().router,
+      location: {
+        ...initializeOrg().router.location,
+        query: {project: '1', statsPeriod: '7d'},
+      },
+    },
+  });
 
   const selection = {
     projects: [1],
@@ -64,6 +74,7 @@ describe('ProjectDetail > ProjectAnr', function () {
         selection={selection}
         isProjectStabilized
         query="release:abc"
+        location={router.location}
       />
     );
 
@@ -102,5 +113,28 @@ describe('ProjectDetail > ProjectAnr', function () {
 
     await waitFor(() => expect(screen.getByText('11.562%')).toBeInTheDocument());
     await waitFor(() => expect(screen.getByText('0.03%')).toBeInTheDocument());
+  });
+
+  it('renders open in issues CTA', async function () {
+    organization.features = ['discover-basic', 'anr-rate'];
+    render(
+      <ProjectAnrScoreCard
+        organization={{...organization}}
+        selection={selection}
+        isProjectStabilized
+        query="release:abc"
+        location={router.location}
+      />,
+      {
+        context: routerContext,
+      }
+    );
+
+    await waitFor(() => expect(screen.getByText('11.562%')).toBeInTheDocument());
+
+    expect(screen.getByRole('button', {name: 'Open in Issues'})).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/issues/?project=1&query=mechanism%3AANR%20release%3Aabc&sort=freq&statsPeriod=7d'
+    );
   });
 });
