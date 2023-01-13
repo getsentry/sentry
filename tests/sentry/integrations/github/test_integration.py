@@ -1,7 +1,6 @@
 from unittest.mock import MagicMock, patch
 from urllib.parse import urlencode, urlparse
 
-import pytest
 import responses
 from django.urls import reverse
 
