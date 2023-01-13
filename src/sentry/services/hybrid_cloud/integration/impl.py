@@ -101,7 +101,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
         integration_id: int | None = None,
         provider: str | None = None,
         external_id: str | None = None,
-        organization_id: id | None = None,
+        organization_id: int | None = None,
     ) -> APIIntegration | None:
         integration_kwargs: Dict[str, Any] = {}
         if integration_id is not None:
