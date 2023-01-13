@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import Alert from 'sentry/components/alert';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
@@ -13,7 +13,6 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
-import PageHeading from 'sentry/components/pageHeading';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import Pagination from 'sentry/components/pagination';
 import {ProfileEventsTable} from 'sentry/components/profiling/profileEventsTable';
@@ -126,7 +125,7 @@ function ProfilingContent({location, router}: ProfilingContentProps) {
           <Layout.Page>
             <Layout.Header>
               <Layout.HeaderContent>
-                <StyledHeading>
+                <Layout.Title>
                   {t('Profiling')}
                   <PageHeadingQuestionTooltip
                     title={tct(
@@ -138,7 +137,7 @@ function ProfilingContent({location, router}: ProfilingContentProps) {
                       }
                     )}
                   />
-                </StyledHeading>
+                </Layout.Title>
               </Layout.HeaderContent>
               <Layout.HeaderActions>
                 <ButtonBar gap={1}>
@@ -242,10 +241,6 @@ const FIELDS = [
 ] as const;
 
 type FieldType = typeof FIELDS[number];
-
-const StyledHeading = styled(PageHeading)`
-  line-height: 40px;
-`;
 
 const ActionBar = styled('div')`
   display: grid;

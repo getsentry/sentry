@@ -8,7 +8,7 @@ import isEqual from 'lodash/isEqual';
 import {addTeamToProject} from 'sentry/actionCreators/projects';
 import {Client} from 'sentry/api';
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import IdBadge from 'sentry/components/idBadge';
 import Tooltip from 'sentry/components/tooltip';
