@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import moment from 'moment';
 
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import {Button} from 'sentry/components/button';
 import CommitLink from 'sentry/components/commitLink';

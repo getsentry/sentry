@@ -1,4 +1,4 @@
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
 import {isEventFromBrowserJavaScriptSDK} from 'sentry/components/events/interfaces/spans/utils';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {PlatformKey, sourceMaps} from 'sentry/data/platformCategories';

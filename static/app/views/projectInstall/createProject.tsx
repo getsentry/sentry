@@ -5,7 +5,7 @@ import * as Sentry from '@sentry/react';
 import {PlatformIcon} from 'platformicons';
 
 import {openCreateTeamModal} from 'sentry/actionCreators/modal';
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import Input from 'sentry/components/input';
 import * as Layout from 'sentry/components/layouts/thirds';

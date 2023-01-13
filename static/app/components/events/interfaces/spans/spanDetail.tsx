@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import map from 'lodash/map';
 import omit from 'lodash/omit';
 
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import Clipboard from 'sentry/components/clipboard';
 import DateTime from 'sentry/components/dateTime';

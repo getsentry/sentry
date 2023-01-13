@@ -2,7 +2,7 @@ import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import Count from 'sentry/components/count';
 import {DeviceName} from 'sentry/components/deviceName';

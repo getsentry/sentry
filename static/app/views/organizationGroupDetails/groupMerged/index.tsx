@@ -2,7 +2,7 @@ import {Component} from 'react';
 import {RouteComponentProps} from 'react-router';
 import * as qs from 'query-string';
 
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';

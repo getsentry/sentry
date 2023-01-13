@@ -1,9 +1,9 @@
 import {Location} from 'history';
 
+import {Alert} from 'sentry/components/alert';
 import {tct} from 'sentry/locale';
 import {crashReportTypes} from 'sentry/views/organizationGroupDetails/groupEventAttachments/groupEventAttachmentsFilter';
 
-import Alert from '../alert';
 import Link from '../links/link';
 
 type Props = {

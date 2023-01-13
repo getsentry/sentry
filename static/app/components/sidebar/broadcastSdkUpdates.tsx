@@ -2,6 +2,7 @@ import styled from '@emotion/styled';
 import groupBy from 'lodash/groupBy';
 import partition from 'lodash/partition';
 
+import {Alert} from 'sentry/components/alert';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Tag from 'sentry/components/tag';
 import {t, tct, tn} from 'sentry/locale';
@@ -17,7 +18,6 @@ import withOrganization from 'sentry/utils/withOrganization';
 import withProjects from 'sentry/utils/withProjects';
 import withSdkUpdates from 'sentry/utils/withSdkUpdates';
 
-import Alert from '../alert';
 import Collapsible from '../collapsible';
 import List from '../list';
 import ListItem from '../list/listItem';

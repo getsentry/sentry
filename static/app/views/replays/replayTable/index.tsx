@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
 import {PanelTable} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
 import EventView from 'sentry/utils/discover/eventView';

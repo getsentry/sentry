@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {urlEncode} from '@sentry/utils';
 
 import {logout} from 'sentry/actionCreators/account';
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
