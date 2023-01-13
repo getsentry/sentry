@@ -135,7 +135,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
 
     def test_generic_issue_calculated_interval(self):
         """Test that a 4h interval returns the correct generic event stats.
-        This follows a different code path than 1h or 1d as the GenericTimeSeriesQueryBuilder
+        This follows a different code path than 1h or 1d as the IssuePlatformTimeSeriesQueryBuilder
         does some calculation to create the time column."""
         _, _, group_info = self.store_search_issue(
             self.project.id,

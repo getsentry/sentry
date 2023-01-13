@@ -1596,7 +1596,7 @@ class TimeseriesQueryBuilder(UnresolvedQuery):
         return raw_snql_query(self.get_snql_query(), referrer, use_cache)
 
 
-class GenericTimeSeriesQueryBuilder(TimeseriesQueryBuilder):
+class IssuePlatformTimeSeriesQueryBuilder(TimeseriesQueryBuilder):
     from snuba_sdk import Function
 
     """The IssuePlatform dataset isn't using the TimeSeriesProcessor which does the translation of 'time' to 'timestamp'."""
