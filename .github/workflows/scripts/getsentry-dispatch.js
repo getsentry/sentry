@@ -15,7 +15,7 @@ const DISPATCHES = [
   },
   {
     workflow: 'backend.yml',
-    pathFilterName: 'backend_dependencies',
+    pathFilterName: 'backend_src',
   },
 ];
 
