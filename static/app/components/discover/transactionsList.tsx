@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {Location, LocationDescriptor, Query} from 'history';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import CompactSelect from 'sentry/components/compactSelect';
 import DiscoverButton from 'sentry/components/discoverButton';
 import Pagination, {CursorHandler} from 'sentry/components/pagination';

@@ -5,7 +5,7 @@ import * as Sentry from '@sentry/react';
 import {Location} from 'history';
 
 import {Client} from 'sentry/api';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
 import {ChartContainer} from 'sentry/components/charts/styles';
 import Count from 'sentry/components/count';
