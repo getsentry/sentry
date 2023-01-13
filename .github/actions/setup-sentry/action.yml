@@ -62,11 +62,6 @@ runs:
         # isn't right because job-total will be 3x larger and you'd never run 2/3 of the tests.
         # MATRIX_INSTANCE_TOTAL: ${{ strategy.job-total }}
       run: |
-        # Only set `MIGRATIONS_TEST_MIGRATE` if it is not already set (or if it's an empty string)
-        if [ -z $MIGRATIONS_TEST_MIGRATE ]; then
-          echo "MIGRATIONS_TEST_MIGRATE=0" >> $GITHUB_ENV
-        fi
-
         echo "PIP_DISABLE_PIP_VERSION_CHECK=on" >> $GITHUB_ENV
         echo "PIP_INDEX_URL=https://pypi.devinfra.sentry.io/simple" >> $GITHUB_ENV
         echo "SENTRY_SKIP_BACKEND_VALIDATION=1" >> $GITHUB_ENV

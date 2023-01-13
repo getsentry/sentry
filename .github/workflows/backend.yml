@@ -80,7 +80,6 @@ jobs:
     env:
       # XXX: MATRIX_INSTANCE_TOTAL must be hardcoded to the length of strategy.matrix.instance.
       MATRIX_INSTANCE_TOTAL: 4
-      MIGRATIONS_TEST_MIGRATE: 1
 
     steps:
       - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8  # v3.1.0
@@ -103,6 +102,37 @@ jobs:
       - name: Run backend test (${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
         run: |
           make test-python-ci
+
+      - name: Handle artifacts
+        uses: ./.github/actions/artifacts
+
+  backend-migration-tests:
+    if: needs.files-changed.outputs.backend == 'true'
+    needs: files-changed
+    name: backend migration tests
+    runs-on: ubuntu-20.04
+    timeout-minutes: 20
+    strategy:
+      matrix:
+        pg-version: ['9.6']
+
+    steps:
+      - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8  # v3.1.0
+        with:
+          # Avoid codecov error message related to SHA resolution:
+          # https://github.com/codecov/codecov-bash/blob/7100762afbc822b91806a6574658129fe0d23a7d/codecov#L891
+          fetch-depth: '2'
+
+      - name: Setup sentry env
+        uses: ./.github/actions/setup-sentry
+        id: setup
+        with:
+          snuba: true
+          pg-version: ${{ matrix.pg-version }}
+
+      - name: run tests
+        run: |
+          MIGRATIONS_TEST_MIGRATE=1 PYTEST_ADDOPTS="$PYTEST_ADDOPTS -m migrations" make test-python-ci
 
       - name: Handle artifacts
         uses: ./.github/actions/artifacts
@@ -351,7 +381,6 @@ jobs:
     env:
       # XXX: MATRIX_INSTANCE_TOTAL must be hardcoded to the length of strategy.matrix.instance.
       MATRIX_INSTANCE_TOTAL: 2
-      MIGRATIONS_TEST_MIGRATE: 1
 
     steps:
       - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8  # v3.1.0
@@ -444,6 +473,7 @@ jobs:
       [
         api-docs,
         backend-test,
+        backend-migration-tests,
         cli,
         lint,
         requirements,
