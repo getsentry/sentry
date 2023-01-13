@@ -1,7 +1,7 @@
 import * as Sentry from '@sentry/react';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';

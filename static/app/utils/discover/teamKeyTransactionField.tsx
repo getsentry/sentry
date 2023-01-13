@@ -1,4 +1,4 @@
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import TeamKeyTransaction, {
   TitleProps,
 } from 'sentry/components/performance/teamKeyTransaction';

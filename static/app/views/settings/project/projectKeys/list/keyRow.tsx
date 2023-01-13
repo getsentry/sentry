@@ -1,7 +1,7 @@
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import ClippedBox from 'sentry/components/clippedBox';
 import Confirm from 'sentry/components/confirm';
 import Link from 'sentry/components/links/link';

@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import {Panel, PanelHeader} from 'sentry/components/panels';
 import {IconTelescope, IconUser} from 'sentry/icons';

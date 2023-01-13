@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import {ExportQueryType} from 'sentry/components/dataExport';
 import DateTime from 'sentry/components/dateTime';
 import {IconDownload} from 'sentry/icons';

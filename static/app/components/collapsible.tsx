@@ -1,6 +1,6 @@
 import {Children, Fragment, useState} from 'react';
 
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import {t, tn} from 'sentry/locale';
 
 type CollapseButtonRenderProps = {

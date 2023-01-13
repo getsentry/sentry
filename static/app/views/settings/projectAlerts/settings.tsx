@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 
 import AlertLink from 'sentry/components/alertLink';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import {PanelAlert} from 'sentry/components/panels';

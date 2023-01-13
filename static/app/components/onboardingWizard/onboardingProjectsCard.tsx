@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 import {PlatformIcon} from 'platformicons';
 
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import Card from 'sentry/components/card';
 import Link from 'sentry/components/links/link';
 import {IconChevron, IconClose, IconEllipsis} from 'sentry/icons';

@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import {openDiffModal} from 'sentry/actionCreators/modal';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import {PanelHeader} from 'sentry/components/panels';
 import {t, tct} from 'sentry/locale';

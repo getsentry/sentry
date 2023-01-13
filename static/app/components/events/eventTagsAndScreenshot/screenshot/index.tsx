@@ -2,7 +2,7 @@ import {Fragment, ReactEventHandler, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Role} from 'sentry/components/acl/role';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {openConfirmModal} from 'sentry/components/confirm';
 import DropdownMenuControl from 'sentry/components/dropdownMenuControl';

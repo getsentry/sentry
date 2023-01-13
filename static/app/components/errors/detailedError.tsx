@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {IconFlag} from 'sentry/icons';
 import {t} from 'sentry/locale';

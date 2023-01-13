@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import * as modal from 'sentry/actionCreators/modal';
 import AsyncComponent from 'sentry/components/asyncComponent';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import ContextPickerModal from 'sentry/components/contextPickerModal';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';

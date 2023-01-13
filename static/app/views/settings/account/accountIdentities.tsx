@@ -5,7 +5,7 @@ import moment from 'moment';
 
 import {disconnectIdentity} from 'sentry/actionCreators/account';
 import Alert from 'sentry/components/alert';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import DateTime from 'sentry/components/dateTime';
 import EmptyMessage from 'sentry/components/emptyMessage';

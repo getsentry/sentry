@@ -6,7 +6,7 @@ import {
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import FeatureBadge from 'sentry/components/featureBadge';
 import BooleanField from 'sentry/components/forms/fields/booleanField';
 import {Panel, PanelBody, PanelFooter, PanelHeader} from 'sentry/components/panels';

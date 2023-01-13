@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 /* TODO: replace with I/O when finished */
 import img from 'sentry-images/spot/hair-on-fire.svg';
 
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';

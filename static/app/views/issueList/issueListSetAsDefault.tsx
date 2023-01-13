@@ -1,6 +1,6 @@
 import {browserHistory} from 'react-router';
 
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import {removeSpace} from 'sentry/components/smartSearchBar/utils';
 import {IconBookmark} from 'sentry/icons';
 import {t} from 'sentry/locale';

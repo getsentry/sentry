@@ -4,7 +4,7 @@ import {PlatformIcon} from 'platformicons';
 
 import OrganizationAvatar from 'sentry/components/avatar/organizationAvatar';
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import DateTime from 'sentry/components/dateTime';
 import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';

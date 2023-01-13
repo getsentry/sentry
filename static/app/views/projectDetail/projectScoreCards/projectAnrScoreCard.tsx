@@ -4,7 +4,7 @@ import pick from 'lodash/pick';
 import round from 'lodash/round';
 
 import {doSessionsRequest} from 'sentry/actionCreators/sessions';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import {shouldFetchPreviousPeriod} from 'sentry/components/charts/utils';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {parseStatsPeriod} from 'sentry/components/organizations/timeRangeSelector/utils';

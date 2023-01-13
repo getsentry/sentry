@@ -10,7 +10,7 @@ import {
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
 import {createProject} from 'sentry/actionCreators/projects';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import {PlatformKey} from 'sentry/data/platformCategories';
 import {t, tn} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';

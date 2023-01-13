@@ -2,7 +2,7 @@ import React, {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import keyBy from 'lodash/keyBy';
 
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import Placeholder from 'sentry/components/placeholder';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import {t} from 'sentry/locale';

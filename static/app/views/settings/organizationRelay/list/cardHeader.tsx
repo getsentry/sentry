@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import Clipboard from 'sentry/components/clipboard';
 import ConfirmDelete from 'sentry/components/confirmDelete';

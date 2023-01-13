@@ -5,7 +5,7 @@ import {Location} from 'history';
 import debounce from 'lodash/debounce';
 
 import {Client} from 'sentry/api';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {FeatureFeedback} from 'sentry/components/featureFeedback';
 import RangeSlider from 'sentry/components/forms/controls/rangeSlider';

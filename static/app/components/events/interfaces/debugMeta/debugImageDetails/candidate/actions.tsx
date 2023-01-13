@@ -5,7 +5,7 @@ import Access from 'sentry/components/acl/access';
 import {Role} from 'sentry/components/acl/role';
 import ActionButton from 'sentry/components/actions/button';
 import MenuItemActionLink from 'sentry/components/actions/menuItemActionLink';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import Confirm from 'sentry/components/confirm';
 import DropdownLink from 'sentry/components/dropdownLink';

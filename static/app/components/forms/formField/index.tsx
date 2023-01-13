@@ -2,7 +2,7 @@ import {Component, Fragment} from 'react';
 import {Observer} from 'mobx-react';
 
 import Alert from 'sentry/components/alert';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import PanelAlert from 'sentry/components/panels/panelAlert';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
