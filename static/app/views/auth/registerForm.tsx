@@ -3,7 +3,7 @@ import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
 import {Client} from 'sentry/api';
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
 import RadioBooleanField from 'sentry/components/forms/fields/radioField';
 import SecretField from 'sentry/components/forms/fields/secretField';
 import TextField from 'sentry/components/forms/fields/textField';
