@@ -957,7 +957,9 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
         self._validate_and_store_performance_problem()
 
     def is_creation_allowed_for_organization(self, organization: Organization) -> bool:
-        return True
+        return features.has(
+            "organizations:performance-consecutive-db-issue", organization, actor=None
+        )
 
     def is_creation_allowed_for_project(self, project: Project) -> bool:
         return True  # Detection always allowed by project for now
