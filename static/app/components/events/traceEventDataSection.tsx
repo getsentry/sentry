@@ -7,7 +7,7 @@ import {
 } from 'react';
 import styled from '@emotion/styled';
 
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import CompactSelect from 'sentry/components/compactSelect';
 import CompositeSelect from 'sentry/components/compositeSelect';
@@ -22,7 +22,7 @@ import {isNativePlatform} from 'sentry/utils/platform';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
-import EventDataSection from './eventDataSection';
+import {EventDataSection} from './eventDataSection';
 
 const sortByOptions = {
   'recent-first': t('Newest'),

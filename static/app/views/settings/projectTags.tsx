@@ -3,7 +3,7 @@ import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import Access from 'sentry/components/acl/access';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import ExternalLink from 'sentry/components/links/externalLink';

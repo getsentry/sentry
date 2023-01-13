@@ -15,7 +15,7 @@ import {fetchTotalCount} from 'sentry/actionCreators/events';
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
 import Alert from 'sentry/components/alert';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import Option from 'sentry/components/forms/controls/selectOption';
@@ -59,6 +59,7 @@ import {
   getWidgetIssueUrl,
   getWidgetReleasesUrl,
 } from 'sentry/views/dashboardsV2/utils';
+import {SESSION_DURATION_ALERT} from 'sentry/views/dashboardsV2/widgetCard';
 import WidgetCardChart, {
   AugmentedEChartDataZoomHandler,
   SLIDER_HEIGHT,
@@ -176,6 +177,9 @@ function WidgetViewerModal(props: Props) {
   const start = decodeScalar(location.query[WidgetViewerQueryField.START]);
   const end = decodeScalar(location.query[WidgetViewerQueryField.END]);
   const isTableWidget = widget.displayType === DisplayType.TABLE;
+  const hasSessionDuration = widget.queries.some(query =>
+    query.aggregates.some(aggregate => aggregate.includes('session.duration'))
+  );
   const locationPageFilter = useMemo(
     () =>
       start && end
@@ -791,6 +795,7 @@ function WidgetViewerModal(props: Props) {
   function renderWidgetViewer() {
     return (
       <Fragment>
+        {hasSessionDuration && SESSION_DURATION_ALERT}
         {widget.displayType !== DisplayType.TABLE && (
           <Container
             height={

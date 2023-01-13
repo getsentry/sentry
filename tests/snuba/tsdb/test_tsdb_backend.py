@@ -525,7 +525,7 @@ class SnubaTSDBGroupPerformanceTest(TestCase, SnubaTestCase, PerfIssueTransactio
         )[0]
         defaultenv = ""
 
-        group1_fingerprint = f"{GroupType.PERFORMANCE_SLOW_SPAN.value}-group1"
+        group1_fingerprint = f"{GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN.value}-group1"
         group2_fingerprint = f"{GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value}-group2"
 
         for r in range(0, 14400, 600):  # Every 10 min for 4 hours
@@ -673,7 +673,7 @@ class SnubaTSDBGroupPerformanceTest(TestCase, SnubaTestCase, PerfIssueTransactio
         now = (datetime.utcnow() - timedelta(days=1)).replace(
             hour=10, minute=0, second=0, microsecond=0, tzinfo=pytz.UTC
         )
-        group_fingerprint = f"{GroupType.PERFORMANCE_SLOW_SPAN.value}-group5"
+        group_fingerprint = f"{GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN.value}-group5"
         # for r in range(0, 14400, 600):  # Every 10 min for 4 hours
         # for r in [1, 2, 3, 4, 5, 6, 7, 8]:
         ids = ["a", "b", "c", "d", "e"]  # , "f"]
@@ -875,7 +875,6 @@ class SnubaTSDBGroupProfilingTest(TestCase, SnubaTestCase, SearchIssueTestMixin)
                 (timestamp(dts[3]), 3),
             ],
         }
-
         assert self.db.get_range(TSDBModel.group_generic, [], dts[0], dts[-1], rollup=3600) == {}
 
     def test_get_distinct_counts_totals_users(self):
@@ -909,6 +908,14 @@ class SnubaTSDBGroupProfilingTest(TestCase, SnubaTestCase, SearchIssueTestMixin)
             )
             == {}
         )
+
+    def test_get_sums(self):
+        assert self.db.get_sums(
+            model=TSDBModel.group_generic,
+            keys=[self.proj1group1.id, self.proj1group2.id],
+            start=self.now,
+            end=self.now + timedelta(hours=4),
+        ) == {self.proj1group1.id: 12, self.proj1group2.id: 12}
 
 
 class AddJitterToSeriesTest(TestCase):

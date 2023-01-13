@@ -433,7 +433,7 @@ class FlamegraphRenderer {
     return hoveredNode;
   }
 
-  setSearchResults(searchResults: FlamegraphSearch['results']) {
+  setSearchResults(searchResults: FlamegraphSearch['results']['frames']) {
     if (!this.program || !this.gl) {
       return;
     }

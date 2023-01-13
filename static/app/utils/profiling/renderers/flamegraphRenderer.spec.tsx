@@ -240,7 +240,7 @@ describe('flamegraphRenderer', () => {
         [{name: 'f0'}, {name: 'f1'}]
       );
 
-      const results: FlamegraphSearch['results'] = new Map();
+      const results: FlamegraphSearch['results']['frames'] = new Map();
 
       const flamegraphCanvas = new FlamegraphCanvas(canvas, vec2.fromValues(0, 0));
       const flamegraphView = new CanvasView<Flamegraph>({
