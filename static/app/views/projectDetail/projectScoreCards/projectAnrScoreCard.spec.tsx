@@ -38,7 +38,7 @@ describe('ProjectDetail > ProjectAnr', function () {
           {
             by: {},
             totals: {
-              'foreground_anr_rate()': 0.11561866125760649,
+              'anr_rate()': 0.11561866125760649,
             },
           },
         ],
@@ -54,7 +54,7 @@ describe('ProjectDetail > ProjectAnr', function () {
           {
             by: {},
             totals: {
-              'foreground_anr_rate()': 0.08558558558558559,
+              'anr_rate()': 0.08558558558558559,
             },
           },
         ],
@@ -83,7 +83,7 @@ describe('ProjectDetail > ProjectAnr', function () {
       expect.objectContaining({
         query: {
           environment: [],
-          field: ['foreground_anr_rate()'],
+          field: ['anr_rate()'],
           includeSeries: '0',
           includeTotals: '1',
           interval: '1h',
@@ -100,7 +100,7 @@ describe('ProjectDetail > ProjectAnr', function () {
         query: {
           end: '2017-10-10T02:41:20.000',
           environment: [],
-          field: ['foreground_anr_rate()'],
+          field: ['anr_rate()'],
           includeSeries: '0',
           includeTotals: '1',
           interval: '1h',
