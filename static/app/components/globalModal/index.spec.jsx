@@ -29,7 +29,7 @@ describe('GlobalModal', function () {
     expect(screen.queryByTestId('modal-test')).not.toBeInTheDocument();
   });
 
-  it('calls onClose handler when modal is clicked out of', function () {
+  it('calls onClose handler when close button is clicked', function () {
     renderGlobalModal();
     const closeSpy = jest.fn();
 
@@ -45,6 +45,26 @@ describe('GlobalModal', function () {
     );
 
     userEvent.click(screen.getByRole('button', {name: 'Close Modal'}));
+
+    expect(closeSpy).toHaveBeenCalled();
+  });
+
+  it('calls onClose handler when modal is clicked out of', function () {
+    renderGlobalModal();
+    const closeSpy = jest.fn();
+
+    act(() =>
+      openModal(
+        ({Header}) => (
+          <div id="modal-test">
+            <Header closeButton>Header</Header>Hi
+          </div>
+        ),
+        {onClose: closeSpy}
+      )
+    );
+
+    userEvent.click(screen.getByTestId('modal-backdrop'));
 
     expect(closeSpy).toHaveBeenCalled();
   });
@@ -112,9 +132,9 @@ describe('GlobalModal', function () {
     await waitForModalToHide();
   });
 
-  it("ignores click out with preventClose: 'backdrop-click'", async function () {
+  it("ignores click out with closeEvents: 'escape-key'", async function () {
     const {waitForModalToHide} = renderGlobalModal();
-    render(<div data-test-id="outside-test">Hello</div>);
+    const closeSpy = jest.fn();
 
     act(() =>
       openModal(
@@ -123,25 +143,26 @@ describe('GlobalModal', function () {
             <Header closeButton>Header</Header>Hi
           </div>
         ),
-        {preventClose: 'backdrop-click'}
+        {closeEvents: 'escape-key', onClose: closeSpy}
       )
     );
 
     expect(screen.getByTestId('modal-test')).toBeInTheDocument();
 
     // Clicking outside of modal doesn't close
-    userEvent.click(screen.getByTestId('outside-test'));
+    userEvent.click(screen.getByTestId('modal-backdrop'));
     expect(screen.getByTestId('modal-test')).toBeInTheDocument();
+    expect(closeSpy).not.toHaveBeenCalled();
 
     // Pressing escape _does_ close
     userEvent.keyboard('{Escape}');
-    expect(screen.getByTestId('modal-test')).toBeInTheDocument();
     await waitForModalToHide();
+    expect(closeSpy).toHaveBeenCalled();
   });
 
-  it("ignores backdrop click and escape key when with preventClose: 'always'", async function () {
+  it("ignores escape key with closeEvents: 'backdrop-click'", async function () {
     const {waitForModalToHide} = renderGlobalModal();
-    render(<div data-test-id="outside-test">Hello</div>);
+    const closeSpy = jest.fn();
 
     act(() =>
       openModal(
@@ -150,22 +171,51 @@ describe('GlobalModal', function () {
             <Header closeButton>Header</Header>Hi
           </div>
         ),
-        {preventClose: 'always'}
+        {closeEvents: 'backdrop-click', onClose: closeSpy}
       )
     );
 
-    expect(screen.getByTestId('modal-test')).toBeInTheDocument();
-
-    // Clicking outside of modal doesn't close
-    userEvent.click(screen.getByTestId('outside-test'));
     expect(screen.getByTestId('modal-test')).toBeInTheDocument();
 
     // Pressing escape doesn't close
     userEvent.keyboard('{Escape}');
     expect(screen.getByTestId('modal-test')).toBeInTheDocument();
+    expect(closeSpy).not.toHaveBeenCalled();
 
+    // Clicking outside of modal _does_ close
+    userEvent.click(screen.getByTestId('modal-backdrop'));
+    expect(closeSpy).toHaveBeenCalled();
+    await waitForModalToHide();
+  });
+
+  it("ignores backdrop click and escape key when with closeEvents: 'none'", async function () {
+    const {waitForModalToHide} = renderGlobalModal();
+    const closeSpy = jest.fn();
+
+    act(() =>
+      openModal(
+        ({Header}) => (
+          <div data-test-id="modal-test">
+            <Header closeButton>Header</Header>Hi
+          </div>
+        ),
+        {closeEvents: 'none', onClose: closeSpy}
+      )
+    );
+
+    expect(screen.getByTestId('modal-test')).toBeInTheDocument();
+
+    // Clicking outside of modal doesn't close
+    userEvent.click(screen.getByTestId('modal-backdrop'));
+    expect(closeSpy).not.toHaveBeenCalled();
+
+    // Pressing escape doesn't close
+    userEvent.keyboard('{Escape}');
+    expect(closeSpy).not.toHaveBeenCalled();
+
+    // Clicking an explicit close button does close
     userEvent.click(screen.getByRole('button', {name: 'Close Modal'}));
-
+    expect(closeSpy).toHaveBeenCalled();
     await waitForModalToHide();
   });
 });

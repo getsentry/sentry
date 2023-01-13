@@ -568,7 +568,7 @@ function RuleNode({
                       resetValues={data}
                     />
                   ),
-                  {preventClose: 'backdrop-click'}
+                  {closeEvents: 'escape-key'}
                 );
               }}
             >

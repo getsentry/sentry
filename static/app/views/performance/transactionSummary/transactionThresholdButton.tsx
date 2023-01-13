@@ -136,7 +136,7 @@ class TransactionThresholdButton extends Component<Props, State> {
           onApply={(threshold, metric) => this.onChangeThreshold(threshold, metric)}
         />
       ),
-      {modalCss, preventClose: 'backdrop-click'}
+      {modalCss, closeEvents: 'escape-key'}
     );
   }
 

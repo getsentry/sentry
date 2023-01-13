@@ -79,7 +79,7 @@ class SentryAppExternalIssueActions extends Component<Props, State> {
           onSubmitSuccess={this.onSubmitSuccess}
         />
       ),
-      {preventClose: 'backdrop-click'}
+      {closeEvents: 'escape-key'}
     );
   };
 

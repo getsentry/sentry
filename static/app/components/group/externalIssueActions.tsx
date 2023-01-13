@@ -65,7 +65,7 @@ const ExternalIssueActions = ({configurations, group, onChange}: Props) => {
   const doOpenModal = (integration: GroupIntegration) =>
     openModal(
       deps => <ExternalIssueForm {...deps} {...{group, onChange, integration}} />,
-      {preventClose: 'backdrop-click'}
+      {closeEvents: 'escape-key'}
     );
 
   return (

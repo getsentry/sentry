@@ -388,7 +388,7 @@ class ActionsPanel extends PureComponent<Props> {
                                 }
                               />
                             ),
-                            {preventClose: 'backdrop-click'}
+                            {closeEvents: 'escape-key'}
                           );
                         }}
                       >

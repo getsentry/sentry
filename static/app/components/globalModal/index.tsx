@@ -23,6 +23,24 @@ type ModalOptions = {
    */
   backdrop?: 'static' | boolean; // TODO(malwilley): Remove 'static' when no longer used in getsentry
   /**
+   * By default, the modal is closed when the backdrop is clicked or the
+   * escape key is pressed. This prop allows you to modify that behavior.
+   * Only use when completely necessary, the defaults are important for
+   * accessibility.
+   *
+   * 'all' (default) - the modal is automatically closed on backdrop click or
+   *   escape key.
+   * 'none' - the modal cannot be dismissed with either the mouse or the
+   *   keyboard. The modal will need to be closed manually with `closeModal()`.
+   *   This should only be used when a modal requires user input and cannot be
+   *   dismissed, which is rare.
+   * 'backdrop-click' - the modal cannot be dimissed by pressing the escape key.
+   * 'escape-key' - the modal cannot be dismissed by clicking on the backdrop.
+   *   This is useful for modals containing user input which will disappear on an
+   *   accidental click.
+   */
+  closeEvents?: 'all' | 'none' | 'backdrop-click' | 'escape-key';
+  /**
    * Additional CSS which will be applied to the modals `role="dialog"`
    * component. You may use the `[role="document"]` selector to target the
    * actual modal content to style the visual element of the modal.
@@ -32,21 +50,6 @@ type ModalOptions = {
    * Callback for when the modal is closed
    */
   onClose?: () => void;
-  /**
-   * By default, the modal is closed when the backdrop is clicked or the
-   * escape key is pressed. This prop allows you to disable that behavior.
-   * Only use when completely necessary!
-   *
-   * 'always' - the modal cannot be dismissed with either the mouse or the
-   *   keyboard. The modal will need to be closed manually with `closeModal()`.
-   *   This should only be used when a modal requires user input and cannot be
-   *   dismissed, which is rare.
-   * 'backdrop-click' - the modal cannot be dismissed by clicking on the backdrop.
-   *   This is useful for modals containing user input which will disappear on an
-   *   accidental click.
-   * 'escape-key' - the modal cannot be dimissed by pressing the escape key.
-   */
-  preventClose?: 'always' | 'backdrop-click' | 'escape-key';
 };
 
 type ModalRenderProps = {
@@ -98,6 +101,8 @@ type Props = {
 function GlobalModal({onClose}: Props) {
   const {renderer, options} = useLegacyStore(ModalStore);
 
+  const closeEvents = options.closeEvents ?? 'all';
+
   const visible = typeof renderer === 'function';
 
   const closeModal = useCallback(() => {
@@ -115,15 +120,15 @@ function GlobalModal({onClose}: Props) {
     (e: KeyboardEvent) => {
       if (
         e.key !== 'Escape' ||
-        options.preventClose === 'always' ||
-        options.preventClose === 'escape-key'
+        closeEvents === 'none' ||
+        closeEvents === 'backdrop-click'
       ) {
         return;
       }
 
       closeModal();
     },
-    [closeModal, options.preventClose]
+    [closeModal, closeEvents]
   );
 
   const portal = getModalPortal();
@@ -182,8 +187,7 @@ function GlobalModal({onClose}: Props) {
   const backdrop = options.backdrop ?? true;
 
   const allowBackdropClickClose =
-    options.preventClose !== 'always' &&
-    options.preventClose !== 'backdrop-click' &&
+    (closeEvents === 'all' || closeEvents === 'backdrop-click') &&
     options.backdrop !== 'static';
 
   // Only close when we directly click outside of the modal.
@@ -197,6 +201,7 @@ function GlobalModal({onClose}: Props) {
         style={backdrop && visible ? {opacity: 0.5, pointerEvents: 'auto'} : {}}
       />
       <Container
+        data-test-id="modal-backdrop"
         ref={containerRef}
         style={{pointerEvents: visible ? 'auto' : 'none'}}
         onClick={backdrop ? clickClose : undefined}

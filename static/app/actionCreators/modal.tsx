@@ -141,7 +141,7 @@ export async function openEditOwnershipRules(options: EditOwnershipRulesModalOpt
   const {default: Modal, modalCss} = mod;
 
   openModal(deps => <Modal {...deps} {...options} />, {
-    preventClose: 'backdrop-click',
+    closeEvents: 'escape-key',
     modalCss,
   });
 }
@@ -244,7 +244,7 @@ export async function openWidgetBuilderOverwriteModal(
   const {default: Modal, modalCss} = mod;
 
   openModal(deps => <Modal {...deps} {...options} />, {
-    preventClose: 'backdrop-click',
+    closeEvents: 'escape-key',
     modalCss,
   });
 }
@@ -254,7 +254,7 @@ export async function openAddToDashboardModal(options) {
   const {default: Modal, modalCss} = mod;
 
   openModal(deps => <Modal {...deps} {...options} />, {
-    preventClose: 'backdrop-click',
+    closeEvents: 'escape-key',
     modalCss,
   });
 }
@@ -296,7 +296,7 @@ export async function openDashboardWidgetQuerySelectorModal(
   const {default: Modal, modalCss} = mod;
 
   openModal(deps => <Modal {...deps} {...options} />, {
-    preventClose: 'backdrop-click',
+    closeEvents: 'escape-key',
     modalCss,
   });
 }
@@ -309,7 +309,7 @@ export async function openWidgetViewerModal({
   const {default: Modal, modalCss} = mod;
 
   openModal(deps => <Modal {...deps} {...options} />, {
-    preventClose: 'backdrop-click',
+    closeEvents: 'escape-key',
     modalCss,
     onClose,
   });

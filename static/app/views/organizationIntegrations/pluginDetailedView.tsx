@@ -120,7 +120,7 @@ class PluginDetailedView extends AbstractIntegrationDetailedView<
           }}
         />
       ),
-      {preventClose: 'backdrop-click'}
+      {closeEvents: 'escape-key'}
     );
   };
 
