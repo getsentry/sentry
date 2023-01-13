@@ -192,6 +192,7 @@ export type InterfaceChromeHooks = {
  */
 export type OnboardingHooks = {
   'onboarding-wizard:skip-help': GenericOrganizationComponentHook;
+  'onboarding:block-hide-sidebar': () => boolean;
   'onboarding:extra-chrome': GenericComponentHook;
   'onboarding:targeted-onboarding-header': (opts: {source: string}) => React.ReactNode;
 };

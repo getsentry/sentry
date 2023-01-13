@@ -4,6 +4,7 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {IconClose} from 'sentry/icons';
+import HookStore from 'sentry/stores/hookStore';
 import {slideInLeft} from 'sentry/styles/animations';
 import space from 'sentry/styles/space';
 
@@ -79,6 +80,11 @@ function SidebarPanel({
         return;
       }
 
+      // If we are in Sandbox, don't hide panel when the modal is clicked (before the email is added)
+      const blockHideSidebar = HookStore.get('onboarding:block-hide-sidebar')[0]?.();
+      if (blockHideSidebar) {
+        return;
+      }
       hidePanel();
     },
     [hidePanel]
