@@ -11,6 +11,7 @@ from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
 from sentry.integrations import IntegrationFeatures
 from sentry.models import Integration, Project, RepositoryProjectPathConfig
+from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.event_frames import munged_filename_and_frames
 from sentry.utils.json import JSONData
@@ -186,19 +187,20 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
         organization_id: str,
         line_no: int,
         filepath: str,
-        current_config: JSONData,
+        repository: Repository,
+        branch: str,
     ) -> Optional[str]:
         commitSha = None
         integrationInstallation = integration.get_installation(organization_id=organization_id)
         try:
             git_blame_list = integrationInstallation.get_blame_for_file(
-                current_config["repository"],
+                repository,
                 filepath,
-                current_config["config"]["defaultBranch"],
+                branch,
                 line_no,
             )
             for blame in git_blame_list:
-                if line_no >= blame["startingLine"] and line_no <= blame["endingLine"]:
+                if blame["startingLine"] <= line_no <= blame["endingLine"]:
                     commitSha = str(blame["commit"]["oid"])
                     break
         except Exception:
@@ -290,7 +292,8 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                         result["attemptedUrl"] = current_config["outcome"]["attemptedUrl"]
 
                 if (
-                    features.has(
+                    not ctx["commit_id"]
+                    and features.has(
                         "organizations:codecov-stacktrace-integration",
                         project.organization,
                         actor=request.user,
@@ -305,7 +308,8 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                             project.organization_id,
                             int(line_no),
                             filepath,
-                            current_config,
+                            current_config["repository"],
+                            current_config["config"]["defaultBranch"],
                         )
 
             try:
