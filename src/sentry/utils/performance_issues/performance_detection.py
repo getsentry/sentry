@@ -556,10 +556,16 @@ class SlowSpanDetector(PerformanceDetector):
             return False
 
         description = description.strip()
+        # SELECT queries only
         if description[:6].upper() != "SELECT":
             return False
 
+        # Ignore truncated queries
         if description.endswith("..."):
+            return False
+
+        # Ignore unparameterized queries
+        if not PARAMETERIZED_SQL_QUERY_REGEX.search(description):
             return False
 
         return True
