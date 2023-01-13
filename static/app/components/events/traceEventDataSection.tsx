@@ -22,7 +22,7 @@ import {isNativePlatform} from 'sentry/utils/platform';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
-import EventDataSection from './eventDataSection';
+import {EventDataSection} from './eventDataSection';
 
 const sortByOptions = {
   'recent-first': t('Newest'),

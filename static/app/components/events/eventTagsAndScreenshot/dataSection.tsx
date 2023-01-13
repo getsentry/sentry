@@ -2,7 +2,8 @@ import styled from '@emotion/styled';
 import kebabCase from 'lodash/kebabCase';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import EventDataSection, {
+import {
+  EventDataSection,
   SectionContents,
 } from 'sentry/components/events/eventDataSection';
 import QuestionTooltip from 'sentry/components/questionTooltip';

@@ -4,7 +4,7 @@ import {IconDocs} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 
-import EventDataSection from '../../eventDataSection';
+import {EventDataSection} from '../../eventDataSection';
 
 export type ResourceLink = {
   link: string;

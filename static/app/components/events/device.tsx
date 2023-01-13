@@ -1,4 +1,4 @@
-import EventDataSection from 'sentry/components/events/eventDataSection';
+import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {t} from 'sentry/locale';
 import {Event} from 'sentry/types/event';
 
@@ -8,7 +8,7 @@ type Props = {
   event: Event;
 };
 
-function DeviceInterface({event}: Props) {
+export function EventDevice({event}: Props) {
   const data = event.device ?? {};
   const extras = Object.entries<any>(data.data ?? {}).map(([key, value]) => ({
     key,
@@ -43,5 +43,3 @@ function DeviceInterface({event}: Props) {
     </EventDataSection>
   );
 }
-
-export default DeviceInterface;

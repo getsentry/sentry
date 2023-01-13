@@ -1,7 +1,7 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {Client} from 'sentry/api';
-import EventCause from 'sentry/components/events/eventCause';
+import {EventCause} from 'sentry/components/events/eventCause';
 
 import {CommitRow} from '../commitRow';
 import {QuickContextCommitRow} from '../discover/quickContextCommitRow';

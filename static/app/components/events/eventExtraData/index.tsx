@@ -1,7 +1,7 @@
 import {memo, useState} from 'react';
 
 import ContextBlock from 'sentry/components/events/contexts/contextBlock';
-import EventDataSection from 'sentry/components/events/eventDataSection';
+import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {t} from 'sentry/locale';
 import {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
@@ -9,13 +9,13 @@ import {defined} from 'sentry/utils';
 import {geKnownData} from '../contexts/utils';
 
 import {getEventExtraDataKnownDataDetails} from './getEventExtraDataKnownDataDetails';
-import {EventExtraData, EventExtraDataType} from './types';
+import {EventExtraData as TEventExtraData, EventExtraDataType} from './types';
 
 type Props = {
   event: Event;
 };
 
-const EventExtraDataContext = memo(
+export const EventExtraData = memo(
   ({event}: Props) => {
     const [raw, setRaw] = useState(false);
     return (
@@ -27,7 +27,7 @@ const EventExtraDataContext = memo(
       >
         {!defined(event.context) ? null : (
           <ContextBlock
-            data={geKnownData<EventExtraData, EventExtraDataType>({
+            data={geKnownData<TEventExtraData, EventExtraDataType>({
               data: event.context,
               knownDataTypes: Object.keys(event.context),
               meta: event._meta?.context,
@@ -42,5 +42,3 @@ const EventExtraDataContext = memo(
   },
   (prevProps: Props, nextProps: Props) => prevProps.event.id !== nextProps.event.id
 );
-
-export default EventExtraDataContext;

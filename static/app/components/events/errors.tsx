@@ -203,4 +203,4 @@ const ErrorList = styled(List)`
   }
 `;
 
-export default withApi(Errors);
+export const EventErrors = withApi(Errors);

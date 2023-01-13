@@ -42,7 +42,7 @@ function scrollToSection(element: HTMLDivElement) {
   }
 }
 
-function EventDataSection({
+export function EventDataSection({
   children,
   className,
   type,
@@ -183,5 +183,3 @@ const ActionContainer = styled('div')`
   flex-shrink: 0;
   max-width: 100%;
 `;
-
-export default EventDataSection;

@@ -34,7 +34,14 @@ type Props = {
   isShare?: boolean;
 };
 
-function EventEntry({entry, projectSlug, event, organization, group, isShare}: Props) {
+export function EventEntry({
+  entry,
+  projectSlug,
+  event,
+  organization,
+  group,
+  isShare,
+}: Props) {
   const hasHierarchicalGrouping =
     !!organization.features?.includes('grouping-stacktrace-ui') &&
     !!(event.metadata.current_tree_label || event.metadata.finest_tree_label);
@@ -188,5 +195,3 @@ function EventEntry({entry, projectSlug, event, organization, group, isShare}: P
       return null;
   }
 }
-
-export default EventEntry;

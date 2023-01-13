@@ -22,7 +22,7 @@ interface Props {
   group?: Group;
 }
 
-function EventCause({group, eventId, project, commitRow: CommitRow}: Props) {
+export function EventCause({group, eventId, project, commitRow: CommitRow}: Props) {
   const organization = useOrganization();
   const [isExpanded, setIsExpanded] = useState(false);
   const {data, isLoading} = useCommitters({
@@ -112,5 +112,3 @@ const ExpandButton = styled('button')`
   align-items: center;
   gap: ${space(0.5)};
 `;
-
-export default EventCause;
