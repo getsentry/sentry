@@ -11,13 +11,12 @@ import AsyncComponent from 'sentry/components/asyncComponent';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 import Button from 'sentry/components/button';
 import CompactSelect from 'sentry/components/compactSelect';
-import {Title} from 'sentry/components/layouts/thirds';
+import * as Layout from 'sentry/components/layouts/thirds';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import SearchBar from 'sentry/components/searchBar';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import Switch from 'sentry/components/switchButton';
 import {t} from 'sentry/locale';
-import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
 import {Organization, SavedQuery, SelectValue} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
@@ -209,7 +208,7 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
           onSearch={this.handleSearchQuery}
         />
         <PrebuiltSwitch>
-          <SwitchLabel>Show Prebuilt</SwitchLabel>
+          Show Prebuilt
           <Switch
             isActive={renderPrebuilt}
             isDisabled={renderPrebuilt && (savedQueries ?? []).length === 0}
@@ -239,9 +238,9 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
 
   renderNoAccess() {
     return (
-      <PageContent>
+      <Layout.Page withPadding>
         <Alert type="warning">{t("You don't have access to this feature")}</Alert>
-      </PageContent>
+      </Layout.Page>
     );
   }
 
@@ -295,22 +294,24 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
         renderDisabled={this.renderNoAccess}
       >
         <SentryDocumentTitle title={t('Discover')} orgSlug={organization.slug}>
-          <StyledPageContent>
+          <Layout.Page>
             <NoProjectMessage organization={organization}>
-              <PageContent>
-                <StyledPageHeader>
+              <Layout.Header>
+                <Layout.HeaderContent>
                   {organization.features.includes(
                     'discover-query-builder-as-landing-page'
                   ) ? (
                     this.renderBreadcrumbs()
                   ) : (
-                    <Title>
+                    <Layout.Title>
                       <GuideAnchor target="discover_landing_header">
                         {t('Discover')}
                       </GuideAnchor>
-                    </Title>
+                    </Layout.Title>
                   )}
-                  <StyledButton
+                </Layout.HeaderContent>
+                <Layout.HeaderActions>
+                  <Button
                     data-test-id="build-new-query"
                     to={to}
                     size="sm"
@@ -322,39 +323,30 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
                     }}
                   >
                     {t('Build a new query')}
-                  </StyledButton>
-                </StyledPageHeader>
-                {this.renderBanner()}
-                {this.renderActions()}
-                {this.renderComponent()}
-              </PageContent>
+                  </Button>
+                </Layout.HeaderActions>
+              </Layout.Header>
+              <Layout.Body>
+                <Layout.Main fullWidth>
+                  {this.renderBanner()}
+                  {this.renderActions()}
+                  {this.renderComponent()}
+                </Layout.Main>
+              </Layout.Body>
             </NoProjectMessage>
-          </StyledPageContent>
+          </Layout.Page>
         </SentryDocumentTitle>
       </Feature>
     );
   }
 }
 
-const StyledPageContent = styled(PageContent)`
-  padding: 0;
-`;
-
-const PrebuiltSwitch = styled('div')`
+const PrebuiltSwitch = styled('label')`
   display: flex;
-`;
-
-const SwitchLabel = styled('div')`
-  padding-right: 8px;
-`;
-
-const StyledPageHeader = styled('div')`
-  display: flex;
-  align-items: flex-end;
-  font-size: ${p => p.theme.headerFontSize};
-  color: ${p => p.theme.textColor};
-  justify-content: space-between;
-  margin-bottom: ${space(2)};
+  align-items: center;
+  gap: ${space(1.5)};
+  font-weight: normal;
+  margin: 0;
 `;
 
 const StyledSearchBar = styled(SearchBar)`
@@ -371,10 +363,6 @@ const StyledActions = styled('div')`
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     grid-template-columns: auto;
   }
-`;
-
-const StyledButton = styled(Button)`
-  white-space: nowrap;
 `;
 
 export default withOrganization(DiscoverLanding);

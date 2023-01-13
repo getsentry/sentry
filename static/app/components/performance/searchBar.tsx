@@ -13,6 +13,7 @@ import {doDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useApi from 'sentry/utils/useApi';
 import useOnClickOutside from 'sentry/utils/useOnClickOutside';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
 import SearchDropdown from '../smartSearchBar/searchDropdown';
@@ -209,7 +210,7 @@ function SearchBar(props: SearchBarProps) {
       query,
     });
 
-    browserHistory.push(next);
+    browserHistory.push(normalizeUrl(next));
   };
 
   return (
