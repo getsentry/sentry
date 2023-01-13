@@ -173,4 +173,4 @@ const ErrorLabel = styled('div')`
   margin-bottom: ${space(1)};
 `;
 
-export default withOrganization(SpansInterface);
+export const Spans = withOrganization(SpansInterface);

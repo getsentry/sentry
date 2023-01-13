@@ -1,18 +1,3 @@
-import Breadcrumbs from 'sentry/components/events/interfaces/breadcrumbs';
-import {Csp} from 'sentry/components/events/interfaces/csp';
-import {DebugMeta} from 'sentry/components/events/interfaces/debugMeta';
-import Exception from 'sentry/components/events/interfaces/exception';
-import ExceptionV2 from 'sentry/components/events/interfaces/exceptionV2';
-import {Generic} from 'sentry/components/events/interfaces/generic';
-import {Message} from 'sentry/components/events/interfaces/message';
-import {SpanEvidenceSection} from 'sentry/components/events/interfaces/performance/spanEvidence';
-import {Request} from 'sentry/components/events/interfaces/request';
-import Spans from 'sentry/components/events/interfaces/spans';
-import StackTrace from 'sentry/components/events/interfaces/stackTrace';
-import StackTraceV2 from 'sentry/components/events/interfaces/stackTraceV2';
-import {Template} from 'sentry/components/events/interfaces/template';
-import Threads from 'sentry/components/events/interfaces/threads';
-import ThreadsV2 from 'sentry/components/events/interfaces/threadsV2';
 import {
   Group,
   IssueCategory,
@@ -22,8 +7,23 @@ import {
 } from 'sentry/types';
 import {Entry, EntryType, Event, EventTransaction} from 'sentry/types/event';
 
+import {Breadcrumbs} from './interfaces/breadcrumbs';
+import {Csp} from './interfaces/csp';
+import {DebugMeta} from './interfaces/debugMeta';
+import {Exception} from './interfaces/exception';
+import {ExceptionV2} from './interfaces/exceptionV2';
+import {Generic} from './interfaces/generic';
+import {Message} from './interfaces/message';
 import {Resources} from './interfaces/performance/resources';
+import {SpanEvidenceSection} from './interfaces/performance/spanEvidence';
 import {getResourceDescription, getResourceLinks} from './interfaces/performance/utils';
+import {Request} from './interfaces/request';
+import {Spans} from './interfaces/spans';
+import {StackTrace} from './interfaces/stackTrace';
+import {StackTraceV2} from './interfaces/stackTraceV2';
+import {Template} from './interfaces/template';
+import {Threads} from './interfaces/threads';
+import {ThreadsV2} from './interfaces/threadsV2';
 
 type Props = {
   entry: Entry;

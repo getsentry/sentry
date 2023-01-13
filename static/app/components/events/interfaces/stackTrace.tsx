@@ -25,7 +25,7 @@ type Props = Pick<
   hideGuide?: boolean;
 };
 
-function StacktraceInterface({
+export function StackTrace({
   hideGuide = false,
   projectId,
   event,
@@ -83,5 +83,3 @@ function StacktraceInterface({
     </EventDataSection>
   );
 }
-
-export default StacktraceInterface;

@@ -48,7 +48,7 @@ function getIntendedStackView(thread: Thread, event: Event) {
   return stacktrace?.hasSystemFrames ? STACK_VIEW.APP : STACK_VIEW.FULL;
 }
 
-function Threads({
+export function Threads({
   data,
   event,
   projectId,
@@ -174,5 +174,3 @@ function Threads({
     </EventDataSection>
   );
 }
-
-export default Threads;

@@ -1,6 +1,6 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import Threads from 'sentry/components/events/interfaces/threads';
+import {Threads} from 'sentry/components/events/interfaces/threads';
 
 describe('Threads', () => {
   const entries = TestStubs.Entries()[0];

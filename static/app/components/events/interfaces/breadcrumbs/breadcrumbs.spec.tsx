@@ -3,7 +3,7 @@ import selectEvent from 'react-select-event';
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import Breadcrumbs from 'sentry/components/events/interfaces/breadcrumbs';
+import {Breadcrumbs} from 'sentry/components/events/interfaces/breadcrumbs';
 import {BreadcrumbLevelType, BreadcrumbType} from 'sentry/types/breadcrumbs';
 import {
   useHaveSelectedProjectsSentAnyReplayEvents,

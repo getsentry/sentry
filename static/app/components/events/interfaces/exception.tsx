@@ -21,7 +21,7 @@ type Props = {
   hideGuide?: boolean;
 };
 
-function Exception({
+export function Exception({
   event,
   data,
   projectId,
@@ -101,5 +101,3 @@ function Exception({
     </EventDataSection>
   );
 }
-
-export default Exception;
