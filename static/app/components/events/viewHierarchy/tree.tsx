@@ -116,6 +116,7 @@ const ChildList = styled('ul')`
 const NodeContents = styled('li')`
   padding-left: 0;
   display: block;
+  white-space: nowrap;
 `;
 
 const NodeTitle = styled('span')<{selected?: boolean}>`
