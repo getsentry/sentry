@@ -29,7 +29,7 @@ export function SessionCell({
   replay,
 }: Props & {eventView: EventView; organization: Organization; referrer: string}) {
   const {projects} = useProjects();
-  const project = projects.find(p => p.id === replay.projectId);
+  const project = projects.find(p => p.id === replay.project_id);
 
   return (
     <UserBadge
@@ -44,15 +44,15 @@ export function SessionCell({
             },
           }}
         >
-          {replay.user.displayName || ''}
+          {replay.user.display_name || ''}
         </Link>
       }
       user={{
-        username: replay.user.displayName || '',
+        username: replay.user.display_name || '',
         email: replay.user.email || '',
         id: replay.user.id || '',
-        ip_address: replay.user.ip_address || '',
-        name: replay.user.name || '',
+        ip_address: replay.user.ip || '',
+        name: replay.user.username || '',
       }}
       // this is the subheading for the avatar, so displayEmail in this case is a misnomer
       displayEmail={<StringWalker urls={replay.urls} />}
@@ -62,7 +62,7 @@ export function SessionCell({
 
 export function ProjectCell({replay}: Props) {
   const {projects} = useProjects();
-  const project = projects.find(p => p.id === replay.projectId);
+  const project = projects.find(p => p.id === replay.project_id);
 
   return (
     <Item>{project ? <ProjectBadge project={project} avatarSize={16} /> : null}</Item>
@@ -98,7 +98,7 @@ export function StartedAtCell({replay}: Props) {
   return (
     <Item>
       <IconCalendar color="gray500" size="sm" />
-      <TimeSince date={replay.startedAt} />
+      <TimeSince date={replay.started_at} />
     </Item>
   );
 }
@@ -112,7 +112,7 @@ export function DurationCell({replay}: Props) {
 }
 
 export function ErrorCountCell({replay}: Props) {
-  return <Item data-test-id="replay-table-count-errors">{replay.countErrors || 0}</Item>;
+  return <Item data-test-id="replay-table-count-errors">{replay.count_errors || 0}</Item>;
 }
 
 export function ActivityCell({replay}: Props) {

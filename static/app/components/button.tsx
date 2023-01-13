@@ -237,8 +237,6 @@ const Button = reactForwardRef<ButtonElement, ButtonProps>((props, ref) => (
 
 Button.displayName = 'Button';
 
-export default Button;
-
 type StyledButtonProps = ButtonProps & {theme: Theme};
 
 const getBoxShadow = ({

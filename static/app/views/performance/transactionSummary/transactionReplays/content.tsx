@@ -38,7 +38,7 @@ function ReplaysContent({eventView, isFetching, pageLinks, replays}: Props) {
         fetchError={undefined}
         isFetching={isFetching}
         replays={replays}
-        sort={first(eventView.sorts) || {field: 'startedAt', kind: 'asc'}}
+        sort={first(eventView.sorts) || {field: 'started_at', kind: 'asc'}}
         visibleColumns={[
           ReplayColumns.session,
           ...(hasRoomForColumns
