@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Sequence
 import sentry_sdk
 from django.utils import timezone
 
+from sentry import features
 from sentry.models import Any, Environment, Mapping, Optional
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.entity_subscription import (
@@ -188,22 +189,32 @@ def build_query_builder(
 
 
 def _create_in_snuba(subscription: QuerySubscription) -> str:
-    snuba_query = subscription.snuba_query
-    entity_subscription = get_entity_subscription_from_snuba_query(
-        snuba_query,
-        subscription.project.organization_id,
-    )
-    snql_query = build_query_builder(
-        entity_subscription,
-        snuba_query.query,
-        [subscription.project_id],
-        snuba_query.environment,
-        params={
-            "organization_id": subscription.project.organization_id,
-            "project_id": [subscription.project_id],
-        },
-    ).get_snql_query()
-    return _create_snql_in_snuba(subscription, snuba_query, snql_query, entity_subscription)
+    with sentry_sdk.start_span(
+        op="create_in_snuba", name="create_alert_subscription_in_snuba"
+    ) as span:
+        span.set_data(
+            "uses_metrics_layer",
+            features.has("organizations:use-metrics-layer", subscription.project.organization_id),
+        )
+        span.set_data("dataset", subscription.snuba_query.dataset)
+
+        snuba_query = subscription.snuba_query
+        entity_subscription = get_entity_subscription_from_snuba_query(
+            snuba_query,
+            subscription.project.organization_id,
+        )
+        snql_query = build_query_builder(
+            entity_subscription,
+            snuba_query.query,
+            [subscription.project_id],
+            snuba_query.environment,
+            params={
+                "organization_id": subscription.project.organization_id,
+                "project_id": [subscription.project_id],
+            },
+        ).get_snql_query()
+
+        return _create_snql_in_snuba(subscription, snuba_query, snql_query, entity_subscription)
 
 
 # This indirection function only exists such that snql queries can be rewritten
