@@ -8,7 +8,7 @@
 /LICENSE                                                 @getsentry/owners-legal
 
 ## Migrations
-/src/sentry/migrations/                                  @getsentry/owners-migrations
+src/sentry/migrations                                  @getsentry/owners-migrations
 /src/sentry/*/migrations/                                @getsentry/owners-migrations
 
 ## API Owners for unowned endpoints / serializers
