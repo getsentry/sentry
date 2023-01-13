@@ -11,6 +11,7 @@ import GridEditable, {
 } from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
+import ReplayIdCountProvider from 'sentry/components/replays/replayIdCountProvider';
 import Tooltip from 'sentry/components/tooltip';
 import Truncate from 'sentry/components/truncate';
 import {IconStack} from 'sentry/icons';
@@ -40,14 +41,17 @@ import {
   eventDetailsRouteWithEventView,
   generateEventSlug,
 } from 'sentry/utils/discover/urls';
-import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
+import ViewReplayLink from 'sentry/utils/discover/viewReplayLink';
 import {decodeList} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useProjects from 'sentry/utils/useProjects';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
-import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
+import {
+  generateReplayLink,
+  transactionSummaryRouteWithQuery,
+} from 'sentry/views/performance/transactionSummary/utils';
 
 import {getExpandedResults, pushEventViewToLocation} from '../utils';
 
@@ -96,6 +100,7 @@ export type TableViewProps = {
 function TableView(props: TableViewProps) {
   const {projects} = useProjects();
   const routes = useRoutes();
+  const replayLinkGenerator = generateReplayLink(routes);
 
   /**
    * Updates a column on resizing
@@ -344,21 +349,11 @@ function TableView(props: TableViewProps) {
       }
     } else if (columnKey === 'replayId') {
       if (dataRow.replayId) {
-        const replaySlug = `${dataRow['project.name']}:${dataRow.replayId}`;
-        const referrer = getRouteStringFromRoutes(routes);
-
-        const target = {
-          pathname: `/organizations/${organization.slug}/replays/${replaySlug}/`,
-          query: {
-            referrer,
-          },
-        };
+        const target = replayLinkGenerator(organization, dataRow, undefined);
         cell = (
-          <Tooltip title={t('View Replay')}>
-            <StyledLink data-test-id="view-replay" to={target}>
-              {cell}
-            </StyledLink>
-          </Tooltip>
+          <ViewReplayLink replayId={dataRow.replayId} to={target}>
+            {cell}
+          </ViewReplayLink>
         );
       }
     }
@@ -583,7 +578,7 @@ function TableView(props: TableViewProps) {
     );
   }
 
-  const {isLoading, error, location, tableData, eventView} = props;
+  const {error, eventView, isLoading, location, organization, tableData} = props;
 
   const columnOrder = eventView.getColumns();
   const columnSortBy = eventView.getSorts();
@@ -594,24 +589,28 @@ function TableView(props: TableViewProps) {
     ? []
     : [`minmax(${COL_WIDTH_MINIMUM}px, max-content)`];
 
+  const replayIds = tableData?.data?.map(row => String(row.replayId)).filter(Boolean);
+
   return (
-    <GridEditable
-      isLoading={isLoading}
-      error={error}
-      data={tableData ? tableData.data : []}
-      columnOrder={columnOrder}
-      columnSortBy={columnSortBy}
-      title={t('Results')}
-      grid={{
-        renderHeadCell: _renderGridHeaderCell as any,
-        renderBodyCell: _renderGridBodyCell as any,
-        onResizeColumn: _resizeColumn as any,
-        renderPrependColumns: _renderPrependColumns as any,
-        prependColumnWidths,
-      }}
-      headerButtons={renderHeaderButtons}
-      location={location}
-    />
+    <ReplayIdCountProvider organization={organization} replayIds={replayIds}>
+      <GridEditable
+        isLoading={isLoading}
+        error={error}
+        data={tableData ? tableData.data : []}
+        columnOrder={columnOrder}
+        columnSortBy={columnSortBy}
+        title={t('Results')}
+        grid={{
+          renderHeadCell: _renderGridHeaderCell as any,
+          renderBodyCell: _renderGridBodyCell as any,
+          onResizeColumn: _resizeColumn as any,
+          renderPrependColumns: _renderPrependColumns as any,
+          prependColumnWidths,
+        }}
+        headerButtons={renderHeaderButtons}
+        location={location}
+      />
+    </ReplayIdCountProvider>
   );
 }
 
