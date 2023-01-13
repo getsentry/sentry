@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
 import {fetchTagValues} from 'sentry/actionCreators/tags';
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import EmptyMessage from 'sentry/components/emptyMessage';
@@ -17,7 +17,6 @@ import NoProjectMessage from 'sentry/components/noProjectMessage';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {getRelativeSummary} from 'sentry/components/organizations/timeRangeSelector/utils';
-import PageHeading from 'sentry/components/pageHeading';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import Pagination from 'sentry/components/pagination';
 import {Panel} from 'sentry/components/panels';
@@ -525,7 +524,7 @@ class ReleasesList extends AsyncView<Props, State> {
         <NoProjectMessage organization={organization}>
           <Layout.Header>
             <Layout.HeaderContent>
-              <StyledHeading>
+              <Layout.Title>
                 {t('Releases')}
                 <PageHeadingQuestionTooltip
                   title={tct(
@@ -537,7 +536,7 @@ class ReleasesList extends AsyncView<Props, State> {
                     }
                   )}
                 />
-              </StyledHeading>
+              </Layout.Title>
             </Layout.HeaderContent>
           </Layout.Header>
 
@@ -615,10 +614,6 @@ class ReleasesList extends AsyncView<Props, State> {
     );
   }
 }
-
-const StyledHeading = styled(PageHeading)`
-  line-height: 40px;
-`;
 
 const AlertText = styled('div')`
   display: flex;

@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import Card from 'sentry/components/card';
 import {IconAdd, IconGeneric} from 'sentry/icons';
 import {t} from 'sentry/locale';

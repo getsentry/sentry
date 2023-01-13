@@ -2,7 +2,7 @@ import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Flamegraph} from 'sentry/components/profiling/flamegraph/flamegraph';
 import {ProfileDragDropImportProps} from 'sentry/components/profiling/flamegraph/flamegraphOverlays/profileDragDropImport';

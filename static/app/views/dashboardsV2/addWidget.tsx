@@ -1,7 +1,7 @@
 import {useSortable} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
 
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 

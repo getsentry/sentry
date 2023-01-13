@@ -18,12 +18,19 @@ import GroupStore from 'sentry/stores/groupStore';
 import MemberListStore from 'sentry/stores/memberListStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import space from 'sentry/styles/space';
-import type {Actor, SuggestedOwner, SuggestedOwnerReason, Team, User} from 'sentry/types';
+import type {
+  Actor,
+  Organization,
+  SuggestedOwner,
+  SuggestedOwnerReason,
+  Team,
+  User,
+} from 'sentry/types';
 import {buildTeamId, buildUserId, valueIsEqual} from 'sentry/utils';
 
 export type SuggestedAssignee = Actor & {
   assignee: AssignableTeam | User;
-  suggestedReason: SuggestedOwnerReason;
+  suggestedReason: string;
 };
 
 type AssignableTeam = {
@@ -44,6 +51,7 @@ type RenderProps = {
 export interface AssigneeSelectorDropdownProps {
   children: (props: RenderProps) => React.ReactNode;
   id: string;
+  organization: Organization;
   disabled?: boolean;
   memberList?: User[];
   onAssign?: (
@@ -51,6 +59,7 @@ export interface AssigneeSelectorDropdownProps {
     assignee: User | Actor,
     suggestedAssignee?: SuggestedAssignee
   ) => void;
+  owners?: Omit<SuggestedAssignee, 'assignee'>[];
 }
 
 type State = {
@@ -106,6 +115,10 @@ export class AssigneeSelectorDropdown extends Component<
       return true;
     }
 
+    if (!valueIsEqual(this.props.owners, nextProps.owners)) {
+      return true;
+    }
+
     const currentMembers = this.memberList();
     // XXX(billyvg): this means that once `memberList` is not-null, this component will never update due to `memberList` changes
     // Note: this allows us to show a "loading" state for memberList, but only before `MemberListStore.loadInitialData`
@@ -126,6 +139,10 @@ export class AssigneeSelectorDropdown extends Component<
       this.handleMemberListUpdate(users);
     }, undefined),
   ];
+
+  hasStreamlineTargeting() {
+    return this.props.organization.features.includes('streamline-targeting-context');
+  }
 
   handleMemberListUpdate = (members: User[]) => {
     if (members === this.state.memberList) {
@@ -229,16 +246,31 @@ export class AssigneeSelectorDropdown extends Component<
           onSelect={handleSelect}
         >
           <IconContainer>
-            <UserAvatar user={member} size={20} />
+            <UserAvatar user={member} size={24} />
           </IconContainer>
-          <Label>
-            <Highlight text={inputValue}>
-              {sessionUser.id === member.id
-                ? `${member.name || member.email} ${t('(You)')}`
-                : member.name || member.email}
-            </Highlight>
-            {suggestedReason && <SuggestedReason>({suggestedReason})</SuggestedReason>}
-          </Label>
+          {this.hasStreamlineTargeting() ? (
+            <div>
+              <AssigneeLabel>
+                <Highlight text={inputValue}>
+                  {sessionUser.id === member.id
+                    ? `${member.name || member.email} ${t('(You)')}`
+                    : member.name || member.email}
+                </Highlight>
+              </AssigneeLabel>
+              <AssigneeLabel>
+                {suggestedReason && <SuggestedReason>{suggestedReason}</SuggestedReason>}
+              </AssigneeLabel>
+            </div>
+          ) : (
+            <Label>
+              <Highlight text={inputValue}>
+                {sessionUser.id === member.id
+                  ? `${member.name || member.email} ${t('(You)')}`
+                  : member.name || member.email}
+              </Highlight>
+              {suggestedReason && <SuggestedReason> ({suggestedReason})</SuggestedReason>}
+            </Label>
+          )}
         </MenuItemWrapper>
       ),
     };
@@ -263,19 +295,26 @@ export class AssigneeSelectorDropdown extends Component<
       label: ({inputValue}) => (
         <MenuItemWrapper data-test-id="assignee-option" key={id} onSelect={handleSelect}>
           <IconContainer>
-            <TeamAvatar team={team} size={20} />
+            <TeamAvatar team={team} size={24} />
           </IconContainer>
-          <Label>
-            <Highlight text={inputValue}>{display}</Highlight>
-            {suggestedReason && <SuggestedReason>({suggestedReason})</SuggestedReason>}
-          </Label>
+          {this.hasStreamlineTargeting() ? (
+            <div>
+              <AssigneeLabel>
+                <Highlight text={inputValue}>{display}</Highlight>
+              </AssigneeLabel>
+              <AssigneeLabel>
+                {suggestedReason && <SuggestedReason>{suggestedReason}</SuggestedReason>}
+              </AssigneeLabel>
+            </div>
+          ) : (
+            <Label>
+              <Highlight text={inputValue}>{display}</Highlight>
+              {suggestedReason && <SuggestedReason> ({suggestedReason})</SuggestedReason>}
+            </Label>
+          )}
         </MenuItemWrapper>
       ),
     };
-  }
-
-  renderNewTeamNodes(): ItemsBeforeFilter {
-    return this.assignableTeams().map(team => this.renderTeamNode(team));
   }
 
   renderSuggestedAssigneeNodes(): React.ComponentProps<
@@ -293,7 +332,7 @@ export class AssigneeSelectorDropdown extends Component<
       .filter(({type, id}) => !(type === assignedTo?.type && id === assignedTo?.id))
       .filter(({type}) => type === 'user' || type === 'team')
       .map(({type, suggestedReason, assignee}) => {
-        const reason = textReason[suggestedReason];
+        const reason = textReason[suggestedReason] ?? suggestedReason;
         if (type === 'user') {
           return this.renderMemberNode(assignee as User, reason);
         }
@@ -307,7 +346,7 @@ export class AssigneeSelectorDropdown extends Component<
   }
 
   renderNewDropdownItems(): ItemsBeforeFilter {
-    const teams = this.renderNewTeamNodes();
+    const teams = this.assignableTeams().map(team => this.renderTeamNode(team));
     const members = this.renderNewMemberNodes();
     const sessionUser = ConfigStore.get('user');
     const suggestedAssignees = this.renderSuggestedAssigneeNodes() ?? [];
@@ -340,33 +379,51 @@ export class AssigneeSelectorDropdown extends Component<
       );
     });
 
-    const dropdownItems: ItemsBeforeFilter = [
-      {
-        label: this.renderDropdownGroupLabel(t('Teams')),
-        id: 'team-header',
-        items: filteredTeams,
-      },
-      {
-        label: this.renderDropdownGroupLabel(t('People')),
-        id: 'members-header',
-        items: filteredMembers,
-      },
-    ];
+    // New version combines teams and users into one section
+    const dropdownItems: ItemsBeforeFilter = this.hasStreamlineTargeting()
+      ? [
+          {
+            label: this.renderDropdownGroupLabel(t('Everyone Else')),
+            id: 'everyone-else',
+            items: [...filteredSessionUser, ...filteredTeams, ...filteredMembers],
+          },
+        ]
+      : [
+          {
+            label: this.renderDropdownGroupLabel(t('Teams')),
+            id: 'team-header',
+            items: filteredTeams,
+          },
+          {
+            label: this.renderDropdownGroupLabel(t('People')),
+            id: 'members-header',
+            items: filteredMembers,
+          },
+        ];
 
-    // session user is first on dropdown
     if (suggestedAssignees.length || filteredSessionUser.length) {
-      dropdownItems.unshift(
-        {
-          label: this.renderDropdownGroupLabel(t('Suggested')),
-          id: 'suggested-header',
-          items: filteredSessionUser,
-        },
-        {
-          hideGroupLabel: true,
+      // Add suggested assingees
+      if (this.hasStreamlineTargeting()) {
+        dropdownItems.unshift({
+          label: this.renderDropdownGroupLabel(t('Suggested Assignees')),
           id: 'suggested-list',
           items: filteredSuggestedAssignees,
-        }
-      );
+        });
+      } else {
+        dropdownItems.unshift(
+          // session user is first on dropdown
+          {
+            label: this.renderDropdownGroupLabel(t('Suggested')),
+            id: 'suggested-header',
+            items: filteredSessionUser,
+          },
+          {
+            hideGroupLabel: true,
+            id: 'suggested-list',
+            items: filteredSuggestedAssignees,
+          }
+        );
+      }
     }
 
     return dropdownItems;
@@ -396,13 +453,45 @@ export class AssigneeSelectorDropdown extends Component<
   }
 
   getSuggestedAssignees(): SuggestedAssignee[] {
+    const assignableTeams = this.assignableTeams();
+    const memberList = this.memberList() ?? [];
+
+    const {owners} = this.props;
+    if (owners !== undefined) {
+      // Add team or user from store
+      return owners
+        .map<SuggestedAssignee | null>(owner => {
+          if (owner.type === 'user') {
+            const member = memberList.find(user => user.id === owner.id);
+            if (member) {
+              return {
+                ...owner,
+                assignee: member,
+              };
+            }
+          }
+          if (owner.type === 'team') {
+            const matchingTeam = assignableTeams.find(
+              assignableTeam => assignableTeam.team.id === owner.id
+            );
+            if (matchingTeam) {
+              return {
+                ...owner,
+                assignee: matchingTeam,
+              };
+            }
+          }
+
+          return null;
+        })
+        .filter((owner): owner is SuggestedAssignee => !!owner);
+    }
+
     const {suggestedOwners} = this.state;
     if (!suggestedOwners) {
       return [];
     }
 
-    const assignableTeams = this.assignableTeams();
-    const memberList = this.memberList() ?? [];
     const suggestedAssignees: Array<SuggestedAssignee | null> = suggestedOwners.map(
       owner => {
         // converts a backend suggested owner to a suggested assignee
@@ -411,8 +500,8 @@ export class AssigneeSelectorDropdown extends Component<
           const member = memberList.find(user => user.id === id);
           if (member) {
             return {
-              type: 'user',
               id,
+              type: 'user',
               name: member.name,
               suggestedReason: owner.type,
               assignee: member,
@@ -424,8 +513,8 @@ export class AssigneeSelectorDropdown extends Component<
           );
           if (matchingTeam) {
             return {
-              type: 'team',
               id,
+              type: 'team',
               name: matchingTeam.team.name,
               suggestedReason: owner.type,
               assignee: matchingTeam,
@@ -437,7 +526,7 @@ export class AssigneeSelectorDropdown extends Component<
       }
     );
 
-    return suggestedAssignees.filter(owner => !!owner) as SuggestedAssignee[];
+    return suggestedAssignees.filter((owner): owner is SuggestedAssignee => !!owner);
   }
 
   render() {
@@ -462,7 +551,7 @@ export class AssigneeSelectorDropdown extends Component<
         menuFooter={
           assignedTo ? (
             <div>
-              <MenuItemFooterWrapper role="button" onClick={this.clearAssignTo} py={0}>
+              <MenuItemFooterWrapper role="button" onClick={this.clearAssignTo}>
                 <IconContainer>
                   <IconClose color="activeText" isCircled legacySize="14px" />
                 </IconContainer>
@@ -528,6 +617,7 @@ const MenuItemWrapper = styled('div')<{
   display: flex;
   align-items: center;
   font-size: 13px;
+  padding: ${space(0.5)} ${space(0.5)};
   ${p =>
     typeof p.py !== 'undefined' &&
     `
@@ -536,7 +626,9 @@ const MenuItemWrapper = styled('div')<{
     `};
 `;
 
-const MenuItemFooterWrapper = styled(MenuItemWrapper)`
+const MenuItemFooterWrapper = styled('div')`
+  display: flex;
+  align-items: center;
   padding: ${space(0.25)} ${space(1)};
   border-top: 1px solid ${p => p.theme.innerBorder};
   background-color: ${p => p.theme.tag.highlight.background};
@@ -557,16 +649,22 @@ const Label = styled(TextOverflow)`
   margin-left: 6px;
 `;
 
+const AssigneeLabel = styled('div')`
+  ${p => p.theme.overflowEllipsis}
+  margin-left: ${space(1)};
+  max-width: 300px;
+`;
+
 const GroupHeader = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: 75%;
+  line-height: 1.5;
   font-weight: 600;
+  text-transform: uppercase;
   margin: ${space(1)} 0;
   color: ${p => p.theme.subText};
-  line-height: ${p => p.theme.fontSizeSmall};
   text-align: left;
 `;
 
 const SuggestedReason = styled('span')`
-  margin-left: ${space(0.5)};
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.subText};
 `;
