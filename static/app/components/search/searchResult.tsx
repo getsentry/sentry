@@ -8,7 +8,7 @@ import {IconInput, IconLink, IconSettings} from 'sentry/icons';
 import PluginIcon from 'sentry/plugins/components/pluginIcon';
 import space from 'sentry/styles/space';
 import highlightFuseMatches from 'sentry/utils/highlightFuseMatches';
-import {useParams} from 'sentry/utils/useParams';
+import useOrganization from 'sentry/utils/useOrganization';
 
 import {Result} from './sources/types';
 
@@ -38,7 +38,7 @@ function renderResultType({resultType, model}: Result['item']) {
 }
 
 function SearchResult({item, matches, highlighted}: Props) {
-  const params = useParams<{orgId: string}>();
+  const organization = useOrganization();
 
   const {sourceType, model, extra} = item;
 
@@ -73,7 +73,7 @@ function SearchResult({item, matches, highlighted}: Props) {
         displayEmail: DescriptionNode,
         description: DescriptionNode,
         useLink: false,
-        orgId: params.orgId,
+        orgId: organization.slug,
         avatarSize: 32,
         [sourceType]: model,
       };

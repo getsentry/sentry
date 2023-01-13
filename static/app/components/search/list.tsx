@@ -120,7 +120,7 @@ const ResultRow = memo(
     ...renderItemProps
   }: SearchItemProps) => {
     const {item, index} = renderItemProps;
-    useEffect(() => registerVisibleItem(index, item), [registerVisibleItem, item]);
+    useEffect(() => registerVisibleItem(index, item), [registerVisibleItem, index, item]);
 
     const itemProps = useMemo(
       () => getItemProps({item, index}),
