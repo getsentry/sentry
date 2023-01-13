@@ -22,7 +22,7 @@ class OrganizationEventsMetaEndpoint(OrganizationEventsEndpointBase):
         except NoProjects:
             return Response({"count": 0})
 
-        dataset = request.GET.get("dataset", "discover")
+        dataset = self.get_dataset(request)
 
         with self.handle_query_errors():
             result = dataset.query(

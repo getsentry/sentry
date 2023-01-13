@@ -28,12 +28,13 @@ from sentry.types.issues import GroupType
 from sentry.utils import json
 from sentry.utils.samples import load_data
 from sentry.utils.snuba import QueryExecutionError, QueryIllegalTypeOfArgument, RateLimitExceeded
+from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
 MAX_QUERYABLE_TRANSACTION_THRESHOLDS = 1
 
 
 @region_silo_test
-class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
+class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
     viewname = "sentry-api-0-organization-events"
     referrer = "api.organization-events"
 
@@ -595,6 +596,31 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
             "query": f"project:{self.project.slug} performance.issue_ids:{event.groups[0].id}",
         }
         response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert response.data["data"][0]["count()"] == 1
+
+    def test_generic_issue_ids_filter(self):
+        # CEO: this won't pass until the translation mapper is updated
+        _, _, group_info = self.store_search_issue(
+            self.project.id,
+            self.user.id,
+            [f"{GroupType.PROFILE_BLOCKED_THREAD.value}-group1"],
+            "prod",
+            timezone.now().replace(hour=0, minute=0, second=0) + timedelta(minutes=1),
+        )
+
+        query = {
+            "field": ["count()"],
+            "statsPeriod": "2h",
+            "query": f"project:{self.project.slug} performance.issue_ids:{group_info.group.id}",
+            "dataset": "issuePlatform",
+        }
+        with self.feature(
+            [
+                "organizations:profiling",
+            ]
+        ):
+            response = self.do_request(query)
         assert response.status_code == 200, response.content
         assert response.data["data"][0]["count()"] == 1
 
