@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 import responses
 from django.urls import reverse
 
-from sentry.models import Identity, IdentityProvider, Integration
+from sentry.models import Identity, IdentityProvider, Integration, OrganizationIntegration
 from sentry.testutils import APITestCase
 
 
@@ -203,7 +203,11 @@ class GithubSearchTest(APITestCase):
 
     def test_missing_installation(self):
         # remove organization integration aka "uninstalling" installation
-        self.installation.org_integration.delete()
+        org_integration = OrganizationIntegration.objects.get(
+            id=self.installation.org_integration.id
+        )
+        org_integration.delete()
+
         resp = self.client.get(self.url, data={"field": "repo", "query": "not-found"})
 
         assert resp.status_code == 404
