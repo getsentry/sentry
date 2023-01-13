@@ -1,6 +1,6 @@
 import {useState} from 'react';
 
-import EventDataSection from 'sentry/components/events/eventDataSection';
+import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import CrashActions from 'sentry/components/events/interfaces/crashHeader/crashActions';
 import CrashTitle from 'sentry/components/events/interfaces/crashHeader/crashTitle';
 import {t} from 'sentry/locale';
