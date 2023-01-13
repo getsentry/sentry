@@ -1276,17 +1276,56 @@ class MetricsLayerReleaseHealthBackend(ReleaseHealthBackend):
 
         return rv
 
-    # TODO implement
     def get_changed_project_release_model_adoptions(
         self,
         project_ids: Sequence[ProjectId],
         now: Optional[datetime] = None,
     ) -> Sequence[ProjectRelease]:
-        """
-        Returns a sequence of tuples (ProjectId, ReleaseName) with the
-        releases seen in the last 72 hours for the requested projects.
-        """
-        raise NotImplementedError()
+
+        if now is None:
+            now = datetime.now(pytz.utc)
+
+        start = now - timedelta(days=3)
+
+        project_ids = list(project_ids)
+
+        if len(project_ids) == 0:
+            return []
+
+        projects, org_id = self._get_projects_and_org_id(project_ids)
+
+        select = [MetricField(metric_mri=SessionMRI.ALL.value, alias="value", op=None)]
+
+        groupby = [
+            MetricGroupByField(field="release"),
+            MetricGroupByField(field="project_id"),
+        ]
+
+        query = MetricsQuery(
+            org_id=org_id,
+            project_ids=project_ids,
+            select=select,
+            start=start,
+            end=now,
+            groupby=groupby,
+            granularity=Granularity(LEGACY_SESSIONS_DEFAULT_ROLLUP),
+            include_series=False,
+            include_totals=True,
+        )
+
+        raw_result = get_series(
+            projects=projects,
+            metrics_query=query,
+            use_case_id=USE_CASE_ID,
+        )
+
+        groups = raw_result["groups"]
+
+        ret_val = []
+        for group in groups:
+            by = group.get("by")
+            ret_val.append((by.get("project_id"), by.get("release")))
+        return ret_val
 
     # TODO implement
     def get_oldest_health_data_for_releases(
