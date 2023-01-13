@@ -42,7 +42,7 @@ const NPlusOneDBQueriesSpanEvidence = ({
   SpanEvidenceKeyValueListProps,
   'transactionName' | 'parentSpan' | 'offendingSpans'
 >) => (
-  <KeyValueList
+  <PresortedKeyValueList
     data={
       [
         makeTransactionNameRow(transactionName),
@@ -60,7 +60,7 @@ const NPlusOneAPICallsSpanEvidence = ({
   const problemParameters = getProblemParameters(offendingSpans);
 
   return (
-    <KeyValueList
+    <PresortedKeyValueList
       data={
         [
           makeTransactionNameRow(transactionName),
@@ -78,7 +78,7 @@ const SlowSpanSpanEvidence = ({
   transactionName,
   offendingSpans,
 }: Pick<SpanEvidenceKeyValueListProps, 'transactionName' | 'offendingSpans'>) => (
-  <KeyValueList
+  <PresortedKeyValueList
     data={[
       makeTransactionNameRow(transactionName),
       makeRow(t('Slow Span'), getSpanEvidenceValue(offendingSpans[0])),
@@ -90,12 +90,16 @@ const DefaultSpanEvidence = ({
   transactionName,
   offendingSpans,
 }: Pick<SpanEvidenceKeyValueListProps, 'transactionName' | 'offendingSpans'>) => (
-  <KeyValueList
+  <PresortedKeyValueList
     data={[
       makeTransactionNameRow(transactionName),
       makeRow(t('Offending Span'), getSpanEvidenceValue(offendingSpans[0])),
     ]}
   />
+);
+
+const PresortedKeyValueList = ({data}: Pick<KeyValueListData['data']>) => (
+  <KeyValueList isSorted data={data} />
 );
 
 const makeTransactionNameRow = (transactionName: string) =>
