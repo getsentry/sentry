@@ -1,8 +1,7 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {IconCircle} from 'sentry/icons';
-import {IconCircleFill} from 'sentry/icons/iconCircleFill';
+import {IconCircle, IconCircleFill} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Event, Frame, Organization} from 'sentry/types';
