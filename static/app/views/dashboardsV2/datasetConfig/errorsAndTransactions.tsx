@@ -45,6 +45,7 @@ import {
   generateEventSlug,
 } from 'sentry/utils/discover/urls';
 import {getShortEventId} from 'sentry/utils/events';
+import {FieldKey} from 'sentry/utils/fields';
 import {getMeasurements} from 'sentry/utils/measurements/measurements';
 import {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {FieldValueOption} from 'sentry/views/eventsV2/table/queryField';
@@ -622,10 +623,11 @@ function getEventsSeriesRequest(
 // Checks fieldValue to see what function is being used and only allow supported custom measurements
 function filterAggregateParams(option: FieldValueOption, fieldValue?: QueryFieldValue) {
   if (
-    option.value.kind === FieldValueKind.CUSTOM_MEASUREMENT &&
-    fieldValue?.kind === 'function' &&
-    fieldValue?.function &&
-    !option.value.meta.functions.includes(fieldValue.function[0])
+    (option.value.kind === FieldValueKind.CUSTOM_MEASUREMENT &&
+      fieldValue?.kind === 'function' &&
+      fieldValue?.function &&
+      !option.value.meta.functions.includes(fieldValue.function[0])) ||
+    option.value.meta.name === FieldKey.TOTAL_COUNT
   ) {
     return false;
   }
