@@ -149,7 +149,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
         return self._serialize_member(member)
 
     def get_organization_by_id(
-        self, *, id: int, user_id: Optional[int] = None, slug: Optional[int] = None
+        self, *, id: int, user_id: Optional[int] = None, slug: Optional[str] = None
     ) -> Optional[ApiUserOrganizationContext]:
         membership: Optional[ApiOrganizationMember] = None
         if user_id is not None:
