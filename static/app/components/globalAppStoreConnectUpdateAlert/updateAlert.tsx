@@ -1,7 +1,7 @@
 import {useContext} from 'react';
 import styled from '@emotion/styled';
 
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
 import AppStoreConnectContext from 'sentry/components/projects/appStoreConnectContext';
 import space from 'sentry/styles/space';
 import {Project} from 'sentry/types';
