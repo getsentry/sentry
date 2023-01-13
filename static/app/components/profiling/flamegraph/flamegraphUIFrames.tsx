@@ -27,6 +27,7 @@ import {
 } from 'sentry/utils/profiling/gl/utils';
 import {UIFramesRenderer} from 'sentry/utils/profiling/renderers/uiFramesRenderer';
 import {UIFrameNode, UIFrames} from 'sentry/utils/profiling/uiFrames';
+import {useDevicePixelRatio} from 'sentry/utils/useDevicePixelRatio';
 import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
 
 import {useCanvasScroll} from './interactions/useCanvasScroll';
@@ -37,8 +38,6 @@ import {useWheelCenterZoom} from './interactions/useWheelCenterZoom';
 interface FlamegraphUIFramesProps {
   canvasBounds: Rect;
   canvasPoolManager: CanvasPoolManager;
-  flamegraphCanvas: FlamegraphCanvas | null;
-  flamegraphCanvasRef: HTMLCanvasElement | null;
   flamegraphView: CanvasView<Flamegraph> | null;
   uiFrames: UIFrames;
 }
@@ -47,12 +46,14 @@ export function FlamegraphUIFrames({
   uiFrames,
   canvasPoolManager,
   flamegraphView,
-  flamegraphCanvas,
-  flamegraphCanvasRef,
 }: FlamegraphUIFramesProps) {
+  const devicePixelRatio = useDevicePixelRatio();
   const profileGroup = useProfileGroup();
   const flamegraphTheme = useFlamegraphTheme();
   const scheduler = useCanvasScheduler(canvasPoolManager);
+  const [uiFramesCanvasRef, setUIFramesCanvasRef] = useState<HTMLCanvasElement | null>(
+    null
+  );
 
   const [configSpaceCursor, setConfigSpaceCursor] = useState<vec2 | null>(null);
   const [startInteractionVector, setStartInteractionVector] = useState<vec2 | null>(null);
@@ -62,13 +63,23 @@ export function FlamegraphUIFrames({
 
   const selectedUIFrameRef = useRef<UIFrameNode[] | null>(null);
 
+  const uiFramesCanvas = useMemo(() => {
+    if (!uiFramesCanvasRef) {
+      return null;
+    }
+    return new FlamegraphCanvas(
+      uiFramesCanvasRef,
+      vec2.fromValues(0, flamegraphTheme.SIZES.TIMELINE_HEIGHT * devicePixelRatio)
+    );
+  }, [devicePixelRatio, uiFramesCanvasRef, flamegraphTheme]);
+
   const uiFramesRenderer = useMemo(() => {
-    if (!flamegraphCanvasRef) {
+    if (!uiFramesCanvasRef) {
       return null;
     }
 
-    return new UIFramesRenderer(flamegraphCanvasRef, uiFrames, flamegraphTheme);
-  }, [flamegraphCanvasRef, uiFrames, flamegraphTheme]);
+    return new UIFramesRenderer(uiFramesCanvasRef, uiFrames, flamegraphTheme);
+  }, [uiFramesCanvasRef, uiFrames, flamegraphTheme]);
 
   const hoveredNode: UIFrameNode | null = useMemo(() => {
     if (!configSpaceCursor || !uiFramesRenderer || !flamegraphView?.configSpace) {
@@ -81,26 +92,27 @@ export function FlamegraphUIFrames({
   }, [configSpaceCursor, uiFramesRenderer, flamegraphView?.configSpace]);
 
   useEffect(() => {
-    if (!flamegraphCanvas || !flamegraphView || !uiFramesRenderer) {
+    if (!uiFramesCanvas || !flamegraphView || !uiFramesRenderer) {
       return undefined;
     }
 
     const drawUIFrames = () => {
       uiFramesRenderer.draw(
-        flamegraphView.fromConfigView(flamegraphCanvas.physicalSpace)
+        flamegraphView.fromTransformedConfigView(uiFramesCanvas.physicalSpace)
       );
     };
 
     scheduler.registerBeforeFrameCallback(drawUIFrames);
+    scheduler.draw();
 
     return () => {
       scheduler.unregisterBeforeFrameCallback(drawUIFrames);
     };
-  }, [flamegraphView, flamegraphCanvas, uiFramesRenderer, scheduler]);
+  }, [flamegraphView, uiFramesCanvas, uiFramesRenderer, scheduler]);
 
   const onMouseDrag = useCallback(
     (evt: React.MouseEvent<HTMLCanvasElement>) => {
-      if (!flamegraphCanvas || !flamegraphView || !startInteractionVector) {
+      if (!uiFramesCanvas || !flamegraphView || !startInteractionVector) {
         return;
       }
 
@@ -109,7 +121,7 @@ export function FlamegraphUIFrames({
         evt.nativeEvent.offsetY,
         startInteractionVector,
         flamegraphView,
-        flamegraphCanvas
+        uiFramesCanvas
       );
 
       if (!configDelta) {
@@ -124,18 +136,18 @@ export function FlamegraphUIFrames({
         )
       );
     },
-    [flamegraphCanvas, flamegraphView, startInteractionVector, canvasPoolManager]
+    [uiFramesCanvas, flamegraphView, startInteractionVector, canvasPoolManager]
   );
 
   const onCanvasMouseMove = useCallback(
     (evt: React.MouseEvent<HTMLCanvasElement>) => {
-      if (!flamegraphCanvas || !flamegraphView) {
+      if (!uiFramesCanvas || !flamegraphView) {
         return;
       }
 
       const configSpaceMouse = flamegraphView.getTransformedConfigViewCursor(
         vec2.fromValues(evt.nativeEvent.offsetX, evt.nativeEvent.offsetY),
-        flamegraphCanvas
+        uiFramesCanvas
       );
 
       setConfigSpaceCursor(configSpaceMouse);
@@ -147,7 +159,7 @@ export function FlamegraphUIFrames({
         setLastInteraction(null);
       }
     },
-    [flamegraphCanvas, flamegraphView, onMouseDrag, startInteractionVector]
+    [uiFramesCanvas, flamegraphView, onMouseDrag, startInteractionVector]
   );
 
   const onMinimapCanvasMouseUp = useCallback(() => {
@@ -156,12 +168,12 @@ export function FlamegraphUIFrames({
   }, []);
 
   const onWheelCenterZoom = useWheelCenterZoom(
-    flamegraphCanvas,
+    uiFramesCanvas,
     flamegraphView,
     canvasPoolManager
   );
   const onCanvasScroll = useCanvasScroll(
-    flamegraphCanvas,
+    uiFramesCanvas,
     flamegraphView,
     canvasPoolManager
   );
@@ -171,7 +183,7 @@ export function FlamegraphUIFrames({
     setLastInteraction,
     handleWheel: onWheelCenterZoom,
     handleScroll: onCanvasScroll,
-    canvas: flamegraphCanvasRef,
+    canvas: uiFramesCanvasRef,
   });
 
   useInteractionViewCheckPoint({
@@ -247,7 +259,7 @@ export function FlamegraphUIFrames({
   // When a user click anywhere outside the spans, clear cursor and selected node
   useEffect(() => {
     const onClickOutside = (evt: MouseEvent) => {
-      if (!flamegraphCanvasRef || flamegraphCanvasRef.contains(evt.target as Node)) {
+      if (!uiFramesCanvasRef || uiFramesCanvasRef.contains(evt.target as Node)) {
         return;
       }
       canvasPoolManager.dispatch('highlight span', [null, 'selected']);
@@ -264,6 +276,7 @@ export function FlamegraphUIFrames({
   return (
     <Fragment>
       <Canvas
+        ref={setUIFramesCanvasRef}
         onMouseMove={onCanvasMouseMove}
         onMouseLeave={onCanvasMouseLeave}
         onMouseUp={onCanvasMouseUp}
@@ -276,7 +289,7 @@ export function FlamegraphUIFrames({
           <LoadingIndicator size={42} />
         </LoadingIndicatorContainer>
       ) : profileGroup.type === 'resolved' && uiFrames.frames.length <= 1 ? (
-        <MessageContainer>{t('Profile has no dropped frames')}</MessageContainer>
+        <MessageContainer>{t('Profile has no dropped or slow frames')}</MessageContainer>
       ) : null}
     </Fragment>
   );

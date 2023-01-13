@@ -140,11 +140,11 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
   const scheduler = useCanvasScheduler(canvasPoolManager);
 
   const hasFlameChartSpans = useMemo(() => {
-    return organization.features.includes('profiling-flamechart-spans') || true;
+    return organization.features.includes('profiling-flamechart-spans');
   }, [organization.features]);
 
   const hasUIFrames = useMemo(() => {
-    return organization.features.includes('profiling-ui-frames') || true;
+    return organization.features.includes('profiling-ui-frames');
   }, [organization.features]);
 
   const profile = useMemo(() => {
@@ -191,7 +191,7 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
     });
   }, [profile, props.profiles, sorting, threadId, view, xAxis]);
 
-  useMemo(() => {
+  const uiFrames = useMemo(() => {
     if (!hasUIFrames) {
       return LOADING_OR_FALLBACK_UIFRAMES;
     }
@@ -627,8 +627,6 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
             <FlamegraphUIFrames
               canvasBounds={flamegraphCanvasBounds}
               canvasPoolManager={canvasPoolManager}
-              flamegraphCanvas={flamegraphCanvas}
-              flamegraphCanvasRef={flamegraphCanvasRef}
               flamegraphView={flamegraphView}
               uiFrames={uiFrames}
             />
