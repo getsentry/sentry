@@ -101,7 +101,7 @@ class TeamKeyTransactionModelManager(BaseManager):
         if features.has("organizations:dynamic-sampling", project.organization) and options.get(
             "dynamic-sampling:enabled-biases"
         ):
-            from sentry.dynamic_sampling.rules import RuleType, get_enabled_user_biases
+            from sentry.dynamic_sampling import RuleType, get_enabled_user_biases
 
             # check if option is enabled
             enabled_biases = get_enabled_user_biases(
