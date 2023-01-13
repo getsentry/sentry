@@ -21,28 +21,6 @@ export type TraceContextSpanProxy = Omit<TraceContextType, 'span_id'> & {
   span_id: string; // TODO: Remove this temporary type.
 };
 
-function getEvidenceDescription(issueType: IssueType) {
-  const evidenceToDescriptionMap: Record<IssueType, string> = {
-    [IssueType.PERFORMANCE_FILE_IO_MAIN_THREAD]: t(
-      'Span Evidence identifies the span where the file IO occurred.'
-    ),
-    [IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS]: t(
-      'Span Evidence identifies the repeating network spans.'
-    ),
-    [IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES]: t(
-      'Span Evidence identifies the parent span where the N+1 occurs, and the repeating spans.'
-    ),
-    [IssueType.PERFORMANCE_SLOW_SPAN]: t(
-      'Span Evidence identifies the slow database span.'
-    ),
-    [IssueType.PERFORMANCE_CONSECUTIVE_DB_QUERIES]:
-      'Span Evidence identifies the independent db queries that could be ran in parallel',
-    [IssueType.ERROR]: '',
-  };
-
-  return evidenceToDescriptionMap[issueType];
-}
-
 export function SpanEvidenceSection({event, issueType, organization}: Props) {
   const spanInfo = getSpanInfoFromTransactionEvent(event);
 
@@ -55,7 +33,9 @@ export function SpanEvidenceSection({event, issueType, organization}: Props) {
   return (
     <DataSection
       title={t('Span Evidence')}
-      description={getEvidenceDescription(issueType)}
+      description={t(
+        'Span Evidence identifies the root cause of this issue, found in other similar events within the same issue.'
+      )}
     >
       <SpanEvidenceKeyValueList
         issueType={issueType}
