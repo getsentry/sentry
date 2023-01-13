@@ -1,16 +1,16 @@
 import {browserHistory} from 'react-router';
-import {Location} from 'history';
+import {type Location} from 'history';
 
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {backend, frontend, mobile} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
 import {
-  NewQuery,
-  Organization,
-  OrganizationSummary,
-  PageFilters,
-  Project,
-  ReleaseProject,
+  type NewQuery,
+  type Organization,
+  type OrganizationSummary,
+  type PageFilters,
+  type Project,
+  type ReleaseProject,
 } from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {statsPeriodToDays} from 'sentry/utils/dates';

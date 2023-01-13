@@ -3,8 +3,8 @@ import {
   makeColorMap,
   makeStackToColor,
 } from 'sentry/utils/profiling/colors/utils';
-import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
-import {Frame} from 'sentry/utils/profiling/frame';
+import {type FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
+import {type Frame} from 'sentry/utils/profiling/frame';
 import {darkTheme, lightTheme} from 'sentry/utils/theme';
 
 const MONOSPACE_FONT = `ui-monospace, Menlo, Monaco, 'Cascadia Mono', 'Segoe UI Mono', 'Roboto Mono',

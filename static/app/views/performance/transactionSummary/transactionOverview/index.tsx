@@ -1,15 +1,19 @@
 import {useEffect} from 'react';
 import {browserHistory} from 'react-router';
-import {Location} from 'history';
+import {type Location} from 'history';
 
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
 import {t} from 'sentry/locale';
-import {Organization, PageFilters, Project} from 'sentry/types';
+import {type Organization, type PageFilters, type Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
-import {Column, isAggregateField, QueryFieldValue} from 'sentry/utils/discover/fields';
-import {WebVital} from 'sentry/utils/fields';
+import {
+  type Column,
+  type QueryFieldValue,
+  isAggregateField,
+} from 'sentry/utils/discover/fields';
+import {type WebVital} from 'sentry/utils/fields';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {removeHistogramQueryStrings} from 'sentry/utils/performance/histogram';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -25,7 +29,7 @@ import {
   filterToLocationQuery,
   SpanOperationBreakdownFilter,
 } from '../filter';
-import PageLayout, {ChildProps} from '../pageLayout';
+import PageLayout, {type ChildProps} from '../pageLayout';
 import Tab from '../tabs';
 import {
   PERCENTILE as VITAL_PERCENTILE,

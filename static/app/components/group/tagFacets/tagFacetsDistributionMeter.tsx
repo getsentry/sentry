@@ -2,19 +2,19 @@ import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
-import {TagSegment} from 'sentry/actionCreators/events';
+import {type TagSegment} from 'sentry/actionCreators/events';
 import Link from 'sentry/components/links/link';
-import {SegmentValue} from 'sentry/components/tagDistributionMeter';
+import {type SegmentValue} from 'sentry/components/tagDistributionMeter';
 import Tooltip from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization, Project} from 'sentry/types';
+import {type Organization, type Project} from 'sentry/types';
 import {percent} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {isMobilePlatform} from 'sentry/utils/platform';
 import useOrganization from 'sentry/utils/useOrganization';
 
-import {TagFacetsStyles} from '.';
+import {type TagFacetsStyles} from '.';
 
 const COLORS = ['#402A65', '#694D99', '#9A81C4', '#BBA6DF', '#EAE2F8'];
 

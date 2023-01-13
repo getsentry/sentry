@@ -1,10 +1,10 @@
-import {TagWithTopValues} from 'sentry/types';
+import {type TagWithTopValues} from 'sentry/types';
 import {formatVersion} from 'sentry/utils/formatters';
 
 import TagFacetsBars from './tagFacetsBars';
 import TagFacetsBreakdowns from './tagFacetsBreakdowns';
 import TagFacetsDistributions from './tagFacetsDistributions';
-import {TagFacetsProps} from './tagFacetsTypes';
+import {type TagFacetsProps} from './tagFacetsTypes';
 
 export const MOBILE_TAGS = [
   'device',

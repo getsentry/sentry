@@ -1,10 +1,10 @@
 import {Fragment} from 'react';
-import {InjectedRouter} from 'react-router';
-import {Location} from 'history';
+import {type InjectedRouter} from 'react-router';
+import {type Location} from 'history';
 
-import {Client} from 'sentry/api';
-import {Organization, Project} from 'sentry/types';
-import {BuiltinSymbolSource, CustomRepo} from 'sentry/types/debugFiles';
+import {type Client} from 'sentry/api';
+import {type Organization, type Project} from 'sentry/types';
+import {type BuiltinSymbolSource, type CustomRepo} from 'sentry/types/debugFiles';
 
 import BuiltInRepositories from './builtInRepositories';
 import CustomRepositories from './customRepositories';

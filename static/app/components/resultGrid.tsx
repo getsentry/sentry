@@ -1,8 +1,8 @@
 import {Component} from 'react';
 import {browserHistory} from 'react-router';
-import {Location} from 'history';
+import {type Location} from 'history';
 
-import {Client, RequestOptions} from 'sentry/api';
+import {type Client, type RequestOptions} from 'sentry/api';
 import DropdownLink from 'sentry/components/dropdownLink';
 import MenuItem from 'sentry/components/menuItem';
 import Pagination from 'sentry/components/pagination';

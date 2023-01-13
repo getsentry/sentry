@@ -1,10 +1,10 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
 import {
+  type ListRowProps,
   AutoSizer,
   CellMeasurer,
   CellMeasurerCache,
   List,
-  ListRowProps,
 } from 'react-virtualized';
 import styled from '@emotion/styled';
 
@@ -14,7 +14,7 @@ import {IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {EntryType} from 'sentry/types';
-import {Crumb} from 'sentry/types/breadcrumbs';
+import {type Crumb} from 'sentry/types/breadcrumbs';
 
 import {Breadcrumb} from './breadcrumb';
 

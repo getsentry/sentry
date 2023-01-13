@@ -1,8 +1,8 @@
 import type {StacktraceErrorMessage} from 'sentry/types';
-import {PlatformType} from 'sentry/types';
-import {BaseEventAnalyticsParams} from 'sentry/utils/analytics/workflowAnalyticsEvents';
+import {type PlatformType} from 'sentry/types';
+import {type BaseEventAnalyticsParams} from 'sentry/utils/analytics/workflowAnalyticsEvents';
 
-import {IntegrationView} from './index';
+import {type IntegrationView} from './index';
 
 export enum StacktraceLinkEvents {
   COMPLETE_SETUP = 'integrations.stacktrace_complete_setup',

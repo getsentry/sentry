@@ -11,10 +11,14 @@ import PanelTable from 'sentry/components/panels/panelTable';
 import StatusIndicator from 'sentry/components/statusIndicator';
 import {t, tct, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
+import {type Organization} from 'sentry/types';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {AlertRuleThresholdType} from 'sentry/views/alerts/rules/metric/types';
-import {Incident, IncidentActivityType, IncidentStatus} from 'sentry/views/alerts/types';
+import {
+  type Incident,
+  IncidentActivityType,
+  IncidentStatus,
+} from 'sentry/views/alerts/types';
 import {alertDetailsLink} from 'sentry/views/alerts/utils';
 import {AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';

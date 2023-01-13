@@ -3,18 +3,23 @@ import pick from 'lodash/pick';
 import {action, computed, makeObservable, observable} from 'mobx';
 
 import {Client} from 'sentry/api';
-import {EventTransaction} from 'sentry/types/event';
-import {createFuzzySearch, Fuse} from 'sentry/utils/fuzzySearch';
+import {type EventTransaction} from 'sentry/types/event';
+import {type Fuse, createFuzzySearch} from 'sentry/utils/fuzzySearch';
 
-import {ActiveOperationFilter, noFilter, toggleAllFilters, toggleFilter} from './filter';
+import {
+  type ActiveOperationFilter,
+  noFilter,
+  toggleAllFilters,
+  toggleFilter,
+} from './filter';
 import SpanTreeModel from './spanTreeModel';
 import {
-  EnhancedProcessedSpanType,
-  FilterSpans,
-  IndexedFusedSpan,
-  ParsedTraceType,
-  RawSpanType,
-  TraceBound,
+  type EnhancedProcessedSpanType,
+  type FilterSpans,
+  type IndexedFusedSpan,
+  type ParsedTraceType,
+  type RawSpanType,
+  type TraceBound,
 } from './types';
 import {boundsGenerator, generateRootSpan, getSpanID, parseTrace} from './utils';
 

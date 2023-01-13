@@ -1,8 +1,8 @@
 import {Fragment, useEffect} from 'react';
-import {Location} from 'history';
+import {type Location} from 'history';
 
 import {addLoadingMessage, clearIndicators} from 'sentry/actionCreators/indicator';
-import {Client} from 'sentry/api';
+import {type Client} from 'sentry/api';
 import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import {openConfirmModal} from 'sentry/components/confirm';
@@ -10,7 +10,7 @@ import FieldGroup from 'sentry/components/forms/fieldGroup';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import {t, tct} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {EventGroupingConfig, Organization, Project} from 'sentry/types';
+import {type EventGroupingConfig, type Organization, type Project} from 'sentry/types';
 import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 import marked from 'sentry/utils/marked';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';

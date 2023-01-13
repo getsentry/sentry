@@ -1,4 +1,4 @@
-import {Crumb} from 'sentry/types/breadcrumbs';
+import {type Crumb} from 'sentry/types/breadcrumbs';
 import {formatSecondsToClock} from 'sentry/utils/formatters';
 import type {ReplaySpan} from 'sentry/views/replays/types';
 

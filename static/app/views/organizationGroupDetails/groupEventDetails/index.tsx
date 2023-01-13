@@ -1,17 +1,23 @@
-import {RouteComponentProps} from 'react-router';
+import {type RouteComponentProps} from 'react-router';
 
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import OrganizationEnvironmentsStore from 'sentry/stores/organizationEnvironmentsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import {Environment, Group, Organization, PageFilters, Project} from 'sentry/types';
-import {Event} from 'sentry/types/event';
+import {
+  type Environment,
+  type Group,
+  type Organization,
+  type PageFilters,
+  type Project,
+} from 'sentry/types';
+import {type Event} from 'sentry/types/event';
 import useApi from 'sentry/utils/useApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 
-import {ReprocessingStatus} from '../utils';
+import {type ReprocessingStatus} from '../utils';
 
 import GroupEventDetails from './groupEventDetails';
 

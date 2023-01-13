@@ -1,4 +1,4 @@
-import {WithRouterProps} from 'react-router';
+import {type WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import AsyncComponent from 'sentry/components/asyncComponent';
@@ -10,8 +10,8 @@ import {Panel, PanelBody, PanelFooter} from 'sentry/components/panels';
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization, Project} from 'sentry/types';
-import {IssueAlertRule, ProjectAlertRuleStats} from 'sentry/types/alerts';
+import {type Organization, type Project} from 'sentry/types';
+import {type IssueAlertRule, type ProjectAlertRuleStats} from 'sentry/types/alerts';
 import getDynamicText from 'sentry/utils/getDynamicText';
 // eslint-disable-next-line no-restricted-imports
 import withSentryRouter from 'sentry/utils/withSentryRouter';

@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 
 import {formatAddress, getImageRange} from 'sentry/components/events/interfaces/utils';
-import {Image, ImageStatus} from 'sentry/types/debugImage';
+import {type Image, ImageStatus} from 'sentry/types/debugImage';
 import {defined} from 'sentry/utils';
 
 const IMAGE_ADDR_LEN = 12;

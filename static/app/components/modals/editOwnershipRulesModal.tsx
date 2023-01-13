@@ -2,8 +2,8 @@ import {Fragment} from 'react';
 import {css} from '@emotion/react';
 
 import {
-  EditOwnershipRulesModalOptions,
-  ModalRenderProps,
+  type EditOwnershipRulesModalOptions,
+  type ModalRenderProps,
 } from 'sentry/actionCreators/modal';
 import {t} from 'sentry/locale';
 import theme from 'sentry/utils/theme';

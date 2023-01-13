@@ -2,9 +2,9 @@ import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
 import UserAvatar from 'sentry/components/avatar/userAvatar';
-import Link, {LinkProps} from 'sentry/components/links/link';
+import Link, {type LinkProps} from 'sentry/components/links/link';
 import space from 'sentry/styles/space';
-import {AvatarUser, Member} from 'sentry/types';
+import {type AvatarUser, type Member} from 'sentry/types';
 
 export interface MemberBadgeProps {
   member: Member;

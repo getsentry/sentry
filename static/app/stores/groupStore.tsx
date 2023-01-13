@@ -1,21 +1,21 @@
 import {createStore} from 'reflux';
 
-import {Indicator} from 'sentry/actionCreators/indicator';
+import {type Indicator} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 import IndicatorStore from 'sentry/stores/indicatorStore';
 import {
-  Activity,
-  BaseGroup,
-  Group,
-  GroupCollapseRelease,
-  GroupRelease,
-  GroupStats,
+  type Activity,
+  type BaseGroup,
+  type Group,
+  type GroupCollapseRelease,
+  type GroupRelease,
+  type GroupStats,
 } from 'sentry/types';
-import RequestError from 'sentry/utils/requestError/requestError';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import toArray from 'sentry/utils/toArray';
 
 import SelectedGroupStore from './selectedGroupStore';
-import {CommonStoreDefinition} from './types';
+import {type CommonStoreDefinition} from './types';
 
 function showAlert(msg: string, type: Indicator['type']) {
   IndicatorStore.addMessage(msg, type, {duration: 4000});

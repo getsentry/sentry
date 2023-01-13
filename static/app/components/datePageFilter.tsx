@@ -6,7 +6,7 @@ import Datetime from 'sentry/components/dateTime';
 import PageFilterDropdownButton from 'sentry/components/organizations/pageFilters/pageFilterDropdownButton';
 import PageFilterPinIndicator from 'sentry/components/organizations/pageFilters/pageFilterPinIndicator';
 import TimeRangeSelector, {
-  ChangeData,
+  type ChangeData,
 } from 'sentry/components/organizations/timeRangeSelector';
 import {IconCalendar} from 'sentry/icons';
 import space from 'sentry/styles/space';

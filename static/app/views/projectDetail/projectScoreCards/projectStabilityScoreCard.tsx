@@ -11,9 +11,9 @@ import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {
-  Organization,
-  PageFilters,
-  SessionApiResponse,
+  type Organization,
+  type PageFilters,
+  type SessionApiResponse,
   SessionFieldWithOperation,
 } from 'sentry/types';
 import {defined, percent} from 'sentry/utils';

@@ -1,22 +1,22 @@
 import {Component, Fragment} from 'react';
-import {browserHistory, InjectedRouter} from 'react-router';
+import {type InjectedRouter, browserHistory} from 'react-router';
 import styled from '@emotion/styled';
-import {Location, Query} from 'history';
+import {type Location, type Query} from 'history';
 import moment from 'moment';
 
 import {resetPageFilters} from 'sentry/actionCreators/pageFilters';
-import {Client} from 'sentry/api';
+import {type Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
 import {Button} from 'sentry/components/button';
 import DropdownMenuControl from 'sentry/components/dropdownMenuControl';
-import {MenuItemProps} from 'sentry/components/dropdownMenuItem';
+import {type MenuItemProps} from 'sentry/components/dropdownMenuItem';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import Pagination from 'sentry/components/pagination';
 import TimeSince from 'sentry/components/timeSince';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization, SavedQuery} from 'sentry/types';
+import {type Organization, type SavedQuery} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView from 'sentry/utils/discover/eventView';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';

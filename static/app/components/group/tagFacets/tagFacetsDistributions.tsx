@@ -7,14 +7,14 @@ import Placeholder from 'sentry/components/placeholder';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {TagWithTopValues} from 'sentry/types';
+import {type TagWithTopValues} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {isMobilePlatform} from 'sentry/utils/platform';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import TagFacetsDistributionMeter from './tagFacetsDistributionMeter';
-import {TagFacetsProps} from './tagFacetsTypes';
+import {type TagFacetsProps} from './tagFacetsTypes';
 
 type State = {
   loading: boolean;

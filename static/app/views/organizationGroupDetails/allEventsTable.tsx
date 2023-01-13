@@ -1,10 +1,10 @@
 import {useEffect, useState} from 'react';
-import {Location} from 'history';
+import {type Location} from 'history';
 
 import LoadingError from 'sentry/components/loadingError';
-import {PlatformCategory, PlatformKey} from 'sentry/data/platformCategories';
+import {type PlatformKey, PlatformCategory} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
-import {Group, IssueCategory, Organization} from 'sentry/types';
+import {type Group, type Organization, IssueCategory} from 'sentry/types';
 import EventView, {decodeSorts} from 'sentry/utils/discover/eventView';
 import {platformToCategory} from 'sentry/utils/platform';
 import {useRoutes} from 'sentry/utils/useRoutes';

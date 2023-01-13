@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import Tag from 'sentry/components/tag';
 import {
-  CandidateDownload,
+  type CandidateDownload,
   CandidateDownloadStatus,
   ImageFeature,
 } from 'sentry/types/debugImage';

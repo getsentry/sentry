@@ -1,9 +1,9 @@
 import {memo, useRef} from 'react';
 import {
+  type ListRowProps,
   AutoSizer,
   CellMeasurer,
   List as ReactVirtualizedList,
-  ListRowProps,
 } from 'react-virtualized';
 import styled from '@emotion/styled';
 

@@ -5,7 +5,7 @@ import {
   rectOfContent,
   toPercent,
 } from 'sentry/components/performance/waterfall/utils';
-import {setBodyUserSelect, UserSelectValues} from 'sentry/utils/userselect';
+import {type UserSelectValues, setBodyUserSelect} from 'sentry/utils/userselect';
 
 // divider handle is positioned at 50% width from the left-hand side
 const DEFAULT_DIVIDER_POSITION = 0.4;

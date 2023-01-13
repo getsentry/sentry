@@ -7,11 +7,15 @@ import FieldGroup from 'sentry/components/forms/fieldGroup';
 import Tooltip from 'sentry/components/tooltip';
 import {t, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization, SelectValue, TagCollection} from 'sentry/types';
+import {type Organization, type SelectValue, type TagCollection} from 'sentry/types';
 import {getDatasetConfig} from 'sentry/views/dashboardsV2/datasetConfig/base';
-import {DisplayType, WidgetQuery, WidgetType} from 'sentry/views/dashboardsV2/types';
 import {
-  DataSet,
+  type WidgetQuery,
+  type WidgetType,
+  DisplayType,
+} from 'sentry/views/dashboardsV2/types';
+import {
+  type DataSet,
   getResultsLimit,
   SortDirection,
 } from 'sentry/views/dashboardsV2/widgetBuilder/utils';

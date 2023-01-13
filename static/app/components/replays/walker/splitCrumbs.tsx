@@ -7,7 +7,7 @@ import TextOverflow from 'sentry/components/textOverflow';
 import Tooltip from 'sentry/components/tooltip';
 import {tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {BreadcrumbTypeNavigation, Crumb} from 'sentry/types/breadcrumbs';
+import {type BreadcrumbTypeNavigation, type Crumb} from 'sentry/types/breadcrumbs';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import BreadcrumbItem from 'sentry/views/replays/detail/breadcrumbs/breadcrumbItem';
 

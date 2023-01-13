@@ -7,13 +7,13 @@ import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
-import {Project} from 'sentry/types';
+import {type Project} from 'sentry/types';
 import {sortProjects} from 'sentry/utils';
 import {
+  type NotificationSettingsByProviderObject,
+  type NotificationSettingsObject,
   MIN_PROJECTS_FOR_PAGINATION,
   MIN_PROJECTS_FOR_SEARCH,
-  NotificationSettingsByProviderObject,
-  NotificationSettingsObject,
 } from 'sentry/views/settings/account/notifications/constants';
 import {
   getParentData,
@@ -21,7 +21,7 @@ import {
   groupByOrganization,
 } from 'sentry/views/settings/account/notifications/utils';
 import {
-  RenderSearch,
+  type RenderSearch,
   SearchWrapper,
 } from 'sentry/views/settings/components/defaultSearchBar';
 

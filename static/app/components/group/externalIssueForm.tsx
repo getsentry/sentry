@@ -1,14 +1,14 @@
 import * as Sentry from '@sentry/react';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import AsyncComponent from 'sentry/components/asyncComponent';
+import type AsyncComponent from 'sentry/components/asyncComponent';
 import AbstractExternalIssueForm, {
-  ExternalIssueAction,
+  type ExternalIssueAction,
 } from 'sentry/components/externalIssues/abstractExternalIssueForm';
-import {FormProps} from 'sentry/components/forms/form';
+import {type FormProps} from 'sentry/components/forms/form';
 import NavTabs from 'sentry/components/navTabs';
 import {t, tct} from 'sentry/locale';
-import {Group, Integration, IntegrationExternalIssue} from 'sentry/types';
+import {type Group, type Integration, type IntegrationExternalIssue} from 'sentry/types';
 
 const MESSAGES_BY_ACTION = {
   link: t('Successfully linked issue.'),

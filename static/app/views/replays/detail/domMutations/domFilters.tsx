@@ -1,8 +1,8 @@
 import CompactSelect from 'sentry/components/compactSelect';
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
-import {Extraction} from 'sentry/utils/replays/hooks/useExtractedCrumbHtml';
-import useDomFilters from 'sentry/views/replays/detail/domMutations/useDomFilters';
+import {type Extraction} from 'sentry/utils/replays/hooks/useExtractedCrumbHtml';
+import type useDomFilters from 'sentry/views/replays/detail/domMutations/useDomFilters';
 import FiltersGrid from 'sentry/views/replays/detail/filtersGrid';
 
 type Props = {actions: undefined | Extraction[]} & ReturnType<typeof useDomFilters>;

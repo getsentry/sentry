@@ -2,7 +2,7 @@ import forEach from 'lodash/forEach';
 import set from 'lodash/set';
 
 import {t} from 'sentry/locale';
-import {CustomRepo, CustomRepoType} from 'sentry/types/debugFiles';
+import {type CustomRepo, CustomRepoType} from 'sentry/types/debugFiles';
 
 export const customRepoTypeLabel = {
   [CustomRepoType.APP_STORE_CONNECT]: 'App Store Connect',

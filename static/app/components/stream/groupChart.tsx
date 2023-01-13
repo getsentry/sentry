@@ -3,8 +3,8 @@ import LazyLoad from 'react-lazyload';
 import MarkLine from 'sentry/components/charts/components/markLine';
 import MiniBarChart from 'sentry/components/charts/miniBarChart';
 import {t} from 'sentry/locale';
-import {Group, TimeseriesValue} from 'sentry/types';
-import {Series} from 'sentry/types/echarts';
+import {type Group, type TimeseriesValue} from 'sentry/types';
+import {type Series} from 'sentry/types/echarts';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import theme from 'sentry/utils/theme';
 

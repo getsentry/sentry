@@ -3,11 +3,11 @@ import selectEvent from 'react-select-event';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {type ModalRenderProps} from 'sentry/actionCreators/modal';
 import AddToDashboardModal from 'sentry/components/modals/widgetBuilder/addToDashboardModal';
 import {
-  DashboardDetails,
-  DashboardListItem,
+  type DashboardDetails,
+  type DashboardListItem,
   DashboardWidgetSource,
   DisplayType,
 } from 'sentry/views/dashboardsV2/types';

@@ -1,6 +1,6 @@
 import {forwardRef} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
-import {css, Theme} from '@emotion/react';
+import {type Theme, css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import space from 'sentry/styles/space';

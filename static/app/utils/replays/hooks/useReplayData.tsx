@@ -2,10 +2,10 @@ import {useCallback, useEffect, useMemo, useState} from 'react';
 import * as Sentry from '@sentry/react';
 import chunk from 'lodash/chunk';
 
-import parseLinkHeader, {ParsedHeader} from 'sentry/utils/parseLinkHeader';
+import parseLinkHeader, {type ParsedHeader} from 'sentry/utils/parseLinkHeader';
 import {mapResponseToReplayRecord} from 'sentry/utils/replays/replayDataUtils';
 import ReplayReader from 'sentry/utils/replays/replayReader';
-import RequestError from 'sentry/utils/requestError/requestError';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 import type {ReplayError, ReplayRecord} from 'sentry/views/replays/types';
 

@@ -5,12 +5,12 @@ import FeatureBadge from 'sentry/components/featureBadge';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {IssueOwnership, Organization, Project} from 'sentry/types';
+import {type IssueOwnership, type Organization, type Project} from 'sentry/types';
 import {
-  IssueAlertRuleAction,
-  IssueAlertRuleActionTemplate,
-  IssueAlertRuleCondition,
-  IssueAlertRuleConditionTemplate,
+  type IssueAlertRuleAction,
+  type IssueAlertRuleActionTemplate,
+  type IssueAlertRuleCondition,
+  type IssueAlertRuleConditionTemplate,
 } from 'sentry/types/alerts';
 import {
   CHANGE_ALERT_CONDITION_IDS,

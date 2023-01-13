@@ -1,13 +1,13 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
-import {LocationDescriptor} from 'history';
+import {type LocationDescriptor} from 'history';
 
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {KeyValueTableRow} from 'sentry/components/keyValueTable';
 import Link from 'sentry/components/links/link';
 import Tooltip from 'sentry/components/tooltip';
 import Version from 'sentry/components/version';
-import {EventTag} from 'sentry/types/event';
+import {type EventTag} from 'sentry/types/event';
 
 type Tag = {key: string; value: string[]};
 

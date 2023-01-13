@@ -11,7 +11,7 @@ import CHART_PALETTE from 'sentry/constants/chartPalette';
 import {IconCalendar} from 'sentry/icons';
 import space from 'sentry/styles/space';
 import type {Organization} from 'sentry/types';
-import EventView from 'sentry/utils/discover/eventView';
+import type EventView from 'sentry/utils/discover/eventView';
 import {spanOperationRelativeBreakdownRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';

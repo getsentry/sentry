@@ -1,4 +1,4 @@
-import {Fragment, ReactNode, useMemo} from 'react';
+import {type ReactNode, Fragment, useMemo} from 'react';
 
 import ReplayCountContext from 'sentry/components/replays/replayCountContext';
 import useReplaysCount from 'sentry/components/replays/useReplaysCount';

@@ -1,40 +1,40 @@
 import {Component} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
-import {Location, LocationDescriptorObject} from 'history';
+import {type Location, type LocationDescriptorObject} from 'history';
 
 import GridEditable, {
+  type GridColumn,
   COL_WIDTH_UNDEFINED,
-  GridColumn,
 } from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
-import Pagination, {CursorHandler} from 'sentry/components/pagination';
+import Pagination, {type CursorHandler} from 'sentry/components/pagination';
 import PerformanceDuration from 'sentry/components/performanceDuration';
 import {IconAdd} from 'sentry/icons/iconAdd';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization, Project} from 'sentry/types';
+import {type Organization, type Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import EventView from 'sentry/utils/discover/eventView';
+import type EventView from 'sentry/utils/discover/eventView';
 import {fieldAlignment} from 'sentry/utils/discover/fields';
 import {formatPercentage} from 'sentry/utils/formatters';
 import {
-  TableData,
-  TableDataRow,
+  type TableData,
+  type TableDataRow,
 } from 'sentry/utils/performance/segmentExplorer/segmentExplorerQuery';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import CellAction, {Actions, updateQuery} from 'sentry/views/eventsV2/table/cellAction';
-import {TableColumn} from 'sentry/views/eventsV2/table/types';
+import {type TableColumn} from 'sentry/views/eventsV2/table/types';
 
 import {TagValue} from '../transactionOverview/tagExplorer';
 import {normalizeSearchConditions} from '../utils';
 
 import {
+  type TagsTableColumn,
+  type TagsTableColumnKeys,
   TAGS_TABLE_COLUMN_ORDER,
-  TagsTableColumn,
-  TagsTableColumnKeys,
 } from './tagsDisplay';
 import {trackTagPageInteraction} from './utils';
 

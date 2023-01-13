@@ -4,8 +4,8 @@ import AsyncComponent from 'sentry/components/asyncComponent';
 import ContextData from 'sentry/components/contextData';
 import PreviewPanelItem from 'sentry/components/events/attachmentViewers/previewPanelItem';
 import {
+  type ViewerProps,
   getAttachmentUrl,
-  ViewerProps,
 } from 'sentry/components/events/attachmentViewers/utils';
 
 type Props = ViewerProps & AsyncComponent['props'];

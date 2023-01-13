@@ -17,13 +17,15 @@ import * as modals from 'sentry/actionCreators/modal';
 import TagStore from 'sentry/stores/tagStore';
 import {TOP_N} from 'sentry/utils/discover/types';
 import {
-  DashboardDetails,
+  type DashboardDetails,
+  type Widget,
   DashboardWidgetSource,
   DisplayType,
-  Widget,
   WidgetType,
 } from 'sentry/views/dashboardsV2/types';
-import WidgetBuilder, {WidgetBuilderProps} from 'sentry/views/dashboardsV2/widgetBuilder';
+import WidgetBuilder, {
+  type WidgetBuilderProps,
+} from 'sentry/views/dashboardsV2/widgetBuilder';
 
 const defaultOrgFeatures = [
   'performance-view',

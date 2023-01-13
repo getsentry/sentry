@@ -1,24 +1,24 @@
 import {Fragment} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import {type Location} from 'history';
 
 import {Button} from 'sentry/components/button';
 import {SectionHeading} from 'sentry/components/charts/styles';
-import Pagination, {CursorHandler} from 'sentry/components/pagination';
+import Pagination, {type CursorHandler} from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
-import EventView from 'sentry/utils/discover/eventView';
+import {type Organization} from 'sentry/types';
+import type EventView from 'sentry/utils/discover/eventView';
 import SuspectSpansQuery from 'sentry/utils/performance/suspectSpans/suspectSpansQuery';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useProjects from 'sentry/utils/useProjects';
 
 import SuspectSpansTable from '../transactionSpans/suspectSpansTable';
 import {
+  type SpansTotalValues,
   SpanSortOthers,
   SpanSortPercentiles,
-  SpansTotalValues,
 } from '../transactionSpans/types';
 import {
   getSuspectSpanSortFromLocation,

@@ -31,22 +31,30 @@ import {ALL_ACCESS_PROJECTS, PAGE_URL_PARAM} from 'sentry/constants/pageFilters'
 import {IconLink} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
-import {EventTransaction} from 'sentry/types/event';
+import {type Organization} from 'sentry/types';
+import {type EventTransaction} from 'sentry/types/event';
 import {assert} from 'sentry/types/utils';
 import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView from 'sentry/utils/discover/eventView';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
 import getDynamicText from 'sentry/utils/getDynamicText';
-import {QuickTraceEvent, TraceError} from 'sentry/utils/performance/quickTrace/types';
+import {
+  type QuickTraceEvent,
+  type TraceError,
+} from 'sentry/utils/performance/quickTrace/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import {spanDetailsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/utils';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
 import * as SpanEntryContext from './context';
 import InlineDocs from './inlineDocs';
-import {ParsedTraceType, ProcessedSpanType, rawSpanKeys, RawSpanType} from './types';
+import {
+  type ParsedTraceType,
+  type ProcessedSpanType,
+  type RawSpanType,
+  rawSpanKeys,
+} from './types';
 import {
   getCumulativeAlertLevelFromErrors,
   getFormattedTimeRangeWithLeadingAndTrailingZero,

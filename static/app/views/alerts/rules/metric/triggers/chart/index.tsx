@@ -1,15 +1,15 @@
 import {Fragment, PureComponent} from 'react';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import {type Location} from 'history';
 import capitalize from 'lodash/capitalize';
 import isEqual from 'lodash/isEqual';
 import maxBy from 'lodash/maxBy';
 import minBy from 'lodash/minBy';
 
 import {fetchTotalCount} from 'sentry/actionCreators/events';
-import {Client} from 'sentry/api';
+import {type Client} from 'sentry/api';
 import EventsRequest from 'sentry/components/charts/eventsRequest';
-import {LineChartSeries} from 'sentry/components/charts/lineChart';
+import {type LineChartSeries} from 'sentry/components/charts/lineChart';
 import OptionSelector from 'sentry/components/charts/optionSelector';
 import SessionsRequest from 'sentry/components/charts/sessionsRequest';
 import {
@@ -41,13 +41,13 @@ import {AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
 
 import {
+  type MetricRule,
+  type Trigger,
   AlertRuleComparisonType,
   Dataset,
-  MetricRule,
   SessionsAggregate,
   TimePeriod,
   TimeWindow,
-  Trigger,
 } from '../../types';
 import {getMetricDatasetQueryExtras} from '../../utils/getMetricDatasetQueryExtras';
 

@@ -8,7 +8,7 @@ import AsyncComponent from 'sentry/components/asyncComponent';
 import {Button} from 'sentry/components/button';
 import MiniBarChart from 'sentry/components/charts/miniBarChart';
 import SessionsRequest from 'sentry/components/charts/sessionsRequest';
-import {DateTimeObject} from 'sentry/components/charts/utils';
+import {type DateTimeObject} from 'sentry/components/charts/utils';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import PanelTable from 'sentry/components/panels/panelTable';
 import Placeholder from 'sentry/components/placeholder';
@@ -16,15 +16,15 @@ import {IconArrow} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {
-  Organization,
-  Project,
-  SessionApiResponse,
+  type Organization,
+  type Project,
+  type SessionApiResponse,
   SessionFieldWithOperation,
   SessionStatus,
 } from 'sentry/types';
 import {formatFloat} from 'sentry/utils/formatters';
 import {getCountSeries, getCrashFreeRate, getSeriesSum} from 'sentry/utils/sessions';
-import {ColorOrAlias} from 'sentry/utils/theme';
+import {type ColorOrAlias} from 'sentry/utils/theme';
 import {displayCrashFreePercent} from 'sentry/views/releases/utils';
 
 import {ProjectBadge, ProjectBadgeContainer} from './styles';

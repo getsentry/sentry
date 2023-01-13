@@ -1,11 +1,11 @@
-import {IndexedMembersByProject} from 'sentry/actionCreators/members';
+import {type IndexedMembersByProject} from 'sentry/actionCreators/members';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {PanelBody} from 'sentry/components/panels';
 import IssuesReplayCountProvider from 'sentry/components/replays/issuesReplayCountProvider';
 import StreamGroup from 'sentry/components/stream/group';
 import GroupStore from 'sentry/stores/groupStore';
-import {Group} from 'sentry/types';
+import {type Group} from 'sentry/types';
 import theme from 'sentry/utils/theme';
 import useApi from 'sentry/utils/useApi';
 import useMedia from 'sentry/utils/useMedia';

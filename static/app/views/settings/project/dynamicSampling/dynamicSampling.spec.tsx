@@ -1,7 +1,7 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {Organization, Project} from 'sentry/types';
+import {type Organization, type Project} from 'sentry/types';
 import {DynamicSamplingBiasType} from 'sentry/types/sampling';
 
 import DynamicSampling from '.';

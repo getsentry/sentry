@@ -1,5 +1,5 @@
 import {t} from 'sentry/locale';
-import {EntryType, Event, Frame} from 'sentry/types';
+import {type Event, type Frame, EntryType} from 'sentry/types';
 
 import {EventDataSection} from '../../events/eventDataSection';
 

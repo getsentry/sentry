@@ -1,6 +1,11 @@
 import {t} from 'sentry/locale';
-import {ExceptionType, Group, PlatformType, Project} from 'sentry/types';
-import {EntryType, Event} from 'sentry/types/event';
+import {
+  type ExceptionType,
+  type Group,
+  type PlatformType,
+  type Project,
+} from 'sentry/types';
+import {type Event, EntryType} from 'sentry/types/event';
 import {STACK_TYPE, STACK_VIEW} from 'sentry/types/stacktrace';
 
 import {PermalinkTitle, TraceEventDataSection} from '../traceEventDataSection';

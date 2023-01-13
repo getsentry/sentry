@@ -1,11 +1,11 @@
 import {t} from 'sentry/locale';
 import {
+  type Crumb,
+  type RawCrumb,
   BreadcrumbLevelType,
   BreadcrumbType,
-  Crumb,
-  RawCrumb,
 } from 'sentry/types/breadcrumbs';
-import {EntryType, Event} from 'sentry/types/event';
+import {type Event, EntryType} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 
 export function convertCrumbType(breadcrumb: RawCrumb): RawCrumb {

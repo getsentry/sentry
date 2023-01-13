@@ -9,16 +9,16 @@ import LoadingError from 'sentry/components/loadingError';
 import {Panel, PanelBody} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {OrganizationSummary, Project} from 'sentry/types';
+import {type OrganizationSummary, type Project} from 'sentry/types';
 import {
   RELATED_ISSUES_BOOLEAN_QUERY_ERROR,
   RelatedIssuesNotAvailable,
 } from 'sentry/views/alerts/rules/metric/details/relatedIssuesNotAvailable';
 import {makeDefaultCta} from 'sentry/views/alerts/rules/metric/metricRulePresets';
-import {MetricRule} from 'sentry/views/alerts/rules/metric/types';
+import {type MetricRule} from 'sentry/views/alerts/rules/metric/types';
 import {isSessionAggregate} from 'sentry/views/alerts/utils';
 
-import {TimePeriodType} from './constants';
+import {type TimePeriodType} from './constants';
 
 interface Props {
   organization: OrganizationSummary;

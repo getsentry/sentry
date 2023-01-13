@@ -1,6 +1,6 @@
 import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import {type Location} from 'history';
 
 import AttachmentUrl from 'sentry/components/events/attachmentUrl';
 import ImageViewer from 'sentry/components/events/attachmentViewers/imageViewer';
@@ -12,8 +12,8 @@ import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import FileSize from 'sentry/components/fileSize';
 import {PanelTable} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
-import {IssueAttachment} from 'sentry/types';
-import {Event} from 'sentry/types/event';
+import {type IssueAttachment} from 'sentry/types';
+import {type Event} from 'sentry/types/event';
 
 import EventAttachmentsCrashReportsNotice from './eventAttachmentsCrashReportsNotice';
 

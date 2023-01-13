@@ -34,7 +34,11 @@ import {
 } from '../components/selectableList';
 import {transformDiscoverToList} from '../transforms/transformDiscoverToList';
 import {transformEventsRequestToStackedBars} from '../transforms/transformEventsToStackedBars';
-import {PerformanceWidgetProps, QueryDefinition, WidgetDataResult} from '../types';
+import {
+  type PerformanceWidgetProps,
+  type QueryDefinition,
+  type WidgetDataResult,
+} from '../types';
 import {eventsRequestQueryProps, getMEPParamsIfApplicable} from '../utils';
 
 type DataType = {

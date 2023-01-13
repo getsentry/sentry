@@ -5,7 +5,7 @@ import ErrorPanel from 'sentry/components/charts/errorPanel';
 import Placeholder from 'sentry/components/placeholder';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import space from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
+import {type Organization} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {MEPDataProvider} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
@@ -13,13 +13,13 @@ import useApi from 'sentry/utils/useApi';
 import getPerformanceWidgetContainer from 'sentry/views/performance/landing/widgets/components/performanceWidgetContainer';
 
 import {
-  GenericPerformanceWidgetProps,
-  WidgetDataConstraint,
-  WidgetDataProps,
-  WidgetDataResult,
-  WidgetPropUnion,
+  type GenericPerformanceWidgetProps,
+  type WidgetDataConstraint,
+  type WidgetDataProps,
+  type WidgetDataResult,
+  type WidgetPropUnion,
 } from '../types';
-import {PerformanceWidgetSetting} from '../widgetDefinitions';
+import {type PerformanceWidgetSetting} from '../widgetDefinitions';
 
 import {DataStateSwitch} from './dataStateSwitch';
 import {QueryHandler} from './queryHandler';

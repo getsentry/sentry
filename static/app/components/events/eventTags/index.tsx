@@ -1,10 +1,10 @@
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import {type Location} from 'history';
 
 import ClippedBox from 'sentry/components/clippedBox';
 import Pills from 'sentry/components/pills';
-import {Organization} from 'sentry/types';
-import {Event} from 'sentry/types/event';
+import {type Organization} from 'sentry/types';
+import {type Event} from 'sentry/types/event';
 import {defined, generateQueryWithTag} from 'sentry/utils';
 
 import {AnnotatedText} from '../meta/annotatedText';

@@ -3,12 +3,12 @@ import memoize from 'lodash/memoize';
 import partition from 'lodash/partition';
 import uniqBy from 'lodash/uniqBy';
 
-import {Client} from 'sentry/api';
+import {type Client} from 'sentry/api';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {AvatarProject, Project} from 'sentry/types';
+import {type AvatarProject, type Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
-import RequestError from 'sentry/utils/requestError/requestError';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import withApi from 'sentry/utils/withApi';
 import withProjects from 'sentry/utils/withProjects';
 

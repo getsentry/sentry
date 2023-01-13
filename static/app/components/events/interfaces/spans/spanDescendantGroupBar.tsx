@@ -13,19 +13,19 @@ import {
   toPercent,
 } from 'sentry/components/performance/waterfall/utils';
 import {t} from 'sentry/locale';
-import {EventTransaction} from 'sentry/types/event';
+import {type EventTransaction} from 'sentry/types/event';
 import theme from 'sentry/utils/theme';
 
 import {SpanGroupBar} from './spanGroupBar';
-import {EnhancedSpan, ProcessedSpanType, TreeDepthType} from './types';
+import {type EnhancedSpan, type ProcessedSpanType, type TreeDepthType} from './types';
 import {
+  type SpanBoundsType,
+  type SpanGeneratedBoundsType,
   getSpanGroupBounds,
   getSpanGroupTimestamps,
   getSpanOperation,
   isOrphanSpan,
   isOrphanTreeDepth,
-  SpanBoundsType,
-  SpanGeneratedBoundsType,
   unwrapTreeDepth,
 } from './utils';
 

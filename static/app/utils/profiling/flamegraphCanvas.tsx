@@ -1,4 +1,4 @@
-import {mat3, vec2} from 'gl-matrix';
+import {type vec2, mat3} from 'gl-matrix';
 
 import {Rect, transformMatrixBetweenRect} from 'sentry/utils/profiling/gl/utils';
 

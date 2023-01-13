@@ -6,7 +6,7 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
-import {Organization, Project} from 'sentry/types';
+import {type Organization, type Project} from 'sentry/types';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import withOrganization from 'sentry/utils/withOrganization';

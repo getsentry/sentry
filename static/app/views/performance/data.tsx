@@ -1,9 +1,14 @@
-import {Location} from 'history';
+import {type Location} from 'history';
 
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
-import {NewQuery, Organization, Project, SelectValue} from 'sentry/types';
+import {
+  type NewQuery,
+  type Organization,
+  type Project,
+  type SelectValue,
+} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import {
   MEPState,

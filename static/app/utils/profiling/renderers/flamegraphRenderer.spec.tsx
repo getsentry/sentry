@@ -7,7 +7,7 @@ import {
 } from 'sentry-test/profiling/utils';
 
 import {CanvasView} from 'sentry/utils/profiling/canvasView';
-import {FlamegraphSearch} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphSearch';
+import {type FlamegraphSearch} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphSearch';
 import {
   LightFlamegraphTheme,
   LightFlamegraphTheme as theme,
@@ -16,7 +16,7 @@ import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
 import {Rect} from 'sentry/utils/profiling/gl/utils';
 import {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
 
-import {Flamegraph} from '../flamegraph';
+import {type Flamegraph} from '../flamegraph';
 import {getFlamegraphFrameSearchId} from '../flamegraphFrame';
 
 const originalDpr = window.devicePixelRatio;

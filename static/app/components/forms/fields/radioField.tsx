@@ -1,8 +1,10 @@
-import RadioGroup, {RadioGroupProps} from 'sentry/components/forms/controls/radioGroup';
+import RadioGroup, {
+  type RadioGroupProps,
+} from 'sentry/components/forms/controls/radioGroup';
 import FormField from 'sentry/components/forms/formField';
 
 // XXX(epurkhiser): This is wrong, it should not be inheriting these props
-import {InputFieldProps, OnEvent} from './inputField';
+import {type InputFieldProps, type OnEvent} from './inputField';
 
 export interface RadioFieldProps extends Omit<InputFieldProps, 'type'> {
   choices?: RadioGroupProps<any>['choices'];

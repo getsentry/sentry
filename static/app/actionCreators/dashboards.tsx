@@ -1,13 +1,13 @@
 import omit from 'lodash/omit';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {Client} from 'sentry/api';
+import {type Client} from 'sentry/api';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
 import {
-  DashboardDetails,
-  DashboardListItem,
-  Widget,
+  type DashboardDetails,
+  type DashboardListItem,
+  type Widget,
 } from 'sentry/views/dashboardsV2/types';
 import {flattenErrors} from 'sentry/views/dashboardsV2/utils';
 

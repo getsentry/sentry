@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {browserHistory, RouteComponentProps} from 'react-router';
+import {type RouteComponentProps, browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 import {Observer} from 'mobx-react';
@@ -11,14 +11,14 @@ import {
   removeSentryAppToken,
 } from 'sentry/actionCreators/sentryAppTokens';
 import Avatar from 'sentry/components/avatar';
-import AvatarChooser, {Model} from 'sentry/components/avatarChooser';
+import AvatarChooser, {type Model} from 'sentry/components/avatarChooser';
 import {Button} from 'sentry/components/button';
 import DateTime from 'sentry/components/dateTime';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import Form from 'sentry/components/forms/form';
 import FormField from 'sentry/components/forms/formField';
 import JsonForm from 'sentry/components/forms/jsonForm';
-import FormModel, {FieldValue} from 'sentry/components/forms/model';
+import FormModel, {type FieldValue} from 'sentry/components/forms/model';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'sentry/components/panels';
 import TextCopyInput from 'sentry/components/textCopyInput';
@@ -31,7 +31,12 @@ import {
 import {IconAdd, IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {InternalAppApiToken, Organization, Scope, SentryApp} from 'sentry/types';
+import {
+  type InternalAppApiToken,
+  type Organization,
+  type Scope,
+  type SentryApp,
+} from 'sentry/types';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';

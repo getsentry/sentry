@@ -1,9 +1,9 @@
 import {createContext, useEffect, useMemo, useState} from 'react';
 
-import {Organization, Project} from 'sentry/types';
+import {type Organization, type Project} from 'sentry/types';
 import {
-  AppStoreConnectCredentialsStatus,
-  AppStoreConnectStatusData,
+  type AppStoreConnectCredentialsStatus,
+  type AppStoreConnectStatusData,
 } from 'sentry/types/debugFiles';
 import {getAppStoreValidationErrorMessage} from 'sentry/utils/appStoreValidationErrorMessage';
 import useApi from 'sentry/utils/useApi';

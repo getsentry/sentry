@@ -4,7 +4,7 @@ import type {MapSeriesOption, TooltipComponentOption} from 'echarts';
 import * as echarts from 'echarts/core';
 import max from 'lodash/max';
 
-import {Series, SeriesDataUnit} from 'sentry/types/echarts';
+import {type Series, type SeriesDataUnit} from 'sentry/types/echarts';
 
 import VisualMap from './components/visualMap';
 import MapSeries from './series/mapSeries';

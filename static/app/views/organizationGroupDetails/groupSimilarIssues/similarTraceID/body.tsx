@@ -1,4 +1,4 @@
-import {Location} from 'history';
+import {type Location} from 'history';
 import moment from 'moment-timezone';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
@@ -7,8 +7,8 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Panel, PanelBody} from 'sentry/components/panels';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
-import {Organization} from 'sentry/types';
-import {Event} from 'sentry/types/event';
+import {type Organization} from 'sentry/types';
+import {type Event} from 'sentry/types/event';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 

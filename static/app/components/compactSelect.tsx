@@ -1,5 +1,5 @@
 import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
-import {components as selectComponents, OptionTypeBase} from 'react-select';
+import {type OptionTypeBase, components as selectComponents} from 'react-select';
 import isPropValid from '@emotion/is-prop-valid';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -10,17 +10,17 @@ import {useResizeObserver} from '@react-aria/utils';
 
 import Badge from 'sentry/components/badge';
 import {Button} from 'sentry/components/button';
-import DropdownButton, {DropdownButtonProps} from 'sentry/components/dropdownButton';
+import DropdownButton, {type DropdownButtonProps} from 'sentry/components/dropdownButton';
 import SelectControl, {
-  ControlProps,
-  GeneralSelectValue,
+  type ControlProps,
+  type GeneralSelectValue,
 } from 'sentry/components/forms/controls/selectControl';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import space from 'sentry/styles/space';
-import {FormSize} from 'sentry/utils/theme';
+import {type FormSize} from 'sentry/utils/theme';
 import toArray from 'sentry/utils/toArray';
-import useOverlay, {UseOverlayProps} from 'sentry/utils/useOverlay';
+import useOverlay, {type UseOverlayProps} from 'sentry/utils/useOverlay';
 
 interface Props<OptionType extends OptionTypeBase, MultipleType extends boolean>
   extends Omit<ControlProps<OptionType>, 'choices' | 'multiple' | 'onChange'>,

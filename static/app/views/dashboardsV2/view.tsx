@@ -1,5 +1,5 @@
 import {useEffect, useState} from 'react';
-import {browserHistory, RouteComponentProps} from 'react-router';
+import {type RouteComponentProps, browserHistory} from 'react-router';
 import pick from 'lodash/pick';
 
 import {updateDashboardVisit} from 'sentry/actionCreators/dashboards';
@@ -10,13 +10,13 @@ import NotFound from 'sentry/components/errors/notFound';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import {Organization} from 'sentry/types';
+import {type Organization} from 'sentry/types';
 import useApi from 'sentry/utils/useApi';
 import withOrganization from 'sentry/utils/withOrganization';
 
 import DashboardDetail from './detail';
 import OrgDashboards from './orgDashboards';
-import {DashboardState, Widget} from './types';
+import {type Widget, DashboardState} from './types';
 import {constructWidgetFromQuery} from './utils';
 
 const ALLOWED_PARAMS = [

@@ -11,8 +11,8 @@ import {IconCheckmark, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {
-  EventGroupComponent,
-  EventGroupVariant,
+  type EventGroupComponent,
+  type EventGroupVariant,
   EventGroupVariantType,
 } from 'sentry/types';
 

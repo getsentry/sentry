@@ -1,4 +1,7 @@
-import {CanvasScheduler, FlamegraphEvents} from 'sentry/utils/profiling/canvasScheduler';
+import {
+  type FlamegraphEvents,
+  CanvasScheduler,
+} from 'sentry/utils/profiling/canvasScheduler';
 
 const handlers: (keyof FlamegraphEvents)[] = [
   'reset zoom',

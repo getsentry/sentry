@@ -8,8 +8,8 @@ import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {IconCopy, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {Organization, Project} from 'sentry/types';
-import {MetricRule} from 'sentry/views/alerts/rules/metric/types';
+import {type Organization, type Project} from 'sentry/types';
+import {type MetricRule} from 'sentry/views/alerts/rules/metric/types';
 
 import {isIssueAlert} from '../../../utils';
 

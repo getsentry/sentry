@@ -4,15 +4,16 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ConfigStore from 'sentry/stores/configStore';
 import {
+  type Event,
+  type EventError,
+  type ExceptionType,
+  type ExceptionValue,
+  type Frame,
   EntryType,
-  Event,
-  EventError,
   EventOrGroupType,
-  ExceptionType,
-  ExceptionValue,
-  Frame,
 } from 'sentry/types/event';
-import EventView, {EventData} from 'sentry/utils/discover/eventView';
+import type EventView from 'sentry/utils/discover/eventView';
+import {type EventData} from 'sentry/utils/discover/eventView';
 import {QueryClient, QueryClientProvider} from 'sentry/utils/queryClient';
 
 import EventContext from './eventContext';

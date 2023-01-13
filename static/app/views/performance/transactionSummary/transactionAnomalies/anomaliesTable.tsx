@@ -1,20 +1,20 @@
-import {ReactNode} from 'react';
+import {type ReactNode} from 'react';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import {type Location} from 'history';
 
 import Count from 'sentry/components/count';
 import GridEditable, {
+  type GridColumnOrder,
   COL_WIDTH_UNDEFINED,
-  GridColumnOrder,
 } from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
+import {type Organization} from 'sentry/types';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
-import {ColumnType, fieldAlignment} from 'sentry/utils/discover/fields';
-import {AnomalyInfo} from 'sentry/utils/performance/anomalies/anomaliesQuery';
+import {type ColumnType, fieldAlignment} from 'sentry/utils/discover/fields';
+import {type AnomalyInfo} from 'sentry/utils/performance/anomalies/anomaliesQuery';
 
 type Props = {
   isLoading: boolean;

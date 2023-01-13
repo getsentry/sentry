@@ -9,7 +9,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import SearchBar, {SearchBarProps} from 'sentry/components/performance/searchBar';
+import SearchBar, {type SearchBarProps} from 'sentry/components/performance/searchBar';
 import EventView from 'sentry/utils/discover/eventView';
 
 // Jest's fake timers don't advance the debounce timer, so we need to mock it

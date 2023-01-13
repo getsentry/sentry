@@ -1,13 +1,13 @@
 import {Component} from 'react';
-import {Location} from 'history';
+import {type Location} from 'history';
 
-import {Client} from 'sentry/api';
+import {type Client} from 'sentry/api';
 import * as Layout from 'sentry/components/layouts/thirds';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import {Organization, PageFilters, Project} from 'sentry/types';
-import EventView from 'sentry/utils/discover/eventView';
+import {type Organization, type PageFilters, type Project} from 'sentry/types';
+import type EventView from 'sentry/utils/discover/eventView';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';

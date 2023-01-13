@@ -1,10 +1,10 @@
-import {browserHistory, InjectedRouter} from 'react-router';
+import {type InjectedRouter, browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
 import {createDashboard} from 'sentry/actionCreators/dashboards';
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Client} from 'sentry/api';
+import {type Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
 import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
@@ -21,7 +21,7 @@ import Switch from 'sentry/components/switchButton';
 import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization, SelectValue} from 'sentry/types';
+import {type Organization, type SelectValue} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {decodeScalar} from 'sentry/utils/queryString';
 import withApi from 'sentry/utils/withApi';
@@ -31,7 +31,7 @@ import AsyncView from 'sentry/views/asyncView';
 
 import {DASHBOARDS_TEMPLATES} from '../data';
 import {assignDefaultLayout, getInitialColumnDepths} from '../layoutUtils';
-import {DashboardDetails, DashboardListItem} from '../types';
+import {type DashboardDetails, type DashboardListItem} from '../types';
 
 import DashboardList from './dashboardList';
 import TemplateCard from './templateCard';

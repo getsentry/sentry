@@ -10,7 +10,7 @@ import space from 'sentry/styles/space';
 import highlightFuseMatches from 'sentry/utils/highlightFuseMatches';
 import useOrganization from 'sentry/utils/useOrganization';
 
-import {Result} from './sources/types';
+import {type Result} from './sources/types';
 
 type Props = {
   highlighted: boolean;

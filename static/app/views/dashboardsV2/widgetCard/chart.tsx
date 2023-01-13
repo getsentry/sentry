@@ -1,9 +1,9 @@
 import {Component} from 'react';
-import {InjectedRouter} from 'react-router';
-import {Theme, withTheme} from '@emotion/react';
+import {type InjectedRouter} from 'react-router';
+import {type Theme, withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {DataZoomComponentOption, LegendComponentOption} from 'echarts';
-import {Location} from 'history';
+import {type DataZoomComponentOption, type LegendComponentOption} from 'echarts';
+import {type Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 
@@ -18,12 +18,12 @@ import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingM
 import {getSeriesSelection, processTableResults} from 'sentry/components/charts/utils';
 import {WorldMapChart} from 'sentry/components/charts/worldMapChart';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Placeholder, {PlaceholderProps} from 'sentry/components/placeholder';
+import Placeholder, {type PlaceholderProps} from 'sentry/components/placeholder';
 import Tooltip from 'sentry/components/tooltip';
 import {IconWarning} from 'sentry/icons';
 import space from 'sentry/styles/space';
-import {Organization, PageFilters} from 'sentry/types';
-import {EChartDataZoomHandler, EChartEventHandler} from 'sentry/types/echarts';
+import {type Organization, type PageFilters} from 'sentry/types';
+import {type EChartDataZoomHandler, type EChartEventHandler} from 'sentry/types/echarts';
 import {
   axisLabelFormatter,
   axisLabelFormatterUsingAggregateOutputType,
@@ -31,8 +31,8 @@ import {
 } from 'sentry/utils/discover/charts';
 import {getFieldFormatter} from 'sentry/utils/discover/fieldRenderers';
 import {
+  type AggregationOutputType,
   aggregateOutputType,
-  AggregationOutputType,
   getAggregateArg,
   getEquation,
   getMeasurementSlug,
@@ -45,9 +45,9 @@ import getDynamicText from 'sentry/utils/getDynamicText';
 import {eventViewFromWidget} from 'sentry/views/dashboardsV2/utils';
 
 import {getDatasetConfig} from '../datasetConfig/base';
-import {DisplayType, Widget} from '../types';
+import {type Widget, DisplayType} from '../types';
 
-import {GenericWidgetQueriesChildrenProps} from './genericWidgetQueries';
+import {type GenericWidgetQueriesChildrenProps} from './genericWidgetQueries';
 
 const OTHER = 'Other';
 export const SLIDER_HEIGHT = 60;

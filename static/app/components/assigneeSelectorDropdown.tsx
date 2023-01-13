@@ -7,7 +7,7 @@ import TeamAvatar from 'sentry/components/avatar/teamAvatar';
 import UserAvatar from 'sentry/components/avatar/userAvatar';
 import type {GetActorPropsFn} from 'sentry/components/deprecatedDropdownMenu';
 import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
-import {ItemsBeforeFilter} from 'sentry/components/dropdownAutoComplete/types';
+import {type ItemsBeforeFilter} from 'sentry/components/dropdownAutoComplete/types';
 import Highlight from 'sentry/components/highlight';
 import Link from 'sentry/components/links/link';
 import TextOverflow from 'sentry/components/textOverflow';

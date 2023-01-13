@@ -1,6 +1,6 @@
 import {useCallback, useMemo} from 'react';
 
-import {GridColumnSortBy} from 'sentry/components/gridEditable';
+import {type GridColumnSortBy} from 'sentry/components/gridEditable';
 
 import {useQuerystringState} from './useQuerystringState';
 

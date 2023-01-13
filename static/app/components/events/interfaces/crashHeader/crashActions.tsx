@@ -5,11 +5,11 @@ import ButtonBar from 'sentry/components/buttonBar';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {
-  ExceptionType,
-  ExceptionValue,
+  type ExceptionType,
+  type ExceptionValue,
+  type Thread,
   STACK_TYPE,
   STACK_VIEW,
-  Thread,
 } from 'sentry/types';
 
 type NotifyOptions = {

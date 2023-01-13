@@ -11,15 +11,15 @@ import * as SidebarSection from 'sentry/components/sidebarSection';
 import Tooltip from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization, Project, TagWithTopValues} from 'sentry/types';
+import {type Organization, type Project, type TagWithTopValues} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {formatPercentage} from 'sentry/utils/formatters';
 import {isMobilePlatform} from 'sentry/utils/platform';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
-import {TagFacetsProps} from './tagFacetsTypes';
-import {TagFacetsStyles} from '.';
+import {type TagFacetsProps} from './tagFacetsTypes';
+import {type TagFacetsStyles} from '.';
 
 type State = {
   loading: boolean;

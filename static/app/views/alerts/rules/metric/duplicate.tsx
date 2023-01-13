@@ -1,9 +1,9 @@
-import {RouteComponentProps} from 'react-router';
+import {type RouteComponentProps} from 'react-router';
 import pick from 'lodash/pick';
 
 import * as Layout from 'sentry/components/layouts/thirds';
-import {Organization, Project} from 'sentry/types';
-import EventView from 'sentry/utils/discover/eventView';
+import {type Organization, type Project} from 'sentry/types';
+import type EventView from 'sentry/utils/discover/eventView';
 import {uniqueId} from 'sentry/utils/guid';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {
@@ -11,8 +11,8 @@ import {
   DuplicateMetricFields,
   DuplicateTriggerFields,
 } from 'sentry/views/alerts/rules/metric/constants';
-import {MetricRule} from 'sentry/views/alerts/rules/metric/types';
-import {WizardRuleTemplate} from 'sentry/views/alerts/wizard/options';
+import {type MetricRule} from 'sentry/views/alerts/rules/metric/types';
+import {type WizardRuleTemplate} from 'sentry/views/alerts/wizard/options';
 import AsyncView from 'sentry/views/asyncView';
 
 import RuleForm from './ruleForm';

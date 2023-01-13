@@ -1,4 +1,4 @@
-import {browserHistory, RouteComponentProps} from 'react-router';
+import {type RouteComponentProps, browserHistory} from 'react-router';
 import debounce from 'lodash/debounce';
 
 import IdBadge from 'sentry/components/idBadge';

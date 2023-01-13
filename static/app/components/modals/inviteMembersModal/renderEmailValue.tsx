@@ -1,7 +1,7 @@
 import {
+  type MultiValueProps,
+  type OptionTypeBase,
   components as selectComponents,
-  MultiValueProps,
-  OptionTypeBase,
 } from 'react-select';
 import styled from '@emotion/styled';
 
@@ -10,7 +10,7 @@ import Tooltip from 'sentry/components/tooltip';
 import {IconCheckmark, IconWarning} from 'sentry/icons';
 import space from 'sentry/styles/space';
 
-import {InviteStatus} from './types';
+import {type InviteStatus} from './types';
 
 function renderEmailValue<Option extends OptionTypeBase>(
   status: InviteStatus[string],

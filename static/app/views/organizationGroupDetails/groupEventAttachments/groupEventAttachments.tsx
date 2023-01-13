@@ -1,4 +1,4 @@
-import {WithRouterProps} from 'react-router';
+import {type WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 import xor from 'lodash/xor';
@@ -12,7 +12,7 @@ import Pagination from 'sentry/components/pagination';
 import {Panel, PanelBody} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {IssueAttachment, Project} from 'sentry/types';
+import {type IssueAttachment, type Project} from 'sentry/types';
 import {decodeList} from 'sentry/utils/queryString';
 // eslint-disable-next-line no-restricted-imports
 import withSentryRouter from 'sentry/utils/withSentryRouter';

@@ -1,10 +1,10 @@
 import {browserHistory} from 'react-router';
-import {Location} from 'history';
+import {type Location} from 'history';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import {Organization, Project} from 'sentry/types';
+import {type Organization, type Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
@@ -25,7 +25,7 @@ import {
   filterToLocationQuery,
   SpanOperationBreakdownFilter,
 } from '../filter';
-import PageLayout, {ChildProps} from '../pageLayout';
+import PageLayout, {type ChildProps} from '../pageLayout';
 import Tab from '../tabs';
 import {ZOOM_END, ZOOM_START} from '../transactionOverview/latencyChart/utils';
 

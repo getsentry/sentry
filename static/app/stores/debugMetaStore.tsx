@@ -1,4 +1,4 @@
-import {createStore, StoreDefinition} from 'reflux';
+import {type StoreDefinition, createStore} from 'reflux';
 
 type State = {
   filter: string | null;

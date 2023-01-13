@@ -1,6 +1,6 @@
 import {render} from 'sentry-test/reactTestingLibrary';
 
-import {Client} from 'sentry/api';
+import {type Client} from 'sentry/api';
 import withApi from 'sentry/utils/withApi';
 
 describe('withApi', function () {

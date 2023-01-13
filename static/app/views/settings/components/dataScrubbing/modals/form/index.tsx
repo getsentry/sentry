@@ -10,12 +10,12 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 
 import {
-  EventId,
-  KeysOfUnion,
+  type EventId,
+  type KeysOfUnion,
+  type Rule,
+  type SourceSuggestion,
   MethodType,
-  Rule,
   RuleType,
-  SourceSuggestion,
 } from '../../types';
 import {getMethodLabel, getRuleLabel} from '../../utils';
 

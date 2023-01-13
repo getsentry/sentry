@@ -1,11 +1,16 @@
 import {
-  Group,
+  type Group,
+  type Organization,
+  type Project,
+  type SharedViewOrganization,
   IssueCategory,
-  Organization,
-  Project,
-  SharedViewOrganization,
 } from 'sentry/types';
-import {Entry, EntryType, Event, EventTransaction} from 'sentry/types/event';
+import {
+  type Entry,
+  type Event,
+  type EventTransaction,
+  EntryType,
+} from 'sentry/types/event';
 
 import {Breadcrumbs} from './interfaces/breadcrumbs';
 import {Csp} from './interfaces/csp';

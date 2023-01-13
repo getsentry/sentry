@@ -1,27 +1,27 @@
 import {forwardRef, useCallback, useMemo} from 'react';
 import ReactSelect, {
+  type GroupedOptionsType,
+  type OptionsType,
+  type OptionTypeBase,
+  type Props as ReactSelectProps,
+  type StylesConfig as ReactSelectStylesConfig,
   components as selectComponents,
-  GroupedOptionsType,
   mergeStyles,
-  OptionsType,
-  OptionTypeBase,
-  Props as ReactSelectProps,
-  StylesConfig as ReactSelectStylesConfig,
 } from 'react-select';
 import Async from 'react-select/async';
 import AsyncCreatable from 'react-select/async-creatable';
 import Creatable from 'react-select/creatable';
-import {CSSObject, useTheme} from '@emotion/react';
+import {type CSSObject, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconChevron, IconClose} from 'sentry/icons';
 import space from 'sentry/styles/space';
-import {Choices, SelectValue} from 'sentry/types';
+import {type Choices, type SelectValue} from 'sentry/types';
 import convertFromSelect2Choices from 'sentry/utils/convertFromSelect2Choices';
 import PanelProvider from 'sentry/utils/panelProvider';
-import {FormSize} from 'sentry/utils/theme';
+import {type FormSize} from 'sentry/utils/theme';
 
 import Option from './selectOption';
 

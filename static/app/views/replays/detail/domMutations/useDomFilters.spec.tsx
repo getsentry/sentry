@@ -7,7 +7,7 @@ import {BreadcrumbLevelType, BreadcrumbType} from 'sentry/types/breadcrumbs';
 import type {Extraction} from 'sentry/utils/replays/hooks/useExtractedCrumbHtml';
 import {useLocation} from 'sentry/utils/useLocation';
 
-import useDomFilters, {FilterFields} from './useDomFilters';
+import useDomFilters, {type FilterFields} from './useDomFilters';
 
 jest.mock('react-router');
 jest.mock('sentry/utils/useLocation');

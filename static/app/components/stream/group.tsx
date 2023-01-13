@@ -1,5 +1,5 @@
 import {Fragment, useCallback, useMemo, useRef} from 'react';
-import {css, Theme} from '@emotion/react';
+import {type Theme, css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
@@ -26,13 +26,13 @@ import SelectedGroupStore from 'sentry/stores/selectedGroupStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import space from 'sentry/styles/space';
 import {
-  Group,
-  GroupReprocessing,
-  InboxDetails,
+  type Group,
+  type GroupReprocessing,
+  type InboxDetails,
+  type NewQuery,
+  type Organization,
+  type User,
   IssueCategory,
-  NewQuery,
-  Organization,
-  User,
 } from 'sentry/types';
 import {defined, percent} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
@@ -40,7 +40,7 @@ import {isDemoWalkthrough} from 'sentry/utils/demoMode';
 import EventView from 'sentry/utils/discover/eventView';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import withOrganization from 'sentry/utils/withOrganization';
-import {TimePeriodType} from 'sentry/views/alerts/rules/metric/details/constants';
+import {type TimePeriodType} from 'sentry/views/alerts/rules/metric/details/constants';
 import {
   DISCOVER_EXCLUSION_FIELDS,
   getTabs,

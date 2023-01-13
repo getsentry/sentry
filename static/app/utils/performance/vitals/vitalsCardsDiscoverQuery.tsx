@@ -1,11 +1,11 @@
 import pick from 'lodash/pick';
 
-import {MetaType} from 'sentry/utils/discover/eventView';
+import {type MetaType} from 'sentry/utils/discover/eventView';
 import GenericDiscoverQuery, {
-  DiscoverQueryPropsWithContext,
-  GenericChildrenProps,
+  type DiscoverQueryPropsWithContext,
+  type GenericChildrenProps,
 } from 'sentry/utils/discover/genericDiscoverQuery';
-import {WebVital} from 'sentry/utils/fields';
+import {type WebVital} from 'sentry/utils/fields';
 import {PERFORMANCE_URL_PARAM} from 'sentry/utils/performance/constants';
 
 export type TableDataRow = {

@@ -4,14 +4,14 @@ import isEqual from 'lodash/isEqual';
 import {getAttachmentUrl} from 'sentry/components/events/attachmentViewers/utils';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {tn} from 'sentry/locale';
-import {EventAttachment} from 'sentry/types';
+import {type EventAttachment} from 'sentry/types';
 import {uniqueId} from 'sentry/utils/guid';
 import {useQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import {EventDataSection} from './eventDataSection';
-import {ViewHierarchy, ViewHierarchyData} from './viewHierarchy';
+import {type ViewHierarchyData, ViewHierarchy} from './viewHierarchy';
 
 const DEFAULT_RESPONSE: ViewHierarchyData = {rendering_system: '', windows: []};
 const FIVE_SECONDS_IN_MS = 5 * 1000;

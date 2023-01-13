@@ -1,22 +1,22 @@
 import {Component} from 'react';
-import {WithRouterProps} from 'react-router';
-import {Theme, withTheme} from '@emotion/react';
+import {type WithRouterProps} from 'react-router';
+import {type Theme, withTheme} from '@emotion/react';
 import round from 'lodash/round';
 
-import {AreaChart, AreaChartProps} from 'sentry/components/charts/areaChart';
+import {type AreaChartProps, AreaChart} from 'sentry/components/charts/areaChart';
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import StackedAreaChart from 'sentry/components/charts/stackedAreaChart';
 import {HeaderTitleLegend, HeaderValue} from 'sentry/components/charts/styles';
 import TransitionChart from 'sentry/components/charts/transitionChart';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import QuestionTooltip from 'sentry/components/questionTooltip';
-import {PlatformKey} from 'sentry/data/platformCategories';
+import {type PlatformKey} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
 import {
+  type ReleaseProject,
+  type ReleaseWithHealth,
+  type SessionApiResponse,
   ReleaseComparisonChartType,
-  ReleaseProject,
-  ReleaseWithHealth,
-  SessionApiResponse,
   SessionFieldWithOperation,
   SessionStatus,
 } from 'sentry/types';

@@ -1,5 +1,5 @@
 import {useEffect, useRef} from 'react';
-import {RouteComponentProps} from 'react-router';
+import {type RouteComponentProps} from 'react-router';
 
 import {switchOrganization} from 'sentry/actionCreators/organizations';
 import useRouteAnalyticsHookSetup from 'sentry/utils/routeAnalytics/useRouteAnalyticsHookSetup';

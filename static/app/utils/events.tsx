@@ -1,14 +1,14 @@
 import {
-  BaseGroup,
-  EntryException,
-  EntryThreads,
-  EventMetadata,
+  type BaseGroup,
+  type EntryException,
+  type EntryThreads,
+  type EventMetadata,
+  type GroupTombstone,
+  type TreeLabelPart,
   EventOrGroupType,
-  GroupTombstone,
   IssueCategory,
-  TreeLabelPart,
 } from 'sentry/types';
-import {EntryType, Event} from 'sentry/types/event';
+import {type Event, EntryType} from 'sentry/types/event';
 import {isMobilePlatform, isNativePlatform} from 'sentry/utils/platform';
 
 function isTombstone(maybe: BaseGroup | Event | GroupTombstone): maybe is GroupTombstone {

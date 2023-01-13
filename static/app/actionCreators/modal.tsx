@@ -2,21 +2,24 @@ import type {ModalTypes} from 'sentry/components/globalModal';
 import type {CreateNewIntegrationModalOptions} from 'sentry/components/modals/createNewIntegrationModal';
 import type {CreateReleaseIntegrationModalOptions} from 'sentry/components/modals/createReleaseIntegrationModal';
 import type {DashboardWidgetQuerySelectorModalOptions} from 'sentry/components/modals/dashboardWidgetQuerySelectorModal';
-import {InviteRow} from 'sentry/components/modals/inviteMembersModal/types';
+import {type InviteRow} from 'sentry/components/modals/inviteMembersModal/types';
 import type {ReprocessEventModalOptions} from 'sentry/components/modals/reprocessEventModal';
-import {OverwriteWidgetModalProps} from 'sentry/components/modals/widgetBuilder/overwriteWidgetModal';
+import {type OverwriteWidgetModalProps} from 'sentry/components/modals/widgetBuilder/overwriteWidgetModal';
 import type {WidgetViewerModalOptions} from 'sentry/components/modals/widgetViewerModal';
 import ModalStore from 'sentry/stores/modalStore';
 import {
-  Group,
-  IssueOwnership,
-  Organization,
-  Project,
-  SentryApp,
-  Team,
+  type Group,
+  type IssueOwnership,
+  type Organization,
+  type Project,
+  type SentryApp,
+  type Team,
 } from 'sentry/types';
-import {AppStoreConnectStatusData, CustomRepoType} from 'sentry/types/debugFiles';
-import {Event} from 'sentry/types/event';
+import {
+  type AppStoreConnectStatusData,
+  type CustomRepoType,
+} from 'sentry/types/debugFiles';
+import {type Event} from 'sentry/types/event';
 
 export type ModalOptions = ModalTypes['options'];
 export type ModalRenderProps = ModalTypes['renderProps'];

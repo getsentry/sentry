@@ -3,10 +3,10 @@ import {memo} from 'react';
 import ChevronDividedList from 'sentry/components/replays/walker/chevronDividedList';
 import splitCrumbs from 'sentry/components/replays/walker/splitCrumbs';
 import {
+  type BreadcrumbTypeNavigation,
+  type Crumb,
   BreadcrumbLevelType,
   BreadcrumbType,
-  BreadcrumbTypeNavigation,
-  Crumb,
 } from 'sentry/types/breadcrumbs';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import type {ReplayRecord} from 'sentry/views/replays/types';

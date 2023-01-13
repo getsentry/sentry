@@ -1,5 +1,5 @@
 import {useContext} from 'react';
-import {formatPattern, RouteComponent, RouteComponentProps} from 'react-router';
+import {type RouteComponent, type RouteComponentProps, formatPattern} from 'react-router';
 import * as Sentry from '@sentry/react';
 import trimEnd from 'lodash/trimEnd';
 import trimStart from 'lodash/trimStart';

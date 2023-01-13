@@ -2,7 +2,7 @@ import {QueryClientProvider} from '@tanstack/react-query';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {EventData} from 'sentry/utils/discover/eventView';
+import {type EventData} from 'sentry/utils/discover/eventView';
 import {QueryClient} from 'sentry/utils/queryClient';
 
 import IssueContext from './issueContext';

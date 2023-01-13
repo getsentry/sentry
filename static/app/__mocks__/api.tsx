@@ -1,6 +1,6 @@
 import isEqual from 'lodash/isEqual';
 
-import * as ApiNamespace from 'sentry/api';
+import type * as ApiNamespace from 'sentry/api';
 
 const RealApi: typeof ApiNamespace = jest.requireActual('sentry/api');
 

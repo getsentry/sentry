@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {RouteComponentProps} from 'react-router';
+import {type RouteComponentProps} from 'react-router';
 
 import {
   addErrorMessage,
@@ -13,13 +13,13 @@ import Pagination from 'sentry/components/pagination';
 import {Panel} from 'sentry/components/panels';
 import {IconAdd, IconFlag} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {Organization, Project} from 'sentry/types';
+import {type Organization, type Project} from 'sentry/types';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import withOrganization from 'sentry/utils/withOrganization';
 import AsyncView from 'sentry/views/asyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
-import {ProjectKey} from 'sentry/views/settings/project/projectKeys/types';
+import {type ProjectKey} from 'sentry/views/settings/project/projectKeys/types';
 
 import KeyRow from './keyRow';
 

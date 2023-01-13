@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {setActiveProject} from 'sentry/actionCreators/projects';
-import {Client} from 'sentry/api';
+import {type Client} from 'sentry/api';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import MissingProjectMembership from 'sentry/components/projects/missingProjectMembership';
@@ -13,7 +13,7 @@ import SentryTypes from 'sentry/sentryTypes';
 import MemberListStore from 'sentry/stores/memberListStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import space from 'sentry/styles/space';
-import {Organization, Project, User} from 'sentry/types';
+import {type Organization, type Project, type User} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withProjects from 'sentry/utils/withProjects';

@@ -1,17 +1,21 @@
-import {Theme} from '@emotion/react';
+import {type Theme} from '@emotion/react';
 import compact from 'lodash/compact';
 import mean from 'lodash/mean';
 import moment from 'moment';
 
 import {
-  DateTimeObject,
+  type DateTimeObject,
   getDiffInMinutes,
   SIX_HOURS,
   SIXTY_DAYS,
   THIRTY_DAYS,
 } from 'sentry/components/charts/utils';
-import {SessionApiResponse, SessionFieldWithOperation, SessionStatus} from 'sentry/types';
-import {SeriesDataUnit} from 'sentry/types/echarts';
+import {
+  type SessionApiResponse,
+  type SessionFieldWithOperation,
+  SessionStatus,
+} from 'sentry/types';
+import {type SeriesDataUnit} from 'sentry/types/echarts';
 import {defined, percent} from 'sentry/utils';
 import {getCrashFreePercent, getSessionStatusPercent} from 'sentry/views/releases/utils';
 import {sessionTerm} from 'sentry/views/releases/utils/sessionTerm';

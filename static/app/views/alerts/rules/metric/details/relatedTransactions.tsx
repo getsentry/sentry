@@ -3,17 +3,18 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import GridEditable, {
+  type GridColumn,
   COL_WIDTH_UNDEFINED,
-  GridColumn,
 } from 'sentry/components/gridEditable';
 import type {Alignments} from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
-import {Organization, Project} from 'sentry/types';
+import {type Organization, type Project} from 'sentry/types';
 import DiscoverQuery, {
-  TableData,
-  TableDataRow,
+  type TableData,
+  type TableDataRow,
 } from 'sentry/utils/discover/discoverQuery';
-import EventView, {EventData} from 'sentry/utils/discover/eventView';
+import type EventView from 'sentry/utils/discover/eventView';
+import {type EventData} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {fieldAlignment} from 'sentry/utils/discover/fields';
 import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';

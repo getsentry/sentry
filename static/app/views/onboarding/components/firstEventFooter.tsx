@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import {motion, Variants} from 'framer-motion';
+import {type Variants, motion} from 'framer-motion';
 
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
@@ -9,7 +9,7 @@ import {IconCheckmark} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
 import space from 'sentry/styles/space';
-import {Group, Organization, Project} from 'sentry/types';
+import {type Group, type Organization, type Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventWaiter from 'sentry/utils/eventWaiter';
 import testableTransition from 'sentry/utils/testableTransition';

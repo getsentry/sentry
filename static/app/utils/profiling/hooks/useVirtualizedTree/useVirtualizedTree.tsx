@@ -5,8 +5,9 @@ import {useEffectAfterFirstRender} from 'sentry/utils/useEffectAfterFirstRender'
 
 import {VirtualizedTreeReducer} from './useVirtualizedTreeReducer';
 import {VirtualizedTree} from './VirtualizedTree';
-import {VirtualizedTreeNode} from './VirtualizedTreeNode';
+import {type VirtualizedTreeNode} from './VirtualizedTreeNode';
 import {
+  type VirtualizedTreeRenderedRow,
   cancelAnimationTimeout,
   computeVirtualizedTreeNodeScrollTop,
   findCarryOverIndex,
@@ -14,7 +15,6 @@ import {
   markRowAsClicked,
   markRowAsHovered,
   requestAnimationTimeout,
-  VirtualizedTreeRenderedRow,
 } from './virtualizedTreeUtils';
 
 export interface TreeLike {

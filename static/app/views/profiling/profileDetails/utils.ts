@@ -1,7 +1,7 @@
 import groupBy from 'lodash/groupBy';
 
-import {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
-import {Profile} from 'sentry/utils/profiling/profile/profile';
+import {type CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
+import {type Profile} from 'sentry/utils/profiling/profile/profile';
 
 export function collectProfileFrames(profile: Profile) {
   const nodes: CallTreeNode[] = [];

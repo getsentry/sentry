@@ -1,11 +1,11 @@
 import {Component, Fragment} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
-import {Location, LocationDescriptorObject} from 'history';
+import {type Location, type LocationDescriptorObject} from 'history';
 
 import GridEditable, {
+  type GridColumn,
   COL_WIDTH_UNDEFINED,
-  GridColumn,
 } from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
@@ -13,23 +13,24 @@ import Pagination from 'sentry/components/pagination';
 import Tag from 'sentry/components/tag';
 import {IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {Organization, Project} from 'sentry/types';
+import {type Organization, type Project} from 'sentry/types';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
-import EventView, {
-  EventData,
-  EventsMetaType,
+import type EventView from 'sentry/utils/discover/eventView';
+import {
+  type EventData,
+  type EventsMetaType,
   isFieldSortable,
 } from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
-import {fieldAlignment, getAggregateAlias, Sort} from 'sentry/utils/discover/fields';
-import {WebVital} from 'sentry/utils/fields';
+import {type Sort, fieldAlignment, getAggregateAlias} from 'sentry/utils/discover/fields';
+import {type WebVital} from 'sentry/utils/fields';
 import VitalsDetailsTableQuery, {
-  TableData,
-  TableDataRow,
+  type TableData,
+  type TableDataRow,
 } from 'sentry/utils/performance/vitals/vitalsDetailsTableQuery';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import CellAction, {Actions, updateQuery} from 'sentry/views/eventsV2/table/cellAction';
-import {TableColumn} from 'sentry/views/eventsV2/table/types';
+import {type TableColumn} from 'sentry/views/eventsV2/table/types';
 
 import {DisplayModes} from '../transactionSummary/transactionOverview/charts';
 import {

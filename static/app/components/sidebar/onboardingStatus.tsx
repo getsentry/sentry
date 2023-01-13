@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {css, Theme} from '@emotion/react';
+import {type Theme, css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import OnboardingSidebar from 'sentry/components/onboardingWizard/sidebar';
@@ -12,7 +12,7 @@ import ProgressRing, {
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import space from 'sentry/styles/space';
-import {OnboardingTaskStatus, Organization, Project} from 'sentry/types';
+import {type OnboardingTaskStatus, type Organization, type Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {isDemoWalkthrough} from 'sentry/utils/demoMode';
 import {useSandboxSidebarTasks} from 'sentry/utils/demoWalkthrough';
@@ -20,7 +20,7 @@ import theme from 'sentry/utils/theme';
 import withProjects from 'sentry/utils/withProjects';
 import {usePersistedOnboardingState} from 'sentry/views/onboarding/utils';
 
-import {CommonSidebarProps, SidebarPanelKey} from './types';
+import {type CommonSidebarProps, SidebarPanelKey} from './types';
 
 type Props = CommonSidebarProps & {
   org: Organization;

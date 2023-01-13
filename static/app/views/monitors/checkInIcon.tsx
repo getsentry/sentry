@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {CheckInStatus} from './types';
+import {type CheckInStatus} from './types';
 
 type Props = {
   size: number | string;

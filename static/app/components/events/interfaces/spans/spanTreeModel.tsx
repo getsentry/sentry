@@ -1,24 +1,26 @@
 import {action, computed, makeObservable, observable} from 'mobx';
 
-import {Client} from 'sentry/api';
+import {type Client} from 'sentry/api';
 import {t} from 'sentry/locale';
-import {EventTransaction} from 'sentry/types/event';
+import {type EventTransaction} from 'sentry/types/event';
 
-import {ActiveOperationFilter} from './filter';
+import {type ActiveOperationFilter} from './filter';
 import {
-  DescendantGroup,
-  EnhancedProcessedSpanType,
-  EnhancedSpan,
-  FetchEmbeddedChildrenState,
-  FilterSpans,
-  OrphanTreeDepth,
-  RawSpanType,
-  SpanChildrenLookupType,
-  SpanType,
-  TraceBound,
-  TreeDepthType,
+  type DescendantGroup,
+  type EnhancedProcessedSpanType,
+  type EnhancedSpan,
+  type FetchEmbeddedChildrenState,
+  type FilterSpans,
+  type OrphanTreeDepth,
+  type RawSpanType,
+  type SpanChildrenLookupType,
+  type SpanType,
+  type TraceBound,
+  type TreeDepthType,
 } from './types';
 import {
+  type SpanBoundsType,
+  type SpanGeneratedBoundsType,
   generateRootSpan,
   getSiblingGroupKey,
   getSpanID,
@@ -27,8 +29,6 @@ import {
   isEventFromBrowserJavaScriptSDK,
   isOrphanSpan,
   parseTrace,
-  SpanBoundsType,
-  SpanGeneratedBoundsType,
 } from './utils';
 
 export const MIN_SIBLING_GROUP_SIZE = 5;

@@ -1,10 +1,10 @@
-import {RouteComponentProps} from 'react-router';
+import {type RouteComponentProps} from 'react-router';
 
 import ExternalLink from 'sentry/components/links/externalLink';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import PreviewFeature from 'sentry/components/previewFeature';
 import {t, tct} from 'sentry/locale';
-import {Organization, ProjectKey} from 'sentry/types';
+import {type Organization, type ProjectKey} from 'sentry/types';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import withOrganization from 'sentry/utils/withOrganization';
 import AsyncView from 'sentry/views/asyncView';

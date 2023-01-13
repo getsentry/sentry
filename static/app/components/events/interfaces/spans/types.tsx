@@ -1,9 +1,9 @@
 import type {Fuse} from 'sentry/utils/fuzzySearch';
 
-import {SpanBarProps} from './spanBar';
-import {SpanDescendantGroupBarProps} from './spanDescendantGroupBar';
-import {SpanSiblingGroupBarProps} from './spanSiblingGroupBar';
-import SpanTreeModel from './spanTreeModel';
+import {type SpanBarProps} from './spanBar';
+import {type SpanDescendantGroupBarProps} from './spanDescendantGroupBar';
+import {type SpanSiblingGroupBarProps} from './spanSiblingGroupBar';
+import type SpanTreeModel from './spanTreeModel';
 
 export type GapSpanType = {
   isOrphan: boolean;

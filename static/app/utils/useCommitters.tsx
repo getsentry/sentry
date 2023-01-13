@@ -1,5 +1,5 @@
 import type {Committer} from 'sentry/types';
-import {QueryKey, useQuery, UseQueryOptions} from 'sentry/utils/queryClient';
+import {type QueryKey, type UseQueryOptions, useQuery} from 'sentry/utils/queryClient';
 
 import useOrganization from './useOrganization';
 

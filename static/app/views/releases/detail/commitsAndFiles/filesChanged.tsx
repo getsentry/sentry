@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
-import {RouteComponentProps} from 'react-router';
+import {type RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import {type Location} from 'history';
 
 import FileChange from 'sentry/components/fileChange';
 import {Body, Main} from 'sentry/components/layouts/thirds';
@@ -9,7 +9,12 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import {t, tn} from 'sentry/locale';
-import {CommitFile, Organization, Project, Repository} from 'sentry/types';
+import {
+  type CommitFile,
+  type Organization,
+  type Project,
+  type Repository,
+} from 'sentry/types';
 import {formatVersion} from 'sentry/utils/formatters';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import AsyncView from 'sentry/views/asyncView';

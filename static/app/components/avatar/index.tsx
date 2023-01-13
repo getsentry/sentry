@@ -7,11 +7,11 @@ import SentryAppAvatar from 'sentry/components/avatar/sentryAppAvatar';
 import TeamAvatar from 'sentry/components/avatar/teamAvatar';
 import UserAvatar from 'sentry/components/avatar/userAvatar';
 import {
-  AvatarProject,
-  AvatarSentryApp,
-  DocIntegration,
-  OrganizationSummary,
-  Team,
+  type AvatarProject,
+  type AvatarSentryApp,
+  type DocIntegration,
+  type OrganizationSummary,
+  type Team,
 } from 'sentry/types';
 
 type Props = {

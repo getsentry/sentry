@@ -1,6 +1,6 @@
-import {createStore, StoreDefinition} from 'reflux';
+import {type StoreDefinition, createStore} from 'reflux';
 
-import {FieldObject} from 'sentry/components/forms/types';
+import {type FieldObject} from 'sentry/components/forms/types';
 
 /**
  * Processed form field metadata.

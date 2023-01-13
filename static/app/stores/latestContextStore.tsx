@@ -1,6 +1,6 @@
-import {createStore, StoreDefinition} from 'reflux';
+import {type StoreDefinition, createStore} from 'reflux';
 
-import {Organization, Project} from 'sentry/types';
+import {type Organization, type Project} from 'sentry/types';
 
 type State = {
   environment: string | string[] | null;

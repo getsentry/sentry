@@ -8,7 +8,7 @@ import AsyncComponent from 'sentry/components/asyncComponent';
 import {Button} from 'sentry/components/button';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import ExternalLink from 'sentry/components/links/externalLink';
-import Pagination, {CursorHandler} from 'sentry/components/pagination';
+import Pagination, {type CursorHandler} from 'sentry/components/pagination';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'sentry/components/panels';
 import RepositoryProjectPathConfigForm from 'sentry/components/repositoryProjectPathConfigForm';
 import RepositoryProjectPathConfigRow, {
@@ -21,18 +21,18 @@ import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {
-  Integration,
-  Organization,
-  Project,
-  Repository,
-  RepositoryProjectPathConfig,
+  type Integration,
+  type Organization,
+  type Project,
+  type Repository,
+  type RepositoryProjectPathConfig,
 } from 'sentry/types';
 import {
   getIntegrationIcon,
   trackIntegrationAnalytics,
 } from 'sentry/utils/integrationUtil';
 import withRouteAnalytics, {
-  WithRouteAnalyticsProps,
+  type WithRouteAnalyticsProps,
 } from 'sentry/utils/routeAnalytics/withRouteAnalytics';
 import withOrganization from 'sentry/utils/withOrganization';
 import withProjects from 'sentry/utils/withProjects';

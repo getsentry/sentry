@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {WithRouterProps} from 'react-router';
+import {type WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import capitalize from 'lodash/capitalize';
 
@@ -15,11 +15,11 @@ import {t, tct} from 'sentry/locale';
 import PluginIcon from 'sentry/plugins/components/pluginIcon';
 import space from 'sentry/styles/space';
 import {
-  ExternalActorMapping,
-  ExternalActorMappingOrSuggestion,
-  ExternalActorSuggestion,
-  Integration,
-  Organization,
+  type ExternalActorMapping,
+  type ExternalActorMappingOrSuggestion,
+  type ExternalActorSuggestion,
+  type Integration,
+  type Organization,
 } from 'sentry/types';
 import {isExternalActorMapping} from 'sentry/utils/integrationUtil';
 // eslint-disable-next-line no-restricted-imports

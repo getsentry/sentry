@@ -1,6 +1,6 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
-import {LocationDescriptor} from 'history';
+import {type LocationDescriptor} from 'history';
 import omit from 'lodash/omit';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
@@ -27,7 +27,13 @@ import Tooltip from 'sentry/components/tooltip';
 import {IconChat} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Event, Group, IssueType, Organization, Project} from 'sentry/types';
+import {
+  type Event,
+  type Group,
+  type Organization,
+  type Project,
+  IssueType,
+} from 'sentry/types';
 import {getMessage} from 'sentry/utils/events';
 import {getIssueCapability} from 'sentry/utils/groupCapabilities';
 import projectSupportsReplay from 'sentry/utils/replays/projectSupportsReplay';

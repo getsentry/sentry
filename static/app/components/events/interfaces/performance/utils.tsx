@@ -3,18 +3,18 @@ import keyBy from 'lodash/keyBy';
 
 import {t} from 'sentry/locale';
 import {
-  EntrySpans,
+  type EntrySpans,
+  type EventTransaction,
+  type PlatformType,
   EntryType,
-  EventTransaction,
   IssueCategory,
   IssueType,
-  PlatformType,
 } from 'sentry/types';
 
-import {RawSpanType} from '../spans/types';
+import {type RawSpanType} from '../spans/types';
 
-import {ResourceLink} from './resources';
-import {TraceContextSpanProxy} from './spanEvidence';
+import {type ResourceLink} from './resources';
+import {type TraceContextSpanProxy} from './spanEvidence';
 
 const RESOURCES_DESCRIPTIONS: Record<IssueType, string> = {
   [IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES]: t(

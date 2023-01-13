@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 
 import ContextBlock from 'sentry/components/events/contexts/contextBlock';
-import {Event, ThreadPoolInfoContext} from 'sentry/types/event';
+import {type Event, type ThreadPoolInfoContext} from 'sentry/types/event';
 
 import {geKnownData, getUnknownData} from '../utils';
 

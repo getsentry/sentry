@@ -1,12 +1,12 @@
 import {updateUser} from 'sentry/actionCreators/account';
-import {APIRequestMethod} from 'sentry/api';
+import {type APIRequestMethod} from 'sentry/api';
 import AvatarChooser from 'sentry/components/avatarChooser';
-import Form, {FormProps} from 'sentry/components/forms/form';
+import Form, {type FormProps} from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import accountDetailsFields from 'sentry/data/forms/accountDetails';
 import accountPreferencesFields from 'sentry/data/forms/accountPreferences';
 import {t} from 'sentry/locale';
-import {User} from 'sentry/types';
+import {type User} from 'sentry/types';
 import AsyncView from 'sentry/views/asyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 

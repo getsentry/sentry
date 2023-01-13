@@ -1,5 +1,5 @@
 import {Component} from 'react';
-import {browserHistory, RouteComponentProps} from 'react-router';
+import {type RouteComponentProps, browserHistory} from 'react-router';
 
 import {
   changeProjectSlug,
@@ -10,16 +10,16 @@ import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import TextField from 'sentry/components/forms/fields/textField';
-import Form, {FormProps} from 'sentry/components/forms/form';
+import Form, {type FormProps} from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
-import {FieldValue} from 'sentry/components/forms/model';
+import {type FieldValue} from 'sentry/components/forms/model';
 import Hook from 'sentry/components/hook';
 import {removePageFiltersStorage} from 'sentry/components/organizations/pageFilters/persistence';
 import {Panel, PanelAlert, PanelHeader} from 'sentry/components/panels';
 import {fields} from 'sentry/data/forms/projectGeneralSettings';
 import {t, tct} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {Organization, Project} from 'sentry/types';
+import {type Organization, type Project} from 'sentry/types';
 import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import routeTitleGen from 'sentry/utils/routeTitle';

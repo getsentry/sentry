@@ -2,7 +2,7 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import {ReleasesContext} from 'sentry/utils/releases/releasesProvider';
 import ReleasesSelectControl from 'sentry/views/dashboardsV2/releasesSelectControl';
-import {DashboardFilters} from 'sentry/views/dashboardsV2/types';
+import {type DashboardFilters} from 'sentry/views/dashboardsV2/types';
 
 function renderReleasesSelect({
   onSearch,

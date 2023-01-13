@@ -1,10 +1,10 @@
 import styled from '@emotion/styled';
 
 import {pinFilter} from 'sentry/actionCreators/pageFilters';
-import {Button, ButtonProps} from 'sentry/components/button';
+import {type ButtonProps, Button} from 'sentry/components/button';
 import {IconLock} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {Organization, PinnedPageFilter} from 'sentry/types';
+import {type Organization, type PinnedPageFilter} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import usePageFilters from 'sentry/utils/usePageFilters';
 

@@ -1,7 +1,7 @@
 import * as reactQuery from '@tanstack/react-query';
-import {QueryClientConfig} from '@tanstack/react-query';
+import {type QueryClientConfig} from '@tanstack/react-query';
 
-import RequestError from 'sentry/utils/requestError/requestError';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 
 type QueryKeyEndpointOptions = {

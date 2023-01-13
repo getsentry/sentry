@@ -1,4 +1,8 @@
-import {EntrySpans, EventOrGroupType, EventTransaction} from 'sentry/types/event';
+import {
+  type EntrySpans,
+  type EventTransaction,
+  EventOrGroupType,
+} from 'sentry/types/event';
 
 import {SpanTree} from './spanTree';
 

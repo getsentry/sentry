@@ -1,6 +1,8 @@
 import styled from '@emotion/styled';
 
-import RadioGroup, {RadioGroupProps} from 'sentry/components/forms/controls/radioGroup';
+import RadioGroup, {
+  type RadioGroupProps,
+} from 'sentry/components/forms/controls/radioGroup';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';

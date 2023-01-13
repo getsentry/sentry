@@ -1,8 +1,8 @@
-import {SelectValue} from 'sentry/types';
-import {FieldValue, FieldValueKind} from 'sentry/views/eventsV2/table/types';
+import {type SelectValue} from 'sentry/types';
+import {type FieldValue, FieldValueKind} from 'sentry/views/eventsV2/table/types';
 import {getSortLabel, IssueSortOptions} from 'sentry/views/issueList/utils';
 
-import {ColumnType, ISSUE_FIELDS} from './fields';
+import {type ColumnType, ISSUE_FIELDS} from './fields';
 
 export function generateIssueWidgetFieldOptions(
   issueFields: Record<string, ColumnType> = ISSUE_FIELDS

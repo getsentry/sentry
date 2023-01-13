@@ -1,13 +1,13 @@
 import {Fragment, useEffect} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import {type Location} from 'history';
 
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {Organization} from 'sentry/types';
-import EventView from 'sentry/utils/discover/eventView';
+import {type Organization} from 'sentry/types';
+import type EventView from 'sentry/utils/discover/eventView';
 import {
-  MetricDataSwitcherOutcome,
+  type MetricDataSwitcherOutcome,
   useMetricsCardinalityContext,
 } from 'sentry/utils/performance/contexts/metricsCardinality';
 import {

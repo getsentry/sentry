@@ -1,14 +1,14 @@
 import {Fragment} from 'react';
-import {css, Theme} from '@emotion/react';
+import {type Theme, css} from '@emotion/react';
 import styled from '@emotion/styled';
-import {LocationDescriptor} from 'history';
+import {type LocationDescriptor} from 'history';
 
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
-import Link, {LinkProps} from 'sentry/components/links/link';
+import Link, {type LinkProps} from 'sentry/components/links/link';
 import {IconChevron} from 'sentry/icons';
 import space from 'sentry/styles/space';
 import BreadcrumbDropdown, {
-  BreadcrumbDropdownProps,
+  type BreadcrumbDropdownProps,
 } from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbDropdown';
 
 const BreadcrumbList = styled('nav')`

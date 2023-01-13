@@ -1,27 +1,27 @@
 import {useContext} from 'react';
 import omit from 'lodash/omit';
 
-import {Client} from 'sentry/api';
+import {type Client} from 'sentry/api';
 import {isMultiSeriesStats} from 'sentry/components/charts/utils';
 import {
-  EventsStats,
-  MultiSeriesEventsStats,
-  Organization,
-  PageFilters,
+  type EventsStats,
+  type MultiSeriesEventsStats,
+  type Organization,
+  type PageFilters,
 } from 'sentry/types';
-import {Series} from 'sentry/types/echarts';
-import {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
+import {type Series} from 'sentry/types/echarts';
+import {type EventsTableData, type TableData} from 'sentry/utils/discover/discoverQuery';
 import {DURATION_UNITS, SIZE_UNITS} from 'sentry/utils/discover/fieldRenderers';
 import {getAggregateAlias} from 'sentry/utils/discover/fields';
 import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 
 import {ErrorsAndTransactionsConfig} from '../datasetConfig/errorsAndTransactions';
-import {DashboardFilters, Widget} from '../types';
+import {type DashboardFilters, type Widget} from '../types';
 
 import {DashboardsMEPContext} from './dashboardsMEPContext';
 import GenericWidgetQueries, {
-  GenericWidgetQueriesChildrenProps,
-  OnDataFetchedProps,
+  type GenericWidgetQueriesChildrenProps,
+  type OnDataFetchedProps,
 } from './genericWidgetQueries';
 
 type SeriesResult = EventsStats | MultiSeriesEventsStats;

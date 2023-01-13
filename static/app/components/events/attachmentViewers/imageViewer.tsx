@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 
 import {
+  type ViewerProps,
   getAttachmentUrl,
-  ViewerProps,
 } from 'sentry/components/events/attachmentViewers/utils';
 import {PanelItem} from 'sentry/components/panels';
 

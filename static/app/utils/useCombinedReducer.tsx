@@ -1,4 +1,4 @@
-import {Reducer, ReducerAction, useReducer} from 'react';
+import {type Reducer, type ReducerAction, useReducer} from 'react';
 
 type ReducersObject<S = any, A = any> = {
   [K in keyof S]: Reducer<S, A>;

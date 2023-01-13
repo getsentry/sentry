@@ -1,9 +1,14 @@
 import 'focus-visible';
 import 'docs-ui/index.js';
 
-import {Theme, ThemeProvider} from '@emotion/react';
+import {type Theme, ThemeProvider} from '@emotion/react';
 import {DocsContainer, Meta} from '@storybook/addon-docs';
-import {addDecorator, addParameters, DecoratorFn, Parameters} from '@storybook/react';
+import {
+  type DecoratorFn,
+  type Parameters,
+  addDecorator,
+  addParameters,
+} from '@storybook/react';
 import {themes} from '@storybook/theming';
 import Code from 'docs-ui/components/code';
 import ColorChip from 'docs-ui/components/colorChip';

@@ -1,4 +1,4 @@
-import {ComponentProps} from 'react';
+import {type ComponentProps} from 'react';
 import omit from 'lodash/omit';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';

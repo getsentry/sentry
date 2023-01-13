@@ -1,12 +1,12 @@
 import {Component, Fragment} from 'react';
-import {RouteComponentProps} from 'react-router';
+import {type RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
-import {LocationDescriptorObject} from 'history';
+import {type LocationDescriptorObject} from 'history';
 import omit from 'lodash/omit';
 import pick from 'lodash/pick';
 import moment from 'moment';
 
-import {DateTimeObject} from 'sentry/components/charts/utils';
+import {type DateTimeObject} from 'sentry/components/charts/utils';
 import CompactSelect from 'sentry/components/compactSelect';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -16,7 +16,7 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import {ChangeData} from 'sentry/components/organizations/timeRangeSelector';
+import {type ChangeData} from 'sentry/components/organizations/timeRangeSelector';
 import PageTimeRangeSelector from 'sentry/components/pageTimeRangeSelector';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -28,12 +28,18 @@ import {
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {DataCategory, DateString, Organization, PageFilters, Project} from 'sentry/types';
+import {
+  type DateString,
+  type Organization,
+  type PageFilters,
+  type Project,
+  DataCategory,
+} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import HeaderTabs from 'sentry/views/organizationStats/header';
 
-import {CHART_OPTIONS_DATACATEGORY, ChartDataTransform} from './usageChart';
+import {type ChartDataTransform, CHART_OPTIONS_DATACATEGORY} from './usageChart';
 import UsageStatsOrg from './usageStatsOrg';
 import UsageStatsProjects from './usageStatsProjects';
 

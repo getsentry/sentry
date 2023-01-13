@@ -5,14 +5,14 @@ import Pill from 'sentry/components/pill';
 import Pills from 'sentry/components/pills';
 import {t} from 'sentry/locale';
 import {
+  type Event,
+  type Frame,
+  type PlatformType,
+  type Project,
+  type Thread,
   EntryType,
-  Event,
-  Frame,
-  PlatformType,
-  Project,
   STACK_TYPE,
   STACK_VIEW,
-  Thread,
 } from 'sentry/types';
 
 import {PermalinkTitle, TraceEventDataSection} from '../traceEventDataSection';

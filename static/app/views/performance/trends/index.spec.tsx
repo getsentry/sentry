@@ -1,10 +1,10 @@
 import {browserHistory} from 'react-router';
-import {Location} from 'history';
+import {type Location} from 'history';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
+  type initializeDataSettings,
   initializeData,
-  initializeDataSettings,
 } from 'sentry-test/performance/initializePerformanceData';
 import {
   act,

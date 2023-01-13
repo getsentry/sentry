@@ -1,5 +1,9 @@
 import {t} from 'sentry/locale';
-import {Event, ThreadPoolInfoContext, ThreadPoolInfoContextKey} from 'sentry/types/event';
+import {
+  type Event,
+  type ThreadPoolInfoContext,
+  ThreadPoolInfoContextKey,
+} from 'sentry/types/event';
 
 export const threadPoolInfoKnownDataValues = Object.values(ThreadPoolInfoContextKey);
 

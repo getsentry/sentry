@@ -1,4 +1,4 @@
-import {Relay, RelayActivity, RelaysByPublickey} from 'sentry/types';
+import {type Relay, type RelayActivity, type RelaysByPublickey} from 'sentry/types';
 
 /**
  * Convert list of individual relay objects into a per-file summary grouped by publicKey

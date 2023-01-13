@@ -7,9 +7,9 @@ import space from 'sentry/styles/space';
 import {MEPTag} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 
 import {
-  GenericPerformanceWidgetProps,
-  WidgetDataConstraint,
-  WidgetDataProps,
+  type GenericPerformanceWidgetProps,
+  type WidgetDataConstraint,
+  type WidgetDataProps,
 } from '../types';
 
 export function WidgetHeader<T extends WidgetDataConstraint>(

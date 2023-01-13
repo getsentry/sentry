@@ -1,5 +1,9 @@
 import {t} from 'sentry/locale';
-import {Event, MemoryInfoContext, MemoryInfoContextKey} from 'sentry/types/event';
+import {
+  type Event,
+  type MemoryInfoContext,
+  MemoryInfoContextKey,
+} from 'sentry/types/event';
 
 export const memoryInfoKnownDataValues = Object.values(MemoryInfoContextKey);
 

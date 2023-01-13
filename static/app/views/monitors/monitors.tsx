@@ -1,11 +1,11 @@
 import {Fragment} from 'react';
-import {WithRouterProps} from 'react-router';
+import {type WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
 import onboardingImg from 'sentry-images/spot/onboarding-preview.svg';
 
-import {Button, ButtonProps} from 'sentry/components/button';
+import {type ButtonProps, Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import FeatureBadge from 'sentry/components/featureBadge';
 import IdBadge from 'sentry/components/idBadge';
@@ -20,10 +20,10 @@ import SearchBar from 'sentry/components/searchBar';
 import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
+import {type Organization} from 'sentry/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 import withRouteAnalytics, {
-  WithRouteAnalyticsProps,
+  type WithRouteAnalyticsProps,
 } from 'sentry/utils/routeAnalytics/withRouteAnalytics';
 import useOrganization from 'sentry/utils/useOrganization';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -33,7 +33,7 @@ import AsyncView from 'sentry/views/asyncView';
 
 import CronsFeedbackButton from './cronsFeedbackButton';
 import MonitorIcon from './monitorIcon';
-import {Monitor} from './types';
+import {type Monitor} from './types';
 
 type Props = AsyncView['props'] &
   WithRouteAnalyticsProps &

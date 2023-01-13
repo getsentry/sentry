@@ -1,4 +1,4 @@
-import {Fragment, ReactChild} from 'react';
+import {type ReactChild, Fragment} from 'react';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {IssueCategory} from 'sentry/types';

@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {WithRouterProps} from 'react-router';
+import {type WithRouterProps} from 'react-router';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
@@ -8,12 +8,12 @@ import IntegrationExternalMappingForm from 'sentry/components/integrationExterna
 import IntegrationExternalMappings from 'sentry/components/integrationExternalMappings';
 import {t} from 'sentry/locale';
 import {
-  ExternalActorMapping,
-  ExternalActorMappingOrSuggestion,
-  ExternalUser,
-  Integration,
-  Member,
-  Organization,
+  type ExternalActorMapping,
+  type ExternalActorMappingOrSuggestion,
+  type ExternalUser,
+  type Integration,
+  type Member,
+  type Organization,
 } from 'sentry/types';
 import {sentryNameToOption} from 'sentry/utils/integrationUtil';
 import withOrganization from 'sentry/utils/withOrganization';

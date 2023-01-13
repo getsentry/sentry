@@ -1,6 +1,6 @@
-import {HTMLAttributes} from 'react';
+import {type HTMLAttributes} from 'react';
 import styled from '@emotion/styled';
-import {AnimationControls, motion} from 'framer-motion';
+import {type AnimationControls, motion} from 'framer-motion';
 
 import testableTransition from 'sentry/utils/testableTransition';
 

@@ -7,7 +7,7 @@ import set from 'lodash/set';
 
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 
-import {BarChart, BarChartProps, BarChartSeries} from './barChart';
+import {type BarChartProps, type BarChartSeries, BarChart} from './barChart';
 import type BaseChart from './baseChart';
 
 type ChartProps = React.ComponentProps<typeof BaseChart>;

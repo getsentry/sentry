@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import AutoSelectText from 'sentry/components/autoSelectText';
-import Link, {LinkProps} from 'sentry/components/links/link';
+import Link, {type LinkProps} from 'sentry/components/links/link';
 
 interface Props {
   shortId: string;

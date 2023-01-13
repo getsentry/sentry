@@ -1,4 +1,4 @@
-import {RouteComponentProps} from 'react-router';
+import {type RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import {withProfiler} from '@sentry/react';
 import omit from 'lodash/omit';
@@ -21,7 +21,7 @@ import {Panel} from 'sentry/components/panels';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization, UserReport} from 'sentry/types';
+import {type Organization, type UserReport} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
 import AsyncView from 'sentry/views/asyncView';
 

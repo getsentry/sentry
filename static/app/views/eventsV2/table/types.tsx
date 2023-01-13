@@ -1,10 +1,13 @@
-import {GridColumnOrder, GridColumnSortBy} from 'sentry/components/gridEditable';
-import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import {
-  AggregateParameter,
-  Column,
-  ColumnType,
-  ColumnValueType,
+  type GridColumnOrder,
+  type GridColumnSortBy,
+} from 'sentry/components/gridEditable';
+import {type TableDataRow} from 'sentry/utils/discover/discoverQuery';
+import {
+  type AggregateParameter,
+  type Column,
+  type ColumnType,
+  type ColumnValueType,
 } from 'sentry/utils/discover/fields';
 
 /**

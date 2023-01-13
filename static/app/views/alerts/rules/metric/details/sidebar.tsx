@@ -1,4 +1,4 @@
-import {Fragment, PureComponent, ReactNode} from 'react';
+import {type ReactNode, Fragment, PureComponent} from 'react';
 import styled from '@emotion/styled';
 
 import AlertBadge from 'sentry/components/alertBadge';
@@ -11,14 +11,14 @@ import TimeSince from 'sentry/components/timeSince';
 import {IconDiamond} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Actor} from 'sentry/types';
+import {type Actor} from 'sentry/types';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/rules/metric/constants';
 import {
-  Action,
+  type Action,
+  type MetricRule,
   AlertRuleThresholdType,
   AlertRuleTriggerType,
-  MetricRule,
 } from 'sentry/views/alerts/rules/metric/types';
 import {AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';

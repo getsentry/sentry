@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {RouteComponentProps} from 'react-router';
+import {type RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import EmptyMessage from 'sentry/components/emptyMessage';
@@ -10,12 +10,12 @@ import Pagination from 'sentry/components/pagination';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import {fields} from 'sentry/data/forms/accountNotificationSettings';
 import {t} from 'sentry/locale';
-import {Organization, Project, UserEmail} from 'sentry/types';
+import {type Organization, type Project, type UserEmail} from 'sentry/types';
 import withOrganizations from 'sentry/utils/withOrganizations';
 import AsyncView from 'sentry/views/asyncView';
 import {
+  type FineTuneField,
   ACCOUNT_NOTIFICATION_FIELDS,
-  FineTuneField,
 } from 'sentry/views/settings/account/notifications/fields';
 import NotificationSettingsByType from 'sentry/views/settings/account/notifications/notificationSettingsByType';
 import {

@@ -6,17 +6,17 @@ import ButtonBar from 'sentry/components/buttonBar';
 import HotkeysLabel from 'sentry/components/hotkeysLabel';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Overlay} from 'sentry/components/overlay';
-import {parseSearch, SearchConfig} from 'sentry/components/searchSyntax/parser';
+import {type SearchConfig, parseSearch} from 'sentry/components/searchSyntax/parser';
 import HighlightQuery from 'sentry/components/searchSyntax/renderer';
 import Tag from 'sentry/components/tag';
 import {IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {TagCollection} from 'sentry/types';
-import {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
+import {type TagCollection} from 'sentry/types';
+import {type CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import {FieldKind} from 'sentry/utils/fields';
 
-import {ItemType, SearchGroup, SearchItem, Shortcut} from './types';
+import {type SearchGroup, type SearchItem, type Shortcut, ItemType} from './types';
 import {getSearchConfigFromCustomPerformanceMetrics} from './utils';
 
 const getDropdownItemKey = (item: SearchItem) =>

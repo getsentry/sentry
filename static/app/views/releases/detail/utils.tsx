@@ -1,5 +1,5 @@
-import {Theme} from '@emotion/react';
-import {Location} from 'history';
+import {type Theme} from '@emotion/react';
+import {type Location} from 'history';
 import pick from 'lodash/pick';
 import moment from 'moment';
 
@@ -8,15 +8,15 @@ import {parseStatsPeriod} from 'sentry/components/organizations/timeRangeSelecto
 import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
 import {
-  Commit,
-  CommitFile,
-  FilesByRepository,
+  type Commit,
+  type CommitFile,
+  type FilesByRepository,
+  type ReleaseProject,
+  type ReleaseWithHealth,
+  type Repository,
   ReleaseComparisonChartType,
-  ReleaseProject,
-  ReleaseWithHealth,
-  Repository,
 } from 'sentry/types';
-import {Series} from 'sentry/types/echarts';
+import {type Series} from 'sentry/types/echarts';
 import {decodeList} from 'sentry/utils/queryString';
 
 import {getReleaseBounds, getReleaseParams, isMobileRelease} from '../utils';

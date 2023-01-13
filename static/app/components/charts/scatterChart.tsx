@@ -1,4 +1,4 @@
-import {Series} from 'sentry/types/echarts';
+import {type Series} from 'sentry/types/echarts';
 
 import ScatterSeries from './series/scatterSeries';
 import BaseChart from './baseChart';

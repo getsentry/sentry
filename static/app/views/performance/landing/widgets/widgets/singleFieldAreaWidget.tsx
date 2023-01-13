@@ -9,8 +9,8 @@ import {axisLabelFormatter} from 'sentry/utils/discover/charts';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import {
+  type Transform,
   QueryBatchNode,
-  Transform,
 } from 'sentry/utils/performance/contexts/genericQueryBatcher';
 import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {usePageError} from 'sentry/utils/performance/contexts/pageError';
@@ -21,7 +21,11 @@ import DurationChart from 'sentry/views/performance/charts/chart';
 import {GenericPerformanceWidget} from '../components/performanceWidget';
 import {transformDiscoverToSingleValue} from '../transforms/transformDiscoverToSingleValue';
 import {transformEventsRequestToArea} from '../transforms/transformEventsToArea';
-import {PerformanceWidgetProps, QueryDefinition, WidgetDataResult} from '../types';
+import {
+  type PerformanceWidgetProps,
+  type QueryDefinition,
+  type WidgetDataResult,
+} from '../types';
 import {eventsRequestQueryProps, getMEPQueryParams} from '../utils';
 
 type DataType = {

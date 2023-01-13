@@ -1,10 +1,10 @@
 import {Fragment, useEffect, useState} from 'react';
-import {InjectedRouter} from 'react-router';
+import {type InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import {type Location} from 'history';
 import debounce from 'lodash/debounce';
 
-import {Client} from 'sentry/api';
+import {type Client} from 'sentry/api';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {FeatureFeedback} from 'sentry/components/featureFeedback';
@@ -17,7 +17,7 @@ import {PanelTable} from 'sentry/components/panels';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {t, tct, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {BaseGroup, Group, Organization, Project} from 'sentry/types';
+import {type BaseGroup, type Group, type Organization, type Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import toArray from 'sentry/utils/toArray';

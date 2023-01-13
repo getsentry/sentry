@@ -1,7 +1,7 @@
 import {
+  type LegacyRef,
+  type MutableRefObject,
   Fragment,
-  LegacyRef,
-  MutableRefObject,
   useCallback,
   useEffect,
   useRef,
@@ -30,19 +30,19 @@ import {
   TreeToggleContainer,
 } from 'sentry/components/performance/waterfall/treeConnector';
 import {toPercent} from 'sentry/components/performance/waterfall/utils';
-import {EventTransaction} from 'sentry/types/event';
+import {type EventTransaction} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import {PerformanceInteraction} from 'sentry/utils/performanceForSentry';
 
 import * as DividerHandlerManager from './dividerHandlerManager';
 import SpanBarCursorGuide from './spanBarCursorGuide';
 import {MeasurementMarker} from './styles';
-import {EnhancedSpan, ProcessedSpanType} from './types';
+import {type EnhancedSpan, type ProcessedSpanType} from './types';
 import {
+  type SpanBoundsType,
+  type SpanGeneratedBoundsType,
   getMeasurementBounds,
   getMeasurements,
-  SpanBoundsType,
-  SpanGeneratedBoundsType,
   spanTargetHash,
 } from './utils';
 

@@ -9,8 +9,8 @@ import {
   makeColorMapBySystemVsApplication,
 } from 'sentry/utils/profiling/colors/utils';
 import {
+  type FlamegraphTheme,
   DarkFlamegraphTheme,
-  FlamegraphTheme,
   LightFlamegraphTheme,
 } from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphPreferences';

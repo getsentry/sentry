@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {browserHistory, RouteComponentProps} from 'react-router';
+import {type RouteComponentProps, browserHistory} from 'react-router';
 
 import {addLoadingMessage} from 'sentry/actionCreators/indicator';
 import {
@@ -15,7 +15,7 @@ import ListItem from 'sentry/components/list/listItem';
 import {Panel, PanelHeader} from 'sentry/components/panels';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
-import {Organization, Project} from 'sentry/types';
+import {type Organization, type Project} from 'sentry/types';
 import useApi from 'sentry/utils/useApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withProjects from 'sentry/utils/withProjects';

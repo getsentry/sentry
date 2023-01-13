@@ -1,4 +1,4 @@
-import {keyframes, Theme} from '@emotion/react';
+import {type Theme, keyframes} from '@emotion/react';
 
 export const growIn = keyframes`
   0% {

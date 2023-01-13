@@ -6,7 +6,7 @@ import {
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import {Client} from 'sentry/api';
+import {type Client} from 'sentry/api';
 import Access from 'sentry/components/acl/access';
 import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
@@ -17,12 +17,12 @@ import {IconDelete, IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {
-  AvatarProject,
-  Organization,
-  PluginNoProject,
-  PluginProjectItem,
+  type AvatarProject,
+  type Organization,
+  type PluginNoProject,
+  type PluginProjectItem,
 } from 'sentry/types';
-import {IntegrationAnalyticsKey} from 'sentry/utils/analytics/integrations';
+import {type IntegrationAnalyticsKey} from 'sentry/utils/analytics/integrations';
 import withApi from 'sentry/utils/withApi';
 
 type Props = {

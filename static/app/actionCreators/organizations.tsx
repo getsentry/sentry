@@ -2,14 +2,14 @@ import {browserHistory} from 'react-router';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {resetPageFilters} from 'sentry/actionCreators/pageFilters';
-import {Client} from 'sentry/api';
+import {type Client} from 'sentry/api';
 import GuideStore from 'sentry/stores/guideStore';
 import LatestContextStore from 'sentry/stores/latestContextStore';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
-import {Organization} from 'sentry/types';
+import {type Organization} from 'sentry/types';
 
 type RedirectRemainingOrganizationParams = {
   /**

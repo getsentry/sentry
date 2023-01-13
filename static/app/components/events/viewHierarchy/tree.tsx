@@ -1,4 +1,4 @@
-import {ReactNode, useState} from 'react';
+import {type ReactNode, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {IconAdd, IconSubtract} from 'sentry/icons';

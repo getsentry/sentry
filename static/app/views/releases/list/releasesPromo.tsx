@@ -11,16 +11,20 @@ import {openCreateReleaseIntegration} from 'sentry/actionCreators/modal';
 import Access from 'sentry/components/acl/access';
 import {Button} from 'sentry/components/button';
 import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
-import {Item} from 'sentry/components/dropdownAutoComplete/types';
+import {type Item} from 'sentry/components/dropdownAutoComplete/types';
 import Link from 'sentry/components/links/link';
-import {TourImage, TourStep, TourText} from 'sentry/components/modals/featureTourModal';
+import {
+  type TourStep,
+  TourImage,
+  TourText,
+} from 'sentry/components/modals/featureTourModal';
 import {Panel} from 'sentry/components/panels';
 import TextOverflow from 'sentry/components/textOverflow';
 import Tooltip from 'sentry/components/tooltip';
 import {IconAdd, IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization, Project, SentryApp} from 'sentry/types';
+import {type Organization, type Project, type SentryApp} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import useApi from 'sentry/utils/useApi';
 import useApiRequests from 'sentry/utils/useApiRequests';

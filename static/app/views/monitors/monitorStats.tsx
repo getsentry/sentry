@@ -1,6 +1,6 @@
 import type {LineSeriesOption} from 'echarts';
 
-import {BarChart, BarChartSeries} from 'sentry/components/charts/barChart';
+import {type BarChartSeries, BarChart} from 'sentry/components/charts/barChart';
 import {getYAxisMaxFn} from 'sentry/components/charts/miniBarChart';
 import LineSeries from 'sentry/components/charts/series/lineSeries';
 import EmptyMessage from 'sentry/components/emptyMessage';
@@ -8,12 +8,12 @@ import {Panel, PanelBody} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
 import {intervalToMilliseconds} from 'sentry/utils/dates';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
-import {AggregationOutputType} from 'sentry/utils/discover/fields';
+import {type AggregationOutputType} from 'sentry/utils/discover/fields';
 import theme from 'sentry/utils/theme';
 import useApiRequests from 'sentry/utils/useApiRequests';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
-import {Monitor, MonitorStat} from './types';
+import {type Monitor, type MonitorStat} from './types';
 
 type Props = {
   monitor: Monitor;

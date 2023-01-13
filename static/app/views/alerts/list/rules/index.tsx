@@ -1,5 +1,5 @@
 import {Component} from 'react';
-import {RouteComponentProps} from 'react-router';
+import {type RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addMessage} from 'sentry/actionCreators/indicator';
@@ -12,14 +12,14 @@ import {PanelTable} from 'sentry/components/panels';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {Organization, PageFilters, Project} from 'sentry/types';
+import {type Organization, type PageFilters, type Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import Projects from 'sentry/utils/projects';
 import Teams from 'sentry/utils/teams';
 import withPageFilters from 'sentry/utils/withPageFilters';
 
 import FilterBar from '../../filterBar';
-import {AlertRuleType, CombinedMetricIssueAlerts} from '../../types';
+import {type CombinedMetricIssueAlerts, AlertRuleType} from '../../types';
 import {getTeamParams, isIssueAlert} from '../../utils';
 import AlertHeader from '../header';
 

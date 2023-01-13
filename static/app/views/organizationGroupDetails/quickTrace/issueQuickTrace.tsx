@@ -1,5 +1,5 @@
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import {type Location} from 'history';
 
 import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
@@ -9,10 +9,10 @@ import QuickTrace from 'sentry/components/quickTrace';
 import {IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
-import {Event} from 'sentry/types/event';
+import {type Organization} from 'sentry/types';
+import {type Event} from 'sentry/types/event';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import {QuickTraceQueryChildrenProps} from 'sentry/utils/performance/quickTrace/types';
+import {type QuickTraceQueryChildrenProps} from 'sentry/utils/performance/quickTrace/types';
 import usePromptCheck from 'sentry/views/organizationGroupDetails/quickTrace/usePromptCheck';
 
 type Props = {

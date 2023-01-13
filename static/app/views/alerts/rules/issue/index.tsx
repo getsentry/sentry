@@ -1,9 +1,9 @@
-import {ChangeEvent, ReactNode} from 'react';
-import {browserHistory, RouteComponentProps} from 'react-router';
+import {type ChangeEvent, type ReactNode} from 'react';
+import {type RouteComponentProps, browserHistory} from 'react-router';
 import {components} from 'react-select';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
-import {Location} from 'history';
+import {type Location} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
 import debounce from 'lodash/debounce';
 import omit from 'lodash/omit';
@@ -24,7 +24,7 @@ import SelectControl from 'sentry/components/forms/controls/selectControl';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import FieldHelp from 'sentry/components/forms/fieldGroup/fieldHelp';
 import SelectField from 'sentry/components/forms/fields/selectField';
-import Form, {FormProps} from 'sentry/components/forms/form';
+import Form, {type FormProps} from 'sentry/components/forms/form';
 import FormField from 'sentry/components/forms/formField';
 import IdBadge from 'sentry/components/idBadge';
 import Input from 'sentry/components/input';
@@ -32,7 +32,7 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import LoadingMask from 'sentry/components/loadingMask';
-import {CursorHandler} from 'sentry/components/pagination';
+import {type CursorHandler} from 'sentry/components/pagination';
 import {Panel, PanelBody} from 'sentry/components/panels';
 import TeamSelector from 'sentry/components/teamSelector';
 import Tooltip from 'sentry/components/tooltip';
@@ -42,20 +42,20 @@ import {t, tct, tn} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import space from 'sentry/styles/space';
 import {
-  Environment,
-  IssueOwnership,
-  Member,
+  type Environment,
+  type IssueOwnership,
+  type Member,
+  type Organization,
+  type Project,
+  type Team,
   OnboardingTaskKey,
-  Organization,
-  Project,
-  Team,
 } from 'sentry/types';
 import {
-  IssueAlertRule,
-  IssueAlertRuleAction,
-  IssueAlertRuleActionTemplate,
-  IssueAlertRuleConditionTemplate,
-  UnsavedIssueAlertRule,
+  type IssueAlertRule,
+  type IssueAlertRuleAction,
+  type IssueAlertRuleActionTemplate,
+  type IssueAlertRuleConditionTemplate,
+  type UnsavedIssueAlertRule,
 } from 'sentry/types/alerts';
 import {metric} from 'sentry/utils/analytics';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';

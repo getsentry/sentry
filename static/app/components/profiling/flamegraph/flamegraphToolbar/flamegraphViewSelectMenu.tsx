@@ -3,7 +3,7 @@ import {Fragment, useCallback} from 'react';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {t} from 'sentry/locale';
-import {FlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphPreferences';
+import {type FlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphPreferences';
 
 export interface FlamegraphViewSelectMenuProps {
   onSortingChange: (sorting: FlamegraphViewSelectMenuProps['sorting']) => void;

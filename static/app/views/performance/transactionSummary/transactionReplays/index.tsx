@@ -1,5 +1,5 @@
 import {Fragment, useEffect} from 'react';
-import {Location} from 'history';
+import {type Location} from 'history';
 
 import Feature from 'sentry/components/acl/feature';
 import {Alert} from 'sentry/components/alert';
@@ -19,7 +19,7 @@ import withProjects from 'sentry/utils/withProjects';
 import type {ReplayListLocationQuery} from 'sentry/views/replays/types';
 
 import {decodeFilterFromLocation, SpanOperationBreakdownFilter} from '../filter';
-import PageLayout, {ChildProps} from '../pageLayout';
+import PageLayout, {type ChildProps} from '../pageLayout';
 import Tab from '../tabs';
 import {decodeEventsDisplayFilterFromLocation} from '../transactionEvents/utils';
 

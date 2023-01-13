@@ -6,7 +6,7 @@ import {reactHooks} from 'sentry-test/reactTestingLibrary';
 import {useLocation} from 'sentry/utils/useLocation';
 import type {NetworkSpan} from 'sentry/views/replays/types';
 
-import useNetworkFilters, {FilterFields} from './useNetworkFilters';
+import useNetworkFilters, {type FilterFields} from './useNetworkFilters';
 
 jest.mock('react-router');
 jest.mock('sentry/utils/useLocation');

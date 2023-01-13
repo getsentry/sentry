@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {RouteComponentProps} from 'react-router';
+import {type RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import startCase from 'lodash/startCase';
 
@@ -16,14 +16,14 @@ import {t} from 'sentry/locale';
 import PluginIcon from 'sentry/plugins/components/pluginIcon';
 import space from 'sentry/styles/space';
 import {
-  IntegrationFeature,
-  IntegrationInstallationStatus,
-  IntegrationType,
-  Organization,
+  type IntegrationFeature,
+  type IntegrationInstallationStatus,
+  type IntegrationType,
+  type Organization,
 } from 'sentry/types';
 import {
-  IntegrationAnalyticsKey,
-  IntegrationEventParameters,
+  type IntegrationAnalyticsKey,
+  type IntegrationEventParameters,
 } from 'sentry/utils/analytics/integrations';
 import {
   getCategories,

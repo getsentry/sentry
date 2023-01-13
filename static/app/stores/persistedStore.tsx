@@ -10,7 +10,7 @@ import {useMutation} from '@tanstack/react-query';
 
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
-import {OnboardingState} from 'sentry/views/onboarding/types';
+import {type OnboardingState} from 'sentry/views/onboarding/types';
 
 import OrganizationStore from './organizationStore';
 import {useLegacyStore} from './useLegacyStore';

@@ -1,4 +1,4 @@
-import {FunctionComponent} from 'react';
+import {type FunctionComponent} from 'react';
 
 /**
  * Returns a replacement component, this function is mocked in tests and will use the second argument.

@@ -2,9 +2,9 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {
+  type Widget,
   DashboardFilterKeys,
   DisplayType,
-  Widget,
   WidgetType,
 } from 'sentry/views/dashboardsV2/types';
 import IssueWidgetQueries from 'sentry/views/dashboardsV2/widgetCard/issueWidgetQueries';

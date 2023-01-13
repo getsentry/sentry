@@ -1,14 +1,14 @@
 import {Component, Fragment} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
-import {Location, LocationDescriptorObject} from 'history';
+import {type Location, type LocationDescriptorObject} from 'history';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import GridEditable, {
+  type GridColumn,
   COL_WIDTH_UNDEFINED,
-  GridColumn,
 } from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
@@ -16,28 +16,29 @@ import Pagination from 'sentry/components/pagination';
 import Tooltip from 'sentry/components/tooltip';
 import {IconStar} from 'sentry/icons';
 import {tct} from 'sentry/locale';
-import {Organization, Project} from 'sentry/types';
+import {type Organization, type Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import DiscoverQuery, {
-  TableData,
-  TableDataRow,
+  type TableData,
+  type TableDataRow,
 } from 'sentry/utils/discover/discoverQuery';
-import EventView, {
-  EventData,
+import type EventView from 'sentry/utils/discover/eventView';
+import {
+  type EventData,
+  type MetaType,
   isFieldSortable,
-  MetaType,
 } from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {fieldAlignment, getAggregateAlias} from 'sentry/utils/discover/fields';
 import {MEPConsumer} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import CellAction, {Actions, updateQuery} from 'sentry/views/eventsV2/table/cellAction';
-import {TableColumn} from 'sentry/views/eventsV2/table/types';
+import {type TableColumn} from 'sentry/views/eventsV2/table/types';
 
 import {getMEPQueryParams} from './landing/widgets/utils';
 import TransactionThresholdModal, {
+  type TransactionThresholdMetric,
   modalCss,
-  TransactionThresholdMetric,
 } from './transactionSummary/transactionThresholdModal';
 import {
   normalizeSearchConditionsWithTransactionName,

@@ -1,43 +1,44 @@
 import {Component, Fragment} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
-import {Location, LocationDescriptorObject} from 'history';
+import {type Location, type LocationDescriptorObject} from 'history';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Button} from 'sentry/components/button';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import GridEditable, {
+  type GridColumn,
+  type GridColumnOrder,
   COL_WIDTH_UNDEFINED,
-  GridColumn,
-  GridColumnOrder,
 } from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
-import Pagination, {CursorHandler} from 'sentry/components/pagination';
+import Pagination, {type CursorHandler} from 'sentry/components/pagination';
 import PerformanceDuration from 'sentry/components/performanceDuration';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization, Project} from 'sentry/types';
+import {type Organization, type Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import EventView, {fromSorts, isFieldSortable} from 'sentry/utils/discover/eventView';
+import type EventView from 'sentry/utils/discover/eventView';
+import {fromSorts, isFieldSortable} from 'sentry/utils/discover/eventView';
 import {fieldAlignment} from 'sentry/utils/discover/fields';
 import {formatPercentage} from 'sentry/utils/formatters';
 import SegmentExplorerQuery, {
-  TableData,
-  TableDataRow,
+  type TableData,
+  type TableDataRow,
 } from 'sentry/utils/performance/segmentExplorer/segmentExplorerQuery';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import CellAction, {Actions, updateQuery} from 'sentry/views/eventsV2/table/cellAction';
-import {TableColumn} from 'sentry/views/eventsV2/table/types';
+import {type TableColumn} from 'sentry/views/eventsV2/table/types';
 
 import {
   platformAndConditionsToPerformanceType,
   PROJECT_PERFORMANCE_TYPE,
 } from '../../utils';
 import {
+  type SpanOperationBreakdownFilter,
   SPAN_OPERATION_BREAKDOWN_FILTER_TO_FIELD,
-  SpanOperationBreakdownFilter,
 } from '../filter';
 import {tagsRouteWithQuery} from '../transactionTags/utils';
 import {normalizeSearchConditions} from '../utils';

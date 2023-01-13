@@ -2,14 +2,14 @@ import {cloneElement, useCallback, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {t} from 'sentry/locale';
-import {FlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphPreferences';
-import {FlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
+import {type FlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphPreferences';
+import {type FlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphPreferences';
 import {useDispatchFlamegraphState} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphState';
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import {
+  type UseResizableDrawerOptions,
   useResizableDrawer,
-  UseResizableDrawerOptions,
 } from 'sentry/utils/profiling/hooks/useResizableDrawer';
 
 import {CollapsibleTimeline} from './collapsibleTimeline';

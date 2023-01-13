@@ -1,8 +1,8 @@
 import {useEffect, useState} from 'react';
-import {InjectedRouter} from 'react-router';
+import {type InjectedRouter} from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import {Location, Query} from 'history';
+import {type Location, type Query} from 'history';
 
 import {
   fetchDashboard,
@@ -10,24 +10,29 @@ import {
   updateDashboard,
 } from 'sentry/actionCreators/dashboards';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {type ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {DateString, Organization, PageFilters, SelectValue} from 'sentry/types';
+import {
+  type DateString,
+  type Organization,
+  type PageFilters,
+  type SelectValue,
+} from 'sentry/types';
 import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import useApi from 'sentry/utils/useApi';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {
-  DashboardDetails,
-  DashboardListItem,
+  type DashboardDetails,
+  type DashboardListItem,
+  type Widget,
   DisplayType,
   MAX_WIDGETS,
-  Widget,
 } from 'sentry/views/dashboardsV2/types';
 import {
   eventViewFromWidget,

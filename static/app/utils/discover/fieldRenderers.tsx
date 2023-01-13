@@ -1,13 +1,13 @@
 import {Fragment} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import {type Location} from 'history';
 import partial from 'lodash/partial';
 
 import {Button} from 'sentry/components/button';
 import Count from 'sentry/components/count';
 import DropdownMenuControl from 'sentry/components/dropdownMenuControl';
-import {MenuItemProps} from 'sentry/components/dropdownMenuItem';
+import {type MenuItemProps} from 'sentry/components/dropdownMenuItem';
 import Duration from 'sentry/components/duration';
 import FileSize from 'sentry/components/fileSize';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
@@ -22,10 +22,16 @@ import Version from 'sentry/components/version';
 import {IconDownload, IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {AvatarProject, IssueAttachment, Organization, Project} from 'sentry/types';
+import {
+  type AvatarProject,
+  type IssueAttachment,
+  type Organization,
+  type Project,
+} from 'sentry/types';
 import {defined, isUrl} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import EventView, {EventData, MetaType} from 'sentry/utils/discover/eventView';
+import type EventView from 'sentry/utils/discover/eventView';
+import {type EventData, type MetaType} from 'sentry/utils/discover/eventView';
 import {
   AGGREGATIONS,
   getAggregateAlias,

@@ -5,7 +5,7 @@ import {
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import {Client} from 'sentry/api';
+import {type Client} from 'sentry/api';
 import Access from 'sentry/components/acl/access';
 import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
@@ -22,7 +22,7 @@ import {t, tct} from 'sentry/locale';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import KeyRateLimitsForm from 'sentry/views/settings/project/projectKeys/details/keyRateLimitsForm';
 import ProjectKeyCredentials from 'sentry/views/settings/project/projectKeys/projectKeyCredentials';
-import {ProjectKey} from 'sentry/views/settings/project/projectKeys/types';
+import {type ProjectKey} from 'sentry/views/settings/project/projectKeys/types';
 
 type Props = {
   api: Client;

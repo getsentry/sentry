@@ -1,7 +1,7 @@
 import {
-  AggregateParameter,
-  AggregationOutputType,
-  ColumnType,
+  type AggregateParameter,
+  type AggregationOutputType,
+  type ColumnType,
 } from 'sentry/utils/discover/fields';
 
 export type SessionsMeta = {

@@ -1,7 +1,7 @@
 import capitalize from 'lodash/capitalize';
 import * as qs from 'query-string';
 
-import {Result} from 'sentry/components/forms/controls/selectAsyncControl';
+import {type Result} from 'sentry/components/forms/controls/selectAsyncControl';
 import {
   IconAsana,
   IconBitbucket,
@@ -15,27 +15,27 @@ import {
 import {t} from 'sentry/locale';
 import HookStore from 'sentry/stores/hookStore';
 import {
-  AppOrProviderOrPlugin,
-  DocIntegration,
-  ExternalActorMapping,
-  ExternalActorMappingOrSuggestion,
-  Integration,
-  IntegrationFeature,
-  IntegrationInstallationStatus,
-  IntegrationType,
-  Organization,
-  PluginWithProjectList,
-  SentryApp,
-  SentryAppInstallation,
+  type AppOrProviderOrPlugin,
+  type DocIntegration,
+  type ExternalActorMapping,
+  type ExternalActorMappingOrSuggestion,
+  type Integration,
+  type IntegrationFeature,
+  type IntegrationInstallationStatus,
+  type IntegrationType,
+  type Organization,
+  type PluginWithProjectList,
+  type SentryApp,
+  type SentryAppInstallation,
 } from 'sentry/types';
-import {Hooks} from 'sentry/types/hooks';
+import {type Hooks} from 'sentry/types/hooks';
 import {
+  type IntegrationEventParameters,
   integrationEventMap,
-  IntegrationEventParameters,
 } from 'sentry/utils/analytics/integrations';
 import makeAnalyticsFunction from 'sentry/utils/analytics/makeAnalyticsFunction';
 
-import {IconSize} from './theme';
+import {type IconSize} from './theme';
 
 const mapIntegrationParams = analyticsParams => {
   // Reload expects integration_status even though it's not relevant for non-sentry apps

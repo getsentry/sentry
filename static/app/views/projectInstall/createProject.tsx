@@ -1,5 +1,5 @@
 import {Component, Fragment} from 'react';
-import {browserHistory, WithRouterProps} from 'react-router';
+import {type WithRouterProps, browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {PlatformIcon} from 'platformicons';
@@ -17,11 +17,11 @@ import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import space from 'sentry/styles/space';
-import {Organization, Team} from 'sentry/types';
+import {type Organization, type Team} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import getPlatformName from 'sentry/utils/getPlatformName';
 import withRouteAnalytics, {
-  WithRouteAnalyticsProps,
+  type WithRouteAnalyticsProps,
 } from 'sentry/utils/routeAnalytics/withRouteAnalytics';
 import slugify from 'sentry/utils/slugify';
 import withApi from 'sentry/utils/withApi';

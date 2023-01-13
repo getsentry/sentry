@@ -1,24 +1,24 @@
 import {useCallback} from 'react';
-import {Location} from 'history';
+import {type Location} from 'history';
 
 import Count from 'sentry/components/count';
 import DateTime from 'sentry/components/dateTime';
 import GridEditable, {
+  type GridColumnOrder,
+  type GridColumnSortBy,
   COL_WIDTH_UNDEFINED,
-  GridColumnOrder,
-  GridColumnSortBy,
 } from 'sentry/components/gridEditable';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
 import PerformanceDuration from 'sentry/components/performanceDuration';
 import Version from 'sentry/components/version';
 import {t} from 'sentry/locale';
-import {Organization, Project} from 'sentry/types';
+import {type Organization, type Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {DURATION_UNITS} from 'sentry/utils/discover/fieldRenderers';
 import {Container, NumberContainer, VersionContainer} from 'sentry/utils/discover/styles';
 import {getShortEventId} from 'sentry/utils/events';
-import {EventsResults} from 'sentry/utils/profiling/hooks/useProfileEvents';
+import {type EventsResults} from 'sentry/utils/profiling/hooks/useProfileEvents';
 import {
   generateProfileFlamechartRoute,
   generateProfileSummaryRouteWithQuery,

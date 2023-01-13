@@ -2,7 +2,7 @@ import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Client} from 'sentry/api';
+import {type Client} from 'sentry/api';
 import Avatar from 'sentry/components/avatar';
 import {AvatarCropper} from 'sentry/components/avatarCropper';
 import {Button} from 'sentry/components/button';
@@ -14,7 +14,12 @@ import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import Well from 'sentry/components/well';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {AvatarUser, Organization, SentryApp, Team} from 'sentry/types';
+import {
+  type AvatarUser,
+  type Organization,
+  type SentryApp,
+  type Team,
+} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
 
 export type Model = Pick<AvatarUser, 'avatar'>;

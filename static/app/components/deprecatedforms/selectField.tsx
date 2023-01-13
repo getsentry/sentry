@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import SelectControl, {
-  ControlProps,
+  type ControlProps,
 } from 'sentry/components/forms/controls/selectControl';
 import {defined} from 'sentry/utils';
 

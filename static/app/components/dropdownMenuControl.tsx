@@ -1,16 +1,16 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {useButton} from '@react-aria/button';
-import {AriaMenuOptions, useMenuTrigger} from '@react-aria/menu';
+import {type AriaMenuOptions, useMenuTrigger} from '@react-aria/menu';
 import {useResizeObserver} from '@react-aria/utils';
 import {Item, Section} from '@react-stately/collections';
-import {MenuTriggerProps} from '@react-types/menu';
+import {type MenuTriggerProps} from '@react-types/menu';
 
-import DropdownButton, {DropdownButtonProps} from 'sentry/components/dropdownButton';
+import DropdownButton, {type DropdownButtonProps} from 'sentry/components/dropdownButton';
 import DropdownMenu from 'sentry/components/dropdownMenu';
-import {MenuItemProps} from 'sentry/components/dropdownMenuItem';
-import {FormSize} from 'sentry/utils/theme';
-import useOverlay, {UseOverlayProps} from 'sentry/utils/useOverlay';
+import {type MenuItemProps} from 'sentry/components/dropdownMenuItem';
+import {type FormSize} from 'sentry/utils/theme';
+import useOverlay, {type UseOverlayProps} from 'sentry/utils/useOverlay';
 
 /**
  * Recursively removes hidden items, including those nested in submenus

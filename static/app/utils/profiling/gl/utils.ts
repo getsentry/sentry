@@ -1,16 +1,16 @@
 import {useLayoutEffect, useState} from 'react';
-import Fuse from 'fuse.js';
+import type Fuse from 'fuse.js';
 import {mat3, vec2} from 'gl-matrix';
 
-import {CanvasView} from 'sentry/utils/profiling/canvasView';
-import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
-import {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
+import {type CanvasView} from 'sentry/utils/profiling/canvasView';
+import {type FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
+import {type FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
 
-import {CanvasPoolManager} from '../canvasScheduler';
+import {type CanvasPoolManager} from '../canvasScheduler';
 import {clamp} from '../colors/utils';
-import {FlamegraphCanvas} from '../flamegraphCanvas';
-import {SpanChartRenderer2D} from '../renderers/spansRenderer';
-import {SpanChartNode} from '../spanChart';
+import {type FlamegraphCanvas} from '../flamegraphCanvas';
+import {type SpanChartRenderer2D} from '../renderers/spansRenderer';
+import {type SpanChartNode} from '../spanChart';
 
 export function createShader(
   gl: WebGLRenderingContext,

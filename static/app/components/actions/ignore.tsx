@@ -12,10 +12,10 @@ import Tooltip from 'sentry/components/tooltip';
 import {IconChevron, IconMute} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {
-  GroupStatusResolution,
+  type GroupStatusResolution,
+  type ResolutionStatusDetails,
+  type SelectValue,
   ResolutionStatus,
-  ResolutionStatusDetails,
-  SelectValue,
 } from 'sentry/types';
 import {getDuration} from 'sentry/utils/formatters';
 

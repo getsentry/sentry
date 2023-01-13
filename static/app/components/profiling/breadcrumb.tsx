@@ -1,10 +1,10 @@
 import {useMemo} from 'react';
-import {Location} from 'history';
+import {type Location} from 'history';
 import omit from 'lodash/omit';
 
-import _Breadcrumbs, {Crumb} from 'sentry/components/breadcrumbs';
+import _Breadcrumbs, {type Crumb} from 'sentry/components/breadcrumbs';
 import {t} from 'sentry/locale';
-import {Organization, Project} from 'sentry/types';
+import {type Organization, type Project} from 'sentry/types';
 import {
   generateProfileDetailsRouteWithQuery,
   generateProfileFlamechartRouteWithQuery,

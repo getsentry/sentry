@@ -5,17 +5,17 @@ import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {openCreateOwnershipRule} from 'sentry/actionCreators/modal';
 import Access from 'sentry/components/acl/access';
 import {
+  type AssigneeSelectorDropdownProps,
+  type SuggestedAssignee,
   AssigneeSelectorDropdown,
-  AssigneeSelectorDropdownProps,
-  SuggestedAssignee,
 } from 'sentry/components/assigneeSelectorDropdown';
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {AutoCompleteRoot} from 'sentry/components/dropdownAutoComplete/menu';
 import {
+  type Rules,
   findMatchedRules,
-  Rules,
 } from 'sentry/components/group/suggestedOwners/findMatchedRules';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import * as SidebarSection from 'sentry/components/sidebarSection';

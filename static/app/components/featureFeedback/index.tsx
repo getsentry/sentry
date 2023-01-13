@@ -1,11 +1,11 @@
 import {openModal} from 'sentry/actionCreators/modal';
-import {Button, ButtonProps} from 'sentry/components/button';
+import {type ButtonProps, Button} from 'sentry/components/button';
 import {
+  type FeedbackModalProps,
   FeedbackModal,
-  FeedbackModalProps,
   modalCss,
 } from 'sentry/components/featureFeedback/feedbackModal';
-import {Data} from 'sentry/components/forms/types';
+import {type Data} from 'sentry/components/forms/types';
 import {IconMegaphone} from 'sentry/icons';
 import {t} from 'sentry/locale';
 

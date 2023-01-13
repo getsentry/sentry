@@ -1,9 +1,9 @@
 import {t} from 'sentry/locale';
-import {Organization, TagCollection} from 'sentry/types';
-import {QueryFieldValue} from 'sentry/utils/discover/fields';
-import {DisplayType, WidgetType} from 'sentry/views/dashboardsV2/types';
+import {type Organization, type TagCollection} from 'sentry/types';
+import {type QueryFieldValue} from 'sentry/utils/discover/fields';
+import {type WidgetType, DisplayType} from 'sentry/views/dashboardsV2/types';
 
-import {DataSet} from '../../utils';
+import {type DataSet} from '../../utils';
 import {BuildStep} from '../buildStep';
 
 import {YAxisSelector} from './yAxisSelector';

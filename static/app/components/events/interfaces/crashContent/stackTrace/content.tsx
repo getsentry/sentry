@@ -4,9 +4,9 @@ import styled from '@emotion/styled';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
-import {Frame, Organization, PlatformType} from 'sentry/types';
-import {Event} from 'sentry/types/event';
-import {StacktraceType} from 'sentry/types/stacktrace';
+import {type Frame, type Organization, type PlatformType} from 'sentry/types';
+import {type Event} from 'sentry/types/event';
+import {type StacktraceType} from 'sentry/types/stacktrace';
 import withOrganization from 'sentry/utils/withOrganization';
 
 import Line from '../../frame/line';

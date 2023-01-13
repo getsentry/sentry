@@ -4,8 +4,8 @@ import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {
+  type PromptResponse,
   makePromptsCheckQueryKey,
-  PromptResponse,
   promptsUpdate,
   usePromptsCheck,
 } from 'sentry/actionCreators/prompts';
@@ -18,12 +18,12 @@ import {IconClose, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {
+  type Event,
+  type Frame,
+  type Organization,
+  type Project,
+  type StacktraceLinkResult,
   CodecovStatusCode,
-  Event,
-  Frame,
-  Organization,
-  Project,
-  StacktraceLinkResult,
 } from 'sentry/types';
 import {StacktraceLinkEvents} from 'sentry/utils/analytics/integrations/stacktraceLinkAnalyticsEvents';
 import {getAnalyicsDataForEvent} from 'sentry/utils/events';

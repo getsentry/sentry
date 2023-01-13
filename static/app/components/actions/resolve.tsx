@@ -13,11 +13,11 @@ import Tooltip from 'sentry/components/tooltip';
 import {IconCheckmark, IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {
-  GroupStatusResolution,
-  Organization,
-  Release,
+  type GroupStatusResolution,
+  type Organization,
+  type Release,
+  type ResolutionStatusDetails,
   ResolutionStatus,
-  ResolutionStatusDetails,
 } from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {formatVersion} from 'sentry/utils/formatters';

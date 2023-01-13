@@ -3,8 +3,8 @@ import isEmpty from 'lodash/isEmpty';
 import isEqual from 'lodash/isEqual';
 
 import {
+  type InitializeUrlStateParams,
   initializeUrlState,
-  InitializeUrlStateParams,
   updateDateTime,
   updateEnvironments,
   updateProjects,

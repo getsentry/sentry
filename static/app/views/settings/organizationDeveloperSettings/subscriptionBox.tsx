@@ -5,11 +5,11 @@ import FeatureBadge from 'sentry/components/featureBadge';
 import Tooltip from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
+import {type Organization} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
 import {
+  type EVENT_CHOICES,
   DESCRIPTIONS,
-  EVENT_CHOICES,
   PERMISSIONS_MAP,
 } from 'sentry/views/settings/organizationDeveloperSettings/constants';
 

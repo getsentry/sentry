@@ -1,11 +1,11 @@
 import React, {Component, Fragment} from 'react';
 import LazyLoad from 'react-lazyload';
-import {WithRouterProps} from 'react-router';
-import {useSortable} from '@dnd-kit/sortable';
+import {type WithRouterProps} from 'react-router';
+import {type useSortable} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import {type Location} from 'history';
 
-import {Client} from 'sentry/api';
+import {type Client} from 'sentry/api';
 import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
@@ -19,11 +19,11 @@ import Tooltip from 'sentry/components/tooltip';
 import {IconCopy, IconDelete, IconEdit, IconGrabbable, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization, PageFilters} from 'sentry/types';
-import {Series} from 'sentry/types/echarts';
+import {type Organization, type PageFilters} from 'sentry/types';
+import {type Series} from 'sentry/types/echarts';
 import {getFormattedDate} from 'sentry/utils/dates';
-import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
-import {AggregationOutputType, parseFunction} from 'sentry/utils/discover/fields';
+import {type TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
+import {type AggregationOutputType, parseFunction} from 'sentry/utils/discover/fields';
 import {
   MEPConsumer,
   MEPState,
@@ -35,7 +35,7 @@ import withPageFilters from 'sentry/utils/withPageFilters';
 import withSentryRouter from 'sentry/utils/withSentryRouter';
 
 import {DRAG_HANDLE_CLASS} from '../dashboard';
-import {DashboardFilters, DisplayType, Widget, WidgetType} from '../types';
+import {type DashboardFilters, type Widget, DisplayType, WidgetType} from '../types';
 import {DEFAULT_RESULTS_LIMIT} from '../widgetBuilder/utils';
 
 import {DashboardsMEPConsumer, DashboardsMEPProvider} from './dashboardsMEPContext';

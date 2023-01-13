@@ -1,8 +1,8 @@
 import isEqual from 'lodash/isEqual';
-import {action, computed, makeObservable, observable, ObservableMap} from 'mobx';
+import {type ObservableMap, action, computed, makeObservable, observable} from 'mobx';
 
 import {addErrorMessage, saveOnBlurUndoMessage} from 'sentry/actionCreators/indicator';
-import {APIRequestMethod, Client} from 'sentry/api';
+import {type APIRequestMethod, Client} from 'sentry/api';
 import FormState from 'sentry/components/forms/state';
 import {t} from 'sentry/locale';
 import type {Choice} from 'sentry/types';

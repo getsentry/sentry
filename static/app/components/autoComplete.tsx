@@ -11,8 +11,8 @@
 import {Component} from 'react';
 
 import DeprecatedDropdownMenu, {
-  GetActorArgs,
-  GetMenuArgs,
+  type GetActorArgs,
+  type GetMenuArgs,
 } from 'sentry/components/deprecatedDropdownMenu';
 import {uniqueId} from 'sentry/utils/guid';
 

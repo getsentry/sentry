@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
-import {Location, LocationDescriptorObject} from 'history';
+import {type Location, type LocationDescriptorObject} from 'history';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import GridEditable, {
@@ -15,12 +15,13 @@ import Tooltip from 'sentry/components/tooltip';
 import Truncate from 'sentry/components/truncate';
 import {IconStack} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {Organization} from 'sentry/types';
+import {type Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
-import {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
-import {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
-import EventView, {
+import {type CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
+import {type TableData, type TableDataRow} from 'sentry/utils/discover/discoverQuery';
+import type EventView from 'sentry/utils/discover/eventView';
+import {
   isFieldSortable,
   pickRelevantLocationQueryStrings,
 } from 'sentry/utils/discover/eventView';
@@ -30,7 +31,7 @@ import {
   SIZE_UNITS,
 } from 'sentry/utils/discover/fieldRenderers';
 import {
-  Column,
+  type Column,
   fieldAlignment,
   getEquationAliasIndex,
   isEquationAlias,
@@ -57,7 +58,7 @@ import CellAction, {Actions, updateQuery} from './cellAction';
 import ColumnEditModal, {modalCss} from './columnEditModal';
 import TableActions from './tableActions';
 import TopResultsIndicator from './topResultsIndicator';
-import {TableColumn} from './types';
+import {type TableColumn} from './types';
 
 export type TableViewProps = {
   error: string | null;

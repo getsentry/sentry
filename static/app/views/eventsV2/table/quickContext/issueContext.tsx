@@ -14,7 +14,7 @@ import Tooltip from 'sentry/components/tooltip';
 import {IconCheckmark, IconMute, IconNot, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Event, Group} from 'sentry/types';
+import {type Event, type Group} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {useQuery} from 'sentry/utils/queryClient';
 
@@ -27,7 +27,7 @@ import {
   ContextTitle,
   Wrapper,
 } from './styles';
-import {BaseContextProps, ContextType, tenSecondInMs} from './utils';
+import {type BaseContextProps, ContextType, tenSecondInMs} from './utils';
 
 function IssueContext(props: BaseContextProps) {
   const {dataRow, organization} = props;

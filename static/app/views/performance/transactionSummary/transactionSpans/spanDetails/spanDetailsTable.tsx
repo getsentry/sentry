@@ -1,10 +1,10 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import {type Location} from 'history';
 
 import GridEditable, {
+  type GridColumnOrder,
   COL_WIDTH_UNDEFINED,
-  GridColumnOrder,
 } from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
@@ -15,14 +15,14 @@ import PerformanceDuration from 'sentry/components/performanceDuration';
 import Tooltip from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization, Project} from 'sentry/types';
+import {type Organization, type Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
-import {ColumnType, fieldAlignment} from 'sentry/utils/discover/fields';
+import {type ColumnType, fieldAlignment} from 'sentry/utils/discover/fields';
 import {formatPercentage} from 'sentry/utils/formatters';
 import {
-  ExampleTransaction,
-  SuspectSpan,
+  type ExampleTransaction,
+  type SuspectSpan,
 } from 'sentry/utils/performance/suspectSpans/types';
 
 import {generateTransactionLink} from '../../utils';

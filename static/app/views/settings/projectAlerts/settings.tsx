@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {RouteComponentProps} from 'react-router';
+import {type RouteComponentProps} from 'react-router';
 
 import AlertLink from 'sentry/components/alertLink';
 import {Button} from 'sentry/components/button';
@@ -10,7 +10,7 @@ import PluginList from 'sentry/components/pluginList';
 import {fields} from 'sentry/data/forms/projectAlerts';
 import {IconMail} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {Organization, Plugin, Project} from 'sentry/types';
+import {type Organization, type Plugin, type Project} from 'sentry/types';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import AsyncView from 'sentry/views/asyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';

@@ -1,7 +1,11 @@
-import {SpanChart, SpanChartNode} from 'sentry/utils/profiling/spanChart';
+import {type SpanChart, type SpanChartNode} from 'sentry/utils/profiling/spanChart';
 
-import {ColorChannels, FlamegraphTheme, LCH} from '../flamegraph/flamegraphTheme';
-import {FlamegraphFrame} from '../flamegraphFrame';
+import {
+  type ColorChannels,
+  type FlamegraphTheme,
+  type LCH,
+} from '../flamegraph/flamegraphTheme';
+import {type FlamegraphFrame} from '../flamegraphFrame';
 
 function uniqueBy<T>(arr: ReadonlyArray<T>, predicate: (t: T) => unknown): Array<T> {
   const cb = typeof predicate === 'function' ? predicate : (o: T) => o[predicate];

@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import Avatar from 'sentry/components/avatar';
 import space from 'sentry/styles/space';
-import {AvatarProject, Organization, Team} from 'sentry/types';
+import {type AvatarProject, type Organization, type Team} from 'sentry/types';
 
 export interface BaseBadgeProps {
   displayName: React.ReactNode;

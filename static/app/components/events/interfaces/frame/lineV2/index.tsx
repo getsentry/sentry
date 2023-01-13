@@ -4,8 +4,8 @@ import classNames from 'classnames';
 
 import ListItem from 'sentry/components/list/listItem';
 import StrictClick from 'sentry/components/strictClick';
-import {PlatformType, SentryAppComponent} from 'sentry/types';
-import {Event} from 'sentry/types/event';
+import {type PlatformType, type SentryAppComponent} from 'sentry/types';
+import {type Event} from 'sentry/types/event';
 import withSentryAppComponents from 'sentry/utils/withSentryAppComponents';
 
 import Context from '../context';

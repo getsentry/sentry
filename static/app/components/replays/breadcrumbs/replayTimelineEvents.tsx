@@ -1,11 +1,11 @@
-import {css, Theme, useTheme} from '@emotion/react';
+import {type Theme, css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import * as Timeline from 'sentry/components/replays/breadcrumbs/timeline';
 import {getCrumbsByColumn} from 'sentry/components/replays/utils';
 import Tooltip from 'sentry/components/tooltip';
 import space from 'sentry/styles/space';
-import {Crumb} from 'sentry/types/breadcrumbs';
+import {type Crumb} from 'sentry/types/breadcrumbs';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import type {Color} from 'sentry/utils/theme';
 import BreadcrumbItem from 'sentry/views/replays/detail/breadcrumbs/breadcrumbItem';

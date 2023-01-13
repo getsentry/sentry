@@ -1,10 +1,10 @@
 import {Alert} from 'sentry/components/alert';
 import {FieldFromConfig} from 'sentry/components/forms';
-import Form, {FormProps} from 'sentry/components/forms/form';
-import {Field} from 'sentry/components/forms/types';
+import Form, {type FormProps} from 'sentry/components/forms/form';
+import {type Field} from 'sentry/components/forms/types';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
-import {Repository} from 'sentry/types';
+import {type Repository} from 'sentry/types';
 
 type Props = Pick<FormProps, 'onSubmitSuccess' | 'onCancel'> & {
   closeModal: () => void;

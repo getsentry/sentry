@@ -1,13 +1,13 @@
 import {Fragment} from 'react';
 import {createPortal} from 'react-dom';
-import {SerializedStyles, useTheme} from '@emotion/react';
+import {type SerializedStyles, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence} from 'framer-motion';
 
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {IS_ACCEPTANCE_TEST} from 'sentry/constants/index';
 import space from 'sentry/styles/space';
-import {useHoverOverlay, UseHoverOverlayProps} from 'sentry/utils/useHoverOverlay';
+import {type UseHoverOverlayProps, useHoverOverlay} from 'sentry/utils/useHoverOverlay';
 
 import {AcceptanceTestTooltip} from './acceptanceTestTooltip';
 

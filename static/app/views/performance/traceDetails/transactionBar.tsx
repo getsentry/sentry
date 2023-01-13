@@ -1,5 +1,5 @@
 import {Component, createRef, Fragment} from 'react';
-import {Location} from 'history';
+import {type Location} from 'history';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Count from 'sentry/components/count';
@@ -39,14 +39,14 @@ import {
   toPercent,
 } from 'sentry/components/performance/waterfall/utils';
 import Tooltip from 'sentry/components/tooltip';
-import {Organization} from 'sentry/types';
-import {TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
+import {type Organization} from 'sentry/types';
+import {type TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
 import {isTraceFullDetailed} from 'sentry/utils/performance/quickTrace/utils';
 import Projects from 'sentry/utils/projects';
 
 import {ProjectBadgeContainer} from './styles';
 import TransactionDetail from './transactionDetail';
-import {TraceInfo, TraceRoot, TreeDepth} from './types';
+import {type TraceInfo, type TraceRoot, type TreeDepth} from './types';
 
 const MARGIN_LEFT = 0;
 

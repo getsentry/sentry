@@ -1,5 +1,9 @@
-import {DependencyList, RefObject, useEffect, useMemo} from 'react';
-import {CellMeasurerCache, CellMeasurerCacheParams, List} from 'react-virtualized';
+import {type DependencyList, type RefObject, useEffect, useMemo} from 'react';
+import {
+  type CellMeasurerCacheParams,
+  type List,
+  CellMeasurerCache,
+} from 'react-virtualized';
 
 type Opts = {
   cellMeasurer: CellMeasurerCacheParams;

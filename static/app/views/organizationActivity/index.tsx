@@ -1,4 +1,4 @@
-import {RouteComponentProps} from 'react-router';
+import {type RouteComponentProps} from 'react-router';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -8,7 +8,7 @@ import Pagination from 'sentry/components/pagination';
 import {Panel} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Activity, Organization} from 'sentry/types';
+import {type Activity, type Organization} from 'sentry/types';
 import routeTitle from 'sentry/utils/routeTitle';
 import withOrganization from 'sentry/utils/withOrganization';
 import AsyncView from 'sentry/views/asyncView';

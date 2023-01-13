@@ -1,6 +1,6 @@
-import {LocationDescriptor} from 'history';
+import {type LocationDescriptor} from 'history';
 
-import {Button, ButtonProps} from 'sentry/components/button';
+import {type ButtonProps, Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {IconNext, IconPrevious} from 'sentry/icons';
 import {t} from 'sentry/locale';

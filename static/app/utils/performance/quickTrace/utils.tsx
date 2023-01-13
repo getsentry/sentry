@@ -3,17 +3,17 @@ import moment from 'moment-timezone';
 
 import {getTraceDateTimeRange} from 'sentry/components/events/interfaces/spans/utils';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
-import {OrganizationSummary} from 'sentry/types';
-import {Event, EventTransaction} from 'sentry/types/event';
+import {type OrganizationSummary} from 'sentry/types';
+import {type Event, type EventTransaction} from 'sentry/types/event';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView from 'sentry/utils/discover/eventView';
-import {DiscoverQueryProps} from 'sentry/utils/discover/genericDiscoverQuery';
+import {type DiscoverQueryProps} from 'sentry/utils/discover/genericDiscoverQuery';
 import {
-  QuickTrace,
-  QuickTraceEvent,
-  TraceFull,
-  TraceFullDetailed,
-  TraceLite,
+  type QuickTrace,
+  type QuickTraceEvent,
+  type TraceFull,
+  type TraceFullDetailed,
+  type TraceLite,
 } from 'sentry/utils/performance/quickTrace/types';
 
 export function isTransaction(event: Event): event is EventTransaction {

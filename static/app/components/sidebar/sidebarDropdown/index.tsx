@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {logout} from 'sentry/actionCreators/account';
-import {Client} from 'sentry/api';
+import {type Client} from 'sentry/api';
 import DemoModeGate from 'sentry/components/acl/demoModeGate';
 import Avatar from 'sentry/components/avatar';
 import DeprecatedDropdownMenu from 'sentry/components/deprecatedDropdownMenu';
@@ -17,12 +17,12 @@ import {IconChevron, IconSentry} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import space from 'sentry/styles/space';
-import {Config, Organization, Project, User} from 'sentry/types';
+import {type Config, type Organization, type Project, type User} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
 import withProjects from 'sentry/utils/withProjects';
 
-import SidebarMenuItemLink from '../sidebarMenuItemLink';
-import {CommonSidebarProps} from '../types';
+import type SidebarMenuItemLink from '../sidebarMenuItemLink';
+import {type CommonSidebarProps} from '../types';
 
 import Divider from './divider.styled';
 import SwitchOrganization from './switchOrganization';

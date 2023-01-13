@@ -3,13 +3,13 @@ import {memo, useState} from 'react';
 import ContextBlock from 'sentry/components/events/contexts/contextBlock';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {t} from 'sentry/locale';
-import {Event} from 'sentry/types/event';
+import {type Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 
 import {geKnownData} from '../contexts/utils';
 
 import {getEventExtraDataKnownDataDetails} from './getEventExtraDataKnownDataDetails';
-import {EventExtraData as TEventExtraData, EventExtraDataType} from './types';
+import {type EventExtraData as TEventExtraData, type EventExtraDataType} from './types';
 
 type Props = {
   event: Event;

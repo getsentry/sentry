@@ -1,15 +1,15 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import {motion, Variants} from 'framer-motion';
+import {type Variants, motion} from 'framer-motion';
 import {PlatformIcon} from 'platformicons';
 
-import {PlatformKey} from 'sentry/data/platformCategories';
+import {type PlatformKey} from 'sentry/data/platformCategories';
 import platforms from 'sentry/data/platforms';
 import {IconCheckmark} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
 import space from 'sentry/styles/space';
-import {Project} from 'sentry/types';
+import {type Project} from 'sentry/types';
 import testableTransition from 'sentry/utils/testableTransition';
 
 type Props = {

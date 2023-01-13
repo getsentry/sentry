@@ -1,4 +1,4 @@
-import {css, Global, Theme} from '@emotion/react';
+import {type Theme, css, Global} from '@emotion/react';
 
 import space from 'sentry/styles/space';
 

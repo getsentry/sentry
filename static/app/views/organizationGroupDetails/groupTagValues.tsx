@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {RouteComponentProps, WithRouterProps} from 'react-router';
+import {type RouteComponentProps, type WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
@@ -21,7 +21,13 @@ import Tooltip from 'sentry/components/tooltip';
 import {IconArrow, IconEllipsis, IconMail, IconOpen, IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Group, Project, SavedQueryVersions, Tag, TagValue} from 'sentry/types';
+import {
+  type Group,
+  type Project,
+  type SavedQueryVersions,
+  type Tag,
+  type TagValue,
+} from 'sentry/types';
 import {isUrl, percent} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';

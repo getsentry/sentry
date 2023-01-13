@@ -1,7 +1,7 @@
 import {t} from 'sentry/locale';
 import {uniqueId} from 'sentry/utils/guid';
 
-import {DashboardDetails, DisplayType, WidgetType} from './types';
+import {type DashboardDetails, DisplayType, WidgetType} from './types';
 
 type DashboardTemplate = DashboardDetails & {
   description: string;

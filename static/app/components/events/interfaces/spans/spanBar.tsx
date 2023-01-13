@@ -1,12 +1,18 @@
 import 'intersection-observer'; // this is a polyfill
 
 import {Component, createRef, Fragment} from 'react';
-import {CellMeasurerCache, List as ReactVirtualizedList} from 'react-virtualized';
+import {
+  type CellMeasurerCache,
+  type List as ReactVirtualizedList,
+} from 'react-virtualized';
 import styled from '@emotion/styled';
 import {withProfiler} from '@sentry/react';
 
 import Count from 'sentry/components/count';
-import {ROW_HEIGHT, SpanBarType} from 'sentry/components/performance/waterfall/constants';
+import {
+  type SpanBarType,
+  ROW_HEIGHT,
+} from 'sentry/components/performance/waterfall/constants';
 import {MessageRow} from 'sentry/components/performance/waterfall/messageRow';
 import {
   Row,
@@ -43,16 +49,19 @@ import Tooltip from 'sentry/components/tooltip';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
-import {EventTransaction} from 'sentry/types/event';
+import {type Organization} from 'sentry/types';
+import {type EventTransaction} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
 import {
+  type QuickTraceContextChildrenProps,
   QuickTraceContext,
-  QuickTraceContextChildrenProps,
 } from 'sentry/utils/performance/quickTrace/quickTraceContext';
-import {QuickTraceEvent, TraceError} from 'sentry/utils/performance/quickTrace/types';
+import {
+  type QuickTraceEvent,
+  type TraceError,
+} from 'sentry/utils/performance/quickTrace/types';
 import {isTraceFull} from 'sentry/utils/performance/quickTrace/utils';
 import {PerformanceInteraction} from 'sentry/utils/performanceForSentry';
 
@@ -66,14 +75,17 @@ import SpanBarCursorGuide from './spanBarCursorGuide';
 import SpanDetail from './spanDetail';
 import {MeasurementMarker} from './styles';
 import {
-  FetchEmbeddedChildrenState,
+  type FetchEmbeddedChildrenState,
+  type ParsedTraceType,
+  type ProcessedSpanType,
+  type SpanType,
+  type TreeDepthType,
   GroupType,
-  ParsedTraceType,
-  ProcessedSpanType,
-  SpanType,
-  TreeDepthType,
 } from './types';
 import {
+  type SpanBoundsType,
+  type SpanGeneratedBoundsType,
+  type SpanViewBoundsType,
   durationlessBrowserOps,
   getMeasurementBounds,
   getMeasurements,
@@ -83,10 +95,7 @@ import {
   isGapSpan,
   isOrphanSpan,
   isOrphanTreeDepth,
-  SpanBoundsType,
-  SpanGeneratedBoundsType,
   spanTargetHash,
-  SpanViewBoundsType,
   unwrapTreeDepth,
 } from './utils';
 

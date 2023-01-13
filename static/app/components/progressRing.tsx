@@ -1,4 +1,4 @@
-import {SerializedStyles, Theme} from '@emotion/react';
+import {type SerializedStyles, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 

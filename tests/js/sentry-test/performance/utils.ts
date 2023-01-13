@@ -1,5 +1,10 @@
-import {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
-import {EntryType, EventOrGroupType, EventTransaction, IssueType} from 'sentry/types';
+import {type RawSpanType} from 'sentry/components/events/interfaces/spans/types';
+import {
+  type EventTransaction,
+  EntryType,
+  EventOrGroupType,
+  IssueType,
+} from 'sentry/types';
 
 export enum ProblemSpan {
   PARENT = 'parent',

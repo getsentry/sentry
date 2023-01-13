@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {type ModalRenderProps} from 'sentry/actionCreators/modal';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import {Button} from 'sentry/components/button';
 import HookOrDefault from 'sentry/components/hookOrDefault';
@@ -12,13 +12,13 @@ import {ORG_ROLES} from 'sentry/constants';
 import {IconAdd, IconCheckmark, IconWarning} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
+import {type Organization} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {uniqueId} from 'sentry/utils/guid';
 import withLatestContext from 'sentry/utils/withLatestContext';
 
 import InviteRowControl from './inviteRowControl';
-import {InviteRow, InviteStatus, NormalizedInvite} from './types';
+import {type InviteRow, type InviteStatus, type NormalizedInvite} from './types';
 
 type Props = AsyncComponent['props'] &
   ModalRenderProps & {

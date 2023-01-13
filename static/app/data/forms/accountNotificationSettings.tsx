@@ -1,4 +1,4 @@
-import {Field} from 'sentry/components/forms/types';
+import {type Field} from 'sentry/components/forms/types';
 import {t} from 'sentry/locale';
 
 // TODO: cleanup unused fields and exports

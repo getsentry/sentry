@@ -6,23 +6,23 @@ import SelectControl from 'sentry/components/forms/controls/selectControl';
 import FormField from 'sentry/components/forms/formField';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
+import {type Organization} from 'sentry/types';
 import {
-  AggregationKeyWithAlias,
-  AggregationRefinement,
+  type AggregationKeyWithAlias,
+  type AggregationRefinement,
   explodeFieldString,
   generateFieldAsString,
 } from 'sentry/utils/discover/fields';
 import {
+  type EventTypes,
   Dataset,
-  EventTypes,
   SessionsAggregate,
 } from 'sentry/views/alerts/rules/metric/types';
 import {
-  AlertType,
+  type AlertType,
+  type WizardRuleTemplate,
   AlertWizardAlertNames,
   AlertWizardRuleTemplates,
-  WizardRuleTemplate,
 } from 'sentry/views/alerts/wizard/options';
 import {QueryField} from 'sentry/views/eventsV2/table/queryField';
 import {FieldValueKind} from 'sentry/views/eventsV2/table/types';

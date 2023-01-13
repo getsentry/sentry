@@ -4,8 +4,8 @@ import {useTheme} from '@emotion/react';
 import {shouldFetchPreviousPeriod} from 'sentry/components/charts/utils';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
-import {SessionApiResponse} from 'sentry/types';
-import {Series} from 'sentry/types/echarts';
+import {type SessionApiResponse} from 'sentry/types';
+import {type Series} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 import {getPeriod} from 'sentry/utils/getPeriod';
 import {filterSessionsInTimeWindow, getSessionsInterval} from 'sentry/utils/sessions';
@@ -13,7 +13,7 @@ import useApiRequests from 'sentry/utils/useApiRequests';
 
 import {DisplayModes} from '../projectCharts';
 
-import {ProjectSessionsChartRequestProps} from './projectSessionsChartRequest';
+import {type ProjectSessionsChartRequestProps} from './projectSessionsChartRequest';
 
 type State = {
   sessionsData: SessionApiResponse;

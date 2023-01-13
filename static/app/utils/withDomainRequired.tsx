@@ -1,5 +1,5 @@
-import {RouteComponent, RouteComponentProps} from 'react-router';
-import {Location, LocationDescriptor} from 'history';
+import {type RouteComponent, type RouteComponentProps} from 'react-router';
+import {type Location, type LocationDescriptor} from 'history';
 import trimEnd from 'lodash/trimEnd';
 import trimStart from 'lodash/trimStart';
 

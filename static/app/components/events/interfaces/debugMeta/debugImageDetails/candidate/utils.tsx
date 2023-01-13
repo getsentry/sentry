@@ -1,10 +1,10 @@
 import * as Sentry from '@sentry/react';
 
 import {t} from 'sentry/locale';
-import {BuiltinSymbolSource} from 'sentry/types/debugFiles';
+import {type BuiltinSymbolSource} from 'sentry/types/debugFiles';
 import {
+  type ImageCandidate,
   CandidateDownloadStatus,
-  ImageCandidate,
   ImageFeature,
 } from 'sentry/types/debugImage';
 

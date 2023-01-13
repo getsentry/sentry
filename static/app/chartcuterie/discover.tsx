@@ -10,7 +10,7 @@ import MapSeries from 'sentry/components/charts/series/mapSeries';
 import {lightenHexToRgb} from 'sentry/components/charts/utils';
 import * as countryCodesMap from 'sentry/data/countryCodesMap';
 import {t} from 'sentry/locale';
-import {EventsGeoData, EventsStats} from 'sentry/types';
+import {type EventsGeoData, type EventsStats} from 'sentry/types';
 import {lightTheme as theme} from 'sentry/utils/theme';
 
 import {
@@ -19,7 +19,7 @@ import {
   slackChartSize,
   slackGeoChartSize,
 } from './slack';
-import {ChartType, RenderDescriptor} from './types';
+import {type RenderDescriptor, ChartType} from './types';
 
 const discoverxAxis = XAxis({
   theme,

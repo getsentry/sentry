@@ -1,4 +1,4 @@
-import {WithRouterProps} from 'react-router';
+import {type WithRouterProps} from 'react-router';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';

@@ -3,10 +3,10 @@ import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
 import {
+  type InputProps,
   Input,
   InputGroup,
   InputLeadingItems,
-  InputProps,
   InputTrailingItems,
 } from 'sentry/components/inputGroup';
 import {IconSearch} from 'sentry/icons';

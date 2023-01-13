@@ -5,8 +5,8 @@ import debounce from 'lodash/debounce';
 
 import CompactSelect from 'sentry/components/compactSelect';
 import GridEditable, {
+  type GridColumnOrder,
   COL_WIDTH_UNDEFINED,
-  GridColumnOrder,
 } from 'sentry/components/gridEditable';
 import Pagination from 'sentry/components/pagination';
 import SearchBar from 'sentry/components/searchBar';
@@ -26,7 +26,12 @@ import {useFuseSearch} from '../hooks/useFuseSearch';
 import {usePageLinks} from '../hooks/usePageLinks';
 import {useQuerystringState} from '../hooks/useQuerystringState';
 import {useSortableColumns} from '../hooks/useSortableColumn';
-import {aggregate, AggregateColumnConfig, collectProfileFrames, Row} from '../utils';
+import {
+  type AggregateColumnConfig,
+  type Row,
+  aggregate,
+  collectProfileFrames,
+} from '../utils';
 
 const RESULTS_PER_PAGE = 50;
 

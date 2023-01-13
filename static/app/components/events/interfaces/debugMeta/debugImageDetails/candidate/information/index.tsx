@@ -11,11 +11,11 @@ import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {
+  type ImageCandidate,
+  type ImageCandidateInternalOk,
+  type ImageCandidateOk,
+  type ImageCandidateUnApplied,
   CandidateDownloadStatus,
-  ImageCandidate,
-  ImageCandidateInternalOk,
-  ImageCandidateOk,
-  ImageCandidateUnApplied,
   SymbolType,
 } from 'sentry/types/debugImage';
 

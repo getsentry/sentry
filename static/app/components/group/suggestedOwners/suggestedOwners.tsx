@@ -6,7 +6,7 @@ import {defined} from 'sentry/utils';
 import useCommitters from 'sentry/utils/useCommitters';
 import useOrganization from 'sentry/utils/useOrganization';
 
-import {findMatchedRules, Rules} from './findMatchedRules';
+import {type Rules, findMatchedRules} from './findMatchedRules';
 import {SuggestedAssignees} from './suggestedAssignees';
 
 type OwnerList = React.ComponentProps<typeof SuggestedAssignees>['owners'];

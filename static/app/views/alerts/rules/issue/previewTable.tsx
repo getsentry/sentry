@@ -4,13 +4,13 @@ import {indexMembersByProject} from 'sentry/actionCreators/members';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import GroupListHeader from 'sentry/components/issues/groupListHeader';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Pagination, {CursorHandler} from 'sentry/components/pagination';
+import Pagination, {type CursorHandler} from 'sentry/components/pagination';
 import {Panel, PanelBody} from 'sentry/components/panels';
 import IssuesReplayCountProvider from 'sentry/components/replays/issuesReplayCountProvider';
 import StreamGroup from 'sentry/components/stream/group';
 import {t, tct} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
-import {Group, Member} from 'sentry/types';
+import {type Group, type Member} from 'sentry/types';
 
 type Props = {
   error: string | null;

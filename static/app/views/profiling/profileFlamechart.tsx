@@ -5,16 +5,16 @@ import * as qs from 'query-string';
 import {Alert} from 'sentry/components/alert';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Flamegraph} from 'sentry/components/profiling/flamegraph/flamegraph';
-import {ProfileDragDropImportProps} from 'sentry/components/profiling/flamegraph/flamegraphOverlays/profileDragDropImport';
+import {type ProfileDragDropImportProps} from 'sentry/components/profiling/flamegraph/flamegraphOverlays/profileDragDropImport';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {EntryType} from 'sentry/types';
-import {EntrySpans, EventTransaction} from 'sentry/types/event';
-import {DeepPartial} from 'sentry/types/utils';
+import {type EntrySpans, type EventTransaction} from 'sentry/types/event';
+import {type DeepPartial} from 'sentry/types/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {
+  type FlamegraphState,
   DEFAULT_FLAMEGRAPH_STATE,
-  FlamegraphState,
 } from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/flamegraphContext';
 import {FlamegraphStateProvider} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/flamegraphContextProvider';
 import {
@@ -24,7 +24,7 @@ import {
   FlamegraphStateQueryParamSync,
 } from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/flamegraphQueryParamSync';
 import {FlamegraphThemeProvider} from 'sentry/utils/profiling/flamegraph/flamegraphThemeProvider';
-import {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
+import {type ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
 import {Profile} from 'sentry/utils/profiling/profile/profile';
 import {SpanTree} from 'sentry/utils/profiling/spanTree';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';

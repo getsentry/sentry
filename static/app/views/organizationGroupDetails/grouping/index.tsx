@@ -1,10 +1,10 @@
-import {RouteComponentProps} from 'react-router';
+import {type RouteComponentProps} from 'react-router';
 
 import Feature from 'sentry/components/acl/feature';
 import {Alert} from 'sentry/components/alert';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
-import {Group, Organization, Project} from 'sentry/types';
+import {type Group, type Organization, type Project} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
 
 import Grouping from './grouping';

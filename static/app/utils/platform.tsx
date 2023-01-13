@@ -1,10 +1,10 @@
 import {
+  type PlatformKey,
   backend,
   desktop,
   frontend,
   mobile,
   PlatformCategory,
-  PlatformKey,
   serverless,
 } from 'sentry/data/platformCategories';
 

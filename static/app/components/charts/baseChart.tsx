@@ -4,7 +4,7 @@ import 'echarts/lib/component/toolbox';
 import 'zrender/lib/svg/svg';
 
 import {forwardRef, useMemo} from 'react';
-import {css, Global, Theme, useTheme} from '@emotion/react';
+import {type Theme, css, Global, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {
   AxisPointerComponentOption,
@@ -29,24 +29,24 @@ import MarkLine from 'sentry/components/charts/components/markLine';
 import {IS_ACCEPTANCE_TEST} from 'sentry/constants';
 import space from 'sentry/styles/space';
 import {
-  EChartChartReadyHandler,
-  EChartClickHandler,
-  EChartDataZoomHandler,
-  EChartEventHandler,
-  EChartFinishedHandler,
-  EChartHighlightHandler,
-  EChartMouseOutHandler,
-  EChartMouseOverHandler,
-  EChartRenderedHandler,
-  EChartRestoreHandler,
-  ReactEchartsRef,
-  Series,
+  type EChartChartReadyHandler,
+  type EChartClickHandler,
+  type EChartDataZoomHandler,
+  type EChartEventHandler,
+  type EChartFinishedHandler,
+  type EChartHighlightHandler,
+  type EChartMouseOutHandler,
+  type EChartMouseOverHandler,
+  type EChartRenderedHandler,
+  type EChartRestoreHandler,
+  type ReactEchartsRef,
+  type Series,
 } from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 
 import Grid from './components/grid';
 import Legend from './components/legend';
-import Tooltip, {TooltipSubLabel} from './components/tooltip';
+import Tooltip, {type TooltipSubLabel} from './components/tooltip';
 import XAxis from './components/xAxis';
 import YAxis from './components/yAxis';
 import LineSeries from './series/lineSeries';

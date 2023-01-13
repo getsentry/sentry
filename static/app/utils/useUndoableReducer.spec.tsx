@@ -4,8 +4,8 @@ import {reactHooks} from 'sentry-test/reactTestingLibrary';
 
 import {makeCombinedReducers} from 'sentry/utils/useCombinedReducer';
 import {
+  type UndoableNode,
   makeUndoableReducer,
-  UndoableNode,
   useUndoableReducer,
 } from 'sentry/utils/useUndoableReducer';
 

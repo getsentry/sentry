@@ -1,5 +1,5 @@
 import * as Icons from 'sentry/icons';
-import {Aliases, Color, IconSize} from 'sentry/utils/theme';
+import {type Aliases, type Color, type IconSize} from 'sentry/utils/theme';
 
 type Props = {
   color: Color | Aliases;

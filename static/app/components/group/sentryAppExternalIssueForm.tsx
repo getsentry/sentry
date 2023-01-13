@@ -2,13 +2,17 @@ import {Component} from 'react';
 
 import {t} from 'sentry/locale';
 import ExternalIssueStore from 'sentry/stores/externalIssueStore';
-import {Group, PlatformExternalIssue, SentryAppInstallation} from 'sentry/types';
-import {Event} from 'sentry/types/event';
+import {
+  type Group,
+  type PlatformExternalIssue,
+  type SentryAppInstallation,
+} from 'sentry/types';
+import {type Event} from 'sentry/types/event';
 import getStacktraceBody from 'sentry/utils/getStacktraceBody';
 import {addQueryParamsToExistingUrl} from 'sentry/utils/queryString';
 import SentryAppExternalForm, {
-  FieldFromSchema,
-  SchemaFormConfig,
+  type FieldFromSchema,
+  type SchemaFormConfig,
 } from 'sentry/views/organizationIntegrations/sentryAppExternalForm';
 
 type Props = {

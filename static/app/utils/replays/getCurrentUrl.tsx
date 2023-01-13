@@ -1,7 +1,7 @@
 import last from 'lodash/last';
 
 import type {Crumb} from 'sentry/types/breadcrumbs';
-import {BreadcrumbType, BreadcrumbTypeNavigation} from 'sentry/types/breadcrumbs';
+import {type BreadcrumbTypeNavigation, BreadcrumbType} from 'sentry/types/breadcrumbs';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
 function parseUrl(url: string) {

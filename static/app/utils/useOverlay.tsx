@@ -1,16 +1,16 @@
 import {useMemo, useState} from 'react';
-import {PopperProps, usePopper} from 'react-popper';
-import {detectOverflow, Modifier, preventOverflow} from '@popperjs/core';
+import {type PopperProps, usePopper} from 'react-popper';
+import {type Modifier, type preventOverflow, detectOverflow} from '@popperjs/core';
 import {useButton} from '@react-aria/button';
 import {
-  OverlayProps,
-  OverlayTriggerProps,
+  type OverlayProps,
+  type OverlayTriggerProps,
   useOverlay as useAriaOverlay,
   useOverlayTrigger,
 } from '@react-aria/overlays';
 import {mergeProps} from '@react-aria/utils';
 import {useOverlayTriggerState} from '@react-stately/overlays';
-import {OverlayTriggerProps as OverlayTriggerStateProps} from '@react-types/overlays';
+import {type OverlayTriggerProps as OverlayTriggerStateProps} from '@react-types/overlays';
 
 type PreventOverflowOptions = NonNullable<typeof preventOverflow['options']>;
 

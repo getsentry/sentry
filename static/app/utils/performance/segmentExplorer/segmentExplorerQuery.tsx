@@ -1,8 +1,8 @@
-import {EventQuery} from 'sentry/actionCreators/events';
-import {LocationQuery} from 'sentry/utils/discover/eventView';
+import {type EventQuery} from 'sentry/actionCreators/events';
+import {type LocationQuery} from 'sentry/utils/discover/eventView';
 import GenericDiscoverQuery, {
-  DiscoverQueryProps,
-  GenericChildrenProps,
+  type DiscoverQueryProps,
+  type GenericChildrenProps,
 } from 'sentry/utils/discover/genericDiscoverQuery';
 
 /**

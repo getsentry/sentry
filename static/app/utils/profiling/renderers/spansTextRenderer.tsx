@@ -1,19 +1,19 @@
-import {mat3} from 'gl-matrix';
+import {type mat3} from 'gl-matrix';
 
-import {FlamegraphSearch} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphSearch';
+import {type FlamegraphSearch} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphSearch';
 import {
+  type Rect,
   computeHighlightedBounds,
   ELLIPSIS,
   findRangeBinarySearch,
   getContext,
-  Rect,
   resizeCanvasToDisplaySize,
   trimTextCenter,
 } from 'sentry/utils/profiling/gl/utils';
 import {TextRenderer} from 'sentry/utils/profiling/renderers/textRenderer';
-import {SpanChart, SpanChartNode} from 'sentry/utils/profiling/spanChart';
+import {type SpanChart, type SpanChartNode} from 'sentry/utils/profiling/spanChart';
 
-import {FlamegraphTheme} from '../flamegraph/flamegraphTheme';
+import {type FlamegraphTheme} from '../flamegraph/flamegraphTheme';
 
 class SpansTextRenderer extends TextRenderer {
   spanChart: SpanChart;

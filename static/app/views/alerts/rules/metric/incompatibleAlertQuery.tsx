@@ -8,7 +8,7 @@ import {IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type EventView from 'sentry/utils/discover/eventView';
 import {
-  Aggregation,
+  type Aggregation,
   AGGREGATIONS,
   explodeFieldString,
 } from 'sentry/utils/discover/fields';

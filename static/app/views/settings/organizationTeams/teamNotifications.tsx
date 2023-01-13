@@ -1,8 +1,8 @@
-import {RouteComponentProps} from 'react-router';
+import {type RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import AsyncComponent from 'sentry/components/asyncComponent';
+import type AsyncComponent from 'sentry/components/asyncComponent';
 import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import EmptyMessage from 'sentry/components/emptyMessage';
@@ -13,7 +13,12 @@ import Tooltip from 'sentry/components/tooltip';
 import {IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {ExternalTeam, Integration, Organization, Team} from 'sentry/types';
+import {
+  type ExternalTeam,
+  type Integration,
+  type Organization,
+  type Team,
+} from 'sentry/types';
 import {toTitleCase} from 'sentry/utils';
 import withOrganization from 'sentry/utils/withOrganization';
 import AsyncView from 'sentry/views/asyncView';

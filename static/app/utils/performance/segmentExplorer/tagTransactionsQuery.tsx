@@ -1,7 +1,7 @@
-import {MetaType} from 'sentry/utils/discover/eventView';
+import {type MetaType} from 'sentry/utils/discover/eventView';
 import GenericDiscoverQuery, {
-  DiscoverQueryProps,
-  GenericChildrenProps,
+  type DiscoverQueryProps,
+  type GenericChildrenProps,
 } from 'sentry/utils/discover/genericDiscoverQuery';
 
 export type TableDataRow = {

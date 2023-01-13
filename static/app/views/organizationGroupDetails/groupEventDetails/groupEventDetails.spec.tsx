@@ -1,14 +1,14 @@
-import {browserHistory, InjectedRouter} from 'react-router';
-import {Location} from 'history';
+import {type InjectedRouter, browserHistory} from 'react-router';
+import {type Location} from 'history';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {Event, Group} from 'sentry/types';
-import {Organization} from 'sentry/types/organization';
-import {Project} from 'sentry/types/project';
+import {type Event, type Group} from 'sentry/types';
+import {type Organization} from 'sentry/types/organization';
+import {type Project} from 'sentry/types/project';
 import GroupEventDetails, {
-  GroupEventDetailsProps,
+  type GroupEventDetailsProps,
 } from 'sentry/views/organizationGroupDetails/groupEventDetails/groupEventDetails';
 import {ReprocessingStatus} from 'sentry/views/organizationGroupDetails/utils';
 

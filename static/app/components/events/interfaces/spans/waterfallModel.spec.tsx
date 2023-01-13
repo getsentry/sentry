@@ -1,7 +1,10 @@
-import {ActiveFilter, noFilter} from 'sentry/components/events/interfaces/spans/filter';
-import {EnhancedProcessedSpanType} from 'sentry/components/events/interfaces/spans/types';
+import {
+  type ActiveFilter,
+  noFilter,
+} from 'sentry/components/events/interfaces/spans/filter';
+import {type EnhancedProcessedSpanType} from 'sentry/components/events/interfaces/spans/types';
 import WaterfallModel from 'sentry/components/events/interfaces/spans/waterfallModel';
-import {EntryType, EventTransaction} from 'sentry/types/event';
+import {type EventTransaction, EntryType} from 'sentry/types/event';
 import {assert} from 'sentry/types/utils';
 
 describe('WaterfallModel', () => {

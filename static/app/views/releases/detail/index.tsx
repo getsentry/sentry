@@ -1,7 +1,7 @@
 import {createContext} from 'react';
-import {RouteComponentProps} from 'react-router';
+import {type RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import {type Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
 
@@ -18,18 +18,18 @@ import {IconInfo} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {
-  Deploy,
-  Organization,
-  PageFilters,
-  ReleaseMeta,
-  ReleaseProject,
-  ReleaseWithHealth,
-  SessionApiResponse,
+  type Deploy,
+  type Organization,
+  type PageFilters,
+  type ReleaseMeta,
+  type ReleaseProject,
+  type ReleaseWithHealth,
+  type SessionApiResponse,
   SessionFieldWithOperation,
 } from 'sentry/types';
 import {formatVersion} from 'sentry/utils/formatters';
 import withRouteAnalytics, {
-  WithRouteAnalyticsProps,
+  type WithRouteAnalyticsProps,
 } from 'sentry/utils/routeAnalytics/withRouteAnalytics';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import {getCount} from 'sentry/utils/sessions';
@@ -37,7 +37,7 @@ import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import AsyncView from 'sentry/views/asyncView';
 
-import {getReleaseBounds, ReleaseBounds, searchReleaseVersion} from '../utils';
+import {type ReleaseBounds, getReleaseBounds, searchReleaseVersion} from '../utils';
 
 import ReleaseHeader from './header/releaseHeader';
 

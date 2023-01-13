@@ -1,7 +1,7 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import StackTraceContent from 'sentry/components/events/interfaces/crashContent/stackTrace/content';
-import {StacktraceType} from 'sentry/types/stacktrace';
+import {type StacktraceType} from 'sentry/types/stacktrace';
 
 const eventEntryStacktrace = TestStubs.EventEntryStacktrace();
 const event = TestStubs.Event({entries: [eventEntryStacktrace]});

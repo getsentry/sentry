@@ -3,7 +3,7 @@ import * as Sentry from '@sentry/react';
 import Tooltip from 'sentry/components/tooltip';
 import {IconCheckmark, IconClose, IconWarning} from 'sentry/icons';
 import {
-  CandidateProcessingInfo,
+  type CandidateProcessingInfo,
   CandidateProcessingStatus,
 } from 'sentry/types/debugImage';
 

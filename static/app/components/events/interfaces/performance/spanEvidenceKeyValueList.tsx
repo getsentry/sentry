@@ -1,10 +1,10 @@
 import {t} from 'sentry/locale';
-import {IssueType, KeyValueListData} from 'sentry/types';
+import {type KeyValueListData, IssueType} from 'sentry/types';
 
 import KeyValueList from '../keyValueList';
-import {RawSpanType} from '../spans/types';
+import {type RawSpanType} from '../spans/types';
 
-import {TraceContextSpanProxy} from './spanEvidence';
+import {type TraceContextSpanProxy} from './spanEvidence';
 
 type SpanEvidenceKeyValueListProps = {
   issueType: IssueType | undefined;

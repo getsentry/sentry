@@ -1,6 +1,6 @@
-import {createStore, StoreDefinition} from 'reflux';
+import {type StoreDefinition, createStore} from 'reflux';
 
-import {User} from 'sentry/types';
+import {type User} from 'sentry/types';
 
 interface MemberListStoreDefinition extends StoreDefinition {
   getAll(): User[];

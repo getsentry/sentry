@@ -6,13 +6,13 @@ import AreaSeries from 'sentry/components/charts/series/areaSeries';
 import type {SessionApiResponse} from 'sentry/types';
 import {lightTheme as theme} from 'sentry/utils/theme';
 import {
+  type MetricChartData,
   getMetricAlertChartOption,
-  MetricChartData,
   transformSessionResponseToSeries,
 } from 'sentry/views/alerts/rules/metric/details/metricChartOption';
 
 import {DEFAULT_FONT_FAMILY, slackChartDefaults, slackChartSize} from './slack';
-import {ChartType, RenderDescriptor} from './types';
+import {type RenderDescriptor, ChartType} from './types';
 
 const metricAlertXaxis = XAxis({
   theme,

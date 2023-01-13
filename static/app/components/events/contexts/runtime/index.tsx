@@ -1,12 +1,12 @@
 import {Fragment} from 'react';
 
 import ContextBlock from 'sentry/components/events/contexts/contextBlock';
-import {Event} from 'sentry/types/event';
+import {type Event} from 'sentry/types/event';
 
 import {geKnownData, getUnknownData} from '../utils';
 
 import {getRuntimeKnownDataDetails} from './getRuntimeKnownDataDetails';
-import {RuntimeData, RuntimeIgnoredDataType, RuntimeKnownDataType} from './types';
+import {type RuntimeData, RuntimeIgnoredDataType, RuntimeKnownDataType} from './types';
 
 type Props = {
   data: RuntimeData;

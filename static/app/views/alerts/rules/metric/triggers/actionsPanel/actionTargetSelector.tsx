@@ -2,11 +2,11 @@ import SelectControl from 'sentry/components/forms/controls/selectControl';
 import Input from 'sentry/components/input';
 import SelectMembers from 'sentry/components/selectMembers';
 import TeamSelector from 'sentry/components/teamSelector';
-import {Organization, Project, SelectValue} from 'sentry/types';
+import {type Organization, type Project, type SelectValue} from 'sentry/types';
 import {
-  Action,
+  type Action,
+  type MetricActionTemplate,
   ActionType,
-  MetricActionTemplate,
   TargetType,
 } from 'sentry/views/alerts/rules/metric/types';
 

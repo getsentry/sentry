@@ -2,11 +2,11 @@ import styled from '@emotion/styled';
 import sortBy from 'lodash/sortBy';
 
 import space from 'sentry/styles/space';
-import {KeyValueListData} from 'sentry/types';
+import {type KeyValueListData} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import theme from 'sentry/utils/theme';
 
-import {Value, ValueProps} from './value';
+import {type ValueProps, Value} from './value';
 
 interface Props extends Pick<ValueProps, 'raw' | 'isContextData'> {
   data?: KeyValueListData;

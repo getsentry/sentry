@@ -29,7 +29,11 @@ import SelectableList, {
   WidgetEmptyStateWarning,
 } from '../components/selectableList';
 import {transformTrendsDiscover} from '../transforms/transformTrendsDiscover';
-import {PerformanceWidgetProps, QueryDefinition, WidgetDataResult} from '../types';
+import {
+  type PerformanceWidgetProps,
+  type QueryDefinition,
+  type WidgetDataResult,
+} from '../types';
 import {PerformanceWidgetSetting} from '../widgetDefinitions';
 
 type DataType = {

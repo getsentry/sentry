@@ -1,5 +1,5 @@
 import type {Client} from 'sentry/api';
-import {QueryKey, useQuery} from 'sentry/utils/queryClient';
+import {type QueryKey, useQuery} from 'sentry/utils/queryClient';
 
 type PromptsUpdateParams = {
   /**

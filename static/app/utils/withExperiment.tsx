@@ -2,14 +2,14 @@ import {Component} from 'react';
 
 import {experimentConfig, unassignedValue} from 'sentry/data/experimentConfig';
 import ConfigStore from 'sentry/stores/configStore';
-import {Organization} from 'sentry/types';
+import {type Organization} from 'sentry/types';
 import {
-  ExperimentAssignment,
-  ExperimentKey,
-  Experiments,
+  type ExperimentAssignment,
+  type ExperimentKey,
+  type Experiments,
+  type OrgExperiments,
+  type UserExperiments,
   ExperimentType,
-  OrgExperiments,
-  UserExperiments,
 } from 'sentry/types/experiments';
 import {logExperiment} from 'sentry/utils/analytics';
 import getDisplayName from 'sentry/utils/getDisplayName';

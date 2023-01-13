@@ -1,14 +1,14 @@
 import {Fragment} from 'react';
 
 import GenericDiscoverQuery, {
-  DiscoverQueryProps,
+  type DiscoverQueryProps,
 } from 'sentry/utils/discover/genericDiscoverQuery';
 import {
-  BaseTraceChildrenProps,
-  FullQuickTrace,
-  TraceFull,
-  TraceFullDetailed,
-  TraceRequestProps,
+  type BaseTraceChildrenProps,
+  type FullQuickTrace,
+  type TraceFull,
+  type TraceFullDetailed,
+  type TraceRequestProps,
 } from 'sentry/utils/performance/quickTrace/types';
 import {
   getTraceRequestPayload,

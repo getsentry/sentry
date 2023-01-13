@@ -2,11 +2,11 @@ import omit from 'lodash/omit';
 
 import {defined} from 'sentry/utils';
 import GenericDiscoverQuery, {
-  DiscoverQueryProps,
-  GenericChildrenProps,
+  type DiscoverQueryProps,
+  type GenericChildrenProps,
 } from 'sentry/utils/discover/genericDiscoverQuery';
 
-import {SpanExample} from './types';
+import {type SpanExample} from './types';
 
 type SpanExamplesProps = {
   spanGroup: string;

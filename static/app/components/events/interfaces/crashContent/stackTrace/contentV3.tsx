@@ -4,9 +4,9 @@ import styled from '@emotion/styled';
 import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Frame, Group, PlatformType} from 'sentry/types';
-import {Event} from 'sentry/types/event';
-import {StacktraceType} from 'sentry/types/stacktrace';
+import {type Frame, type Group, type PlatformType} from 'sentry/types';
+import {type Event} from 'sentry/types/event';
+import {type StacktraceType} from 'sentry/types/stacktrace';
 
 import NativeFrame from '../../nativeFrame';
 import {getImageRange, parseAddress} from '../../utils';

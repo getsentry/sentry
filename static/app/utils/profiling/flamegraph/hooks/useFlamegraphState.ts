@@ -1,9 +1,9 @@
 import {useContext} from 'react';
 
 import {
-  FlamegraphStateDispatch,
+  type FlamegraphStateDispatch,
+  type FlamegraphStateValue,
   FlamegraphStateDispatchContext,
-  FlamegraphStateValue,
   FlamegraphStateValueContext,
 } from '../flamegraphStateProvider/flamegraphContext';
 

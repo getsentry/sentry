@@ -1,16 +1,16 @@
-import {Component, Fragment, MouseEvent} from 'react';
+import {type MouseEvent, Component, Fragment} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
-import {Query} from 'history';
+import {type Query} from 'history';
 
 import {bulkDelete, bulkUpdate} from 'sentry/actionCreators/group';
 import {addLoadingMessage, clearIndicators} from 'sentry/actionCreators/indicator';
 import {
-  ModalRenderProps,
+  type ModalRenderProps,
   openModal,
   openReprocessEventModal,
 } from 'sentry/actionCreators/modal';
-import {Client} from 'sentry/api';
+import {type Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import ActionButton from 'sentry/components/actions/button';
@@ -32,14 +32,14 @@ import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import space from 'sentry/styles/space';
 import {
-  Group,
-  GroupStatusResolution,
-  Organization,
-  Project,
+  type Group,
+  type GroupStatusResolution,
+  type Organization,
+  type Project,
+  type SavedQueryVersions,
   ResolutionStatus,
-  SavedQueryVersions,
 } from 'sentry/types';
-import {Event} from 'sentry/types/event';
+import {type Event} from 'sentry/types/event';
 import {analytics} from 'sentry/utils/analytics';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {getUtcDateString} from 'sentry/utils/dates';

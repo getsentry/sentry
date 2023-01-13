@@ -6,8 +6,11 @@ import {PanelItem} from 'sentry/components/panels';
 import SelectMembers from 'sentry/components/selectMembers';
 import TeamSelector from 'sentry/components/teamSelector';
 import space from 'sentry/styles/space';
-import {Organization, Project} from 'sentry/types';
-import {IssueAlertRuleAction, IssueAlertRuleCondition} from 'sentry/types/alerts';
+import {type Organization, type Project} from 'sentry/types';
+import {
+  type IssueAlertRuleAction,
+  type IssueAlertRuleCondition,
+} from 'sentry/types/alerts';
 
 interface OptionRecord {
   label: string;

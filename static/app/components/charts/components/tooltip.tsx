@@ -4,9 +4,9 @@ import {useTheme} from '@emotion/react';
 import type {TooltipComponentFormatterCallback, TooltipComponentOption} from 'echarts';
 import moment from 'moment';
 
-import BaseChart from 'sentry/components/charts/baseChart';
+import type BaseChart from 'sentry/components/charts/baseChart';
 import {t} from 'sentry/locale';
-import {DataPoint} from 'sentry/types/echarts';
+import {type DataPoint} from 'sentry/types/echarts';
 import {getFormattedDate, getTimeFormat} from 'sentry/utils/dates';
 import toArray from 'sentry/utils/toArray';
 

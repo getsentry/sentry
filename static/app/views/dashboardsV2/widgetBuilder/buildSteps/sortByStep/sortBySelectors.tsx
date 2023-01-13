@@ -7,7 +7,7 @@ import SelectControl from 'sentry/components/forms/controls/selectControl';
 import Tooltip from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {SelectValue, TagCollection} from 'sentry/types';
+import {type SelectValue, type TagCollection} from 'sentry/types';
 import {
   EQUATION_PREFIX,
   explodeField,
@@ -18,9 +18,13 @@ import {
 } from 'sentry/utils/discover/fields';
 import useOrganization from 'sentry/utils/useOrganization';
 import {getDatasetConfig} from 'sentry/views/dashboardsV2/datasetConfig/base';
-import {DisplayType, WidgetQuery, WidgetType} from 'sentry/views/dashboardsV2/types';
 import {
-  SortDirection,
+  type WidgetQuery,
+  type WidgetType,
+  DisplayType,
+} from 'sentry/views/dashboardsV2/types';
+import {
+  type SortDirection,
   sortDirections,
 } from 'sentry/views/dashboardsV2/widgetBuilder/utils';
 import ArithmeticInput from 'sentry/views/eventsV2/table/arithmeticInput';

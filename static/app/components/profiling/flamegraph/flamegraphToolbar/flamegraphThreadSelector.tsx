@@ -5,11 +5,11 @@ import CompactSelect from 'sentry/components/compactSelect';
 import {IconList} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {SelectValue} from 'sentry/types';
+import {type SelectValue} from 'sentry/types';
 import {defined} from 'sentry/utils';
-import {FlamegraphState} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/flamegraphContext';
-import {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
-import {Profile} from 'sentry/utils/profiling/profile/profile';
+import {type FlamegraphState} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/flamegraphContext';
+import {type ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
+import {type Profile} from 'sentry/utils/profiling/profile/profile';
 import {makeFormatter} from 'sentry/utils/profiling/units/units';
 
 export interface FlamegraphThreadSelectorProps {

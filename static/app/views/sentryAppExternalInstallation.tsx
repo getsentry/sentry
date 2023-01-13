@@ -1,4 +1,4 @@
-import {RouteComponentProps} from 'react-router';
+import {type RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -10,7 +10,11 @@ import FieldGroup from 'sentry/components/forms/fieldGroup';
 import SentryAppDetailsModal from 'sentry/components/modals/sentryAppDetailsModal';
 import NarrowLayout from 'sentry/components/narrowLayout';
 import {t, tct} from 'sentry/locale';
-import {Organization, SentryApp, SentryAppInstallation} from 'sentry/types';
+import {
+  type Organization,
+  type SentryApp,
+  type SentryAppInstallation,
+} from 'sentry/types';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import {addQueryParamsToExistingUrl} from 'sentry/utils/queryString';
 import AsyncView from 'sentry/views/asyncView';

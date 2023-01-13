@@ -3,7 +3,7 @@ import {sprintf, vsprintf} from 'sprintf-js';
 
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {getMeta} from 'sentry/components/events/meta/metaProxy';
-import {BreadcrumbTypeDefault, Crumb} from 'sentry/types/breadcrumbs';
+import {type BreadcrumbTypeDefault, type Crumb} from 'sentry/types/breadcrumbs';
 import {objectIsEmpty} from 'sentry/utils';
 
 interface Props {

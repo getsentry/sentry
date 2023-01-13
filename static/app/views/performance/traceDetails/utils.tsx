@@ -1,11 +1,11 @@
-import {LocationDescriptor, Query} from 'history';
+import {type LocationDescriptor, type Query} from 'history';
 
 import {PAGE_URL_PARAM} from 'sentry/constants/pageFilters';
-import {OrganizationSummary} from 'sentry/types';
-import {TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
+import {type OrganizationSummary} from 'sentry/types';
+import {type TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
 import {reduceTrace} from 'sentry/utils/performance/quickTrace/utils';
 
-import {TraceInfo} from './types';
+import {type TraceInfo} from './types';
 
 export function getTraceDetailsUrl(
   organization: OrganizationSummary,

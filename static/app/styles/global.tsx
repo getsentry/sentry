@@ -1,4 +1,4 @@
-import {css, Global, Theme} from '@emotion/react';
+import {type Theme, css, Global} from '@emotion/react';
 
 import {IS_ACCEPTANCE_TEST} from 'sentry/constants';
 

@@ -1,4 +1,4 @@
-import {css, Theme} from '@emotion/react';
+import {type Theme, css} from '@emotion/react';
 
 /**
  * Inner padding for inputs. This is deprecated. If necessary, use the values

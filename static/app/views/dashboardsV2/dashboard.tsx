@@ -2,11 +2,11 @@ import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
 
 import {Component} from 'react';
-import {Layouts, Responsive, WidthProvider} from 'react-grid-layout';
+import {type Layouts, Responsive, WidthProvider} from 'react-grid-layout';
 import {forceCheck} from 'react-lazyload';
-import {InjectedRouter} from 'react-router';
+import {type InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import {type Location} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
 import debounce from 'lodash/debounce';
 import isEqual from 'lodash/isEqual';
@@ -15,12 +15,12 @@ import {validateWidget} from 'sentry/actionCreators/dashboards';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
-import {Client} from 'sentry/api';
+import {type Client} from 'sentry/api';
 import {Button} from 'sentry/components/button';
 import {IconResize} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization, PageFilters} from 'sentry/types';
+import {type Organization, type PageFilters} from 'sentry/types';
 import theme from 'sentry/utils/theme';
 import withApi from 'sentry/utils/withApi';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
@@ -28,6 +28,7 @@ import withPageFilters from 'sentry/utils/withPageFilters';
 
 import AddWidget, {ADD_WIDGET_BUTTON_DRAG_ID} from './addWidget';
 import {
+  type Position,
   assignDefaultLayout,
   assignTempId,
   calculateColumnDepths,
@@ -41,10 +42,9 @@ import {
   getMobileLayout,
   getNextAvailablePosition,
   pickDefinedStoreKeys,
-  Position,
 } from './layoutUtils';
 import SortableWidget from './sortableWidget';
-import {DashboardDetails, DashboardWidgetSource, Widget} from './types';
+import {type DashboardDetails, type Widget, DashboardWidgetSource} from './types';
 import {getDashboardFiltersFromURL} from './utils';
 
 export const DRAG_HANDLE_CLASS = 'widget-drag';

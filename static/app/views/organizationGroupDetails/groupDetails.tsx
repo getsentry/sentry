@@ -1,11 +1,11 @@
 import {cloneElement, Component, Fragment, isValidElement} from 'react';
-import {browserHistory, RouteComponentProps} from 'react-router';
+import {type RouteComponentProps, browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import * as PropTypes from 'prop-types';
 
 import {fetchOrganizationEnvironments} from 'sentry/actionCreators/environments';
-import {Client} from 'sentry/api';
+import {type Client} from 'sentry/api';
 import {shouldDisplaySetupSourceMapsAlert} from 'sentry/components/events/interfaces/crashContent/exception/setupSourceMapsAlert';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -18,15 +18,15 @@ import SentryTypes from 'sentry/sentryTypes';
 import GroupStore from 'sentry/stores/groupStore';
 import space from 'sentry/styles/space';
 import {
-  AvatarProject,
-  Group,
-  GroupActivityAssigned,
+  type AvatarProject,
+  type Group,
+  type GroupActivityAssigned,
+  type Organization,
+  type Project,
   GroupActivityType,
   IssueCategory,
-  Organization,
-  Project,
 } from 'sentry/types';
-import {Event} from 'sentry/types/event';
+import {type Event} from 'sentry/types/event';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {getAnalyicsDataForEvent, getMessage, getTitle} from 'sentry/utils/events';
@@ -34,7 +34,7 @@ import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
 import Projects from 'sentry/utils/projects';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import withRouteAnalytics, {
-  WithRouteAnalyticsProps,
+  type WithRouteAnalyticsProps,
 } from 'sentry/utils/routeAnalytics/withRouteAnalytics';
 import withApi from 'sentry/utils/withApi';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';

@@ -1,5 +1,5 @@
 import {
-  CSSProperties,
+  type CSSProperties,
   Fragment,
   useCallback,
   useEffect,
@@ -14,13 +14,13 @@ import * as qs from 'query-string';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {
-  CanvasPoolManager,
+  type CanvasPoolManager,
   useCanvasScheduler,
 } from 'sentry/utils/profiling/canvasScheduler';
-import {CanvasView} from 'sentry/utils/profiling/canvasView';
+import {type CanvasView} from 'sentry/utils/profiling/canvasView';
 import {useFlamegraphSearch} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphSearch';
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
-import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
+import {type FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
 import {
   getConfigViewTranslationBetweenVectors,
   getPhysicalSpacePositionFromOffset,
@@ -29,7 +29,7 @@ import {
 import {SelectedFrameRenderer} from 'sentry/utils/profiling/renderers/selectedFrameRenderer';
 import {SpanChartRenderer2D} from 'sentry/utils/profiling/renderers/spansRenderer';
 import {SpansTextRenderer} from 'sentry/utils/profiling/renderers/spansTextRenderer';
-import {SpanChart, SpanChartNode} from 'sentry/utils/profiling/spanChart';
+import {type SpanChart, type SpanChartNode} from 'sentry/utils/profiling/spanChart';
 import {useProfileTransaction} from 'sentry/views/profiling/profileGroupProvider';
 
 import {useCanvasScroll} from './interactions/useCanvasScroll';

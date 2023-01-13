@@ -1,10 +1,10 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {OrganizationIntegration} from 'sentry/types/integrations';
-import {NotificationSettingsObject} from 'sentry/views/settings/account/notifications/constants';
+import {type OrganizationIntegration} from 'sentry/types/integrations';
+import {type NotificationSettingsObject} from 'sentry/views/settings/account/notifications/constants';
 import NotificationSettingsByType from 'sentry/views/settings/account/notifications/notificationSettingsByType';
-import {Identity} from 'sentry/views/settings/account/notifications/types';
+import {type Identity} from 'sentry/views/settings/account/notifications/types';
 
 function renderMockRequests(
   notificationSettings: NotificationSettingsObject,

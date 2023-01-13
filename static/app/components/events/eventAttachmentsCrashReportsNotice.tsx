@@ -1,4 +1,4 @@
-import {Location} from 'history';
+import {type Location} from 'history';
 
 import {Alert} from 'sentry/components/alert';
 import {tct} from 'sentry/locale';

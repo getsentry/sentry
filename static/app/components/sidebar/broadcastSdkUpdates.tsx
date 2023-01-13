@@ -8,10 +8,10 @@ import Tag from 'sentry/components/tag';
 import {t, tct, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {
-  Organization,
-  Project,
-  ProjectSdkUpdates,
-  SDKUpdatesSuggestion,
+  type Organization,
+  type Project,
+  type ProjectSdkUpdates,
+  type SDKUpdatesSuggestion,
 } from 'sentry/types';
 import getSdkUpdateSuggestion from 'sentry/utils/getSdkUpdateSuggestion';
 import withOrganization from 'sentry/utils/withOrganization';

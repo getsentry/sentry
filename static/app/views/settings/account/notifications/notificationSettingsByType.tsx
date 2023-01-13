@@ -3,17 +3,17 @@ import {Fragment} from 'react';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
-import {Field} from 'sentry/components/forms/types';
+import {type Field} from 'sentry/components/forms/types';
 import {t} from 'sentry/locale';
-import {Organization, OrganizationSummary} from 'sentry/types';
-import {OrganizationIntegration} from 'sentry/types/integrations';
+import {type Organization, type OrganizationSummary} from 'sentry/types';
+import {type OrganizationIntegration} from 'sentry/types/integrations';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import withOrganizations from 'sentry/utils/withOrganizations';
 import {
+  type NotificationSettingsByProviderObject,
+  type NotificationSettingsObject,
   ALL_PROVIDER_NAMES,
   CONFIRMATION_MESSAGE,
-  NotificationSettingsByProviderObject,
-  NotificationSettingsObject,
 } from 'sentry/views/settings/account/notifications/constants';
 import {ACCOUNT_NOTIFICATION_FIELDS} from 'sentry/views/settings/account/notifications/fields';
 import {
@@ -22,7 +22,7 @@ import {
 } from 'sentry/views/settings/account/notifications/fields2';
 import NotificationSettingsByOrganization from 'sentry/views/settings/account/notifications/notificationSettingsByOrganization';
 import NotificationSettingsByProjects from 'sentry/views/settings/account/notifications/notificationSettingsByProjects';
-import {Identity} from 'sentry/views/settings/account/notifications/types';
+import {type Identity} from 'sentry/views/settings/account/notifications/types';
 import UnlinkedAlert from 'sentry/views/settings/account/notifications/unlinkedAlert';
 import {
   getCurrentDefault,

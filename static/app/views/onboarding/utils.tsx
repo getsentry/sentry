@@ -2,7 +2,7 @@ import {useMemo} from 'react';
 
 import {usePersistedStoreCategory} from 'sentry/stores/persistedStore';
 
-import {OnboardingState} from './types';
+import {type OnboardingState} from './types';
 
 export function usePersistedOnboardingState(): [
   OnboardingState | null,

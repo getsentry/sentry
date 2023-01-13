@@ -4,16 +4,16 @@ import type {TooltipComponentFormatterCallbackParams} from 'echarts';
 import debounce from 'lodash/debounce';
 import flatten from 'lodash/flatten';
 
-import {AreaChart, AreaChartSeries} from 'sentry/components/charts/areaChart';
+import {type AreaChartSeries, AreaChart} from 'sentry/components/charts/areaChart';
 import Graphic from 'sentry/components/charts/components/graphic';
 import {defaultFormatAxisLabel} from 'sentry/components/charts/components/tooltip';
-import {LineChartSeries} from 'sentry/components/charts/lineChart';
+import {type LineChartSeries} from 'sentry/components/charts/lineChart';
 import LineSeries from 'sentry/components/charts/series/lineSeries';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import CHART_PALETTE from 'sentry/constants/chartPalette';
 import space from 'sentry/styles/space';
-import {PageFilters} from 'sentry/types';
-import {ReactEchartsRef, Series} from 'sentry/types/echarts';
+import {type PageFilters} from 'sentry/types';
+import {type ReactEchartsRef, type Series} from 'sentry/types/echarts';
 import theme from 'sentry/utils/theme';
 import {
   ALERT_CHART_MIN_MAX_BUFFER,
@@ -25,10 +25,10 @@ import {
 import {getChangeStatus} from 'sentry/views/alerts/utils/getChangeStatus';
 
 import {
+  type MetricRule,
+  type Trigger,
   AlertRuleThresholdType,
   AlertRuleTriggerType,
-  MetricRule,
-  Trigger,
 } from '../../types';
 
 type DefaultProps = {

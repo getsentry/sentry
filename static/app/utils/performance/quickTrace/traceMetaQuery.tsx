@@ -2,9 +2,9 @@ import {Fragment} from 'react';
 
 import GenericDiscoverQuery from 'sentry/utils/discover/genericDiscoverQuery';
 import {
-  BaseTraceChildrenProps,
-  TraceMeta,
-  TraceRequestProps,
+  type BaseTraceChildrenProps,
+  type TraceMeta,
+  type TraceRequestProps,
 } from 'sentry/utils/performance/quickTrace/types';
 import {
   getTraceRequestPayload,

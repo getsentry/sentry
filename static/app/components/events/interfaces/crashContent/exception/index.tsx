@@ -1,7 +1,12 @@
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import {ExceptionType, Group, PlatformType, Project} from 'sentry/types';
-import {Event} from 'sentry/types/event';
-import {STACK_TYPE, STACK_VIEW} from 'sentry/types/stacktrace';
+import {
+  type ExceptionType,
+  type Group,
+  type PlatformType,
+  type Project,
+} from 'sentry/types';
+import {type Event} from 'sentry/types/event';
+import {type STACK_TYPE, STACK_VIEW} from 'sentry/types/stacktrace';
 
 import {Content} from './content';
 import RawContent from './rawContent';

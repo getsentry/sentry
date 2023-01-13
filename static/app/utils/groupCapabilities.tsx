@@ -1,5 +1,5 @@
 import {t} from 'sentry/locale';
-import {IssueCategory, IssueCategoryCapabilities} from 'sentry/types/group';
+import {type IssueCategoryCapabilities, IssueCategory} from 'sentry/types/group';
 
 /**
  * Defines what capabilities each category of issue supports

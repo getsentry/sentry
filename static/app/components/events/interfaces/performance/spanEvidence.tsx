@@ -1,11 +1,11 @@
 import styled from '@emotion/styled';
 
 import {t} from 'sentry/locale';
-import {EventTransaction, IssueType, Organization} from 'sentry/types';
+import {type EventTransaction, type IssueType, type Organization} from 'sentry/types';
 
 import {DataSection} from '../../eventTagsAndScreenshot/dataSection';
 import TraceView from '../spans/traceView';
-import {TraceContextType} from '../spans/types';
+import {type TraceContextType} from '../spans/types';
 import WaterfallModel from '../spans/waterfallModel';
 
 import {SpanEvidenceKeyValueList} from './spanEvidenceKeyValueList';

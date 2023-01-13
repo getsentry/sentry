@@ -1,6 +1,9 @@
-import {LocationDescriptorObject} from 'history';
+import {type LocationDescriptorObject} from 'history';
 
-import {GridColumnOrder, GridColumnSortBy} from 'sentry/components/gridEditable';
+import {
+  type GridColumnOrder,
+  type GridColumnSortBy,
+} from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
 
 interface TableHeadProps<K> {

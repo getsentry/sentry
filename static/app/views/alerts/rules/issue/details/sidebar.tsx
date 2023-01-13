@@ -9,8 +9,8 @@ import TimeSince from 'sentry/components/timeSince';
 import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Actor, Member, Team} from 'sentry/types';
-import {IssueAlertRule} from 'sentry/types/alerts';
+import {type Actor, type Member, type Team} from 'sentry/types';
+import {type IssueAlertRule} from 'sentry/types/alerts';
 
 import {TextAction, TextCondition} from './textRule';
 

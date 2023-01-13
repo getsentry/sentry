@@ -1,11 +1,11 @@
 import {trimPackage} from 'sentry/components/events/interfaces/frame/utils';
 import {
-  EntryData,
-  Event,
-  ExceptionType,
-  Frame,
-  StacktraceType,
-  Thread,
+  type EntryData,
+  type Event,
+  type ExceptionType,
+  type Frame,
+  type StacktraceType,
+  type Thread,
 } from 'sentry/types';
 
 import getRelevantFrame from './getRelevantFrame';

@@ -3,7 +3,7 @@ import {Fragment} from 'react';
 import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import EventsGeoRequest, {
-  EventsGeoRequestProps,
+  type EventsGeoRequestProps,
 } from 'sentry/components/charts/eventsGeoRequest';
 import * as genericDiscoverQuery from 'sentry/utils/discover/genericDiscoverQuery';
 

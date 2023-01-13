@@ -1,8 +1,13 @@
 import {forwardRef} from 'react';
-import {PopperProps} from 'react-popper';
-import {SerializedStyles} from '@emotion/react';
+import {type PopperProps} from 'react-popper';
+import {type SerializedStyles} from '@emotion/react';
 import styled from '@emotion/styled';
-import {HTMLMotionProps, motion, MotionProps, MotionStyle} from 'framer-motion';
+import {
+  type HTMLMotionProps,
+  type MotionProps,
+  type MotionStyle,
+  motion,
+} from 'framer-motion';
 
 import OverlayArrow from 'sentry/components/overlayArrow';
 import {defined} from 'sentry/utils';

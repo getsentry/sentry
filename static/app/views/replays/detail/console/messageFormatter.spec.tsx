@@ -1,10 +1,10 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {
+  type BreadcrumbTypeDefault,
+  type Crumb,
   BreadcrumbLevelType,
   BreadcrumbType,
-  BreadcrumbTypeDefault,
-  Crumb,
 } from 'sentry/types/breadcrumbs';
 
 import MessageFormatter from './messageFormatter';

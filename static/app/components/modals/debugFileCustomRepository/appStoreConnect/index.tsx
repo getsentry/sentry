@@ -2,8 +2,8 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Client} from 'sentry/api';
+import {type ModalRenderProps} from 'sentry/actionCreators/modal';
+import {type Client} from 'sentry/api';
 import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
@@ -11,17 +11,17 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {DEFAULT_TOAST_DURATION} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization, Project} from 'sentry/types';
+import {type Organization, type Project} from 'sentry/types';
 import {
-  AppStoreConnectStatusData,
-  CustomRepoAppStoreConnect,
+  type AppStoreConnectStatusData,
+  type CustomRepoAppStoreConnect,
 } from 'sentry/types/debugFiles';
 import {unexpectedErrorMessage} from 'sentry/utils/appStoreValidationErrorMessage';
 import withApi from 'sentry/utils/withApi';
 
 import StepOne from './stepOne';
 import StepTwo from './stepTwo';
-import {AppStoreApp, StepOneData, StepTwoData} from './types';
+import {type AppStoreApp, type StepOneData, type StepTwoData} from './types';
 import {getAppStoreErrorMessage} from './utils';
 
 type Props = Pick<ModalRenderProps, 'Header' | 'Body' | 'Footer'> & {

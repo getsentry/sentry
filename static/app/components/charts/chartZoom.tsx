@@ -1,5 +1,5 @@
 import {Component} from 'react';
-import {InjectedRouter} from 'react-router';
+import {type InjectedRouter} from 'react-router';
 import type {
   DataZoomComponentOption,
   InsideDataZoomComponentOption,
@@ -13,12 +13,12 @@ import {updateDateTime} from 'sentry/actionCreators/pageFilters';
 import DataZoomInside from 'sentry/components/charts/components/dataZoomInside';
 import DataZoomSlider from 'sentry/components/charts/components/dataZoomSlider';
 import ToolBox from 'sentry/components/charts/components/toolBox';
-import {DateString} from 'sentry/types';
+import {type DateString} from 'sentry/types';
 import {
-  EChartChartReadyHandler,
-  EChartDataZoomHandler,
-  EChartFinishedHandler,
-  EChartRestoreHandler,
+  type EChartChartReadyHandler,
+  type EChartDataZoomHandler,
+  type EChartFinishedHandler,
+  type EChartRestoreHandler,
 } from 'sentry/types/echarts';
 import {callIfFunction} from 'sentry/utils/callIfFunction';
 import {getUtcDateString, getUtcToLocalDateObject} from 'sentry/utils/dates';

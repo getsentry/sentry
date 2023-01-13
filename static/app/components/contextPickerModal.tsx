@@ -3,10 +3,10 @@ import {findDOMNode} from 'react-dom';
 import {components} from 'react-select';
 import styled from '@emotion/styled';
 
-import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {type ModalRenderProps} from 'sentry/actionCreators/modal';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import SelectControl, {
-  StylesConfig,
+  type StylesConfig,
 } from 'sentry/components/forms/controls/selectControl';
 import IdBadge from 'sentry/components/idBadge';
 import Link from 'sentry/components/links/link';
@@ -16,7 +16,7 @@ import ConfigStore from 'sentry/stores/configStore';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import space from 'sentry/styles/space';
-import {Integration, Organization, Project} from 'sentry/types';
+import {type Integration, type Organization, type Project} from 'sentry/types';
 import Projects from 'sentry/utils/projects';
 import replaceRouterParams from 'sentry/utils/replaceRouterParams';
 import IntegrationIcon from 'sentry/views/organizationIntegrations/integrationIcon';

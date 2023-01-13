@@ -1,10 +1,10 @@
 import {useContext, useRef} from 'react';
 import styled from '@emotion/styled';
-import {AriaTabPanelProps, useTabPanel} from '@react-aria/tabs';
+import {type AriaTabPanelProps, useTabPanel} from '@react-aria/tabs';
 import {useCollection} from '@react-stately/collections';
 import {ListCollection} from '@react-stately/list';
-import {TabListState} from '@react-stately/tabs';
-import {CollectionBase, Node, Orientation} from '@react-types/shared';
+import {type TabListState} from '@react-stately/tabs';
+import {type CollectionBase, type Node, type Orientation} from '@react-types/shared';
 
 import {TabsContext} from './index';
 import {tabsShouldForwardProp} from './utils';

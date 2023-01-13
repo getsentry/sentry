@@ -1,11 +1,11 @@
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import {type Location} from 'history';
 
 import space from 'sentry/styles/space';
 import {
-  Organization,
-  PageFilters,
-  Project,
+  type Organization,
+  type PageFilters,
+  type Project,
   SessionFieldWithOperation,
 } from 'sentry/types';
 

@@ -1,10 +1,13 @@
 import omit from 'lodash/omit';
 
 import GenericDiscoverQuery, {
-  DiscoverQueryProps,
-  GenericChildrenProps,
+  type DiscoverQueryProps,
+  type GenericChildrenProps,
 } from 'sentry/utils/discover/genericDiscoverQuery';
-import {DataFilter, HistogramData} from 'sentry/utils/performance/histogram/types';
+import {
+  type DataFilter,
+  type HistogramData,
+} from 'sentry/utils/performance/histogram/types';
 
 type HistogramProps = {
   numBuckets: number;

@@ -1,7 +1,7 @@
 import {Component, createRef} from 'react';
 
 import SelectControl, {
-  ControlProps,
+  type ControlProps,
 } from 'sentry/components/forms/controls/selectControl';
 
 type Props = Pick<

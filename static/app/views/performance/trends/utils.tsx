@@ -1,17 +1,17 @@
 import {ASAP} from 'downsample/methods/ASAP';
-import {Location} from 'history';
+import {type Location} from 'history';
 import moment from 'moment';
 
 import {getInterval} from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
-import {Project} from 'sentry/types';
-import {Series, SeriesDataUnit} from 'sentry/types/echarts';
-import EventView from 'sentry/utils/discover/eventView';
+import {type Project} from 'sentry/types';
+import {type Series, type SeriesDataUnit} from 'sentry/types/echarts';
+import type EventView from 'sentry/utils/discover/eventView';
 import {
-  AggregationKeyWithAlias,
-  Field,
+  type AggregationKeyWithAlias,
+  type Field,
+  type Sort,
   generateFieldAsString,
-  Sort,
 } from 'sentry/utils/discover/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
 import theme from 'sentry/utils/theme';
@@ -20,14 +20,14 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {platformToPerformanceType, PROJECT_PERFORMANCE_TYPE} from '../utils';
 
 import {
-  NormalizedTrendsTransaction,
+  type NormalizedTrendsTransaction,
+  type TrendFunction,
+  type TrendParameter,
+  type TrendsTransaction,
+  type TrendView,
   TrendChangeType,
   TrendColumnField,
-  TrendFunction,
   TrendFunctionField,
-  TrendParameter,
-  TrendsTransaction,
-  TrendView,
 } from './types';
 
 export const DEFAULT_TRENDS_STATS_PERIOD = '14d';

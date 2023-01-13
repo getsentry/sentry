@@ -1,31 +1,31 @@
 import {Component, Fragment} from 'react';
-import {Theme} from '@emotion/react';
-import {Location, LocationDescriptor} from 'history';
+import {type Theme} from '@emotion/react';
+import {type Location, type LocationDescriptor} from 'history';
 
 import DropdownLink from 'sentry/components/dropdownLink';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {
-  ErrorDestination,
+  type ErrorDestination,
+  type TransactionDestination,
   generateSingleErrorTarget,
   generateSingleTransactionTarget,
   generateTraceTarget,
   isQuickTraceEvent,
-  TransactionDestination,
 } from 'sentry/components/quickTrace/utils';
 import Tooltip from 'sentry/components/tooltip';
 import {backend, frontend, mobile, serverless} from 'sentry/data/platformCategories';
 import {IconFire} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
-import {OrganizationSummary} from 'sentry/types';
-import {Event} from 'sentry/types/event';
+import {type OrganizationSummary} from 'sentry/types';
+import {type Event} from 'sentry/types/event';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {getDocsPlatform} from 'sentry/utils/docs';
 import {getDuration} from 'sentry/utils/formatters';
 import localStorage from 'sentry/utils/localStorage';
 import {
-  QuickTrace as QuickTraceType,
-  QuickTraceEvent,
-  TraceError,
+  type QuickTrace as QuickTraceType,
+  type QuickTraceEvent,
+  type TraceError,
 } from 'sentry/utils/performance/quickTrace/types';
 import {parseQuickTrace} from 'sentry/utils/performance/quickTrace/utils';
 import Projects from 'sentry/utils/projects';

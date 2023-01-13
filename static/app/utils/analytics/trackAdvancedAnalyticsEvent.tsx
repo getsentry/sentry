@@ -1,24 +1,33 @@
-import {coreUIEventMap, CoreUIEventParameters} from './coreuiAnalyticsEvents';
-import {dashboardsEventMap, DashboardsEventParameters} from './dashboardsAnalyticsEvents';
-import {discoverEventMap, DiscoverEventParameters} from './discoverAnalyticsEvents';
+import {type CoreUIEventParameters, coreUIEventMap} from './coreuiAnalyticsEvents';
 import {
+  type DashboardsEventParameters,
+  dashboardsEventMap,
+} from './dashboardsAnalyticsEvents';
+import {type DiscoverEventParameters, discoverEventMap} from './discoverAnalyticsEvents';
+import {
+  type DynamicSamplingEventParameters,
   dynamicSamplingEventMap,
-  DynamicSamplingEventParameters,
 } from './dynamicSamplingAnalyticsEvents';
-import {growthEventMap, GrowthEventParameters} from './growthAnalyticsEvents';
-import {issueEventMap, IssueEventParameters} from './issueAnalyticsEvents';
+import {type GrowthEventParameters, growthEventMap} from './growthAnalyticsEvents';
+import {type IssueEventParameters, issueEventMap} from './issueAnalyticsEvents';
 import makeAnalyticsFunction from './makeAnalyticsFunction';
-import {monitorsEventMap, MonitorsEventParameters} from './monitorsAnalyticsEvents';
+import {type MonitorsEventParameters, monitorsEventMap} from './monitorsAnalyticsEvents';
 import {
+  type PerformanceEventParameters,
   performanceEventMap,
-  PerformanceEventParameters,
 } from './performanceAnalyticsEvents';
-import {profilingEventMap, ProfilingEventParameters} from './profilingAnalyticsEvents';
-import {releasesEventMap, ReleasesEventParameters} from './releasesAnalyticsEvents';
-import {replayEventMap, ReplayEventParameters} from './replayAnalyticsEvents';
-import {searchEventMap, SearchEventParameters} from './searchAnalyticsEvents';
-import {settingsEventMap, SettingsEventParameters} from './settingsAnalyticsEvents';
-import {TeamInsightsEventParameters, workflowEventMap} from './workflowAnalyticsEvents';
+import {
+  type ProfilingEventParameters,
+  profilingEventMap,
+} from './profilingAnalyticsEvents';
+import {type ReleasesEventParameters, releasesEventMap} from './releasesAnalyticsEvents';
+import {type ReplayEventParameters, replayEventMap} from './replayAnalyticsEvents';
+import {type SearchEventParameters, searchEventMap} from './searchAnalyticsEvents';
+import {type SettingsEventParameters, settingsEventMap} from './settingsAnalyticsEvents';
+import {
+  type TeamInsightsEventParameters,
+  workflowEventMap,
+} from './workflowAnalyticsEvents';
 
 type EventParameters = GrowthEventParameters &
   CoreUIEventParameters &

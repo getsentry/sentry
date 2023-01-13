@@ -4,15 +4,15 @@ import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
 import uniqWith from 'lodash/uniqWith';
 
-import {Client} from 'sentry/api';
+import {type Client} from 'sentry/api';
 import {Alert} from 'sentry/components/alert';
-import {ErrorItem, ErrorItemProps} from 'sentry/components/events/errorItem';
+import {type ErrorItemProps, ErrorItem} from 'sentry/components/events/errorItem';
 import List from 'sentry/components/list';
 import {JavascriptProcessingErrors} from 'sentry/constants/eventErrors';
 import {t, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Artifact, Organization, Project} from 'sentry/types';
-import {Event} from 'sentry/types/event';
+import {type Artifact, type Organization, type Project} from 'sentry/types';
+import {type Event} from 'sentry/types/event';
 import withApi from 'sentry/utils/withApi';
 
 import {DataSection} from './styles';

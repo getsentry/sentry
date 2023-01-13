@@ -1,5 +1,5 @@
 import {useRef} from 'react';
-import {AutoSizer, CellMeasurer, GridCellProps, MultiGrid} from 'react-virtualized';
+import {type GridCellProps, AutoSizer, CellMeasurer, MultiGrid} from 'react-virtualized';
 import styled from '@emotion/styled';
 
 import Placeholder from 'sentry/components/placeholder';

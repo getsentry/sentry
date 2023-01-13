@@ -3,17 +3,22 @@ import styled from '@emotion/styled';
 import isFinite from 'lodash/isFinite';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
-import {ActiveOperationFilter} from 'sentry/components/events/interfaces/spans/filter';
+import {type ActiveOperationFilter} from 'sentry/components/events/interfaces/spans/filter';
 import {
-  RawSpanType,
-  TraceContextType,
+  type RawSpanType,
+  type TraceContextType,
 } from 'sentry/components/events/interfaces/spans/types';
 import {getSpanOperation} from 'sentry/components/events/interfaces/spans/utils';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {EntrySpans, EntryType, Event, EventTransaction} from 'sentry/types/event';
+import {
+  type EntrySpans,
+  type Event,
+  type EventTransaction,
+  EntryType,
+} from 'sentry/types/event';
 
 type StartTimestamp = number;
 type EndTimestamp = number;

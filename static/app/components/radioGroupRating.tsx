@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 
 import {getButtonStyles} from 'sentry/components/button';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
-import {FieldGroupProps} from 'sentry/components/forms/fieldGroup/types';
+import {type FieldGroupProps} from 'sentry/components/forms/fieldGroup/types';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 

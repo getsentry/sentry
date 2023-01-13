@@ -1,15 +1,15 @@
-import {browserHistory, RouteComponentProps} from 'react-router';
+import {type RouteComponentProps, browserHistory} from 'react-router';
 
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
-import {Organization} from 'sentry/types';
+import {type Organization} from 'sentry/types';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
 import AsyncView from 'sentry/views/asyncView';
 
 import MonitorForm from './monitorForm';
-import {Monitor} from './types';
+import {type Monitor} from './types';
 
 type Props = AsyncView['props'] &
   RouteComponentProps<{monitorId: string}, {}> & {

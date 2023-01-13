@@ -2,8 +2,8 @@ import {useCallback} from 'react';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import LazyLoad from 'sentry/components/lazyLoad';
-import {PlatformKey} from 'sentry/data/platformCategories';
-import {Event} from 'sentry/types/event';
+import {type PlatformKey} from 'sentry/data/platformCategories';
+import {type Event} from 'sentry/types/event';
 import {useHaveSelectedProjectsSentAnyReplayEvents} from 'sentry/utils/replays/hooks/useReplayOnboarding';
 import projectSupportsReplay from 'sentry/utils/replays/projectSupportsReplay';
 

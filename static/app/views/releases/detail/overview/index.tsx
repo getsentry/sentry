@@ -1,36 +1,36 @@
 import {Fragment} from 'react';
-import {browserHistory, RouteComponentProps} from 'react-router';
+import {type RouteComponentProps, browserHistory} from 'react-router';
 import styled from '@emotion/styled';
-import {Location, LocationDescriptor, Query} from 'history';
+import {type Location, type LocationDescriptor, type Query} from 'history';
 import moment from 'moment';
 
 import {restoreRelease} from 'sentry/actionCreators/release';
 import {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
 import SessionsRequest from 'sentry/components/charts/sessionsRequest';
-import {DateTimeObject} from 'sentry/components/charts/utils';
+import {type DateTimeObject} from 'sentry/components/charts/utils';
 import DateTime from 'sentry/components/dateTime';
 import PerformanceCardTable from 'sentry/components/discover/performanceCardTable';
 import TransactionsList, {
-  DropdownOption,
+  type DropdownOption,
 } from 'sentry/components/discover/transactionsList';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import {Body, Main, Side} from 'sentry/components/layouts/thirds';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import {ChangeData} from 'sentry/components/organizations/timeRangeSelector';
+import {type ChangeData} from 'sentry/components/organizations/timeRangeSelector';
 import PageTimeRangeSelector from 'sentry/components/pageTimeRangeSelector';
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {
-  NewQuery,
-  Organization,
-  PageFilters,
-  ReleaseProject,
+  type NewQuery,
+  type Organization,
+  type PageFilters,
+  type ReleaseProject,
   SessionFieldWithOperation,
 } from 'sentry/types';
 import {getUtcDateString} from 'sentry/utils/dates';
-import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
+import {type TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {MobileVital, SpanOpBreakdown, WebVital} from 'sentry/utils/fields';
 import {formatVersion} from 'sentry/utils/formatters';
@@ -42,16 +42,16 @@ import withPageFilters from 'sentry/utils/withPageFilters';
 import AsyncView from 'sentry/views/asyncView';
 import {DisplayModes} from 'sentry/views/performance/transactionSummary/transactionOverview/charts';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
-import {TrendChangeType, TrendView} from 'sentry/views/performance/trends/types';
+import {type TrendView, TrendChangeType} from 'sentry/views/performance/trends/types';
 import {
   platformToPerformanceType,
   PROJECT_PERFORMANCE_TYPE,
 } from 'sentry/views/performance/utils';
 
 import {
+  type ReleaseBounds,
   getReleaseParams,
   isReleaseArchived,
-  ReleaseBounds,
   searchReleaseVersion,
 } from '../../utils';
 import {ReleaseContext} from '..';

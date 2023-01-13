@@ -1,10 +1,10 @@
 import {loadFixtures} from 'sentry-test/loadFixtures';
 
 import {
-  ParseResult,
+  type ParseResult,
+  type TokenResult,
   parseSearch,
   Token,
-  TokenResult,
 } from 'sentry/components/searchSyntax/parser';
 import {treeTransformer} from 'sentry/components/searchSyntax/utils';
 

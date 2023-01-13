@@ -1,7 +1,7 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import LoadingContainer, {
-  LoadingContainerProps,
+  type LoadingContainerProps,
 } from 'sentry/components/loading/loadingContainer';
 
 function renderComponent(props: LoadingContainerProps = {}) {

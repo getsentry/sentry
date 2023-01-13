@@ -16,8 +16,8 @@ import {
 } from 'sentry/components/performance/waterfall/utils';
 import ConfigStore from 'sentry/stores/configStore';
 import space from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
-import {EventTransaction} from 'sentry/types/event';
+import {type Organization} from 'sentry/types';
+import {type EventTransaction} from 'sentry/types/event';
 import theme from 'sentry/utils/theme';
 
 import {
@@ -28,21 +28,21 @@ import {
 } from './constants';
 import * as CursorGuideHandler from './cursorGuideHandler';
 import * as DividerHandlerManager from './dividerHandlerManager';
-import {DragManagerChildrenProps} from './dragManager';
-import {ActiveOperationFilter} from './filter';
+import {type DragManagerChildrenProps} from './dragManager';
+import {type ActiveOperationFilter} from './filter';
 import MeasurementsPanel from './measurementsPanel';
 import * as ScrollbarManager from './scrollbarManager';
 import {
-  EnhancedProcessedSpanType,
-  ParsedTraceType,
-  RawSpanType,
+  type EnhancedProcessedSpanType,
+  type ParsedTraceType,
+  type RawSpanType,
   TickAlignment,
 } from './types';
 import {
+  type SpanBoundsType,
+  type SpanGeneratedBoundsType,
   boundsGenerator,
   getSpanOperation,
-  SpanBoundsType,
-  SpanGeneratedBoundsType,
 } from './utils';
 
 type PropType = {

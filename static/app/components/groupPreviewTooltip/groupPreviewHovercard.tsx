@@ -1,4 +1,4 @@
-import {ComponentProps, Fragment, useCallback} from 'react';
+import {type ComponentProps, Fragment, useCallback} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 

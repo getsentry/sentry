@@ -8,7 +8,7 @@ import {tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import useApiRequests from 'sentry/utils/useApiRequests';
-import {CheckInStatus, Monitor} from 'sentry/views/monitors/types';
+import {type CheckInStatus, type Monitor} from 'sentry/views/monitors/types';
 
 import CheckInIcon from './checkInIcon';
 

@@ -10,11 +10,11 @@ import {IconCheckmark} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {
-  GroupActivity,
-  GroupActivitySetByResolvedInRelease,
+  type GroupActivity,
+  type GroupActivitySetByResolvedInRelease,
+  type Repository,
+  type ResolutionStatusDetails,
   GroupActivityType,
-  Repository,
-  ResolutionStatusDetails,
 } from 'sentry/types';
 
 type Props = {

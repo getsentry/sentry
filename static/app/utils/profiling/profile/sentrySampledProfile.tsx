@@ -1,9 +1,9 @@
 import {lastOfArray} from 'sentry/utils';
 import {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
 
-import {Frame} from './../frame';
+import {type Frame} from './../frame';
 import {Profile} from './profile';
-import {createSentrySampleProfileFrameIndex} from './utils';
+import {type createSentrySampleProfileFrameIndex} from './utils';
 
 // This is a simplified port of speedscope's profile with a few simplifications and some removed functionality.
 // head at commit e37f6fa7c38c110205e22081560b99cb89ce885e

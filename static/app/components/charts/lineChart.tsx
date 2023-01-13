@@ -1,6 +1,6 @@
 import type {LineSeriesOption} from 'echarts';
 
-import {Series} from 'sentry/types/echarts';
+import {type Series} from 'sentry/types/echarts';
 
 import LineSeries from './series/lineSeries';
 import BaseChart from './baseChart';

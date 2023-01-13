@@ -1,4 +1,4 @@
-import {EventId, EventIdStatus} from '../types';
+import {type EventId, EventIdStatus} from '../types';
 import {valueSuggestions} from '../utils';
 
 import {fetchFromStorage, saveToStorage} from './localStorage';

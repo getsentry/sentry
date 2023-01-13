@@ -1,9 +1,9 @@
-import {Theme} from '@emotion/react';
+import {type Theme} from '@emotion/react';
 
-import {EventTag, Measurement} from 'sentry/types/event';
+import {type EventTag, type Measurement} from 'sentry/types/event';
 import {
-  DiscoverQueryProps,
-  GenericChildrenProps,
+  type DiscoverQueryProps,
+  type GenericChildrenProps,
 } from 'sentry/utils/discover/genericDiscoverQuery';
 
 /**

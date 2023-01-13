@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
 
-import getBadge, {GetBadgeProps} from './getBadge';
+import getBadge, {type GetBadgeProps} from './getBadge';
 
 /**
  * Public interface for all "id badges":

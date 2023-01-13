@@ -5,9 +5,9 @@ import ButtonBar from 'sentry/components/buttonBar';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import {t} from 'sentry/locale';
-import {EntryType, Event} from 'sentry/types/event';
+import {type Event, EntryType} from 'sentry/types/event';
 
-import Help, {HelpProps} from './help';
+import Help, {type HelpProps} from './help';
 
 type View = 'report' | 'raw' | 'help';
 

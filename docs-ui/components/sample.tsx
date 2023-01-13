@@ -1,5 +1,5 @@
 import {createContext, useState} from 'react';
-import {Theme, ThemeProvider, useTheme} from '@emotion/react';
+import {type Theme, ThemeProvider, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {IconMoon} from 'sentry/icons';

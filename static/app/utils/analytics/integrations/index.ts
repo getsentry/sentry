@@ -1,10 +1,13 @@
-import {IntegrationType, SentryAppStatus} from 'sentry/types';
+import {type IntegrationType, type SentryAppStatus} from 'sentry/types';
 
-import {codeownersEventMap, CodeownersEventParameters} from './codeownersAnalyticsEvents';
-import {platformEventMap, PlatformEventParameters} from './platformAnalyticsEvents';
 import {
+  type CodeownersEventParameters,
+  codeownersEventMap,
+} from './codeownersAnalyticsEvents';
+import {type PlatformEventParameters, platformEventMap} from './platformAnalyticsEvents';
+import {
+  type StacktraceLinkEventParameters,
   stacktraceLinkEventMap,
-  StacktraceLinkEventParameters,
 } from './stacktraceLinkAnalyticsEvents';
 
 export type IntegrationView = {

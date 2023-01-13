@@ -1,15 +1,15 @@
-import {browserHistory, RouteComponentProps} from 'react-router';
+import {type RouteComponentProps, browserHistory} from 'react-router';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
-import {Organization} from 'sentry/types';
+import {type Organization} from 'sentry/types';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import withOrganization from 'sentry/utils/withOrganization';
 import AsyncView from 'sentry/views/asyncView';
 
 import OrganizationApiKeysList from './organizationApiKeysList';
-import {DeprecatedApiKey} from './types';
+import {type DeprecatedApiKey} from './types';
 
 type Props = RouteComponentProps<{}, {}> & {
   organization: Organization;

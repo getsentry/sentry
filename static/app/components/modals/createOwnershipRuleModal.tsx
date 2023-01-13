@@ -1,7 +1,7 @@
 import {Fragment, useCallback, useEffect, useRef} from 'react';
 import {css} from '@emotion/react';
 
-import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {type ModalRenderProps} from 'sentry/actionCreators/modal';
 import {t} from 'sentry/locale';
 import theme from 'sentry/utils/theme';
 import ProjectOwnershipModal from 'sentry/views/settings/project/projectOwnership/modal';

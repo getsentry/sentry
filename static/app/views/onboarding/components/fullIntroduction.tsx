@@ -1,4 +1,4 @@
-import {PlatformKey} from 'sentry/data/platformCategories';
+import {type PlatformKey} from 'sentry/data/platformCategories';
 import platforms from 'sentry/data/platforms';
 import {t} from 'sentry/locale';
 

@@ -1,4 +1,4 @@
-import {DeviceContext, DeviceContextKey} from 'sentry/types';
+import {type DeviceContext, DeviceContextKey} from 'sentry/types';
 import {defined, formatBytesBase2} from 'sentry/utils';
 
 export function formatMemory(

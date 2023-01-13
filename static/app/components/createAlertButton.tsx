@@ -6,7 +6,7 @@ import {
 import {navigateTo} from 'sentry/actionCreators/navigation';
 import Access from 'sentry/components/acl/access';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import {Button, ButtonProps} from 'sentry/components/button';
+import {type ButtonProps, Button} from 'sentry/components/button';
 import Link from 'sentry/components/links/link';
 import {IconSiren} from 'sentry/icons';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
@@ -16,8 +16,8 @@ import type EventView from 'sentry/utils/discover/eventView';
 import useApi from 'sentry/utils/useApi';
 import useRouter from 'sentry/utils/useRouter';
 import {
-  AlertType,
-  AlertWizardAlertNames,
+  type AlertType,
+  type AlertWizardAlertNames,
   AlertWizardRuleTemplates,
   DEFAULT_WIZARD_TEMPLATE,
 } from 'sentry/views/alerts/wizard/options';

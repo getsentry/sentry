@@ -1,7 +1,7 @@
-import {LocationDescriptor} from 'history';
+import {type LocationDescriptor} from 'history';
 import * as qs from 'query-string';
 
-import Link, {LinkProps} from 'sentry/components/links/link';
+import Link, {type LinkProps} from 'sentry/components/links/link';
 import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
 import {useLocation} from 'sentry/utils/useLocation';
 

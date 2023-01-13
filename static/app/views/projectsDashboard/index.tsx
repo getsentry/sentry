@@ -1,13 +1,13 @@
 import {Fragment, useEffect, useMemo, useState} from 'react';
 import LazyLoad, {forceCheck} from 'react-lazyload';
-import {RouteComponentProps} from 'react-router';
+import {type RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import {withProfiler} from '@sentry/react';
 import debounce from 'lodash/debounce';
 import flatten from 'lodash/flatten';
 import uniqBy from 'lodash/uniqBy';
 
-import {Client} from 'sentry/api';
+import {type Client} from 'sentry/api';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -23,7 +23,7 @@ import {IconAdd, IconUser} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import ProjectsStatsStore from 'sentry/stores/projectsStatsStore';
 import space from 'sentry/styles/space';
-import {Organization, Project, TeamWithProjects} from 'sentry/types';
+import {type Organization, type Project, type TeamWithProjects} from 'sentry/types';
 import {sortProjects} from 'sentry/utils';
 import useOrganization from 'sentry/utils/useOrganization';
 import withApi from 'sentry/utils/withApi';

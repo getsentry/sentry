@@ -3,8 +3,8 @@ import pick from 'lodash/pick';
 
 import {escapeDoubleQuotes} from 'sentry/utils';
 import GenericDiscoverQuery, {
-  DiscoverQueryProps,
-  GenericChildrenProps,
+  type DiscoverQueryProps,
+  type GenericChildrenProps,
 } from 'sentry/utils/discover/genericDiscoverQuery';
 import {escapeFilterValue} from 'sentry/utils/tokenizeSearch';
 

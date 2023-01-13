@@ -1,4 +1,4 @@
-import {createStore, StoreDefinition} from 'reflux';
+import {type StoreDefinition, createStore} from 'reflux';
 
 import {OnboardingTaskKey} from 'sentry/types';
 

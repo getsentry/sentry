@@ -2,7 +2,7 @@ import {useCallback} from 'react';
 
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {relativeTimeInMs} from 'sentry/components/replays/utils';
-import {BreadcrumbType, Crumb} from 'sentry/types/breadcrumbs';
+import {type Crumb, BreadcrumbType} from 'sentry/types/breadcrumbs';
 import useActiveReplayTab from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import type {NetworkSpan} from 'sentry/views/replays/types';
 

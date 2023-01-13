@@ -9,7 +9,7 @@ import Truncate from 'sentry/components/truncate';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
-import DiscoverQuery, {TableDataRow} from 'sentry/utils/discover/discoverQuery';
+import DiscoverQuery, {type TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import {getAggregateAlias} from 'sentry/utils/discover/fields';
 import {WebVital} from 'sentry/utils/fields';
 import {
@@ -17,7 +17,7 @@ import {
   useMEPSettingContext,
 } from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {usePageError} from 'sentry/utils/performance/contexts/pageError';
-import {VitalData} from 'sentry/utils/performance/vitals/vitalsCardsDiscoverQuery';
+import {type VitalData} from 'sentry/utils/performance/vitals/vitalsCardsDiscoverQuery';
 import {decodeList} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -42,9 +42,13 @@ import SelectableList, {
 } from '../components/selectableList';
 import {transformDiscoverToList} from '../transforms/transformDiscoverToList';
 import {transformEventsRequestToVitals} from '../transforms/transformEventsToVitals';
-import {PerformanceWidgetProps, QueryDefinition, WidgetDataResult} from '../types';
+import {
+  type PerformanceWidgetProps,
+  type QueryDefinition,
+  type WidgetDataResult,
+} from '../types';
 import {eventsRequestQueryProps, getMEPQueryParams} from '../utils';
-import {ChartDefinition, PerformanceWidgetSetting} from '../widgetDefinitions';
+import {type ChartDefinition, PerformanceWidgetSetting} from '../widgetDefinitions';
 
 type DataType = {
   chart: WidgetDataResult & ReturnType<typeof transformEventsRequestToVitals>;

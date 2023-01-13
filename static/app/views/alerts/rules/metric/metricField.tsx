@@ -4,15 +4,15 @@ import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
 import FormField from 'sentry/components/forms/formField';
-import {Organization} from 'sentry/types';
+import {type Organization} from 'sentry/types';
 import {
-  Aggregation,
+  type Aggregation,
   AGGREGATIONS,
   explodeFieldString,
   generateFieldAsString,
 } from 'sentry/utils/discover/fields';
 import {
-  AlertType,
+  type AlertType,
   hideParameterSelectorSet,
   hidePrimarySelectorSet,
 } from 'sentry/views/alerts/wizard/options';
@@ -21,9 +21,9 @@ import {FieldValueKind} from 'sentry/views/eventsV2/table/types';
 import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
 
 import {
+  type OptionConfig,
   errorFieldConfig,
   getWizardAlertFieldConfig,
-  OptionConfig,
   transactionFieldConfig,
 } from './constants';
 import {Dataset} from './types';

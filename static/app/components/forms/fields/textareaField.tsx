@@ -2,16 +2,16 @@ import omit from 'lodash/omit';
 
 import FormField from 'sentry/components/forms/formField';
 import FormFieldControlState from 'sentry/components/forms/formField/controlState';
-import FormModel from 'sentry/components/forms/model';
+import type FormModel from 'sentry/components/forms/model';
 import {
+  type TextAreaProps,
   InputGroup,
   InputTrailingItems,
   TextArea,
-  TextAreaProps,
 } from 'sentry/components/inputGroup';
 
 // XXX(epurkhiser): This is wrong, it should not be inheriting these props
-import {InputFieldProps} from './inputField';
+import {type InputFieldProps} from './inputField';
 
 export interface TextareaFieldProps
   extends Omit<InputFieldProps, 'field'>,

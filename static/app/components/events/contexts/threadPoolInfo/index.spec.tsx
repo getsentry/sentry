@@ -1,7 +1,7 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {ThreadPoolInfoEventContext} from 'sentry/components/events/contexts/threadPoolInfo';
-import {ThreadPoolInfoContext} from 'sentry/types';
+import {type ThreadPoolInfoContext} from 'sentry/types';
 
 export const threadPoolInfoMockData: ThreadPoolInfoContext = {
   available_completion_port_threads: 1000,

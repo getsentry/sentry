@@ -1,8 +1,8 @@
 import {uuid4} from '@sentry/utils';
 
-import {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
+import {type RawSpanType} from 'sentry/components/events/interfaces/spans/types';
 import {t} from 'sentry/locale';
-import {EventOrGroupType, EventTransaction} from 'sentry/types';
+import {type EventTransaction, EventOrGroupType} from 'sentry/types';
 
 // Empty transaction to use as a default value with duration of 1 second
 const EmptyEventTransaction: EventTransaction = {

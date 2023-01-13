@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
-import {LineChart, LineChartProps} from 'sentry/components/charts/lineChart';
+import {type LineChartProps, LineChart} from 'sentry/components/charts/lineChart';
 import TransitionChart from 'sentry/components/charts/transitionChart';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -16,9 +16,9 @@ import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {
-  ReleaseProject,
-  ReleaseWithHealth,
-  SessionApiResponse,
+  type ReleaseProject,
+  type ReleaseWithHealth,
+  type SessionApiResponse,
   SessionFieldWithOperation,
 } from 'sentry/types';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';

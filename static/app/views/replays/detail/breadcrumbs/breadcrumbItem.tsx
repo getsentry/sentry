@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import BreadcrumbIcon from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/type/icon';
 import {PanelItem} from 'sentry/components/panels';
 import {getDetails} from 'sentry/components/replays/breadcrumbs/utils';
-import {SVGIconProps} from 'sentry/icons/svgIcon';
+import {type SVGIconProps} from 'sentry/icons/svgIcon';
 import space from 'sentry/styles/space';
 import type {Crumb} from 'sentry/types/breadcrumbs';
 import TimestampButton from 'sentry/views/replays/detail/timestampButton';

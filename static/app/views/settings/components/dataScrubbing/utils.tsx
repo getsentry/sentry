@@ -1,10 +1,10 @@
 import {t} from 'sentry/locale';
 
 import {
+  type Rule,
+  type SourceSuggestion,
   MethodType,
-  Rule,
   RuleType,
-  SourceSuggestion,
   SourceSuggestionType,
 } from './types';
 

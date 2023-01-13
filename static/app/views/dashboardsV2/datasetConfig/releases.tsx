@@ -3,27 +3,27 @@ import trimStart from 'lodash/trimStart';
 
 import {doMetricsRequest} from 'sentry/actionCreators/metrics';
 import {doSessionsRequest} from 'sentry/actionCreators/sessions';
-import {Client} from 'sentry/api';
+import {type Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import {
-  MetricsApiResponse,
-  Organization,
-  PageFilters,
-  SelectValue,
-  SessionApiResponse,
+  type MetricsApiResponse,
+  type Organization,
+  type PageFilters,
+  type SelectValue,
+  type SessionApiResponse,
+  type SessionsMeta,
   SessionField,
-  SessionsMeta,
 } from 'sentry/types';
-import {Series} from 'sentry/types/echarts';
+import {type Series} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 import {statsPeriodToDays} from 'sentry/utils/dates';
-import {TableData} from 'sentry/utils/discover/discoverQuery';
+import {type TableData} from 'sentry/utils/discover/discoverQuery';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
-import {QueryFieldValue} from 'sentry/utils/discover/fields';
-import {FieldValueOption} from 'sentry/views/eventsV2/table/queryField';
-import {FieldValue, FieldValueKind} from 'sentry/views/eventsV2/table/types';
+import {type QueryFieldValue} from 'sentry/utils/discover/fields';
+import {type FieldValueOption} from 'sentry/views/eventsV2/table/queryField';
+import {type FieldValue, FieldValueKind} from 'sentry/views/eventsV2/table/types';
 
-import {DisplayType, Widget, WidgetQuery} from '../types';
+import {type Widget, type WidgetQuery, DisplayType} from '../types';
 import {getWidgetInterval} from '../utils';
 import {ReleaseSearchBar} from '../widgetBuilder/buildSteps/filterResultsStep/releaseSearchBar';
 import {
@@ -48,7 +48,7 @@ import {
   mapDerivedMetricsToFields,
 } from '../widgetCard/transformSessionsResponseToTable';
 
-import {DatasetConfig, handleOrderByReset} from './base';
+import {type DatasetConfig, handleOrderByReset} from './base';
 
 const DEFAULT_WIDGET_QUERY: WidgetQuery = {
   name: '',

@@ -1,4 +1,4 @@
-import {ReducerAction, ReducerState, useMemo, useReducer} from 'react';
+import {type ReducerAction, type ReducerState, useMemo, useReducer} from 'react';
 
 export type UndoableNode<S> = {
   current: S;

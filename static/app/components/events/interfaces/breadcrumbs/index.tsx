@@ -12,9 +12,13 @@ import EventReplay from 'sentry/components/events/eventReplay';
 import {IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
-import {BreadcrumbLevelType, Crumb, RawCrumb} from 'sentry/types/breadcrumbs';
-import {EntryType, Event} from 'sentry/types/event';
+import {type Organization} from 'sentry/types';
+import {
+  type BreadcrumbLevelType,
+  type Crumb,
+  type RawCrumb,
+} from 'sentry/types/breadcrumbs';
+import {type Event, EntryType} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 

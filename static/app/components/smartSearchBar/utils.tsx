@@ -2,10 +2,10 @@
 import {
   filterTypeConfig,
   interchangeableFilterOperators,
-  SearchConfig,
+  type SearchConfig,
   TermOperator,
   Token,
-  TokenResult,
+  type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
 import {
   IconArrow,
@@ -20,16 +20,16 @@ import {
 import {t} from 'sentry/locale';
 
 import {
-  AutocompleteGroup,
+  type AutocompleteGroup,
   ItemType,
-  SearchGroup,
-  SearchItem,
-  Shortcut,
+  type SearchGroup,
+  type SearchItem,
+  type Shortcut,
   ShortcutType,
 } from './types';
-import {TagCollection} from 'sentry/types';
+import {type TagCollection} from 'sentry/types';
 import {FieldKind, FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
-import {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
+import {type CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 
 export function addSpace(query = '') {
   if (query.length !== 0 && query[query.length - 1] !== ' ') {

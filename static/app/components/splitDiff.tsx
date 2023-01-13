@@ -1,5 +1,5 @@
 import styled from '@emotion/styled';
-import {Change, diffChars, diffLines, diffWords} from 'diff';
+import {type Change, diffChars, diffLines, diffWords} from 'diff';
 
 const diffFnMap = {
   chars: diffChars,

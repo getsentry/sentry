@@ -1,19 +1,19 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
-import {vec2} from 'gl-matrix';
+import {type vec2} from 'gl-matrix';
 
 import {BoundTooltip} from 'sentry/components/profiling/boundTooltip';
 import {IconLightning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
-import {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
-import {CanvasView} from 'sentry/utils/profiling/canvasView';
-import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
-import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
-import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
+import {type CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
+import {type CanvasView} from 'sentry/utils/profiling/canvasView';
+import {type Flamegraph} from 'sentry/utils/profiling/flamegraph';
+import {type FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
+import {type FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {formatColorForFrame, Rect} from 'sentry/utils/profiling/gl/utils';
-import {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
+import {type FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
 
 export function formatWeightToProfileDuration(
   frame: CallTreeNode,

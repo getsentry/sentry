@@ -1,13 +1,15 @@
 import type {BaseBadgeProps} from 'sentry/components/idBadge/baseBadge';
-import MemberBadge, {MemberBadgeProps} from 'sentry/components/idBadge/memberBadge';
+import MemberBadge, {type MemberBadgeProps} from 'sentry/components/idBadge/memberBadge';
 import OrganizationBadge, {
-  OrganizationBadgeProps,
+  type OrganizationBadgeProps,
 } from 'sentry/components/idBadge/organizationBadge';
-import ProjectBadge, {ProjectBadgeProps} from 'sentry/components/idBadge/projectBadge';
+import ProjectBadge, {
+  type ProjectBadgeProps,
+} from 'sentry/components/idBadge/projectBadge';
 import {TeamBadge} from 'sentry/components/idBadge/teamBadge';
-import UserBadge, {UserBadgeProps} from 'sentry/components/idBadge/userBadge';
+import UserBadge, {type UserBadgeProps} from 'sentry/components/idBadge/userBadge';
 
-import {TeamBadgeProps} from './teamBadge/badge';
+import {type TeamBadgeProps} from './teamBadge/badge';
 
 type DisplayName = BaseBadgeProps['displayName'];
 

@@ -1,4 +1,10 @@
-import {DOMAttributes, MouseEvent, RefObject, useCallback, useRef} from 'react';
+import {
+  type DOMAttributes,
+  type MouseEvent,
+  type RefObject,
+  useCallback,
+  useRef,
+} from 'react';
 import * as Sentry from '@sentry/react';
 
 type CallbackArgs = {height: number; left: number; top: number; width: number};

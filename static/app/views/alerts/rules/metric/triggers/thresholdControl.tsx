@@ -9,9 +9,9 @@ import Tooltip from 'sentry/components/tooltip';
 import {t, tct, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {
+  type ThresholdControlValue,
   AlertRuleComparisonType,
   AlertRuleThresholdType,
-  ThresholdControlValue,
 } from 'sentry/views/alerts/rules/metric/types';
 
 type Props = ThresholdControlValue & {

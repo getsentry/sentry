@@ -1,11 +1,11 @@
 import {Component, createRef, useEffect, useRef} from 'react';
 import {
+  type ListRowProps,
+  type OverscanIndicesGetterParams,
   AutoSizer,
   CellMeasurer,
   CellMeasurerCache,
   List as ReactVirtualizedList,
-  ListRowProps,
-  OverscanIndicesGetterParams,
   WindowScroller,
 } from 'react-virtualized';
 import styled from '@emotion/styled';
@@ -18,25 +18,28 @@ import {ROW_HEIGHT, SpanBarType} from 'sentry/components/performance/waterfall/c
 import {MessageRow} from 'sentry/components/performance/waterfall/messageRow';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {t, tct} from 'sentry/locale';
-import {Organization} from 'sentry/types';
+import {type Organization} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 
-import {DragManagerChildrenProps} from './dragManager';
-import {ActiveOperationFilter} from './filter';
-import {ScrollbarManagerChildrenProps, withScrollbarManager} from './scrollbarManager';
+import {type DragManagerChildrenProps} from './dragManager';
+import {type ActiveOperationFilter} from './filter';
+import {
+  type ScrollbarManagerChildrenProps,
+  withScrollbarManager,
+} from './scrollbarManager';
 import {ProfiledSpanBar} from './spanBar';
-import * as SpanContext from './spanContext';
+import type * as SpanContext from './spanContext';
 import {SpanDescendantGroupBar} from './spanDescendantGroupBar';
 import SpanSiblingGroupBar from './spanSiblingGroupBar';
 import {
-  EnhancedProcessedSpanType,
-  EnhancedSpan,
-  FilterSpans,
+  type EnhancedProcessedSpanType,
+  type EnhancedSpan,
+  type FilterSpans,
+  type ParsedTraceType,
+  type SpanTreeNode,
+  type SpanType,
   GroupType,
-  ParsedTraceType,
-  SpanTreeNode,
   SpanTreeNodeType,
-  SpanType,
 } from './types';
 import {
   getSpanID,
@@ -45,7 +48,7 @@ import {
   setSpansOnTransaction,
   spanTargetHash,
 } from './utils';
-import WaterfallModel from './waterfallModel';
+import type WaterfallModel from './waterfallModel';
 
 type PropType = ScrollbarManagerChildrenProps & {
   dragProps: DragManagerChildrenProps;

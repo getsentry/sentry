@@ -1,11 +1,11 @@
 import {createRef, Fragment, PureComponent} from 'react';
-import {WithRouterProps} from 'react-router';
+import {type WithRouterProps} from 'react-router';
 import {
+  type ListRowProps,
   AutoSizer,
   CellMeasurer,
   CellMeasurerCache,
   List,
-  ListRowProps,
 } from 'react-virtualized';
 import styled from '@emotion/styled';
 
@@ -19,9 +19,9 @@ import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
 import DebugMetaStore from 'sentry/stores/debugMetaStore';
 import space from 'sentry/styles/space';
-import {Group, Organization, Project} from 'sentry/types';
-import {Image, ImageStatus} from 'sentry/types/debugImage';
-import {Event} from 'sentry/types/event';
+import {type Group, type Organization, type Project} from 'sentry/types';
+import {type Image, ImageStatus} from 'sentry/types/debugImage';
+import {type Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 // eslint-disable-next-line no-restricted-imports
 import withSentryRouter from 'sentry/utils/withSentryRouter';

@@ -3,7 +3,7 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import Link from 'sentry/components/links/link';
 import {Breadcrumb} from 'sentry/components/profiling/breadcrumb';
 import {t} from 'sentry/locale';
-import {Event} from 'sentry/types';
+import {type Event} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
 import {

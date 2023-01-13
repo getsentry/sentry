@@ -5,10 +5,10 @@ import {
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import {Client} from 'sentry/api';
+import {type Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import ReleaseStore, {getReleaseStoreKey} from 'sentry/stores/releaseStore';
-import {Deploy, Release, ReleaseStatus} from 'sentry/types';
+import {type Deploy, type Release, ReleaseStatus} from 'sentry/types';
 
 type ParamsGet = {
   orgSlug: string;

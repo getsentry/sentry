@@ -5,7 +5,7 @@ import {openModal} from 'sentry/actionCreators/modal';
 import {DataSection} from 'sentry/components/events/styles';
 import Link from 'sentry/components/links/link';
 import {t, tct, tn} from 'sentry/locale';
-import {EventAttachment} from 'sentry/types/group';
+import {type EventAttachment} from 'sentry/types/group';
 import {objectIsEmpty} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {SCREENSHOT_TYPE} from 'sentry/views/organizationGroupDetails/groupEventAttachments/groupEventAttachmentsFilter';

@@ -1,19 +1,19 @@
 import {Component, Fragment} from 'react';
 
 import {Panel, PanelBody} from 'sentry/components/panels';
-import {Organization, Project} from 'sentry/types';
+import {type Organization, type Project} from 'sentry/types';
 import {removeAtArrayIndex} from 'sentry/utils/removeAtArrayIndex';
 import {replaceAtArrayIndex} from 'sentry/utils/replaceAtArrayIndex';
 import ActionsPanel from 'sentry/views/alerts/rules/metric/triggers/actionsPanel';
 import TriggerForm from 'sentry/views/alerts/rules/metric/triggers/form';
 
 import {
-  Action,
-  AlertRuleComparisonType,
-  AlertRuleThresholdType,
-  MetricActionTemplate,
-  Trigger,
-  UnsavedMetricRule,
+  type Action,
+  type AlertRuleComparisonType,
+  type AlertRuleThresholdType,
+  type MetricActionTemplate,
+  type Trigger,
+  type UnsavedMetricRule,
 } from '../types';
 
 type Props = {

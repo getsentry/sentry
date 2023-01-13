@@ -1,4 +1,4 @@
-import {Theme} from '@emotion/react';
+import {type Theme} from '@emotion/react';
 import type {FocusTrap} from 'focus-trap';
 
 import type exportGlobals from 'sentry/bootstrap/exportGlobals';

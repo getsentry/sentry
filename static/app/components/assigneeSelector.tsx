@@ -2,9 +2,9 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {
+  type AssigneeSelectorDropdownProps,
+  type SuggestedAssignee,
   AssigneeSelectorDropdown,
-  AssigneeSelectorDropdownProps,
-  SuggestedAssignee,
 } from 'sentry/components/assigneeSelectorDropdown';
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import SuggestedAvatarStack from 'sentry/components/avatar/suggestedAvatarStack';

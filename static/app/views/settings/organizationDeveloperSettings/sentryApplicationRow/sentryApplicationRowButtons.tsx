@@ -1,6 +1,6 @@
 import Access from 'sentry/components/acl/access';
 import {t} from 'sentry/locale';
-import {Organization, SentryApp} from 'sentry/types';
+import {type Organization, type SentryApp} from 'sentry/types';
 
 import ActionButtons from './actionButtons';
 

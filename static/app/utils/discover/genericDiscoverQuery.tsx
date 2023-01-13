@@ -1,16 +1,17 @@
 import {Component, useContext} from 'react';
 import {useQuery} from '@tanstack/react-query';
-import {Location} from 'history';
+import {type Location} from 'history';
 
-import {EventQuery} from 'sentry/actionCreators/events';
-import {Client, ResponseMeta} from 'sentry/api';
+import {type EventQuery} from 'sentry/actionCreators/events';
+import {type ResponseMeta, Client} from 'sentry/api';
 import {t} from 'sentry/locale';
-import EventView, {
-  ImmutableEventView,
+import type EventView from 'sentry/utils/discover/eventView';
+import {
+  type ImmutableEventView,
+  type LocationQuery,
   isAPIPayloadSimilar,
-  LocationQuery,
 } from 'sentry/utils/discover/eventView';
-import {QueryBatching} from 'sentry/utils/performance/contexts/genericQueryBatcher';
+import {type QueryBatching} from 'sentry/utils/performance/contexts/genericQueryBatcher';
 import {PerformanceEventViewContext} from 'sentry/utils/performance/contexts/performanceEventViewContext';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 

@@ -1,11 +1,11 @@
 import {Component} from 'react';
-import {browserHistory, WithRouterProps} from 'react-router';
+import {type WithRouterProps, browserHistory} from 'react-router';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 import * as qs from 'query-string';
 
 import {fetchOrgMembers, indexMembersByProject} from 'sentry/actionCreators/members';
-import {Client} from 'sentry/api';
+import {type Client} from 'sentry/api';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -19,11 +19,11 @@ import StreamGroup, {
 } from 'sentry/components/stream/group';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
-import {Group} from 'sentry/types';
+import {type Group} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
 // eslint-disable-next-line no-restricted-imports
 import withSentryRouter from 'sentry/utils/withSentryRouter';
-import {TimePeriodType} from 'sentry/views/alerts/rules/metric/details/constants';
+import {type TimePeriodType} from 'sentry/views/alerts/rules/metric/details/constants';
 import {RELATED_ISSUES_BOOLEAN_QUERY_ERROR} from 'sentry/views/alerts/rules/metric/details/relatedIssuesNotAvailable';
 
 import GroupListHeader from './groupListHeader';

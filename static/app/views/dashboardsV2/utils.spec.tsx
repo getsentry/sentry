@@ -1,7 +1,7 @@
 import {
-  DashboardDetails,
+  type DashboardDetails,
+  type Widget,
   DisplayType,
-  Widget,
   WidgetType,
 } from 'sentry/views/dashboardsV2/types';
 import {

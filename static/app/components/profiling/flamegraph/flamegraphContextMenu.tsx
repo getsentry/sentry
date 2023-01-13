@@ -10,20 +10,20 @@ import {
 } from 'sentry/components/profiling/profilingContextMenu';
 import {IconCopy, IconGithub} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {RequestState} from 'sentry/types';
-import {StacktraceLinkResult} from 'sentry/types/integrations';
+import {type RequestState} from 'sentry/types';
+import {type StacktraceLinkResult} from 'sentry/types/integrations';
 import {defined} from 'sentry/utils';
 import {
-  FlamegraphAxisOptions,
-  FlamegraphColorCodings,
-  FlamegraphSorting,
-  FlamegraphViewOptions,
+  type FlamegraphAxisOptions,
+  type FlamegraphColorCodings,
+  type FlamegraphSorting,
+  type FlamegraphViewOptions,
 } from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphPreferences';
 import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphPreferences';
 import {useDispatchFlamegraphState} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphState';
-import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
-import {useContextMenu} from 'sentry/utils/profiling/hooks/useContextMenu';
-import {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
+import {type FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
+import {type useContextMenu} from 'sentry/utils/profiling/hooks/useContextMenu';
+import {type ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';

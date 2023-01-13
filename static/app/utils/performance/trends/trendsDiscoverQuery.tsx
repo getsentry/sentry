@@ -1,16 +1,16 @@
-import {Project} from 'sentry/types';
+import {type Project} from 'sentry/types';
 import GenericDiscoverQuery, {
-  DiscoverQueryProps,
-  GenericChildrenProps,
+  type DiscoverQueryProps,
+  type GenericChildrenProps,
 } from 'sentry/utils/discover/genericDiscoverQuery';
 import withProjects from 'sentry/utils/withProjects';
 import {
-  TrendChangeType,
-  TrendFunctionField,
-  TrendsData,
-  TrendsDataEvents,
-  TrendsQuery,
-  TrendView,
+  type TrendChangeType,
+  type TrendFunctionField,
+  type TrendsData,
+  type TrendsDataEvents,
+  type TrendsQuery,
+  type TrendView,
 } from 'sentry/views/performance/trends/types';
 import {
   generateTrendFunctionAsString,

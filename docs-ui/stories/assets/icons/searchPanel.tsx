@@ -5,7 +5,7 @@ import Fuse from 'fuse.js';
 import Input from 'sentry/components/input';
 import space from 'sentry/styles/space';
 
-import {IconData, iconGroups, IconPropName, iconProps, icons} from './data';
+import {type IconData, type IconPropName, iconGroups, iconProps, icons} from './data';
 import IconEntry from './iconEntry';
 
 export type ExtendedIconData = IconData & {

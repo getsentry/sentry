@@ -1,4 +1,4 @@
-import {css, Theme, useTheme} from '@emotion/react';
+import {type Theme, css, useTheme} from '@emotion/react';
 import classNames from 'classnames';
 
 import DeprecatedDropdownMenu from 'sentry/components/deprecatedDropdownMenu';

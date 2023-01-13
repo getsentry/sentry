@@ -1,4 +1,4 @@
-import {Location, Query} from 'history';
+import {type Location, type Query} from 'history';
 
 import {useRouteContext} from 'sentry/utils/useRouteContext';
 

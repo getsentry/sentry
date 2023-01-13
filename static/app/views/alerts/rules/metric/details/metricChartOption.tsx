@@ -15,11 +15,15 @@ import type {Series} from 'sentry/types/echarts';
 import {getCrashFreeRateSeries} from 'sentry/utils/sessions';
 import {lightTheme as theme} from 'sentry/utils/theme';
 import {
+  type MetricRule,
   AlertRuleTriggerType,
   Dataset,
-  MetricRule,
 } from 'sentry/views/alerts/rules/metric/types';
-import {Incident, IncidentActivityType, IncidentStatus} from 'sentry/views/alerts/types';
+import {
+  type Incident,
+  IncidentActivityType,
+  IncidentStatus,
+} from 'sentry/views/alerts/types';
 import {
   ALERT_CHART_MIN_MAX_BUFFER,
   alertAxisFormatter,

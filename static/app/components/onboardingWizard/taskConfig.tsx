@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import {navigateTo} from 'sentry/actionCreators/navigation';
-import {Client} from 'sentry/api';
+import {type Client} from 'sentry/api';
 import {taskIsDone} from 'sentry/components/onboardingWizard/utils';
 import {filterProjects} from 'sentry/components/performanceOnboarding/utils';
 import {sourceMaps} from 'sentry/data/platformCategories';
@@ -10,18 +10,18 @@ import {t} from 'sentry/locale';
 import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
 import space from 'sentry/styles/space';
 import {
-  OnboardingSupplementComponentProps,
-  OnboardingTask,
-  OnboardingTaskDescriptor,
+  type OnboardingSupplementComponentProps,
+  type OnboardingTask,
+  type OnboardingTaskDescriptor,
+  type Organization,
+  type Project,
   OnboardingTaskKey,
-  Organization,
-  Project,
 } from 'sentry/types';
 import {isDemoWalkthrough} from 'sentry/utils/demoMode';
 import EventWaiter from 'sentry/utils/eventWaiter';
 import projectSupportsReplay from 'sentry/utils/replays/projectSupportsReplay';
 import withApi from 'sentry/utils/withApi';
-import {OnboardingState} from 'sentry/views/onboarding/types';
+import {type OnboardingState} from 'sentry/views/onboarding/types';
 
 import OnboardingProjectsCard from './onboardingProjectsCard';
 

@@ -5,8 +5,8 @@ import {Button} from 'sentry/components/button';
 import {t} from 'sentry/locale';
 import {LightFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 import {
+  type ProfileGroup,
   importDroppedProfile,
-  ProfileGroup,
 } from 'sentry/utils/profiling/profile/importProfile';
 
 export interface ProfileDragDropImportProps {

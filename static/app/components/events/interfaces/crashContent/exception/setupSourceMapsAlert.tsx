@@ -1,14 +1,14 @@
 import {Alert} from 'sentry/components/alert';
 import {isEventFromBrowserJavaScriptSDK} from 'sentry/components/events/interfaces/spans/utils';
 import ExternalLink from 'sentry/components/links/externalLink';
-import {PlatformKey, sourceMaps} from 'sentry/data/platformCategories';
+import {type PlatformKey, sourceMaps} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
 import {
-  EntryException,
+  type EntryException,
+  type Event,
+  type EventTransaction,
+  type Organization,
   EntryType,
-  Event,
-  EventTransaction,
-  Organization,
 } from 'sentry/types';
 import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';

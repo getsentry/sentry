@@ -11,13 +11,13 @@ import Version from 'sentry/components/version';
 import {t, tct, tn} from 'sentry/locale';
 import TeamStore from 'sentry/stores/teamStore';
 import {
-  GroupActivity,
-  GroupActivityAssigned,
-  GroupActivitySetIgnored,
+  type GroupActivity,
+  type GroupActivityAssigned,
+  type GroupActivitySetIgnored,
+  type Organization,
+  type Project,
+  type User,
   GroupActivityType,
-  Organization,
-  Project,
-  User,
 } from 'sentry/types';
 
 type Props = {

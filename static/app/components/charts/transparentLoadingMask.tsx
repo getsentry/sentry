@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import LoadingMask, {LoadingMaskProps} from 'sentry/components/loadingMask';
+import LoadingMask, {type LoadingMaskProps} from 'sentry/components/loadingMask';
 
 interface TransparentLoadingMaskProps extends LoadingMaskProps {
   visible: boolean;

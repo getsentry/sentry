@@ -5,9 +5,9 @@ import styled from '@emotion/styled';
 import {Button} from 'sentry/components/button';
 import Clipboard from 'sentry/components/clipboard';
 import {
+  type InputProps,
   Input,
   InputGroup,
-  InputProps,
   InputTrailingItems,
 } from 'sentry/components/inputGroup';
 import {IconCopy} from 'sentry/icons';

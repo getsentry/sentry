@@ -3,7 +3,7 @@ import {createPortal} from 'react-dom';
 import {browserHistory} from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import {createFocusTrap, FocusTrap} from 'focus-trap';
+import {type FocusTrap, createFocusTrap} from 'focus-trap';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import {closeModal as actionCloseModal} from 'sentry/actionCreators/modal';

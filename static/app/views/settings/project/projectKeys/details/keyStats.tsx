@@ -1,14 +1,14 @@
 import {Component} from 'react';
-import {RouteComponentProps} from 'react-router';
+import {type RouteComponentProps} from 'react-router';
 
-import {Client} from 'sentry/api';
+import {type Client} from 'sentry/api';
 import MiniBarChart from 'sentry/components/charts/miniBarChart';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import LoadingError from 'sentry/components/loadingError';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
-import {Series} from 'sentry/types/echarts';
+import {type Series} from 'sentry/types/echarts';
 import theme from 'sentry/utils/theme';
 
 type Props = {

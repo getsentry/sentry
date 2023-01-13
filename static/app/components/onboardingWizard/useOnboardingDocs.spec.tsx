@@ -6,7 +6,7 @@ import {
   generateDocKeys,
   isPlatformSupported,
 } from 'sentry/components/performanceOnboarding/utils';
-import {PlatformIntegration} from 'sentry/types';
+import {type PlatformIntegration} from 'sentry/types';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
 describe('useOnboardingDocs', function () {

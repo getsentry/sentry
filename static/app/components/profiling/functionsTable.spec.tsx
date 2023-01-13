@@ -1,4 +1,4 @@
-import {ReactElement, useEffect} from 'react';
+import {type ReactElement, useEffect} from 'react';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 

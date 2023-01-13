@@ -1,20 +1,20 @@
 import {Fragment} from 'react';
 import {setTag} from '@sentry/react';
-import {Location} from 'history';
+import {type Location} from 'history';
 
 import Feature from 'sentry/components/acl/feature';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {Organization, Project} from 'sentry/types';
+import {type Organization, type Project} from 'sentry/types';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
-import EventView from 'sentry/utils/discover/eventView';
+import type EventView from 'sentry/utils/discover/eventView';
 import SpanExamplesQuery, {
-  ChildrenProps as SpanExamplesProps,
+  type ChildrenProps as SpanExamplesProps,
 } from 'sentry/utils/performance/suspectSpans/spanExamplesQuery';
 import SuspectSpansQuery, {
-  ChildrenProps as SuspectSpansProps,
+  type ChildrenProps as SuspectSpansProps,
 } from 'sentry/utils/performance/suspectSpans/suspectSpansQuery';
-import {SpanSlug} from 'sentry/utils/performance/suspectSpans/types';
+import {type SpanSlug} from 'sentry/utils/performance/suspectSpans/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';

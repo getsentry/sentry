@@ -4,7 +4,7 @@ import isEqual from 'lodash/isEqual';
 
 import {Button} from 'sentry/components/button';
 import FormContext, {
-  FormContextData,
+  type FormContextData,
 } from 'sentry/components/deprecatedforms/formContext';
 import FormState from 'sentry/components/forms/state';
 import {t} from 'sentry/locale';

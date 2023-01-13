@@ -1,19 +1,19 @@
 import {browserHistory} from 'react-router';
-import {Theme, useTheme} from '@emotion/react';
+import {type Theme, useTheme} from '@emotion/react';
 import type {LegendComponentOption} from 'echarts';
 
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import {
+  type LineChartProps,
+  type LineChartSeries,
   LineChart,
-  LineChartProps,
-  LineChartSeries,
 } from 'sentry/components/charts/lineChart';
 import TransitionChart from 'sentry/components/charts/transitionChart';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
-import {EventsStatsData, OrganizationSummary, Project} from 'sentry/types';
-import {Series} from 'sentry/types/echarts';
+import {type EventsStatsData, type OrganizationSummary, type Project} from 'sentry/types';
+import {type Series} from 'sentry/types/echarts';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import {
   axisLabelFormatter,
@@ -26,13 +26,13 @@ import {decodeList} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useRouter from 'sentry/utils/useRouter';
 
-import {ViewProps} from '../types';
+import {type ViewProps} from '../types';
 
 import {
-  NormalizedTrendsTransaction,
-  TrendChangeType,
-  TrendFunctionField,
-  TrendsStats,
+  type NormalizedTrendsTransaction,
+  type TrendChangeType,
+  type TrendFunctionField,
+  type TrendsStats,
 } from './types';
 import {
   generateTrendFunctionAsString,

@@ -1,4 +1,4 @@
-import {Client, Request} from 'sentry/api';
+import {type Request, Client} from 'sentry/api';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 
 type Options = {

@@ -1,34 +1,34 @@
 import {browserHistory} from 'react-router';
-import {Theme} from '@emotion/react';
-import {Location} from 'history';
+import {type Theme} from '@emotion/react';
+import {type Location} from 'history';
 import isNumber from 'lodash/isNumber';
 import isString from 'lodash/isString';
 import maxBy from 'lodash/maxBy';
 import set from 'lodash/set';
 import moment from 'moment';
 
-import {Organization} from 'sentry/types';
-import {EntrySpans, EntryType, EventTransaction} from 'sentry/types/event';
+import {type Organization} from 'sentry/types';
+import {type EntrySpans, type EventTransaction, EntryType} from 'sentry/types/event';
 import {assert} from 'sentry/types/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {WebVital} from 'sentry/utils/fields';
-import {TraceError} from 'sentry/utils/performance/quickTrace/types';
+import {type TraceError} from 'sentry/utils/performance/quickTrace/types';
 import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import {getPerformanceTransaction} from 'sentry/utils/performanceForSentry';
 
 import {MERGE_LABELS_THRESHOLD_PERCENT} from './constants';
-import SpanTreeModel from './spanTreeModel';
+import type SpanTreeModel from './spanTreeModel';
 import {
-  EnhancedSpan,
-  GapSpanType,
-  OrphanSpanType,
-  OrphanTreeDepth,
-  ParsedTraceType,
-  ProcessedSpanType,
-  RawSpanType,
-  SpanType,
-  TraceContextType,
-  TreeDepthType,
+  type EnhancedSpan,
+  type GapSpanType,
+  type OrphanSpanType,
+  type OrphanTreeDepth,
+  type ParsedTraceType,
+  type ProcessedSpanType,
+  type RawSpanType,
+  type SpanType,
+  type TraceContextType,
+  type TreeDepthType,
 } from './types';
 
 export const isValidSpanID = (maybeSpanID: any) =>

@@ -1,7 +1,7 @@
 import {Component, lazy, Suspense} from 'react';
 
 import HookStore from 'sentry/stores/hookStore';
-import {HookName, Hooks} from 'sentry/types/hooks';
+import {type HookName, type Hooks} from 'sentry/types/hooks';
 
 type Params<H extends HookName> = {
   /**

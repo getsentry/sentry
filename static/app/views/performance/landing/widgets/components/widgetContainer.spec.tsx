@@ -1,6 +1,6 @@
 import {
+  type initializeDataSettings,
   initializeData as _initializeData,
-  initializeDataSettings,
 } from 'sentry-test/performance/initializePerformanceData';
 import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 

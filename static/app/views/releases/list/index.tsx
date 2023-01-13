@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 import {forceCheck} from 'react-lazyload';
-import {RouteComponentProps} from 'react-router';
+import {type RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
@@ -31,12 +31,12 @@ import {t, tct} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import space from 'sentry/styles/space';
 import {
-  Organization,
-  PageFilters,
-  Project,
-  Release,
+  type Organization,
+  type PageFilters,
+  type Project,
+  type Release,
+  type Tag,
   ReleaseStatus,
-  Tag,
 } from 'sentry/types';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import {SEMVER_TAGS} from 'sentry/utils/discover/fields';

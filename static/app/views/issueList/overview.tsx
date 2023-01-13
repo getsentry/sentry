@@ -1,9 +1,9 @@
 import {Component} from 'react';
-import {browserHistory, RouteComponentProps} from 'react-router';
+import {type RouteComponentProps, browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {withProfiler} from '@sentry/react';
 import * as Sentry from '@sentry/react';
-import {Location} from 'history';
+import {type Location} from 'history';
 import Cookies from 'js-cookie';
 import isEqual from 'lodash/isEqual';
 import mapValues from 'lodash/mapValues';
@@ -14,11 +14,11 @@ import * as qs from 'query-string';
 import {addMessage} from 'sentry/actionCreators/indicator';
 import {fetchOrgMembers, indexMembersByProject} from 'sentry/actionCreators/members';
 import {fetchTagValues, loadOrganizationTags} from 'sentry/actionCreators/tags';
-import {Client} from 'sentry/api';
+import {type Client} from 'sentry/api';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
-import Pagination, {CursorHandler} from 'sentry/components/pagination';
+import Pagination, {type CursorHandler} from 'sentry/components/pagination';
 import {Panel, PanelBody} from 'sentry/components/panels';
 import QueryCount from 'sentry/components/queryCount';
 import ProcessingIssueList from 'sentry/components/stream/processingIssueList';
@@ -27,13 +27,13 @@ import {t, tct, tn} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import space from 'sentry/styles/space';
 import {
-  BaseGroup,
-  Group,
+  type BaseGroup,
+  type Group,
+  type Organization,
+  type PageFilters,
+  type SavedSearch,
+  type TagCollection,
   IssueCategory,
-  Organization,
-  PageFilters,
-  SavedSearch,
-  TagCollection,
 } from 'sentry/types';
 import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
@@ -45,7 +45,7 @@ import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {decodeScalar} from 'sentry/utils/queryString';
 import withRouteAnalytics, {
-  WithRouteAnalyticsProps,
+  type WithRouteAnalyticsProps,
 } from 'sentry/utils/routeAnalytics/withRouteAnalytics';
 import withApi from 'sentry/utils/withApi';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
@@ -60,13 +60,13 @@ import IssueListFilters from './filters';
 import GroupListBody from './groupListBody';
 import IssueListHeader from './header';
 import {
+  type QueryCounts,
   DEFAULT_ISSUE_STREAM_SORT,
   getTabs,
   getTabsWithCounts,
   isForReviewQuery,
   IssueSortOptions,
   Query,
-  QueryCounts,
   TAB_MAX_COUNT,
 } from './utils';
 

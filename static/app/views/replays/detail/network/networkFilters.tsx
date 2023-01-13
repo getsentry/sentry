@@ -2,7 +2,7 @@ import CompactSelect from 'sentry/components/compactSelect';
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
 import FiltersGrid from 'sentry/views/replays/detail/filtersGrid';
-import useNetworkFilters from 'sentry/views/replays/detail/network/useNetworkFilters';
+import type useNetworkFilters from 'sentry/views/replays/detail/network/useNetworkFilters';
 import type {NetworkSpan} from 'sentry/views/replays/types';
 
 type Props = {

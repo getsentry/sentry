@@ -1,18 +1,18 @@
-import {Client} from 'sentry/api';
+import {type Client} from 'sentry/api';
 import {joinQuery, parseSearch, Token} from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
-import {Group, Organization, PageFilters} from 'sentry/types';
+import {type Group, type Organization, type PageFilters} from 'sentry/types';
 import {getIssueFieldRenderer} from 'sentry/utils/dashboards/issueFieldRenderers';
 import {getUtcDateString} from 'sentry/utils/dates';
-import {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
+import {type TableData, type TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import {
   DISCOVER_EXCLUSION_FIELDS,
   getSortLabel,
   IssueSortOptions,
 } from 'sentry/views/issueList/utils';
 
-import {DEFAULT_TABLE_LIMIT, DisplayType, WidgetQuery} from '../types';
+import {type WidgetQuery, DEFAULT_TABLE_LIMIT, DisplayType} from '../types';
 import {IssuesSearchBar} from '../widgetBuilder/buildSteps/filterResultsStep/issuesSearchBar';
 import {ISSUE_FIELD_TO_HEADER_MAP} from '../widgetBuilder/issueWidget/fields';
 import {
@@ -20,7 +20,7 @@ import {
   ISSUE_WIDGET_SORT_OPTIONS,
 } from '../widgetBuilder/issueWidget/utils';
 
-import {DatasetConfig} from './base';
+import {type DatasetConfig} from './base';
 
 const DEFAULT_WIDGET_QUERY: WidgetQuery = {
   name: '',

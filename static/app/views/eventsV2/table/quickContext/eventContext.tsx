@@ -1,6 +1,6 @@
 import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import {type Location} from 'history';
 
 import {
   getStacktrace,
@@ -8,9 +8,9 @@ import {
 } from 'sentry/components/groupPreviewTooltip/stackTracePreview';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Event, Project} from 'sentry/types';
+import {type Event, type Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import EventView from 'sentry/utils/discover/eventView';
+import type EventView from 'sentry/utils/discover/eventView';
 import {getDuration} from 'sentry/utils/formatters';
 import TraceMetaQuery from 'sentry/utils/performance/quickTrace/traceMetaQuery';
 import {getTraceTimeRangeFromEvent} from 'sentry/utils/performance/quickTrace/utils';
@@ -31,7 +31,7 @@ import {
   NoContextWrapper,
   Wrapper,
 } from './styles';
-import {BaseContextProps, ContextType, tenSecondInMs} from './utils';
+import {type BaseContextProps, ContextType, tenSecondInMs} from './utils';
 
 interface EventContextProps extends BaseContextProps {
   eventView?: EventView;

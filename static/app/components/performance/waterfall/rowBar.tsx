@@ -1,11 +1,11 @@
 import styled from '@emotion/styled';
 
 import {
+  type SpanBarType,
   ROW_HEIGHT,
   ROW_PADDING,
-  SpanBarType,
 } from 'sentry/components/performance/waterfall/constants';
-import {DurationDisplay} from 'sentry/components/performance/waterfall/types';
+import {type DurationDisplay} from 'sentry/components/performance/waterfall/types';
 import {
   getDurationPillAlignment,
   getDurationPillColours,

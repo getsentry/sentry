@@ -5,12 +5,12 @@ import styled from '@emotion/styled';
 
 import MenuHeader from 'sentry/components/actions/menuHeader';
 import Checkbox from 'sentry/components/checkbox';
-import {GetActorPropsFn} from 'sentry/components/deprecatedDropdownMenu';
+import {type GetActorPropsFn} from 'sentry/components/deprecatedDropdownMenu';
 import MenuItem from 'sentry/components/menuItem';
-import {TeamSelection} from 'sentry/components/performance/teamKeyTransactionsManager';
+import {type TeamSelection} from 'sentry/components/performance/teamKeyTransactionsManager';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization, Project, Team} from 'sentry/types';
+import {type Organization, type Project, type Team} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {MAX_TEAM_KEY_TRANSACTIONS} from 'sentry/utils/performance/constants';

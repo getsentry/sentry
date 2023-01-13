@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {WithRouterProps} from 'react-router';
+import {type WithRouterProps} from 'react-router';
 import uniqBy from 'lodash/uniqBy';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -9,11 +9,11 @@ import IntegrationExternalMappingForm from 'sentry/components/integrationExterna
 import IntegrationExternalMappings from 'sentry/components/integrationExternalMappings';
 import {t} from 'sentry/locale';
 import {
-  ExternalActorMapping,
-  ExternalActorMappingOrSuggestion,
-  Integration,
-  Organization,
-  Team,
+  type ExternalActorMapping,
+  type ExternalActorMappingOrSuggestion,
+  type Integration,
+  type Organization,
+  type Team,
 } from 'sentry/types';
 import {sentryNameToOption} from 'sentry/utils/integrationUtil';
 import withOrganization from 'sentry/utils/withOrganization';

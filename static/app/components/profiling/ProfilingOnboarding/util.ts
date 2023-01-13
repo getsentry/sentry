@@ -1,7 +1,7 @@
 import partition from 'lodash/partition';
 
-import {PlatformKey, profiling} from 'sentry/data/platformCategories';
-import {Project} from 'sentry/types/project';
+import {type PlatformKey, profiling} from 'sentry/data/platformCategories';
+import {type Project} from 'sentry/types/project';
 
 export const supportedProfilingPlatforms = profiling;
 export const supportedProfilingPlatformSDKs = [

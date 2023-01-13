@@ -1,5 +1,5 @@
 import {Component, Fragment} from 'react';
-import {WithRouterProps} from 'react-router';
+import {type WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import MD5 from 'crypto-js/md5';
 import isEqual from 'lodash/isEqual';
@@ -7,7 +7,7 @@ import isObject from 'lodash/isObject';
 import keyBy from 'lodash/keyBy';
 import pickBy from 'lodash/pickBy';
 
-import {Client} from 'sentry/api';
+import {type Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
 import AvatarList from 'sentry/components/avatar/avatarList';
 import DateTime from 'sentry/components/dateTime';
@@ -26,15 +26,15 @@ import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import space from 'sentry/styles/space';
 import {
-  AvatarUser,
-  CurrentRelease,
-  Environment,
-  Group,
-  Organization,
-  Project,
-  TagWithTopValues,
+  type AvatarUser,
+  type CurrentRelease,
+  type Environment,
+  type Group,
+  type Organization,
+  type Project,
+  type TagWithTopValues,
 } from 'sentry/types';
-import {Event} from 'sentry/types/event';
+import {type Event} from 'sentry/types/event';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {userDisplayName} from 'sentry/utils/formatters';

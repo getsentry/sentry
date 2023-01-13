@@ -1,7 +1,7 @@
 import moment from 'moment';
 
 import autoCompleteFilter from 'sentry/components/dropdownAutoComplete/autoCompleteFilter';
-import {ItemsBeforeFilter} from 'sentry/components/dropdownAutoComplete/types';
+import {type ItemsBeforeFilter} from 'sentry/components/dropdownAutoComplete/types';
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {t, tn} from 'sentry/locale';
 

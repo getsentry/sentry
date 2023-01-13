@@ -2,15 +2,15 @@ import styled from '@emotion/styled';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import AbstractExternalIssueForm, {
-  ExternalIssueFormErrors,
+  type ExternalIssueFormErrors,
 } from 'sentry/components/externalIssues/abstractExternalIssueForm';
-import {FormProps} from 'sentry/components/forms/form';
+import {type FormProps} from 'sentry/components/forms/form';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Choices, IssueConfigField, Organization} from 'sentry/types';
-import {IssueAlertRuleAction} from 'sentry/types/alerts';
-import AsyncView from 'sentry/views/asyncView';
+import {type Choices, type IssueConfigField, type Organization} from 'sentry/types';
+import {type IssueAlertRuleAction} from 'sentry/types/alerts';
+import type AsyncView from 'sentry/views/asyncView';
 
 const IGNORED_FIELDS = ['Sprint'];
 

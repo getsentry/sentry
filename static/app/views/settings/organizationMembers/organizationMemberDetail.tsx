@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {browserHistory, RouteComponentProps} from 'react-router';
+import {type RouteComponentProps, browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
@@ -23,7 +23,7 @@ import Tooltip from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import configStore from 'sentry/stores/configStore';
 import space from 'sentry/styles/space';
-import {Member, Organization, Team} from 'sentry/types';
+import {type Member, type Organization, type Team} from 'sentry/types';
 import isMemberDisabledFromLimit from 'sentry/utils/isMemberDisabledFromLimit';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import Teams from 'sentry/utils/teams';

@@ -1,11 +1,11 @@
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import {t} from 'sentry/locale';
-import {OrganizationSummary} from 'sentry/types';
+import {type OrganizationSummary} from 'sentry/types';
 import withOrganizations from 'sentry/utils/withOrganizations';
 import {
-  NotificationSettingsByProviderObject,
-  NotificationSettingsObject,
+  type NotificationSettingsByProviderObject,
+  type NotificationSettingsObject,
 } from 'sentry/views/settings/account/notifications/constants';
 import {
   getParentData,

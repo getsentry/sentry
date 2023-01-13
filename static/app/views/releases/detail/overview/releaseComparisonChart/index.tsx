@@ -2,9 +2,9 @@ import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
-import {Location} from 'history';
+import {type Location} from 'history';
 
-import {Client} from 'sentry/api';
+import {type Client} from 'sentry/api';
 import {Button} from 'sentry/components/button';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
 import {ChartContainer} from 'sentry/components/charts/styles';
@@ -14,16 +14,16 @@ import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import NotAvailable from 'sentry/components/notAvailable';
 import {Panel, PanelTable} from 'sentry/components/panels';
 import Tooltip from 'sentry/components/tooltip';
-import {PlatformKey} from 'sentry/data/platformCategories';
+import {type PlatformKey} from 'sentry/data/platformCategories';
 import {IconArrow, IconChevron, IconList, IconWarning} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {
-  Organization,
+  type Organization,
+  type ReleaseProject,
+  type ReleaseWithHealth,
+  type SessionApiResponse,
   ReleaseComparisonChartType,
-  ReleaseProject,
-  ReleaseWithHealth,
-  SessionApiResponse,
   SessionFieldWithOperation,
   SessionStatus,
 } from 'sentry/types';
@@ -33,7 +33,7 @@ import {formatPercentage} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import {getCount, getCrashFreeRate, getSessionStatusRate} from 'sentry/utils/sessions';
-import {Color} from 'sentry/utils/theme';
+import {type Color} from 'sentry/utils/theme';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {
   displaySessionStatusPercent,

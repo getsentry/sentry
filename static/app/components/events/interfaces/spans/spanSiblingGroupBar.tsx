@@ -6,20 +6,25 @@ import {
   TreeConnector,
 } from 'sentry/components/performance/waterfall/treeConnector';
 import {t} from 'sentry/locale';
-import {EventTransaction} from 'sentry/types/event';
+import {type EventTransaction} from 'sentry/types/event';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import {SpanGroupBar} from './spanGroupBar';
 import SpanRectangle from './spanRectangle';
 import {SpanRectangleOverlay} from './spanRectangleOverlay';
-import {EnhancedSpan, ProcessedSpanType, SpanType, TreeDepthType} from './types';
 import {
+  type EnhancedSpan,
+  type ProcessedSpanType,
+  type SpanType,
+  type TreeDepthType,
+} from './types';
+import {
+  type SpanBoundsType,
+  type SpanGeneratedBoundsType,
   getSpanGroupBounds,
   isOrphanSpan,
   isOrphanTreeDepth,
-  SpanBoundsType,
-  SpanGeneratedBoundsType,
   unwrapTreeDepth,
 } from './utils';
 

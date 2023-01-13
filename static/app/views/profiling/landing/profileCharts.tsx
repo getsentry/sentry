@@ -1,5 +1,5 @@
 import {useMemo} from 'react';
-import {InjectedRouter} from 'react-router';
+import {type InjectedRouter} from 'react-router';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -9,8 +9,8 @@ import {HeaderTitle} from 'sentry/components/charts/styles';
 import {Panel} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {PageFilters} from 'sentry/types';
-import {Series} from 'sentry/types/echarts';
+import {type PageFilters} from 'sentry/types';
+import {type Series} from 'sentry/types/echarts';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import {useProfileEventsStats} from 'sentry/utils/profiling/hooks/useProfileEventsStats';

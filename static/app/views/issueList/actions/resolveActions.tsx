@@ -1,7 +1,7 @@
 import ResolveActions from 'sentry/components/actions/resolve';
-import {Organization, Release} from 'sentry/types';
+import {type Organization, type Release} from 'sentry/types';
 
-import {ConfirmAction, getConfirm, getLabel} from './utils';
+import {type getConfirm, type getLabel, ConfirmAction} from './utils';
 
 type Props = {
   anySelected: boolean;

@@ -1,5 +1,5 @@
 import {PureComponent} from 'react';
-import {browserHistory, WithRouterProps} from 'react-router';
+import {type WithRouterProps, browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import color from 'color';
 import type {LineSeriesOption} from 'echarts';
@@ -7,10 +7,10 @@ import capitalize from 'lodash/capitalize';
 import moment from 'moment';
 import momentTimezone from 'moment-timezone';
 
-import {Client} from 'sentry/api';
+import {type Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
 import {Button} from 'sentry/components/button';
-import {AreaChart, AreaChartSeries} from 'sentry/components/charts/areaChart';
+import {type AreaChartSeries, AreaChart} from 'sentry/components/charts/areaChart';
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import MarkArea from 'sentry/components/charts/components/markArea';
 import MarkLine from 'sentry/components/charts/components/markLine';
@@ -26,8 +26,8 @@ import {
 } from 'sentry/components/charts/styles';
 import CircleIndicator from 'sentry/components/circleIndicator';
 import {
+  type StatsPeriodType,
   parseStatsPeriod,
-  StatsPeriodType,
 } from 'sentry/components/organizations/pageFilters/parse';
 import {Panel, PanelBody} from 'sentry/components/panels';
 import Placeholder from 'sentry/components/placeholder';
@@ -36,8 +36,8 @@ import {IconCheckmark, IconFire, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import space from 'sentry/styles/space';
-import {DateString, Organization, Project} from 'sentry/types';
-import {ReactEchartsRef, Series} from 'sentry/types/echarts';
+import {type DateString, type Organization, type Project} from 'sentry/types';
+import {type ReactEchartsRef, type Series} from 'sentry/types/echarts';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {getDuration} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
@@ -50,15 +50,15 @@ import withSentryRouter from 'sentry/utils/withSentryRouter';
 import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/rules/metric/constants';
 import {makeDefaultCta} from 'sentry/views/alerts/rules/metric/metricRulePresets';
 import {
+  type MetricRule,
   AlertRuleTriggerType,
-  MetricRule,
   TimePeriod,
 } from 'sentry/views/alerts/rules/metric/types';
 import {getChangeStatus} from 'sentry/views/alerts/utils/getChangeStatus';
 import {AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
 
-import {Incident} from '../../../types';
+import {type Incident} from '../../../types';
 import {
   alertDetailsLink,
   alertTooltipValueFormatter,
@@ -68,7 +68,7 @@ import {
 import {getMetricDatasetQueryExtras} from '../utils/getMetricDatasetQueryExtras';
 import {isCrashFreeAlert} from '../utils/isCrashFreeAlert';
 
-import {TimePeriodType} from './constants';
+import {type TimePeriodType} from './constants';
 import {
   getMetricAlertChartOption,
   transformSessionResponseToSeries,

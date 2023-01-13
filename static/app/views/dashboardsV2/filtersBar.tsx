@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import {type Location} from 'history';
 
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
@@ -17,7 +17,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
 import ReleasesSelectControl from './releasesSelectControl';
-import {DashboardFilterKeys, DashboardFilters} from './types';
+import {type DashboardFilters, DashboardFilterKeys} from './types';
 
 type FiltersBarProps = {
   filters: DashboardFilters;

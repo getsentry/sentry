@@ -1,7 +1,7 @@
-import {EventsStatsData, Organization} from 'sentry/types';
+import {type EventsStatsData, type Organization} from 'sentry/types';
 import GenericDiscoverQuery, {
-  DiscoverQueryProps,
-  GenericChildrenProps,
+  type DiscoverQueryProps,
+  type GenericChildrenProps,
 } from 'sentry/utils/discover/genericDiscoverQuery';
 import {ANOMALY_FLAG} from 'sentry/views/performance/transactionSummary/transactionAnomalies/utils';
 
