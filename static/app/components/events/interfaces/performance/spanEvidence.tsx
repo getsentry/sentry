@@ -34,7 +34,7 @@ export function SpanEvidenceSection({event, issueType, organization}: Props) {
     <DataSection
       title={t('Span Evidence')}
       description={t(
-        'Span Evidence identifies the root cause of this transaction, found in other similar events within this issue.'
+        'Span Evidence identifies the root cause of this issue, found in other similar events within the same issue.'
       )}
     >
       <SpanEvidenceKeyValueList
