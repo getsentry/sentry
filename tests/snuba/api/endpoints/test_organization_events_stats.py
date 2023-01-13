@@ -149,14 +149,14 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
             self.user.id,
             [f"{GroupType.PROFILE_BLOCKED_THREAD.value}-group1"],
             "prod",
-            timezone.now().replace(hour=1, minute=0, second=0) + timedelta(minutes=1),
+            timezone.now().replace(hour=3, minute=0, second=0) + timedelta(minutes=1),
         )
         self.store_search_issue(
             self.project.id,
             self.user.id,
             [f"{GroupType.PROFILE_BLOCKED_THREAD.value}-group1"],
             "prod",
-            timezone.now().replace(hour=3, minute=0, second=0) + timedelta(minutes=2),
+            timezone.now().replace(hour=3, minute=1, second=0) + timedelta(minutes=2),
         )
         with self.feature(
             [
@@ -166,14 +166,14 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
             response = self.do_request(
                 {
                     "start": timezone.now().replace(hour=0, minute=0, second=0),
-                    "end": timezone.now().replace(hour=2, minute=0, second=0),
+                    "end": timezone.now().replace(hour=4, minute=0, second=0),
                     "interval": "4h",
                     "query": f"issue:{group_info.group.qualified_short_id}",
                     "dataset": "issuePlatform",
                 },
             )
         assert response.status_code == 200, response.content
-        assert [attrs for time, attrs in response.data["data"]] == [[{"count": 1}], [{"count": 2}]]
+        assert [attrs for time, attrs in response.data["data"]] == [[{"count": 3}], [{"count": 0}]]
 
     def test_misaligned_last_bucket(self):
         response = self.do_request(
