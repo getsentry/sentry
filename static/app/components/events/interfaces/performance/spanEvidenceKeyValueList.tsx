@@ -1,15 +1,17 @@
 import {t} from 'sentry/locale';
-import {IssueType, KeyValueListData} from 'sentry/types';
+import {IssueType, KeyValueListData, KeyValueListDataItem} from 'sentry/types';
 
 import KeyValueList from '../keyValueList';
 import {RawSpanType} from '../spans/types';
 
 import {TraceContextSpanProxy} from './spanEvidence';
 
+type Span = RawSpanType | TraceContextSpanProxy;
+
 type SpanEvidenceKeyValueListProps = {
   issueType: IssueType | undefined;
-  offendingSpans: Array<RawSpanType | TraceContextSpanProxy>;
-  parentSpan: RawSpanType | TraceContextSpanProxy | null;
+  offendingSpans: Span[];
+  parentSpan: Span | null;
   transactionName: string;
 };
 
@@ -30,105 +32,90 @@ export function SpanEvidenceKeyValueList(props: SpanEvidenceKeyValueListProps) {
   return <Component {...props} />;
 }
 
-const NPlusOneDBQueriesSpanEvidence = ({offendingSpans, parentSpan, transactionName}) => (
+const NPlusOneDBQueriesSpanEvidence = ({
+  transactionName,
+  parentSpan,
+  offendingSpans,
+}: Pick<
+  SpanEvidenceKeyValueListProps,
+  'transactionName' | 'parentSpan' | 'offendingSpans'
+>) => (
   <KeyValueList
     data={
       [
-        {
-          key: 'transaction-name',
-          subject: t('Transaction'),
-          value: transactionName,
-          subjectDataTestId: `${TEST_ID_NAMESPACE}.transaction-name`,
-        },
-        {
-          key: 'parent-span',
-          subject: t('Parent Span'),
-          value: getSpanEvidenceValue(parentSpan),
-          subjectDataTestId: `${TEST_ID_NAMESPACE}.parent-name`,
-        },
-        {
-          key: 'repeating-span',
-          subject: t('Repeating Span'),
-          value: getSpanEvidenceValue(offendingSpans[0]),
-          subjectDataTestId: `${TEST_ID_NAMESPACE}.offending-spans`,
-        },
+        makeTransactionNameRow(transactionName),
+        parentSpan
+          ? makeRow('parent-name', t('Parent Span'), getSpanEvidenceValue(parentSpan))
+          : null,
+        makeRow(
+          'offending-spans',
+          t('Repeating Span'),
+          getSpanEvidenceValue(offendingSpans[0])
+        ),
       ].filter(Boolean) as KeyValueListData
     }
   />
 );
 
-const NPlusOneAPICallsSpanEvidence = ({offendingSpans, transactionName}) => {
+const NPlusOneAPICallsSpanEvidence = ({
+  transactionName,
+  offendingSpans,
+}: Pick<SpanEvidenceKeyValueListProps, 'transactionName' | 'offendingSpans'>) => {
   const problemParameters = getProblemParameters(offendingSpans);
 
   return (
     <KeyValueList
       data={
         [
-          {
-            key: 'transaction-name',
-            subject: t('Transaction'),
-            value: transactionName,
-            subjectDataTestId: `${TEST_ID_NAMESPACE}.transaction-name`,
-          },
-          {
-            key: 'repeating-span',
-            subject: t('Offending Span'),
-            value: getSpanEvidenceValue(offendingSpans[0]),
-            subjectDataTestId: `${TEST_ID_NAMESPACE}.offending-spans`,
-          },
-          getProblemParameters.length > 0 && {
-            key: 'problem-parameter',
-            subject: t('Problem Parameter'),
-            value: problemParameters,
-            subjectDataTestId: `${TEST_ID_NAMESPACE}.problem-parameters`,
-          },
+          makeTransactionNameRow(transactionName),
+          makeRow(
+            'offending-spans',
+            t('Offending Span'),
+            getSpanEvidenceValue(offendingSpans[0])
+          ),
+          getProblemParameters.length > 0
+            ? makeRow('problem-parameters', t('Problem Parameter'), problemParameters)
+            : null,
         ].filter(Boolean) as KeyValueListData
       }
     />
   );
 };
 
-const SlowSpanSpanEvidence = ({offendingSpans, transactionName}) => (
-  <KeyValueList
-    data={
-      [
-        {
-          key: 'transaction-name',
-          subject: t('Transaction'),
-          value: transactionName,
-          subjectDataTestId: `${TEST_ID_NAMESPACE}.transaction-name`,
-        },
-        {
-          key: 'slow-span',
-          subject: t('Slow Span'),
-          value: getSpanEvidenceValue(offendingSpans[0]),
-          subjectDataTestId: `${TEST_ID_NAMESPACE}.offending-spans`,
-        },
-      ].filter(Boolean) as KeyValueListData
-    }
-  />
-);
-
-const DefaultSpanEvidence = ({transactionName, offendingSpans}) => (
+const SlowSpanSpanEvidence = ({
+  transactionName,
+  offendingSpans,
+}: Pick<SpanEvidenceKeyValueListProps, 'transactionName' | 'offendingSpans'>) => (
   <KeyValueList
     data={[
-      {
-        key: 'transaction-name',
-        subject: t('Transaction'),
-        value: transactionName,
-        subjectDataTestId: `${TEST_ID_NAMESPACE}.transaction-name`,
-      },
-      {
-        key: 'offending-span',
-        subject: t('Offending Span'),
-        value: getSpanEvidenceValue(offendingSpans[0]),
-        subjectDataTestId: `${TEST_ID_NAMESPACE}.offending-spans`,
-      },
+      makeTransactionNameRow(transactionName),
+      makeRow(
+        'offending-spans',
+        t('Offending Span'),
+        getSpanEvidenceValue(offendingSpans[0])
+      ),
+      makeRow('slow-span', t('Slow Span'), getSpanEvidenceValue(offendingSpans[0])),
     ]}
   />
 );
 
-function getSpanEvidenceValue(span: RawSpanType | TraceContextSpanProxy | null) {
+const DefaultSpanEvidence = ({
+  transactionName,
+  offendingSpans,
+}: Pick<SpanEvidenceKeyValueListProps, 'transactionName' | 'offendingSpans'>) => (
+  <KeyValueList
+    data={[
+      makeTransactionNameRow(transactionName),
+      makeRow(
+        'offending-spans',
+        t('Offending Span'),
+        getSpanEvidenceValue(offendingSpans[0])
+      ),
+    ]}
+  />
+);
+
+function getSpanEvidenceValue(span: Span | null) {
   if (!span || (!span.op && !span.description)) {
     return t('(no value)');
   }
@@ -171,3 +158,17 @@ function getProblemParameters(
 
   return Array.from(uniqueParameterPairs);
 }
+
+const makeTransactionNameRow = (transactionName: string) =>
+  makeRow('transaction-name', t('Transaction'), transactionName);
+
+const makeRow = (
+  key: KeyValueListDataItem['key'],
+  subject: KeyValueListDataItem['subject'],
+  value: KeyValueListDataItem['value']
+): KeyValueListDataItem => ({
+  key,
+  subject,
+  value,
+  subjectDataTestId: `${TEST_ID_NAMESPACE}.${key}`,
+});
