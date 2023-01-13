@@ -18,11 +18,10 @@ import {makeClosableHeader, makeCloseButton, ModalBody, ModalFooter} from './com
 
 type ModalOptions = {
   /**
-   * Set to `false` to disable the backdrop from being rendered. Set to
-   * `static` to disable the 'click outside' behavior from closing the modal.
-   * Set to true (the default) to show a translucent backdrop
+   * Set to `false` to disable the backdrop from being rendered.
+   * Set to `true` (the default) to show a translucent backdrop.
    */
-  backdrop?: boolean;
+  backdrop?: 'static' | boolean; // TODO(malwilley): Remove 'static' when no longer used in getsentry
   /**
    * Additional CSS which will be applied to the modals `role="dialog"`
    * component. You may use the `[role="document"]` selector to target the
@@ -183,7 +182,9 @@ function GlobalModal({onClose}: Props) {
   const backdrop = options.backdrop ?? true;
 
   const allowBackdropClickClose =
-    options.preventClose !== 'always' && options.preventClose !== 'backdrop-click';
+    options.preventClose !== 'always' &&
+    options.preventClose !== 'backdrop-click' &&
+    options.backdrop !== 'static';
 
   // Only close when we directly click outside of the modal.
   const containerRef = useRef<HTMLDivElement>(null);

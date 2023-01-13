@@ -85,6 +85,33 @@ describe('GlobalModal', function () {
     expect(closeSpy).toHaveBeenCalled();
   });
 
+  it("ignores click out with backdrop: 'static'", async function () {
+    const {waitForModalToHide} = renderGlobalModal();
+    render(<div data-test-id="outside-test">Hello</div>);
+
+    act(() =>
+      openModal(
+        ({Header}) => (
+          <div data-test-id="modal-test">
+            <Header closeButton>Header</Header>Hi
+          </div>
+        ),
+        {backdrop: 'static'}
+      )
+    );
+
+    expect(screen.getByTestId('modal-test')).toBeInTheDocument();
+
+    // Clicking outside of modal doesn't close
+    userEvent.click(screen.getByTestId('outside-test'));
+    expect(screen.getByTestId('modal-test')).toBeInTheDocument();
+
+    // Pressing escape _does_ close
+    userEvent.keyboard('{Escape}');
+    expect(screen.getByTestId('modal-test')).toBeInTheDocument();
+    await waitForModalToHide();
+  });
+
   it("ignores click out with preventClose: 'backdrop-click'", async function () {
     const {waitForModalToHide} = renderGlobalModal();
     render(<div data-test-id="outside-test">Hello</div>);
