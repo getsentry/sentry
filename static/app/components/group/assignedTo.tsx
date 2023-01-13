@@ -10,7 +10,7 @@ import {
   SuggestedAssignee,
 } from 'sentry/components/assigneeSelectorDropdown';
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {AutoCompleteRoot} from 'sentry/components/dropdownAutoComplete/menu';
 import {
