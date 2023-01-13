@@ -30,6 +30,10 @@ module.exports = {
   },
 
   rules: {
+    '@typescript-eslint/consistent-type-imports': [
+      'warn',
+      {prefer: 'type-imports', fixStyle: 'separate-type-imports'},
+    ],
     'react-hooks/exhaustive-deps': [
       'warn',
       {additionalHooks: ADDITIONAL_HOOKS_TO_CHECK_DEPS_FOR},
