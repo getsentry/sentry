@@ -101,6 +101,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
         integration_id: int | None = None,
         provider: str | None = None,
         external_id: str | None = None,
+        organization_id: id | None = None,
     ) -> APIIntegration | None:
         integration_kwargs: Dict[str, Any] = {}
         if integration_id is not None:
@@ -109,6 +110,8 @@ class DatabaseBackedIntegrationService(IntegrationService):
             integration_kwargs["provider"] = provider
         if external_id is not None:
             integration_kwargs["external_id"] = external_id
+        if organization_id is not None:
+            integration_kwargs["organizationintegration__organization_id"] = organization_id
 
         if not integration_kwargs:
             return None
@@ -174,7 +177,10 @@ class DatabaseBackedIntegrationService(IntegrationService):
         external_id: str | None = None,
     ) -> Tuple[APIIntegration | None, APIOrganizationIntegration | None]:
         integration = self.get_integration(
-            integration_id=integration_id, provider=provider, external_id=external_id
+            organization_id=organization_id,
+            integration_id=integration_id,
+            provider=provider,
+            external_id=external_id,
         )
         if not integration:
             return (None, None)
