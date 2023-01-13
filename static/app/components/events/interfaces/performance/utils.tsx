@@ -143,10 +143,14 @@ export function getSpanInfoFromTransactionEvent(
     spanID => spansById[spanID]
   );
 
+  const causeSpans = (event?.perfProblem?.causeSpanIds ?? []).map(
+    spanID => spansById[spanID]
+  );
+
   const affectedSpanIds = [...event.perfProblem.offenderSpanIds];
   if (parentSpan !== null) {
     affectedSpanIds.push(parentSpan.span_id);
   }
 
-  return {parentSpan, offendingSpans, affectedSpanIds};
+  return {parentSpan, offendingSpans, affectedSpanIds, causeSpans};
 }

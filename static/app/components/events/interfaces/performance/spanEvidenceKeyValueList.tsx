@@ -7,6 +7,7 @@ import {RawSpanType} from '../spans/types';
 import {TraceContextSpanProxy} from './spanEvidence';
 
 type SpanEvidenceKeyValueListProps = {
+  causeSpans: Array<RawSpanType | TraceContextSpanProxy>;
   issueType: IssueType | undefined;
   offendingSpans: Array<RawSpanType | TraceContextSpanProxy>;
   parentSpan: RawSpanType | TraceContextSpanProxy | null;
@@ -18,6 +19,7 @@ const TEST_ID_NAMESPACE = 'span-evidence-key-value-list';
 export function SpanEvidenceKeyValueList({
   issueType,
   offendingSpans,
+  causeSpans,
   parentSpan,
   transactionName,
 }: SpanEvidenceKeyValueListProps) {
@@ -29,7 +31,6 @@ export function SpanEvidenceKeyValueList({
       subjectDataTestId: `${TEST_ID_NAMESPACE}.transaction-name`,
     },
   ];
-
   if (issueType === IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES) {
     data.push({
       key: '1',
@@ -47,9 +48,18 @@ export function SpanEvidenceKeyValueList({
   } else if (issueType === IssueType.PERFORMANCE_CONSECUTIVE_DB_QUERIES) {
     data.push({
       key: '2',
-      subject: t('Slow Span'),
-      value: getSpanEvidenceValue(offendingSpans[0]),
-      subjectDataTestId: `${TEST_ID_NAMESPACE}.offending-spans`,
+      subject: t('Starting Span'),
+      value: getSpanEvidenceValue(causeSpans[0]),
+      subjectDataTestId: `${TEST_ID_NAMESPACE}.starting-span`,
+    });
+    offendingSpans.forEach((span, idx) => {
+      // TODO(DominikB2014) - do not repeat `Parallelizable Span`, put under one section
+      data.push({
+        key: (idx + 3).toString(),
+        subject: t('Parallelizable Span'),
+        value: getSpanEvidenceValue(span),
+        subjectDataTestId: `${TEST_ID_NAMESPACE}.offending-span-${idx}`,
+      });
     });
   } else if (issueType === IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS) {
     data.push({
