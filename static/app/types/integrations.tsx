@@ -144,11 +144,30 @@ export type SentryAppSchemaStacktraceLink = {
   params?: Array<string>;
 };
 
+export enum Coverage {
+  NOT_COVERED = 0,
+  COVERED = 1,
+  PARTIAL = 2,
+}
+
+export enum CodecovStatusCode {
+  COVERAGE_EXISTS = 200,
+  NO_INTEGRATION = 404,
+  NO_COVERAGE_DATA = 400,
+}
+
+export type LineCoverage = {
+  coverage: Coverage;
+  lineNo: number;
+};
+
 export type StacktraceLinkResult = {
   integrations: Integration[];
   attemptedUrl?: string;
+  codecovStatusCode?: CodecovStatusCode;
   config?: RepositoryProjectPathConfigWithIntegration;
   error?: StacktraceErrorMessage;
+  lineCoverage?: LineCoverage[];
   sourceUrl?: string;
 };
 

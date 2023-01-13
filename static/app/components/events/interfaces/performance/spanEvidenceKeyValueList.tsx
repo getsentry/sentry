@@ -17,9 +17,9 @@ const TEST_ID_NAMESPACE = 'span-evidence-key-value-list';
 
 export function SpanEvidenceKeyValueList({
   issueType,
-  transactionName,
-  parentSpan,
   offendingSpans,
+  parentSpan,
+  transactionName,
 }: SpanEvidenceKeyValueListProps) {
   const data: KeyValueListData = [
     {
@@ -28,34 +28,63 @@ export function SpanEvidenceKeyValueList({
       value: transactionName,
       subjectDataTestId: `${TEST_ID_NAMESPACE}.transaction-name`,
     },
-    {
+  ];
+
+  if (issueType === IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES) {
+    data.push({
       key: '1',
       subject: t('Parent Span'),
       value: getSpanEvidenceValue(parentSpan),
       subjectDataTestId: `${TEST_ID_NAMESPACE}.parent-name`,
-    },
-    {
+    });
+
+    data.push({
       key: '2',
-      subject:
-        issueType === IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES
-          ? t('Repeating Span')
-          : t('Offending Span'),
+      subject: t('Repeating Span'),
       value: getSpanEvidenceValue(offendingSpans[0]),
       subjectDataTestId: `${TEST_ID_NAMESPACE}.offending-spans`,
-    },
-  ];
-
-  let problemParameters;
-  if (issueType === IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS) {
-    problemParameters = getProblemParameters(offendingSpans);
-  }
-
-  if (problemParameters?.length > 0) {
+    });
+  } else if (issueType === IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS) {
     data.push({
-      key: '3',
-      subject: t('Problem Parameter'),
-      value: problemParameters,
-      subjectDataTestId: `${TEST_ID_NAMESPACE}.problem-parameters`,
+      key: '1',
+      subject: t('Offending Span'),
+      value: getSpanEvidenceValue(offendingSpans[0]),
+      subjectDataTestId: `${TEST_ID_NAMESPACE}.offending-spans`,
+    });
+
+    let problemParameters;
+    if (issueType === IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS) {
+      problemParameters = getProblemParameters(offendingSpans);
+    }
+
+    if (problemParameters?.length > 0) {
+      data.push({
+        key: '2',
+        subject: t('Problem Parameter'),
+        value: problemParameters,
+        subjectDataTestId: `${TEST_ID_NAMESPACE}.problem-parameters`,
+      });
+    }
+  } else if (IssueType.PERFORMANCE_SLOW_SPAN) {
+    data.push({
+      key: '2',
+      subject: t('Slow Span'),
+      value: getSpanEvidenceValue(offendingSpans[0]),
+      subjectDataTestId: `${TEST_ID_NAMESPACE}.offending-spans`,
+    });
+  } else {
+    data.push({
+      key: '1',
+      subject: t('Parent Span'),
+      value: getSpanEvidenceValue(parentSpan),
+      subjectDataTestId: `${TEST_ID_NAMESPACE}.parent-name`,
+    });
+
+    data.push({
+      key: '2',
+      subject: t('Offending Span'),
+      value: getSpanEvidenceValue(offendingSpans[0]),
+      subjectDataTestId: `${TEST_ID_NAMESPACE}.offending-spans`,
     });
   }
 
