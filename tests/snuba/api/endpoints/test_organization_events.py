@@ -606,13 +606,13 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase, SearchIssueTest
             self.user.id,
             [f"{GroupType.PROFILE_BLOCKED_THREAD.value}-group1"],
             "prod",
-            timezone.now().replace(hour=0, minute=0, second=0) + timedelta(minutes=1),
+            timezone.now().replace(hour=0, minute=0, second=0) - timedelta(minutes=10),
         )
 
         query = {
             "field": ["count()"],
             "statsPeriod": "2h",
-            "query": f"project:{self.project.slug} performance.issue_ids:{group_info.group.id}",
+            "query": f"project:{self.project.slug} issue.id:{group_info.group.id}",
             "dataset": "issuePlatform",
         }
         with self.feature(

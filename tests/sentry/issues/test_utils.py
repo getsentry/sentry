@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from hashlib import md5
 from typing import Any, Optional, Sequence, Tuple
 
+import pytz
 from django.utils import timezone
 
 from sentry.event_manager import GroupInfo
@@ -73,7 +74,9 @@ class SearchIssueTestMixin(OccurrenceTestMixin):
     ) -> Tuple[Event, IssueOccurrence, Optional[GroupInfo]]:
         from sentry.utils import snuba
 
-        insert_timestamp = (insert_time if insert_time else timezone.now()).replace(microsecond=0)
+        insert_timestamp = (insert_time if insert_time else timezone.now()).replace(
+            microsecond=0, tzinfo=pytz.utc
+        )
         user_id_val = f"user_{user_id}"
 
         event_data = {
@@ -94,8 +97,15 @@ class SearchIssueTestMixin(OccurrenceTestMixin):
         event = self.store_event(
             data=event_data,
             project_id=project_id,
+            sent_at=datetime.now().replace(hour=0, minute=0, second=0, tzinfo=pytz.utc),
         )
-        occurrence = self.build_occurrence(event_id=event.event_id, fingerprint=fingerprints)
+        occurrence = self.build_occurrence(
+            event_id=event.event_id,
+            fingerprint=fingerprints,
+            detection_time=datetime.now()
+            .replace(hour=0, minute=0, second=0, tzinfo=pytz.utc)
+            .timestamp(),
+        )
         saved_occurrence, group_info = save_issue_occurrence(occurrence.to_dict(), event)
         occurrence = replace(
             occurrence,
