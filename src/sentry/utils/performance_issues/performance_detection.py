@@ -1320,9 +1320,6 @@ class FileIOMainThreadDetector(PerformanceDetector):
             "organizations:performance-file-io-main-thread-detector", organization, actor=None
         )
 
-    def is_creation_allowed_for_project(self, project: Project) -> bool:
-        return self.settings["detection_rate"] > random.random()
-
 
 class MNPlusOneState(ABC):
     """Abstract base class for the MNPlusOneDBSpanDetector state machine."""
