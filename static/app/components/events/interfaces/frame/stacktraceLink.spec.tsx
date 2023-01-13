@@ -7,10 +7,7 @@ import * as analytics from 'sentry/utils/integrationUtil';
 import {StacktraceLink} from './stacktraceLink';
 
 describe('StacktraceLink', function () {
-  const org = TestStubs.Organization({
-    features: ['codecov-stacktrace-integration'],
-    codecovAccess: true,
-  });
+  const org = TestStubs.Organization();
   const platform = 'python';
   const project = TestStubs.Project({});
   const event = TestStubs.Event({
@@ -202,6 +199,11 @@ describe('StacktraceLink', function () {
   });
 
   it('renders the codecov link', async function () {
+    const organization = {
+      ...org,
+      features: ['codecov-stacktrace-integration'],
+      codecovAccess: true,
+    };
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/stacktrace-link/`,
       body: {
@@ -213,7 +215,7 @@ describe('StacktraceLink', function () {
     });
     render(<StacktraceLink frame={frame} event={event} line="foo()" />, {
       context: TestStubs.routerContext(),
-      organization: org,
+      organization,
     });
     expect(await screen.findByText('View Coverage Tests on Codecov')).toHaveAttribute(
       'href',
@@ -222,7 +224,11 @@ describe('StacktraceLink', function () {
   });
 
   it('renders the missing coverage warning', async function () {
-    org.features = ['codecov-stacktrace-integration'];
+    const organization = {
+      ...org,
+      features: ['codecov-stacktrace-integration'],
+      codecovAccess: true,
+    };
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/stacktrace-link/`,
       body: {
@@ -234,7 +240,7 @@ describe('StacktraceLink', function () {
     });
     render(<StacktraceLink frame={frame} event={event} line="foo()" />, {
       context: TestStubs.routerContext(),
-      organization: org,
+      organization,
     });
     expect(await screen.findByText('Code Coverage not found')).toBeInTheDocument();
   });
