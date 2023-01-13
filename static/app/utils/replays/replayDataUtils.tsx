@@ -102,26 +102,6 @@ export function mapResponseToReplayRecord(apiResponse: any): ReplayRecord {
       return acc;
     }, {});
 
-  // Accept camelCase or snake_case names from the API
-  apiResponse.count_errors = apiResponse.count_errors ?? apiResponse.countErrors;
-  apiResponse.count_segments = apiResponse.count_segments ?? apiResponse.countSegments;
-  apiResponse.count_urls = apiResponse.count_urls ?? apiResponse.countUrls;
-  if (apiResponse.device) {
-    apiResponse.device.model_id = apiResponse.device.model_id ?? apiResponse.device.model;
-  }
-  apiResponse.error_ids = apiResponse.error_ids ?? apiResponse.errorIds;
-  apiResponse.finished_at = apiResponse.finished_at ?? apiResponse.finishedAt;
-  apiResponse.longest_transaction =
-    apiResponse.longest_transaction ?? apiResponse.longestTransaction;
-  apiResponse.project_id = apiResponse.project_id ?? apiResponse.projectId;
-  apiResponse.started_at = apiResponse.started_at ?? apiResponse.startedAt;
-  apiResponse.trace_ids = apiResponse.trace_ids ?? apiResponse.traceIds;
-  if (apiResponse.user) {
-    apiResponse.user.display_name =
-      apiResponse.user.display_name ?? apiResponse.user.displayName;
-    apiResponse.user.username = apiResponse.user.username ?? apiResponse.user.name;
-  }
-
   return {
     ...apiResponse,
     ...(apiResponse.started_at ? {started_at: new Date(apiResponse.started_at)} : {}),
