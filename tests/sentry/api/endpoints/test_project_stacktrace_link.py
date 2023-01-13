@@ -5,6 +5,7 @@ from sentry.api.endpoints.project_stacktrace_link import ProjectStacktraceLinkEn
 from sentry.integrations.example.integration import ExampleIntegration
 from sentry.models import Integration, OrganizationIntegration
 from sentry.testutils import APITestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import region_silo_test
 
 example_base_url = "https://example.com/getsentry/sentry/blob/master"
@@ -173,9 +174,7 @@ class ProjectStacktraceLinkTest(BaseProjectStacktraceLink):
         with mock.patch.object(
             ExampleIntegration, "get_stacktrace_link", return_value="https://sourceurl.com/"
         ):
-            response = self.get_success_response(
-                self.organization.slug, self.project.slug, qs_params={"file": self.filepath}
-            )
+            response = self.get_success_response(self.organization.slug, self.project.slug)
             assert response.data["config"] == self.expected_configurations(self.code_mapping1)
             assert response.data["sourceUrl"] == "https://sourceurl.com/"
             assert response.data["integrations"] == [serialized_integration(self.integration)]
@@ -250,9 +249,8 @@ class ProjectStacktraceLinkTest(BaseProjectStacktraceLink):
     def test_get_commit_sha_valid_line_no(self, mock_blame):
         mock_blame.return_value = git_blame
         project_stacktrace_link_endpoint = ProjectStacktraceLinkEndpoint()
-        current_config = {"repository": self.repo, "config": {"defaultBranch": "main"}}
         commit_sha = project_stacktrace_link_endpoint.get_commit_sha(
-            self.integration, self.organization.id, 26, "test/path/file.py", current_config
+            self.integration, self.organization.id, 26, "test/path/file.py", self.repo, "main"
         )
         assert commit_sha == "5c7dc040fe713f718193e28972b43db94e5097b4"
 
@@ -260,11 +258,43 @@ class ProjectStacktraceLinkTest(BaseProjectStacktraceLink):
     def test_get_commit_sha_invalid_line_no(self, mock_blame):
         mock_blame.return_value = git_blame
         project_stacktrace_link_endpoint = ProjectStacktraceLinkEndpoint()
-        current_config = {"repository": self.repo, "config": {"defaultBranch": "main"}}
         commit_sha = project_stacktrace_link_endpoint.get_commit_sha(
-            self.integration, self.organization.id, 80, "test/path/file.py", current_config
+            self.integration, self.organization.id, 80, "test/path/file.py", self.repo, "main"
         )
         assert commit_sha is None
+
+    @mock.patch("sentry.integrations.mixins.repositories.RepositoryMixin.get_stacktrace_link")
+    @mock.patch("sentry.integrations.github.client.GitHubClientMixin.get_blame_for_file")
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @with_feature("organizations:codecov-stacktrace-integration")
+    def test_get_commit_sha_success(self, get_jwt, mock_git_blame, mock_get_stacktrace_link):
+        self.organization.flags.codecov_access = True
+        self.organization.save()
+        self.integration.provider = "github"
+        self.integration.save()
+
+        mock_get_stacktrace_link.side_effect = (
+            "https://github.com/repo/blob/master/src/path/to/file.py"
+        )
+        mock_git_blame.return_value = git_blame
+
+        response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            qs_params={"file": self.filepath, "lineNo": 26},
+        )
+        assert response.data["commitSha"] == "5c7dc040fe713f718193e28972b43db94e5097b4"
+
+    @mock.patch.object(ExampleIntegration, "get_blame_for_file")
+    def test_get_commit_sha_exception(self, mock_blame):
+        mock_blame.return_value = Exception
+        project_stacktrace_link_endpoint = ProjectStacktraceLinkEndpoint()
+        self.assertRaisesMessage(
+            project_stacktrace_link_endpoint.get_commit_sha(
+                self.integration, self.organization.id, 80, "test/path/file.py", self.repo, "main"
+            ),
+            "Could not get git blame",
+        )
 
 
 @region_silo_test
