@@ -16,7 +16,6 @@ import Version from 'sentry/components/version';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {IconCopy, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
 import {Organization, Release, ReleaseMeta, ReleaseProject} from 'sentry/types';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 
@@ -98,26 +97,24 @@ const ReleaseHeader = ({
           ]}
         />
         <Layout.Title>
-          <ReleaseName>
-            <IdBadge project={project} avatarSize={28} hideName />
-            <StyledVersion version={version} anchor={false} truncate />
+          <IdBadge project={project} avatarSize={28} hideName />
+          <Version version={version} anchor={false} truncate />
+          <IconWrapper>
+            <Tooltip title={version} containerDisplayMode="flex">
+              <Clipboard value={version}>
+                <IconCopy />
+              </Clipboard>
+            </Tooltip>
+          </IconWrapper>
+          {!!url && (
             <IconWrapper>
-              <Tooltip title={version} containerDisplayMode="flex">
-                <Clipboard value={version}>
-                  <IconCopy />
-                </Clipboard>
+              <Tooltip title={url}>
+                <ExternalLink href={url}>
+                  <IconOpen />
+                </ExternalLink>
               </Tooltip>
             </IconWrapper>
-            {!!url && (
-              <IconWrapper>
-                <Tooltip title={url}>
-                  <ExternalLink href={url}>
-                    <IconOpen />
-                  </ExternalLink>
-                </Tooltip>
-              </IconWrapper>
-            )}
-          </ReleaseName>
+          )}
         </Layout.Title>
       </Layout.HeaderContent>
 
@@ -149,18 +146,8 @@ const ReleaseHeader = ({
   );
 };
 
-const ReleaseName = styled('div')`
-  display: flex;
-  align-items: center;
-`;
-
-const StyledVersion = styled(Version)`
-  margin-left: ${space(1)};
-`;
-
 const IconWrapper = styled('span')`
   transition: color 0.3s ease-in-out;
-  margin-left: ${space(1)};
 
   &,
   a {

@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import Input from 'sentry/components/input';
 import {IconChevron, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';

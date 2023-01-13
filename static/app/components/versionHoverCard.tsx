@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {Client} from 'sentry/api';
 import AvatarList from 'sentry/components/avatar/avatarList';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import Clipboard from 'sentry/components/clipboard';
 import {Divider, Hovercard} from 'sentry/components/hovercard';
 import LastCommit from 'sentry/components/lastCommit';

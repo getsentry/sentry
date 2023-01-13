@@ -230,6 +230,7 @@ class QueryBuilder(BaseQueryBuilder):
         self.tag_to_prefixed_map: Dict[str, str] = {}
         self.skip_tag_resolution = skip_tag_resolution
 
+        self.requires_other_aggregates = False
         self.auto_aggregations = auto_aggregations
         self.limit = self.resolve_limit(limit)
         self.offset = None if offset is None else Offset(offset)
@@ -732,6 +733,8 @@ class QueryBuilder(BaseQueryBuilder):
         )
         if resolved_function is not None:
             return resolved_function
+        if snql_function.requires_other_aggregates:
+            self.requires_other_aggregates = True
 
         return snql_function.snql_column(arguments, alias)
 
@@ -902,8 +905,8 @@ class QueryBuilder(BaseQueryBuilder):
             return self.resolve_field(field, alias=alias)
 
     def resolve_groupby(self, groupby_columns: Optional[List[str]] = None) -> List[SelectType]:
+        self.validate_aggregate_arguments()
         if self.aggregates:
-            self.validate_aggregate_arguments()
             groupby_columns = (
                 [self.resolve_column(column) for column in groupby_columns]
                 if groupby_columns
@@ -1040,6 +1043,11 @@ class QueryBuilder(BaseQueryBuilder):
                     )
 
     def validate_aggregate_arguments(self) -> None:
+        # There might not be any columns during the resolve_groupby step
+        if self.columns and self.requires_other_aggregates and len(self.aggregates) == 0:
+            raise InvalidSearchQuery(
+                "Another aggregate function needs to be selected in order to use the total.count field"
+            )
         for column in self.columns:
             if column in self.aggregates:
                 continue
@@ -1213,6 +1221,9 @@ class QueryBuilder(BaseQueryBuilder):
         operator = search_filter.operator
         value = search_filter.value.value
 
+        # Some fields aren't valid queries
+        if name in constants.SKIP_FILTER_RESOLUTION:
+            name = f"tags[{name}]"
         lhs = self.resolve_column(name)
 
         if name in constants.ARRAY_FIELDS:

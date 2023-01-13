@@ -1,6 +1,6 @@
 import {Location} from 'history';
 
-import Button, {ButtonProps} from 'sentry/components/button';
+import {Button, ButtonProps} from 'sentry/components/button';
 import {t} from 'sentry/locale';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';

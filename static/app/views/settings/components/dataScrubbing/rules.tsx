@@ -1,7 +1,7 @@
 import {forwardRef} from 'react';
 import styled from '@emotion/styled';
 
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import ConfirmDelete from 'sentry/components/confirmDelete';
 import TextOverflow from 'sentry/components/textOverflow';
 import {IconDelete, IconEdit} from 'sentry/icons';

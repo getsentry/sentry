@@ -1,7 +1,7 @@
 // eslint-disable-next-line no-restricted-imports
 import styled from '@emotion/styled';
 
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 
 export const ActionButton = styled(Button)<{isActive?: boolean}>`
   color: ${p => (p.isActive ? p.theme.linkColor : p.theme.subText)};

@@ -12,7 +12,7 @@ type Props = {
   group?: Group;
 };
 
-function Contexts({event, group}: Props) {
+export function EventContexts({event, group}: Props) {
   const {user, contexts} = event;
 
   const {feedback, ...otherContexts} = contexts;
@@ -64,5 +64,3 @@ function Contexts({event, group}: Props) {
     </Fragment>
   );
 }
-
-export default Contexts;
