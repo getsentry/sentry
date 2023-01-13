@@ -334,7 +334,7 @@ function BreadcrumbsContainer({data, event, organization, projectSlug, isShare}:
   );
 }
 
-export default BreadcrumbsContainer;
+export {BreadcrumbsContainer as Breadcrumbs};
 
 const SearchAndSortWrapper = styled('div')<{isFullWidth?: boolean}>`
   display: grid;
