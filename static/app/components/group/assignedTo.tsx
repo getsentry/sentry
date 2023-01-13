@@ -196,26 +196,28 @@ function AssignedTo({group, project, event, disableDropdown = false}: AssignedTo
     <SidebarSection.Wrap data-test-id="assigned-to">
       <StyledSidebarTitle>
         {t('Assigned To')}
-        <ButtonBar>
-          <Access access={['project:write']}>
+        {hasStreamlineTargetingFeature && (
+          <ButtonBar>
+            <Access access={['project:write']}>
+              <Button
+                onClick={() => {
+                  openCreateOwnershipRule({project, organization, issueId: group.id});
+                }}
+                aria-label={t('Create Ownership Rule')}
+                icon={<IconAdd />}
+                borderless
+                size="xs"
+              />
+            </Access>
             <Button
-              onClick={() => {
-                openCreateOwnershipRule({project, organization, issueId: group.id});
-              }}
-              aria-label={t('Create Ownership Rule')}
-              icon={<IconAdd />}
+              to={`/settings/${organization.slug}/projects/${project.slug}/ownership/`}
+              aria-label={t('Issue Owners Settings')}
+              icon={<IconSettings />}
               borderless
               size="xs"
             />
-          </Access>
-          <Button
-            to={`/settings/${organization.slug}/projects/${project.slug}/ownership/`}
-            aria-label={t('Issue Owners Settings')}
-            icon={<IconSettings />}
-            borderless
-            size="xs"
-          />
-        </ButtonBar>
+          </ButtonBar>
+        )}
       </StyledSidebarTitle>
       <StyledSidebarSectionContent>
         <AssigneeSelectorDropdown
