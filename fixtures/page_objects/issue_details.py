@@ -110,4 +110,4 @@ class IssueDetailsPage(BasePage):
         self.browser.click('[aria-label="More Actions"]')
         self.browser.wait_until('[data-test-id="mark-review"]')
         self.browser.click('[data-test-id="mark-review"]')
-        self.browser.wait_until('.disabled[data-test-id="mark-review"]')
+        self.browser.wait_until('[data-test-id="mark-review"][aria-disabled="true"]')
