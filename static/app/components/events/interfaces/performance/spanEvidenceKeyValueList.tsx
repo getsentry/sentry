@@ -16,21 +16,18 @@ type SpanEvidenceKeyValueListProps = {
 const TEST_ID_NAMESPACE = 'span-evidence-key-value-list';
 
 export function SpanEvidenceKeyValueList(props: SpanEvidenceKeyValueListProps) {
-  const {issueType} = props;
-
-  if (issueType === IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES) {
-    return <NPlusOneDBQueriesSpanEvidence {...props} />;
+  if (!props.issueType) {
+    return <DefaultSpanEvidence {...props} />;
   }
 
-  if (issueType === IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS) {
-    return <NPlusOneAPICallsSpanEvidence {...props} />;
-  }
+  const Component =
+    {
+      [IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES]: NPlusOneDBQueriesSpanEvidence,
+      [IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS]: NPlusOneAPICallsSpanEvidence,
+      [IssueType.PERFORMANCE_SLOW_SPAN]: SlowSpanSpanEvidence,
+    }[props.issueType] ?? DefaultSpanEvidence;
 
-  if (issueType === IssueType.PERFORMANCE_SLOW_SPAN) {
-    return <SlowSpanSpanEvidence {...props} />;
-  }
-
-  return <DefaultSpanEvidence {...props} />;
+  return <Component {...props} />;
 }
 
 const NPlusOneDBQueriesSpanEvidence = ({offendingSpans, parentSpan, transactionName}) => (
