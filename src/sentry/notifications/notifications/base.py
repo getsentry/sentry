@@ -212,6 +212,16 @@ class BaseNotification(abc.ABC):
 
         return notification_providers()
 
+    def filter_to_accepting_recipients(
+        self, recipients: Iterable[Team | APIUser]
+    ) -> Mapping[ExternalProviders, Iterable[Team | APIUser]]:
+        accepting_recipients: Mapping[
+            ExternalProviders, Iterable[Team | APIUser]
+        ] = NotificationSetting.objects.filter_to_accepting_recipients(
+            self.organization, recipients, self.notification_setting_type
+        )
+        return accepting_recipients
+
     def get_participants(self) -> Mapping[ExternalProviders, Iterable[Team | APIUser]]:
         # need a notification_setting_type to call this function
         if not self.notification_setting_type:
@@ -219,9 +229,7 @@ class BaseNotification(abc.ABC):
 
         available_providers = self.get_notification_providers()
         recipients = list(self.determine_recipients())
-        recipients_by_provider = NotificationSetting.objects.filter_to_accepting_recipients(
-            self.organization, recipients, self.notification_setting_type
-        )
+        recipients_by_provider = self.filter_to_accepting_recipients(recipients)
 
         return {
             provider: recipients_of_provider
