@@ -16,12 +16,16 @@ import {IconChevron, IconUser} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import type {Actor, SuggestedOwnerReason} from 'sentry/types';
+import useOrganization from 'sentry/utils/useOrganization';
 
-interface AssigneeSelectorProps extends Omit<AssigneeSelectorDropdownProps, 'children'> {
+interface AssigneeSelectorProps
+  extends Omit<AssigneeSelectorDropdownProps, 'children' | 'organization'> {
   noDropdown?: boolean;
 }
 
 function AssigneeSelector({noDropdown, ...props}: AssigneeSelectorProps) {
+  const organization = useOrganization();
+
   function getActorElement(
     assignedTo?: Actor,
     suggestedActors: SuggestedAssignee[] = []
@@ -109,7 +113,7 @@ function AssigneeSelector({noDropdown, ...props}: AssigneeSelectorProps) {
 
   return (
     <AssigneeWrapper>
-      <AssigneeSelectorDropdown {...props}>
+      <AssigneeSelectorDropdown organization={organization} {...props}>
         {({loading, isOpen, assignedTo, getActorProps, suggestedAssignees}) => {
           const avatarElement = getActorElement(assignedTo, suggestedAssignees);
 

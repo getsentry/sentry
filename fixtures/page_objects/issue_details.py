@@ -73,7 +73,9 @@ class IssueDetailsPage(BasePage):
         )
 
         # Open the assignee picker
-        assignee.find_element(by=By.CSS_SELECTOR, value='[role="button"]').click()
+        assignee.find_element(
+            by=By.CSS_SELECTOR, value='[data-test-id="assignee-selector"]'
+        ).click()
         assignee.find_element(by=By.TAG_NAME, value="input").send_keys(user)
 
         # Click the member/team
