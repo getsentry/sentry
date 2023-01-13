@@ -5,7 +5,7 @@ import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import AsyncComponent from 'sentry/components/asyncComponent';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import platforms from 'sentry/data/platforms';
 import {t} from 'sentry/locale';
@@ -13,6 +13,7 @@ import space from 'sentry/styles/space';
 import {IntegrationProvider, Organization, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
 import AddInstallationInstructions from 'sentry/views/onboarding/components/integrations/addInstallationInstructions';
 import PostInstallCodeSnippet from 'sentry/views/onboarding/components/integrations/postInstallCodeSnippet';
@@ -86,7 +87,7 @@ class PlatformIntegrationSetup extends AsyncComponent<Props, State> {
 
     const url = `/organizations/${organization.slug}/projects/${projectId}/getting-started/`;
 
-    browserHistory.push(url);
+    browserHistory.push(normalizeUrl(url));
   }
 
   handleAddIntegration = () => {

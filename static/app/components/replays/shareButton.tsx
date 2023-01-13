@@ -2,7 +2,7 @@ import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import Checkbox from 'sentry/components/checkbox';
 import {Input} from 'sentry/components/inputGroup';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
