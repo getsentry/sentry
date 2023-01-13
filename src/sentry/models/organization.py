@@ -178,6 +178,9 @@ class Organization(Model, SnowflakeIdMixin):
 
     objects = OrganizationManager(cache_fields=("pk", "slug"))
 
+    # Not persisted. Getsentry fills this in in post-save hooks and we use it for synchronizing data across silos.
+    customer_id: Optional[str] = None
+
     class Meta:
         app_label = "sentry"
         db_table = "sentry_organization"

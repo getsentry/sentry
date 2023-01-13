@@ -2,7 +2,8 @@ import logging
 from copy import copy
 from datetime import datetime
 
-from django.db import models, transaction
+from django.conf import settings
+from django.db import IntegrityError, models, transaction
 from django.db.models.query_utils import DeferredAttribute
 from pytz import UTC
 from rest_framework import serializers, status
@@ -37,6 +38,10 @@ from sentry.models import (
     OrganizationStatus,
     ScheduledDeletion,
     UserEmail,
+)
+from sentry.services.hybrid_cloud.organization_mapping import (
+    ApiOrganizationMappingUpdate,
+    organization_mapping_service,
 )
 from sentry.utils.cache import memoize
 
@@ -423,6 +428,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
 class OwnerOrganizationSerializer(OrganizationSerializer):
     defaultRole = serializers.ChoiceField(choices=roles.get_choices())
     cancelDeletion = serializers.BooleanField(required=False)
+    idempotencyKey = serializers.CharField(max_length=32, required=False)
 
     def save(self, *args, **kwargs):
         org = self.context["organization"]
@@ -493,7 +499,35 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
             context={"organization": organization, "user": request.user, "request": request},
         )
         if serializer.is_valid():
-            organization, changed_data = serializer.save()
+            try:
+                with transaction.atomic():
+                    organization, changed_data = serializer.save()
+                    result = serializer.validated_data
+
+                    if "slug" in changed_data:
+                        organization_mapping_service.create(
+                            user=request.user,
+                            organization_id=organization.id,
+                            slug=organization.slug,
+                            name=organization.name,
+                            idempotency_key=result.get("idempotencyKey", ""),
+                            customer_id=organization.customer_id,
+                            region_name=settings.SENTRY_REGION or "us",
+                        )
+                    elif "name" in changed_data:
+                        organization_mapping_service.update(
+                            ApiOrganizationMappingUpdate(
+                                organization_id=organization.id,
+                                name=organization.name,
+                            )
+                        )
+            # TODO(hybrid-cloud): This will need to be a more generic error
+            # when the internal RPC is implemented.
+            except IntegrityError:
+                return self.respond(
+                    {"slug": ["An organization with this slug already exists."]},
+                    status=status.HTTP_409_CONFLICT,
+                )
 
             if was_pending_deletion:
                 self.create_audit_entry(

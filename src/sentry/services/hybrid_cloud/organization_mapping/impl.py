@@ -19,6 +19,7 @@ class DatabaseBackedOrganizationMappingService(OrganizationMappingService):
         user: User,
         organization_id: int,
         slug: str,
+        name: str,
         region_name: str,
         idempotency_key: Optional[str] = "",
         # There's only a customer_id when updating an org slug
@@ -29,16 +30,18 @@ class DatabaseBackedOrganizationMappingService(OrganizationMappingService):
             org_mapping, _created = OrganizationMapping.objects.update_or_create(
                 slug=slug,
                 idempotency_key=idempotency_key,
+                region_name=region_name,
                 defaults={
                     "customer_id": customer_id,
                     "organization_id": organization_id,
-                    "region_name": region_name,
+                    "name": name,
                 },
             )
         else:
             org_mapping = OrganizationMapping.objects.create(
                 organization_id=organization_id,
                 slug=slug,
+                name=name,
                 idempotency_key=idempotency_key,
                 region_name=region_name,
                 customer_id=customer_id,
@@ -47,7 +50,7 @@ class DatabaseBackedOrganizationMappingService(OrganizationMappingService):
         return self.serialize_organization_mapping(org_mapping)
 
     def serialize_organization_mapping(
-        cls, org_mapping: OrganizationMapping
+        self, org_mapping: OrganizationMapping
     ) -> APIOrganizationMapping:
         args = {
             field.name: getattr(org_mapping, field.name)

@@ -23,6 +23,7 @@ from sentry.models import (
     OrganizationStatus,
     ScheduledDeletion,
 )
+from sentry.models.organizationmapping import OrganizationMapping
 from sentry.signals import project_created
 from sentry.silo import SiloMode
 from sentry.testutils import APITestCase, TwoFactorAPITestCase, pytest
@@ -696,6 +697,38 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         resp = self.get_error_response(self.organization.slug, status_code=400, **data)
         assert self.organization.get_option("sentry:store_crash_reports") is None
         assert b"storeCrashReports" in resp.content
+
+    def test_update_slug_with_mapping(self):
+        self.create_organization_mapping(self.organization)
+        response = self.get_success_response(
+            self.organization.slug, slug="santry", idempotencyKey="1234"
+        )
+
+        organization_id = response.data["id"]
+        org = Organization.objects.get(id=organization_id)
+        assert org.slug == "santry"
+
+        with exempt_from_silo_limits():
+            assert OrganizationMapping.objects.filter(
+                organization_id=organization_id, slug="santry", idempotency_key="1234"
+            ).exists()
+
+    def test_update_name_with_mapping(self):
+        self.create_organization_mapping(self.organization)
+        response = self.get_success_response(self.organization.slug, name="SaNtRy")
+
+        organization_id = response.data["id"]
+        org = Organization.objects.get(id=organization_id)
+        assert org.name == "SaNtRy"
+
+        with exempt_from_silo_limits():
+            assert OrganizationMapping.objects.filter(
+                organization_id=organization_id, name="SaNtRy"
+            ).exists()
+
+    def test_org_mapping_already_taken(self):
+        OrganizationMapping.objects.create(organization_id=999, slug="taken", region_name="us")
+        self.get_error_response(self.organization.slug, slug="taken", status_code=409)
 
 
 @region_silo_test
