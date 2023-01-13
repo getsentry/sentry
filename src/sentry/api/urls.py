@@ -211,6 +211,7 @@ from .endpoints.internal import (
     InternalStatsEndpoint,
     InternalWarningsEndpoint,
 )
+from .endpoints.internal.rpc import ControlRpcEndpoint, RegionRpcEndpoint
 from .endpoints.issue_occurrence import IssueOccurrenceEndpoint
 from .endpoints.monitor_checkin_details import MonitorCheckInDetailsEndpoint
 from .endpoints.monitor_checkins import MonitorCheckInsEndpoint
@@ -2480,6 +2481,23 @@ urlpatterns = [
                 url(r"^packages/$", InternalPackagesEndpoint.as_view()),
                 url(r"^environment/$", InternalEnvironmentEndpoint.as_view()),
                 url(r"^mail/$", InternalMailEndpoint.as_view()),
+                url(
+                    r"^rpc/",
+                    include(
+                        [
+                            url(
+                                r"^region/(?P<service_name>[^\/]+)/(?P<method_name>[^\/]+)/$",
+                                RegionRpcEndpoint.as_view(),
+                                name="sentry-rpc-region",
+                            ),
+                            url(
+                                r"^control/(?P<service_name>[^\/]+)/(?P<method_name>[^\/]+)/$",
+                                ControlRpcEndpoint.as_view(),
+                                name="sentry-rpc-control",
+                            ),
+                        ]
+                    ),
+                ),
             ]
         ),
     ),

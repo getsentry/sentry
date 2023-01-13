@@ -1,8 +1,18 @@
+from __future__ import annotations
+
+import urllib.parse
+from typing import Tuple
+
+import OpenSSL
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.utils.crypto import constant_time_compare
 from django.utils.encoding import force_text
-from rest_framework.authentication import BasicAuthentication, get_authorization_header
+from rest_framework.authentication import (
+    BaseAuthentication,
+    BasicAuthentication,
+    get_authorization_header,
+)
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.request import Request
 from sentry_relay import UnpackError
@@ -232,3 +242,29 @@ class DSNAuthentication(StandardAuthentication):
             scope.set_tag("api_project_key", key.id)
 
         return (AnonymousUser(), key)
+
+
+FORWARDED_SSL_CERT_HEADER_NAME = "ssl-client-cert"
+
+
+class MutualTlsAuthentication(BaseAuthentication):
+    def authenticate(
+        self, request: Request
+    ) -> Tuple[AnonymousUser, OpenSSL.crypto.X509Name] | None:
+        cert_raw: str | bytes = self.META.get(
+            f"HTTP_{FORWARDED_SSL_CERT_HEADER_NAME.upper().replace('-', '_')}", b""
+        )
+
+        if cert_raw:
+            try:
+                cert: bytes = urllib.parse.unquote_to_bytes(cert_raw)
+                client_cert = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM, cert)
+                sn: OpenSSL.crypto.X509Name = client_cert.get_subject()
+                return AnonymousUser(), sn
+            except OpenSSL.crypto.Error:
+                raise AuthenticationFailed("Invalid client certificate!")
+
+        return None
+
+    def authenticate_header(self, request: Request):
+        return 'xmtls realm="%s"' % self.www_authenticate_realm

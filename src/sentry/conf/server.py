@@ -2942,3 +2942,6 @@ SINGLE_SERVER_SILO_MODE = False
 
 # Set the URL for signup page that we redirect to for the setup wizard if signup=1 is in the query params
 SENTRY_SIGNUP_URL = None
+
+# The TLS common name for the control silo X509 name.
+CONTROL_SILO_COMMON_NAME = "control.local"

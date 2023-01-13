@@ -7,7 +7,7 @@ from sentry.db.models.base import ModelSiloLimit
 from sentry.silo import SiloMode
 
 
-def _iter_models():
+def iter_models():
     from django.apps import apps
 
     for app, app_models in apps.all_models.items():
@@ -22,7 +22,7 @@ def _iter_models():
 
 
 def validate_models_have_silos(exemptions: Set[Type[Model]]):
-    for model in _iter_models():
+    for model in iter_models():
         if model in exemptions:
             continue
         if not isinstance(getattr(model._meta, "silo_limit", None), ModelSiloLimit):
@@ -39,7 +39,7 @@ def validate_models_have_silos(exemptions: Set[Type[Model]]):
 
 
 def validate_no_cross_silo_foreign_keys(exemptions: Set[Tuple[Type[Model], Type[Model]]]):
-    for model in _iter_models():
+    for model in iter_models():
         validate_model_no_cross_silo_foreign_keys(model, exemptions)
 
 

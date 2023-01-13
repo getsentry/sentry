@@ -3,9 +3,10 @@ from __future__ import annotations
 import collections
 import os
 import random
+import threading
 from datetime import datetime
 from hashlib import md5
-from typing import TypeVar
+from typing import MutableMapping, TypeVar
 from unittest import mock
 
 import freezegun
@@ -65,6 +66,12 @@ def pytest_configure(config):
                     "HOST": "127.0.0.1",
                 }
             )
+            # Unfortunately, e2e tests use a threaded server and access endpoints concurrently.
+            # For hybrid cloud testing, we need to simulate a split silo environment in tests,
+            # which means swapping out the database user contexts during test runs.  But we need
+            # this to be thread safe alongside the django.db.connections thread.local managing connections.
+            settings.DATABASES = ThreadLocalDict(settings.DATABASES)
+
             # postgres requires running full migration all the time
             # since it has to install stored functions which come from
             # an actual migration.
@@ -384,3 +391,33 @@ def pytest_collection_modifyitems(config, items):
     # This only needs to be done if there are items to be de-selected
     if len(discard) > 0:
         config.hook.pytest_deselected(items=discard)
+
+
+class ThreadLocalDict(MutableMapping):
+    """
+    Allows shallow key management on a thread level, using a default process level base config.
+    """
+
+    def __init__(self, default):
+        self._default = default
+        self._local = threading.local()
+
+    def _get_inner(self):
+        if not hasattr(self._local, "_dict"):
+            setattr(self._local, "_dict", dict(**self._default))
+        return self._local._dict
+
+    def __setitem__(self, k, v):
+        return self._get_inner().__setitem__(k, v)
+
+    def __delitem__(self, v):
+        return self._get_inner().__delitem__(v)
+
+    def __getitem__(self, k):
+        return self._get_inner().__getitem__(k)
+
+    def __len__(self) -> int:
+        return len(self._get_inner())
+
+    def __iter__(self):
+        return iter(self._get_inner())

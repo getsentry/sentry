@@ -34,3 +34,22 @@ class OrganizationMapping(Model):
         db_table = "sentry_organizationmapping"
 
     __repr__ = sane_repr("organization_id", "slug", "region_name", "verified")
+
+    @classmethod
+    def find_region_name_by_org_id(cls, id: int) -> str | None:
+        mapping: OrganizationMapping = OrganizationMapping.objects.filter(
+            organization_id=id, verified=True
+        ).last()
+        if mapping is None:
+            mapping = OrganizationMapping.objects.filter(organization_id=id).last()
+        if mapping is None:
+            return None
+        return mapping.region_name
+
+    @classmethod
+    def find_region_name_by_org_slug(cls, slug: str) -> str | None:
+        mapping: OrganizationMapping = OrganizationMapping.objects.filter(slug=slug).first()
+        if mapping is None:
+            return None
+
+        return mapping.region_name
