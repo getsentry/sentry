@@ -38,7 +38,7 @@ type Props = Omit<
   isShare?: boolean;
 };
 
-function EventTagsAndScreenshots({
+export function EventTagsAndScreenshot({
   projectId: projectSlug,
   location,
   event,
@@ -159,8 +159,6 @@ function EventTagsAndScreenshots({
     </Wrapper>
   );
 }
-
-export default EventTagsAndScreenshots;
 
 /**
  * Used to adjust padding based on which 3 elements are shown

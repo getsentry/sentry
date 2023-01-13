@@ -8,7 +8,7 @@ import {
 import {openModal} from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
 import Access from 'sentry/components/acl/access';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {PanelItem} from 'sentry/components/panels';

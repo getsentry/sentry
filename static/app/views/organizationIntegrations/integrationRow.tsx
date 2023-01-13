@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 import startCase from 'lodash/startCase';
 
 import Alert from 'sentry/components/alert';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import Link from 'sentry/components/links/link';
 import {PanelItem} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
