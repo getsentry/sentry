@@ -1,5 +1,6 @@
 from unittest import mock
 
+import pytest
 from psycopg2.extras import execute_values
 
 from sentry.testutils.cases import TestMigrations
@@ -103,6 +104,7 @@ class TestBackfill(TestMigrations):
         super().tearDown()
         self.execute_values_patcher.stop()
 
+    @pytest.mark.fail_slow("90s")
     def test(self):
         Release = self.apps.get_model("sentry", "Release")
         none_releases = Release.objects.filter(id__in=self.expected_none_ids)

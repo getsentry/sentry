@@ -1,3 +1,5 @@
+import pytest
+
 from sentry.models.dashboard_widget import (
     DashboardWidgetDisplayTypes,
     DashboardWidgetQuery,
@@ -74,6 +76,7 @@ class TestConvertDashboardWidgetQueryOrderby(TestMigrations):
     def tearDown(self):
         super().tearDown()
 
+    @pytest.mark.fail_slow("90s")
     def test(self):
         assert DashboardWidgetQuery.objects.get(id=self.simple_aggregate.id).orderby == "count()"
         assert DashboardWidgetQuery.objects.get(id=self.field.id).orderby == "-project"
