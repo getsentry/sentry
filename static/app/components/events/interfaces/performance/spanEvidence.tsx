@@ -22,21 +22,25 @@ export type TraceContextSpanProxy = Omit<TraceContextType, 'span_id'> & {
 };
 
 function getEvidenceDescription(issueType: IssueType) {
-  if (issueType === IssueType.PERFORMANCE_FILE_IO_MAIN_THREAD) {
-    return t('Span Evidence identifies the span where the file IO occurred.');
-  }
+  const evidenceToDescriptionMap: Record<IssueType, string> = {
+    [IssueType.PERFORMANCE_FILE_IO_MAIN_THREAD]: t(
+      'Span Evidence identifies the span where the file IO occurred.'
+    ),
+    [IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS]: t(
+      'Span Evidence identifies the repeating network spans.'
+    ),
+    [IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES]: t(
+      'Span Evidence identifies the parent span where the N+1 occurs, and the repeating spans.'
+    ),
+    [IssueType.PERFORMANCE_SLOW_SPAN]: t(
+      'Span Evidence identifies the slow database span.'
+    ),
+    [IssueType.PERFORMANCE_CONSECUTIVE_DB_QUERIES]:
+      'Span Evidence identifies the independent db queries that could be ran in parallel',
+    [IssueType.ERROR]: '',
+  };
 
-  if (issueType === IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS) {
-    return t('Span Evidence identifies the repeating network spans.');
-  }
-
-  if (issueType === IssueType.PERFORMANCE_SLOW_SPAN) {
-    return t('Span Evidence identifies the slow database span.');
-  }
-
-  return t(
-    'Span Evidence identifies the parent span where the N+1 occurs, and the repeating spans.'
-  );
+  return evidenceToDescriptionMap[issueType];
 }
 
 export function SpanEvidenceSection({event, issueType, organization}: Props) {

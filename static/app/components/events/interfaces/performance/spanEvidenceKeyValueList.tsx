@@ -44,6 +44,13 @@ export function SpanEvidenceKeyValueList({
       value: getSpanEvidenceValue(offendingSpans[0]),
       subjectDataTestId: `${TEST_ID_NAMESPACE}.offending-spans`,
     });
+  } else if (issueType === IssueType.PERFORMANCE_CONSECUTIVE_DB_QUERIES) {
+    data.push({
+      key: '2',
+      subject: t('Slow Span'),
+      value: getSpanEvidenceValue(offendingSpans[0]),
+      subjectDataTestId: `${TEST_ID_NAMESPACE}.offending-spans`,
+    });
   } else if (issueType === IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS) {
     data.push({
       key: '1',
@@ -65,7 +72,7 @@ export function SpanEvidenceKeyValueList({
         subjectDataTestId: `${TEST_ID_NAMESPACE}.problem-parameters`,
       });
     }
-  } else if (IssueType.PERFORMANCE_SLOW_SPAN) {
+  } else if (issueType === IssueType.PERFORMANCE_SLOW_SPAN) {
     data.push({
       key: '2',
       subject: t('Slow Span'),
