@@ -30,6 +30,10 @@ def _get_rules_of_enabled_biases(
     rules = []
 
     for (rule_type, bias) in combined_biases.items():
+        # All biases besides the uniform won't be enabled in case we have 100% base sample rate. This has been
+        # done because if we don't have a sample rate < 100%, it doesn't make sense to enable dynamic sampling in
+        # the first place. Technically dynamic sampling it is still enabled but for our customers this detail is
+        # not important.
         if rule_type in ALWAYS_ALLOWED_RULE_TYPES or (
             rule_type.value in enabled_biases and base_sample_rate < 1.0
         ):
@@ -50,7 +54,7 @@ def generate_rules(project: Project) -> List[BaseRule]:
             # * Data provider
             # * Rules generator
             # * Bias
-            # check in the dynamic_sampling/bias/ folder how existing biases are implemented.
+            # check in the dynamic_sampling/rules/biases module how existing biases are implemented.
             get_relay_biases_combinator().get_combined_biases(),
         )
     except Exception as e:
