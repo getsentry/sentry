@@ -6,7 +6,7 @@ import AsyncComponent from 'sentry/components/asyncComponent';
 import {IntegrationWithConfig, Organization, ServerlessFunction} from 'sentry/types';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import space from 'sentry/styles/space';
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
 import withOrganization from 'sentry/utils/withOrganization';
 import {t} from 'sentry/locale';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
