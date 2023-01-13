@@ -1088,20 +1088,20 @@ export const DISCOVER_FIELDS = [
 enum ReplayFieldKey {
   BROWSER_NAME = 'browser.name',
   BROWSER_VERSION = 'browser.version',
-  COUNT_ERRORS = 'countErrors',
-  COUNT_SEGMENTS = 'countSegments',
-  // COUNT_URLS = 'countUrls',
+  COUNT_ERRORS = 'count_errors',
+  COUNT_SEGMENTS = 'count_segments',
+  // COUNT_URLS = 'count_urls',
   DEVICE_MODEL = 'device.model',
   DURATION = 'duration',
-  // ERROR_IDS = 'errorIds',
-  // LONGEST_TRANSACTION = 'longestTransaction',
+  // ERROR_IDS = 'error_ids',
+  // LONGEST_TRANSACTION = 'longest_transaction',
   OS_NAME = 'os.name',
   OS_VERSION = 'os.version',
   RELEASES = 'releases',
-  // TRACE_IDS = 'traceIds',
+  // TRACE_IDS = 'trace_ids',
   URLS = 'urls',
-  USER_IP_ADDRESS = 'user.ipAddress',
-  USER_NAME = 'user.name',
+  USER_IP_ADDRESS = 'user.ip',
+  USER_NAME = 'user.username',
 }
 
 export const REPLAY_FIELDS = [
