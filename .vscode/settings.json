@@ -40,6 +40,8 @@
     "**/node_modules/@storybook/addons/*",
     "**/node_modules/@testing-library/*"
   ],
+  // Avoid relative imports
+  "typescript.preferences.importModuleSpecifier": "non-relative",
 
   "[typescriptreact]": {
     "editor.formatOnSave": true,
