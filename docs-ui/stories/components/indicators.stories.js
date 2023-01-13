@@ -3,7 +3,7 @@ import {
   addMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import IndicatorContainer, {Indicators} from 'sentry/components/indicators';
 import IndicatorStore from 'sentry/stores/indicatorStore';
 

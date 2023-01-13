@@ -1,6 +1,6 @@
 import {action} from '@storybook/addon-actions';
 
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import GlobalModal from 'sentry/components/globalModal';
 import FeatureTourModal from 'sentry/components/modals/featureTourModal';
 import {IconEdit} from 'sentry/icons';

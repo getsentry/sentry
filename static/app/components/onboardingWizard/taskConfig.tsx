@@ -79,16 +79,6 @@ export function getOnboardingTasks({
   if (isDemoWalkthrough()) {
     return [
       {
-        task: OnboardingTaskKey.SIDEBAR_GUIDE,
-        title: t('Check out the different tabs'),
-        description: t('Press the start button for a guided tour through each tab.'),
-        skippable: false,
-        requisites: [],
-        actionType: 'app',
-        location: `/organizations/${organization.slug}/projects/`,
-        display: true,
-      },
-      {
         task: OnboardingTaskKey.ISSUE_GUIDE,
         title: t('Issues'),
         description: t(
@@ -122,6 +112,16 @@ export function getOnboardingTasks({
         requisites: [],
         actionType: 'app',
         location: `/organizations/${organization.slug}/releases/`,
+        display: true,
+      },
+      {
+        task: OnboardingTaskKey.SIDEBAR_GUIDE,
+        title: t('Check out the different tabs'),
+        description: t('Press the start button for a guided tour through each tab.'),
+        skippable: false,
+        requisites: [],
+        actionType: 'app',
+        location: `/organizations/${organization.slug}/projects/`,
         display: true,
       },
     ];

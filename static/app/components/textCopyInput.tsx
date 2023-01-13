@@ -2,7 +2,7 @@ import {useCallback, useRef} from 'react';
 import {findDOMNode} from 'react-dom';
 import styled from '@emotion/styled';
 
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import Clipboard from 'sentry/components/clipboard';
 import {
   Input,
