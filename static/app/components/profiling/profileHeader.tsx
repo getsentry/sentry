@@ -1,4 +1,4 @@
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Link from 'sentry/components/links/link';
 import {Breadcrumb} from 'sentry/components/profiling/breadcrumb';

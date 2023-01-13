@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 
 import {fetchGuides} from 'sentry/actionCreators/guides';
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import ModalTask from 'sentry/components/onboardingWizard/modalTask';
 import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import {IconClose} from 'sentry/icons/iconClose';

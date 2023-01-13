@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {withProfiler} from '@sentry/react';
 import omit from 'lodash/omit';
 
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';

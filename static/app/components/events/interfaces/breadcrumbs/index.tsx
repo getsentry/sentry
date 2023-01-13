@@ -4,7 +4,7 @@ import omit from 'lodash/omit';
 import pick from 'lodash/pick';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import CompactSelect from 'sentry/components/compactSelect';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import EventDataSection from 'sentry/components/events/eventDataSection';

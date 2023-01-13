@@ -1,6 +1,6 @@
 import {useState} from 'react';
 
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import EventDataSection from 'sentry/components/events/eventDataSection';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';

@@ -7,7 +7,7 @@ import set from 'lodash/set';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import FieldGroup from 'sentry/components/forms/fieldGroup';

@@ -3,7 +3,7 @@ import {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 
 import Badge from 'sentry/components/badge';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import GlobalEventProcessingAlert from 'sentry/components/globalEventProcessingAlert';
 import * as Layout from 'sentry/components/layouts/thirds';
