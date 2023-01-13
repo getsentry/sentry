@@ -14,7 +14,7 @@ type State = {
   attachmentList: Array<IssueAttachment> | null;
 } & AsyncComponent['state'];
 
-class RRWebIntegration extends AsyncComponent<Props, State> {
+export class EventRRWebIntegration extends AsyncComponent<Props, State> {
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {orgId, projectId, event} = this.props;
     return [
@@ -64,5 +64,3 @@ class RRWebIntegration extends AsyncComponent<Props, State> {
     );
   }
 }
-
-export default RRWebIntegration;
