@@ -30,6 +30,10 @@ function getEvidenceDescription(issueType: IssueType) {
     return t('Span Evidence identifies the repeating network spans.');
   }
 
+  if (issueType === IssueType.PERFORMANCE_SLOW_SPAN) {
+    return t('Span Evidence identifies the slow database span.');
+  }
+
   return t(
     'Span Evidence identifies the parent span where the N+1 occurs, and the repeating spans.'
   );

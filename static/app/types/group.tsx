@@ -59,6 +59,7 @@ export enum IssueType {
   PERFORMANCE_N_PLUS_ONE_DB_QUERIES = 'performance_n_plus_one_db_queries',
   PERFORMANCE_N_PLUS_ONE_API_CALLS = 'performance_n_plus_one_api_calls',
   PERFORMANCE_FILE_IO_MAIN_THREAD = 'performance_file_io_main_thread',
+  PERFORMANCE_SLOW_SPAN = 'performance_slow_span',
 }
 
 type CapabilityInfo = {
