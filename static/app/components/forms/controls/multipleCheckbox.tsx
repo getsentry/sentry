@@ -1,10 +1,109 @@
-import {useCallback} from 'react';
+import React, {createContext, ReactNode, useCallback, useContext, useMemo} from 'react';
 import styled from '@emotion/styled';
+import noop from 'lodash/noop';
 
 import Checkbox from 'sentry/components/checkbox';
 import space from 'sentry/styles/space';
-import {Choices} from 'sentry/types';
-import {defined} from 'sentry/utils';
+
+type CheckboxValue = string | number;
+
+type SelectedValue = CheckboxValue[];
+
+type Props = {
+  children: ReactNode;
+  name: string;
+  value: (string | number)[];
+  disabled?: boolean;
+  onChange?: (value: SelectedValue, event: React.ChangeEvent<HTMLInputElement>) => void;
+};
+
+type CheckboxItemProps = {
+  children: ReactNode;
+  value: string | number;
+  disabled?: boolean;
+  onChange?: (event: React.ChangeEvent<HTMLInputElement>) => void;
+};
+
+type MultipleCheckboxContextValue = {
+  disabled: Props['disabled'];
+  handleChange: (
+    itemValue: CheckboxValue,
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => void;
+  name: string;
+  value: Props['value'];
+};
+
+const MultipleCheckboxContext = createContext<MultipleCheckboxContextValue>({
+  handleChange: noop,
+  value: [],
+  name: '',
+  disabled: false,
+});
+
+function MultipleCheckbox({children, value, disabled, onChange, name}: Props) {
+  const handleChange = useCallback(
+    (itemValue: CheckboxValue, e: React.ChangeEvent<HTMLInputElement>) => {
+      if (typeof onChange !== 'function') {
+        return;
+      }
+
+      const newValue = e.target.checked
+        ? [...value, itemValue]
+        : value.filter(v => v !== itemValue);
+
+      onChange(newValue, e);
+    },
+    [value, onChange]
+  );
+
+  const contextValue = useMemo(
+    () => ({
+      value,
+      handleChange,
+      name,
+      disabled,
+    }),
+    [disabled, handleChange, name, value]
+  );
+
+  return (
+    <MultipleCheckboxContext.Provider value={contextValue}>
+      <MultipleCheckboxWrapper>{children}</MultipleCheckboxWrapper>
+    </MultipleCheckboxContext.Provider>
+  );
+}
+
+function Item({
+  value: itemValue,
+  children,
+  disabled: itemDisabled,
+  onChange,
+}: CheckboxItemProps) {
+  const {disabled, value, handleChange, name} = useContext(MultipleCheckboxContext);
+
+  return (
+    <LabelContainer>
+      <Label>
+        <Checkbox
+          name={name}
+          checked={value.includes(itemValue)}
+          disabled={disabled || itemDisabled}
+          onChange={e => {
+            handleChange(itemValue, e);
+            onChange?.(e);
+          }}
+          value={value.toString()}
+        />
+        <CheckboxLabel>{children}</CheckboxLabel>
+      </Label>
+    </LabelContainer>
+  );
+}
+
+MultipleCheckbox.Item = Item;
+
+export default MultipleCheckbox;
 
 const MultipleCheckboxWrapper = styled('div')`
   display: flex;
@@ -24,57 +123,6 @@ const Label = styled('label')`
 const CheckboxLabel = styled('span')`
   margin-left: ${space(1)};
 `;
-
-type SelectedValue = (string | number)[];
-
-type Props = {
-  choices: Choices;
-  value: (string | number)[];
-  disabled?: boolean;
-  onChange?: (value: SelectedValue, event: React.ChangeEvent<HTMLInputElement>) => void;
-};
-
-function MultipleCheckbox({choices, value, disabled, onChange}: Props) {
-  const handleChange = useCallback(
-    (selectedValue: string | number, e: React.ChangeEvent<HTMLInputElement>) => {
-      let newValue: SelectedValue = [];
-
-      if (typeof onChange !== 'function') {
-        return;
-      }
-
-      if (e.target.checked) {
-        newValue = value ? [...value, selectedValue] : [value];
-      } else {
-        newValue = value.filter(v => v !== selectedValue);
-      }
-
-      onChange(newValue, e);
-    },
-    [value, onChange]
-  );
-
-  return (
-    <MultipleCheckboxWrapper>
-      {choices.map(([choiceValue, choiceLabel]) => (
-        <LabelContainer key={choiceValue}>
-          <Label>
-            <Checkbox
-              type="checkbox"
-              value={choiceValue}
-              onChange={e => handleChange(choiceValue, e)}
-              disabled={disabled}
-              checked={defined(value) && value.indexOf(choiceValue) !== -1}
-            />
-            <CheckboxLabel>{choiceLabel}</CheckboxLabel>
-          </Label>
-        </LabelContainer>
-      ))}
-    </MultipleCheckboxWrapper>
-  );
-}
-
-export default MultipleCheckbox;
 
 const LabelContainer = styled('div')`
   width: 100%;
