@@ -1,11 +1,11 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import ClippedBox from 'sentry/components/clippedBox';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import EventDataSection from 'sentry/components/events/eventDataSection';
+import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {getCurlCommand, getFullUrl} from 'sentry/components/events/interfaces/utils';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Truncate from 'sentry/components/truncate';

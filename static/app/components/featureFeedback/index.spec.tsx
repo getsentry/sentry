@@ -1,5 +1,3 @@
-import React from 'react';
-
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   render,
@@ -10,6 +8,7 @@ import {
 
 import {FeatureFeedback} from 'sentry/components/featureFeedback';
 import GlobalModal from 'sentry/components/globalModal';
+import ModalStore from 'sentry/stores/modalStore';
 import {RouteContext} from 'sentry/views/routeContext';
 
 function ComponentProviders({children}: {children: React.ReactNode}) {
@@ -30,6 +29,10 @@ function ComponentProviders({children}: {children: React.ReactNode}) {
 }
 
 describe('FeatureFeedback', function () {
+  beforeEach(() => {
+    ModalStore.reset();
+  });
+
   it('shows the modal on click', async function () {
     render(
       <ComponentProviders>

@@ -435,7 +435,7 @@ class PerformanceGroupSerializerSnubaTest(
         proj = self.create_project()
         environment = self.create_environment(project=proj)
 
-        first_group_fingerprint = f"{GroupType.PERFORMANCE_SLOW_SPAN.value}-group1"
+        first_group_fingerprint = f"{GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN.value}-group1"
         timestamp = timezone.now() - timedelta(days=5)
         times = 5
         for _ in range(0, times):

@@ -17,7 +17,6 @@ import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {ChangeData} from 'sentry/components/organizations/timeRangeSelector';
-import PageHeading from 'sentry/components/pageHeading';
 import PageTimeRangeSelector from 'sentry/components/pageTimeRangeSelector';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -348,7 +347,7 @@ export class OrganizationStats extends Component<Props> {
           ) : (
             <Layout.Header>
               <Layout.HeaderContent>
-                <StyledHeading>{t('Organization Usage Stats')}</StyledHeading>
+                <Layout.Title>{t('Organization Usage Stats')}</Layout.Title>
                 <HeadingSubtitle>
                   {tct(
                     'A view of the usage data that Sentry has received across your entire organization. [link: Read the docs].',
@@ -403,10 +402,6 @@ export class OrganizationStats extends Component<Props> {
 }
 
 export default withPageFilters(withOrganization(OrganizationStats));
-
-const StyledHeading = styled(PageHeading)`
-  line-height: 40px;
-`;
 
 const PageGrid = styled('div')`
   display: grid;
