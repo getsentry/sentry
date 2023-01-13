@@ -126,16 +126,16 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
 
   onInstall = (integration: Integration) => {
     // send the user to the configure integration view for that integration
-    const {orgId} = this.props.params;
+    const {organization} = this.props;
     this.props.router.push(
       normalizeUrl(
-        `/settings/${orgId}/integrations/${integration.provider.key}/${integration.id}/`
+        `/settings/${organization.slug}/integrations/${integration.provider.key}/${integration.id}/`
       )
     );
   };
 
   onRemove = (integration: Integration) => {
-    const {orgId} = this.props.params;
+    const {organization} = this.props;
 
     const origIntegrations = [...this.state.configurations];
 
@@ -155,7 +155,10 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
       },
     };
 
-    this.api.request(`/organizations/${orgId}/integrations/${integration.id}/`, options);
+    this.api.request(
+      `/organizations/${organization.slug}/integrations/${integration.id}/`,
+      options
+    );
   };
 
   onDisable = (integration: Integration) => {
