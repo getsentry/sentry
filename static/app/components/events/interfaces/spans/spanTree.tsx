@@ -1,4 +1,4 @@
-import React, {Component, useEffect, useRef} from 'react';
+import {Component, createRef, useEffect, useRef} from 'react';
 import {
   AutoSizer,
   CellMeasurer,
@@ -65,7 +65,7 @@ type StateType = {
   spanRows: Record<string, {spanRow: React.RefObject<HTMLDivElement>; treeDepth: number}>;
 };
 
-const listRef = React.createRef<ReactVirtualizedList>();
+const listRef = createRef<ReactVirtualizedList>();
 
 class SpanTree extends Component<PropType> {
   state: StateType = {

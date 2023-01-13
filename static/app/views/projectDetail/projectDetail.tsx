@@ -8,7 +8,7 @@ import {updateProjects} from 'sentry/actionCreators/pageFilters';
 import {fetchTagValues} from 'sentry/actionCreators/tags';
 import Feature from 'sentry/components/acl/feature';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import CreateAlertButton from 'sentry/components/createAlertButton';
 import GlobalAppStoreConnectUpdateAlert from 'sentry/components/globalAppStoreConnectUpdateAlert';
@@ -19,16 +19,15 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
-import PageHeading from 'sentry/components/pageHeading';
 import MissingProjectMembership from 'sentry/components/projects/missingProjectMembership';
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import routeTitleGen from 'sentry/utils/routeTitle';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import withProjects from 'sentry/utils/withProjects';
 import AsyncView from 'sentry/views/asyncView';
@@ -85,14 +84,16 @@ class ProjectDetail extends AsyncView<Props, State> {
 
     // if we change project in global header, we need to sync the project slug in the URL
     if (newlySelectedProject?.id) {
-      router.replace({
-        pathname: `/organizations/${organization.slug}/projects/${newlySelectedProject.slug}/`,
-        query: {
-          ...location.query,
-          project: newlySelectedProject.id,
-          environment: undefined,
-        },
-      });
+      router.replace(
+        normalizeUrl({
+          pathname: `/organizations/${organization.slug}/projects/${newlySelectedProject.slug}/`,
+          query: {
+            ...location.query,
+            project: newlySelectedProject.id,
+            environment: undefined,
+          },
+        })
+      );
     }
   };
 
@@ -155,20 +156,20 @@ class ProjectDetail extends AsyncView<Props, State> {
     const {organization} = this.props;
 
     return (
-      <PageContent>
+      <Layout.Page>
         <MissingProjectMembership organization={organization} project={project} />
-      </PageContent>
+      </Layout.Page>
     );
   }
 
   renderProjectNotFound() {
     return (
-      <PageContent>
+      <Layout.Page withPadding>
         <LoadingError
           message={t('This project could not be found.')}
           onRetry={this.onRetryProjects}
         />
-      </PageContent>
+      </Layout.Page>
     );
   }
 
@@ -200,7 +201,7 @@ class ProjectDetail extends AsyncView<Props, State> {
     return (
       <PageFiltersContainer skipLoadLastUsed showAbsolute={!hasOnlyBasicChart}>
         <NoProjectMessage organization={organization}>
-          <StyledPageContent>
+          <Layout.Page>
             <Layout.Header>
               <Layout.HeaderContent>
                 <Breadcrumbs
@@ -212,7 +213,7 @@ class ProjectDetail extends AsyncView<Props, State> {
                     {label: t('Project Details')},
                   ]}
                 />
-                <ProjectTitle>
+                <Layout.Title>
                   {project ? (
                     <IdBadge
                       project={project}
@@ -223,7 +224,7 @@ class ProjectDetail extends AsyncView<Props, State> {
                     />
                   ) : null}
                   {project?.slug}
-                </ProjectTitle>
+                </Layout.Title>
               </Layout.HeaderContent>
 
               <Layout.HeaderActions>
@@ -286,6 +287,7 @@ class ProjectDetail extends AsyncView<Props, State> {
                   hasTransactions={hasTransactions}
                   query={query}
                   project={project}
+                  location={location}
                 />
                 {isProjectStabilized && (
                   <Fragment>
@@ -339,23 +341,12 @@ class ProjectDetail extends AsyncView<Props, State> {
                 />
               </Layout.Side>
             </Layout.Body>
-          </StyledPageContent>
+          </Layout.Page>
         </NoProjectMessage>
       </PageFiltersContainer>
     );
   }
 }
-
-const StyledPageContent = styled(PageContent)`
-  padding: 0;
-`;
-
-const ProjectTitle = styled(PageHeading)`
-  line-height: 40px;
-  display: flex;
-  gap: ${space(1)};
-  align-items: center;
-`;
 
 const ProjectFiltersWrapper = styled('div')`
   margin-bottom: ${space(2)};

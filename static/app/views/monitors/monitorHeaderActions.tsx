@@ -5,13 +5,14 @@ import {
   addLoadingMessage,
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import Confirm from 'sentry/components/confirm';
 import {IconDelete, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {logException} from 'sentry/utils/logging';
 import useApi from 'sentry/utils/useApi';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 import CronsFeedbackButton from './cronsFeedbackButton';
 import {Monitor} from './types';
@@ -34,7 +35,7 @@ const MonitorHeaderActions = ({monitor, orgId, onUpdate}: Props) => {
         method: 'DELETE',
       })
       .then(() => {
-        browserHistory.push(redirectPath);
+        browserHistory.push(normalizeUrl(redirectPath));
       })
       .catch(() => {
         addErrorMessage(t('Unable to remove monitor.'));
@@ -77,6 +78,7 @@ const MonitorHeaderActions = ({monitor, orgId, onUpdate}: Props) => {
       </Button>
       <Confirm
         onConfirm={handleDelete}
+        priority="danger"
         message={t('Are you sure you want to permanently delete this cron monitor?')}
       >
         <Button size="sm" icon={<IconDelete size="xs" />}>

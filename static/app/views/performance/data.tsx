@@ -389,13 +389,6 @@ export function getTermHelp(
   return PERFORMANCE_TERMS[term](organization);
 }
 
-function shouldAddDefaultConditions(location: Location) {
-  const {query} = location;
-  const searchQuery = decodeScalar(query.query, '');
-  const isDefaultQuery = decodeScalar(query.isDefaultQuery);
-  return !searchQuery && isDefaultQuery !== 'false';
-}
-
 function isUsingLimitedSearch(location: Location, withStaticFilters: boolean) {
   const {query} = location;
   const mepSearchState = decodeScalar(query[METRIC_SEARCH_SETTING_PARAM], '');
@@ -448,11 +441,6 @@ function generateGenericPerformanceEventView(
   const searchQuery = decodeScalar(query.query, '');
   const conditions = new MutableSearch(searchQuery);
   const isLimitedSearch = isUsingLimitedSearch(location, withStaticFilters);
-
-  // This is not an override condition since we want the duration to appear in the search bar as a default.
-  if (shouldAddDefaultConditions(location) && !withStaticFilters) {
-    conditions.setFilterValues('transaction.duration', ['<15m']);
-  }
 
   // If there is a bare text search, we want to treat it as a search
   // on the transaction name.
@@ -537,11 +525,6 @@ function generateBackendPerformanceEventView(
   const conditions = new MutableSearch(searchQuery);
   const isLimitedSearch = isUsingLimitedSearch(location, withStaticFilters);
 
-  // This is not an override condition since we want the duration to appear in the search bar as a default.
-  if (shouldAddDefaultConditions(location) && !withStaticFilters) {
-    conditions.setFilterValues('transaction.duration', ['<15m']);
-  }
-
   // If there is a bare text search, we want to treat it as a search
   // on the transaction name.
   if (conditions.freeText.length > 0) {
@@ -624,11 +607,6 @@ function generateMobilePerformanceEventView(
   const conditions = new MutableSearch(searchQuery);
   const isLimitedSearch = isUsingLimitedSearch(location, withStaticFilters);
 
-  // This is not an override condition since we want the duration to appear in the search bar as a default.
-  if (shouldAddDefaultConditions(location) && !withStaticFilters) {
-    conditions.setFilterValues('transaction.duration', ['<15m']);
-  }
-
   // If there is a bare text search, we want to treat it as a search
   // on the transaction name.
   if (conditions.freeText.length > 0) {
@@ -697,11 +675,6 @@ function generateFrontendPageloadPerformanceEventView(
   const searchQuery = decodeScalar(query.query, '');
   const conditions = new MutableSearch(searchQuery);
   const isLimitedSearch = isUsingLimitedSearch(location, withStaticFilters);
-
-  // This is not an override condition since we want the duration to appear in the search bar as a default.
-  if (shouldAddDefaultConditions(location) && !withStaticFilters) {
-    conditions.setFilterValues('transaction.duration', ['<15m']);
-  }
 
   // If there is a bare text search, we want to treat it as a search
   // on the transaction name.
@@ -772,11 +745,6 @@ function generateFrontendOtherPerformanceEventView(
   const searchQuery = decodeScalar(query.query, '');
   const conditions = new MutableSearch(searchQuery);
   const isLimitedSearch = isUsingLimitedSearch(location, withStaticFilters);
-
-  // This is not an override condition since we want the duration to appear in the search bar as a default.
-  if (shouldAddDefaultConditions(location) && !withStaticFilters) {
-    conditions.setFilterValues('transaction.duration', ['<15m']);
-  }
 
   // If there is a bare text search, we want to treat it as a search
   // on the transaction name.
