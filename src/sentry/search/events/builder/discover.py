@@ -1641,13 +1641,15 @@ class GenericTimeSeriesQueryBuilder(TimeseriesQueryBuilder):
             self.time_column = Function(
                 "multiply",
                 [
-                    Function("intDiv"),
-                    [
-                        Function(
-                            "toUInt32",
-                            [Function("toUnixTimestamp", [Column("timestamp")]), interval],
-                        )
-                    ],
+                    Function(
+                        "intDiv",
+                        [
+                            Function(
+                                "toUInt32", [Function("toUnixTimestamp", [Column("timestamp")])]
+                            ),
+                            interval,
+                        ],
+                    ),
                     interval,
                 ],
                 alias="time",
