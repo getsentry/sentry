@@ -36,7 +36,7 @@ function ReplayTimeline({}: Props) {
   }
 
   const durationMs = replay.getDurationMs();
-  const startTimestampMs = replay.getReplay().startedAt.getTime();
+  const startTimestampMs = replay.getReplay().started_at.getTime();
   const crumbs = replay.getRawCrumbs();
   const userCrumbs = crumbs.filter(crumb => USER_ACTIONS.includes(crumb.type));
   const networkSpans = replay.getNetworkSpans();

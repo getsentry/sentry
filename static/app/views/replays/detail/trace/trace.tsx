@@ -66,8 +66,8 @@ export default function Trace({replayRecord, organization}: Props) {
   const replayId = replayRecord.id;
   const orgSlug = organization.slug;
 
-  const start = getUtcDateString(replayRecord.startedAt.getTime());
-  const end = getUtcDateString(replayRecord.finishedAt.getTime());
+  const start = getUtcDateString(replayRecord.started_at.getTime());
+  const end = getUtcDateString(replayRecord.finished_at.getTime());
 
   useEffect(() => {
     async function loadTraces() {

@@ -56,7 +56,7 @@ describe('breadcrumbFactory', () => {
 
     const results = breadcrumbFactory(
       TestStubs.Event({
-        startedAt: new Date(0),
+        started_at: new Date(0),
       }),
       [],
       [],
@@ -102,7 +102,7 @@ describe('breadcrumbFactory', () => {
 
     const results = breadcrumbFactory(
       TestStubs.Event({
-        startedAt: new Date(0),
+        started_at: new Date(0),
       }),
       [],
       [],
@@ -160,8 +160,8 @@ describe('isNetworkSpan', () => {
 describe('rrwebEventListFactory', () => {
   it('returns a list of replay events for highlights', function () {
     const replayRecord = {
-      startedAt: new Date(13),
-      finishedAt: new Date(213),
+      started_at: new Date(13),
+      finished_at: new Date(213),
     } as ReplayRecord;
 
     const results = rrwebEventListFactory(replayRecord, []);
@@ -184,8 +184,8 @@ describe('rrwebEventListFactory', () => {
     const endTimestampMs = 10_000;
 
     const replayRecord = {
-      startedAt: new Date(startTimestampMs),
-      finishedAt: new Date(endTimestampMs),
+      started_at: new Date(startTimestampMs),
+      finished_at: new Date(endTimestampMs),
     } as ReplayRecord;
 
     expect(

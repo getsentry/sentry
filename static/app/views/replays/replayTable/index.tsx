@@ -74,7 +74,7 @@ function ReplayTable({fetchError, isFetching, replays, sort, visibleColumns}: Pr
           <Fragment key={replay.id}>
             {visibleColumns.map(column => {
               switch (column) {
-                case 'session':
+                case ReplayColumns.session:
                   return (
                     <SessionCell
                       key="session"
@@ -84,9 +84,9 @@ function ReplayTable({fetchError, isFetching, replays, sort, visibleColumns}: Pr
                       referrer={referrer}
                     />
                   );
-                case 'projectId':
+                case ReplayColumns.projectId:
                   return <ProjectCell key="projectId" replay={replay} />;
-                case 'slowestTransaction':
+                case ReplayColumns.slowestTransaction:
                   return (
                     <TransactionCell
                       key="slowestTransaction"
@@ -94,13 +94,13 @@ function ReplayTable({fetchError, isFetching, replays, sort, visibleColumns}: Pr
                       organization={organization}
                     />
                   );
-                case 'startedAt':
+                case ReplayColumns.startedAt:
                   return <StartedAtCell key="startedAt" replay={replay} />;
-                case 'duration':
+                case ReplayColumns.duration:
                   return <DurationCell key="duration" replay={replay} />;
-                case 'countErrors':
+                case ReplayColumns.countErrors:
                   return <ErrorCountCell key="countErrors" replay={replay} />;
-                case 'activity':
+                case ReplayColumns.activity:
                   return <ActivityCell key="activity" replay={replay} />;
                 default:
                   return null;

@@ -35,7 +35,7 @@ function ReplayContent({orgSlug, replaySlug, event}: Props) {
 
   const replayRecord = replay?.getReplay();
 
-  const startTimestampMs = replayRecord?.startedAt.getTime() ?? 0;
+  const startTimestampMs = replayRecord?.started_at.getTime() ?? 0;
 
   const initialTimeOffset = useMemo(() => {
     if (eventTimestamp && startTimestampMs) {

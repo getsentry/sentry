@@ -72,7 +72,7 @@ export const getBreadcrumbsByCategory = (breadcrumbs: Crumb[], categories: strin
 };
 
 export function mapResponseToReplayRecord(apiResponse: any): ReplayRecord {
-  // Add missing tags to the response
+  // Marshal special fields into tags
   const unorderedTags: ReplayRecord['tags'] = {
     ...apiResponse.tags,
     ...(apiResponse.browser?.name ? {'browser.name': [apiResponse.browser.name]} : {}),
@@ -81,7 +81,9 @@ export function mapResponseToReplayRecord(apiResponse: any): ReplayRecord {
       : {}),
     ...(apiResponse.device?.brand ? {'device.brand': [apiResponse.device.brand]} : {}),
     ...(apiResponse.device?.family ? {'device.family': [apiResponse.device.family]} : {}),
-    ...(apiResponse.device?.model ? {'device.model': [apiResponse.device.model]} : {}),
+    ...(apiResponse.device?.model_id
+      ? {'device.model_id': [apiResponse.device.model_id]}
+      : {}),
     ...(apiResponse.device?.name ? {'device.name': [apiResponse.device.name]} : {}),
     ...(apiResponse.platform ? {platform: [apiResponse.platform]} : {}),
     ...(apiResponse.releases ? {releases: [apiResponse.releases]} : {}),
@@ -89,9 +91,7 @@ export function mapResponseToReplayRecord(apiResponse: any): ReplayRecord {
     ...(apiResponse.os?.version ? {'os.version': [apiResponse.os.version]} : {}),
     ...(apiResponse.sdk?.name ? {'sdk.name': [apiResponse.sdk.name]} : {}),
     ...(apiResponse.sdk?.version ? {'sdk.version': [apiResponse.sdk.version]} : {}),
-    ...(apiResponse.user?.ip_address
-      ? {'user.ip_address': [apiResponse.user.ip_address]}
-      : {}),
+    ...(apiResponse.user?.ip ? {'user.ip': [apiResponse.user.ip]} : {}),
   };
 
   // Sort the tags by key
@@ -104,8 +104,8 @@ export function mapResponseToReplayRecord(apiResponse: any): ReplayRecord {
 
   return {
     ...apiResponse,
-    ...(apiResponse.startedAt ? {startedAt: new Date(apiResponse.startedAt)} : {}),
-    ...(apiResponse.finishedAt ? {finishedAt: new Date(apiResponse.finishedAt)} : {}),
+    ...(apiResponse.started_at ? {started_at: new Date(apiResponse.started_at)} : {}),
+    ...(apiResponse.finished_at ? {finished_at: new Date(apiResponse.finished_at)} : {}),
     ...(apiResponse.duration !== undefined
       ? {duration: duration(apiResponse.duration * 1000)}
       : {}),
@@ -119,7 +119,7 @@ export function rrwebEventListFactory(
 ) {
   const events = ([] as RecordingEvent[]).concat(rrwebEvents).concat({
     type: 5, // EventType.Custom,
-    timestamp: replayRecord.finishedAt.getTime(),
+    timestamp: replayRecord.finished_at.getTime(),
     data: {
       tag: 'replay-end',
     },
@@ -128,7 +128,7 @@ export function rrwebEventListFactory(
   events.sort((a, b) => a.timestamp - b.timestamp);
 
   const firstRRWebEvent = first(events) as RecordingEvent;
-  firstRRWebEvent.timestamp = replayRecord.startedAt.getTime();
+  firstRRWebEvent.timestamp = replayRecord.started_at.getTime();
 
   return events;
 }
@@ -144,7 +144,7 @@ export function breadcrumbFactory(
   const initialUrl = replayRecord.tags.url?.join(', ');
   const initBreadcrumb = {
     type: BreadcrumbType.INIT,
-    timestamp: replayRecord.startedAt.toISOString(),
+    timestamp: replayRecord.started_at.toISOString(),
     level: BreadcrumbLevelType.INFO,
     message: initialUrl,
     data: {
@@ -268,11 +268,11 @@ export function replayTimestamps(
 
   return {
     startTimestampMs: Math.min(
-      replayRecord.startedAt.getTime(),
+      replayRecord.started_at.getTime(),
       ...[...rrwebTimestamps, ...breadcrumbTimestamps, ...spanStartTimestamps]
     ),
     endTimestampMs: Math.max(
-      replayRecord.finishedAt.getTime(),
+      replayRecord.finished_at.getTime(),
       ...[...rrwebTimestamps, ...breadcrumbTimestamps, ...spanEndTimestamps]
     ),
   };

@@ -17,7 +17,7 @@ type Props = {
 function DetailsPageBreadcrumbs({orgSlug, replayRecord}: Props) {
   const location = useLocation();
   const eventView = EventView.fromLocation(location);
-  const labelTitle = replayRecord?.user.displayName;
+  const labelTitle = replayRecord?.user.display_name;
 
   return (
     <Breadcrumbs

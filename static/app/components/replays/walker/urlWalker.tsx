@@ -21,7 +21,7 @@ type StringProps = {
 };
 
 export const CrumbWalker = memo(function CrumbWalker({crumbs, replayRecord}: CrumbProps) {
-  const startTimestampMs = replayRecord.startedAt.getTime();
+  const startTimestampMs = replayRecord.started_at.getTime();
   const {handleClick} = useCrumbHandlers(startTimestampMs);
 
   const navCrumbs = crumbs.filter(
