@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 class OrganizationService(InterfaceWithLifecycle):
     @abstractmethod
     def get_organization_by_id(
-        self, *, id: int, user_id: Optional[int]
+        self, *, id: int, user_id: Optional[int] = None, slug: Optional[str] = None
     ) -> Optional[ApiUserOrganizationContext]:
         """
         Fetches the organization, team, and project data given by an organization id, regardless of its visibility
