@@ -244,6 +244,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         occurrence_data = group_event.occurrence.to_dict()
         del occurrence_data["evidence_data"]
         del occurrence_data["evidence_display"]
+        assert payload1["occurrence_id"] == occurrence_data.get("id")
         assert payload1["occurrence_data"] == occurrence_data
         assert payload1["group_id"] == self.group.id
 
