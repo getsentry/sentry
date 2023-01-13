@@ -1,7 +1,8 @@
 import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {ModalRenderProps, openModal} from 'sentry/actionCreators/modal';
+import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {IconClose} from 'sentry/icons';

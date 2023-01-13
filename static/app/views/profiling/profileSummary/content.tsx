@@ -1,7 +1,7 @@
 import {useCallback, useMemo, useState} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import type {Location} from 'history';
 
 import CompactSelect from 'sentry/components/compactSelect';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -11,7 +11,7 @@ import {ProfileEventsTable} from 'sentry/components/profiling/profileEventsTable
 import {mobile} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {PageFilters, Project} from 'sentry/types';
+import type {PageFilters, Project} from 'sentry/types';
 import {useFunctions} from 'sentry/utils/profiling/hooks/useFunctions';
 import {
   formatSort,

@@ -5,8 +5,8 @@ import FeatureBadge from 'sentry/components/featureBadge';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {IssueOwnership, Organization, Project} from 'sentry/types';
-import {
+import type {IssueOwnership, Organization, Project} from 'sentry/types';
+import type {
   IssueAlertRuleAction,
   IssueAlertRuleActionTemplate,
   IssueAlertRuleCondition,

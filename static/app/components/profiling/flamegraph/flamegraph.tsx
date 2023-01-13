@@ -1,29 +1,24 @@
+import type {ReactElement} from 'react';
 import {
   Fragment,
-  ReactElement,
   useCallback,
   useEffect,
   useLayoutEffect,
   useMemo,
   useState,
 } from 'react';
-import {mat3, vec2} from 'gl-matrix';
+import type {mat3} from 'gl-matrix';
+import {vec2} from 'gl-matrix';
 
-import {
-  ProfileDragDropImport,
-  ProfileDragDropImportProps,
-} from 'sentry/components/profiling/flamegraph/flamegraphOverlays/profileDragDropImport';
+import type {ProfileDragDropImportProps} from 'sentry/components/profiling/flamegraph/flamegraphOverlays/profileDragDropImport';
+import {ProfileDragDropImport} from 'sentry/components/profiling/flamegraph/flamegraphOverlays/profileDragDropImport';
 import {FlamegraphOptionsMenu} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphOptionsMenu';
 import {FlamegraphSearch} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphSearch';
-import {
-  FlamegraphThreadSelector,
-  FlamegraphThreadSelectorProps,
-} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphThreadSelector';
+import type {FlamegraphThreadSelectorProps} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphThreadSelector';
+import {FlamegraphThreadSelector} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphThreadSelector';
 import {FlamegraphToolbar} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphToolbar';
-import {
-  FlamegraphViewSelectMenu,
-  FlamegraphViewSelectMenuProps,
-} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphViewSelectMenu';
+import type {FlamegraphViewSelectMenuProps} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphViewSelectMenu';
+import {FlamegraphViewSelectMenu} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphViewSelectMenu';
 import {FlamegraphZoomView} from 'sentry/components/profiling/flamegraph/flamegraphZoomView';
 import {FlamegraphZoomViewMinimap} from 'sentry/components/profiling/flamegraph/flamegraphZoomViewMinimap';
 import {defined} from 'sentry/utils';
@@ -39,18 +34,20 @@ import {useDispatchFlamegraphState} from 'sentry/utils/profiling/flamegraph/hook
 import {useFlamegraphZoomPosition} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphZoomPosition';
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
-import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
+import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {
   computeConfigViewWithStrategy,
   formatColorForFrame,
   Rect,
   useResizeCanvasObserver,
 } from 'sentry/utils/profiling/gl/utils';
-import {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
+import type {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
 import {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
-import {SpanChart, SpanChartNode} from 'sentry/utils/profiling/spanChart';
-import {SpanTree} from 'sentry/utils/profiling/spanTree';
-import {formatTo, ProfilingFormatterUnit} from 'sentry/utils/profiling/units/units';
+import type {SpanChartNode} from 'sentry/utils/profiling/spanChart';
+import {SpanChart} from 'sentry/utils/profiling/spanChart';
+import type {SpanTree} from 'sentry/utils/profiling/spanTree';
+import type {ProfilingFormatterUnit} from 'sentry/utils/profiling/units/units';
+import {formatTo} from 'sentry/utils/profiling/units/units';
 import {useDevicePixelRatio} from 'sentry/utils/useDevicePixelRatio';
 import {useMemoWithPrevious} from 'sentry/utils/useMemoWithPrevious';
 

@@ -3,9 +3,10 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import space from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
-import {BreadcrumbType, Crumb} from 'sentry/types/breadcrumbs';
-import {Event} from 'sentry/types/event';
+import type {Organization} from 'sentry/types';
+import type {Crumb} from 'sentry/types/breadcrumbs';
+import {BreadcrumbType} from 'sentry/types/breadcrumbs';
+import type {Event} from 'sentry/types/event';
 
 import Category from './category';
 import {Data} from './data';

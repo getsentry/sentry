@@ -1,4 +1,5 @@
-import React, {createContext, ReactNode, useCallback, useContext, useMemo} from 'react';
+import type {ReactNode} from 'react';
+import React, {createContext, useCallback, useContext, useMemo} from 'react';
 import styled from '@emotion/styled';
 import noop from 'lodash/noop';
 

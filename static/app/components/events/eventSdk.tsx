@@ -1,6 +1,6 @@
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {t} from 'sentry/locale';
-import {Event} from 'sentry/types/event';
+import type {Event} from 'sentry/types/event';
 
 import KeyValueList from './interfaces/keyValueList';
 import {AnnotatedText} from './meta/annotatedText';

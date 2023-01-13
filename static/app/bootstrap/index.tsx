@@ -1,4 +1,4 @@
-import {Config} from 'sentry/types';
+import type {Config} from 'sentry/types';
 
 const BOOTSTRAP_URL = '/api/client-config/';
 

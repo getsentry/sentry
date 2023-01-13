@@ -5,7 +5,7 @@ import {Integrations} from '@sentry/tracing';
 import {_browserPerformanceTimeOriginMode} from '@sentry/utils';
 
 import {SENTRY_RELEASE_VERSION, SPA_DSN} from 'sentry/constants';
-import {Config} from 'sentry/types';
+import type {Config} from 'sentry/types';
 import {
   initializeMeasureAssetsTimeout,
   LongTaskObserver,

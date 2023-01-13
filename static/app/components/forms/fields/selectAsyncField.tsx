@@ -1,15 +1,16 @@
 import {Component} from 'react';
 
-import SelectAsyncControl, {
+import type {
   Result,
   SelectAsyncControlProps,
 } from 'sentry/components/forms/controls/selectAsyncControl';
+import SelectAsyncControl from 'sentry/components/forms/controls/selectAsyncControl';
 // projects can be passed as a direct prop as well
-import {GeneralSelectValue} from 'sentry/components/forms/controls/selectControl';
+import type {GeneralSelectValue} from 'sentry/components/forms/controls/selectControl';
 import FormField from 'sentry/components/forms/formField';
 
 // XXX(epurkhiser): This is wrong, it should not be inheriting these props
-import {InputFieldProps} from './inputField';
+import type {InputFieldProps} from './inputField';
 
 export interface SelectAsyncFieldProps
   extends Omit<InputFieldProps, 'highlighted' | 'visible' | 'required' | 'value'>,

@@ -12,7 +12,7 @@ import ShortId from 'sentry/components/shortId';
 import GroupChart from 'sentry/components/stream/groupChart';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Group} from 'sentry/types';
+import type {Group} from 'sentry/types';
 
 type Props = {
   eventId: string;

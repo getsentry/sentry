@@ -1,5 +1,5 @@
 import BaseAvatar from 'sentry/components/avatar/baseAvatar';
-import {Team} from 'sentry/types';
+import type {Team} from 'sentry/types';
 import {explodeSlug} from 'sentry/utils';
 
 type Props = {

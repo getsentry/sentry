@@ -12,25 +12,27 @@ import {getOffsetOfElement} from 'sentry/components/performance/waterfall/utils'
 import {IconAdd, IconDelete, IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import type {Column} from 'sentry/utils/discover/fields';
 import {
   AGGREGATIONS,
-  Column,
   generateFieldAsString,
   hasDuplicate,
   isLegalEquationColumn,
 } from 'sentry/utils/discover/fields';
 import theme from 'sentry/utils/theme';
 import {getPointerPosition} from 'sentry/utils/touch';
-import {setBodyUserSelect, UserSelectValues} from 'sentry/utils/userselect';
+import type {UserSelectValues} from 'sentry/utils/userselect';
+import {setBodyUserSelect} from 'sentry/utils/userselect';
 import {WidgetType} from 'sentry/views/dashboardsV2/types';
 import {FieldKey} from 'sentry/views/dashboardsV2/widgetBuilder/issueWidget/fields';
 import {SESSIONS_OPERATIONS} from 'sentry/views/dashboardsV2/widgetBuilder/releaseWidget/fields';
 
-import {generateFieldOptions} from '../utils';
+import type {generateFieldOptions} from '../utils';
 
-import {FieldValueOption, QueryField} from './queryField';
+import type {FieldValueOption} from './queryField';
+import {QueryField} from './queryField';
 import {FieldValueKind} from './types';
 
 type Sources = WidgetType;

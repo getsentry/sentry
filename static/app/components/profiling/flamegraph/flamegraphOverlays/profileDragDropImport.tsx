@@ -4,10 +4,8 @@ import styled from '@emotion/styled';
 import {Button} from 'sentry/components/button';
 import {t} from 'sentry/locale';
 import {LightFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
-import {
-  importDroppedProfile,
-  ProfileGroup,
-} from 'sentry/utils/profiling/profile/importProfile';
+import type {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
+import {importDroppedProfile} from 'sentry/utils/profiling/profile/importProfile';
 
 export interface ProfileDragDropImportProps {
   children: React.ReactNode;

@@ -14,7 +14,7 @@ import Tooltip from 'sentry/components/tooltip';
 import {IconClock, IconDelete, IconDownload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Artifact} from 'sentry/types';
+import type {Artifact} from 'sentry/types';
 
 type Props = {
   artifact: Artifact;

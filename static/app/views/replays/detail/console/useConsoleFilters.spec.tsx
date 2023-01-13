@@ -7,7 +7,8 @@ import type {Crumb} from 'sentry/types/breadcrumbs';
 import {BreadcrumbLevelType, BreadcrumbType} from 'sentry/types/breadcrumbs';
 import {useLocation} from 'sentry/utils/useLocation';
 
-import useConsoleFilters, {FilterFields} from './useConsoleFilters';
+import type {FilterFields} from './useConsoleFilters';
+import useConsoleFilters from './useConsoleFilters';
 
 jest.mock('react-router');
 jest.mock('sentry/utils/useLocation');

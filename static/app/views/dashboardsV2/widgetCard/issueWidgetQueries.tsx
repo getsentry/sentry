@@ -1,17 +1,18 @@
 import {useEffect, useState} from 'react';
 
-import {Client, ResponseMeta} from 'sentry/api';
+import type {Client, ResponseMeta} from 'sentry/api';
 import MemberListStore from 'sentry/stores/memberListStore';
-import {Group, Organization, PageFilters} from 'sentry/types';
+import type {Group, Organization, PageFilters} from 'sentry/types';
 import getDynamicText from 'sentry/utils/getDynamicText';
 
 import {IssuesConfig} from '../datasetConfig/issues';
-import {DashboardFilters, Widget} from '../types';
+import type {DashboardFilters, Widget} from '../types';
 
-import GenericWidgetQueries, {
+import type {
   GenericWidgetQueriesChildrenProps,
   OnDataFetchedProps,
 } from './genericWidgetQueries';
+import GenericWidgetQueries from './genericWidgetQueries';
 
 type Props = {
   api: Client;

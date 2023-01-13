@@ -5,9 +5,9 @@ import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
-import {Frame, Group, PlatformType} from 'sentry/types';
-import {Event} from 'sentry/types/event';
-import {StacktraceType} from 'sentry/types/stacktrace';
+import type {Frame, Group, PlatformType} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
+import type {StacktraceType} from 'sentry/types/stacktrace';
 
 import Line from '../../frame/lineV2';
 import {getImageRange, parseAddress, stackTracePlatformIcon} from '../../utils';

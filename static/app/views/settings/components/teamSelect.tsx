@@ -4,7 +4,7 @@ import debounce from 'lodash/debounce';
 import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
-import {Item} from 'sentry/components/dropdownAutoComplete/types';
+import type {Item} from 'sentry/components/dropdownAutoComplete/types';
 import DropdownButton from 'sentry/components/dropdownButton';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import {TeamBadge} from 'sentry/components/idBadge/teamBadge';
@@ -16,7 +16,7 @@ import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization, Team} from 'sentry/types';
+import type {Organization, Team} from 'sentry/types';
 import useTeams from 'sentry/utils/useTeams';
 
 type Props = {

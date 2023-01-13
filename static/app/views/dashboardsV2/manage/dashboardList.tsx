@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
-import {Location, Query} from 'history';
+import type {Location, Query} from 'history';
 
 import {
   createDashboard,
@@ -9,21 +9,21 @@ import {
   fetchDashboard,
 } from 'sentry/actionCreators/dashboards';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import {Button} from 'sentry/components/button';
 import {openConfirmModal} from 'sentry/components/confirm';
 import DropdownMenuControl from 'sentry/components/dropdownMenuControl';
-import {MenuItemProps} from 'sentry/components/dropdownMenuItem';
+import type {MenuItemProps} from 'sentry/components/dropdownMenuItem';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import Pagination from 'sentry/components/pagination';
 import TimeSince from 'sentry/components/timeSince';
 import {IconEllipsis} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import trackAdvancedAnalytics from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import withApi from 'sentry/utils/withApi';
-import {DashboardListItem} from 'sentry/views/dashboardsV2/types';
+import type {DashboardListItem} from 'sentry/views/dashboardsV2/types';
 
 import {cloneDashboard} from '../utils';
 

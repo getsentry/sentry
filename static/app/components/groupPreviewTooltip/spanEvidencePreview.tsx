@@ -1,4 +1,5 @@
-import {Fragment, ReactChild, useEffect} from 'react';
+import type {ReactChild} from 'react';
+import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 
 import {SpanEvidenceKeyValueList} from 'sentry/components/events/interfaces/performance/spanEvidenceKeyValueList';
@@ -8,7 +9,7 @@ import {useDelayedLoadingState} from 'sentry/components/groupPreviewTooltip/util
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {EventTransaction} from 'sentry/types';
+import type {EventTransaction} from 'sentry/types';
 import {useQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 

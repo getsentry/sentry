@@ -1,7 +1,7 @@
 import {useEffect, useState} from 'react';
 
-import {Client} from 'sentry/api';
-import {Event, RequestState} from 'sentry/types';
+import type {Client} from 'sentry/api';
+import type {Event, RequestState} from 'sentry/types';
 import useApi from 'sentry/utils/useApi';
 
 function fetchSentryEvent<T extends Event>(

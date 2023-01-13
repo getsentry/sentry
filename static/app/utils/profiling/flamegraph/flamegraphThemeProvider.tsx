@@ -8,9 +8,9 @@ import {
   makeColorMapByRecursion,
   makeColorMapBySystemVsApplication,
 } from 'sentry/utils/profiling/colors/utils';
+import type {FlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 import {
   DarkFlamegraphTheme,
-  FlamegraphTheme,
   LightFlamegraphTheme,
 } from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphPreferences';

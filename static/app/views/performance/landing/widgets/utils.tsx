@@ -1,13 +1,13 @@
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import {objectIsEmpty} from 'sentry/utils';
 import localStorage from 'sentry/utils/localStorage';
+import type {MetricsEnhancedSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {
   canUseMetricsData,
   MEPState,
-  MetricsEnhancedSettingContext,
 } from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 
-import {PROJECT_PERFORMANCE_TYPE} from '../../utils';
+import type {PROJECT_PERFORMANCE_TYPE} from '../../utils';
 
 import {PerformanceWidgetSetting} from './widgetDefinitions';
 

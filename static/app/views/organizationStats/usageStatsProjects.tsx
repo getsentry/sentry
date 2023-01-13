@@ -1,22 +1,26 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
-import {LocationDescriptorObject} from 'history';
+import type {LocationDescriptorObject} from 'history';
 import isEqual from 'lodash/isEqual';
 
 import AsyncComponent from 'sentry/components/asyncComponent';
-import {DateTimeObject, getSeriesApiInterval} from 'sentry/components/charts/utils';
-import SortLink, {Alignments, Directions} from 'sentry/components/gridEditable/sortLink';
+import type {DateTimeObject} from 'sentry/components/charts/utils';
+import {getSeriesApiInterval} from 'sentry/components/charts/utils';
+import type {Alignments, Directions} from 'sentry/components/gridEditable/sortLink';
+import SortLink from 'sentry/components/gridEditable/sortLink';
 import Pagination from 'sentry/components/pagination';
 import SearchBar from 'sentry/components/searchBar';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {DataCategory, Organization, Outcome, Project} from 'sentry/types';
+import type {Organization, Project} from 'sentry/types';
+import {DataCategory, Outcome} from 'sentry/types';
 import withProjects from 'sentry/utils/withProjects';
 
-import {UsageSeries} from './types';
-import UsageTable, {CellProject, CellStat, TableStat} from './usageTable';
+import type {UsageSeries} from './types';
+import type {TableStat} from './usageTable';
+import UsageTable, {CellProject, CellStat} from './usageTable';
 
 type Props = {
   dataCategory: DataCategory;

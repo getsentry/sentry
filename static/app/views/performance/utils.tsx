@@ -1,10 +1,10 @@
 import {browserHistory} from 'react-router';
-import {Location} from 'history';
+import type {Location} from 'history';
 
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {backend, frontend, mobile} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
-import {
+import type {
   NewQuery,
   Organization,
   OrganizationSummary,

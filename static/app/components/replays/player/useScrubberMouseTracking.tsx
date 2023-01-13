@@ -1,4 +1,5 @@
-import {RefObject, useCallback} from 'react';
+import type {RefObject} from 'react';
+import {useCallback} from 'react';
 
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import useMouseTracking from 'sentry/utils/replays/hooks/useMouseTracking';

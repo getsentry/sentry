@@ -5,7 +5,8 @@ import * as qs from 'query-string';
 import ConfigStore from 'sentry/stores/configStore';
 import {useIsMountedRef} from 'sentry/utils/useIsMountedRef';
 
-import {imageStyle, ImageStyleProps} from './styles';
+import type {ImageStyleProps} from './styles';
+import {imageStyle} from './styles';
 
 type Props = {
   remoteSize: number;
@@ -14,8 +15,6 @@ type Props = {
   onLoad?: () => void;
   placeholder?: string;
 } & ImageStyleProps;
-
-type HasherHelper = typeof import('crypto-js/md5');
 
 function Gravatar({
   remoteSize,
@@ -27,7 +26,7 @@ function Gravatar({
   suggested,
 }: Props) {
   const isMountedRef = useIsMountedRef();
-  const [MD5, setMD5] = useState<HasherHelper>();
+  const [MD5, setMD5] = useState<typeof CryptoJS['MD5']>();
 
   const loadMd5Helper = useCallback(async () => {
     const mod = await import('crypto-js/md5');

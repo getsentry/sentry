@@ -6,7 +6,7 @@ import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import SentryAppAvatar from 'sentry/components/avatar/sentryAppAvatar';
 import TeamAvatar from 'sentry/components/avatar/teamAvatar';
 import UserAvatar from 'sentry/components/avatar/userAvatar';
-import {
+import type {
   AvatarProject,
   AvatarSentryApp,
   DocIntegration,

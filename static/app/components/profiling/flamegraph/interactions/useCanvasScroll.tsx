@@ -1,9 +1,9 @@
 import {useCallback} from 'react';
 import {mat3, vec2} from 'gl-matrix';
 
-import {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
-import {CanvasView} from 'sentry/utils/profiling/canvasView';
-import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
+import type {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
+import type {CanvasView} from 'sentry/utils/profiling/canvasView';
+import type {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
 
 export function useCanvasScroll(
   canvas: FlamegraphCanvas | null,

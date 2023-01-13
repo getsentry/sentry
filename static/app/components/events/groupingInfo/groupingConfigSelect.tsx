@@ -5,7 +5,7 @@ import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
 import DropdownButton from 'sentry/components/dropdownButton';
 import Tooltip from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
-import {EventGroupingConfig} from 'sentry/types';
+import type {EventGroupingConfig} from 'sentry/types';
 
 import {GroupingConfigItem} from '.';
 

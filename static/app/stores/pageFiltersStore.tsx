@@ -2,10 +2,10 @@ import isEqual from 'lodash/isEqual';
 import {createStore} from 'reflux';
 
 import {getDefaultSelection} from 'sentry/components/organizations/pageFilters/utils';
-import {PageFilters, PinnedPageFilter} from 'sentry/types';
+import type {PageFilters, PinnedPageFilter} from 'sentry/types';
 import {isEqualWithDates} from 'sentry/utils/isEqualWithDates';
 
-import {CommonStoreDefinition} from './types';
+import type {CommonStoreDefinition} from './types';
 
 interface CommonState {
   /**

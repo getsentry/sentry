@@ -1,4 +1,4 @@
-import {InjectedRouter} from 'react-router';
+import type {InjectedRouter} from 'react-router';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -16,13 +16,13 @@ import GlobalModal from 'sentry/components/globalModal';
 import AppStoreConnectContext from 'sentry/components/projects/appStoreConnectContext';
 import {DEBUG_SOURCE_TYPES} from 'sentry/data/debugFileSources';
 import ModalStore from 'sentry/stores/modalStore';
-import {
+import type {
   AppStoreConnectCredentialsStatus,
   CustomRepo,
   CustomRepoAppStoreConnect,
   CustomRepoHttp,
-  CustomRepoType,
 } from 'sentry/types/debugFiles';
+import {CustomRepoType} from 'sentry/types/debugFiles';
 import CustomRepositories from 'sentry/views/settings/projectDebugFiles/sources/customRepositories';
 
 function TestComponent({

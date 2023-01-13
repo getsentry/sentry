@@ -1,4 +1,5 @@
-import {browserHistory, RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
 import AsyncComponent from 'sentry/components/asyncComponent';
@@ -7,16 +8,16 @@ import {Button} from 'sentry/components/button';
 import ExternalLink from 'sentry/components/links/externalLink';
 import PlatformPicker from 'sentry/components/platformPicker';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {PlatformKey} from 'sentry/data/platformCategories';
+import type {PlatformKey} from 'sentry/data/platformCategories';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
-import {ProjectKey} from 'sentry/views/settings/project/projectKeys/types';
+import type {ProjectKey} from 'sentry/views/settings/project/projectKeys/types';
 
 type Props = RouteComponentProps<{projectId: string}, {}> & {
   organization: Organization;

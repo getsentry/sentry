@@ -2,9 +2,8 @@ import {Fragment} from 'react';
 
 import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import EventsGeoRequest, {
-  EventsGeoRequestProps,
-} from 'sentry/components/charts/eventsGeoRequest';
+import type {EventsGeoRequestProps} from 'sentry/components/charts/eventsGeoRequest';
+import EventsGeoRequest from 'sentry/components/charts/eventsGeoRequest';
 import * as genericDiscoverQuery from 'sentry/utils/discover/genericDiscoverQuery';
 
 describe('EventsGeoRequest', function () {

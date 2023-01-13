@@ -11,7 +11,7 @@ import {relativeTimeInMs} from 'sentry/components/replays/utils';
 import {IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Event} from 'sentry/types/event';
+import type {Event} from 'sentry/types/event';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import useReplayData from 'sentry/utils/replays/hooks/useReplayData';
 import {useRoutes} from 'sentry/utils/useRoutes';

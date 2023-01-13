@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import {browserHistory} from 'react-router';
 import {useTheme} from '@emotion/react';
-import {Query} from 'history';
+import type {Query} from 'history';
 
 import EventsRequest from 'sentry/components/charts/eventsRequest';
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
@@ -9,15 +9,15 @@ import {getInterval, getSeriesSelection} from 'sentry/components/charts/utils';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
-import {OrganizationSummary} from 'sentry/types';
+import type {OrganizationSummary} from 'sentry/types';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import useRouter from 'sentry/utils/useRouter';
 
-import {TrendFunctionField} from '../../../trends/types';
+import type {TrendFunctionField} from '../../../trends/types';
 import {generateTrendFunctionAsString} from '../../../trends/utils';
-import {ViewProps} from '../../../types';
+import type {ViewProps} from '../../../types';
 
 import Content from './content';
 

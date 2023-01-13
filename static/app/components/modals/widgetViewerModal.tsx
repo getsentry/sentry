@@ -5,39 +5,37 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {truncate} from '@sentry/utils';
 import type {DataZoomComponentOption} from 'echarts';
-import {Location} from 'history';
+import type {Location} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
 import isEqual from 'lodash/isEqual';
 import trimStart from 'lodash/trimStart';
 import moment from 'moment';
 
 import {fetchTotalCount} from 'sentry/actionCreators/events';
-import {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Client} from 'sentry/api';
+import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import type {Client} from 'sentry/api';
 import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import Option from 'sentry/components/forms/controls/selectOption';
-import GridEditable, {
-  COL_WIDTH_UNDEFINED,
-  GridColumnOrder,
-} from 'sentry/components/gridEditable';
+import type {GridColumnOrder} from 'sentry/components/gridEditable';
+import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import Pagination from 'sentry/components/pagination';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {parseSearch} from 'sentry/components/searchSyntax/parser';
 import HighlightQuery from 'sentry/components/searchSyntax/renderer';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization, PageFilters, SelectValue} from 'sentry/types';
-import {Series} from 'sentry/types/echarts';
+import type {Organization, PageFilters, SelectValue} from 'sentry/types';
+import type {Series} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {getUtcDateString} from 'sentry/utils/dates';
-import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
-import EventView from 'sentry/utils/discover/eventView';
+import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
+import type EventView from 'sentry/utils/discover/eventView';
+import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {
-  AggregationOutputType,
   isAggregateField,
   isEquation,
   isEquationAlias,
@@ -50,7 +48,8 @@ import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import useRouter from 'sentry/utils/useRouter';
 import withPageFilters from 'sentry/utils/withPageFilters';
-import {DisplayType, Widget, WidgetType} from 'sentry/views/dashboardsV2/types';
+import type {Widget} from 'sentry/views/dashboardsV2/types';
+import {DisplayType, WidgetType} from 'sentry/views/dashboardsV2/types';
 import {
   eventViewFromWidget,
   getFieldsFromEquations,
@@ -60,15 +59,13 @@ import {
   getWidgetReleasesUrl,
 } from 'sentry/views/dashboardsV2/utils';
 import {SESSION_DURATION_ALERT} from 'sentry/views/dashboardsV2/widgetCard';
-import WidgetCardChart, {
-  AugmentedEChartDataZoomHandler,
-  SLIDER_HEIGHT,
-} from 'sentry/views/dashboardsV2/widgetCard/chart';
+import type {AugmentedEChartDataZoomHandler} from 'sentry/views/dashboardsV2/widgetCard/chart';
+import WidgetCardChart, {SLIDER_HEIGHT} from 'sentry/views/dashboardsV2/widgetCard/chart';
 import {
   DashboardsMEPProvider,
   useDashboardsMEPContext,
 } from 'sentry/views/dashboardsV2/widgetCard/dashboardsMEPContext';
-import {GenericWidgetQueriesChildrenProps} from 'sentry/views/dashboardsV2/widgetCard/genericWidgetQueries';
+import type {GenericWidgetQueriesChildrenProps} from 'sentry/views/dashboardsV2/widgetCard/genericWidgetQueries';
 import IssueWidgetQueries from 'sentry/views/dashboardsV2/widgetCard/issueWidgetQueries';
 import ReleaseWidgetQueries from 'sentry/views/dashboardsV2/widgetCard/releaseWidgetQueries';
 import {WidgetCardChartContainer} from 'sentry/views/dashboardsV2/widgetCard/widgetCardChartContainer';

@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
@@ -9,10 +9,10 @@ import {
   openTeamAccessRequestModal,
 } from 'sentry/actionCreators/modal';
 import {joinTeam, leaveTeam} from 'sentry/actionCreators/teams';
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import UserAvatar from 'sentry/components/avatar/userAvatar';
 import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
-import {Item} from 'sentry/components/dropdownAutoComplete/types';
+import type {Item} from 'sentry/components/dropdownAutoComplete/types';
 import DropdownButton from 'sentry/components/dropdownButton';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import Link from 'sentry/components/links/link';
@@ -23,7 +23,7 @@ import {Panel, PanelHeader} from 'sentry/components/panels';
 import {IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Config, Member, Organization, Team, TeamMember} from 'sentry/types';
+import type {Config, Member, Organization, Team, TeamMember} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
 import withConfig from 'sentry/utils/withConfig';
 import withOrganization from 'sentry/utils/withOrganization';

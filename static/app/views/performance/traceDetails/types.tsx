@@ -1,4 +1,4 @@
-import {TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
+import type {TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
 
 export type TraceInfo = {
   /**

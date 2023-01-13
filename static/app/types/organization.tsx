@@ -1,4 +1,4 @@
-import {AggregationOutputType} from 'sentry/utils/discover/fields';
+import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 
 import type {Actor, Avatar, ObjectStatus, Scope} from './core';
 import type {OrgExperiments} from './experiments';

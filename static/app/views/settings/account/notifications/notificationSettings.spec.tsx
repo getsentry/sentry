@@ -1,10 +1,8 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {
-  NotificationSettingsObject,
-  SELF_NOTIFICATION_SETTINGS_TYPES,
-} from 'sentry/views/settings/account/notifications/constants';
+import type {NotificationSettingsObject} from 'sentry/views/settings/account/notifications/constants';
+import {SELF_NOTIFICATION_SETTINGS_TYPES} from 'sentry/views/settings/account/notifications/constants';
 import {NOTIFICATION_SETTING_FIELDS} from 'sentry/views/settings/account/notifications/fields2';
 import NotificationSettings from 'sentry/views/settings/account/notifications/notificationSettings';
 

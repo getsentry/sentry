@@ -1,22 +1,23 @@
 import {useRef} from 'react';
-import {Theme} from '@emotion/react';
+import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
 import {addTeamToProject} from 'sentry/actionCreators/projects';
 import {Button} from 'sentry/components/button';
-import SelectControl, {
+import type {
   ControlProps,
   GeneralSelectValue,
   StylesConfig,
 } from 'sentry/components/forms/controls/selectControl';
+import SelectControl from 'sentry/components/forms/controls/selectControl';
 import IdBadge from 'sentry/components/idBadge';
 import Tooltip from 'sentry/components/tooltip';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {IconAdd, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization, Project, Team} from 'sentry/types';
+import type {Organization, Project, Team} from 'sentry/types';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import useApi from 'sentry/utils/useApi';
 import useTeams from 'sentry/utils/useTeams';

@@ -1,5 +1,5 @@
-import {ReactNode} from 'react';
-import {InjectedRouter} from 'react-router';
+import type {ReactNode} from 'react';
+import type {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 
 import Badge from 'sentry/components/badge';
@@ -16,7 +16,7 @@ import {SLOW_TOOLTIP_DELAY} from 'sentry/constants';
 import {IconPause, IconPlay, IconStar} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization, SavedSearch} from 'sentry/types';
+import type {Organization, SavedSearch} from 'sentry/types';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import useProjects from 'sentry/utils/useProjects';
@@ -24,11 +24,11 @@ import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageStat
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import IssueListSetAsDefault from 'sentry/views/issueList/issueListSetAsDefault';
 
+import type {QueryCounts} from './utils';
 import {
   getTabs,
   IssueSortOptions,
   Query,
-  QueryCounts,
   SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY,
   TAB_MAX_COUNT,
 } from './utils';

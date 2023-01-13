@@ -1,10 +1,12 @@
 import {useEffect, useRef} from 'react';
-import {css, Theme} from '@emotion/react';
-import styled, {Interpolation} from '@emotion/styled';
+import type {Theme} from '@emotion/react';
+import {css} from '@emotion/react';
+import type {Interpolation} from '@emotion/styled';
+import styled from '@emotion/styled';
 
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {IconCheckmark, IconSubtract} from 'sentry/icons';
-import {FormSize} from 'sentry/utils/theme';
+import type {FormSize} from 'sentry/utils/theme';
 
 type CheckboxProps = React.InputHTMLAttributes<HTMLInputElement>;
 

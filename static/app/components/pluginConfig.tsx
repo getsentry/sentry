@@ -7,7 +7,7 @@ import {
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import {Button} from 'sentry/components/button';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Panel, PanelAlert, PanelBody, PanelHeader} from 'sentry/components/panels';
@@ -15,7 +15,7 @@ import {t} from 'sentry/locale';
 import plugins from 'sentry/plugins';
 import PluginIcon from 'sentry/plugins/components/pluginIcon';
 import space from 'sentry/styles/space';
-import {Organization, Plugin, Project} from 'sentry/types';
+import type {Organization, Plugin, Project} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
 
 type Props = {

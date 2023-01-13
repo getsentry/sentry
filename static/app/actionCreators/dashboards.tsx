@@ -1,10 +1,10 @@
 import omit from 'lodash/omit';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
-import {
+import type {
   DashboardDetails,
   DashboardListItem,
   Widget,

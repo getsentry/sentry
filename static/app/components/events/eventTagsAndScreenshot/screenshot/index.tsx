@@ -1,4 +1,5 @@
-import {Fragment, ReactEventHandler, useState} from 'react';
+import type {ReactEventHandler} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Role} from 'sentry/components/acl/role';
@@ -11,7 +12,7 @@ import {Panel, PanelBody, PanelFooter, PanelHeader} from 'sentry/components/pane
 import {IconChevron, IconEllipsis} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Event, EventAttachment, Organization, Project} from 'sentry/types';
+import type {Event, EventAttachment, Organization, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 
 import ImageVisualization from './imageVisualization';

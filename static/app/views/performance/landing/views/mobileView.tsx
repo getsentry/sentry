@@ -8,7 +8,7 @@ import {checkIsReactNative} from '../utils';
 import {DoubleChartRow, TripleChartRow} from '../widgets/components/widgetChartRow';
 import {PerformanceWidgetSetting} from '../widgets/widgetDefinitions';
 
-import {BasePerformanceViewProps} from './types';
+import type {BasePerformanceViewProps} from './types';
 
 export function MobileView(props: BasePerformanceViewProps) {
   const columnTitles = checkIsReactNative(props.eventView)

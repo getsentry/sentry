@@ -3,16 +3,16 @@ import type {Location} from 'history';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ConfigStore from 'sentry/stores/configStore';
-import {
-  EntryType,
+import type {
   Event,
   EventError,
-  EventOrGroupType,
   ExceptionType,
   ExceptionValue,
   Frame,
 } from 'sentry/types/event';
-import EventView, {EventData} from 'sentry/utils/discover/eventView';
+import {EntryType, EventOrGroupType} from 'sentry/types/event';
+import type {EventData} from 'sentry/utils/discover/eventView';
+import type EventView from 'sentry/utils/discover/eventView';
 import {QueryClient, QueryClientProvider} from 'sentry/utils/queryClient';
 
 import EventContext from './eventContext';

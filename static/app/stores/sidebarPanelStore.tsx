@@ -1,8 +1,8 @@
 import {createStore} from 'reflux';
 
-import {SidebarPanelKey} from 'sentry/components/sidebar/types';
+import type {SidebarPanelKey} from 'sentry/components/sidebar/types';
 
-import {CommonStoreDefinition} from './types';
+import type {CommonStoreDefinition} from './types';
 
 type ActivePanelType = SidebarPanelKey | '';
 

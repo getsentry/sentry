@@ -4,12 +4,8 @@ import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
 import Clipboard from 'sentry/components/clipboard';
-import {
-  Input,
-  InputGroup,
-  InputProps,
-  InputTrailingItems,
-} from 'sentry/components/inputGroup';
+import type {InputProps} from 'sentry/components/inputGroup';
+import {Input, InputGroup, InputTrailingItems} from 'sentry/components/inputGroup';
 import {IconCopy} from 'sentry/icons';
 import space from 'sentry/styles/space';
 import {selectText} from 'sentry/utils/selectText';

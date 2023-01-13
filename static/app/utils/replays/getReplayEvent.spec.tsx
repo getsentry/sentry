@@ -1,4 +1,5 @@
-import {BreadcrumbLevelType, BreadcrumbType, Crumb} from 'sentry/types/breadcrumbs';
+import type {Crumb} from 'sentry/types/breadcrumbs';
+import {BreadcrumbLevelType, BreadcrumbType} from 'sentry/types/breadcrumbs';
 import {
   getNextReplayEvent,
   getPrevReplayEvent,

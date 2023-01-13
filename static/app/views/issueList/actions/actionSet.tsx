@@ -5,16 +5,12 @@ import ActionLink from 'sentry/components/actions/actionLink';
 import IgnoreActions from 'sentry/components/actions/ignore';
 import {openConfirmModal} from 'sentry/components/confirm';
 import DropdownMenuControl from 'sentry/components/dropdownMenuControl';
-import {MenuItemProps} from 'sentry/components/dropdownMenuItem';
+import type {MenuItemProps} from 'sentry/components/dropdownMenuItem';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
-import {
-  BaseGroup,
-  IssueCategoryCapabilities,
-  Project,
-  ResolutionStatus,
-} from 'sentry/types';
+import type {BaseGroup, IssueCategoryCapabilities, Project} from 'sentry/types';
+import {ResolutionStatus} from 'sentry/types';
 import {getIssueCapability} from 'sentry/utils/groupCapabilities';
 import Projects from 'sentry/utils/projects';
 import useMedia from 'sentry/utils/useMedia';

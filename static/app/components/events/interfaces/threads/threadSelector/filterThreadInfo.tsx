@@ -1,5 +1,5 @@
 import {trimPackage} from 'sentry/components/events/interfaces/frame/utils';
-import {
+import type {
   EntryData,
   Event,
   ExceptionType,

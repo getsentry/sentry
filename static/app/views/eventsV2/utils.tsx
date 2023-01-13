@@ -1,26 +1,34 @@
-import {browserHistory, InjectedRouter} from 'react-router';
+import type {InjectedRouter} from 'react-router';
+import {browserHistory} from 'react-router';
 import {urlEncode} from '@sentry/utils';
-import {Location, Query} from 'history';
+import type {Location, Query} from 'history';
 import * as Papa from 'papaparse';
 
 import {openAddToDashboardModal} from 'sentry/actionCreators/modal';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
-import {NewQuery, Organization, OrganizationSummary, SelectValue} from 'sentry/types';
-import {Event} from 'sentry/types/event';
+import type {
+  NewQuery,
+  Organization,
+  OrganizationSummary,
+  SelectValue,
+} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
 import {getUtcDateString} from 'sentry/utils/dates';
-import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
-import EventView from 'sentry/utils/discover/eventView';
-import {
-  aggregateFunctionOutputType,
+import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
+import type EventView from 'sentry/utils/discover/eventView';
+import type {
   Aggregation,
-  AGGREGATIONS,
   Column,
   ColumnType,
   ColumnValueType,
-  explodeFieldString,
   Field,
+} from 'sentry/utils/discover/fields';
+import {
+  aggregateFunctionOutputType,
+  AGGREGATIONS,
+  explodeFieldString,
   getAggregateAlias,
   getAggregateArg,
   getColumnsAndAggregates,
@@ -32,16 +40,19 @@ import {
   measurementType,
   TRACING_FIELDS,
 } from 'sentry/utils/discover/fields';
-import {DisplayModes, TOP_N} from 'sentry/utils/discover/types';
+import type {DisplayModes} from 'sentry/utils/discover/types';
+import {TOP_N} from 'sentry/utils/discover/types';
 import {getTitle} from 'sentry/utils/events';
 import {DISCOVER_FIELDS, FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
 import localStorage from 'sentry/utils/localStorage';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 
-import {DashboardWidgetSource, DisplayType, WidgetQuery} from '../dashboardsV2/types';
+import type {WidgetQuery} from '../dashboardsV2/types';
+import {DashboardWidgetSource, DisplayType} from '../dashboardsV2/types';
 
 import {displayModeToDisplayType} from './savedQuery/utils';
-import {FieldValue, FieldValueKind, TableColumn} from './table/types';
+import type {FieldValue, TableColumn} from './table/types';
+import {FieldValueKind} from './table/types';
 import {ALL_VIEWS, TRANSACTION_VIEWS, WEB_VITALS_VIEWS} from './data';
 
 export type QueryWithColumnState =

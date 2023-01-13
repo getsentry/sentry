@@ -3,8 +3,8 @@ import uniq from 'lodash/uniq';
 
 import AsyncComponent from 'sentry/components/asyncComponent';
 import {t} from 'sentry/locale';
-import {Frame, Organization, Project, TagWithTopValues} from 'sentry/types';
-import {Entry, EventError} from 'sentry/types/event';
+import type {Frame, Organization, Project, TagWithTopValues} from 'sentry/types';
+import type {Entry, EventError} from 'sentry/types/event';
 import OwnerInput from 'sentry/views/settings/project/projectOwnership/ownerInput';
 
 type IssueOwnershipResponse = {

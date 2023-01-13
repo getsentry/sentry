@@ -1,12 +1,13 @@
-import {Fragment, ReactNode} from 'react';
-import {PlainRoute, RouteComponentProps} from 'react-router';
+import type {ReactNode} from 'react';
+import {Fragment} from 'react';
+import type {PlainRoute, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
+import type {Indicator} from 'sentry/actionCreators/indicator';
 import {
   addErrorMessage,
   addSuccessMessage,
   clearIndicators,
-  Indicator,
 } from 'sentry/actionCreators/indicator';
 import {fetchOrganizationTags} from 'sentry/actionCreators/tags';
 import Access from 'sentry/components/acl/access';
@@ -15,7 +16,8 @@ import {Button} from 'sentry/components/button';
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
 import CircleIndicator from 'sentry/components/circleIndicator';
 import Confirm from 'sentry/components/confirm';
-import Form, {FormProps} from 'sentry/components/forms/form';
+import type {FormProps} from 'sentry/components/forms/form';
+import Form from 'sentry/components/forms/form';
 import FormModel from 'sentry/components/forms/model';
 import * as Layout from 'sentry/components/layouts/thirds';
 import List from 'sentry/components/list';
@@ -23,7 +25,12 @@ import ListItem from 'sentry/components/list/listItem';
 import {t} from 'sentry/locale';
 import IndicatorStore from 'sentry/stores/indicatorStore';
 import space from 'sentry/styles/space';
-import {EventsStats, MultiSeriesEventsStats, Organization, Project} from 'sentry/types';
+import type {
+  EventsStats,
+  MultiSeriesEventsStats,
+  Organization,
+  Project,
+} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {metric} from 'sentry/utils/analytics';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
@@ -54,16 +61,18 @@ import {
   DEFAULT_COUNT_TIME_WINDOW,
 } from './constants';
 import RuleConditionsForm from './ruleConditionsForm';
-import {
-  AlertRuleComparisonType,
-  AlertRuleThresholdType,
-  AlertRuleTriggerType,
-  Dataset,
+import type {
   EventTypes,
   MetricActionTemplate,
   MetricRule,
   Trigger,
   UnsavedMetricRule,
+} from './types';
+import {
+  AlertRuleComparisonType,
+  AlertRuleThresholdType,
+  AlertRuleTriggerType,
+  Dataset,
 } from './types';
 
 const POLLING_MAX_TIME_LIMIT = 3 * 60000;

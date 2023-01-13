@@ -1,6 +1,7 @@
 import * as React from 'react';
-import {InjectedRouter} from 'react-router';
-import {Theme, withTheme} from '@emotion/react';
+import type {InjectedRouter} from 'react-router';
+import type {Theme} from '@emotion/react';
+import {withTheme} from '@emotion/react';
 import type {
   EChartsOption,
   LegendComponentOption,
@@ -8,15 +9,19 @@ import type {
   XAXisComponentOption,
   YAXisComponentOption,
 } from 'echarts';
-import {Query} from 'history';
+import type {Query} from 'history';
 import isEqual from 'lodash/isEqual';
 
-import {Client} from 'sentry/api';
-import {AreaChart, AreaChartProps} from 'sentry/components/charts/areaChart';
-import {BarChart, BarChartProps} from 'sentry/components/charts/barChart';
-import ChartZoom, {ZoomRenderProps} from 'sentry/components/charts/chartZoom';
+import type {Client} from 'sentry/api';
+import type {AreaChartProps} from 'sentry/components/charts/areaChart';
+import {AreaChart} from 'sentry/components/charts/areaChart';
+import type {BarChartProps} from 'sentry/components/charts/barChart';
+import {BarChart} from 'sentry/components/charts/barChart';
+import type {ZoomRenderProps} from 'sentry/components/charts/chartZoom';
+import ChartZoom from 'sentry/components/charts/chartZoom';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
-import {LineChart, LineChartProps} from 'sentry/components/charts/lineChart';
+import type {LineChartProps} from 'sentry/components/charts/lineChart';
+import {LineChart} from 'sentry/components/charts/lineChart';
 import ReleaseSeries from 'sentry/components/charts/releaseSeries';
 import TransitionChart from 'sentry/components/charts/transitionChart';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
@@ -25,22 +30,23 @@ import {
   processTableResults,
   RELEASE_LINES_THRESHOLD,
 } from 'sentry/components/charts/utils';
-import {WorldMapChart, WorldMapChartProps} from 'sentry/components/charts/worldMapChart';
+import type {WorldMapChartProps} from 'sentry/components/charts/worldMapChart';
+import {WorldMapChart} from 'sentry/components/charts/worldMapChart';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {DateString, OrganizationSummary} from 'sentry/types';
-import {Series} from 'sentry/types/echarts';
+import type {DateString, OrganizationSummary} from 'sentry/types';
+import type {Series} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 import {
   axisLabelFormatter,
   axisLabelFormatterUsingAggregateOutputType,
   tooltipFormatter,
 } from 'sentry/utils/discover/charts';
-import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
+import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
+import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {
   aggregateMultiPlotType,
   aggregateOutputType,
-  AggregationOutputType,
   getEquation,
   isEquation,
 } from 'sentry/utils/discover/fields';

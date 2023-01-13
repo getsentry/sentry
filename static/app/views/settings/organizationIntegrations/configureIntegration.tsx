@@ -1,9 +1,9 @@
 import {Fragment} from 'react';
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import Access from 'sentry/components/acl/access';
 import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
@@ -15,7 +15,7 @@ import ListItem from 'sentry/components/list/listItem';
 import NavTabs from 'sentry/components/navTabs';
 import {IconAdd, IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {
+import type {
   IntegrationProvider,
   IntegrationWithConfig,
   Organization,

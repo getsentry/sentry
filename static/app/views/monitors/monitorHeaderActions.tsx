@@ -15,7 +15,7 @@ import useApi from 'sentry/utils/useApi';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 import CronsFeedbackButton from './cronsFeedbackButton';
-import {Monitor} from './types';
+import type {Monitor} from './types';
 
 type Props = {
   monitor: Monitor;

@@ -9,18 +9,18 @@ import {Panel} from 'sentry/components/panels';
 import SearchBar from 'sentry/components/searchBar';
 import {t, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
-import {EventTransaction} from 'sentry/types/event';
+import type {Organization} from 'sentry/types';
+import type {EventTransaction} from 'sentry/types/event';
 import {objectIsEmpty} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {QuickTraceContext} from 'sentry/utils/performance/quickTrace/quickTraceContext';
-import {TraceError} from 'sentry/utils/performance/quickTrace/types';
+import type {TraceError} from 'sentry/utils/performance/quickTrace/types';
 import withOrganization from 'sentry/utils/withOrganization';
 
 import Filter from './filter';
 import TraceErrorList from './traceErrorList';
 import TraceView from './traceView';
-import {ParsedTraceType} from './types';
+import type {ParsedTraceType} from './types';
 import {getCumulativeAlertLevelFromErrors, parseTrace} from './utils';
 import WaterfallModel from './waterfallModel';
 

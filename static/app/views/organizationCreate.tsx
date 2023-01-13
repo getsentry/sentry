@@ -3,7 +3,7 @@ import NarrowLayout from 'sentry/components/narrowLayout';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import {OrganizationSummary} from 'sentry/types';
+import type {OrganizationSummary} from 'sentry/types';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 function OrganizationCreate() {

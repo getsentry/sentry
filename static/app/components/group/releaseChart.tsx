@@ -1,4 +1,5 @@
-import {Theme, useTheme} from '@emotion/react';
+import type {Theme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import type {BarChartSeries} from 'sentry/components/charts/barChart';

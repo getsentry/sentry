@@ -1,7 +1,8 @@
 import 'prism-sentry/index.css';
 
 import {Fragment} from 'react';
-import {browserHistory, RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
 import AsyncComponent from 'sentry/components/asyncComponent';
@@ -10,7 +11,7 @@ import ButtonBar from 'sentry/components/buttonBar';
 import platforms from 'sentry/data/platforms';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {IntegrationProvider, Organization, Project} from 'sentry/types';
+import type {IntegrationProvider, Organization, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';

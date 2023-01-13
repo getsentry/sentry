@@ -1,8 +1,8 @@
-import {Theme} from '@emotion/react';
+import type {Theme} from '@emotion/react';
 import type {XAXisComponentOption} from 'echarts';
 import merge from 'lodash/merge';
 
-import BaseChart from 'sentry/components/charts/baseChart';
+import type BaseChart from 'sentry/components/charts/baseChart';
 import {truncationFormatter, useShortInterval} from 'sentry/components/charts/utils';
 import {getFormattedDate, getTimeFormat} from 'sentry/utils/dates';
 

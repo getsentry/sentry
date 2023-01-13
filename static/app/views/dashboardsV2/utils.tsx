@@ -1,5 +1,5 @@
 import {browserHistory} from 'react-router';
-import {Location, Query} from 'history';
+import type {Location, Query} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
 import isEmpty from 'lodash/isEmpty';
 import isEqual from 'lodash/isEqual';
@@ -15,15 +15,15 @@ import WidgetTable from 'sentry-images/dashboard/widget-table.svg';
 import WidgetWorldMap from 'sentry-images/dashboard/widget-world-map.svg';
 
 import {parseArithmetic} from 'sentry/components/arithmeticInput/parser';
+import type {Fidelity} from 'sentry/components/charts/utils';
 import {
-  Fidelity,
   getDiffInMinutes,
   getInterval,
   SIX_HOURS,
   TWENTY_FOUR_HOURS,
 } from 'sentry/components/charts/utils';
 import {normalizeDateTimeString} from 'sentry/components/organizations/pageFilters/parse';
-import {Organization, PageFilters} from 'sentry/types';
+import type {Organization, PageFilters} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {getUtcDateString, parsePeriodToHours} from 'sentry/utils/dates';
 import EventView from 'sentry/utils/discover/eventView';
@@ -38,13 +38,15 @@ import {
 import {DisplayModes} from 'sentry/utils/discover/types';
 import {getMeasurements} from 'sentry/utils/measurements/measurements';
 import {decodeList} from 'sentry/utils/queryString';
-import {
+import type {
   DashboardDetails,
-  DashboardFilterKeys,
   DashboardFilters,
-  DisplayType,
   Widget,
   WidgetQuery,
+} from 'sentry/views/dashboardsV2/types';
+import {
+  DashboardFilterKeys,
+  DisplayType,
   WidgetType,
 } from 'sentry/views/dashboardsV2/types';
 

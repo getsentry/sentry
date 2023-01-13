@@ -1,23 +1,21 @@
 import trimStart from 'lodash/trimStart';
 
-import {Client, ResponseMeta} from 'sentry/api';
-import {SearchBarProps} from 'sentry/components/events/searchBar';
-import {Organization, PageFilters, SelectValue, TagCollection} from 'sentry/types';
-import {Series} from 'sentry/types/echarts';
-import {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
-import {TableData} from 'sentry/utils/discover/discoverQuery';
-import {MetaType} from 'sentry/utils/discover/eventView';
-import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
-import {
-  AggregationOutputType,
-  isEquation,
-  QueryFieldValue,
-} from 'sentry/utils/discover/fields';
-import {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import {FieldValueOption} from 'sentry/views/eventsV2/table/queryField';
-import {FieldValue} from 'sentry/views/eventsV2/table/types';
+import type {Client, ResponseMeta} from 'sentry/api';
+import type {SearchBarProps} from 'sentry/components/events/searchBar';
+import type {Organization, PageFilters, SelectValue, TagCollection} from 'sentry/types';
+import type {Series} from 'sentry/types/echarts';
+import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
+import type {TableData} from 'sentry/utils/discover/discoverQuery';
+import type {MetaType} from 'sentry/utils/discover/eventView';
+import type {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
+import type {AggregationOutputType, QueryFieldValue} from 'sentry/utils/discover/fields';
+import {isEquation} from 'sentry/utils/discover/fields';
+import type {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
+import type {FieldValueOption} from 'sentry/views/eventsV2/table/queryField';
+import type {FieldValue} from 'sentry/views/eventsV2/table/types';
 
-import {DisplayType, Widget, WidgetQuery, WidgetType} from '../types';
+import type {DisplayType, Widget, WidgetQuery} from '../types';
+import {WidgetType} from '../types';
 import {getNumEquations} from '../utils';
 
 import {ErrorsAndTransactionsConfig} from './errorsAndTransactions';

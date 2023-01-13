@@ -16,14 +16,14 @@ import * as indicators from 'sentry/actionCreators/indicator';
 import * as modals from 'sentry/actionCreators/modal';
 import TagStore from 'sentry/stores/tagStore';
 import {TOP_N} from 'sentry/utils/discover/types';
+import type {DashboardDetails, Widget} from 'sentry/views/dashboardsV2/types';
 import {
-  DashboardDetails,
   DashboardWidgetSource,
   DisplayType,
-  Widget,
   WidgetType,
 } from 'sentry/views/dashboardsV2/types';
-import WidgetBuilder, {WidgetBuilderProps} from 'sentry/views/dashboardsV2/widgetBuilder';
+import type {WidgetBuilderProps} from 'sentry/views/dashboardsV2/widgetBuilder';
+import WidgetBuilder from 'sentry/views/dashboardsV2/widgetBuilder';
 
 const defaultOrgFeatures = [
   'performance-view',

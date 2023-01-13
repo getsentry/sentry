@@ -1,6 +1,7 @@
-import {createStore, StoreDefinition} from 'reflux';
+import type {StoreDefinition} from 'reflux';
+import {createStore} from 'reflux';
 
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 
 interface OrganizationsStoreDefinition extends StoreDefinition {
   addOrReplace(item: Organization): void;

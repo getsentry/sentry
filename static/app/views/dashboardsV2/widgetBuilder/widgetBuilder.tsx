@@ -1,5 +1,5 @@
 import {useEffect, useMemo, useState} from 'react';
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 import isEmpty from 'lodash/isEmpty';
@@ -18,17 +18,17 @@ import PageFiltersContainer from 'sentry/components/organizations/pageFilters/co
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {DateString, Organization, PageFilters, TagCollection} from 'sentry/types';
+import type {DateString, Organization, PageFilters, TagCollection} from 'sentry/types';
 import {defined, objectIsEmpty} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {CustomMeasurementsProvider} from 'sentry/utils/customMeasurements/customMeasurementsProvider';
 import EventView from 'sentry/utils/discover/eventView';
+import type {QueryFieldValue} from 'sentry/utils/discover/fields';
 import {
   explodeField,
   generateFieldAsString,
   getColumnsAndAggregates,
   getColumnsAndAggregatesAsStrings,
-  QueryFieldValue,
 } from 'sentry/utils/discover/fields';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
@@ -42,12 +42,14 @@ import {
   generateWidgetsAfterCompaction,
   getDefaultWidgetHeight,
 } from 'sentry/views/dashboardsV2/layoutUtils';
-import {
+import type {
   DashboardDetails,
-  DashboardWidgetSource,
-  DisplayType,
   Widget,
   WidgetQuery,
+} from 'sentry/views/dashboardsV2/types';
+import {
+  DashboardWidgetSource,
+  DisplayType,
   WidgetType,
 } from 'sentry/views/dashboardsV2/types';
 import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';

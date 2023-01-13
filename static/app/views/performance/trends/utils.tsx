@@ -1,34 +1,28 @@
 import {ASAP} from 'downsample/methods/ASAP';
-import {Location} from 'history';
+import type {Location} from 'history';
 import moment from 'moment';
 
 import {getInterval} from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
-import {Project} from 'sentry/types';
-import {Series, SeriesDataUnit} from 'sentry/types/echarts';
-import EventView from 'sentry/utils/discover/eventView';
-import {
-  AggregationKeyWithAlias,
-  Field,
-  generateFieldAsString,
-  Sort,
-} from 'sentry/utils/discover/fields';
+import type {Project} from 'sentry/types';
+import type {Series, SeriesDataUnit} from 'sentry/types/echarts';
+import type EventView from 'sentry/utils/discover/eventView';
+import type {AggregationKeyWithAlias, Field, Sort} from 'sentry/utils/discover/fields';
+import {generateFieldAsString} from 'sentry/utils/discover/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
 import theme from 'sentry/utils/theme';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 
 import {platformToPerformanceType, PROJECT_PERFORMANCE_TYPE} from '../utils';
 
-import {
+import type {
   NormalizedTrendsTransaction,
-  TrendChangeType,
-  TrendColumnField,
   TrendFunction,
-  TrendFunctionField,
   TrendParameter,
   TrendsTransaction,
   TrendView,
 } from './types';
+import {TrendChangeType, TrendColumnField, TrendFunctionField} from './types';
 
 export const DEFAULT_TRENDS_STATS_PERIOD = '14d';
 export const DEFAULT_MAX_DURATION = '15min';

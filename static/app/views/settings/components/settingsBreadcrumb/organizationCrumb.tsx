@@ -1,8 +1,9 @@
-import {browserHistory, RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
 import IdBadge from 'sentry/components/idBadge';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import shouldUseLegacyRoute from 'sentry/utils/shouldUseLegacyRoute';
 import withLatestContext from 'sentry/utils/withLatestContext';

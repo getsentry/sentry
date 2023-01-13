@@ -7,8 +7,8 @@ import BaseSearchBar from 'sentry/components/searchBar';
 import {getSearchGroupWithItemMarkedActive} from 'sentry/components/smartSearchBar/utils';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {t} from 'sentry/locale';
-import {Organization} from 'sentry/types';
-import EventView from 'sentry/utils/discover/eventView';
+import type {Organization} from 'sentry/types';
+import type EventView from 'sentry/utils/discover/eventView';
 import {doDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useApi from 'sentry/utils/useApi';
@@ -17,7 +17,8 @@ import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
 import SearchDropdown from '../smartSearchBar/searchDropdown';
-import {ItemType, SearchGroup} from '../smartSearchBar/types';
+import type {SearchGroup} from '../smartSearchBar/types';
+import {ItemType} from '../smartSearchBar/types';
 
 export type SearchBarProps = {
   eventView: EventView;

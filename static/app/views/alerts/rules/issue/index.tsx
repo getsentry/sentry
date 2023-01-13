@@ -1,9 +1,10 @@
-import {ChangeEvent, ReactNode} from 'react';
-import {browserHistory, RouteComponentProps} from 'react-router';
+import type {ChangeEvent, ReactNode} from 'react';
+import type {RouteComponentProps} from 'react-router';
+import {browserHistory} from 'react-router';
 import {components} from 'react-select';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
-import {Location} from 'history';
+import type {Location} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
 import debounce from 'lodash/debounce';
 import omit from 'lodash/omit';
@@ -24,7 +25,8 @@ import SelectControl from 'sentry/components/forms/controls/selectControl';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import FieldHelp from 'sentry/components/forms/fieldGroup/fieldHelp';
 import SelectField from 'sentry/components/forms/fields/selectField';
-import Form, {FormProps} from 'sentry/components/forms/form';
+import type {FormProps} from 'sentry/components/forms/form';
+import Form from 'sentry/components/forms/form';
 import FormField from 'sentry/components/forms/formField';
 import IdBadge from 'sentry/components/idBadge';
 import Input from 'sentry/components/input';
@@ -32,7 +34,7 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import LoadingMask from 'sentry/components/loadingMask';
-import {CursorHandler} from 'sentry/components/pagination';
+import type {CursorHandler} from 'sentry/components/pagination';
 import {Panel, PanelBody} from 'sentry/components/panels';
 import TeamSelector from 'sentry/components/teamSelector';
 import Tooltip from 'sentry/components/tooltip';
@@ -41,16 +43,16 @@ import {IconChevron} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import space from 'sentry/styles/space';
-import {
+import type {
   Environment,
   IssueOwnership,
   Member,
-  OnboardingTaskKey,
   Organization,
   Project,
   Team,
 } from 'sentry/types';
-import {
+import {OnboardingTaskKey} from 'sentry/types';
+import type {
   IssueAlertRule,
   IssueAlertRuleAction,
   IssueAlertRuleActionTemplate,

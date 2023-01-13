@@ -1,6 +1,7 @@
-import {Organization} from 'sentry/types';
-import {BreadcrumbType, RawCrumb} from 'sentry/types/breadcrumbs';
-import {Event} from 'sentry/types/event';
+import type {Organization} from 'sentry/types';
+import type {RawCrumb} from 'sentry/types/breadcrumbs';
+import {BreadcrumbType} from 'sentry/types/breadcrumbs';
+import type {Event} from 'sentry/types/event';
 
 import {Default} from './default';
 import {Exception} from './exception';

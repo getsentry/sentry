@@ -1,6 +1,6 @@
 import {useCallback, useState} from 'react';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import type {Location} from 'history';
 
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
@@ -13,17 +13,17 @@ import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import {IconAdd, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization, PageFilters} from 'sentry/types';
+import type {Organization, PageFilters} from 'sentry/types';
 import {decodeList} from 'sentry/utils/queryString';
 import {ReleasesProvider} from 'sentry/utils/releases/releasesProvider';
 import {getDatasetConfig} from 'sentry/views/dashboardsV2/datasetConfig/base';
 import ReleasesSelectControl from 'sentry/views/dashboardsV2/releasesSelectControl';
-import {
-  DashboardFilterKeys,
+import type {
   DashboardFilters,
   WidgetQuery,
   WidgetType,
 } from 'sentry/views/dashboardsV2/types';
+import {DashboardFilterKeys} from 'sentry/views/dashboardsV2/types';
 
 import {BuildStep} from '../buildStep';
 

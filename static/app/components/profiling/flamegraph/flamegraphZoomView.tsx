@@ -1,4 +1,5 @@
-import {CSSProperties, useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import type {CSSProperties} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {vec2} from 'gl-matrix';
 
@@ -6,13 +7,11 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {FlamegraphContextMenu} from 'sentry/components/profiling/flamegraph/flamegraphContextMenu';
 import {FlamegraphTooltip} from 'sentry/components/profiling/flamegraph/flamegraphTooltip';
 import {t} from 'sentry/locale';
-import {
-  CanvasPoolManager,
-  useCanvasScheduler,
-} from 'sentry/utils/profiling/canvasScheduler';
-import {CanvasView} from 'sentry/utils/profiling/canvasView';
-import {DifferentialFlamegraph} from 'sentry/utils/profiling/differentialFlamegraph';
-import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
+import type {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
+import {useCanvasScheduler} from 'sentry/utils/profiling/canvasScheduler';
+import type {CanvasView} from 'sentry/utils/profiling/canvasView';
+import type {DifferentialFlamegraph} from 'sentry/utils/profiling/differentialFlamegraph';
+import type {Flamegraph} from 'sentry/utils/profiling/flamegraph';
 import {handleFlamegraphKeyboardNavigation} from 'sentry/utils/profiling/flamegraph/flamegraphKeyboardNavigation';
 import {useFlamegraphSearch} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphSearch';
 import {
@@ -20,16 +19,16 @@ import {
   useFlamegraphState,
 } from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphState';
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
-import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
-import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
+import type {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
+import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
+import type {Rect} from 'sentry/utils/profiling/gl/utils';
 import {
   getConfigViewTranslationBetweenVectors,
   getPhysicalSpacePositionFromOffset,
-  Rect,
 } from 'sentry/utils/profiling/gl/utils';
 import {useContextMenu} from 'sentry/utils/profiling/hooks/useContextMenu';
 import {useInternalFlamegraphDebugMode} from 'sentry/utils/profiling/hooks/useInternalFlamegraphDebugMode';
-import {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
+import type {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
 import {FlamegraphTextRenderer} from 'sentry/utils/profiling/renderers/flamegraphTextRenderer';
 import {GridRenderer} from 'sentry/utils/profiling/renderers/gridRenderer';
 import {SampleTickRenderer} from 'sentry/utils/profiling/renderers/sampleTickRenderer';

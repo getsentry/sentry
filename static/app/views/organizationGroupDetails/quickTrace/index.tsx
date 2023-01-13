@@ -1,9 +1,9 @@
 import {useContext} from 'react';
-import {Location} from 'history';
+import type {Location} from 'history';
 
 import Placeholder from 'sentry/components/placeholder';
-import {Group, Organization} from 'sentry/types';
-import {Event} from 'sentry/types/event';
+import type {Group, Organization} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
 import {QuickTraceContext} from 'sentry/utils/performance/quickTrace/quickTraceContext';
 
 import IssueQuickTrace from './issueQuickTrace';

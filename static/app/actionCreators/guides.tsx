@@ -3,7 +3,7 @@ import * as Sentry from '@sentry/react';
 import {Client} from 'sentry/api';
 import ConfigStore from 'sentry/stores/configStore';
 import GuideStore from 'sentry/stores/guideStore';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {getTourTask, isDemoWalkthrough} from 'sentry/utils/demoMode';
 

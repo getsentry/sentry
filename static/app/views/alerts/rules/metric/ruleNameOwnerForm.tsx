@@ -7,7 +7,7 @@ import ListItem from 'sentry/components/list/listItem';
 import TeamSelector from 'sentry/components/teamSelector';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Project, Team} from 'sentry/types';
+import type {Project, Team} from 'sentry/types';
 
 type Props = {
   disabled: boolean;

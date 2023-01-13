@@ -1,7 +1,9 @@
-import {FC, Fragment, useEffect, useRef} from 'react';
-import {browserHistory, InjectedRouter} from 'react-router';
+import type {FC} from 'react';
+import {Fragment, useEffect, useRef} from 'react';
+import type {InjectedRouter} from 'react-router';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import type {Location} from 'history';
 
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
@@ -18,14 +20,14 @@ import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import {Item, TabList, TabPanels, Tabs} from 'sentry/components/tabs';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization, PageFilters, Project} from 'sentry/types';
-import EventView from 'sentry/utils/discover/eventView';
+import type {Organization, PageFilters, Project} from 'sentry/types';
+import type EventView from 'sentry/utils/discover/eventView';
 import {GenericQueryBatcher} from 'sentry/utils/performance/contexts/genericQueryBatcher';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
+import type {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {
   MEPConsumer,
   MEPSettingProvider,
-  MEPState,
 } from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {
   PageErrorAlert,

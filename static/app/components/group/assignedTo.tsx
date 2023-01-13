@@ -4,19 +4,17 @@ import styled from '@emotion/styled';
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {openCreateOwnershipRule} from 'sentry/actionCreators/modal';
 import Access from 'sentry/components/acl/access';
-import {
-  AssigneeSelectorDropdown,
+import type {
   AssigneeSelectorDropdownProps,
   SuggestedAssignee,
 } from 'sentry/components/assigneeSelectorDropdown';
+import {AssigneeSelectorDropdown} from 'sentry/components/assigneeSelectorDropdown';
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {AutoCompleteRoot} from 'sentry/components/dropdownAutoComplete/menu';
-import {
-  findMatchedRules,
-  Rules,
-} from 'sentry/components/group/suggestedOwners/findMatchedRules';
+import type {Rules} from 'sentry/components/group/suggestedOwners/findMatchedRules';
+import {findMatchedRules} from 'sentry/components/group/suggestedOwners/findMatchedRules';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import {IconAdd, IconChevron, IconSettings, IconUser} from 'sentry/icons';

@@ -3,9 +3,8 @@ import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestin
 import {fetchOrganizationEnvironments} from 'sentry/actionCreators/environments';
 import {Client} from 'sentry/api';
 import OrganizationEnvironmentsStore from 'sentry/stores/organizationEnvironmentsStore';
-import GroupEventDetailsContainer, {
-  GroupEventDetailsProps,
-} from 'sentry/views/organizationGroupDetails/groupEventDetails';
+import type {GroupEventDetailsProps} from 'sentry/views/organizationGroupDetails/groupEventDetails';
+import GroupEventDetailsContainer from 'sentry/views/organizationGroupDetails/groupEventDetails';
 import {ReprocessingStatus} from 'sentry/views/organizationGroupDetails/utils';
 
 jest.mock(

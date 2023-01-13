@@ -2,7 +2,7 @@ import * as Sentry from '@sentry/react';
 
 import Link from 'sentry/components/links/link';
 import {t, tct} from 'sentry/locale';
-import {AppStoreConnectValidationError} from 'sentry/types/debugFiles';
+import type {AppStoreConnectValidationError} from 'sentry/types/debugFiles';
 
 export const unexpectedErrorMessage = t(
   'An unexpected error occurred while configuring the App Store Connect integration'

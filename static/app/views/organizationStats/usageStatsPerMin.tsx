@@ -2,9 +2,10 @@ import styled from '@emotion/styled';
 
 import AsyncComponent from 'sentry/components/asyncComponent';
 import {t} from 'sentry/locale';
-import {DataCategory, Organization, Outcome} from 'sentry/types';
+import type {DataCategory, Organization} from 'sentry/types';
+import {Outcome} from 'sentry/types';
 
-import {UsageSeries} from './types';
+import type {UsageSeries} from './types';
 import {formatUsageWithUnits, getFormatUsageOptions} from './utils';
 
 type Props = {

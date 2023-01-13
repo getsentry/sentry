@@ -1,4 +1,5 @@
-import {ComponentProps, Fragment} from 'react';
+import type {ComponentProps} from 'react';
+import {Fragment} from 'react';
 
 import {
   render,

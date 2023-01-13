@@ -1,6 +1,6 @@
 import {Component} from 'react';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import type {Location} from 'history';
 import moment from 'moment-timezone';
 
 import {Button} from 'sentry/components/button';
@@ -15,8 +15,8 @@ import Tooltip from 'sentry/components/tooltip';
 import {IconPlay, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Group, Organization, Project} from 'sentry/types';
-import {Event} from 'sentry/types/event';
+import type {Group, Organization, Project} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {shouldUse24Hours} from 'sentry/utils/dates';
 import getDynamicText from 'sentry/utils/getDynamicText';

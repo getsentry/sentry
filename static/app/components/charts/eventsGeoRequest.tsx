@@ -1,9 +1,9 @@
 import {useEffect, useMemo, useState} from 'react';
 
-import {Client} from 'sentry/api';
-import {DateString, OrganizationSummary} from 'sentry/types';
+import type {Client} from 'sentry/api';
+import type {DateString, OrganizationSummary} from 'sentry/types';
 import {getUtcDateString} from 'sentry/utils/dates';
-import {TableData, TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
+import type {TableData, TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {doDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
 import toArray from 'sentry/utils/toArray';

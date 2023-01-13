@@ -11,10 +11,11 @@ import {
   toPercent,
 } from 'sentry/components/performance/waterfall/utils';
 import getDisplayName from 'sentry/utils/getDisplayName';
-import {setBodyUserSelect, UserSelectValues} from 'sentry/utils/userselect';
+import type {UserSelectValues} from 'sentry/utils/userselect';
+import {setBodyUserSelect} from 'sentry/utils/userselect';
 
-import {DragManagerChildrenProps} from './dragManager';
-import {SpanBar} from './spanBar';
+import type {DragManagerChildrenProps} from './dragManager';
+import type {SpanBar} from './spanBar';
 
 export type ScrollbarManagerChildrenProps = {
   addContentSpanBarRef: (instance: HTMLDivElement | null) => void;

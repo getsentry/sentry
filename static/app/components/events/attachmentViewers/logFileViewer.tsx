@@ -3,10 +3,8 @@ import Ansi from 'ansi-to-react';
 
 import AsyncComponent from 'sentry/components/asyncComponent';
 import PreviewPanelItem from 'sentry/components/events/attachmentViewers/previewPanelItem';
-import {
-  getAttachmentUrl,
-  ViewerProps,
-} from 'sentry/components/events/attachmentViewers/utils';
+import type {ViewerProps} from 'sentry/components/events/attachmentViewers/utils';
+import {getAttachmentUrl} from 'sentry/components/events/attachmentViewers/utils';
 import space from 'sentry/styles/space';
 
 type Props = ViewerProps & AsyncComponent['props'];

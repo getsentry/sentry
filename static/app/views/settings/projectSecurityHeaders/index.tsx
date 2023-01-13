@@ -1,11 +1,11 @@
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
 import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'sentry/components/panels';
 import {t, tct} from 'sentry/locale';
-import {Organization, ProjectKey} from 'sentry/types';
+import type {Organization, ProjectKey} from 'sentry/types';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import withOrganization from 'sentry/utils/withOrganization';

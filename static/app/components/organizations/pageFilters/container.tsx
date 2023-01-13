@@ -2,9 +2,9 @@ import {Fragment, useEffect, useRef} from 'react';
 import isEmpty from 'lodash/isEmpty';
 import isEqual from 'lodash/isEqual';
 
+import type {InitializeUrlStateParams} from 'sentry/actionCreators/pageFilters';
 import {
   initializeUrlState,
-  InitializeUrlStateParams,
   updateDateTime,
   updateEnvironments,
   updateProjects,

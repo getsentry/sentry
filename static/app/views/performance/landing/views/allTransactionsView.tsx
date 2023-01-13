@@ -7,7 +7,7 @@ import {PROJECT_PERFORMANCE_TYPE} from '../../utils';
 import {DoubleChartRow, TripleChartRow} from '../widgets/components/widgetChartRow';
 import {PerformanceWidgetSetting} from '../widgets/widgetDefinitions';
 
-import {BasePerformanceViewProps} from './types';
+import type {BasePerformanceViewProps} from './types';
 
 export function AllTransactionsView(props: BasePerformanceViewProps) {
   const showSpanOperationsWidget =

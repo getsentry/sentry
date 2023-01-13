@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import DatePageFilter from 'sentry/components/datePageFilter';
@@ -8,10 +8,9 @@ import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {Panel, PanelHeader} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
-import withRouteAnalytics, {
-  WithRouteAnalyticsProps,
-} from 'sentry/utils/routeAnalytics/withRouteAnalytics';
+import type {Organization} from 'sentry/types';
+import type {WithRouteAnalyticsProps} from 'sentry/utils/routeAnalytics/withRouteAnalytics';
+import withRouteAnalytics from 'sentry/utils/routeAnalytics/withRouteAnalytics';
 import withOrganization from 'sentry/utils/withOrganization';
 import AsyncView from 'sentry/views/asyncView';
 
@@ -20,7 +19,7 @@ import MonitorHeader from './monitorHeader';
 import MonitorIssues from './monitorIssues';
 import MonitorStats from './monitorStats';
 import MonitorOnboarding from './onboarding';
-import {Monitor} from './types';
+import type {Monitor} from './types';
 
 type Props = AsyncView['props'] &
   WithRouteAnalyticsProps &

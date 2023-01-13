@@ -1,5 +1,5 @@
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import type {Location} from 'history';
 import pick from 'lodash/pick';
 
 import AlertBadge from 'sentry/components/alertBadge';
@@ -13,9 +13,10 @@ import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {IconCheckmark, IconExclamation, IconFire, IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 
-import {Incident, IncidentStatus} from '../alerts/types';
+import type {Incident} from '../alerts/types';
+import {IncidentStatus} from '../alerts/types';
 
 import MissingAlertsButtons from './missingFeatureButtons/missingAlertsButtons';
 import {SectionHeadingLink, SectionHeadingWrapper, SidebarSection} from './styles';

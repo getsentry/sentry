@@ -1,14 +1,14 @@
 import {Component} from 'react';
-import {Location} from 'history';
+import type {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 import pick from 'lodash/pick';
 import moment from 'moment';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
+import type {DateTimeObject} from 'sentry/components/charts/utils';
 import {
-  DateTimeObject,
   getDiffInMinutes,
   ONE_WEEK,
   TWENTY_FOUR_HOURS,
@@ -17,13 +17,8 @@ import {
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
-import {
-  HealthStatsPeriodOption,
-  Organization,
-  PageFilters,
-  SessionApiResponse,
-  SessionFieldWithOperation,
-} from 'sentry/types';
+import type {Organization, PageFilters, SessionApiResponse} from 'sentry/types';
+import {HealthStatsPeriodOption, SessionFieldWithOperation} from 'sentry/types';
 import {defined, percent} from 'sentry/utils';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import withApi from 'sentry/utils/withApi';

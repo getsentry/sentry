@@ -1,5 +1,5 @@
 import {Component, Fragment} from 'react';
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
@@ -14,19 +14,18 @@ import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization, Project} from 'sentry/types';
+import type {Organization, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import withProjects from 'sentry/utils/withProjects';
 import BuilderBreadCrumbs from 'sentry/views/alerts/builder/builderBreadCrumbs';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {AlertRuleType} from 'sentry/views/alerts/types';
 
+import type {AlertType, WizardRuleTemplate} from './options';
 import {
-  AlertType,
   AlertWizardAlertNames,
   AlertWizardRuleTemplates,
   getAlertWizardCategories,
-  WizardRuleTemplate,
 } from './options';
 import {AlertWizardPanelContent} from './panelContent';
 import RadioPanelGroup from './radioPanelGroup';

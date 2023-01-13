@@ -9,7 +9,7 @@ import {
   ModalFooter,
 } from 'sentry/components/globalModal/components';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import TransactionThresholdModal, {
   TransactionThresholdMetric,

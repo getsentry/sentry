@@ -1,7 +1,8 @@
 import {t} from 'sentry/locale';
 import {TOP_N} from 'sentry/utils/discover/types';
 
-import {DisplayType, Widget, WidgetType} from '../types';
+import type {Widget} from '../types';
+import {DisplayType, WidgetType} from '../types';
 
 export type WidgetTemplate = Widget & {
   description: string;

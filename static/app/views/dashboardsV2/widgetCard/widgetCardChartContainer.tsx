@@ -1,22 +1,23 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import type {DataZoomComponentOption} from 'echarts';
-import {LegendComponentOption} from 'echarts';
-import {Location} from 'history';
+import type {DataZoomComponentOption, LegendComponentOption} from 'echarts';
+import type {Location} from 'history';
 
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {Organization, PageFilters} from 'sentry/types';
-import {EChartEventHandler, Series} from 'sentry/types/echarts';
-import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
-import {AggregationOutputType} from 'sentry/utils/discover/fields';
+import type {Organization, PageFilters} from 'sentry/types';
+import type {EChartEventHandler, Series} from 'sentry/types/echarts';
+import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
+import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import useRouter from 'sentry/utils/useRouter';
 
-import {DashboardFilters, Widget, WidgetType} from '../types';
+import type {DashboardFilters, Widget} from '../types';
+import {WidgetType} from '../types';
 
-import WidgetCardChart, {AugmentedEChartDataZoomHandler} from './chart';
+import type {AugmentedEChartDataZoomHandler} from './chart';
+import WidgetCardChart from './chart';
 import {IssueWidgetCard} from './issueWidgetCard';
 import IssueWidgetQueries from './issueWidgetQueries';
 import ReleaseWidgetQueries from './releaseWidgetQueries';

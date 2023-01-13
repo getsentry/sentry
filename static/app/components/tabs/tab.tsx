@@ -1,10 +1,10 @@
 import {forwardRef, useCallback} from 'react';
-import {Theme} from '@emotion/react';
+import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useTab} from '@react-aria/tabs';
 import {useObjectRef} from '@react-aria/utils';
-import {TabListState} from '@react-stately/tabs';
-import {Node, Orientation} from '@react-types/shared';
+import type {TabListState} from '@react-stately/tabs';
+import type {Node, Orientation} from '@react-types/shared';
 
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import Link from 'sentry/components/links/link';

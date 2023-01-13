@@ -1,11 +1,12 @@
-import {MouseEvent} from 'react';
+import type {MouseEvent} from 'react';
 import styled from '@emotion/styled';
 import queryString from 'query-string';
 
 import NavTabs from 'sentry/components/navTabs';
 import {t} from 'sentry/locale';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import useActiveReplayTab, {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
+import type {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
+import useActiveReplayTab from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 

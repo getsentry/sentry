@@ -10,7 +10,7 @@ import {IconNot} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import space from 'sentry/styles/space';
-import {ReleaseWithHealth, User} from 'sentry/types';
+import type {ReleaseWithHealth, User} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {useQuery} from 'sentry/utils/queryClient';
 
@@ -23,7 +23,8 @@ import {
   ContextTitle,
   Wrapper,
 } from './styles';
-import {BaseContextProps, ContextType, tenSecondInMs} from './utils';
+import type {BaseContextProps} from './utils';
+import {ContextType, tenSecondInMs} from './utils';
 
 function ReleaseContext(props: BaseContextProps) {
   const {dataRow, organization} = props;

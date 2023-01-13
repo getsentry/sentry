@@ -2,12 +2,13 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {RequestOptions} from 'sentry/api';
+import type {RequestOptions} from 'sentry/api';
 import AlertLink from 'sentry/components/alertLink';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import Form, {FormProps} from 'sentry/components/forms/form';
+import type {FormProps} from 'sentry/components/forms/form';
+import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'sentry/components/panels';
@@ -16,7 +17,7 @@ import accountEmailsFields from 'sentry/data/forms/accountEmails';
 import {IconDelete, IconStack} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {UserEmail} from 'sentry/types';
+import type {UserEmail} from 'sentry/types';
 import AsyncView from 'sentry/views/asyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 

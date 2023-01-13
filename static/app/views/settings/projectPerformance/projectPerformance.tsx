@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import Access from 'sentry/components/acl/access';
@@ -7,12 +7,12 @@ import Feature from 'sentry/components/acl/feature';
 import {Button} from 'sentry/components/button';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
-import {Field} from 'sentry/components/forms/types';
+import type {Field} from 'sentry/components/forms/types';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {PanelItem} from 'sentry/components/panels';
 import {t, tct} from 'sentry/locale';
-import {Organization, Project, Scope} from 'sentry/types';
+import type {Organization, Project, Scope} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import AsyncView from 'sentry/views/asyncView';

@@ -1,5 +1,5 @@
-import {RouteComponentProps} from 'react-router';
-import {Location} from 'history';
+import type {RouteComponentProps} from 'react-router';
+import type {Location} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -10,7 +10,7 @@ import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import organizationSettingsFields from 'sentry/data/forms/organizationGeneralSettings';
 import {t} from 'sentry/locale';
-import {Organization, Scope} from 'sentry/types';
+import type {Organization, Scope} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
 
 type Props = {

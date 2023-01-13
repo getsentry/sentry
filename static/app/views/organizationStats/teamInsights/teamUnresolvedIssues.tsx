@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import AsyncComponent from 'sentry/components/asyncComponent';
 import {BarChart} from 'sentry/components/charts/barChart';
-import {DateTimeObject} from 'sentry/components/charts/utils';
+import type {DateTimeObject} from 'sentry/components/charts/utils';
 import CollapsePanel, {COLLAPSE_COUNT} from 'sentry/components/collapsePanel';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import PanelTable from 'sentry/components/panels/panelTable';
@@ -11,7 +11,7 @@ import Placeholder from 'sentry/components/placeholder';
 import {IconArrow} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization, Project} from 'sentry/types';
+import type {Organization, Project} from 'sentry/types';
 import {formatPercentage} from 'sentry/utils/formatters';
 import type {ColorOrAlias} from 'sentry/utils/theme';
 

@@ -6,23 +6,18 @@ import SelectControl from 'sentry/components/forms/controls/selectControl';
 import FormField from 'sentry/components/forms/formField';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
-import {
+import type {Organization} from 'sentry/types';
+import type {
   AggregationKeyWithAlias,
   AggregationRefinement,
-  explodeFieldString,
-  generateFieldAsString,
 } from 'sentry/utils/discover/fields';
+import {explodeFieldString, generateFieldAsString} from 'sentry/utils/discover/fields';
+import type {EventTypes} from 'sentry/views/alerts/rules/metric/types';
+import {Dataset, SessionsAggregate} from 'sentry/views/alerts/rules/metric/types';
+import type {AlertType, WizardRuleTemplate} from 'sentry/views/alerts/wizard/options';
 import {
-  Dataset,
-  EventTypes,
-  SessionsAggregate,
-} from 'sentry/views/alerts/rules/metric/types';
-import {
-  AlertType,
   AlertWizardAlertNames,
   AlertWizardRuleTemplates,
-  WizardRuleTemplate,
 } from 'sentry/views/alerts/wizard/options';
 import {QueryField} from 'sentry/views/eventsV2/table/queryField';
 import {FieldValueKind} from 'sentry/views/eventsV2/table/types';

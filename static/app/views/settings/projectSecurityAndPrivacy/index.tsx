@@ -8,7 +8,7 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import projectSecurityAndPrivacyGroups from 'sentry/data/forms/projectSecurityAndPrivacyGroups';
 import {t, tct} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {Organization, Project} from 'sentry/types';
+import type {Organization, Project} from 'sentry/types';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 import {DataScrubbing} from '../components/dataScrubbing';

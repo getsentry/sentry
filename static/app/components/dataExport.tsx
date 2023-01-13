@@ -2,11 +2,11 @@ import {useCallback, useEffect, useRef, useState} from 'react';
 import debounce from 'lodash/debounce';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
 import {Button} from 'sentry/components/button';
 import {t} from 'sentry/locale';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 

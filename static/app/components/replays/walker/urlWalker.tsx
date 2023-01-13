@@ -2,12 +2,8 @@ import {memo} from 'react';
 
 import ChevronDividedList from 'sentry/components/replays/walker/chevronDividedList';
 import splitCrumbs from 'sentry/components/replays/walker/splitCrumbs';
-import {
-  BreadcrumbLevelType,
-  BreadcrumbType,
-  BreadcrumbTypeNavigation,
-  Crumb,
-} from 'sentry/types/breadcrumbs';
+import type {BreadcrumbTypeNavigation, Crumb} from 'sentry/types/breadcrumbs';
+import {BreadcrumbLevelType, BreadcrumbType} from 'sentry/types/breadcrumbs';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 

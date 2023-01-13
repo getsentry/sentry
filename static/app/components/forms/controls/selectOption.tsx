@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {components as selectComponents} from 'react-select';
+import type {components as selectComponents} from 'react-select';
 import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
 

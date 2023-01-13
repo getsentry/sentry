@@ -1,8 +1,12 @@
-import {RenderProps} from 'sentry/components/charts/eventsRequest';
+import type {RenderProps} from 'sentry/components/charts/eventsRequest';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {defined} from 'sentry/utils';
 
-import {QueryDefinitionWithKey, WidgetDataConstraint, WidgetPropUnion} from '../types';
+import type {
+  QueryDefinitionWithKey,
+  WidgetDataConstraint,
+  WidgetPropUnion,
+} from '../types';
 
 export function transformEventsRequestToVitals<T extends WidgetDataConstraint>(
   widgetProps: WidgetPropUnion<T>,

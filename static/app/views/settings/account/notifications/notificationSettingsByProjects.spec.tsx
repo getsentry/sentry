@@ -1,7 +1,7 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {Project} from 'sentry/types';
+import type {Project} from 'sentry/types';
 import NotificationSettingsByProjects from 'sentry/views/settings/account/notifications/notificationSettingsByProjects';
 
 const renderComponent = (projects: Project[]) => {

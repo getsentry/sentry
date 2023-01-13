@@ -7,7 +7,7 @@ import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {getDuration} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
-import {ColorOrAlias} from 'sentry/utils/theme';
+import type {ColorOrAlias} from 'sentry/utils/theme';
 
 import Tooltip from './tooltip';
 

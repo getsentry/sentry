@@ -1,29 +1,31 @@
 import {Component, Fragment} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
-import {Location, LocationDescriptor, Query} from 'history';
+import type {Location, LocationDescriptor, Query} from 'history';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Button} from 'sentry/components/button';
 import CompactSelect from 'sentry/components/compactSelect';
 import DiscoverButton from 'sentry/components/discoverButton';
-import Pagination, {CursorHandler} from 'sentry/components/pagination';
+import type {CursorHandler} from 'sentry/components/pagination';
+import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
-import DiscoverQuery, {TableDataRow} from 'sentry/utils/discover/discoverQuery';
-import EventView from 'sentry/utils/discover/eventView';
-import {Sort} from 'sentry/utils/discover/fields';
+import type {Organization} from 'sentry/types';
+import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
+import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
+import type EventView from 'sentry/utils/discover/eventView';
+import type {Sort} from 'sentry/utils/discover/fields';
 import {TrendsEventsDiscoverQuery} from 'sentry/utils/performance/trends/trendsDiscoverQuery';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {Actions} from 'sentry/views/eventsV2/table/cellAction';
-import {TableColumn} from 'sentry/views/eventsV2/table/types';
+import type {Actions} from 'sentry/views/eventsV2/table/cellAction';
+import type {TableColumn} from 'sentry/views/eventsV2/table/types';
 import {decodeColumnOrder} from 'sentry/views/eventsV2/utils';
-import {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
+import type {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
 import {mapShowTransactionToPercentile} from 'sentry/views/performance/transactionSummary/transactionEvents/utils';
-import {TransactionFilterOptions} from 'sentry/views/performance/transactionSummary/utils';
-import {TrendChangeType, TrendView} from 'sentry/views/performance/trends/types';
+import type {TransactionFilterOptions} from 'sentry/views/performance/transactionSummary/utils';
+import type {TrendChangeType, TrendView} from 'sentry/views/performance/trends/types';
 
 import TransactionsTable from './transactionsTable';
 

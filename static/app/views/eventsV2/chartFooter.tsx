@@ -7,8 +7,8 @@ import {
   SectionValue,
 } from 'sentry/components/charts/styles';
 import {t} from 'sentry/locale';
-import {SelectValue} from 'sentry/types';
-import EventView from 'sentry/utils/discover/eventView';
+import type {SelectValue} from 'sentry/types';
+import type EventView from 'sentry/utils/discover/eventView';
 import {TOP_EVENT_MODES} from 'sentry/utils/discover/types';
 
 export const PROCESSED_BASELINE_TOGGLE_KEY = 'show-processed-baseline';

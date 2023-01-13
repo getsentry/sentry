@@ -1,4 +1,5 @@
-import {browserHistory, InjectedRouter} from 'react-router';
+import type {InjectedRouter} from 'react-router';
+import {browserHistory} from 'react-router';
 import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -6,7 +7,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
-import {Project} from 'sentry/types';
+import type {Project} from 'sentry/types';
 import {
   MEPSetting,
   MEPState,

@@ -2,7 +2,7 @@ import {Component, Fragment} from 'react';
 
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
-import {Permissions, Scope, WebhookEvent} from 'sentry/types';
+import type {Permissions, Scope, WebhookEvent} from 'sentry/types';
 import {toResourcePermissions} from 'sentry/utils/consolidatedScopes';
 import PermissionSelection from 'sentry/views/settings/organizationDeveloperSettings/permissionSelection';
 import Subscriptions from 'sentry/views/settings/organizationDeveloperSettings/resourceSubscriptions';

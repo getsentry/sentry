@@ -1,6 +1,6 @@
 import {Component, createContext} from 'react';
 
-import {ProcessedSpanType} from './types';
+import type {ProcessedSpanType} from './types';
 
 export type SpanContextProps = {
   addExpandedSpan: (span: Readonly<ProcessedSpanType>, callback?: () => void) => void;

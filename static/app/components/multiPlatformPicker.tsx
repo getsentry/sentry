@@ -10,16 +10,16 @@ import ListLink from 'sentry/components/links/listLink';
 import NavTabs from 'sentry/components/navTabs';
 import SearchBar from 'sentry/components/searchBar';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
+import type {PlatformKey} from 'sentry/data/platformCategories';
 import categoryList, {
   filterAliases,
-  PlatformKey,
   popularPlatformCategories,
 } from 'sentry/data/platformCategories';
 import platforms from 'sentry/data/platforms';
 import {IconClose, IconProject} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization, PlatformIntegration} from 'sentry/types';
+import type {Organization, PlatformIntegration} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 
 const PLATFORM_CATEGORIES = [{id: 'all', name: t('All')}, ...categoryList] as const;

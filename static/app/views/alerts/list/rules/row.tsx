@@ -10,7 +10,7 @@ import {openConfirmModal} from 'sentry/components/confirm';
 import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
 import DropdownBubble from 'sentry/components/dropdownBubble';
 import DropdownMenuControl from 'sentry/components/dropdownMenuControl';
-import {MenuItemProps} from 'sentry/components/dropdownMenuItem';
+import type {MenuItemProps} from 'sentry/components/dropdownMenuItem';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import Highlight from 'sentry/components/highlight';
 import IdBadge from 'sentry/components/idBadge';
@@ -22,7 +22,7 @@ import Tooltip from 'sentry/components/tooltip';
 import {IconArrow, IconChevron, IconEllipsis, IconUser} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Actor, Project} from 'sentry/types';
+import type {Actor, Project} from 'sentry/types';
 import type {ColorOrAlias} from 'sentry/utils/theme';
 import {getThresholdUnits} from 'sentry/views/alerts/rules/metric/constants';
 import {
@@ -31,7 +31,8 @@ import {
   AlertRuleTriggerType,
 } from 'sentry/views/alerts/rules/metric/types';
 
-import {CombinedAlertType, CombinedMetricIssueAlerts, IncidentStatus} from '../../types';
+import type {CombinedMetricIssueAlerts} from '../../types';
+import {CombinedAlertType, IncidentStatus} from '../../types';
 import {isIssueAlert} from '../../utils';
 
 type Props = {

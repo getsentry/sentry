@@ -1,4 +1,4 @@
-import {GuidesContent} from 'sentry/components/assistant/types';
+import type {GuidesContent} from 'sentry/components/assistant/types';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import {t, tct} from 'sentry/locale';

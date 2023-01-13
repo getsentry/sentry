@@ -2,7 +2,7 @@ import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import {logout} from 'sentry/actionCreators/account';
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import Form from 'sentry/components/forms/form';
@@ -13,7 +13,7 @@ import {ErrorCodes} from 'sentry/constants/superuserAccessErrors';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import space from 'sentry/styles/space';
-import {Authenticator} from 'sentry/types';
+import type {Authenticator} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
 
 type OnTapProps = NonNullable<React.ComponentProps<typeof U2fContainer>['onTap']>;

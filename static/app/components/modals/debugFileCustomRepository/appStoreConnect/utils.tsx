@@ -6,7 +6,7 @@ import {
   unexpectedErrorMessage,
 } from 'sentry/utils/appStoreValidationErrorMessage';
 
-import {StepOneData} from './types';
+import type {StepOneData} from './types';
 
 // since translations are done on the front-end we need to map  back-end error messages to front-end messages
 const fieldErrorMessageMapping = {

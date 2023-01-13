@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {PlainRoute, RouteComponentProps} from 'react-router';
+import type {PlainRoute, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import AlertLink from 'sentry/components/alertLink';
@@ -15,7 +15,7 @@ import recreateRoute from 'sentry/utils/recreateRoute';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
-import {DeprecatedApiKey} from './types';
+import type {DeprecatedApiKey} from './types';
 
 type RouteParams = {
   orgId: string;

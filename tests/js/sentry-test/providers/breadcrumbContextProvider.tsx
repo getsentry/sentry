@@ -1,4 +1,4 @@
-import {InjectedRouter, PlainRoute} from 'react-router';
+import type {InjectedRouter, PlainRoute} from 'react-router';
 
 import {RouteContext} from 'sentry/views/routeContext';
 import {BreadcrumbProvider} from 'sentry/views/settings/components/settingsBreadcrumb/context';

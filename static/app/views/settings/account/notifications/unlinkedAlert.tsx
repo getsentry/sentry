@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/alert';
 import {t} from 'sentry/locale';
-import {OrganizationSummary} from 'sentry/types';
+import type {OrganizationSummary} from 'sentry/types';
 
 type Props = {
   organizations: OrganizationSummary[];

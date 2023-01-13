@@ -1,13 +1,13 @@
 import {PureComponent} from 'react';
 // eslint-disable-next-line no-restricted-imports
-import {WithRouterProps} from 'react-router';
+import type {WithRouterProps} from 'react-router';
 import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {GetActorPropsFn} from 'sentry/components/deprecatedDropdownMenu';
+import type {GetActorPropsFn} from 'sentry/components/deprecatedDropdownMenu';
 import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
 import autoCompleteFilter from 'sentry/components/dropdownAutoComplete/autoCompleteFilter';
-import {Item} from 'sentry/components/dropdownAutoComplete/types';
+import type {Item} from 'sentry/components/dropdownAutoComplete/types';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import HeaderItem from 'sentry/components/organizations/headerItem';
 import MultipleSelectorSubmitRow from 'sentry/components/organizations/multipleSelectorSubmitRow';
@@ -18,7 +18,7 @@ import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {IconCalendar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {DateString, Organization} from 'sentry/types';
+import type {DateString, Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {analytics} from 'sentry/utils/analytics';
 import {

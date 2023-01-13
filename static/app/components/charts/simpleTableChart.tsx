@@ -1,17 +1,16 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import type {Location} from 'history';
 
-import PanelTable, {
-  PanelTableHeader,
-  PanelTableProps,
-} from 'sentry/components/panels/panelTable';
+import type {PanelTableProps} from 'sentry/components/panels/panelTable';
+import PanelTable, {PanelTableHeader} from 'sentry/components/panels/panelTable';
 import Tooltip from 'sentry/components/tooltip';
 import Truncate from 'sentry/components/truncate';
 import space from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
-import {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
-import EventView, {MetaType} from 'sentry/utils/discover/eventView';
+import type {Organization} from 'sentry/types';
+import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
+import type {MetaType} from 'sentry/utils/discover/eventView';
+import type EventView from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {fieldAlignment} from 'sentry/utils/discover/fields';
 import withOrganization from 'sentry/utils/withOrganization';

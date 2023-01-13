@@ -12,7 +12,7 @@ import space from 'sentry/styles/space';
 
 import MonitorHeaderActions from './monitorHeaderActions';
 import MonitorIcon from './monitorIcon';
-import {Status} from './types';
+import type {Status} from './types';
 
 type Props = React.ComponentProps<typeof MonitorHeaderActions>;
 

@@ -1,12 +1,9 @@
-import FormField, {FormFieldProps} from 'sentry/components/forms/formField';
+import type {FormFieldProps} from 'sentry/components/forms/formField';
+import FormField from 'sentry/components/forms/formField';
 import FormFieldControlState from 'sentry/components/forms/formField/controlState';
-import FormModel from 'sentry/components/forms/model';
-import {
-  Input,
-  InputGroup,
-  InputProps,
-  InputTrailingItems,
-} from 'sentry/components/inputGroup';
+import type FormModel from 'sentry/components/forms/model';
+import type {InputProps} from 'sentry/components/inputGroup';
+import {Input, InputGroup, InputTrailingItems} from 'sentry/components/inputGroup';
 
 export interface InputFieldProps
   extends Omit<FormFieldProps, 'children'>,

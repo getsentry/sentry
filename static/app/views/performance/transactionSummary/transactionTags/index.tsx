@@ -1,7 +1,7 @@
-import {Location} from 'history';
+import type {Location} from 'history';
 
 import {t} from 'sentry/locale';
-import {Organization, Project} from 'sentry/types';
+import type {Organization, Project} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';

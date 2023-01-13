@@ -1,5 +1,5 @@
 import {Component, Fragment} from 'react';
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 import uniq from 'lodash/uniq';
 
 import {createNote, deleteNote, updateNote} from 'sentry/actionCreators/group';
@@ -8,12 +8,12 @@ import {
   addLoadingMessage,
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import ActivityAuthor from 'sentry/components/activity/author';
 import ActivityItem from 'sentry/components/activity/item';
 import Note from 'sentry/components/activity/note';
 import NoteInputWithStorage from 'sentry/components/activity/note/inputWithStorage';
-import {CreateError} from 'sentry/components/activity/note/types';
+import type {CreateError} from 'sentry/components/activity/note/types';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -21,14 +21,14 @@ import ReprocessedBox from 'sentry/components/reprocessedBox';
 import {DEFAULT_ERROR_JSON} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import {
+import type {
   Group,
   GroupActivityAssigned,
   GroupActivityReprocess,
-  GroupActivityType,
   Organization,
   User,
 } from 'sentry/types';
+import {GroupActivityType} from 'sentry/types';
 import {uniqueId} from 'sentry/utils/guid';
 import Teams from 'sentry/utils/teams';
 import withApi from 'sentry/utils/withApi';

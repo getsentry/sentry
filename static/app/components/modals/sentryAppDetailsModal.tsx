@@ -10,7 +10,7 @@ import Tag from 'sentry/components/tag';
 import {IconFlag} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {IntegrationFeature, Organization, SentryApp} from 'sentry/types';
+import type {IntegrationFeature, Organization, SentryApp} from 'sentry/types';
 import {toPermissions} from 'sentry/utils/consolidatedScopes';
 import {
   getIntegrationFeatureGate,

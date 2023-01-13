@@ -3,8 +3,8 @@ import orderBy from 'lodash/orderBy';
 import {bulkUpdate} from 'sentry/actionCreators/group';
 import {Client} from 'sentry/api';
 import {t, tct} from 'sentry/locale';
-import {Group, GroupActivity} from 'sentry/types';
-import {Event} from 'sentry/types/event';
+import type {Group, GroupActivity} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
 
 /**
  * Fetches group data and mark as seen

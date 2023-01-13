@@ -3,7 +3,7 @@ import isEqual from 'lodash/isEqual';
 import trimStart from 'lodash/trimStart';
 
 import {t} from 'sentry/locale';
-import {OrganizationSummary, SelectValue, TagCollection} from 'sentry/types';
+import type {OrganizationSummary, SelectValue, TagCollection} from 'sentry/types';
 import {
   aggregateFunctionOutputType,
   aggregateOutputType,
@@ -15,19 +15,16 @@ import {
   stripDerivedMetricsPrefix,
   stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
-import {MeasurementCollection} from 'sentry/utils/measurements/measurements';
-import {
-  DisplayType,
-  Widget,
-  WidgetQuery,
-  WidgetType,
-} from 'sentry/views/dashboardsV2/types';
-import {FieldValueOption} from 'sentry/views/eventsV2/table/queryField';
+import type {MeasurementCollection} from 'sentry/utils/measurements/measurements';
+import type {Widget, WidgetQuery} from 'sentry/views/dashboardsV2/types';
+import {DisplayType, WidgetType} from 'sentry/views/dashboardsV2/types';
+import type {FieldValueOption} from 'sentry/views/eventsV2/table/queryField';
 import {FieldValueKind} from 'sentry/views/eventsV2/table/types';
 import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
-import {FlatValidationError, getNumEquations, ValidationError} from '../utils';
+import type {FlatValidationError, ValidationError} from '../utils';
+import {getNumEquations} from '../utils';
 
 import {DISABLED_SORT, TAG_SORT_DENY_LIST} from './releaseWidget/fields';
 

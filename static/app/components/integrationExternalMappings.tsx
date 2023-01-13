@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {WithRouterProps} from 'react-router';
+import type {WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import capitalize from 'lodash/capitalize';
 
@@ -14,7 +14,7 @@ import {IconAdd, IconArrow, IconDelete, IconQuestion} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import PluginIcon from 'sentry/plugins/components/pluginIcon';
 import space from 'sentry/styles/space';
-import {
+import type {
   ExternalActorMapping,
   ExternalActorMappingOrSuggestion,
   ExternalActorSuggestion,

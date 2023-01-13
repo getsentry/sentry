@@ -8,7 +8,8 @@ import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import space from 'sentry/styles/space';
 
-import {CommitRowProps, formatCommitMessage} from '../commitRow';
+import type {CommitRowProps} from '../commitRow';
+import {formatCommitMessage} from '../commitRow';
 import ExternalLink from '../links/externalLink';
 import Tooltip from '../tooltip';
 

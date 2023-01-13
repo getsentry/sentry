@@ -2,11 +2,11 @@ import type {Route, RouteComponentProps, RouteContextInterface} from 'react-rout
 
 import type {ChildrenRenderFn} from 'sentry/components/acl/feature';
 import type {Guide} from 'sentry/components/assistant/types';
-import {ButtonProps} from 'sentry/components/button';
+import type {ButtonProps} from 'sentry/components/button';
 import type DateRange from 'sentry/components/organizations/timeRangeSelector/dateRange';
 import type SelectorItems from 'sentry/components/organizations/timeRangeSelector/selectorItems';
 import type SidebarItem from 'sentry/components/sidebar/sidebarItem';
-import {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProvider';
+import type {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProvider';
 import type {NavigationItem, NavigationSection} from 'sentry/views/settings/types';
 
 import type {ExperimentKey} from './experiments';

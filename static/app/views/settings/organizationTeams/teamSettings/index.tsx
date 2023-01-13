@@ -1,18 +1,20 @@
 import {Fragment} from 'react';
-import {browserHistory, RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
+import {browserHistory} from 'react-router';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {removeTeam, updateTeamSuccess} from 'sentry/actionCreators/teams';
 import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
-import Form, {FormProps} from 'sentry/components/forms/form';
+import type {FormProps} from 'sentry/components/forms/form';
+import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import {Panel, PanelHeader} from 'sentry/components/panels';
 import teamSettingsFields from 'sentry/data/forms/teamSettingsFields';
 import {IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {Organization, Scope, Team} from 'sentry/types';
+import type {Organization, Scope, Team} from 'sentry/types';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
 import AsyncView from 'sentry/views/asyncView';

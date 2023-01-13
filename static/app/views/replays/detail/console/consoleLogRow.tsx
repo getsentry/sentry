@@ -1,4 +1,5 @@
-import {CSSProperties, useCallback} from 'react';
+import type {CSSProperties} from 'react';
+import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';

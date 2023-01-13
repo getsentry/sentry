@@ -2,7 +2,8 @@
 import 'prismjs/themes/prism.css';
 
 import {useEffect, useRef, useState} from 'react';
-import {useTheme, Theme} from '@emotion/react';
+import type {Theme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import copy from 'copy-text-to-clipboard';
 import Prism from 'prismjs';

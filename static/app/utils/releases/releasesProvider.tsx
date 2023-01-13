@@ -1,10 +1,10 @@
 import {createContext, useContext, useEffect, useState} from 'react';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
-import {Organization, PageFilters, Release} from 'sentry/types';
+import type {Organization, PageFilters, Release} from 'sentry/types';
 import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 
 import useApi from '../useApi';

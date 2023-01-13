@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -7,8 +7,8 @@ import Pagination from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels';
 import SearchBar from 'sentry/components/searchBar';
 import {t, tct} from 'sentry/locale';
-import {Organization, Project} from 'sentry/types';
-import {DebugFile} from 'sentry/types/debugFiles';
+import type {Organization, Project} from 'sentry/types';
+import type {DebugFile} from 'sentry/types/debugFiles';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import AsyncView from 'sentry/views/asyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';

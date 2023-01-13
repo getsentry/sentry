@@ -4,10 +4,8 @@ import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
 import CompactSelect from 'sentry/components/compactSelect';
-import GridEditable, {
-  COL_WIDTH_UNDEFINED,
-  GridColumnOrder,
-} from 'sentry/components/gridEditable';
+import type {GridColumnOrder} from 'sentry/components/gridEditable';
+import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import Pagination from 'sentry/components/pagination';
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
@@ -26,7 +24,8 @@ import {useFuseSearch} from '../hooks/useFuseSearch';
 import {usePageLinks} from '../hooks/usePageLinks';
 import {useQuerystringState} from '../hooks/useQuerystringState';
 import {useSortableColumns} from '../hooks/useSortableColumn';
-import {aggregate, AggregateColumnConfig, collectProfileFrames, Row} from '../utils';
+import type {AggregateColumnConfig, Row} from '../utils';
+import {aggregate, collectProfileFrames} from '../utils';
 
 const RESULTS_PER_PAGE = 50;
 

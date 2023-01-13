@@ -2,7 +2,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {MOBILE_TAGS_FORMATTER, TagFacets} from 'sentry/components/group/tagFacets';
-import {Event} from 'sentry/types/event';
+import type {Event} from 'sentry/types/event';
 
 const {organization} = initializeOrg();
 describe('Tag Facets', function () {

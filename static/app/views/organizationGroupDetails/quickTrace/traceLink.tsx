@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 import {generateTraceTarget} from 'sentry/components/quickTrace/utils';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Event} from 'sentry/types';
+import type {Event} from 'sentry/types';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import {QuickTraceContext} from 'sentry/utils/performance/quickTrace/quickTraceContext';
 import useOrganization from 'sentry/utils/useOrganization';

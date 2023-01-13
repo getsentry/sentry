@@ -1,5 +1,5 @@
 import {Component} from 'react';
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -9,7 +9,7 @@ import NarrowLayout from 'sentry/components/narrowLayout';
 import {IconMegaphone} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import {trackAdhocEvent} from 'sentry/utils/analytics';
 import withOrganization from 'sentry/utils/withOrganization';
 

@@ -1,6 +1,7 @@
-import {Component, createRef, VFC} from 'react';
+import type {VFC} from 'react';
+import {Component, createRef} from 'react';
 import TextareaAutosize from 'react-autosize-textarea';
-import {WithRouterProps} from 'react-router';
+import type {WithRouterProps} from 'react-router';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
@@ -8,18 +9,16 @@ import debounce from 'lodash/debounce';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {fetchRecentSearches, saveRecentSearch} from 'sentry/actionCreators/savedSearches';
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import ButtonBar from 'sentry/components/buttonBar';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import {
-  FilterType,
+import type {
   ParseResult,
-  parseSearch,
   SearchConfig,
   TermOperator,
-  Token,
   TokenResult,
 } from 'sentry/components/searchSyntax/parser';
+import {FilterType, parseSearch, Token} from 'sentry/components/searchSyntax/parser';
 import HighlightQuery from 'sentry/components/searchSyntax/renderer';
 import {
   getKeyName,
@@ -36,12 +35,14 @@ import {IconClose, IconEllipsis, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import MemberListStore from 'sentry/stores/memberListStore';
 import space from 'sentry/styles/space';
-import {Organization, SavedSearchType, Tag, TagCollection, User} from 'sentry/types';
+import type {Organization, Tag, TagCollection, User} from 'sentry/types';
+import {SavedSearchType} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {callIfFunction} from 'sentry/utils/callIfFunction';
-import {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
-import {FieldDefinition, FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
+import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
+import type {FieldDefinition} from 'sentry/utils/fields';
+import {FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
 import getDynamicComponent from 'sentry/utils/getDynamicComponent';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -49,20 +50,14 @@ import withOrganization from 'sentry/utils/withOrganization';
 import withSentryRouter from 'sentry/utils/withSentryRouter';
 
 import DropdownMenuControl from '../dropdownMenuControl';
-import {MenuItemProps} from '../dropdownMenuItem';
+import type {MenuItemProps} from '../dropdownMenuItem';
 
 import {ActionButton} from './actionButton';
 import SearchBarDatePicker from './searchBarDatePicker';
 import SearchDropdown from './searchDropdown';
 import SearchHotkeysListener from './searchHotkeysListener';
-import {
-  AutocompleteGroup,
-  ItemType,
-  SearchGroup,
-  SearchItem,
-  Shortcut,
-  ShortcutType,
-} from './types';
+import type {AutocompleteGroup, SearchGroup, SearchItem, Shortcut} from './types';
+import {ItemType, ShortcutType} from './types';
 import {
   addSpace,
   createSearchGroups,

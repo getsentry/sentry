@@ -1,20 +1,19 @@
 import {useEffect, useMemo} from 'react';
 
-import {DeepPartial} from 'sentry/types/utils';
+import type {DeepPartial} from 'sentry/types/utils';
 import {defined} from 'sentry/utils';
 import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
-import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
-import {Rect} from 'sentry/utils/profiling/gl/utils';
+import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
+import type {Rect} from 'sentry/utils/profiling/gl/utils';
 import {useUndoableReducer} from 'sentry/utils/useUndoableReducer';
 import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
 
-import {FlamegraphProfiles} from './reducers/flamegraphProfiles';
+import type {FlamegraphProfiles} from './reducers/flamegraphProfiles';
+import type {FlamegraphState, FlamegraphStateValue} from './flamegraphContext';
 import {
   DEFAULT_FLAMEGRAPH_STATE,
-  FlamegraphState,
   FlamegraphStateDispatchContext,
   flamegraphStateReducer,
-  FlamegraphStateValue,
   FlamegraphStateValueContext,
 } from './flamegraphContext';
 

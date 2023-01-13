@@ -1,6 +1,6 @@
 import {useEffect, useMemo, useRef} from 'react';
 import * as Sentry from '@sentry/react';
-import {Transaction} from '@sentry/types';
+import type {Transaction} from '@sentry/types';
 import assign from 'lodash/assign';
 import flatten from 'lodash/flatten';
 import memoize from 'lodash/memoize';
@@ -9,11 +9,12 @@ import omit from 'lodash/omit';
 import {fetchTagValues} from 'sentry/actionCreators/tags';
 import SmartSearchBar from 'sentry/components/smartSearchBar';
 import {NEGATION_OPERATOR, SEARCH_WILDCARD} from 'sentry/constants';
-import {Organization, SavedSearchType, TagCollection} from 'sentry/types';
+import type {Organization, TagCollection} from 'sentry/types';
+import {SavedSearchType} from 'sentry/types';
 import {defined} from 'sentry/utils';
-import {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
+import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
+import type {Field} from 'sentry/utils/discover/fields';
 import {
-  Field,
   FIELD_TAGS,
   isAggregateField,
   isEquation,

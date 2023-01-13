@@ -1,11 +1,12 @@
 import 'prism-sentry/index.css';
 
 import {Component, Fragment} from 'react';
-import {browserHistory, RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
 import {loadDocs} from 'sentry/actionCreators/projects';
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
 import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
@@ -14,15 +15,13 @@ import NotFound from 'sentry/components/errors/notFound';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {
-  performance as performancePlatforms,
-  PlatformKey,
-} from 'sentry/data/platformCategories';
+import type {PlatformKey} from 'sentry/data/platformCategories';
+import {performance as performancePlatforms} from 'sentry/data/platformCategories';
 import platforms from 'sentry/data/platforms';
 import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization, Project} from 'sentry/types';
+import type {Organization, Project} from 'sentry/types';
 import Projects from 'sentry/utils/projects';
 import withApi from 'sentry/utils/withApi';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';

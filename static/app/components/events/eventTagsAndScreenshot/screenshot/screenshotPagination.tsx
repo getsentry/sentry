@@ -1,5 +1,5 @@
 // eslint-disable-next-line no-restricted-imports
-import {ReactEventHandler} from 'react';
+import type {ReactEventHandler} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';

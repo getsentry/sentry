@@ -2,13 +2,13 @@ import {useCallback, useEffect, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
-import {Location} from 'history';
+import type {Location} from 'history';
 import first from 'lodash/first';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import Pagination from 'sentry/components/pagination';
 import type {Group, Organization} from 'sentry/types';
-import {TableData} from 'sentry/utils/discover/discoverQuery';
+import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {doDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
 import {decodeScalar} from 'sentry/utils/queryString';

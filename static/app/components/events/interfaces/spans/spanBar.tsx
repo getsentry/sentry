@@ -1,12 +1,13 @@
 import 'intersection-observer'; // this is a polyfill
 
 import {Component, createRef, Fragment} from 'react';
-import {CellMeasurerCache, List as ReactVirtualizedList} from 'react-virtualized';
+import type {CellMeasurerCache, List as ReactVirtualizedList} from 'react-virtualized';
 import styled from '@emotion/styled';
 import {withProfiler} from '@sentry/react';
 
 import Count from 'sentry/components/count';
-import {ROW_HEIGHT, SpanBarType} from 'sentry/components/performance/waterfall/constants';
+import type {SpanBarType} from 'sentry/components/performance/waterfall/constants';
+import {ROW_HEIGHT} from 'sentry/components/performance/waterfall/constants';
 import {MessageRow} from 'sentry/components/performance/waterfall/messageRow';
 import {
   Row,
@@ -43,16 +44,17 @@ import Tooltip from 'sentry/components/tooltip';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
-import {EventTransaction} from 'sentry/types/event';
+import type {Organization} from 'sentry/types';
+import type {EventTransaction} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
-import {
-  QuickTraceContext,
-  QuickTraceContextChildrenProps,
-} from 'sentry/utils/performance/quickTrace/quickTraceContext';
-import {QuickTraceEvent, TraceError} from 'sentry/utils/performance/quickTrace/types';
+import type {QuickTraceContextChildrenProps} from 'sentry/utils/performance/quickTrace/quickTraceContext';
+import {QuickTraceContext} from 'sentry/utils/performance/quickTrace/quickTraceContext';
+import type {
+  QuickTraceEvent,
+  TraceError,
+} from 'sentry/utils/performance/quickTrace/types';
 import {isTraceFull} from 'sentry/utils/performance/quickTrace/utils';
 import {PerformanceInteraction} from 'sentry/utils/performanceForSentry';
 
@@ -65,14 +67,15 @@ import * as DividerHandlerManager from './dividerHandlerManager';
 import SpanBarCursorGuide from './spanBarCursorGuide';
 import SpanDetail from './spanDetail';
 import {MeasurementMarker} from './styles';
-import {
+import type {
   FetchEmbeddedChildrenState,
-  GroupType,
   ParsedTraceType,
   ProcessedSpanType,
   SpanType,
   TreeDepthType,
 } from './types';
+import {GroupType} from './types';
+import type {SpanBoundsType, SpanGeneratedBoundsType, SpanViewBoundsType} from './utils';
 import {
   durationlessBrowserOps,
   getMeasurementBounds,
@@ -83,10 +86,7 @@ import {
   isGapSpan,
   isOrphanSpan,
   isOrphanTreeDepth,
-  SpanBoundsType,
-  SpanGeneratedBoundsType,
   spanTargetHash,
-  SpanViewBoundsType,
   unwrapTreeDepth,
 } from './utils';
 

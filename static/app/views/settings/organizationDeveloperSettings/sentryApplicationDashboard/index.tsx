@@ -1,15 +1,16 @@
 import {Fragment} from 'react';
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {BarChart} from 'sentry/components/charts/barChart';
-import {LineChart, LineChartSeries} from 'sentry/components/charts/lineChart';
+import type {LineChartSeries} from 'sentry/components/charts/lineChart';
+import {LineChart} from 'sentry/components/charts/lineChart';
 import DateTime from 'sentry/components/dateTime';
 import Link from 'sentry/components/links/link';
 import {Panel, PanelBody, PanelFooter, PanelHeader} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {SentryApp} from 'sentry/types';
+import type {SentryApp} from 'sentry/types';
 import AsyncView from 'sentry/views/asyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 

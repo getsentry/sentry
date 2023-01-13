@@ -7,18 +7,19 @@ import NumberField from 'sentry/components/forms/fields/numberField';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import SentryProjectSelectorField from 'sentry/components/forms/fields/sentryProjectSelectorField';
 import TextField from 'sentry/components/forms/fields/textField';
-import Form, {FormProps} from 'sentry/components/forms/form';
+import type {FormProps} from 'sentry/components/forms/form';
+import Form from 'sentry/components/forms/form';
 import FormModel from 'sentry/components/forms/model';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {t, tct, tn} from 'sentry/locale';
-import {PageFilters, Project, SelectValue} from 'sentry/types';
+import type {PageFilters, Project, SelectValue} from 'sentry/types';
 import commonTheme from 'sentry/utils/theme';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import withProjects from 'sentry/utils/withProjects';
 
-import {Monitor, MonitorConfig, MonitorTypes, ScheduleType} from './types';
+import type {Monitor, MonitorConfig, MonitorTypes, ScheduleType} from './types';
 
 const SCHEDULE_TYPES: SelectValue<ScheduleType>[] = [
   {value: 'crontab', label: 'Crontab'},

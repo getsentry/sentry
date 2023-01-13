@@ -1,7 +1,7 @@
 import isEqual from 'lodash/isEqual';
 
 import {RELEASE_ADOPTION_STAGES} from 'sentry/constants';
-import {MetricsType, Organization, SelectValue} from 'sentry/types';
+import type {MetricsType, Organization, SelectValue} from 'sentry/types';
 import {assert} from 'sentry/types/utils';
 import {
   SESSIONS_FIELDS,

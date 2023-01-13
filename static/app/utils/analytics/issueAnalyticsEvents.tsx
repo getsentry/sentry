@@ -1,4 +1,4 @@
-import {TagFacetsStyles} from 'sentry/components/group/tagFacets';
+import type {TagFacetsStyles} from 'sentry/components/group/tagFacets';
 
 type IssueStream = {
   group_id: string;

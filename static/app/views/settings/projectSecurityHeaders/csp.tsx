@@ -1,4 +1,4 @@
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 
 import Access from 'sentry/components/acl/access';
 import Form from 'sentry/components/forms/form';
@@ -8,7 +8,7 @@ import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import PreviewFeature from 'sentry/components/previewFeature';
 import formGroups from 'sentry/data/forms/cspReports';
 import {t, tct} from 'sentry/locale';
-import {Organization, Project, ProjectKey} from 'sentry/types';
+import type {Organization, Project, ProjectKey} from 'sentry/types';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import AsyncView from 'sentry/views/asyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';

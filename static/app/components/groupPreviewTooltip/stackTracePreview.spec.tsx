@@ -1,7 +1,8 @@
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {EventError} from 'sentry/types';
-import {EntryType, Event, ExceptionType, ExceptionValue, Frame} from 'sentry/types/event';
+import type {EventError} from 'sentry/types';
+import type {Event, ExceptionType, ExceptionValue, Frame} from 'sentry/types/event';
+import {EntryType} from 'sentry/types/event';
 
 import {StackTracePreview} from './stackTracePreview';
 

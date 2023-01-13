@@ -3,9 +3,9 @@ import * as Sentry from '@sentry/react';
 import TeamAvatar from 'sentry/components/avatar/teamAvatar';
 import UserAvatar from 'sentry/components/avatar/userAvatar';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Tooltip from 'sentry/components/tooltip';
+import type Tooltip from 'sentry/components/tooltip';
 import MemberListStore from 'sentry/stores/memberListStore';
-import {Actor} from 'sentry/types';
+import type {Actor} from 'sentry/types';
 import Teams from 'sentry/utils/teams';
 
 type Props = {

@@ -1,16 +1,15 @@
 import {Component} from 'react';
 
 import {Button} from 'sentry/components/button';
-import TeamKeyTransactionComponent, {
-  TitleProps,
-} from 'sentry/components/performance/teamKeyTransaction';
+import type {TitleProps} from 'sentry/components/performance/teamKeyTransaction';
+import TeamKeyTransactionComponent from 'sentry/components/performance/teamKeyTransaction';
 import * as TeamKeyTransactionManager from 'sentry/components/performance/teamKeyTransactionsManager';
 import Tooltip from 'sentry/components/tooltip';
 import {IconStar} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
-import {Organization, Project} from 'sentry/types';
+import type {Organization, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
-import EventView from 'sentry/utils/discover/eventView';
+import type EventView from 'sentry/utils/discover/eventView';
 import useTeams from 'sentry/utils/useTeams';
 import withProjects from 'sentry/utils/withProjects';
 

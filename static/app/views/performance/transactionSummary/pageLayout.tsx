@@ -1,7 +1,7 @@
 import {useCallback, useState} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import type {Location} from 'history';
 
 import Feature from 'sentry/components/acl/feature';
 import {Alert} from 'sentry/components/alert';
@@ -11,10 +11,10 @@ import PageFiltersContainer from 'sentry/components/organizations/pageFilters/co
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {Tabs} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
-import {Organization, Project} from 'sentry/types';
+import type {Organization, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import EventView from 'sentry/utils/discover/eventView';
+import type EventView from 'sentry/utils/discover/eventView';
 import {useMetricsCardinalityContext} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {PerformanceEventViewProvider} from 'sentry/utils/performance/contexts/performanceEventViewContext';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -31,7 +31,7 @@ import {tagsRouteWithQuery} from './transactionTags/utils';
 import {vitalsRouteWithQuery} from './transactionVitals/utils';
 import TransactionHeader from './header';
 import Tab from './tabs';
-import {TransactionThresholdMetric} from './transactionThresholdModal';
+import type {TransactionThresholdMetric} from './transactionThresholdModal';
 import {transactionSummaryRouteWithQuery} from './utils';
 
 type TabEvents =

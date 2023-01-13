@@ -1,15 +1,16 @@
 import {useContext, useEffect, useMemo, useRef, useState} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
-import {AriaTabListProps, useTabList} from '@react-aria/tabs';
+import type {AriaTabListProps} from '@react-aria/tabs';
+import {useTabList} from '@react-aria/tabs';
 import {Item, useCollection} from '@react-stately/collections';
 import {ListCollection} from '@react-stately/list';
 import {useTabListState} from '@react-stately/tabs';
-import {Node, Orientation} from '@react-types/shared';
+import type {Node, Orientation} from '@react-types/shared';
 
 import CompactSelect from 'sentry/components/compactSelect';
 import DropdownButton from 'sentry/components/dropdownButton';
-import {TabListItemProps} from 'sentry/components/tabs/item';
+import type {TabListItemProps} from 'sentry/components/tabs/item';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';

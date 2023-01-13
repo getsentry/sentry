@@ -1,10 +1,10 @@
 import {useCallback, useEffect, useState} from 'react';
 import * as Sentry from '@sentry/react';
-import {Location} from 'history';
+import type {Location} from 'history';
 
 import type {Client} from 'sentry/api';
 import type {Organization} from 'sentry/types';
-import {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
+import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import EventView, {fromSorts} from 'sentry/utils/discover/eventView';
 import {doDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -14,19 +14,18 @@ import fetchReplayList, {
 } from 'sentry/utils/replays/fetchReplayList';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useApi from 'sentry/utils/useApi';
-import {ReplayListRecord} from 'sentry/views/replays/types';
+import type {ReplayListRecord} from 'sentry/views/replays/types';
 
 export type ReplayListRecordWithTx = ReplayListRecord & {
   txEvent: {[x: string]: any};
 };
 
-import {SpanOperationBreakdownFilter} from '../filter';
+import type {SpanOperationBreakdownFilter} from '../filter';
+import type {EventsDisplayFilterName, PercentileValues} from '../transactionEvents/utils';
 import {
-  EventsDisplayFilterName,
   getEventsFilterOptions,
   getPercentilesEventView,
   mapPercentileValues,
-  PercentileValues,
 } from '../transactionEvents/utils';
 
 type State = Awaited<ReturnType<typeof fetchReplayList>> & {

@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import round from 'lodash/round';
 
 import {loadStatsForProject} from 'sentry/actionCreators/projects';
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import IdBadge from 'sentry/components/idBadge';
 import Link from 'sentry/components/links/link';
 import Panel from 'sentry/components/panels/panel';
@@ -22,7 +22,7 @@ import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ProjectsStatsStore from 'sentry/stores/projectsStatsStore';
 import space from 'sentry/styles/space';
-import {Organization, Project} from 'sentry/types';
+import type {Organization, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {callIfFunction} from 'sentry/utils/callIfFunction';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';

@@ -2,7 +2,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import {DashboardWidgetSource} from 'sentry/views/dashboardsV2/types';
 import WidgetBuilder from 'sentry/views/dashboardsV2/widgetBuilder';
 

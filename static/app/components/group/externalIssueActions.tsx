@@ -3,11 +3,11 @@ import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
-import AsyncComponent from 'sentry/components/asyncComponent';
+import type AsyncComponent from 'sentry/components/asyncComponent';
 import IssueSyncListElement from 'sentry/components/issueSyncListElement';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Group, GroupIntegration} from 'sentry/types';
+import type {Group, GroupIntegration} from 'sentry/types';
 import useApi from 'sentry/utils/useApi';
 import IntegrationItem from 'sentry/views/organizationIntegrations/integrationItem';
 

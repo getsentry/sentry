@@ -6,14 +6,14 @@ import {
   addLoadingMessage,
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import {Button} from 'sentry/components/button';
 import Link from 'sentry/components/links/link';
 import {PanelItem} from 'sentry/components/panels';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {ApiApplication} from 'sentry/types';
+import type {ApiApplication} from 'sentry/types';
 import getDynamicText from 'sentry/utils/getDynamicText';
 
 const ROUTE_PREFIX = '/settings/account/api/';

@@ -1,8 +1,9 @@
-import {MetaType} from 'sentry/utils/discover/eventView';
-import GenericDiscoverQuery, {
+import type {MetaType} from 'sentry/utils/discover/eventView';
+import type {
   DiscoverQueryProps,
   GenericChildrenProps,
 } from 'sentry/utils/discover/genericDiscoverQuery';
+import GenericDiscoverQuery from 'sentry/utils/discover/genericDiscoverQuery';
 
 export type TableDataRow = {
   [key: string]: React.ReactText;

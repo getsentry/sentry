@@ -21,7 +21,7 @@ import {
   StartedAtCell,
   TransactionCell,
 } from 'sentry/views/replays/replayTable/tableCell';
-import {ReplayColumns} from 'sentry/views/replays/replayTable/types';
+import type {ReplayColumns} from 'sentry/views/replays/replayTable/types';
 import type {ReplayListRecord} from 'sentry/views/replays/types';
 
 type Props = {

@@ -4,7 +4,7 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {t, tct} from 'sentry/locale';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 
 type Props = {
   activeTab: 'stats' | 'issues' | 'health';

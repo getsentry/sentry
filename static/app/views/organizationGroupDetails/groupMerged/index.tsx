@@ -1,5 +1,5 @@
 import {Component} from 'react';
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 import * as qs from 'query-string';
 
 import {Alert} from 'sentry/components/alert';
@@ -7,8 +7,9 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import GroupingStore, {Fingerprint} from 'sentry/stores/groupingStore';
-import {Group, Organization, Project} from 'sentry/types';
+import type {Fingerprint} from 'sentry/stores/groupingStore';
+import GroupingStore from 'sentry/stores/groupingStore';
+import type {Group, Organization, Project} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
 
 import MergedList from './mergedList';

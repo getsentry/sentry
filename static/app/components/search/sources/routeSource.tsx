@@ -1,17 +1,18 @@
 import {Component} from 'react';
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 import flattenDepth from 'lodash/flattenDepth';
 
-import {Organization, Project} from 'sentry/types';
-import {createFuzzySearch, Fuse} from 'sentry/utils/fuzzySearch';
+import type {Organization, Project} from 'sentry/types';
+import type {Fuse} from 'sentry/utils/fuzzySearch';
+import {createFuzzySearch} from 'sentry/utils/fuzzySearch';
 import replaceRouterParams from 'sentry/utils/replaceRouterParams';
 import withLatestContext from 'sentry/utils/withLatestContext';
 import accountSettingsNavigation from 'sentry/views/settings/account/navigationConfiguration';
 import organizationSettingsNavigation from 'sentry/views/settings/organization/navigationConfiguration';
 import projectSettingsNavigation from 'sentry/views/settings/project/navigationConfiguration';
-import {NavigationItem} from 'sentry/views/settings/types';
+import type {NavigationItem} from 'sentry/views/settings/types';
 
-import {ChildProps, ResultItem} from './types';
+import type {ChildProps, ResultItem} from './types';
 import {strGetFn} from './utils';
 
 type Config =

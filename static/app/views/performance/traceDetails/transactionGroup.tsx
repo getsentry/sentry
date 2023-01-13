@@ -1,15 +1,13 @@
 import {Component, Fragment} from 'react';
-import {Location} from 'history';
+import type {Location} from 'history';
 
-import {
-  ScrollbarManagerChildrenProps,
-  withScrollbarManager,
-} from 'sentry/components/events/interfaces/spans/scrollbarManager';
-import {Organization} from 'sentry/types';
-import {TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
+import type {ScrollbarManagerChildrenProps} from 'sentry/components/events/interfaces/spans/scrollbarManager';
+import {withScrollbarManager} from 'sentry/components/events/interfaces/spans/scrollbarManager';
+import type {Organization} from 'sentry/types';
+import type {TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
 
 import TransactionBar from './transactionBar';
-import {TraceInfo, TraceRoot, TreeDepth} from './types';
+import type {TraceInfo, TraceRoot, TreeDepth} from './types';
 
 type Props = ScrollbarManagerChildrenProps & {
   continuingDepths: TreeDepth[];

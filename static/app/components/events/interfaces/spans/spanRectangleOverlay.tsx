@@ -6,8 +6,9 @@ import {
   toPercent,
 } from 'sentry/components/performance/waterfall/utils';
 
-import {EnhancedSpan} from './types';
-import {getSpanGroupTimestamps, SpanViewBoundsType} from './utils';
+import type {EnhancedSpan} from './types';
+import type {SpanViewBoundsType} from './utils';
+import {getSpanGroupTimestamps} from './utils';
 
 export function SpanRectangleOverlay({
   bounds,

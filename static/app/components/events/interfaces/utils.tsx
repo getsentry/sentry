@@ -6,9 +6,9 @@ import * as qs from 'query-string';
 
 import {FILTER_MASK} from 'sentry/constants';
 import ConfigStore from 'sentry/stores/configStore';
-import {Frame, PlatformType} from 'sentry/types';
-import {Image} from 'sentry/types/debugImage';
-import {EntryRequest} from 'sentry/types/event';
+import type {Frame, PlatformType} from 'sentry/types';
+import type {Image} from 'sentry/types/debugImage';
+import type {EntryRequest} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import {fileExtensionToPlatform, getFileExtension} from 'sentry/utils/fileExtension';
 

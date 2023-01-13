@@ -1,5 +1,5 @@
-import {RouteComponentProps} from 'react-router';
-import {Location, LocationDescriptor, LocationDescriptorObject} from 'history';
+import type {RouteComponentProps} from 'react-router';
+import type {Location, LocationDescriptor, LocationDescriptorObject} from 'history';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';

@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {PanelItem} from 'sentry/components/panels';
 import {IconInput} from 'sentry/icons';
 import space from 'sentry/styles/space';
-import {Organization, SentryFunction} from 'sentry/types';
+import type {Organization, SentryFunction} from 'sentry/types';
 
 import ActionButtons from '../sentryFunctionRow/actionButtons';
 

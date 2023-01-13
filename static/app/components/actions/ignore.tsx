@@ -11,12 +11,12 @@ import type {MenuItemProps} from 'sentry/components/dropdownMenuItem';
 import Tooltip from 'sentry/components/tooltip';
 import {IconChevron, IconMute} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
-import {
+import type {
   GroupStatusResolution,
-  ResolutionStatus,
   ResolutionStatusDetails,
   SelectValue,
 } from 'sentry/types';
+import {ResolutionStatus} from 'sentry/types';
 import {getDuration} from 'sentry/utils/formatters';
 
 const ONE_HOUR = 60;

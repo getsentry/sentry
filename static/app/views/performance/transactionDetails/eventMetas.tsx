@@ -1,6 +1,6 @@
 import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import type {Location} from 'history';
 
 import {Button} from 'sentry/components/button';
 import Clipboard from 'sentry/components/clipboard';
@@ -12,12 +12,12 @@ import {frontend} from 'sentry/data/platformCategories';
 import {IconCopy, IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {AvatarProject, OrganizationSummary} from 'sentry/types';
-import {Event, EventTransaction} from 'sentry/types/event';
+import type {AvatarProject, OrganizationSummary} from 'sentry/types';
+import type {Event, EventTransaction} from 'sentry/types/event';
 import {getShortEventId} from 'sentry/utils/events';
 import {getDuration} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
-import {
+import type {
   QuickTraceQueryChildrenProps,
   TraceMeta,
 } from 'sentry/utils/performance/quickTrace/types';

@@ -1,6 +1,6 @@
 import {forwardRef} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
-import {Theme} from '@emotion/react';
+import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 

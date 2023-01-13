@@ -1,4 +1,5 @@
-import {css, Theme} from '@emotion/react';
+import type {Theme} from '@emotion/react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import forOwn from 'lodash/forOwn';
 import isNil from 'lodash/isNil';
@@ -12,7 +13,7 @@ import Pills from 'sentry/components/pills';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {StackTraceMechanism} from 'sentry/types/stacktrace';
+import type {StackTraceMechanism} from 'sentry/types/stacktrace';
 import {isUrl} from 'sentry/utils';
 
 type Props = {

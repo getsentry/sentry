@@ -1,4 +1,4 @@
-import {OrganizationSummary} from 'sentry/types';
+import type {OrganizationSummary} from 'sentry/types';
 
 function shouldUseLegacyRoute(organization: OrganizationSummary) {
   const {organizationUrl} = organization.links;

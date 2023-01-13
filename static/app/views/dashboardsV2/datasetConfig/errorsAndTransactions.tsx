@@ -1,12 +1,12 @@
 import trimStart from 'lodash/trimStart';
 
 import {doEventsRequest} from 'sentry/actionCreators/events';
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import {isMultiSeriesStats} from 'sentry/components/charts/utils';
 import Link from 'sentry/components/links/link';
 import Tooltip from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
-import {
+import type {
   EventsStats,
   MultiSeriesEventsStats,
   Organization,
@@ -14,30 +14,25 @@ import {
   SelectValue,
   TagCollection,
 } from 'sentry/types';
-import {Series} from 'sentry/types/echarts';
+import type {Series} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
-import {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
-import {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
-import {MetaType} from 'sentry/utils/discover/eventView';
+import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
+import type {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
+import type {MetaType} from 'sentry/utils/discover/eventView';
+import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
+import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
+import type {AggregationOutputType, QueryFieldValue} from 'sentry/utils/discover/fields';
 import {
-  getFieldRenderer,
-  RenderFunctionBaggage,
-} from 'sentry/utils/discover/fieldRenderers';
-import {
-  AggregationOutputType,
   errorsAndTransactionsAggregateFunctionOutputType,
   getAggregateAlias,
   isEquation,
   isEquationAlias,
   isLegalYAxisType,
-  QueryFieldValue,
   SPAN_OP_BREAKDOWN_FIELDS,
   stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
-import {
-  DiscoverQueryRequestParams,
-  doDiscoverQuery,
-} from 'sentry/utils/discover/genericDiscoverQuery';
+import type {DiscoverQueryRequestParams} from 'sentry/utils/discover/genericDiscoverQuery';
+import {doDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
 import {Container} from 'sentry/utils/discover/styles';
 import {TOP_N} from 'sentry/utils/discover/types';
 import {
@@ -48,8 +43,9 @@ import {getShortEventId} from 'sentry/utils/events';
 import {FieldKey} from 'sentry/utils/fields';
 import {getMeasurements} from 'sentry/utils/measurements/measurements';
 import {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import {FieldValueOption} from 'sentry/views/eventsV2/table/queryField';
-import {FieldValue, FieldValueKind} from 'sentry/views/eventsV2/table/types';
+import type {FieldValueOption} from 'sentry/views/eventsV2/table/queryField';
+import type {FieldValue} from 'sentry/views/eventsV2/table/types';
+import {FieldValueKind} from 'sentry/views/eventsV2/table/types';
 import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 import {
@@ -58,7 +54,8 @@ import {
   UNPARAMETERIZED_TRANSACTION,
 } from 'sentry/views/performance/utils';
 
-import {DisplayType, Widget, WidgetQuery} from '../types';
+import type {Widget, WidgetQuery} from '../types';
+import {DisplayType} from '../types';
 import {
   eventViewFromWidget,
   getDashboardsMEPQueryParams,
@@ -72,7 +69,8 @@ import {
   transformSeries,
 } from '../widgetCard/widgetQueries';
 
-import {DatasetConfig, handleOrderByReset} from './base';
+import type {DatasetConfig} from './base';
+import {handleOrderByReset} from './base';
 
 const DEFAULT_WIDGET_QUERY: WidgetQuery = {
   name: '',

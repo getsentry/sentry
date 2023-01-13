@@ -1,5 +1,5 @@
 import {Component} from 'react';
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 
 import Access from 'sentry/components/acl/access';
 import Link from 'sentry/components/links/link';
@@ -12,7 +12,7 @@ import {
   PanelItem,
 } from 'sentry/components/panels';
 import {t, tct} from 'sentry/locale';
-import {Organization, Plugin, Project} from 'sentry/types';
+import type {Organization, Plugin, Project} from 'sentry/types';
 import RouteError from 'sentry/views/routeError';
 
 import ProjectPluginRow from './projectPluginRow';

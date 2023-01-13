@@ -5,7 +5,7 @@ import {Alert} from 'sentry/components/alert';
 import TextField from 'sentry/components/forms/fields/textField';
 import Form from 'sentry/components/forms/form';
 import {t, tct} from 'sentry/locale';
-import {AuthConfig} from 'sentry/types';
+import type {AuthConfig} from 'sentry/types';
 
 type Props = {
   authConfig: AuthConfig;

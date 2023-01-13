@@ -1,4 +1,4 @@
-import {Experiments, ExperimentType} from 'sentry/types/experiments';
+import type {Experiments, ExperimentType} from 'sentry/types/experiments';
 /**
  * This is the value an experiment will have when the unit of assignment
  * (organization, user, etc) is not part of any experiment group.

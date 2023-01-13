@@ -1,7 +1,8 @@
-import {CSSProperties, useCallback, useEffect, useState} from 'react';
+import type {CSSProperties} from 'react';
+import {useCallback, useEffect, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import type {Location} from 'history';
 import debounce from 'lodash/debounce';
 import isEqual from 'lodash/isEqual';
 
@@ -12,9 +13,10 @@ import {PanelAlert} from 'sentry/components/panels';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization, PageFilters, SelectValue} from 'sentry/types';
+import type {Organization, PageFilters, SelectValue} from 'sentry/types';
 import usePrevious from 'sentry/utils/usePrevious';
-import {DashboardFilters, DisplayType, Widget} from 'sentry/views/dashboardsV2/types';
+import type {DashboardFilters, Widget} from 'sentry/views/dashboardsV2/types';
+import {DisplayType} from 'sentry/views/dashboardsV2/types';
 
 import {getDashboardFiltersFromURL} from '../../utils';
 import WidgetCard, {WidgetCardPanel} from '../../widgetCard';

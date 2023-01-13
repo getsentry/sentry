@@ -1,9 +1,11 @@
-import {mat3, vec2} from 'gl-matrix';
+import type {vec2} from 'gl-matrix';
+import {mat3} from 'gl-matrix';
 
-import {Flamegraph} from '../flamegraph';
-import {FlamegraphSearch} from '../flamegraph/flamegraphStateProvider/reducers/flamegraphSearch';
-import {FlamegraphTheme} from '../flamegraph/flamegraphTheme';
-import {FlamegraphFrame, getFlamegraphFrameSearchId} from '../flamegraphFrame';
+import type {Flamegraph} from '../flamegraph';
+import type {FlamegraphSearch} from '../flamegraph/flamegraphStateProvider/reducers/flamegraphSearch';
+import type {FlamegraphTheme} from '../flamegraph/flamegraphTheme';
+import type {FlamegraphFrame} from '../flamegraphFrame';
+import {getFlamegraphFrameSearchId} from '../flamegraphFrame';
 import {
   createProgram,
   createShader,

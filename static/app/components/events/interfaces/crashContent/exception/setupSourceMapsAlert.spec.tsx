@@ -3,7 +3,7 @@ import cloneDeep from 'lodash/cloneDeep';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {Event} from 'sentry/types';
+import type {Event} from 'sentry/types';
 
 import {SetupSourceMapsAlert} from './setupSourceMapsAlert';
 

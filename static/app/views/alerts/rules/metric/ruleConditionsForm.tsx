@@ -1,12 +1,12 @@
 import {Fragment, PureComponent} from 'react';
-import {InjectedRouter} from 'react-router';
+import type {InjectedRouter} from 'react-router';
 import {components} from 'react-select';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import {Alert} from 'sentry/components/alert';
 import SearchBar from 'sentry/components/events/searchBar';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
@@ -18,7 +18,7 @@ import ListItem from 'sentry/components/list/listItem';
 import {Panel, PanelBody} from 'sentry/components/panels';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Environment, Organization, Project, SelectValue} from 'sentry/types';
+import type {Environment, Organization, Project, SelectValue} from 'sentry/types';
 import {getDisplayName} from 'sentry/utils/environment';
 import {MobileVital, WebVital} from 'sentry/utils/fields';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
@@ -29,11 +29,12 @@ import {
   DATA_SOURCE_LABELS,
   DATA_SOURCE_TO_SET_AND_EVENT_TYPES,
 } from 'sentry/views/alerts/utils';
-import {AlertType} from 'sentry/views/alerts/wizard/options';
+import type {AlertType} from 'sentry/views/alerts/wizard/options';
 
 import {isCrashFreeAlert} from './utils/isCrashFreeAlert';
 import {DEFAULT_AGGREGATE, DEFAULT_TRANSACTION_AGGREGATE} from './constants';
-import {AlertRuleComparisonType, Dataset, Datasource, TimeWindow} from './types';
+import type {AlertRuleComparisonType} from './types';
+import {Dataset, Datasource, TimeWindow} from './types';
 
 const TIME_WINDOW_MAP: Record<TimeWindow, string> = {
   [TimeWindow.ONE_MINUTE]: t('1 minute'),

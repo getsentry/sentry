@@ -1,11 +1,7 @@
 import {loadFixtures} from 'sentry-test/loadFixtures';
 
-import {
-  ParseResult,
-  parseSearch,
-  Token,
-  TokenResult,
-} from 'sentry/components/searchSyntax/parser';
+import type {ParseResult, TokenResult} from 'sentry/components/searchSyntax/parser';
+import {parseSearch, Token} from 'sentry/components/searchSyntax/parser';
 import {treeTransformer} from 'sentry/components/searchSyntax/utils';
 
 type TestCase = {

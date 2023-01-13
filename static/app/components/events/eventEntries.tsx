@@ -1,7 +1,7 @@
 import {Fragment, useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
-import {Location} from 'history';
+import type {Location} from 'history';
 import uniq from 'lodash/uniq';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -9,21 +9,20 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {
+import type {
   Entry,
-  EntryType,
   Event,
   ExceptionValue,
   Group,
   IssueAttachment,
-  IssueCategory,
   Organization,
   Project,
   SharedViewOrganization,
   Thread,
 } from 'sentry/types';
-import {DebugFile} from 'sentry/types/debugFiles';
-import {Image} from 'sentry/types/debugImage';
+import {EntryType, IssueCategory} from 'sentry/types';
+import type {DebugFile} from 'sentry/types/debugFiles';
+import type {Image} from 'sentry/types/debugImage';
 import {isNotSharedOrganization} from 'sentry/types/utils';
 import {defined, objectIsEmpty} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
@@ -36,7 +35,8 @@ import findBestThread from './interfaces/threads/threadSelector/findBestThread';
 import getThreadException from './interfaces/threads/threadSelector/getThreadException';
 import {EventContexts} from './contexts';
 import {EventDevice} from './device';
-import {Error, EventErrors} from './errors';
+import type {Error} from './errors';
+import {EventErrors} from './errors';
 import {EventAttachments} from './eventAttachments';
 import {EventCause} from './eventCause';
 import {EventDataSection} from './eventDataSection';

@@ -1,10 +1,10 @@
 import {useEffect, useMemo, useState} from 'react';
 
-import {Client} from 'sentry/api';
-import {RequestState} from 'sentry/types';
+import type {Client} from 'sentry/api';
+import type {RequestState} from 'sentry/types';
 
-import {Organization} from '../types/organization';
-import {Project, ProjectSdkUpdates} from '../types/project';
+import type {Organization} from '../types/organization';
+import type {Project, ProjectSdkUpdates} from '../types/project';
 
 import useApi from './useApi';
 

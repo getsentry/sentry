@@ -6,7 +6,7 @@ import {
   installSentryApp,
   uninstallSentryApp,
 } from 'sentry/actionCreators/sentryAppInstallations';
-import AsyncComponent from 'sentry/components/asyncComponent';
+import type AsyncComponent from 'sentry/components/asyncComponent';
 import {Button} from 'sentry/components/button';
 import CircleIndicator from 'sentry/components/circleIndicator';
 import Confirm from 'sentry/components/confirm';
@@ -14,7 +14,7 @@ import SentryAppIcon from 'sentry/components/sentryAppIcon';
 import {IconSubtract} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {IntegrationFeature, SentryApp, SentryAppInstallation} from 'sentry/types';
+import type {IntegrationFeature, SentryApp, SentryAppInstallation} from 'sentry/types';
 import {toPermissions} from 'sentry/utils/consolidatedScopes';
 import {getSentryAppInstallStatus} from 'sentry/utils/integrationUtil';
 import {addQueryParamsToExistingUrl} from 'sentry/utils/queryString';

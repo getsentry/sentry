@@ -1,8 +1,9 @@
 import {t} from 'sentry/locale';
-import EventView from 'sentry/utils/discover/eventView';
-import {AggregationKeyWithAlias, LooseFieldKey} from 'sentry/utils/discover/fields';
+import type EventView from 'sentry/utils/discover/eventView';
+import type {AggregationKeyWithAlias, LooseFieldKey} from 'sentry/utils/discover/fields';
 import {AggregationKey} from 'sentry/utils/fields';
 import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
+import type {Trigger, UnsavedMetricRule} from 'sentry/views/alerts/rules/metric/types';
 import {
   AlertRuleComparisonType,
   AlertRuleThresholdType,
@@ -11,15 +12,13 @@ import {
   Datasource,
   EventTypes,
   TimeWindow,
-  Trigger,
-  UnsavedMetricRule,
 } from 'sentry/views/alerts/rules/metric/types';
 import {
   DATA_SOURCE_TO_SET_AND_EVENT_TYPES,
   getQueryDatasource,
   isSessionAggregate,
 } from 'sentry/views/alerts/utils';
-import {AlertType, WizardRuleTemplate} from 'sentry/views/alerts/wizard/options';
+import type {AlertType, WizardRuleTemplate} from 'sentry/views/alerts/wizard/options';
 
 export const DEFAULT_COUNT_TIME_WINDOW = 1; // 1min
 export const DEFAULT_CHANGE_TIME_WINDOW = 60; // 1h

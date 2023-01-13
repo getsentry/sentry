@@ -1,6 +1,7 @@
-import {createStore, StoreDefinition} from 'reflux';
+import type {StoreDefinition} from 'reflux';
+import {createStore} from 'reflux';
 
-import {SentryAppInstallation} from 'sentry/types';
+import type {SentryAppInstallation} from 'sentry/types';
 
 interface SentryAppInstallationStoreDefinition extends StoreDefinition {
   getInitialState(): SentryAppInstallation[];

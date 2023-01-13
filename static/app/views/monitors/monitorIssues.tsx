@@ -5,7 +5,7 @@ import {t} from 'sentry/locale';
 import {getUtcDateString} from 'sentry/utils/dates';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
-import {Monitor} from './types';
+import type {Monitor} from './types';
 
 type Props = {
   monitor: Monitor;

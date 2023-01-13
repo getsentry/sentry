@@ -2,24 +2,25 @@ import {Component} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
-import {Location} from 'history';
+import type {Location} from 'history';
 import pick from 'lodash/pick';
 
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import DateTime from 'sentry/components/dateTime';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import GroupListHeader from 'sentry/components/issues/groupListHeader';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Pagination, {CursorHandler} from 'sentry/components/pagination';
+import type {CursorHandler} from 'sentry/components/pagination';
+import Pagination from 'sentry/components/pagination';
 import {Panel, PanelBody} from 'sentry/components/panels';
 import IssuesReplayCountProvider from 'sentry/components/replays/issuesReplayCountProvider';
 import StreamGroup from 'sentry/components/stream/group';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {tct} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
-import {GroupResolution} from 'sentry/types';
-import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
+import type {GroupResolution} from 'sentry/types';
+import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import withApi from 'sentry/utils/withApi';
 
 type CustomGroup = GroupResolution & {

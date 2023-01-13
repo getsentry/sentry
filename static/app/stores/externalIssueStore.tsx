@@ -1,6 +1,7 @@
-import {createStore, StoreDefinition} from 'reflux';
+import type {StoreDefinition} from 'reflux';
+import {createStore} from 'reflux';
 
-import {PlatformExternalIssue} from 'sentry/types';
+import type {PlatformExternalIssue} from 'sentry/types';
 
 interface ExternalIssueStoreDefinition extends StoreDefinition {
   add(issue: PlatformExternalIssue): void;

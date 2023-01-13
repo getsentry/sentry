@@ -12,7 +12,8 @@ import AsyncComponent from 'sentry/components/asyncComponent';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import FieldFromConfig from 'sentry/components/forms/fieldFromConfig';
-import Form, {FormProps} from 'sentry/components/forms/form';
+import type {FormProps} from 'sentry/components/forms/form';
+import Form from 'sentry/components/forms/form';
 import FormField from 'sentry/components/forms/formField';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import {
@@ -28,7 +29,7 @@ import {t} from 'sentry/locale';
 import HookStore from 'sentry/stores/hookStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import space from 'sentry/styles/space';
-import {Organization, Project} from 'sentry/types';
+import type {Organization, Project} from 'sentry/types';
 
 const LEGACY_BROWSER_SUBFILTERS = {
   ie_pre_9: {

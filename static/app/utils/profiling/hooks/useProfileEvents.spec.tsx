@@ -1,11 +1,11 @@
-import {ReactNode} from 'react';
+import type {ReactNode} from 'react';
 import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
 
+import type {EventsResults} from 'sentry/utils/profiling/hooks/useProfileEvents';
 import {
-  EventsResults,
   formatSort,
   useProfileEvents,
 } from 'sentry/utils/profiling/hooks/useProfileEvents';

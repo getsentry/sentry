@@ -1,5 +1,5 @@
 import type {PlatformKey} from 'sentry/data/platformCategories';
-import {FieldKind} from 'sentry/utils/fields';
+import type {FieldKind} from 'sentry/utils/fields';
 
 import type {Actor, TimeseriesValue} from './core';
 import type {Event, EventMetadata, EventOrGroupType, Level} from './event';

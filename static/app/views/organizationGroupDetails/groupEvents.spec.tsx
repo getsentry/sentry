@@ -1,5 +1,5 @@
 import {browserHistory} from 'react-router';
-import {Location} from 'history';
+import type {Location} from 'history';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -9,7 +9,7 @@ import {
   waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
 
-import {Group, Organization} from 'sentry/types';
+import type {Group, Organization} from 'sentry/types';
 import {GroupEvents} from 'sentry/views/organizationGroupDetails/groupEvents';
 
 let location: Location;

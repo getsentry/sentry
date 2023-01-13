@@ -1,11 +1,11 @@
 import {Component, Fragment} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import type {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import * as qs from 'query-string';
 
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Button, ButtonLabel} from 'sentry/components/button';
 import ButtonBar, {ButtonGrid} from 'sentry/components/buttonBar';
@@ -15,13 +15,14 @@ import QueryCount from 'sentry/components/queryCount';
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization, PageFilters} from 'sentry/types';
+import type {Organization, PageFilters} from 'sentry/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
-import {getReleaseParams, ReleaseBounds} from '../../utils';
+import type {ReleaseBounds} from '../../utils';
+import {getReleaseParams} from '../../utils';
 import EmptyState from '../commitsAndFiles/emptyState';
 
 enum IssuesType {

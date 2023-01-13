@@ -1,8 +1,9 @@
-import {useQuery, UseQueryOptions} from '@tanstack/react-query';
+import type {UseQueryOptions} from '@tanstack/react-query';
+import {useQuery} from '@tanstack/react-query';
 
-import {ResponseMeta} from 'sentry/api';
+import type {ResponseMeta} from 'sentry/api';
 import {t} from 'sentry/locale';
-import {Organization, SeriesApi} from 'sentry/types';
+import type {Organization, SeriesApi} from 'sentry/types';
 import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 import useApi from 'sentry/utils/useApi';
 

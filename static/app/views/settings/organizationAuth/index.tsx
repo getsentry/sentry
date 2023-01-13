@@ -1,8 +1,8 @@
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
-import {AuthProvider, Organization} from 'sentry/types';
+import type {AuthProvider, Organization} from 'sentry/types';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';

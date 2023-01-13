@@ -4,7 +4,8 @@ import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingL
 import MemberListStore from 'sentry/stores/memberListStore';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import Dashboard from 'sentry/views/dashboardsV2/dashboard';
-import {DisplayType, Widget, WidgetType} from 'sentry/views/dashboardsV2/types';
+import type {Widget} from 'sentry/views/dashboardsV2/types';
+import {DisplayType, WidgetType} from 'sentry/views/dashboardsV2/types';
 
 import {OrganizationContext} from '../organizationContext';
 

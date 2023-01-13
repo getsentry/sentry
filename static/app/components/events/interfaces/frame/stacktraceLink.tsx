@@ -3,9 +3,9 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
+import type {PromptResponse} from 'sentry/actionCreators/prompts';
 import {
   makePromptsCheckQueryKey,
-  PromptResponse,
   promptsUpdate,
   usePromptsCheck,
 } from 'sentry/actionCreators/prompts';
@@ -17,14 +17,14 @@ import type {PlatformKey} from 'sentry/data/platformCategories';
 import {IconClose, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {
-  CodecovStatusCode,
+import type {
   Event,
   Frame,
   Organization,
   Project,
   StacktraceLinkResult,
 } from 'sentry/types';
+import {CodecovStatusCode} from 'sentry/types';
 import {StacktraceLinkEvents} from 'sentry/utils/analytics/integrations/stacktraceLinkAnalyticsEvents';
 import {getAnalyicsDataForEvent} from 'sentry/utils/events';
 import {

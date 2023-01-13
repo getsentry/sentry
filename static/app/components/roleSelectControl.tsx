@@ -1,9 +1,8 @@
 import styled from '@emotion/styled';
 
-import SelectControl, {
-  ControlProps,
-} from 'sentry/components/forms/controls/selectControl';
-import {MemberRole} from 'sentry/types';
+import type {ControlProps} from 'sentry/components/forms/controls/selectControl';
+import SelectControl from 'sentry/components/forms/controls/selectControl';
+import type {MemberRole} from 'sentry/types';
 
 type OptionType = {
   details: React.ReactNode;

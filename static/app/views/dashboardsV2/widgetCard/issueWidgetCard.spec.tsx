@@ -3,7 +3,8 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {Client} from 'sentry/api';
 import MemberListStore from 'sentry/stores/memberListStore';
-import {DisplayType, Widget, WidgetType} from 'sentry/views/dashboardsV2/types';
+import type {Widget} from 'sentry/views/dashboardsV2/types';
+import {DisplayType, WidgetType} from 'sentry/views/dashboardsV2/types';
 import WidgetCard from 'sentry/views/dashboardsV2/widgetCard';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 

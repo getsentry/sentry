@@ -1,12 +1,12 @@
 import styled from '@emotion/styled';
-import {LocationDescriptor} from 'history';
+import type {LocationDescriptor} from 'history';
 
 import {KeyValueTableRow} from 'sentry/components/keyValueTable';
 import Link from 'sentry/components/links/link';
 import Tooltip from 'sentry/components/tooltip';
 import Version from 'sentry/components/version';
 import {t} from 'sentry/locale';
-import {EventTag} from 'sentry/types/event';
+import type {EventTag} from 'sentry/types/event';
 
 import {AnnotatedText} from './events/meta/annotatedText';
 

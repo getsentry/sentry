@@ -1,9 +1,9 @@
-import {LegendComponentOption} from 'echarts';
+import type {LegendComponentOption} from 'echarts';
 
 import {t} from 'sentry/locale';
-import {Series} from 'sentry/types/echarts';
+import type {Series} from 'sentry/types/echarts';
 import {defined, formatBytesBase2} from 'sentry/utils';
-import {AggregationOutputType} from 'sentry/utils/discover/fields';
+import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {
   DAY,
   formatAbbreviatedNumber,

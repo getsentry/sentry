@@ -1,6 +1,6 @@
 import BaseAvatar from 'sentry/components/avatar/baseAvatar';
 import PluginIcon from 'sentry/plugins/components/pluginIcon';
-import {DocIntegration} from 'sentry/types';
+import type {DocIntegration} from 'sentry/types';
 
 type Props = {
   docIntegration?: DocIntegration;

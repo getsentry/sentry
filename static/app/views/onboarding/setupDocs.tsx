@@ -2,7 +2,8 @@ import 'prism-sentry/index.css';
 
 import {Fragment, useCallback, useEffect, useState} from 'react';
 import {browserHistory} from 'react-router';
-import {css, Theme} from '@emotion/react';
+import type {Theme} from '@emotion/react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 import * as qs from 'query-string';
@@ -11,11 +12,11 @@ import {loadDocs} from 'sentry/actionCreators/projects';
 import {Alert, alertStyles} from 'sentry/components/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
-import {PlatformKey} from 'sentry/data/platformCategories';
+import type {PlatformKey} from 'sentry/data/platformCategories';
 import platforms from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Project} from 'sentry/types';
+import type {Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {platformToIntegrationMap} from 'sentry/utils/integrationUtil';
@@ -27,7 +28,7 @@ import FirstEventFooter from './components/firstEventFooter';
 import FullIntroduction from './components/fullIntroduction';
 import ProjectSidebarSection from './components/projectSidebarSection';
 import IntegrationSetup from './integrationSetup';
-import {StepProps} from './types';
+import type {StepProps} from './types';
 import {usePersistedOnboardingState} from './utils';
 
 /**

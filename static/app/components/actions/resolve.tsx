@@ -12,13 +12,13 @@ import type {MenuItemProps} from 'sentry/components/dropdownMenuItem';
 import Tooltip from 'sentry/components/tooltip';
 import {IconCheckmark, IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {
+import type {
   GroupStatusResolution,
   Organization,
   Release,
-  ResolutionStatus,
   ResolutionStatusDetails,
 } from 'sentry/types';
+import {ResolutionStatus} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {formatVersion} from 'sentry/utils/formatters';
 import withOrganization from 'sentry/utils/withOrganization';

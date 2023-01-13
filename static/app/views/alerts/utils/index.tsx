@@ -1,23 +1,24 @@
 import round from 'lodash/round';
 
 import {t} from 'sentry/locale';
-import {Organization, SessionFieldWithOperation} from 'sentry/types';
-import {IssueAlertRule} from 'sentry/types/alerts';
+import type {Organization} from 'sentry/types';
+import {SessionFieldWithOperation} from 'sentry/types';
+import type {IssueAlertRule} from 'sentry/types/alerts';
 import {defined} from 'sentry/utils';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import toArray from 'sentry/utils/toArray';
+import type {MetricRule, SavedMetricRule} from 'sentry/views/alerts/rules/metric/types';
 import {
   Dataset,
   Datasource,
   EventTypes,
-  MetricRule,
-  SavedMetricRule,
   SessionsAggregate,
 } from 'sentry/views/alerts/rules/metric/types';
 
-import {AlertRuleStatus, Incident, IncidentStats} from '../types';
+import type {Incident, IncidentStats} from '../types';
+import {AlertRuleStatus} from '../types';
 
 /**
  * Gets start and end date query parameters from stats

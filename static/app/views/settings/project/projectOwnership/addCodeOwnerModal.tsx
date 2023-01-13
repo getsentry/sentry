@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Alert} from 'sentry/components/alert';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import {Button} from 'sentry/components/button';
@@ -14,7 +14,7 @@ import {Panel, PanelBody} from 'sentry/components/panels';
 import {IconCheckmark, IconNot} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {
+import type {
   CodeOwner,
   CodeownersFile,
   Integration,

@@ -8,7 +8,7 @@ import TextField from 'sentry/components/forms/fields/textField';
 import FormField from 'sentry/components/forms/formField';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
-import {ServiceHook} from 'sentry/types';
+import type {ServiceHook} from 'sentry/types';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 const EVENT_CHOICES = ['event.alert', 'event.created'];

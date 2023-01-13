@@ -1,16 +1,16 @@
 import invert from 'lodash/invert';
 
-import {
+import type {
   SelectValue,
   SessionAggregationColumn,
-  SessionField,
   SessionsMeta,
   SessionsOperation,
-  SessionStatus,
 } from 'sentry/types';
+import {SessionField, SessionStatus} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {SessionMetric} from 'sentry/utils/metrics/fields';
-import {FieldValue, FieldValueKind} from 'sentry/views/eventsV2/table/types';
+import type {FieldValue} from 'sentry/views/eventsV2/table/types';
+import {FieldValueKind} from 'sentry/views/eventsV2/table/types';
 
 export const DERIVED_STATUS_METRICS_PATTERN =
   /count_(abnormal|errored|crashed|healthy)\((user|session)\)/;

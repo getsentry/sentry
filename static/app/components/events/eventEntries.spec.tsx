@@ -3,8 +3,10 @@ import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLi
 
 import type {Error} from 'sentry/components/events/errors';
 import {EventEntries} from 'sentry/components/events/eventEntries';
-import {Group, IssueCategory} from 'sentry/types';
-import {EntryType, Event} from 'sentry/types/event';
+import type {Group} from 'sentry/types';
+import {IssueCategory} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
+import {EntryType} from 'sentry/types/event';
 
 const {organization, project, router} = initializeData();
 

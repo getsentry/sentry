@@ -1,5 +1,6 @@
-import {SavedSearch} from 'sentry/types';
-import {useQuery, UseQueryOptions} from 'sentry/utils/queryClient';
+import type {SavedSearch} from 'sentry/types';
+import type {UseQueryOptions} from 'sentry/utils/queryClient';
+import {useQuery} from 'sentry/utils/queryClient';
 
 type FetchSavedSearchesForOrgParameters = {
   orgSlug: string;

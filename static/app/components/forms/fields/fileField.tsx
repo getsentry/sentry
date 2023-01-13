@@ -4,7 +4,7 @@ import omit from 'lodash/omit';
 
 import FormField from 'sentry/components/forms/formField';
 import FormFieldControlState from 'sentry/components/forms/formField/controlState';
-import FormModel from 'sentry/components/forms/model';
+import type FormModel from 'sentry/components/forms/model';
 import {
   Input,
   InputGroup,
@@ -14,7 +14,7 @@ import {
 import {t} from 'sentry/locale';
 
 // XXX(epurkhiser): This is wrong, it should not be inheriting these props
-import {InputFieldProps} from './inputField';
+import type {InputFieldProps} from './inputField';
 
 export interface FileFieldProps extends Omit<InputFieldProps, 'type' | 'accept'> {
   accept?: string[];

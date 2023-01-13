@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
-import {browserHistory, RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';

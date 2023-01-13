@@ -10,7 +10,7 @@ import {
 } from 'sentry/components/panels';
 import Radio from 'sentry/components/radio';
 import {t, tct} from 'sentry/locale';
-import {OrgRole} from 'sentry/types';
+import type {OrgRole} from 'sentry/types';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 const Label = styled('label')`

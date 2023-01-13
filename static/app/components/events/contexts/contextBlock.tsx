@@ -1,6 +1,6 @@
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
-import {KeyValueListData} from 'sentry/types';
+import type {KeyValueListData} from 'sentry/types';
 
 type Props = {
   data: KeyValueListData;

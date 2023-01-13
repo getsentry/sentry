@@ -11,17 +11,17 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {createProject} from 'sentry/actionCreators/projects';
 import {Button} from 'sentry/components/button';
-import {PlatformKey} from 'sentry/data/platformCategories';
+import type {PlatformKey} from 'sentry/data/platformCategories';
 import {t, tn} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import space from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
 import useTeams from 'sentry/utils/useTeams';
 
-import {OnboardingState} from '../types';
+import type {OnboardingState} from '../types';
 import {usePersistedOnboardingState} from '../utils';
 
 import GenericFooter from './genericFooter';

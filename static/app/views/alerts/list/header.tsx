@@ -1,4 +1,4 @@
-import {InjectedRouter} from 'react-router';
+import type {InjectedRouter} from 'react-router';
 
 import {navigateTo} from 'sentry/actionCreators/navigation';
 import {Button} from 'sentry/components/button';

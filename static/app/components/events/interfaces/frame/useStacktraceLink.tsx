@@ -1,5 +1,6 @@
 import type {Event, Frame, StacktraceLinkResult} from 'sentry/types';
-import {QueryKey, useQuery} from 'sentry/utils/queryClient';
+import type {QueryKey} from 'sentry/utils/queryClient';
+import {useQuery} from 'sentry/utils/queryClient';
 
 interface UseStacktraceLinkProps {
   event: Event;

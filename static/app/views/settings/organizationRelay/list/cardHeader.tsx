@@ -9,7 +9,7 @@ import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconCopy, IconDelete, IconEdit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Relay} from 'sentry/types';
+import type {Relay} from 'sentry/types';
 
 type Props = Relay & {
   disabled: boolean;

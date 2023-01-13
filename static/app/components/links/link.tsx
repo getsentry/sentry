@@ -2,7 +2,7 @@ import {forwardRef, useContext, useEffect} from 'react';
 import {Link as RouterLink} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
-import {Location, LocationDescriptor} from 'history';
+import type {Location, LocationDescriptor} from 'history';
 
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {RouteContext} from 'sentry/views/routeContext';

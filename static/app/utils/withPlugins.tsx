@@ -2,7 +2,7 @@ import {Component} from 'react';
 
 import {fetchPlugins} from 'sentry/actionCreators/plugins';
 import PluginsStore from 'sentry/stores/pluginsStore';
-import {Organization, Plugin, Project} from 'sentry/types';
+import type {Organization, Plugin, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import getDisplayName from 'sentry/utils/getDisplayName';
 import withOrganization from 'sentry/utils/withOrganization';

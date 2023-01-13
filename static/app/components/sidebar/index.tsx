@@ -1,7 +1,7 @@
 import {Fragment, useEffect} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import type {Location} from 'history';
 
 import {hideSidebar, showSidebar} from 'sentry/actionCreators/preferences';
 import Feature from 'sentry/components/acl/feature';
@@ -34,7 +34,7 @@ import PreferencesStore from 'sentry/stores/preferencesStore';
 import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import space from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import {isDemoWalkthrough} from 'sentry/utils/demoMode';
 import {getDiscoverLandingUrl} from 'sentry/utils/discover/urls';
 import theme from 'sentry/utils/theme';
@@ -48,7 +48,8 @@ import OnboardingStatus from './onboardingStatus';
 import ServiceIncidents from './serviceIncidents';
 import SidebarDropdown from './sidebarDropdown';
 import SidebarItem from './sidebarItem';
-import {SidebarOrientation, SidebarPanelKey} from './types';
+import type {SidebarOrientation} from './types';
+import {SidebarPanelKey} from './types';
 
 const SidebarOverride = HookOrDefault({
   hookName: 'sidebar:item-override',

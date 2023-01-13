@@ -1,7 +1,9 @@
-import {mat3, vec2} from 'gl-matrix';
+import type {mat3} from 'gl-matrix';
+import {vec2} from 'gl-matrix';
 
-import {FlamegraphTheme} from '../flamegraph/flamegraphTheme';
-import {getContext, Rect} from '../gl/utils';
+import type {FlamegraphTheme} from '../flamegraph/flamegraphTheme';
+import type {Rect} from '../gl/utils';
+import {getContext} from '../gl/utils';
 
 class CursorRenderer {
   canvas: HTMLCanvasElement;

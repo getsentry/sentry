@@ -5,7 +5,7 @@ import * as cbor from 'cbor-web';
 import {base64urlToBuffer, bufferToBase64url} from 'sentry/components/u2f/webAuthnHelper';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import {ChallengeData, Organization} from 'sentry/types';
+import type {ChallengeData, Organization} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
 
 type TapParams = {

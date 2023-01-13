@@ -1,11 +1,10 @@
 // eslint-disable-next-line simple-import-sort/imports
+import type {SearchConfig, TokenResult} from 'sentry/components/searchSyntax/parser';
 import {
   filterTypeConfig,
   interchangeableFilterOperators,
-  SearchConfig,
   TermOperator,
   Token,
-  TokenResult,
 } from 'sentry/components/searchSyntax/parser';
 import {
   IconArrow,
@@ -19,17 +18,11 @@ import {
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 
-import {
-  AutocompleteGroup,
-  ItemType,
-  SearchGroup,
-  SearchItem,
-  Shortcut,
-  ShortcutType,
-} from './types';
-import {TagCollection} from 'sentry/types';
+import type {AutocompleteGroup, SearchGroup, SearchItem, Shortcut} from './types';
+import {ItemType, ShortcutType} from './types';
+import type {TagCollection} from 'sentry/types';
 import {FieldKind, FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
-import {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
+import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 
 export function addSpace(query = '') {
   if (query.length !== 0 && query[query.length - 1] !== ' ') {

@@ -1,4 +1,4 @@
-import {Query} from 'history';
+import type {Query} from 'history';
 
 export function replaysRouteWithQuery({
   orgSlug,

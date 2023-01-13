@@ -1,6 +1,7 @@
 import {useEffect, useState} from 'react';
 
-import {DO_NOT_USE_TOOLTIP, InternalTooltipProps} from 'sentry/components/tooltip';
+import type {InternalTooltipProps} from 'sentry/components/tooltip';
+import {DO_NOT_USE_TOOLTIP} from 'sentry/components/tooltip';
 import domId from 'sentry/utils/domId';
 
 type Tooltip = {

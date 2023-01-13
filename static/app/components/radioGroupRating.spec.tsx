@@ -1,6 +1,7 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {RadioGroupRating, RadioGroupRatingProps} from './radioGroupRating';
+import type {RadioGroupRatingProps} from './radioGroupRating';
+import {RadioGroupRating} from './radioGroupRating';
 
 const options: RadioGroupRatingProps['options'] = {
   0: {

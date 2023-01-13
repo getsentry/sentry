@@ -1,15 +1,17 @@
-import {Fragment, JSXElementConstructor, useState} from 'react';
+import type {JSXElementConstructor} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import flatMap from 'lodash/flatMap';
 import uniqBy from 'lodash/uniqBy';
 
-import {CommitRowProps} from 'sentry/components/commitRow';
+import type {CommitRowProps} from 'sentry/components/commitRow';
 import {CauseHeader, DataSection} from 'sentry/components/events/styles';
 import {Panel} from 'sentry/components/panels';
 import {IconAdd, IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {AvatarProject, Commit, Group, IssueCategory} from 'sentry/types';
+import type {AvatarProject, Commit, Group} from 'sentry/types';
+import {IssueCategory} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import useCommitters from 'sentry/utils/useCommitters';

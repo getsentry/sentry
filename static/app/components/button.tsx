@@ -1,6 +1,7 @@
 import {forwardRef as reactForwardRef, useCallback} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
-import {css, Theme} from '@emotion/react';
+import type {Theme} from '@emotion/react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';

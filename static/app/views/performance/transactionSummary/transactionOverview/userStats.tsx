@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import type {Location} from 'history';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {SectionHeading} from 'sentry/components/charts/styles';
@@ -10,9 +10,9 @@ import QuestionTooltip from 'sentry/components/questionTooltip';
 import UserMisery from 'sentry/components/userMisery';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {Organization} from 'sentry/types';
-import EventView from 'sentry/utils/discover/eventView';
-import {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
+import type {Organization} from 'sentry/types';
+import type EventView from 'sentry/utils/discover/eventView';
+import type {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
 import {WebVital} from 'sentry/utils/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {getTermHelp, PERFORMANCE_TERM} from 'sentry/views/performance/data';

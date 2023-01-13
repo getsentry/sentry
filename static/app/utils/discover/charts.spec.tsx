@@ -1,6 +1,6 @@
-import {LegendComponentOption} from 'echarts';
+import type {LegendComponentOption} from 'echarts';
 
-import {Series} from 'sentry/types/echarts';
+import type {Series} from 'sentry/types/echarts';
 import {
   axisLabelFormatter,
   axisLabelFormatterUsingAggregateOutputType,

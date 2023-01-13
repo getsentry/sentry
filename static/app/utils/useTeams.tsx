@@ -2,14 +2,14 @@ import {useEffect, useMemo, useRef, useState} from 'react';
 import uniqBy from 'lodash/uniqBy';
 
 import {fetchUserTeams} from 'sentry/actionCreators/teams';
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import TeamStore from 'sentry/stores/teamStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import {Team} from 'sentry/types';
+import type {Team} from 'sentry/types';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
-import RequestError from 'sentry/utils/requestError/requestError';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 
 type State = {

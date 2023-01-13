@@ -6,7 +6,7 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
 import {t, tct} from 'sentry/locale';
-import {Integration, Repository} from 'sentry/types';
+import type {Integration, Repository} from 'sentry/types';
 
 const api = new Client();
 

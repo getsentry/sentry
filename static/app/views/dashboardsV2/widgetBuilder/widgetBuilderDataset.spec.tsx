@@ -5,14 +5,14 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import TagStore from 'sentry/stores/tagStore';
+import type {DashboardDetails, Widget} from 'sentry/views/dashboardsV2/types';
 import {
-  DashboardDetails,
   DashboardWidgetSource,
   DisplayType,
-  Widget,
   WidgetType,
 } from 'sentry/views/dashboardsV2/types';
-import WidgetBuilder, {WidgetBuilderProps} from 'sentry/views/dashboardsV2/widgetBuilder';
+import type {WidgetBuilderProps} from 'sentry/views/dashboardsV2/widgetBuilder';
+import WidgetBuilder from 'sentry/views/dashboardsV2/widgetBuilder';
 
 const defaultOrgFeatures = [
   'performance-view',

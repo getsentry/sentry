@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
-import {Widget} from './types';
+import type {Widget} from './types';
 
 const WidgetWrapper = styled(motion.div)<{displayType: Widget['displayType']}>`
   position: relative;

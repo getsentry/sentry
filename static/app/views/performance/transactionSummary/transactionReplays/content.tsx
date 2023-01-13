@@ -1,18 +1,18 @@
 import {useTheme} from '@emotion/react';
-import {Location} from 'history';
+import type {Location} from 'history';
 import first from 'lodash/first';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import Pagination from 'sentry/components/pagination';
 import type {Organization} from 'sentry/types';
-import EventView from 'sentry/utils/discover/eventView';
+import type EventView from 'sentry/utils/discover/eventView';
 import useMedia from 'sentry/utils/useMedia';
 import ReplayTable from 'sentry/views/replays/replayTable';
 import {ReplayColumns} from 'sentry/views/replays/replayTable/types';
 import type {ReplayListLocationQuery} from 'sentry/views/replays/types';
 
 import type {SpanOperationBreakdownFilter} from '../filter';
-import {EventsDisplayFilterName, PercentileValues} from '../transactionEvents/utils';
+import type {EventsDisplayFilterName, PercentileValues} from '../transactionEvents/utils';
 
 import type {ReplayListRecordWithTx} from './useReplaysFromTransaction';
 

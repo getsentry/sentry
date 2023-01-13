@@ -1,6 +1,6 @@
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import {MAX_AUTOCOMPLETE_RECENT_SEARCHES} from 'sentry/constants';
-import {RecentSearch, SavedSearch, SavedSearchType} from 'sentry/types';
+import type {RecentSearch, SavedSearch, SavedSearchType} from 'sentry/types';
 import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 
 const getRecentSearchUrl = (orgSlug: string): string =>

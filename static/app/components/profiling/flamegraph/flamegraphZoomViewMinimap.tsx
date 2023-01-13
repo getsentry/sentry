@@ -2,14 +2,12 @@ import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react
 import styled from '@emotion/styled';
 import {vec2} from 'gl-matrix';
 
-import {
-  CanvasPoolManager,
-  useCanvasScheduler,
-} from 'sentry/utils/profiling/canvasScheduler';
-import {CanvasView} from 'sentry/utils/profiling/canvasView';
-import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
+import type {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
+import {useCanvasScheduler} from 'sentry/utils/profiling/canvasScheduler';
+import type {CanvasView} from 'sentry/utils/profiling/canvasView';
+import type {Flamegraph} from 'sentry/utils/profiling/flamegraph';
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
-import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
+import type {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
 import {
   getConfigSpaceTranslationBetweenVectors,
   getMinimapCanvasCursor,

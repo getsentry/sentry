@@ -1,7 +1,8 @@
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {CodecovStatusCode, Frame} from 'sentry/types';
+import type {Frame} from 'sentry/types';
+import {CodecovStatusCode} from 'sentry/types';
 import * as analytics from 'sentry/utils/integrationUtil';
 
 import {StacktraceLink} from './stacktraceLink';

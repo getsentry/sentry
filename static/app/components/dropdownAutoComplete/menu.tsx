@@ -11,7 +11,7 @@ import space from 'sentry/styles/space';
 
 import defaultAutoCompleteFilter from './autoCompleteFilter';
 import List from './list';
-import {Item, ItemsBeforeFilter} from './types';
+import type {Item, ItemsBeforeFilter} from './types';
 
 type AutoCompleteChildrenArgs = Parameters<AutoComplete<Item>['props']['children']>[0];
 type Actions = AutoCompleteChildrenArgs['actions'];
