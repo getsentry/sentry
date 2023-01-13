@@ -189,9 +189,7 @@ def build_query_builder(
 
 
 def _create_in_snuba(subscription: QuerySubscription) -> str:
-    with sentry_sdk.start_span(
-        op="create_in_snuba", name="create_alert_subscription_in_snuba"
-    ) as span:
+    with sentry_sdk.start_span(op="create_in_snuba") as span:
         span.set_data(
             "uses_metrics_layer",
             features.has("organizations:use-metrics-layer", subscription.project.organization_id),
