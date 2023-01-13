@@ -650,4 +650,4 @@ class ReplayOrganizationTagKeyValuesTest(OrganizationTagKeyTestCase, ReplaysSnub
         self.run_test("device.name", expected=[("iPhone 13 Pro", 3)])
         self.run_test("device.brand", expected=[("Apple", 3)])
         self.run_test("device.family", expected=[("iPhone", 3)])
-        self.run_test("device.model", expected=[("13 Pro", 3)])
+        self.run_test("device.model_id", expected=[("13 Pro", 3)])
