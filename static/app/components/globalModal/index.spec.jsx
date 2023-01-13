@@ -12,6 +12,7 @@ import ModalStore from 'sentry/stores/modalStore';
 
 describe('GlobalModal', function () {
   beforeEach(() => {
+    jest.resetAllMocks();
     ModalStore.reset();
   });
 
@@ -44,6 +45,27 @@ describe('GlobalModal', function () {
     );
 
     userEvent.click(screen.getByRole('button', {name: 'Close Modal'}));
+
+    expect(closeSpy).toHaveBeenCalled();
+  });
+
+  it('calls onClose handler when escape key is pressed', function () {
+    renderGlobalModal();
+    const closeSpy = jest.fn();
+
+    act(() =>
+      openModal(
+        ({Header}) => (
+          <div id="modal-test">
+            <Header closeButton>Header</Header>Hi
+          </div>
+        ),
+        {onClose: closeSpy}
+      )
+    );
+
+    expect(screen.getByText('Hi')).toBeInTheDocument();
+    userEvent.keyboard('{Escape}');
 
     expect(closeSpy).toHaveBeenCalled();
   });

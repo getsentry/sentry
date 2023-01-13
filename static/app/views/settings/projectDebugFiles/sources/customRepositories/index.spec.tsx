@@ -15,6 +15,7 @@ import * as indicators from 'sentry/actionCreators/indicator';
 import GlobalModal from 'sentry/components/globalModal';
 import AppStoreConnectContext from 'sentry/components/projects/appStoreConnectContext';
 import {DEBUG_SOURCE_TYPES} from 'sentry/data/debugFileSources';
+import ModalStore from 'sentry/stores/modalStore';
 import {
   AppStoreConnectCredentialsStatus,
   CustomRepo,
@@ -107,6 +108,10 @@ describe('Custom Repositories', function () {
     name: 'Release Health',
     type: CustomRepoType.APP_STORE_CONNECT,
   };
+
+  beforeEach(() => {
+    ModalStore.reset();
+  });
 
   beforeAll(async function () {
     // TODO: figure out why this transpile is so slow
