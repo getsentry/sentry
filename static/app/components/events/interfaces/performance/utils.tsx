@@ -78,6 +78,7 @@ const RESOURCE_LINKS: Record<IssueType, PlatformSpecificResources> = {
     ],
   },
   [IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS]: {},
+  [IssueType.PERFORMANCE_CONSECUTIVE_DB_QUERIES]: {},
   [IssueType.PERFORMANCE_FILE_IO_MAIN_THREAD]: {},
   [IssueType.PERFORMANCE_SLOW_SPAN]: {},
   [IssueType.ERROR]: {},
