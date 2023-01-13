@@ -1,3 +1,5 @@
+import kebabCase from 'lodash/kebabCase';
+
 import {t} from 'sentry/locale';
 import {IssueType, KeyValueListData, KeyValueListDataItem} from 'sentry/types';
 
@@ -44,14 +46,8 @@ const NPlusOneDBQueriesSpanEvidence = ({
     data={
       [
         makeTransactionNameRow(transactionName),
-        parentSpan
-          ? makeRow('parent-name', t('Parent Span'), getSpanEvidenceValue(parentSpan))
-          : null,
-        makeRow(
-          'offending-spans',
-          t('Repeating Span'),
-          getSpanEvidenceValue(offendingSpans[0])
-        ),
+        parentSpan ? makeRow(t('Parent Span'), getSpanEvidenceValue(parentSpan)) : null,
+        makeRow(t('Repeating Span'), getSpanEvidenceValue(offendingSpans[0])),
       ].filter(Boolean) as KeyValueListData
     }
   />
@@ -68,13 +64,9 @@ const NPlusOneAPICallsSpanEvidence = ({
       data={
         [
           makeTransactionNameRow(transactionName),
-          makeRow(
-            'offending-spans',
-            t('Offending Span'),
-            getSpanEvidenceValue(offendingSpans[0])
-          ),
+          makeRow(t('Offending Span'), getSpanEvidenceValue(offendingSpans[0])),
           getProblemParameters.length > 0
-            ? makeRow('problem-parameters', t('Problem Parameter'), problemParameters)
+            ? makeRow(t('Problem Parameter'), problemParameters)
             : null,
         ].filter(Boolean) as KeyValueListData
       }
@@ -89,12 +81,7 @@ const SlowSpanSpanEvidence = ({
   <KeyValueList
     data={[
       makeTransactionNameRow(transactionName),
-      makeRow(
-        'offending-spans',
-        t('Offending Span'),
-        getSpanEvidenceValue(offendingSpans[0])
-      ),
-      makeRow('slow-span', t('Slow Span'), getSpanEvidenceValue(offendingSpans[0])),
+      makeRow(t('Slow Span'), getSpanEvidenceValue(offendingSpans[0])),
     ]}
   />
 );
@@ -106,14 +93,27 @@ const DefaultSpanEvidence = ({
   <KeyValueList
     data={[
       makeTransactionNameRow(transactionName),
-      makeRow(
-        'offending-spans',
-        t('Offending Span'),
-        getSpanEvidenceValue(offendingSpans[0])
-      ),
+      makeRow(t('Offending Span'), getSpanEvidenceValue(offendingSpans[0])),
     ]}
   />
 );
+
+const makeTransactionNameRow = (transactionName: string) =>
+  makeRow(t('Transaction'), transactionName);
+
+const makeRow = (
+  subject: KeyValueListDataItem['subject'],
+  value: KeyValueListDataItem['value']
+): KeyValueListDataItem => {
+  const itemKey = kebabCase(subject);
+
+  return {
+    key: itemKey,
+    subject,
+    value,
+    subjectDataTestId: `${TEST_ID_NAMESPACE}.${itemKey}`,
+  };
+};
 
 function getSpanEvidenceValue(span: Span | null) {
   if (!span || (!span.op && !span.description)) {
@@ -158,17 +158,3 @@ function getProblemParameters(
 
   return Array.from(uniqueParameterPairs);
 }
-
-const makeTransactionNameRow = (transactionName: string) =>
-  makeRow('transaction-name', t('Transaction'), transactionName);
-
-const makeRow = (
-  key: KeyValueListDataItem['key'],
-  subject: KeyValueListDataItem['subject'],
-  value: KeyValueListDataItem['value']
-): KeyValueListDataItem => ({
-  key,
-  subject,
-  value,
-  subjectDataTestId: `${TEST_ID_NAMESPACE}.${key}`,
-});
