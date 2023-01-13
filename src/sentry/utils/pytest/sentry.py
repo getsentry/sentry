@@ -200,7 +200,6 @@ def pytest_configure(config):
     settings.FAIL_ON_UNAVAILABLE_API_CALL = True
 
     settings.SENTRY_USE_ISSUE_OCCURRENCE = True
-    os.environ.setdefault("ENABLE_AUTORUN_MIGRATION_SEARCH_ISSUES", "1")
 
     # django mail uses socket.getfqdn which doesn't play nice if our
     # networking isn't stable
