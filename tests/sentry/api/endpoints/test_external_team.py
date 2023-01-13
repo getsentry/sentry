@@ -1,4 +1,4 @@
-from sentry.models import ExternalActor, Integration
+from sentry.models import ExternalActor
 from sentry.testutils import APITestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.types.integrations import get_provider_string
@@ -12,17 +12,12 @@ class ExternalTeamTest(APITestCase):
     def setUp(self):
         super().setUp()
         self.login_as(self.user)
-        self.integration = Integration.objects.create(
-            provider="github", name="GitHub", external_id="github:1"
+        self.integration = self.create_integration(
+            organization=self.organization, provider="github", name="GitHub", external_id="github:1"
         )
-
-        self.integration.add_organization(self.organization, self.user)
-
-        self.slack_integration = Integration.objects.create(
-            provider="slack", name="Slack", external_id="slack:2"
+        self.slack_integration = self.create_integration(
+            organization=self.organization, provider="slack", name="Slack", external_id="slack:2"
         )
-
-        self.slack_integration.add_organization(self.organization, self.user)
 
     def test_basic_post(self):
         data = {
@@ -120,11 +115,9 @@ class ExternalTeamTest(APITestCase):
 
     def test_create_with_invalid_integration_id(self):
         self.org2 = self.create_organization(owner=self.user, name="org2")
-        self.integration = Integration.objects.create(
-            provider="gitlab", name="Gitlab", external_id="gitlab:1"
+        self.integration = self.create_integration(
+            organization=self.org2, provider="gitlab", name="Gitlab", external_id="gitlab:1"
         )
-
-        self.integration.add_organization(self.org2, self.user)
 
         data = {
             "externalName": "@getsentry/ecosystem",
