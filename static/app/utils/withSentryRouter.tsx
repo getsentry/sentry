@@ -1,5 +1,5 @@
-// eslint-disable-next-line no-restricted-imports
 import type {WithRouterProps} from 'react-router';
+// eslint-disable-next-line no-restricted-imports
 import {withRouter} from 'react-router';
 
 import {customerDomain, usingCustomerDomain} from 'sentry/constants';
