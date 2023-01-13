@@ -68,7 +68,6 @@ def mock_expected_response(
     urls = kwargs.pop("urls", [])
     return {
         "id": replay_id,
-        "title": kwargs.pop("title", "Title"),
         "replayType": kwargs.pop("replay_type", "session"),
         "projectId": str(project_id),
         "urls": urls,
@@ -80,7 +79,6 @@ def mock_expected_response(
         "countErrors": kwargs.pop("count_errors", 1),
         "countSegments": kwargs.pop("count_segments", 1),
         "countUrls": len(urls),
-        "longestTransaction": kwargs.pop("longest_transaction", 0),
         "platform": kwargs.pop("platform", "javascript"),
         "environment": kwargs.pop("environment", "production"),
         "releases": kwargs.pop("releases", ["version@1.3"]),

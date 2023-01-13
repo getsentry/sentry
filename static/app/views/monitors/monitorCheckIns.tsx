@@ -33,7 +33,7 @@ const MonitorCheckIns = ({monitor, orgId}: Props) => {
     endpoints: [
       [
         'checkInList',
-        `/monitors/${orgId}/${monitor.id}/checkins/`,
+        `/organizations/${orgId}/monitors/${monitor.id}/checkins/`,
         {query: {per_page: '10'}},
       ],
     ],

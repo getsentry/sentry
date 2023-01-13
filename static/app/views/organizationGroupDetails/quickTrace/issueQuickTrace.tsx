@@ -58,13 +58,13 @@ function IssueQuickTrace({
         showIcon
         trailingItems={
           <Button
-            priority="link"
-            size="zero"
+            aria-label={t('Remind me later')}
             title={t('Dismiss for a month')}
+            priority="link"
+            size="xs"
+            icon={<IconClose />}
             onClick={snoozePrompt}
-          >
-            <IconClose />
-          </Button>
+          />
         }
       >
         {tct(

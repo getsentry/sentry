@@ -31,11 +31,12 @@ from sentry.db.models import (
 from sentry.db.models.utils import slugify_instance
 from sentry.locks import locks
 from sentry.models.organizationmember import OrganizationMember
+from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox
 from sentry.roles.manager import Role
 from sentry.services.hybrid_cloud.user import APIUser, user_service
 from sentry.utils.http import is_using_customer_domain
 from sentry.utils.retries import TimedRetryPolicy
-from sentry.utils.snowflake import SnowflakeIdMixin
+from sentry.utils.snowflake import SnowflakeIdMixin, generate_snowflake_id
 
 SENTRY_USE_SNOWFLAKE = getattr(settings, "SENTRY_USE_SNOWFLAKE", False)
 
@@ -167,6 +168,10 @@ class Organization(Model, SnowflakeIdMixin):
                 "require_email_verification",
                 "Require and enforce email verification for all members.",
             ),
+            (
+                "codecov_access",
+                "Enable codecov integration.",
+            ),
         ),
         default=1,
     )
@@ -195,6 +200,8 @@ class Organization(Model, SnowflakeIdMixin):
     def __str__(self):
         return f"{self.name} ({self.slug})"
 
+    snowflake_redis_key = "organization_snowflake_key"
+
     def save(self, *args, **kwargs):
         slugify_target = None
         if not self.slug:
@@ -208,12 +215,15 @@ class Organization(Model, SnowflakeIdMixin):
                 slugify_instance(self, slugify_target, reserved=RESERVED_ORGANIZATION_SLUGS)
 
         if SENTRY_USE_SNOWFLAKE:
-            snowflake_redis_key = "organization_snowflake_key"
             self.save_with_snowflake_id(
-                snowflake_redis_key, lambda: super(Organization, self).save(*args, **kwargs)
+                self.snowflake_redis_key, lambda: super(Organization, self).save(*args, **kwargs)
             )
         else:
             super().save(*args, **kwargs)
+
+    @classmethod
+    def reserve_snowflake_id(cls):
+        return generate_snowflake_id(cls.snowflake_redis_key)
 
     def delete(self, **kwargs):
         from sentry.models import NotificationSetting
@@ -225,6 +235,15 @@ class Organization(Model, SnowflakeIdMixin):
         NotificationSetting.objects.remove_for_organization(self)
 
         return super().delete(**kwargs)
+
+    @staticmethod
+    def outbox_for_update(org_id: int) -> RegionOutbox:
+        return RegionOutbox(
+            shard_scope=OutboxScope.ORGANIZATION_SCOPE,
+            shard_identifier=org_id,
+            category=OutboxCategory.ORGANIZATION_UPDATE,
+            object_identifier=org_id,
+        )
 
     @cached_property
     def is_default(self):

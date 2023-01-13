@@ -9,15 +9,15 @@ from abc import ABC, abstractmethod
 from collections import defaultdict, deque
 from datetime import timedelta
 from enum import Enum
-from typing import Any, Dict, List, Optional, Sequence, Tuple
+from typing import Any, Dict, List, Optional, Sequence, Tuple, cast
 from urllib.parse import urlparse
 
 import sentry_sdk
 from symbolic import ProguardMapper  # type: ignore
 
-from sentry import nodestore, options, projectoptions
+from sentry import features, nodestore, options, projectoptions
 from sentry.eventstore.models import Event
-from sentry.models import Project, ProjectDebugFile, ProjectOption
+from sentry.models import Organization, Project, ProjectDebugFile, ProjectOption
 from sentry.types.issues import GroupType
 from sentry.utils import metrics
 from sentry.utils.event_frames import get_sdk_name
@@ -77,6 +77,13 @@ DETECTOR_TYPE_TO_GROUP_TYPE = {
 DETECTOR_TYPE_ISSUE_CREATION_TO_SYSTEM_OPTION = {
     DetectorType.N_PLUS_ONE_DB_QUERIES: "performance.issues.n_plus_one_db.problem-creation",
     DetectorType.N_PLUS_ONE_DB_QUERIES_EXTENDED: "performance.issues.n_plus_one_db_ext.problem-creation",
+    DetectorType.CONSECUTIVE_DB_OP: "performance.issues.consecutive_db.problem-creation",
+    DetectorType.N_PLUS_ONE_API_CALLS: "performance.issues.n_plus_one_api_calls.problem-creation",
+    # NOTE: Slow Span issues are not allowed for creation yet, the addition of this line is temporary so that we can
+    # record some metrics for issues of this type that *should* be created. We won't actually create any of these issues atm.
+    # This is handled within `event_manager.py` before the issue gets created.
+    # TODO: Remove this once we've verified that quality issues will be created, and not during spikes.
+    DetectorType.SLOW_SPAN: "performance.issues.slow_span.problem-creation",
 }
 
 
@@ -143,14 +150,14 @@ PerformanceProblemsMap = Dict[str, PerformanceProblem]
 
 
 # Facade in front of performance detection to limit impact of detection on our events ingestion
-def detect_performance_problems(data: Event) -> List[PerformanceProblem]:
+def detect_performance_problems(data: Event, project: Project) -> List[PerformanceProblem]:
     try:
         # Add an experimental tag to be able to find these spans in production while developing. Should be removed later.
         sentry_sdk.set_tag("_did_analyze_performance_issue", "true")
         with metrics.timer(
             "performance.detect_performance_issue", sample_rate=0.01
         ), sentry_sdk.start_span(op="py.detect_performance_issue", description="none") as sdk_span:
-            return _detect_performance_problems(data, sdk_span)
+            return _detect_performance_problems(data, sdk_span, project)
     except Exception:
         logging.exception("Failed to detect performance problems")
     return []
@@ -159,7 +166,7 @@ def detect_performance_problems(data: Event) -> List[PerformanceProblem]:
 # Gets the thresholds to perform performance detection.
 # Duration thresholds are in milliseconds.
 # Allowed span ops are allowed span prefixes. (eg. 'http' would work for a span with 'http.client' as its op)
-def get_detection_settings(project_id: Optional[str] = None) -> Dict[DetectorType, Any]:
+def get_detection_settings(project_id: Optional[int] = None) -> Dict[DetectorType, Any]:
     default_project_settings = (
         projectoptions.get_well_known_default(
             "sentry:performance_issue_settings",
@@ -201,6 +208,7 @@ def get_detection_settings(project_id: Optional[str] = None) -> Dict[DetectorTyp
             "render_blocking_fcp_ratio": options.get(
                 "performance.issues.render_blocking_assets.fcp_ratio_threshold"
             ),
+            "n_plus_one_api_calls_detection_rate": 1.0,
         }
     )
 
@@ -238,6 +246,7 @@ def get_detection_settings(project_id: Optional[str] = None) -> Dict[DetectorTyp
             }
         ],
         DetectorType.N_PLUS_ONE_API_CALLS: {
+            "detection_rate": settings["n_plus_one_api_calls_detection_rate"],
             "duration_threshold": 50,  # ms
             "concurrency_threshold": 5,  # ms
             "count": 10,
@@ -251,9 +260,11 @@ def get_detection_settings(project_id: Optional[str] = None) -> Dict[DetectorTyp
     }
 
 
-def _detect_performance_problems(data: Event, sdk_span: Any) -> List[PerformanceProblem]:
+def _detect_performance_problems(
+    data: Event, sdk_span: Any, project: Project
+) -> List[PerformanceProblem]:
     event_id = data.get("event_id", None)
-    project_id = data.get("project")
+    project_id = cast(int, project.id)
 
     detection_settings = get_detection_settings(project_id)
     detectors: List[PerformanceDetector] = [
@@ -273,15 +284,22 @@ def _detect_performance_problems(data: Event, sdk_span: Any) -> List[Performance
     # Metrics reporting only for detection, not created issues.
     report_metrics_for_detectors(data, event_id, detectors, sdk_span)
 
-    # Get list of detectors that are allowed to create issues.
-    allowed_detector_types = get_allowed_issue_creation_detectors(project_id)
+    organization = cast(Organization, project.organization)
+    if project is None or organization is None:
+        return []
 
     problems: List[PerformanceProblem] = []
     for detector in detectors:
-        if detector.type not in allowed_detector_types:
+        if all(
+            [
+                detector.is_creation_allowed_for_system(),
+                detector.is_creation_allowed_for_organization(organization),
+                detector.is_creation_allowed_for_project(project),
+            ]
+        ):
+            problems.extend(detector.stored_problems.values())
+        else:
             continue
-
-        problems.extend(detector.stored_problems.values())
 
     truncated_problems = problems[:PERFORMANCE_GROUP_COUNT_LIMIT]
 
@@ -311,17 +329,6 @@ def run_detector_on_data(detector, data):
         detector.visit_span(span)
 
     detector.on_complete()
-
-
-# Uses options and flags to determine which orgs and which detectors automatically create performance issues.
-def get_allowed_issue_creation_detectors(project_id: str):
-    allowed_detectors = set()
-    for detector_type, system_option in DETECTOR_TYPE_ISSUE_CREATION_TO_SYSTEM_OPTION.items():
-        rate = options.get(system_option)
-        if rate and rate > random.random():
-            allowed_detectors.add(detector_type)
-
-    return allowed_detectors
 
 
 def fingerprint_group(transaction_name, span_op, hash, problem_class):
@@ -456,6 +463,25 @@ class PerformanceDetector(ABC):
     def stored_problems(self) -> PerformanceProblemsMap:
         raise NotImplementedError
 
+    def is_creation_allowed_for_system(self) -> bool:
+        system_option = DETECTOR_TYPE_ISSUE_CREATION_TO_SYSTEM_OPTION.get(self.__class__.type, None)
+
+        if not system_option:
+            return False
+
+        try:
+            rate = options.get(system_option)
+        except options.UnknownOption:
+            rate = 0
+
+        return rate > random.random()
+
+    def is_creation_allowed_for_organization(self, organization: Organization) -> bool:
+        return False  # Creation is off by default. Ideally, it should auto-generate the feature flag name, and check its value
+
+    def is_creation_allowed_for_project(self, project: Project) -> bool:
+        return False  # Creation is off by default. Ideally, it should auto-generate the project option name, and check its value
+
     @classmethod
     def is_event_eligible(cls, event):
         return True
@@ -510,6 +536,18 @@ class SlowSpanDetector(PerformanceDetector):
                 parent_span_ids=[],
                 offender_span_ids=spans_involved,
             )
+
+    # TODO: Temporarily set to true for now, but issues will not be created.
+    def is_creation_allowed_for_organization(self, organization: Optional[Organization]) -> bool:
+        return True
+
+    # TODO: Temporarily set to true for now, but issues will not be created.
+    def is_creation_allowed_for_project(self, project: Optional[Project]) -> bool:
+        return True
+
+    # TODO: Temporarily set to true for now, but issues will not be created.
+    def is_creation_allowed_for_system(self) -> bool:
+        return True
 
     @classmethod
     def is_span_eligible(cls, span: Span) -> bool:
@@ -648,6 +686,14 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         else:
             self._maybe_store_problem()
             self.spans = [span]
+
+    def is_creation_allowed_for_organization(self, organization: Organization) -> bool:
+        return features.has(
+            "organizations:performance-n-plus-one-api-calls-detector", organization, actor=None
+        )
+
+    def is_creation_allowed_for_project(self, project: Project) -> bool:
+        return self.settings["detection_rate"] > random.random()
 
     @classmethod
     def is_event_eligible(cls, event):
@@ -794,8 +840,8 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
         self.consecutive_db_spans.append(span)
 
     def _validate_and_store_performance_problem(self):
-        independent_db_spans = self._find_independent_spans(self.consecutive_db_spans)
-        if not len(independent_db_spans):
+        self._set_independent_spans(self.consecutive_db_spans)
+        if not len(self.independent_db_spans):
             return
 
         exceeds_count_threshold = len(self.consecutive_db_spans) >= self.settings.get(
@@ -804,11 +850,11 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
         exceeds_span_duration_threshold = all(
             get_span_duration(span).total_seconds() * 1000
             > self.settings.get("span_duration_threshold")
-            for span in independent_db_spans
+            for span in self.independent_db_spans
         )
 
         exceeds_time_saved_threshold = self._calculate_time_saved(
-            independent_db_spans
+            self.independent_db_spans
         ) > self.settings.get("min_time_saved")
 
         if (
@@ -821,15 +867,19 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
     def _store_performance_problem(self) -> None:
         fingerprint = self._fingerprint()
         offender_span_ids = [span.get("span_id", None) for span in self.consecutive_db_spans]
+        query: str = self.independent_db_spans[0].get("description", None)
+
         self.stored_problems[fingerprint] = PerformanceProblem(
             fingerprint,
             "db",
-            "consecutive db",
-            GroupType.PERFORMANCE_CONSECUTIVE_DB_OP,
+            desc=query,  # TODO - figure out which query to use for description
+            type=GroupType.PERFORMANCE_CONSECUTIVE_DB_OP,
             cause_span_ids=None,
             parent_span_ids=None,
             offender_span_ids=offender_span_ids,
         )
+
+        self._reset_variables()
 
     def _sum_span_duration(self, spans: list[Span]) -> int:
         "Given a list of spans, find the sum of the span durations in milliseconds"
@@ -838,7 +888,7 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
             sum += get_span_duration(span).total_seconds() * 1000
         return sum
 
-    def _find_independent_spans(self, spans: list[Span]) -> list[Span]:
+    def _set_independent_spans(self, spans: list[Span]):
         """
         Given a list of spans, checks if there is at least a single span that is independent of the rest.
         To start, we are just checking for a span in a list of consecutive span without a WHERE clause
@@ -853,7 +903,7 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
                 and not CONTAINS_PARAMETER_REGEX.search(query)
             ):
                 independent_spans.append(span)
-        return independent_spans
+        self.independent_db_spans = independent_spans
 
     def _calculate_time_saved(self, independent_spans: list[Span]) -> float:
         """
@@ -888,6 +938,7 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
 
     def _reset_variables(self) -> None:
         self.consecutive_db_spans = []
+        self.independent_db_spans = []
 
     def _is_db_query(self, span: Span) -> bool:
         op: str = span.get("op", "") or ""
@@ -903,6 +954,14 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
 
     def on_complete(self) -> None:
         self._validate_and_store_performance_problem()
+
+    def is_creation_allowed_for_organization(self, organization: Organization) -> bool:
+        return features.has(
+            "organizations:performance-consecutive-db-issue", organization, actor=None
+        )
+
+    def is_creation_allowed_for_project(self, project: Project) -> bool:
+        return True  # Detection always allowed by project for now
 
 
 class NPlusOneDBSpanDetector(PerformanceDetector):
@@ -951,6 +1010,12 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
         root_span = get_path(self._event, "contexts", "trace")
         if root_span:
             self.potential_parents[root_span.get("span_id")] = root_span
+
+    def is_creation_allowed_for_organization(self, organization: Optional[Organization]) -> bool:
+        return True  # This detector is fully rolled out
+
+    def is_creation_allowed_for_project(self, project: Optional[Project]) -> bool:
+        return True  # This should probably use the `n_plus_one_db.problem-creation` option, which is currently not in use
 
     def visit_span(self, span: Span) -> None:
         span_id = span.get("span_id", None)
@@ -1365,10 +1430,10 @@ class ContinuingMNPlusOne(MNPlusOneState):
         # We've broken the MN pattern, so return to the Searching state. If it
         # is a significant problem, also return a PerformanceProblem.
         times_occurred = int(len(self.spans) / len(self.pattern))
-        self.spans.append(span)
         start_index = len(self.pattern) * times_occurred
+        remaining_spans = self.spans[start_index:] + [span]
         return (
-            SearchingForMNPlusOne(self.settings, self.spans[start_index:]),
+            SearchingForMNPlusOne(self.settings, remaining_spans),
             self._maybe_performance_problem(),
         )
 

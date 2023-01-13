@@ -87,6 +87,7 @@ def send_incident_alert_notification(
                 "organization": organization.slug,
                 "sentry_app_id": sentry_app.id,
             },
+            exc_info=True,
         )
         return None
 

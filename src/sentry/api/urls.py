@@ -158,7 +158,6 @@ from .endpoints.group_participants import GroupParticipantsEndpoint
 from .endpoints.group_reprocessing import GroupReprocessingEndpoint
 from .endpoints.group_similar_issues import GroupSimilarIssuesEndpoint
 from .endpoints.group_stats import GroupStatsEndpoint
-from .endpoints.group_suspect_releases import GroupSuspectReleasesEndpoint
 from .endpoints.group_tagkey_details import GroupTagKeyDetailsEndpoint
 from .endpoints.group_tagkey_values import GroupTagKeyValuesEndpoint
 from .endpoints.group_tags import GroupTagsEndpoint
@@ -408,6 +407,7 @@ from .endpoints.project_processingissues import (
     ProjectProcessingIssuesFixEndpoint,
 )
 from .endpoints.project_profiling_profile import (
+    ProjectProfilingEventEndpoint,
     ProjectProfilingFunctionsEndpoint,
     ProjectProfilingProfileEndpoint,
     ProjectProfilingRawProfileEndpoint,
@@ -516,7 +516,6 @@ GROUP_URLS = [
     url(r"^(?P<issue_id>[^\/]+)/events/$", GroupEventsEndpoint.as_view()),
     url(r"^(?P<issue_id>[^\/]+)/events/latest/$", GroupEventsLatestEndpoint.as_view()),
     url(r"^(?P<issue_id>[^\/]+)/events/oldest/$", GroupEventsOldestEndpoint.as_view()),
-    url(r"^(?P<issue_id>[^\/]+)/suspect-releases/$", GroupSuspectReleasesEndpoint.as_view()),
     url(r"^(?P<issue_id>[^\/]+)/(?:notes|comments)/$", GroupNotesEndpoint.as_view()),
     url(
         r"^(?P<issue_id>[^\/]+)/(?:notes|comments)/(?P<note_id>[^\/]+)/$",
@@ -695,18 +694,31 @@ urlpatterns = [
                     MonitorStatsEndpoint.as_view(),
                     name="sentry-api-0-monitor-stats",
                 ),
+            ]
+        ),
+    ),
+    # TODO: include in the /organizations/ route tree + remove old dupes once hybrid cloud launches
+    url(
+        r"^organizations/(?P<organization_slug>[^\/]+)/monitors/",
+        include(
+            [
                 url(
-                    r"^(?P<organization_slug>[^\/]+)/(?P<monitor_id>[^\/]+)/$",
+                    r"^(?P<monitor_id>[^\/]+)/$",
                     MonitorDetailsEndpoint.as_view(),
                     name="sentry-api-0-monitor-details-with-org",
                 ),
                 url(
-                    r"^(?P<organization_slug>[^\/]+)/(?P<monitor_id>[^\/]+)/checkins/$",
+                    r"^(?P<monitor_id>[^\/]+)/checkins/$",
                     MonitorCheckInsEndpoint.as_view(),
                     name="sentry-api-0-monitor-check-in-index-with-org",
                 ),
                 url(
-                    r"^(?P<organization_slug>[^\/]+)/(?P<monitor_id>[^\/]+)/stats/$",
+                    r"^(?P<monitor_id>[^\/]+)/checkins/(?P<checkin_id>[^\/]+)/$",
+                    MonitorCheckInDetailsEndpoint.as_view(),
+                    name="sentry-api-0-monitor-check-in-details-with-org",
+                ),
+                url(
+                    r"^(?P<monitor_id>[^\/]+)/stats/$",
                     MonitorStatsEndpoint.as_view(),
                     name="sentry-api-0-monitor-stats-with-org",
                 ),
@@ -2323,10 +2335,18 @@ urlpatterns = [
             ]
         ),
     ),
+    # Profiling - This is a temporary endpoint to easily go from a project id + profile id to a flamechart.
+    # It will be removed in the near future.
+    url(
+        r"^profiling/projects/(?P<project_id>[\w_-]+)/profile/(?P<profile_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/",
+        ProjectProfilingEventEndpoint.as_view(),
+        name="sentry-api-0-profiling-project-profile",
+    ),
     # Groups
     url(r"^(?:issues|groups)/", include(GROUP_URLS)),
+    # TODO: include in the /organizations/ route tree + remove old dupe once hybrid cloud launches
     url(
-        r"^issues/(?P<organization_slug>[^\/]+)/(?P<issue_id>[^\/]+)/participants/$",
+        r"^organizations/(?P<organization_slug>[^\/]+)/issues/(?P<issue_id>[^\/]+)/participants/$",
         GroupParticipantsEndpoint.as_view(),
         name="sentry-api-0-group-stats-with-org",
     ),
@@ -2334,6 +2354,12 @@ urlpatterns = [
         r"^issues/(?P<issue_id>[^\/]+)/participants/$",
         GroupParticipantsEndpoint.as_view(),
         name="sentry-api-0-group-stats",
+    ),
+    # TODO: include in the /organizations/ route tree + remove old dupe once hybrid cloud launches
+    url(
+        r"^organizations/(?P<organization_slug>[^\/]+)/shared/(?:issues|groups)/(?P<share_id>[^\/]+)/$",
+        SharedGroupDetailsEndpoint.as_view(),
+        name="sentry-api-0-shared-group-details-with-org",
     ),
     url(
         r"^shared/(?:issues|groups)/(?P<share_id>[^\/]+)/$",

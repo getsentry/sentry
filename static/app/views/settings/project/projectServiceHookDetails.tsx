@@ -11,12 +11,13 @@ import Button from 'sentry/components/button';
 import MiniBarChart from 'sentry/components/charts/miniBarChart';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import Field from 'sentry/components/forms/field';
+import FieldGroup from 'sentry/components/forms/fieldGroup';
 import {Panel, PanelAlert, PanelBody, PanelHeader} from 'sentry/components/panels';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {t} from 'sentry/locale';
 import {Organization, ServiceHook} from 'sentry/types';
 import getDynamicText from 'sentry/utils/getDynamicText';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import AsyncView from 'sentry/views/asyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import ServiceHookSettingsForm from 'sentry/views/settings/project/serviceHookSettingsForm';
@@ -123,7 +124,7 @@ export default class ProjectServiceHookDetails extends AsyncView<Props, State> {
       success: () => {
         clearIndicators();
         browserHistory.push(
-          `/settings/${organization.slug}/projects/${projectId}/hooks/`
+          normalizeUrl(`/settings/${organization.slug}/projects/${projectId}/hooks/`)
         );
       },
       error: () => {
@@ -166,7 +167,7 @@ export default class ProjectServiceHookDetails extends AsyncView<Props, State> {
               <code>HMAC(SHA256, [secret], [payload])</code>. You should always verify
               this signature before trusting the information provided in the webhook.
             </PanelAlert>
-            <Field
+            <FieldGroup
               label={t('Secret')}
               flexibleControlStateSize
               inline={false}
@@ -178,13 +179,13 @@ export default class ProjectServiceHookDetails extends AsyncView<Props, State> {
                   fixed: 'a dynamic secret value',
                 })}
               </TextCopyInput>
-            </Field>
+            </FieldGroup>
           </PanelBody>
         </Panel>
         <Panel>
           <PanelHeader>{t('Delete Hook')}</PanelHeader>
           <PanelBody>
-            <Field
+            <FieldGroup
               label={t('Delete Hook')}
               help={t('Removing this hook is immediate and permanent.')}
             >
@@ -193,7 +194,7 @@ export default class ProjectServiceHookDetails extends AsyncView<Props, State> {
                   {t('Delete Hook')}
                 </Button>
               </div>
-            </Field>
+            </FieldGroup>
           </PanelBody>
         </Panel>
       </Fragment>

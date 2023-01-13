@@ -21,8 +21,8 @@ import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
-import Field from 'sentry/components/forms/field';
-import FieldHelp from 'sentry/components/forms/field/fieldHelp';
+import FieldGroup from 'sentry/components/forms/fieldGroup';
+import FieldHelp from 'sentry/components/forms/fieldGroup/fieldHelp';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import Form, {FormProps} from 'sentry/components/forms/form';
 import FormField from 'sentry/components/forms/formField';
@@ -63,6 +63,7 @@ import {getDisplayName} from 'sentry/utils/environment';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import routeTitleGen from 'sentry/utils/routeTitle';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
 import withProjects from 'sentry/utils/withProjects';
 import PreviewTable from 'sentry/views/alerts/rules/issue/previewTable';
@@ -122,7 +123,7 @@ type RuleTaskResponse = {
   rule?: IssueAlertRule;
 };
 
-type RouteParams = {orgId: string; projectId?: string; ruleId?: string};
+type RouteParams = {projectId?: string; ruleId?: string};
 
 export type IncompatibleRule = {
   conditionIndices: number[] | null;
@@ -267,33 +268,37 @@ class IssueRuleEditor extends AsyncView<Props, State> {
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {
       location: {query},
-      params: {ruleId, orgId},
+      params: {ruleId},
     } = this.props;
+    const {organization} = this.props;
     // project in state isn't initialized when getEndpoints is first called
     const project = this.state?.project ?? this.props.project;
 
     const endpoints = [
       [
         'environments',
-        `/projects/${orgId}/${project.slug}/environments/`,
+        `/projects/${organization.slug}/${project.slug}/environments/`,
         {
           query: {
             visibility: 'visible',
           },
         },
       ],
-      ['configs', `/projects/${orgId}/${project.slug}/rules/configuration/`],
-      ['ownership', `/projects/${orgId}/${project.slug}/ownership/`],
+      ['configs', `/projects/${organization.slug}/${project.slug}/rules/configuration/`],
+      ['ownership', `/projects/${organization.slug}/${project.slug}/ownership/`],
     ];
 
     if (ruleId) {
-      endpoints.push(['rule', `/projects/${orgId}/${project.slug}/rules/${ruleId}/`]);
+      endpoints.push([
+        'rule',
+        `/projects/${organization.slug}/${project.slug}/rules/${ruleId}/`,
+      ]);
     }
 
     if (!ruleId && query.createFromDuplicate && query.duplicateRuleId) {
       endpoints.push([
         'duplicateTargetRule',
-        `/projects/${orgId}/${project.slug}/rules/${query.duplicateRuleId}/`,
+        `/projects/${organization.slug}/${project.slug}/rules/${query.duplicateRuleId}/`,
       ]);
     }
 
@@ -458,13 +463,11 @@ class IssueRuleEditor extends AsyncView<Props, State> {
   };
 
   fetchEnvironments() {
-    const {
-      params: {orgId},
-    } = this.props;
+    const {organization} = this.props;
     const {project} = this.state;
 
     this.api
-      .requestPromise(`/projects/${orgId}/${project.slug}/environments/`, {
+      .requestPromise(`/projects/${organization.slug}/${project.slug}/environments/`, {
         query: {
           visibility: 'visible',
         },
@@ -533,9 +536,11 @@ class IssueRuleEditor extends AsyncView<Props, State> {
 
     metric.endTransaction({name: 'saveAlertRule'});
 
-    router.push({
-      pathname: `/organizations/${organization.slug}/alerts/rules/${project.slug}/${rule.id}/details/`,
-    });
+    router.push(
+      normalizeUrl({
+        pathname: `/organizations/${organization.slug}/alerts/rules/${project.slug}/${rule.id}/details/`,
+      })
+    );
     addSuccessMessage(isNew ? t('Created alert rule') : t('Updated alert rule'));
   };
 
@@ -621,7 +626,13 @@ class IssueRuleEditor extends AsyncView<Props, State> {
       });
 
       addSuccessMessage(t('Deleted alert rule'));
-      browserHistory.replace(recreateRoute('', {...this.props, stepBack: -2}));
+      browserHistory.replace(
+        recreateRoute('', {
+          ...this.props,
+          params: {...this.props.params, orgId: organization.slug},
+          stepBack: -2,
+        })
+      );
     } catch (err) {
       this.setState({
         detailedError: err.responseJSON || {__all__: 'Unknown error'},
@@ -633,7 +644,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
   handleCancel = () => {
     const {organization, router} = this.props;
 
-    router.push(`/organizations/${organization.slug}/alerts/rules/`);
+    router.push(normalizeUrl(`/organizations/${organization.slug}/alerts/rules/`));
   };
 
   hasError = (field: string) => {
@@ -1670,7 +1681,7 @@ const SettingsContainer = styled('div')`
   gap: ${space(1)};
 `;
 
-const StyledField = styled(Field)`
+const StyledField = styled(FieldGroup)`
   border-bottom: none;
   padding: 0;
 

@@ -107,7 +107,7 @@ const MutationListItem = styled('div')<{
       p.isCurrent ? p.theme.purple300 : p.isHovered ? p.theme.purple200 : 'transparent'};
 
   &:hover {
-    background-color: ${p => p.theme.backgroundSecondary};
+    background-color: ${p => p.theme.hover};
   }
 
   /*

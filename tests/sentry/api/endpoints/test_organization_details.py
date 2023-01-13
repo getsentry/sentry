@@ -293,6 +293,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         data = {
             "openMembership": False,
             "isEarlyAdopter": True,
+            "codecovAccess": True,
             "allowSharedIssues": False,
             "enhancedPrivacy": True,
             "dataScrubber": True,
@@ -320,6 +321,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert initial != org.get_audit_log_data()
 
         assert org.flags.early_adopter
+        assert org.flags.codecov_access
         assert not org.flags.allow_joinleave
         assert org.flags.disable_shared_issues
         assert org.flags.enhanced_privacy
@@ -345,6 +347,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert "to {}".format(data["defaultRole"]) in log.data["default_role"]
         assert "to {}".format(data["openMembership"]) in log.data["allow_joinleave"]
         assert "to {}".format(data["isEarlyAdopter"]) in log.data["early_adopter"]
+        assert "to {}".format(data["codecovAccess"]) in log.data["codecov_access"]
         assert "to {}".format(data["enhancedPrivacy"]) in log.data["enhanced_privacy"]
         assert "to {}".format(not data["allowSharedIssues"]) in log.data["disable_shared_issues"]
         assert "to {}".format(data["require2FA"]) in log.data["require_2fa"]

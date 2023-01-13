@@ -1092,12 +1092,13 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest):
             project=self.project, key="mail:subject_prefix", value="[Example prefix] "
         )
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
+        timestamp = iso_format(before_now(minutes=1))
         event = self.store_event(
-            data={"timestamp": iso_format(before_now(minutes=1)), "fingerprint": ["group-1"]},
+            data={"timestamp": timestamp, "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
         event2 = self.store_event(
-            data={"timestamp": iso_format(before_now(minutes=1)), "fingerprint": ["group-2"]},
+            data={"timestamp": timestamp, "fingerprint": ["group-2"]},
             project_id=self.project.id,
         )
 

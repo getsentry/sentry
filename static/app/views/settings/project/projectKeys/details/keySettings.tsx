@@ -10,7 +10,7 @@ import Access from 'sentry/components/acl/access';
 import Button from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import DateTime from 'sentry/components/dateTime';
-import Field from 'sentry/components/forms/field';
+import FieldGroup from 'sentry/components/forms/fieldGroup';
 import BooleanField from 'sentry/components/forms/fields/booleanField';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import TextField from 'sentry/components/forms/fields/textField';
@@ -109,11 +109,11 @@ class KeySettings extends Component<Props, State> {
                     disabled={!hasAccess}
                     help="Accept events from this key? This may be used to temporarily suspend a key."
                   />
-                  <Field label={t('Created')}>
+                  <FieldGroup label={t('Created')}>
                     <div className="controls">
                       <DateTime date={data.dateCreated} />
                     </div>
-                  </Field>
+                  </FieldGroup>
                 </PanelBody>
               </Panel>
             </Form>
@@ -128,7 +128,7 @@ class KeySettings extends Component<Props, State> {
               <Panel>
                 <PanelHeader>{t('JavaScript Loader')}</PanelHeader>
                 <PanelBody>
-                  <Field
+                  <FieldGroup
                     help={tct(
                       'Copy this script into your website to setup your JavaScript SDK without any additional configuration. [link]',
                       {
@@ -145,7 +145,7 @@ class KeySettings extends Component<Props, State> {
                     <TextCopyInput>
                       {`<script src='${loaderLink}' crossorigin="anonymous"></script>`}
                     </TextCopyInput>
-                  </Field>
+                  </FieldGroup>
                   <SelectField
                     name="browserSdkVersion"
                     options={
@@ -190,7 +190,7 @@ class KeySettings extends Component<Props, State> {
               <Panel>
                 <PanelHeader>{t('Revoke Key')}</PanelHeader>
                 <PanelBody>
-                  <Field
+                  <FieldGroup
                     label={t('Revoke Key')}
                     help={t(
                       'Revoking this key will immediately remove and suspend the credentials. This action is irreversible.'
@@ -208,7 +208,7 @@ class KeySettings extends Component<Props, State> {
                         <Button priority="danger">{t('Revoke Key')}</Button>
                       </Confirm>
                     </div>
-                  </Field>
+                  </FieldGroup>
                 </PanelBody>
               </Panel>
             </Access>

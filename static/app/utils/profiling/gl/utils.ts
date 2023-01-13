@@ -1,3 +1,4 @@
+import {useLayoutEffect, useState} from 'react';
 import Fuse from 'fuse.js';
 import {mat3, vec2} from 'gl-matrix';
 
@@ -5,6 +6,7 @@ import {CanvasView} from 'sentry/utils/profiling/canvasView';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
 
+import {CanvasPoolManager} from '../canvasScheduler';
 import {clamp} from '../colors/utils';
 import {FlamegraphCanvas} from '../flamegraphCanvas';
 import {SpanChartRenderer2D} from '../renderers/spansRenderer';
@@ -54,8 +56,6 @@ export function createProgram(
 // Create a projection matrix with origins at 0,0 in top left corner, scaled to width/height
 export function makeProjectionMatrix(width: number, height: number): mat3 {
   const projectionMatrix = mat3.create();
-
-  mat3.identity(projectionMatrix);
   mat3.translate(projectionMatrix, projectionMatrix, vec2.fromValues(-1, 1));
   mat3.scale(
     projectionMatrix,
@@ -311,13 +311,9 @@ export class Rect {
 
   containsRect(rect: Rect): boolean {
     return (
-      // left bound
       this.left <= rect.left &&
-      // right bound
       rect.right <= this.right &&
-      // top bound
       this.top <= rect.top &&
-      // bottom bound
       rect.bottom <= this.bottom
     );
   }
@@ -507,14 +503,17 @@ export function formatColorForSpan(
   renderer: SpanChartRenderer2D
 ): string {
   const color = renderer.getColorForFrame(frame);
-  if (color.length === 4) {
-    return `rgba(${color
-      .slice(0, 3)
-      .map(n => n * 255)
-      .join(',')}, ${color[3]})`;
-  }
+  if (Array.isArray(color)) {
+    if (color.length === 4) {
+      return `rgba(${color
+        .slice(0, 3)
+        .map(n => n * 255)
+        .join(',')}, ${color[3]})`;
+    }
 
-  return `rgba(${color.map(n => n * 255).join(',')}, 1.0)`;
+    return `rgba(${color.map(n => n * 255).join(',')}, 1.0)`;
+  }
+  return '';
 }
 
 export function formatColorForFrame(
@@ -833,4 +832,44 @@ export function getMinimapCanvasCursor(
   }
 
   return 'col-resize';
+}
+
+export function useResizeCanvasObserver(
+  canvases: (HTMLCanvasElement | null)[],
+  canvasPoolManager: CanvasPoolManager,
+  canvas: FlamegraphCanvas | null,
+  view: CanvasView<any> | null
+): Rect {
+  const [bounds, setCanvasBounds] = useState<Rect>(Rect.Empty());
+
+  useLayoutEffect(() => {
+    if (!canvas || !canvases.length) {
+      return undefined;
+    }
+
+    if (canvases.some(c => c === null)) {
+      return undefined;
+    }
+
+    const observer = watchForResize(canvases as HTMLCanvasElement[], entries => {
+      const contentRect =
+        entries[0].contentRect ?? entries[0].target.getBoundingClientRect();
+
+      setCanvasBounds(
+        new Rect(contentRect.x, contentRect.y, contentRect.width, contentRect.height)
+      );
+
+      canvas.initPhysicalSpace();
+      if (view) {
+        view.resizeConfigSpace(canvas);
+      }
+      canvasPoolManager.drawSync();
+    });
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [canvases, canvas, view, canvasPoolManager]);
+
+  return bounds;
 }

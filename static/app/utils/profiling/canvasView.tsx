@@ -59,6 +59,13 @@ export class CanvasView<T extends {configSpace: Rect}> {
     this.initConfigSpace(canvas);
   }
 
+  setMinWidth(minWidth: number) {
+    if (minWidth < 0) {
+      throw new Error('View min width cannot be negative');
+    }
+    this.minWidth = minWidth;
+  }
+
   private _initConfigSpace(canvas: FlamegraphCanvas): void {
     this.configSpace = new Rect(
       0,
@@ -91,15 +98,23 @@ export class CanvasView<T extends {configSpace: Rect}> {
     this._initConfigView(canvas, this.configSpace);
   }
 
-  setConfigView(configView: Rect) {
+  setConfigView(
+    configView: Rect,
+    overrides?: {
+      width: {max?: number; min?: number};
+      height?: {max?: number; min?: number};
+    }
+  ) {
     this.configView = computeClampedConfigView(configView, {
       width: {
         min: this.minWidth,
         max: this.configSpace.width,
+        ...(overrides?.width ?? {}),
       },
       height: {
         min: 0,
         max: this.configSpace.height,
+        ...(overrides?.height ?? {}),
       },
     });
   }

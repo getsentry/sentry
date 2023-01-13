@@ -6,6 +6,7 @@ import * as PropTypes from 'prop-types';
 
 import {fetchOrganizationEnvironments} from 'sentry/actionCreators/environments';
 import {Client} from 'sentry/api';
+import {shouldDisplaySetupSourceMapsAlert} from 'sentry/components/events/interfaces/crashContent/exception/setupSourceMapsAlert';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
@@ -36,6 +37,7 @@ import withRouteAnalytics, {
   WithRouteAnalyticsProps,
 } from 'sentry/utils/routeAnalytics/withRouteAnalytics';
 import withApi from 'sentry/utils/withApi';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 import {ERROR_TYPES} from './constants';
 import GroupHeader from './header';
@@ -160,7 +162,7 @@ class GroupDetails extends Component<Props, State> {
 
   trackView(project: Project) {
     const {group, event} = this.state;
-    const {params, location} = this.props;
+    const {params, location, organization, router} = this.props;
     const {alert_date, alert_rule_id, alert_type} = location.query;
 
     this.props.setEventNames('issue_details.viewed', 'Issue Details: Viewed');
@@ -178,6 +180,7 @@ class GroupDetails extends Component<Props, State> {
       group_has_replay: Boolean(group?.tags?.find(({key}) => key === 'replayId')),
       num_comments: group ? group.numComments : -1,
       project_has_replay: group?.project.hasReplays,
+      project_has_minified_stack_trace: group?.project.hasMinifiedStackTrace,
       project_platform: group?.project.platform,
       has_external_issue: group?.annotations ? group?.annotations.length > 0 : false,
       has_owner: group?.owners ? group?.owners.length > 0 : false,
@@ -190,6 +193,11 @@ class GroupDetails extends Component<Props, State> {
       alert_rule_id: typeof alert_rule_id === 'string' ? alert_rule_id : undefined,
       alert_type: typeof alert_type === 'string' ? alert_type : undefined,
       has_otel: event?.contexts?.otel !== undefined,
+      has_setup_source_maps_alert: shouldDisplaySetupSourceMapsAlert(
+        organization,
+        router.location.query.project,
+        event
+      ),
     });
   }
 
@@ -252,14 +260,16 @@ class GroupDetails extends Component<Props, State> {
   }
 
   getCurrentRouteInfo(group: Group): {baseUrl: string; currentTab: Tab} {
-    const {organization, router} = this.props;
+    const {organization, params} = this.props;
     const {event} = this.state;
 
     const currentTab = this.getCurrentTab();
 
-    const baseUrl = `/organizations/${organization.slug}/issues/${group.id}/${
-      router.params.eventId && event ? `events/${event.id}/` : ''
-    }`;
+    const baseUrl = normalizeUrl(
+      `/organizations/${organization.slug}/issues/${group.id}/${
+        params.eventId && event ? `events/${event.id}/` : ''
+      }`
+    );
 
     return {baseUrl, currentTab};
   }
@@ -616,7 +626,7 @@ class GroupDetails extends Component<Props, State> {
       if (group.id !== event?.groupID && !eventError) {
         // if user pastes only the event id into the url, but it's from another group, redirect to correct group/event
         const redirectUrl = `/organizations/${organization.slug}/issues/${event?.groupID}/events/${event?.id}/`;
-        router.push(redirectUrl);
+        router.push(normalizeUrl(redirectUrl));
       } else {
         childProps = {
           ...childProps,

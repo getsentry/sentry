@@ -170,7 +170,10 @@ function FlamegraphZoomViewMinimap({
         return;
       }
 
-      canvasPoolManager.dispatch('transform config view', [configDelta]);
+      canvasPoolManager.dispatch('transform config view', [
+        configDelta,
+        flamegraphMiniMapView,
+      ]);
       setLastDragVector(
         getPhysicalSpacePositionFromOffset(
           evt.nativeEvent.offsetX,
@@ -223,7 +226,7 @@ function FlamegraphZoomViewMinimap({
           configView.height
         );
 
-        canvasPoolManager.dispatch('set config view', [rect]);
+        canvasPoolManager.dispatch('set config view', [rect, flamegraphMiniMapView]);
         prevConfigSpaceCursor.current = configSpaceMouse;
         return;
       }
@@ -247,7 +250,7 @@ function FlamegraphZoomViewMinimap({
           flamegraphMiniMapView.configView.height
         );
 
-        canvasPoolManager.dispatch('set config view', [rect]);
+        canvasPoolManager.dispatch('set config view', [rect, flamegraphMiniMapView]);
         setLastInteraction('select');
         return;
       }
@@ -279,8 +282,6 @@ function FlamegraphZoomViewMinimap({
   );
 
   useCanvasZoomOrScroll({
-    lastInteraction,
-    configSpaceCursor,
     setConfigSpaceCursor,
     setLastInteraction,
     handleWheel: onWheelCenterZoom,

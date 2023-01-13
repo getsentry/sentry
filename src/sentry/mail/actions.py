@@ -34,9 +34,11 @@ class NotifyEmailAction(EventAction):
             self.form_fields["fallthroughType"] = {"type": "choice", "choices": FALLTHROUGH_CHOICES}
 
     def render_label(self) -> str:
-        if self.data.get("fallthroughType", None) and features.has(
+        if features.has(
             "organizations:issue-alert-fallback-targeting", self.project.organization, actor=None
         ):
+            if "fallthroughType" not in self.data:
+                self.data["fallthroughType"] = FallthroughChoiceType.ACTIVE_MEMBERS.value
             return self.label.format(**self.data)
 
         return "Send a notification to {targetType}".format(**self.data)
@@ -56,7 +58,9 @@ class NotifyEmailAction(EventAction):
         ):
             fallthrough_choice = self.data.get("fallthroughType", None)
             fallthrough_type = (
-                FallthroughChoiceType(fallthrough_choice) if fallthrough_choice else None
+                FallthroughChoiceType(fallthrough_choice)
+                if fallthrough_choice
+                else FallthroughChoiceType.ACTIVE_MEMBERS
             )
 
         if not determine_eligible_recipients(

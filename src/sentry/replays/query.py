@@ -1,6 +1,6 @@
 from collections import namedtuple
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, Generator, List, Optional, Union
 
 from snuba_sdk import (
     Column,
@@ -207,6 +207,9 @@ def make_select_statement(
     for fltr in search_filters:
         if isinstance(fltr, SearchFilter):
             unique_fields.add(fltr.key.name)
+        elif isinstance(fltr, ParenExpression):
+            for f in _extract_children(fltr):
+                unique_fields.add(f.key.name)
 
     # Select fields used for sorting.
     for sort in sorting:
@@ -286,7 +289,7 @@ def _sorted_aggregated_urls(agg_urls_column, alias):
 # Filter
 
 replay_url_parser_config = SearchConfig(
-    numeric_keys={"duration", "countErrors", "countSegments"},
+    numeric_keys={"duration", "countErrors", "countSegments", "countUrls", "activity"},
 )
 
 
@@ -295,14 +298,17 @@ class ReplayQueryConfig(QueryConfig):
     duration = Number()
     count_errors = Number(name="countErrors")
     count_segments = Number(name="countSegments")
+    count_urls = Number(name="countUrls")
     activity = Number()
 
     # String filters.
     replay_id = String(field_alias="id")
+    replay_type = String(field_alias="replayType", query_alias="replayType")
     platform = String()
-    agg_environment = String(field_alias="environment")
     releases = ListField()
     dist = String()
+    error_ids = ListField(field_alias="errorIds", query_alias="error_ids", is_uuid=True)
+    trace_ids = ListField(field_alias="traceIds", query_alias="trace_ids", is_uuid=True)
     urls = ListField(field_alias="urls", query_alias="urls_sorted")
     user_id = String(field_alias="user.id", query_alias="user_id")
     user_email = String(field_alias="user.email", query_alias="user_email")
@@ -323,6 +329,7 @@ class ReplayQueryConfig(QueryConfig):
     tags = Tag(field_alias="*")
 
     # Sort keys
+    agg_environment = String(field_alias="environment", is_filterable=False)
     started_at = String(name="startedAt", is_filterable=False)
     finished_at = String(name="finishedAt", is_filterable=False)
     # Dedicated url parameter should be used.
@@ -434,7 +441,6 @@ def _activity_score():
 
 FIELD_QUERY_ALIAS_MAP: Dict[str, List[str]] = {
     "id": ["replay_id"],
-    "title": ["title"],
     "replayType": ["replayType"],
     "projectId": ["projectId"],
     "platform": ["platform"],
@@ -446,9 +452,9 @@ FIELD_QUERY_ALIAS_MAP: Dict[str, List[str]] = {
     "startedAt": ["startedAt"],
     "finishedAt": ["finishedAt"],
     "duration": ["duration", "startedAt", "finishedAt"],
-    "urls": ["urls_sorted"],
+    "urls": ["urls_sorted", "agg_urls"],
     "countErrors": ["countErrors"],
-    "countUrls": ["urls_sorted"],
+    "countUrls": ["countUrls", "urls_sorted", "agg_urls"],
     "countSegments": ["countSegments"],
     "isArchived": ["isArchived"],
     "activity": ["activity", "countErrors", "urls_sorted", "agg_urls"],
@@ -481,7 +487,6 @@ FIELD_QUERY_ALIAS_MAP: Dict[str, List[str]] = {
 
 QUERY_ALIAS_COLUMN_MAP = {
     "replay_id": _strip_uuid_dashes("replay_id", Column("replay_id")),
-    "title": _grouped_unique_scalar_value(column_name="title"),
     "replayType": _grouped_unique_scalar_value(column_name="replay_type", alias="replayType"),
     "projectId": Function(
         "toString",
@@ -489,7 +494,9 @@ QUERY_ALIAS_COLUMN_MAP = {
         alias="projectId",
     ),
     "platform": _grouped_unique_scalar_value(column_name="platform"),
-    "environment": _grouped_unique_scalar_value(column_name="environment", alias="agg_environment"),
+    "agg_environment": _grouped_unique_scalar_value(
+        column_name="environment", alias="agg_environment"
+    ),
     "releases": _grouped_unique_values(column_name="release", alias="releases", aliased=True),
     "dist": _grouped_unique_scalar_value(column_name="dist"),
     "traceIds": Function(
@@ -535,6 +542,11 @@ QUERY_ALIAS_COLUMN_MAP = {
         "uniqArray",
         parameters=[Column("error_ids")],
         alias="countErrors",
+    ),
+    "countUrls": Function(
+        "length",
+        parameters=[Column("urls_sorted")],
+        alias="countUrls",
     ),
     "isArchived": Function(
         "notEmpty",
@@ -594,3 +606,11 @@ def collect_aliases(fields: List[str]) -> List[str]:
 def select_from_fields(fields: List[str]) -> List[Union[Column, Function]]:
     """Return a list of columns to select."""
     return [QUERY_ALIAS_COLUMN_MAP[alias] for alias in collect_aliases(fields)]
+
+
+def _extract_children(expression: ParenExpression) -> Generator[None, None, str]:
+    for child in expression.children:
+        if isinstance(child, SearchFilter):
+            yield child
+        elif isinstance(child, ParenExpression):
+            yield from _extract_children(child)

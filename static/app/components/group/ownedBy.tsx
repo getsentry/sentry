@@ -4,7 +4,7 @@ import {openCreateOwnershipRule} from 'sentry/actionCreators/modal';
 import Access from 'sentry/components/acl/access';
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import Button from 'sentry/components/button';
-import Link from 'sentry/components/links/link';
+import ButtonBar from 'sentry/components/buttonBar';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import {IconAdd, IconSettings, IconUser} from 'sentry/icons';
@@ -64,11 +64,10 @@ function OwnedBy({group, project, organization}: OwnedByProps) {
               'Set rules on which user or team owns an issue based on path, module, tag, or URL'
             )}
             size="sm"
-            color="gray200"
           />
         </TitleWrapper>
 
-        <ActionsWrapper>
+        <ButtonBar>
           <Access access={['project:write']}>
             <Button
               onClick={() => {
@@ -76,17 +75,18 @@ function OwnedBy({group, project, organization}: OwnedByProps) {
               }}
               aria-label={t('Create Ownership Rule')}
               icon={<IconAdd />}
-              size="zero"
               borderless
+              size="xs"
             />
           </Access>
-          <StyledLink
+          <Button
             to={`/settings/${organization.slug}/projects/${project.slug}/ownership/`}
             aria-label={t('Issue Owners Settings')}
-          >
-            <IconSettings />
-          </StyledLink>
-        </ActionsWrapper>
+            icon={<IconSettings />}
+            borderless
+            size="xs"
+          />
+        </ButtonBar>
       </StyledSidebarTitle>
       <SidebarSection.Content>
         <ActorWrapper>
@@ -133,26 +133,15 @@ const IconWrapper = styled('div')`
   padding: ${space(0.25)};
 `;
 
-const StyledLink = styled(Link)`
-  display: flex;
-  align-items: center;
-  color: ${p => p.theme.textColor};
-`;
-
 const StyledSidebarTitle = styled(SidebarSection.Title)`
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-right: -${space(1)};
 `;
 
 const TitleWrapper = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(0.5)};
-`;
-
-const ActionsWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
 `;

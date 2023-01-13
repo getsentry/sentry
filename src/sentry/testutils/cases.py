@@ -227,10 +227,11 @@ class BaseTestCase(Fixtures):
         self.client.cookies[name] = value
         self.client.cookies[name].update({k.replace("_", "-"): v for k, v in params.items()})
 
-    def make_request(self, user=None, auth=None, method=None, is_superuser=False):
+    def make_request(self, user=None, auth=None, method=None, is_superuser=False, path="/"):
         request = HttpRequest()
         if method:
             request.method = method
+        request.path = path
         request.META["REMOTE_ADDR"] = "127.0.0.1"
         request.META["SERVER_NAME"] = "testserver"
         request.META["SERVER_PORT"] = 80
@@ -962,6 +963,14 @@ class SnubaTestCase(BaseTestCase):
         self.snuba_tagstore = SnubaTagStorage()
 
     def store_event(self, *args, **kwargs):
+        """
+        Simulates storing an event for testing.
+
+        To set event title:
+        - use "message": "{title}" field for errors
+        - use "transaction": "{title}" field for transactions
+        More info on event payloads: https://develop.sentry.dev/sdk/event-payloads/
+        """
         with mock.patch("sentry.eventstream.insert", self.snuba_eventstream.insert):
             stored_event = Factories.store_event(*args, **kwargs)
 

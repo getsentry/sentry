@@ -143,7 +143,7 @@ describe('flamegraphRenderer', () => {
     );
 
     expect(renderer.getColorForFrame(flamegraph.frames[0])).toEqual([
-      0.9750000000000001, 0.7250000000000001, 0.7250000000000001,
+      0.9625, 0.7125, 0.7125,
     ]);
     expect(
       renderer.getColorForFrame({
@@ -229,7 +229,7 @@ describe('flamegraphRenderer', () => {
         [{name: 'f0'}, {name: 'f1'}]
       );
 
-      const results: FlamegraphSearch['results'] = new Map();
+      const results: FlamegraphSearch['results']['frames'] = new Map();
 
       const flamegraphCanvas = new FlamegraphCanvas(canvas, vec2.fromValues(0, 0));
       const flamegraphView = new CanvasView<Flamegraph>({

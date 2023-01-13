@@ -96,7 +96,7 @@ class GetParticipantsTest(TestCase):
         self.user = self.create_user()
         self.create_member(user=self.user, organization=self.org, teams=[self.team])
         self.update_user_settings_always()
-        self.user = user_service.serialize_user(self.user)
+        self.user = user_service.get_user(self.user.id)  # Redo the serialization for diffs
 
     def update_user_settings_always(self):
         NotificationSetting.objects.update_settings(

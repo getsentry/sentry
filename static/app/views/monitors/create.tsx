@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
+import Breadcrumbs from 'sentry/components/breadcrumbs';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
@@ -20,7 +21,7 @@ type Props = AsyncView['props'] &
 
 class CreateMonitor extends AsyncView<Props, AsyncView['state']> {
   getTitle() {
-    return `Monitors - ${this.orgSlug}`;
+    return `Crons - ${this.orgSlug}`;
   }
 
   get orgSlug() {
@@ -37,7 +38,18 @@ class CreateMonitor extends AsyncView<Props, AsyncView['state']> {
       <Fragment>
         <Layout.Header>
           <Layout.HeaderContent>
-            <HeaderTitle>{t('Set Up Cron Monitor')}</HeaderTitle>
+            <Breadcrumbs
+              crumbs={[
+                {
+                  label: t('Crons'),
+                  to: `/organizations/${this.orgSlug}/crons/`,
+                },
+                {
+                  label: t('Set Up Cron Monitor'),
+                },
+              ]}
+            />
+            <Layout.Title>{t('Set Up Cron Monitor')}</Layout.Title>
           </Layout.HeaderContent>
           <Layout.HeaderActions>
             <CronsFeedbackButton />
@@ -63,10 +75,6 @@ class CreateMonitor extends AsyncView<Props, AsyncView['state']> {
   }
 }
 export default withOrganization(CreateMonitor);
-
-const HeaderTitle = styled(Layout.Title)`
-  margin-top: 0;
-`;
 
 const HelpText = styled('p')`
   color: ${p => p.theme.subText};

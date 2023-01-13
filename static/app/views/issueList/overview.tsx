@@ -15,6 +15,7 @@ import {addMessage} from 'sentry/actionCreators/indicator';
 import {fetchOrgMembers, indexMembersByProject} from 'sentry/actionCreators/members';
 import {fetchTagValues, loadOrganizationTags} from 'sentry/actionCreators/tags';
 import {Client} from 'sentry/api';
+import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
 import Pagination, {CursorHandler} from 'sentry/components/pagination';
@@ -24,7 +25,6 @@ import ProcessingIssueList from 'sentry/components/stream/processingIssueList';
 import {DEFAULT_QUERY, DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t, tct, tn} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
-import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
 import {
   BaseGroup,
@@ -580,25 +580,26 @@ class IssueListOverview extends Component<Props, State> {
           return;
         }
 
-        const {orgId} = this.props.params;
         // If this is a direct hit, we redirect to the intended result directly.
         if (resp.getResponseHeader('X-Sentry-Direct-Hit') === '1') {
           let redirect: string;
           if (data[0] && data[0].matchingEventId) {
             const {id, matchingEventId} = data[0];
-            redirect = `/organizations/${orgId}/issues/${id}/events/${matchingEventId}/`;
+            redirect = `/organizations/${organization.slug}/issues/${id}/events/${matchingEventId}/`;
           } else {
             const {id} = data[0];
-            redirect = `/organizations/${orgId}/issues/${id}/`;
+            redirect = `/organizations/${organization.slug}/issues/${id}/`;
           }
 
-          browserHistory.replace({
-            pathname: redirect,
-            query: {
-              referrer: 'issue-list',
-              ...extractSelectionParameters(this.props.location.query),
-            },
-          });
+          browserHistory.replace(
+            normalizeUrl({
+              pathname: redirect,
+              query: {
+                referrer: 'issue-list',
+                ...extractSelectionParameters(this.props.location.query),
+              },
+            })
+          );
           return;
         }
 
@@ -718,15 +719,18 @@ class IssueListOverview extends Component<Props, State> {
   };
 
   get groupListEndpoint(): string {
-    return `/organizations/${this.props.params.orgId}/issues/`;
+    const {organization} = this.props;
+    return `/organizations/${organization.slug}/issues/`;
   }
 
   get groupCountsEndpoint(): string {
-    return `/organizations/${this.props.params.orgId}/issues-count/`;
+    const {organization} = this.props;
+    return `/organizations/${organization.slug}/issues-count/`;
   }
 
   get groupStatsEndpoint(): string {
-    return `/organizations/${this.props.params.orgId}/issues-stats/`;
+    const {organization} = this.props;
+    return `/organizations/${organization.slug}/issues-stats/`;
   }
 
   onRealtimeChange = (realtime: boolean) => {
@@ -951,9 +955,9 @@ class IssueListOverview extends Component<Props, State> {
 
   renderLoading(): React.ReactNode {
     return (
-      <PageContent>
+      <Layout.Page withPadding>
         <LoadingIndicator />
-      </PageContent>
+      </Layout.Page>
     );
   }
 
@@ -1100,13 +1104,13 @@ class IssueListOverview extends Component<Props, State> {
   };
 
   tagValueLoader = (key: string, search: string) => {
-    const {orgId} = this.props.params;
+    const {organization} = this.props;
     const projectIds = this.getSelectedProjectIds();
     const endpointParams = this.getEndpointParams();
 
     return fetchTagValues({
       api: this.props.api,
-      orgSlug: orgId,
+      orgSlug: organization.slug,
       tagKey: key,
       search,
       projectIds,
@@ -1171,7 +1175,7 @@ class IssueListOverview extends Component<Props, State> {
     );
 
     return (
-      <StyledPageContent>
+      <Layout.Page>
         <IssueListHeader
           organization={organization}
           query={query}
@@ -1250,7 +1254,7 @@ class IssueListOverview extends Component<Props, State> {
             sort={this.getSort()}
           />
         </StyledBody>
-      </StyledPageContent>
+      </Layout.Page>
     );
   }
 }
@@ -1301,8 +1305,4 @@ const StyledPagination = styled(Pagination)`
 
 const StyledQueryCount = styled(QueryCount)`
   margin-left: 0;
-`;
-
-const StyledPageContent = styled(PageContent)`
-  padding: 0;
 `;

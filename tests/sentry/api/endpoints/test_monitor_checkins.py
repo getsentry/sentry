@@ -1,7 +1,9 @@
 from datetime import timedelta
+from unittest.mock import patch
 from uuid import UUID
 
 from django.utils import timezone
+from django.utils.http import urlquote
 from freezegun import freeze_time
 
 from sentry.models import CheckInStatus, Monitor, MonitorCheckIn, MonitorStatus, MonitorType
@@ -18,11 +20,33 @@ class CreateMonitorCheckInTest(MonitorTestCase):
     def setUp(self):
         super().setUp()
 
-    def test_passing(self):
+    def test_headers_on_creation(self):
         self.login_as(self.user)
 
         for path_func in self._get_path_functions():
             monitor = self._create_monitor()
+            path = path_func(monitor)
+
+            resp = self.client.post(path, {"status": "ok"})
+            assert resp.status_code == 201, resp.content
+
+            # XXX(dcramer): pretty gross assertion but due to the pathing theres no easier way
+            assert (
+                resp["Link"]
+                == f'<http://testserver{urlquote(path)}checkins/latest/>; rel="latest">'
+            )
+            assert resp["Location"] == f'http://testserver{path}checkins/{resp.data["id"]}/'
+
+    @patch("sentry.analytics.record")
+    def test_passing(self, mock_record):
+        self.login_as(self.user)
+
+        first_monitor_id = None
+        for path_func in self._get_path_functions():
+            monitor = self._create_monitor()
+            if not first_monitor_id:
+                first_monitor_id = str(monitor.guid)
+
             path = path_func(monitor)
 
             resp = self.client.post(path, {"status": "ok"})
@@ -35,6 +59,17 @@ class CreateMonitorCheckInTest(MonitorTestCase):
             assert monitor.status == MonitorStatus.OK
             assert monitor.last_checkin == checkin.date_added
             assert monitor.next_checkin == monitor.get_next_scheduled_checkin(checkin.date_added)
+
+        self.project.refresh_from_db()
+        assert self.project.flags.has_cron_checkins
+
+        mock_record.assert_called_with(
+            "first_cron_checkin.sent",
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            user_id=self.user.id,
+            monitor_id=first_monitor_id,
+        )
 
     def test_failing(self):
         self.login_as(self.user)
@@ -156,7 +191,7 @@ class CreateMonitorCheckInTest(MonitorTestCase):
 
     def test_mismatched_org_slugs(self):
         monitor = self._create_monitor()
-        path = f"/api/0/monitors/asdf/{monitor.guid}/checkins/"
+        path = f"/api/0/organizations/asdf/monitors/{monitor.guid}/checkins/"
         self.login_as(user=self.user)
 
         resp = self.client.post(path)

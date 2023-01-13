@@ -46,7 +46,7 @@ describe('Incident Rules Create', function () {
 
     render(
       <MetricRulesCreate
-        params={{orgId: organization.slug, projectId: project.slug}}
+        params={{projectId: project.slug}}
         organization={organization}
         project={project}
         userTeamIds={[]}

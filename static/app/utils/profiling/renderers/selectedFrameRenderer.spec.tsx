@@ -25,7 +25,7 @@ describe('SelectedFrameRenderer', () => {
     renderer.draw(
       [new Rect(0, 0, 100, 100)],
       {BORDER_COLOR: 'red', BORDER_WIDTH: 1},
-      mat3.scale(mat3.create(), mat3.identity(mat3.create()), vec2.fromValues(2, 2))
+      mat3.scale(mat3.create(), mat3.create(), vec2.fromValues(2, 2))
     );
 
     expect(context.beginPath).toHaveBeenCalled();
