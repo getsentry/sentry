@@ -645,7 +645,6 @@ const MarginlessAlert = styled(Alert)`
   border-top: 1px ${p => p.theme.innerBorder} solid;
   margin: 0;
   padding: ${space(1)} ${space(1)};
-  font-size: ${p => p.theme.fontSizeSmall};
 `;
 
 const StyledFeatureBadge = styled(FeatureBadge)`
