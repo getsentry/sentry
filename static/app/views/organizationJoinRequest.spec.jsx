@@ -19,7 +19,7 @@ describe('OrganizationJoinRequest', function () {
   });
 
   it('renders', function () {
-    render(<OrganizationJoinRequest params={{orgId: org.slug}} />);
+    render(<OrganizationJoinRequest params={{}} organization={org} />);
 
     expect(screen.getByRole('heading', {name: 'Request to Join'})).toBeInTheDocument();
     expect(screen.getByRole('textbox', {name: 'Email Address'})).toBeInTheDocument();
@@ -37,7 +37,7 @@ describe('OrganizationJoinRequest', function () {
       method: 'POST',
     });
 
-    render(<OrganizationJoinRequest params={{orgId: org.slug}} />);
+    render(<OrganizationJoinRequest params={{}} organization={org} />);
 
     userEvent.type(
       screen.getByRole('textbox', {name: 'Email Address'}),
@@ -62,7 +62,7 @@ describe('OrganizationJoinRequest', function () {
       statusCode: 400,
     });
 
-    render(<OrganizationJoinRequest params={{orgId: org.slug}} />);
+    render(<OrganizationJoinRequest params={{}} organization={org} />);
 
     userEvent.type(
       screen.getByRole('textbox', {name: 'Email Address'}),
@@ -79,7 +79,7 @@ describe('OrganizationJoinRequest', function () {
 
   it('cancels', function () {
     const spy = jest.spyOn(window.location, 'assign').mockImplementation(() => {});
-    render(<OrganizationJoinRequest params={{orgId: org.slug}} />);
+    render(<OrganizationJoinRequest params={{}} organization={org} />);
 
     userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
     expect(spy).toHaveBeenCalledWith(`/auth/login/${org.slug}/`);

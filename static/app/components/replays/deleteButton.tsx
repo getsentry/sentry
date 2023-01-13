@@ -7,14 +7,15 @@ import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import useApi from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 
 function DeleteButton() {
   const api = useApi();
   const navigate = useNavigate();
   const params = useParams();
+  const orgSlug = useOrganization().slug;
 
-  const orgSlug = params.orgId;
   const [projectSlug, replayId] = params.replaySlug.split(':');
 
   const handleDelete = async () => {

@@ -63,7 +63,7 @@ describe('Modals -> ScreenshotModal', function () {
     initialData = initializeOrg({
       organization: TestStubs.Organization(),
       router: {
-        params: {orgId: 'org-slug', groupId: 'group-id'},
+        params: {groupId: 'group-id'},
         location: {query: {types: 'event.screenshot'}},
       },
     } as Parameters<typeof initializeOrg>[0]);
