@@ -99,7 +99,7 @@ const DefaultSpanEvidence = ({
 );
 
 const PresortedKeyValueList = ({data}: {data: KeyValueListData}) => (
-  <KeyValueList isSorted data={data} />
+  <KeyValueList isSorted={false} data={data} />
 );
 
 const makeTransactionNameRow = (transactionName: string) =>
