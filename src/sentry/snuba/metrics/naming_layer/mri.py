@@ -48,6 +48,7 @@ class SessionMRI(Enum):
     ERROR = "s:sessions/error@none"
     USER = "s:sessions/user@none"
     RAW_DURATION = "d:sessions/duration@second"
+    DURATION = "d:sessions/duration.exited@second"
 
     # Derived
     ALL = "e:sessions/all@none"
@@ -70,7 +71,6 @@ class SessionMRI(Enum):
     ABNORMAL_USER = "e:sessions/user.abnormal@none"
     CRASH_USER_RATE = "e:sessions/user.crash_rate@ratio"
     CRASH_FREE_USER_RATE = "e:sessions/user.crash_free_rate@ratio"
-    DURATION = "d:sessions/duration.exited@second"
 
 
 class TransactionMRI(Enum):
