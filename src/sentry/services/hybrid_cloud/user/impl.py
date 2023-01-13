@@ -93,7 +93,7 @@ class DatabaseBackedUserService(UserService):
         *,
         detailed: UserSerializeType = UserSerializeType.SIMPLE,
         auth_context: AuthenticationContext
-        | None = None,  # TODO: replace this with the as_user attribute
+        | None = None,  # Note that 'as_user' does not pass `is_super_user(env.request)` calls, where as this does.
         as_user: User | APIUser | None = None,
         # Query filters:
         user_ids: Optional[List[int]] = None,

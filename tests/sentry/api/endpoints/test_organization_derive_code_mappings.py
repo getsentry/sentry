@@ -7,7 +7,7 @@ from sentry.models.integrations.repository_project_path_config import Repository
 from sentry.models.repository import Repository
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers.features import apply_feature_flag_on_cls
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
 
 
 @region_silo_test(stable=True)
@@ -87,7 +87,8 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
             "projectId": self.project.id,
             "stacktraceFilename": "stack/root/file.py",
         }
-        Integration.objects.all().delete()
+        with exempt_from_silo_limits():
+            Integration.objects.all().delete()
         response = self.client.get(self.url, data=config_data, format="json")
         assert response.status_code == 404, response.content
 
@@ -132,7 +133,8 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
             "defaultBranch": "master",
             "repoName": "name",
         }
-        Integration.objects.all().delete()
+        with exempt_from_silo_limits():
+            Integration.objects.all().delete()
         response = self.client.post(self.url, data=config_data, format="json")
         assert response.status_code == 404, response.content
 
@@ -143,7 +145,7 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
             source_root="/source/root/wrong",
             default_branch="master",
             repository=self.repo,
-            organization_integration=self.organization_integration,
+            organization_integration_id=self.organization_integration.id,
         )
 
         config_data = {

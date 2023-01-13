@@ -22,8 +22,6 @@ from sentry.models import (
     GroupRelease,
     GroupResolution,
     GroupStatus,
-    Integration,
-    OrganizationIntegration,
     Release,
     ReleaseCommit,
     ReleaseEnvironment,
@@ -501,19 +499,20 @@ class SetCommitsTestCase(TestCase):
     @receivers_raise_on_send()
     def test_resolution_support_with_integration(self, mock_sync_status_outbound):
         org = self.create_organization(owner=Factories.create_user())
-        integration = Integration.objects.create(provider="example", name="Example")
-        integration.add_organization(org, self.user)
-
-        OrganizationIntegration.objects.filter(
-            integration_id=integration.id, organization_id=org.id
-        ).update(
-            config={
-                "sync_comments": True,
-                "sync_status_outbound": True,
-                "sync_status_inbound": True,
-                "sync_assignee_outbound": True,
-                "sync_assignee_inbound": True,
-            }
+        integration = self.create_integration(
+            organization=org,
+            external_id="example:1",
+            provider="example",
+            name="Example",
+            oi_params={
+                "config": {
+                    "sync_comments": True,
+                    "sync_status_outbound": True,
+                    "sync_status_inbound": True,
+                    "sync_assignee_outbound": True,
+                    "sync_assignee_inbound": True,
+                }
+            },
         )
         project = self.create_project(organization=org, name="foo")
         group = self.create_group(project=project)

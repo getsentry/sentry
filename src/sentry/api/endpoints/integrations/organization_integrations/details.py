@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 from django.db import transaction
+from django.http import Http404
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -9,7 +12,8 @@ from sentry.api.bases.organization_integrations import OrganizationIntegrationBa
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.integration import OrganizationIntegrationSerializer
 from sentry.features.helpers import requires_feature
-from sentry.models import Integration, ObjectStatus, OrganizationIntegration, ScheduledDeletion
+from sentry.models import ObjectStatus, OrganizationIntegration, ScheduledDeletion
+from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.utils.audit import create_audit_entry
 
@@ -32,10 +36,7 @@ class OrganizationIntegrationDetailsEndpoint(OrganizationIntegrationBaseEndpoint
 
     @requires_feature("organizations:integrations-custom-scm")
     def put(self, request: Request, organization, integration_id) -> Response:
-        try:
-            integration = Integration.objects.get(organizations=organization, id=integration_id)
-        except Integration.DoesNotExist:
-            return self.respond(status=404)
+        integration = self.get_integration(organization, integration_id)
 
         if integration.provider != "custom_scm":
             return self.respond({"detail": "Invalid action for this integration"}, status=400)
@@ -52,9 +53,7 @@ class OrganizationIntegrationDetailsEndpoint(OrganizationIntegrationBaseEndpoint
                 metadata = integration.metadata
                 metadata["domain_name"] = data["domain"]
                 update_kwargs["metadata"] = metadata
-
-            integration.update(**update_kwargs)
-            integration.save()
+            integration_service.update_integration(integration_id=integration.id, **update_kwargs)
 
             org_integration = self.get_organization_integration(organization, integration_id)
 
@@ -70,11 +69,18 @@ class OrganizationIntegrationDetailsEndpoint(OrganizationIntegrationBaseEndpoint
     def delete(self, request: Request, organization, integration_id) -> Response:
         # Removing the integration removes the organization
         # integrations and all linked issues.
-        org_integration = self.get_organization_integration(organization, integration_id)
 
-        integration = org_integration.integration
+        # NOTE(hybrid-cloud): Deletions require the ORM object, not API versions
+        org_integration: OrganizationIntegration | None = OrganizationIntegration.objects.filter(
+            integration_id=integration_id, organization_id=organization.id
+        ).first()
+        if not org_integration:
+            raise Http404
+        integration = self.get_integration(organization, integration_id)
         # do any integration specific deleting steps
-        integration.get_installation(organization.id).uninstall()
+        integration_service.get_installation(
+            integration=integration, organization_id=organization.id
+        ).uninstall()
 
         with transaction.atomic():
             updated = OrganizationIntegration.objects.filter(
@@ -95,7 +101,9 @@ class OrganizationIntegrationDetailsEndpoint(OrganizationIntegrationBaseEndpoint
 
     def post(self, request: Request, organization, integration_id) -> Response:
         integration = self.get_integration(organization, integration_id)
-        installation = integration.get_installation(organization.id)
+        installation = integration_service.get_installation(
+            integration=integration, organization_id=organization.id
+        )
         try:
             installation.update_organization_config(request.data)
         except IntegrationError as e:
