@@ -1317,7 +1317,7 @@ class FileIOMainThreadDetector(PerformanceDetector):
 
     def is_creation_allowed_for_organization(self, organization: Organization) -> bool:
         return features.has(
-            "organizations:performance-n-plus-one-api-calls-detector", organization, actor=None
+            "organizations:performance-file-io-main-thread-detector", organization, actor=None
         )
 
     def is_creation_allowed_for_project(self, project: Project) -> bool:
