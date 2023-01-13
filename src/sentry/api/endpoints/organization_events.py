@@ -18,7 +18,7 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.organization import Organization
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.search.events.fields import is_function
-from sentry.snuba import discover, issue_platform, metrics_enhanced_performance, metrics_performance
+from sentry.snuba import discover, metrics_enhanced_performance, metrics_performance
 from sentry.snuba.referrer import Referrer
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
@@ -257,7 +257,6 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
 
         use_custom_dataset = use_metrics or use_profiles
         dataset = self.get_dataset(request) if use_custom_dataset else discover
-        dataset = issue_platform  # hard coding for testing, fe should pass this
         metrics_enhanced = dataset in {metrics_performance, metrics_enhanced_performance}
 
         sentry_sdk.set_tag("performance.metrics_enhanced", metrics_enhanced)

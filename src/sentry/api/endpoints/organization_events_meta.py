@@ -12,7 +12,6 @@ from sentry.api.event_search import parse_search_query
 from sentry.api.helpers.group_index import build_query_params_from_request
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import GroupSerializer
-from sentry.snuba import issue_platform
 
 
 @region_silo_endpoint
@@ -24,7 +23,6 @@ class OrganizationEventsMetaEndpoint(OrganizationEventsEndpointBase):
             return Response({"count": 0})
 
         dataset = request.GET.get("dataset", "discover")
-        dataset = issue_platform  # hard coding for now, fe should pass a param
 
         with self.handle_query_errors():
             result = dataset.query(
