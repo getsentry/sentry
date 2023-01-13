@@ -300,6 +300,12 @@ function GroupHeader({
             title="N+1 API Calls Performance Issues are in active development and may change"
           />
         )}
+        {group.issueType === IssueType.PERFORMANCE_SLOW_SPAN && (
+          <FeatureBadge
+            type="alpha"
+            title="Slow DB Span Performance Issues are in active development and may change"
+          />
+        )}
       </ShortIdBreadrcumb>
     </GuideAnchor>
   );
