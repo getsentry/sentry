@@ -1,7 +1,7 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import EventExtraData from 'sentry/components/events/eventExtraData';
+import {EventExtraData} from 'sentry/components/events/eventExtraData';
 
 describe('EventExtraData', function () {
   it('display redacted data', async function () {
