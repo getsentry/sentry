@@ -98,7 +98,7 @@ const DefaultSpanEvidence = ({
   />
 );
 
-const PresortedKeyValueList = ({data}: Pick<KeyValueListData['data']>) => (
+const PresortedKeyValueList = ({data}: {data: KeyValueListData}) => (
   <KeyValueList isSorted data={data} />
 );
 
