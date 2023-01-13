@@ -3,11 +3,11 @@ import styled from '@emotion/styled';
 import {withProfiler} from '@sentry/react';
 import omit from 'lodash/omit';
 
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
-import EventUserFeedback from 'sentry/components/events/userFeedback';
+import {EventUserFeedback} from 'sentry/components/events/userFeedback';
 import CompactIssue from 'sentry/components/issues/compactIssue';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -32,7 +32,7 @@ type State = AsyncView['state'] & {
   reportList: UserReport[];
 };
 
-type Props = RouteComponentProps<{orgId: string}, {}> & {
+type Props = RouteComponentProps<{}, {}> & {
   organization: Organization;
 };
 
@@ -69,7 +69,7 @@ class OrganizationUserFeedback extends AsyncView<Props, State> {
   }
 
   renderResults() {
-    const {orgId} = this.props.params;
+    const {organization} = this.props;
 
     return (
       <Panel className="issue-list" data-test-id="user-feedback-list">
@@ -77,7 +77,11 @@ class OrganizationUserFeedback extends AsyncView<Props, State> {
           const issue = item.issue;
           return (
             <CompactIssue key={item.id} id={issue.id} data={issue} eventId={item.eventID}>
-              <StyledEventUserFeedback report={item} orgId={orgId} issueId={issue.id} />
+              <StyledEventUserFeedback
+                report={item}
+                orgId={organization.slug}
+                issueId={issue.id}
+              />
             </CompactIssue>
           );
         })}
