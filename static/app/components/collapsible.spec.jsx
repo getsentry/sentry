@@ -1,6 +1,6 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import Collapsible from 'sentry/components/collapsible';
 
 const items = [1, 2, 3, 4, 5, 6, 7].map(i => <div key={i}>Item {i}</div>);

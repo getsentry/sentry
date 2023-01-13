@@ -10,7 +10,7 @@ import {useQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
-import EventDataSection from './eventDataSection';
+import {EventDataSection} from './eventDataSection';
 import {ViewHierarchy, ViewHierarchyData} from './viewHierarchy';
 
 const DEFAULT_RESPONSE: ViewHierarchyData = {rendering_system: '', windows: []};

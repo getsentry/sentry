@@ -3,11 +3,11 @@ import styled from '@emotion/styled';
 import {withProfiler} from '@sentry/react';
 import omit from 'lodash/omit';
 
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
-import EventUserFeedback from 'sentry/components/events/userFeedback';
+import {EventUserFeedback} from 'sentry/components/events/userFeedback';
 import CompactIssue from 'sentry/components/issues/compactIssue';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -15,7 +15,6 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
-import PageHeading from 'sentry/components/pageHeading';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import Pagination from 'sentry/components/pagination';
 import {Panel} from 'sentry/components/panels';
@@ -127,7 +126,7 @@ class OrganizationUserFeedback extends AsyncView<Props, State> {
         <NoProjectMessage organization={organization}>
           <Layout.Header>
             <Layout.HeaderContent>
-              <StyledHeading>
+              <Layout.Title>
                 {t('User Feedback')}
                 <PageHeadingQuestionTooltip
                   title={tct(
@@ -139,7 +138,7 @@ class OrganizationUserFeedback extends AsyncView<Props, State> {
                     }
                   )}
                 />
-              </StyledHeading>
+              </Layout.Title>
             </Layout.HeaderContent>
           </Layout.Header>
           <Layout.Body data-test-id="user-feedback">
@@ -170,10 +169,6 @@ class OrganizationUserFeedback extends AsyncView<Props, State> {
 }
 
 export default withOrganization(withProfiler(OrganizationUserFeedback));
-
-const StyledHeading = styled(PageHeading)`
-  line-height: 40px;
-`;
 
 const Filters = styled('div')`
   display: grid;

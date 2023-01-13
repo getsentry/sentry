@@ -57,6 +57,7 @@ from sentry.search.events.constants import (
     TEAM_KEY_TRANSACTION_ALIAS,
     TIMESTAMP_TO_DAY_ALIAS,
     TIMESTAMP_TO_HOUR_ALIAS,
+    TOTAL_COUNT_ALIAS,
     TRACE_PARENT_SPAN_ALIAS,
     TRACE_PARENT_SPAN_CONTEXT,
     TRANSACTION_STATUS_ALIAS,
@@ -87,6 +88,7 @@ from sentry.search.events.fields import (
 )
 from sentry.search.events.filter import to_list, translate_transaction_status
 from sentry.search.events.types import SelectType, WhereType
+from sentry.snuba.referrer import Referrer
 from sentry.types.issues import GroupCategory
 from sentry.utils.numbers import format_grouped_length
 
@@ -101,6 +103,7 @@ class DiscoverDatasetConfig(DatasetConfig):
 
     def __init__(self, builder: builder.QueryBuilder):
         self.builder = builder
+        self.total_count: Optional[int] = None
 
     @property
     def search_filter_converter(
@@ -146,6 +149,7 @@ class DiscoverDatasetConfig(DatasetConfig):
             MEASUREMENTS_FRAMES_FROZEN_RATE: self._resolve_measurements_frames_frozen_rate,
             MEASUREMENTS_STALL_PERCENTAGE: self._resolve_measurements_stall_percentage,
             HTTP_STATUS_CODE_ALIAS: self._resolve_http_status_code,
+            TOTAL_COUNT_ALIAS: self._resolve_total_count,
         }
 
     @property
@@ -1286,6 +1290,27 @@ class DiscoverDatasetConfig(DatasetConfig):
         return self._resolve_aliased_division(
             "measurements.stall_total_time", "transaction.duration", MEASUREMENTS_STALL_PERCENTAGE
         )
+
+    def _resolve_total_count(self, alias: str) -> SelectType:
+        """This must be cached since it runs another query"""
+        self.builder.requires_other_aggregates = True
+        if self.total_count is not None:
+            return Function("toUInt64", [self.total_count], alias)
+        total_query = builder.QueryBuilder(
+            dataset=self.builder.dataset,
+            params={},
+            snuba_params=self.builder.params,
+            selected_columns=["count()"],
+        )
+        total_query.columns += self.builder.resolve_groupby()
+        total_query.where = self.builder.where
+        total_results = total_query.run_query(Referrer.API_DISCOVER_TOTAL_COUNT_FIELD.value)
+        results = total_query.process_results(total_results)
+        if len(results["data"]) != 1:
+            self.total_count = 0
+            return Function("toUInt64", [0], alias)
+        self.total_count = results["data"][0]["count"]
+        return Function("toUInt64", [self.total_count], alias)
 
     # Functions
     def _resolve_apdex_function(self, args: Mapping[str, str], alias: str) -> SelectType:

@@ -1,12 +1,10 @@
 import {browserHistory, RouteComponentProps} from 'react-router';
-import styled from '@emotion/styled';
 
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 import * as Layout from 'sentry/components/layouts/thirds';
-import PageHeading from 'sentry/components/pageHeading';
 import {t} from 'sentry/locale';
-import {PageContent} from 'sentry/styles/organization';
 import {Organization} from 'sentry/types';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
 import AsyncView from 'sentry/views/asyncView';
 
@@ -36,7 +34,7 @@ class EditMonitor extends AsyncView<Props, State> {
     this.setState(state => ({monitor: {...state.monitor, ...data}}));
 
   onSubmitSuccess = (data: Monitor) =>
-    browserHistory.push(`/organizations/${this.orgSlug}/crons/${data.id}/`);
+    browserHistory.push(normalizeUrl(`/organizations/${this.orgSlug}/crons/${data.id}/`));
 
   getTitle() {
     if (this.state.monitor) {
@@ -53,7 +51,7 @@ class EditMonitor extends AsyncView<Props, State> {
     }
 
     return (
-      <StyledPageContent>
+      <Layout.Page>
         <Layout.Header>
           <Layout.HeaderContent>
             <Breadcrumbs
@@ -67,7 +65,7 @@ class EditMonitor extends AsyncView<Props, State> {
                 },
               ]}
             />
-            <StyledHeading>{t('Edit Monitor')}</StyledHeading>
+            <Layout.Title>{t('Edit Monitor')}</Layout.Title>
           </Layout.HeaderContent>
         </Layout.Header>
         <Layout.Body>
@@ -80,17 +78,9 @@ class EditMonitor extends AsyncView<Props, State> {
             />
           </Layout.Main>
         </Layout.Body>
-      </StyledPageContent>
+      </Layout.Page>
     );
   }
 }
-
-const StyledPageContent = styled(PageContent)`
-  padding: 0;
-`;
-
-const StyledHeading = styled(PageHeading)`
-  line-height: 40px;
-`;
 
 export default withOrganization(EditMonitor);

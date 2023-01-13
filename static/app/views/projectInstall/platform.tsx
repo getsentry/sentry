@@ -8,7 +8,7 @@ import {loadDocs} from 'sentry/actionCreators/projects';
 import {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
 import Alert from 'sentry/components/alert';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import NotFound from 'sentry/components/errors/notFound';
 import LoadingError from 'sentry/components/loadingError';
@@ -25,6 +25,7 @@ import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import Projects from 'sentry/utils/projects';
 import withApi from 'sentry/utils/withApi';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
 
 type Props = {
@@ -88,7 +89,7 @@ class ProjectInstallPlatform extends Component<Props, State> {
 
     const url = `/organizations/${organization.slug}/projects/${projectId}/getting-started/`;
 
-    browserHistory.push(url);
+    browserHistory.push(normalizeUrl(url));
   }
 
   render() {

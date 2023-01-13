@@ -3,7 +3,7 @@ import {RouteComponentProps} from 'react-router';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import Alert from 'sentry/components/alert';
 import AutoSelectText from 'sentry/components/autoSelectText';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import ExternalLink from 'sentry/components/links/externalLink';

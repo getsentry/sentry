@@ -1,7 +1,7 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render} from 'sentry-test/reactTestingLibrary';
 
-import EventSdkUpdates from 'sentry/components/events/sdkUpdates';
+import {EventSdkUpdates} from 'sentry/components/events/sdkUpdates';
 
 describe('EventSdkUpdates', function () {
   const {routerContext} = initializeOrg();
