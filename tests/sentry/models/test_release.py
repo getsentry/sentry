@@ -8,7 +8,7 @@ from freezegun import freeze_time
 
 from sentry.api.exceptions import InvalidRepository
 from sentry.api.release_search import INVALID_SEMVER_MESSAGE
-from sentry.dynamic_sampling.rules.helpers import ProjectBoostedReleases
+from sentry.dynamic_sampling import ProjectBoostedReleases
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models import (
     Commit,
