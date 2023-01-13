@@ -6,6 +6,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization_integrations import OrganizationIntegrationBaseEndpoint
 from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
 from sentry.integrations.mixins import ServerlessMixin
+from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions import IntegrationError
 
 ACTIONS = ["enable", "disable", "updateVersion"]
@@ -23,7 +24,10 @@ class OrganizationIntegrationServerlessFunctionsEndpoint(OrganizationIntegration
         Get the list of repository project path configs in an integration
         """
         integration = self.get_integration(organization, integration_id)
-        install = integration.get_installation(organization.id)
+
+        install = integration_service.get_installation(
+            integration=integration, organization_id=organization.id
+        )
 
         if not isinstance(install, ServerlessMixin):
             return self.respond({"detail": "Serverless not supported"}, status=400)
@@ -37,7 +41,9 @@ class OrganizationIntegrationServerlessFunctionsEndpoint(OrganizationIntegration
 
     def post(self, request: Request, organization, integration_id) -> Response:
         integration = self.get_integration(organization, integration_id)
-        install = integration.get_installation(organization.id)
+        install = integration_service.get_installation(
+            integration=integration, organization_id=organization.id
+        )
 
         if not isinstance(install, ServerlessMixin):
             return self.respond({"detail": "Serverless not supported"}, status=400)

@@ -6,7 +6,8 @@ from rest_framework.response import Response
 
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationIntegrationsPermission
-from sentry.models import OrganizationIntegration, RepositoryProjectPathConfig
+from sentry.models import RepositoryProjectPathConfig
+from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions import ApiError
 
 
@@ -25,13 +26,13 @@ class OrganizationCodeMappingCodeOwnersEndpoint(OrganizationEndpoint):
 
     def convert_args(self, request: Request, organization_slug, config_id, *args, **kwargs):
         args, kwargs = super().convert_args(request, organization_slug, config_id, *args, **kwargs)
+        organization = kwargs["organization"]
+        ois = integration_service.get_organization_integrations(organization_id=organization.id)
 
         try:
             kwargs["config"] = RepositoryProjectPathConfig.objects.get(
                 id=config_id,
-                organization_integration__in=OrganizationIntegration.objects.filter(
-                    organization=kwargs["organization"]
-                ).values_list("id", flat=True),
+                organization_integration__in=[oi.id for oi in ois],
             )
         except RepositoryProjectPathConfig.DoesNotExist:
             raise Http404

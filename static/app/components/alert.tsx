@@ -245,6 +245,6 @@ const ExpandContainer = styled('div')<{showIcon: boolean; showTrailingItems: boo
   }
 `;
 
-export {alertStyles};
+export {Alert, alertStyles};
 
 export default Alert;

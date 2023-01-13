@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
 import {fetchTagValues} from 'sentry/actionCreators/tags';
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import EmptyMessage from 'sentry/components/emptyMessage';
