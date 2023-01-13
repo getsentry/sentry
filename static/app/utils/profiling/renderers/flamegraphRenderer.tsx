@@ -83,12 +83,11 @@ class FlamegraphRenderer {
   }
 
   init(): void {
-    const VERTICES = 6;
+    const VERTICES_PER_TRIANGLE = 6;
     const COLOR_COMPONENTS = 4;
 
-    this.colors = new Float32Array(VERTICES * COLOR_COMPONENTS);
-    this.frames = [...this.flamegraph.frames];
-    this.roots = [...this.flamegraph.root.children];
+    this.frames = this.flamegraph.frames;
+    this.roots = this.flamegraph.root.children;
 
     // Generate colors for the flamegraph
     const {colorBuffer, colorMap} = this.theme.COLORS.STACK_TO_COLOR(
@@ -98,6 +97,14 @@ class FlamegraphRenderer {
     );
 
     this.colorMap = colorMap;
+
+    if (
+      VERTICES_PER_TRIANGLE * COLOR_COMPONENTS * this.frames.length !==
+      colorBuffer.length
+    ) {
+      throw new Error('Color buffer length does not match the number of vertices');
+    }
+
     this.colors = new Float32Array(colorBuffer);
 
     this.initCanvasContext();
@@ -108,13 +115,13 @@ class FlamegraphRenderer {
   initVertices(): void {
     const POSITIONS = 2;
     const BOUNDS = 4;
-    const VERTICES = 6;
+    const VERTICES_PER_TRIANGLE = 6;
 
     const FRAME_COUNT = this.frames.length;
 
-    this.bounds = new Float32Array(VERTICES * BOUNDS * FRAME_COUNT);
-    this.positions = new Float32Array(VERTICES * POSITIONS * FRAME_COUNT);
-    this.searchResults = new Float32Array(FRAME_COUNT * VERTICES);
+    this.bounds = new Float32Array(VERTICES_PER_TRIANGLE * BOUNDS * FRAME_COUNT);
+    this.positions = new Float32Array(VERTICES_PER_TRIANGLE * POSITIONS * FRAME_COUNT);
+    this.searchResults = new Float32Array(FRAME_COUNT * VERTICES_PER_TRIANGLE);
 
     for (let index = 0; index < FRAME_COUNT; index++) {
       const frame = this.frames[index];
@@ -143,9 +150,9 @@ class FlamegraphRenderer {
 
       // @TODO check if we can pack bounds across vertex calls,
       // we are allocating 6x the amount of memory here
-      const boundsOffset = index * VERTICES * BOUNDS;
+      const boundsOffset = index * VERTICES_PER_TRIANGLE * BOUNDS;
 
-      for (let i = 0; i < VERTICES; i++) {
+      for (let i = 0; i < VERTICES_PER_TRIANGLE; i++) {
         const offset = boundsOffset + i * BOUNDS;
 
         this.bounds[offset] = x1;
@@ -427,6 +434,10 @@ class FlamegraphRenderer {
   }
 
   setSearchResults(searchResults: FlamegraphSearch['results']) {
+    if (!this.program || !this.gl) {
+      return;
+    }
+
     const matchedFrame = new Float32Array(6).fill(1);
     const unMatchedFrame = new Float32Array(6).fill(0);
 
@@ -437,10 +448,6 @@ class FlamegraphRenderer {
           : unMatchedFrame,
         i * 6
       );
-    }
-
-    if (!this.program || !this.gl) {
-      return;
     }
 
     const aIsSearchResult = this.gl.getAttribLocation(this.program, 'a_is_search_result');
@@ -509,8 +516,8 @@ class FlamegraphRenderer {
       configSpacePixel.height
     );
 
-    const VERTICES = 6;
-    this.gl.drawArrays(this.gl.TRIANGLES, 0, this.frames.length * VERTICES);
+    const VERTICES_PER_TRIANGLE = 6;
+    this.gl.drawArrays(this.gl.TRIANGLES, 0, this.frames.length * VERTICES_PER_TRIANGLE);
   }
 }
 
