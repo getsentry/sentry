@@ -8,7 +8,7 @@ import flatten from 'lodash/flatten';
 import uniqBy from 'lodash/uniqBy';
 
 import {Client} from 'sentry/api';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';

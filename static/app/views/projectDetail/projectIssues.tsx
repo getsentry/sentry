@@ -6,7 +6,7 @@ import pick from 'lodash/pick';
 import * as qs from 'query-string';
 
 import {Client} from 'sentry/api';
-import Button, {ButtonLabel} from 'sentry/components/button';
+import {Button, ButtonLabel} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import DiscoverButton from 'sentry/components/discoverButton';
 import GroupList from 'sentry/components/issues/groupList';
