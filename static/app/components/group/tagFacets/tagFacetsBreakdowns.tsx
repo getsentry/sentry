@@ -4,6 +4,8 @@ import styled from '@emotion/styled';
 import keyBy from 'lodash/keyBy';
 
 import {TagSegment} from 'sentry/actionCreators/events';
+import {Button} from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
 import Placeholder from 'sentry/components/placeholder';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import {t} from 'sentry/locale';
@@ -11,9 +13,6 @@ import space from 'sentry/styles/space';
 import {TagWithTopValues} from 'sentry/types';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
-
-import Button from '../../button';
-import ButtonBar from '../../buttonBar';
 
 import TagBreakdown from './tagBreakdown';
 import {TagFacetsProps} from './tagFacetsTypes';

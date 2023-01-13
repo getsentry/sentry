@@ -8,7 +8,7 @@ import {
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
-import Button, {ButtonProps} from 'sentry/components/button';
+import {Button, ButtonProps} from 'sentry/components/button';
 import {t} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';

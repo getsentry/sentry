@@ -7,7 +7,7 @@ import * as qs from 'query-string';
 
 import {Client} from 'sentry/api';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import Button, {ButtonLabel} from 'sentry/components/button';
+import {Button, ButtonLabel} from 'sentry/components/button';
 import ButtonBar, {ButtonGrid} from 'sentry/components/buttonBar';
 import GroupList from 'sentry/components/issues/groupList';
 import Pagination from 'sentry/components/pagination';

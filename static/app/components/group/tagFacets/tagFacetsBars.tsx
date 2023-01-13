@@ -3,6 +3,8 @@ import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 import keyBy from 'lodash/keyBy';
 
+import {Button} from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
 import Link from 'sentry/components/links/link';
 import Placeholder from 'sentry/components/placeholder';
 import * as SidebarSection from 'sentry/components/sidebarSection';
@@ -15,9 +17,6 @@ import {formatPercentage} from 'sentry/utils/formatters';
 import {isMobilePlatform} from 'sentry/utils/platform';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
-
-import Button from '../../button';
-import ButtonBar from '../../buttonBar';
 
 import {TagFacetsProps} from './tagFacetsTypes';
 import {TagFacetsStyles} from '.';

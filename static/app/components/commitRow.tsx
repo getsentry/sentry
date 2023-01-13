@@ -4,6 +4,7 @@ import * as Sentry from '@sentry/react';
 
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import UserAvatar from 'sentry/components/avatar/userAvatar';
+import {Button} from 'sentry/components/button';
 import CommitLink from 'sentry/components/commitLink';
 import {Hovercard} from 'sentry/components/hovercard';
 import Link from 'sentry/components/links/link';
@@ -15,8 +16,6 @@ import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import space from 'sentry/styles/space';
 import {Commit} from 'sentry/types';
-
-import Button from './button';
 
 export function formatCommitMessage(message: string | null) {
   if (!message) {
