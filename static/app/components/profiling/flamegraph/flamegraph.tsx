@@ -190,7 +190,7 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
     });
   }, [profile, props.profiles, sorting, threadId, view, xAxis]);
 
-  const uiFrames: UIFrames = useMemo(() => {
+  useMemo(() => {
     if (!hasUIFrames) {
       return LOADING_OR_FALLBACK_UIFRAMES;
     }
