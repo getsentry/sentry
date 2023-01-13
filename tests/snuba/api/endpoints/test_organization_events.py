@@ -606,7 +606,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase, SearchIssueTest
             self.user.id,
             [f"{GroupType.PROFILE_BLOCKED_THREAD.value}-group1"],
             "prod",
-            timezone.now().replace(hour=0, minute=0, second=0) - timedelta(minutes=10),
+            self.ten_mins_ago,
         )
 
         query = {
