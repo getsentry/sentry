@@ -3,7 +3,7 @@ import {browserHistory, InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
@@ -11,7 +11,6 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import PageHeading from 'sentry/components/pageHeading';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import TransactionNameSearchBar from 'sentry/components/performance/searchBar';
 import * as TeamKeyTransactionManager from 'sentry/components/performance/teamKeyTransactionsManager';
@@ -155,7 +154,7 @@ export function PerformanceLanding(props: Props) {
         >
           <Layout.Header>
             <Layout.HeaderContent>
-              <StyledHeading>
+              <Layout.Title>
                 {t('Performance')}
                 <PageHeadingQuestionTooltip
                   title={tct(
@@ -167,7 +166,7 @@ export function PerformanceLanding(props: Props) {
                     }
                   )}
                 />
-              </StyledHeading>
+              </Layout.Title>
             </Layout.HeaderContent>
             <Layout.HeaderActions>
               {!showOnboarding && (
@@ -281,10 +280,6 @@ export function PerformanceLanding(props: Props) {
     </Layout.Page>
   );
 }
-
-const StyledHeading = styled(PageHeading)`
-  line-height: 40px;
-`;
 
 const SearchContainerWithFilter = styled('div')`
   display: grid;

@@ -1,6 +1,6 @@
 import {useState} from 'react';
 
-import EventDataSection from 'sentry/components/events/eventDataSection';
+import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import CrashContent from 'sentry/components/events/interfaces/crashContent';
 import CrashActions from 'sentry/components/events/interfaces/crashHeader/crashActions';
 import CrashTitle from 'sentry/components/events/interfaces/crashHeader/crashTitle';
@@ -21,7 +21,7 @@ type Props = {
   hideGuide?: boolean;
 };
 
-function Exception({
+export function Exception({
   event,
   data,
   projectId,
@@ -101,5 +101,3 @@ function Exception({
     </EventDataSection>
   );
 }
-
-export default Exception;

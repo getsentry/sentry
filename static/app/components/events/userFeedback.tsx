@@ -18,7 +18,7 @@ type Props = {
   className?: string;
 };
 
-class EventUserFeedback extends Component<Props> {
+export class EventUserFeedback extends Component<Props> {
   getUrl() {
     const {report, orgId, issueId} = this.props;
 
@@ -65,8 +65,6 @@ class EventUserFeedback extends Component<Props> {
     );
   }
 }
-
-export default EventUserFeedback;
 
 const Email = styled('span')`
   font-size: ${p => p.theme.fontSizeSmall};
