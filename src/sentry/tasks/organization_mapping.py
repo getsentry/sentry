@@ -64,9 +64,8 @@ def _remove_duplicate_mappings(expiration_threshold_time: datetime) -> None:
             return
 
         # Delete all expired mappings that don't match this org slug
-        for mapping in OrganizationMapping.objects.filter(organization_id=organization_id):
-            if (
-                mapping.slug != found_org.organization.slug
-                and mapping.date_created <= expiration_threshold_time
-            ):
+        for mapping in OrganizationMapping.objects.filter(organization_id=organization_id).exclude(
+            slug=found_org.organization.slug
+        ):
+            if mapping.date_created <= expiration_threshold_time:
                 mapping.delete()
