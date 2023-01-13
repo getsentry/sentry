@@ -70,7 +70,7 @@ urllib3[brotli]>=1.26.9
 brotli>=1.0.9
 # See if we can remove LDFLAGS from lib.sh
 # https://github.com/getsentry/sentry/pull/30094
-pyuwsgi==2.0.20.0
+pyuwsgi==2.0.20
 zstandard>=0.18.0
 
 msgpack>=1.0.4
