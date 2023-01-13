@@ -90,7 +90,7 @@ class ProjectCharts extends Component<Props, State> {
 
     if (hasSessions && !hasTransactions) {
       if (organization.features.includes('anr-rate') && project?.platform === 'android') {
-        return [DisplayModes.STABILITY, DisplayModes.FOREGROUND_ANR_RATE];
+        return [DisplayModes.STABILITY, DisplayModes.ANR_RATE];
       }
       return [DisplayModes.STABILITY, DisplayModes.ERRORS];
     }
@@ -100,7 +100,7 @@ class ProjectCharts extends Component<Props, State> {
     }
 
     if (organization.features.includes('anr-rate') && project?.platform === 'android') {
-      return [DisplayModes.STABILITY, DisplayModes.FOREGROUND_ANR_RATE];
+      return [DisplayModes.STABILITY, DisplayModes.ANR_RATE];
     }
 
     return [DisplayModes.STABILITY, DisplayModes.APDEX];
