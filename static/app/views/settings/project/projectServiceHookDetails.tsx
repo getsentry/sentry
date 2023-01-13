@@ -151,7 +151,7 @@ export default class ProjectServiceHookDetails extends AsyncView<Props, State> {
         </ErrorBoundary>
 
         <ServiceHookSettingsForm
-          orgId={organization.slug}
+          organization={organization}
           projectId={projectId}
           hookId={hookId}
           initialData={{
