@@ -537,5 +537,4 @@ const StyledReplayEventDataSection = styled(EventDataSection)`
   margin-bottom: ${space(3)};
 `;
 
-export default EventEntries;
-export {BorderlessEventEntries};
+export {EventEntries, BorderlessEventEntries};
