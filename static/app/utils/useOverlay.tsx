@@ -21,9 +21,9 @@ type PreventOverflowOptions = NonNullable<typeof preventOverflow['options']>;
  */
 const maxSize: Modifier<'maxSize', PreventOverflowOptions> = {
   name: 'maxSize',
-  enabled: true,
   phase: 'main',
   requiresIfExists: ['offset', 'preventOverflow', 'flip'],
+  enabled: false, // will be enabled when overlay is open
   fn({state, name, options}) {
     const overflow = detectOverflow(state, options);
     const {x, y} = state.modifiersData.preventOverflow ?? {x: 0, y: 0};
@@ -59,9 +59,9 @@ const maxSize: Modifier<'maxSize', PreventOverflowOptions> = {
 
 const applyMaxSize: Modifier<'applyMaxSize', {}> = {
   name: 'applyMaxSize',
-  enabled: true,
   phase: 'beforeWrite',
   requires: ['maxSize'],
+  enabled: false, // will be enabled when overlay is open
   fn({state}) {
     const {width, height} = state.modifiersData.maxSize;
     state.styles.popper.maxHeight = height;
@@ -102,6 +102,16 @@ function useOverlay({
   const [triggerElement, setTriggerElement] = useState<HTMLButtonElement | null>(null);
   const [overlayElement, setOverlayElement] = useState<HTMLDivElement | null>(null);
   const [arrowElement, setArrowElement] = useState<HTMLDivElement | null>(null);
+
+  // Initialize open state
+  const openState = useOverlayTriggerState({
+    isOpen,
+    defaultOpen,
+    onOpenChange: open => {
+      open && popperUpdate?.();
+      onOpenChange?.(open);
+    },
+  });
 
   // Ref objects for react-aria (useOverlayTrigger & useOverlay)
   const triggerRef = useMemo(() => ({current: triggerElement}), [triggerElement]);
@@ -149,14 +159,18 @@ function useOverlay({
       },
       {
         ...maxSize,
+        enabled: openState.isOpen,
         options: {
           padding: 16,
           ...preventOverflowOptions,
         },
       },
-      applyMaxSize,
+      {
+        ...applyMaxSize,
+        enabled: openState.isOpen,
+      },
     ],
-    [arrowElement, offset, preventOverflowOptions]
+    [arrowElement, offset, preventOverflowOptions, openState]
   );
   const {
     styles: popperStyles,
@@ -165,14 +179,6 @@ function useOverlay({
   } = usePopper(triggerElement, overlayElement, {modifiers, placement: position});
 
   // Get props for trigger button
-  const openState = useOverlayTriggerState({
-    isOpen,
-    defaultOpen,
-    onOpenChange: open => {
-      onOpenChange?.(open);
-      open && popperUpdate?.();
-    },
-  });
   const {buttonProps} = useButton({onPress: openState.toggle}, triggerRef);
   const {triggerProps, overlayProps: overlayTriggerProps} = useOverlayTrigger(
     {type},
