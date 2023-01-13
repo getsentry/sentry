@@ -346,7 +346,7 @@ urlpatterns += [
     ),
     url(
         r"^api/new-token/$",
-        RedirectView.as_view(pattern_name="sentry-api-new-auth-token", permanent=False),
+        RedirectView.as_view(pattern_name="sentry-account-api-new-auth-token", permanent=False),
     ),
     url(r"^api/[^0]+/", RedirectView.as_view(pattern_name="sentry-api", permanent=False)),
     url(r"^out/$", OutView.as_view()),
