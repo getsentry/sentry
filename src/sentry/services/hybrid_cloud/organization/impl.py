@@ -272,14 +272,13 @@ class DatabaseBackedOrganizationService(OrganizationService):
         )
         return self.serialize_member(member)
 
-    def add_team_member(
-        self, *, team_id: int, organization_member: ApiOrganizationMember
-    ) -> ApiTeamMember:
-        omt = OrganizationMemberTeam.objects.create(
+    def add_team_member(self, *, team_id: int, organization_member: ApiOrganizationMember) -> None:
+        OrganizationMemberTeam.objects.create(
             team_id=team_id, organizationmember_id=organization_member.id
         )
-        project_ids = ()  # TODO?
-        return self._serialize_team_member(omt, project_ids)
+        # It might be nice to return an ApiTeamMember to represent what we just
+        # created, but doing so would require a list of project IDs. We can implement
+        # that if a return value is needed in the future.
 
     def update_membership_flags(self, *, organization_member: ApiOrganizationMember) -> None:
         model = OrganizationMember.objects.get(id=organization_member.id)
