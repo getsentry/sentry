@@ -10,7 +10,7 @@ import useProjects from 'sentry/utils/useProjects';
 
 interface ExportProfileButtonProps extends Omit<ButtonProps, 'onClick' | 'children'> {
   eventId: string | undefined;
-  orgId: string | undefined;
+  orgId: string;
   projectId: string | undefined;
   children?: React.ReactNode;
   variant?: 'xs' | 'default';
