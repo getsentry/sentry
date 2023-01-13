@@ -41,7 +41,7 @@ type Props = {
   loadingTeams: boolean;
   organization: Organization;
   teams: TeamWithProjects[];
-} & RouteComponentProps<{orgId: string}, {}>;
+} & RouteComponentProps<{}, {}>;
 
 function ProjectCardList({projects}: {projects: Project[]}) {
   const organization = useOrganization();

@@ -12,6 +12,8 @@ import NarrowLayout from 'sentry/components/narrowLayout';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import space from 'sentry/styles/space';
+import {Organization} from 'sentry/types';
+import withOrganization from 'sentry/utils/withOrganization';
 import AsyncView from 'sentry/views/asyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
@@ -26,7 +28,9 @@ type InviteDetails = {
   ssoProvider?: string;
 };
 
-type Props = RouteComponentProps<{memberId: string; token: string; orgId?: string}, {}>;
+type Props = RouteComponentProps<{memberId: string; token: string}, {}> & {
+  organization: Organization;
+};
 
 type State = AsyncView['state'] & {
   acceptError: boolean | undefined;
@@ -38,9 +42,12 @@ class AcceptOrganizationInvite extends AsyncView<Props, State> {
   disableErrorReport = false;
 
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
-    const {memberId, orgId, token} = this.props.params;
-    if (orgId) {
-      return [['inviteDetails', `/accept-invite/${orgId}/${memberId}/${token}/`]];
+    const {organization} = this.props;
+    const {memberId, token} = this.props.params;
+    if (organization.slug) {
+      return [
+        ['inviteDetails', `/accept-invite/${organization.slug}/${memberId}/${token}/`],
+      ];
     }
     return [['inviteDetails', `/accept-invite/${memberId}/${token}/`]];
   }
@@ -60,14 +67,18 @@ class AcceptOrganizationInvite extends AsyncView<Props, State> {
   };
 
   handleAcceptInvite = async () => {
-    const {memberId, orgId, token} = this.props.params;
+    const {organization} = this.props;
+    const {memberId, token} = this.props.params;
 
     this.setState({accepting: true});
     try {
-      if (orgId) {
-        await this.api.requestPromise(`/accept-invite/${orgId}/${memberId}/${token}/`, {
-          method: 'POST',
-        });
+      if (organization.slug) {
+        await this.api.requestPromise(
+          `/accept-invite/${organization.slug}/${memberId}/${token}/`,
+          {
+            method: 'POST',
+          }
+        );
       } else {
         await this.api.requestPromise(`/accept-invite/${memberId}/${token}/`, {
           method: 'POST',
@@ -316,4 +327,4 @@ const ActionsLeft = styled('span')`
 const InviteDescription = styled('p')`
   font-size: 1.2em;
 `;
-export default AcceptOrganizationInvite;
+export default withOrganization(AcceptOrganizationInvite);

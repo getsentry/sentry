@@ -39,15 +39,16 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
   State & AbstractIntegrationDetailedView['state']
 > {
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
-    const {orgId, integrationSlug} = this.props.params;
+    const {organization} = this.props;
+    const {integrationSlug} = this.props.params;
     return [
       [
         'information',
-        `/organizations/${orgId}/config/integrations/?provider_key=${integrationSlug}`,
+        `/organizations/${organization.slug}/config/integrations/?provider_key=${integrationSlug}`,
       ],
       [
         'configurations',
-        `/organizations/${orgId}/integrations/?provider_key=${integrationSlug}&includeConfig=0`,
+        `/organizations/${organization.slug}/integrations/?provider_key=${integrationSlug}&includeConfig=0`,
       ],
     ];
   }
