@@ -132,7 +132,7 @@ describe('ProjectDetail > ProjectAnr', function () {
 
     await waitFor(() => expect(screen.getByText('11.562%')).toBeInTheDocument());
 
-    expect(screen.getByRole('button', {name: 'Open in Issues'})).toHaveAttribute(
+    expect(screen.getByRole('button', {name: 'View Issues'})).toHaveAttribute(
       'href',
       '/organizations/org-slug/issues/?project=1&query=mechanism%3AANR%20release%3Aabc&sort=freq&statsPeriod=7d'
     );
