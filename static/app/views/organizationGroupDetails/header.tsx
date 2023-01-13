@@ -412,6 +412,7 @@ const ShortIdBreadrcumb = styled('div')`
 const StyledShortId = styled(ShortId)`
   font-family: ${p => p.theme.text.family};
   font-size: ${p => p.theme.fontSizeMedium};
+  line-height: 1;
 `;
 
 const HeaderRow = styled('div')`
