@@ -17,6 +17,7 @@ from .rules.helpers.time_to_adoptions import LATEST_RELEASE_TTAS, Platform
 from .rules.logging import should_log_rules_change
 from .rules.utils import (
     BOOSTED_KEY_TRANSACTION_LIMIT,
+    DEFAULT_BIASES,
     RESERVED_IDS,
     RuleType,
     get_enabled_user_biases,
@@ -47,4 +48,5 @@ __all__ = [
     "BOOSTED_KEY_TRANSACTION_LIMIT",
     "HEALTH_CHECK_GLOBS",
     "RESERVED_IDS",
+    "DEFAULT_BIASES",
 ]
