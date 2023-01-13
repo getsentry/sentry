@@ -1,3 +1,4 @@
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import ClippedBox from 'sentry/components/clippedBox';
@@ -9,9 +10,16 @@ import {
 import {IconFlag} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Frame, Organization, SentryAppComponent} from 'sentry/types';
+import {
+  CodecovStatusCode,
+  Coverage,
+  Frame,
+  Organization,
+  SentryAppComponent,
+} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
+import useProjects from 'sentry/utils/useProjects';
 import withOrganization from 'sentry/utils/withOrganization';
 
 import {parseAssembly} from '../utils';
@@ -21,6 +29,7 @@ import ContextLine from './contextLine';
 import {FrameRegisters} from './frameRegisters';
 import {FrameVariables} from './frameVariables';
 import {OpenInContextLine} from './openInContextLine';
+import useStacktraceLink from './useStacktraceLink';
 
 type Props = {
   components: Array<SentryAppComponent>;
@@ -58,6 +67,18 @@ const Context = ({
   registersMeta,
 }: Props) => {
   const isMobile = isMobileLanguage(event);
+  const {projects} = useProjects();
+  const project = useMemo(
+    () => projects.find(p => p.id === event.projectID),
+    [projects, event]
+  );
+
+  const {data, isLoading} = useStacktraceLink({
+    event,
+    frame,
+    orgSlug: organization?.slug || '',
+    projectSlug: project?.slug,
+  });
 
   if (
     !hasContextSource &&
@@ -92,6 +113,44 @@ const Context = ({
     }
   }
 
+  const shouldShowCodecovData =
+    organization?.features.includes('codecov-stacktrace-integration') &&
+    organization?.codecovAccess;
+
+  if (shouldShowCodecovData && (isLoading || !data)) {
+    return null;
+  }
+
+  const getLineCoverageColor = (line: [number, string]): string => {
+    if (
+      !shouldShowCodecovData ||
+      data?.codecovStatusCode !== CodecovStatusCode.COVERAGE_EXISTS
+    ) {
+      return 'transparent';
+    }
+
+    let coverage = Coverage.NOT_APPLICABLE;
+    for (const lc of data.lineCoverage!) {
+      if (lc.lineNo === line[0]) {
+        coverage = lc.coverage;
+        break;
+      }
+    }
+
+    switch (coverage) {
+      case Coverage.COVERED:
+        return 'green100';
+      case Coverage.NOT_COVERED:
+        return 'red100';
+      case Coverage.PARTIAL:
+        return 'yellow100';
+      case Coverage.NOT_APPLICABLE:
+      // fallthrough
+      default:
+        return 'transparent';
+    }
+  };
+
   const contextLines = isExpanded
     ? frame.context
     : frame.context.filter(l => l[0] === frame.lineNo);
@@ -121,7 +180,12 @@ const Context = ({
           const showStacktraceLink = hasStacktraceLink && isActive;
 
           return (
-            <StyledContextLine key={index} line={line} isActive={isActive}>
+            <StyledContextLine
+              key={index}
+              line={line}
+              isActive={isActive}
+              color={getLineCoverageColor(line)}
+            >
               {hasComponents && (
                 <ErrorBoundary mini>
                   <OpenInContextLine
