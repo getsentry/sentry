@@ -1,5 +1,5 @@
 import Alert from 'sentry/components/alert';
-import EventDataSection from 'sentry/components/events/eventDataSection';
+import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {t, tct} from 'sentry/locale';
 import {Event} from 'sentry/types/event';
 import getSdkUpdateSuggestion from 'sentry/utils/getSdkUpdateSuggestion';
@@ -10,7 +10,7 @@ type Props = {
   };
 };
 
-const SdkUpdates = ({event}: Props) => {
+export function EventSdkUpdates({event}: Props) {
   const {sdkUpdates} = event;
 
   const eventDataSectinContent = sdkUpdates
@@ -40,6 +40,4 @@ const SdkUpdates = ({event}: Props) => {
       {eventDataSectinContent}
     </EventDataSection>
   );
-};
-
-export default SdkUpdates;
+}

@@ -8,7 +8,7 @@ import {updateProjects} from 'sentry/actionCreators/pageFilters';
 import {fetchTagValues} from 'sentry/actionCreators/tags';
 import Feature from 'sentry/components/acl/feature';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import CreateAlertButton from 'sentry/components/createAlertButton';
 import GlobalAppStoreConnectUpdateAlert from 'sentry/components/globalAppStoreConnectUpdateAlert';
@@ -19,7 +19,6 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
-import PageHeading from 'sentry/components/pageHeading';
 import MissingProjectMembership from 'sentry/components/projects/missingProjectMembership';
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {IconSettings} from 'sentry/icons';
@@ -214,7 +213,7 @@ class ProjectDetail extends AsyncView<Props, State> {
                     {label: t('Project Details')},
                   ]}
                 />
-                <ProjectTitle>
+                <Layout.Title>
                   {project ? (
                     <IdBadge
                       project={project}
@@ -225,7 +224,7 @@ class ProjectDetail extends AsyncView<Props, State> {
                     />
                   ) : null}
                   {project?.slug}
-                </ProjectTitle>
+                </Layout.Title>
               </Layout.HeaderContent>
 
               <Layout.HeaderActions>
@@ -348,13 +347,6 @@ class ProjectDetail extends AsyncView<Props, State> {
     );
   }
 }
-
-const ProjectTitle = styled(PageHeading)`
-  line-height: 40px;
-  display: flex;
-  gap: ${space(1)};
-  align-items: center;
-`;
 
 const ProjectFiltersWrapper = styled('div')`
   margin-bottom: ${space(2)};

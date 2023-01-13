@@ -2,14 +2,12 @@ import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
 import Breadcrumbs from 'sentry/components/breadcrumbs';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
-import PageHeading from 'sentry/components/pageHeading';
 import {IconCopy, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import {MetricRule} from 'sentry/views/alerts/rules/metric/types';
 
@@ -78,12 +76,8 @@ function DetailsHeader({hasMetricRuleDetailsError, rule, organization, project}:
 
 export default DetailsHeader;
 
-const RuleTitle = styled(PageHeading, {
+const RuleTitle = styled(Layout.Title, {
   shouldForwardProp: p => typeof p === 'string' && isPropValid(p) && p !== 'loading',
 })<{loading: boolean}>`
   ${p => p.loading && 'opacity: 0'};
-  line-height: 40px;
-  display: flex;
-  gap: ${space(1)};
-  align-items: center;
 `;

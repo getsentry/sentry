@@ -15,6 +15,7 @@ export {IconCircleFill} from './iconCircleFill';
 export {IconClock} from './iconClock';
 export {IconClose} from './iconClose';
 export {IconCode} from './iconCode';
+export {IconCodecov} from './iconCodecov';
 export {IconCommit} from './iconCommit';
 export {IconContract} from './iconContract';
 export {IconCopy} from './iconCopy';

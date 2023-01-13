@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import classNames from 'classnames';
 import scrollToElement from 'scroll-to-element';
 
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import StrictClick from 'sentry/components/strictClick';
 import {SLOW_TOOLTIP_DELAY} from 'sentry/constants';
 import {IconChevron, IconRefresh} from 'sentry/icons';

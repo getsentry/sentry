@@ -7,7 +7,7 @@ import AsyncComponent from 'sentry/components/asyncComponent';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import Input from 'sentry/components/input';
-import PageHeading from 'sentry/components/pageHeading';
+import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
@@ -334,7 +334,7 @@ const InlineSelectControl = styled(SelectControl)`
 const RadioGroupWithPadding = styled(RadioGroup)`
   margin-bottom: ${space(2)};
 `;
-const PageHeadingWithTopMargins = styled(PageHeading)`
+const PageHeadingWithTopMargins = styled(Layout.Title)`
   margin-top: 65px;
   margin-bottom: 0;
   padding-bottom: ${space(3)};
