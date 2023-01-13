@@ -55,7 +55,7 @@ def async_send_notification(
             )
         # maybe we need an explicit check if it's a primitive?
         else:
-            task_args.append({"type": "other", "value": val, "key": None})
+            task_args.append({"type": "other", "value": val, "key": key})
     _send_notification.delay(class_name, task_args)
 
 
