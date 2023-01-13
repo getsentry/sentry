@@ -5,13 +5,13 @@ import {Result} from 'sentry/components/forms/controls/selectAsyncControl';
 import {
   IconAsana,
   IconBitbucket,
+  IconCodecov,
   IconGeneric,
   IconGithub,
   IconGitlab,
   IconJira,
   IconVsts,
 } from 'sentry/icons';
-import {IconCodecov} from 'sentry/icons/iconCodecov';
 import {t} from 'sentry/locale';
 import HookStore from 'sentry/stores/hookStore';
 import {
