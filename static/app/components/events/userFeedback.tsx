@@ -1,4 +1,3 @@
-import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import ActivityAuthor from 'sentry/components/activity/author';
@@ -18,52 +17,47 @@ type Props = {
   className?: string;
 };
 
-export class EventUserFeedback extends Component<Props> {
-  getUrl() {
-    const {report, orgId, issueId} = this.props;
+export function EventUserFeedback({className, report, orgId, issueId}: Props) {
+  const user = report.user || {
+    name: report.name,
+    email: report.email,
+    id: '',
+    username: '',
+    ip_address: '',
+  };
 
-    return `/organizations/${orgId}/issues/${issueId}/events/${report.eventID}/?referrer=user-feedback`;
-  }
-
-  render() {
-    const {className, report} = this.props;
-    const user = report.user || {
-      name: report.name,
-      email: report.email,
-      id: '',
-      username: '',
-      ip_address: '',
-    };
-
-    return (
-      <div className={className}>
-        <ActivityItem
-          date={report.dateCreated}
-          author={{type: 'user', user}}
-          header={
-            <div>
-              <ActivityAuthor>{report.name}</ActivityAuthor>
-              <Clipboard value={report.email}>
-                <Email>
-                  {report.email}
-                  <StyledIconCopy size="xs" />
-                </Email>
-              </Clipboard>
-              {report.eventID && (
-                <ViewEventLink to={this.getUrl()}>{t('View event')}</ViewEventLink>
-              )}
-            </div>
-          }
-        >
-          <p
-            dangerouslySetInnerHTML={{
-              __html: nl2br(escape(report.comments)),
-            }}
-          />
-        </ActivityItem>
-      </div>
-    );
-  }
+  return (
+    <div className={className}>
+      <ActivityItem
+        date={report.dateCreated}
+        author={{type: 'user', user}}
+        header={
+          <div>
+            <ActivityAuthor>{report.name}</ActivityAuthor>
+            <Clipboard value={report.email}>
+              <Email>
+                {report.email}
+                <StyledIconCopy size="xs" />
+              </Email>
+            </Clipboard>
+            {report.eventID && (
+              <ViewEventLink
+                to={`/organizations/${orgId}/issues/${issueId}/events/${report.eventID}/?referrer=user-feedback`}
+              >
+                {t('View event')}
+              </ViewEventLink>
+            )}
+          </div>
+        }
+      >
+        <p
+          dangerouslySetInnerHTML={{
+            __html: nl2br(escape(report.comments)),
+          }}
+        />
+      </ActivityItem>
+    </div>
+  );
 }
 
 const Email = styled('span')`
