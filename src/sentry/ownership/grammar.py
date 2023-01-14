@@ -14,6 +14,7 @@ from rest_framework.serializers import ValidationError
 
 from sentry.eventstore.models import EventSubjectTemplateData
 from sentry.models import ActorTuple, RepositoryProjectPathConfig
+from sentry.utils.codeowners import codeowners_match
 from sentry.utils.event_frames import find_stack_frames, get_sdk_name, munged_filename_and_frames
 from sentry.utils.glob import glob_match
 from sentry.utils.safe import PathSearchable, get_path
@@ -85,8 +86,8 @@ class Rule(namedtuple("Rule", "matcher owners")):
     def load(cls, data: Mapping[str, Any]) -> Rule:
         return cls(Matcher.load(data["matcher"]), [Owner.load(o) for o in data["owners"]])
 
-    def test(self, data: Mapping[str, Any]) -> Union[bool, Any]:
-        return self.matcher.test(data)
+    def test(self, data: Mapping[str, Any], fast_search_flag=False) -> Union[bool, Any]:
+        return self.matcher.test(data, fast_search_flag)
 
 
 class Matcher(namedtuple("Matcher", "type pattern")):
@@ -128,10 +129,7 @@ class Matcher(namedtuple("Matcher", "type pattern")):
 
         return frames, keys
 
-    def test(
-        self,
-        data: PathSearchable,
-    ) -> bool:
+    def test(self, data: PathSearchable, fast_search_flag=False) -> bool:
         if self.type == URL:
             return self.test_url(data)
         elif self.type == PATH:
@@ -141,17 +139,21 @@ class Matcher(namedtuple("Matcher", "type pattern")):
         elif self.type.startswith("tags."):
             return self.test_tag(data)
         elif self.type == CODEOWNERS:
+            fast_matching_func = lambda val, pattern: bool(codeowners_match(val, pattern))
+            slow_matching_func = (
+                lambda val, pattern: bool(_path_to_regex(pattern).search(val))
+                if val is not None
+                else False
+            )
             return self.test_frames(
                 *self.munge_if_needed(data),
                 # Codeowners has a slightly different syntax compared to issue owners
                 # As such we need to match it using gitignore logic.
                 # See syntax documentation here:
                 # https://docs.github.com/en/github/creating-cloning-and-archiving-repositories/creating-a-repository-on-github/about-code-owners
-                match_frame_value_func=lambda val, pattern: bool(
-                    _path_to_regex(pattern).search(val)
-                )
-                if val is not None
-                else False,
+                match_frame_value_func=fast_matching_func
+                if fast_search_flag
+                else slow_matching_func,
             )
         return False
 

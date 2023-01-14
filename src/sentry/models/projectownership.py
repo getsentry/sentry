@@ -15,7 +15,7 @@ from sentry.utils import metrics
 from sentry.utils.cache import cache
 
 if TYPE_CHECKING:
-    from sentry.models import Team
+    from sentry.models import ProjectCodeOwners, Team
     from sentry.services.hybrid_cloud.user import APIUser
 
 READ_CACHE_DURATION = 3600
@@ -117,7 +117,7 @@ class ProjectOwnership(Model):
         codeowners = ProjectCodeOwners.get_codeowners_cached(project_id)
         ownership.schema = cls.get_combined_schema(ownership, codeowners)
 
-        rules = cls._matching_ownership_rules(ownership, project_id, data)
+        rules = cls._matching_ownership_rules(ownership, data)
 
         if not rules:
             project = Project.objects.get(id=project_id)
@@ -190,10 +190,8 @@ class ProjectOwnership(Model):
             if not ownership:
                 ownership = cls(project_id=project_id)
 
-            ownership_rules = cls._matching_ownership_rules(ownership, project_id, data)
-            codeowners_rules = (
-                cls._matching_ownership_rules(codeowners, project_id, data) if codeowners else []
-            )
+            ownership_rules = cls._matching_ownership_rules(ownership, data)
+            codeowners_rules = cls._matching_ownership_rules(codeowners, data) if codeowners else []
 
             if not (codeowners_rules or ownership_rules):
                 return []
@@ -293,12 +291,15 @@ class ProjectOwnership(Model):
 
     @classmethod
     def _matching_ownership_rules(
-        cls, ownership: "ProjectOwnership", project_id: int, data: Mapping[str, Any]
+        cls, ownership: Union["ProjectOwnership", "ProjectCodeOwners"], data: Mapping[str, Any]
     ) -> Sequence["Rule"]:
         rules = []
+        fast_search_flag = features.has(
+            "organizations:scaleable_codeowners_search", ownership.project.organization, actor=None
+        )
         if ownership.schema is not None:
             for rule in load_schema(ownership.schema):
-                if rule.test(data):
+                if rule.test(data, fast_search_flag):
                     rules.append(rule)
 
         return rules
