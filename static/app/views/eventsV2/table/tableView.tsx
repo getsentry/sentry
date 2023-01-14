@@ -426,7 +426,7 @@ function TableView(props: TableViewProps) {
           customMeasurements={customMeasurements}
         />
       ),
-      {modalCss, backdrop: 'static'}
+      {modalCss, closeEvents: 'escape-key'}
     );
   }
 

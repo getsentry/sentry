@@ -89,7 +89,7 @@ function ReplayPlayPauseBar() {
         title={t('Next breadcrumb')}
         icon={<IconNext size="sm" />}
         onClick={() => {
-          const startTimestampMs = replay?.getReplay().startedAt?.getTime();
+          const startTimestampMs = replay?.getReplay().started_at?.getTime();
           if (!startTimestampMs) {
             return;
           }

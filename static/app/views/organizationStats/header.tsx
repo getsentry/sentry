@@ -1,6 +1,5 @@
 import {FeatureFeedback} from 'sentry/components/featureFeedback';
 import * as Layout from 'sentry/components/layouts/thirds';
-import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {t, tct} from 'sentry/locale';
@@ -18,9 +17,9 @@ function StatsHeader({organization, activeTab}: Props) {
         <Layout.Title>
           {t('Stats')}
           <PageHeadingQuestionTooltip
-            title={tct(
-              'A view of the usage data that Sentry has received across your entire organization. [link: Read the docs].',
-              {link: <ExternalLink href="https://docs.sentry.io/product/stats/" />}
+            docsUrl="https://docs.sentry.io/product/stats/"
+            title={t(
+              'A view of the usage data that Sentry has received across your entire organization.'
             )}
           />
         </Layout.Title>
