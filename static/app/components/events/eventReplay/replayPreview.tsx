@@ -8,7 +8,6 @@ import {Provider as ReplayContextProvider} from 'sentry/components/replays/repla
 import ReplayPlayer from 'sentry/components/replays/replayPlayer';
 import ReplaysFeatureBadge from 'sentry/components/replays/replaysFeatureBadge';
 import {relativeTimeInMs} from 'sentry/components/replays/utils';
-import {IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Event} from 'sentry/types/event';
@@ -79,7 +78,7 @@ function ReplayContent({orgSlug, replaySlug, event}: Props) {
           <ReplayPlayer isPreview />
         </StaticPanel>
         <CTAOverlay>
-          <Button icon={<IconPlay />} priority="primary" to={fullReplayUrl}>
+          <Button priority="primary" to={fullReplayUrl}>
             {t('Open Replay')}
           </Button>
         </CTAOverlay>
