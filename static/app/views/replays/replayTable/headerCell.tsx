@@ -1,7 +1,7 @@
 import {t} from 'sentry/locale';
 import type {Sort} from 'sentry/utils/discover/fields';
 import SortableHeader from 'sentry/views/replays/replayTable/sortableHeader';
-import type {ReplayColumns} from 'sentry/views/replays/replayTable/types';
+import {ReplayColumns} from 'sentry/views/replays/replayTable/types';
 
 type Props = {
   column: keyof typeof ReplayColumns;

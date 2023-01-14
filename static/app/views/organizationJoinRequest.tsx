@@ -9,7 +9,6 @@ import NarrowLayout from 'sentry/components/narrowLayout';
 import {IconMegaphone} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import type {Organization} from 'sentry/types';
 import {trackAdhocEvent} from 'sentry/utils/analytics';
 
 type Props = RouteComponentProps<{orgId: string}, {}>;
