@@ -60,6 +60,8 @@ from sentry.search.events.datasets.metrics import MetricsDatasetConfig
 from sentry.search.events.datasets.metrics_layer import MetricsLayerDatasetConfig
 from sentry.search.events.datasets.profiles import ProfilesDatasetConfig
 from sentry.search.events.datasets.sessions import SessionsDatasetConfig
+from sentry.search.events.datasets.issue_platform import IssuePlatformDatasetConfig
+
 from sentry.search.events.types import (
     EventsResponse,
     HistogramParams,
@@ -325,7 +327,7 @@ class QueryBuilder(BaseQueryBuilder):
             Dataset.Discover,
             Dataset.Transactions,
             Dataset.Events,
-            Dataset.IssuePlatform,
+            # Dataset.IssuePlatform,
         ]:
             self.config = DiscoverDatasetConfig(self)
         elif self.dataset == Dataset.Sessions:
@@ -337,6 +339,8 @@ class QueryBuilder(BaseQueryBuilder):
                 self.config = MetricsDatasetConfig(self)
         elif self.dataset == Dataset.Profiles:
             self.config = ProfilesDatasetConfig(self)
+        elif self.dataset == Dataset.IssuePlatform:
+            self.config = IssuePlatformDatasetConfig(self)
         else:
             raise NotImplementedError(f"Data Set configuration not found for {self.dataset}.")
 
