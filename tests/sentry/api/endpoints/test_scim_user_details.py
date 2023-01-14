@@ -526,6 +526,7 @@ class SCIMMemberDetailsAzureTests(SCIMAzureTestCase):
             "emails": [{"primary": True, "value": "test.user@okta.local", "type": "work"}],
             "name": {"familyName": "N/A", "givenName": "N/A"},
             "meta": {"resourceType": "User"},
+            "sentryOrgRole": self.organization.default_role,
         }
 
 
