@@ -8,7 +8,6 @@ import * as qs from 'query-string';
 import CompactSelect from 'sentry/components/compactSelect';
 import CompositeSelect from 'sentry/components/compositeSelect';
 import DropdownButton from 'sentry/components/dropdownButton';
-import TextOverflow from 'sentry/components/textOverflow';
 import {IconEllipsis} from 'sentry/icons/iconEllipsis';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -20,6 +19,7 @@ import {DisplayModes} from 'sentry/utils/discover/types';
 import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {usePerformanceDisplayType} from 'sentry/utils/performance/contexts/performanceDisplayContext';
 import useOrganization from 'sentry/utils/useOrganization';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
 
 import {GenericPerformanceWidgetDataType} from '../types';
@@ -233,7 +233,9 @@ export const WidgetInteractiveTitle = ({
 
   const handleChange = option => {
     if (option.value === 'open_in_discover') {
-      browserHistory.push(getEventViewDiscoverPath(organization, eventView));
+      browserHistory.push(
+        normalizeUrl(getEventViewDiscoverPath(organization, eventView))
+      );
     } else {
       setChartSetting(option.value);
     }
@@ -244,15 +246,19 @@ export const WidgetInteractiveTitle = ({
       options={menuOptions}
       value={chartSetting}
       onChange={handleChange}
-      renderWrapAs={TextOverflow}
       triggerProps={{borderless: true, size: 'zero'}}
     />
   );
 };
 
 const StyledCompactSelect = styled(CompactSelect)`
+  /* Reset font-weight set by HeaderTitleLegend, buttons are already bold and
+   * setting this higher up causes it to trickle into the menues */
+  font-weight: normal;
+  margin: 0 -${space(0.5)};
+  min-width: 0;
+
   button {
-    padding: ${space(0)};
     font-size: ${p => p.theme.fontSizeLarge};
   }
 `;
@@ -289,7 +295,9 @@ export const WidgetContainerActions = ({
 
   function handleWidgetActionChange(value) {
     if (value === 'open_in_discover') {
-      browserHistory.push(getEventViewDiscoverPath(organization, eventView));
+      browserHistory.push(
+        normalizeUrl(getEventViewDiscoverPath(organization, eventView))
+      );
     }
   }
 

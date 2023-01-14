@@ -1,5 +1,6 @@
 from typing import Any, Dict, Union
 
+import sentry_sdk
 from django.conf import settings
 from django.db import transaction
 from django.db.models import Q
@@ -455,97 +456,101 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
         - The API also does not support setting secondary emails.
         """
 
-        if (
-            features.has("organizations:scim-orgmember-roles", organization, actor=None)
-            and "sentryOrgRole" in request.data
-            and request.data["sentryOrgRole"]
-        ):
-            role = request.data["sentryOrgRole"].lower()
-            idp_role_restricted = True
-        else:
-            role = organization.default_role
-            idp_role_restricted = False
-
-        # Allow any role as long as it doesn't have `org:admin` permissions
-        allowed_roles = {role for role in roles.get_all() if not role.has_scope("org:admin")}
-
-        # Check for roles not found
-        # TODO: move this to the serializer verification
-        if role not in {role.id for role in allowed_roles}:
-            raise SCIMApiError(detail=SCIM_400_INVALID_ORGROLE)
-
-        serializer = OrganizationMemberSerializer(
-            data={
-                "email": request.data.get("userName"),
-                "role": roles.get(role).id,
-            },
-            context={
-                "organization": organization,
-                "allowed_roles": allowed_roles,
-                "allow_existing_invite_request": True,
-            },
-        )
-
-        if not serializer.is_valid():
-            if "email" in serializer.errors and any(
-                ("is already a member" in error) for error in serializer.errors["email"]
+        with sentry_sdk.start_transaction(name="Provision Scim Member", sampled=True) as txn:
+            if (
+                features.has("organizations:scim-orgmember-roles", organization, actor=None)
+                and "sentryOrgRole" in request.data
+                and request.data["sentryOrgRole"]
             ):
-                # we include conflict logic in the serializer, check to see if that was
-                # our error and if so, return a 409 so the scim IDP knows how to handle
-                raise SCIMApiError(detail=SCIM_409_USER_EXISTS, status_code=409)
-            if "role" in serializer.errors:
-                # TODO: Change this to an error pointing to a doc showing the workaround if they
-                # tried to provision an org admin
-                raise SCIMApiError(detail=SCIM_400_INVALID_ORGROLE)
-            raise SCIMApiError(detail=json.dumps(serializer.errors))
+                role = request.data["sentryOrgRole"].lower()
+                idp_role_restricted = True
+            else:
+                role = organization.default_role
+                idp_role_restricted = False
+            txn.set_tag("role_restricted", idp_role_restricted)
 
-        result = serializer.validated_data
-        with transaction.atomic():
-            member_query = OrganizationMember.objects.filter(
-                organization=organization, email=result["email"], role=result["role"]
+            # Allow any role as long as it doesn't have `org:admin` permissions
+            allowed_roles = {role for role in roles.get_all() if not role.has_scope("org:admin")}
+
+            # Check for roles not found
+            # TODO: move this to the serializer verification
+            if role not in {role.id for role in allowed_roles}:
+                txn.set_tag("invalid_role_selection", True)
+                raise SCIMApiError(detail=SCIM_400_INVALID_ORGROLE)
+
+            txn.set_tag("invalid_role_selection", False)
+            serializer = OrganizationMemberSerializer(
+                data={
+                    "email": request.data.get("userName"),
+                    "role": roles.get(role).id,
+                },
+                context={
+                    "organization": organization,
+                    "allowed_roles": allowed_roles,
+                    "allow_existing_invite_request": True,
+                },
             )
 
-            if member_query.exists():
-                member = member_query.first()
-                if member.token_expired:
-                    member.regenerate_token()
+            if not serializer.is_valid():
+                if "email" in serializer.errors and any(
+                    ("is already a member" in error) for error in serializer.errors["email"]
+                ):
+                    # we include conflict logic in the serializer, check to see if that was
+                    # our error and if so, return a 409 so the scim IDP knows how to handle
+                    raise SCIMApiError(detail=SCIM_409_USER_EXISTS, status_code=409)
+                if "role" in serializer.errors:
+                    # TODO: Change this to an error pointing to a doc showing the workaround if they
+                    # tried to provision an org admin
+                    raise SCIMApiError(detail=SCIM_400_INVALID_ORGROLE)
+                raise SCIMApiError(detail=json.dumps(serializer.errors))
 
-            else:
-                member = OrganizationMember(
-                    organization=organization,
-                    email=result["email"],
-                    role=result["role"],
-                    inviter=request.user,
+            result = serializer.validated_data
+            with transaction.atomic():
+                member_query = OrganizationMember.objects.filter(
+                    organization=organization, email=result["email"], role=result["role"]
                 )
 
-                # TODO: are invite tokens needed for SAML orgs?
-                member.flags["idp:provisioned"] = True
-                member.flags["idp:role-restricted"] = idp_role_restricted
-                if settings.SENTRY_ENABLE_INVITES:
-                    member.token = member.generate_token()
-                member.save()
+                if member_query.exists():
+                    member = member_query.first()
+                    if member.token_expired:
+                        member.regenerate_token()
 
-        self.create_audit_entry(
-            request=request,
-            organization_id=organization.id,
-            target_object=member.id,
-            data=member.get_audit_log_data(),
-            event=audit_log.get_event_id("MEMBER_INVITE")
-            if settings.SENTRY_ENABLE_INVITES
-            else audit_log.get_event_id("MEMBER_ADD"),
-        )
+                else:
+                    member = OrganizationMember(
+                        organization=organization,
+                        email=result["email"],
+                        role=result["role"],
+                        inviter=request.user,
+                    )
 
-        if settings.SENTRY_ENABLE_INVITES and result.get("sendInvite"):
-            member.send_invite_email()
-            member_invited.send_robust(
-                member=member,
-                user=request.user,
-                sender=self,
-                referrer=request.data.get("referrer"),
+                    # TODO: are invite tokens needed for SAML orgs?
+                    member.flags["idp:provisioned"] = True
+                    member.flags["idp:role-restricted"] = idp_role_restricted
+                    if settings.SENTRY_ENABLE_INVITES:
+                        member.token = member.generate_token()
+                    member.save()
+
+            self.create_audit_entry(
+                request=request,
+                organization_id=organization.id,
+                target_object=member.id,
+                data=member.get_audit_log_data(),
+                event=audit_log.get_event_id("MEMBER_INVITE")
+                if settings.SENTRY_ENABLE_INVITES
+                else audit_log.get_event_id("MEMBER_ADD"),
             )
 
-        context = serialize(
-            member,
-            serializer=_scim_member_serializer_with_expansion(organization),
-        )
-        return Response(context, status=201)
+            if settings.SENTRY_ENABLE_INVITES and result.get("sendInvite"):
+                member.send_invite_email()
+                member_invited.send_robust(
+                    member=member,
+                    user=request.user,
+                    sender=self,
+                    referrer=request.data.get("referrer"),
+                )
+
+            context = serialize(
+                member,
+                serializer=_scim_member_serializer_with_expansion(organization),
+            )
+            return Response(context, status=201)

@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {openCreateOwnershipRule} from 'sentry/actionCreators/modal';
 import Access from 'sentry/components/acl/access';
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import * as SidebarSection from 'sentry/components/sidebarSection';
@@ -64,7 +64,6 @@ function OwnedBy({group, project, organization}: OwnedByProps) {
               'Set rules on which user or team owns an issue based on path, module, tag, or URL'
             )}
             size="sm"
-            color="gray200"
           />
         </TitleWrapper>
 

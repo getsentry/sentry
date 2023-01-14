@@ -3,7 +3,7 @@ import {Fragment} from 'react';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import AsyncComponent from 'sentry/components/asyncComponent';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import TextareaField from 'sentry/components/forms/fields/textareaField';
 import {t} from 'sentry/locale';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';

@@ -450,12 +450,14 @@ class EventsSnubaSearchTest(SharedSnubaTest):
             project_id=self.project.id,
         )
         group_4 = event_4.group
-        group_4.update(type=GroupType.PERFORMANCE_SLOW_SPAN.value)
-        results = self.make_query(search_filter_query="issue.type:performance_slow_span")
+        group_4.update(type=GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN.value)
+        results = self.make_query(
+            search_filter_query="issue.type:performance_render_blocking_asset_span"
+        )
         assert set(results) == {group_4}
 
         results = self.make_query(
-            search_filter_query="issue.type:[performance_slow_span, performance_n_plus_one_db_queries, error]"
+            search_filter_query="issue.type:[performance_render_blocking_asset_span, performance_n_plus_one_db_queries, error]"
         )
         assert set(results) == {self.group1, self.group2, group_3, group_4}
 
@@ -2044,7 +2046,7 @@ class EventsTransactionsSnubaSearchTest(SharedSnubaTest):
                 "timestamp": iso_format(before_now(minutes=1)),
                 "start_timestamp": iso_format(before_now(minutes=1)),
                 "tags": {"my_tag": 1},
-                "fingerprint": [f"{GroupType.PERFORMANCE_SLOW_SPAN.value}-group1"],
+                "fingerprint": [f"{GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN.value}-group1"],
             },
             project_id=self.project.id,
         )
@@ -2057,7 +2059,7 @@ class EventsTransactionsSnubaSearchTest(SharedSnubaTest):
                 "timestamp": iso_format(before_now(minutes=2)),
                 "start_timestamp": iso_format(before_now(minutes=2)),
                 "tags": {"my_tag": 1},
-                "fingerprint": [f"{GroupType.PERFORMANCE_SLOW_SPAN.value}-group2"],
+                "fingerprint": [f"{GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN.value}-group2"],
             },
             project_id=self.project.id,
         )
@@ -2102,7 +2104,7 @@ class EventsTransactionsSnubaSearchTest(SharedSnubaTest):
         assert list(results) == [self.perf_group_1, self.perf_group_2]
 
         results = self.make_query(
-            search_filter_query="issue.type:[performance_n_plus_one_db_queries, performance_slow_span] my_tag:1"
+            search_filter_query="issue.type:[performance_n_plus_one_db_queries, performance_render_blocking_asset_span] my_tag:1"
         )
         assert list(results) == [self.perf_group_1, self.perf_group_2]
 
@@ -2125,7 +2127,7 @@ class EventsTransactionsSnubaSearchTest(SharedSnubaTest):
         ]
 
         results = self.make_query(
-            search_filter_query="issue.type:[performance_slow_span, error] my_tag:1"
+            search_filter_query="issue.type:[performance_render_blocking_asset_span, error] my_tag:1"
         )
         assert list(results) == [
             self.perf_group_1,
@@ -2180,7 +2182,9 @@ class EventsTransactionsSnubaSearchTest(SharedSnubaTest):
                 "level": "info",
                 "culprit": "app/components/events/eventEntries in map",
                 "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
-                "fingerprint": [f"{GroupType.PERFORMANCE_SLOW_SPAN.value}-group12"],
+                "fingerprint": [
+                    f"{GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN.value}-group12"
+                ],
                 "event_id": "e" * 32,
                 "timestamp": iso_format(self.base_datetime),
                 "start_timestamp": iso_format(self.base_datetime),
@@ -2193,7 +2197,7 @@ class EventsTransactionsSnubaSearchTest(SharedSnubaTest):
         created_group = tx.groups[0]
 
         find_group = Group.objects.filter(
-            Q(type=GroupType.PERFORMANCE_SLOW_SPAN.value, message__icontains="tea")
+            Q(type=GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN.value, message__icontains="tea")
         ).first()
 
         assert created_group == find_group
@@ -2225,7 +2229,9 @@ class EventsTransactionsSnubaSearchTest(SharedSnubaTest):
                 "level": "info",
                 "culprit": "app/components/events/eventEntries in map",
                 "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
-                "fingerprint": [f"{GroupType.PERFORMANCE_SLOW_SPAN.value}-group12"],
+                "fingerprint": [
+                    f"{GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN.value}-group12"
+                ],
                 "event_id": "e" * 32,
                 "timestamp": iso_format(self.base_datetime),
                 "start_timestamp": iso_format(self.base_datetime),
@@ -2280,7 +2286,9 @@ class EventsTransactionsSnubaSearchTest(SharedSnubaTest):
                 "level": "info",
                 "culprit": "app/components/events/eventEntries in map",
                 "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
-                "fingerprint": [f"{GroupType.PERFORMANCE_SLOW_SPAN.value}-group12"],
+                "fingerprint": [
+                    f"{GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN.value}-group12"
+                ],
                 "event_id": "e" * 32,
                 "timestamp": iso_format(self.base_datetime),
                 "start_timestamp": iso_format(self.base_datetime),
@@ -2307,7 +2315,7 @@ class EventsGenericSnubaSearchTest(SharedSnubaTest, OccurrenceTestMixin):
         super().setUp()
         self.base_datetime = (datetime.utcnow() - timedelta(days=3)).replace(tzinfo=pytz.utc)
 
-        occurrence, group_info = process_event_and_issue_occurrence(
+        _, group_info = process_event_and_issue_occurrence(
             self.build_occurrence_data(),
             {
                 "event_id": uuid.uuid4().hex,
@@ -2321,7 +2329,7 @@ class EventsGenericSnubaSearchTest(SharedSnubaTest, OccurrenceTestMixin):
         )
         self.profile_group_1 = group_info.group
 
-        occurrence, group_info = process_event_and_issue_occurrence(
+        _, group_info = process_event_and_issue_occurrence(
             self.build_occurrence_data(fingerprint=["put-me-in-group-2"]),
             {
                 "event_id": uuid.uuid4().hex,
@@ -2334,6 +2342,19 @@ class EventsGenericSnubaSearchTest(SharedSnubaTest, OccurrenceTestMixin):
             },
         )
         self.profile_group_2 = group_info.group
+
+        process_event_and_issue_occurrence(
+            self.build_occurrence_data(fingerprint=["put-me-in-group-3"]),
+            {
+                "event_id": uuid.uuid4().hex,
+                "project_id": self.project.id,
+                "title": "some other problem",
+                "platform": "python",
+                "tags": {"my_tag": "2"},
+                "timestamp": before_now(minutes=2).isoformat(),
+                "message_timestamp": before_now(minutes=2).isoformat(),
+            },
+        )
 
         error_event_data = {
             "timestamp": iso_format(self.base_datetime - timedelta(days=20)),

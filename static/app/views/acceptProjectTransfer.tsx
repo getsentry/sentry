@@ -6,6 +6,7 @@ import Form from 'sentry/components/forms/form';
 import NarrowLayout from 'sentry/components/narrowLayout';
 import {t, tct} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import AsyncView from 'sentry/views/asyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
@@ -42,7 +43,7 @@ class AcceptProjectTransfer extends AsyncView<Props, State> {
       success: () => {
         const orgSlug = formData.organization;
 
-        this.props.router.push(`/${orgSlug}`);
+        this.props.router.push(normalizeUrl(`/organizations/${orgSlug}/projects/`));
         addSuccessMessage(t('Project successfully transferred'));
       },
       error: error => {

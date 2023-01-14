@@ -66,9 +66,6 @@ from sentry.incidents.endpoints.project_alert_rule_index import (
 from sentry.incidents.endpoints.project_alert_rule_task_details import (
     ProjectAlertRuleTaskDetailsEndpoint,
 )
-from sentry.replays.endpoints.organization_issue_replay_count import (
-    OrganizationIssueReplayCountEndpoint,
-)
 from sentry.replays.endpoints.organization_replay_count import OrganizationReplayCountEndpoint
 from sentry.replays.endpoints.organization_replay_events_meta import (
     OrganizationReplayEventsMetaEndpoint,
@@ -158,7 +155,6 @@ from .endpoints.group_participants import GroupParticipantsEndpoint
 from .endpoints.group_reprocessing import GroupReprocessingEndpoint
 from .endpoints.group_similar_issues import GroupSimilarIssuesEndpoint
 from .endpoints.group_stats import GroupStatsEndpoint
-from .endpoints.group_suspect_releases import GroupSuspectReleasesEndpoint
 from .endpoints.group_tagkey_details import GroupTagKeyDetailsEndpoint
 from .endpoints.group_tagkey_values import GroupTagKeyValuesEndpoint
 from .endpoints.group_tags import GroupTagsEndpoint
@@ -408,6 +404,7 @@ from .endpoints.project_processingissues import (
     ProjectProcessingIssuesFixEndpoint,
 )
 from .endpoints.project_profiling_profile import (
+    ProjectProfilingEventEndpoint,
     ProjectProfilingFunctionsEndpoint,
     ProjectProfilingProfileEndpoint,
     ProjectProfilingRawProfileEndpoint,
@@ -516,7 +513,6 @@ GROUP_URLS = [
     url(r"^(?P<issue_id>[^\/]+)/events/$", GroupEventsEndpoint.as_view()),
     url(r"^(?P<issue_id>[^\/]+)/events/latest/$", GroupEventsLatestEndpoint.as_view()),
     url(r"^(?P<issue_id>[^\/]+)/events/oldest/$", GroupEventsOldestEndpoint.as_view()),
-    url(r"^(?P<issue_id>[^\/]+)/suspect-releases/$", GroupSuspectReleasesEndpoint.as_view()),
     url(r"^(?P<issue_id>[^\/]+)/(?:notes|comments)/$", GroupNotesEndpoint.as_view()),
     url(
         r"^(?P<issue_id>[^\/]+)/(?:notes|comments)/(?P<note_id>[^\/]+)/$",
@@ -1602,11 +1598,6 @@ urlpatterns = [
                     name="sentry-api-0-organization-replay-index",
                 ),
                 url(
-                    r"^(?P<organization_slug>[^\/]+)/issue-replay-count/$",
-                    OrganizationIssueReplayCountEndpoint.as_view(),
-                    name="sentry-api-0-organization-issue-replay-count",
-                ),
-                url(
                     r"^(?P<organization_slug>[^\/]+)/replay-count/$",
                     OrganizationReplayCountEndpoint.as_view(),
                     name="sentry-api-0-organization-replay-count",
@@ -2335,6 +2326,13 @@ urlpatterns = [
                 ),
             ]
         ),
+    ),
+    # Profiling - This is a temporary endpoint to easily go from a project id + profile id to a flamechart.
+    # It will be removed in the near future.
+    url(
+        r"^profiling/projects/(?P<project_id>[\w_-]+)/profile/(?P<profile_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/",
+        ProjectProfilingEventEndpoint.as_view(),
+        name="sentry-api-0-profiling-project-profile",
     ),
     # Groups
     url(r"^(?:issues|groups)/", include(GROUP_URLS)),

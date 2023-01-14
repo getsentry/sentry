@@ -25,6 +25,7 @@ GROUP_CATEGORIES_CUSTOM_EMAIL = (GroupCategory.ERROR, GroupCategory.PERFORMANCE)
 
 GROUP_TYPE_TO_CATEGORY = {
     GroupType.ERROR: GroupCategory.ERROR,
+    GroupType.PERFORMANCE_CONSECUTIVE_DB_OP: GroupCategory.PERFORMANCE,
     GroupType.PERFORMANCE_SLOW_SPAN: GroupCategory.PERFORMANCE,
     GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN: GroupCategory.PERFORMANCE,
     GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES: GroupCategory.PERFORMANCE,
@@ -36,6 +37,7 @@ GROUP_TYPE_TO_CATEGORY = {
 
 GROUP_TYPE_TO_TEXT = {
     GroupType.ERROR: "Error",
+    GroupType.PERFORMANCE_CONSECUTIVE_DB_OP: "Consecutive DB Queries",
     GroupType.PERFORMANCE_SLOW_SPAN: "Slow Span",
     GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN: "Render Blocking Asset Span",
     GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES: "N+1 Query",
@@ -48,6 +50,10 @@ GROUP_TYPE_TO_TEXT = {
 
 PERFORMANCE_TYPES = [
     gt.value for gt, gc in GROUP_TYPE_TO_CATEGORY.items() if gc == GroupCategory.PERFORMANCE
+]
+
+PROFILE_TYPES = [
+    gt.value for gt, gc in GROUP_TYPE_TO_CATEGORY.items() if gc == GroupCategory.PROFILE
 ]
 
 
