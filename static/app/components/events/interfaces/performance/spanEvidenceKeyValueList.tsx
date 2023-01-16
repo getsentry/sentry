@@ -25,14 +25,12 @@ export function SpanEvidenceKeyValueList(props: SpanEvidenceKeyValueListProps) {
     return <DefaultSpanEvidence {...props} />;
   }
 
-  console.log(props.issueType);
-
   const Component =
     {
       [IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES]: NPlusOneDBQueriesSpanEvidence,
       [IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS]: NPlusOneAPICallsSpanEvidence,
       [IssueType.PERFORMANCE_SLOW_SPAN]: SlowSpanSpanEvidence,
-      performance_consecutive_db_op: ConsecutiveDBQueriesSpanEvidence,
+      [IssueType.PERFORMANCE_CONSECUTIVE_DB_QUERIES]: ConsecutiveDBQueriesSpanEvidence,
     }[props.issueType] ?? DefaultSpanEvidence;
 
   return <Component {...props} />;
@@ -50,7 +48,9 @@ const ConsecutiveDBQueriesSpanEvidence = ({
         causeSpans
           ? makeRow(t('Starting Span'), getSpanEvidenceValue(causeSpans[0]))
           : null,
-        makeRow(t('Repeating Span'), getSpanEvidenceValue(offendingSpans[0])),
+        ...offendingSpans.map(span =>
+          makeRow(t('Parallelizable Span'), getSpanEvidenceValue(span))
+        ),
       ].filter(Boolean) as KeyValueListData
     }
   />
