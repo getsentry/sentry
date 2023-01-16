@@ -35,10 +35,10 @@
       "hash": "c6cca113a59f8486"
     },
     {
-      "timestamp": 1669236003.937326,
+      "timestamp": 1669236006.937326,
       "start_timestamp": 1669236003.406517,
       "exclusive_time": 530.808926,
-      "description": "SELECT pokemon FROM pokedex WHERE pokemon.name = 'pikachu'",
+      "description": "SELECT pokemon FROM pokedex WHERE pokemon.name=%s",
       "op": "db",
       "span_id": "a8d0ffadce91d103",
       "parent_span_id": "877546cc52754d21",

@@ -564,7 +564,7 @@ class SlowSpanDetector(PerformanceDetector):
         if description.endswith("..."):
             return False
 
-        # Ignore unparameterized queries
+        # Ignore queries without parameterization
         if not PARAMETERIZED_SQL_QUERY_REGEX.search(description):
             return False
 

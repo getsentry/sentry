@@ -2449,7 +2449,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
             last_event = None
 
             for _ in range(100):
-                manager = EventManager(make_event(**get_event("slow-db-spans")))
+                manager = EventManager(make_event(**get_event("slow-db-spans/slow-select-query")))
                 manager.normalize()
                 event = manager.save(self.project.id)
                 last_event = event
@@ -2471,7 +2471,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
         last_event = None
 
         for _ in range(100):
-            manager = EventManager(make_event(**get_event("slow-db-spans")))
+            manager = EventManager(make_event(**get_event("slow-db-spans/slow-select-query")))
             manager.normalize()
             event = manager.save(self.project.id)
             last_event = event
