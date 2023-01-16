@@ -209,7 +209,6 @@ def get_parallel_metrics_consumer(
         processing_factory,
         CommitPolicy(
             min_commit_frequency_sec=max_batch_time / 1000,
-            # TODO(markus): honor CLI params or remove them
-            min_commit_messages=None,
+            min_commit_messages=max_batch_size,
         ),
     )
