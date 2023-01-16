@@ -55,9 +55,7 @@ describe('SpanEvidenceKeyValueList', () => {
         screen.getByTestId(/span-evidence-key-value-list.repeating-spans/)
       ).toHaveTextContent('db - SELECT * FROM books');
 
-      expect(
-        screen.queryByRole('cell', {name: 'Problem Parameter'})
-      ).not.toBeInTheDocument();
+      expect(screen.queryByRole('cell', {name: 'Parameter'})).not.toBeInTheDocument();
       expect(
         screen.queryByTestId('span-evidence-key-value-list.problem-parameters')
       ).not.toBeInTheDocument();

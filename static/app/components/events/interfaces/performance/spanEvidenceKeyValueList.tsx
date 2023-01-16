@@ -94,7 +94,7 @@ const NPlusOneAPICallsSpanEvidence = ({
             getSpanEvidenceValue(offendingSpans[0])
           ),
           problemParameters.length > 0
-            ? makeRow(t('Problem Parameter'), problemParameters)
+            ? makeRow(t('Parameters'), problemParameters)
             : null,
         ].filter(Boolean) as KeyValueListData
       }
