@@ -95,7 +95,7 @@ describe('SpanEvidenceKeyValueList', () => {
 
       expect(screen.getByRole('cell', {name: 'Transaction'})).toBeInTheDocument();
       expect(
-        screen.getByTestId('span-evidence-key-value-list.transaction-name')
+        screen.getByTestId('span-evidence-key-value-list.transaction')
       ).toHaveTextContent('/');
 
       expect(screen.getByRole('cell', {name: 'Starting Span'})).toBeInTheDocument();
@@ -107,7 +107,7 @@ describe('SpanEvidenceKeyValueList', () => {
         screen.queryByRole('cell', {name: 'Parallelizable Span'})
       ).toBeInTheDocument();
       expect(
-        screen.getByTestId('span-evidence-key-value-list.offending-span-0')
+        screen.getByTestId('span-evidence-key-value-list.parallelizable-span')
       ).toHaveTextContent('db - SELECT COUNT(*) FROM USERS');
     });
   });
