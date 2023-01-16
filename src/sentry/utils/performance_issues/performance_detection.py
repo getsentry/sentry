@@ -957,8 +957,7 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
 
     def _fingerprint(self) -> str:
         hashed_spans = fingerprint_spans(self.consecutive_db_spans)
-        problem_class = GroupType.PERFORMANCE_CONSECUTIVE_DB_OP
-        return f"1-{problem_class}-{hashed_spans}"
+        return f"1-{GroupType.PERFORMANCE_CONSECUTIVE_DB_OP.value}-{hashed_spans}"
 
     def on_complete(self) -> None:
         self._validate_and_store_performance_problem()
