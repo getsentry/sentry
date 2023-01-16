@@ -48,7 +48,7 @@ type State = {
 
 type Props = {
   organization: Organization;
-} & RouteComponentProps<{integrationSlug: string; orgId: string}, {}> &
+} & RouteComponentProps<{integrationSlug: string}, {}> &
   AsyncComponent['props'];
 
 class AbstractIntegrationDetailedView<

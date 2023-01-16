@@ -1,5 +1,3 @@
-import {RouteComponentProps} from 'react-router';
-
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 import {AuthProvider, Organization} from 'sentry/types';
@@ -10,10 +8,9 @@ import AsyncView from 'sentry/views/asyncView';
 
 import OrganizationAuthList from './organizationAuthList';
 
-type Props = AsyncView['props'] &
-  RouteComponentProps<{orgId: string}, {}> & {
-    organization: Organization;
-  };
+type Props = AsyncView['props'] & {
+  organization: Organization;
+};
 
 type State = AsyncView['state'] & {
   provider: AuthProvider | null;
@@ -32,7 +29,7 @@ class OrganizationAuth extends AsyncView<Props, State> {
 
       // Don't break the back button by first replacing the current history
       // state so pressing back skips this react view.
-      this.props.router.replace(path);
+      this.props.router?.replace(path);
       window.location.assign(path);
     }
   }

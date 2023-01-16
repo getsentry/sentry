@@ -172,7 +172,7 @@ describe('Dashboards > Detail', function () {
       render(
         <CreateDashboard
           organization={initialData.organization}
-          params={{orgId: 'org-slug', templateId: 'default-template', widgetId: '2'}}
+          params={{templateId: 'default-template', widgetId: '2'}}
           router={initialData.router}
           location={{...initialData.router.location, pathname: '/widget/2/'}}
         />,

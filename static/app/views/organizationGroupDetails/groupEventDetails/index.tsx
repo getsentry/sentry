@@ -16,7 +16,7 @@ import {ReprocessingStatus} from '../utils';
 import GroupEventDetails from './groupEventDetails';
 
 export interface GroupEventDetailsProps
-  extends RouteComponentProps<{groupId: string; orgId: string; eventId?: string}, {}> {
+  extends RouteComponentProps<{groupId: string; eventId?: string}, {}> {
   event: Event;
   eventError: boolean;
   group: Group;

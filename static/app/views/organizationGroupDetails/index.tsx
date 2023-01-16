@@ -15,7 +15,7 @@ type Props = {
   children: React.ReactNode;
   isGlobalSelectionReady: boolean;
   selection: PageFilters;
-} & RouteComponentProps<{groupId: string; orgId: string}, {}>;
+} & RouteComponentProps<{groupId: string}, {}>;
 
 function OrganizationGroupDetails({selection, ...props}: Props) {
   const organization = useOrganization();

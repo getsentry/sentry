@@ -18,7 +18,7 @@ import {toTitleCase} from 'sentry/utils';
 import withOrganization from 'sentry/utils/withOrganization';
 import AsyncView from 'sentry/views/asyncView';
 
-type Props = RouteComponentProps<{orgId: string; teamId: string}, {}> & {
+type Props = RouteComponentProps<{teamId: string}, {}> & {
   organization: Organization;
   team: Team;
 };

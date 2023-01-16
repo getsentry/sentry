@@ -20,7 +20,7 @@ import EmptyState from './emptyState';
 import RepositorySwitcher from './repositorySwitcher';
 import withReleaseRepos from './withReleaseRepos';
 
-type Props = RouteComponentProps<{orgId: string; release: string}, {}> & {
+type Props = RouteComponentProps<{release: string}, {}> & {
   location: Location;
   orgSlug: Organization['slug'];
   projectSlug: Project['slug'];
@@ -35,12 +35,11 @@ type State = {
 
 class FilesChanged extends AsyncView<Props, State> {
   getTitle() {
-    const {params, projectSlug} = this.props;
-    const {orgId} = params;
+    const {params, orgSlug, projectSlug} = this.props;
 
     return routeTitleGen(
       t('Files Changed - Release %s', formatVersion(params.release)),
-      orgId,
+      orgSlug,
       false,
       projectSlug
     );

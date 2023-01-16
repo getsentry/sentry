@@ -19,7 +19,7 @@ type Props = {
   location: Location;
   onSave: (previous: Organization, updated: Organization) => void;
   organization: Organization;
-} & RouteComponentProps<{orgId: string}, {}>;
+} & RouteComponentProps<{}, {}>;
 
 type State = AsyncComponent['state'] & {
   authProvider: object;

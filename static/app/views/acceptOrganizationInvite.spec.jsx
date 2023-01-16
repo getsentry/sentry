@@ -9,18 +9,25 @@ jest.mock('sentry/actionCreators/account');
 
 const addMock = body =>
   MockApiClient.addMockResponse({
-    url: '/accept-invite/test-org/1/abc/',
+    url: '/accept-invite/org-slug/1/abc/',
     method: 'GET',
     body,
   });
 
 const getJoinButton = () =>
-  screen.queryByRole('button', {name: 'Join the test-org organization'});
+  screen.queryByRole('button', {name: 'Join the org-slug organization'});
 
 describe('AcceptOrganizationInvite', function () {
+  const organization = TestStubs.Organization({slug: 'org-slug'});
+  const initialData = window.__initialData;
+
+  afterEach(() => {
+    window.__initialData = initialData;
+  });
+
   it('can accept invitation', async function () {
     addMock({
-      orgSlug: 'test-org',
+      orgSlug: organization.slug,
       needsAuthentication: false,
       needs2fa: false,
       hasAuthProvider: false,
@@ -30,12 +37,12 @@ describe('AcceptOrganizationInvite', function () {
 
     render(
       <AcceptOrganizationInvite
-        params={{memberId: '1', orgId: 'test-org', token: 'abc'}}
+        params={{orgId: 'org-slug', memberId: '1', token: 'abc'}}
       />
     );
 
     const acceptMock = MockApiClient.addMockResponse({
-      url: '/accept-invite/test-org/1/abc/',
+      url: '/accept-invite/org-slug/1/abc/',
       method: 'POST',
     });
 
@@ -46,13 +53,52 @@ describe('AcceptOrganizationInvite', function () {
     expect(joinButton).toBeDisabled();
 
     await waitFor(() =>
-      expect(browserHistory.replace).toHaveBeenCalledWith('/test-org/')
+      expect(browserHistory.replace).toHaveBeenCalledWith('/org-slug/')
+    );
+  });
+
+  it('can accept invitation on customer-domains', async function () {
+    window.__initialData = {
+      customerDomain: {
+        subdomain: 'org-slug',
+        organizationUrl: 'https://org-slug.sentry.io',
+        sentryUrl: 'https://sentry.io',
+      },
+      links: {
+        sentryUrl: 'https://sentry.io',
+      },
+    };
+
+    addMock({
+      orgSlug: organization.slug,
+      needsAuthentication: false,
+      needs2fa: false,
+      hasAuthProvider: false,
+      requireSso: false,
+      existingMember: false,
+    });
+
+    render(<AcceptOrganizationInvite params={{memberId: '1', token: 'abc'}} />);
+
+    const acceptMock = MockApiClient.addMockResponse({
+      url: '/accept-invite/org-slug/1/abc/',
+      method: 'POST',
+    });
+
+    const joinButton = getJoinButton();
+
+    userEvent.click(joinButton);
+    expect(acceptMock).toHaveBeenCalled();
+    expect(joinButton).toBeDisabled();
+
+    await waitFor(() =>
+      expect(browserHistory.replace).toHaveBeenCalledWith('/org-slug/')
     );
   });
 
   it('requires authentication to join', function () {
     addMock({
-      orgSlug: 'test-org',
+      orgSlug: organization.slug,
       needsAuthentication: true,
       needs2fa: false,
       hasAuthProvider: false,
@@ -62,7 +108,7 @@ describe('AcceptOrganizationInvite', function () {
 
     render(
       <AcceptOrganizationInvite
-        params={{memberId: '1', orgId: 'test-org', token: 'abc'}}
+        params={{orgId: 'org-slug', memberId: '1', token: 'abc'}}
       />
     );
 
@@ -81,7 +127,7 @@ describe('AcceptOrganizationInvite', function () {
 
   it('suggests sso authentication to login', function () {
     addMock({
-      orgSlug: 'test-org',
+      orgSlug: organization.slug,
       needsAuthentication: true,
       needs2fa: false,
       hasAuthProvider: true,
@@ -92,7 +138,7 @@ describe('AcceptOrganizationInvite', function () {
 
     render(
       <AcceptOrganizationInvite
-        params={{memberId: '1', orgId: 'test-org', token: 'abc'}}
+        params={{orgId: 'org-slug', memberId: '1', token: 'abc'}}
       />
     );
 
@@ -112,7 +158,7 @@ describe('AcceptOrganizationInvite', function () {
 
   it('enforce required sso authentication', function () {
     addMock({
-      orgSlug: 'test-org',
+      orgSlug: organization.slug,
       needsAuthentication: true,
       needs2fa: false,
       hasAuthProvider: true,
@@ -123,7 +169,7 @@ describe('AcceptOrganizationInvite', function () {
 
     render(
       <AcceptOrganizationInvite
-        params={{memberId: '1', orgId: 'test-org', token: 'abc'}}
+        params={{orgId: 'org-slug', memberId: '1', token: 'abc'}}
       />
     );
 
@@ -143,7 +189,7 @@ describe('AcceptOrganizationInvite', function () {
 
   it('enforce required sso authentication for logged in users', function () {
     addMock({
-      orgSlug: 'test-org',
+      orgSlug: organization.slug,
       needsAuthentication: false,
       needs2fa: false,
       hasAuthProvider: true,
@@ -154,7 +200,7 @@ describe('AcceptOrganizationInvite', function () {
 
     render(
       <AcceptOrganizationInvite
-        params={{memberId: '1', orgId: 'test-org', token: 'abc'}}
+        params={{orgId: 'org-slug', memberId: '1', token: 'abc'}}
       />
     );
 
@@ -174,7 +220,7 @@ describe('AcceptOrganizationInvite', function () {
 
   it('show logout button for logged in users w/ sso and membership', async function () {
     addMock({
-      orgSlug: 'test-org',
+      orgSlug: organization.slug,
       needsAuthentication: false,
       needs2fa: false,
       hasAuthProvider: true,
@@ -185,7 +231,7 @@ describe('AcceptOrganizationInvite', function () {
 
     render(
       <AcceptOrganizationInvite
-        params={{memberId: '1', orgId: 'test-org', token: 'abc'}}
+        params={{orgId: 'org-slug', memberId: '1', token: 'abc'}}
       />
     );
 
@@ -199,7 +245,7 @@ describe('AcceptOrganizationInvite', function () {
 
   it('shows right options for logged in user and optional SSO', function () {
     addMock({
-      orgSlug: 'test-org',
+      orgSlug: organization.slug,
       needsAuthentication: false,
       needs2fa: false,
       hasAuthProvider: true,
@@ -210,7 +256,7 @@ describe('AcceptOrganizationInvite', function () {
 
     render(
       <AcceptOrganizationInvite
-        params={{memberId: '1', orgId: 'test-org', token: 'abc'}}
+        params={{orgId: 'org-slug', memberId: '1', token: 'abc'}}
       />
     );
 
@@ -221,7 +267,7 @@ describe('AcceptOrganizationInvite', function () {
 
   it('shows a logout button for existing members', async function () {
     addMock({
-      orgSlug: 'test-org',
+      orgSlug: organization.slug,
       needsAuthentication: false,
       needs2fa: false,
       hasAuthProvider: false,
@@ -231,7 +277,7 @@ describe('AcceptOrganizationInvite', function () {
 
     render(
       <AcceptOrganizationInvite
-        params={{memberId: '1', orgId: 'test-org', token: 'abc'}}
+        params={{orgId: 'org-slug', memberId: '1', token: 'abc'}}
       />
     );
 
@@ -244,7 +290,7 @@ describe('AcceptOrganizationInvite', function () {
 
   it('shows 2fa warning', function () {
     addMock({
-      orgSlug: 'test-org',
+      orgSlug: organization.slug,
       needsAuthentication: false,
       needs2fa: true,
       hasAuthProvider: false,
@@ -254,7 +300,7 @@ describe('AcceptOrganizationInvite', function () {
 
     render(
       <AcceptOrganizationInvite
-        params={{memberId: '1', orgId: 'test-org', token: 'abc'}}
+        params={{orgId: 'org-slug', memberId: '1', token: 'abc'}}
       />
     );
 

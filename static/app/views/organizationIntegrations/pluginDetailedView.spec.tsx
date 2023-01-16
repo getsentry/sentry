@@ -68,7 +68,7 @@ describe('PluginDetailedView', function () {
 
     render(
       <PluginDetailedView
-        params={{integrationSlug: 'pagerduty', orgId: organization.slug}}
+        params={{integrationSlug: 'pagerduty'}}
         route={route}
         routes={[]}
         routeParams={{}}
@@ -98,7 +98,7 @@ describe('PluginDetailedView', function () {
 
     render(
       <PluginDetailedView
-        params={{integrationSlug: 'pagerduty', orgId: organization.slug}}
+        params={{integrationSlug: 'pagerduty'}}
         route={route}
         routes={[]}
         routeParams={{}}

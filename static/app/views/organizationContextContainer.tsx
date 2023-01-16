@@ -41,7 +41,7 @@ type State = {
   loading: boolean;
   organization: Organization | null;
   prevProps: {
-    location: RouteComponentProps<{orgId: string}, {}>['location'];
+    location: Props['location'];
     orgId: string;
     organizationsLoading: boolean;
   };
