@@ -3,7 +3,7 @@ import moment from 'moment';
 import {sprintf} from 'sprintf-js';
 
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {t} from 'sentry/locale';

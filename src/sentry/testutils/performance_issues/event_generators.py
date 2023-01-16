@@ -53,9 +53,11 @@ def modify_span_start(obj, start):
     return obj
 
 
-def create_span(op, duration=100.0, desc="SELECT count() FROM table WHERE id = %s", hash=""):
+def create_span(
+    op, duration=100.0, desc="SELECT count() FROM table WHERE id = %s", hash="", data=None
+):
     return modify_span_duration(
-        SpanBuilder().with_op(op).with_description(desc).with_hash(hash).build(),
+        SpanBuilder().with_op(op).with_description(desc).with_hash(hash).with_data(data).build(),
         duration,
     )
 

@@ -2,7 +2,7 @@ import {useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Client} from 'sentry/api';
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
 import AlertLink from 'sentry/components/alertLink';
 import {t} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';

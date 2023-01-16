@@ -29,6 +29,7 @@ from sentry.models import (
 from sentry.models.activity import ActivityIntegration
 from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema
 from sentry.rules import init_registry
+from sentry.tasks.derive_code_mappings import SUPPORTED_LANGUAGES
 from sentry.tasks.merge import merge_groups
 from sentry.tasks.post_process import post_process_group, process_event
 from sentry.testutils import SnubaTestCase, TestCase
@@ -173,19 +174,10 @@ class DeriveCodeMappingsProcessGroupTestMixin(BasePostProgressGroupMixin):
         assert mock_derive_code_mappings.delay.call_count == 0
 
     @patch("sentry.tasks.derive_code_mappings.derive_code_mappings")
-    def test_derive_python(self, mock_derive_code_mappings):
-        data = {"platform": "python"}
-        self._call_post_process_group(data)
-        assert mock_derive_code_mappings.delay.call_count == 1
-        assert mock_derive_code_mappings.delay.called_with(self.project.id, data, False)
-
-    @patch("sentry.tasks.derive_code_mappings.derive_code_mappings")
-    def test_derive_js(self, mock_derive_code_mappings):
-        data = {"platform": "javascript"}
-        self._call_post_process_group(data)
-        assert mock_derive_code_mappings.delay.call_count == 1
-        # Because we only run on dry run mode even if the official flag is set
-        assert mock_derive_code_mappings.delay.called_with(self.project.id, data, True)
+    def test_derive_supported_languages(self, mock_derive_code_mappings):
+        for platform in SUPPORTED_LANGUAGES:
+            self._call_post_process_group({"platform": platform})
+            assert mock_derive_code_mappings.delay.call_count == 1
 
 
 class RuleProcessorTestMixin(BasePostProgressGroupMixin):
