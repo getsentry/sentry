@@ -55,15 +55,15 @@ function ViewHierarchy({viewHierarchy}: ViewHierarchyProps) {
   ) => {
     return (
       <TreeItem
-        key={r.key}
+        key={`view-hierarchy-node-${r.key}`}
         ref={n => {
           r.ref = n;
         }}
         style={r.styles}
-        depth={r.item.node.depth}
+        depth={r.item.depth}
       >
         <Node
-          id={r.item.node.id}
+          id={`view-hierarchy-node-${r.key}`}
           label={getNodeLabel(r.item.node)}
           onExpandClick={() => handleExpandTreeNode(r.item, {expandChildren: false})}
           collapsible={!!r.item.node.children?.length}
@@ -75,7 +75,7 @@ function ViewHierarchy({viewHierarchy}: ViewHierarchyProps) {
               setSelectedNode(null);
             }
           }}
-          isSelected={selectedNode?.id === r.item.node.id}
+          isSelected={selectedNode === r.item.node}
         />
       </TreeItem>
     );
