@@ -34,3 +34,4 @@ def process_projects_sample_rates(org_id, project_ids) -> None:
 
     # Get adjusted sample rate via adjustment model
     #
+    # prioritize_projects.delay(org_id, project_ids)
