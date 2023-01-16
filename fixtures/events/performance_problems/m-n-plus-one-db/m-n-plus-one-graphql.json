@@ -476,7 +476,7 @@
       "hash": "a109ff3ef40f7fb3"
     },
     {
-      "timestamp": 1668185413.729685,
+      "timestamp": 1668185413.829685,
       "start_timestamp": 1668185413.707292,
       "exclusive_time": 22.392989,
       "description": "SELECT id, name FROM authors INNER JOIN book_authors ON author_id = id WHERE book_id = $1",

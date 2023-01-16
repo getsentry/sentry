@@ -1426,7 +1426,7 @@ class ContinuingMNPlusOne(MNPlusOneState):
         self.pattern = pattern
 
         # The full list of spans involved in the MN pattern.
-        self.spans = pattern.copy()
+        self.spans: Sequence[Span] = pattern.copy()
         self.spans.append(first_span)
         self.pattern_index = 1
 
@@ -1463,8 +1463,8 @@ class ContinuingMNPlusOne(MNPlusOneState):
         offender_spans = self.spans[:offender_span_count]
 
         total_duration_threshold = self.settings["total_duration_threshold"]
-        total_duration = sum(map(get_span_duration, offender_spans), timedelta(0))
-        if total_duration < timedelta(milliseconds=total_duration_threshold):
+        total_duration = total_span_time(offender_spans)
+        if total_duration < total_duration_threshold:
             return None
 
         db_span = self._first_db_span()
