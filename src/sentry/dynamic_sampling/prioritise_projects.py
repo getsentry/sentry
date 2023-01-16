@@ -4,27 +4,11 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import Mapping, Sequence
 
-from snuba_sdk import (
-    Column,
-    Condition,
-    Direction,
-    Entity,
-    Function,
-    Granularity,
-    Op,
-    OrderBy,
-    Query,
-    Request,
-)
+from snuba_sdk import Column, Condition, Direction, Entity, Granularity, Op, OrderBy, Query, Request
 
-from sentry.release_health.release_monitor.base import BaseReleaseMonitorBackend, Totals
-from sentry.sentry_metrics import indexer
-from sentry.sentry_metrics.configuration import UseCaseKey
-from sentry.sentry_metrics.indexer.strings import SESSION_METRIC_NAMES
-from sentry.sentry_metrics.utils import resolve_tag_key
+from sentry.sentry_metrics.indexer.strings import TRANSACTION_METRICS_NAMES
 from sentry.snuba.dataset import Dataset, EntityKey
-from sentry.snuba.metrics.naming_layer.mri import SessionMRI
-from sentry.utils import metrics
+from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.utils.snuba import raw_snql_query
 
 logger = logging.getLogger(__name__)
@@ -33,7 +17,6 @@ CHUNK_SIZE = 1000
 
 
 def fetch_projects_with_total_volumes() -> Mapping[int, Sequence[int]]:
-    # TODO: (andrii) include only "disconnected" projects or independent in tracing context
     aggregated_projects = defaultdict(list)
     start_time = time.time()
     offset = 0
@@ -52,7 +35,7 @@ def fetch_projects_with_total_volumes() -> Mapping[int, Sequence[int]]:
                     Condition(
                         Column("metric_id"),
                         Op.EQ,
-                        SESSION_METRIC_NAMES[SessionMRI.SESSION.value],
+                        TRANSACTION_METRICS_NAMES[TransactionMRI.COUNT_PER_ROOT_PROJECT.value],
                     ),
                 ],
                 granularity=Granularity(3600),
@@ -66,9 +49,8 @@ def fetch_projects_with_total_volumes() -> Mapping[int, Sequence[int]]:
         )
         request = Request(dataset=Dataset.Metrics.value, app_id="dynamic_sampling", query=query)
         data = raw_snql_query(
-            # TODO: replace to new referrer
             request,
-            referrer="dynamic_sampling.fetch_projects_with_recent_sessions",
+            referrer="dynamic_sampling.fetch_projects_with_total_volumes",
         )["data"]
         count = len(data)
         more_results = count > CHUNK_SIZE
@@ -90,3 +72,7 @@ def fetch_projects_with_total_volumes() -> Mapping[int, Sequence[int]]:
         )
 
     return aggregated_projects
+
+
+def process_projects_with_total_volumes(project_ids):
+    ...
