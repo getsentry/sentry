@@ -40,7 +40,7 @@ class SlowSpanDetectorTest(unittest.TestCase):
         assert self.find_problems(slow_not_allowed_op_span_event) == []
         assert self.find_problems(slow_span_event) == [
             PerformanceProblem(
-                fingerprint="1-1001-ae5ce0e354aeee83e6184c77edd50dfb56244ba9",
+                fingerprint="1-1001-da39a3ee5e6b4b0d3255bfef95601890afd80709",
                 op="db",
                 desc="SELECT count() FROM table WHERE id = %s",
                 type=GroupType.PERFORMANCE_SLOW_SPAN,
@@ -63,7 +63,7 @@ class SlowSpanDetectorTest(unittest.TestCase):
         assert self.find_problems(http_span_event) == []
         assert self.find_problems(db_span_event) == [
             PerformanceProblem(
-                fingerprint="1-1001-ae5ce0e354aeee83e6184c77edd50dfb56244ba9",
+                fingerprint="1-1001-da39a3ee5e6b4b0d3255bfef95601890afd80709",
                 op="db.query",
                 desc="SELECT count() FROM table WHERE id = %s",
                 type=GroupType.PERFORMANCE_SLOW_SPAN,
@@ -78,7 +78,7 @@ class SlowSpanDetectorTest(unittest.TestCase):
 
         assert self.find_problems(n_plus_one_event) == [
             PerformanceProblem(
-                fingerprint="1-GroupType.PERFORMANCE_SLOW_SPAN-8dbbcc64ef67d2d9d390327411669ebe29b0ea45",
+                fingerprint="1-1001-d02c8b2fd92a2d72011671feda429fa8ce2ac00f",
                 op="db",
                 desc="\n                SELECT VERSION(),\n                       @@sql_mode,\n                       @@default_storage_engine,\n                       @@sql_auto_is_null,\n                       @@lower_case_table_names,\n                       CONVERT_TZ('2001-01-01 01:00:00', 'UTC', 'UTC') IS NOT NULL\n            ",
                 type=GroupType.PERFORMANCE_SLOW_SPAN,
@@ -99,7 +99,7 @@ class SlowSpanDetectorTest(unittest.TestCase):
         assert self.find_problems(slow_span_event_with_truncated_query) == []
         assert self.find_problems(slow_span_event) == [
             PerformanceProblem(
-                fingerprint="1-1001-f40a1ab06e0c43c7aabafb9c29c5c9a9629805ed",
+                fingerprint="1-1001-da39a3ee5e6b4b0d3255bfef95601890afd80709",
                 op="db",
                 desc="SELECT `product`.`id` FROM `products`",
                 type=GroupType.PERFORMANCE_SLOW_SPAN,
