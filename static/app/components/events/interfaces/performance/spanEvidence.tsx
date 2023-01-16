@@ -38,8 +38,8 @@ export function SpanEvidenceSection({event, issueType, organization}: Props) {
       )}
     >
       <SpanEvidenceKeyValueList
+        event={event}
         issueType={issueType}
-        transactionName={event.title}
         parentSpan={parentSpan}
         offendingSpans={offendingSpans}
         causeSpans={causeSpans}

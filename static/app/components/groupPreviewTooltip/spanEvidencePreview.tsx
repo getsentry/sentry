@@ -88,7 +88,7 @@ const SpanEvidencePreviewBody = ({
       <SpanEvidencePreviewWrapper data-test-id="span-evidence-preview-body">
         <SpanEvidenceKeyValueList
           issueType={data?.perfProblem?.issueType}
-          transactionName={data.title}
+          event={data}
           parentSpan={spanInfo.parentSpan}
           offendingSpans={spanInfo.offendingSpans}
           causeSpans={spanInfo.causeSpans}

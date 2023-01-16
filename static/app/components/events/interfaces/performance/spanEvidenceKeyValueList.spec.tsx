@@ -9,12 +9,19 @@ import {
 } from './spanEvidenceKeyValueList';
 
 describe('SpanEvidenceKeyValueList', () => {
+  const event = TestStubs.Event({
+    transaction: EXAMPLE_TRANSACTION_TITLE,
+    request: {
+      url: 'https://service.io/resource',
+    },
+  });
+
   describe('N+1 Database Queries', () => {
     it('Renders relevant fields', () => {
       render(
         <SpanEvidenceKeyValueList
           issueType={IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES}
-          transactionName={EXAMPLE_TRANSACTION_TITLE}
+          event={event}
           parentSpan={
             new MockSpan({
               startTimestamp: 0,
@@ -66,8 +73,8 @@ describe('SpanEvidenceKeyValueList', () => {
     it('Renders relevant fields', () => {
       render(
         <SpanEvidenceKeyValueList
+          event={event}
           issueType={IssueType.PERFORMANCE_CONSECUTIVE_DB_QUERIES}
-          transactionName="/"
           parentSpan={
             new MockSpan({
               startTimestamp: 0,
@@ -117,8 +124,8 @@ describe('SpanEvidenceKeyValueList', () => {
     it('Renders relevant fields', () => {
       render(
         <SpanEvidenceKeyValueList
+          event={event}
           issueType={IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS}
-          transactionName="/"
           parentSpan={
             new MockSpan({
               startTimestamp: 0,
@@ -202,8 +209,8 @@ describe('SpanEvidenceKeyValueList', () => {
     it('Renders relevant fields', () => {
       render(
         <SpanEvidenceKeyValueList
+          event={event}
           issueType={IssueType.PERFORMANCE_SLOW_SPAN}
-          transactionName="/"
           parentSpan={
             new MockSpan({
               startTimestamp: 0,

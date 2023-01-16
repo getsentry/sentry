@@ -2,7 +2,7 @@ import kebabCase from 'lodash/kebabCase';
 import mapValues from 'lodash/mapValues';
 
 import {t} from 'sentry/locale';
-import {IssueType, KeyValueListData, KeyValueListDataItem} from 'sentry/types';
+import {Event, IssueType, KeyValueListData, KeyValueListDataItem} from 'sentry/types';
 
 import KeyValueList from '../keyValueList';
 import {RawSpanType} from '../spans/types';
@@ -15,10 +15,10 @@ type Span = (RawSpanType | TraceContextSpanProxy) & {
 
 type SpanEvidenceKeyValueListProps = {
   causeSpans: Span[] | null;
+  event: Event;
   issueType: IssueType | undefined;
   offendingSpans: Span[];
   parentSpan: Span | null;
-  transactionName: string;
 };
 
 const TEST_ID_NAMESPACE = 'span-evidence-key-value-list';
@@ -40,14 +40,14 @@ export function SpanEvidenceKeyValueList(props: SpanEvidenceKeyValueListProps) {
 }
 
 const ConsecutiveDBQueriesSpanEvidence = ({
-  transactionName,
+  event,
   causeSpans,
   offendingSpans,
 }: SpanEvidenceKeyValueListProps) => (
   <PresortedKeyValueList
     data={
       [
-        makeTransactionNameRow(transactionName),
+        makeTransactionNameRow(event),
         causeSpans
           ? makeRow(t('Starting Span'), getSpanEvidenceValue(causeSpans[0]))
           : null,
@@ -60,14 +60,14 @@ const ConsecutiveDBQueriesSpanEvidence = ({
 );
 
 const NPlusOneDBQueriesSpanEvidence = ({
-  transactionName,
+  event,
   parentSpan,
   offendingSpans,
 }: SpanEvidenceKeyValueListProps) => (
   <PresortedKeyValueList
     data={
       [
-        makeTransactionNameRow(transactionName),
+        makeTransactionNameRow(event),
         parentSpan ? makeRow(t('Parent Span'), getSpanEvidenceValue(parentSpan)) : null,
         makeRow(
           t('Repeating Spans (%s)', offendingSpans.length),
@@ -79,7 +79,7 @@ const NPlusOneDBQueriesSpanEvidence = ({
 );
 
 const NPlusOneAPICallsSpanEvidence = ({
-  transactionName,
+  event,
   offendingSpans,
 }: SpanEvidenceKeyValueListProps) => {
   const problemParameters = formatChangingQueryParameters(offendingSpans);
@@ -89,7 +89,7 @@ const NPlusOneAPICallsSpanEvidence = ({
     <PresortedKeyValueList
       data={
         [
-          makeTransactionNameRow(transactionName),
+          makeTransactionNameRow(event),
           basePath
             ? makeRow(t('Repeating Spans (%s)', offendingSpans.length), basePath)
             : null,
@@ -102,25 +102,19 @@ const NPlusOneAPICallsSpanEvidence = ({
   );
 };
 
-const SlowSpanSpanEvidence = ({
-  transactionName,
-  offendingSpans,
-}: SpanEvidenceKeyValueListProps) => (
+const SlowSpanSpanEvidence = ({event, offendingSpans}: SpanEvidenceKeyValueListProps) => (
   <PresortedKeyValueList
     data={[
-      makeTransactionNameRow(transactionName),
+      makeTransactionNameRow(event),
       makeRow(t('Slow Span'), getSpanEvidenceValue(offendingSpans[0])),
     ]}
   />
 );
 
-const DefaultSpanEvidence = ({
-  transactionName,
-  offendingSpans,
-}: SpanEvidenceKeyValueListProps) => (
+const DefaultSpanEvidence = ({event, offendingSpans}: SpanEvidenceKeyValueListProps) => (
   <PresortedKeyValueList
     data={[
-      makeTransactionNameRow(transactionName),
+      makeTransactionNameRow(event),
       makeRow(t('Offending Span'), getSpanEvidenceValue(offendingSpans[0])),
     ]}
   />
@@ -130,8 +124,7 @@ const PresortedKeyValueList = ({data}: {data: KeyValueListData}) => (
   <KeyValueList isSorted={false} data={data} />
 );
 
-const makeTransactionNameRow = (transactionName: string) =>
-  makeRow(t('Transaction'), transactionName);
+const makeTransactionNameRow = (event: Event) => makeRow(t('Transaction'), event.title);
 
 const makeRow = (
   subject: KeyValueListDataItem['subject'],
