@@ -793,7 +793,7 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         offender_hash = self.spans[-1]["hash"]
         fingerprint = hashlib.sha1(offender_hash.encode("utf8")).hexdigest()
 
-        return f"1-{GroupType.PERFORMANCE_UNCOMPRESSED_ASSETS.value}-{fingerprint}"
+        return f"1-{GroupType.PERFORMANCE_N_PLUS_ONE_API_CALLS.value}-{fingerprint}"
 
     def _spans_are_concurrent(self, span_a: Span, span_b: Span) -> bool:
         span_a_start: int = span_a.get("start_timestamp", 0) or 0

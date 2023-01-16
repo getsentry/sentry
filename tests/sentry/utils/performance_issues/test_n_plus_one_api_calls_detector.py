@@ -34,7 +34,7 @@ class NPlusOneAPICallsDetectorTest(TestCase):
         problems = self.find_problems(event)
         assert self.find_problems(event) == [
             PerformanceProblem(
-                fingerprint="1-1012-3b2ee4021cd4e24acd32179932e10553e312786b",
+                fingerprint="1-1010-3b2ee4021cd4e24acd32179932e10553e312786b",
                 op="http.client",
                 type=GroupType.PERFORMANCE_N_PLUS_ONE_API_CALLS,
                 desc="GET /api/0/organizations/sentry/events/?field=replayId&field=count%28%29&per_page=50&query=issue.id%3A",
