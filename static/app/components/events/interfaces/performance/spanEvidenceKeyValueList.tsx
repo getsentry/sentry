@@ -11,7 +11,7 @@ import {TraceContextSpanProxy} from './spanEvidence';
 type Span = RawSpanType | TraceContextSpanProxy;
 
 type SpanEvidenceKeyValueListProps = {
-  causeSpans: Array<RawSpanType | TraceContextSpanProxy> | null;
+  causeSpans: Span[] | null;
   issueType: IssueType | undefined;
   offendingSpans: Span[];
   parentSpan: Span | null;

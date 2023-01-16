@@ -18,7 +18,7 @@ import {TraceContextSpanProxy} from './spanEvidence';
 
 const RESOURCES_DESCRIPTIONS: Record<IssueType, string> = {
   [IssueType.PERFORMANCE_CONSECUTIVE_DB_QUERIES]: t(
-    'Consecutive DB Queries are a sequence of database spans where one ore more have been identified as parallelizable, or in other words, spans that may be shifted to the start of the sequence. This often occurs when a db query performs no filtering on the data, for example a query without a WHERE clause. To learn more about how to fix consecutive DB queries, check out these resources:'
+    'Consecutive DB Queries are a sequence of database spans where one or more have been identified as parallelizable, or in other words, spans that may be shifted to the start of the sequence. This often occurs when a db query performs no filtering on the data, for example a query without a WHERE clause. To learn more about how to fix consecutive DB queries, check out these resources:'
   ),
   [IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES]: t(
     "N+1 queries are extraneous queries (N) caused by a single, initial query (+1). In the Span Evidence above, we've identified the parent span where the extraneous spans are located and the extraneous spans themselves. To learn more about how to fix N+1 problems, check out these resources:"
