@@ -1,97 +1,125 @@
+import kebabCase from 'lodash/kebabCase';
+
 import {t} from 'sentry/locale';
-import {IssueType, KeyValueListData} from 'sentry/types';
+import {IssueType, KeyValueListData, KeyValueListDataItem} from 'sentry/types';
 
 import KeyValueList from '../keyValueList';
 import {RawSpanType} from '../spans/types';
 
 import {TraceContextSpanProxy} from './spanEvidence';
 
+type Span = RawSpanType | TraceContextSpanProxy;
+
 type SpanEvidenceKeyValueListProps = {
   issueType: IssueType | undefined;
-  offendingSpans: Array<RawSpanType | TraceContextSpanProxy>;
-  parentSpan: RawSpanType | TraceContextSpanProxy | null;
+  offendingSpans: Span[];
+  parentSpan: Span | null;
   transactionName: string;
 };
 
 const TEST_ID_NAMESPACE = 'span-evidence-key-value-list';
 
-export function SpanEvidenceKeyValueList({
-  issueType,
-  offendingSpans,
-  parentSpan,
-  transactionName,
-}: SpanEvidenceKeyValueListProps) {
-  const data: KeyValueListData = [
-    {
-      key: '0',
-      subject: t('Transaction'),
-      value: transactionName,
-      subjectDataTestId: `${TEST_ID_NAMESPACE}.transaction-name`,
-    },
-  ];
-
-  if (issueType === IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES) {
-    data.push({
-      key: '1',
-      subject: t('Parent Span'),
-      value: getSpanEvidenceValue(parentSpan),
-      subjectDataTestId: `${TEST_ID_NAMESPACE}.parent-name`,
-    });
-
-    data.push({
-      key: '2',
-      subject: t('Repeating Span'),
-      value: getSpanEvidenceValue(offendingSpans[0]),
-      subjectDataTestId: `${TEST_ID_NAMESPACE}.offending-spans`,
-    });
-  } else if (issueType === IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS) {
-    data.push({
-      key: '1',
-      subject: t('Offending Span'),
-      value: getSpanEvidenceValue(offendingSpans[0]),
-      subjectDataTestId: `${TEST_ID_NAMESPACE}.offending-spans`,
-    });
-
-    let problemParameters;
-    if (issueType === IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS) {
-      problemParameters = getProblemParameters(offendingSpans);
-    }
-
-    if (problemParameters?.length > 0) {
-      data.push({
-        key: '2',
-        subject: t('Problem Parameter'),
-        value: problemParameters,
-        subjectDataTestId: `${TEST_ID_NAMESPACE}.problem-parameters`,
-      });
-    }
-  } else if (IssueType.PERFORMANCE_SLOW_SPAN) {
-    data.push({
-      key: '2',
-      subject: t('Slow Span'),
-      value: getSpanEvidenceValue(offendingSpans[0]),
-      subjectDataTestId: `${TEST_ID_NAMESPACE}.offending-spans`,
-    });
-  } else {
-    data.push({
-      key: '1',
-      subject: t('Parent Span'),
-      value: getSpanEvidenceValue(parentSpan),
-      subjectDataTestId: `${TEST_ID_NAMESPACE}.parent-name`,
-    });
-
-    data.push({
-      key: '2',
-      subject: t('Offending Span'),
-      value: getSpanEvidenceValue(offendingSpans[0]),
-      subjectDataTestId: `${TEST_ID_NAMESPACE}.offending-spans`,
-    });
+export function SpanEvidenceKeyValueList(props: SpanEvidenceKeyValueListProps) {
+  if (!props.issueType) {
+    return <DefaultSpanEvidence {...props} />;
   }
 
-  return <KeyValueList data={data} />;
+  const Component =
+    {
+      [IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES]: NPlusOneDBQueriesSpanEvidence,
+      [IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS]: NPlusOneAPICallsSpanEvidence,
+      [IssueType.PERFORMANCE_SLOW_SPAN]: SlowSpanSpanEvidence,
+    }[props.issueType] ?? DefaultSpanEvidence;
+
+  return <Component {...props} />;
 }
 
-function getSpanEvidenceValue(span: RawSpanType | TraceContextSpanProxy | null) {
+const NPlusOneDBQueriesSpanEvidence = ({
+  transactionName,
+  parentSpan,
+  offendingSpans,
+}: Pick<
+  SpanEvidenceKeyValueListProps,
+  'transactionName' | 'parentSpan' | 'offendingSpans'
+>) => (
+  <PresortedKeyValueList
+    data={
+      [
+        makeTransactionNameRow(transactionName),
+        parentSpan ? makeRow(t('Parent Span'), getSpanEvidenceValue(parentSpan)) : null,
+        makeRow(t('Repeating Span'), getSpanEvidenceValue(offendingSpans[0])),
+      ].filter(Boolean) as KeyValueListData
+    }
+  />
+);
+
+const NPlusOneAPICallsSpanEvidence = ({
+  transactionName,
+  offendingSpans,
+}: Pick<SpanEvidenceKeyValueListProps, 'transactionName' | 'offendingSpans'>) => {
+  const problemParameters = getProblemParameters(offendingSpans);
+
+  return (
+    <PresortedKeyValueList
+      data={
+        [
+          makeTransactionNameRow(transactionName),
+          makeRow(t('Offending Span'), getSpanEvidenceValue(offendingSpans[0])),
+          getProblemParameters.length > 0
+            ? makeRow(t('Problem Parameter'), problemParameters)
+            : null,
+        ].filter(Boolean) as KeyValueListData
+      }
+    />
+  );
+};
+
+const SlowSpanSpanEvidence = ({
+  transactionName,
+  offendingSpans,
+}: Pick<SpanEvidenceKeyValueListProps, 'transactionName' | 'offendingSpans'>) => (
+  <PresortedKeyValueList
+    data={[
+      makeTransactionNameRow(transactionName),
+      makeRow(t('Slow Span'), getSpanEvidenceValue(offendingSpans[0])),
+    ]}
+  />
+);
+
+const DefaultSpanEvidence = ({
+  transactionName,
+  offendingSpans,
+}: Pick<SpanEvidenceKeyValueListProps, 'transactionName' | 'offendingSpans'>) => (
+  <PresortedKeyValueList
+    data={[
+      makeTransactionNameRow(transactionName),
+      makeRow(t('Offending Span'), getSpanEvidenceValue(offendingSpans[0])),
+    ]}
+  />
+);
+
+const PresortedKeyValueList = ({data}: {data: KeyValueListData}) => (
+  <KeyValueList isSorted={false} data={data} />
+);
+
+const makeTransactionNameRow = (transactionName: string) =>
+  makeRow(t('Transaction'), transactionName);
+
+const makeRow = (
+  subject: KeyValueListDataItem['subject'],
+  value: KeyValueListDataItem['value']
+): KeyValueListDataItem => {
+  const itemKey = kebabCase(subject);
+
+  return {
+    key: itemKey,
+    subject,
+    value,
+    subjectDataTestId: `${TEST_ID_NAMESPACE}.${itemKey}`,
+  };
+};
+
+function getSpanEvidenceValue(span: Span | null) {
   if (!span || (!span.op && !span.description)) {
     return t('(no value)');
   }
