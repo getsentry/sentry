@@ -19,6 +19,11 @@ const getJoinButton = () =>
 
 describe('AcceptOrganizationInvite', function () {
   const organization = TestStubs.Organization({slug: 'org-slug'});
+  const initialData = window.__initialData;
+
+  afterEach(() => {
+    window.__initialData = initialData;
+  });
 
   it('can accept invitation', async function () {
     addMock({
@@ -32,10 +37,48 @@ describe('AcceptOrganizationInvite', function () {
 
     render(
       <AcceptOrganizationInvite
-        organization={organization}
-        params={{memberId: '1', token: 'abc'}}
+        params={{orgId: 'org-slug', memberId: '1', token: 'abc'}}
       />
     );
+
+    const acceptMock = MockApiClient.addMockResponse({
+      url: '/accept-invite/org-slug/1/abc/',
+      method: 'POST',
+    });
+
+    const joinButton = getJoinButton();
+
+    userEvent.click(joinButton);
+    expect(acceptMock).toHaveBeenCalled();
+    expect(joinButton).toBeDisabled();
+
+    await waitFor(() =>
+      expect(browserHistory.replace).toHaveBeenCalledWith('/org-slug/')
+    );
+  });
+
+  it('can accept invitation on customer-domains', async function () {
+    window.__initialData = {
+      customerDomain: {
+        subdomain: 'org-slug',
+        organizationUrl: 'https://org-slug.sentry.io',
+        sentryUrl: 'https://sentry.io',
+      },
+      links: {
+        sentryUrl: 'https://sentry.io',
+      },
+    };
+
+    addMock({
+      orgSlug: organization.slug,
+      needsAuthentication: false,
+      needs2fa: false,
+      hasAuthProvider: false,
+      requireSso: false,
+      existingMember: false,
+    });
+
+    render(<AcceptOrganizationInvite params={{memberId: '1', token: 'abc'}} />);
 
     const acceptMock = MockApiClient.addMockResponse({
       url: '/accept-invite/org-slug/1/abc/',
@@ -65,8 +108,7 @@ describe('AcceptOrganizationInvite', function () {
 
     render(
       <AcceptOrganizationInvite
-        organization={organization}
-        params={{memberId: '1', token: 'abc'}}
+        params={{orgId: 'org-slug', memberId: '1', token: 'abc'}}
       />
     );
 
@@ -96,8 +138,7 @@ describe('AcceptOrganizationInvite', function () {
 
     render(
       <AcceptOrganizationInvite
-        organization={organization}
-        params={{memberId: '1', token: 'abc'}}
+        params={{orgId: 'org-slug', memberId: '1', token: 'abc'}}
       />
     );
 
@@ -128,8 +169,7 @@ describe('AcceptOrganizationInvite', function () {
 
     render(
       <AcceptOrganizationInvite
-        organization={organization}
-        params={{memberId: '1', token: 'abc'}}
+        params={{orgId: 'org-slug', memberId: '1', token: 'abc'}}
       />
     );
 
@@ -160,8 +200,7 @@ describe('AcceptOrganizationInvite', function () {
 
     render(
       <AcceptOrganizationInvite
-        organization={organization}
-        params={{memberId: '1', token: 'abc'}}
+        params={{orgId: 'org-slug', memberId: '1', token: 'abc'}}
       />
     );
 
@@ -192,8 +231,7 @@ describe('AcceptOrganizationInvite', function () {
 
     render(
       <AcceptOrganizationInvite
-        organization={organization}
-        params={{memberId: '1', token: 'abc'}}
+        params={{orgId: 'org-slug', memberId: '1', token: 'abc'}}
       />
     );
 
@@ -218,8 +256,7 @@ describe('AcceptOrganizationInvite', function () {
 
     render(
       <AcceptOrganizationInvite
-        organization={organization}
-        params={{memberId: '1', token: 'abc'}}
+        params={{orgId: 'org-slug', memberId: '1', token: 'abc'}}
       />
     );
 
@@ -240,8 +277,7 @@ describe('AcceptOrganizationInvite', function () {
 
     render(
       <AcceptOrganizationInvite
-        organization={organization}
-        params={{memberId: '1', token: 'abc'}}
+        params={{orgId: 'org-slug', memberId: '1', token: 'abc'}}
       />
     );
 
@@ -264,8 +300,7 @@ describe('AcceptOrganizationInvite', function () {
 
     render(
       <AcceptOrganizationInvite
-        organization={organization}
-        params={{memberId: '1', token: 'abc'}}
+        params={{orgId: 'org-slug', memberId: '1', token: 'abc'}}
       />
     );
 
