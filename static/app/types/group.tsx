@@ -645,7 +645,7 @@ export type UserReport = {
   user: User;
 };
 
-export type KeyValueListData = {
+export type KeyValueListDataItem = {
   key: string;
   subject: string;
   actionButton?: React.ReactNode;
@@ -654,7 +654,9 @@ export type KeyValueListData = {
   subjectDataTestId?: string;
   subjectIcon?: React.ReactNode;
   value?: React.ReactNode;
-}[];
+};
+
+export type KeyValueListData = KeyValueListDataItem[];
 
 // Response from ShortIdLookupEndpoint
 // /organizations/${orgId}/shortids/${query}/
