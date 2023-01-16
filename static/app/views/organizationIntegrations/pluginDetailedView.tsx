@@ -124,7 +124,7 @@ class PluginDetailedView extends AbstractIntegrationDetailedView<
           }}
         />
       ),
-      {allowClickClose: false}
+      {closeEvents: 'escape-key'}
     );
   };
 

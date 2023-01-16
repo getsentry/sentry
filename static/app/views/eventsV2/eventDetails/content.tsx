@@ -247,7 +247,6 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                         project={projects[0] as Project}
                         location={location}
                         showTagSummary={false}
-                        api={this.api}
                       />
                     </QuickTraceContext.Provider>
                   </SpanEntryContext.Provider>

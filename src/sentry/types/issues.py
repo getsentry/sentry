@@ -3,6 +3,10 @@ from enum import Enum
 
 
 class GroupType(Enum):
+    # WARNING:
+    # Currently all fingerprints are using the enum string instead of value,
+    # DO NOT change the enum key string for any currently on detector or else
+    # you will create duplicate issues for customers (until the fingerprints are fixed)
     ERROR = 1
     PERFORMANCE_SLOW_SPAN = 1001
     PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN = 1004
@@ -11,6 +15,7 @@ class GroupType(Enum):
     PERFORMANCE_FILE_IO_MAIN_THREAD = 1008
     PERFORMANCE_N_PLUS_ONE_API_CALLS = 1010
     PERFORMANCE_M_N_PLUS_ONE_DB_QUERIES = 1011
+    PERFORMANCE_UNCOMPRESSED_ASSETS = 1012
     PROFILE_BLOCKED_THREAD = 2000
 
 
@@ -32,6 +37,7 @@ GROUP_TYPE_TO_CATEGORY = {
     GroupType.PERFORMANCE_FILE_IO_MAIN_THREAD: GroupCategory.PERFORMANCE,
     GroupType.PERFORMANCE_N_PLUS_ONE_API_CALLS: GroupCategory.PERFORMANCE,
     GroupType.PERFORMANCE_M_N_PLUS_ONE_DB_QUERIES: GroupCategory.PERFORMANCE,
+    GroupType.PERFORMANCE_UNCOMPRESSED_ASSETS: GroupCategory.PERFORMANCE,
     GroupType.PROFILE_BLOCKED_THREAD: GroupCategory.PROFILE,
 }
 
@@ -44,6 +50,7 @@ GROUP_TYPE_TO_TEXT = {
     GroupType.PERFORMANCE_FILE_IO_MAIN_THREAD: "File IO on Main Thread",
     GroupType.PERFORMANCE_N_PLUS_ONE_API_CALLS: "N+1 API Calls",
     GroupType.PERFORMANCE_M_N_PLUS_ONE_DB_QUERIES: "MN+1 Query",
+    GroupType.PERFORMANCE_UNCOMPRESSED_ASSETS: "Uncompressed Assets",
     GroupType.PROFILE_BLOCKED_THREAD: "Blocked Thread",
 }
 
