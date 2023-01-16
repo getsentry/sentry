@@ -52,7 +52,7 @@ class GroupNotesEndpoint(GroupEndpoint):
         if Activity.objects.filter(
             group=group,
             type=ActivityType.NOTE.value,
-            user=request.user,
+            user_id=request.user.id,
             data=data,
             datetime__gte=timezone.now() - timedelta(hours=1),
         ).exists():

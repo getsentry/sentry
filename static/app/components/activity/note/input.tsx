@@ -3,7 +3,7 @@ import {Mention, MentionsInput, MentionsInputProps} from 'react-mentions';
 import {Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import {Item, TabList, TabPanels, Tabs} from 'sentry/components/tabs';
 import {IconMarkdown} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -212,7 +212,7 @@ function NoteInput({
         )}
         <div>
           {existingItem && (
-            <FooterButton priority="danger" type="button" onClick={handleCancel}>
+            <FooterButton priority="danger" onClick={handleCancel}>
               {t('Cancel')}
             </FooterButton>
           )}

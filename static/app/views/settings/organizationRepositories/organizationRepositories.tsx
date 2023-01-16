@@ -1,33 +1,31 @@
-import {RouteComponentProps} from 'react-router';
-
 import AlertLink from 'sentry/components/alertLink';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import RepositoryRow from 'sentry/components/repositoryRow';
 import {IconCommit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {Repository, RepositoryStatus} from 'sentry/types';
+import {Organization, Repository, RepositoryStatus} from 'sentry/types';
 import useApi from 'sentry/utils/useApi';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
-type Props = RouteComponentProps<{orgId: string}, {}> & {
+type Props = {
   itemList: Repository[];
   onRepositoryChange: (data: {id: string; status: RepositoryStatus}) => void;
+  organization: Organization;
 };
 
-function OrganizationRepositories({itemList, onRepositoryChange, params}: Props) {
+function OrganizationRepositories({itemList, onRepositoryChange, organization}: Props) {
   const api = useApi();
 
-  const {orgId} = params;
   const hasItemList = itemList && itemList.length > 0;
 
   return (
     <div>
       <SettingsPageHeader title={t('Repositories')} />
-      <AlertLink to={`/settings/${orgId}/integrations/`}>
+      <AlertLink to={`/settings/${organization.slug}/integrations/`}>
         {t(
           'Want to add a repository to start tracking commits? Install or configure your version control integration here.'
         )}
@@ -57,7 +55,7 @@ function OrganizationRepositories({itemList, onRepositoryChange, params}: Props)
                   key={repo.id}
                   repository={repo}
                   showProvider
-                  orgId={orgId}
+                  orgId={organization.slug}
                   onRepositoryChange={onRepositoryChange}
                 />
               ))}

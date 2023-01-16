@@ -60,7 +60,6 @@ const AllEventsTable = (props: Props) => {
       routes={routes}
       excludedTags={excludedTags}
       projectSlug={group.project.slug}
-      totalEventCount={group.count}
       customColumns={['minidump']}
       setError={(msg: string | undefined) => setError(msg ?? '')}
       transactionName=""

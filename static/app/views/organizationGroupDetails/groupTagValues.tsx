@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
 import AsyncComponent from 'sentry/components/asyncComponent';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import DataExport, {ExportQueryType} from 'sentry/components/dataExport';
 import {DeviceName} from 'sentry/components/deviceName';
@@ -174,7 +174,6 @@ class GroupTagValues extends AsyncComponent<
                     containerDisplayMode: 'flex',
                   }}
                   size="sm"
-                  type="button"
                   aria-label={t('Show more')}
                   icon={<IconEllipsis size="xs" />}
                 />

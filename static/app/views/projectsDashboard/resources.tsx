@@ -5,7 +5,7 @@ import breadcrumbsImg from 'sentry-images/spot/breadcrumbs-generic.svg';
 import docsImg from 'sentry-images/spot/code-arguments-tags-mirrored.svg';
 import releasesImg from 'sentry-images/spot/releases.svg';
 
-import PageHeading from 'sentry/components/pageHeading';
+import * as Layout from 'sentry/components/layouts/thirds';
 import ResourceCard from 'sentry/components/resourceCard';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -27,7 +27,7 @@ function Resources({organization}: Props) {
 
   return (
     <ResourcesWrapper data-test-id="resources">
-      <PageHeading withMargins>{t('Resources')}</PageHeading>
+      <Layout.Title withMargins>{t('Resources')}</Layout.Title>
       <ResourceCards>
         <ResourceCard
           link="https://docs.sentry.io/product/releases/"
@@ -49,7 +49,7 @@ export default Resources;
 
 const ResourcesWrapper = styled('div')`
   border-top: 1px solid ${p => p.theme.border};
-  padding: 25px 30px 10px 30px;
+  padding: ${space(2)} ${space(4)};
 `;
 
 const ResourceCards = styled('div')`

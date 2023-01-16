@@ -19,11 +19,10 @@ import sentry_sdk
 from pytz import utc
 from sentry_sdk import Hub, capture_exception
 
-from sentry import features, killswitches, quotas, utils
+from sentry import features, killswitches, options, quotas, utils
 from sentry.constants import ObjectStatus
 from sentry.datascrubbing import get_datascrubbing_settings, get_pii_config
-from sentry.dynamic_sampling.feature_multiplexer import DynamicSamplingFeatureMultiplexer
-from sentry.dynamic_sampling.rules_generator import generate_rules
+from sentry.dynamic_sampling import generate_rules
 from sentry.grouping.api import get_grouping_config_dict_for_project
 from sentry.ingest.inbound_filters import (
     FilterStatKeys,
@@ -159,9 +158,9 @@ def get_project_config(
 
 
 def get_dynamic_sampling_config(project: Project) -> Optional[Mapping[str, Any]]:
-    feature_multiplexer = DynamicSamplingFeatureMultiplexer(project)
-
-    if feature_multiplexer.is_on_dynamic_sampling:
+    if features.has("organizations:dynamic-sampling", project.organization) and options.get(
+        "dynamic-sampling:enabled-biases"
+    ):
         return {"rules": generate_rules(project)}
     return None
 

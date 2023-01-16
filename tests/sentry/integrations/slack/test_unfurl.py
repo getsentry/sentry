@@ -14,6 +14,7 @@ from sentry.integrations.slack.message_builder.discover import SlackDiscoverMess
 from sentry.integrations.slack.message_builder.issues import SlackIssuesMessageBuilder
 from sentry.integrations.slack.message_builder.metric_alerts import SlackMetricAlertMessageBuilder
 from sentry.integrations.slack.unfurl import LinkType, UnfurlableUrl, link_handlers, match_link
+from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.snuba.dataset import Dataset
 from sentry.testutils import TestCase
 from sentry.testutils.helpers import install_slack
@@ -106,7 +107,8 @@ class UnfurlTest(TestCase):
         # We're redefining project to ensure that the individual tests have unique project ids.
         # Sharing project ids across tests could result in some race conditions
         self.project = self.create_project()
-        self.integration = install_slack(self.organization)
+        self._integration = install_slack(self.organization)
+        self.integration = integration_service._serialize_integration(self._integration)
 
         self.request = RequestFactory().get("slack/event")
         self.frozen_time = freezegun.freeze_time(datetime.now() - timedelta(days=1))

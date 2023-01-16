@@ -8,7 +8,7 @@ from sentry.testutils.silo import region_silo_test
 from sentry.types.integrations import get_provider_string
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class OrganizationTeamsListTest(APITestCase):
     def test_simple(self):
         user = self.create_user()
@@ -160,7 +160,7 @@ class OrganizationTeamsListTest(APITestCase):
         assert response.status_code == 200, response.content
 
 
-@region_silo_test
+@region_silo_test  # TODO(hybrid-cloud): stable blocked on org members
 class OrganizationTeamsCreateTest(APITestCase):
     endpoint = "sentry-api-0-organization-teams"
     method = "post"
@@ -191,6 +191,7 @@ class OrganizationTeamsCreateTest(APITestCase):
         team = Team.objects.get(id=resp.data["id"])
         assert team.name == "hello world"
         assert team.slug == "foobar"
+        assert not team.idp_provisioned
         assert team.organization == self.organization
 
         member = OrganizationMember.objects.get(user=self.user, organization=self.organization)
@@ -215,6 +216,14 @@ class OrganizationTeamsCreateTest(APITestCase):
         team = Team.objects.get(id=resp.data["id"])
         assert team.slug == "example-slug"
         assert team.name == "example-slug"
+
+    def test_with_idp_provisioned(self):
+        resp = self.get_success_response(
+            self.organization.slug, name="hello world", idp_provisioned=True, status_code=201
+        )
+
+        team = Team.objects.get(id=resp.data["id"])
+        assert team.idp_provisioned
 
     def test_duplicate(self):
         self.get_success_response(

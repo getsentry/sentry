@@ -1,11 +1,11 @@
 import {RouteComponentProps} from 'react-router';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
 import AutoSelectText from 'sentry/components/autoSelectText';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
-import Field from 'sentry/components/forms/field';
+import FieldGroup from 'sentry/components/forms/fieldGroup';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
@@ -26,7 +26,7 @@ type Props = {
   organization: Organization;
   plugins: {loading: boolean; plugins: Plugin[]};
   project: Project;
-} & RouteComponentProps<{orgId: string; projectId: string}, {}>;
+} & RouteComponentProps<{projectId: string}, {}>;
 
 type State = {
   data: {
@@ -47,13 +47,14 @@ class ProjectReleaseTracking extends AsyncView<Props, State> {
   }
 
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
-    const {orgId, projectId} = this.props.params;
+    const {organization} = this.props;
+    const {projectId} = this.props.params;
 
     // Allow 403s
     return [
       [
         'data',
-        `/projects/${orgId}/${projectId}/releases/token/`,
+        `/projects/${organization.slug}/${projectId}/releases/token/`,
         {},
         {allowError: err => err && err.status === 403},
       ],
@@ -61,8 +62,9 @@ class ProjectReleaseTracking extends AsyncView<Props, State> {
   }
 
   handleRegenerateToken = () => {
-    const {orgId, projectId} = this.props.params;
-    this.api.request(`/projects/${orgId}/${projectId}/releases/token/`, {
+    const {organization} = this.props;
+    const {projectId} = this.props.params;
+    this.api.request(`/projects/${organization.slug}/${projectId}/releases/token/`, {
       method: 'POST',
       data: {project: projectId},
       success: data => {
@@ -164,13 +166,13 @@ class ProjectReleaseTracking extends AsyncView<Props, State> {
         <Panel>
           <PanelHeader>{t('Deploy Token')}</PanelHeader>
           <PanelBody>
-            <Field
+            <FieldGroup
               label={t('Token')}
               help={t('A unique secret which is used to generate deploy hook URLs')}
             >
               <TextCopyInput>{token}</TextCopyInput>
-            </Field>
-            <Field
+            </FieldGroup>
+            <FieldGroup
               label={t('Regenerate Token')}
               help={t(
                 'If a service becomes compromised, you should regenerate the token and re-configure any deploy hooks with the newly generated URL.'
@@ -185,12 +187,12 @@ class ProjectReleaseTracking extends AsyncView<Props, State> {
                     'Are you sure you want to regenerate your token? Your current token will no longer be usable.'
                   )}
                 >
-                  <Button type="button" priority="danger" disabled={!hasWrite}>
+                  <Button priority="danger" disabled={!hasWrite}>
                     {t('Regenerate Token')}
                   </Button>
                 </Confirm>
               </div>
-            </Field>
+            </FieldGroup>
           </PanelBody>
         </Panel>
 

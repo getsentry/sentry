@@ -2,13 +2,13 @@ import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import AttachmentUrl from 'sentry/components/attachmentUrl';
+import AttachmentUrl from 'sentry/components/events/attachmentUrl';
 import ImageViewer from 'sentry/components/events/attachmentViewers/imageViewer';
 import JsonViewer from 'sentry/components/events/attachmentViewers/jsonViewer';
 import LogFileViewer from 'sentry/components/events/attachmentViewers/logFileViewer';
 import RRWebJsonViewer from 'sentry/components/events/attachmentViewers/rrwebJsonViewer';
 import EventAttachmentActions from 'sentry/components/events/eventAttachmentActions';
-import EventDataSection from 'sentry/components/events/eventDataSection';
+import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import FileSize from 'sentry/components/fileSize';
 import {PanelTable} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
@@ -31,7 +31,7 @@ type State = {
   expanded: boolean;
 };
 
-class EventAttachments extends Component<Props, State> {
+export class EventAttachments extends Component<Props, State> {
   state: State = {
     expanded: false,
     attachmentPreviews: {},

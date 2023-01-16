@@ -1,5 +1,5 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {renderGlobalModal, screen} from 'sentry-test/reactTestingLibrary';
+import {act, renderGlobalModal, screen} from 'sentry-test/reactTestingLibrary';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {DebugImageDetails} from 'sentry/components/events/interfaces/debugMeta/debugImageDetails';
@@ -26,16 +26,18 @@ describe('Debug Meta - Image Details', function () {
   it('Candidates correctly sorted', function () {
     renderGlobalModal();
 
-    openModal(modalProps => (
-      <DebugImageDetails
-        {...modalProps}
-        organization={organization}
-        image={eventEntryDebugMeta.data.images[0]}
-        projSlug={project.slug}
-        event={event}
-        onReprocessEvent={jest.fn()}
-      />
-    ));
+    act(() =>
+      openModal(modalProps => (
+        <DebugImageDetails
+          {...modalProps}
+          organization={organization}
+          image={eventEntryDebugMeta.data.images[0]}
+          projSlug={project.slug}
+          event={event}
+          onReprocessEvent={jest.fn()}
+        />
+      ))
+    );
 
     // Check status order.
     // The UI shall sort the candidates by status. However, this sorting is not alphabetical but in the following order:

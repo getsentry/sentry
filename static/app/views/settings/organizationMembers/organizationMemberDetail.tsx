@@ -10,22 +10,24 @@ import {
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import {resendMemberInvite, updateMember} from 'sentry/actionCreators/members';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import DateTime from 'sentry/components/dateTime';
 import NotFound from 'sentry/components/errors/notFound';
-import Field from 'sentry/components/forms/field';
+import FieldGroup from 'sentry/components/forms/fieldGroup';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'sentry/components/panels';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import Tooltip from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
+import configStore from 'sentry/stores/configStore';
 import space from 'sentry/styles/space';
 import {Member, Organization, Team} from 'sentry/types';
 import isMemberDisabledFromLimit from 'sentry/utils/isMemberDisabledFromLimit';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import Teams from 'sentry/utils/teams';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
 import AsyncView from 'sentry/views/asyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
@@ -42,7 +44,6 @@ const TWO_FACTOR_REQUIRED = t(
 
 type RouteParams = {
   memberId: string;
-  orgId: string;
 };
 
 type Props = {
@@ -138,8 +139,12 @@ class OrganizationMemberDetail extends AsyncView<Props, State> {
 
   handleAddTeam = (team: Team) => {
     const {member} = this.state;
-    if (!member!.teams.includes(team.slug)) {
-      member!.teams.push(team.slug);
+    if (!member) {
+      return;
+    }
+    const teams = member.teams;
+    if (!teams.includes(team.slug)) {
+      member.teams = [...teams, team.slug];
     }
     this.setState({member});
   };
@@ -165,7 +170,7 @@ class OrganizationMemberDetail extends AsyncView<Props, State> {
 
     try {
       await Promise.all(requests);
-      router.push(`/settings/${organization.slug}/members/`);
+      router.push(normalizeUrl(`/settings/${organization.slug}/members/`));
       addSuccessMessage(t('All authenticators have been removed'));
     } catch (err) {
       addErrorMessage(t('Error removing authenticators'));
@@ -247,6 +252,8 @@ class OrganizationMemberDetail extends AsyncView<Props, State> {
     const {email, expired, pending} = member;
     const canResend = !expired;
     const showAuth = !pending;
+    const currentUser = configStore.get('user');
+    const isCurrentUser = currentUser.email === email;
 
     return (
       <Fragment>
@@ -321,7 +328,7 @@ class OrganizationMemberDetail extends AsyncView<Props, State> {
           <Panel>
             <PanelHeader>{t('Authentication')}</PanelHeader>
             <PanelBody>
-              <Field
+              <FieldGroup
                 alignRight
                 flexibleControlStateSize
                 label={t('Reset two-factor authentication')}
@@ -343,14 +350,16 @@ class OrganizationMemberDetail extends AsyncView<Props, State> {
                     </Button>
                   </Confirm>
                 </Tooltip>
-              </Field>
+              </FieldGroup>
             </PanelBody>
           </Panel>
         )}
 
         <OrganizationRoleSelect
           enforceAllowed={false}
+          enforceIdpRoleRestricted={member.flags['idp:role-restricted']}
           enforceRetired={hasTeamRoles}
+          isCurrentUser={isCurrentUser}
           disabled={!canEdit}
           roleList={member.roles}
           roleSelected={member.role}
@@ -360,6 +369,7 @@ class OrganizationMemberDetail extends AsyncView<Props, State> {
         <Teams slugs={member.teams}>
           {({teams, initiallyLoaded}) => (
             <TeamSelect
+              enforceIdpProvisioned
               organization={organization}
               selectedTeams={teams}
               disabled={!canEdit}

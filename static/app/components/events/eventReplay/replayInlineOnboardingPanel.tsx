@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import replaysInlineOnboarding from 'sentry-images/spot/replays-inline-onboarding.svg';
 
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';

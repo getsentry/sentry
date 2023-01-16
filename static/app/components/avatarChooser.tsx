@@ -5,7 +5,7 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {Client} from 'sentry/api';
 import Avatar from 'sentry/components/avatar';
 import {AvatarCropper} from 'sentry/components/avatarCropper';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
@@ -246,7 +246,6 @@ class AvatarChooser extends Component<Props, State> {
               <AvatarSubmit className="form-actions">
                 {help && <AvatarHelp>{help}</AvatarHelp>}
                 <Button
-                  type="button"
                   priority="primary"
                   onClick={this.handleSaveSettings}
                   disabled={disabled || (avatarType === 'upload' && !dataUrl)}

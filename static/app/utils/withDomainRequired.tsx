@@ -24,7 +24,8 @@ type NormalizeUrlOptions = {
 };
 
 /**
- * Normalize a URL for customer domains based on the current route state
+ * Normalize a URL for customer domains based on the organization that was
+ * present in the initial page load.
  */
 export function normalizeUrl(path: string, options?: NormalizeUrlOptions): string;
 export function normalizeUrl(

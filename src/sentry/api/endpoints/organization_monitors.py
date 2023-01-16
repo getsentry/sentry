@@ -1,17 +1,17 @@
 from django.db.models import Q
 
-from sentry import audit_log, features
+from sentry import audit_log
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects
 from sentry.api.bases.monitor import OrganizationMonitorPermission
 from sentry.api.bases.organization import OrganizationEndpoint
-from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.validators import MonitorValidator
 from sentry.db.models.query import in_iexact
-from sentry.models import Monitor, MonitorStatus, MonitorType
+from sentry.models import Monitor, MonitorStatus, MonitorType, Project
 from sentry.search.utils import tokenize_query
+from sentry.signals import first_cron_monitor_created
 
 
 def map_value_to_constant(constant, value):
@@ -39,9 +39,6 @@ class OrganizationMonitorsEndpoint(OrganizationEndpoint):
         :pparam string organization_slug: the slug of the organization
         :auth: required
         """
-        if not features.has("organizations:monitors", organization, actor=request.user):
-            raise ResourceDoesNotExist
-
         try:
             filter_params = self.get_filter_params(request, organization, date_filter_optional=True)
         except NoProjects:
@@ -121,5 +118,11 @@ class OrganizationMonitorsEndpoint(OrganizationEndpoint):
             event=audit_log.get_event_id("MONITOR_ADD"),
             data=monitor.get_audit_log_data(),
         )
+
+        project = result["project"]
+        if not project.flags.has_cron_monitors:
+            first_cron_monitor_created.send_robust(
+                project=project, user=request.user, sender=Project
+            )
 
         return self.respond(serialize(monitor, request.user), status=201)

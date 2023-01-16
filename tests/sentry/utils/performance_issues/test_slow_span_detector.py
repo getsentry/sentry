@@ -4,7 +4,11 @@ from typing import List
 import pytest
 
 from sentry.eventstore.models import Event
-from sentry.testutils.performance_issues.event_generators import EVENTS, create_event, create_span
+from sentry.testutils.performance_issues.event_generators import (
+    create_event,
+    create_span,
+    get_event,
+)
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.performance_issues.performance_detection import (
     GroupType,
@@ -70,7 +74,7 @@ class SlowSpanDetectorTest(unittest.TestCase):
         ]
 
     def test_detects_slow_span_in_solved_n_plus_one_query(self):
-        n_plus_one_event = EVENTS["solved-n-plus-one-in-django-index-view"]
+        n_plus_one_event = get_event("solved-n-plus-one-in-django-index-view")
 
         assert self.find_problems(n_plus_one_event) == [
             PerformanceProblem(
@@ -81,5 +85,26 @@ class SlowSpanDetectorTest(unittest.TestCase):
                 parent_span_ids=None,
                 cause_span_ids=None,
                 offender_span_ids=["a05754d3fde2db29"],
+            )
+        ]
+
+    def test_skips_truncated_queries(self):
+        slow_span_event_with_truncated_query = create_event(
+            [create_span("db", 1005, "SELECT `product`.`id` FROM `products` ...")] * 1
+        )
+        slow_span_event = create_event(
+            [create_span("db", 1005, "SELECT `product`.`id` FROM `products`")] * 1
+        )
+
+        assert self.find_problems(slow_span_event_with_truncated_query) == []
+        assert self.find_problems(slow_span_event) == [
+            PerformanceProblem(
+                fingerprint="1-GroupType.PERFORMANCE_SLOW_SPAN-020e34d374ab4b5cd00a6a1b4f76f325209f7263",
+                op="db",
+                desc="SELECT `product`.`id` FROM `products`",
+                type=GroupType.PERFORMANCE_SLOW_SPAN,
+                parent_span_ids=None,
+                cause_span_ids=None,
+                offender_span_ids=["bbbbbbbbbbbbbbbb"],
             )
         ]

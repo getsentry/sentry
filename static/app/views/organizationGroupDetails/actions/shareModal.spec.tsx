@@ -1,4 +1,4 @@
-import {renderGlobalModal, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {act, renderGlobalModal, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import GroupStore from 'sentry/stores/groupStore';
@@ -31,15 +31,17 @@ describe('shareModal', () => {
     });
     renderGlobalModal();
 
-    openModal(modalProps => (
-      <ShareIssueModal
-        {...modalProps}
-        groupId={group.id}
-        organization={organization}
-        projectSlug={project.slug}
-        onToggle={onToggle}
-      />
-    ));
+    act(() =>
+      openModal(modalProps => (
+        <ShareIssueModal
+          {...modalProps}
+          groupId={group.id}
+          organization={organization}
+          projectSlug={project.slug}
+          onToggle={onToggle}
+        />
+      ))
+    );
 
     expect(screen.getByText('Share Issue')).toBeInTheDocument();
     expect(await screen.findByRole('button', {name: 'Copy Link'})).toBeInTheDocument();
@@ -58,15 +60,17 @@ describe('shareModal', () => {
     });
     renderGlobalModal();
 
-    openModal(modalProps => (
-      <ShareIssueModal
-        {...modalProps}
-        groupId={group.id}
-        organization={organization}
-        projectSlug={project.slug}
-        onToggle={onToggle}
-      />
-    ));
+    act(() =>
+      openModal(modalProps => (
+        <ShareIssueModal
+          {...modalProps}
+          groupId={group.id}
+          organization={organization}
+          projectSlug={project.slug}
+          onToggle={onToggle}
+        />
+      ))
+    );
 
     userEvent.click(screen.getByLabelText('Unshare'));
 

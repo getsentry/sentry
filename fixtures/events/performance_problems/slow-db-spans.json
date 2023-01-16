@@ -1,0 +1,73 @@
+{
+  "event_id": "ab095b616af4459098d29ade067108d6",
+  "project": 82372,
+  "release": "16.1.6",
+  "dist": null,
+  "platform": "ruby",
+  "message": "",
+  "datetime": "2022-11-23T20:40:03.938939+00:00",
+  "_metrics": {"bytes.ingested.event": 7876, "bytes.stored.event": 9222},
+  "culprit": "/pokedex/",
+  "environment": "production",
+  "location": "/pokedex/",
+  "contexts": {
+    "trace": {
+      "trace_id": "10d0b72df0fe4392a6788bce71ec2028",
+      "span_id": "1756e116945a4360",
+      "parent_span_id": "d71f841b69164c33",
+      "op": "http.server",
+      "status": "ok",
+      "type": "trace"
+    }
+  },
+  "spans": [
+    {
+      "timestamp": 1669236003.406264,
+      "start_timestamp": 1669236000.221315,
+      "exclusive_time": 3184.949159,
+      "description": "SELECT pokemon FROM pokedex",
+      "op": "db",
+      "span_id": "481bffa126c31edd",
+      "parent_span_id": "877546cc52754d21",
+      "trace_id": "3aa614f2d9a44204bd737312244e70fa",
+      "tags": {},
+      "data": {"connection_id": null},
+      "hash": "c6cca113a59f8486"
+    },
+    {
+      "timestamp": 1669236003.937326,
+      "start_timestamp": 1669236003.406517,
+      "exclusive_time": 530.808926,
+      "description": "SELECT pokemon FROM pokedex WHERE pokemon.name = 'pikachu'",
+      "op": "db",
+      "span_id": "a8d0ffadce91d103",
+      "parent_span_id": "877546cc52754d21",
+      "trace_id": "3aa614f2d9a44204bd737312244e70fa",
+      "tags": {},
+      "data": {"connection_id": null},
+      "hash": "95fb0da5a66a4936"
+    },
+    {
+      "timestamp": 1669236003.938425,
+      "start_timestamp": 1669236003.937986,
+      "exclusive_time": 0.439167,
+      "description": "do something in redis idk",
+      "op": "db.redis.command",
+      "span_id": "2949ee0f744ca1e3",
+      "parent_span_id": "877546cc52754d21",
+      "trace_id": "3aa614f2d9a44204bd737312244e70fa",
+      "tags": {},
+      "data": {
+        "server": "some-server:4200"
+      },
+      "hash": "ac2e1279e1642d6f"
+    }
+  ],
+  "start_timestamp": 1669236000.211091,
+  "timestamp": 1669236003.938939,
+  "title": "/pokedex/",
+  "transaction": "/pokedex/",
+  "transaction_info": {"source": "unknown"},
+  "type": "transaction",
+  "version": "7"
+}

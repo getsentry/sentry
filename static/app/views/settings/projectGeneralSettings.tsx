@@ -6,9 +6,9 @@ import {
   removeProject,
   transferProject,
 } from 'sentry/actionCreators/projects';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
-import Field from 'sentry/components/forms/field';
+import FieldGroup from 'sentry/components/forms/fieldGroup';
 import TextField from 'sentry/components/forms/fields/textField';
 import Form, {FormProps} from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
@@ -30,7 +30,7 @@ import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 
 type Props = AsyncView['props'] &
-  RouteComponentProps<{orgId: string; projectId: string}, {}> & {
+  RouteComponentProps<{projectId: string}, {}> & {
     onChangeSlug: (slug: string) => void;
     organization: Organization;
   };
@@ -48,9 +48,10 @@ class ProjectGeneralSettings extends AsyncView<Props, State> {
   }
 
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
-    const {orgId, projectId} = this.props.params;
+    const {organization} = this.props;
+    const {projectId} = this.props.params;
 
-    return [['data', `/projects/${orgId}/${projectId}/`]];
+    return [['data', `/projects/${organization.slug}/${projectId}/`]];
   }
 
   handleTransferFieldChange = (id: string, value: FieldValue) => {
@@ -58,23 +59,23 @@ class ProjectGeneralSettings extends AsyncView<Props, State> {
   };
 
   handleRemoveProject = () => {
-    const {orgId} = this.props.params;
+    const {organization} = this.props;
     const project = this.state.data;
 
-    removePageFiltersStorage(orgId);
+    removePageFiltersStorage(organization.slug);
 
     if (!project) {
       return;
     }
 
-    removeProject(this.api, orgId, project).then(() => {
+    removeProject(this.api, organization.slug, project).then(() => {
       // Need to hard reload because lots of components do not listen to Projects Store
       window.location.assign('/');
     }, handleXhrErrorResponse('Unable to remove project'));
   };
 
   handleTransferProject = async () => {
-    const {orgId} = this.props.params;
+    const {organization} = this.props;
     const project = this.state.data;
     if (!project) {
       return;
@@ -84,7 +85,7 @@ class ProjectGeneralSettings extends AsyncView<Props, State> {
     }
 
     try {
-      await transferProject(this.api, orgId, project, this._form.email);
+      await transferProject(this.api, organization.slug, project, this._form.email);
       // Need to hard reload because lots of components do not listen to Projects Store
       window.location.assign('/');
     } catch (err) {
@@ -102,7 +103,7 @@ class ProjectGeneralSettings extends AsyncView<Props, State> {
     const {isInternal} = project;
 
     return (
-      <Field
+      <FieldGroup
         label={t('Remove Project')}
         help={tct(
           'Remove the [project] project and all related data. [linebreak] Careful, this action cannot be undone.',
@@ -139,13 +140,11 @@ class ProjectGeneralSettings extends AsyncView<Props, State> {
             }
           >
             <div>
-              <Button type="button" priority="danger">
-                {t('Remove Project')}
-              </Button>
+              <Button priority="danger">{t('Remove Project')}</Button>
             </div>
           </Confirm>
         )}
-      </Field>
+      </FieldGroup>
     );
   }
 
@@ -155,7 +154,7 @@ class ProjectGeneralSettings extends AsyncView<Props, State> {
     const {isInternal} = project;
 
     return (
-      <Field
+      <FieldGroup
         label={t('Transfer Project')}
         help={tct(
           'Transfer the [project] project and all related data. [linebreak] Careful, this action cannot be undone.',
@@ -214,21 +213,19 @@ class ProjectGeneralSettings extends AsyncView<Props, State> {
             )}
           >
             <div>
-              <Button type="button" priority="danger">
-                {t('Transfer Project')}
-              </Button>
+              <Button priority="danger">{t('Transfer Project')}</Button>
             </div>
           </Confirm>
         )}
-      </Field>
+      </FieldGroup>
     );
   }
 
   renderBody() {
     const {organization} = this.props;
     const project = this.state.data;
-    const {orgId, projectId} = this.props.params;
-    const endpoint = `/projects/${orgId}/${projectId}/`;
+    const {projectId} = this.props.params;
+    const endpoint = `/projects/${organization.slug}/${projectId}/`;
     const access = new Set(organization.access);
     const jsonFormProps = {
       additionalFieldProps: {
@@ -345,7 +342,7 @@ class ProjectGeneralSettings extends AsyncView<Props, State> {
 
 type ContainerProps = {
   organization: Organization;
-} & RouteComponentProps<{orgId: string; projectId: string}, {}>;
+} & RouteComponentProps<{projectId: string}, {}>;
 
 class ProjectGeneralSettingsContainer extends Component<ContainerProps> {
   componentWillUnmount() {

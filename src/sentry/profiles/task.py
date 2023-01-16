@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from time import sleep, time
-from typing import Any, Dict, List, Mapping, MutableMapping, Optional, Tuple
+from typing import Any, List, Mapping, MutableMapping, Optional, Tuple
 
 import sentry_sdk
 from arroyo.backends.kafka.consumer import KafkaPayload, KafkaProducer
@@ -79,26 +79,6 @@ def process_profile_task(
                 modules=raw_modules,
                 stacktraces=raw_stacktraces,
             )
-
-            try:
-                raw_counts = [len(stacktrace["frames"]) for stacktrace in raw_stacktraces]
-                counts = [len(stacktrace["frames"]) for stacktrace in stacktraces]
-                if len(raw_counts) != len(counts) or any(a > b for a, b in zip(raw_counts, counts)):
-                    with sentry_sdk.push_scope() as scope:
-                        scope.set_context(
-                            "profile_stacktraces",
-                            {
-                                "raw_stacktraces_count": raw_counts,
-                                "raw_stacktraces": raw_stacktraces,
-                                "stacktraces_count": counts,
-                                "stacktraces": stacktraces,
-                            },
-                        )
-                        sentry_sdk.capture_message(
-                            "Symbolicator returned less stacks than expected"
-                        )
-            except Exception as e:
-                sentry_sdk.capture_exception(e)
 
             _process_symbolicator_results(profile=profile, modules=modules, stacktraces=stacktraces)
     except Exception as e:
@@ -183,6 +163,12 @@ def process_profile_task(
         return
 
     _track_outcome(profile=profile, project=project, outcome=Outcome.ACCEPTED)
+
+    metrics.gauge(
+        "process_profile.kafka_producer.queue.size",
+        len(_profiles_kafka_producer._KafkaProducer__producer),  # type: ignore
+        sample_rate=1.0,
+    )
 
 
 SHOULD_SYMBOLICATE = frozenset(["cocoa", "rust"])
@@ -305,57 +291,12 @@ def _process_symbolicator_results(
 
 
 def _process_symbolicator_results_for_sample(profile: Profile, stacktraces: List[Any]) -> None:
-    original_frames = profile["profile"]["frames"]
-    symbolicated_frames = stacktraces[0]["frames"]
-    inline_frame_ids: Dict[int, List[int]] = {}
-
-    # reverse the list to have the first frame be the "real" one
-    symbolicated_frames.reverse()
-
-    # merge results
-    for symbolicated_frame in symbolicated_frames:
-        original_index = symbolicated_frame["original_index"]
-        original_frame = original_frames[original_index]
-
-        for k in {"pre_context", "context_line", "post_context", "original_index"}:
-            symbolicated_frame.pop(k, None)
-
-        # check if we already merged a symbolicated frame result
-        # if it's the case, the status field will contain the result of the symbolication
-        if "status" in original_frame:
-            """
-            This builds a map {index: [indexes]} that will let us replace a specific
-            frame index with (potentially) a list of frames indices that originated from that frame.
-
-            The reason for this is that the frame from the SDK exists "physically",
-            and symbolicator then synthesizes other frames for calls that have been inlined
-            into the physical frame.
-
-            Example:
-
-            `
-            fn a() {
-            b()
-            }
-            fb b() {
-            fn c_inlined() {}
-            c_inlined()
-            }
-            `
-
-            this would yield the following from the SDK:
-            b -> a
-
-            after symbolication you would have:
-            c_inlined -> b -> a
-
-            The sorting order is callee to caller (child to parent)
-            """
-            inline_frame_ids[original_index].append(len(original_frames))
-            original_frames.append(symbolicated_frame)
-        else:
-            inline_frame_ids[original_index] = [original_index]
-            original_frame.update(symbolicated_frame)
+    profile["profile"]["frames"] = stacktraces[0]["frames"]
+    if profile["platform"] in SHOULD_SYMBOLICATE:
+        for frame in profile["profile"]["frames"]:
+            frame.pop("pre_context", None)
+            frame.pop("context_line", None)
+            frame.pop("post_context", None)
 
     if profile["platform"] == "rust":
 
@@ -387,26 +328,36 @@ def _process_symbolicator_results_for_sample(profile: Profile, stacktraces: List
         ) -> List[Any]:
             return stack
 
-    def merge_stack(stack: List[int]) -> List[int]:
-        new_stack: List[int] = []
-        for index in stack:
-            inline_frame_ids[index].reverse()
-            # the new stack extends the older by replacing
-            # a specific frame index with the indices of
-            # the frames originated from the original frame
-            # should inlines be present
-            new_stack.extend(inline_frame_ids[index])
-        return new_stack
+    if profile["platform"] in SHOULD_SYMBOLICATE:
+        idx_map = get_frame_index_map(profile["profile"]["frames"])
 
-    for sample in profile["profile"]["samples"]:
-        stack_id = sample["stack_id"]
-        stack = merge_stack(profile["profile"]["stacks"][stack_id])
+        def get_stack(stack: List[int]) -> List[int]:
+            new_stack: List[int] = []
+            for index in stack:
+                # the new stack extends the older by replacing
+                # a specific frame index with the indices of
+                # the frames originated from the original frame
+                # should inlines be present
+                new_stack.extend(idx_map[index])
+            return new_stack
 
-        if len(stack) < 2:
-            continue
+    else:
 
-        # truncate some unneeded frames in the stack (related to the profiler itself or impossible to symbolicate)
-        profile["profile"]["stacks"][stack_id] = truncate_stack_needed(original_frames, stack)
+        def get_stack(stack: List[int]) -> List[int]:
+            return stack
+
+    stacks = []
+
+    for stack in profile["profile"]["stacks"]:
+        stack = get_stack(stack)
+
+        if len(stack) >= 2:
+            # truncate some unneeded frames in the stack (related to the profiler itself or impossible to symbolicate)
+            stack = truncate_stack_needed(profile["profile"]["frames"], stack)
+
+        stacks.append(stack)
+
+    profile["profile"]["stacks"] = stacks
 
 
 def _process_symbolicator_results_for_cocoa(profile: Profile, stacktraces: List[Any]) -> None:
@@ -436,6 +387,46 @@ def _process_symbolicator_results_for_rust(profile: Profile, stacktraces: List[A
             original["frames"] = symbolicated["frames"][2:]
         else:
             original["frames"] = symbolicated["frames"]
+
+
+"""
+This function returns a map {index: [indexes]} that will let us replace a specific
+frame index with (potentially) a list of frames indices that originated from that frame.
+
+The reason for this is that the frame from the SDK exists "physically",
+and symbolicator then synthesizes other frames for calls that have been inlined
+into the physical frame.
+
+Example:
+
+`
+fn a() {
+b()
+}
+fb b() {
+fn c_inlined() {}
+c_inlined()
+}
+`
+
+this would yield the following from the SDK:
+b -> a
+
+after symbolication you would have:
+c_inlined -> b -> a
+
+The sorting order is callee to caller (child to parent)
+"""
+
+
+def get_frame_index_map(frames: List[dict[str, Any]]) -> dict[int, List[int]]:
+    index_map: dict[int, List[int]] = {}
+    for i, frame in enumerate(frames):
+        original_idx = frame["original_index"]
+        idx_list = index_map.get(original_idx, [])
+        idx_list.append(i)
+        index_map[original_idx] = idx_list
+    return index_map
 
 
 @metrics.wraps("process_profile.deobfuscate")
