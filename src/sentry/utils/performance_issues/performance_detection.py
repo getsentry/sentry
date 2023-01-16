@@ -285,6 +285,7 @@ def _detect_performance_problems(
         FileIOMainThreadDetector(detection_settings, data),
         NPlusOneAPICallsDetector(detection_settings, data),
         MNPlusOneDBSpanDetector(detection_settings, data),
+        UncompressedAssetSpanDetector(detection_settings, data),
     ]
 
     for detector in detectors:
