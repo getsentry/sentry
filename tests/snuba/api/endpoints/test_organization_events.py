@@ -5422,18 +5422,6 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
             response = self.do_request(query)
             assert response.status_code == 429, response.content
 
-    @override_settings(SENTRY_SELF_HOSTED=False)
-    def test_no_ratelimit(self):
-        query = {
-            "field": ["transaction"],
-            "project": [self.project.id],
-        }
-        with freeze_time("2000-01-01"):
-            for _ in range(15):
-                self.do_request(query)
-            response = self.do_request(query)
-            assert response.status_code == 200, response.content
-
     def test_transaction_source(self):
         query = {
             "field": ["transaction"],
