@@ -25,7 +25,9 @@ interface UseProfileEventsOptions<F> {
   datetime?: PageFilters['datetime'];
   enabled?: boolean;
   limit?: number;
+  projects?: (number | string)[];
   query?: string;
+  refetchOnMount?: boolean;
 }
 
 type Unit = keyof typeof DURATION_UNITS | keyof typeof SIZE_UNITS | null;
@@ -43,7 +45,6 @@ export type EventsResults<F extends string> = {
   data: EventsResultsDataRow<F>[];
   meta: EventsResultsMeta<F>;
 };
-
 export function useProfileEvents<F extends string>({
   fields,
   limit,
@@ -52,7 +53,9 @@ export function useProfileEvents<F extends string>({
   sort,
   cursor,
   enabled = true,
+  refetchOnMount = true,
   datetime,
+  projects,
 }: UseProfileEventsOptions<F>) {
   const api = useApi();
   const organization = useOrganization();
@@ -63,7 +66,7 @@ export function useProfileEvents<F extends string>({
     query: {
       dataset: 'profiles',
       referrer,
-      project: selection.projects,
+      project: projects || selection.projects,
       environment: selection.environments,
       ...normalizeDateTimeParams(datetime ?? selection.datetime),
       field: fields,
@@ -90,6 +93,7 @@ export function useProfileEvents<F extends string>({
     queryKey,
     queryFn,
     refetchOnWindowFocus: false,
+    refetchOnMount,
     retry: false,
     enabled,
   });
