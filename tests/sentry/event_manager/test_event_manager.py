@@ -23,12 +23,12 @@ from fixtures.github import (
 from sentry import audit_log, nodestore, tsdb
 from sentry.attachments import CachedAttachment, attachment_cache
 from sentry.constants import MAX_VERSION_LENGTH, DataCategory
-from sentry.dynamic_sampling.latest_release_booster import (
+from sentry.dynamic_sampling import (
     ExtendedBoostedRelease,
+    Platform,
     ProjectBoostedReleases,
     get_redis_client_for_ds,
 )
-from sentry.dynamic_sampling.latest_release_ttas import Platform
 from sentry.event_manager import (
     EventManager,
     EventUser,
@@ -3442,10 +3442,7 @@ class DSLatestReleaseBoostTest(TestCase):
             )
 
     @freeze_time()
-    @mock.patch(
-        "sentry.dynamic_sampling.latest_release_booster.BOOSTED_RELEASES_LIMIT",
-        2,
-    )
+    @mock.patch("sentry.dynamic_sampling.rules.helpers.latest_releases.BOOSTED_RELEASES_LIMIT", 2)
     def test_least_recently_boosted_release_is_removed_if_limit_is_exceeded(self):
         ts = time()
 
@@ -3524,10 +3521,7 @@ class DSLatestReleaseBoostTest(TestCase):
             ]
 
     @freeze_time()
-    @mock.patch(
-        "sentry.dynamic_sampling.latest_release_booster.BOOSTED_RELEASES_LIMIT",
-        2,
-    )
+    @mock.patch("sentry.dynamic_sampling.rules.helpers.latest_releases.BOOSTED_RELEASES_LIMIT", 2)
     def test_removed_boost_not_added_again_if_limit_is_exceeded(self):
         with self.options(
             {

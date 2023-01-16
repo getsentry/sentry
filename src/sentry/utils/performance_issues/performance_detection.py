@@ -60,6 +60,7 @@ class DetectorType(Enum):
     CONSECUTIVE_DB_OP = "consecutive_db"
     FILE_IO_MAIN_THREAD = "file_io_main_thread"
     M_N_PLUS_ONE_DB = "m_n_plus_one_db"
+    UNCOMPRESSED_ASSETS = "uncompressed_assets"
 
 
 DETECTOR_TYPE_TO_GROUP_TYPE = {
@@ -71,6 +72,7 @@ DETECTOR_TYPE_TO_GROUP_TYPE = {
     DetectorType.CONSECUTIVE_DB_OP: GroupType.PERFORMANCE_CONSECUTIVE_DB_OP,
     DetectorType.FILE_IO_MAIN_THREAD: GroupType.PERFORMANCE_FILE_IO_MAIN_THREAD,
     DetectorType.M_N_PLUS_ONE_DB: GroupType.PERFORMANCE_M_N_PLUS_ONE_DB_QUERIES,
+    DetectorType.UNCOMPRESSED_ASSETS: GroupType.PERFORMANCE_UNCOMPRESSED_ASSETS,
 }
 
 # Detector and the corresponding system option must be added to this list to have issues created.
@@ -79,6 +81,7 @@ DETECTOR_TYPE_ISSUE_CREATION_TO_SYSTEM_OPTION = {
     DetectorType.N_PLUS_ONE_DB_QUERIES_EXTENDED: "performance.issues.n_plus_one_db_ext.problem-creation",
     DetectorType.CONSECUTIVE_DB_OP: "performance.issues.consecutive_db.problem-creation",
     DetectorType.N_PLUS_ONE_API_CALLS: "performance.issues.n_plus_one_api_calls.problem-creation",
+    DetectorType.UNCOMPRESSED_ASSETS: "performance.issues.compressed_assets.problem-creation",
     # NOTE: Slow Span issues are not allowed for creation yet, the addition of this line is temporary so that we can
     # record some metrics for issues of this type that *should* be created. We won't actually create any of these issues atm.
     # This is handled within `event_manager.py` before the issue gets created.
@@ -256,6 +259,11 @@ def get_detection_settings(project_id: Optional[int] = None) -> Dict[DetectorTyp
             "total_duration_threshold": 100.0,  # ms
             "minimum_occurrences_of_pattern": 3,
             "max_sequence_length": 5,
+        },
+        DetectorType.UNCOMPRESSED_ASSETS: {
+            "size_threshold_bytes": 500 * 1024,
+            "duration_threshold": 50,  # ms
+            "allowed_span_ops": ["resource.css", "resource.script"],
         },
     }
 
@@ -1514,6 +1522,73 @@ class MNPlusOneDBSpanDetector(PerformanceDetector):
     def on_complete(self) -> None:
         if performance_problem := self.state.finish():
             self.stored_problems[performance_problem.fingerprint] = performance_problem
+
+
+class UncompressedAssetSpanDetector(PerformanceDetector):
+    """
+    Checks for large assets that are affecting load time.
+    """
+
+    __slots__ = "stored_problems"
+
+    settings_key = DetectorType.UNCOMPRESSED_ASSETS
+    type: DetectorType = DetectorType.UNCOMPRESSED_ASSETS
+
+    def init(self):
+        self.stored_problems = {}
+
+    def visit_span(self, span: Span) -> None:
+        op = span.get("op", None)
+        if not op:
+            return
+
+        allowed_span_ops = self.settings.get("allowed_span_ops")
+        if op not in allowed_span_ops:
+            return
+
+        data = span.get("data", None)
+        transfer_size = data and data.get("Transfer Size", None)
+        encoded_body_size = data and data.get("Encoded Body Size", None)
+        decoded_body_size = data and data.get("Decoded Body Size", None)
+        if not (encoded_body_size and decoded_body_size and transfer_size):
+            return
+
+        # Ignore assets from cache, either directly (nothing transferred) or via
+        # a 304 Not Modified response (transfer is smaller than asset size).
+        if transfer_size <= 0 or transfer_size < encoded_body_size:
+            return
+
+        # Ignore assets that are already compressed.
+        if encoded_body_size != decoded_body_size:
+            return
+
+        # Ignore assets that aren't big enough to worry about.
+        size_threshold_bytes = self.settings.get("size_threshold_bytes")
+        if encoded_body_size < size_threshold_bytes:
+            return
+
+        # Ignore assets under a certain duration threshold
+        if get_span_duration(span).total_seconds() * 1000 <= self.settings.get(
+            "duration_threshold"
+        ):
+            return
+
+        fingerprint = self._fingerprint(span)
+        span_id = span.get("span_id", None)
+        if fingerprint and span_id and not self.stored_problems.get(fingerprint, False):
+            self.stored_problems[fingerprint] = PerformanceProblem(
+                fingerprint=fingerprint,
+                op=span.get("op"),
+                desc=span.get("description", ""),
+                parent_span_ids=[],
+                type=GroupType.PERFORMANCE_UNCOMPRESSED_ASSETS,
+                cause_span_ids=[],
+                offender_span_ids=[span.get("span_id", None)],
+            )
+
+    def _fingerprint(self, span) -> str:
+        hashed_spans = fingerprint_spans([span])
+        return f"1-{GroupType.PERFORMANCE_UNCOMPRESSED_ASSETS.value}-{hashed_spans}"
 
 
 # Reports metrics and creates spans for detection
