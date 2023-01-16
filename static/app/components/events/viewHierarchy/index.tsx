@@ -49,7 +49,7 @@ function ViewHierarchy({viewHierarchy}: ViewHierarchyProps) {
   const {renderedItems, containerStyles, scrollContainerStyles} = useVirtualizedTree({
     renderRow: (r, {handleExpandTreeNode}) => {
       return (
-        <div style={{paddingLeft: r.item.node.depth * 16, height: '20px'}}>
+        <div style={{...r.styles, paddingLeft: r.item.node.depth * 16, height: '20px'}}>
           <Node
             id={r.item.node.id}
             label={getNodeLabel(r.item.node)}
