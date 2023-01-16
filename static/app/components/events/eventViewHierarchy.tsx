@@ -16,11 +16,13 @@ import {ViewHierarchy, ViewHierarchyData} from './viewHierarchy';
 const DEFAULT_RESPONSE: ViewHierarchyData = {rendering_system: '', windows: []};
 const FIVE_SECONDS_IN_MS = 5 * 1000;
 
-function fillWithUniqueIds(hierarchy) {
+function preprocessTreeData(hierarchy, depth) {
   return {
     ...hierarchy,
+    depth,
     id: uniqueId(),
-    children: hierarchy.children?.map(fillWithUniqueIds) ?? [],
+    children:
+      hierarchy.children?.map(child => preprocessTreeData(child, depth + 1)) ?? [],
   };
 }
 
@@ -60,7 +62,7 @@ function EventViewHierarchy({projectSlug, viewHierarchies}: Props) {
         rendering_system: JSONdata.rendering_system,
         // Recursively add unique IDs to the nodes for rendering the tree,
         // and to correlate elements when hovering between tree and wireframe
-        windows: JSONdata.windows.map(fillWithUniqueIds),
+        windows: JSONdata.windows.map(hierarchy => preprocessTreeData(hierarchy, 0)),
       };
     },
     {staleTime: FIVE_SECONDS_IN_MS, refetchOnWindowFocus: false}
