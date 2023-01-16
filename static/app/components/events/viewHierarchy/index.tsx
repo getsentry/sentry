@@ -18,7 +18,6 @@ function getNodeLabel({identifier, type}: ViewHierarchyWindow) {
 
 export type ViewHierarchyWindow = {
   alpha: number;
-  depth: number;
   height: number;
   id: string;
   type: string;
@@ -27,6 +26,7 @@ export type ViewHierarchyWindow = {
   x: number;
   y: number;
   children?: ViewHierarchyWindow[];
+  depth?: number;
   identifier?: string;
 };
 
@@ -89,6 +89,7 @@ function ViewHierarchy({viewHierarchy}: ViewHierarchyProps) {
     expanded: true,
     overscroll: 10,
   });
+
   return (
     <Fragment>
       <RenderingSystem system={viewHierarchy.rendering_system} />

@@ -22,20 +22,17 @@ const MOCK_DATA = {
       type: 'Container',
       identifier: 'test_identifier',
       x: 200,
-      depth: 0,
       children: [
         {
           ...DEFAULT_VALUES,
           id: 'intermediate',
           type: 'Nested Container',
           identifier: 'nested',
-          depth: 1,
           children: [
             {
               ...DEFAULT_VALUES,
               id: 'leaf',
               type: 'Text',
-              depth: 2,
               children: [],
             },
           ],
