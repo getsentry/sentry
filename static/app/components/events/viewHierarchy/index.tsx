@@ -4,7 +4,10 @@ import styled from '@emotion/styled';
 import {Node} from 'sentry/components/events/viewHierarchy/node';
 import space from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
-import {useVirtualizedTree} from 'sentry/utils/profiling/hooks/useVirtualizedTree/useVirtualizedTree';
+import {
+  UseVirtualizedListProps,
+  useVirtualizedTree,
+} from 'sentry/utils/profiling/hooks/useVirtualizedTree/useVirtualizedTree';
 
 import {DetailsPanel} from './detailsPanel';
 import {RenderingSystem} from './renderingSystem';
@@ -46,28 +49,40 @@ function ViewHierarchy({viewHierarchy}: ViewHierarchyProps) {
     return [viewHierarchy.windows[selectedWindow]];
   }, [selectedWindow, viewHierarchy.windows]);
 
+  const renderRow: UseVirtualizedListProps<ViewHierarchyWindow>['renderRow'] = (
+    r,
+    {handleExpandTreeNode}
+  ) => {
+    return (
+      <TreeItem
+        key={r.key}
+        ref={n => {
+          r.ref = n;
+        }}
+        style={r.styles}
+        depth={r.item.node.depth}
+      >
+        <Node
+          id={r.item.node.id}
+          label={getNodeLabel(r.item.node)}
+          onExpandClick={() => handleExpandTreeNode(r.item, {expandChildren: false})}
+          collapsible={!!r.item.node.children?.length}
+          isExpanded={r.item.expanded}
+          onSelection={() => {
+            if (r.item.node !== selectedNode) {
+              setSelectedNode(r.item.node);
+            } else {
+              setSelectedNode(null);
+            }
+          }}
+          isSelected={selectedNode?.id === r.item.node.id}
+        />
+      </TreeItem>
+    );
+  };
+
   const {renderedItems, containerStyles, scrollContainerStyles} = useVirtualizedTree({
-    renderRow: (r, {handleExpandTreeNode}) => {
-      return (
-        <div style={{...r.styles, paddingLeft: r.item.node.depth * 16, height: '20px'}}>
-          <Node
-            id={r.item.node.id}
-            label={getNodeLabel(r.item.node)}
-            onExpandClick={() => handleExpandTreeNode(r.item, {expandChildren: false})}
-            collapsible={!!r.item.node.children?.length}
-            isExpanded={r.item.expanded}
-            onSelection={() => {
-              if (r.item.node !== selectedNode) {
-                setSelectedNode(r.item.node);
-              } else {
-                setSelectedNode(null);
-              }
-            }}
-            isSelected={selectedNode?.id === r.item.node.id}
-          />
-        </div>
-      );
-    },
+    renderRow,
     rowHeight: 20,
     scrollContainer: scrollContainerRef,
     tree: hierarchy,
@@ -78,9 +93,11 @@ function ViewHierarchy({viewHierarchy}: ViewHierarchyProps) {
     <Fragment>
       <RenderingSystem system={viewHierarchy.rendering_system} />
       <TreeContainer>
-        <div ref={setScrollContainerRef} style={scrollContainerStyles}>
-          <div style={containerStyles}>{renderedItems}</div>
-        </div>
+        <ScrollContainer ref={setScrollContainerRef} style={scrollContainerStyles}>
+          <RenderedItemsContainer style={containerStyles}>
+            {renderedItems}
+          </RenderedItemsContainer>
+        </ScrollContainer>
       </TreeContainer>
       {defined(selectedNode) && (
         <DetailsPanel data={selectedNode} getTitle={getNodeLabel} />
@@ -93,10 +110,23 @@ export {ViewHierarchy};
 
 const TreeContainer = styled('div')`
   position: relative;
-  max-height: 500px;
-  overflow: auto;
+  height: 400px;
+  overflow: hidden;
+  overflow-y: auto;
   background-color: ${p => p.theme.surface100};
   border: 1px solid ${p => p.theme.gray100};
   border-radius: ${p => p.theme.borderRadius};
-  padding: ${space(1.5)} 0 ${space(1.5)} ${space(1.5)};
+`;
+
+const ScrollContainer = styled('div')`
+  padding: ${space(1.5)};
+`;
+
+const RenderedItemsContainer = styled('div')`
+  position: relative;
+`;
+
+const TreeItem = styled('div')<{depth: number}>`
+  padding-left: ${p => p.depth * 16}px;
+  height: 20px;
 `;
