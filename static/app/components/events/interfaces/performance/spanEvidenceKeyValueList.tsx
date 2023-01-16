@@ -10,7 +10,7 @@ import {RawSpanType} from '../spans/types';
 import {TraceContextSpanProxy} from './spanEvidence';
 
 type Span = (RawSpanType | TraceContextSpanProxy) & {
-  data: any;
+  data?: any;
 };
 
 type SpanEvidenceKeyValueListProps = {
