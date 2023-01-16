@@ -1,7 +1,7 @@
 import {EXAMPLE_TRANSACTION_TITLE, MockSpan} from 'sentry-test/performance/utils';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {IssueType} from 'sentry/types';
+import {EntryType, IssueType} from 'sentry/types';
 
 import {
   extractQueryParameters,
@@ -9,14 +9,11 @@ import {
 } from './spanEvidenceKeyValueList';
 
 describe('SpanEvidenceKeyValueList', () => {
-  const event = TestStubs.Event({
-    transaction: EXAMPLE_TRANSACTION_TITLE,
-    request: {
-      url: 'https://service.io/resource',
-    },
-  });
-
   describe('N+1 Database Queries', () => {
+    const event = TestStubs.Event({
+      title: EXAMPLE_TRANSACTION_TITLE,
+    });
+
     it('Renders relevant fields', () => {
       render(
         <SpanEvidenceKeyValueList
@@ -70,6 +67,10 @@ describe('SpanEvidenceKeyValueList', () => {
   });
 
   describe('Consecutive DB Queries', () => {
+    const event = TestStubs.Event({
+      title: EXAMPLE_TRANSACTION_TITLE,
+    });
+
     it('Renders relevant fields', () => {
       render(
         <SpanEvidenceKeyValueList
@@ -121,6 +122,18 @@ describe('SpanEvidenceKeyValueList', () => {
   });
 
   describe('N+1 API Calls', () => {
+    const event = TestStubs.Event({
+      title: '/',
+      entries: [
+        TestStubs.EventEntry({
+          type: EntryType.REQUEST,
+          data: {
+            url: 'http://some.service.io',
+          },
+        }),
+      ],
+    });
+
     it('Renders relevant fields', () => {
       render(
         <SpanEvidenceKeyValueList
@@ -139,13 +152,13 @@ describe('SpanEvidenceKeyValueList', () => {
               startTimestamp: 10,
               endTimestamp: 2100,
               op: 'http.client',
-              description: 'GET http://service.api/book/?book_id=7&sort=up',
+              description: 'GET /book/?book_id=7&sort=up',
             }).span,
             new MockSpan({
               startTimestamp: 10,
               endTimestamp: 2100,
               op: 'http.client',
-              description: 'GET http://service.api/book/?book_id=8&sort=down',
+              description: 'GET /book/?book_id=8&sort=down',
             }).span,
           ]}
         />
@@ -206,6 +219,10 @@ describe('SpanEvidenceKeyValueList', () => {
   });
 
   describe('Slow DB Span', () => {
+    const event = TestStubs.Event({
+      title: EXAMPLE_TRANSACTION_TITLE,
+    });
+
     it('Renders relevant fields', () => {
       render(
         <SpanEvidenceKeyValueList

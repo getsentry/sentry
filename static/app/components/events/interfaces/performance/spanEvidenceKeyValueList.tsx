@@ -2,7 +2,16 @@ import kebabCase from 'lodash/kebabCase';
 import mapValues from 'lodash/mapValues';
 
 import {t} from 'sentry/locale';
-import {Event, IssueType, KeyValueListData, KeyValueListDataItem} from 'sentry/types';
+import {
+  Entry,
+  EntryRequest,
+  EntryType,
+  Event,
+  EventTransaction,
+  IssueType,
+  KeyValueListData,
+  KeyValueListDataItem,
+} from 'sentry/types';
 
 import KeyValueList from '../keyValueList';
 import {RawSpanType} from '../spans/types';
@@ -15,7 +24,7 @@ type Span = (RawSpanType | TraceContextSpanProxy) & {
 
 type SpanEvidenceKeyValueListProps = {
   causeSpans: Span[] | null;
-  event: Event;
+  event: EventTransaction;
   issueType: IssueType | undefined;
   offendingSpans: Span[];
   parentSpan: Span | null;
@@ -82,16 +91,19 @@ const NPlusOneAPICallsSpanEvidence = ({
   event,
   offendingSpans,
 }: SpanEvidenceKeyValueListProps) => {
-  const problemParameters = formatChangingQueryParameters(offendingSpans);
-  const basePath = formatBasePath(offendingSpans[0]);
+  const requestEntry = event?.entries?.find(isRequestEntry);
+  const baseURL = requestEntry?.data?.url;
+
+  const problemParameters = formatChangingQueryParameters(offendingSpans, baseURL);
+  const commonPathPrefix = formatBasePath(offendingSpans[0], baseURL);
 
   return (
     <PresortedKeyValueList
       data={
         [
           makeTransactionNameRow(event),
-          basePath
-            ? makeRow(t('Repeating Spans (%s)', offendingSpans.length), basePath)
+          commonPathPrefix
+            ? makeRow(t('Repeating Spans (%s)', offendingSpans.length), commonPathPrefix)
             : null,
           problemParameters.length > 0
             ? makeRow(t('Parameters'), problemParameters)
@@ -100,6 +112,10 @@ const NPlusOneAPICallsSpanEvidence = ({
       }
     />
   );
+};
+
+const isRequestEntry = (entry: Entry): entry is EntryRequest => {
+  return entry.type === EntryType.REQUEST;
 };
 
 const SlowSpanSpanEvidence = ({event, offendingSpans}: SpanEvidenceKeyValueListProps) => (
@@ -168,9 +184,9 @@ type ParameterLookup = Record<string, string[]>;
   * @returns A condensed string describing the query parameters changing
   * between the URLs of the given span. e.g., "id:{1,2,3}"
  */
-function formatChangingQueryParameters(spans: Span[]): string {
+function formatChangingQueryParameters(spans: Span[], baseURL?: string): string {
   const URLs = spans
-    .map(extractSpanURLString)
+    .map(span => extractSpanURLString(span, baseURL))
     .filter((url): url is URL => url instanceof URL);
 
   const allQueryParameters = extractQueryParameters(URLs);
@@ -189,7 +205,7 @@ function formatChangingQueryParameters(spans: Span[]): string {
   return pairs.join(' ');
 }
 
-const extractSpanURLString = (span: Span): URL | null => {
+const extractSpanURLString = (span: Span, baseURL?: string): URL | null => {
   try {
     let URLString = span?.data?.url;
     if (!URLString) {
@@ -197,7 +213,7 @@ const extractSpanURLString = (span: Span): URL | null => {
       URLString = _url;
     }
 
-    return new URL(URLString);
+    return new URL(URLString, baseURL);
   } catch (e) {
     return null;
   }
@@ -218,8 +234,8 @@ export function extractQueryParameters(URLs: URL[]): ParameterLookup {
   });
 }
 
-function formatBasePath(span: Span): string {
-  const spanURL = extractSpanURLString(span);
+function formatBasePath(span: Span, baseURL?: string): string {
+  const spanURL = extractSpanURLString(span, baseURL);
 
   return spanURL?.pathname ?? '';
 }

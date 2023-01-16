@@ -13,7 +13,7 @@ import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {EntrySpans, EntryType, Event, EventTransaction} from 'sentry/types/event';
+import {Entry, EntrySpans, EntryType, Event, EventTransaction} from 'sentry/types/event';
 
 type StartTimestamp = number;
 type EndTimestamp = number;
@@ -81,11 +81,9 @@ class OpsBreakdown extends Component<Props> {
       return [];
     }
 
-    const spanEntry = event.entries.find(
-      (entry: EntrySpans | any): entry is EntrySpans => {
-        return entry.type === EntryType.SPANS;
-      }
-    );
+    const spanEntry = event.entries.find((entry: Entry): entry is EntrySpans => {
+      return entry.type === EntryType.SPANS;
+    });
 
     let spans: RawSpanType[] = spanEntry?.data ?? [];
 
