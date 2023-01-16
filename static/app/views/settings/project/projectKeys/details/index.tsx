@@ -44,24 +44,22 @@ export default class ProjectKeyDetails extends AsyncView<Props, State> {
   };
 
   renderBody() {
+    const {organization, params} = this.props;
     const {data} = this.state;
-    const params = {
-      ...this.props.params,
-      orgId: this.props.organization.slug,
-    };
 
     return (
       <div data-test-id="key-details">
         <SettingsPageHeader title={t('Key Details')} />
         <PermissionAlert />
 
-        <KeyStats api={this.api} params={params} />
+        <KeyStats api={this.api} organization={organization} params={params} />
 
         <KeySettings
           api={this.api}
-          params={params}
           data={data}
           onRemove={this.handleRemove}
+          organization={organization}
+          params={params}
         />
       </div>
     );
