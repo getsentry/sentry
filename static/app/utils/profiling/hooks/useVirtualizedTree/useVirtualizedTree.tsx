@@ -18,7 +18,7 @@ import {
 } from './virtualizedTreeUtils';
 
 export interface TreeLike {
-  children: TreeLike[];
+  children?: TreeLike[];
 }
 
 const DEFAULT_OVERSCROLL_ITEMS = 5;

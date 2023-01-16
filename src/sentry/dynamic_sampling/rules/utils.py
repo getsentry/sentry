@@ -11,7 +11,11 @@ KEY_TRANSACTION_BOOST_FACTOR = 5
 HEALTH_CHECK_DROPPING_FACTOR = 5
 
 
-class Bias(TypedDict):
+class ActivatableBias(TypedDict):
+    """
+    A bias that can be activated, where activated means that the bias is enabled.
+    """
+
     id: str
     active: bool
 
@@ -22,23 +26,23 @@ class RuleType(Enum):
     UNIFORM_RULE = "uniformRule"
     BOOST_ENVIRONMENTS_RULE = "boostEnvironments"
     BOOST_LATEST_RELEASES_RULE = "boostLatestRelease"
-    IGNORE_HEALTHCHECKS_RULE = "ignoreHealthChecks"
+    IGNORE_HEALTH_CHECKS_RULE = "ignoreHealthChecks"
     BOOST_KEY_TRANSACTIONS_RULE = "boostKeyTransactions"
 
 
-DEFAULT_BIASES: List[Bias] = [
+DEFAULT_BIASES: List[ActivatableBias] = [
     {"id": RuleType.BOOST_ENVIRONMENTS_RULE.value, "active": True},
     {
         "id": RuleType.BOOST_LATEST_RELEASES_RULE.value,
         "active": True,
     },
-    {"id": RuleType.IGNORE_HEALTHCHECKS_RULE.value, "active": True},
+    {"id": RuleType.IGNORE_HEALTH_CHECKS_RULE.value, "active": True},
     {"id": RuleType.BOOST_KEY_TRANSACTIONS_RULE.value, "active": True},
 ]
 RESERVED_IDS = {
     RuleType.UNIFORM_RULE: 1000,
     RuleType.BOOST_ENVIRONMENTS_RULE: 1001,
-    RuleType.IGNORE_HEALTHCHECKS_RULE: 1002,
+    RuleType.IGNORE_HEALTH_CHECKS_RULE: 1002,
     RuleType.BOOST_KEY_TRANSACTIONS_RULE: 1003,
     RuleType.BOOST_LATEST_RELEASES_RULE: 1500,
 }
@@ -112,7 +116,7 @@ def _deep_sorted(value: Union[Any, Dict[Any, Any]]) -> Union[Any, Dict[Any, Any]
         return value
 
 
-def get_user_biases(user_set_biases: Optional[List[Bias]]) -> List[Bias]:
+def get_user_biases(user_set_biases: Optional[List[ActivatableBias]]) -> List[ActivatableBias]:
     if user_set_biases is None:
         return DEFAULT_BIASES
 
@@ -123,10 +127,11 @@ def get_user_biases(user_set_biases: Optional[List[Bias]]) -> List[Bias]:
             returned_biases.append(id_to_user_bias[bias["id"]])
         else:
             returned_biases.append(bias)
+
     return returned_biases
 
 
-def get_enabled_user_biases(user_set_biases: Optional[List[Bias]]) -> Set[str]:
+def get_enabled_user_biases(user_set_biases: Optional[List[ActivatableBias]]) -> Set[str]:
     users_biases = get_user_biases(user_set_biases)
     return {bias["id"] for bias in users_biases if bias["active"]}
 

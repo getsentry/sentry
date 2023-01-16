@@ -5,7 +5,7 @@ import {
   addLoadingMessage,
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import Confirm from 'sentry/components/confirm';
 import {IconDelete, IconEdit} from 'sentry/icons';
@@ -78,6 +78,7 @@ const MonitorHeaderActions = ({monitor, orgId, onUpdate}: Props) => {
       </Button>
       <Confirm
         onConfirm={handleDelete}
+        priority="danger"
         message={t('Are you sure you want to permanently delete this cron monitor?')}
       >
         <Button size="sm" icon={<IconDelete size="xs" />}>

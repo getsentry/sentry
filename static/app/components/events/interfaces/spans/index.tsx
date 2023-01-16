@@ -3,7 +3,7 @@ import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 import {Observer} from 'mobx-react';
 
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Panel} from 'sentry/components/panels';
 import SearchBar from 'sentry/components/searchBar';
@@ -173,4 +173,4 @@ const ErrorLabel = styled('div')`
   margin-bottom: ${space(1)};
 `;
 
-export default withOrganization(SpansInterface);
+export const Spans = withOrganization(SpansInterface);
