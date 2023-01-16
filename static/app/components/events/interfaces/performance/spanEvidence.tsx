@@ -28,7 +28,7 @@ export function SpanEvidenceSection({event, issueType, organization}: Props) {
     return null;
   }
 
-  const {parentSpan, offendingSpans, affectedSpanIds} = spanInfo;
+  const {causeSpans, parentSpan, offendingSpans, affectedSpanIds} = spanInfo;
 
   return (
     <DataSection
@@ -42,6 +42,7 @@ export function SpanEvidenceSection({event, issueType, organization}: Props) {
         transactionName={event.title}
         parentSpan={parentSpan}
         offendingSpans={offendingSpans}
+        causeSpans={causeSpans}
       />
 
       <TraceViewWrapper>
