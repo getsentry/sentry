@@ -156,7 +156,7 @@ describe('SpanEvidencePreview', () => {
     expect(screen.getByRole('cell', {name: 'Parent Span'})).toBeInTheDocument();
     expect(screen.getByRole('cell', {name: 'db - connect'})).toBeInTheDocument();
 
-    expect(screen.getByRole('cell', {name: 'Repeating Span'})).toBeInTheDocument();
+    expect(screen.getByRole('cell', {name: 'Repeating Spans (9)'})).toBeInTheDocument();
     expect(screen.getByRole('cell', {name: 'db - group me'})).toBeInTheDocument();
   });
 });
