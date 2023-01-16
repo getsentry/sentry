@@ -13,6 +13,7 @@ import {Organization} from 'sentry/types';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import {Column} from 'sentry/utils/discover/fields';
+import {FieldKey} from 'sentry/utils/fields';
 import theme from 'sentry/utils/theme';
 import useTags from 'sentry/utils/useTags';
 import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
@@ -97,6 +98,9 @@ function ColumnEditModal(props: Props) {
         <ColumnEditCollection
           columns={columns}
           fieldOptions={fieldOptions}
+          filterAggregateParameters={option =>
+            option.value.meta.name !== FieldKey.TOTAL_COUNT
+          }
           onChange={setColumns}
           organization={organization}
         />

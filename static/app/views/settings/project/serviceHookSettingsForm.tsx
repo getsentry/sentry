@@ -8,10 +8,10 @@ import TextField from 'sentry/components/forms/fields/textField';
 import FormField from 'sentry/components/forms/formField';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
-import {Choices, ServiceHook} from 'sentry/types';
+import {ServiceHook} from 'sentry/types';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
-const EVENT_CHOICES: Choices = ['event.alert', 'event.created'].map(e => [e, e]);
+const EVENT_CHOICES = ['event.alert', 'event.created'];
 
 type Props = {
   initialData: Partial<ServiceHook> & {isActive: boolean};
@@ -61,12 +61,14 @@ export default class ServiceHookSettingsForm extends Component<Props> {
               inline={false}
               help={t('The event types you wish to subscribe to.')}
             >
-              {({value, onChange}) => (
-                <MultipleCheckbox
-                  onChange={onChange}
-                  value={value}
-                  choices={EVENT_CHOICES}
-                />
+              {({name, value, onChange}) => (
+                <MultipleCheckbox onChange={onChange} value={value} name={name}>
+                  {EVENT_CHOICES.map(event => (
+                    <MultipleCheckbox.Item key={event} value={event}>
+                      {event}
+                    </MultipleCheckbox.Item>
+                  ))}
+                </MultipleCheckbox>
               )}
             </FormField>
           </PanelBody>

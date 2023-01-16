@@ -5,7 +5,8 @@ from django.http.request import HttpRequest
 
 from sentry import eventstore
 from sentry.integrations.slack.message_builder.issues import build_group_attachment
-from sentry.models import Group, Integration, Project, User
+from sentry.models import Group, Project, User
+from sentry.services.hybrid_cloud.integration import APIIntegration, integration_service
 
 from . import Handler, UnfurlableUrl, UnfurledUrl, make_type_coercer
 
@@ -19,7 +20,7 @@ map_issue_args = make_type_coercer(
 
 def unfurl_issues(
     request: HttpRequest,
-    integration: Integration,
+    integration: APIIntegration,
     links: List[UnfurlableUrl],
     user: Optional["User"] = None,
 ) -> UnfurledUrl:
@@ -28,11 +29,16 @@ def unfurl_issues(
     for a particular issue by the URL of the yet-unfurled links a user included
     in their Slack message.
     """
+    org_integrations = integration_service.get_organization_integrations(
+        integration_id=integration.id
+    )
     group_by_id = {
         g.id: g
         for g in Group.objects.filter(
             id__in={link.args["issue_id"] for link in links},
-            project__in=Project.objects.filter(organization__in=integration.organizations.all()),
+            project__in=Project.objects.filter(
+                organization_id__in=[oi.organization_id for oi in org_integrations]
+            ),
         )
     }
     if not group_by_id:

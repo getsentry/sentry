@@ -9,6 +9,7 @@ import type {Sort} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {ReplayListLocationQuery} from 'sentry/views/replays/types';
+import {ReplayRecord} from 'sentry/views/replays/types';
 
 type NotSortable = {
   label: string;
@@ -16,7 +17,7 @@ type NotSortable = {
 };
 
 type Sortable = {
-  fieldName: string;
+  fieldName: keyof ReplayRecord;
   label: string;
   sort: undefined | Sort;
   tooltip?: string;

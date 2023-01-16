@@ -1,7 +1,7 @@
 import {RouteComponentProps} from 'react-router';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
 import AutoSelectText from 'sentry/components/autoSelectText';
 import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';

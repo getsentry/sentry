@@ -3,7 +3,7 @@ from typing import Dict, List, Union
 
 import sentry_sdk
 
-from sentry.dynamic_sampling.utils import BaseRule, RuleType, get_rule_hash, get_rule_type
+from sentry.dynamic_sampling.rules.utils import BaseRule, RuleType, get_rule_hash, get_rule_type
 
 logger = logging.getLogger("sentry.dynamic_sampling")
 
@@ -92,7 +92,7 @@ def _extract_info_from_rule(
             "release": rule["condition"]["inner"][0]["value"],
             "environment": rule["condition"]["inner"][1]["value"],
         }
-    elif rule_type == RuleType.IGNORE_HEALTHCHECKS_RULE:
+    elif rule_type == RuleType.IGNORE_HEALTH_CHECKS_RULE:
         return {"healthChecks": rule["condition"]["inner"][0]["value"]}
     elif rule_type == RuleType.BOOST_KEY_TRANSACTIONS_RULE:
         return {"transactions": rule["condition"]["inner"][0]["value"]}
