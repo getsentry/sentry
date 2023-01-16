@@ -1333,12 +1333,9 @@ class MetricsLayerReleaseHealthBackend(ReleaseHealthBackend):
         project_releases: Sequence[ProjectRelease],
         now: Optional[datetime] = None,
     ) -> Mapping[ProjectRelease, str]:
-        """Returns the oldest health data we have observed in a release
-        in 90 days.  This is used for backfilling.
-        """
+        # TODO figure out how to get min(timestamp) in a column
         raise NotImplementedError()
 
-    # TODO implement
     def get_project_releases_count(
         self,
         organization_id: OrganizationId,
@@ -1347,10 +1344,66 @@ class MetricsLayerReleaseHealthBackend(ReleaseHealthBackend):
         stats_period: Optional[str] = None,
         environments: Optional[Sequence[EnvironmentName]] = None,
     ) -> int:
-        """
-        Fetches the total count of releases/project combinations
-        """
-        raise NotImplementedError()
+
+        projects = self._get_projects(project_ids)
+
+        now = datetime.now(pytz.utc)
+
+        if stats_period is None:
+            stats_period = "24h"
+
+        # Special rule that we support sorting by the last 24h only.
+        if scope.endswith("_24h"):
+            stats_period = "24h"
+
+        granularity, stats_start, _ = get_rollup_starts_and_buckets(stats_period, now=now)
+
+        where = []
+
+        if environments is not None:
+            where.append(Condition(Column("tags[environment]"), Op.IN, environments))
+
+        if scope == "users":
+            select = [MetricField(metric_mri=SessionMRI.ALL_USER.value, alias="v", op=None)]
+            # where += Condition(Column("value"), Op.GT, 0)
+        elif scope == "crash_free_users":
+            select = [MetricField(metric_mri=SessionMRI.CRASH_FREE_USER.value, alias="v", op=None)]
+            # where += Condition(Column("value"), Op.GT, 0)
+        else:  # sessions
+            select = [MetricField(metric_mri=SessionMRI.ALL.value, alias="v", op=None)]
+
+        groupby = [
+            MetricGroupByField(field="project_id"),
+            MetricGroupByField(field="release"),
+        ]
+
+        query = MetricsQuery(
+            org_id=organization_id,
+            project_ids=project_ids,
+            select=select,
+            start=stats_start,
+            end=now,
+            where=where,
+            groupby=groupby,
+            granularity=Granularity(LEGACY_SESSIONS_DEFAULT_ROLLUP),
+            include_series=False,
+            include_totals=True,
+        )
+
+        raw_result = get_series(
+            projects=projects,
+            metrics_query=query,
+            use_case_id=USE_CASE_ID,
+        )
+
+        groups = raw_result["groups"]
+        # since we are grouping by release & project the number of unique
+        # combination is the number of groups.
+        # NOTE: (RaduW) I don't know how to get a more direct query
+        # the way it was in the original implementation where we
+        # didn't use a group by  but calculated in one go with
+        #  a column uniqueExact(projectId, release)
+        return len(groups)
 
     # TODO implement
     def get_project_release_stats(
