@@ -46,9 +46,9 @@ describe('SpanEvidenceKeyValueList', () => {
         screen.getByTestId('span-evidence-key-value-list.parent-span')
       ).toHaveTextContent('http.server');
 
-      expect(screen.getByRole('cell', {name: 'Repeating Span'})).toBeInTheDocument();
+      expect(screen.getByRole('cell', {name: 'Repeating Spans (2)'})).toBeInTheDocument();
       expect(
-        screen.getByTestId('span-evidence-key-value-list.repeating-span')
+        screen.getByTestId(/span-evidence-key-value-list.repeating-spans/)
       ).toHaveTextContent('db - SELECT * FROM books');
 
       expect(
@@ -95,9 +95,9 @@ describe('SpanEvidenceKeyValueList', () => {
         screen.getByTestId('span-evidence-key-value-list.transaction')
       ).toHaveTextContent('/');
 
-      expect(screen.getByRole('cell', {name: 'Offending Span'})).toBeInTheDocument();
+      expect(screen.getByRole('cell', {name: 'Repeating Spans (2)'})).toBeInTheDocument();
       expect(
-        screen.getByTestId('span-evidence-key-value-list.offending-span')
+        screen.getByTestId(/span-evidence-key-value-list.repeating-spans/)
       ).toHaveTextContent('GET http://service.api/book/?book_id=7');
 
       expect(screen.queryByRole('cell', {name: 'Problem Parameter'})).toBeInTheDocument();

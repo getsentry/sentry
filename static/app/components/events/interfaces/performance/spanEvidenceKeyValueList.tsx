@@ -47,7 +47,10 @@ const NPlusOneDBQueriesSpanEvidence = ({
       [
         makeTransactionNameRow(transactionName),
         parentSpan ? makeRow(t('Parent Span'), getSpanEvidenceValue(parentSpan)) : null,
-        makeRow(t('Repeating Span'), getSpanEvidenceValue(offendingSpans[0])),
+        makeRow(
+          t('Repeating Spans (%s)', offendingSpans.length),
+          getSpanEvidenceValue(offendingSpans[0])
+        ),
       ].filter(Boolean) as KeyValueListData
     }
   />
@@ -64,7 +67,10 @@ const NPlusOneAPICallsSpanEvidence = ({
       data={
         [
           makeTransactionNameRow(transactionName),
-          makeRow(t('Offending Span'), getSpanEvidenceValue(offendingSpans[0])),
+          makeRow(
+            t('Repeating Spans (%s)', offendingSpans.length),
+            getSpanEvidenceValue(offendingSpans[0])
+          ),
           getProblemParameters.length > 0
             ? makeRow(t('Problem Parameter'), problemParameters)
             : null,
