@@ -71,10 +71,10 @@ class SlowSpanDetectorTest(unittest.TestCase):
 
     def test_skips_truncated_queries(self):
         slow_span_event_with_truncated_query = create_event(
-            [create_span("db", 1005, "SELECT `product`.`id` FROM `products` ...")] * 1
+            [create_span("db", 1005, "SELECT pokemon FROM pokedex ...")] * 1
         )
         slow_span_event = create_event(
-            [create_span("db", 1005, "SELECT `product`.`id` FROM `products`")] * 1
+            [create_span("db", 1005, "SELECT pokemon FROM pokedex WHERE pokemon.id=%s")] * 1
         )
 
         assert self.find_problems(slow_span_event_with_truncated_query) == []
