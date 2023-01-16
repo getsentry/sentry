@@ -1,11 +1,10 @@
 from unittest.mock import patch
 
-from sentry.dynamic_sampling.logging import should_log_rules_change
-from sentry.dynamic_sampling.utils import get_rule_hash
+from sentry.dynamic_sampling import get_rule_hash, should_log_rules_change
 
 
 @patch(
-    "sentry.dynamic_sampling.logging.active_rules",
+    "sentry.dynamic_sampling.rules.logging.active_rules",
     new={
         1: {
             get_rule_hash(
@@ -35,7 +34,7 @@ def test_should_not_log_rules_if_unchanged():
 
 
 @patch(
-    "sentry.dynamic_sampling.logging.active_rules",
+    "sentry.dynamic_sampling.rules.logging.active_rules",
     new={
         1: {
             get_rule_hash(
@@ -65,7 +64,7 @@ def test_should_not_log_rules_if_unchanged_and_different_order():
 
 
 @patch(
-    "sentry.dynamic_sampling.logging.active_rules",
+    "sentry.dynamic_sampling.rules.logging.active_rules",
     new={
         1: {
             get_rule_hash(
@@ -129,7 +128,7 @@ def test_should_log_rules_if_new_rule_added():
 
 
 @patch(
-    "sentry.dynamic_sampling.logging.active_rules",
+    "sentry.dynamic_sampling.rules.logging.active_rules",
     new={
         1: {
             get_rule_hash(
@@ -179,7 +178,7 @@ def test_should_log_rules_if_same_rule_has_different_sample_rate():
 
 
 @patch(
-    "sentry.dynamic_sampling.logging.active_rules",
+    "sentry.dynamic_sampling.rules.logging.active_rules",
     new={
         1: {
             get_rule_hash(
