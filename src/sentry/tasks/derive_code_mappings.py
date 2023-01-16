@@ -21,7 +21,7 @@ from sentry.utils.json import JSONData
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.safe import get_path
 
-SUPPORTED_LANGUAGES = ["javascript", "python", "node"]
+SUPPORTED_LANGUAGES = ["javascript", "python", "node", "ruby"]
 
 logger = logging.getLogger(__name__)
 
