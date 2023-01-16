@@ -348,12 +348,10 @@ def to_intervals(
     seconds_to_cover = interval_end - interval_start
 
     last_incomplete_interval = 0
-    # NOTE: currently a [start,end] == [10:30, 11:30] generates [10:00,11:00]
-    # if instead  we want to generate [10:00,11:00],[11:00,12:00] then uncomment if below.
-    # if seconds_to_cover % interval_seconds != 0:
-    #     # we don't finish neatly at the end of interval, add another
-    #     # interval to cover the last incomplete period
-    #     last_incomplete_interval = 1
+    if seconds_to_cover % interval_seconds != 0:
+        # we don't finish neatly at the end of interval, add another
+        # interval to cover the last incomplete period
+        last_incomplete_interval = 1
 
     num_intervals = int(seconds_to_cover / interval_seconds) + last_incomplete_interval
     # finally convert back to dates
@@ -363,7 +361,7 @@ def to_intervals(
 
 
 def get_num_intervals(
-    start: datetime,
+    start: Optional[datetime],
     end: datetime,
     granularity: int,
     interval: Optional[int] = None,

@@ -23,7 +23,7 @@ test_get_num_intervals_cases = [
         "2000-01-01T11:10",
         3 * MINUTE,
         None,
-        12,
+        13,
         "uses 3 minute granularity, aligned start",
     ),
     (
@@ -31,7 +31,7 @@ test_get_num_intervals_cases = [
         "2000-01-01T11:10",
         3 * MINUTE,
         None,
-        10,
+        11,
         "uses 3 minute granularity, not aligned",
     ),
     (
@@ -39,7 +39,7 @@ test_get_num_intervals_cases = [
         "2000-01-01T10:40",
         HOUR,
         None,
-        0,
+        1,
         "uses granularity, less than one hour, inside interval",
     ),
     (
@@ -47,7 +47,7 @@ test_get_num_intervals_cases = [
         "2000-01-01T11:10",
         HOUR,
         None,
-        1,
+        2,
         "uses granularity, less than one hour, spans 2 intervals",
     ),
     # naive dates
@@ -56,7 +56,7 @@ test_get_num_intervals_cases = [
         "2000-01-01T10:40",
         HOUR,
         HOUR,
-        0,
+        1,
         "less than one hour, inside interval results in 0",
     ),
     (
@@ -64,7 +64,7 @@ test_get_num_intervals_cases = [
         "2000-01-01T11:10",
         HOUR,
         HOUR,
-        1,
+        2,
         "less than one hour, spans 2 intervals",
     ),
     (
@@ -72,10 +72,10 @@ test_get_num_intervals_cases = [
         "2000-01-01T11:59",
         HOUR,
         HOUR,
-        1,
-        "anything not fully spanning 2 hours gets truncated to 1h",
+        2,
+        "spanning 2 intervals of 1h",
     ),
-    ("2000-01-01T10:20", "2000-01-01T11:40", HOUR, HOUR, 1, "one hour span, not full time"),
+    ("2000-01-01T10:20", "2000-01-01T11:40", HOUR, HOUR, 2, "two hour span, not full time"),
     ("2000-01-01T10:00", "2000-01-01T11:00", HOUR, HOUR, 1, "1 hour exactly aligned"),
     ("2000-01-01T10:00", "2000-01-01T12:00", HOUR, HOUR, 2, "2 hour exactly aligned"),
     (
@@ -83,16 +83,16 @@ test_get_num_intervals_cases = [
         "2000-01-01T14:25",
         HOUR,
         2 * HOUR,
-        2,
-        "2 two hour intervals properly aligned",
+        3,
+        "3 two hour intervals properly aligned",
     ),
-    ("2000-01-01T09:05", "2000-01-01T13:25", HOUR, 2 * HOUR, 2, "2 two hour intervals not aligned"),
+    ("2000-01-01T09:05", "2000-01-01T13:25", HOUR, 2 * HOUR, 3, "2 two hour intervals not aligned"),
     (
         "2000-01-01T10:05",
         "2000-01-01T11:50",
         HOUR,
         2 * HOUR,
-        0,
+        1,
         "interval of less than 2 h properly aligned",
     ),
     (
@@ -100,8 +100,8 @@ test_get_num_intervals_cases = [
         "2000-01-01T11:50",
         HOUR,
         2 * HOUR,
-        0,
-        "interval of less than 2 h spanning two intervals",
+        1,
+        "interval of less than 2 h spanning one interval",
     ),
     # dates with timezones
     (
@@ -109,7 +109,7 @@ test_get_num_intervals_cases = [
         "2000-01-01T10:40+00:00",
         HOUR,
         HOUR,
-        0,
+        1,
         "TZ less than one hour, inside interval",
     ),
     (
@@ -117,7 +117,7 @@ test_get_num_intervals_cases = [
         "2000-01-01T11:10+00:00",
         HOUR,
         HOUR,
-        1,
+        2,
         "TZ less than one hour, spans 2 intervals",
     ),
     (
@@ -125,8 +125,8 @@ test_get_num_intervals_cases = [
         "2000-01-01T10:40-01:00",
         HOUR,
         HOUR,
-        1,
-        "TZ two hour span, not full time",
+        2,
+        "TZ one hour span, not full time",
     ),
     # mixed timezones & naive dates
     (
@@ -134,7 +134,7 @@ test_get_num_intervals_cases = [
         "2000-01-01T10:40",
         HOUR,
         HOUR,
-        0,
+        1,
         "mixed TZ less than one hour, inside interval",
     ),
     (
@@ -142,7 +142,7 @@ test_get_num_intervals_cases = [
         "2000-01-01T11:10",
         HOUR,
         HOUR,
-        1,
+        2,
         "mixed TZ less than one hour, spans 2 intervals",
     ),
     (
@@ -150,7 +150,7 @@ test_get_num_intervals_cases = [
         "2000-01-01T11:10",
         HOUR,
         HOUR,
-        2,
+        3,
         "mixed TZ less than two hours, spans 2 intervals",
     ),
 ]
@@ -178,14 +178,21 @@ def test_get_num_intervals(start, end, granularity, interval, expected, test_mes
 
 test_get_intervals_cases = [
     # naive dates
-    ("2000-01-01T10:20", "2000-01-01T10:40", HOUR, HOUR, "less than one hour, inside interval", []),
+    (
+        "2000-01-01T10:20",
+        "2000-01-01T10:40",
+        HOUR,
+        HOUR,
+        "less than one hour, inside interval",
+        ["10:00:00 UTC"],
+    ),
     (
         "2000-01-01T10:40",
         "2000-01-01T11:10",
         HOUR,
         HOUR,
         "less than one hour, spans 2 intervals",
-        ["10:00:00 UTC"],
+        ["10:00:00 UTC", "11:00:00 UTC"],
     ),
     (
         "2000-01-01T10:20",
@@ -193,15 +200,15 @@ test_get_intervals_cases = [
         HOUR,
         HOUR,
         "more than one hour span, not full time",
-        ["10:00:00 UTC"],
+        ["10:00:00 UTC", "11:00:00 UTC"],
     ),
     (
         "2000-01-01T10:00",
         "2000-01-01T11:59",
         HOUR,
         HOUR,
-        "anything not fully spanning 2 hours gets truncated to 1h",
-        ["10:00:00 UTC"],
+        "interval spanning 2h ",
+        ["10:00:00 UTC", "11:00:00 UTC"],
     ),
     (
         "2000-01-01T10:00",
@@ -216,8 +223,8 @@ test_get_intervals_cases = [
         "2000-01-01T14:25",
         HOUR,
         2 * HOUR,
-        "2 two hour intervals properly aligned",
-        ["10:00:00 UTC", "12:00:00 UTC"],
+        "2 two hour intervals, spanning 3 intervals",
+        ["10:00:00 UTC", "12:00:00 UTC", "14:00:00 UTC"],
     ),
     (
         "2000-01-01T09:05",
@@ -225,7 +232,7 @@ test_get_intervals_cases = [
         HOUR,
         2 * HOUR,
         "2 two hour intervals not aligned",
-        ["08:00:00 UTC", "10:00:00 UTC"],
+        ["08:00:00 UTC", "10:00:00 UTC", "12:00:00 UTC"],
     ),
     # dates with timezones
     (
@@ -234,7 +241,7 @@ test_get_intervals_cases = [
         HOUR,
         HOUR,
         "TZ less than one hour, inside interval",
-        [],
+        ["10:00:00 UTC"],
     ),
     # no interval
     (
@@ -243,7 +250,7 @@ test_get_intervals_cases = [
         HOUR,
         None,
         "interval=None, less than one hour, inside interval",
-        [],
+        ["10:00:00 UTC"],
     ),
     (
         "2000-01-01T10:00",
@@ -259,7 +266,7 @@ test_get_intervals_cases = [
         HOUR,
         None,
         "interval=None, two hour span, not full time",
-        ["10:00:00 UTC"],
+        ["10:00:00 UTC", "11:00:00 UTC"],
     ),
 ]
 
