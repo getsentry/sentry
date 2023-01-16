@@ -83,7 +83,7 @@ export default function TagFacetsDistributions({
           <SidebarSection.Title>{title || t('Tag Summary')}</SidebarSection.Title>
           <Content>
             <Fragment>
-              <TopDistributionWrapper>
+              <TopDistributionWrapper data-test-id="top-distribution-wrapper">
                 <TagFacetsDistributionMeterWrapper
                   groupId={groupId}
                   organization={organization}
