@@ -83,16 +83,16 @@ const NPlusOneAPICallsSpanEvidence = ({
   offendingSpans,
 }: SpanEvidenceKeyValueListProps) => {
   const problemParameters = formatChangingQueryParameters(offendingSpans);
+  const basePath = formatBasePath(offendingSpans[0]);
 
   return (
     <PresortedKeyValueList
       data={
         [
           makeTransactionNameRow(transactionName),
-          makeRow(
-            t('Repeating Spans (%s)', offendingSpans.length),
-            getSpanEvidenceValue(offendingSpans[0])
-          ),
+          basePath
+            ? makeRow(t('Repeating Spans (%s)', offendingSpans.length), basePath)
+            : null,
           problemParameters.length > 0
             ? makeRow(t('Parameters'), problemParameters)
             : null,
@@ -223,4 +223,10 @@ export function extractQueryParameters(URLs: URL[]): ParameterLookup {
   return mapValues(parameterValuesByKey, parameterList => {
     return Array.from(new Set(parameterList));
   });
+}
+
+function formatBasePath(span: Span): string {
+  const spanURL = extractSpanURLString(span);
+
+  return spanURL?.pathname ?? '';
 }
