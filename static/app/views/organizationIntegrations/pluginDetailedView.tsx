@@ -26,9 +26,13 @@ class PluginDetailedView extends AbstractIntegrationDetailedView<
   State & AbstractIntegrationDetailedView['state']
 > {
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
-    const {orgId, integrationSlug} = this.props.params;
+    const {organization} = this.props;
+    const {integrationSlug} = this.props.params;
     return [
-      ['plugins', `/organizations/${orgId}/plugins/configs/?plugins=${integrationSlug}`],
+      [
+        'plugins',
+        `/organizations/${organization.slug}/plugins/configs/?plugins=${integrationSlug}`,
+      ],
     ];
   }
 
