@@ -73,7 +73,7 @@ class BoostLatestReleasesRulesGenerator(BiasRulesGenerator):
                         ),
                     },
                     # We want to use the linear decaying function for latest release boosting, with the goal
-                    # of interpolating the adoption growth with the reduction is sample rate.
+                    # of interpolating the adoption growth with the reduction in sample rate.
                     "decayingFn": {
                         "function": "linear",
                         "decayedSampleRate": bias_data["baseSampleRate"],
