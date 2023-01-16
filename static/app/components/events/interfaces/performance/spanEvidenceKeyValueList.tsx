@@ -1,4 +1,5 @@
 import kebabCase from 'lodash/kebabCase';
+import mapValues from 'lodash/mapValues';
 
 import {t} from 'sentry/locale';
 import {IssueType, KeyValueListData, KeyValueListDataItem} from 'sentry/types';
@@ -8,7 +9,9 @@ import {RawSpanType} from '../spans/types';
 
 import {TraceContextSpanProxy} from './spanEvidence';
 
-type Span = RawSpanType | TraceContextSpanProxy;
+type Span = (RawSpanType | TraceContextSpanProxy) & {
+  data?: any;
+};
 
 type SpanEvidenceKeyValueListProps = {
   causeSpans: Span[] | null;
@@ -79,7 +82,7 @@ const NPlusOneAPICallsSpanEvidence = ({
   transactionName,
   offendingSpans,
 }: SpanEvidenceKeyValueListProps) => {
-  const problemParameters = getProblemParameters(offendingSpans);
+  const problemParameters = formatChangingQueryParameters(offendingSpans);
 
   return (
     <PresortedKeyValueList
@@ -90,8 +93,8 @@ const NPlusOneAPICallsSpanEvidence = ({
             t('Repeating Spans (%s)', offendingSpans.length),
             getSpanEvidenceValue(offendingSpans[0])
           ),
-          getProblemParameters.length > 0
-            ? makeRow(t('Problem Parameter'), problemParameters)
+          problemParameters.length > 0
+            ? makeRow(t('Parameters'), problemParameters)
             : null,
         ].filter(Boolean) as KeyValueListData
       }
@@ -160,30 +163,64 @@ function getSpanEvidenceValue(span: Span | null) {
   return `${span.op} - ${span.description}`;
 }
 
-function getProblemParameters(
-  offendingSpans: Array<RawSpanType | TraceContextSpanProxy>
-): string[] {
-  const uniqueParameterPairs = new Set<string>();
+type ParameterLookup = Record<string, string[]>;
 
-  offendingSpans.forEach(span => {
-    // TODO: Look into the span data if possible, not just the description
-    // TODO: Find the unique parameter names and values in a better format
+/** Extracts changing URL query parameters from a list of `http.client` spans.
+ * e.g.,
+ *
+ * https://service.io/r?id=1&filter=none
+ * https://service.io/r?id=2&filter=none
+ * https://service.io/r?id=3&filter=none
 
-    if (!span.description) {
-      return;
+  * @returns A condensed string describing the query parameters changing
+  * between the URLs of the given span. e.g., "id:{1,2,3}"
+ */
+function formatChangingQueryParameters(spans: Span[]): string {
+  const URLs = spans
+    .map(extractSpanURLString)
+    .filter((url): url is URL => url instanceof URL);
+
+  const allQueryParameters = extractQueryParameters(URLs);
+
+  const pairs: string[] = [];
+  for (const key in allQueryParameters) {
+    const values = allQueryParameters[key];
+
+    // By definition, if the parameter only has one value that means it's not
+    // changing between calls, so omit it!
+    if (values.length > 1) {
+      pairs.push(`${key}:{${values.join(',')}}`);
+    }
+  }
+
+  return pairs.join(' ');
+}
+
+const extractSpanURLString = (span: Span): URL | null => {
+  try {
+    let URLString = span?.data?.url;
+    if (!URLString) {
+      const [_method, _url] = (span?.description ?? '').split(' ', 2);
+      URLString = _url;
     }
 
-    const [_method, url] = span.description.split(' ', 2);
-    try {
-      const parsedURL = new URL(url);
+    return new URL(URLString);
+  } catch (e) {
+    return null;
+  }
+};
 
-      for (const [key, value] of parsedURL.searchParams) {
-        uniqueParameterPairs.add(`${key}=${value}`);
-      }
-    } catch {
-      // Ignore error
+export function extractQueryParameters(URLs: URL[]): ParameterLookup {
+  const parameterValuesByKey: ParameterLookup = {};
+
+  URLs.forEach(url => {
+    for (const [key, value] of url.searchParams) {
+      parameterValuesByKey[key] ??= [];
+      parameterValuesByKey[key].push(value);
     }
   });
 
-  return Array.from(uniqueParameterPairs);
+  return mapValues(parameterValuesByKey, parameterList => {
+    return Array.from(new Set(parameterList));
+  });
 }
