@@ -77,8 +77,10 @@ function ViewHierarchy({viewHierarchy}: ViewHierarchyProps) {
   return (
     <Fragment>
       <RenderingSystem system={viewHierarchy.rendering_system} />
-      <TreeContainer ref={setScrollContainerRef} style={scrollContainerStyles}>
-        <div style={containerStyles}>{renderedItems}</div>
+      <TreeContainer>
+        <div ref={setScrollContainerRef} style={scrollContainerStyles}>
+          <div style={containerStyles}>{renderedItems}</div>
+        </div>
       </TreeContainer>
       {defined(selectedNode) && (
         <DetailsPanel data={selectedNode} getTitle={getNodeLabel} />
@@ -90,7 +92,6 @@ function ViewHierarchy({viewHierarchy}: ViewHierarchyProps) {
 export {ViewHierarchy};
 
 const TreeContainer = styled('div')`
-  height: 500px;
   position: relative;
   max-height: 500px;
   overflow: auto;
@@ -98,5 +99,4 @@ const TreeContainer = styled('div')`
   border: 1px solid ${p => p.theme.gray100};
   border-radius: ${p => p.theme.borderRadius};
   padding: ${space(1.5)} 0 ${space(1.5)} ${space(1.5)};
-  display: block;
 `;
