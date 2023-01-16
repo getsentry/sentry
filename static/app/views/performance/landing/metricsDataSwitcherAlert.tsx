@@ -3,7 +3,7 @@ import {WithRouterProps} from 'react-router';
 import {Location} from 'history';
 
 import {updateProjects} from 'sentry/actionCreators/pageFilters';
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
 import {GlobalSdkUpdateAlert} from 'sentry/components/globalSdkUpdateAlert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';

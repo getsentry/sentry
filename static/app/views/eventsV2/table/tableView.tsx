@@ -45,6 +45,7 @@ import {decodeList} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useProjects from 'sentry/utils/useProjects';
 import {useRoutes} from 'sentry/utils/useRoutes';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
@@ -424,7 +425,7 @@ function TableView(props: TableViewProps) {
           customMeasurements={customMeasurements}
         />
       ),
-      {modalCss, backdrop: 'static'}
+      {modalCss, closeEvents: 'escape-key'}
     );
   }
 
@@ -462,7 +463,7 @@ function TableView(props: TableViewProps) {
             query: nextView.getPageFiltersQuery(),
           });
 
-          browserHistory.push(next);
+          browserHistory.push(normalizeUrl(next));
           return;
         }
         case Actions.RELEASE: {
@@ -470,16 +471,18 @@ function TableView(props: TableViewProps) {
             return project.slug === dataRow.project;
           });
 
-          browserHistory.push({
-            pathname: `/organizations/${organization.slug}/releases/${encodeURIComponent(
-              value
-            )}/`,
-            query: {
-              ...nextView.getPageFiltersQuery(),
+          browserHistory.push(
+            normalizeUrl({
+              pathname: `/organizations/${
+                organization.slug
+              }/releases/${encodeURIComponent(value)}/`,
+              query: {
+                ...nextView.getPageFiltersQuery(),
 
-              project: maybeProject ? maybeProject.id : undefined,
-            },
-          });
+                project: maybeProject ? maybeProject.id : undefined,
+              },
+            })
+          );
 
           return;
         }
@@ -499,7 +502,7 @@ function TableView(props: TableViewProps) {
           });
 
           browserHistory.push(
-            nextView.getResultsViewUrlTarget(organization.slug, isHomepage)
+            normalizeUrl(nextView.getResultsViewUrlTarget(organization.slug, isHomepage))
           );
 
           return;
@@ -524,7 +527,7 @@ function TableView(props: TableViewProps) {
       const target = nextView.getResultsViewUrlTarget(organization.slug, isHomepage);
       // Get yAxis from location
       target.query.yAxis = decodeList(location.query.yAxis);
-      browserHistory.push(target);
+      browserHistory.push(normalizeUrl(target));
     };
   }
 
@@ -548,7 +551,7 @@ function TableView(props: TableViewProps) {
     resultsViewUrlTarget.query.yAxis = previousYAxis.filter(yAxis =>
       nextView.getYAxisOptions().find(({value}) => value === yAxis)
     );
-    browserHistory.push(resultsViewUrlTarget);
+    browserHistory.push(normalizeUrl(resultsViewUrlTarget));
   }
 
   function renderHeaderButtons() {

@@ -1,9 +1,9 @@
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import FeatureTourModal from 'sentry/components/modals/featureTourModal';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
-import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {RELEASES_TOUR_STEPS} from 'sentry/views/releases/list/releasesPromo';
 
 const DOCS_URL = 'https://docs.sentry.io/product/releases/';
@@ -17,22 +17,18 @@ type Props = {
 
 function MissingReleasesButtons({organization, health, projectId}: Props) {
   function handleTourAdvance(step: number, duration: number) {
-    trackAnalyticsEvent({
-      eventKey: 'project_detail.releases_tour.advance',
-      eventName: 'Project Detail: Releases Tour Advance',
-      organization_id: parseInt(organization.id, 10),
-      project_id: projectId && parseInt(projectId, 10),
+    trackAdvancedAnalyticsEvent('project_detail.releases_tour.advance', {
+      organization,
+      project_id: projectId ?? '',
       step,
       duration,
     });
   }
 
   function handleClose(step: number, duration: number) {
-    trackAnalyticsEvent({
-      eventKey: 'project_detail.releases_tour.close',
-      eventName: 'Project Detail: Releases Tour Close',
-      organization_id: parseInt(organization.id, 10),
-      project_id: projectId && parseInt(projectId, 10),
+    trackAdvancedAnalyticsEvent('project_detail.releases_tour.close', {
+      organization,
+      project_id: projectId ?? '',
       step,
       duration,
     });

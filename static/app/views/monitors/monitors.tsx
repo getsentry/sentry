@@ -5,7 +5,7 @@ import * as qs from 'query-string';
 
 import onboardingImg from 'sentry-images/spot/onboarding-preview.svg';
 
-import Button, {ButtonProps} from 'sentry/components/button';
+import {Button, ButtonProps} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import FeatureBadge from 'sentry/components/featureBadge';
 import IdBadge from 'sentry/components/idBadge';
@@ -37,7 +37,7 @@ import {Monitor} from './types';
 
 type Props = AsyncView['props'] &
   WithRouteAnalyticsProps &
-  WithRouterProps<{orgId: string}> & {
+  WithRouterProps<{}> & {
     organization: Organization;
   };
 
@@ -77,7 +77,7 @@ class Monitors extends AsyncView<Props, State> {
   }
 
   getTitle() {
-    return `Monitors - ${this.orgSlug}`;
+    return `Crons - ${this.orgSlug}`;
   }
 
   onRequestSuccess(response): void {
@@ -103,12 +103,12 @@ class Monitors extends AsyncView<Props, State> {
     const {organization} = this.props;
 
     return (
-      <Fragment>
+      <Layout.Page>
         <Layout.Header>
           <Layout.HeaderContent>
-            <HeaderTitle>
+            <Layout.Title>
               {t('Cron Monitors')} <FeatureBadge type="beta" />
-            </HeaderTitle>
+            </Layout.Title>
           </Layout.HeaderContent>
           <Layout.HeaderActions>
             <ButtonBar gap={1}>
@@ -161,30 +161,26 @@ class Monitors extends AsyncView<Props, State> {
               </Fragment>
             ) : (
               <OnboardingPanel image={<img src={onboardingImg} />}>
-                <h3>{t('Let Sentry Monitor Your Recurring Jobs')}</h3>
+                <h3>{t('Let Sentry monitor your recurring jobs')}</h3>
                 <p>
                   {t(
                     "We'll tell you if your recurring jobs are running on schedule, failing, or succeeding."
                   )}
                 </p>
                 <ButtonList gap={1}>
+                  <NewMonitorButton>{t('Set up first cron monitor')}</NewMonitorButton>
                   <Button href="https://docs.sentry.io/product/crons" external>
-                    {t('View the Docs')}
+                    {t('Read docs')}
                   </Button>
-                  <NewMonitorButton>{t('Set Up First Cron Monitor')}</NewMonitorButton>
                 </ButtonList>
               </OnboardingPanel>
             )}
           </Layout.Main>
         </Layout.Body>
-      </Fragment>
+      </Layout.Page>
     );
   }
 }
-
-const HeaderTitle = styled(Layout.Title)`
-  margin-top: 0;
-`;
 
 const StyledLink = styled(Link)`
   flex: 1;

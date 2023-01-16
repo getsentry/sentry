@@ -1,68 +1,125 @@
+import kebabCase from 'lodash/kebabCase';
+
 import {t} from 'sentry/locale';
-import {IssueType, KeyValueListData} from 'sentry/types';
+import {IssueType, KeyValueListData, KeyValueListDataItem} from 'sentry/types';
 
 import KeyValueList from '../keyValueList';
 import {RawSpanType} from '../spans/types';
 
 import {TraceContextSpanProxy} from './spanEvidence';
 
+type Span = RawSpanType | TraceContextSpanProxy;
+
 type SpanEvidenceKeyValueListProps = {
   issueType: IssueType | undefined;
-  offendingSpans: Array<RawSpanType | TraceContextSpanProxy>;
-  parentSpan: RawSpanType | TraceContextSpanProxy | null;
+  offendingSpans: Span[];
+  parentSpan: Span | null;
   transactionName: string;
 };
 
 const TEST_ID_NAMESPACE = 'span-evidence-key-value-list';
 
-export function SpanEvidenceKeyValueList({
-  issueType,
+export function SpanEvidenceKeyValueList(props: SpanEvidenceKeyValueListProps) {
+  if (!props.issueType) {
+    return <DefaultSpanEvidence {...props} />;
+  }
+
+  const Component =
+    {
+      [IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES]: NPlusOneDBQueriesSpanEvidence,
+      [IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS]: NPlusOneAPICallsSpanEvidence,
+      [IssueType.PERFORMANCE_SLOW_SPAN]: SlowSpanSpanEvidence,
+    }[props.issueType] ?? DefaultSpanEvidence;
+
+  return <Component {...props} />;
+}
+
+const NPlusOneDBQueriesSpanEvidence = ({
   transactionName,
   parentSpan,
   offendingSpans,
-}: SpanEvidenceKeyValueListProps) {
-  const data: KeyValueListData = [
-    {
-      key: '0',
-      subject: t('Transaction'),
-      value: transactionName,
-      subjectDataTestId: `${TEST_ID_NAMESPACE}.transaction-name`,
-    },
-    {
-      key: '1',
-      subject: t('Parent Span'),
-      value: getSpanEvidenceValue(parentSpan),
-      subjectDataTestId: `${TEST_ID_NAMESPACE}.parent-name`,
-    },
-    {
-      key: '2',
-      subject:
-        issueType === IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES
-          ? t('Repeating Span')
-          : t('Offending Span'),
-      value: getSpanEvidenceValue(offendingSpans[0]),
-      subjectDataTestId: `${TEST_ID_NAMESPACE}.offending-spans`,
-    },
-  ];
+}: Pick<
+  SpanEvidenceKeyValueListProps,
+  'transactionName' | 'parentSpan' | 'offendingSpans'
+>) => (
+  <PresortedKeyValueList
+    data={
+      [
+        makeTransactionNameRow(transactionName),
+        parentSpan ? makeRow(t('Parent Span'), getSpanEvidenceValue(parentSpan)) : null,
+        makeRow(t('Repeating Span'), getSpanEvidenceValue(offendingSpans[0])),
+      ].filter(Boolean) as KeyValueListData
+    }
+  />
+);
 
-  let problemParameters;
-  if (issueType === IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS) {
-    problemParameters = getProblemParameters(offendingSpans);
-  }
+const NPlusOneAPICallsSpanEvidence = ({
+  transactionName,
+  offendingSpans,
+}: Pick<SpanEvidenceKeyValueListProps, 'transactionName' | 'offendingSpans'>) => {
+  const problemParameters = getProblemParameters(offendingSpans);
 
-  if (problemParameters?.length > 0) {
-    data.push({
-      key: '3',
-      subject: t('Problem Parameter'),
-      value: problemParameters,
-      subjectDataTestId: `${TEST_ID_NAMESPACE}.problem-parameters`,
-    });
-  }
+  return (
+    <PresortedKeyValueList
+      data={
+        [
+          makeTransactionNameRow(transactionName),
+          makeRow(t('Offending Span'), getSpanEvidenceValue(offendingSpans[0])),
+          getProblemParameters.length > 0
+            ? makeRow(t('Problem Parameter'), problemParameters)
+            : null,
+        ].filter(Boolean) as KeyValueListData
+      }
+    />
+  );
+};
 
-  return <KeyValueList data={data} />;
-}
+const SlowSpanSpanEvidence = ({
+  transactionName,
+  offendingSpans,
+}: Pick<SpanEvidenceKeyValueListProps, 'transactionName' | 'offendingSpans'>) => (
+  <PresortedKeyValueList
+    data={[
+      makeTransactionNameRow(transactionName),
+      makeRow(t('Slow Span'), getSpanEvidenceValue(offendingSpans[0])),
+    ]}
+  />
+);
 
-function getSpanEvidenceValue(span: RawSpanType | TraceContextSpanProxy | null) {
+const DefaultSpanEvidence = ({
+  transactionName,
+  offendingSpans,
+}: Pick<SpanEvidenceKeyValueListProps, 'transactionName' | 'offendingSpans'>) => (
+  <PresortedKeyValueList
+    data={[
+      makeTransactionNameRow(transactionName),
+      makeRow(t('Offending Span'), getSpanEvidenceValue(offendingSpans[0])),
+    ]}
+  />
+);
+
+const PresortedKeyValueList = ({data}: {data: KeyValueListData}) => (
+  <KeyValueList isSorted={false} data={data} />
+);
+
+const makeTransactionNameRow = (transactionName: string) =>
+  makeRow(t('Transaction'), transactionName);
+
+const makeRow = (
+  subject: KeyValueListDataItem['subject'],
+  value: KeyValueListDataItem['value']
+): KeyValueListDataItem => {
+  const itemKey = kebabCase(subject);
+
+  return {
+    key: itemKey,
+    subject,
+    value,
+    subjectDataTestId: `${TEST_ID_NAMESPACE}.${itemKey}`,
+  };
+};
+
+function getSpanEvidenceValue(span: Span | null) {
   if (!span || (!span.op && !span.description)) {
     return t('(no value)');
   }

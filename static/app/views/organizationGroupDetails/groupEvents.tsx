@@ -10,6 +10,7 @@ import space from 'sentry/styles/space';
 import {Group, Organization} from 'sentry/types';
 import {handleRouteLeave} from 'sentry/utils/useCleanQueryParamsOnRouteLeave';
 import withApi from 'sentry/utils/withApi';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
 
 import AllEventsTable from './allEventsTable';
@@ -68,10 +69,12 @@ class GroupEvents extends Component<Props, State> {
     targetQueryParams.query = query;
     const {groupId, orgId} = this.props.params;
 
-    browserHistory.push({
-      pathname: `/organizations/${orgId}/issues/${groupId}/events/`,
-      query: targetQueryParams,
-    });
+    browserHistory.push(
+      normalizeUrl({
+        pathname: `/organizations/${orgId}/issues/${groupId}/events/`,
+        query: targetQueryParams,
+      })
+    );
   };
 
   renderSearchBar() {

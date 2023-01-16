@@ -143,11 +143,11 @@ class MetricsQuery(MetricsQueryValidationRunner):
     org_id: int
     project_ids: Sequence[int]
     select: Sequence[MetricField]
-    start: datetime
-    end: datetime
     granularity: Granularity
     # ToDo(ahmed): In the future, once we start parsing conditions, the only conditions that should be here should be
     #  instances of MetricConditionField
+    start: Optional[datetime] = None
+    end: Optional[datetime] = None
     where: Optional[Sequence[Union[BooleanCondition, Condition, MetricConditionField]]] = None
     groupby: Optional[Sequence[MetricGroupByField]] = None
     orderby: Optional[Sequence[MetricOrderByField]] = None
@@ -156,6 +156,10 @@ class MetricsQuery(MetricsQueryValidationRunner):
     include_totals: bool = True
     include_series: bool = True
     interval: Optional[int] = None
+    # This field is used as a temporary fix to allow the metrics layer to support alerts by generating snql that
+    # doesn't take into account time bounds as the alerts service uses subscriptable queries that react in real time
+    # to dataset changes.
+    is_alerts_query: bool = False
 
     @cached_property
     def projects(self) -> QuerySet:
@@ -214,7 +218,13 @@ class MetricsQuery(MetricsQueryValidationRunner):
                 and isinstance(condition.lhs, Column)
                 and condition.lhs.name in UNALLOWED_TAGS
             ):
-                raise InvalidParams(f"Tag name {condition.lhs.name} is not a valid query filter")
+                # This is a special condition that holds only for the usage with alerts which requires the
+                # session.status to be injected in the where clause for performance reasons. This condition should
+                # be removed once we change how alerts uses the metrics layer.
+                if not (condition.lhs.name == "session.status" and self.is_alerts_query):
+                    raise InvalidParams(
+                        f"Tag name {condition.lhs.name} is not a valid query filter"
+                    )
 
     def validate_orderby(self) -> None:
         if not self.orderby:
@@ -273,16 +283,16 @@ class MetricsQuery(MetricsQueryValidationRunner):
 
     @staticmethod
     def calculate_intervals_len(
-        end: datetime,
+        end: Optional[datetime],
         granularity: int,
         start: Optional[datetime] = None,
         interval: Optional[int] = None,
     ) -> int:
-        if interval is None:
-            range_in_sec = (end - start).total_seconds() if start is not None else to_timestamp(end)
+        if interval is None and end:
+            range_in_sec = (end - start).total_seconds() if start else to_timestamp(end)
             denominator = granularity
         else:
-            assert start is not None and interval > 0
+            assert start and end and interval > 0  # type:ignore
 
             start_in_seconds = start.timestamp()
             end_in_seconds = end.timestamp()
@@ -298,19 +308,22 @@ class MetricsQuery(MetricsQueryValidationRunner):
             # then want the following to hold true:
             # (z / y) - (x / y) >= 1 which equals to (z - x) >= y which translated to code means that
             # `end_in_seconds` - `start_in_seconds` >= `interval` must hold true for `range_in_sec` > 0.
-            if (end_in_seconds - start_in_seconds) < interval:
+            if (end_in_seconds - start_in_seconds) < interval:  # type:ignore
                 raise InvalidParams(
                     "The difference between start and end must be greater or equal than the interval"
                 )
 
             # Format start and end
             start = datetime.fromtimestamp(
-                int(start_in_seconds / interval) * interval, timezone.utc
+                int(start_in_seconds / interval) * interval, timezone.utc  # type:ignore
             )
-            end = datetime.fromtimestamp(int(end_in_seconds / interval) * interval, timezone.utc)
+            end = datetime.fromtimestamp(
+                int(end_in_seconds / interval) * interval, timezone.utc  # type:ignore
+            )
 
             range_in_sec = (end - start).total_seconds()
-            denominator = interval
+            denominator = interval  # type:ignore
+
         return math.ceil(range_in_sec / denominator)
 
     def validate_limit(self) -> None:
@@ -326,7 +339,7 @@ class MetricsQuery(MetricsQueryValidationRunner):
             raise InvalidParams(
                 f"Requested limit exceeds the maximum allowed limit of {MAX_POINTS}"
             )
-        if self.include_series:
+        if self.start and self.end and self.include_series:
             if intervals_len * self.limit.limit > MAX_POINTS:
                 raise InvalidParams(
                     f"Requested interval of timedelta of "
@@ -353,7 +366,7 @@ class MetricsQuery(MetricsQueryValidationRunner):
 
     def get_default_limit(self) -> int:
         totals_limit: int = MAX_POINTS
-        if self.include_series:
+        if self.start and self.end and self.include_series:
             intervals_len = self.calculate_intervals_len(
                 start=self.start,
                 end=self.end,
@@ -367,7 +380,7 @@ class MetricsQuery(MetricsQueryValidationRunner):
         return totals_limit
 
     def validate_end(self) -> None:
-        if self.start >= self.end:
+        if self.start and self.end and self.start >= self.end:
             raise InvalidParams("start must be before end")
 
     def validate_granularity(self) -> None:
@@ -401,11 +414,12 @@ class MetricsQuery(MetricsQueryValidationRunner):
         if ONE_DAY % self.granularity.granularity != 0:
             raise InvalidParams("The interval should divide one day without a remainder.")
 
-        if (self.end - self.start).total_seconds() / self.granularity.granularity > MAX_POINTS:
-            raise InvalidParams(
-                "Your interval and date range would create too many results. "
-                "Use a larger interval, or a smaller date range."
-            )
+        if self.start and self.end:
+            if (self.end - self.start).total_seconds() / self.granularity.granularity > MAX_POINTS:
+                raise InvalidParams(
+                    "Your interval and date range would create too many results. "
+                    "Use a larger interval, or a smaller date range."
+                )
 
     def validate_interval(self) -> None:
         if self.interval is not None:
@@ -414,10 +428,18 @@ class MetricsQuery(MetricsQueryValidationRunner):
             ):
                 raise InvalidParams("Interval is only supported for timeseries performance queries")
 
+    def validate_is_alerts_query(self) -> None:
+        # We only allow the omission of start and end if this is an alerts query.
+        if (self.start is None or self.end is None) and not self.is_alerts_query:
+            raise InvalidParams(
+                "start and env fields can only be None if the query is needed by alerts"
+            )
+
     def __post_init__(self) -> None:
         super().__post_init__()
 
-        if self.limit is None:
+        # Only if we have a start and end date we want to use the limit.
+        if self.start and self.end and self.limit is None:
             # Cannot set attribute directly because dataclass is frozen:
             # https://docs.python.org/3/library/dataclasses.html#frozen-instances
             object.__setattr__(self, "limit", Limit(self.get_default_limit()))

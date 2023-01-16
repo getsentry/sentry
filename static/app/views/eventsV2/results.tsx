@@ -11,7 +11,7 @@ import {fetchTotalCount} from 'sentry/actionCreators/events';
 import {fetchProjectsCount} from 'sentry/actionCreators/projects';
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
 import {Client} from 'sentry/api';
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import Confirm from 'sentry/components/confirm';
 import DatePageFilter from 'sentry/components/datePageFilter';
@@ -32,7 +32,6 @@ import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
-import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters, SavedQuery} from 'sentry/types';
 import {defined, generateQueryWithTag} from 'sentry/utils';
@@ -50,6 +49,7 @@ import marked from 'sentry/utils/marked';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import withApi from 'sentry/utils/withApi';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 
@@ -325,7 +325,7 @@ export class Results extends Component<Props, State> {
       this.setState({savedQuery, eventView: nextEventView});
     }
     browserHistory.replace(
-      nextEventView.getResultsViewUrlTarget(organization.slug, isHomepage)
+      normalizeUrl(nextEventView.getResultsViewUrlTarget(organization.slug, isHomepage))
     );
   }
 
@@ -585,118 +585,109 @@ export class Results extends Component<Props, State> {
 
     return (
       <SentryDocumentTitle title={title} orgSlug={organization.slug}>
-        <StyledPageContent>
-          <NoProjectMessage organization={organization}>
-            <ResultsHeader
-              setSavedQuery={setSavedQuery}
-              errorCode={errorCode}
-              organization={organization}
-              location={location}
-              eventView={eventView}
-              yAxis={yAxisArray}
-              router={router}
-              isHomepage={isHomepage}
-            />
-            <Layout.Body>
-              <CustomMeasurementsProvider
-                organization={organization}
-                selection={selection}
-              >
-                <Top fullWidth>
-                  {this.renderMetricsFallbackBanner()}
-                  {this.renderError(error)}
-                  {this.renderTips()}
-                  <StyledPageFilterBar condensed>
-                    <ProjectPageFilter />
-                    <EnvironmentPageFilter />
-                    <DatePageFilter alignDropdown="left" />
-                  </StyledPageFilterBar>
-                  <CustomMeasurementsContext.Consumer>
-                    {contextValue => (
-                      <StyledSearchBar
-                        searchSource="eventsv2"
-                        organization={organization}
-                        projectIds={eventView.project}
-                        query={query}
-                        fields={fields}
-                        onSearch={this.handleSearch}
-                        maxQueryLength={MAX_QUERY_LENGTH}
-                        customMeasurements={contextValue?.customMeasurements ?? undefined}
-                      />
-                    )}
-                  </CustomMeasurementsContext.Consumer>
-                  <MetricsCardinalityProvider
-                    organization={organization}
-                    location={location}
-                  >
-                    <ResultsChart
-                      api={api}
-                      router={router}
+        <NoProjectMessage organization={organization}>
+          <ResultsHeader
+            setSavedQuery={setSavedQuery}
+            errorCode={errorCode}
+            organization={organization}
+            location={location}
+            eventView={eventView}
+            yAxis={yAxisArray}
+            router={router}
+            isHomepage={isHomepage}
+          />
+          <Layout.Body>
+            <CustomMeasurementsProvider organization={organization} selection={selection}>
+              <Top fullWidth>
+                {this.renderMetricsFallbackBanner()}
+                {this.renderError(error)}
+                {this.renderTips()}
+                <StyledPageFilterBar condensed>
+                  <ProjectPageFilter />
+                  <EnvironmentPageFilter />
+                  <DatePageFilter alignDropdown="left" />
+                </StyledPageFilterBar>
+                <CustomMeasurementsContext.Consumer>
+                  {contextValue => (
+                    <StyledSearchBar
+                      searchSource="eventsv2"
                       organization={organization}
-                      eventView={eventView}
-                      location={location}
-                      onAxisChange={this.handleYAxisChange}
-                      onDisplayChange={this.handleDisplayChange}
-                      onTopEventsChange={this.handleTopEventsChange}
-                      onIntervalChange={this.handleIntervalChange}
-                      total={totalValues}
-                      confirmedQuery={confirmedQuery}
-                      yAxis={yAxisArray}
+                      projectIds={eventView.project}
+                      query={query}
+                      fields={fields}
+                      onSearch={this.handleSearch}
+                      maxQueryLength={MAX_QUERY_LENGTH}
+                      customMeasurements={contextValue?.customMeasurements ?? undefined}
                     />
-                  </MetricsCardinalityProvider>
-                </Top>
-                <Layout.Main fullWidth={!showTags}>
-                  <Table
+                  )}
+                </CustomMeasurementsContext.Consumer>
+                <MetricsCardinalityProvider
+                  organization={organization}
+                  location={location}
+                >
+                  <ResultsChart
+                    api={api}
+                    router={router}
                     organization={organization}
                     eventView={eventView}
                     location={location}
-                    title={title}
-                    setError={this.setError}
-                    onChangeShowTags={this.handleChangeShowTags}
-                    showTags={showTags}
+                    onAxisChange={this.handleYAxisChange}
+                    onDisplayChange={this.handleDisplayChange}
+                    onTopEventsChange={this.handleTopEventsChange}
+                    onIntervalChange={this.handleIntervalChange}
+                    total={totalValues}
                     confirmedQuery={confirmedQuery}
-                    onCursor={this.handleCursor}
-                    isHomepage={isHomepage}
-                    setTips={(tips: string[]) => this.setState({tips})}
+                    yAxis={yAxisArray}
                   />
-                </Layout.Main>
-                {showTags ? this.renderTagsTable() : null}
-                <Confirm
-                  priority="primary"
-                  header={<strong>{t('May lead to thumb twiddling')}</strong>}
-                  confirmText={t('Do it')}
-                  cancelText={t('Nevermind')}
-                  onConfirm={this.handleConfirmed}
-                  onCancel={this.handleCancelled}
-                  message={
-                    <p>
-                      {tct(
-                        `You've created a query that will search for events made
+                </MetricsCardinalityProvider>
+              </Top>
+              <Layout.Main fullWidth={!showTags}>
+                <Table
+                  organization={organization}
+                  eventView={eventView}
+                  location={location}
+                  title={title}
+                  setError={this.setError}
+                  onChangeShowTags={this.handleChangeShowTags}
+                  showTags={showTags}
+                  confirmedQuery={confirmedQuery}
+                  onCursor={this.handleCursor}
+                  isHomepage={isHomepage}
+                  setTips={(tips: string[]) => this.setState({tips})}
+                />
+              </Layout.Main>
+              {showTags ? this.renderTagsTable() : null}
+              <Confirm
+                priority="primary"
+                header={<strong>{t('May lead to thumb twiddling')}</strong>}
+                confirmText={t('Do it')}
+                cancelText={t('Nevermind')}
+                onConfirm={this.handleConfirmed}
+                onCancel={this.handleCancelled}
+                message={
+                  <p>
+                    {tct(
+                      `You've created a query that will search for events made
                       [dayLimit:over more than 30 days] for [projectLimit:more than 10 projects].
                       A lot has happened during that time, so this might take awhile.
                       Are you sure you want to do this?`,
-                        {
-                          dayLimit: <strong />,
-                          projectLimit: <strong />,
-                        }
-                      )}
-                    </p>
-                  }
-                >
-                  {this.setOpenFunction}
-                </Confirm>
-              </CustomMeasurementsProvider>
-            </Layout.Body>
-          </NoProjectMessage>
-        </StyledPageContent>
+                      {
+                        dayLimit: <strong />,
+                        projectLimit: <strong />,
+                      }
+                    )}
+                  </p>
+                }
+              >
+                {this.setOpenFunction}
+              </Confirm>
+            </CustomMeasurementsProvider>
+          </Layout.Body>
+        </NoProjectMessage>
       </SentryDocumentTitle>
     );
   }
 }
-
-const StyledPageContent = styled(PageContent)`
-  padding: 0;
-`;
 
 const StyledPageFilterBar = styled(PageFilterBar)`
   margin-bottom: ${space(1)};

@@ -1,11 +1,10 @@
 import {RouteComponentProps} from 'react-router';
-import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
+import * as Layout from 'sentry/components/layouts/thirds';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import {PageContent} from 'sentry/styles/organization';
 import {Organization} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -38,7 +37,7 @@ function EventDetails({organization, location, params}: Props) {
       orgSlug={organization.slug}
       projectSlug={projectSlug}
     >
-      <StyledPageContent>
+      <Layout.Page>
         <NoProjectMessage organization={organization}>
           <EventDetailsContent
             organization={organization}
@@ -49,13 +48,9 @@ function EventDetails({organization, location, params}: Props) {
             isHomepage={isHomepage}
           />
         </NoProjectMessage>
-      </StyledPageContent>
+      </Layout.Page>
     </SentryDocumentTitle>
   );
 }
 
 export default withOrganization(EventDetails);
-
-const StyledPageContent = styled(PageContent)`
-  padding: 0;
-`;

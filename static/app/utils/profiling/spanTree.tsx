@@ -1,6 +1,7 @@
 import {uuid4} from '@sentry/utils';
 
 import {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
+import {t} from 'sentry/locale';
 import {EventOrGroupType, EventTransaction} from 'sentry/types';
 
 // Empty transaction to use as a default value with duration of 1 second
@@ -138,12 +139,14 @@ class SpanTree {
         // updating anything before span.start_timestamp.
         if (
           parent.children.length > 0 &&
-          span.timestamp - parent.children[parent.children.length - 1].span.timestamp >
+          span.start_timestamp -
+            parent.children[parent.children.length - 1].span.timestamp >
             MISSING_INSTRUMENTATION_THRESHOLD_S
         ) {
           parent.children.push(
             new SpanTreeNode(
               {
+                description: t('Missing instrumentation'),
                 op: 'missing instrumentation',
                 start_timestamp:
                   parent.children[parent.children.length - 1].span.timestamp,

@@ -256,7 +256,7 @@ function SearchBar(props: SearchBarProps) {
             return query.replace(SEARCH_SPECIAL_CHARS_REGEXP, '');
           }}
           maxSearchItems={maxSearchItems}
-          excludedTags={['environment']}
+          excludedTags={[FieldKey.ENVIRONMENT, FieldKey.TOTAL_COUNT]}
           maxMenuHeight={maxMenuHeight ?? 300}
           customPerformanceMetrics={customMeasurements}
           {...props}

@@ -38,17 +38,17 @@ describe('SpanEvidenceKeyValueList', () => {
 
       expect(screen.getByRole('cell', {name: 'Transaction'})).toBeInTheDocument();
       expect(
-        screen.getByTestId('span-evidence-key-value-list.transaction-name')
+        screen.getByTestId('span-evidence-key-value-list.transaction')
       ).toHaveTextContent('/');
 
       expect(screen.getByRole('cell', {name: 'Parent Span'})).toBeInTheDocument();
       expect(
-        screen.getByTestId('span-evidence-key-value-list.parent-name')
+        screen.getByTestId('span-evidence-key-value-list.parent-span')
       ).toHaveTextContent('http.server');
 
       expect(screen.getByRole('cell', {name: 'Repeating Span'})).toBeInTheDocument();
       expect(
-        screen.getByTestId('span-evidence-key-value-list.offending-spans')
+        screen.getByTestId('span-evidence-key-value-list.repeating-span')
       ).toHaveTextContent('db - SELECT * FROM books');
 
       expect(
@@ -92,23 +92,54 @@ describe('SpanEvidenceKeyValueList', () => {
 
       expect(screen.getByRole('cell', {name: 'Transaction'})).toBeInTheDocument();
       expect(
-        screen.getByTestId('span-evidence-key-value-list.transaction-name')
+        screen.getByTestId('span-evidence-key-value-list.transaction')
       ).toHaveTextContent('/');
-
-      expect(screen.getByRole('cell', {name: 'Parent Span'})).toBeInTheDocument();
-      expect(
-        screen.getByTestId('span-evidence-key-value-list.parent-name')
-      ).toHaveTextContent('pageload');
 
       expect(screen.getByRole('cell', {name: 'Offending Span'})).toBeInTheDocument();
       expect(
-        screen.getByTestId('span-evidence-key-value-list.offending-spans')
+        screen.getByTestId('span-evidence-key-value-list.offending-span')
       ).toHaveTextContent('GET http://service.api/book/?book_id=7');
 
       expect(screen.queryByRole('cell', {name: 'Problem Parameter'})).toBeInTheDocument();
       expect(
-        screen.getByTestId('span-evidence-key-value-list.problem-parameters')
+        screen.getByTestId('span-evidence-key-value-list.problem-parameter')
       ).toHaveTextContent('[ "book_id=7", "book_id=8" ]');
+    });
+  });
+
+  describe('Slow DB Span', () => {
+    it('Renders relevant fields', () => {
+      render(
+        <SpanEvidenceKeyValueList
+          issueType={IssueType.PERFORMANCE_SLOW_SPAN}
+          transactionName="/"
+          parentSpan={
+            new MockSpan({
+              startTimestamp: 0,
+              endTimestamp: 200,
+              op: 'pageload',
+            }).span
+          }
+          offendingSpans={[
+            new MockSpan({
+              startTimestamp: 10,
+              endTimestamp: 10100,
+              op: 'db',
+              description: 'SELECT pokemon FROM pokedex',
+            }).span,
+          ]}
+        />
+      );
+
+      expect(screen.getByRole('cell', {name: 'Transaction'})).toBeInTheDocument();
+      expect(
+        screen.getByTestId('span-evidence-key-value-list.transaction')
+      ).toHaveTextContent('/');
+
+      expect(screen.getByRole('cell', {name: 'Slow Span'})).toBeInTheDocument();
+      expect(
+        screen.getByTestId('span-evidence-key-value-list.slow-span')
+      ).toHaveTextContent('SELECT pokemon FROM pokedex');
     });
   });
 });

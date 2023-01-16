@@ -117,6 +117,35 @@ describe('SpanTree', () => {
     expect(tree.root.children[2].span.span_id).toBe('2');
   });
 
+  it('does not create missing instrumentation if elapsed < threshold', () => {
+    const start = Date.now();
+    const tree = new SpanTree(
+      txn({
+        title: 'transaction root',
+        startTimestamp: start,
+        endTimestamp: start + 10,
+        contexts: {trace: {span_id: 'root'}},
+      }),
+      [
+        s({
+          span_id: '1',
+          parent_span_id: 'root',
+          timestamp: start + 5,
+          start_timestamp: start,
+        }),
+        s({
+          span_id: '2',
+          parent_span_id: 'root',
+          timestamp: start + 10,
+          // There is only 50ms difference here, 100ms is the threshold
+          start_timestamp: start + 5.05,
+        }),
+      ]
+    );
+    expect(tree.root.children[0].span.span_id).toBe('1');
+    expect(tree.root.children[1].span.span_id).toBe('2');
+  });
+
   it('pushes consecutive span', () => {
     const start = Date.now();
     const tree = new SpanTree(

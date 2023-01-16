@@ -7,7 +7,7 @@ import isEqual from 'lodash/isEqual';
 import {fetchSentryAppComponents} from 'sentry/actionCreators/sentryAppComponents';
 import {Client} from 'sentry/api';
 import GroupEventDetailsLoadingError from 'sentry/components/errors/groupEventDetailsLoadingError';
-import EventEntries from 'sentry/components/events/eventEntries';
+import {EventEntries} from 'sentry/components/events/eventEntries';
 import {withMeta} from 'sentry/components/events/meta/metaProxy';
 import GroupSidebar from 'sentry/components/group/sidebar';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -29,6 +29,7 @@ import {Event} from 'sentry/types/event';
 import fetchSentryAppInstallations from 'sentry/utils/fetchSentryAppInstallations';
 import {QuickTraceContext} from 'sentry/utils/performance/quickTrace/quickTraceContext';
 import QuickTraceQuery from 'sentry/utils/performance/quickTrace/quickTraceQuery';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 import GroupEventToolbar from '../eventToolbar';
 import ReprocessingProgress from '../reprocessingProgress';
@@ -88,10 +89,12 @@ class GroupEventDetails extends Component<GroupEventDetailsProps, State> {
         );
 
       if (shouldRedirect) {
-        browserHistory.replace({
-          pathname: `/organizations/${params.orgId}/issues/${params.groupId}/`,
-          query: location.query,
-        });
+        browserHistory.replace(
+          normalizeUrl({
+            pathname: `/organizations/${params.orgId}/issues/${params.groupId}/`,
+            query: location.query,
+          })
+        );
         return;
       }
     }

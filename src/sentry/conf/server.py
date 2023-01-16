@@ -1005,6 +1005,8 @@ SENTRY_FEATURES = {
     "organizations:profiling": False,
     # Enable performance spans in flamecharts
     "organizations:profiling-flamechart-spans": False,
+    # Enable the profiling dashboard redesign
+    "organizations:profiling-dashboard-redesign": False,
     # Enable multi project selection
     "organizations:global-views": False,
     # Enable experimental new version of Merged Issues where sub-hashes are shown
@@ -1142,6 +1144,8 @@ SENTRY_FEATURES = {
     "organizations:performance-slow-db-issue": False,
     # Enable N+1 API Calls performance issue type
     "organizations:performance-n-plus-one-api-calls-detector": False,
+    # Enable compressed assets performance issue type
+    "organizations:performance-issues-compressed-assets-detector": False,
     # Enable the new Related Events feature
     "organizations:related-events": False,
     # Enable populating suggested assignees with release committers
@@ -2080,9 +2084,7 @@ SENTRY_DEVSERVICES = {
                 "ENABLE_ISSUE_OCCURRENCE_CONSUMER": "1"
                 if settings.SENTRY_USE_ISSUE_OCCURRENCE
                 else "",
-                "ENABLE_AUTORUN_MIGRATION_SEARCH_ISSUES": os.environ.get(
-                    "ENABLE_AUTORUN_MIGRATION_SEARCH_ISSUES", ""
-                ),
+                "ENABLE_AUTORUN_MIGRATION_SEARCH_ISSUES": "1",
             },
             "only_if": "snuba" in settings.SENTRY_EVENTSTREAM
             or "kafka" in settings.SENTRY_EVENTSTREAM,
