@@ -18,7 +18,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import {ContextTitle} from 'sentry/views/eventsV2/table/quickContext/styles';
 import {getProfilesTableFields} from 'sentry/views/profiling/profileSummary/content';
 
-import Button from '../button';
+import {Button} from '../button';
 import Link from '../links/link';
 import LoadingIndicator from '../loadingIndicator';
 import PerformanceDuration from '../performanceDuration';
