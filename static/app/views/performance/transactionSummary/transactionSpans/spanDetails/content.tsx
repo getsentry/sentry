@@ -94,7 +94,6 @@ export default function SpanDetailsContentWrapper(props: Props) {
             referrer="api.performance.transaction-spans"
             cursor="0:0:1"
             noPagination
-            useEvents
           >
             {({tableData}) => {
               const totalCount: number | null =

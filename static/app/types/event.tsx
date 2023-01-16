@@ -1,7 +1,10 @@
-import type {TraceContextType} from 'sentry/components/events/interfaces/spans/types';
+import type {
+  RawSpanType,
+  TraceContextType,
+} from 'sentry/components/events/interfaces/spans/types';
 import type {SymbolicatorStatus} from 'sentry/components/events/interfaces/types';
 import type {PlatformKey} from 'sentry/data/platformCategories';
-import {IssueType} from 'sentry/types';
+import type {IssueType} from 'sentry/types';
 
 import type {RawCrumb} from './breadcrumbs';
 import type {Image} from './debugImage';
@@ -292,8 +295,8 @@ type EntryStacktrace = {
   type: EntryType.STACKTRACE;
 };
 
-type EntrySpans = {
-  data: any;
+export type EntrySpans = {
+  data: RawSpanType[];
   type: EntryType.SPANS;
 };
 
@@ -493,17 +496,101 @@ interface OtelContext extends Partial<Record<OtelContextKey, unknown>>, BaseCont
   [OtelContextKey.RESOURCE]?: Record<string, unknown>;
 }
 
+export enum UnityContextKey {
+  COPY_TEXTURE_SUPPORT = 'copy_texture_support',
+  EDITOR_VERSION = 'editor_version',
+  INSTALL_MODE = 'install_mode',
+  RENDERING_THREADING_MODE = 'rendering_threading_mode',
+  TARGET_FRAME_RATE = 'target_frame_rate',
+}
+
+// Unity Context
+// TODO(Priscila): Add this context to the docs
+export interface UnityContext {
+  [UnityContextKey.COPY_TEXTURE_SUPPORT]: string;
+  [UnityContextKey.EDITOR_VERSION]: string;
+  [UnityContextKey.INSTALL_MODE]: string;
+  [UnityContextKey.RENDERING_THREADING_MODE]: string;
+  [UnityContextKey.TARGET_FRAME_RATE]: string;
+  type: 'unity';
+}
+
+export enum MemoryInfoContextKey {
+  ALLOCATED_BYTES = 'allocated_bytes',
+  FRAGMENTED_BYTES = 'fragmented_bytes',
+  HEAP_SIZE_BYTES = 'heap_size_bytes',
+  HIGH_MEMORY_LOAD_THRESHOLD_BYTES = 'high_memory_load_threshold_bytes',
+  TOTAL_AVAILABLE_MEMORY_BYTES = 'total_available_memory_bytes',
+  MEMORY_LOAD_BYTES = 'memory_load_bytes',
+  TOTAL_COMMITTED_BYTES = 'total_committed_bytes',
+  PROMOTED_BYTES = 'promoted_bytes',
+  PINNED_OBJECTS_COUNT = 'pinned_objects_count',
+  PAUSE_TIME_PERCENTAGE = 'pause_time_percentage',
+  INDEX = 'index',
+  FINALIZATION_PENDING_COUNT = 'finalization_pending_count',
+  COMPACTED = 'compacted',
+  CONCURRENT = 'concurrent',
+  PAUSE_DURATIONS = 'pause_durations',
+}
+
+// MemoryInfo Context
+// TODO(Priscila): Add this context to the docs
+export interface MemoryInfoContext {
+  type: 'Memory Info' | 'memory_info';
+  [MemoryInfoContextKey.FINALIZATION_PENDING_COUNT]: number;
+  [MemoryInfoContextKey.COMPACTED]: boolean;
+  [MemoryInfoContextKey.CONCURRENT]: boolean;
+  [MemoryInfoContextKey.PAUSE_DURATIONS]: number[];
+  [MemoryInfoContextKey.TOTAL_AVAILABLE_MEMORY_BYTES]?: number;
+  [MemoryInfoContextKey.MEMORY_LOAD_BYTES]?: number;
+  [MemoryInfoContextKey.TOTAL_COMMITTED_BYTES]?: number;
+  [MemoryInfoContextKey.PROMOTED_BYTES]?: number;
+  [MemoryInfoContextKey.PINNED_OBJECTS_COUNT]?: number;
+  [MemoryInfoContextKey.PAUSE_TIME_PERCENTAGE]?: number;
+  [MemoryInfoContextKey.INDEX]?: number;
+  [MemoryInfoContextKey.ALLOCATED_BYTES]?: number;
+  [MemoryInfoContextKey.FRAGMENTED_BYTES]?: number;
+  [MemoryInfoContextKey.HEAP_SIZE_BYTES]?: number;
+  [MemoryInfoContextKey.HIGH_MEMORY_LOAD_THRESHOLD_BYTES]?: number;
+}
+
+export enum ThreadPoolInfoContextKey {
+  MIN_WORKER_THREADS = 'min_worker_threads',
+  MIN_COMPLETION_PORT_THREADS = 'min_completion_port_threads',
+  MAX_WORKER_THREADS = 'max_worker_threads',
+  MAX_COMPLETION_PORT_THREADS = 'max_completion_port_threads',
+  AVAILABLE_WORKER_THREADS = 'available_worker_threads',
+  AVAILABLE_COMPLETION_PORT_THREADS = 'available_completion_port_threads',
+}
+
+// ThreadPoolInfo Context
+// TODO(Priscila): Add this context to the docs
+export interface ThreadPoolInfoContext {
+  type: 'ThreadPool Info' | 'threadpool_info';
+  [ThreadPoolInfoContextKey.MIN_WORKER_THREADS]: number;
+  [ThreadPoolInfoContextKey.MIN_COMPLETION_PORT_THREADS]: number;
+  [ThreadPoolInfoContextKey.MAX_WORKER_THREADS]: number;
+  [ThreadPoolInfoContextKey.MAX_COMPLETION_PORT_THREADS]: number;
+  [ThreadPoolInfoContextKey.AVAILABLE_WORKER_THREADS]: number;
+  [ThreadPoolInfoContextKey.AVAILABLE_COMPLETION_PORT_THREADS]: number;
+}
+
 type EventContexts = {
+  'Memory Info'?: MemoryInfoContext;
+  'ThreadPool Info'?: ThreadPoolInfoContext;
   client_os?: OSContext;
   device?: DeviceContext;
   feedback?: Record<string, any>;
+  memory_info?: MemoryInfoContext;
   os?: OSContext;
   otel?: OtelContext;
   // TODO (udameli): add better types here
   // once perf issue data shape is more clear
   performance_issue?: any;
   runtime?: RuntimeContext;
+  threadpool_info?: ThreadPoolInfoContext;
   trace?: TraceContextType;
+  unity?: UnityContext;
 };
 
 export type Measurement = {value: number; unit?: string};
@@ -526,6 +613,34 @@ export type PerformanceDetectorData = {
   issueType?: IssueType;
 };
 
+type EventEvidenceDisplay = {
+  /**
+   * Used for alerting, probably not useful for the UI
+   */
+  important: boolean;
+  name: string;
+  value: string;
+};
+
+type EventOccurrence = {
+  detectionTime: string;
+  eventId: string;
+  /**
+   * Arbitrary data that vertical teams can pass to assist with rendering the page.
+   * This is intended mostly for use with customizing the UI, not in the generic UI.
+   */
+  evidenceData: Record<string, any>;
+  /**
+   * Data displayed in the evidence table. Used in all issue types besides errors.
+   */
+  evidenceDisplay: EventEvidenceDisplay[];
+  fingerprint: string[];
+  id: string;
+  issueTitle: string;
+  resourceId: string;
+  subtitle: string;
+};
+
 interface EventBase {
   contexts: EventContexts;
   crashFile: IssueAttachment | null;
@@ -540,6 +655,7 @@ interface EventBase {
   location: string | null;
   message: string;
   metadata: EventMetadata;
+  occurrence: EventOccurrence | null;
   projectID: string;
   size: number;
   tags: EventTag[];

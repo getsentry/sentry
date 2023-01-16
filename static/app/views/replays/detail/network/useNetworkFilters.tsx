@@ -2,7 +2,6 @@ import {useCallback, useMemo} from 'react';
 
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import useFiltersInLocationQuery from 'sentry/utils/replays/hooks/useFiltersInLocationQuery';
-import {UNKNOWN_STATUS} from 'sentry/views/replays/detail/network/utils';
 import {filterItems} from 'sentry/views/replays/detail/utils';
 import type {NetworkSpan} from 'sentry/views/replays/types';
 
@@ -13,10 +12,14 @@ export type FilterFields = {
 };
 
 type Options = {
-  networkSpans: undefined | NetworkSpan[];
+  networkSpans: NetworkSpan[];
 };
 
+const UNKNOWN_STATUS = 'unknown';
+
 type Return = {
+  getResourceTypes: () => {label: string; value: string}[];
+  getStatusTypes: () => {label: string; value: string}[];
   items: NetworkSpan[];
   searchTerm: string;
   setSearchTerm: (searchTerm: string) => void;
@@ -56,6 +59,41 @@ function useNetworkFilters({networkSpans}: Options): Return {
     [networkSpans, status, type, searchTerm]
   );
 
+  const getResourceTypes = useCallback(
+    () =>
+      Array.from(
+        new Set(
+          networkSpans
+            .map(networkSpan => networkSpan.op.replace('resource.', ''))
+            .concat(type)
+        )
+      )
+        .sort()
+        .map(value => ({
+          value,
+          label: value,
+        })),
+    [networkSpans, type]
+  );
+
+  const getStatusTypes = useCallback(
+    () =>
+      Array.from(
+        new Set(
+          networkSpans
+            .map(networkSpan => networkSpan.data.statusCode ?? UNKNOWN_STATUS)
+            .concat(status)
+            .map(String)
+        )
+      )
+        .sort()
+        .map(value => ({
+          value,
+          label: value,
+        })),
+    [networkSpans, status]
+  );
+
   const setStatus = useCallback(
     (f_n_status: string[]) => setFilter({f_n_status}),
     [setFilter]
@@ -69,6 +107,8 @@ function useNetworkFilters({networkSpans}: Options): Return {
   );
 
   return {
+    getResourceTypes,
+    getStatusTypes,
     items,
     searchTerm,
     setSearchTerm,

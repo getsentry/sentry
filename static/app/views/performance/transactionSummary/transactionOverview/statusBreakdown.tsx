@@ -25,9 +25,6 @@ type Props = {
 };
 
 function StatusBreakdown({eventView, location, organization}: Props) {
-  const useEvents = organization.features.includes(
-    'performance-frontend-use-events-endpoint'
-  );
   const breakdownView = eventView
     .withColumns([
       {kind: 'function', function: ['count', '', '', undefined]},
@@ -50,7 +47,6 @@ function StatusBreakdown({eventView, location, organization}: Props) {
         location={location}
         orgSlug={organization.slug}
         referrer="api.performance.status-breakdown"
-        useEvents={useEvents}
       >
         {({isLoading, error, tableData}) => {
           if (isLoading) {
@@ -70,7 +66,7 @@ function StatusBreakdown({eventView, location, organization}: Props) {
           }
           const points = tableData.data.map(row => ({
             label: String(row['transaction.status']),
-            value: parseInt(String(row[useEvents ? 'count()' : 'count']), 10),
+            value: parseInt(String(row['count()']), 10),
             onClick: () => {
               const query = new MutableSearch(eventView.query);
               query

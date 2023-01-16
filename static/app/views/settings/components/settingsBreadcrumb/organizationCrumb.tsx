@@ -64,16 +64,12 @@ const OrganizationCrumb = ({
   }
 
   const hasMenu = organizations.length > 1;
+  const orgSettings = `/settings/${organization.slug}/`;
 
   return (
     <BreadcrumbDropdown
       name={
-        <CrumbLink
-          to={recreateRoute(route, {
-            routes,
-            params: {...params, orgId: organization.slug},
-          })}
-        >
+        <CrumbLink to={orgSettings}>
           <BadgeWrapper>
             <IdBadge avatarSize={18} organization={organization} />
           </BadgeWrapper>

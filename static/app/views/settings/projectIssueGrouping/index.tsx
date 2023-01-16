@@ -40,8 +40,13 @@ class ProjectIssueGrouping extends AsyncView<Props, State> {
   }
 
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
-    const {projectId, orgId} = this.props.params;
-    return [['groupingConfigs', `/projects/${orgId}/${projectId}/grouping-configs/`]];
+    const {organization, project} = this.props;
+    return [
+      [
+        'groupingConfigs',
+        `/projects/${organization.slug}/${project.slug}/grouping-configs/`,
+      ],
+    ];
   }
 
   handleSubmit = (response: Project) => {
@@ -52,8 +57,7 @@ class ProjectIssueGrouping extends AsyncView<Props, State> {
   renderBody() {
     const {groupingConfigs} = this.state;
     const {organization, project, params, location} = this.props;
-    const {orgId, projectId} = params;
-    const endpoint = `/projects/${orgId}/${projectId}/`;
+    const endpoint = `/projects/${organization.slug}/${project.slug}/`;
     const access = new Set(organization.access);
     const jsonFormProps = {
       additionalFieldProps: {

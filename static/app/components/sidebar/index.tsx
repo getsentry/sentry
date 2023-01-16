@@ -13,7 +13,6 @@ import {
   IconChevron,
   IconDashboard,
   IconIssues,
-  IconLab,
   IconLightning,
   IconList,
   IconPlay,
@@ -25,6 +24,7 @@ import {
   IconStats,
   IconSupport,
   IconTelescope,
+  IconTimer,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
@@ -40,7 +40,7 @@ import {getDiscoverLandingUrl} from 'sentry/utils/discover/urls';
 import theme from 'sentry/utils/theme';
 import useMedia from 'sentry/utils/useMedia';
 
-import {ProfilingOnboardingSidebar} from '../profiling/ProfilingOnboarding/proflingOnboardingSidebar';
+import {ProfilingOnboardingSidebar} from '../profiling/ProfilingOnboarding/profilingOnboardingSidebar';
 
 import Broadcasts from './broadcasts';
 import SidebarHelp from './help';
@@ -233,10 +233,10 @@ function Sidebar({location, organization}: Props) {
     <Feature features={['monitors']} organization={organization}>
       <SidebarItem
         {...sidebarItemProps}
-        icon={<IconLab size="md" />}
-        label={t('Monitors')}
-        to={`/organizations/${organization.slug}/monitors/`}
-        id="monitors"
+        icon={<IconTimer size="md" />}
+        label={t('Crons')}
+        to={`/organizations/${organization.slug}/crons/`}
+        id="crons"
         isBeta
       />
     </Feature>

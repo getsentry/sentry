@@ -59,6 +59,9 @@ class TransactionGroup extends Component<Props, State> {
       hasGuideAnchor,
       renderedChildren,
       barColor,
+      addContentSpanBarRef,
+      removeContentSpanBarRef,
+      onWheel,
     } = this.props;
     const {isExpanded} = this.state;
 
@@ -78,6 +81,9 @@ class TransactionGroup extends Component<Props, State> {
           isVisible={isVisible}
           hasGuideAnchor={hasGuideAnchor}
           barColor={barColor}
+          addContentSpanBarRef={addContentSpanBarRef}
+          removeContentSpanBarRef={removeContentSpanBarRef}
+          onWheel={onWheel}
         />
         {isExpanded && renderedChildren}
       </Fragment>

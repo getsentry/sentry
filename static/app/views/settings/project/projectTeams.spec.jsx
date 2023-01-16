@@ -58,6 +58,7 @@ describe('ProjectTeams', function () {
       <ProjectTeams
         params={{orgId: org.slug, projectId: project.slug}}
         organization={org}
+        project={project}
       />
     );
 
@@ -89,6 +90,7 @@ describe('ProjectTeams', function () {
       <ProjectTeams
         params={{orgId: org.slug, projectId: project.slug}}
         organization={org}
+        project={project}
       />
     );
 
@@ -160,6 +162,7 @@ describe('ProjectTeams', function () {
       <ProjectTeams
         params={{orgId: org.slug, projectId: project.slug}}
         organization={org}
+        project={project}
       />
     );
 
@@ -207,6 +210,7 @@ describe('ProjectTeams', function () {
       <ProjectTeams
         params={{orgId: org.slug, projectId: project.slug}}
         organization={org}
+        project={project}
       />
     );
 

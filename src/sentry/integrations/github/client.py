@@ -18,6 +18,17 @@ from sentry.utils.json import JSONData
 logger = logging.getLogger("sentry.integrations.github")
 
 
+class GithubRateLimitInfo:
+    def __init__(self, info: Dict[str, int]) -> None:
+        self.limit = info["limit"]
+        self.remaining = info["remaining"]
+        self.reset = info["reset"]
+        self.used = info["used"]
+
+    def next_window(self) -> str:
+        return datetime.utcfromtimestamp(self.reset).strftime("%H:%M:%S")
+
+
 class GitHubClientMixin(ApiClient):  # type: ignore
     allow_redirects = True
 
@@ -70,6 +81,13 @@ class GitHubClientMixin(ApiClient):  # type: ignore
         repository: JSONData = self.get(f"/repos/{repo}")
         return repository
 
+    # https://docs.github.com/en/rest/rate-limit?apiVersion=2022-11-28
+    def get_rate_limit(self, specific_resource: str = "core") -> GithubRateLimitInfo:
+        """This gives information of the current rate limit"""
+        # There's more but this is good enough
+        assert specific_resource in ("core", "search", "graphql")
+        return GithubRateLimitInfo(self.get("/rate_limit")["resources"][specific_resource])
+
     # https://docs.github.com/en/rest/git/trees#get-a-tree
     def get_tree(self, repo_full_name: str, tree_sha: str) -> JSONData:
         tree: JSONData = {}
@@ -90,9 +108,12 @@ class GitHubClientMixin(ApiClient):  # type: ignore
                     f"The tree for {repo_full_name} has been truncated. Use different a approach for retrieving contents of tree."
                 )
             tree = contents["tree"]
-        except ApiError as e:
-            json_data: JSONData = e.json
-            msg: str = json_data.get("message")
+        except ApiError as error:
+            msg = error.text
+            if error.json:
+                json_data: JSONData = error.json
+                msg = json_data.get("message")
+
             # TODO: Add condition for  getsentry/DataForThePeople
             # e.g. getsentry/nextjs-sentry-example
             if msg == "Git Repository is empty.":
@@ -100,12 +121,17 @@ class GitHubClientMixin(ApiClient):  # type: ignore
             elif msg == "Not Found":
                 logger.warning(f"The Github App does not have access to {repo_full_name}.")
             else:
-                logger.exception("An unknown error has ocurred.")
+                # Raise it so we stop hammering the API
+                raise error
 
         return tree
 
-    def get_repo_files(
-        self, repo_full_name: str, tree_sha: str, only_source_code_files: bool = True
+    def get_cached_repo_files(
+        self,
+        repo_full_name: str,
+        tree_sha: str,
+        only_source_code_files: bool = True,
+        cache_seconds: int = 3600 * 24,
     ) -> List[str]:
         """It return all files for a repo or just source code files.
 
@@ -113,15 +139,22 @@ class GitHubClientMixin(ApiClient):  # type: ignore
         tree_sha: A branch or a commit sha
         only_source_code_files: Include all files or just the source code files
         """
-        repo_files = []
-        try:
+        key = f"github:repo:{repo_full_name}:{'source-code' if only_source_code_files else 'all'}"
+        repo_files: List[str] = cache.get(key, [])
+        if not repo_files:
             tree = self.get_tree(repo_full_name, tree_sha)
             if tree is not None:
                 repo_files = [x["path"] for x in tree if x["type"] == "blob"]
                 if only_source_code_files:
                     repo_files = filter_source_code_files(files=repo_files)
-        except Exception:
-            logger.exception("An unknown error has ocurred.")
+                # The backend's caching will skip silently if the object size greater than 5MB
+                # The trees API does not return structures larger than 7MB
+                # As an example, all file paths in Sentry is about 1.3MB
+                # Larger customers may have larger repositories, however,
+                # the cost of not having cached the files cached for those
+                # repositories is a single GH API network request, thus,
+                # being acceptable to sometimes not having everything cached
+                cache.set(key, repo_files, cache_seconds)
 
         return repo_files
 
@@ -129,48 +162,45 @@ class GitHubClientMixin(ApiClient):  # type: ignore
         self, cache_key: str, gh_org: str, cache_seconds: int = 3600 * 24
     ) -> Dict[str, RepoTree]:
         """
-        This fetches tree representations of all repos for an org.
+        This fetches tree representations of all repos for an org and saves its
+        contents into the cache.
         """
         trees: Dict[str, RepoTree] = {}
         cache_key = f"githubtrees:repositories:{cache_key}:{gh_org}"
-        repo_key = "githubtrees:repo"
-        cached_repositories = cache.get(cache_key, [])
-        if not cached_repositories:
+        repositories = cache.get(cache_key)
+        extra = {"gh_org": gh_org}
+        if not repositories:
             # Simply removing unnecessary fields from the response
             repositories = [
                 {"full_name": repo["full_name"], "default_branch": repo["default_branch"]}
                 for repo in self.get_repositories(fetch_max_pages=True)
             ]
-            # XXX: In order to speed up this function we will need to parallelize this
-            # Use ThreadPoolExecutor; see src/sentry/utils/snuba.py#L358
-            for repo_info in repositories:
-                try:
-                    full_name: str = repo_info["full_name"]
-                    branch = repo_info["default_branch"]
-                    files = self.get_repo_files(full_name, branch)
-                    repo = Repo(full_name, branch)
-                    trees[full_name] = RepoTree(repo, files)
-                    cache.set(f"{repo_key}:{full_name}", trees[full_name], cache_seconds)
-                except Exception:
-                    # Catching the exception ensures that we can make progress with the rest
-                    # of the repositories
-                    logger.exception(f"We have failed to fetch the tree for {repo_info}.")
             cache.set(cache_key, repositories, cache_seconds)
             next_time = datetime.now() + timedelta(seconds=cache_seconds)
-            logger.info(f"Caching trees for {gh_org} org until {next_time}.")
-        else:
-            try:
-                for repo_info in cached_repositories:
-                    repo_tree = cache.get(f"{repo_key}:{repo_info['full_name']}")
-                    # This assertion will help clear the cache off dictionaries
-                    assert type(repo_tree) == RepoTree
-                    trees[repo_info["full_name"]] = repo_tree
+            extra["next_time"] = str(next_time)
+            logger.info("Caching trees for Github org.", extra=extra)
 
-                logger.info(f"Using cached trees for {gh_org}.")
-            except AssertionError:
-                # Reset the control cache in order to repopulate
-                cache.delete(cache_key)
-                logger.exception(f"We reset the cache for {cache_key}.")
+        # XXX: In order to speed up this function we will need to parallelize this
+        # Use ThreadPoolExecutor; see src/sentry/utils/snuba.py#L358
+        try:
+            for repo_info in repositories:
+                full_name = repo_info["full_name"]
+                branch = repo_info["default_branch"]
+                repo_files = self.get_cached_repo_files(full_name, branch)
+                trees[full_name] = RepoTree(Repo(full_name, branch), repo_files)
+            logger.info("Using cached trees for Github org.", extra=extra)
+        except ApiError as error:
+            msg = error.text
+            if error.json:
+                json_data: JSONData = error.json
+                msg = json_data.get("message")
+            if msg.startswith("API rate limit exceeded for installation"):
+                # Report to Sentry; we will not continue
+                logger.exception("API rate limit exceeded. We will not hit it.")
+        except Exception:
+            # Reset the control cache in order to repopulate
+            cache.delete(cache_key)
+            logger.exception(f"We reset the cache for {cache_key}.")
 
         return trees
 
@@ -390,8 +420,14 @@ class GitHubClientMixin(ApiClient):  # type: ignore
             )
             return results
         except AttributeError as e:
+            if contents.get("errors"):
+                err_message = ", ".join(
+                    [error.get("message", "") for error in contents.get("errors", [])]
+                )
+                raise ApiError(err_message)
+
             if contents.get("data", {}).get("repository", {}).get("ref", {}) is None:
-                raise ApiError("Repository does not exist in GitHub.")
+                raise ApiError("Branch does not exist in GitHub.")
 
             sentry_sdk.capture_exception(e)
 

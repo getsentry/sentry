@@ -34,7 +34,7 @@ describe('EditSavedSearchModal', function () {
     Footer: ModalFooter,
     CloseButton: makeCloseButton(jest.fn()),
     closeModal: jest.fn(),
-    organization: TestStubs.Organization({features: ['issue-list-saved-searches-v2']}),
+    organization: TestStubs.Organization(),
     savedSearch: {
       id: 'saved-search-id',
       name: 'Saved search name',
@@ -109,7 +109,6 @@ describe('EditSavedSearchModal', function () {
         {...defaultProps}
         organization={TestStubs.Organization({
           access: [],
-          features: ['issue-list-saved-searches-v2'],
         })}
       />
     );

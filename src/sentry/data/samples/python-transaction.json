@@ -1,7 +1,6 @@
 {
   "event_id": "00043830bf0f487392d51c698d42f4f6",
   "project": 6422,
-  "release": "checkout-app@3.2",
   "dist": null,
   "platform": "python",
   "message": "",
@@ -16,7 +15,6 @@
     ["os.name", "Mac OS X"],
     ["runtime", "CPython 2.7.18"],
     ["runtime.name", "CPython"],
-    ["release", "checkout-app@3.2"],
     ["user", "id:4292"],
     ["transaction", "getProductList"],
     ["url", "https://app.example.com/products"]

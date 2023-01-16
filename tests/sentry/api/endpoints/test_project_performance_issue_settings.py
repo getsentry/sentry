@@ -8,7 +8,6 @@ from sentry.testutils.silo import region_silo_test
 
 PERFORMANCE_ISSUE_FEATURES = {
     "organizations:performance-view": True,
-    "organizations:performance-issues": True,
 }
 
 

@@ -1,8 +1,8 @@
 from copy import deepcopy
+from functools import cached_property
 
 import responses
 from django.conf import settings
-from exam import fixture
 
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.alert_rule import DetailedAlertRuleSerializer
@@ -58,7 +58,7 @@ class AlertRuleDetailsBase(AlertRuleBase):
         self.method = original_method
         return serialized_alert_rule
 
-    @fixture
+    @cached_property
     def alert_rule(self):
         return self.new_alert_rule(data=deepcopy(self.alert_rule_dict))
 

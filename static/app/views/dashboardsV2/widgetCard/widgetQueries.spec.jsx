@@ -143,7 +143,7 @@ describe('Dashboards > WidgetQueries', function () {
 
   it('appends dashboard filters to events table request', async function () {
     const mock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/eventsv2/',
+      url: '/organizations/org-slug/events/',
       body: [],
     });
     renderWithProviders(
@@ -160,7 +160,7 @@ describe('Dashboards > WidgetQueries', function () {
 
     await screen.findByTestId('child');
     expect(mock).toHaveBeenCalledWith(
-      '/organizations/org-slug/eventsv2/',
+      '/organizations/org-slug/events/',
       expect.objectContaining({
         query: expect.objectContaining({
           query: 'event.type:error release:abc@1.3.0 ',
@@ -276,7 +276,7 @@ describe('Dashboards > WidgetQueries', function () {
 
   it('can send table result queries', async function () {
     const tableMock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/eventsv2/',
+      url: '/organizations/org-slug/events/',
       body: {
         meta: {'sdk.name': 'string'},
         data: [{'sdk.name': 'python'}],
@@ -302,7 +302,7 @@ describe('Dashboards > WidgetQueries', function () {
     await screen.findByTestId('child');
     expect(tableMock).toHaveBeenCalledTimes(1);
     expect(tableMock).toHaveBeenCalledWith(
-      '/organizations/org-slug/eventsv2/',
+      '/organizations/org-slug/events/',
       expect.objectContaining({
         query: expect.objectContaining({
           query: 'event.type:error',
@@ -320,7 +320,7 @@ describe('Dashboards > WidgetQueries', function () {
 
   it('can send multiple table queries', async function () {
     const firstQuery = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/eventsv2/',
+      url: '/organizations/org-slug/events/',
       body: {
         meta: {'sdk.name': 'string'},
         data: [{'sdk.name': 'python'}],
@@ -328,7 +328,7 @@ describe('Dashboards > WidgetQueries', function () {
       match: [MockApiClient.matchQuery({query: 'event.type:error'})],
     });
     const secondQuery = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/eventsv2/',
+      url: '/organizations/org-slug/events/',
       body: {
         meta: {title: 'string'},
         data: [{title: 'ValueError'}],
@@ -387,7 +387,7 @@ describe('Dashboards > WidgetQueries', function () {
 
   it('can send big number result queries', async function () {
     const tableMock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/eventsv2/',
+      url: '/organizations/org-slug/events/',
       body: {
         meta: {'sdk.name': 'string'},
         data: [{'sdk.name': 'python'}],
@@ -427,7 +427,7 @@ describe('Dashboards > WidgetQueries', function () {
     await screen.findByTestId('child');
     expect(tableMock).toHaveBeenCalledTimes(1);
     expect(tableMock).toHaveBeenCalledWith(
-      '/organizations/org-slug/eventsv2/',
+      '/organizations/org-slug/events/',
       expect.objectContaining({
         query: expect.objectContaining({
           referrer: 'api.dashboards.bignumberwidget',
@@ -506,12 +506,12 @@ describe('Dashboards > WidgetQueries', function () {
   it('stops loading state once all queries finish even if some fail', async function () {
     const firstQuery = MockApiClient.addMockResponse({
       statusCode: 500,
-      url: '/organizations/org-slug/eventsv2/',
+      url: '/organizations/org-slug/events/',
       body: {detail: 'it didnt work'},
       match: [MockApiClient.matchQuery({query: 'event.type:error'})],
     });
     const secondQuery = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/eventsv2/',
+      url: '/organizations/org-slug/events/',
       body: {
         meta: {title: 'string'},
         data: [{title: 'ValueError'}],
@@ -928,7 +928,7 @@ describe('Dashboards > WidgetQueries', function () {
   it('tables send metricsEnhanced requests', async function () {
     const {organization} = initialData;
     const mock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/eventsv2/',
+      url: '/organizations/org-slug/events/',
       body: {
         meta: {title: 'string', isMetricsData: true},
         data: [{title: 'ValueError'}],
@@ -960,7 +960,7 @@ describe('Dashboards > WidgetQueries', function () {
     );
 
     expect(mock).toHaveBeenCalledWith(
-      '/organizations/org-slug/eventsv2/',
+      '/organizations/org-slug/events/',
       expect.objectContaining({
         query: expect.objectContaining({dataset: 'metricsEnhanced'}),
       })

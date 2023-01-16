@@ -11,7 +11,7 @@ from sentry.shared_integrations.exceptions import ApiError
 from ..utils import handle_assignee_change, handle_jira_api_error, handle_status_change
 from .base import JiraEndpointBase
 
-logger = logging.getLogger("sentry.integrations.jira.webhooks")
+logger = logging.getLogger(__name__)
 
 
 @pending_silo_endpoint

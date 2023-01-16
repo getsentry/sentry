@@ -1,9 +1,9 @@
 import datetime
+from functools import cached_property
 from unittest import mock
 
 import pytest
 import responses
-from exam import fixture
 
 from fixtures.github import COMPARE_COMMITS_EXAMPLE, GET_COMMIT_EXAMPLE, GET_LAST_COMMITS_EXAMPLE
 from sentry.integrations.github.repository import GitHubRepositoryProvider
@@ -33,11 +33,11 @@ class GitHubAppsProviderTest(TestCase):
         super().tearDown()
         responses.reset()
 
-    @fixture
+    @cached_property
     def provider(self):
         return GitHubRepositoryProvider("integrations:github")
 
-    @fixture
+    @cached_property
     def repository(self):
         return Repository.objects.create(
             name="getsentry/example-repo",

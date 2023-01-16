@@ -6,23 +6,29 @@ import os
 import random
 import re
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from collections import defaultdict, deque
 from datetime import timedelta
 from enum import Enum
-from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple, Union
+from typing import Any, Dict, List, Optional, Sequence, Tuple
 from urllib.parse import urlparse
 
 import sentry_sdk
+from symbolic import ProguardMapper  # type: ignore
 
-from sentry import features, nodestore, options, projectoptions
+from sentry import nodestore, options, projectoptions
 from sentry.eventstore.models import Event
-from sentry.models import Organization, Project, ProjectOption
-from sentry.types.issues import GROUP_TYPE_TO_TEXT, GroupType
+from sentry.models import Project, ProjectDebugFile, ProjectOption
+from sentry.types.issues import GroupType
 from sentry.utils import metrics
 from sentry.utils.event_frames import get_sdk_name
 from sentry.utils.safe import get_path
 
-from .performance_span_issue import PerformanceSpanProblem
+from .performance_problem import PerformanceProblem
+
+
+def join_regexes(regexes: Sequence[str]) -> str:
+    return r"(?:" + r")|(?:".join(regexes) + r")"
+
 
 PERFORMANCE_GROUP_COUNT_LIMIT = 10
 INTEGRATIONS_OF_INTEREST = [
@@ -32,35 +38,39 @@ INTEGRATIONS_OF_INTEREST = [
     "Mongo",  # Node
     "Postgres",  # Node
 ]
+
 PARAMETERIZED_SQL_QUERY_REGEX = re.compile(r"\?|\$1|%s")
+CONTAINS_PARAMETER_REGEX = re.compile(
+    join_regexes(
+        [
+            r"'(?:[^']|'')*?(?:\\'.*|'(?!'))",  # single-quoted strings
+            r"\b(?:true|false)\b",  # booleans
+            r"\?|\$1|%s",  # existing parameters
+        ]
+    )
+)
 
 
 class DetectorType(Enum):
     SLOW_SPAN = "slow_span"
-    DUPLICATE_SPANS = "duplicates"
-    SEQUENTIAL_SLOW_SPANS = "sequential"
-    LONG_TASK_SPANS = "long_task"
     RENDER_BLOCKING_ASSET_SPAN = "render_blocking_assets"
-    N_PLUS_ONE_SPANS = "n_plus_one"
     N_PLUS_ONE_DB_QUERIES = "n_plus_one_db"
     N_PLUS_ONE_DB_QUERIES_EXTENDED = "n_plus_one_db_ext"
     N_PLUS_ONE_API_CALLS = "n_plus_one_api_calls"
     CONSECUTIVE_DB_OP = "consecutive_db"
     FILE_IO_MAIN_THREAD = "file_io_main_thread"
+    M_N_PLUS_ONE_DB = "m_n_plus_one_db"
 
 
 DETECTOR_TYPE_TO_GROUP_TYPE = {
     DetectorType.SLOW_SPAN: GroupType.PERFORMANCE_SLOW_SPAN,
-    DetectorType.DUPLICATE_SPANS: GroupType.PERFORMANCE_DUPLICATE_SPANS,
-    DetectorType.SEQUENTIAL_SLOW_SPANS: GroupType.PERFORMANCE_SEQUENTIAL_SLOW_SPANS,
-    DetectorType.LONG_TASK_SPANS: GroupType.PERFORMANCE_LONG_TASK_SPANS,
     DetectorType.RENDER_BLOCKING_ASSET_SPAN: GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN,
-    DetectorType.N_PLUS_ONE_SPANS: GroupType.PERFORMANCE_N_PLUS_ONE,
     DetectorType.N_PLUS_ONE_DB_QUERIES: GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
     DetectorType.N_PLUS_ONE_DB_QUERIES_EXTENDED: GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
     DetectorType.N_PLUS_ONE_API_CALLS: GroupType.PERFORMANCE_N_PLUS_ONE_API_CALLS,
     DetectorType.CONSECUTIVE_DB_OP: GroupType.PERFORMANCE_CONSECUTIVE_DB_OP,
     DetectorType.FILE_IO_MAIN_THREAD: GroupType.PERFORMANCE_FILE_IO_MAIN_THREAD,
+    DetectorType.M_N_PLUS_ONE_DB: GroupType.PERFORMANCE_M_N_PLUS_ONE_DB_QUERIES,
 }
 
 # Detector and the corresponding system option must be added to this list to have issues created.
@@ -68,62 +78,6 @@ DETECTOR_TYPE_ISSUE_CREATION_TO_SYSTEM_OPTION = {
     DetectorType.N_PLUS_ONE_DB_QUERIES: "performance.issues.n_plus_one_db.problem-creation",
     DetectorType.N_PLUS_ONE_DB_QUERIES_EXTENDED: "performance.issues.n_plus_one_db_ext.problem-creation",
 }
-
-
-@dataclass
-class PerformanceProblem:
-    fingerprint: str
-    op: str
-    desc: str
-    type: GroupType
-    parent_span_ids: Optional[Sequence[str]]
-    # For related spans that caused the bad spans
-    cause_span_ids: Optional[Sequence[str]]
-    # The actual bad spans
-    offender_span_ids: Sequence[str]
-
-    def to_dict(
-        self,
-    ) -> Mapping[str, Any]:
-        return {
-            "fingerprint": self.fingerprint,
-            "op": self.op,
-            "desc": self.desc,
-            "type": self.type.value,
-            "parent_span_ids": self.parent_span_ids,
-            "cause_span_ids": self.cause_span_ids,
-            "offender_span_ids": self.offender_span_ids,
-        }
-
-    @property
-    def title(self) -> str:
-        return GROUP_TYPE_TO_TEXT.get(self.type, "N+1 Query")
-
-    @classmethod
-    def from_dict(cls, data: dict) -> PerformanceProblem:
-        return cls(
-            data["fingerprint"],
-            data["op"],
-            data["desc"],
-            GroupType(data["type"]),
-            data["parent_span_ids"],
-            data["cause_span_ids"],
-            data["offender_span_ids"],
-        )
-
-    def __eq__(self, other):
-        if not isinstance(other, PerformanceProblem):
-            return NotImplemented
-        return (
-            self.fingerprint == other.fingerprint
-            and self.offender_span_ids == other.offender_span_ids
-            and self.type == other.type
-        )
-
-    def __hash__(self):
-        # This will de-duplicate on fingerprint and type and only for offending span ids.
-        # Fingerprint should incorporate the 'uniqueness' enough that parent and span checks etc. are not required.
-        return hash((self.fingerprint, frozenset(self.offender_span_ids), self.type))
 
 
 class EventPerformanceProblem:
@@ -185,22 +139,18 @@ class EventPerformanceProblem:
 
 Span = Dict[str, Any]
 TransactionSpans = List[Span]
-PerformanceProblemsMap = Dict[str, Union[PerformanceProblem, PerformanceSpanProblem]]
+PerformanceProblemsMap = Dict[str, PerformanceProblem]
 
 
 # Facade in front of performance detection to limit impact of detection on our events ingestion
 def detect_performance_problems(data: Event) -> List[PerformanceProblem]:
     try:
-        rate = options.get("performance.issues.all.problem-detection")
-        if rate and rate > random.random():
-            # Add an experimental tag to be able to find these spans in production while developing. Should be removed later.
-            sentry_sdk.set_tag("_did_analyze_performance_issue", "true")
-            with metrics.timer(
-                "performance.detect_performance_issue", sample_rate=0.01
-            ), sentry_sdk.start_span(
-                op="py.detect_performance_issue", description="none"
-            ) as sdk_span:
-                return _detect_performance_problems(data, sdk_span)
+        # Add an experimental tag to be able to find these spans in production while developing. Should be removed later.
+        sentry_sdk.set_tag("_did_analyze_performance_issue", "true")
+        with metrics.timer(
+            "performance.detect_performance_issue", sample_rate=0.01
+        ), sentry_sdk.start_span(op="py.detect_performance_issue", description="none") as sdk_span:
+            return _detect_performance_problems(data, sdk_span)
     except Exception:
         logging.exception("Failed to detect performance problems")
     return []
@@ -242,49 +192,30 @@ def get_detection_settings(project_id: Optional[str] = None) -> Dict[DetectorTyp
             "n_plus_one_db_duration_threshold": options.get(
                 "performance.issues.n_plus_one_db.duration_threshold"
             ),
+            "render_blocking_fcp_min": options.get(
+                "performance.issues.render_blocking_assets.fcp_minimum_threshold"
+            ),
+            "render_blocking_fcp_max": options.get(
+                "performance.issues.render_blocking_assets.fcp_maximum_threshold"
+            ),
+            "render_blocking_fcp_ratio": options.get(
+                "performance.issues.render_blocking_assets.fcp_ratio_threshold"
+            ),
         }
     )
 
     return {
-        DetectorType.DUPLICATE_SPANS: [
-            {
-                "count": 5,
-                "cumulative_duration": 500.0,  # ms
-                "allowed_span_ops": ["db", "http"],
-            }
-        ],
-        DetectorType.SEQUENTIAL_SLOW_SPANS: [
-            {
-                "count": 3,
-                "cumulative_duration": 1200.0,  # ms
-                "allowed_span_ops": ["db", "http", "ui"],
-            }
-        ],
         DetectorType.SLOW_SPAN: [
             {
                 "duration_threshold": 1000.0,  # ms
                 "allowed_span_ops": ["db"],
             },
         ],
-        DetectorType.LONG_TASK_SPANS: [
-            {
-                "cumulative_duration": 500.0,  # ms
-                "allowed_span_ops": ["ui.long-task", "ui.sentry.long-task"],
-            }
-        ],
         DetectorType.RENDER_BLOCKING_ASSET_SPAN: {
-            "fcp_minimum_threshold": 2000.0,  # ms
-            "fcp_maximum_threshold": 10000.0,  # ms
-            "fcp_ratio_threshold": 0.25,
-            "allowed_span_ops": ["resource.link", "resource.script"],
+            "fcp_minimum_threshold": settings["render_blocking_fcp_min"],  # ms
+            "fcp_maximum_threshold": settings["render_blocking_fcp_max"],  # ms
+            "fcp_ratio_threshold": settings["render_blocking_fcp_ratio"],  # in the range [0, 1]
         },
-        DetectorType.N_PLUS_ONE_SPANS: [
-            {
-                "count": 3,
-                "start_time_threshold": 5.0,  # ms
-                "allowed_span_ops": ["http.client"],
-            }
-        ],
         DetectorType.N_PLUS_ONE_DB_QUERIES: {
             "count": settings["n_plus_one_db_count"],
             "duration_threshold": settings["n_plus_one_db_duration_threshold"],  # ms
@@ -294,10 +225,8 @@ def get_detection_settings(project_id: Optional[str] = None) -> Dict[DetectorTyp
             "duration_threshold": settings["n_plus_one_db_duration_threshold"],  # ms
         },
         DetectorType.CONSECUTIVE_DB_OP: {
-            # Duration of all consecutive spans, useful because we want to check if it worth the independent spans being in parallel
-            "total_duration_threshold": 200,  # ms
-            # Duration of all the independent spans in a set of consecutive spans
-            "duration_threshold": 100,  # ms
+            # time saved by running all queries in parallel
+            "min_time_saved": 50,  # ms
             # The minimum duration of a single independent span in ms, used to prevent scenarios with a ton of small spans
             "span_duration_threshold": 30,  # ms
             "consecutive_count_threshold": 2,
@@ -309,10 +238,15 @@ def get_detection_settings(project_id: Optional[str] = None) -> Dict[DetectorTyp
             }
         ],
         DetectorType.N_PLUS_ONE_API_CALLS: {
-            "duration_threshold": 5,  # ms
+            "duration_threshold": 50,  # ms
             "concurrency_threshold": 5,  # ms
-            "count": 5,
+            "count": 10,
             "allowed_span_ops": ["http.client"],
+        },
+        DetectorType.M_N_PLUS_ONE_DB: {
+            "total_duration_threshold": 100.0,  # ms
+            "minimum_occurrences_of_pattern": 3,
+            "max_sequence_length": 5,
         },
     }
 
@@ -322,61 +256,50 @@ def _detect_performance_problems(data: Event, sdk_span: Any) -> List[Performance
     project_id = data.get("project")
 
     detection_settings = get_detection_settings(project_id)
-    detectors = {
-        DetectorType.CONSECUTIVE_DB_OP: ConsecutiveDBSpanDetector(detection_settings, data),
-        DetectorType.DUPLICATE_SPANS: DuplicateSpanDetector(detection_settings, data),
-        DetectorType.SLOW_SPAN: SlowSpanDetector(detection_settings, data),
-        DetectorType.SEQUENTIAL_SLOW_SPANS: SequentialSlowSpanDetector(detection_settings, data),
-        DetectorType.LONG_TASK_SPANS: LongTaskSpanDetector(detection_settings, data),
-        DetectorType.RENDER_BLOCKING_ASSET_SPAN: RenderBlockingAssetSpanDetector(
-            detection_settings, data
-        ),
-        DetectorType.N_PLUS_ONE_SPANS: NPlusOneSpanDetector(detection_settings, data),
-        DetectorType.N_PLUS_ONE_DB_QUERIES: NPlusOneDBSpanDetector(detection_settings, data),
-        DetectorType.N_PLUS_ONE_DB_QUERIES_EXTENDED: NPlusOneDBSpanDetectorExtended(
-            detection_settings, data
-        ),
-        DetectorType.FILE_IO_MAIN_THREAD: FileIOMainThreadDetector(detection_settings, data),
-        DetectorType.N_PLUS_ONE_API_CALLS: NPlusOneAPICallsDetector(detection_settings, data),
-    }
+    detectors: List[PerformanceDetector] = [
+        ConsecutiveDBSpanDetector(detection_settings, data),
+        SlowSpanDetector(detection_settings, data),
+        RenderBlockingAssetSpanDetector(detection_settings, data),
+        NPlusOneDBSpanDetector(detection_settings, data),
+        NPlusOneDBSpanDetectorExtended(detection_settings, data),
+        FileIOMainThreadDetector(detection_settings, data),
+        NPlusOneAPICallsDetector(detection_settings, data),
+        MNPlusOneDBSpanDetector(detection_settings, data),
+    ]
 
-    for _, detector in detectors.items():
+    for detector in detectors:
         run_detector_on_data(detector, data)
 
     # Metrics reporting only for detection, not created issues.
     report_metrics_for_detectors(data, event_id, detectors, sdk_span)
 
     # Get list of detectors that are allowed to create issues.
-    allowed_perf_issue_detectors = get_allowed_issue_creation_detectors(project_id)
+    allowed_detector_types = get_allowed_issue_creation_detectors(project_id)
 
-    detected_problems = [
-        (i, detector_type)
-        for detector_type in allowed_perf_issue_detectors
-        for _, i in detectors[detector_type].stored_problems.items()
-    ]
+    problems: List[PerformanceProblem] = []
+    for detector in detectors:
+        if detector.type not in allowed_detector_types:
+            continue
 
-    truncated_problems = detected_problems[:PERFORMANCE_GROUP_COUNT_LIMIT]
+        problems.extend(detector.stored_problems.values())
 
-    metrics.incr("performance.performance_issue.pretruncated", len(detected_problems))
+    truncated_problems = problems[:PERFORMANCE_GROUP_COUNT_LIMIT]
+
+    metrics.incr("performance.performance_issue.pretruncated", len(problems))
     metrics.incr("performance.performance_issue.truncated", len(truncated_problems))
 
-    performance_problems = [
-        prepare_problem_for_grouping(problem, data, detector_type)
-        for problem, detector_type in truncated_problems
-    ]
-
     # Leans on Set to remove duplicate problems when extending a detector, since the new extended detector can overlap in terms of created issues.
-    unique_performance_problems = set(performance_problems)
+    unique_problems = set(truncated_problems)
 
-    if len(unique_performance_problems) > 0:
+    if len(unique_problems) > 0:
         metrics.incr(
             "performance.performance_issue.performance_problem_emitted",
-            len(unique_performance_problems),
+            len(unique_problems),
             sample_rate=1.0,
         )
 
     # TODO: Make sure upstream is all compatible with set before switching output type.
-    return list(unique_performance_problems)
+    return list(unique_problems)
 
 
 def run_detector_on_data(detector, data):
@@ -392,12 +315,6 @@ def run_detector_on_data(detector, data):
 
 # Uses options and flags to determine which orgs and which detectors automatically create performance issues.
 def get_allowed_issue_creation_detectors(project_id: str):
-    project = Project.objects.get_from_cache(id=project_id)
-    organization = Organization.objects.get_from_cache(id=project.organization_id)
-    if not features.has("organizations:performance-issues-ingest", organization):
-        # Only organizations with this non-flagr feature have performance issues created.
-        return {}
-
     allowed_detectors = set()
     for detector_type, system_option in DETECTOR_TYPE_ISSUE_CREATION_TO_SYSTEM_OPTION.items():
         rate = options.get(system_option)
@@ -405,41 +322,6 @@ def get_allowed_issue_creation_detectors(project_id: str):
             allowed_detectors.add(detector_type)
 
     return allowed_detectors
-
-
-def prepare_problem_for_grouping(
-    problem: Union[PerformanceProblem, PerformanceSpanProblem],
-    data: Event,
-    detector_type: DetectorType,
-) -> PerformanceProblem:
-    # Don't transform if the caller has already done the work for us.
-    # (TBD: All detectors should get updated to just return PerformanceProblem directly)
-    if isinstance(problem, PerformanceProblem):
-        return problem
-
-    transaction_name = data.get("transaction")
-    spans_involved = problem.spans_involved
-    first_span_id = spans_involved[0]
-    spans = data.get("spans", [])
-    first_span = next((span for span in spans if span["span_id"] == first_span_id), None)
-    op = first_span["op"]
-    hash = first_span["hash"]
-    desc = first_span["description"]
-
-    group_type = DETECTOR_TYPE_TO_GROUP_TYPE[detector_type]
-    group_fingerprint = fingerprint_group(transaction_name, op, hash, group_type)
-
-    prepared_problem = PerformanceProblem(
-        fingerprint=group_fingerprint,
-        op=op,
-        desc=desc,
-        type=group_type,
-        parent_span_ids=None,
-        cause_span_ids=None,
-        offender_span_ids=spans_involved,
-    )
-
-    return prepared_problem
 
 
 def fingerprint_group(transaction_name, span_op, hash, problem_class):
@@ -462,6 +344,15 @@ def fingerprint_span(span: Span):
     ]  # 80 bits. Not a cryptographic usage, we don't need all of the sha1 for collision detection
 
     return fingerprint
+
+
+def fingerprint_spans(spans: List[Span]):
+    span_hashes = []
+    for span in spans:
+        hash = span.get("hash", "") or ""
+        span_hashes.append(str(hash))
+    joined_hashes = "-".join(span_hashes)
+    return hashlib.sha1(joined_hashes.encode("utf8")).hexdigest()
 
 
 # Simple fingerprint for broader checks, using the span op.
@@ -487,10 +378,35 @@ def contains_complete_query(span: Span, is_source: Optional[bool] = False) -> bo
         return query and not query.endswith("...")
 
 
+def total_span_time(span_list: List[Dict[str, Any]]) -> float:
+    """Return the total non-overlapping span time in milliseconds for all the spans in the list"""
+    # Sort the spans so that when iterating the next span in the list is either within the current, or afterwards
+    sorted_span_list = sorted(span_list, key=lambda span: span["start_timestamp"])
+    total_duration = 0
+    first_item = sorted_span_list[0]
+    current_min = first_item["start_timestamp"]
+    current_max = first_item["timestamp"]
+    for span in sorted_span_list[1:]:
+        # If the start is contained within the current, check if the max extends the current duration
+        if current_min <= span["start_timestamp"] <= current_max:
+            current_max = max(span["timestamp"], current_max)
+        # If not within current min&max then there's a gap between spans, so add to total_duration and start a new
+        # min/max
+        else:
+            total_duration += current_max - current_min
+            current_min = span["start_timestamp"]
+            current_max = span["timestamp"]
+    # Add the remaining duration
+    total_duration += current_max - current_min
+    return total_duration * 1000
+
+
 class PerformanceDetector(ABC):
     """
     Classes of this type have their visit functions called as the event is walked once and will store a performance issue if one is detected.
     """
+
+    type: DetectorType
 
     def __init__(self, settings: Dict[DetectorType, Any], event: Event):
         self.settings = settings[self.settings_key]
@@ -545,52 +461,6 @@ class PerformanceDetector(ABC):
         return True
 
 
-class DuplicateSpanDetector(PerformanceDetector):
-    """
-    Broadly check for duplicate spans.
-    """
-
-    __slots__ = ("cumulative_durations", "duplicate_spans_involved", "stored_problems")
-
-    settings_key = DetectorType.DUPLICATE_SPANS
-
-    def init(self):
-        self.cumulative_durations = {}
-        self.duplicate_spans_involved = {}
-        self.stored_problems = {}
-
-    def visit_span(self, span: Span):
-        settings_for_span = self.settings_for_span(span)
-        if not settings_for_span:
-            return
-        op, span_id, op_prefix, span_duration, settings = settings_for_span
-        duplicate_count_threshold = settings.get("count")
-        duplicate_duration_threshold = settings.get("cumulative_duration")
-
-        fingerprint = fingerprint_span(span)
-        if not fingerprint:
-            return
-
-        self.cumulative_durations[fingerprint] = (
-            self.cumulative_durations.get(fingerprint, timedelta(0)) + span_duration
-        )
-
-        if fingerprint not in self.duplicate_spans_involved:
-            self.duplicate_spans_involved[fingerprint] = []
-
-        self.duplicate_spans_involved[fingerprint] += [span_id]
-        duplicate_spans_counts = len(self.duplicate_spans_involved[fingerprint])
-
-        if not self.stored_problems.get(fingerprint, False):
-            if duplicate_spans_counts >= duplicate_count_threshold and self.cumulative_durations[
-                fingerprint
-            ] >= timedelta(milliseconds=duplicate_duration_threshold):
-                spans_involved = self.duplicate_spans_involved[fingerprint]
-                self.stored_problems[fingerprint] = PerformanceSpanProblem(
-                    span_id, op_prefix, spans_involved
-                )
-
-
 class SlowSpanDetector(PerformanceDetector):
     """
     Check for slow spans in a certain type of span.op (eg. slow db spans)
@@ -598,6 +468,7 @@ class SlowSpanDetector(PerformanceDetector):
 
     __slots__ = "stored_problems"
 
+    type: DetectorType = DetectorType.SLOW_SPAN
     settings_key = DetectorType.SLOW_SPAN
 
     def init(self):
@@ -615,126 +486,56 @@ class SlowSpanDetector(PerformanceDetector):
         if not fingerprint:
             return
 
-        description = span.get("description", None)
-        if not description:
+        if not SlowSpanDetector.is_span_eligible(span):
             return
 
+        description = span.get("description", None)
         description = description.strip()
-        if description.strip()[:6].upper() != "SELECT":
-            return
 
         if span_duration >= timedelta(
             milliseconds=duration_threshold
         ) and not self.stored_problems.get(fingerprint, False):
             spans_involved = [span_id]
-            self.stored_problems[fingerprint] = PerformanceSpanProblem(
-                span_id, op_prefix, spans_involved
+
+            hash = span.get("hash", "")
+            type = DETECTOR_TYPE_TO_GROUP_TYPE[self.settings_key]
+            transaction_name = self._event.get("transaction")
+
+            self.stored_problems[fingerprint] = PerformanceProblem(
+                type=type,
+                fingerprint=self._fingerprint(transaction_name, op, hash, type),
+                op=op,
+                desc=description,
+                cause_span_ids=[],
+                parent_span_ids=[],
+                offender_span_ids=spans_involved,
             )
 
+    @classmethod
+    def is_span_eligible(cls, span: Span) -> bool:
+        description = span.get("description", None)
+        if not description:
+            return False
 
-class SequentialSlowSpanDetector(PerformanceDetector):
-    """
-    Checks for unparallelized slower repeated spans, to suggest using futures etc. to reduce response time.
-    This makes some assumptions about span ordering etc. and also removes any spans that have any overlap with the same span op from consideration.
-    """
+        description = description.strip()
+        if description[:6].upper() != "SELECT":
+            return False
 
-    __slots__ = ("cumulative_durations", "stored_problems", "spans_involved", "last_span_seen")
+        if description.endswith("..."):
+            return False
 
-    settings_key = DetectorType.SEQUENTIAL_SLOW_SPANS
+        return True
 
-    def init(self):
-        self.cumulative_durations = {}
-        self.stored_problems = {}
-        self.spans_involved = {}
-        self.last_span_seen = {}
-
-    def visit_span(self, span: Span):
-        settings_for_span = self.settings_for_span(span)
-        if not settings_for_span:
-            return
-        op, span_id, op_prefix, span_duration, settings = settings_for_span
-        duration_threshold = settings.get("cumulative_duration")
-        count_threshold = settings.get("count")
-
-        fingerprint = fingerprint_span_op(span)
-        if not fingerprint:
-            return
-
-        span_end = timedelta(seconds=span.get("timestamp", 0))
-
-        if fingerprint not in self.spans_involved:
-            self.spans_involved[fingerprint] = []
-
-        self.spans_involved[fingerprint] += [span_id]
-
-        if fingerprint not in self.last_span_seen:
-            self.last_span_seen[fingerprint] = span_end
-            self.cumulative_durations[fingerprint] = span_duration
-            return
-
-        last_span_end = self.last_span_seen[fingerprint]
-        current_span_start = timedelta(seconds=span.get("start_timestamp", 0))
-
-        are_spans_overlapping = current_span_start <= last_span_end
-        if are_spans_overlapping:
-            del self.last_span_seen[fingerprint]
-            self.spans_involved[fingerprint] = []
-            self.cumulative_durations[fingerprint] = timedelta(0)
-            return
-
-        self.cumulative_durations[fingerprint] += span_duration
-        self.last_span_seen[fingerprint] = span_end
-
-        spans_counts = len(self.spans_involved[fingerprint])
-
-        if not self.stored_problems.get(fingerprint, False):
-            if spans_counts >= count_threshold and self.cumulative_durations[
-                fingerprint
-            ] >= timedelta(milliseconds=duration_threshold):
-                spans_involved = self.spans_involved[fingerprint]
-                self.stored_problems[fingerprint] = PerformanceSpanProblem(
-                    span_id, op_prefix, spans_involved
-                )
-
-
-class LongTaskSpanDetector(PerformanceDetector):
-    """
-    Checks for ui.long-task spans, where the cumulative duration of the spans exceeds our threshold
-    """
-
-    __slots__ = ("cumulative_duration", "spans_involved", "stored_problems")
-
-    settings_key = DetectorType.LONG_TASK_SPANS
-
-    def init(self):
-        self.cumulative_duration = timedelta(0)
-        self.spans_involved = []
-        self.stored_problems = {}
-
-    def visit_span(self, span: Span):
-        settings_for_span = self.settings_for_span(span)
-        if not settings_for_span:
-            return
-        op, span_id, op_prefix, span_duration, settings = settings_for_span
-        duration_threshold = settings.get("cumulative_duration")
-
-        fingerprint = fingerprint_span(span)
-        if not fingerprint:
-            return
-
-        span_duration = get_span_duration(span)
-        self.cumulative_duration += span_duration
-        self.spans_involved.append(span_id)
-
-        if self.cumulative_duration >= timedelta(milliseconds=duration_threshold):
-            self.stored_problems[fingerprint] = PerformanceSpanProblem(
-                span_id, op_prefix, self.spans_involved
-            )
+    def _fingerprint(self, transaction_name, span_op, hash, problem_class):
+        signature = (str(transaction_name) + str(span_op) + str(hash)).encode("utf-8")
+        full_fingerprint = hashlib.sha1(signature).hexdigest()
+        return f"1-{problem_class}-{full_fingerprint}"
 
 
 class RenderBlockingAssetSpanDetector(PerformanceDetector):
     __slots__ = ("stored_problems", "fcp", "transaction_start")
 
+    type: DetectorType = DetectorType.RENDER_BLOCKING_ASSET_SPAN
     settings_key = DetectorType.RENDER_BLOCKING_ASSET_SPAN
 
     def init(self):
@@ -763,15 +564,22 @@ class RenderBlockingAssetSpanDetector(PerformanceDetector):
             return
 
         op = span.get("op", None)
-        allowed_span_ops = self.settings.get("allowed_span_ops")
-        if op not in allowed_span_ops:
+        if op not in ["resource.link", "resource.script"]:
             return False
 
         if self._is_blocking_render(span):
             span_id = span.get("span_id", None)
             fingerprint = fingerprint_span(span)
             if span_id and fingerprint:
-                self.stored_problems[fingerprint] = PerformanceSpanProblem(span_id, op, [span_id])
+                self.stored_problems[fingerprint] = PerformanceProblem(
+                    fingerprint=fingerprint,
+                    op=op,
+                    desc=span.get("description") or "",
+                    type=GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN,
+                    offender_span_ids=[span_id],
+                    parent_span_ids=[],
+                    cause_span_ids=[],
+                )
 
         # If we visit a span that starts after FCP, then we know we've already
         # seen all possible render-blocking resource spans.
@@ -792,71 +600,6 @@ class RenderBlockingAssetSpanDetector(PerformanceDetector):
         return span_duration / self.fcp > fcp_ratio_threshold
 
 
-class NPlusOneSpanDetector(PerformanceDetector):
-    """
-    Checks for multiple concurrent API calls.
-    N.B.1. Non-greedy! Returns the first N concurrent spans of a series of
-      concurrent spans, rather than all spans in a concurrent series.
-    N.B.2. Assumes that spans are passed in ascending order of `start_timestamp`
-    N.B.3. Only returns _the first_ set of concurrent calls of all possible.
-    """
-
-    __slots__ = ("spans_involved", "stored_problems")
-
-    settings_key = DetectorType.N_PLUS_ONE_SPANS
-
-    def init(self):
-        self.spans_involved = {}
-        self.most_recent_start_time = {}
-        self.most_recent_hash = {}
-        self.stored_problems = {}
-
-    def visit_span(self, span: Span):
-        settings_for_span = self.settings_for_span(span)
-        if not settings_for_span:
-            return
-
-        op, span_id, op_prefix, span_duration, settings = settings_for_span
-
-        start_time_threshold = timedelta(milliseconds=settings.get("start_time_threshold", 0))
-        count = settings.get("count", 10)
-
-        fingerprint = fingerprint_span_op(span)
-        if not fingerprint:
-            return
-
-        hash = span.get("hash", None)
-        if not hash:
-            return
-
-        if fingerprint not in self.spans_involved:
-            self.spans_involved[fingerprint] = []
-            self.most_recent_start_time[fingerprint] = 0
-            self.most_recent_hash[fingerprint] = ""
-
-        delta_to_previous_span_start_time = timedelta(
-            seconds=(span["start_timestamp"] - self.most_recent_start_time[fingerprint])
-        )
-
-        is_concurrent_with_previous_span = delta_to_previous_span_start_time < start_time_threshold
-        has_same_hash_as_previous_span = span["hash"] == self.most_recent_hash[fingerprint]
-
-        self.most_recent_start_time[fingerprint] = span["start_timestamp"]
-        self.most_recent_hash[fingerprint] = hash
-
-        if is_concurrent_with_previous_span and has_same_hash_as_previous_span:
-            self.spans_involved[fingerprint].append(span)
-        else:
-            self.spans_involved[fingerprint] = [span_id]
-            return
-
-        if not self.stored_problems.get(fingerprint, False):
-            if len(self.spans_involved[fingerprint]) >= count:
-                self.stored_problems[fingerprint] = PerformanceSpanProblem(
-                    span_id, op_prefix, self.spans_involved[fingerprint]
-                )
-
-
 class NPlusOneAPICallsDetector(PerformanceDetector):
     """
     Detect parallel network calls to the same endpoint.
@@ -870,7 +613,10 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
     """
 
     __slots__ = ["stored_problems"]
+    type: DetectorType = DetectorType.N_PLUS_ONE_API_CALLS
     settings_key: DetectorType = DetectorType.N_PLUS_ONE_API_CALLS
+
+    HOST_DENYLIST = []
 
     def init(self):
         # TODO: Only store the span IDs and timestamps instead of entire span objects
@@ -927,16 +673,40 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         if description.strip()[:3].upper() != "GET":
             return False
 
-        # Ignore anything that looks like an asset
+        # GraphQL URLs have complicated queries in them. Until we parse those
+        # queries to check for what's duplicated, we can't tell what is being
+        # duplicated. Ignore them for now
+        if "graphql" in description:
+            return False
+
+        # Next.js infixes its data URLs with a build ID. (e.g.,
+        # /_next/data/<uuid>/some-endpoint) This causes a fingerprinting
+        # explosion, since every deploy would change this ID and create new
+        # fingerprints. Since we're not parameterizing URLs yet, we need to
+        # exclude them
+        if "_next/data" in description:
+            return False
+
+        # Ignore anything that looks like an asset. Some frameworks (and apps)
+        # fetch assets via XHR, which is not our concern
         data = span.get("data") or {}
         url = data.get("url") or ""
+        if not url:
+            # If data is missing, fall back to description
+            parts = description.split(" ", 1)
+            if len(parts) == 2:
+                url = parts[1]
+
         if type(url) is dict:
             url = url.get("pathname") or ""
 
         parsed_url = urlparse(str(url))
 
+        if parsed_url.netloc in cls.HOST_DENYLIST:
+            return False
+
         _pathname, extension = os.path.splitext(parsed_url.path)
-        if extension and extension in [".js", ".css"]:
+        if extension and extension in [".js", ".css", ".svg", ".png", ".mp3"]:
             return False
 
         return True
@@ -1002,6 +772,7 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
 
     __slots__ = "stored_problems"
 
+    type: DetectorType = DetectorType.CONSECUTIVE_DB_OP
     settings_key = DetectorType.CONSECUTIVE_DB_OP
 
     def init(self):
@@ -1024,6 +795,9 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
 
     def _validate_and_store_performance_problem(self):
         independent_db_spans = self._find_independent_spans(self.consecutive_db_spans)
+        if not len(independent_db_spans):
+            return
+
         exceeds_count_threshold = len(self.consecutive_db_spans) >= self.settings.get(
             "consecutive_count_threshold"
         )
@@ -1032,18 +806,15 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
             > self.settings.get("span_duration_threshold")
             for span in independent_db_spans
         )
-        exceeds_total_duration_threshold = exceeds_duration_threshold = self._sum_span_duration(
-            self.consecutive_db_spans
-        ) > self.settings.get("total_duration_threshold")
-        exceeds_duration_threshold = self._sum_span_duration(
+
+        exceeds_time_saved_threshold = self._calculate_time_saved(
             independent_db_spans
-        ) > self.settings.get("duration_threshold")
+        ) > self.settings.get("min_time_saved")
 
         if (
             exceeds_count_threshold
             and exceeds_span_duration_threshold
-            and exceeds_total_duration_threshold
-            and exceeds_duration_threshold
+            and exceeds_time_saved_threshold
         ):
             self._store_performance_problem()
 
@@ -1076,10 +847,34 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
         for span in spans[1:]:
             query: str = span.get("description", None)
             if (
-                query and contains_complete_query(span) and "WHERE" not in query.upper()
-            ):  # TODO - use better regex
+                query
+                and contains_complete_query(span)
+                and "WHERE" not in query.upper()
+                and not CONTAINS_PARAMETER_REGEX.search(query)
+            ):
                 independent_spans.append(span)
         return independent_spans
+
+    def _calculate_time_saved(self, independent_spans: list[Span]) -> float:
+        """
+        Calculates the cost saved by running spans in parallel,
+        this is the maximum time saved of running all independent queries in parallel
+        note, maximum means it does not account for db connection times and overhead associated with parallelization,
+        this is where thresholds come in
+        """
+        consecutive_spans = self.consecutive_db_spans
+        total_duration = self._sum_span_duration(consecutive_spans)
+
+        max_independent_span_duration = max(
+            [get_span_duration(span).total_seconds() * 1000 for span in independent_spans]
+        )
+
+        sum_of_dependent_span_durations = 0
+        for span in consecutive_spans:
+            if span not in independent_spans:
+                sum_of_dependent_span_durations += get_span_duration(span).total_seconds() * 1000
+
+        return total_duration - max(max_independent_span_duration, sum_of_dependent_span_durations)
 
     def _overlaps_last_span(self, span: Span) -> bool:
         if len(self.consecutive_db_spans) == 0:
@@ -1102,11 +897,9 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
         return is_db_op and is_query
 
     def _fingerprint(self) -> str:
-        """
-        TODO - improve fingerprinting
-        """
+        hashed_spans = fingerprint_spans(self.consecutive_db_spans)
         problem_class = GroupType.PERFORMANCE_CONSECUTIVE_DB_OP
-        return f"1-{problem_class}"
+        return f"1-{problem_class}-{hashed_spans}"
 
     def on_complete(self) -> None:
         self._validate_and_store_performance_problem()
@@ -1146,6 +939,7 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
         "n_spans",
     )
 
+    type: DetectorType = DetectorType.N_PLUS_ONE_DB_QUERIES
     settings_key = DetectorType.N_PLUS_ONE_DB_QUERIES
 
     def init(self):
@@ -1334,6 +1128,8 @@ class NPlusOneDBSpanDetectorExtended(NPlusOneDBSpanDetector):
     - Extend N+1 DB Detector to make it compatible with more frameworks.
     """
 
+    type: DetectorType = DetectorType.N_PLUS_ONE_DB_QUERIES_EXTENDED
+
     __slots__ = (
         "stored_problems",
         "potential_parents",
@@ -1350,6 +1146,7 @@ class FileIOMainThreadDetector(PerformanceDetector):
 
     __slots__ = ("spans_involved", "stored_problems")
 
+    type: DetectorType = DetectorType.FILE_IO_MAIN_THREAD
     settings_key = DetectorType.FILE_IO_MAIN_THREAD
 
     def init(self):
@@ -1357,33 +1154,91 @@ class FileIOMainThreadDetector(PerformanceDetector):
         self.most_recent_start_time = {}
         self.most_recent_hash = {}
         self.stored_problems = {}
+        self.mapper = None
+        self.parent_to_blocked_span = defaultdict(list)
+        self._prepare_deobfuscation()
+
+    def _prepare_deobfuscation(self):
+        event = self._event
+        if "debug_meta" in event:
+            images = event["debug_meta"].get("images", [])
+            project_id = event.get("project")
+            if not isinstance(images, list):
+                return
+            if project_id is not None:
+                project = Project.objects.get_from_cache(id=project_id)
+            else:
+                return
+
+            for image in images:
+                if image.get("type") == "proguard":
+                    uuid = image.get("uuid")
+                    dif_paths = ProjectDebugFile.difcache.fetch_difs(
+                        project, [uuid], features=["mapping"]
+                    )
+                    debug_file_path = dif_paths.get(uuid)
+                    if debug_file_path is None:
+                        return
+
+                    mapper = ProguardMapper.open(debug_file_path)
+                    if not mapper.has_line_info:
+                        return
+                    self.mapper = mapper
+                    return
+
+    def _deobfuscate_module(self, module: str) -> str:
+        if self.mapper is not None:
+            return self.mapper.remap_class(module)
+        else:
+            return module
+
+    def _deobfuscate_function(self, frame):
+        if self.mapper is not None and "module" in frame and "function" in frame:
+            functions = self.mapper.remap_frame(
+                frame["module"], frame["function"], frame.get("lineno") or 0
+            )
+            return ".".join([func.method for func in functions])
+        else:
+            return frame.get("function", "")
 
     def visit_span(self, span: Span):
         if self._is_file_io_on_main_thread(span):
-            settings_for_span = self.settings_for_span(span)
+            parent_span_id = span.get("parent_span_id")
+            self.parent_to_blocked_span[parent_span_id].append(span)
+
+    def on_complete(self):
+        for parent_span_id, span_list in self.parent_to_blocked_span.items():
+            span_list = [
+                span for span in span_list if "start_timestamp" in span and "timestamp" in span
+            ]
+            total_duration = total_span_time(span_list)
+            settings_for_span = self.settings_for_span(span_list[0])
             if not settings_for_span:
                 return
 
-            op, span_id, op_prefix, span_duration, settings = settings_for_span
-            if span_duration.total_seconds() * 1000 > settings["duration_threshold"]:
-                fingerprint = self._fingerprint(span)
+            _, _, _, _, settings = settings_for_span
+            if total_duration >= settings["duration_threshold"]:
+                fingerprint = self._fingerprint(span_list)
                 self.stored_problems[fingerprint] = PerformanceProblem(
                     fingerprint=fingerprint,
-                    op=span.get("op"),
-                    desc=span.get("description", ""),
-                    parent_span_ids=[span.get("parent_span_id")],
+                    op=span_list[0].get("op"),
+                    desc=span_list[0].get("description", ""),
+                    parent_span_ids=[parent_span_id],
                     type=GroupType.PERFORMANCE_FILE_IO_MAIN_THREAD,
                     cause_span_ids=[],
-                    offender_span_ids=[span.get("span_id", None)],
+                    offender_span_ids=[span["span_id"] for span in span_list if "span_id" in span],
                 )
 
-    def _fingerprint(self, span) -> str:
-        call_stack = ".".join(
-            [
-                f"{item.get('module', '')}.{item.get('function', '')}"
-                for item in span.get("data", {}).get("call_stack", [])
-            ]
-        ).encode("utf8")
+    def _fingerprint(self, span_list) -> str:
+        call_stack_strings = []
+        overall_stack = []
+        for span in span_list:
+            for item in span.get("data", {}).get("call_stack", []):
+                module = self._deobfuscate_module(item.get("module", ""))
+                function = self._deobfuscate_function(item)
+                call_stack_strings.append(f"{module}.{function}")
+            overall_stack.append(".".join(call_stack_strings))
+        call_stack = "-".join(overall_stack).encode("utf8")
         hashed_stack = hashlib.sha1(call_stack).hexdigest()
         return f"1-{GroupType.PERFORMANCE_FILE_IO_MAIN_THREAD}-{hashed_stack}"
 
@@ -1392,14 +1247,209 @@ class FileIOMainThreadDetector(PerformanceDetector):
         if data is None:
             return False
         # doing is True since the value can be any type
-        return data.get("blocked_ui_thread", False) is True
+        return data.get("blocked_main_thread", False) is True
+
+
+class MNPlusOneState(ABC):
+    """Abstract base class for the MNPlusOneDBSpanDetector state machine."""
+
+    @abstractmethod
+    def next(self, span: Span) -> Tuple[MNPlusOneState, Optional[PerformanceProblem]]:
+        raise NotImplementedError
+
+    def finish(self) -> Optional[PerformanceProblem]:
+        return None
+
+    def _equivalent(self, a: Span, b: Span) -> bool:
+        """db spans are equivalent if their ops and hashes match. Other spans are
+        equivalent if their ops match."""
+        first_op = a.get("op") or None
+        second_op = b.get("op") or None
+        if not first_op or not second_op or first_op != second_op:
+            return False
+
+        if first_op.startswith("db"):
+            return a.get("hash") == b.get("hash")
+
+        return True
+
+
+class SearchingForMNPlusOne(MNPlusOneState):
+    """
+    The initial state for the MN+1 DB Query detector, and the state we return to
+    whenever there is no active repeating pattern being checked.
+
+    Keeps a list of recently seen spans until a repeat is found, at which point
+    it transitions to the ContinuingMNPlusOne state.
+    """
+
+    __slots__ = ("settings", "recent_spans")
+
+    def __init__(
+        self, settings: Dict[str, Any], initial_spans: Optional[Sequence[Span]] = None
+    ) -> None:
+        self.settings = settings
+        self.recent_spans = deque(initial_spans or [], self.settings["max_sequence_length"])
+
+    def next(self, span: Span) -> Tuple[MNPlusOneState, Optional[PerformanceProblem]]:
+        # Can't be a potential MN+1 without at least 2 previous spans.
+        if len(self.recent_spans) <= 1:
+            self.recent_spans.append(span)
+            return (self, None)
+
+        # Has an MN pattern begun to repeat itself? If so, transition to the
+        # ContinuingMNPlusOne state.
+        # Convert the recent_spans deque into a list for slicing. Skip the last
+        # item in the list because that would find an N+1 instead.
+        recent_span_list = list(self.recent_spans)
+        for i, recent_span in enumerate(recent_span_list[:-1]):
+            if self._equivalent(span, recent_span):
+                pattern = recent_span_list[i:]
+                if self._is_valid_pattern(pattern):
+                    return (ContinuingMNPlusOne(self.settings, pattern, span), None)
+
+        # We haven't found a pattern yet, so remember this span and keep
+        # looking.
+        self.recent_spans.append(span)
+        return (self, None)
+
+    def _is_valid_pattern(self, pattern: Sequence[Span]) -> bool:
+        """A valid pattern contains at least one db operation and is not all equivalent."""
+        found_db_op = False
+        found_different_span = False
+
+        for span in pattern:
+            op = span.get("op") or ""
+            description = span.get("description") or ""
+            found_db_op = found_db_op or (
+                op.startswith("db") and description and not description.endswith("...")
+            )
+            found_different_span = found_different_span or not self._equivalent(pattern[0], span)
+            if found_db_op and found_different_span:
+                return True
+
+        return False
+
+
+class ContinuingMNPlusOne(MNPlusOneState):
+    """
+    The state for when we think we might have found a pattern: a sequence of
+    spans that has begun to repeat.
+
+    When the sequence is broken (either by a mismatched span or span iteration
+    finishing), returns to the SearchingMNPlusOne state, possibly returning a
+    PerformanceProblem if the detected sequence met our thresholds.
+    """
+
+    __slots__ = ("settings", "pattern", "spans", "pattern_index")
+
+    def __init__(self, settings: Dict[str, Any], pattern: Sequence[Span], first_span: Span) -> None:
+        self.settings = settings
+        self.pattern = pattern
+
+        # The full list of spans involved in the MN pattern.
+        self.spans = pattern.copy()
+        self.spans.append(first_span)
+        self.pattern_index = 1
+
+    def next(self, span: Span) -> MNPlusOneState:
+        # If the MN pattern is continuing, carry on in this state.
+        pattern_span = self.pattern[self.pattern_index]
+        if self._equivalent(pattern_span, span):
+            self.spans.append(span)
+            self.pattern_index += 1
+            if self.pattern_index >= len(self.pattern):
+                self.pattern_index = 0
+            return (self, None)
+
+        # We've broken the MN pattern, so return to the Searching state. If it
+        # is a significant problem, also return a PerformanceProblem.
+        times_occurred = int(len(self.spans) / len(self.pattern))
+        start_index = len(self.pattern) * times_occurred
+        remaining_spans = self.spans[start_index:] + [span]
+        return (
+            SearchingForMNPlusOne(self.settings, remaining_spans),
+            self._maybe_performance_problem(),
+        )
+
+    def finish(self) -> Optional[PerformanceProblem]:
+        return self._maybe_performance_problem()
+
+    def _maybe_performance_problem(self) -> Optional[PerformanceProblem]:
+        times_occurred = int(len(self.spans) / len(self.pattern))
+        minimum_occurrences_of_pattern = self.settings["minimum_occurrences_of_pattern"]
+        if times_occurred < minimum_occurrences_of_pattern:
+            return None
+
+        offender_span_count = len(self.pattern) * times_occurred
+        offender_spans = self.spans[:offender_span_count]
+
+        total_duration_threshold = self.settings["total_duration_threshold"]
+        total_duration = sum(map(get_span_duration, offender_spans), timedelta(0))
+        if total_duration < timedelta(milliseconds=total_duration_threshold):
+            return None
+
+        db_span = self._first_db_span()
+        return PerformanceProblem(
+            fingerprint=self._fingerprint(db_span["hash"]),
+            op="db",
+            desc=db_span["description"],
+            type=GroupType.PERFORMANCE_M_N_PLUS_ONE_DB_QUERIES,
+            parent_span_ids=[],
+            cause_span_ids=[],
+            offender_span_ids=[span["span_id"] for span in offender_spans],
+        )
+
+    def _first_db_span(self) -> Optional[Span]:
+        for span in self.spans:
+            if span["op"].startswith("db"):
+                return span
+        return None
+
+    def _fingerprint(self, db_hash) -> str:
+        # TODO: Add more information to the hash. Since issues aren't being
+        # detected yet, this doesn't matter.
+        problem_class = GroupType.PERFORMANCE_M_N_PLUS_ONE_DB_QUERIES
+        full_fingerprint = hashlib.sha1(db_hash.encode("utf8")).hexdigest()
+        return f"1-{problem_class}-{full_fingerprint}"
+
+
+class MNPlusOneDBSpanDetector(PerformanceDetector):
+    """
+    Detects N+1 DB query issues where the repeated query is interspersed with
+    other spans (which may or may not be other queries) that all repeat together
+    (hence, MN+1).
+
+    Currently does not consider parent or source spans, and only looks for a
+    repeating pattern of spans (A B C A B C etc).
+
+    Uses a small state machine internally.
+    """
+
+    __slots__ = ("stored_problems", "state")
+
+    type: DetectorType = DetectorType.M_N_PLUS_ONE_DB
+    settings_key = DetectorType.M_N_PLUS_ONE_DB
+
+    def init(self):
+        self.stored_problems = {}
+        self.state = SearchingForMNPlusOne(self.settings)
+
+    def visit_span(self, span):
+        self.state, performance_problem = self.state.next(span)
+        if performance_problem:
+            self.stored_problems[performance_problem.fingerprint] = performance_problem
+
+    def on_complete(self) -> None:
+        if performance_problem := self.state.finish():
+            self.stored_problems[performance_problem.fingerprint] = performance_problem
 
 
 # Reports metrics and creates spans for detection
 def report_metrics_for_detectors(
-    event: Event, event_id: Optional[str], detectors: Dict[str, PerformanceDetector], sdk_span: Any
+    event: Event, event_id: Optional[str], detectors: Sequence[PerformanceDetector], sdk_span: Any
 ):
-    all_detected_problems = [i for _, d in detectors.items() for i in d.stored_problems]
+    all_detected_problems = [i for d in detectors for i in d.stored_problems]
     has_detected_problems = bool(all_detected_problems)
     sdk_name = get_sdk_name(event)
 
@@ -1428,8 +1478,8 @@ def report_metrics_for_detectors(
             integration_name in event_integrations
         )
 
-    for detector_enum, detector in detectors.items():
-        detector_key = detector_enum.value
+    for detector in detectors:
+        detector_key = detector.type.value
         detected_problems = detector.stored_problems
         detected_problem_keys = list(detected_problems.keys())
         detected_tags[detector_key] = bool(len(detected_problem_keys))
@@ -1441,16 +1491,13 @@ def report_metrics_for_detectors(
         if first_problem.fingerprint:
             set_tag(f"_pi_{detector_key}_fp", first_problem.fingerprint)
 
-        span_id = (
-            first_problem.span_id
-            if isinstance(first_problem, PerformanceSpanProblem)
-            else first_problem.offender_span_ids[0]
-        )
+        span_id = first_problem.offender_span_ids[0]
+
         set_tag(f"_pi_{detector_key}", span_id)
 
         op_tags = {}
         for problem in detected_problems.values():
-            op = problem.allowed_op if isinstance(problem, PerformanceSpanProblem) else problem.op
+            op = problem.op
             op_tags[f"op_{op}"] = True
         metrics.incr(
             f"performance.performance_issue.{detector_key}",

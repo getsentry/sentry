@@ -10,16 +10,16 @@ import theme from 'sentry/utils/theme';
 import useApi from 'sentry/utils/useApi';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 
 import NoGroupsHandler from './noGroupsHandler';
-import {IssueSortOptions} from './utils';
+import {IssueSortOptions, SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY} from './utils';
 
 type GroupListBodyProps = {
   displayReprocessingLayout: boolean;
   error: string | null;
   groupIds: string[];
   groupStatsPeriod: string;
-  isSavedSearchesOpen: boolean;
   loading: boolean;
   memberList: IndexedMembersByProject;
   query: string;
@@ -32,7 +32,6 @@ type GroupListProps = {
   displayReprocessingLayout: boolean;
   groupIds: string[];
   groupStatsPeriod: string;
-  isSavedSearchesOpen: boolean;
   memberList: IndexedMembersByProject;
   query: string;
   sort: string;
@@ -49,7 +48,6 @@ function GroupListBody({
   error,
   refetchGroups,
   selectedProjectIds,
-  isSavedSearchesOpen,
 }: GroupListBodyProps) {
   const api = useApi();
   const organization = useOrganization();
@@ -83,7 +81,6 @@ function GroupListBody({
         sort={sort}
         displayReprocessingLayout={displayReprocessingLayout}
         groupStatsPeriod={groupStatsPeriod}
-        isSavedSearchesOpen={isSavedSearchesOpen}
       />
     </IssuesReplayCountProvider>
   );
@@ -96,8 +93,11 @@ function GroupList({
   sort,
   displayReprocessingLayout,
   groupStatsPeriod,
-  isSavedSearchesOpen,
 }: GroupListProps) {
+  const [isSavedSearchesOpen] = useSyncedLocalStorageState(
+    SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY,
+    false
+  );
   const topIssue = groupIds[0];
   const showInboxTime = sort === IssueSortOptions.INBOX;
   const canSelect = !useMedia(

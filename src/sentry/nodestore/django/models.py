@@ -1,9 +1,10 @@
 from django.db import models
 from django.utils import timezone
 
-from sentry.db.models import BaseModel, sane_repr
+from sentry.db.models import BaseModel, region_silo_only_model, sane_repr
 
 
+@region_silo_only_model
 class Node(BaseModel):
     __include_in_export__ = False
 

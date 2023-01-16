@@ -55,6 +55,7 @@ type PropType = {
   rootSpan: RawSpanType;
   spans: EnhancedProcessedSpanType[];
   trace: ParsedTraceType;
+  traceViewHeaderRef: React.RefObject<HTMLDivElement>;
   virtualScrollBarContainerRef: React.RefObject<HTMLDivElement>;
 };
 
@@ -412,7 +413,7 @@ class TraceViewHeader extends Component<PropType, State> {
 
   render() {
     return (
-      <HeaderContainer>
+      <HeaderContainer ref={this.props.traceViewHeaderRef}>
         <DividerHandlerManager.Consumer>
           {dividerHandlerChildrenProps => {
             const {dividerPosition} = dividerHandlerChildrenProps;

@@ -1,12 +1,13 @@
+from functools import cached_property
+
 from django.urls import reverse
-from exam import fixture
 
 from sentry.models import LostPasswordHash
 from sentry.testutils import TestCase
 
 
 class TestAccounts(TestCase):
-    @fixture
+    @cached_property
     def path(self):
         return reverse("sentry-account-recover")
 

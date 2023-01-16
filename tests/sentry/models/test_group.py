@@ -1,3 +1,4 @@
+import uuid
 from datetime import timedelta
 
 import pytest
@@ -5,6 +6,7 @@ from django.core.cache import cache
 from django.db.models import ProtectedError
 from django.utils import timezone
 
+from sentry.issues.occurrence_consumer import process_event_and_issue_occurrence
 from sentry.models import (
     Group,
     GroupRedirect,
@@ -18,6 +20,8 @@ from sentry.models.release import _get_cache_key
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
+from sentry.types.issues import GroupType
+from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 
 @region_silo_test(stable=True)
@@ -25,8 +29,6 @@ class GroupTest(TestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
         self.min_ago = iso_format(before_now(minutes=1))
-        self.two_min_ago = iso_format(before_now(minutes=2))
-        self.just_over_one_min_ago = iso_format(before_now(seconds=61))
 
     def test_is_resolved(self):
         group = self.create_group(status=GroupStatus.RESOLVED)
@@ -47,42 +49,6 @@ class GroupTest(TestCase, SnubaTestCase):
         group.project.update_option("sentry:resolve_age", 1)
 
         assert group.is_resolved()
-
-    def test_get_latest_event_no_events(self):
-        project = self.create_project()
-        group = self.create_group(project=project)
-        assert group.get_latest_event() is None
-
-    def test_get_latest_event(self):
-        self.store_event(
-            data={"event_id": "a" * 32, "fingerprint": ["group-1"], "timestamp": self.two_min_ago},
-            project_id=self.project.id,
-        )
-        self.store_event(
-            data={"event_id": "b" * 32, "fingerprint": ["group-1"], "timestamp": self.min_ago},
-            project_id=self.project.id,
-        )
-
-        group = Group.objects.first()
-
-        assert group.get_latest_event().event_id == "b" * 32
-
-    def test_get_latest_almost_identical_timestamps(self):
-        self.store_event(
-            data={
-                "event_id": "a" * 32,
-                "fingerprint": ["group-1"],
-                "timestamp": self.just_over_one_min_ago,
-            },
-            project_id=self.project.id,
-        )
-        self.store_event(
-            data={"event_id": "b" * 32, "fingerprint": ["group-1"], "timestamp": self.min_ago},
-            project_id=self.project.id,
-        )
-        group = Group.objects.first()
-
-        assert group.get_latest_event().event_id == "b" * 32
 
     def test_is_ignored_with_expired_snooze(self):
         group = self.create_group(status=GroupStatus.IGNORED)
@@ -330,3 +296,73 @@ class GroupIsOverResolveAgeTest(TestCase):
         assert group.is_over_resolve_age() is True
         group.last_seen = timezone.now()
         assert group.is_over_resolve_age() is False
+
+
+class GroupGetLatestEventTest(TestCase, OccurrenceTestMixin):
+    def setUp(self):
+        super().setUp()
+        self.min_ago = iso_format(before_now(minutes=1))
+        self.two_min_ago = iso_format(before_now(minutes=2))
+        self.just_over_one_min_ago = iso_format(before_now(seconds=61))
+
+    def test_get_latest_event_no_events(self):
+        project = self.create_project()
+        group = self.create_group(project=project)
+        assert group.get_latest_event() is None
+
+    def test_get_latest_event(self):
+        self.store_event(
+            data={"event_id": "a" * 32, "fingerprint": ["group-1"], "timestamp": self.two_min_ago},
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={"event_id": "b" * 32, "fingerprint": ["group-1"], "timestamp": self.min_ago},
+            project_id=self.project.id,
+        )
+
+        group = Group.objects.first()
+
+        group_event = group.get_latest_event()
+
+        assert group_event.event_id == "b" * 32
+        assert group_event.occurrence is None
+
+    def test_get_latest_almost_identical_timestamps(self):
+        self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "fingerprint": ["group-1"],
+                "timestamp": self.just_over_one_min_ago,
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={"event_id": "b" * 32, "fingerprint": ["group-1"], "timestamp": self.min_ago},
+            project_id=self.project.id,
+        )
+        group = Group.objects.first()
+
+        group_event = group.get_latest_event()
+
+        assert group_event.event_id == "b" * 32
+        assert group_event.occurrence is None
+
+    def test_get_latest_event_occurrence(self):
+        occurrence_data = self.build_occurrence_data()
+        event_id = uuid.uuid4().hex
+        occurrence = process_event_and_issue_occurrence(
+            occurrence_data,
+            {
+                "event_id": event_id,
+                "fingerprint": ["group-1"],
+                "project_id": self.project.id,
+                "timestamp": before_now(minutes=1).isoformat(),
+            },
+        )[0]
+
+        group = Group.objects.first()
+        group.update(type=GroupType.PROFILE_BLOCKED_THREAD.value)
+
+        group_event = group.get_latest_event()
+        assert group_event.event_id == event_id
+        self.assert_occurrences_identical(group_event.occurrence, occurrence)

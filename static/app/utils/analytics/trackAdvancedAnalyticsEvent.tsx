@@ -16,7 +16,6 @@ import {
 import {profilingEventMap, ProfilingEventParameters} from './profilingAnalyticsEvents';
 import {releasesEventMap, ReleasesEventParameters} from './releasesAnalyticsEvents';
 import {replayEventMap, ReplayEventParameters} from './replayAnalyticsEvents';
-import {samplingEventMap, SamplingEventParameters} from './samplingAnalyticsEvents';
 import {searchEventMap, SearchEventParameters} from './searchAnalyticsEvents';
 import {settingsEventMap, SettingsEventParameters} from './settingsAnalyticsEvents';
 import {TeamInsightsEventParameters, workflowEventMap} from './workflowAnalyticsEvents';
@@ -31,7 +30,6 @@ type EventParameters = GrowthEventParameters &
   ProfilingEventParameters &
   ReleasesEventParameters &
   ReplayEventParameters &
-  SamplingEventParameters &
   SearchEventParameters &
   SettingsEventParameters &
   TeamInsightsEventParameters &
@@ -48,7 +46,6 @@ const allEventMap: Record<string, string | null> = {
   ...profilingEventMap,
   ...releasesEventMap,
   ...replayEventMap,
-  ...samplingEventMap,
   ...searchEventMap,
   ...settingsEventMap,
   ...workflowEventMap,

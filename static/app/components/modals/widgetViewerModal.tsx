@@ -371,8 +371,7 @@ function WidgetViewerModal(props: Props) {
   let columnOrder = decodeColumnOrder(
     fields.map(field => ({
       field,
-    })),
-    organization.features.includes('discover-frontend-use-events-endpoint')
+    }))
   );
   const columnSortBy = eventView.getSorts();
   columnOrder = columnOrder.map((column, index) => ({
@@ -973,7 +972,6 @@ function WidgetViewerModal(props: Props) {
                       <ButtonBar gap={1}>
                         {onEdit && widget.id && (
                           <Button
-                            type="button"
                             onClick={() => {
                               closeModal();
                               onEdit();
@@ -1054,7 +1052,6 @@ function OpenButton({
     <Button
       to={path}
       priority="primary"
-      type="button"
       onClick={() => {
         trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.open_source', {
           organization,

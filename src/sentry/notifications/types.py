@@ -262,6 +262,19 @@ ACTION_CHOICES = [
 ]
 
 
+class FallthroughChoiceType(Enum):
+    ALL_MEMBERS = "AllMembers"
+    ACTIVE_MEMBERS = "ActiveMembers"
+    NO_ONE = "NoOne"
+
+
+FALLTHROUGH_CHOICES = [
+    (FallthroughChoiceType.ALL_MEMBERS.value, "All Project Members"),
+    (FallthroughChoiceType.ACTIVE_MEMBERS.value, "Recently Active Members"),
+    (FallthroughChoiceType.NO_ONE.value, "No One"),
+]
+
+
 class AssigneeTargetType(Enum):
     UNASSIGNED = "Unassigned"
     TEAM = "Team"

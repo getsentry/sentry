@@ -1,14 +1,14 @@
+from functools import cached_property
 from unittest.mock import patch
 
 import responses
-from exam import fixture
 
 from sentry.models import Activity, ExternalIssue, Group, GroupLink, Integration
 from sentry.testutils import APITestCase
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class GroupNotesDetailsTest(APITestCase):
     def setUp(self):
         super().setUp()
@@ -30,7 +30,7 @@ class GroupNotesDetailsTest(APITestCase):
             linked_id=self.external_issue.id,
         )
 
-    @fixture
+    @cached_property
     def url(self):
         return f"/api/0/issues/{self.group.id}/comments/{self.activity.id}/"
 

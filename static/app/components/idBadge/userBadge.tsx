@@ -4,14 +4,14 @@ import UserAvatar from 'sentry/components/avatar/userAvatar';
 import space from 'sentry/styles/space';
 import {AvatarUser} from 'sentry/types';
 
-type Props = {
+export interface UserBadgeProps {
   avatarSize?: React.ComponentProps<typeof UserAvatar>['size'];
   className?: string;
   displayEmail?: React.ReactNode | string;
   displayName?: React.ReactNode;
   hideEmail?: boolean;
   user?: AvatarUser;
-};
+}
 
 const UserBadge = ({
   avatarSize = 24,
@@ -20,7 +20,7 @@ const UserBadge = ({
   displayEmail,
   user,
   className,
-}: Props) => {
+}: UserBadgeProps) => {
   const title =
     displayName ||
     (user &&

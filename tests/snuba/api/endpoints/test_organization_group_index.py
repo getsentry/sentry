@@ -463,7 +463,6 @@ class GroupListTest(APITestCase, SnubaTestCase):
         with self.feature(
             [
                 "organizations:issue-search-allow-postgres-only-search",
-                "organizations:performance-issues",
             ]
         ):
             response = self.get_success_response(query="issue.category:performance")
@@ -3428,8 +3427,7 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
         self.login_as(user=self.user)
 
         # if query is '' it defaults to is:unresolved
-        with self.feature("organizations:performance-issues"):
-            response = self.get_response(qs_params={"query": ""})
+        response = self.get_response(qs_params={"query": ""})
         assert response.status_code == 400
 
         for group in groups:

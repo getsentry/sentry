@@ -1,3 +1,4 @@
+import {Theme} from '@emotion/react';
 import {Location} from 'history';
 import pick from 'lodash/pick';
 import moment from 'moment';
@@ -17,7 +18,6 @@ import {
 } from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {decodeList} from 'sentry/utils/queryString';
-import {Theme} from 'sentry/utils/theme';
 
 import {getReleaseBounds, getReleaseParams, isMobileRelease} from '../utils';
 import {commonTermsDescription, SessionTerm} from '../utils/sessionTerm';

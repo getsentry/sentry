@@ -53,13 +53,12 @@ const WrappedComponent = ({data, withStaticFilters = false, ...rest}) => {
 };
 
 const issuesPredicate = (url, options) =>
-  url.includes('eventsv2') && options.query?.query.includes('error');
+  url.includes('events') && options.query?.query.includes('error');
 
 describe('Performance > Widgets > WidgetContainer', function () {
   let wrapper;
 
   let eventStatsMock;
-  let eventsV2Mock;
   let eventsTrendsStats;
   let eventsMock;
 
@@ -71,15 +70,18 @@ describe('Performance > Widgets > WidgetContainer', function () {
       url: `/organizations/org-slug/events-stats/`,
       body: [],
     });
-    eventsV2Mock = MockApiClient.addMockResponse({
+    eventsMock = MockApiClient.addMockResponse({
       method: 'GET',
-      url: `/organizations/org-slug/eventsv2/`,
-      body: [],
+      url: `/organizations/org-slug/events/`,
+      body: {
+        data: [{}],
+        meta: {},
+      },
       match: [(...args) => !issuesPredicate(...args)],
     });
     issuesListMock = MockApiClient.addMockResponse({
       method: 'GET',
-      url: `/organizations/org-slug/eventsv2/`,
+      url: `/organizations/org-slug/events/`,
       body: {
         data: [
           {
@@ -99,15 +101,6 @@ describe('Performance > Widgets > WidgetContainer', function () {
       method: 'GET',
       url: '/organizations/org-slug/events-trends-stats/',
       body: [],
-    });
-
-    eventsMock = MockApiClient.addMockResponse({
-      method: 'GET',
-      url: `/organizations/org-slug/events/`,
-      body: {
-        data: [{}],
-        meta: {},
-      },
     });
   });
 
@@ -516,8 +509,8 @@ describe('Performance > Widgets > WidgetContainer', function () {
     );
     expect(await screen.findByTestId('view-all-button')).toHaveTextContent('View All');
 
-    expect(eventsV2Mock).toHaveBeenCalledTimes(1);
-    expect(eventsV2Mock).toHaveBeenNthCalledWith(
+    expect(eventsMock).toHaveBeenCalledTimes(1);
+    expect(eventsMock).toHaveBeenNthCalledWith(
       1,
       expect.anything(),
       expect.objectContaining({
@@ -561,8 +554,8 @@ describe('Performance > Widgets > WidgetContainer', function () {
     );
     expect(await screen.findByTestId('view-all-button')).toHaveTextContent('View All');
 
-    expect(eventsV2Mock).toHaveBeenCalledTimes(1);
-    expect(eventsV2Mock).toHaveBeenNthCalledWith(
+    expect(eventsMock).toHaveBeenCalledTimes(1);
+    expect(eventsMock).toHaveBeenNthCalledWith(
       1,
       expect.anything(),
       expect.objectContaining({
@@ -601,8 +594,8 @@ describe('Performance > Widgets > WidgetContainer', function () {
     );
     expect(await screen.findByTestId('view-all-button')).toHaveTextContent('View All');
 
-    expect(eventsV2Mock).toHaveBeenCalledTimes(1);
-    expect(eventsV2Mock).toHaveBeenNthCalledWith(
+    expect(eventsMock).toHaveBeenCalledTimes(1);
+    expect(eventsMock).toHaveBeenNthCalledWith(
       1,
       expect.anything(),
       expect.objectContaining({
@@ -640,8 +633,8 @@ describe('Performance > Widgets > WidgetContainer', function () {
       'Worst FID Web Vitals'
     );
     expect(await screen.findByTestId('view-all-button')).toHaveTextContent('View All');
-    expect(eventsV2Mock).toHaveBeenCalledTimes(1);
-    expect(eventsV2Mock).toHaveBeenNthCalledWith(
+    expect(eventsMock).toHaveBeenCalledTimes(1);
+    expect(eventsMock).toHaveBeenNthCalledWith(
       1,
       expect.anything(),
       expect.objectContaining({
@@ -712,8 +705,8 @@ describe('Performance > Widgets > WidgetContainer', function () {
     expect(await screen.findByTestId('performance-widget-title')).toHaveTextContent(
       'Most Related Errors'
     );
-    expect(eventsV2Mock).toHaveBeenCalledTimes(1);
-    expect(eventsV2Mock).toHaveBeenNthCalledWith(
+    expect(eventsMock).toHaveBeenCalledTimes(1);
+    expect(eventsMock).toHaveBeenNthCalledWith(
       1,
       expect.anything(),
       expect.objectContaining({
@@ -786,7 +779,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     expect(await screen.findByTestId('performance-widget-title')).toHaveTextContent(
       'Most Related Errors'
     );
-    expect(eventsV2Mock).toHaveBeenCalledTimes(1);
+    expect(eventsMock).toHaveBeenCalledTimes(1);
     expect(eventStatsMock).toHaveBeenCalledTimes(1);
   });
 
@@ -876,8 +869,8 @@ describe('Performance > Widgets > WidgetContainer', function () {
       'Most Slow Frames'
     );
 
-    expect(eventsV2Mock).toHaveBeenCalledTimes(1);
-    expect(eventsV2Mock).toHaveBeenNthCalledWith(
+    expect(eventsMock).toHaveBeenCalledTimes(1);
+    expect(eventsMock).toHaveBeenNthCalledWith(
       1,
       expect.anything(),
       expect.objectContaining({
@@ -917,8 +910,8 @@ describe('Performance > Widgets > WidgetContainer', function () {
       'Most Slow Frames'
     );
 
-    expect(eventsV2Mock).toHaveBeenCalledTimes(1);
-    expect(eventsV2Mock).toHaveBeenNthCalledWith(
+    expect(eventsMock).toHaveBeenCalledTimes(1);
+    expect(eventsMock).toHaveBeenNthCalledWith(
       1,
       expect.anything(),
       expect.objectContaining({
@@ -953,8 +946,8 @@ describe('Performance > Widgets > WidgetContainer', function () {
       'Most Frozen Frames'
     );
 
-    expect(eventsV2Mock).toHaveBeenCalledTimes(1);
-    expect(eventsV2Mock).toHaveBeenNthCalledWith(
+    expect(eventsMock).toHaveBeenCalledTimes(1);
+    expect(eventsMock).toHaveBeenNthCalledWith(
       1,
       expect.anything(),
       expect.objectContaining({

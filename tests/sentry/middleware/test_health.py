@@ -1,7 +1,7 @@
+from functools import cached_property
 from unittest.mock import patch
 
 from django.test import RequestFactory
-from exam import fixture
 
 from sentry.middleware.health import HealthCheck
 from sentry.status_checks import Problem
@@ -10,8 +10,11 @@ from sentry.utils import json
 
 
 class HealthCheckTest(TestCase):
-    middleware = fixture(HealthCheck)
-    factory = fixture(RequestFactory)
+    middleware = cached_property(HealthCheck)
+
+    @cached_property
+    def factory(self):
+        return RequestFactory()
 
     @patch("sentry.status_checks.check_all")
     def test_other_url(self, check_all):

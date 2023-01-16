@@ -5,7 +5,12 @@ import pytest
 from django.utils import timezone
 from freezegun import freeze_time
 
-from sentry.api.utils import MAX_STATS_PERIOD, InvalidParams, get_date_range_from_params
+from sentry.api.utils import (
+    MAX_STATS_PERIOD,
+    InvalidParams,
+    customer_domain_path,
+    get_date_range_from_params,
+)
 
 
 class GetDateRangeFromParamsTest(unittest.TestCase):
@@ -72,6 +77,47 @@ class GetDateRangeFromParamsTest(unittest.TestCase):
 
     @freeze_time("2018-12-11 03:21:34")
     def test_relative_date_range_incomplete(self):
-
         with pytest.raises(InvalidParams):
             start, end = get_date_range_from_params({"timeframeStart": "14d"})
+
+
+def test_customer_domain_path():
+    scenarios = [
+        # Input, expected
+        ["/settings/", "/settings/"],
+        # Organization settings views.
+        ["/settings/acme/", "/settings/organization/"],
+        ["/settings/organization", "/settings/organization/"],
+        ["/settings/sentry/members/", "/settings/members/"],
+        ["/settings/sentry/members/3/", "/settings/members/3/"],
+        ["/settings/sentry/teams/peeps/", "/settings/teams/peeps/"],
+        ["/settings/sentry/billing/receipts/", "/settings/billing/receipts/"],
+        [
+            "/settings/acme/developer-settings/release-bot/",
+            "/settings/developer-settings/release-bot/",
+        ],
+        # Account settings should stay the same
+        ["/settings/account/", "/settings/account/"],
+        ["/settings/account/security/", "/settings/account/security/"],
+        ["/settings/account/details/", "/settings/account/details/"],
+        ["/join-request/acme", "/join-request/"],
+        ["/join-request/acme/", "/join-request/"],
+        ["/onboarding/acme/", "/onboarding/"],
+        ["/onboarding/acme/project/", "/onboarding/project/"],
+        ["/organizations/new/", "/organizations/new/"],
+        ["/organizations/albertos-apples/issues/", "/issues/"],
+        ["/organizations/albertos-apples/issues/?_q=all#hash", "/issues/?_q=all#hash"],
+        ["/acme/project-slug/getting-started/", "/getting-started/project-slug/"],
+        [
+            "/acme/project-slug/getting-started/python",
+            "/getting-started/project-slug/python",
+        ],
+        ["/settings/projects/python/filters/", "/settings/projects/python/filters/"],
+        [
+            "/settings/projects/python/filters/discarded/",
+            "/settings/projects/python/filters/discarded/",
+        ],
+        ["/settings/teams/peeps/", "/settings/teams/peeps/"],
+    ]
+    for input_path, expected in scenarios:
+        assert expected == customer_domain_path(input_path)

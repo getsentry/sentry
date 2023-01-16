@@ -1,9 +1,9 @@
 import TeamStore from 'sentry/stores/teamStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 
-import Badge, {BadgeProps} from './badge';
+import Badge, {TeamBadgeProps} from './badge';
 
-function TeamBadge(props: BadgeProps) {
+function TeamBadge(props: TeamBadgeProps) {
   const {teams} = useLegacyStore(TeamStore);
 
   // Get the most up-to-date team from the store

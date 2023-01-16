@@ -1,5 +1,7 @@
+import uuid
 from collections import Counter
 from datetime import datetime, timedelta
+from functools import cached_property
 from typing import Mapping, Sequence
 from unittest import mock
 
@@ -8,12 +10,12 @@ from django.contrib.auth.models import AnonymousUser
 from django.core import mail
 from django.db.models import F
 from django.utils import timezone
-from exam import fixture
 
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.userreport import UserReportWithGroupSerializer
 from sentry.digests.notifications import build_digest, event_to_record
 from sentry.event_manager import EventManager, get_event_type
+from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.mail import build_subject_prefix, mail_adapter
 from sentry.models import (
     Activity,
@@ -57,6 +59,7 @@ from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.types.issues import GroupType
 from sentry.types.releaseactivity import ReleaseActivityType
 from sentry.types.rules import RuleFuture
+from sentry.utils.dates import ensure_aware
 from sentry.utils.email import MessageBuilder, get_email_addresses
 from sentry.utils.samples import load_data
 from sentry_plugins.opsgenie.plugin import OpsGeniePlugin
@@ -64,7 +67,7 @@ from tests.sentry.mail import make_event_data, send_notification
 
 
 class BaseMailAdapterTest(TestCase):
-    @fixture
+    @cached_property
     def adapter(self):
         return mail_adapter
 
@@ -279,23 +282,106 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         assert msg.subject == "[Sentry] BAR-1 - Hello world"
         assert "my rule" in msg.alternatives[0][0]
 
+    def test_simple_notification_generic(self):
+        """Test that an issue that is neither error nor performance type renders a generic email template"""
+        event = self.store_event(
+            data={"message": "Hello world", "level": "error"}, project_id=self.project.id
+        )
+        event = event.for_group(event.groups[0])
+        occurrence = IssueOccurrence(
+            uuid.uuid4().hex,
+            uuid.uuid4().hex,
+            ["some-fingerprint"],
+            "something bad happened",
+            "it was bad",
+            "1234",
+            {"Test": 123},
+            [
+                IssueEvidence("Evidence 1", "Value 1", True),
+                IssueEvidence("Evidence 2", "Value 2", False),
+                IssueEvidence("Evidence 3", "Value 3", False),
+            ],
+            GroupType.PROFILE_BLOCKED_THREAD,
+            ensure_aware(datetime.now()),
+        )
+        occurrence.save(self.project.id)
+        event.occurrence = occurrence
+
+        event.group.type = GroupType.PROFILE_BLOCKED_THREAD
+
+        rule = Rule.objects.create(project=self.project, label="my rule")
+        ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
+
+        notification = Notification(event=event, rule=rule)
+
+        with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
+            self.adapter.notify(notification, ActionTargetType.ISSUE_OWNERS)
+
+        msg = mail.outbox[0]
+        assert msg.subject == f"[Sentry] BAR-1 - {occurrence.issue_title}"
+        checked_values = [
+            "Issue Data",
+            "Evidence 1",
+            "Value 1",
+            "Evidence 2",
+            "Value 2",
+            "Evidence 3",
+            "Value 3",
+        ]
+        for checked_value in checked_values:
+            assert (
+                checked_value in msg.alternatives[0][0]
+            ), f"{checked_value} not present in message"
+
+    def test_simple_notification_generic_no_evidence(self):
+        """Test that an issue with no evidence that is neither error nor performance type renders a generic email template"""
+        event = self.store_event(
+            data={"message": "Hello world", "level": "error"}, project_id=self.project.id
+        )
+        event = event.for_group(event.groups[0])
+        occurrence = IssueOccurrence(
+            uuid.uuid4().hex,
+            uuid.uuid4().hex,
+            ["some-fingerprint"],
+            "something bad happened",
+            "it was bad",
+            "1234",
+            {"Test": 123},
+            [],  # no evidence
+            GroupType.PROFILE_BLOCKED_THREAD,
+            ensure_aware(datetime.now()),
+        )
+        occurrence.save(self.project.id)
+        event.occurrence = occurrence
+
+        event.group.type = GroupType.PROFILE_BLOCKED_THREAD
+
+        rule = Rule.objects.create(project=self.project, label="my rule")
+        ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
+
+        notification = Notification(event=event, rule=rule)
+
+        with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
+            self.adapter.notify(notification, ActionTargetType.ISSUE_OWNERS)
+
+        msg = mail.outbox[0]
+        assert msg.subject == "[Sentry] BAR-1 - something bad happened"
+        assert "Issue Data" not in msg.alternatives[0][0]
+
     def test_simple_notification_perf(self):
         event_data = load_data(
             "transaction-n-plus-one",
             timestamp=before_now(minutes=10),
-            fingerprint=[f"{GroupType.PERFORMANCE_N_PLUS_ONE.value}-group1"],
+            fingerprint=[f"{GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value}-group1"],
         )
         perf_event_manager = EventManager(event_data)
         perf_event_manager.normalize()
         with override_options(
             {
-                "performance.issues.all.problem-creation": 1.0,
-                "performance.issues.all.problem-detection": 1.0,
                 "performance.issues.n_plus_one_db.problem-creation": 1.0,
             }
         ), self.feature(
             [
-                "organizations:performance-issues-ingest",
                 "projects:performance-suspect-spans-ingestion",
             ]
         ):

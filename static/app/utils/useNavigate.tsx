@@ -1,6 +1,7 @@
 import {useCallback, useEffect, useRef} from 'react';
 
 import {useRouteContext} from 'sentry/utils/useRouteContext';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 type NavigateOptions = {
   replace?: boolean;
@@ -27,7 +28,7 @@ export function useNavigate() {
       }
 
       const nextState = {
-        pathname: to,
+        pathname: normalizeUrl(to),
         state: options.state,
       };
 

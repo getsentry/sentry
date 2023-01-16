@@ -1,12 +1,13 @@
+from functools import cached_property
+
 from django.http import HttpRequest
-from exam import fixture
 
 from sentry.middleware.proxy import SetRemoteAddrFromForwardedFor
 from sentry.testutils import TestCase
 
 
 class SetRemoteAddrFromForwardedForTestCase(TestCase):
-    middleware = fixture(SetRemoteAddrFromForwardedFor)
+    middleware = cached_property(SetRemoteAddrFromForwardedFor)
 
     def test_ipv4(self):
         request = HttpRequest()

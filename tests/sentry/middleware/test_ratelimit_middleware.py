@@ -1,4 +1,5 @@
 from concurrent.futures import ThreadPoolExecutor
+from functools import cached_property
 from time import sleep, time
 from unittest.mock import patch
 
@@ -6,7 +7,6 @@ from django.conf.urls import url
 from django.contrib.auth.models import AnonymousUser
 from django.test import RequestFactory, override_settings
 from django.urls import reverse
-from exam import fixture
 from freezegun import freeze_time
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
@@ -28,7 +28,10 @@ from sentry.types.ratelimit import RateLimit, RateLimitCategory
 @override_settings(SENTRY_SELF_HOSTED=False)
 class RatelimitMiddlewareTest(TestCase):
     middleware = RatelimitMiddleware(None)
-    factory = fixture(RequestFactory)
+
+    @cached_property
+    def factory(self):
+        return RequestFactory()
 
     class TestEndpoint(Endpoint):
         def get(self):

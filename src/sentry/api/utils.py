@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import datetime
 import logging
+import re
 from datetime import timedelta
-from typing import Any, Literal, overload
+from typing import Any, List, Literal, Tuple, overload
 from urllib.parse import urlparse
 
 from django.utils import timezone
@@ -237,3 +238,31 @@ def generate_region_url() -> str:
     if not region_url_template or not region:
         return options.get("system.url-prefix")  # type: ignore[no-any-return]
     return region_url_template.replace("{region}", region)
+
+
+_path_patterns: List[Tuple[re.Pattern[str], str]] = [
+    # /organizations/slug/section, but not /organizations/new
+    (re.compile(r"\/?organizations\/(?!new)[^\/]+\/(.*)"), r"/\1"),
+    # For /settings/:orgId/ -> /settings/organization/
+    (
+        re.compile(r"\/settings\/(?!account)(?!projects)(?!teams)[^\/]+\/?$"),
+        "/settings/organization/",
+    ),
+    # Move /settings/:orgId/:section -> /settings/:section
+    # but not /settings/organization or /settings/projects which is a new URL
+    (re.compile(r"\/?settings\/(?!account)(?!projects)(?!teams)[^\/]+\/(.*)"), r"/settings/\1"),
+    (re.compile(r"\/?join-request\/[^\/]+\/?.*"), r"/join-request/"),
+    (re.compile(r"\/?onboarding\/[^\/]+\/(.*)"), r"/onboarding/\1"),
+    (re.compile(r"\/?[^\/]+\/([^\/]+)\/getting-started\/(.*)"), r"/getting-started/\1/\2"),
+]
+
+
+def customer_domain_path(path: str) -> str:
+    """
+    Server side companion to path normalizations found in withDomainRequired
+    """
+    for pattern, replacement in _path_patterns:
+        updated = pattern.sub(replacement, path)
+        if updated != path:
+            return updated
+    return path

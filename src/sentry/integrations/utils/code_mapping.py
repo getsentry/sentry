@@ -1,5 +1,5 @@
 import logging
-from typing import Dict, List, NamedTuple, Union
+from typing import Dict, List, NamedTuple, Tuple, Union
 
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
@@ -13,8 +13,7 @@ logger.setLevel(logging.INFO)
 # Read this to learn about file extensions for different languages
 # https://github.com/github/linguist/blob/master/lib/linguist/languages.yml
 # We only care about the ones that would show up in stacktraces after symbolication
-EXTENSIONS = ["js", "jsx", "tsx", "ts", "mjs", "py", "rb", "php", "go"]
-NO_TOP_DIR = "NO_TOP_DIR"
+EXTENSIONS = ["js", "jsx", "tsx", "ts", "mjs", "py", "rb", "rake", "php", "go"]
 
 
 class Repo(NamedTuple):
@@ -33,10 +32,14 @@ class CodeMapping(NamedTuple):
     source_path: str
 
 
+class UnsupportedFrameFilename(Exception):
+    pass
+
+
 def get_extension(file_path: str) -> str:
     extension = ""
     if file_path:
-        ext_period = file_path.find(".")
+        ext_period = file_path.rfind(".")
         if ext_period >= 1:  # e.g. f.py
             extension = file_path.rsplit(".")[-1]
 
@@ -73,8 +76,20 @@ def filter_source_code_files(files: List[str]) -> List[str]:
 # XXX: Look at sentry.interfaces.stacktrace and maybe use that
 class FrameFilename:
     def __init__(self, frame_file_path: str) -> None:
+        # Using regexes would be better but this is easier to understand
+        if (
+            not frame_file_path
+            or frame_file_path[0] in ["[", "<", "/"]
+            or frame_file_path.find(" ") > -1
+            or frame_file_path.find("\\") > -1  # Windows support
+            or frame_file_path.find("/") == -1
+        ):
+            raise UnsupportedFrameFilename("Either garbage or will need work to support.")
+
         self.full_path = frame_file_path
         self.extension = get_extension(frame_file_path)
+        if not self.extension:
+            raise UnsupportedFrameFilename("It needs an extension.")
         if self.frame_type() == "packaged":
             self._packaged_logic(frame_file_path)
         else:
@@ -87,25 +102,22 @@ class FrameFilename:
         return type
 
     def _packaged_logic(self, frame_file_path: str) -> None:
-        if frame_file_path.find("/") > -1:
-            self.root, self.file_and_dir_path = frame_file_path.split("/", 1)
+        self.root, self.file_and_dir_path = frame_file_path.split("/", 1)
 
-            # Check that it does have at least a dir
-            if self.file_and_dir_path.find("/") > -1:
-                self.dir_path, self.file_name = self.file_and_dir_path.rsplit("/", 1)
-            else:
-                # A package name, a file but no dir (e.g. requests/models.py)
-                self.dir_path = ""
-                self.file_name = self.file_and_dir_path
+        # Check that it does have at least a dir
+        if self.file_and_dir_path.find("/") > -1:
+            self.dir_path, self.file_name = self.file_and_dir_path.rsplit("/", 1)
         else:
-            self.root = ""
+            # A package name, a file but no dir (e.g. requests/models.py)
             self.dir_path = ""
-            self.file_and_dir_path = frame_file_path
-            self.file_name = frame_file_path
+            self.file_name = self.file_and_dir_path
 
     def _straight_path_logic(self, frame_file_path: str) -> None:
-        # XXX: Write unit tests for these
-        # Cases: some/path/foo.tsx or ./some/path/foo.tsx
+        # Cases:
+        # - some/path/foo.tsx
+        # - ./some/path/foo.tsx
+        # - /some/path/foo.js
+
         start_at_index = 2 if frame_file_path.startswith("./") else 0
         backslash_index = frame_file_path.find("/", start_at_index)
         self.root = frame_file_path[0:backslash_index]  # some or .some
@@ -120,39 +132,39 @@ class FrameFilename:
         return self.full_path == other.full_path  # type: ignore
 
 
+def stacktrace_buckets(stacktraces: List[str]) -> Dict[str, List[FrameFilename]]:
+    buckets: Dict[str, List[FrameFilename]] = {}
+    for stacktrace_frame_file_path in stacktraces:
+        try:
+            frame_filename = FrameFilename(stacktrace_frame_file_path)
+            # Any files without a top directory will be grouped together
+            bucket_key = frame_filename.root
+
+            if not buckets.get(bucket_key):
+                buckets[bucket_key] = []
+            buckets[bucket_key].append(frame_filename)
+
+        except UnsupportedFrameFilename:
+            logger.info(
+                "Frame's filepath not supported.",
+                extra={"frame_file_path": stacktrace_frame_file_path},
+            )
+        except Exception:
+            logger.exception("Unable to split stacktrace path into buckets")
+
+    return buckets
+
+
 # call generate_code_mappings() after you initialize CodeMappingTreesHelper
 class CodeMappingTreesHelper:
     def __init__(self, trees: Dict[str, RepoTree]):
         self.trees = trees
         self.code_mappings: Dict[str, CodeMapping] = {}
 
-    def stacktrace_buckets(self, stacktraces: List[str]) -> Dict[str, List[FrameFilename]]:
-        buckets: Dict[str, List[FrameFilename]] = {}
-        for stacktrace_frame_file_path in stacktraces:
-            try:
-                frame_filename = FrameFilename(stacktrace_frame_file_path)
-                # Any files without a top directory will be grouped together
-                bucket_key = frame_filename.root if frame_filename.root else NO_TOP_DIR
-
-                if not buckets.get(bucket_key):
-                    buckets[bucket_key] = []
-                buckets[bucket_key].append(frame_filename)
-
-            except Exception:
-                logger.exception("Unable to split stacktrace path into buckets")
-                continue
-        return buckets
-
     def process_stackframes(self, buckets: Dict[str, List[FrameFilename]]) -> bool:
         """This processes all stackframes and returns if a new code mapping has been generated"""
         reprocess = False
         for stackframe_root, stackframes in buckets.items():
-            if stackframe_root == NO_TOP_DIR:
-                logger.info(
-                    "We do not support top level files.",
-                    extra={"stackframes": stackframes},
-                )
-                continue
             if not self.code_mappings.get(stackframe_root):
                 for frame_filename in stackframes:
                     code_mapping = self._find_code_mapping(frame_filename)
@@ -168,7 +180,7 @@ class CodeMappingTreesHelper:
         # We need to make sure that calling this method with a new list of stack traces
         # should always start with a clean slate
         self.code_mappings = {}
-        buckets: Dict[str, List[FrameFilename]] = self.stacktrace_buckets(stacktraces)
+        buckets: Dict[str, List[FrameFilename]] = stacktrace_buckets(stacktraces)
 
         # We reprocess stackframes until we are told that no code mappings were produced
         # This is order to reprocess past stackframes in light of newly discovered code mappings
@@ -254,6 +266,24 @@ class CodeMappingTreesHelper:
             assert source_code_root.endswith("/")
         return source_code_root
 
+    def _normalized_stack_and_source_roots(
+        self, stacktrace_root: str, source_path: str
+    ) -> Tuple[str, str]:
+        # We have a one to one code mapping (e.g. "app/" & "app/")
+        if source_path == stacktrace_root:
+            stacktrace_root = ""
+            source_path = ""
+        # stacktrace_root starts with "./"
+        elif stacktrace_root.startswith("./"):
+            without = stacktrace_root.replace("./", "")
+            if source_path == without:
+                stacktrace_root = "./"
+                source_path = ""
+            elif source_path.rfind(f"/{without}"):
+                stacktrace_root = "./"
+                source_path = source_path.replace(f"/{without}", "/")
+        return (stacktrace_root, source_path)
+
     def _generate_code_mapping_from_tree(
         self,
         repo_tree: RepoTree,
@@ -264,21 +294,24 @@ class CodeMappingTreesHelper:
             for src_path in repo_tree.files
             if self._potential_match(src_path, frame_filename)
         ]
+        if len(matched_files) != 1:
+            return []
+
+        stacktrace_root = f"{frame_filename.root}/"
+        source_path = self._get_code_mapping_source_path(matched_files[0], frame_filename)
+        if frame_filename.frame_type() != "packaged":
+            stacktrace_root, source_path = self._normalized_stack_and_source_roots(
+                stacktrace_root, source_path
+            )
         # It is too risky generating code mappings when there's more
         # than one file potentially matching
-        return (
-            [
-                CodeMapping(
-                    repo=repo_tree.repo,
-                    stacktrace_root=f"{frame_filename.root}/",  # sentry
-                    source_path=self._get_code_mapping_source_path(
-                        matched_files[0], frame_filename
-                    ),
-                )
-            ]
-            if len(matched_files) == 1
-            else []
-        )
+        return [
+            CodeMapping(
+                repo=repo_tree.repo,
+                stacktrace_root=stacktrace_root,  # sentry/
+                source_path=source_path,  # src/sentry/
+            )
+        ]
 
     def _matches_current_code_mappings(self, src_file: str, frame_filename: FrameFilename) -> bool:
         # In some cases, once we have derived a code mapping we can exclude files that start with

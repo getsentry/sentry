@@ -126,11 +126,7 @@ describe('Incident Rules Form', () => {
     });
 
     it('creates a rule with generic_metrics dataset', async () => {
-      organization.features = [
-        ...organization.features,
-        'metrics-performance-alerts',
-        'mep-rollout-flag',
-      ];
+      organization.features = [...organization.features, 'mep-rollout-flag'];
       const rule = TestStubs.MetricRule();
       createWrapper({
         rule: {

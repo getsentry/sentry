@@ -4,13 +4,8 @@ import DatePageFilter from 'sentry/components/datePageFilter';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
-import {
-  makePinSearchAction,
-  makeSaveSearchAction,
-} from 'sentry/components/smartSearchBar/actions';
 import space from 'sentry/styles/space';
-import {Organization, SavedSearch} from 'sentry/types';
-import {useLocation} from 'sentry/utils/useLocation';
+import {Organization} from 'sentry/types';
 
 import IssueListSearchBar from './searchBar';
 
@@ -18,15 +13,9 @@ interface Props {
   onSearch: (query: string) => void;
   organization: Organization;
   query: string;
-  savedSearch: SavedSearch | null;
-  sort: string;
 }
 
-function IssueListFilters({organization, savedSearch, query, sort, onSearch}: Props) {
-  const location = useLocation();
-
-  const pinnedSearch = savedSearch?.isPinned ? savedSearch : undefined;
-
+function IssueListFilters({organization, query, onSearch}: Props) {
   return (
     <SearchContainer>
       <StyledPageFilterBar>
@@ -40,17 +29,6 @@ function IssueListFilters({organization, savedSearch, query, sort, onSearch}: Pr
         query={query || ''}
         onSearch={onSearch}
         excludedTags={['environment']}
-        actionBarItems={
-          organization.features.includes('issue-list-saved-searches-v2')
-            ? []
-            : [
-                makePinSearchAction({sort, pinnedSearch, location}),
-                makeSaveSearchAction({
-                  sort,
-                  disabled: !organization.access.includes('org:write'),
-                }),
-              ]
-        }
       />
     </SearchContainer>
   );
@@ -58,10 +36,15 @@ function IssueListFilters({organization, savedSearch, query, sort, onSearch}: Pr
 
 const SearchContainer = styled('div')`
   display: flex;
-  gap: ${space(2)};
   flex-wrap: wrap;
+  column-gap: ${space(2)};
+  row-gap: ${space(1)};
   width: 100%;
   margin-bottom: ${space(2)};
+
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
+    flex-direction: column;
+  }
 `;
 
 const StyledPageFilterBar = styled(PageFilterBar)`
@@ -73,10 +56,13 @@ const StyledPageFilterBar = styled(PageFilterBar)`
 const StyledIssueListSearchBar = styled(IssueListSearchBar)`
   flex: 1;
   width: 100%;
-  min-width: 20rem;
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
-    min-width: 25rem;
+    min-width: 20rem;
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints.large}) {
+    min-width: 30rem;
   }
 `;
 

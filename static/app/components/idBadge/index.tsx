@@ -2,16 +2,14 @@ import styled from '@emotion/styled';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
 
-import getBadge from './getBadge';
-
-type Props = React.ComponentProps<typeof getBadge> & Record<string, any>;
+import getBadge, {GetBadgeProps} from './getBadge';
 
 /**
  * Public interface for all "id badges":
  * Organization, project, team, user
  */
 
-const IdBadge = (props: Props) => {
+const IdBadge = (props: GetBadgeProps) => {
   const componentBadge = getBadge(props);
 
   if (!componentBadge) {

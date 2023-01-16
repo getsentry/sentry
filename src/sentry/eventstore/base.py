@@ -140,6 +140,13 @@ class EventStorage(Service):
             Columns.PROJECT_ID,
             Columns.TIMESTAMP,
         ],
+        Dataset.IssuePlatform: [
+            Columns.EVENT_ID,
+            Columns.GROUP_ID,
+            Columns.PROJECT_ID,
+            Columns.TIMESTAMP,
+            Columns.OCCURRENCE_ID,
+        ],
     }
 
     def get_events(

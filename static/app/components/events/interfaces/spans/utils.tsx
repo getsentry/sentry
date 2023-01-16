@@ -1,4 +1,5 @@
 import {browserHistory} from 'react-router';
+import {Theme} from '@emotion/react';
 import {Location} from 'history';
 import isNumber from 'lodash/isNumber';
 import isString from 'lodash/isString';
@@ -6,19 +7,14 @@ import maxBy from 'lodash/maxBy';
 import set from 'lodash/set';
 import moment from 'moment';
 
-import {
-  TOGGLE_BORDER_BOX,
-  TOGGLE_BUTTON_MAX_WIDTH,
-} from 'sentry/components/performance/waterfall/treeConnector';
 import {Organization} from 'sentry/types';
-import {EntryType, EventTransaction} from 'sentry/types/event';
+import {EntrySpans, EntryType, EventTransaction} from 'sentry/types/event';
 import {assert} from 'sentry/types/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {WebVital} from 'sentry/utils/fields';
 import {TraceError} from 'sentry/utils/performance/quickTrace/types';
 import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import {getPerformanceTransaction} from 'sentry/utils/performanceForSentry';
-import {Theme} from 'sentry/utils/theme';
 
 import {MERGE_LABELS_THRESHOLD_PERCENT} from './constants';
 import SpanTreeModel from './spanTreeModel';
@@ -30,7 +26,6 @@ import {
   ParsedTraceType,
   ProcessedSpanType,
   RawSpanType,
-  SpanEntry,
   SpanType,
   TraceContextType,
   TreeDepthType,
@@ -312,7 +307,7 @@ export function getTraceContext(
 }
 
 export function parseTrace(event: Readonly<EventTransaction>): ParsedTraceType {
-  const spanEntry = event.entries.find((entry: SpanEntry | any): entry is SpanEntry => {
+  const spanEntry = event.entries.find((entry: EntrySpans | any): entry is EntrySpans => {
     return entry.type === EntryType.SPANS;
   });
 
@@ -722,6 +717,10 @@ export function spanTargetHash(spanId: string): string {
   return `#span-${spanId}`;
 }
 
+export function transactionTargetHash(spanId: string): string {
+  return `#txn-${spanId}`;
+}
+
 export function getSiblingGroupKey(span: SpanType, occurrence?: number): string {
   if (occurrence !== undefined) {
     return `${span.op}.${span.description}.${occurrence}`;
@@ -800,77 +799,6 @@ export function getSpanGroupBounds(
       const _exhaustiveCheck: never = bounds;
       return _exhaustiveCheck;
     }
-  }
-}
-
-export class SpansInViewMap {
-  spanDepthsInView: Map<string, number>;
-  treeDepthSum: number;
-  length: number;
-  isRootSpanInView: boolean;
-
-  constructor(isRootSpanInView: boolean) {
-    this.spanDepthsInView = new Map();
-    this.treeDepthSum = 0;
-    this.length = 0;
-    this.isRootSpanInView = isRootSpanInView;
-  }
-
-  /**
-   *
-   * @param spanId
-   * @param treeDepth
-   * @returns false if the span is already stored, true otherwise
-   */
-  addSpan(spanId: string, treeDepth: number): boolean {
-    if (this.spanDepthsInView.has(spanId)) {
-      return false;
-    }
-
-    this.spanDepthsInView.set(spanId, treeDepth);
-    this.length += 1;
-    this.treeDepthSum += treeDepth;
-
-    if (treeDepth === 0) {
-      this.isRootSpanInView = true;
-    }
-
-    return true;
-  }
-
-  /**
-   *
-   * @param spanId
-   * @returns false if the span does not exist within the span, true otherwise
-   */
-  removeSpan(spanId: string): boolean {
-    if (!this.spanDepthsInView.has(spanId)) {
-      return false;
-    }
-
-    const treeDepth = this.spanDepthsInView.get(spanId);
-    this.spanDepthsInView.delete(spanId);
-    this.length -= 1;
-    this.treeDepthSum -= treeDepth!;
-
-    if (treeDepth === 0) {
-      this.isRootSpanInView = false;
-    }
-
-    return true;
-  }
-
-  has(spanId: string) {
-    return this.spanDepthsInView.has(spanId);
-  }
-
-  getScrollVal() {
-    if (this.isRootSpanInView) {
-      return 0;
-    }
-
-    const avgDepth = Math.round(this.treeDepthSum / this.length);
-    return avgDepth * (TOGGLE_BORDER_BOX / 2) - TOGGLE_BUTTON_MAX_WIDTH / 2;
   }
 }
 

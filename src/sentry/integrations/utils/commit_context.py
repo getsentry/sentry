@@ -1,5 +1,7 @@
 from typing import Any, Mapping, Sequence
 
+import sentry_sdk
+
 from sentry import analytics
 from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.ownership.grammar import get_source_code_path_from_stacktrace_path
@@ -45,6 +47,7 @@ def find_commit_context_for_event(
             )
         except ApiError as e:
             commit_context = None
+            sentry_sdk.capture_exception(e)
             analytics.record(
                 "integrations.failed_to_fetch_commit_context",
                 organization_id=code_mapping.organization_integration.organization_id,

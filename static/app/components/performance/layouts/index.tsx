@@ -19,7 +19,7 @@ export const PerformanceLayoutBodyRow = styled('div')<{
     grid-template-columns: repeat(2, 1fr);
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
     ${p =>
       p.columns
         ? `

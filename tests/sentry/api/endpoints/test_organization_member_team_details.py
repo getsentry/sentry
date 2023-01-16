@@ -1,4 +1,5 @@
-from exam import fixture
+from functools import cached_property
+
 from rest_framework import status
 
 from sentry.auth import access
@@ -16,56 +17,56 @@ from sentry.testutils.silo import region_silo_test
 class OrganizationMemberTeamTestBase(APITestCase):
     endpoint = "sentry-api-0-organization-member-team-details"
 
-    @fixture
+    @cached_property
     def org(self):
         # open membership
         return self.create_organization(owner=self.user, flags=Organization.flags.allow_joinleave)
 
-    @fixture
+    @cached_property
     def team(self):
         return self.create_team(organization=self.org)
 
-    @fixture
+    @cached_property
     def owner(self):
         return OrganizationMember.objects.get(organization=self.org, user=self.user)
 
-    @fixture
+    @cached_property
     def member(self):
         return self.create_member(organization=self.org, user=self.create_user(), role="member")
 
-    @fixture
+    @cached_property
     def admin(self):
         return self.create_member(organization=self.org, user=self.create_user(), role="admin")
 
-    @fixture
+    @cached_property
     def manager(self):
         return self.create_member(organization=self.org, user=self.create_user(), role="manager")
 
-    @fixture
+    @cached_property
     def member_on_team(self):
         return self.create_member(
             organization=self.org, user=self.create_user(), role="member", teams=[self.team]
         )
 
-    @fixture
+    @cached_property
     def admin_on_team(self):
         return self.create_member(
             organization=self.org, user=self.create_user(), role="admin", teams=[self.team]
         )
 
-    @fixture
+    @cached_property
     def manager_on_team(self):
         return self.create_member(
             organization=self.org, user=self.create_user(), role="manager", teams=[self.team]
         )
 
-    @fixture
+    @cached_property
     def owner_on_team(self):
         return self.create_member(
             organization=self.org, user=self.create_user(), role="owner", teams=[self.team]
         )
 
-    @fixture
+    @cached_property
     def team_admin(self):
         member = self.create_member(organization=self.org, user=self.create_user(), role="member")
         OrganizationMemberTeam.objects.create(
@@ -74,7 +75,7 @@ class OrganizationMemberTeamTestBase(APITestCase):
         return member
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class CreateOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
     method = "post"
 
@@ -224,7 +225,7 @@ class CreateWithOpenMembershipTest(OrganizationMemberTeamTestBase):
 
 
 class CreateWithClosedMembershipTest(CreateOrganizationMemberTeamTest):
-    @fixture
+    @cached_property
     def org(self):
         # rerun create org member tests with closed membership
         return self.create_organization(owner=self.user, flags=0)
@@ -305,7 +306,7 @@ class CreateWithClosedMembershipTest(CreateOrganizationMemberTeamTest):
         assert oar.requester == self.member.user
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class DeleteOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
     method = "delete"
 
@@ -474,7 +475,7 @@ class DeleteOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
         assert not ax_after_leaving.has_project_membership(project)
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class ReadOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
     endpoint = "sentry-api-0-organization-member-team-details"
     method = "get"
@@ -503,7 +504,7 @@ class ReadOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
         )
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class UpdateOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
     endpoint = "sentry-api-0-organization-member-team-details"
     method = "put"

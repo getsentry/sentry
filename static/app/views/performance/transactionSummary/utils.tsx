@@ -20,8 +20,14 @@ export enum TransactionFilterOptions {
   RECENT = 'recent',
 }
 
-export function generateTransactionSummaryRoute({orgSlug}: {orgSlug: string}): string {
-  return `/organizations/${orgSlug}/performance/summary/`;
+export function generateTransactionSummaryRoute({
+  orgSlug,
+  subPath,
+}: {
+  orgSlug: string;
+  subPath?: string;
+}): string {
+  return `/organizations/${orgSlug}/performance/summary/${subPath ? `${subPath}/` : ''}`;
 }
 
 // normalizes search conditions by removing any redundant search conditions before presenting them in:
@@ -59,6 +65,7 @@ export function transactionSummaryRouteWithQuery({
   trendColumn,
   showTransactions,
   additionalQuery,
+  subPath,
 }: {
   orgSlug: string;
   query: Query;
@@ -67,12 +74,14 @@ export function transactionSummaryRouteWithQuery({
   display?: DisplayModes;
   projectID?: string | string[];
   showTransactions?: TransactionFilterOptions;
+  subPath?: string;
   trendColumn?: string;
   trendFunction?: string;
   unselectedSeries?: string | string[];
 }) {
   const pathname = generateTransactionSummaryRoute({
     orgSlug,
+    subPath,
   });
 
   let searchFilter: typeof query.query;

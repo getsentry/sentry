@@ -250,7 +250,7 @@
       "trace_id": "b2a33f3f79fe4a7c8de3426725a045cb",
       "status": "ok",
       "data": {
-        "blocked_ui_thread": true,
+        "blocked_main_thread": true,
         "call_stack": [
           {
             "function": "onClick",

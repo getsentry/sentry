@@ -85,9 +85,6 @@ function OverviewContentWrapper(props: ChildProps) {
     transactionThresholdMetric,
   } = props;
 
-  const useEvents = organization.features.includes(
-    'performance-frontend-use-events-endpoint'
-  );
   const queryData = useDiscoverQuery({
     eventView: getTotalsEventView(organization, eventView),
     orgSlug: organization.slug,
@@ -95,7 +92,6 @@ function OverviewContentWrapper(props: ChildProps) {
     transactionThreshold,
     transactionThresholdMetric,
     referrer: 'api.performance.transaction-summary',
-    useEvents,
   });
 
   const {data: tableData, isLoading, error} = queryData;

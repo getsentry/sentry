@@ -119,7 +119,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
             "organizations:performance-dry-run-mep",
             "organizations:performance-use-metrics",
             "organizations:profiling",
-            "organizations:server-side-sampling",
+            "organizations:dynamic-sampling",
             "organizations:use-metrics-layer",
         ]
         batch_features = features.batch_has(
@@ -244,7 +244,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
         use_metrics = (
             (
                 batch_features.get("organizations:mep-rollout-flag", False)
-                and batch_features.get("organizations:server-side-sampling", False)
+                and batch_features.get("organizations:dynamic-sampling", False)
             )
             or batch_features.get("organizations:performance-use-metrics", False)
             or batch_features.get("organizations:dashboards-mep", False)

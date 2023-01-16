@@ -1,9 +1,9 @@
 import datetime
+from functools import cached_property
 
 import pytest
 import responses
 from django.utils import timezone
-from exam import fixture
 
 from fixtures.bitbucket import COMMIT_DIFF_PATCH, COMPARE_COMMITS_EXAMPLE, REPO
 from sentry.integrations.bitbucket.repository import BitbucketRepositoryProvider
@@ -37,7 +37,7 @@ class BitbucketRepositoryProviderTest(TestCase):
             integration_id=self.integration.id,
         )
 
-    @fixture
+    @cached_property
     def provider(self):
         return BitbucketRepositoryProvider("bitbucket")
 

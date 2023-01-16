@@ -6,7 +6,7 @@ import Link, {LinkProps} from 'sentry/components/links/link';
 import space from 'sentry/styles/space';
 import {AvatarUser, Member} from 'sentry/types';
 
-interface Props {
+export interface MemberBadgeProps {
   member: Member;
   avatarSize?: React.ComponentProps<typeof UserAvatar>['size'];
   className?: string;
@@ -40,7 +40,7 @@ const MemberBadge = ({
   member,
   orgId,
   className,
-}: Props) => {
+}: MemberBadgeProps) => {
   const user = getMemberUser(member);
   const title =
     displayName ||

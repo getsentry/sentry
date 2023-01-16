@@ -1,6 +1,5 @@
+from functools import cached_property
 from urllib.parse import parse_qs, urlparse
-
-from exam import fixture
 
 from sentry.models import ApiApplication, ApiAuthorization, ApiGrant, ApiToken
 from sentry.testutils import TestCase
@@ -9,7 +8,7 @@ from sentry.testutils.silo import control_silo_test
 
 @control_silo_test
 class OAuthAuthorizeCodeTest(TestCase):
-    @fixture
+    @cached_property
     def path(self):
         return "/oauth/authorize/"
 
@@ -243,7 +242,7 @@ class OAuthAuthorizeCodeTest(TestCase):
 
 @control_silo_test
 class OAuthAuthorizeTokenTest(TestCase):
-    @fixture
+    @cached_property
     def path(self):
         return "/oauth/authorize/"
 

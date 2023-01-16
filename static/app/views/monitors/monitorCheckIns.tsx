@@ -6,6 +6,7 @@ import TimeSince from 'sentry/components/timeSince';
 import Tooltip from 'sentry/components/tooltip';
 import {tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
+import {defined} from 'sentry/utils';
 import useApiRequests from 'sentry/utils/useApiRequests';
 import {CheckInStatus, Monitor} from 'sentry/views/monitors/types';
 
@@ -20,16 +21,21 @@ type CheckIn = {
 
 type Props = {
   monitor: Monitor;
+  orgId: string;
 };
 
 type State = {
   checkInList: CheckIn[];
 };
 
-const MonitorCheckIns = ({monitor}: Props) => {
+const MonitorCheckIns = ({monitor, orgId}: Props) => {
   const {data, hasError, renderComponent} = useApiRequests<State>({
     endpoints: [
-      ['checkInList', `/monitors/${monitor.id}/checkins/`, {query: {per_page: '10'}}],
+      [
+        'checkInList',
+        `/organizations/${orgId}/monitors/${monitor.id}/checkins/`,
+        {query: {per_page: '10'}},
+      ],
     ],
   });
 
@@ -50,7 +56,7 @@ const MonitorCheckIns = ({monitor}: Props) => {
             <TimeSince date={checkIn.dateCreated} />
           </TimeSinceWrapper>
           <DurationWrapper>
-            {checkIn.duration && <Duration seconds={checkIn.duration / 100} />}
+            {defined(checkIn.duration) && <Duration seconds={checkIn.duration / 1000} />}
           </DurationWrapper>
         </PanelItem>
       ))}

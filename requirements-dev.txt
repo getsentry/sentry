@@ -1,7 +1,6 @@
 --index-url https://pypi.devinfra.sentry.io/simple
 
 docker>=3.7.0,<3.8.0
-exam>=0.10.6
 freezegun>=1.1.0
 honcho>=1.1.0
 openapi-core>=0.14.2
@@ -15,10 +14,10 @@ responses>=0.21.0
 
 # pre-commit dependencies
 pre-commit>=2.18.1
-black>=22.3.0
-flake8>=5.0.2
-flake8-bugbear>=22.7.1
-pyupgrade>=3
+black>=22.10.0
+flake8>=6
+flake8-bugbear>=22.10
+pyupgrade>=3.2.3
 isort>=5.10.1
 
 # For tools/. To be moved into redistributable dev environments.

@@ -213,7 +213,7 @@ const COLUMNS: Record<TableColumnKey, TableColumn> = {
   },
   totalCount: {
     key: 'totalCount',
-    name: t('Total Count'),
+    name: t('Span Count'),
     width: COL_WIDTH_UNDEFINED,
   },
   frequency: {

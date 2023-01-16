@@ -28,6 +28,8 @@ import TicketRuleModal from 'sentry/views/alerts/rules/issue/ticketRuleModal';
 import {SchemaFormConfig} from 'sentry/views/organizationIntegrations/sentryAppExternalForm';
 import {EVENT_FREQUENCY_PERCENT_CONDITION} from 'sentry/views/projectInstall/issueAlertOptions';
 
+const NOTIFY_EMAIL_ACTION = 'sentry.mail.actions.NotifyEmailAction';
+
 interface FieldProps {
   data: Props['data'];
   disabled: boolean;
@@ -297,7 +299,16 @@ function RuleNode({
       );
     }
 
-    const {label, formFields} = node;
+    let {label} = node;
+
+    if (
+      data.id === NOTIFY_EMAIL_ACTION &&
+      data.targetType !== MailActionTargetType.IssueOwners &&
+      organization.features.includes('issue-alert-fallback-targeting')
+    ) {
+      // Hide the fallback options when targeting team or member
+      label = 'Send a notification to {targetType}';
+    }
 
     const parts = label.split(/({\w+})/).map((part, i) => {
       if (!/^{\w+}$/.test(part)) {
@@ -313,8 +324,8 @@ function RuleNode({
       }
       return (
         <Separator key={key}>
-          {formFields && formFields.hasOwnProperty(key)
-            ? getField(key, formFields[key])
+          {node.formFields && node.formFields.hasOwnProperty(key)
+            ? getField(key, node.formFields[key])
             : part}
         </Separator>
       );
@@ -382,8 +393,9 @@ function RuleNode({
     }
 
     if (
-      data.id === 'sentry.mail.actions.NotifyEmailAction' &&
-      data.targetType === MailActionTargetType.IssueOwners
+      data.id === NOTIFY_EMAIL_ACTION &&
+      data.targetType === MailActionTargetType.IssueOwners &&
+      !organization.features.includes('issue-alert-fallback-targeting')
     ) {
       return (
         <MarginlessAlert type="warning">
@@ -521,7 +533,6 @@ function RuleNode({
             <Button
               size="sm"
               icon={<IconSettings size="xs" />}
-              type="button"
               onClick={() =>
                 openModal(deps => (
                   <TicketRuleModal
@@ -544,7 +555,6 @@ function RuleNode({
             <Button
               size="sm"
               icon={<IconSettings size="xs" />}
-              type="button"
               disabled={Boolean(data.disabled) || disabled}
               onClick={() => {
                 openModal(
@@ -570,7 +580,6 @@ function RuleNode({
           disabled={disabled}
           aria-label={t('Delete Node')}
           onClick={handleDelete}
-          type="button"
           size="sm"
           icon={<IconDelete />}
         />

@@ -365,7 +365,7 @@ class GroupSerializerTest(TestCase):
             "timestamp": cur_time.timestamp(),
             "start_timestamp": cur_time.timestamp(),
             "received": cur_time.timestamp(),
-            "fingerprint": [f"{GroupType.PERFORMANCE_N_PLUS_ONE.value}-group1"],
+            "fingerprint": [f"{GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value}-group1"],
         }
         event = self.store_event(
             data=event_data,
@@ -375,4 +375,4 @@ class GroupSerializerTest(TestCase):
         serialized = serialize(perf_group)
         assert serialized["count"] == "1"
         assert serialized["issueCategory"] == "performance"
-        assert serialized["issueType"] == "performance_n_plus_one"
+        assert serialized["issueType"] == "performance_n_plus_one_db_queries"

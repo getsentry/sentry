@@ -1,4 +1,5 @@
 import {
+  canUseMetricsData,
   MetricsEnhancedSettingContext,
   useMEPSettingContext,
 } from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
@@ -31,26 +32,32 @@ function getAllowedChartsSmall(
 
 export function FrontendPageloadView(props: BasePerformanceViewProps) {
   const mepSetting = useMEPSettingContext();
+  const showSpanOperationsWidget =
+    props.organization.features.includes('performance-new-widget-designs') &&
+    canUseMetricsData(props.organization);
+
+  const doubleChartRowCharts = [
+    PerformanceWidgetSetting.WORST_LCP_VITALS,
+    PerformanceWidgetSetting.WORST_FCP_VITALS,
+    PerformanceWidgetSetting.WORST_FID_VITALS,
+    PerformanceWidgetSetting.MOST_RELATED_ISSUES,
+    PerformanceWidgetSetting.SLOW_HTTP_OPS,
+    PerformanceWidgetSetting.SLOW_BROWSER_OPS,
+    PerformanceWidgetSetting.SLOW_RESOURCE_OPS,
+  ];
+
+  if (showSpanOperationsWidget) {
+    doubleChartRowCharts.unshift(PerformanceWidgetSetting.SPAN_OPERATIONS);
+  }
   return (
     <PerformanceDisplayProvider
       value={{performanceType: PROJECT_PERFORMANCE_TYPE.FRONTEND}}
     >
       <div data-test-id="frontend-pageload-view">
+        <DoubleChartRow {...props} allowedCharts={doubleChartRowCharts} />
         <TripleChartRow
           {...props}
           allowedCharts={getAllowedChartsSmall(props, mepSetting)}
-        />
-        <DoubleChartRow
-          {...props}
-          allowedCharts={[
-            PerformanceWidgetSetting.WORST_LCP_VITALS,
-            PerformanceWidgetSetting.WORST_FCP_VITALS,
-            PerformanceWidgetSetting.WORST_FID_VITALS,
-            PerformanceWidgetSetting.MOST_RELATED_ISSUES,
-            PerformanceWidgetSetting.SLOW_HTTP_OPS,
-            PerformanceWidgetSetting.SLOW_BROWSER_OPS,
-            PerformanceWidgetSetting.SLOW_RESOURCE_OPS,
-          ]}
         />
         <Table
           {...props}

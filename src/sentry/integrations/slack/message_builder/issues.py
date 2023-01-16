@@ -21,7 +21,6 @@ from sentry.models import (
     ActorTuple,
     Group,
     GroupStatus,
-    Identity,
     Project,
     Release,
     ReleaseProject,
@@ -33,6 +32,7 @@ from sentry.notifications.notifications.active_release import CommitData
 from sentry.notifications.notifications.base import BaseNotification, ProjectNotification
 from sentry.notifications.notifications.rules import AlertRuleNotification
 from sentry.notifications.utils.actions import MessageAction
+from sentry.services.hybrid_cloud.identity import APIIdentity, identity_service
 from sentry.services.hybrid_cloud.user import user_service
 from sentry.types.integrations import ExternalProviders
 from sentry.types.issues import GroupCategory
@@ -42,7 +42,7 @@ from sentry.utils.dates import to_timestamp
 STATUSES = {"resolved": "resolved", "ignored": "ignored", "unresolved": "re-opened"}
 
 
-def build_assigned_text(identity: Identity, assignee: str) -> str | None:
+def build_assigned_text(identity: APIIdentity, assignee: str) -> str | None:
     actor = ActorTuple.from_actor_identifier(assignee)
 
     try:
@@ -53,22 +53,22 @@ def build_assigned_text(identity: Identity, assignee: str) -> str | None:
     if actor.type == Team:
         assignee_text = f"#{assigned_actor.slug}"
     elif actor.type == User:
-        try:
-            assignee_ident = Identity.objects.get(
-                user_id=assigned_actor.id,
-                idp__type="slack",
-                idp__external_id=identity.idp.external_id,
-            )
-            assignee_text = f"<@{assignee_ident.external_id}>"
-        except Identity.DoesNotExist:
-            assignee_text = assigned_actor.get_display_name()
+        assignee_identity = identity_service.get_identity(
+            provider_id=identity.idp_id,
+            user_id=assigned_actor.id,
+        )
+        assignee_text = (
+            assigned_actor.get_display_name()
+            if assignee_identity is None
+            else f"<@{assignee_identity.external_id}>"
+        )
     else:
         raise NotImplementedError
 
     return f"*Issue assigned to {assignee_text} by <@{identity.external_id}>*"
 
 
-def build_action_text(identity: Identity, action: MessageAction) -> str | None:
+def build_action_text(identity: APIIdentity, action: MessageAction) -> str | None:
     if action.name == "assign":
         selected_options = action.selected_options or []
         if not len(selected_options):
@@ -137,7 +137,7 @@ def has_releases(project: Project) -> bool:
 def get_action_text(
     text: str,
     actions: Sequence[Any],
-    identity: Identity | None = None,
+    identity: APIIdentity,
 ) -> str:
     return (
         text
@@ -158,10 +158,10 @@ def build_actions(
     text: str,
     color: str,
     actions: Sequence[MessageAction] | None = None,
-    identity: Identity | None = None,
+    identity: APIIdentity | None = None,
 ) -> tuple[Sequence[MessageAction], str, str]:
     """Having actions means a button will be shown on the Slack message e.g. ignore, resolve, assign."""
-    if actions:
+    if actions and identity:
         text += get_action_text(text, actions, identity)
         return [], text, "_actioned_issue"
 
@@ -225,6 +225,12 @@ def get_color(
             return "info"
     if event_for_tags:
         color: str | None = event_for_tags.get_tag("level")
+        if (
+            hasattr(event_for_tags, "occurrence")
+            and event_for_tags.occurrence is not None
+            and event_for_tags.occurrence.level is not None
+        ):
+            color = event_for_tags.occurrence.level
         if color and color in LEVEL_TO_COLOR.keys():
             return color
     if group.issue_category == GroupCategory.PERFORMANCE:
@@ -243,7 +249,7 @@ class SlackIssuesMessageBuilder(SlackMessageBuilder):
         group: Group,
         event: GroupEvent | None = None,
         tags: set[str] | None = None,
-        identity: Identity | None = None,
+        identity: APIIdentity | None = None,
         actions: Sequence[MessageAction] | None = None,
         rules: list[Rule] | None = None,
         link_to_event: bool = False,
@@ -313,7 +319,7 @@ class SlackReleaseIssuesMessageBuilder(SlackMessageBuilder):
         group: Group,
         event: GroupEvent | None = None,
         tags: set[str] | None = None,
-        identity: Identity | None = None,
+        identity: APIIdentity | None = None,
         actions: Sequence[MessageAction] | None = None,
         rules: list[Rule] | None = None,
         link_to_event: bool = False,
@@ -410,7 +416,7 @@ def build_group_attachment(
     group: Group,
     event: GroupEvent | None = None,
     tags: set[str] | None = None,
-    identity: Identity | None = None,
+    identity: APIIdentity | None = None,
     actions: Sequence[MessageAction] | None = None,
     rules: list[Rule] | None = None,
     link_to_event: bool = False,

@@ -19,9 +19,13 @@ const mockWidgetAsQueryParams = {
   defaultTitle: 'Default title',
   defaultWidgetQuery: '',
   displayType: DisplayType.LINE,
+  end: undefined,
   environment: [],
-  project: [],
+  project: [1],
   source: DashboardWidgetSource.DISCOVERV2,
+  start: undefined,
+  statsPeriod: '1h',
+  utc: undefined,
 };
 
 describe('add to dashboard modal', () => {
@@ -42,6 +46,7 @@ describe('add to dashboard modal', () => {
     createdBy: undefined,
     dateCreated: '2020-01-01T00:00:00.000Z',
     widgets: [],
+    environment: [],
     projects: [1],
     period: '1h',
     filters: {release: ['abc@v1.2.0']},
@@ -95,6 +100,11 @@ describe('add to dashboard modal', () => {
     });
   });
 
+  afterEach(() => {
+    MockApiClient.clearMockResponses();
+    jest.clearAllMocks();
+  });
+
   it('renders with the widget title and description', async function () {
     render(
       <AddToDashboardModal
@@ -120,7 +130,7 @@ describe('add to dashboard modal', () => {
     expect(screen.getByText('Select Dashboard')).toBeInTheDocument();
     expect(
       screen.getByText(
-        'This is a preview of how the widget will appear in your dashboard.'
+        /This is a preview of how the widget will appear in your dashboard./
       )
     ).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Add + Stay in Discover'})).toBeDisabled();
@@ -184,10 +194,6 @@ describe('add to dashboard modal', () => {
   });
 
   it('applies dashboard saved filters to visualization', async function () {
-    initialData.organization = {
-      ...initialData.organization,
-      features: ['dashboards-top-level-filter'],
-    };
     render(
       <AddToDashboardModal
         Header={stubEl}
@@ -307,11 +313,6 @@ describe('add to dashboard modal', () => {
   });
 
   it('navigates to the widget builder with saved filters', async () => {
-    initialData.organization = {
-      ...initialData.organization,
-      features: ['dashboards-top-level-filter'],
-    };
-
     render(
       <AddToDashboardModal
         Header={stubEl}

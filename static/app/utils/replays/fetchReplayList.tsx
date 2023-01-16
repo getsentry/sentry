@@ -47,7 +47,7 @@ async function fetchReplayList({
   try {
     const path = `/organizations/${organization.slug}/replays/`;
 
-    const [{data: records}, _textStatus, resp] = await api.requestPromise(path, {
+    const [{data}, _textStatus, resp] = await api.requestPromise(path, {
       includeAllArgs: true,
       query: {
         ...eventView.getEventsAPIPayload(location),
@@ -61,7 +61,7 @@ async function fetchReplayList({
       fetchError: undefined,
       isFetching: false,
       pageLinks,
-      replays: records.map(mapResponseToReplayRecord),
+      replays: data.map(mapResponseToReplayRecord),
     };
   } catch (error) {
     if (error.responseJSON?.detail) {

@@ -18,7 +18,7 @@ import TeamSelect from 'sentry/views/settings/components/teamSelect';
 type Props = {
   organization: Organization;
   project: Project;
-} & RouteComponentProps<{orgId: string; projectId: string}, {}>;
+} & RouteComponentProps<{projectId: string}, {}>;
 
 type State = {
   projectTeams: null | Team[];
@@ -26,8 +26,8 @@ type State = {
 
 class ProjectTeams extends AsyncView<Props, State> {
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
-    const {orgId, projectId} = this.props.params;
-    return [['projectTeams', `/projects/${orgId}/${projectId}/teams/`]];
+    const {organization, project} = this.props;
+    return [['projectTeams', `/projects/${organization.slug}/${project.slug}/teams/`]];
   }
 
   getTitle() {
@@ -48,9 +48,9 @@ class ProjectTeams extends AsyncView<Props, State> {
       return;
     }
 
-    const {orgId, projectId} = this.props.params;
+    const {organization, project} = this.props;
 
-    removeTeamFromProject(this.api, orgId, projectId, teamSlug)
+    removeTeamFromProject(this.api, organization.slug, project.slug, teamSlug)
       .then(() => this.handleRemovedTeam(teamSlug))
       .catch(() => {
         addErrorMessage(t('Could not remove the %s team', teamSlug));
@@ -76,9 +76,9 @@ class ProjectTeams extends AsyncView<Props, State> {
     if (this.state.loading) {
       return;
     }
-    const {orgId, projectId} = this.props.params;
+    const {organization, project} = this.props;
 
-    addTeamToProject(this.api, orgId, projectId, team).then(
+    addTeamToProject(this.api, organization.slug, project.slug, team).then(
       () => {
         this.handleAddedTeam(team);
       },
@@ -114,13 +114,13 @@ class ProjectTeams extends AsyncView<Props, State> {
   };
 
   renderBody() {
-    const {params, organization} = this.props;
+    const {project, organization} = this.props;
 
     const canCreateTeam = this.canCreateTeam();
     const hasAccess = organization.access.includes('project:write');
     const confirmRemove = t(
       'This is the last team with access to this project. Removing it will mean only organization owners and managers will be able to access the project pages. Are you sure you want to remove this team from the project %s?',
-      params.projectId
+      project.slug
     );
     const {projectTeams} = this.state;
 
@@ -145,7 +145,7 @@ class ProjectTeams extends AsyncView<Props, State> {
 
     return (
       <div>
-        <SettingsPageHeader title={t('%s Teams', params.projectId)} />
+        <SettingsPageHeader title={t('%s Teams', project.slug)} />
         <TeamSelect
           organization={organization}
           selectedTeams={projectTeams ?? []}

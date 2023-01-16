@@ -27,12 +27,12 @@ function checkUserRole(user: User, organization: Organization, role: RoleProps['
 
   const roleIds = organization.orgRoleList.map(r => r.id);
 
-  if (!roleIds.includes(role) || !roleIds.includes(organization.role ?? '')) {
+  if (!roleIds.includes(role) || !roleIds.includes(organization.orgRole ?? '')) {
     return false;
   }
 
   const requiredIndex = roleIds.indexOf(role);
-  const currentIndex = roleIds.indexOf(organization.role ?? '');
+  const currentIndex = roleIds.indexOf(organization.orgRole ?? '');
   return currentIndex >= requiredIndex;
 }
 

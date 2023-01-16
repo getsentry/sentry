@@ -1,15 +1,17 @@
+from __future__ import annotations
+
+import abc
+import dataclasses
 import logging
-from collections import namedtuple
 from random import random
 from time import time
+from typing import Any
 
 from django.db.utils import OperationalError, ProgrammingError
 from django.utils import timezone
 from django.utils.functional import cached_property
 
-from sentry.utils.hashlib import md5_text
-
-Key = namedtuple("Key", ("name", "default", "type", "flags", "ttl", "grace", "cache_key"))
+from sentry.services.hybrid_cloud import InterfaceWithLifecycle
 
 CACHE_FETCH_ERR = "Unable to fetch option cache for %s"
 CACHE_UPDATE_ERR = "Unable to update option cache for %s"
@@ -17,8 +19,15 @@ CACHE_UPDATE_ERR = "Unable to update option cache for %s"
 logger = logging.getLogger("sentry")
 
 
-def _make_cache_key(key):
-    return "o:%s" % md5_text(key).hexdigest()
+@dataclasses.dataclass
+class Key:
+    name: str
+    default: Any
+    type: type
+    flags: int
+    ttl: int
+    grace: int
+    cache_key: str
 
 
 def _make_cache_value(key, value):
@@ -26,7 +35,33 @@ def _make_cache_value(key, value):
     return (value, now + key.ttl, now + key.ttl + key.grace)
 
 
-class OptionsStore:
+class AbstractOptionsStore(InterfaceWithLifecycle, abc.ABC):
+    @abc.abstractmethod
+    def get(self, key: Key, silent=False) -> Any | None:
+        pass
+
+    @abc.abstractmethod
+    def set(self, key: Key, value: Any) -> None:
+        pass
+
+    @abc.abstractmethod
+    def set_cache(self, key: Key, vlaue: Any) -> None:
+        pass
+
+    @abc.abstractmethod
+    def delete(self, key: Key) -> None:
+        pass
+
+    @abc.abstractmethod
+    def set_cache_impl(self, cache: Any) -> None:
+        pass
+
+    @abc.abstractmethod
+    def maybe_clean_local_cache(self):
+        pass
+
+
+class OptionsStore(AbstractOptionsStore):
     """
     Abstraction for the Option storage logic that should be driven
     by the OptionsManager.
@@ -48,9 +83,6 @@ class OptionsStore:
         from sentry.models.options import Option
 
         return Option
-
-    def make_key(self, name, default, type, flags, ttl, grace):
-        return Key(name, default, type, flags, int(ttl), int(grace), _make_cache_key(name))
 
     def get(self, key, silent=False):
         """
@@ -282,9 +314,8 @@ class OptionsStore:
         if random() < 0.25:
             self.clean_local_cache()
 
-    def connect_signals(self):
-        from celery.signals import task_postrun
-        from django.core.signals import request_finished
+    def close(self) -> None:
+        self.clean_local_cache()
 
-        task_postrun.connect(self.maybe_clean_local_cache)
-        request_finished.connect(self.maybe_clean_local_cache)
+    def set_cache_impl(self, cache) -> None:
+        self.cache = cache

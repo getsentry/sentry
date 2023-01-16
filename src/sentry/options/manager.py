@@ -3,6 +3,7 @@ import sys
 
 from django.conf import settings
 
+from sentry.utils.hashlib import md5_text
 from sentry.utils.types import Any, type_from_value
 
 # Prevent ourselves from clobbering the builtin
@@ -39,6 +40,10 @@ FLAG_CREDENTIAL = 1 << 7
 DEFAULT_KEY_TTL = 10
 # How long will a cache key exist in local memory *after ttl* while the backing store is erroring
 DEFAULT_KEY_GRACE = 60
+
+
+def _make_cache_key(key):
+    return "o:%s" % md5_text(key).hexdigest()
 
 
 class OptionsManager:
@@ -100,8 +105,13 @@ class OptionsManager:
                 logger.debug("Using legacy key: %s", key, exc_info=True)
                 # History shows, there was an expectation of no types, and empty string
                 # as the default response value
-                return self.store.make_key(key, lambda: "", Any, DEFAULT_FLAGS, 0, 0)
+                return self.make_key(key, lambda: "", Any, DEFAULT_FLAGS, 0, 0)
             raise UnknownOption(key)
+
+    def make_key(self, name, default, type, flags, ttl, grace):
+        from sentry.options.store import Key
+
+        return Key(name, default, type, flags, int(ttl), int(grace), _make_cache_key(name))
 
     def isset(self, key):
         """
@@ -248,7 +258,7 @@ class OptionsManager:
 
         settings.SENTRY_DEFAULT_OPTIONS[key] = default_value
 
-        self.registry[key] = self.store.make_key(key, default, type, flags, ttl, grace)
+        self.registry[key] = self.make_key(key, default, type, flags, ttl, grace)
 
     def unregister(self, key):
         try:

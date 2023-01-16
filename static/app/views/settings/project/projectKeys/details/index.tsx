@@ -1,6 +1,7 @@
 import {browserHistory, RouteComponentProps} from 'react-router';
 
 import {t} from 'sentry/locale';
+import {Organization} from 'sentry/types';
 import AsyncView from 'sentry/views/asyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
@@ -8,10 +9,11 @@ import KeySettings from 'sentry/views/settings/project/projectKeys/details/keySe
 import KeyStats from 'sentry/views/settings/project/projectKeys/details/keyStats';
 import {ProjectKey} from 'sentry/views/settings/project/projectKeys/types';
 
-type Props = RouteComponentProps<
+type Props = {
+  organization: Organization;
+} & RouteComponentProps<
   {
     keyId: string;
-    orgId: string;
     projectId: string;
   },
   {}
@@ -27,18 +29,23 @@ export default class ProjectKeyDetails extends AsyncView<Props, State> {
   }
 
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
-    const {keyId, orgId, projectId} = this.props.params;
-    return [['data', `/projects/${orgId}/${projectId}/keys/${keyId}/`]];
+    const {organization} = this.props;
+    const {keyId, projectId} = this.props.params;
+    return [['data', `/projects/${organization.slug}/${projectId}/keys/${keyId}/`]];
   }
 
   handleRemove = () => {
-    const {orgId, projectId} = this.props.params;
-    browserHistory.push(`/${orgId}/${projectId}/settings/keys/`);
+    const {organization} = this.props;
+    const {projectId} = this.props.params;
+    browserHistory.push(`/${organization.slug}/${projectId}/settings/keys/`);
   };
 
   renderBody() {
     const {data} = this.state;
-    const {params} = this.props;
+    const params = {
+      ...this.props.params,
+      orgId: this.props.organization.slug,
+    };
 
     return (
       <div data-test-id="key-details">

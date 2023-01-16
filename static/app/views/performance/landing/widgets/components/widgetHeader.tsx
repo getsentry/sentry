@@ -15,14 +15,20 @@ import {
 export function WidgetHeader<T extends WidgetDataConstraint>(
   props: GenericPerformanceWidgetProps<T> & WidgetDataProps<T>
 ) {
-  const {title, titleTooltip, Subtitle, HeaderActions} = props;
+  const {title, titleTooltip, Subtitle, HeaderActions, InteractiveTitle} = props;
   return (
     <WidgetHeaderContainer>
       <TitleContainer>
         <StyledHeaderTitleLegend data-test-id="performance-widget-title">
-          <TextOverflow>{title}</TextOverflow>
+          {InteractiveTitle ? (
+            <InteractiveTitle {...props} />
+          ) : (
+            <TextOverflow>{title}</TextOverflow>
+          )}
           <MEPTag />
-          <QuestionTooltip position="top" size="sm" title={titleTooltip} />
+          {titleTooltip && (
+            <QuestionTooltip position="top" size="sm" title={titleTooltip} />
+          )}
         </StyledHeaderTitleLegend>
         {Subtitle ? <Subtitle {...props} /> : null}
       </TitleContainer>

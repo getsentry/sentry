@@ -5,6 +5,8 @@ from time import sleep, time
 from typing import Any, List, Mapping, MutableMapping, Optional, Tuple
 
 import sentry_sdk
+from arroyo.backends.kafka.consumer import KafkaPayload, KafkaProducer
+from arroyo.types import Topic
 from django.conf import settings
 from django.utils import timezone
 from pytz import UTC
@@ -21,12 +23,11 @@ from sentry.tasks.base import instrumented_task
 from sentry.tasks.symbolication import RetrySymbolication
 from sentry.utils import json, kafka_config, metrics
 from sentry.utils.outcomes import Outcome, track_outcome
-from sentry.utils.pubsub import KafkaPublisher
 
 Profile = MutableMapping[str, Any]
 CallTrees = Mapping[str, List[Any]]
 
-processed_profiles_publisher = None
+_profiles_kafka_producer = None
 
 
 class VroomTimeout(Exception):
@@ -44,9 +45,8 @@ class VroomTimeout(Exception):
     max_retries=5,
     acks_late=True,
 )
-def process_profile(
+def process_profile_task(
     profile: Profile,
-    key_id: Optional[int],
     **kwargs: Any,
 ) -> None:
     project = Project.objects.get_from_cache(id=profile["project_id"])
@@ -80,26 +80,6 @@ def process_profile(
                 stacktraces=raw_stacktraces,
             )
 
-            try:
-                raw_counts = [len(stacktrace["frames"]) for stacktrace in raw_stacktraces]
-                counts = [len(stacktrace["frames"]) for stacktrace in stacktraces]
-                if len(raw_counts) != len(counts) or any(a > b for a, b in zip(raw_counts, counts)):
-                    with sentry_sdk.push_scope() as scope:
-                        scope.set_context(
-                            "profile_stacktraces",
-                            {
-                                "raw_stacktraces_count": raw_counts,
-                                "raw_stacktraces": raw_stacktraces,
-                                "stacktraces_count": counts,
-                                "stacktraces": stacktraces,
-                            },
-                        )
-                        sentry_sdk.capture_message(
-                            "Symbolicator returned less stacks than expected"
-                        )
-            except Exception as e:
-                sentry_sdk.capture_exception(e)
-
             _process_symbolicator_results(profile=profile, modules=modules, stacktraces=stacktraces)
     except Exception as e:
         sentry_sdk.capture_exception(e)
@@ -108,8 +88,7 @@ def process_profile(
             profile=profile,
             project=project,
             outcome=Outcome.INVALID,
-            key_id=key_id,
-            reason="failed-symbolication",
+            reason="profiling_failed_symbolication",
         )
         return
 
@@ -130,8 +109,7 @@ def process_profile(
             profile=profile,
             project=project,
             outcome=Outcome.INVALID,
-            key_id=key_id,
-            reason="failed-deobfuscation",
+            reason="profiling_failed_deobfuscation",
         )
         return
 
@@ -145,8 +123,7 @@ def process_profile(
             profile=profile,
             project=project,
             outcome=Outcome.INVALID,
-            key_id=key_id,
-            reason="failed-normalization",
+            reason="profiling_failed_normalization",
         )
         return
 
@@ -155,16 +132,37 @@ def process_profile(
             profile=profile,
             project=project,
             outcome=Outcome.INVALID,
-            key_id=key_id,
-            reason="failed-vroom-insertion",
+            reason="profiling_failed_vroom_insertion",
         )
         return
 
-    _initialize_publisher()
-    _insert_eventstream_call_tree(profile=profile)
-    _insert_eventstream_profile(profile=profile)
+    _initialize_producer()
 
-    _track_outcome(profile=profile, project=project, outcome=Outcome.ACCEPTED, key_id=key_id)
+    try:
+        _insert_eventstream_call_tree(profile=profile)
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
+        _track_outcome(
+            profile=profile,
+            project=project,
+            outcome=Outcome.INVALID,
+            reason="failed-to-produce-functions",
+        )
+        return
+
+    try:
+        _insert_eventstream_profile(profile=profile)
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
+        _track_outcome(
+            profile=profile,
+            project=project,
+            outcome=Outcome.INVALID,
+            reason="failed-to-produce-metadata",
+        )
+        return
+
+    _track_outcome(profile=profile, project=project, outcome=Outcome.ACCEPTED)
 
 
 SHOULD_SYMBOLICATE = frozenset(["cocoa", "rust"])
@@ -342,18 +340,18 @@ def _process_symbolicator_results_for_sample(profile: Profile, stacktraces: List
         def get_stack(stack: List[int]) -> List[int]:
             return stack
 
-    for sample in profile["profile"]["samples"]:
-        stack_id = sample["stack_id"]
-        stack = get_stack(profile["profile"]["stacks"][stack_id])
-        profile["profile"]["stacks"][stack_id] = stack
+    stacks = []
 
-        if len(stack) < 2:
-            continue
+    for stack in profile["profile"]["stacks"]:
+        stack = get_stack(stack)
 
-        # truncate some unneeded frames in the stack (related to the profiler itself or impossible to symbolicate)
-        profile["profile"]["stacks"][stack_id] = truncate_stack_needed(
-            profile["profile"]["frames"], stack
-        )
+        if len(stack) >= 2:
+            # truncate some unneeded frames in the stack (related to the profiler itself or impossible to symbolicate)
+            stack = truncate_stack_needed(profile["profile"]["frames"], stack)
+
+        stacks.append(stack)
+
+    profile["profile"]["stacks"] = stacks
 
 
 def _process_symbolicator_results_for_cocoa(profile: Profile, stacktraces: List[Any]) -> None:
@@ -478,7 +476,6 @@ def _track_outcome(
     profile: Profile,
     project: Project,
     outcome: Outcome,
-    key_id: Optional[int],
     reason: Optional[str] = None,
 ) -> None:
     if not project.flags.has_profiles:
@@ -492,7 +489,7 @@ def _track_outcome(
     track_outcome(
         org_id=project.organization_id,
         project_id=project.id,
-        key_id=key_id,
+        key_id=None,
         outcome=outcome,
         reason=reason,
         timestamp=datetime.utcnow().replace(tzinfo=UTC),
@@ -502,13 +499,13 @@ def _track_outcome(
     )
 
 
-@metrics.wraps("process_profile.initialize_publisher")
-def _initialize_publisher() -> None:
-    global processed_profiles_publisher
+@metrics.wraps("process_profile.initialize_producer")
+def _initialize_producer() -> None:
+    global _profiles_kafka_producer
 
-    if processed_profiles_publisher is None:
+    if _profiles_kafka_producer is None:
         config = settings.KAFKA_TOPICS[settings.KAFKA_PROFILES]
-        processed_profiles_publisher = KafkaPublisher(
+        _profiles_kafka_producer = KafkaProducer(
             kafka_config.get_kafka_producer_cluster_options(config["cluster"]),
         )
 
@@ -523,19 +520,20 @@ def _insert_eventstream_profile(profile: Profile) -> None:
     """
 
     # just a guard as this should always be initialized already
-    if processed_profiles_publisher is None:
+    if _profiles_kafka_producer is None:
         return
 
-    processed_profiles_publisher.publish(
-        "processed-profiles",
-        json.dumps(profile),
+    f = _profiles_kafka_producer.produce(
+        Topic(name="processed-profiles"),
+        KafkaPayload(key=None, value=json.dumps(profile).encode("utf-8"), headers=[]),
     )
+    f.exception()
 
 
 @metrics.wraps("process_profile.insert_eventstream.call_tree")
 def _insert_eventstream_call_tree(profile: Profile) -> None:
     # just a guard as this should always be initialized already
-    if processed_profiles_publisher is None:
+    if _profiles_kafka_producer is None:
         return
 
     # call_trees is empty because of an error earlier, skip aggregation
@@ -561,10 +559,11 @@ def _insert_eventstream_call_tree(profile: Profile) -> None:
         # and slower.
         del profile["call_trees"]
 
-    processed_profiles_publisher.publish(
-        "profiles-call-tree",
-        json.dumps(event),
+    f = _profiles_kafka_producer.produce(
+        Topic(name="profiles-call-tree"),
+        KafkaPayload(key=None, value=json.dumps(event).encode("utf-8"), headers=[]),
     )
+    f.exception()
 
 
 @metrics.wraps("process_profile.get_event_instance")
@@ -617,7 +616,7 @@ def _insert_vroom_profile(profile: Profile) -> bool:
         if response.status == 204:
             profile["call_trees"] = {}
         elif response.status == 200:
-            profile["call_trees"] = json.loads(response.data)["call_trees"]
+            profile["call_trees"] = json.loads(response.data, use_rapid_json=True)["call_trees"]
         elif response.status == 429:
             raise VroomTimeout
         else:

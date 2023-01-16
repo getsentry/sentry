@@ -2,18 +2,22 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime
+from enum import Enum
 from typing import (
     TYPE_CHECKING,
     Any,
     Collection,
     Literal,
     Mapping,
+    MutableMapping,
     Optional,
     Sequence,
     TypedDict,
     Union,
+    cast,
 )
 
+from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.tasks.post_process import post_process_group
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.services import Service
@@ -22,7 +26,7 @@ logger = logging.getLogger(__name__)
 
 
 if TYPE_CHECKING:
-    from sentry.eventstore.models import Event
+    from sentry.eventstore.models import Event, GroupEvent
 
 
 class ForwarderNotRequired(NotImplementedError):
@@ -42,6 +46,16 @@ class GroupState(TypedDict):
 GroupStates = Sequence[GroupState]
 
 
+class EventStreamEventType(Enum):
+    """
+    We have 3 broad categories of event types that we care about in eventstream.
+    """
+
+    Error = "error"  # error, default, various security errors
+    Transaction = "transaction"  # transactions
+    Generic = "generic"  # generic events ingested via the issue platform
+
+
 class EventStream(Service):
     __all__ = (
         "insert",
@@ -58,6 +72,7 @@ class EventStream(Service):
         "exclude_groups",
         "requires_post_process_forwarder",
         "run_post_process_forwarder",
+        "_get_event_type",
     )
 
     def _dispatch_post_process_group_task(
@@ -92,14 +107,26 @@ class EventStream(Service):
             )
 
     def _get_queue_for_post_process(self, event: Event) -> str:
-        if event.get_event_type() == "transaction":
+        event_type = self._get_event_type(event)
+        if event_type == EventStreamEventType.Transaction:
             return "post_process_transactions"
+        elif event_type == EventStreamEventType.Generic:
+            return "post_process_issue_platform"
         else:
             return "post_process_errors"
 
+    def _get_occurrence_data(self, event: Event | GroupEvent) -> MutableMapping[str, Any]:
+        occurrence = cast(Optional[IssueOccurrence], getattr(event, "occurrence", None))
+        occurrence_data: MutableMapping[str, Any] = {}
+        if occurrence:
+            occurrence_data = cast(MutableMapping[str, Any], occurrence.to_dict())
+            del occurrence_data["evidence_data"]
+            del occurrence_data["evidence_display"]
+        return occurrence_data
+
     def insert(
         self,
-        event: Event,
+        event: Event | GroupEvent,
         is_new: bool,
         is_regression: bool,
         is_new_group_environment: bool,
@@ -174,7 +201,7 @@ class EventStream(Service):
 
     def run_post_process_forwarder(
         self,
-        entity: Union[Literal["errors"], Literal["transactions"]],
+        entity: Union[Literal["errors"], Literal["transactions"], Literal["search_issues"]],
         consumer_group: str,
         topic: Optional[str],
         commit_log_topic: str,
@@ -188,3 +215,13 @@ class EventStream(Service):
     ) -> None:
         assert not self.requires_post_process_forwarder()
         raise ForwarderNotRequired
+
+    @staticmethod
+    def _get_event_type(event: Event | GroupEvent) -> EventStreamEventType:
+        if getattr(event, "occurrence", None):
+            # For now, all events with an associated occurrence are specific to the issue platform.
+            # When/if we move errors and transactions onto the platform, this might change.
+            return EventStreamEventType.Generic
+        if event.get_event_type() == "transaction":
+            return EventStreamEventType.Transaction
+        return EventStreamEventType.Error

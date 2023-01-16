@@ -31,6 +31,7 @@ _MESSAGES_METRIC = "eventstream.messages"
 class PostProcessForwarderType(str, Enum):
     ERRORS = "errors"
     TRANSACTIONS = "transactions"
+    ISSUE_PLATFORM = "issue_platform"
 
 
 @contextmanager
@@ -71,6 +72,7 @@ def _record_metrics(partition: int, task_kwargs: Mapping[str, Any]) -> None:
     """
     global __metrics
     global __last_flush
+    # TODO: Fix this, it's already broken for transactions with groups
     event_type = "transactions" if task_kwargs["group_id"] is None else "errors"
     __metrics[(partition, event_type)] += 1
 

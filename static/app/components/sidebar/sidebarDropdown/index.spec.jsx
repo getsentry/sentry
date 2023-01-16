@@ -6,7 +6,7 @@ import ConfigStore from 'sentry/stores/configStore';
 function renderDropdown(props) {
   const user = ConfigStore.get('user');
   const config = ConfigStore.get('config');
-  const organization = TestStubs.Organization({role: 'member'});
+  const organization = TestStubs.Organization({orgRole: 'member'});
   const routerContext = TestStubs.routerContext([
     {
       organization,

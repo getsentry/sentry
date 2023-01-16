@@ -4,7 +4,7 @@ import * as Sentry from '@sentry/react';
 import {Client} from 'sentry/api';
 import {ProfileHeader} from 'sentry/components/profiling/profileHeader';
 import {t} from 'sentry/locale';
-import {Organization, Project} from 'sentry/types';
+import type {EventTransaction, Organization, Project} from 'sentry/types';
 import {RequestState} from 'sentry/types/core';
 import {useSentryEvent} from 'sentry/utils/profiling/hooks/useSentryEvent';
 import {importProfile, ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
@@ -33,21 +33,41 @@ interface FlamegraphViewProps {
   children: React.ReactNode;
 }
 
-const ProfileGroupContext = createContext<
-  | [
-      RequestState<ProfileGroup>,
-      React.Dispatch<React.SetStateAction<RequestState<ProfileGroup>>>
-    ]
-  | null
->(null);
+type ProfileGroupContextValue = RequestState<ProfileGroup>;
+type SetProfileGroupContextValue = React.Dispatch<
+  React.SetStateAction<RequestState<ProfileGroup>>
+>;
+const ProfileGroupContext = createContext<ProfileGroupContextValue | null>(null);
+const SetProfileGroupContext = createContext<SetProfileGroupContextValue | null>(null);
 
-export const useProfileGroup = () => {
+export function useProfileGroup() {
   const context = useContext(ProfileGroupContext);
   if (!context) {
     throw new Error('useProfileGroup was called outside of ProfileGroupProvider');
   }
   return context;
-};
+}
+
+export function useSetProfileGroup() {
+  const context = useContext(SetProfileGroupContext);
+  if (!context) {
+    throw new Error('useSetProfileGroup was called outside of SetProfileGroupProvider');
+  }
+  return context;
+}
+
+const ProfileTransactionContext =
+  createContext<RequestState<EventTransaction | null> | null>(null);
+
+export function useProfileTransaction() {
+  const context = useContext(ProfileTransactionContext);
+  if (!context) {
+    throw new Error(
+      'useProfileTransaction was called outside of ProfileTransactionContext'
+    );
+  }
+  return context;
+}
 
 function ProfileGroupProvider(props: FlamegraphViewProps): React.ReactElement {
   const api = useApi();
@@ -57,6 +77,12 @@ function ProfileGroupProvider(props: FlamegraphViewProps): React.ReactElement {
   const [profileGroupState, setProfileGroupState] = useState<RequestState<ProfileGroup>>({
     type: 'initial',
   });
+
+  const profileTransaction = useSentryEvent<EventTransaction>(
+    params.orgId,
+    params.projectId,
+    profileGroupState.type === 'resolved' ? profileGroupState.data.transactionID : null
+  );
 
   useEffect(() => {
     if (!params.eventId || !params.projectId) {
@@ -80,18 +106,20 @@ function ProfileGroupProvider(props: FlamegraphViewProps): React.ReactElement {
     };
   }, [params.eventId, params.projectId, api, organization]);
 
-  const transactionEvent = useSentryEvent(
-    params.orgId,
-    params.projectId,
-    profileGroupState.type === 'resolved' ? profileGroupState.data.transactionID : null
-  );
-
   return (
-    <ProfileGroupContext.Provider value={[profileGroupState, setProfileGroupState]}>
-      <ProfileHeader
-        transaction={transactionEvent.type === 'resolved' ? transactionEvent.data : null}
-      />
-      {props.children}
+    <ProfileGroupContext.Provider value={profileGroupState}>
+      <SetProfileGroupContext.Provider value={setProfileGroupState}>
+        <ProfileTransactionContext.Provider value={profileTransaction}>
+          <ProfileHeader
+            eventId={params.eventId}
+            projectId={params.projectId}
+            transaction={
+              profileTransaction.type === 'resolved' ? profileTransaction.data : null
+            }
+          />
+          {props.children}
+        </ProfileTransactionContext.Provider>
+      </SetProfileGroupContext.Provider>
     </ProfileGroupContext.Provider>
   );
 }

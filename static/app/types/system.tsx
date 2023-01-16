@@ -1,7 +1,7 @@
+import {Theme} from '@emotion/react';
 import type {FocusTrap} from 'focus-trap';
 
 import type exportGlobals from 'sentry/bootstrap/exportGlobals';
-import {Theme} from 'sentry/utils/theme';
 
 import type {User} from './user';
 
@@ -73,13 +73,6 @@ declare global {
      * Assets public location
      */
     __sentryGlobalStaticPrefix: string;
-    /**
-     * This is used for testing purposes as an interem while we translate tests
-     * to React Testing Library.
-     *
-     * See the useLegacyStore hook for more unformation about this.
-     */
-    _legacyStoreHookUpdate: (update: () => void) => void;
     // typing currently used for demo add on
     // TODO: improve typing
     SentryApp?: {

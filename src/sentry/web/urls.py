@@ -250,9 +250,7 @@ urlpatterns += [
                 ),
                 url(
                     r"^settings/appearance/$",
-                    RedirectView.as_view(
-                        pattern_name="sentry-account-settings-appearance", permanent=False
-                    ),
+                    RedirectView.as_view(pattern_name="sentry-account-settings", permanent=False),
                 ),
                 url(
                     r"^settings/identities/$",
@@ -317,7 +315,9 @@ urlpatterns += [
                 ),
                 url(
                     r"^remove/$",
-                    RedirectView.as_view(pattern_name="sentry-remove-account", permanent=False),
+                    RedirectView.as_view(
+                        pattern_name="sentry-account-close-account", permanent=False
+                    ),
                 ),
                 url(r"^settings/social/", include("social_auth.urls")),
                 url(r"^", generic_react_page_view),
@@ -342,7 +342,7 @@ urlpatterns += [
     url(r"^api/$", RedirectView.as_view(pattern_name="sentry-api", permanent=False)),
     url(
         r"^api/applications/$",
-        RedirectView.as_view(pattern_name="sentry-api-applications", permanent=False),
+        RedirectView.as_view(pattern_name="sentry-account-api-applications", permanent=False),
     ),
     url(
         r"^api/new-token/$",
@@ -356,6 +356,11 @@ urlpatterns += [
         GenericReactPageView.as_view(auth_required=False),
         name="sentry-accept-invite",
     ),
+    url(
+        r"^accept/(?P<organization_slug>[^/]+)/(?P<member_id>\d+)/(?P<token>\w+)/$",
+        GenericReactPageView.as_view(auth_required=False),
+        name="sentry-accept-invite-with-org",
+    ),
     # User settings use generic_react_page_view, while any view acting on
     # behalf of an organization should use react_page_view
     url(
@@ -363,11 +368,6 @@ urlpatterns += [
         include(
             [
                 url(r"^account/$", generic_react_page_view, name="sentry-account-settings"),
-                url(
-                    r"^account/$",
-                    generic_react_page_view,
-                    name="sentry-account-settings-appearance",
-                ),
                 url(
                     r"^account/authorizations/$",
                     generic_react_page_view,
@@ -406,20 +406,20 @@ urlpatterns += [
                 url(
                     r"^account/api/applications/$",
                     generic_react_page_view,
-                    name="sentry-api-applications",
+                    name="sentry-account-api-applications",
                 ),
                 url(
                     r"^account/api/auth-tokens/new-token/$",
                     generic_react_page_view,
-                    name="sentry-api-new-auth-token",
+                    name="sentry-account-api-new-auth-token",
                 ),
                 url(r"^account/api/", generic_react_page_view, name="sentry-api"),
                 url(
                     r"^account/close-account/$",
                     generic_react_page_view,
-                    name="sentry-remove-account",
+                    name="sentry-account-close-account",
                 ),
-                url(r"^account/", generic_react_page_view),
+                url(r"^account/", generic_react_page_view, name="sentry-account-settings-generic"),
                 url(
                     r"^organization/",
                     react_page_view,
@@ -579,7 +579,11 @@ urlpatterns += [
         r"^organizations/",
         include(
             [
-                url(r"^new/$", generic_react_page_view),
+                url(
+                    r"^new/$",
+                    generic_react_page_view,
+                    name="sentry-organization-create",
+                ),
                 url(
                     r"^(?P<organization_slug>[\w_-]+)/$",
                     react_page_view,

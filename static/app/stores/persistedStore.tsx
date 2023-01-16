@@ -6,6 +6,7 @@ import React, {
   useMemo,
   useState,
 } from 'react';
+import {useMutation} from '@tanstack/react-query';
 
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -91,26 +92,37 @@ export function usePersistedStoreCategory<C extends keyof PersistedStore>(
   const organization = useOrganization();
   const [state, setState] = usePersistedStore();
 
+  const endpointLocation = `/organizations/${organization.slug}/client-state/${category}/`;
+  const {mutate: clearState} = useMutation({
+    mutationFn: () =>
+      api.requestPromise(endpointLocation, {
+        method: 'DELETE',
+      }),
+    retry: 3,
+  });
+  const {mutate: syncState} = useMutation({
+    mutationFn: (val: PersistedStore[C]) =>
+      api.requestPromise(endpointLocation, {
+        method: 'PUT',
+        data: val,
+      }),
+    retry: 3,
+  });
+
   const setCategoryState = useCallback(
     (val: PersistedStore[C] | null) => {
       setState(oldState => ({...oldState, [category]: val}));
 
       // If a state is set with null, we can clear it from the server.
-      const endpointLocation = `/organizations/${organization.slug}/client-state/${category}/`;
       if (val === null) {
-        api.requestPromise(endpointLocation, {
-          method: 'DELETE',
-        });
+        clearState();
         return;
       }
 
       // Else we want to sync our state with the server
-      api.requestPromise(endpointLocation, {
-        method: 'PUT',
-        data: val,
-      });
+      syncState(val);
     },
-    [setState, category, organization, api]
+    [setState, syncState, category, clearState]
   );
 
   const result = state[category];

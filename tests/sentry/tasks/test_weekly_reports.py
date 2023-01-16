@@ -144,6 +144,10 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
         two_days_ago = now - timedelta(days=2)
         three_days_ago = now - timedelta(days=3)
 
+        self.create_member(
+            teams=[self.team], user=self.create_user(), organization=self.organization
+        )
+
         event1 = self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -202,22 +206,24 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
 
         prepare_organization_report(to_timestamp(now), ONE_DAY * 7, self.organization.id)
 
-        message_params = message_builder.call_args.kwargs
-        context = message_params["context"]
+        for call_args in message_builder.call_args_list:
+            message_params = call_args.kwargs
+            context = message_params["context"]
 
-        assert message_params["template"] == "sentry/emails/reports/body.txt"
-        assert message_params["html_template"] == "sentry/emails/reports/body.html"
+            assert message_params["template"] == "sentry/emails/reports/body.txt"
+            assert message_params["html_template"] == "sentry/emails/reports/body.html"
 
-        assert context["organization"] == self.organization
-        assert context["issue_summary"] == {
-            "all_issue_count": 2,
-            "existing_issue_count": 0,
-            "new_issue_count": 2,
-            "reopened_issue_count": 0,
-        }
-        assert context["trends"]["total_error_count"] == 2
-        assert context["trends"]["total_transaction_count"] == 10
-        assert "Weekly Report for" in message_params["subject"]
+            assert context["organization"] == self.organization
+            assert context["issue_summary"] == {
+                "all_issue_count": 2,
+                "existing_issue_count": 0,
+                "new_issue_count": 2,
+                "reopened_issue_count": 0,
+            }
+            assert len(context["key_errors"]) == 2
+            assert context["trends"]["total_error_count"] == 2
+            assert context["trends"]["total_transaction_count"] == 10
+            assert "Weekly Report for" in message_params["subject"]
 
     @mock.patch("sentry.tasks.weekly_reports.MessageBuilder")
     def test_message_builder_advanced(self, message_builder):

@@ -98,6 +98,111 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             )
             assert_expected_response(response_data["data"][0], expected_response)
 
+    def test_get_replays_browse_screen_fields(self):
+        """Test replay response with fields requested in production."""
+        project = self.create_project(teams=[self.team])
+
+        replay1_id = uuid.uuid4().hex
+        seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=22)
+        seq2_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=5)
+        self.store_replays(
+            mock_replay(
+                seq1_timestamp,
+                project.id,
+                replay1_id,
+                urls=[
+                    "http://localhost:3000/",
+                    "http://localhost:3000/login",
+                ],
+                tags={"test": "hello", "other": "hello"},
+            )
+        )
+        self.store_replays(
+            mock_replay(
+                seq2_timestamp,
+                project.id,
+                replay1_id,
+                urls=["http://localhost:3000/"],
+                tags={"test": "world", "other": "hello"},
+            )
+        )
+
+        with self.feature(REPLAYS_FEATURES):
+            response = self.client.get(
+                self.url
+                + "?field=activity&field=countErrors&field=duration&field=finishedAt&field=id"
+                "&field=projectId&field=startedAt&field=urls&field=user"
+            )
+            assert response.status_code == 200
+
+            response_data = response.json()
+            assert "data" in response_data
+            assert len(response_data["data"]) == 1
+
+            assert len(response_data["data"][0]) == 9
+            assert "activity" in response_data["data"][0]
+            assert "countErrors" in response_data["data"][0]
+            assert "duration" in response_data["data"][0]
+            assert "finishedAt" in response_data["data"][0]
+            assert "id" in response_data["data"][0]
+            assert "projectId" in response_data["data"][0]
+            assert "startedAt" in response_data["data"][0]
+            assert "urls" in response_data["data"][0]
+            assert "user" in response_data["data"][0]
+
+            assert len(response_data["data"][0]["user"]) == 5
+            assert "id" in response_data["data"][0]["user"]
+            assert "name" in response_data["data"][0]["user"]
+            assert "email" in response_data["data"][0]["user"]
+            assert "ip_address" in response_data["data"][0]["user"]
+            assert "displayName" in response_data["data"][0]["user"]
+
+    def test_get_replays_minimum_field_set(self):
+        """Test replay response with fields requested in production."""
+        project = self.create_project(teams=[self.team])
+
+        replay1_id = uuid.uuid4().hex
+        replay2_id = uuid.uuid4().hex
+        seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=22)
+        seq2_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=5)
+        self.store_replays(
+            mock_replay(
+                seq2_timestamp,
+                project.id,
+                replay1_id,
+                urls=[
+                    "http://localhost:3000/",
+                    "http://localhost:3000/login",
+                ],
+                tags={"test": "hello", "other": "hello"},
+                user_id=123,
+                replay_start_timestamp=int(seq1_timestamp.timestamp()),
+            )
+        )
+        self.store_replays(
+            mock_replay(
+                seq2_timestamp,
+                project.id,
+                replay2_id,
+                urls=["http://localhost:3000/"],
+                tags={"test": "world", "other": "hello"},
+                replay_start_timestamp=int(seq1_timestamp.timestamp()),
+            )
+        )
+
+        with self.feature(REPLAYS_FEATURES):
+            response = self.client.get(
+                self.url + "?field=id&sort=countErrors&query=test:hello OR user_id:123"
+            )
+            assert response.status_code == 200
+
+            response_data = response.json()
+            assert "data" in response_data
+            assert len(response_data["data"]) == 1
+
+            assert len(response_data["data"][0]) == 1
+            assert "id" in response_data["data"][0]
+
     def test_get_replays_require_timely_initial_sequence(self):
         """Test returned replays can not partially fall outside of range."""
         project = self.create_project(teams=[self.team])

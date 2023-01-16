@@ -9,7 +9,6 @@ sentry.models.deploy
 from django.db import models
 from django.utils import timezone
 
-from sentry import features
 from sentry.db.models import (
     BoundedBigIntegerField,
     BoundedPositiveIntegerField,
@@ -18,7 +17,6 @@ from sentry.db.models import (
 )
 from sentry.locks import locks
 from sentry.types.activity import ActivityType
-from sentry.types.releaseactivity import ReleaseActivityType
 from sentry.utils.retries import TimedRetryPolicy
 
 
@@ -49,14 +47,7 @@ class Deploy(Model):
         create activity and send deploy notifications
         if they haven't been sent
         """
-        from sentry.models import (
-            Activity,
-            Environment,
-            Organization,
-            ReleaseActivity,
-            ReleaseCommit,
-            ReleaseHeadCommit,
-        )
+        from sentry.models import Activity, Environment, ReleaseCommit, ReleaseHeadCommit
 
         lock_key = cls.get_lock_key(deploy_id)
         lock = locks.get(lock_key, duration=30, name="deploy_notify")
@@ -102,14 +93,3 @@ class Deploy(Model):
             if activity is not None:
                 activity.send_notification()
                 deploy.update(notified=True)
-                # XXX(workflow): delete this after WF 2.0 experiment over
-                try:
-                    org = Organization.objects.get_from_cache(id=deploy.organization_id)
-                except Organization.DoesNotExist:
-                    org = None
-                if org and features.has("organizations:active-release-monitor-alpha", org):
-                    ReleaseActivity.objects.create(
-                        type=ReleaseActivityType.DEPLOYED.value,
-                        release=release,
-                        data={"environment": str(environment.name)},
-                    )

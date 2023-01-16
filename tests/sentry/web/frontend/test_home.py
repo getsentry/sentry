@@ -1,5 +1,6 @@
+from functools import cached_property
+
 from django.urls import reverse
-from exam import fixture
 
 from sentry.testutils import TestCase
 from sentry.utils import json
@@ -7,7 +8,7 @@ from sentry.utils.client_state import get_client_state_key, get_redis_client
 
 
 class HomeTest(TestCase):
-    @fixture
+    @cached_property
     def path(self):
         return reverse("sentry")
 

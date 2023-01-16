@@ -49,10 +49,6 @@ export type ResponseMeta<R = any> = {
    */
   getResponseHeader: (header: string) => string | null;
   /**
-   * The raw response
-   */
-  rawResponse: Response;
-  /**
    * The response body decoded from json
    */
   responseJSON: R;
@@ -463,7 +459,7 @@ export class Client {
 
         // Try to get text out of the response no matter the status
         try {
-          responseText = await response.clone().text();
+          responseText = await response.text();
         } catch (error) {
           ok = false;
           if (error.name === 'AbortError') {
@@ -473,13 +469,13 @@ export class Client {
           }
         }
 
-        const responseContentType = response.clone().headers.get('content-type');
+        const responseContentType = response.headers.get('content-type');
         const isResponseJSON = responseContentType?.includes('json');
 
         const isStatus3XX = status >= 300 && status < 400;
         if (status !== 204 && !isStatus3XX) {
           try {
-            responseJSON = await response.clone().json();
+            responseJSON = JSON.parse(responseText);
           } catch (error) {
             if (error.name === 'AbortError') {
               ok = false;
@@ -499,7 +495,6 @@ export class Client {
           responseJSON,
           responseText,
           getResponseHeader: (header: string) => response.headers.get(header),
-          rawResponse: response.clone(),
         };
 
         // Respect the response content-type header

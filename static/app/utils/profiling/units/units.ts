@@ -15,6 +15,15 @@ const durationMappings: Record<ProfilingFormatterUnit, number> = {
   seconds: 1,
 };
 
+export function makeFormatTo(
+  from: ProfilingFormatterUnit | string,
+  to: ProfilingFormatterUnit | string
+) {
+  if (from === to) {
+    return (v: number) => v;
+  }
+  return (v: number) => formatTo(v, from, to);
+}
 export function formatTo(
   v: number,
   from: ProfilingFormatterUnit | string,
@@ -28,6 +37,9 @@ export function formatTo(
 }
 
 const format = (v: number, abbrev: string, precision: number) => {
+  if (v === 0) {
+    return '0' + abbrev;
+  }
   return v.toFixed(precision) + abbrev;
 };
 

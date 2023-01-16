@@ -3,7 +3,14 @@ import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 
 import {addMetricsDataMock} from 'sentry-test/performance/addMetricsDataMock';
 import {initializeData} from 'sentry-test/performance/initializePerformanceData';
-import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  waitForElementToBeRemoved,
+} from 'sentry-test/reactTestingLibrary';
 
 import TeamStore from 'sentry/stores/teamStore';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
@@ -12,6 +19,8 @@ import {generatePerformanceEventView} from 'sentry/views/performance/data';
 import {PerformanceLanding} from 'sentry/views/performance/landing';
 import {REACT_NATIVE_COLUMN_TITLES} from 'sentry/views/performance/landing/data';
 import {LandingDisplayField} from 'sentry/views/performance/landing/utils';
+
+const searchHandlerMock = jest.fn();
 
 const WrappedComponent = ({data, withStaticFilters = false}) => {
   const eventView = generatePerformanceEventView(data.router.location, data.projects, {
@@ -35,7 +44,7 @@ const WrappedComponent = ({data, withStaticFilters = false}) => {
             projects={data.projects}
             selection={eventView.getPageFilters()}
             onboardingProject={undefined}
-            handleSearch={() => {}}
+            handleSearch={searchHandlerMock}
             handleTrendsClick={() => {}}
             setError={() => {}}
             withStaticFilters={withStaticFilters}
@@ -47,8 +56,8 @@ const WrappedComponent = ({data, withStaticFilters = false}) => {
 };
 
 describe('Performance > Landing > Index', function () {
-  let eventStatsMock: any;
-  let eventsV2Mock: any;
+  let eventStatsMock: jest.Mock;
+  let eventsMock: jest.Mock;
   let wrapper: any;
 
   act(() => void TeamStore.loadInitialData([], false, null));
@@ -94,12 +103,14 @@ describe('Performance > Landing > Index', function () {
       url: `/organizations/org-slug/events-histogram/`,
       body: [],
     });
-    eventsV2Mock = MockApiClient.addMockResponse({
+    eventsMock = MockApiClient.addMockResponse({
       method: 'GET',
-      url: `/organizations/org-slug/eventsv2/`,
+      url: `/organizations/org-slug/events/`,
       body: {
         meta: {
-          id: 'string',
+          fields: {
+            id: 'string',
+          },
         },
         data: [
           {
@@ -110,16 +121,20 @@ describe('Performance > Landing > Index', function () {
     });
     MockApiClient.addMockResponse({
       method: 'GET',
-      url: `/organizations/org-slug/events/`,
-      body: {
-        data: [{}],
-        meta: {},
-      },
+      url: `/organizations/org-slug/metrics-compatibility/`,
+      body: [],
+    });
+
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/org-slug/metrics-compatibility-sums/`,
+      body: [],
     });
   });
 
   afterEach(function () {
     MockApiClient.clearMockResponses();
+    jest.resetAllMocks();
 
     // @ts-ignore no-console
     // eslint-disable-next-line no-console
@@ -152,11 +167,11 @@ describe('Performance > Landing > Index', function () {
     const titles = screen.getAllByTestId('performance-widget-title');
     expect(titles).toHaveLength(5);
 
-    expect(titles[0]).toHaveTextContent('p75 LCP');
-    expect(titles[1]).toHaveTextContent('LCP Distribution');
-    expect(titles[2]).toHaveTextContent('FCP Distribution');
-    expect(titles[3]).toHaveTextContent('Worst LCP Web Vitals');
-    expect(titles[4]).toHaveTextContent('Worst FCP Web Vitals');
+    expect(titles[0]).toHaveTextContent('Worst LCP Web Vitals');
+    expect(titles[1]).toHaveTextContent('Worst FCP Web Vitals');
+    expect(titles[2]).toHaveTextContent('p75 LCP');
+    expect(titles[3]).toHaveTextContent('LCP Distribution');
+    expect(titles[4]).toHaveTextContent('FCP Distribution');
   });
 
   it('renders frontend other view', function () {
@@ -216,7 +231,7 @@ describe('Performance > Landing > Index', function () {
 
     expect(await screen.findByTestId('performance-table')).toBeInTheDocument();
 
-    expect(eventStatsMock).toHaveBeenCalledTimes(1); // Only one request is made since the query batcher is working.
+    await waitFor(() => expect(eventStatsMock).toHaveBeenCalledTimes(1)); // Only one request is made since the query batcher is working.
 
     expect(eventStatsMock).toHaveBeenNthCalledWith(
       1,
@@ -235,16 +250,16 @@ describe('Performance > Landing > Index', function () {
       })
     );
 
-    expect(eventsV2Mock).toHaveBeenCalledTimes(2);
+    expect(eventsMock).toHaveBeenCalledTimes(3);
 
     const titles = await screen.findAllByTestId('performance-widget-title');
     expect(titles).toHaveLength(5);
 
-    expect(titles.at(0)).toHaveTextContent('User Misery');
-    expect(titles.at(1)).toHaveTextContent('Transactions Per Minute');
-    expect(titles.at(2)).toHaveTextContent('Failure Rate');
-    expect(titles.at(3)).toHaveTextContent('Most Related Issues');
-    expect(titles.at(4)).toHaveTextContent('Most Improved');
+    expect(titles.at(0)).toHaveTextContent('Most Related Issues');
+    expect(titles.at(1)).toHaveTextContent('Most Improved');
+    expect(titles.at(2)).toHaveTextContent('User Misery');
+    expect(titles.at(3)).toHaveTextContent('Transactions Per Minute');
+    expect(titles.at(4)).toHaveTextContent('Failure Rate');
   });
 
   it('Can switch between landing displays', function () {
@@ -294,7 +309,22 @@ describe('Performance > Landing > Index', function () {
     expect(screen.getByTestId('frontend-pageload-view')).toBeInTheDocument();
   });
 
-  describe('with transaction search feature', function () {
+  describe('With transaction search feature', function () {
+    it('does not search for empty string transaction', async function () {
+      const data = initializeData({
+        features: [
+          'performance-transaction-name-only-search',
+          'performance-transaction-name-only-search-indexed',
+        ],
+      });
+
+      render(<WrappedComponent data={data} withStaticFilters />, data.routerContext);
+
+      await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
+      userEvent.type(screen.getByPlaceholderText('Search Transactions'), '{enter}');
+      expect(searchHandlerMock).toHaveBeenCalledWith('', 'transactionsOnly');
+    });
+
     it('renders the search bar', async function () {
       addMetricsDataMock();
 
@@ -311,6 +341,38 @@ describe('Performance > Landing > Index', function () {
       );
 
       expect(await screen.findByTestId('transaction-search-bar')).toBeInTheDocument();
+    });
+
+    it('extracts free text from the query', async function () {
+      const data = initializeData({
+        features: [
+          'performance-transaction-name-only-search',
+          'performance-transaction-name-only-search-indexed',
+        ],
+      });
+
+      wrapper = render(<WrappedComponent data={data} />, data.routerContext);
+
+      await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
+
+      expect(await screen.findByPlaceholderText('Search Transactions')).toHaveValue('');
+    });
+  });
+
+  describe('With span operations widget feature flag', function () {
+    it('Displays the span operations widget', async function () {
+      addMetricsDataMock();
+
+      const data = initializeData({
+        features: [
+          'performance-transaction-name-only-search',
+          'performance-new-widget-designs',
+        ],
+      });
+
+      wrapper = render(<WrappedComponent data={data} />, data.routerContext);
+      const titles = await screen.findAllByTestId('performance-widget-title');
+      expect(titles.at(0)).toHaveTextContent('Span Operations');
     });
   });
 });

@@ -204,7 +204,7 @@ function renderMockRequests() {
 
 describe('Results', function () {
   describe('Events', function () {
-    const features = ['discover-basic', 'discover-frontend-use-events-endpoint'];
+    const features = ['discover-basic'];
     it('loads data when moving from an invalid to valid EventView', function () {
       const organization = TestStubs.Organization({
         features,
@@ -396,7 +396,7 @@ describe('Results', function () {
 
     it('excludes top5 options when plan does not include discover-query', async function () {
       const organization = TestStubs.Organization({
-        features: ['discover-basic', 'discover-frontend-use-events-endpoint'],
+        features: ['discover-basic'],
       });
 
       const initialData = initializeOrg({
@@ -433,7 +433,7 @@ describe('Results', function () {
 
     it('needs confirmation on long queries', function () {
       const organization = TestStubs.Organization({
-        features: ['discover-basic', 'discover-frontend-use-events-endpoint'],
+        features: ['discover-basic'],
       });
 
       const initialData = initializeOrg({
@@ -467,7 +467,7 @@ describe('Results', function () {
 
     it('needs confirmation on long query with explicit projects', function () {
       const organization = TestStubs.Organization({
-        features: ['discover-basic', 'discover-frontend-use-events-endpoint'],
+        features: ['discover-basic'],
       });
 
       const initialData = initializeOrg({
@@ -507,7 +507,7 @@ describe('Results', function () {
 
     it('does not need confirmation on short queries', function () {
       const organization = TestStubs.Organization({
-        features: ['discover-basic', 'discover-frontend-use-events-endpoint'],
+        features: ['discover-basic'],
       });
 
       const initialData = initializeOrg({
@@ -541,7 +541,7 @@ describe('Results', function () {
 
     it('does not need confirmation with to few projects', function () {
       const organization = TestStubs.Organization({
-        features: ['discover-basic', 'discover-frontend-use-events-endpoint'],
+        features: ['discover-basic'],
       });
 
       const initialData = initializeOrg({
@@ -950,7 +950,7 @@ describe('Results', function () {
 
     it('respects pinned filters for prebuilt queries', async function () {
       const organization = TestStubs.Organization({
-        features: [...features, 'global-views', 'discover-frontend-use-events-endpoint'],
+        features: [...features, 'global-views'],
       });
 
       const initialData = initializeOrg({
@@ -1041,7 +1041,7 @@ describe('Results', function () {
 
     it('renders metric fallback alert', async function () {
       const organization = TestStubs.Organization({
-        features: ['discover-basic', 'discover-frontend-use-events-endpoint'],
+        features: ['discover-basic'],
       });
 
       const initialData = initializeOrg({
@@ -1079,7 +1079,7 @@ describe('Results', function () {
 
     it('renders unparameterized data banner', async function () {
       const organization = TestStubs.Organization({
-        features: ['discover-basic', 'discover-frontend-use-events-endpoint'],
+        features: ['discover-basic'],
       });
 
       const initialData = initializeOrg({
@@ -1125,7 +1125,6 @@ describe('Results', function () {
           'discover-basic',
           'discover-query',
           'discover-query-builder-as-landing-page',
-          'discover-frontend-use-events-endpoint',
         ],
       });
 
@@ -1196,7 +1195,6 @@ describe('Results', function () {
           'discover-basic',
           'discover-query',
           'discover-query-builder-as-landing-page',
-          'discover-frontend-use-events-endpoint',
         ],
       });
 
@@ -1263,7 +1261,6 @@ describe('Results', function () {
           'discover-basic',
           'discover-query',
           'discover-query-builder-as-landing-page',
-          'discover-frontend-use-events-endpoint',
         ],
       });
 
@@ -1329,7 +1326,6 @@ describe('Results', function () {
           'discover-basic',
           'discover-query',
           'discover-query-builder-as-landing-page',
-          'discover-frontend-use-events-endpoint',
         ],
       });
 
@@ -1366,7 +1362,6 @@ describe('Results', function () {
           'discover-basic',
           'discover-query',
           'discover-query-builder-as-landing-page',
-          'discover-frontend-use-events-endpoint',
         ],
       });
 
@@ -1401,7 +1396,6 @@ describe('Results', function () {
           'discover-basic',
           'discover-query',
           'discover-query-builder-as-landing-page',
-          'discover-frontend-use-events-endpoint',
         ],
       });
 

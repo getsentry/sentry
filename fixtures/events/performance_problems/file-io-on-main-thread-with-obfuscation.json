@@ -1,0 +1,295 @@
+{
+  "event_id": "8ab6e6ebbaa5458687143fe0e19a1d8d",
+  "project": 5428559,
+  "release": "io.sentry.samples.android@1.1.0+2",
+  "dist": "2",
+  "platform": "java",
+  "message": "",
+  "datetime": "2022-11-25T22:43:58.519693+00:00",
+  "tags": [
+    [
+      "device",
+      "Android SDK built for x86"
+    ],
+    [
+      "device.family",
+      "Android"
+    ],
+    [
+      "environment",
+      "release"
+    ],
+    [
+      "isSideLoaded",
+      "true"
+    ],
+    [
+      "level",
+      "info"
+    ],
+    [
+      "os",
+      "Android 10"
+    ],
+    [
+      "os.name",
+      "Android"
+    ],
+    [
+      "os.rooted",
+      "no"
+    ],
+    [
+      "dist",
+      "2"
+    ],
+    [
+      "release",
+      "io.sentry.samples.android@1.1.0+2"
+    ],
+    [
+      "user",
+      "id:0f38dda2-6ef7-4d9a-b7f4-6bcc80b85b2e"
+    ],
+    [
+      "transaction",
+      "MainActivity.add_attachment"
+    ]
+  ],
+  "_metrics": {
+    "bytes.ingested.event": 3552,
+    "bytes.stored.event": 4685
+  },
+  "breadcrumbs": {
+    "values": [
+      {
+        "timestamp": 1669416139.706,
+        "type": "navigation",
+        "category": "ui.lifecycle",
+        "level": "info",
+        "data": {
+          "screen": "MainActivity",
+          "state": "created"
+        }
+      },
+      {
+        "timestamp": 1669416139.9,
+        "type": "navigation",
+        "category": "ui.lifecycle",
+        "level": "info",
+        "data": {
+          "screen": "MainActivity",
+          "state": "started"
+        }
+      },
+      {
+        "timestamp": 1669416139.902,
+        "type": "session",
+        "category": "app.lifecycle",
+        "level": "info",
+        "data": {
+          "state": "start"
+        }
+      },
+      {
+        "timestamp": 1669416139.903,
+        "type": "navigation",
+        "category": "app.lifecycle",
+        "level": "info",
+        "data": {
+          "state": "foreground"
+        }
+      },
+      {
+        "timestamp": 1669416139.903,
+        "type": "navigation",
+        "category": "ui.lifecycle",
+        "level": "info",
+        "data": {
+          "screen": "MainActivity",
+          "state": "resumed"
+        }
+      },
+      {
+        "timestamp": 1669416238.454,
+        "type": "user",
+        "category": "ui.click",
+        "level": "info",
+        "data": {
+          "view.class": "k.e",
+          "view.id": "add_attachment"
+        }
+      }
+    ]
+  },
+  "breakdowns": {
+    "span_ops": {
+      "total.time": {
+        "value": 17.19904,
+        "unit": "millisecond"
+      }
+    }
+  },
+  "contexts": {
+    "app": {
+      "app_start_time": "2022-11-25T22:42:19.465Z",
+      "app_identifier": "io.sentry.samples.android",
+      "app_name": "Sentry sample",
+      "app_version": "1.1.0",
+      "app_build": "2",
+      "permissions": {
+        "ACCESS_NETWORK_STATE": "granted",
+        "CAMERA": "not_granted",
+        "INTERNET": "granted",
+        "READ_EXTERNAL_STORAGE": "not_granted",
+        "READ_PHONE_STATE": "not_granted",
+        "WRITE_EXTERNAL_STORAGE": "not_granted"
+      },
+      "type": "app"
+    },
+    "device": {
+      "name": "Android SDK built for x86",
+      "family": "Android",
+      "model": "Android SDK built for x86",
+      "model_id": "QSR1.190920.001",
+      "orientation": "portrait",
+      "manufacturer": "Google",
+      "brand": "google",
+      "screen_density": 2.625,
+      "screen_dpi": 420,
+      "simulator": true,
+      "boot_time": "2022-11-25T21:17:00.121Z",
+      "timezone": "Europe/Vienna",
+      "archs": [
+        "x86"
+      ],
+      "id": "0f38dda2-6ef7-4d9a-b7f4-6bcc80b85b2e",
+      "language": "en",
+      "locale": "en_US",
+      "screen_height_pixels": 1794,
+      "screen_width_pixels": 1080,
+      "type": "device"
+    },
+    "os": {
+      "name": "Android",
+      "version": "10",
+      "build": "QSR1.190920.001",
+      "kernel_version": "4.14.112+",
+      "rooted": false,
+      "type": "os"
+    },
+    "trace": {
+      "trace_id": "e4ab5e05af08473886eb06690f358fbf",
+      "span_id": "e00f26281ba24d3f",
+      "op": "ui.action.click",
+      "status": "ok",
+      "exclusive_time": 49.000024,
+      "client_sample_rate": 1,
+      "hash": "1ff9a18d6a6b09a8",
+      "type": "trace"
+    }
+  },
+  "culprit": "MainActivity.add_attachment",
+  "debug_meta": {
+    "images": [
+      {
+        "uuid": "467ade76-6d0b-11ed-a1eb-0242ac120002",
+        "type": "proguard"
+      }
+    ]
+  },
+  "environment": "release",
+  "grouping_config": {
+    "enhancements": "eJybzDRxY3J-bm5-npWRgaGlroGxrpHxxEkT1-Zm5usVp-aVFFXqaWlNZAQAKGsOFg",
+    "id": "newstyle:2019-10-29"
+  },
+  "hashes": [],
+  "ingest_path": [
+    {
+      "version": "22.11.0",
+      "public_key": "XE7QiyuNlja9PZ7I9qJlwQotzecWrUIN91BAO7Q5R38"
+    }
+  ],
+  "key_id": "1336851",
+  "level": "info",
+  "location": "MainActivity.add_attachment",
+  "logger": "",
+  "metadata": {
+    "location": "MainActivity.add_attachment",
+    "title": "MainActivity.add_attachment"
+  },
+  "nodestore_insert": 1669416243.421129,
+  "received": 1669416242.917276,
+  "sdk": {
+    "name": "sentry.java.android.timber",
+    "version": "6.8.0",
+    "packages": [
+      {
+        "name": "maven:io.sentry:sentry",
+        "version": "6.8.0"
+      },
+      {
+        "name": "maven:io.sentry:sentry-android-core",
+        "version": "6.8.0"
+      },
+      {
+        "name": "maven:io.sentry:sentry-android-ndk",
+        "version": "6.8.0"
+      },
+      {
+        "name": "maven:io.sentry:sentry-android-timber",
+        "version": "6.8.0"
+      }
+    ]
+  },
+  "span_grouping_config": {
+    "id": "default:2022-10-27"
+  },
+  "spans": [
+    {
+      "timestamp": 1669416238.520199,
+      "start_timestamp": 1669416238.503,
+      "exclusive_time": 17.19904,
+      "description": "1669416238502_file.txt (4.0 kB)",
+      "op": "file.write",
+      "span_id": "25cec4d31c2f4acb",
+      "parent_span_id": "e00f26281ba24d3f",
+      "trace_id": "e4ab5e05af08473886eb06690f358fbf",
+      "status": "ok",
+      "data": {
+        "blocked_main_thread": true,
+        "call_stack": [
+          {
+            "filename": "R8$$SyntheticClass",
+            "function": "a",
+            "in_app": true,
+            "lineno": 69,
+            "module": "org.a.b.g$a",
+            "native": false
+          }
+        ],
+        "file.path": "/data/user/0/io.sentry.samples.android/files/1669416238502_file.txt",
+        "file.size": 4010
+      },
+      "hash": "67650ed457dbcced"
+    }
+  ],
+  "start_timestamp": 1669416238.454,
+  "timestamp": 1669416238.519693,
+  "title": "MainActivity.add_attachment",
+  "transaction": "MainActivity.add_attachment",
+  "transaction_info": {
+    "source": "component"
+  },
+  "type": "transaction",
+  "user": {
+    "id": "0f38dda2-6ef7-4d9a-b7f4-6bcc80b85b2e",
+    "ip_address": "86.56.213.87",
+    "geo": {
+      "country_code": "AT",
+      "city": "Hoersching",
+      "region": "Austria"
+    }
+  },
+  "version": "7"
+}

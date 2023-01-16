@@ -25,14 +25,14 @@ class EditMonitor extends AsyncView<Props, State> {
 
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {params} = this.props;
-    return [['monitor', `/monitors/${params.monitorId}/`]];
+    return [['monitor', `/organizations/${this.orgSlug}/monitors/${params.monitorId}/`]];
   }
 
   onUpdate = (data: Monitor) =>
     this.setState(state => ({monitor: {...state.monitor, ...data}}));
 
   onSubmitSuccess = (data: Monitor) =>
-    browserHistory.push(`/organizations/${this.orgSlug}/monitors/${data.id}/`);
+    browserHistory.push(`/organizations/${this.orgSlug}/crons/${data.id}/`);
 
   getTitle() {
     if (this.state.monitor) {
@@ -56,7 +56,7 @@ class EditMonitor extends AsyncView<Props, State> {
           <MonitorForm
             monitor={monitor}
             apiMethod="PUT"
-            apiEndpoint={`/monitors/${monitor.id}/`}
+            apiEndpoint={`/organizations/${this.orgSlug}/monitors/${monitor.id}/`}
             onSubmitSuccess={this.onSubmitSuccess}
           />
         </Layout.Main>

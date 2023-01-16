@@ -1,5 +1,3 @@
-import sys
-
 import click
 
 from sentry.runner.decorators import configuration
@@ -17,7 +15,7 @@ def _get_email():
     rv = click.prompt("Email")
     field = _get_field("email")
     try:
-        return field.clean(rv, None)
+        return [field.clean(rv, None)]
     except ValidationError as e:
         raise click.ClickException("; ".join(e.messages))
 
@@ -49,7 +47,18 @@ def _set_superadmin(user):
 
 
 @click.command()
-@click.option("--email")
+@click.option(
+    "--email",
+    "emails",
+    multiple=True,
+    default=None,
+    help="Email(s) to create account(s) for.",
+)
+@click.option(
+    "--org-id",
+    default=None,
+    help="Org ID to add users to, if not provided will use the default Org.",
+)
 @click.option("--password")
 @click.option(
     "--superuser/--no-superuser",
@@ -69,14 +78,14 @@ def _set_superadmin(user):
     "--force-update", default=False, is_flag=True, help="If true, will update existing users."
 )
 @configuration
-def createuser(email, password, superuser, staff, no_password, no_input, force_update):
+def createuser(emails, org_id, password, superuser, staff, no_password, no_input, force_update):
     "Create a new user."
 
     from django.conf import settings
 
     if not no_input:
-        if not email:
-            email = _get_email()
+        if not emails:
+            emails = _get_email()
 
         if not (password or no_password):
             password = _get_password()
@@ -94,10 +103,10 @@ def createuser(email, password, superuser, staff, no_password, no_input, force_u
 
     # Default staff to match the superuser setting
     if staff is None:
-        click.echo("--staff/--no-staff not specified, matching superuser value.")
         staff = superuser
 
-    if not email:
+    # Verify we have an email to work with.
+    if not emails:
         raise click.ClickException("Invalid or missing email address.")
 
     if not no_password and not password:
@@ -106,52 +115,67 @@ def createuser(email, password, superuser, staff, no_password, no_input, force_u
     from sentry import roles
     from sentry.models import User
 
-    fields = dict(
-        email=email, username=email, is_superuser=superuser, is_staff=staff, is_active=True
-    )
+    # Loop through the email list provided.
+    for email in emails:
+        fields = dict(
+            email=email,
+            username=email,
+            is_superuser=superuser,
+            is_staff=staff,
+            is_active=True,
+        )
 
-    verb = None
-    try:
-        user = User.objects.get(username=email)
-    except User.DoesNotExist:
-        user = None
+        verb = None
+        try:
+            user = User.objects.get(username=email)
+        except User.DoesNotExist:
+            user = None
 
-    # Update the user if they already exist.
-    if user is not None:
-        if force_update:
-            user.update(**fields)
-            verb = "updated"
-        else:
-            click.echo(f"User: {email} exists, use --force-update to force")
-            sys.exit(3)
-    # Create a new user if they don't already exist.
-    else:
-        user = User.objects.create(**fields)
-        verb = "created"
-
-        # TODO(dcramer): kill this when we improve flows
-        if settings.SENTRY_SINGLE_ORGANIZATION:
-            from sentry.models import Organization, OrganizationMember, OrganizationMemberTeam, Team
-
-            org = Organization.get_default()
-            if superuser:
-                role = roles.get_top_dog().id
+        # Update the user if they already exist.
+        if user is not None:
+            if force_update:
+                user.update(**fields)
+                verb = "updated"
             else:
-                role = org.default_role
-            member = OrganizationMember.objects.create(organization=org, user=user, role=role)
+                raise click.ClickException(f"User: {email} exists, use --force-update to force.")
+        # Create a new user if they don't already exist.
+        else:
+            user = User.objects.create(**fields)
+            verb = "created"
 
-            # if we've only got a single team let's go ahead and give
-            # access to that team as its likely the desired outcome
-            teams = list(Team.objects.filter(organization=org)[0:2])
-            if len(teams) == 1:
-                OrganizationMemberTeam.objects.create(team=teams[0], organizationmember=member)
-            click.echo(f"Added to organization: {org.slug}")
+            # TODO(dcramer): kill this when we improve flows
+            if settings.SENTRY_SINGLE_ORGANIZATION:
+                from sentry.models import (
+                    Organization,
+                    OrganizationMember,
+                    OrganizationMemberTeam,
+                    Team,
+                )
 
-    if password:
-        user.set_password(password)
-        user.save()
+                # Get the org if specified, otherwise use the default.
+                if org_id:
+                    org = Organization.objects.get(id=org_id)
+                else:
+                    org = Organization.get_default()
 
-    if superuser and (settings.SENTRY_SELF_HOSTED or settings.SENTRY_SINGLE_ORGANIZATION):
-        _set_superadmin(user)
+                if superuser:
+                    role = roles.get_top_dog().id
+                else:
+                    role = org.default_role
+                member = OrganizationMember.objects.create(organization=org, user=user, role=role)
 
-    click.echo(f"User {verb}: {email}")
+                # if we've only got a single team let's go ahead and give
+                # access to that team as its likely the desired outcome
+                teams = list(Team.objects.filter(organization=org)[0:2])
+                if len(teams) == 1:
+                    OrganizationMemberTeam.objects.create(team=teams[0], organizationmember=member)
+                click.echo(f"Added to organization: {org.slug}")
+
+        if password:
+            user.set_password(password)
+            user.save()
+
+        if superuser and (settings.SENTRY_SELF_HOSTED or settings.SENTRY_SINGLE_ORGANIZATION):
+            _set_superadmin(user)
+
+        click.echo(f"User {verb}: {email}")

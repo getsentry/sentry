@@ -1,9 +1,9 @@
+from functools import cached_property
 from unittest.mock import patch
 from urllib.parse import parse_qs
 from uuid import uuid4
 
 import responses
-from exam import fixture
 
 from sentry.incidents.models import AlertRule, AlertRuleTriggerAction
 from sentry.integrations.slack.utils import SLACK_RATE_LIMITED_MESSAGE, RedisRuleStatus
@@ -34,7 +34,7 @@ class SlackTasksTest(TestCase):
             body=json.dumps(channels),
         )
 
-    @fixture
+    @cached_property
     def metric_alert_data(self):
         return {
             "aggregate": "count()",

@@ -1,5 +1,6 @@
 from django.urls import reverse
 
+from sentry.ingest.transaction_clusterer.datasource.redis import _get_redis_key, get_redis_client
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import region_silo_test
@@ -21,6 +22,8 @@ class ProjectTransactionNamesClusterTest(APITestCase):
             args=[self.org.slug, self.project.slug],
         )
 
+        redis_client = get_redis_client()
+
         for transaction in ["/a/b/c/", "/a/foo", "/a/whathever/c/d/", "/not_a/"]:
             event = load_data(
                 "transaction",
@@ -31,10 +34,13 @@ class ProjectTransactionNamesClusterTest(APITestCase):
             event["transaction_info"] = {"source": "url"}
             self.store_event(event, project_id=self.project.id)
 
-    def test_get(self):
+            redis_client.sadd(_get_redis_key(self.project), transaction)
+
+    def _test_get(self, datasource):
         response = self.client.get(
             self.url,
             data={
+                "datasource": datasource,
                 "project": [self.project.id],
                 "statsPeriod": "1h",
                 "limit": 5,
@@ -53,3 +59,9 @@ class ProjectTransactionNamesClusterTest(APITestCase):
                 "unique_transaction_names": ["/a/b/c/", "/a/foo", "/a/whathever/c/d/", "/not_a/"]
             },
         }
+
+    def test_get_snuba(self):
+        self._test_get("snuba")
+
+    def test_get_redis(self):
+        self._test_get("redis")

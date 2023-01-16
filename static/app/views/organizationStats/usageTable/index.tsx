@@ -12,7 +12,6 @@ import {IconSettings, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {DataCategory, Project} from 'sentry/types';
-import theme from 'sentry/utils/theme';
 
 import {formatUsageWithUnits} from '../utils';
 
@@ -54,7 +53,7 @@ class UsageTable extends Component<Props> {
     if (errorMessage.projectStats.responseJSON.detail === 'No projects available') {
       return (
         <EmptyMessage
-          icon={<IconWarning color="gray300" size="48" />}
+          icon={<IconWarning color="gray300" legacySize="48px" />}
           title={t(
             "You don't have access to any projects, or your organization has no projects."
           )}
@@ -64,7 +63,7 @@ class UsageTable extends Component<Props> {
         />
       );
     }
-    return <IconWarning color="gray300" size="48" />;
+    return <IconWarning color="gray300" legacySize="48px" />;
   };
 
   renderTableRow(stat: TableStat & {project: Project}) {
@@ -83,7 +82,7 @@ class UsageTable extends Component<Props> {
           />
         </Link>
         <SettingsIconLink to={stat.projectSettingsLink}>
-          <IconSettings size={theme.iconSizes.sm} />
+          <IconSettings size="sm" />
         </SettingsIconLink>
       </CellProject>,
       <CellStat key={1}>

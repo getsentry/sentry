@@ -3,14 +3,15 @@ import {Location, LocationDescriptor} from 'history';
 import trimEnd from 'lodash/trimEnd';
 import trimStart from 'lodash/trimStart';
 
+// If you change this also update the patterns in sentry.api.utils
 const NORMALIZE_PATTERNS: Array<[pattern: RegExp, replacement: string]> = [
   // /organizations/slug/section, but not /organizations/new
   [/\/?organizations\/(?!new)[^\/]+\/(.*)/, '/$1'],
   // For /settings/:orgId/ -> /settings/organization/
-  [/\/settings\/[^\/]+\/?$/, '/settings/organization/'],
+  [/\/settings\/(?!account)(?!projects)(?!teams)[^\/]+\/?$/, '/settings/organization/'],
   // Move /settings/:orgId/:section -> /settings/:section
   // but not /settings/organization or /settings/projects which is a new URL
-  [/\/?settings\/(?!projects)(?!account)[^\/]+\/(.*)/, '/settings/$1'],
+  [/\/?settings\/(?!account)(?!projects)(?!teams)[^\/]+\/(.*)/, '/settings/$1'],
   [/\/?join-request\/[^\/]+\/?.*/, '/join-request/'],
   [/\/?onboarding\/[^\/]+\/(.*)/, '/onboarding/$1'],
   [/\/?[^\/]+\/([^\/]+)\/getting-started\/(.*)/, '/getting-started/$1/$2'],
@@ -18,14 +19,34 @@ const NORMALIZE_PATTERNS: Array<[pattern: RegExp, replacement: string]> = [
 
 type LocationTarget = ((location: Location) => LocationDescriptor) | LocationDescriptor;
 
+type NormalizeUrlOptions = {
+  forceCustomerDomain: boolean;
+};
+
 /**
  * Normalize a URL for customer domains based on the current route state
  */
-export function normalizeUrl(path: string): string;
-export function normalizeUrl(path: LocationDescriptor): LocationDescriptor;
-export function normalizeUrl(path: LocationTarget, location?: Location): LocationTarget;
-export function normalizeUrl(path: LocationTarget, location?: Location): LocationTarget {
-  if (!window.__initialData?.customerDomain) {
+export function normalizeUrl(path: string, options?: NormalizeUrlOptions): string;
+export function normalizeUrl(
+  path: LocationDescriptor,
+  options?: NormalizeUrlOptions
+): LocationDescriptor;
+export function normalizeUrl(
+  path: LocationTarget,
+  location?: Location,
+  options?: NormalizeUrlOptions
+): LocationTarget;
+export function normalizeUrl(
+  path: LocationTarget,
+  location?: Location | NormalizeUrlOptions,
+  options?: NormalizeUrlOptions
+): LocationTarget {
+  if (location && 'forceCustomerDomain' in location) {
+    options = location;
+    location = undefined;
+  }
+
+  if (!options?.forceCustomerDomain && !window.__initialData?.customerDomain) {
     return path;
   }
 

@@ -1,9 +1,10 @@
 from datetime import datetime
 from typing import Any, Mapping
+from unittest import mock
 from unittest.mock import call, patch
 
+import pytest
 import responses
-from exam import patcher
 from freezegun import freeze_time
 from pytz import UTC
 
@@ -260,7 +261,11 @@ class ProjectRuleDetailsTest(ProjectRuleDetailsBaseTestCase):
 
 @region_silo_test
 class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
-    metrics = patcher("sentry.api.endpoints.project_rule_details.metrics")
+    @pytest.fixture(autouse=True)
+    def _setup_metric_patch(self):
+        with mock.patch("sentry.api.endpoints.project_rule_details.metrics") as self.metrics:
+            yield
+
     method = "PUT"
 
     @patch("sentry.signals.alert_rule_edited.send_robust")

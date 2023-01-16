@@ -59,6 +59,7 @@ class OrganizationReplayIndexEndpoint(OrganizationEndpoint):
                 end=filter_params["end"],
                 environment=filter_params.get("environment"),
                 sort=filter_params.get("sort"),
+                fields=request.query_params.getlist("field"),
                 limit=limit,
                 offset=offset,
                 search_filters=search_filters,

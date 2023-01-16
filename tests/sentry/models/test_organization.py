@@ -35,6 +35,7 @@ from sentry.models import (
     User,
 )
 from sentry.testutils import TestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.audit import create_system_audit_entry
 
@@ -495,3 +496,20 @@ class Require2fa(TestCase):
             org.send_delete_confirmation(audit_entry, ONE_DAY)
         assert len(mail.outbox) == 1
         assert "User: Sentry" in mail.outbox[0].body
+
+    def test_absolute_url_no_customer_domain(self):
+        org = self.create_organization(owner=self.user, slug="acme")
+        url = org.absolute_url("/organizations/acme/restore/")
+        assert url == "http://testserver/organizations/acme/restore/"
+
+        url = org.absolute_url("/organizations/acme/issues/", query="project=123", fragment="ref")
+        assert url == "http://testserver/organizations/acme/issues/?project=123#ref"
+
+    @with_feature("organizations:customer-domains")
+    def test_absolute_url_with_customer_domain(self):
+        org = self.create_organization(owner=self.user, slug="acme")
+        url = org.absolute_url("/organizations/acme/restore/")
+        assert url == "http://acme.testserver/restore/"
+
+        url = org.absolute_url("/organizations/acme/issues/", query="project=123", fragment="ref")
+        assert url == "http://acme.testserver/issues/?project=123#ref"

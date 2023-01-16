@@ -243,14 +243,12 @@ function TeamMiseryWrapper({
       eventView={periodEventView}
       orgSlug={organization.slug}
       location={location}
-      useEvents
     >
       {({isLoading, tableData: periodTableData, error}) => (
         <DiscoverQuery
           eventView={weekEventView}
           orgSlug={organization.slug}
           location={location}
-          useEvents
         >
           {({isLoading: isWeekLoading, tableData: weekTableData, error: weekError}) => (
             <TeamMisery

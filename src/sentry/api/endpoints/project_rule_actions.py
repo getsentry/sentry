@@ -50,7 +50,7 @@ class ProjectRuleActionsEndpoint(ProjectEndpoint):
                 "frequency": 30,
             }
         )
-        rule = Rule(project=project, data=data)
+        rule = Rule(id=-1, project=project, data=data)
 
         test_event = create_sample_event(
             project, platform=project.platform, default="javascript", tagged=True

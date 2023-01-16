@@ -3,7 +3,6 @@ from __future__ import annotations
 import hashlib
 import hmac
 import logging
-from typing import Any, Mapping
 
 from django.http import HttpResponse
 from django.utils.crypto import constant_time_compare
@@ -21,6 +20,7 @@ from sentry.integrations.github.webhook import (
 )
 from sentry.models import Integration
 from sentry.utils import json
+from sentry.utils.sdk import configure_scope
 
 from .repository import GitHubEnterpriseRepositoryProvider
 
@@ -104,9 +104,6 @@ class GitHubEnterpriseWebhookBase(View):
 
         return super().dispatch(request, *args, **kwargs)
 
-    def get_logging_data(self) -> Mapping[str, Any] | None:
-        return None
-
     def get_secret(self, event, host):
         metadata = get_installation_metadata(event, host)
         if metadata:
@@ -115,61 +112,67 @@ class GitHubEnterpriseWebhookBase(View):
             return None
 
     def handle(self, request: Request) -> Response:
-        body = bytes(request.body)
-        if not body:
-            logger.warning("github_enterprise.webhook.missing-body", extra=self.get_logging_data())
-            return HttpResponse(status=400)
+        with configure_scope() as scope:
+            meta = request.META
+            try:
+                # XXX: There's lost of customers that are giving us an IP rather than a host name
+                # Use HTTP_X_REAL_IP in a follow up PR
+                host = meta["HTTP_X_GITHUB_ENTERPRISE_HOST"]
+            except KeyError:
+                logger.warning("github_enterprise.webhook.missing-enterprise-host")
+                logger.exception("Missing enterprise host.")
+                return HttpResponse(status=400)
 
-        try:
-            handler = self.get_handler(request.META["HTTP_X_GITHUB_EVENT"])
-        except KeyError:
-            logger.warning("github_enterprise.webhook.missing-event", extra=self.get_logging_data())
-            logger.exception("Missing Github event in webhook.")
-            return HttpResponse(status=400)
+            extra = {"host": host}
+            # If we do tag the host early we can't even investigate
+            scope.set_tag("host", host)
 
-        if not handler:
-            return HttpResponse(status=204)
+            body = bytes(request.body)
+            if not body:
+                logger.warning("github_enterprise.webhook.missing-body", extra=extra)
+                return HttpResponse(status=400)
 
-        try:
-            event = json.loads(body.decode("utf-8"))
-        except json.JSONDecodeError:
-            logger.warning(
-                "github_enterprise.webhook.invalid-json",
-                extra=self.get_logging_data(),
-                exc_info=True,
-            )
-            logger.exception("Invalid JSON.")
-            return HttpResponse(status=400)
+            try:
+                handler = self.get_handler(meta["HTTP_X_GITHUB_EVENT"])
+            except KeyError:
+                logger.warning("github_enterprise.webhook.missing-event", extra=extra)
+                logger.exception("Missing Github event in webhook.")
+                return HttpResponse(status=400)
 
-        try:
-            host = request.META["HTTP_X_GITHUB_ENTERPRISE_HOST"]
-        except KeyError:
-            logger.warning("github_enterprise.webhook.missing-enterprise-host")
-            logger.exception("Missing enterprise host.")
-            return HttpResponse(status=400)
+            if not handler:
+                return HttpResponse(status=204)
 
-        secret = self.get_secret(event, host)
-        if not secret:
-            logger.warning("github_enterprise.webhook.missing-integration", extra={"host": host})
-            return HttpResponse(status=400)
-
-        try:
-            # Attempt to validate the signature. Older versions of
-            # GitHub Enterprise do not send the signature so this is an optional step.
-            method, signature = request.META["HTTP_X_HUB_SIGNATURE"].split("=", 1)
-            if not self.is_valid_signature(method, body, secret, signature):
+            try:
+                # XXX: Sometimes they send us this b'payload=%7B%22ref%22 Support this
+                # See https://sentry.io/organizations/sentry/issues/2565421410
+                event = json.loads(body.decode("utf-8"))
+            except json.JSONDecodeError:
                 logger.warning(
-                    "github_enterprise.webhook.invalid-signature", extra=self.get_logging_data()
+                    "github_enterprise.webhook.invalid-json",
+                    extra=extra,
+                    exc_info=True,
                 )
-                return HttpResponse(status=401)
-        except (KeyError, IndexError) as e:
-            logger.info(
-                "github_enterprise.webhook.missing-signature",
-                extra={"host": host, "error": str(e)},
-            )
-            logger.exception("Missing webhook secret.")
-        handler()(event, host)
-        return HttpResponse(status=204)
+                logger.exception("Invalid JSON.")
+                return HttpResponse(status=400)
+
+            secret = self.get_secret(event, host)
+            if not secret:
+                logger.warning("github_enterprise.webhook.missing-integration", extra=extra)
+                return HttpResponse(status=400)
+
+            try:
+                # Attempt to validate the signature. Older versions of
+                # GitHub Enterprise do not send the signature so this is an optional step.
+                method, signature = meta["HTTP_X_HUB_SIGNATURE"].split("=", 1)
+                if not self.is_valid_signature(method, body, secret, signature):
+                    logger.warning("github_enterprise.webhook.invalid-signature", extra=extra)
+                    return HttpResponse(status=401)
+            except (KeyError, IndexError) as e:
+                extra["error"] = str(e)
+                logger.info("github_enterprise.webhook.missing-signature", extra=extra)
+                logger.exception("Missing webhook secret.")
+            handler()(event, host)
+            return HttpResponse(status=204)
 
 
 class GitHubEnterpriseWebhookEndpoint(GitHubEnterpriseWebhookBase):

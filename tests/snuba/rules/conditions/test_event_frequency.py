@@ -78,7 +78,7 @@ class PerfEventMixin(PerfIssueTransactionTestMixin):
         fingerprint = (
             fingerprint
             if "-" in fingerprint
-            else f"{GroupType.PERFORMANCE_N_PLUS_ONE.value}-{data['fingerprint'][0]}"
+            else f"{GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value}-{data['fingerprint'][0]}"
         )
         # Store a performance event
         event = self.store_transaction(

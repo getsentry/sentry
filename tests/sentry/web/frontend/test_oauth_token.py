@@ -1,5 +1,6 @@
+from functools import cached_property
+
 from django.utils import timezone
-from exam import fixture
 
 from sentry.models import ApiApplication, ApiGrant, ApiToken
 from sentry.testutils import TestCase
@@ -9,7 +10,7 @@ from sentry.utils import json
 
 @control_silo_test
 class OAuthTokenTest(TestCase):
-    @fixture
+    @cached_property
     def path(self):
         return "/oauth/token/"
 
@@ -39,7 +40,7 @@ class OAuthTokenTest(TestCase):
 
 @control_silo_test
 class OAuthTokenCodeTest(TestCase):
-    @fixture
+    @cached_property
     def path(self):
         return "/oauth/token/"
 
@@ -144,7 +145,7 @@ class OAuthTokenCodeTest(TestCase):
 
 @control_silo_test
 class OAuthTokenRefreshTokenTest(TestCase):
-    @fixture
+    @cached_property
     def path(self):
         return "/oauth/token/"
 

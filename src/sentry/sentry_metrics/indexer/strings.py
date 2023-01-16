@@ -115,6 +115,9 @@ SHARED_TAG_STRINGS = {
     "good": PREFIX + 233,
     "bad": PREFIX + 234,
     "meh": PREFIX + 235,
+    "abnormal_mechanism": PREFIX + 236,  # release health
+    "anr_foreground": PREFIX + 237,  # release health
+    "anr_background": PREFIX + 238,  # release health
     # GENERAL/MISC (don't have a category)
     "": PREFIX + 1000,
 }

@@ -5,7 +5,7 @@ import {Group} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {objectIsEmpty} from 'sentry/utils';
 
-import Chunk from './chunk';
+import {Chunk} from './chunk';
 
 type Props = {
   event: Event;

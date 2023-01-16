@@ -85,6 +85,7 @@ def run_deletion(deletion_id, first_pass=True):
         logger.info(
             "object.delete.object-missing",
             extra={
+                "deletion_id": deletion_id,
                 "object_id": deletion.object_id,
                 "transaction_id": deletion.guid,
                 "model": deletion.model_name,
@@ -104,6 +105,7 @@ def run_deletion(deletion_id, first_pass=True):
         logger.info(
             "object.delete.aborted",
             extra={
+                "deletion_id": deletion_id,
                 "object_id": deletion.object_id,
                 "transaction_id": deletion.guid,
                 "model": deletion.model_name,

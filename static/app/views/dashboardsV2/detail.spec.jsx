@@ -77,7 +77,7 @@ describe('Dashboards > Detail', function () {
         body: {data: [], meta: {}},
       });
       MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/eventsv2/',
+        url: '/organizations/org-slug/events/',
         method: 'GET',
         body: [],
       });
@@ -88,6 +88,10 @@ describe('Dashboards > Detail', function () {
       MockApiClient.addMockResponse({
         method: 'GET',
         url: '/organizations/org-slug/issues/',
+        body: [],
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/releases/',
         body: [],
       });
     });
@@ -327,7 +331,7 @@ describe('Dashboards > Detail', function () {
         body: [],
       });
       MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/eventsv2/',
+        url: '/organizations/org-slug/events/',
         method: 'GET',
         body: [],
       });
@@ -473,7 +477,6 @@ describe('Dashboards > Detail', function () {
             'dashboards-basic',
             'dashboards-edit',
             'discover-query',
-            'dashboards-top-level-filter',
           ],
           projects: [TestStubs.Project()],
         }),
@@ -762,7 +765,7 @@ describe('Dashboards > Detail', function () {
       );
     });
 
-    it('redirects user to dashboard url if widget is not found', () => {
+    it('redirects user to dashboard url if widget is not found', async () => {
       const openWidgetViewerModal = jest.spyOn(modals, 'openWidgetViewerModal');
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/1/',
@@ -777,6 +780,8 @@ describe('Dashboards > Detail', function () {
         />,
         {context: initialData.routerContext, organization: initialData.organization}
       );
+
+      await screen.findByText('All Releases');
 
       expect(openWidgetViewerModal).not.toHaveBeenCalled();
       expect(initialData.router.replace).toHaveBeenCalledWith(
@@ -795,13 +800,7 @@ describe('Dashboards > Detail', function () {
       });
       render(
         <CreateDashboard
-          organization={{
-            ...initialData.organization,
-            features: [
-              ...initialData.organization.features,
-              'dashboards-top-level-filter',
-            ],
-          }}
+          organization={initialData.organization}
           params={{orgId: 'org-slug'}}
           router={initialData.router}
           location={{
@@ -841,13 +840,7 @@ describe('Dashboards > Detail', function () {
       });
       render(
         <CreateDashboard
-          organization={{
-            ...initialData.organization,
-            features: [
-              ...initialData.organization.features,
-              'dashboards-top-level-filter',
-            ],
-          }}
+          organization={initialData.organization}
           params={{orgId: 'org-slug', templateId: 'default-template'}}
           router={initialData.router}
           location={{
@@ -891,13 +884,7 @@ describe('Dashboards > Detail', function () {
       });
       render(
         <CreateDashboard
-          organization={{
-            ...initialData.organization,
-            features: [
-              ...initialData.organization.features,
-              'dashboards-top-level-filter',
-            ],
-          }}
+          organization={initialData.organization}
           params={{orgId: 'org-slug', templateId: 'default-template'}}
           router={initialData.router}
           location={initialData.router.location}
@@ -910,6 +897,7 @@ describe('Dashboards > Detail', function () {
 
       userEvent.click(await screen.findByText('24H'));
       userEvent.click(screen.getByText('Last 7 days'));
+      await screen.findByText('7D');
 
       expect(screen.queryByText('Cancel')).not.toBeInTheDocument();
       expect(screen.queryByText('Save')).not.toBeInTheDocument();
@@ -932,7 +920,6 @@ describe('Dashboards > Detail', function () {
             'dashboards-basic',
             'dashboards-edit',
             'discover-query',
-            'dashboards-top-level-filter',
           ],
         }),
         router: {
@@ -994,7 +981,6 @@ describe('Dashboards > Detail', function () {
             'dashboards-basic',
             'dashboards-edit',
             'discover-query',
-            'dashboards-top-level-filter',
           ],
         }),
         router: {
@@ -1039,7 +1025,6 @@ describe('Dashboards > Detail', function () {
             'dashboards-basic',
             'dashboards-edit',
             'discover-query',
-            'dashboards-top-level-filter',
           ],
         }),
         router: {
@@ -1094,7 +1079,6 @@ describe('Dashboards > Detail', function () {
             'dashboards-basic',
             'dashboards-edit',
             'discover-query',
-            'dashboards-top-level-filter',
           ],
         }),
         router: {
@@ -1155,7 +1139,6 @@ describe('Dashboards > Detail', function () {
             'dashboards-edit',
             'discover-basic',
             'discover-query',
-            'dashboards-top-level-filter',
           ],
         }),
         router: {
@@ -1212,7 +1195,6 @@ describe('Dashboards > Detail', function () {
             'dashboards-basic',
             'dashboards-edit',
             'discover-query',
-            'dashboards-top-level-filter',
           ],
         }),
         router: {
@@ -1250,7 +1232,6 @@ describe('Dashboards > Detail', function () {
             'dashboards-basic',
             'dashboards-edit',
             'discover-query',
-            'dashboards-top-level-filter',
           ],
         }),
         router: {
@@ -1295,7 +1276,6 @@ describe('Dashboards > Detail', function () {
             'dashboards-basic',
             'dashboards-edit',
             'discover-query',
-            'dashboards-top-level-filter',
           ],
         }),
         router: {
@@ -1352,7 +1332,6 @@ describe('Dashboards > Detail', function () {
             'dashboards-basic',
             'dashboards-edit',
             'discover-query',
-            'dashboards-top-level-filter',
           ],
         }),
         router: {
@@ -1413,7 +1392,6 @@ describe('Dashboards > Detail', function () {
             'dashboards-edit',
             'discover-basic',
             'discover-query',
-            'dashboards-top-level-filter',
           ],
         }),
         router: {

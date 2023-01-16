@@ -1,13 +1,13 @@
 import unittest
 from copy import deepcopy
 from datetime import timedelta
+from functools import cached_property
 from unittest import mock
 
 import pytest
 import pytz
 from dateutil.parser import parse as parse_date
 from django.conf import settings
-from exam import fixture, patcher
 
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.models import QuerySubscription, SnubaQuery
@@ -24,15 +24,15 @@ from sentry.utils import json
 
 
 class BaseQuerySubscriptionTest:
-    @fixture
+    @cached_property
     def consumer(self):
         return QuerySubscriptionConsumer("hello")
 
-    @fixture
+    @cached_property
     def valid_wrapper(self):
         return {"version": 3, "payload": self.valid_payload}
 
-    @fixture
+    @cached_property
     def valid_payload(self):
         return {
             "subscription_id": "1234",
@@ -47,7 +47,7 @@ class BaseQuerySubscriptionTest:
             "timestamp": "2020-01-01T01:23:45.1234",
         }
 
-    @fixture
+    @cached_property
     def old_payload(self):
         return {
             "subscription_id": "1234",
@@ -65,7 +65,10 @@ class BaseQuerySubscriptionTest:
 
 
 class HandleMessageTest(BaseQuerySubscriptionTest, TestCase):
-    metrics = patcher("sentry.snuba.query_subscription_consumer.metrics")
+    @pytest.fixture(autouse=True)
+    def _setup_metrics(self):
+        with mock.patch("sentry.snuba.query_subscription_consumer.metrics") as self.metrics:
+            yield
 
     def test_no_subscription(self):
         with mock.patch("sentry.snuba.tasks._snuba_pool") as pool:

@@ -5,7 +5,6 @@ import {openModal} from 'sentry/actionCreators/modal';
 import {DataSection} from 'sentry/components/events/styles';
 import Link from 'sentry/components/links/link';
 import {t, tct, tn} from 'sentry/locale';
-import space from 'sentry/styles/space';
 import {EventAttachment} from 'sentry/types/group';
 import {objectIsEmpty} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
@@ -16,7 +15,6 @@ import Modal, {modalCss} from './screenshot/modal';
 import {DataSection as ScreenshotDataSection} from './dataSection';
 import Screenshot from './screenshot';
 import Tags from './tags';
-import TagsHighlight from './tagsHighlight';
 
 type ScreenshotProps = React.ComponentProps<typeof Screenshot>;
 
@@ -119,18 +117,14 @@ function EventTagsAndScreenshots({
 
   return (
     <Wrapper showScreenshot={showScreenshot} showTags={showTags}>
-      <TagWrapper hasEventContext={hasEventContext}>
-        {hasEventContext && (
-          <TagsHighlightWrapper>
-            <TagsHighlight event={event} />
-          </TagsHighlightWrapper>
-        )}
+      <TagWrapper>
         {showTags && (
           <Tags
             organization={organization}
             event={event}
             projectSlug={projectSlug}
             location={location}
+            hasEventContext={hasEventContext}
           />
         )}
       </TagWrapper>
@@ -201,20 +195,6 @@ const ScreenshotWrapper = styled('div')`
   }
 `;
 
-const TagWrapper = styled('div')<{hasEventContext: boolean}>`
-  padding: ${p => (p.hasEventContext ? `${space(2)} 0` : '0')};
+const TagWrapper = styled('div')`
   overflow: hidden;
-
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
-    padding: ${p => (p.hasEventContext ? `${space(2)} 0` : '0')};
-  }
-`;
-
-const TagsHighlightWrapper = styled('div')`
-  overflow: hidden;
-  padding: 0 ${space(2)};
-
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
-    padding: 0 ${space(4)};
-  }
 `;

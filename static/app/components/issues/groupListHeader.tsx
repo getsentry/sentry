@@ -7,15 +7,21 @@ import space from 'sentry/styles/space';
 type Props = {
   withChart: boolean;
   narrowGroups?: boolean;
+  showLastTriggered?: boolean;
 };
 
-const GroupListHeader = ({withChart = true, narrowGroups = false}: Props) => (
+const GroupListHeader = ({
+  withChart = true,
+  narrowGroups = false,
+  showLastTriggered = false,
+}: Props) => (
   <PanelHeader disablePadding>
     <IssueWrapper>{t('Issue')}</IssueWrapper>
     {withChart && <ChartWrapper narrowGroups={narrowGroups}>{t('Graph')}</ChartWrapper>}
     <EventUserWrapper>{t('events')}</EventUserWrapper>
     <EventUserWrapper>{t('users')}</EventUserWrapper>
     <AssigneeWrapper narrowGroups={narrowGroups}>{t('Assignee')}</AssigneeWrapper>
+    {showLastTriggered && <EventUserWrapper>{t('Last Triggered')}</EventUserWrapper>}
   </PanelHeader>
 );
 

@@ -1,7 +1,7 @@
+from functools import cached_property
 from urllib.parse import parse_qs
 
 import responses
-from exam import fixture
 
 from sentry.models import Rule
 from sentry.plugins.base import Notification
@@ -22,9 +22,39 @@ class TwilioPluginSMSSplitTest(TestCase):
         actual = split_sms_to(to)
         assert expected == actual
 
+    def test_valid_split_sms_to_with_just_spaces(self):
+        to = "330-509-3095 (330)-509-3095 +13305093095 4045550144"
+        expected = {"330-509-3095", "(330)-509-3095", "+13305093095", "4045550144"}
+        actual = split_sms_to(to)
+        assert expected == actual
+
+    def test_valid_split_sms_to_with_no_whitespace(self):
+        to = "330-509-3095,(330)-509-3095,+13305093095,4045550144"
+        expected = {"330-509-3095", "(330)-509-3095", "+13305093095", "4045550144"}
+        actual = split_sms_to(to)
+        assert expected == actual
+
     def test_split_sms_to_with_single_number(self):
         to = "555-555-5555"
         expected = {"555-555-5555"}
+        actual = split_sms_to(to)
+        assert expected == actual
+
+    def test_valid_split_sms_to_newline(self):
+        to = "330-509-3095,\n(330)-509-3095\n,+13305093095\n,\n4045550144"
+        expected = {"330-509-3095", "(330)-509-3095", "+13305093095", "4045550144"}
+        actual = split_sms_to(to)
+        assert expected == actual
+
+    def test_valid_split_sms_to_with_just_newlines(self):
+        to = "330-509-3095\n(330)-509-3095\n+13305093095\n\n4045550144"
+        expected = {"330-509-3095", "(330)-509-3095", "+13305093095", "4045550144"}
+        actual = split_sms_to(to)
+        assert expected == actual
+
+    def test_valid_split_sms_to_with_extra_newlines(self):
+        to = "330-509-3095\n\n\n\n\n,\n\n\n\n\n\n\n\n\n(330)-509-3095,\n\n\n\n+13305093095,\n\n4045550144"
+        expected = {"330-509-3095", "(330)-509-3095", "+13305093095", "4045550144"}
         actual = split_sms_to(to)
         assert expected == actual
 
@@ -73,7 +103,7 @@ class TwilioConfigurationFormTest(TestCase):
 
 
 class TwilioPluginTest(PluginTestCase):
-    @fixture
+    @cached_property
     def plugin(self):
         return TwilioPlugin()
 

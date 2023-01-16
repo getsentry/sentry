@@ -14,7 +14,7 @@ import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
 import {Organization, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
-import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView from 'sentry/utils/discover/eventView';
 import {useMetricsCardinalityContext} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {PerformanceEventViewProvider} from 'sentry/utils/performance/contexts/performanceEventViewContext';
@@ -25,6 +25,7 @@ import {getSelectedProjectPlatforms, getTransactionName} from '../utils';
 
 import {anomaliesRouteWithQuery} from './transactionAnomalies/utils';
 import {eventsRouteWithQuery} from './transactionEvents/utils';
+import {profilesRouteWithQuery} from './transactionProfiles/utils';
 import {replaysRouteWithQuery} from './transactionReplays/utils';
 import {spansRouteWithQuery} from './transactionSpans/utils';
 import {tagsRouteWithQuery} from './transactionTags/utils';
@@ -34,32 +35,19 @@ import Tab from './tabs';
 import {TransactionThresholdMetric} from './transactionThresholdModal';
 import {transactionSummaryRouteWithQuery} from './utils';
 
-type AnalyticInfo = {
-  eventKey: string;
-  eventName: string;
-};
+type TabEvents =
+  | 'performance_views.vitals.vitals_tab_clicked'
+  | 'performance_views.tags.tags_tab_clicked'
+  | 'performance_views.events.events_tab_clicked'
+  | 'performance_views.spans.spans_tab_clicked'
+  | 'performance_views.anomalies.anomalies_tab_clicked';
 
-const TAB_ANALYTICS: Partial<Record<Tab, AnalyticInfo>> = {
-  [Tab.WebVitals]: {
-    eventKey: 'performance_views.vitals.vitals_tab_clicked',
-    eventName: 'Performance Views: Vitals tab clicked',
-  },
-  [Tab.Tags]: {
-    eventKey: 'performance_views.tags.tags_tab_clicked',
-    eventName: 'Performance Views: Tags tab clicked',
-  },
-  [Tab.Events]: {
-    eventKey: 'performance_views.events.events_tab_clicked',
-    eventName: 'Performance Views: Events tab clicked',
-  },
-  [Tab.Spans]: {
-    eventKey: 'performance_views.spans.spans_tab_clicked',
-    eventName: 'Performance Views: Spans tab clicked',
-  },
-  [Tab.Anomalies]: {
-    eventKey: 'performance_views.anomalies.anomalies_tab_clicked',
-    eventName: 'Performance Views: Anomalies tab clicked',
-  },
+const TAB_ANALYTICS: Partial<Record<Tab, TabEvents>> = {
+  [Tab.WebVitals]: 'performance_views.vitals.vitals_tab_clicked',
+  [Tab.Tags]: 'performance_views.tags.tags_tab_clicked',
+  [Tab.Events]: 'performance_views.events.events_tab_clicked',
+  [Tab.Spans]: 'performance_views.spans.spans_tab_clicked',
+  [Tab.Anomalies]: 'performance_views.anomalies.anomalies_tab_clicked',
 };
 
 export type ChildProps = {
@@ -135,6 +123,9 @@ function PageLayout(props: Props) {
           return anomaliesRouteWithQuery(routeQuery);
         case Tab.Replays:
           return replaysRouteWithQuery(routeQuery);
+        case Tab.Profiling: {
+          return profilesRouteWithQuery(routeQuery);
+        }
         case Tab.WebVitals:
           return vitalsRouteWithQuery({
             orgSlug: organization.slug,
@@ -157,11 +148,10 @@ function PageLayout(props: Props) {
         return;
       }
 
-      const analyticKeys = TAB_ANALYTICS[newTab];
-      if (analyticKeys) {
-        trackAnalyticsEvent({
-          ...analyticKeys,
-          organization_id: organization.id,
+      const analyticsKey = TAB_ANALYTICS[newTab];
+      if (analyticsKey) {
+        trackAdvancedAnalyticsEvent(analyticsKey, {
+          organization,
           project_platforms: getSelectedProjectPlatforms(location, projects),
         });
       }

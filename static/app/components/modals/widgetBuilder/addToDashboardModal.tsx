@@ -39,7 +39,7 @@ import WidgetCard from 'sentry/views/dashboardsV2/widgetCard';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
 
-type WidgetAsQueryParams = Query & {
+type WidgetAsQueryParams = Query<{
   defaultTableColumns: string[];
   defaultTitle: string;
   defaultWidgetQuery: string;
@@ -50,7 +50,7 @@ type WidgetAsQueryParams = Query & {
   end?: DateString;
   start?: DateString;
   statsPeriod?: string | null;
-};
+}>;
 
 export type AddToDashboardModalProps = {
   location: Location;
@@ -134,10 +134,7 @@ function AddToDashboardModal({
       pathname,
       query: {
         ...widgetAsQueryParams,
-        ...(organization.features.includes('dashboards-top-level-filter') &&
-        selectedDashboard
-          ? getSavedPageFilters(selectedDashboard)
-          : {}),
+        ...(selectedDashboard ? getSavedPageFilters(selectedDashboard) : {}),
       },
     });
     closeModal();
@@ -217,11 +214,9 @@ function AddToDashboardModal({
           />
         </Wrapper>
         <Wrapper>
-          {organization.features.includes('dashboards-top-level-filter')
-            ? t(
-                'Any conflicting filters from this query will be overridden by Dashboard filters. This is a preview of how the widget will appear in your dashboard.'
-              )
-            : t('This is a preview of how the widget will appear in your dashboard.')}
+          {t(
+            'Any conflicting filters from this query will be overridden by Dashboard filters. This is a preview of how the widget will appear in your dashboard.'
+          )}
         </Wrapper>
         <MetricsCardinalityProvider organization={organization} location={location}>
           <MetricsDataSwitcher
@@ -245,15 +240,12 @@ function AddToDashboardModal({
                   isEditing={false}
                   widgetLimitReached={false}
                   selection={
-                    organization.features.includes('dashboards-top-level-filter') &&
                     selectedDashboard
                       ? getSavedFiltersAsPageFilters(selectedDashboard)
                       : selection
                   }
                   dashboardFilters={
-                    organization.features.includes('dashboards-top-level-filter')
-                      ? getDashboardFiltersFromURL(location) ?? selectedDashboard?.filters
-                      : {}
+                    getDashboardFiltersFromURL(location) ?? selectedDashboard?.filters
                   }
                   widget={widget}
                   showStoredAlert

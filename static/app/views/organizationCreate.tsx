@@ -3,6 +3,8 @@ import NarrowLayout from 'sentry/components/narrowLayout';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
+import {OrganizationSummary} from 'sentry/types';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 function OrganizationCreate() {
   const termsUrl = ConfigStore.get('termsUrl');
@@ -24,10 +26,18 @@ function OrganizationCreate() {
           submitLabel={t('Create Organization')}
           apiEndpoint="/organizations/"
           apiMethod="POST"
-          onSubmitSuccess={data => {
+          onSubmitSuccess={(createdOrg: OrganizationSummary) => {
+            const hasCustomerDomain = createdOrg?.features.includes('customer-domains');
+            let nextUrl = normalizeUrl(
+              `/organizations/${createdOrg.slug}/projects/new/`,
+              {forceCustomerDomain: hasCustomerDomain}
+            );
+            if (hasCustomerDomain) {
+              nextUrl = `${createdOrg.links.organizationUrl}${nextUrl}`;
+            }
             // redirect to project creation *(BYPASS REACT ROUTER AND FORCE PAGE REFRESH TO GRAB CSRF TOKEN)*
             // browserHistory.pushState(null, `/organizations/${data.slug}/projects/new/`);
-            window.location.href = `/organizations/${data.slug}/projects/new/`;
+            window.location.assign(nextUrl);
           }}
           requireChanges
         >

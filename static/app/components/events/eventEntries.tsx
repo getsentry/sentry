@@ -6,10 +6,8 @@ import uniq from 'lodash/uniq';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
-import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import EventContexts from 'sentry/components/events/contexts';
-import EventContextSummary from 'sentry/components/events/contextSummary';
 import EventDevice from 'sentry/components/events/device';
 import EventErrors, {Error} from 'sentry/components/events/errors';
 import EventAttachments from 'sentry/components/events/eventAttachments';
@@ -17,7 +15,6 @@ import EventCause from 'sentry/components/events/eventCause';
 import EventDataSection from 'sentry/components/events/eventDataSection';
 import EventExtraData from 'sentry/components/events/eventExtraData';
 import {EventSdk} from 'sentry/components/events/eventSdk';
-import {EventTags} from 'sentry/components/events/eventTags';
 import EventGroupingInfo from 'sentry/components/events/groupingInfo';
 import {EventPackageData} from 'sentry/components/events/packageData';
 import RRWebIntegration from 'sentry/components/events/rrwebIntegration';
@@ -90,7 +87,7 @@ function hasThreadOrExceptionMinifiedFrameData(definedEvent: Event, bestThread?:
 
 type ProGuardErrors = Array<Error>;
 
-type Props = Pick<React.ComponentProps<typeof EventEntry>, 'route' | 'router'> & {
+type Props = {
   api: Client;
   location: Location;
   /**
@@ -113,8 +110,6 @@ const EventEntries = ({
   event,
   group,
   className,
-  router,
-  route,
   isShare = false,
   showTagSummary = true,
 }: Props) => {
@@ -324,7 +319,6 @@ const EventEntries = ({
     );
   }
 
-  const hasMobileScreenshotsFeature = orgFeatures.includes('mobile-screenshots');
   const hasContext = !objectIsEmpty(event.user ?? {}) || !objectIsEmpty(event.contexts);
   const hasErrors = !objectIsEmpty(event.errors) || !!proGuardErrors.length;
 
@@ -354,41 +348,23 @@ const EventEntries = ({
           includeBorder={!hasErrors}
         />
       )}
-      {showTagSummary &&
-        (hasMobileScreenshotsFeature ? (
-          <EventTagsAndScreenshot
-            event={event}
-            organization={organization as Organization}
-            projectId={projectSlug}
-            location={location}
-            isShare={isShare}
-            hasContext={hasContext}
-            attachments={attachments}
-            onDeleteScreenshot={handleDeleteAttachment}
-          />
-        ) : (
-          (!!(event.tags ?? []).length || hasContext) && (
-            <StyledEventDataSection
-              title={<GuideAnchor target="tags">{t('Tags')}</GuideAnchor>}
-              type="tags"
-            >
-              {hasContext && <EventContextSummary event={event} />}
-              <EventTags
-                event={event}
-                organization={organization as Organization}
-                projectId={projectSlug}
-                location={location}
-              />
-            </StyledEventDataSection>
-          )
-        ))}
+      {showTagSummary && (
+        <EventTagsAndScreenshot
+          event={event}
+          organization={organization as Organization}
+          projectId={projectSlug}
+          location={location}
+          isShare={isShare}
+          hasContext={hasContext}
+          attachments={attachments}
+          onDeleteScreenshot={handleDeleteAttachment}
+        />
+      )}
       <Entries
         definedEvent={event}
         projectSlug={projectSlug}
         group={group}
         organization={organization}
-        route={route}
-        router={router}
         isShare={isShare}
       />
       {hasContext && <EventContexts group={group} event={event} />}
@@ -478,21 +454,16 @@ function Entries({
   isShare,
   group,
   organization,
-  route,
-  router,
 }: {
   definedEvent: Event;
   projectSlug: string;
   isShare?: boolean;
-} & Pick<Props, 'group' | 'organization' | 'route' | 'router'>) {
+} & Pick<Props, 'group' | 'organization'>) {
   if (!Array.isArray(definedEvent.entries)) {
     return null;
   }
 
-  if (
-    group?.issueCategory === IssueCategory.PERFORMANCE &&
-    organization.features?.includes('performance-issues')
-  ) {
+  if (group?.issueCategory === IssueCategory.PERFORMANCE) {
     injectResourcesEntry(definedEvent);
   }
 
@@ -513,8 +484,6 @@ function Entries({
             organization={organization}
             event={definedEvent}
             entry={entry}
-            route={route}
-            router={router}
             isShare={isShare}
           />
         </ErrorBoundary>
@@ -522,15 +491,6 @@ function Entries({
     </Fragment>
   );
 }
-
-const StyledEventDataSection = styled(EventDataSection)`
-  /* Hiding the top border because of the event section appears at this breakpoint */
-  @media (max-width: 767px) {
-    &:first-of-type {
-      border-top: none;
-    }
-  }
-`;
 
 const LatestEventNotAvailable = styled('div')`
   padding: ${space(2)} ${space(4)};

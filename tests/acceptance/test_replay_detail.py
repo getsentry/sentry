@@ -1,6 +1,8 @@
 from datetime import datetime, timedelta
 from uuid import uuid4
 
+import pytest
+
 from sentry.replays.testutils import (
     mock_replay,
     mock_rrweb_div_helloworld,
@@ -75,6 +77,7 @@ class ReplayDetailTest(ReplaysAcceptanceTestCase):
             self.browser.wait_until_not('[data-test-id="loading-indicator"]')
             self.browser.snapshot("replay detail not found")
 
+    @pytest.mark.skip(reason="flaky: https://github.com/getsentry/sentry/issues/42263")
     def test_simple(self):
         with self.feature(FEATURE_NAME):
             self.browser.get(self.path)

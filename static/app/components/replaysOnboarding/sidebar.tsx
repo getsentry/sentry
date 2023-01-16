@@ -151,10 +151,10 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
         <div>
           <Button
             size="sm"
-            href="https://github.com/getsentry/sentry-replay/blob/main/README.md"
+            href="https://docs.sentry.io/platforms/javascript/session-replay/"
             external
           >
-            {t('See Readme')}
+            {t('Read Docs')}
           </Button>
         </div>
       </Fragment>

@@ -10,15 +10,11 @@ import {validateWidget} from 'sentry/actionCreators/dashboards';
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
-import DatePageFilter from 'sentry/components/datePageFilter';
-import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import * as Layout from 'sentry/components/layouts/thirds';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import LoadingError from 'sentry/components/loadingError';
-import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
-import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
@@ -976,15 +972,6 @@ function WidgetBuilder({
                       <Body>
                         <MainWrapper>
                           <Main>
-                            {!organization.features.includes(
-                              'dashboards-top-level-filter'
-                            ) && (
-                              <StyledPageFilterBar condensed>
-                                <ProjectPageFilter />
-                                <EnvironmentPageFilter />
-                                <DatePageFilter alignDropdown="left" />
-                              </StyledPageFilterBar>
-                            )}
                             <BuildSteps symbol="colored-numeric">
                               <VisualizationStep
                                 location={location}
@@ -1138,10 +1125,6 @@ export default withPageFilters(withTags(WidgetBuilder));
 
 const PageContentWithoutPadding = styled(PageContent)`
   padding: 0;
-`;
-
-const StyledPageFilterBar = styled(PageFilterBar)`
-  margin-bottom: ${space(2)};
 `;
 
 const BuildSteps = styled(List)`

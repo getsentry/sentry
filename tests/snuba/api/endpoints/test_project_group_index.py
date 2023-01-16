@@ -1,12 +1,12 @@
 import time
 from datetime import timedelta
+from functools import cached_property
 from unittest.mock import Mock, patch
 from urllib.parse import quote
 from uuid import uuid4
 
 from django.conf import settings
 from django.utils import timezone
-from exam import fixture
 
 from sentry.models import (
     Activity,
@@ -53,7 +53,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
             attrs["href"] = url
         return links
 
-    @fixture
+    @cached_property
     def path(self):
         return f"/api/0/projects/{self.project.organization.slug}/{self.project.slug}/issues/"
 
@@ -362,7 +362,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         super().setUp()
         self.min_ago = timezone.now() - timedelta(minutes=1)
 
-    @fixture
+    @cached_property
     def path(self):
         return f"/api/0/projects/{self.project.organization.slug}/{self.project.slug}/issues/"
 
@@ -1342,7 +1342,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
 @region_silo_test
 class GroupDeleteTest(APITestCase, SnubaTestCase):
-    @fixture
+    @cached_property
     def path(self):
         return f"/api/0/projects/{self.project.organization.slug}/{self.project.slug}/issues/"
 
@@ -1504,8 +1504,7 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
 
         # if query is '' it defaults to is:unresolved
         url = self.path + "?query="
-        with self.feature("organizations:performance-issues"):
-            response = self.client.delete(url, format="json")
+        response = self.client.delete(url, format="json")
         assert response.status_code == 400
 
         for group in groups:

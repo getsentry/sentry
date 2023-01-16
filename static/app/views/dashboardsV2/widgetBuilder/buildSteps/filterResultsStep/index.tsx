@@ -2,12 +2,11 @@ import {useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import Feature from 'sentry/components/acl/feature';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
-import Field from 'sentry/components/forms/field';
+import FieldGroup from 'sentry/components/forms/fieldGroup';
 import Input from 'sentry/components/input';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
@@ -114,26 +113,24 @@ export function FilterResultsStep({
             )
       }
     >
-      <Feature features={['dashboards-top-level-filter']}>
-        <StyledPageFilterBar>
-          <ProjectPageFilter disabled />
-          <EnvironmentPageFilter disabled />
-          <DatePageFilter alignDropdown="left" disabled />
-        </StyledPageFilterBar>
-        <FilterButtons>
-          <ReleasesProvider organization={organization} selection={selection}>
-            <StyledReleasesSelectControl
-              selectedReleases={
-                (DashboardFilterKeys.RELEASE in location.query
-                  ? decodeList(location.query[DashboardFilterKeys.RELEASE])
-                  : dashboardFilters?.[DashboardFilterKeys.RELEASE]) ?? []
-              }
-              isDisabled
-              className="widget-release-select"
-            />
-          </ReleasesProvider>
-        </FilterButtons>
-      </Feature>
+      <StyledPageFilterBar>
+        <ProjectPageFilter disabled />
+        <EnvironmentPageFilter disabled />
+        <DatePageFilter alignDropdown="left" disabled />
+      </StyledPageFilterBar>
+      <FilterButtons>
+        <ReleasesProvider organization={organization} selection={selection}>
+          <StyledReleasesSelectControl
+            selectedReleases={
+              (DashboardFilterKeys.RELEASE in location.query
+                ? decodeList(location.query[DashboardFilterKeys.RELEASE])
+                : dashboardFilters?.[DashboardFilterKeys.RELEASE]) ?? []
+            }
+            isDisabled
+            className="widget-release-select"
+          />
+        </ReleasesProvider>
+      </FilterButtons>
       <div>
         {queries.map((query, queryIndex) => {
           return (
@@ -195,7 +192,7 @@ const LegendAliasInput = styled(Input)`
   width: 33%;
 `;
 
-const QueryField = styled(Field)`
+const QueryField = styled(FieldGroup)`
   padding-bottom: ${space(1)};
 `;
 

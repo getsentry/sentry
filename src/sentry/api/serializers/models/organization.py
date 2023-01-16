@@ -286,7 +286,7 @@ class OrganizationSerializer(Serializer):  # type: ignore
             # If the current request is using a customer domain, then we activate the feature for this organization.
             feature_list.add("customer-domains")
 
-        if "server-side-sampling" not in feature_list and "mep-rollout-flag" in feature_list:
+        if "dynamic-sampling" not in feature_list and "mep-rollout-flag" in feature_list:
             feature_list.remove("mep-rollout-flag")
 
         has_auth_provider = attrs.get("auth_provider", None) is not None
@@ -558,7 +558,7 @@ class DetailedOrganizationSerializerWithProjectsAndTeams(DetailedOrganizationSer
         team_list = self._team_list(obj, access)
         project_list = self._project_list(obj, access)
 
-        context["teams"] = serialize(team_list, user, TeamSerializer())
-        context["projects"] = serialize(project_list, user, ProjectSummarySerializer())
+        context["teams"] = serialize(team_list, user, TeamSerializer(access=access))
+        context["projects"] = serialize(project_list, user, ProjectSummarySerializer(access=access))
 
         return context

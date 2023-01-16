@@ -1,15 +1,8 @@
 import {assignToActor, assignToUser} from 'sentry/actionCreators/group';
 import AsyncComponent from 'sentry/components/asyncComponent';
-import type {
-  Actor,
-  CodeOwner,
-  Committer,
-  Group,
-  Organization,
-  Project,
-  ReleaseCommitter,
-} from 'sentry/types';
+import type {Actor, Committer, Group, Organization, Project} from 'sentry/types';
 import type {Event} from 'sentry/types/event';
+import {defined} from 'sentry/utils';
 import useCommitters from 'sentry/utils/useCommitters';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -24,12 +17,10 @@ type Props = {
   organization: Organization;
   project: Project;
   committers?: Committer[];
-  releaseCommitters?: ReleaseCommitter[];
 } & AsyncComponent['props'];
 
 type State = {
-  codeowners: CodeOwner[];
-  eventOwners: {owners: Array<Actor>; rules: Rules};
+  eventOwners: {owners: Array<Actor>; rules: Rules} | null;
 } & AsyncComponent['state'];
 
 class SuggestedOwners extends AsyncComponent<Props, State> {
@@ -37,7 +28,6 @@ class SuggestedOwners extends AsyncComponent<Props, State> {
     return {
       ...super.getDefaultState(),
       event: {rules: [], owners: []},
-      codeowners: [],
     };
   }
 
@@ -49,12 +39,6 @@ class SuggestedOwners extends AsyncComponent<Props, State> {
         `/projects/${organization.slug}/${project.slug}/events/${event.id}/owners/`,
       ],
     ];
-    if (organization.features.includes('integrations-codeowners')) {
-      endpoints.push([
-        `codeowners`,
-        `/projects/${organization.slug}/${project.slug}/codeowners/`,
-      ]);
-    }
 
     return endpoints as ReturnType<AsyncComponent['getEndpoints']>;
   }
@@ -100,16 +84,14 @@ class SuggestedOwners extends AsyncComponent<Props, State> {
    */
   getOwnerList(): OwnerList {
     const committers = this.props.committers ?? [];
-    const releaseCommitters = this.props.releaseCommitters ?? [];
-    const owners: OwnerList = [...committers, ...releaseCommitters].map(commiter => ({
+    const owners: OwnerList = committers.map(commiter => ({
       actor: {...commiter.author, type: 'user'},
       commits: commiter.commits,
-      release: (commiter as ReleaseCommitter).release,
       source: 'suspectCommit',
     }));
 
-    this.state.eventOwners.owners.forEach(owner => {
-      const matchingRule = findMatchedRules(this.state.eventOwners.rules || [], owner);
+    this.state.eventOwners?.owners.forEach(owner => {
+      const matchingRule = findMatchedRules(this.state.eventOwners?.rules || [], owner);
       const normalizedOwner: OwnerList[0] = {
         actor: owner,
         rules: matchingRule,
@@ -162,34 +144,46 @@ class SuggestedOwners extends AsyncComponent<Props, State> {
     }
   };
 
+  renderLoading() {
+    return this.renderBody();
+  }
+
   renderBody() {
     const {organization, group} = this.props;
+    const {loading} = this.state;
     const owners = this.getOwnerList();
 
-    return owners.length > 0 ? (
+    return (
       <SuggestedAssignees
         group={group}
         organization={organization}
         owners={owners}
         projectId={group.project.id}
         onAssign={this.handleAssign}
+        loading={loading}
       />
-    ) : null;
+    );
   }
 }
 
 function SuggestedOwnersWrapper(props: Omit<Props, 'committers' | 'organization'>) {
   const organization = useOrganization();
-  const {committers, releaseCommitters} = useCommitters({
-    eventId: props.event.id,
-    projectSlug: props.project.slug,
-  });
+  const {data} = useCommitters(
+    {
+      eventId: props.event.id,
+      projectSlug: props.project.slug,
+    },
+    {notifyOnChangeProps: ['data'], enabled: !defined(props.group.assignedTo)}
+  );
+
+  if (defined(props.group.assignedTo)) {
+    return null;
+  }
 
   return (
     <SuggestedOwners
       organization={organization}
-      committers={committers}
-      releaseCommitters={releaseCommitters}
+      committers={data?.committers ?? []}
       {...props}
     />
   );

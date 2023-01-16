@@ -1,9 +1,9 @@
 from copy import deepcopy
 from datetime import datetime
+from functools import cached_property
 
 import pytz
 import requests
-from exam import fixture
 from freezegun import freeze_time
 
 from sentry import audit_log
@@ -26,19 +26,19 @@ from tests.sentry.api.serializers.test_alert_rule import BaseAlertRuleSerializer
 
 
 class AlertRuleBase:
-    @fixture
+    @cached_property
     def organization(self):
         return self.create_organization()
 
-    @fixture
+    @cached_property
     def project(self):
         return self.create_project(organization=self.organization)
 
-    @fixture
+    @cached_property
     def user(self):
         return self.create_user()
 
-    @fixture
+    @cached_property
     def alert_rule_dict(self):
         return {
             "aggregate": "count()",

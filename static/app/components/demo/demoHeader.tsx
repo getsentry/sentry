@@ -40,7 +40,6 @@ export default function DemoHeader() {
 
     reqDemoBtn = (
       <NewRequestDemoBtn
-        priority="form"
         onClick={() =>
           trackAdvancedAnalyticsEvent('growth.demo_click_request_demo', {
             organization: null,
@@ -99,7 +98,6 @@ export default function DemoHeader() {
 
     reqDemoBtn = (
       <RequestDemoBtn
-        priority="form"
         onClick={() =>
           trackAdvancedAnalyticsEvent('growth.demo_click_request_demo', {
             organization: null,

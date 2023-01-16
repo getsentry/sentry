@@ -14,7 +14,7 @@ import Button from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import DateTime from 'sentry/components/dateTime';
 import NotFound from 'sentry/components/errors/notFound';
-import Field from 'sentry/components/forms/field';
+import FieldGroup from 'sentry/components/forms/fieldGroup';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'sentry/components/panels';
@@ -138,8 +138,12 @@ class OrganizationMemberDetail extends AsyncView<Props, State> {
 
   handleAddTeam = (team: Team) => {
     const {member} = this.state;
-    if (!member!.teams.includes(team.slug)) {
-      member!.teams.push(team.slug);
+    if (!member) {
+      return;
+    }
+    const teams = member.teams;
+    if (!teams.includes(team.slug)) {
+      member.teams = [...teams, team.slug];
     }
     this.setState({member});
   };
@@ -292,7 +296,9 @@ class OrganizationMemberDetail extends AsyncView<Props, State> {
                       <DetailLabel>{t('Invite Link')}</DetailLabel>
                       <TextCopyInput>{inviteLink}</TextCopyInput>
                       <p className="help-block">
-                        {t('This unique invite link may only be used by this member.')}
+                        {t(
+                          'This invite link can be used by anyone who knows it. Keep it secure!'
+                        )}
                       </p>
                     </div>
                     <InviteActions>
@@ -319,7 +325,7 @@ class OrganizationMemberDetail extends AsyncView<Props, State> {
           <Panel>
             <PanelHeader>{t('Authentication')}</PanelHeader>
             <PanelBody>
-              <Field
+              <FieldGroup
                 alignRight
                 flexibleControlStateSize
                 label={t('Reset two-factor authentication')}
@@ -341,7 +347,7 @@ class OrganizationMemberDetail extends AsyncView<Props, State> {
                     </Button>
                   </Confirm>
                 </Tooltip>
-              </Field>
+              </FieldGroup>
             </PanelBody>
           </Panel>
         )}

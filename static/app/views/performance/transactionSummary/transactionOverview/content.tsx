@@ -22,7 +22,6 @@ import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import {
   formatTagKey,
-  getAggregateAlias,
   isRelativeSpanOperationBreakdownField,
   SPAN_OP_BREAKDOWN_FIELDS,
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
@@ -92,10 +91,6 @@ function SummaryContent({
   onChangeFilter,
 }: Props) {
   const routes = useRoutes();
-
-  const useAggregateAlias = !organization.features.includes(
-    'performance-frontend-use-events-endpoint'
-  );
   function handleSearch(query: string) {
     const queryParams = normalizeDateTimeParams({
       ...(location.query || {}),
@@ -159,7 +154,7 @@ function SummaryContent({
     transactionsListTitles: string[]
   ) {
     const {selected} = getTransactionsListSort(location, {
-      p95: (useAggregateAlias ? totalValues?.p95 : totalValues?.['p95()']) ?? 0,
+      p95: totalValues?.['p95()'] ?? 0,
       spanOperationBreakdownFilter,
     });
     const sortedEventView = transactionsListEventView.withSorts([selected.sort]);
@@ -183,12 +178,7 @@ function SummaryContent({
   );
 
   const query = decodeScalar(location.query.query, '');
-  const totalCount =
-    totalValues === null
-      ? null
-      : useAggregateAlias
-      ? totalValues.count
-      : totalValues['count()'];
+  const totalCount = totalValues === null ? null : totalValues['count()'];
 
   // NOTE: This is not a robust check for whether or not a transaction is a front end
   // transaction, however it will suffice for now.
@@ -198,9 +188,7 @@ function SummaryContent({
       VITAL_GROUPS.some(group =>
         group.vitals.some(vital => {
           const functionName = `percentile(${vital},${VITAL_PERCENTILE})`;
-          const field = useAggregateAlias
-            ? getAggregateAlias(functionName)
-            : functionName;
+          const field = functionName;
           return Number.isFinite(totalValues[field]);
         })
       ));
@@ -336,7 +324,7 @@ function SummaryContent({
           }}
           handleCellAction={handleCellAction}
           {...getTransactionsListSort(location, {
-            p95: (useAggregateAlias ? totalValues?.p95 : totalValues?.['p95()']) ?? 0,
+            p95: totalValues?.['p95()'] ?? 0,
             spanOperationBreakdownFilter,
           })}
           forceLoading={isLoading}

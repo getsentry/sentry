@@ -1,7 +1,7 @@
+from functools import cached_property
 from typing import Any, Mapping
 
 import pytest
-from exam import fixture
 
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.auth.providers.oauth2 import OAuth2Provider
@@ -25,7 +25,7 @@ class DummyOAuth2Provider(OAuth2Provider):
 
 @control_silo_test
 class OAuth2ProviderTest(TestCase):
-    @fixture
+    @cached_property
     def auth_provider(self):
         return AuthProvider.objects.create(provider="oauth2", organization=self.organization)
 

@@ -77,7 +77,7 @@ function RuleListRow({
   function renderLastIncidentDate(): React.ReactNode {
     if (isIssueAlert(rule)) {
       if (!rule.lastTriggered) {
-        return t('Alerts not triggered yet');
+        return t('Alert not triggered yet');
       }
       return (
         <div>
@@ -88,7 +88,7 @@ function RuleListRow({
     }
 
     if (!rule.latestIncident) {
-      return t('Alerts not triggered yet');
+      return t('Alert not triggered yet');
     }
 
     if (activeIncident) {
@@ -184,23 +184,12 @@ function RuleListRow({
     },
   };
 
-  const detailsLink = `/organizations/${orgId}/alerts/rules/details/${rule.id}/`;
-
   const ownerId = rule.owner?.split(':')[1];
   const teamActor = ownerId
     ? {type: 'team' as Actor['type'], id: ownerId, name: ''}
     : null;
 
   const canEdit = ownerId ? userTeams.has(ownerId) : true;
-  const alertLink = isIssueAlert(rule) ? (
-    <Link
-      to={`/organizations/${orgId}/alerts/rules/${rule.projects[0]}/${rule.id}/details/`}
-    >
-      {rule.name}
-    </Link>
-  ) : (
-    <TitleLink to={isIssueAlert(rule) ? editLink : detailsLink}>{rule.name}</TitleLink>
-  );
 
   const IssueStatusText: Record<IncidentStatus, string> = {
     [IncidentStatus.CRITICAL]: t('Critical'),
@@ -249,7 +238,7 @@ function RuleListRow({
     value: '',
     label: () => (
       <MenuItemWrapper>
-        <StyledIconUser size="20px" />
+        <StyledIconUser size="md" />
         {t('Unassigned')}
       </MenuItemWrapper>
     ),
@@ -304,7 +293,7 @@ function RuleListRow({
     />
   ) : (
     <Tooltip isHoverable skipWrapper title={t('Unassigned')}>
-      <StyledIconUser size="20px" color="gray400" />
+      <StyledIconUser size="md" color="gray400" />
     </Tooltip>
   );
 
@@ -332,7 +321,17 @@ function RuleListRow({
           </Tooltip>
         </FlexCenter>
         <AlertNameAndStatus>
-          <AlertName>{alertLink}</AlertName>
+          <AlertName>
+            <Link
+              to={
+                isIssueAlert(rule)
+                  ? `/organizations/${orgId}/alerts/rules/${rule.projects[0]}/${rule.id}/details/`
+                  : `/organizations/${orgId}/alerts/rules/details/${rule.id}/`
+              }
+            >
+              {rule.name}
+            </Link>
+          </AlertName>
           <AlertIncidentDate>{renderLastIncidentDate()}</AlertIncidentDate>
         </AlertNameAndStatus>
       </AlertNameWrapper>
@@ -407,10 +406,6 @@ function RuleListRow({
     </ErrorBoundary>
   );
 }
-
-const TitleLink = styled(Link)`
-  ${p => p.theme.overflowEllipsis}
-`;
 
 const FlexCenter = styled('div')`
   display: flex;

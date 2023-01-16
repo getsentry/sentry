@@ -192,7 +192,9 @@ function SplitPanel(props: Props) {
     [props, startMouseIdleTimer]
   );
 
+  const elem = useRef<HTMLDivElement>(null);
   const mouseTrackingProps = useMouseTracking<HTMLDivElement>({
+    elem,
     onPositionChange: handlePositionChange,
   });
 
@@ -202,7 +204,12 @@ function SplitPanel(props: Props) {
     const {left: a, right: b} = props;
 
     return (
-      <SplitPanelContainer orientation="columns" size={sizeCSS} {...activeTrackingProps}>
+      <SplitPanelContainer
+        orientation="columns"
+        size={sizeCSS}
+        ref={elem}
+        {...activeTrackingProps}
+      >
         <Panel>{getValFromSide(a, 'content') || a}</Panel>
         <Divider
           slideDirection="leftright"
@@ -215,7 +222,12 @@ function SplitPanel(props: Props) {
   }
   const {top: a, bottom: b} = props;
   return (
-    <SplitPanelContainer orientation="rows" size={sizeCSS} {...activeTrackingProps}>
+    <SplitPanelContainer
+      orientation="rows"
+      size={sizeCSS}
+      ref={elem}
+      {...activeTrackingProps}
+    >
       <Panel>{getValFromSide(a, 'content') || a}</Panel>
       <Divider
         slideDirection="updown"

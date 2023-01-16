@@ -37,7 +37,7 @@ const PageFilterBar = styled('div')<{condensed?: boolean}>`
   }
 
   & > * {
-    min-width: 6rem;
+    min-width: 7rem;
     flex-grow: 1;
     flex-shrink: 1;
     flex-basis: max-content;

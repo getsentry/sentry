@@ -1,8 +1,8 @@
+from functools import cached_property
 from unittest.mock import patch
 
 import pytest
 from botocore.client import ClientError
-from exam import fixture
 
 from sentry.testutils import PluginTestCase
 from sentry.utils import json
@@ -10,7 +10,7 @@ from sentry_plugins.amazon_sqs.plugin import AmazonSQSPlugin
 
 
 class AmazonSQSPluginTest(PluginTestCase):
-    @fixture
+    @cached_property
     def plugin(self):
         return AmazonSQSPlugin()
 

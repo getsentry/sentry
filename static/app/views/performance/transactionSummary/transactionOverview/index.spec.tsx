@@ -825,9 +825,7 @@ describe('Performance > TransactionSummary', function () {
 
   describe('with events', function () {
     it('renders basic UI elements', async function () {
-      const {organization, router, routerContext} = initializeData({
-        features: ['performance-frontend-use-events-endpoint'],
-      });
+      const {organization, router, routerContext} = initializeData();
 
       render(<TestComponent router={router} location={router.location} />, {
         context: routerContext,
@@ -871,7 +869,7 @@ describe('Performance > TransactionSummary', function () {
 
     it('renders feature flagged UI elements', function () {
       const {organization, router, routerContext} = initializeData({
-        features: ['incidents', 'performance-frontend-use-events-endpoint'],
+        features: ['incidents'],
       });
 
       render(<TestComponent router={router} location={router.location} />, {
@@ -885,7 +883,6 @@ describe('Performance > TransactionSummary', function () {
 
     it('renders Web Vitals widget', async function () {
       const {organization, router, routerContext} = initializeData({
-        features: ['performance-frontend-use-events-endpoint'],
         project: TestStubs.Project({teams, platform: 'javascript'}),
         query: {
           query:
@@ -910,9 +907,7 @@ describe('Performance > TransactionSummary', function () {
     });
 
     it('renders sidebar widgets', async function () {
-      const {organization, router, routerContext} = initializeData({
-        features: ['performance-frontend-use-events-endpoint'],
-      });
+      const {organization, router, routerContext} = initializeData({});
 
       render(<TestComponent router={router} location={router.location} />, {
         context: routerContext,
@@ -933,9 +928,7 @@ describe('Performance > TransactionSummary', function () {
     });
 
     it('fetches transaction threshold', function () {
-      const {organization, router, routerContext} = initializeData({
-        features: ['performance-frontend-use-events-endpoint'],
-      });
+      const {organization, router, routerContext} = initializeData();
 
       const getTransactionThresholdMock = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/project-transaction-threshold-override/',
@@ -965,9 +958,7 @@ describe('Performance > TransactionSummary', function () {
     });
 
     it('fetches project transaction threshdold', async function () {
-      const {organization, router, routerContext} = initializeData({
-        features: ['performance-frontend-use-events-endpoint'],
-      });
+      const {organization, router, routerContext} = initializeData();
 
       const getTransactionThresholdMock = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/project-transaction-threshold-override/',
@@ -996,9 +987,7 @@ describe('Performance > TransactionSummary', function () {
     });
 
     it('triggers a navigation on search', function () {
-      const {organization, router, routerContext} = initializeData({
-        features: ['performance-frontend-use-events-endpoint'],
-      });
+      const {organization, router, routerContext} = initializeData();
 
       render(<TestComponent router={router} location={router.location} />, {
         context: routerContext,
@@ -1023,9 +1012,7 @@ describe('Performance > TransactionSummary', function () {
     });
 
     it('can mark a transaction as key', async function () {
-      const {organization, router, routerContext} = initializeData({
-        features: ['performance-frontend-use-events-endpoint'],
-      });
+      const {organization, router, routerContext} = initializeData();
 
       render(<TestComponent router={router} location={router.location} />, {
         context: routerContext,
@@ -1052,9 +1039,7 @@ describe('Performance > TransactionSummary', function () {
     });
 
     it('triggers a navigation on transaction filter', async function () {
-      const {organization, router, routerContext} = initializeData({
-        features: ['performance-frontend-use-events-endpoint'],
-      });
+      const {organization, router, routerContext} = initializeData();
 
       render(<TestComponent router={router} location={router.location} />, {
         context: routerContext,
@@ -1083,9 +1068,7 @@ describe('Performance > TransactionSummary', function () {
     });
 
     it('renders pagination buttons', async function () {
-      const {organization, router, routerContext} = initializeData({
-        features: ['performance-frontend-use-events-endpoint'],
-      });
+      const {organization, router, routerContext} = initializeData();
 
       render(<TestComponent router={router} location={router.location} />, {
         context: routerContext,
@@ -1117,7 +1100,6 @@ describe('Performance > TransactionSummary', function () {
       });
 
       const {organization, router, routerContext} = initializeData({
-        features: ['performance-frontend-use-events-endpoint'],
         query: {query: 'tag:value'},
       });
 
@@ -1144,7 +1126,6 @@ describe('Performance > TransactionSummary', function () {
       });
 
       const {organization, router, routerContext} = initializeData({
-        features: ['performance-frontend-use-events-endpoint'],
         query: {query: 'tag:value event.type:transaction'},
       });
 
@@ -1165,10 +1146,7 @@ describe('Performance > TransactionSummary', function () {
       });
 
       const {organization, router, routerContext} = initializeData({
-        features: [
-          'performance-suspect-spans-view',
-          'performance-frontend-use-events-endpoint',
-        ],
+        features: ['performance-suspect-spans-view'],
       });
 
       render(<TestComponent router={router} location={router.location} />, {
@@ -1180,9 +1158,7 @@ describe('Performance > TransactionSummary', function () {
     });
 
     it('adds search condition on transaction status when clicking on status breakdown', async function () {
-      const {organization, router, routerContext} = initializeData({
-        features: ['performance-frontend-use-events-endpoint'],
-      });
+      const {organization, router, routerContext} = initializeData();
 
       render(<TestComponent router={router} location={router.location} />, {
         context: routerContext,
@@ -1204,9 +1180,7 @@ describe('Performance > TransactionSummary', function () {
     });
 
     it('appends tag value to existing query when clicked', async function () {
-      const {organization, router, routerContext} = initializeData({
-        features: ['performance-frontend-use-events-endpoint'],
-      });
+      const {organization, router, routerContext} = initializeData();
 
       render(<TestComponent router={router} location={router.location} />, {
         context: routerContext,

@@ -26,7 +26,12 @@ def clear_release_cache(instance: Release, **kwargs: Any) -> None:
 
 
 def clear_release_environment_project_cache(instance: ReleaseEnvironment, **kwargs: Any) -> None:
-    release_project_ids = instance.release.projects.values_list("id", flat=True)
+    try:
+        release_project_ids = instance.release.projects.values_list("id", flat=True)
+    except Release.DoesNotExist:
+        # This can happen during deletions as release projects are removed before the release is.
+        return
+
     cache.delete_many(
         [
             get_project_release_cache_key(proj_id, instance.environment_id)

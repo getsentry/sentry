@@ -200,15 +200,14 @@ div.u2f-box {
 
   div.device-failed {
     display: none;
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    padding-right: 4px;
+    position: relative;
+    width: 100px;
+    height: 100px;
 
     text-align: center;
     font-size: 46px;
     font-weight: bold;
+    line-height: 100px;
     color: @red;
     &:after {
       content: ':-(';

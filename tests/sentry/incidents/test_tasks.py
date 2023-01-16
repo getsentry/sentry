@@ -1,11 +1,12 @@
 from datetime import timedelta
+from functools import cached_property
+from unittest import mock
 from unittest.mock import Mock, call, patch
 
 import pytest
 import pytz
 from django.urls import reverse
 from django.utils import timezone
-from exam import fixture, patcher
 from freezegun import freeze_time
 
 from sentry.incidents.logic import (
@@ -48,7 +49,10 @@ class BaseIncidentActivityTest:
 
 
 class TestSendSubscriberNotifications(BaseIncidentActivityTest, TestCase):
-    send_async = patcher("sentry.utils.email.MessageBuilder.send_async")
+    @pytest.fixture(autouse=True)
+    def _setup_send_async_patch(self):
+        with mock.patch("sentry.utils.email.MessageBuilder.send_async") as self.send_async:
+            yield
 
     def test_simple(self):
         activity = create_incident_activity(
@@ -149,17 +153,20 @@ class TestBuildActivityContext(BaseIncidentActivityTest, TestCase):
 
 
 class HandleTriggerActionTest(TestCase):
-    metrics = patcher("sentry.incidents.tasks.metrics")
+    @pytest.fixture(autouse=True)
+    def _setup_metric_patch(self):
+        with mock.patch("sentry.incidents.tasks.metrics") as self.metrics:
+            yield
 
-    @fixture
+    @cached_property
     def alert_rule(self):
         return self.create_alert_rule()
 
-    @fixture
+    @cached_property
     def trigger(self):
         return create_alert_rule_trigger(self.alert_rule, CRITICAL_TRIGGER_LABEL, 100)
 
-    @fixture
+    @cached_property
     def action(self):
         return create_alert_rule_trigger_action(
             self.trigger, AlertRuleTriggerAction.Type.EMAIL, AlertRuleTriggerAction.TargetType.USER
@@ -206,7 +213,7 @@ class HandleTriggerActionTest(TestCase):
 
 
 class TestHandleSubscriptionMetricsLogger(TestCase):
-    @fixture
+    @cached_property
     def subscription(self):
         snuba_query = create_snuba_query(
             SnubaQuery.Type.CRASH_RATE,

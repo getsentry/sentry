@@ -15,6 +15,7 @@ type Options = {
 };
 
 type Return = {
+  getMutationsTypes: () => {label: string; value: string}[];
   items: Extraction[];
   searchTerm: string;
   setSearchTerm: (searchTerm: string) => void;
@@ -46,6 +47,19 @@ function useDomFilters({actions}: Options): Return {
     [actions, type, searchTerm]
   );
 
+  const getMutationsTypes = useCallback(
+    () =>
+      Array.from(
+        new Set(actions.map(mutation => mutation.crumb.type as string).concat(type))
+      )
+        .sort()
+        .map(value => ({
+          value,
+          label: value,
+        })),
+    [actions, type]
+  );
+
   const setType = useCallback((f_d_type: string[]) => setFilter({f_d_type}), [setFilter]);
 
   const setSearchTerm = useCallback(
@@ -54,6 +68,7 @@ function useDomFilters({actions}: Options): Return {
   );
 
   return {
+    getMutationsTypes,
     items,
     searchTerm,
     setSearchTerm,

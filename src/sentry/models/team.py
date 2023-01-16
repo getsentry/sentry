@@ -153,6 +153,7 @@ class Team(Model):
     actor = FlexibleForeignKey(
         "sentry.Actor", db_index=True, unique=True, null=True, on_delete=models.PROTECT
     )
+    idp_provisioned = models.BooleanField(default=False)
     date_added = models.DateTimeField(default=timezone.now, null=True)
 
     objects = TeamManager(cache_fields=("pk", "slug"))

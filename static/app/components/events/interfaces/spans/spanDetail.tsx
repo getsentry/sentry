@@ -21,6 +21,8 @@ import {
 } from 'sentry/components/performance/waterfall/rowDetails';
 import Pill from 'sentry/components/pill';
 import Pills from 'sentry/components/pills';
+import {useTransactionProfileId} from 'sentry/components/profiling/transactionProfileIdProvider';
+import {TransactionToProfileButton} from 'sentry/components/profiling/transactionToProfileButton';
 import {
   generateIssueEventTarget,
   generateTraceTarget,
@@ -79,6 +81,7 @@ type Props = {
 function SpanDetail(props: Props) {
   const [errorsOpened, setErrorsOpened] = useState(false);
   const location = useLocation();
+  const profileId = useTransactionProfileId();
 
   useEffect(() => {
     // Run on mount.
@@ -366,6 +369,10 @@ function SpanDetail(props: Props) {
       value => value === 0
     );
 
+    const flamechartSpanFeatureEnabled = organization.features.includes(
+      'profiling-flamechart-spans'
+    );
+
     return (
       <Fragment>
         {renderOrphanSpanMessage()}
@@ -407,6 +414,24 @@ function SpanDetail(props: Props) {
               <Row title="Trace ID" extra={renderTraceButton()}>
                 {span.trace_id}
               </Row>
+              {flamechartSpanFeatureEnabled && profileId && event.projectSlug && (
+                <Row
+                  title="Profile ID"
+                  extra={
+                    <TransactionToProfileButton
+                      size="xs"
+                      projectSlug={event.projectSlug}
+                      query={{
+                        spanId: span.span_id,
+                      }}
+                    >
+                      {t('View Profile')}
+                    </TransactionToProfileButton>
+                  }
+                >
+                  {profileId}
+                </Row>
+              )}
               <Row title="Description" extra={renderViewSimilarSpansButton()}>
                 {span?.description ?? ''}
               </Row>

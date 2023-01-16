@@ -132,9 +132,10 @@ class TestLastSeenUpdaterEndToEnd(TestCase):
 
     def test_basic_flow(self):
         # we can't use fixtures with unittest.TestCase
+        commit = Mock()
         message = kafka_message(headerless_kafka_payload(mixed_payload()))
         processing_strategy = self.processing_factory().create_with_partitions(
-            lambda x: None, {Partition(Topic("fake-topic"), 0): 0}
+            commit, {Partition(Topic("fake-topic"), 0): 0}
         )
         processing_strategy.submit(message)
         processing_strategy.poll()
@@ -149,10 +150,11 @@ class TestLastSeenUpdaterEndToEnd(TestCase):
         assert (timezone.now() - stale_item.last_seen) < timedelta(seconds=30)
 
     def test_message_processes_after_bad_message(self):
+        commit = Mock()
         ok_message = kafka_message(headerless_kafka_payload(mixed_payload()))
         bad_message = kafka_message(headerless_kafka_payload(bad_payload()))
         processing_strategy = self.processing_factory().create_with_partitions(
-            lambda x: None, {Partition(Topic("fake-topic"), 0): 0}
+            commit, {Partition(Topic("fake-topic"), 0): 0}
         )
         processing_strategy.submit(bad_message)
         processing_strategy.submit(ok_message)

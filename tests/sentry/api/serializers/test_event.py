@@ -2,21 +2,23 @@ from unittest import mock
 
 from sentry.api.serializers import SimpleEventSerializer, serialize
 from sentry.api.serializers.models.event import DetailedEventSerializer, SharedEventSerializer
+from sentry.api.serializers.rest_framework import convert_dict_key_case, snake_to_camel_case
 from sentry.event_manager import EventManager
 from sentry.models import EventError
 from sentry.sdk_updates import SdkIndexState
 from sentry.testutils import TestCase
 from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.performance_issues.event_generators import get_event
 from sentry.testutils.silo import region_silo_test
 from sentry.utils import json
 from sentry.utils.samples import load_data
 from tests.sentry.event_manager.test_event_manager import make_event
-from tests.sentry.utils.performance_issues.test_performance_detection import EVENTS
+from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 
 @region_silo_test
-class EventSerializerTest(TestCase):
+class EventSerializerTest(TestCase, OccurrenceTestMixin):
     def test_simple(self):
         event_id = "a" * 32
         event = self.store_event(
@@ -26,6 +28,7 @@ class EventSerializerTest(TestCase):
         result = serialize(event)
         assert result["id"] == event_id
         assert result["eventID"] == event_id
+        assert result["occurrence"] is None
 
     def test_eventerror(self):
         event = self.store_event(
@@ -223,6 +226,18 @@ class EventSerializerTest(TestCase):
         result = serialize(event)
         assert result["entries"][0]["type"] == "spans"
 
+    def test_event_with_occurrence(self):
+        event = self.store_event(
+            data={},
+            project_id=self.project.id,
+        )
+        event_group = event.for_group(event.group)
+        event_group.occurrence = occurrence = self.build_occurrence()
+        result = serialize(event_group)
+        assert result["occurrence"] == convert_dict_key_case(
+            occurrence.to_dict(), snake_to_camel_case
+        )
+
 
 @region_silo_test
 class SharedEventSerializerTest(TestCase):
@@ -381,17 +396,11 @@ class DetailedEventSerializerTest(TestCase):
         result = serialize(event, None, DetailedEventSerializer())
         assert result["sdkUpdates"] == []
 
-    @override_options({"performance.issues.all.problem-creation": 1.0})
-    @override_options({"performance.issues.all.problem-detection": 1.0})
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
     def test_performance_problem(self):
         self.project.update_option("sentry:performance_issue_creation_rate", 1.0)
-        with mock.patch("sentry_sdk.tracing.Span.containing_transaction"), self.feature(
-            {
-                "organizations:performance-issues-ingest": True,
-            }
-        ):
-            manager = EventManager(make_event(**EVENTS["n-plus-one-in-django-index-view"]))
+        with mock.patch("sentry_sdk.tracing.Span.containing_transaction"):
+            manager = EventManager(make_event(**get_event("n-plus-one-in-django-index-view")))
             manager.normalize()
             event = manager.save(self.project.id)
         group_event = event.for_group(event.groups[0])
@@ -420,19 +429,13 @@ class DetailedEventSerializerTest(TestCase):
             "type": 1006,
         }
 
-    @override_options({"performance.issues.all.problem-creation": 1.0})
-    @override_options({"performance.issues.all.problem-detection": 1.0})
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
     def test_performance_problem_no_stored_data(self):
         self.project.update_option("sentry:performance_issue_creation_rate", 1.0)
         with mock.patch("sentry_sdk.tracing.Span.containing_transaction"), mock.patch(
             "sentry.event_manager.EventPerformanceProblem"
-        ), self.feature(
-            {
-                "organizations:performance-issues-ingest": True,
-            }
         ):
-            manager = EventManager(make_event(**EVENTS["n-plus-one-in-django-index-view"]))
+            manager = EventManager(make_event(**get_event("n-plus-one-in-django-index-view")))
             manager.normalize()
             event = manager.save(self.project.id)
         group_event = event.for_group(event.groups[0])

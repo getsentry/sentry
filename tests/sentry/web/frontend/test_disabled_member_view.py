@@ -1,12 +1,13 @@
+from functools import cached_property
+
 from django.urls import reverse
-from exam import fixture
 
 from sentry.models import OrganizationMember
 from sentry.testutils import TestCase
 
 
 class DisabledMemberViewTest(TestCase):
-    @fixture
+    @cached_property
     def path(self):
         return reverse("sentry-organization-disabled-member", args=[self.org.slug])
 

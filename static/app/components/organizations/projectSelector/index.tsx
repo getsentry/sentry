@@ -14,7 +14,7 @@ import {Organization, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import theme from 'sentry/utils/theme';
-import useRouter from 'sentry/utils/useRouter';
+import {useRoutes} from 'sentry/utils/useRoutes';
 
 import ProjectSelectorFooter from './footer';
 import SelectorItem from './selectorItem';
@@ -82,7 +82,7 @@ function ProjectSelector({
   value,
   disabled,
 }: Props) {
-  const router = useRouter();
+  const routes = useRoutes();
   // Used to determine if we should show the 'apply' changes button
   const [hasChanges, setHasChanges] = useState(false);
 
@@ -121,7 +121,7 @@ function ProjectSelector({
    */
   const handleQuickSelect = (selected: Pick<Project, 'id'>) => {
     trackAdvancedAnalyticsEvent('projectselector.direct_selection', {
-      path: getRouteStringFromRoutes(router.routes),
+      path: getRouteStringFromRoutes(routes),
       organization,
     });
 
@@ -143,7 +143,7 @@ function ProjectSelector({
 
     trackAdvancedAnalyticsEvent('projectselector.update', {
       count: value.length,
-      path: getRouteStringFromRoutes(router.routes),
+      path: getRouteStringFromRoutes(routes),
       organization,
       multi: isMulti,
     });
@@ -159,7 +159,7 @@ function ProjectSelector({
    */
   const handleClear = () => {
     trackAdvancedAnalyticsEvent('projectselector.clear', {
-      path: getRouteStringFromRoutes(router.routes),
+      path: getRouteStringFromRoutes(routes),
       organization,
     });
 
@@ -199,7 +199,7 @@ function ProjectSelector({
 
     trackAdvancedAnalyticsEvent('projectselector.toggle', {
       action: selected.length > value.length ? 'added' : 'removed',
-      path: getRouteStringFromRoutes(router.routes),
+      path: getRouteStringFromRoutes(routes),
       organization,
     });
 
@@ -287,7 +287,7 @@ function ProjectSelector({
                 handleQuickSelect({id: ALL_ACCESS_PROJECTS.toString()});
                 trackAdvancedAnalyticsEvent('projectselector.multi_button_clicked', {
                   button_type: 'all',
-                  path: getRouteStringFromRoutes(router.routes),
+                  path: getRouteStringFromRoutes(routes),
                   organization,
                 });
 
@@ -301,7 +301,7 @@ function ProjectSelector({
                 handleClear();
                 trackAdvancedAnalyticsEvent('projectselector.multi_button_clicked', {
                   button_type: 'my',
-                  path: getRouteStringFromRoutes(router.routes),
+                  path: getRouteStringFromRoutes(routes),
                   organization,
                 });
 

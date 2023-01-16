@@ -1,6 +1,6 @@
 import logging
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import (
     Any,
     Callable,
@@ -32,6 +32,7 @@ from sentry.ingest.inbound_filters import (
     get_all_filter_specs,
     get_filter_key,
 )
+from sentry.ingest.transaction_clusterer.rules import get_sorted_rules
 from sentry.interfaces.security import DEFAULT_DISALLOWED_SOURCES
 from sentry.models import Project, ProjectKey
 from sentry.relay.config.metric_extraction import get_metric_conditional_tagging_rules
@@ -48,6 +49,9 @@ EXPOSABLE_FEATURES = [
     "organizations:profiling",
     "organizations:session-replay",
 ]
+
+EXTRACT_METRICS_VERSION = 1
+EXTRACT_ABNORMAL_MECHANISM_VERSION = 2
 
 logger = logging.getLogger(__name__)
 
@@ -162,6 +166,50 @@ def get_dynamic_sampling_config(project: Project) -> Optional[Mapping[str, Any]]
     return None
 
 
+class TransactionNameRuleScope(TypedDict):
+    source: Literal["url"]
+
+
+class TransactionNameRuleRedaction(TypedDict):
+    method: Literal["replace"]
+    substitution: str
+
+
+class TransactionNameRule(TypedDict):
+    pattern: str
+    expiry: str
+    scope: TransactionNameRuleScope
+    redaction: TransactionNameRuleRedaction
+
+
+def get_transaction_names_config(project: Project) -> Optional[Sequence[TransactionNameRule]]:
+    if not features.has("organizations:transaction-name-sanitization", project.organization):
+        return None
+
+    cluster_rules = get_sorted_rules(project)
+    if not cluster_rules:
+        return None
+
+    return [_get_tx_name_rule(p, s) for p, s in cluster_rules]
+
+
+#: How long a transaction name rule lasts, in seconds.
+TRANSACTION_NAME_RULE_TTL_SECS = 90 * 24 * 60 * 60  # 90 days
+
+
+def _get_tx_name_rule(pattern: str, seen_last: int) -> TransactionNameRule:
+    rule_ttl = seen_last + TRANSACTION_NAME_RULE_TTL_SECS
+    expiry_at = datetime.fromtimestamp(rule_ttl, tz=timezone.utc).isoformat()
+    return TransactionNameRule(
+        pattern=pattern,
+        expiry=expiry_at,
+        # Some more hardcoded fields for future compatibility. These are not
+        # currently used.
+        scope={"source": "url"},
+        redaction={"method": "replace", "substitution": "*"},
+    )
+
+
 def add_experimental_config(
     config: MutableMapping[str, Any],
     key: str,
@@ -182,6 +230,12 @@ def add_experimental_config(
     else:
         if subconfig is not None:
             config[key] = subconfig
+
+
+def _should_extract_abnormal_mechanism(project: Project) -> bool:
+    return sample_modulo(
+        "sentry-metrics.releasehealth.abnormal-mechanism-extraction-rate", project.organization_id
+    )
 
 
 def _get_project_config(
@@ -226,6 +280,9 @@ def _get_project_config(
     # Limit the number of custom measurements
     add_experimental_config(config, "measurements", get_measurements_config)
 
+    # Rules to replace high cardinality transaction names
+    add_experimental_config(config, "txNameRules", get_transaction_names_config, project)
+
     if not full_config:
         # This is all we need for external Relay processors
         return ProjectConfig(project, **cfg)
@@ -250,7 +307,9 @@ def _get_project_config(
 
     if features.has("organizations:metrics-extraction", project.organization):
         config["sessionMetrics"] = {
-            "version": 1,
+            "version": EXTRACT_ABNORMAL_MECHANISM_VERSION
+            if _should_extract_abnormal_mechanism(project)
+            else EXTRACT_METRICS_VERSION,
             "drop": features.has(
                 "organizations:release-health-drop-sessions", project.organization
             ),

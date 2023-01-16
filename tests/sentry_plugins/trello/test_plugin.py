@@ -1,8 +1,8 @@
+from functools import cached_property
 from urllib.parse import parse_qsl, urlparse
 
 import responses
 from django.test import RequestFactory
-from exam import fixture
 
 from sentry.testutils import PluginTestCase
 from sentry.utils import json
@@ -10,11 +10,11 @@ from sentry_plugins.trello.plugin import TrelloPlugin
 
 
 class TrelloPluginTestBase(PluginTestCase):
-    @fixture
+    @cached_property
     def plugin(self):
         return TrelloPlugin()
 
-    @fixture
+    @cached_property
     def request(self):
         return RequestFactory()
 

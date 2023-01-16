@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import List, Optional, Union, cast
+from typing import List, Optional, cast
 
 import sentry_sdk
 from pytz import UTC
@@ -7,9 +7,9 @@ from pytz import UTC
 from sentry import quotas
 from sentry.dynamic_sampling.feature_multiplexer import DynamicSamplingFeatureMultiplexer
 from sentry.dynamic_sampling.key_transactions import get_key_transactions
-from sentry.dynamic_sampling.latest_release_booster import get_augmented_boosted_releases
+from sentry.dynamic_sampling.latest_release_booster import ProjectBoostedReleases
+from sentry.dynamic_sampling.logging import log_rules
 from sentry.dynamic_sampling.utils import (
-    BOOSTED_RELEASES_LIMIT,
     HEALTH_CHECK_DROPPING_FACTOR,
     KEY_TRANSACTION_BOOST_FACTOR,
     RELEASE_BOOST_FACTOR,
@@ -89,7 +89,7 @@ def generate_healthcheck_rule(sample_rate: float) -> BaseRule:
 
 
 def generate_boost_release_rules(project_id: int, sample_rate: float) -> List[ReleaseRule]:
-    boosted_releases = get_augmented_boosted_releases(project_id, BOOSTED_RELEASES_LIMIT)
+    boosted_releases = ProjectBoostedReleases(project_id).get_extended_boosted_releases()
     boosted_sample_rate = min(1.0, sample_rate * RELEASE_BOOST_FACTOR)
 
     return cast(
@@ -156,11 +156,11 @@ def generate_boost_key_transaction_rule(
     }
 
 
-def generate_rules(project: Project) -> List[Union[BaseRule, ReleaseRule]]:
+def generate_rules(project: Project) -> List[BaseRule]:
     """
     This function handles generate rules logic or fallback empty list of rules
     """
-    rules: List[Union[BaseRule, ReleaseRule]] = []
+    rules: List[BaseRule] = []
 
     sample_rate = quotas.get_blended_sample_rate(project)
 
@@ -195,4 +195,8 @@ def generate_rules(project: Project) -> List[Union[BaseRule, ReleaseRule]]:
 
         rules.append(generate_uniform_rule(sample_rate))
 
+    # We log rules onto Google Cloud Logging in order to have more observability into dynamic sampling rules.
+    log_rules(project.organization.id, project.id, rules)
+
+    # We only return the rule and not its type.
     return rules

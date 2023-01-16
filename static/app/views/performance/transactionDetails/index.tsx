@@ -23,7 +23,7 @@ function EventDetails(props: Props) {
     return typeof eventSlug === 'string' ? eventSlug.trim() : '';
   };
 
-  const {organization, location, params, router, route} = props;
+  const {organization, location, params} = props;
   const documentTitle = t('Performance Details');
   const eventSlug = getEventSlug();
   const projectSlug = eventSlug.split(':')[0];
@@ -41,8 +41,6 @@ function EventDetails(props: Props) {
             location={location}
             params={params}
             eventSlug={eventSlug}
-            router={router}
-            route={route}
             projects={projects}
           />
         </NoProjectMessage>

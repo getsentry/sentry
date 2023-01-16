@@ -1,6 +1,7 @@
+from functools import cached_property
+
 import pytest
 import responses
-from exam import fixture
 
 from sentry.exceptions import PluginError
 from sentry.models import Rule
@@ -11,7 +12,7 @@ from sentry.utils import json
 
 
 class WebHooksPluginTest(TestCase):
-    @fixture
+    @cached_property
     def plugin(self):
         return WebHooksPlugin()
 

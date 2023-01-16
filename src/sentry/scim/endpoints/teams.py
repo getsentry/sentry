@@ -330,19 +330,19 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
         * Renaming a team:
         ```json
         {
-            "Operations": {
+            "Operations": [{
                 "op": "replace",
                 "value": {
                     "id": 23,
                     "displayName": "newName"
                 }
-            }
+            }]
         }
         ```
         * Adding a member to a team:
         ```json
         {
-            "Operations": {
+            "Operations": [{
                 "op": "add",
                 "path": "members",
                 "value": [
@@ -351,22 +351,22 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
                         "display": "testexample@example.com"
                     }
                 ]
-            }
+            }]
         }
         ```
         * Removing a member from a team:
         ```json
         {
-            "Operations": {
+            "Operations": [{
                 "op": "remove",
                 "path": "members[value eq \"23\"]"
-            }
+            }]
         }
         ```
         * Replacing an entire member set of a team:
         ```json
         {
-            "Operations": {
+            "Operations": [{
                 "op": "replace",
                 "path": "members",
                 "value": [
@@ -379,7 +379,7 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
                         "display": "testexample3@sentry.io"
                     }
                 ]
-            }
+            }]
         }
         ```
         """

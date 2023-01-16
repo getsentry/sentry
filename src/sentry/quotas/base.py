@@ -5,7 +5,8 @@ from typing import Optional
 from django.conf import settings
 from django.core.cache import cache
 
-from sentry import options
+from sentry import features, options
+from sentry.constants import DataCategory
 from sentry.utils.json import prune_empty_keys
 from sentry.utils.services import Service
 
@@ -176,6 +177,18 @@ def _limit_from_settings(x):
     return int(x or 0) or None
 
 
+def index_data_category(event_type: Optional[str], organization) -> DataCategory:
+    if event_type == "transaction" and features.has(
+        "organizations:transaction-metrics-extraction", organization
+    ):
+        # TODO: This logic should move into sentry-relay, once the consequences
+        # of making `from_event_type` return `TRANSACTION_INDEXED` are clear.
+        # https://github.com/getsentry/relay/blob/d77c489292123e53831e10281bd310c6a85c63cc/relay-server/src/envelope.rs#L121
+        return DataCategory.TRANSACTION_INDEXED
+
+    return DataCategory.from_event_type(event_type)
+
+
 class Quota(Service):
     """
     Quotas handle tracking a project's usage and respond whether or not a
@@ -193,8 +206,9 @@ class Quota(Service):
 
     __all__ = (
         "get_maximum_quota",
-        "get_organization_quota",
+        "get_project_abuse_quotas",
         "get_project_quota",
+        "get_organization_quota",
         "is_rate_limited",
         "validate",
         "refund",
@@ -313,6 +327,86 @@ class Quota(Service):
 
         limit, window = key.rate_limit
         return _limit_from_settings(limit), window
+
+    def get_project_abuse_quotas(self, org):
+        # Per-project abuse quotas for errors, transactions, attachments, sessions.
+        global_abuse_window = options.get("project-abuse-quota.window")
+
+        for option, compat_options, id, categories in (
+            (
+                "project-abuse-quota.error-limit",
+                (
+                    "sentry:project-error-limit",
+                    "getsentry.rate-limit.project-errors",
+                ),
+                "pae",
+                DataCategory.error_categories(),
+            ),
+            (
+                "project-abuse-quota.transaction-limit",
+                (
+                    "sentry:project-transaction-limit",
+                    "getsentry.rate-limit.project-transactions",
+                ),
+                "pati",  # project abuse transaction indexed limit
+                (index_data_category("transaction", org),),
+            ),
+            (
+                "project-abuse-quota.attachment-limit",
+                (),
+                "paa",
+                (DataCategory.ATTACHMENT,),
+            ),
+            (
+                "project-abuse-quota.session-limit",
+                (),
+                "pas",
+                (DataCategory.SESSION,),
+            ),
+        ):
+            limit = 0
+            abuse_window = global_abuse_window
+            # compat_options were previously present in getsentry
+            # for errors and transactions. The first one is the org
+            # option for overriding the global option, the second one.
+            # For now, these deprecated ones take precedence over the new
+            # to preserve existing behavior.
+            if compat_options:
+                limit = org.get_option(compat_options[0])
+                if not limit:
+                    limit = options.get(compat_options[1])
+
+            if not limit:
+                limit = org.get_option(option)
+                if not limit:
+                    limit = options.get(option)
+
+            limit = _limit_from_settings(limit)
+            if limit is None:
+                # Unlimited.
+                continue
+
+            # Negative limits in config mean a reject-all quota.
+            if limit < 0:
+                yield QuotaConfig(
+                    scope=QuotaScope.PROJECT,
+                    categories=categories,
+                    limit=0,
+                    reason_code="disabled",
+                )
+
+            else:
+                yield QuotaConfig(
+                    id=id,
+                    limit=limit * abuse_window,
+                    scope=QuotaScope.PROJECT,
+                    categories=categories,
+                    window=abuse_window,
+                    # XXX: This reason code is hardcoded RateLimitReasonLabel.PROJECT_ABUSE_LIMIT
+                    #      from getsentry. Don't change it here.
+                    #      If it's changed in getsentry, it needs to be synced here.
+                    reason_code="project_abuse_limit",
+                )
 
     def get_project_quota(self, project):
         from sentry.models import Organization, OrganizationOption

@@ -1,4 +1,4 @@
-from exam import fixture
+from functools import cached_property
 
 from fixtures.page_objects.organization_integration_settings import (
     OrganizationAbstractDetailViewPage,
@@ -10,7 +10,7 @@ from sentry_plugins.opsgenie.plugin import OpsGeniePlugin
 
 @region_silo_test
 class OrganizationPluginDetailedView(AcceptanceTestCase):
-    @fixture
+    @cached_property
     def plugin(self):
         return OpsGeniePlugin()
 

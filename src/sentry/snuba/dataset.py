@@ -14,6 +14,7 @@ class Dataset(Enum):
     PerformanceMetrics = "generic_metrics"
     Replays = "replays"
     Profiles = "profiles"
+    IssuePlatform = "search_issues"
 
 
 @unique
@@ -27,3 +28,4 @@ class EntityKey(Enum):
     MetricsDistributions = "metrics_distributions"
     GenericMetricsDistributions = "generic_metrics_distributions"
     GenericMetricsSets = "generic_metrics_sets"
+    IssuePlatform = "search_issues"

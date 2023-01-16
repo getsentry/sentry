@@ -1,9 +1,9 @@
 import base64
+from functools import cached_property
 from typing import cast
 
 from django.test import RequestFactory
 from django.utils import timezone
-from exam import fixture
 from freezegun import freeze_time
 
 from sentry.middleware.auth import AuthenticationMiddleware
@@ -22,7 +22,7 @@ from sentry.utils.auth import login
 
 @all_silo_test(stable=True)
 class AuthenticationMiddlewareTestCase(TestCase):
-    middleware = fixture(AuthenticationMiddleware)
+    middleware = cached_property(AuthenticationMiddleware)
 
     def assert_user_equals(self, request):
         if SiloMode.get_current_mode() == SiloMode.MONOLITH:
@@ -61,7 +61,7 @@ class AuthenticationMiddlewareTestCase(TestCase):
         yield
         cache.clear()
 
-    @fixture
+    @cached_property
     def request(self):
         rv = RequestFactory().get("/")
         rv.session = self.session

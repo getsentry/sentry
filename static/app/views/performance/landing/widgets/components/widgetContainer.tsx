@@ -1,13 +1,17 @@
 import {useEffect, useState} from 'react';
 import {browserHistory} from 'react-router';
+import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 import pick from 'lodash/pick';
 import * as qs from 'query-string';
 
+import CompactSelect from 'sentry/components/compactSelect';
 import CompositeSelect from 'sentry/components/compositeSelect';
 import DropdownButton from 'sentry/components/dropdownButton';
+import TextOverflow from 'sentry/components/textOverflow';
 import {IconEllipsis} from 'sentry/icons/iconEllipsis';
 import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView from 'sentry/utils/discover/eventView';
@@ -28,6 +32,7 @@ import {
 import {HistogramWidget} from '../widgets/histogramWidget';
 import {LineChartListWidget} from '../widgets/lineChartListWidget';
 import {SingleFieldAreaWidget} from '../widgets/singleFieldAreaWidget';
+import {StackedBarsChartListWidget} from '../widgets/stackedBarsChartListWidget';
 import {TrendsWidget} from '../widgets/trendsWidget';
 import {VitalWidget} from '../widgets/vitalWidget';
 
@@ -58,6 +63,7 @@ function trackChartSettingChange(
     from_widget: previousChartSetting,
     to_widget: chartSetting,
     from_default: fromDefault,
+    is_new_menu: organization.features.includes('performance-new-widget-designs'),
   });
 }
 
@@ -117,20 +123,38 @@ const _WidgetContainer = (props: Props) => {
   // `eventView` from the props is the _landing page_ EventView, which is different
   const widgetEventView = makeEventViewForWidget(props.eventView, chartDefinition);
 
+  const showNewWidgetDesign = organization.features.includes(
+    'performance-new-widget-designs'
+  );
+
   const widgetProps = {
     ...chartDefinition,
     chartSetting,
     chartDefinition,
-    ContainerActions: containerProps => (
-      <WidgetContainerActions
-        {...containerProps}
-        eventView={widgetEventView}
-        allowedCharts={allowedCharts}
-        chartSetting={chartSetting}
-        setChartSetting={setChartSetting}
-        rowChartSettings={rowChartSettings}
-      />
-    ),
+    InteractiveTitle: showNewWidgetDesign
+      ? containerProps => (
+          <WidgetInteractiveTitle
+            {...containerProps}
+            eventView={widgetEventView}
+            allowedCharts={allowedCharts}
+            chartSetting={chartSetting}
+            setChartSetting={setChartSetting}
+            rowChartSettings={rowChartSettings}
+          />
+        )
+      : null,
+    ContainerActions: !showNewWidgetDesign
+      ? containerProps => (
+          <WidgetContainerActions
+            {...containerProps}
+            eventView={widgetEventView}
+            allowedCharts={allowedCharts}
+            chartSetting={chartSetting}
+            setChartSetting={setChartSetting}
+            rowChartSettings={rowChartSettings}
+          />
+        )
+      : null,
   };
 
   const passedProps = pick(props, [
@@ -141,21 +165,97 @@ const _WidgetContainer = (props: Props) => {
     'withStaticFilters',
   ]);
 
+  const titleTooltip = showNewWidgetDesign ? '' : widgetProps.titleTooltip;
+
   switch (widgetProps.dataType) {
     case GenericPerformanceWidgetDataType.trends:
-      return <TrendsWidget {...passedProps} {...widgetProps} />;
+      return (
+        <TrendsWidget {...passedProps} {...widgetProps} titleTooltip={titleTooltip} />
+      );
     case GenericPerformanceWidgetDataType.area:
-      return <SingleFieldAreaWidget {...passedProps} {...widgetProps} />;
+      return (
+        <SingleFieldAreaWidget
+          {...passedProps}
+          {...widgetProps}
+          titleTooltip={titleTooltip}
+        />
+      );
     case GenericPerformanceWidgetDataType.vitals:
-      return <VitalWidget {...passedProps} {...widgetProps} />;
+      return (
+        <VitalWidget {...passedProps} {...widgetProps} titleTooltip={titleTooltip} />
+      );
     case GenericPerformanceWidgetDataType.line_list:
-      return <LineChartListWidget {...passedProps} {...widgetProps} />;
+      return (
+        <LineChartListWidget
+          {...passedProps}
+          {...widgetProps}
+          titleTooltip={titleTooltip}
+        />
+      );
     case GenericPerformanceWidgetDataType.histogram:
-      return <HistogramWidget {...passedProps} {...widgetProps} />;
+      return (
+        <HistogramWidget {...passedProps} {...widgetProps} titleTooltip={titleTooltip} />
+      );
+    case GenericPerformanceWidgetDataType.stacked_bars:
+      return <StackedBarsChartListWidget {...passedProps} {...widgetProps} />;
     default:
       throw new Error(`Widget type "${widgetProps.dataType}" has no implementation.`);
   }
 };
+
+export const WidgetInteractiveTitle = ({
+  chartSetting,
+  eventView,
+  setChartSetting,
+  allowedCharts,
+  rowChartSettings,
+}) => {
+  const organization = useOrganization();
+  const menuOptions: React.ComponentProps<
+    typeof CompositeSelect
+  >['sections'][number]['options'] = [];
+
+  const settingsMap = WIDGET_DEFINITIONS({organization});
+  for (const setting of allowedCharts) {
+    const options = settingsMap[setting];
+    menuOptions.push({
+      value: setting,
+      label: options.title,
+      disabled: setting !== chartSetting && rowChartSettings.includes(setting),
+    });
+  }
+
+  const chartDefinition = WIDGET_DEFINITIONS({organization})[chartSetting];
+
+  if (chartDefinition.allowsOpenInDiscover) {
+    menuOptions.push({label: t('Open in Discover'), value: 'open_in_discover'});
+  }
+
+  const handleChange = option => {
+    if (option.value === 'open_in_discover') {
+      browserHistory.push(getEventViewDiscoverPath(organization, eventView));
+    } else {
+      setChartSetting(option.value);
+    }
+  };
+
+  return (
+    <StyledCompactSelect
+      options={menuOptions}
+      value={chartSetting}
+      onChange={handleChange}
+      renderWrapAs={TextOverflow}
+      triggerProps={{borderless: true, size: 'zero'}}
+    />
+  );
+};
+
+const StyledCompactSelect = styled(CompactSelect)`
+  button {
+    padding: ${space(0)};
+    font-size: ${p => p.theme.fontSizeLarge};
+  }
+`;
 
 export const WidgetContainerActions = ({
   chartSetting,

@@ -1,5 +1,5 @@
 import {Component} from 'react';
-import {withTheme} from '@emotion/react';
+import {Theme, withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
@@ -27,7 +27,6 @@ import {
 } from 'sentry/utils/performance/histogram/utils';
 import {Vital} from 'sentry/utils/performance/vitals/types';
 import {VitalData} from 'sentry/utils/performance/vitals/vitalsCardsDiscoverQuery';
-import {Theme} from 'sentry/utils/theme';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {EventsDisplayFilterName} from 'sentry/views/performance/transactionSummary/transactionEvents/utils';
 

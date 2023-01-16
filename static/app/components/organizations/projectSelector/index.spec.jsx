@@ -372,7 +372,7 @@ describe('ProjectSelector', function () {
       <ProjectSelector
         {...props}
         nonMemberProjects={[anotherProject]}
-        organization={{...mockOrg, role: 'owner'}}
+        organization={{...mockOrg, orgRole: 'owner'}}
         onApplyChange={mockOnApplyChange}
       />,
       {context: routerContext}
@@ -392,7 +392,7 @@ describe('ProjectSelector', function () {
       <ProjectSelector
         {...props}
         nonMemberProjects={[anotherProject]}
-        organization={{...mockOrg, role: 'manager'}}
+        organization={{...mockOrg, orgRole: 'manager'}}
         onApplyChange={mockOnApplyChange}
       />,
       {context: routerContext}
@@ -432,7 +432,7 @@ describe('ProjectSelector', function () {
       <ProjectSelector
         {...props}
         nonMemberProjects={[anotherProject]}
-        organization={{...mockOrg, role: 'manager'}}
+        organization={{...mockOrg, orgRole: 'manager'}}
         onApplyChange={mockOnApplyChange}
       />,
       {context: routerContext}

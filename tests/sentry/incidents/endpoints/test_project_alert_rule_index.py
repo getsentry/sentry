@@ -1,3 +1,4 @@
+from functools import cached_property
 from unittest.mock import patch
 
 import pytest
@@ -5,7 +6,6 @@ import pytz
 import requests
 import responses
 from django.test.utils import override_settings
-from exam import fixture
 from freezegun import freeze_time
 
 from sentry import audit_log
@@ -28,15 +28,15 @@ pytestmark = [pytest.mark.sentry_metrics]
 class AlertRuleListEndpointTest(APITestCase):
     endpoint = "sentry-api-0-project-alert-rules"
 
-    @fixture
+    @cached_property
     def organization(self):
         return self.create_organization()
 
-    @fixture
+    @cached_property
     def project(self):
         return self.create_project(organization=self.organization)
 
-    @fixture
+    @cached_property
     def user(self):
         return self.create_user()
 
@@ -705,15 +705,15 @@ class AlertRuleCreateEndpointTestCrashRateAlert(APITestCase):
         )
         self.login_as(self.user)
 
-    @fixture
+    @cached_property
     def organization(self):
         return self.create_organization()
 
-    @fixture
+    @cached_property
     def project(self):
         return self.create_project(organization=self.organization)
 
-    @fixture
+    @cached_property
     def user(self):
         return self.create_user()
 

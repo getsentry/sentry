@@ -33,7 +33,6 @@ class TeamKeyTransactionModelManagerTestCase(TransactionTestCase):
     def test_post_save_signal_runs_if_dynamic_sampling_is_enabled(self):
         with Feature(
             {
-                "organizations:server-side-sampling": True,
                 "organizations:dynamic-sampling": True,
             }
         ):

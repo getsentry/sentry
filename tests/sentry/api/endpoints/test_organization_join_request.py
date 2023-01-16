@@ -1,18 +1,18 @@
+from functools import cached_property
 from unittest.mock import patch
 
 import responses
 from django.core import mail
-from exam import fixture
 
 from sentry.models import AuthProvider, InviteStatus, OrganizationMember, OrganizationOption
 from sentry.testutils import APITestCase
 from sentry.testutils.cases import SlackActivityNotificationTest
 from sentry.testutils.helpers.slack import get_attachment_no_text
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
 from sentry.utils import json
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class OrganizationJoinRequestTest(APITestCase, SlackActivityNotificationTest):
     endpoint = "sentry-api-0-organization-join-request"
     method = "post"
@@ -22,7 +22,7 @@ class OrganizationJoinRequestTest(APITestCase, SlackActivityNotificationTest):
         super(SlackActivityNotificationTest, self).setUp()
         self.email = "test@example.com"
 
-    @fixture
+    @cached_property
     def owner(self):
         return OrganizationMember.objects.get(user=self.user, organization=self.organization)
 
@@ -58,7 +58,8 @@ class OrganizationJoinRequestTest(APITestCase, SlackActivityNotificationTest):
 
     @patch("sentry.api.endpoints.organization_member.requests.join.logger")
     def test_org_sso_enabled(self, mock_log):
-        AuthProvider.objects.create(organization=self.organization, provider="google")
+        with exempt_from_silo_limits():
+            AuthProvider.objects.create(organization=self.organization, provider="google")
 
         self.get_error_response(self.organization.slug, email=self.email, status_code=403)
 

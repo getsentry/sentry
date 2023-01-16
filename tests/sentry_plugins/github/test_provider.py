@@ -1,7 +1,7 @@
+from functools import cached_property
 from unittest.mock import patch
 
 import responses
-from exam import fixture
 
 from sentry.models import Integration, OrganizationIntegration, Repository
 from sentry.testutils import TestCase
@@ -18,7 +18,7 @@ from social_auth.models import UserSocialAuth
 
 
 class GitHubPluginTest(TestCase):
-    @fixture
+    @cached_property
     def provider(self):
         return GitHubRepositoryProvider("github")
 
@@ -169,7 +169,7 @@ class GitHubPluginTest(TestCase):
 
 
 class GitHubAppsProviderTest(TestCase):
-    @fixture
+    @cached_property
     def provider(self):
         return GitHubAppsRepositoryProvider("github_apps")
 

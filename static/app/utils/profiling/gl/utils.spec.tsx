@@ -490,6 +490,13 @@ describe('computeConfigViewWithStrategy', () => {
     ).toBe(true);
   });
 
+  it('min (frame is in view -> preserves view)', () => {
+    const view = new Rect(0, 0, 1, 1);
+    const frame = new Rect(0, 0, 0.5, 0.5);
+
+    expect(computeConfigViewWithStrategy('min', view, frame).equals(view)).toBe(true);
+  });
+
   it('min (when view is too small to fit frame)', () => {
     const view = new Rect(0, 0, 1, 1);
     const frame = new Rect(2, 2, 5, 1);

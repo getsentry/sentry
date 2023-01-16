@@ -30,13 +30,10 @@ interface ProfileSummaryContentProps {
 }
 
 function ProfileSummaryContent(props: ProfileSummaryContentProps) {
-  const fields = useMemo(() => {
-    if (mobile.includes(props.project.platform as any)) {
-      return MOBILE_FIELDS;
-    }
-
-    return DEFAULT_FIELDS;
-  }, [props.project]);
+  const fields = useMemo(
+    () => getProfilesTableFields(props.project.platform),
+    [props.project]
+  );
 
   const profilesCursor = useMemo(
     () => decodeScalar(props.location.query.cursor),
@@ -53,12 +50,16 @@ function ProfileSummaryContent(props: ProfileSummaryContentProps) {
     [props.location.query.functionsSort]
   );
 
-  const sort = formatSort<FieldType>(decodeScalar(props.location.query.sort), fields, {
-    key: 'timestamp',
-    order: 'desc',
-  });
+  const sort = formatSort<ProfilingFieldType>(
+    decodeScalar(props.location.query.sort),
+    fields,
+    {
+      key: 'timestamp',
+      order: 'desc',
+    }
+  );
 
-  const profiles = useProfileEvents<FieldType>({
+  const profiles = useProfileEvents<ProfilingFieldType>({
     cursor: profilesCursor,
     fields,
     query: props.query,
@@ -92,7 +93,7 @@ function ProfileSummaryContent(props: ProfileSummaryContentProps) {
     value => {
       browserHistory.push({
         ...props.location,
-        query: {...props.location.query, sort: value},
+        query: {...props.location.query, cursor: undefined, sort: value},
       });
     },
     [props.location]
@@ -170,11 +171,18 @@ const ALL_FIELDS = [
   'profile.duration',
 ] as const;
 
-type FieldType = typeof ALL_FIELDS[number];
+export type ProfilingFieldType = typeof ALL_FIELDS[number];
 
-const MOBILE_FIELDS: FieldType[] = [...ALL_FIELDS];
+export function getProfilesTableFields(platform: Project['platform']) {
+  if (mobile.includes(platform as any)) {
+    return MOBILE_FIELDS;
+  }
 
-const DEFAULT_FIELDS: FieldType[] = [
+  return DEFAULT_FIELDS;
+}
+
+const MOBILE_FIELDS: ProfilingFieldType[] = [...ALL_FIELDS];
+const DEFAULT_FIELDS: ProfilingFieldType[] = [
   'id',
   'timestamp',
   'release',

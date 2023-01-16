@@ -102,7 +102,7 @@ function AssigneeSelector({noDropdown, ...props}: AssigneeSelectorProps) {
           </TooltipWrapper>
         }
       >
-        <StyledIconUser data-test-id="unassigned" size="20px" color="gray400" />
+        <StyledIconUser data-test-id="unassigned" size="md" color="gray400" />
       </Tooltip>
     );
   }

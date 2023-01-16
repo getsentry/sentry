@@ -1,16 +1,24 @@
+from __future__ import annotations
+
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import tsdb
-from sentry.api.base import StatsMixin, pending_silo_endpoint
+from sentry.api.base import StatsMixin, region_silo_endpoint
 from sentry.api.bases.monitor import MonitorEndpoint
 from sentry.models import CheckInStatus, MonitorCheckIn
 
 
-@pending_silo_endpoint
+@region_silo_endpoint
 class MonitorStatsEndpoint(MonitorEndpoint, StatsMixin):
     # TODO(dcramer): probably convert to tsdb
-    def get(self, request: Request, project, monitor) -> Response:
+    def get(
+        self, request: Request, project, monitor, organization_slug: str | None = None
+    ) -> Response:
+        if organization_slug:
+            if project.organization.slug != organization_slug:
+                return self.respond_invalid()
+
         args = self._parse_args(request)
 
         stats = {}

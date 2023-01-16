@@ -1,6 +1,7 @@
+from functools import cached_property
+
 import responses
 from django.urls import reverse
-from exam import fixture
 
 from sentry.models import Rule
 from sentry.plugins.base import Notification
@@ -20,7 +21,7 @@ SUCCESS = """{
 
 
 class PagerDutyPluginTest(PluginTestCase):
-    @fixture
+    @cached_property
     def plugin(self):
         return PagerDutyPlugin()
 

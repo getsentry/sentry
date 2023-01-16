@@ -9,6 +9,7 @@ import {CreateAlertFromViewButton} from 'sentry/components/createAlertButton';
 import FeatureBadge from 'sentry/components/featureBadge';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
+import {isProfilingSupportedOrProjectHasProfiles} from 'sentry/components/profiling/ProfilingOnboarding/util';
 import ReplayCountBadge from 'sentry/components/replays/replayCountBadge';
 import ReplaysFeatureBadge from 'sentry/components/replays/replaysFeatureBadge';
 import useReplaysCount from 'sentry/components/replays/useReplaysCount';
@@ -72,6 +73,11 @@ function TransactionHeader({
   const hasSessionReplay =
     organization.features.includes('session-replay-ui') && projectSupportsReplay(project);
 
+  const hasProfiling =
+    project &&
+    organization.features.includes('profiling') &&
+    isProfilingSupportedOrProjectHasProfiles(project);
+
   const getWebVitals = useCallback(
     (hasMeasurements: boolean) => {
       switch (hasWebVitals) {
@@ -104,7 +110,7 @@ function TransactionHeader({
   const replaysCount = useReplaysCount({
     transactionNames: transactionName,
     organization,
-    project,
+    projectIds: project ? [Number(project.id)] : [],
   })[transactionName];
 
   return (
@@ -209,6 +215,10 @@ function TransactionHeader({
                 {t('Replays')}
                 <ReplayCountBadge count={replaysCount} />
                 <ReplaysFeatureBadge noTooltip />
+              </Item>
+              <Item key={Tab.Profiling} textValue={t('Profiling')} hidden={!hasProfiling}>
+                {t('Profiling')}
+                <FeatureBadge type="beta" noTooltip />
               </Item>
             </TabList>
           );

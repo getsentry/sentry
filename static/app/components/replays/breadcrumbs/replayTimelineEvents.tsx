@@ -72,13 +72,12 @@ function Event({
   crumbs: Crumb[];
   markerWidth: number;
   startTimestampMs: number;
-  className?: string;
 }) {
   const theme = useTheme();
   const {handleMouseEnter, handleMouseLeave, handleClick} =
     useCrumbHandlers(startTimestampMs);
 
-  const title = crumbs.map(crumb => (
+  const buttons = crumbs.map(crumb => (
     <BreadcrumbItem
       key={crumb.id}
       crumb={crumb}
@@ -90,6 +89,7 @@ function Event({
       onClick={handleClick}
     />
   ));
+  const title = <TooltipWrapper>{buttons}</TooltipWrapper>;
 
   const overlayStyle = css`
     /* We make sure to override existing styles */
@@ -173,8 +173,13 @@ const IconNode = styled('div')<{colors: Color[]; crumbCount: number}>`
   border-radius: 50%;
   color: ${p => p.theme.white};
   ${getBackgroundGradient}
-  box-shadow: ${p => p.theme.dropShadowLightest};
+  box-shadow: ${p => p.theme.dropShadowLight};
   user-select: none;
+`;
+
+const TooltipWrapper = styled('div')`
+  max-height: calc(100vh - ${space(4)});
+  overflow: auto;
 `;
 
 export default ReplayTimelineEvents;

@@ -176,26 +176,25 @@ class IntegrationProviderSerializer(Serializer):  # type: ignore
 
 class IntegrationIssueConfigSerializer(IntegrationSerializer):
     def __init__(
-        self, group: Group, action: str, params: Optional[Mapping[str, Any]] = None
+        self,
+        group: Group,
+        action: str,
+        config: Mapping[str, Any],
     ) -> None:
         self.group = group
         self.action = action
-        self.params = params
+        self.config = config
 
     def serialize(
         self, obj: Integration, attrs: Mapping[str, Any], user: User, **kwargs: Any
     ) -> MutableMapping[str, JSONData]:
         data = super().serialize(obj, attrs, user)
-        organization_id = kwargs.pop("organization_id")
-        installation = obj.get_installation(organization_id)
 
         if self.action == "link":
-            config = installation.get_link_issue_config(self.group, params=self.params)
-            data["linkIssueConfig"] = config
 
+            data["linkIssueConfig"] = self.config
         if self.action == "create":
-            config = installation.get_create_issue_config(self.group, user, params=self.params)
-            data["createIssueConfig"] = config
+            data["createIssueConfig"] = self.config
 
         return data
 

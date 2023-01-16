@@ -1,4 +1,4 @@
-import {Component} from 'react';
+import React, {Component} from 'react';
 import {createPortal} from 'react-dom';
 import {Manager, Popper, Reference} from 'react-popper';
 import styled from '@emotion/styled';
@@ -59,18 +59,7 @@ export function updateQuery(
         results.removeFilterValue('has', key);
         results.addFilterValues('!has', [key]);
       } else {
-        // Remove exclusion if it exists.
-        results.removeFilter(`!${key}`);
-
-        if (Array.isArray(value)) {
-          // For array values, add to existing filters
-          const currentFilters = results.getFilterValues(key);
-          value = [...new Set([...currentFilters, ...value])];
-        } else {
-          value = [String(value)];
-        }
-
-        results.setFilterValues(key, value);
+        addToFilter(results, key, value);
       }
       break;
     case Actions.EXCLUDE:
@@ -80,24 +69,7 @@ export function updateQuery(
         results.removeFilterValue('!has', key);
         results.addFilterValues('has', [key]);
       } else {
-        // Remove positive if it exists.
-        results.removeFilter(key);
-        // Negations should stack up.
-        const negation = `!${key}`;
-        value = Array.isArray(value) ? value : [String(value)];
-        const currentNegations = results.getFilterValues(negation);
-        results.removeFilter(negation);
-        // We shouldn't escape any of the existing conditions since the
-        // existing conditions have already been set an verified by the user
-        results.addFilterValues(
-          negation,
-          currentNegations.filter(
-            filterValue => !(value as string[]).includes(filterValue)
-          ),
-          false
-        );
-        // Escapes the new condition if necessary
-        results.addFilterValues(negation, value);
+        excludeFromFilter(results, key, value);
       }
       break;
     case Actions.SHOW_GREATER_THAN: {
@@ -119,6 +91,52 @@ export function updateQuery(
     default:
       throw new Error(`Unknown action type. ${action}`);
   }
+}
+
+export function addToFilter(
+  oldFilter: MutableSearch,
+  key: string,
+  value: React.ReactText | string[]
+) {
+  // Remove exclusion if it exists.
+  oldFilter.removeFilter(`!${key}`);
+
+  if (Array.isArray(value)) {
+    // For array values, add to existing filters
+    const currentFilters = oldFilter.getFilterValues(key);
+    value = [...new Set([...currentFilters, ...value])];
+  } else {
+    value = [String(value)];
+  }
+
+  oldFilter.setFilterValues(key, value);
+}
+
+export function excludeFromFilter(
+  oldFilter: MutableSearch,
+  key: string,
+  value: React.ReactText | string[]
+) {
+  // Remove positive if it exists.
+  oldFilter.removeFilter(key);
+
+  // Negations should stack up.
+  const negation = `!${key}`;
+
+  value = Array.isArray(value) ? value : [String(value)];
+  const currentNegations = oldFilter.getFilterValues(negation);
+  oldFilter.removeFilter(negation);
+
+  // We shouldn't escape any of the existing conditions since the
+  // existing conditions have already been set an verified by the user
+  oldFilter.addFilterValues(
+    negation,
+    currentNegations.filter(filterValue => !(value as string[]).includes(filterValue)),
+    false
+  );
+
+  // Escapes the new condition if necessary
+  oldFilter.addFilterValues(negation, value);
 }
 
 type CellActionsOpts = {

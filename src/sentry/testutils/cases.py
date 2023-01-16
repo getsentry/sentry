@@ -29,8 +29,8 @@ __all__ = (
     "OrganizationMetricMetaIntegrationTestCase",
     "ReplaysAcceptanceTestCase",
     "ReplaysSnubaTestCase",
+    "MonitorTestCase",
 )
-
 import hashlib
 import inspect
 import os.path
@@ -40,7 +40,6 @@ from datetime import datetime, timedelta
 from io import BytesIO
 from typing import Dict, List, Optional, Sequence, Union
 from unittest import mock
-from unittest.mock import patch
 from urllib.parse import urlencode
 from uuid import uuid4
 from zlib import compress
@@ -62,7 +61,6 @@ from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.functional import cached_property
-from exam import Exam, before, fixture
 from pkg_resources import iter_entry_points
 from rest_framework import status
 from rest_framework.test import APITestCase as BaseAPITestCase
@@ -100,12 +98,15 @@ from sentry.models import (
     Identity,
     IdentityProvider,
     IdentityStatus,
+    Monitor,
+    MonitorType,
     NotificationSetting,
     Organization,
     ProjectOption,
     Release,
     ReleaseCommit,
     Repository,
+    ScheduleType,
     UserEmail,
     UserOption,
 )
@@ -125,6 +126,7 @@ from sentry.snuba.metrics.datasource import get_series
 from sentry.tagstore.snuba import SnubaTagStorage
 from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
 from sentry.testutils.helpers.slack import install_slack
 from sentry.types.integrations import ExternalProviders
 from sentry.types.issues import GroupType
@@ -161,20 +163,19 @@ from .skips import requires_snuba
 
 DEFAULT_USER_AGENT = "Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36"
 
-
 DETECT_TESTCASE_MISUSE = os.environ.get("SENTRY_DETECT_TESTCASE_MISUSE") == "1"
 SILENCE_MIXED_TESTCASE_MISUSE = os.environ.get("SENTRY_SILENCE_MIXED_TESTCASE_MISUSE") == "1"
 
 SessionOrTransactionMRI = Union[SessionMRI, TransactionMRI]
 
 
-class BaseTestCase(Fixtures, Exam):
+class BaseTestCase(Fixtures):
     def assertRequiresAuthentication(self, path, method="GET"):
         resp = getattr(self.client, method.lower())(path)
         assert resp.status_code == 302
         assert resp["Location"].startswith("http://testserver" + reverse("sentry-login"))
 
-    @before
+    @pytest.fixture(autouse=True)
     def setup_dummy_auth_provider(self):
         auth.register("dummy", DummyProvider)
         self.addCleanup(auth.unregister, "dummy", DummyProvider)
@@ -226,10 +227,11 @@ class BaseTestCase(Fixtures, Exam):
         self.client.cookies[name] = value
         self.client.cookies[name].update({k.replace("_", "-"): v for k, v in params.items()})
 
-    def make_request(self, user=None, auth=None, method=None, is_superuser=False):
+    def make_request(self, user=None, auth=None, method=None, is_superuser=False, path="/"):
         request = HttpRequest()
         if method:
             request.method = method
+        request.path = path
         request.META["REMOTE_ADDR"] = "127.0.0.1"
         request.META["SERVER_NAME"] = "testserver"
         request.META["SERVER_PORT"] = 80
@@ -481,19 +483,16 @@ class PerformanceIssueTestCase(BaseTestCase):
         event_data = load_data(
             "transaction-n-plus-one",
             timestamp=before_now(minutes=10),
-            fingerprint=[f"{GroupType.PERFORMANCE_N_PLUS_ONE.value}-group1"],
+            fingerprint=[f"{GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value}-group1"],
         )
         perf_event_manager = EventManager(event_data)
         perf_event_manager.normalize()
         with override_options(
             {
-                "performance.issues.all.problem-creation": 1.0,
-                "performance.issues.all.problem-detection": 1.0,
                 "performance.issues.n_plus_one_db.problem-creation": 1.0,
             }
         ), self.feature(
             [
-                "organizations:performance-issues-ingest",
                 "projects:performance-suspect-spans-ingestion",
             ]
         ):
@@ -617,7 +616,7 @@ class APITestCase(BaseTestCase, BaseAPITestCase):
 
 
 class TwoFactorAPITestCase(APITestCase):
-    @fixture
+    @cached_property
     def path_2fa(self):
         return reverse("sentry-account-settings-security")
 
@@ -842,7 +841,9 @@ class PluginTestCase(TestCase):
 
 
 class CliTestCase(TestCase):
-    runner = fixture(CliRunner)
+    @cached_property
+    def runner(self) -> CliRunner:
+        return CliRunner()
 
     @property
     def command(self):
@@ -859,14 +860,13 @@ class CliTestCase(TestCase):
 class AcceptanceTestCase(TransactionTestCase):
     browser: Browser
 
-    def setUp(self):
-        patcher = patch(
+    @pytest.fixture(autouse=True)
+    def _setup_today(self):
+        with mock.patch(
             "django.utils.timezone.now",
             return_value=(datetime(2013, 5, 18, 15, 13, 58, 132928, tzinfo=timezone.utc)),
-        )
-        patcher.start()
-        self.addCleanup(patcher.stop)
-        super().setUp()
+        ):
+            yield
 
     def save_cookie(self, name, value, **params):
         self.browser.save_cookie(name=name, value=value, **params)
@@ -1145,6 +1145,8 @@ class BaseMetricsTestCase(SnubaTestCase):
             base_tags["release"] = session["release"]
         if session.get("environment") is not None:
             base_tags["environment"] = session["environment"]
+        if session.get("abnormal_mechanism") is not None:
+            base_tags["abnormal_mechanism"] = session["abnormal_mechanism"]
 
         # This check is not yet reflected in relay, see https://getsentry.atlassian.net/browse/INGEST-464
         user_is_nil = user is None or user == "00000000-0000-0000-0000-000000000000"
@@ -1280,6 +1282,17 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
         "d": "distribution",
         "g": "gauge",
     }
+    # In order to avoid complexity and edge cases while working on tests, all children of this class should use
+    # this mocked time, except in case in which a specific time is required. This is suggested because working
+    # with time ranges in metrics is very error-prone and requires an in-depth knowledge of the underlying
+    # implementation.
+    #
+    # This time has been specifically chosen to be 10:00:00 so that all tests will automatically have the data inserted
+    # and queried with automatically inferred timestamps (e.g., usage of - 1 second, get_date_range()...) without
+    # incurring into problems.
+    MOCK_DATETIME = (timezone.now() - timedelta(days=1)).replace(
+        hour=10, minute=0, second=0, microsecond=0
+    )
 
     @property
     def now(self):
@@ -1326,33 +1339,50 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
             name=name,
             tags=tags,
             timestamp=(
-                self.now
-                - timedelta(
-                    days=days_before_now,
-                    hours=hours_before_now,
-                    minutes=minutes_before_now,
-                    # We subtract 1 second -(+1) in order to account for right non-inclusivity in the queries.
-                    #
-                    # E.g.: if we save at 10:00:00, and we have as "end" of the query that time, we must store our
-                    # value with a timestamp less than 10:00:00 so that irrespectively of the bucket we will have
-                    # the value in the query result set. This is because when we save 10:00:00 - 1 second in the db it
-                    # will be saved under different granularities as (09:59:59, 09:59:00, 09:00:00) and these are the
-                    # actual timestamps that will be compared to the bounds "start" and "end".
-                    # Supposing we store 09:59:59, and we have "start"=09:00:00 and "end"=10:00:00, and we want to query
-                    # by granularity (60 = minutes) then we look at entries with timestamp = 09:59:00 which is
-                    # >= "start" and < "end" thus all these records will be returned.
-                    # Of course this - 1 second "trick" is just to abstract away this complexity, but it can also be
-                    # avoided by being more mindful when it comes to using the "end" bound, however because we would
-                    # like our tests to be deterministic we would like to settle on this approach. This - 1 can also
-                    # be avoided by choosing specific frozen times depending on granularities and stored data but
-                    # as previously mentioned we would like to standardize the time we choose unless there are specific
-                    # cases.
-                    seconds=seconds_before_now + 1,
+                self.adjust_timestamp(
+                    self.now
+                    - timedelta(
+                        days=days_before_now,
+                        hours=hours_before_now,
+                        minutes=minutes_before_now,
+                        seconds=seconds_before_now,
+                    )
                 )
             ).timestamp(),
             value=value,
             use_case_id=use_case_id,
         )
+
+    @staticmethod
+    def adjust_timestamp(time: datetime) -> datetime:
+        # We subtract 1 second -(+1) in order to account for right non-inclusivity in the queries.
+        #
+        # E.g.: if we save at 10:00:00, and we have as "end" of the query that time, we must store our
+        # value with a timestamp less than 10:00:00 so that irrespectively of the bucket we will have
+        # the value in the query result set. This is because when we save 10:00:00 - 1 second in the db it
+        # will be saved under different granularities as (09:59:59, 09:59:00, 09:00:00) and these are the
+        # actual timestamps that will be compared to the bounds "start" and "end".
+        # Supposing we store 09:59:59, and we have "start"=09:00:00 and "end"=10:00:00, and we want to query
+        # by granularity (60 = minutes) then we look at entries with timestamp = 09:59:00 which is
+        # >= "start" and < "end" thus all these records will be returned.
+        # Of course this - 1 second "trick" is just to abstract away this complexity, but it can also be
+        # avoided by being more mindful when it comes to using the "end" bound, however because we would
+        # like our tests to be deterministic we would like to settle on this approach. This - 1 can also
+        # be avoided by choosing specific frozen times depending on granularities and stored data but
+        # as previously mentioned we would like to standardize the time we choose unless there are specific
+        # cases.
+        #
+        # This solution helps to abstract away this edge case but one needs to be careful to not use it with times
+        # between XX:00:00:000000 and XX:00:999999 because this will result in a time like (XX)-1:AA:BBBBBB which
+        # will mess up with the get_date_range function.
+        # E.g.: if we have time 10:00:00:567894 and we have statsPeriod = 1h and the interval=1h this will result in the
+        # interval being from 10:00:00:000000 to 11:00:00:000000 but the data being saved will be saved with date
+        # 09:59:59:567894 thus being outside the query range.
+        #
+        # All of these considerations must be done only if using directly the time managed by this abstraction, an
+        # alternative solution would be to avoid it at all, but for standardization purposes we would prefer to keep
+        # using it.
+        return time - timedelta(seconds=1)
 
     def store_performance_metric(
         self,
@@ -1422,6 +1452,7 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
         before_now: str = None,
         granularity: str = None,
     ):
+        # TODO: fix this method which gets the range after now instead of before now.
         (start, end, granularity_in_seconds) = get_date_range(
             {"statsPeriod": before_now, "interval": granularity}
         )
@@ -1628,7 +1659,7 @@ class ReplaysAcceptanceTestCase(AcceptanceTestCase, SnubaTestCase):
         self.now = datetime.utcnow().replace(tzinfo=pytz.utc)
         super().setUp()
         self.drop_replays()
-        patcher = patch("django.utils.timezone.now", return_value=self.now)
+        patcher = mock.patch("django.utils.timezone.now", return_value=self.now)
         patcher.start()
         self.addCleanup(patcher.stop)
 
@@ -1709,7 +1740,7 @@ class ReleaseCommitPatchTest(APITestCase):
         self.create_member(teams=[team], user=user, organization=self.org)
         self.login_as(user=user)
 
-    @fixture
+    @cached_property
     def url(self):
         raise NotImplementedError(f"implement for {type(self).__module__}.{type(self).__name__}")
 
@@ -2017,7 +2048,7 @@ class ActivityTestCase(TestCase):
 
 
 class SlackActivityNotificationTest(ActivityTestCase):
-    @fixture
+    @cached_property
     def adapter(self):
         return mail_adapter
 
@@ -2059,6 +2090,29 @@ class SlackActivityNotificationTest(ActivityTestCase):
         )
         self.name = self.user.get_display_name()
         self.short_id = self.group.qualified_short_id
+
+    def assert_performance_issue_attachments(
+        self, attachment, project_slug, referrer, alert_type="workflow"
+    ):
+        assert attachment["title"] == "N+1 Query"
+        assert (
+            attachment["text"]
+            == "db - SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21"
+        )
+        assert (
+            attachment["footer"]
+            == f"{project_slug} | production | <http://testserver/settings/account/notifications/{alert_type}/?referrer={referrer}|Notification Settings>"
+        )
+
+    def assert_generic_issue_attachments(
+        self, attachment, project_slug, referrer, alert_type="workflow"
+    ):
+        assert attachment["title"] == TEST_ISSUE_OCCURRENCE.issue_title
+        assert attachment["text"] == TEST_ISSUE_OCCURRENCE.evidence_display[0].value
+        assert (
+            attachment["footer"]
+            == f"{project_slug} | <http://testserver/settings/account/notifications/{alert_type}/?referrer={referrer}|Notification Settings>"
+        )
 
 
 class MSTeamsActivityNotificationTest(ActivityTestCase):
@@ -2110,7 +2164,26 @@ class MSTeamsActivityNotificationTest(ActivityTestCase):
 @apply_feature_flag_on_cls("organizations:metrics")
 @pytest.mark.usefixtures("reset_snuba")
 class MetricsAPIBaseTestCase(BaseMetricsLayerTestCase, APITestCase):
-    ...
+    def build_and_store_session(
+        self,
+        days_before_now: int = 0,
+        hours_before_now: int = 0,
+        minutes_before_now: int = 0,
+        seconds_before_now: int = 0,
+        **kwargs,
+    ):
+        # We perform also here the same - 1 seconds transformation as in the _store_metric() method.
+        kwargs["started"] = self.adjust_timestamp(
+            self.now
+            - timedelta(
+                days=days_before_now,
+                hours=hours_before_now,
+                minutes=minutes_before_now,
+                seconds=seconds_before_now,
+            )
+        ).timestamp()
+
+        self.store_session(self.build_session(**kwargs))
 
 
 class OrganizationMetricMetaIntegrationTestCase(MetricsAPIBaseTestCase):
@@ -2194,4 +2267,27 @@ class OrganizationMetricMetaIntegrationTestCase(MetricsAPIBaseTestCase):
                 },
             ],
             entity="metrics_sets",
+        )
+
+
+class MonitorTestCase(APITestCase):
+    @property
+    def endpoint_with_org(self):
+        raise NotImplementedError(f"implement for {type(self).__module__}.{type(self).__name__}")
+
+    def _get_path_functions(self):
+        return (
+            lambda monitor: reverse(self.endpoint, args=[monitor.guid]),
+            lambda monitor: reverse(
+                self.endpoint_with_org, args=[self.organization.slug, monitor.guid]
+            ),
+        )
+
+    def _create_monitor(self):
+        return Monitor.objects.create(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            next_checkin=timezone.now() - timedelta(minutes=1),
+            type=MonitorType.CRON_JOB,
+            config={"schedule": "* * * * *", "schedule_type": ScheduleType.CRONTAB},
         )

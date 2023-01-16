@@ -1,4 +1,4 @@
-from exam import fixture
+from functools import cached_property
 
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -8,7 +8,7 @@ from sentry.utils import json
 
 @region_silo_test
 class GroupEventJsonTest(TestCase):
-    @fixture
+    @cached_property
     def path(self):
         return f"/organizations/{self.organization.slug}/issues/{self.event.group_id}/events/{self.event.event_id}/json/"
 

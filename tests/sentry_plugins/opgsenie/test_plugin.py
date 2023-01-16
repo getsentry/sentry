@@ -1,5 +1,6 @@
+from functools import cached_property
+
 import responses
-from exam import fixture
 
 from sentry.models import Rule
 from sentry.plugins.base import Notification
@@ -9,7 +10,7 @@ from sentry_plugins.opsgenie.plugin import OpsGeniePlugin
 
 
 class OpsGeniePluginTest(PluginTestCase):
-    @fixture
+    @cached_property
     def plugin(self):
         return OpsGeniePlugin()
 

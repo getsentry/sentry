@@ -64,20 +64,15 @@ const TEMPLATE_TABLE_COLUMN: TableColumn<string> = {
 
 // TODO(mark) these types are coupled to the gridEditable component types and
 // I'd prefer the types to be more general purpose but that will require a second pass.
-export function decodeColumnOrder(
-  fields: Readonly<Field[]>,
-  useFullEquationAsKey?: boolean
-): TableColumn<string>[] {
-  let equations = 0;
+export function decodeColumnOrder(fields: Readonly<Field[]>): TableColumn<string>[] {
   return fields.map((f: Field) => {
     const column: TableColumn<string> = {...TEMPLATE_TABLE_COLUMN};
 
     const col = explodeFieldString(f.field, f.alias);
     const columnName = f.field;
     if (isEquation(f.field)) {
-      column.key = useFullEquationAsKey ? f.field : `equation[${equations}]`;
+      column.key = f.field;
       column.name = getEquation(columnName);
-      equations += 1;
     } else {
       column.key = columnName;
       column.name = columnName;

@@ -1,19 +1,21 @@
 from datetime import datetime, timedelta
+from functools import cached_property
 
 from django.utils import timezone
-from exam import fixture
 from freezegun import freeze_time
 
 from sentry.api.serializers import serialize
 from sentry.models.recentsearch import RecentSearch
 from sentry.models.search_common import SearchType
 from sentry.testutils import APITestCase
+from sentry.testutils.silo import region_silo_test
 
 
+@region_silo_test(stable=True)
 class RecentSearchesListTest(APITestCase):
     endpoint = "sentry-api-0-organization-recent-searches"
 
-    @fixture
+    @cached_property
     def user(self):
         return self.create_user("test@test.com")
 
@@ -133,11 +135,11 @@ class RecentSearchesCreateTest(APITestCase):
     endpoint = "sentry-api-0-organization-recent-searches"
     method = "post"
 
-    @fixture
+    @cached_property
     def organization(self):
         return self.create_organization()
 
-    @fixture
+    @cached_property
     def user(self):
         user = self.create_user("test@test.com")
         self.create_team(members=[user], organization=self.organization)

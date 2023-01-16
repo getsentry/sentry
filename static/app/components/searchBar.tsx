@@ -91,7 +91,6 @@ function SearchBar({
           {trailing}
           {!!query && (
             <SearchBarTrailingButton
-              type="button"
               size="zero"
               borderless
               onClick={clearSearch}

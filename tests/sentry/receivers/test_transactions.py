@@ -1,6 +1,5 @@
+from functools import cached_property
 from unittest.mock import patch
-
-from exam import fixture
 
 from sentry.models import OrganizationMember, Project
 from sentry.signals import event_processed, transaction_processed
@@ -9,7 +8,7 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 
 
 class RecordFirstTransactionTest(TestCase):
-    @fixture
+    @cached_property
     def min_ago(self):
         return iso_format(before_now(minutes=1))
 

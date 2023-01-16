@@ -15,6 +15,10 @@ import {
 
 import {fragment, vertex} from './shaders';
 
+// These are both mutable and are used to avoid unnecessary allocations during rendering.
+const PHYSICAL_SPACE_PX = new Rect(0, 0, 1, 1);
+const CONFIG_TO_PHYSICAL_SPACE = mat3.create();
+
 class FlamegraphRenderer {
   canvas: HTMLCanvasElement | null;
   flamegraph: Flamegraph;
@@ -377,40 +381,34 @@ class FlamegraphRenderer {
     return this.colorMap.get(frame.key) ?? this.theme.COLORS.FRAME_FALLBACK_COLOR;
   }
 
-  getHoveredNode(configSpaceCursor: vec2): FlamegraphFrame | null {
+  findHoveredNode(configSpaceCursor: vec2): FlamegraphFrame | null {
     let hoveredNode: FlamegraphFrame | null = null;
+    const queue = [...this.roots];
 
-    const findHoveredNode = (frame: FlamegraphFrame, depth: number) => {
-      // This is outside
-      if (hoveredNode) {
-        return;
-      }
-
-      const frameRect = new Rect(frame.start, frame.depth, frame.end - frame.start, 1);
+    while (queue.length && !hoveredNode) {
+      const frame = queue.pop()!;
 
       // We treat entire flamegraph as a segment tree, this allows us to query in O(log n) time by
       // only looking at the nodes that are relevant to the current cursor position. We discard any values
       // on x axis that do not overlap the cursor, and descend until we find a node that overlaps at cursor y position
-      if (!frameRect.containsX(configSpaceCursor)) {
-        return;
+      if (configSpaceCursor[0] < frame.start || configSpaceCursor[0] > frame.end) {
+        continue;
       }
 
       // If our frame depth overlaps cursor y position, we have found our node
-      if (frameRect.containsY(configSpaceCursor)) {
+      if (
+        configSpaceCursor[1] >= frame.depth &&
+        configSpaceCursor[1] <= frame.depth + 1
+      ) {
         hoveredNode = frame;
-        return;
+        break;
       }
 
       // Descend into the rest of the children
       for (let i = 0; i < frame.children.length; i++) {
-        findHoveredNode(frame.children[i], depth + 1);
+        queue.push(frame.children[i]);
       }
-    };
-
-    for (let i = 0; i < this.roots.length; i++) {
-      findHoveredNode(this.roots[i], 0);
     }
-
     return hoveredNode;
   }
 
@@ -485,9 +483,11 @@ class FlamegraphRenderer {
     // Tell webgl to convert clip space to px
     this.gl.viewport(0, 0, this.gl.canvas.width, this.gl.canvas.height);
 
-    const physicalSpacePixel = new Rect(0, 0, 1, 1);
-    const physicalToConfig = mat3.invert(mat3.create(), configViewToPhysicalSpace);
-    const configSpacePixel = physicalSpacePixel.transformRect(physicalToConfig);
+    const physicalToConfig = mat3.invert(
+      CONFIG_TO_PHYSICAL_SPACE,
+      configViewToPhysicalSpace
+    );
+    const configSpacePixel = PHYSICAL_SPACE_PX.transformRect(physicalToConfig);
 
     this.gl.uniform2f(
       this.uniforms.u_border_width,

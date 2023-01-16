@@ -13,6 +13,7 @@ from sentry.web.frontend.debug.debug_codeowners_auto_sync_failure_email import (
     DebugCodeOwnersAutoSyncFailureView,
 )
 from sentry.web.frontend.debug.debug_error_embed import DebugErrorPageEmbedView
+from sentry.web.frontend.debug.debug_generic_issue import DebugGenericIssueEmailView
 from sentry.web.frontend.debug.debug_incident_activity_email import DebugIncidentActivityEmailView
 from sentry.web.frontend.debug.debug_incident_trigger_email import DebugIncidentTriggerEmailView
 from sentry.web.frontend.debug.debug_invalid_identity_email import DebugInvalidIdentityEmailView
@@ -32,6 +33,9 @@ from sentry.web.frontend.debug.debug_oauth_authorize import (
 from sentry.web.frontend.debug.debug_onboarding_continuation_email import (
     DebugOrganizationOnboardingContinuationEmail,
 )
+from sentry.web.frontend.debug.debug_organization_integration_request import (
+    DebugOrganizationIntegrationRequestEmailView,
+)
 from sentry.web.frontend.debug.debug_organization_invite_request import (
     DebugOrganizationInviteRequestEmailView,
 )
@@ -47,7 +51,6 @@ from sentry.web.frontend.debug.debug_regression_email import (
     DebugRegressionEmailView,
     DebugRegressionReleaseEmailView,
 )
-from sentry.web.frontend.debug.debug_release_summary_email import DebugReleaseSummaryEmailView
 from sentry.web.frontend.debug.debug_resolved_email import DebugResolvedEmailView
 from sentry.web.frontend.debug.debug_resolved_in_release_email import (
     DebugResolvedInReleaseEmailView,
@@ -72,9 +75,9 @@ from sentry.web.frontend.debug.debug_weekly_report import DebugWeeklyReportView
 urlpatterns = [
     url(r"^debug/mail/error-alert/$", sentry.web.frontend.debug.mail.alert),
     url(r"^debug/mail/performance-alert/$", DebugPerformanceIssueEmailView.as_view()),
+    url(r"^debug/mail/generic-alert/$", DebugGenericIssueEmailView.as_view()),
     url(r"^debug/mail/note/$", DebugNoteEmailView.as_view()),
     url(r"^debug/mail/new-release/$", DebugNewReleaseEmailView.as_view()),
-    url(r"^debug/mail/release-summary/$", DebugReleaseSummaryEmailView.as_view()),
     url(r"^debug/mail/release_alert/$", sentry.web.frontend.debug.mail.release_alert),
     url(r"^debug/mail/new-user-feedback/$", DebugNewUserFeedbackEmailView.as_view()),
     url(r"^debug/mail/assigned/$", DebugAssignedEmailView.as_view()),
@@ -103,6 +106,9 @@ urlpatterns = [
     ),
     url(r"^debug/mail/join-request/$", DebugOrganizationJoinRequestEmailView.as_view()),
     url(r"^debug/mail/invite-request/$", DebugOrganizationInviteRequestEmailView.as_view()),
+    url(
+        r"^debug/mail/integration-request/$", DebugOrganizationIntegrationRequestEmailView.as_view()
+    ),
     url(r"^debug/mail/access-approved/$", sentry.web.frontend.debug.mail.access_approved),
     url(r"^debug/mail/invitation/$", sentry.web.frontend.debug.mail.invitation),
     url(r"^debug/mail/invalid-identity/$", DebugInvalidIdentityEmailView.as_view()),

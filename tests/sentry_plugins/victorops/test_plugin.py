@@ -1,5 +1,6 @@
+from functools import cached_property
+
 import responses
-from exam import fixture
 
 from sentry.models import Rule
 from sentry.plugins.base import Notification
@@ -26,7 +27,7 @@ class UnicodeTestInterface:
 
 
 class VictorOpsPluginTest(PluginTestCase):
-    @fixture
+    @cached_property
     def plugin(self):
         return VictorOpsPlugin()
 

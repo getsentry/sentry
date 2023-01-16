@@ -1,5 +1,4 @@
 import logging
-from typing import NoReturn
 
 from django.contrib import messages
 from django.urls import reverse
@@ -30,7 +29,7 @@ class RestoreOrganizationView(OrganizationView):
     required_scope = "org:admin"
     sudo_required = True
 
-    def determine_active_organization(self, request: Request, organization_slug=None) -> NoReturn:
+    def determine_active_organization(self, request: Request, organization_slug=None) -> None:
         # A simplified version than what comes from the base
         # OrganizationView. We need to grab an organization
         # that is in any state, not just VISIBLE.

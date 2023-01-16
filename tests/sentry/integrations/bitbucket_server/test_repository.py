@@ -1,9 +1,9 @@
 import datetime
+from functools import cached_property
 
 import pytest
 import responses
 from django.utils import timezone
-from exam import fixture
 
 from fixtures.bitbucket_server import (
     COMMIT_CHANGELIST_EXAMPLE,
@@ -23,7 +23,7 @@ from sentry.testutils import APITestCase
 
 
 class BitbucketServerRepositoryProviderTest(APITestCase):
-    @fixture
+    @cached_property
     def integration(self):
         integration = Integration.objects.create(
             provider="bitbucket_server",
@@ -48,7 +48,7 @@ class BitbucketServerRepositoryProviderTest(APITestCase):
         integration.add_organization(self.organization, self.user, default_auth_id=identity.id)
         return integration
 
-    @fixture
+    @cached_property
     def provider(self):
         return BitbucketServerRepositoryProvider("bitbucket_server")
 

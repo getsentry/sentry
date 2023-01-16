@@ -1,5 +1,6 @@
+from functools import cached_property
+
 from django.urls import reverse
-from exam import fixture
 
 from sentry.models import OrganizationMember, OrganizationMemberTeam, ProjectTeam, Team
 from sentry.testutils import APITestCase
@@ -7,7 +8,7 @@ from sentry.testutils.silo import region_silo_test
 from sentry.types.integrations import get_provider_string
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class OrganizationTeamsListTest(APITestCase):
     def test_simple(self):
         user = self.create_user()
@@ -159,7 +160,7 @@ class OrganizationTeamsListTest(APITestCase):
         assert response.status_code == 200, response.content
 
 
-@region_silo_test
+@region_silo_test  # TODO(hybrid-cloud): stable blocked on org members
 class OrganizationTeamsCreateTest(APITestCase):
     endpoint = "sentry-api-0-organization-teams"
     method = "post"
@@ -168,7 +169,7 @@ class OrganizationTeamsCreateTest(APITestCase):
         super().setUp()
         self.login_as(user=self.user)
 
-    @fixture
+    @cached_property
     def path(self):
         return reverse("sentry-api-0-organization-teams", args=[self.organization.slug])
 

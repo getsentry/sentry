@@ -66,6 +66,7 @@ from sentry.models import (
     Integration,
     IntegrationFeature,
     Organization,
+    OrganizationMapping,
     OrganizationMember,
     OrganizationMemberTeam,
     PlatformExternalIssue,
@@ -252,8 +253,17 @@ class Factories:
 
         org = Organization.objects.create(name=name, **kwargs)
         if owner:
-            Factories.create_member(organization=org, user=owner, role="owner")
+            Factories.create_member(organization=org, user_id=owner.id, role="owner")
         return org
+
+    @staticmethod
+    @exempt_from_silo_limits()
+    def create_org_mapping(org, **kwds):
+        kwds.setdefault("organization_id", org.id)
+        kwds.setdefault("slug", org.slug)
+        kwds.setdefault("idempotency_key", uuid4().hex)
+        kwds.setdefault("region_name", "test-region")
+        return OrganizationMapping.objects.create(**kwds)
 
     @staticmethod
     @exempt_from_silo_limits()
@@ -788,6 +798,7 @@ class Factories:
         return Factories.create_dif_file(file=file, object_name=object_name, **kwargs)
 
     @staticmethod
+    @exempt_from_silo_limits()
     def add_user_permission(user, permission):
         UserPermission.objects.create(user=user, permission=permission)
 

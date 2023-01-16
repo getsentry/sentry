@@ -1,3 +1,73 @@
+22.12.0
+-------
+
+### Derived Code Mappings (EA release - Python only)
+
+This adds the ability of deriving code mappings automatically for all orgs using Python and Github at first.
+
+See RFC for details: https://github.com/getsentry/rfcs/blob/main/text/0016-auto-code-mappings.md
+
+By: @armenzg (#41562, #41523, #41466, #41464, #41384)
+
+### Derived Code Mappings (GA Release - JS and Python) (ongoing)
+
+Python is in EA already. We will first add JS to EA and then GA both of them.
+
+For JS, this will only apply to stacktraces that have source maps applied, otherwise, it is not possible to derive code mappings.
+
+Read https://github.com/getsentry/rfcs/pull/16 for more details.
+
+By: @armenzg (#42293, #42249, #42155, #42161, #42147, #42130, #42082, #42069, #41777, #41933, #41909, #41794, #41771, #41733, #41706, #41718, #41639, #41671, #41648), @jangjodi (#42192)
+
+### Stacktrace linking and code mapping improvements (ongoing)
+
+Various improvements to configuring Code Mappings by a customer.
+
+This milestones is simply to track the various related PRs.
+
+By: @scttcper (#41582, #41585, #41529, #41512, #41474, #41299, #41403, #41372), @snigdhas (#41465), @armenzg (#41409)
+
+### Post-GA fixes and improvements for derived code mappings (ongoing)
+
+This will track work that are known issues that will be handled after the GA.
+
+See related RFC: https://github.com/getsentry/rfcs/blob/main/text/0016-auto-code-mappings.md
+
+By: @armenzg (#42348, #41857)
+
+### Stacktrace linking: Mobile Support (ongoing)
+
+By: @jangjodi (#42117, #41936)
+
+### Various fixes & improvements
+
+- ref(js): Remove enforceActOnUseLegacyStoreHook hack (#42370) by @evanpurkhiser
+- feat(java): Add feature flag for deobfuscating java exception values (#42353) by @edwardgou-sentry
+- feat(profiling): add profiling-flamechart-spans flag (#42357) by @eliashussary
+- feat(node): fix package for windows path (#42325) by @JonasBa
+- feat(profiling): add transaction context (#42347) by @JonasBa
+- ref(replays): Move replay-events-meta test into correct folder (#42324) by @ryan953
+- Revert "chore(routes): Remove support for deprecated pre-Sentry 10 routes" (#42374) by @dashed
+- chore(anr-rate): Add option for abnormal_mechanism extraction flag (#42367) by @shruthilayaj
+- chore(hybrid-cloud): test model decorators and fk breakage (#42254) by @corps
+- chore(transactions): Set the entity argument to default "false" (#42371) by @olksdr
+- ref(contexts): Convert chunck from class to function (#42246) by @priscilawebdev
+- feat(txnames): Sort rules in project options (#42372) by @jjbayer
+- chore(js): useApi in groupEventDetails (#42355) by @evanpurkhiser
+- fix(profiling): remove wasteful rect  (#42351) by @JonasBa
+- feat(issues): Add frontend typings for issue occurrence data (#42329) by @malwilley
+- ref(hybrid-cloud): use organization_slug in MonitorCheckIns (#42356) by @cathyteng17
+- ref(replays): Create NetworkHeaderCell for Replay Details (#42240) by @ryan953
+- ref(profiling): rm profiling-onboarding-checklist feature flag (#42354) by @eliashussary
+- ref(replays): Refactor Replay network table sorting (#42235) by @ryan953
+- fix(profiling): fix zoom when frame is in view (#42350) by @JonasBa
+- feat(discover-quick-context): Added issue title (#42343) by @Abdkhan14
+- chore(hybrid-cloud): use organization_slug in MonitorDetails (#42300) by @cathyteng17
+- (perf-issues) add fingerprinting to consecutive db detector (#42339) by @DominikB2014
+- frontend(invite): update invite link helper text (#42344) by @mdtro
+
+_Plus 731 more_
+
 22.11.0
 -------
 

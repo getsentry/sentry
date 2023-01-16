@@ -48,6 +48,7 @@ type WizardAggregateFieldValue = {
 };
 
 type MenuOption = {label: string; value: AlertType};
+type GroupedMenuOption = {label: string; options: Array<MenuOption>};
 
 type Props = Omit<FormField['props'], 'children'> & {
   organization: Organization;
@@ -59,80 +60,6 @@ type Props = Omit<FormField['props'], 'children'> & {
   inFieldLabels?: boolean;
 };
 
-const menuOptions: {label: string; options: Array<MenuOption>}[] = [
-  {
-    label: t('ERRORS'),
-    options: [
-      {
-        label: AlertWizardAlertNames.num_errors,
-        value: 'num_errors',
-      },
-      {
-        label: AlertWizardAlertNames.users_experiencing_errors,
-        value: 'users_experiencing_errors',
-      },
-    ],
-  },
-
-  {
-    label: t('SESSIONS'),
-    options: [
-      {
-        label: AlertWizardAlertNames.crash_free_sessions,
-        value: 'crash_free_sessions',
-      },
-      {
-        label: AlertWizardAlertNames.crash_free_users,
-        value: 'crash_free_users',
-      },
-    ],
-  },
-
-  {
-    label: t('PERFORMANCE'),
-    options: [
-      {
-        label: AlertWizardAlertNames.throughput,
-        value: 'throughput',
-      },
-      {
-        label: AlertWizardAlertNames.trans_duration,
-        value: 'trans_duration',
-      },
-      {
-        label: AlertWizardAlertNames.apdex,
-        value: 'apdex',
-      },
-      {
-        label: AlertWizardAlertNames.failure_rate,
-        value: 'failure_rate',
-      },
-      {
-        label: AlertWizardAlertNames.lcp,
-        value: 'lcp',
-      },
-      {
-        label: AlertWizardAlertNames.fid,
-        value: 'fid',
-      },
-      {
-        label: AlertWizardAlertNames.cls,
-        value: 'cls',
-      },
-    ],
-  },
-
-  {
-    label: t('CUSTOM'),
-    options: [
-      {
-        label: AlertWizardAlertNames.custom,
-        value: 'custom',
-      },
-    ],
-  },
-];
-
 export default function WizardField({
   organization,
   columnWidth,
@@ -140,6 +67,82 @@ export default function WizardField({
   alertType,
   ...fieldProps
 }: Props) {
+  const menuOptions: GroupedMenuOption[] = [
+    {
+      label: t('ERRORS'),
+      options: [
+        {
+          label: AlertWizardAlertNames.num_errors,
+          value: 'num_errors',
+        },
+        {
+          label: AlertWizardAlertNames.users_experiencing_errors,
+          value: 'users_experiencing_errors',
+        },
+      ],
+    },
+    ...((organization.features.includes('crash-rate-alerts')
+      ? [
+          {
+            label: t('SESSIONS'),
+            options: [
+              {
+                label: AlertWizardAlertNames.crash_free_sessions,
+                value: 'crash_free_sessions',
+              },
+              {
+                label: AlertWizardAlertNames.crash_free_users,
+                value: 'crash_free_users',
+              },
+            ],
+          },
+        ]
+      : []) as GroupedMenuOption[]),
+    {
+      label: t('PERFORMANCE'),
+      options: [
+        {
+          label: AlertWizardAlertNames.throughput,
+          value: 'throughput',
+        },
+        {
+          label: AlertWizardAlertNames.trans_duration,
+          value: 'trans_duration',
+        },
+        {
+          label: AlertWizardAlertNames.apdex,
+          value: 'apdex',
+        },
+        {
+          label: AlertWizardAlertNames.failure_rate,
+          value: 'failure_rate',
+        },
+        {
+          label: AlertWizardAlertNames.lcp,
+          value: 'lcp',
+        },
+        {
+          label: AlertWizardAlertNames.fid,
+          value: 'fid',
+        },
+        {
+          label: AlertWizardAlertNames.cls,
+          value: 'cls',
+        },
+      ],
+    },
+
+    {
+      label: t('CUSTOM'),
+      options: [
+        {
+          label: AlertWizardAlertNames.custom,
+          value: 'custom',
+        },
+      ],
+    },
+  ];
+
   const matchTemplateAggregate = (
     template: WizardRuleTemplate,
     aggregate: string

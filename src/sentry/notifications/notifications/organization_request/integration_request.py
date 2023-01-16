@@ -65,6 +65,8 @@ class IntegrationRequestNotification(OrganizationRequestNotification):
     def get_context(self) -> MutableMapping[str, Any]:
         return {
             **self.get_base_context(),
+            "requester_name": self.requester.get_display_name(),
+            "organization_name": self.organization.name,
             "integration_link": self.integration_link,
             "integration_name": self.provider_name,
             "message": self.message,

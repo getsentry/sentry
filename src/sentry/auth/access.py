@@ -11,7 +11,7 @@ __all__ = [
 import abc
 from dataclasses import dataclass
 from functools import cached_property
-from typing import Any, Collection, FrozenSet, Iterable, Mapping, cast
+from typing import Any, Collection, FrozenSet, Iterable, Mapping, Set, cast
 
 import sentry_sdk
 from django.conf import settings
@@ -31,15 +31,13 @@ from sentry.models import (
     Team,
     TeamStatus,
     User,
-    UserPermission,
-    UserRole,
 )
 from sentry.roles import organization_roles
 from sentry.roles.manager import OrganizationRole, TeamRole
 from sentry.services.hybrid_cloud.app import app_service
 from sentry.services.hybrid_cloud.auth import ApiAuthState, ApiMemberSsoState, auth_service
 from sentry.services.hybrid_cloud.organization import ApiTeamMember, ApiUserOrganizationContext
-from sentry.services.hybrid_cloud.user import APIUser
+from sentry.services.hybrid_cloud.user import APIUser, user_service
 from sentry.utils import metrics
 from sentry.utils.request_cache import request_cache
 
@@ -50,8 +48,10 @@ def get_cached_organization_member(user_id: int, organization_id: int) -> Organi
 
 
 def get_permissions_for_user(user_id: int) -> FrozenSet[str]:
-    union = UserRole.permissions_for_user(user_id) | UserPermission.for_user(user_id)
-    return cast(FrozenSet[str], union)
+    user = user_service.get_user(user_id)
+    if user is None:
+        return FrozenSet()
+    return user.roles | user.permissions
 
 
 class Access(abc.ABC):
@@ -335,6 +335,23 @@ class DbAccess(Access):
 
 
 @dataclass
+class SingularApiAccessOrgOptimization:
+    access: ApiBackedAccess
+
+
+def maybe_singular_api_access_org_context(
+    access: Access, org_ids: Set[int]
+) -> SingularApiAccessOrgOptimization | None:
+    if (
+        isinstance(access, ApiBackedAccess)
+        and len(org_ids) == 1
+        and access.api_user_organization_context.organization.id in org_ids
+    ):
+        return SingularApiAccessOrgOptimization(access)
+    return None
+
+
+@dataclass
 class ApiBackedAccess(Access):
     api_user_organization_context: ApiUserOrganizationContext
     requested_scopes: Iterable[str] | None
@@ -415,7 +432,7 @@ class ApiBackedAccess(Access):
             return True
         return team.id in self.team_ids_with_membership
 
-    def _get_team_membership(self, team_id: int) -> ApiTeamMember | None:
+    def get_team_membership(self, team_id: int) -> ApiTeamMember | None:
         if self.api_user_organization_context.member is None:
             return None
 
@@ -433,7 +450,7 @@ class ApiBackedAccess(Access):
         if self.api_user_organization_context.member is None:
             return False
 
-        team_membership = self._get_team_membership(team.id)
+        team_membership = self.get_team_membership(team.id)
 
         if team_membership and scope in team_membership.scopes:
             metrics.incr(
@@ -445,7 +462,7 @@ class ApiBackedAccess(Access):
         return False
 
     def get_team_role(self, team: Team) -> TeamRole | None:
-        team_member = self._get_team_membership(team.id)
+        team_member = self.get_team_membership(team.id)
         if team_member:
             return team_member.role
         return None

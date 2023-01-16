@@ -8,7 +8,7 @@ import {
   IssueCategory,
   TreeLabelPart,
 } from 'sentry/types';
-import {Event} from 'sentry/types/event';
+import {EntryType, Event} from 'sentry/types/event';
 import {isMobilePlatform, isNativePlatform} from 'sentry/utils/platform';
 
 function isTombstone(maybe: BaseGroup | Event | GroupTombstone): maybe is GroupTombstone {
@@ -205,10 +205,10 @@ function hasTrace(event: Event) {
 /**
  * Function to determine if an event has source maps
  */
-function eventHasSourceMaps(event: Event) {
+export function eventHasSourceMaps(event: Event) {
   return event.entries?.some(entry => {
     return (
-      entry.type === 'exception' &&
+      entry.type === EntryType.EXCEPTION &&
       entry.data.values?.some(value => !!value.rawStacktrace && !!value.stacktrace)
     );
   });

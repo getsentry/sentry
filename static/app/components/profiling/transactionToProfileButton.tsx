@@ -1,44 +1,30 @@
-import {useEffect, useState} from 'react';
-import * as Sentry from '@sentry/react';
+import {Location} from 'history';
 
-import {Client} from 'sentry/api';
-import Button from 'sentry/components/button';
+import Button, {ButtonProps} from 'sentry/components/button';
 import {t} from 'sentry/locale';
-import {RequestState} from 'sentry/types/core';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
-import useApi from 'sentry/utils/useApi';
+import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
 import useOrganization from 'sentry/utils/useOrganization';
 
+import {useTransactionProfileId} from './transactionProfileIdProvider';
+
 interface Props {
-  orgId: string;
-  projectId: string;
-  transactionId: string;
+  projectSlug: string;
+  children?: React.ReactNode;
+  query?: Location['query'];
+  size?: ButtonProps['size'];
 }
 
-function TransactionToProfileButton({transactionId, orgId, projectId}: Props) {
-  const api = useApi();
+function TransactionToProfileButton({
+  projectSlug,
+  query,
+  children = t('Go to Profile'),
+  size = 'sm',
+}: Props) {
+  const profileId = useTransactionProfileId();
   const organization = useOrganization();
 
-  const [profileIdState, setProfileIdState] = useState<RequestState<string>>({
-    type: 'initial',
-  });
-
-  useEffect(() => {
-    fetchProfileId(api, transactionId, orgId, projectId)
-      .then((profileId: ProfileId) => {
-        setProfileIdState({type: 'resolved', data: profileId.profile_id});
-      })
-      .catch(err => {
-        // If there isn't a matching profile, we get a 404. No need to raise an error
-        // in this case, but we should otherwise.
-        if (err.status !== 404) {
-          Sentry.captureException(err);
-        }
-      });
-  }, [api, transactionId, orgId, projectId]);
-
-  if (profileIdState.type !== 'resolved') {
+  if (!profileId) {
     return null;
   }
 
@@ -49,34 +35,17 @@ function TransactionToProfileButton({transactionId, orgId, projectId}: Props) {
     });
   }
 
-  const target = generateProfileFlamechartRoute({
-    orgSlug: orgId,
-    projectSlug: projectId,
-    profileId: profileIdState.data,
+  const target = generateProfileFlamechartRouteWithQuery({
+    orgSlug: organization.slug,
+    projectSlug,
+    profileId,
+    query,
   });
 
   return (
-    <Button size="sm" onClick={handleGoToProfile} to={target}>
-      {t('Go to Profile')}
+    <Button size={size} onClick={handleGoToProfile} to={target}>
+      {children}
     </Button>
-  );
-}
-
-type ProfileId = {
-  profile_id: string;
-};
-
-function fetchProfileId(
-  api: Client,
-  transactionId: string,
-  orgId: string,
-  projectId: string
-): Promise<ProfileId> {
-  return api.requestPromise(
-    `/projects/${orgId}/${projectId}/profiling/transactions/${transactionId}/`,
-    {
-      method: 'GET',
-    }
   );
 }
 

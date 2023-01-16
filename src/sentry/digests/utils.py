@@ -9,7 +9,7 @@ from typing import Iterable, Mapping, Sequence
 from sentry.digests import Digest, Record
 from sentry.eventstore.models import Event
 from sentry.models import Group, Project, ProjectOwnership, Rule, Team
-from sentry.notifications.types import ActionTargetType
+from sentry.notifications.types import ActionTargetType, FallthroughChoiceType
 from sentry.notifications.utils.participants import get_send_to
 from sentry.services.hybrid_cloud.user import APIUser
 from sentry.types.integrations import ExternalProviders
@@ -121,6 +121,7 @@ def get_participants_by_event(
     project: Project,
     target_type: ActionTargetType = ActionTargetType.ISSUE_OWNERS,
     target_identifier: int | None = None,
+    fallthrough_choice: FallthroughChoiceType | None = None,
 ) -> Mapping[Event, Mapping[ExternalProviders, set[Team | APIUser]]]:
     """
     This is probably the slowest part in sending digests because we do a lot of
@@ -133,6 +134,7 @@ def get_participants_by_event(
             target_type=target_type,
             target_identifier=target_identifier,
             event=event,
+            fallthrough_choice=fallthrough_choice,
         )
         for event in get_event_from_groups_in_digest(digest)
     }

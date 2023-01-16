@@ -750,8 +750,8 @@ class EventView {
     return this.fields.length;
   }
 
-  getColumns(useFullEquationAsKey?: boolean): TableColumn<React.ReactText>[] {
-    return decodeColumnOrder(this.fields, useFullEquationAsKey);
+  getColumns(): TableColumn<React.ReactText>[] {
+    return decodeColumnOrder(this.fields);
   }
 
   getDays(): number {

@@ -42,7 +42,7 @@ const ClearIndicator = (
   props: React.ComponentProps<typeof selectComponents.ClearIndicator>
 ) => (
   <selectComponents.ClearIndicator {...props}>
-    <IconClose size="10px" />
+    <IconClose legacySize="10px" />
   </selectComponents.ClearIndicator>
 );
 
@@ -50,7 +50,7 @@ const DropdownIndicator = (
   props: React.ComponentProps<typeof selectComponents.DropdownIndicator>
 ) => (
   <selectComponents.DropdownIndicator {...props}>
-    <IconChevron direction="down" size="14px" />
+    <IconChevron direction="down" legacySize="14px" />
   </selectComponents.DropdownIndicator>
 );
 
@@ -58,7 +58,7 @@ const MultiValueRemove = (
   props: React.ComponentProps<typeof selectComponents.MultiValueRemove>
 ) => (
   <selectComponents.MultiValueRemove {...props}>
-    <IconClose size="8px" />
+    <IconClose legacySize="8px" />
   </selectComponents.MultiValueRemove>
 );
 
@@ -168,7 +168,7 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
   props: WrappedControlProps<OptionType>
 ) {
   const theme = useTheme();
-  const {size, isCompact, isSearchable, maxMenuWidth, maxMenuHeight} = props;
+  const {size, isCompact, isSearchable, maxMenuWidth, maxMenuHeight, menuTitle} = props;
 
   // TODO(epurkhiser): The loading indicator should probably also be our loading
   // indicator.
@@ -204,7 +204,7 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
           color: theme.formText,
           background: theme.background,
           border: `1px solid ${theme.border}`,
-          boxShadow: theme.dropShadowLight,
+          boxShadow: theme.dropShadowMedium,
         },
         borderRadius: theme.borderRadius,
         transition: 'border 0.1s, box-shadow 0.1s',
@@ -269,7 +269,14 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
       menuList: provided => ({
         ...provided,
         ...(isCompact && {
-          paddingTop: isSearchable ? 0 : `calc(${space(0.5)} + 1px)`,
+          paddingTop: isSearchable
+            ? 0
+            : // If the menu title is present, then add 1px to the top padding to ensure
+            // even padding (the menu title element has a box-shadow border that takes up
+            // zero height)
+            menuTitle
+            ? `calc(${space(0.5)} + 1px)`
+            : space(0.5),
           paddingBottom: space(0.5),
         }),
       }),

@@ -1,3 +1,4 @@
+import {useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {Panel} from 'sentry/components/panels';
@@ -10,7 +11,7 @@ import ReplayTimelineEvents from 'sentry/components/replays/breadcrumbs/replayTi
 import ReplayTimelineSpans from 'sentry/components/replays/breadcrumbs/replayTimelineSpans';
 import Stacked from 'sentry/components/replays/breadcrumbs/stacked';
 import {TimelineScrubber} from 'sentry/components/replays/player/scrubber';
-import ScrubberMouseTracking from 'sentry/components/replays/player/scrubberMouseTracking';
+import useScrubberMouseTracking from 'sentry/components/replays/player/useScrubberMouseTracking';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {Resizeable} from 'sentry/components/replays/resizeable';
 import {BreadcrumbType} from 'sentry/types/breadcrumbs';
@@ -27,6 +28,9 @@ const USER_ACTIONS = [
 function ReplayTimeline({}: Props) {
   const {replay} = useReplayContext();
 
+  const elem = useRef<HTMLDivElement>(null);
+  const mouseTrackingProps = useScrubberMouseTracking({elem});
+
   if (!replay) {
     return <Placeholder height="54px" bottomGutter={2} />;
   }
@@ -38,33 +42,31 @@ function ReplayTimeline({}: Props) {
   const networkSpans = replay.getNetworkSpans();
 
   return (
-    <Panel>
-      <ScrubberMouseTracking>
-        <Resizeable>
-          {({width}) => (
-            <Stacked>
-              <MinorGridlines durationMs={durationMs} width={width} />
-              <MajorGridlines durationMs={durationMs} width={width} />
-              <TimelineScrubber />
-              <UnderTimestamp paddingTop="36px">
-                <ReplayTimelineSpans
-                  durationMs={durationMs}
-                  spans={networkSpans}
-                  startTimestampMs={startTimestampMs}
-                />
-              </UnderTimestamp>
-              <UnderTimestamp paddingTop="26px">
-                <ReplayTimelineEvents
-                  crumbs={userCrumbs}
-                  durationMs={durationMs}
-                  startTimestampMs={startTimestampMs}
-                  width={width}
-                />
-              </UnderTimestamp>
-            </Stacked>
-          )}
-        </Resizeable>
-      </ScrubberMouseTracking>
+    <Panel ref={elem} {...mouseTrackingProps}>
+      <Resizeable>
+        {({width}) => (
+          <Stacked>
+            <MinorGridlines durationMs={durationMs} width={width} />
+            <MajorGridlines durationMs={durationMs} width={width} />
+            <TimelineScrubber />
+            <UnderTimestamp paddingTop="36px">
+              <ReplayTimelineSpans
+                durationMs={durationMs}
+                spans={networkSpans}
+                startTimestampMs={startTimestampMs}
+              />
+            </UnderTimestamp>
+            <UnderTimestamp paddingTop="26px">
+              <ReplayTimelineEvents
+                crumbs={userCrumbs}
+                durationMs={durationMs}
+                startTimestampMs={startTimestampMs}
+                width={width}
+              />
+            </UnderTimestamp>
+          </Stacked>
+        )}
+      </Resizeable>
     </Panel>
   );
 }

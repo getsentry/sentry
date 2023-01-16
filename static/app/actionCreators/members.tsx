@@ -1,6 +1,8 @@
 import * as Sentry from '@sentry/react';
 
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
+import {t} from 'sentry/locale';
 import MemberListStore from 'sentry/stores/memberListStore';
 import {Member} from 'sentry/types';
 
@@ -45,10 +47,7 @@ export async function fetchOrgMembers(
 
     return members;
   } catch (err) {
-    Sentry.setExtras({
-      resp: err,
-    });
-    Sentry.captureException(err);
+    addErrorMessage(t('Unable to load organization members'));
   }
 
   return [];

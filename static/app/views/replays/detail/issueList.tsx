@@ -82,14 +82,14 @@ function IssueList({projectId, replayId}: Props) {
   const counts = useReplaysCount({
     groupIds: state.issues.map(issue => issue.id),
     organization,
-    project,
+    projectIds: project ? [Number(project.id)] : [],
   });
 
   return (
     <ReplayCountContext.Provider value={counts}>
       <StyledPanelTable
         isEmpty={state.issues.length === 0}
-        emptyMessage={t('No related Issues found.')}
+        emptyMessage={t('No Issues are related')}
         isLoading={state.fetching}
         headers={
           isScreenLarge ? columns : columns.filter(column => column !== t('Graph'))
