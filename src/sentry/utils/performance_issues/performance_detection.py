@@ -1508,7 +1508,8 @@ class UncompressedAssetSpanDetector(PerformanceDetector):
 
     __slots__ = "stored_problems"
 
-    settings_key = DetectorType.UNCOMPRESSED_ASSET_SPAN
+    settings_key = DetectorType.UNCOMPRESSED_ASSETS
+    type: DetectorType = DetectorType.UNCOMPRESSED_ASSETS
 
     def init(self):
         self.stored_problems = {}
@@ -1549,7 +1550,7 @@ class UncompressedAssetSpanDetector(PerformanceDetector):
         ):
             return
 
-        fingerprint = fingerprint_span_op(span)
+        fingerprint = self._fingerprint(span)
         span_id = span.get("span_id", None)
         if fingerprint and span_id and not self.stored_problems.get(fingerprint, False):
             self.stored_problems[fingerprint] = PerformanceProblem(
@@ -1557,10 +1558,14 @@ class UncompressedAssetSpanDetector(PerformanceDetector):
                 op=span.get("op"),
                 desc=span.get("description", ""),
                 parent_span_ids=[],
-                type=GroupType.UNCOMPRESSED_ASSETS,
+                type=GroupType.PERFORMANCE_UNCOMPRESSED_ASSETS,
                 cause_span_ids=[],
                 offender_span_ids=[span.get("span_id", None)],
             )
+
+    def _fingerprint(self, span) -> str:
+        hashed_spans = fingerprint_spans([span])
+        return f"1-{GroupType.PERFORMANCE_UNCOMPRESSED_ASSETS.value}-{hashed_spans}"
 
 
 # Reports metrics and creates spans for detection

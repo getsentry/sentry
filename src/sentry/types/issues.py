@@ -3,6 +3,10 @@ from enum import Enum
 
 
 class GroupType(Enum):
+    # WARNING:
+    # Currently all fingerprints are using the enum string instead of value,
+    # DO NOT change the enum key string for any currently on detector or else
+    # you will create duplicate issues for customers (until the fingerprints are fixed)
     ERROR = 1
     PERFORMANCE_SLOW_SPAN = 1001
     PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN = 1004
