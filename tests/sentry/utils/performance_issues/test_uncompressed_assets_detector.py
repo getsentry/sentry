@@ -4,10 +4,7 @@ from typing import List
 import pytest
 
 from sentry.eventstore.models import Event
-from sentry.testutils.performance_issues.event_generators import (
-    PROJECT_ID,
-    create_span,
-)
+from sentry.testutils.performance_issues.event_generators import PROJECT_ID, create_span
 from sentry.testutils.performance_issues.span_builder import SpanBuilder
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.performance_issues.performance_detection import (
