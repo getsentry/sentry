@@ -1,7 +1,7 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {MOBILE_TAGS_FORMATTER, TagFacets} from 'sentry/components/group/tagFacets';
+import {TagFacets, TAGS_FORMATTER} from 'sentry/components/group/tagFacets';
 import {Event} from 'sentry/types/event';
 
 const {organization} = initializeOrg();
@@ -186,7 +186,7 @@ describe('Tag Facets', function () {
           groupId="1"
           project={project}
           tagKeys={tags}
-          tagFormatter={MOBILE_TAGS_FORMATTER}
+          tagFormatter={TAGS_FORMATTER}
           style="bars"
         />,
         {
@@ -209,7 +209,7 @@ describe('Tag Facets', function () {
           groupId="1"
           project={project}
           tagKeys={tags}
-          tagFormatter={MOBILE_TAGS_FORMATTER}
+          tagFormatter={TAGS_FORMATTER}
           style="bars"
         />,
         {
@@ -230,7 +230,7 @@ describe('Tag Facets', function () {
           groupId="1"
           project={project}
           tagKeys={tags}
-          tagFormatter={MOBILE_TAGS_FORMATTER}
+          tagFormatter={TAGS_FORMATTER}
           style="bars"
         />,
         {
@@ -271,7 +271,7 @@ describe('Tag Facets', function () {
           groupId="1"
           project={project}
           tagKeys={tags}
-          tagFormatter={MOBILE_TAGS_FORMATTER}
+          tagFormatter={TAGS_FORMATTER}
           style="bars"
         />,
         {
@@ -325,7 +325,7 @@ describe('Tag Facets', function () {
           groupId="1"
           project={project}
           tagKeys={tags}
-          tagFormatter={MOBILE_TAGS_FORMATTER}
+          tagFormatter={TAGS_FORMATTER}
           style="bars"
         />,
         {
@@ -452,7 +452,7 @@ describe('Tag Facets', function () {
           groupId="1"
           project={project}
           tagKeys={tags}
-          tagFormatter={MOBILE_TAGS_FORMATTER}
+          tagFormatter={TAGS_FORMATTER}
           style="breakdowns"
         />,
         {
@@ -475,7 +475,7 @@ describe('Tag Facets', function () {
           groupId="1"
           project={project}
           tagKeys={tags}
-          tagFormatter={MOBILE_TAGS_FORMATTER}
+          tagFormatter={TAGS_FORMATTER}
           style="breakdowns"
         />,
         {
@@ -496,7 +496,7 @@ describe('Tag Facets', function () {
           groupId="1"
           project={project}
           tagKeys={tags}
-          tagFormatter={MOBILE_TAGS_FORMATTER}
+          tagFormatter={TAGS_FORMATTER}
           style="breakdowns"
         />,
         {
@@ -521,7 +521,7 @@ describe('Tag Facets', function () {
           groupId="1"
           project={project}
           tagKeys={tags}
-          tagFormatter={MOBILE_TAGS_FORMATTER}
+          tagFormatter={TAGS_FORMATTER}
           style="breakdowns"
         />,
         {
@@ -556,7 +556,7 @@ describe('Tag Facets', function () {
           groupId="1"
           project={project}
           tagKeys={tags}
-          tagFormatter={MOBILE_TAGS_FORMATTER}
+          tagFormatter={TAGS_FORMATTER}
           style="breakdowns"
         />,
         {
@@ -610,7 +610,7 @@ describe('Tag Facets', function () {
           groupId="1"
           project={project}
           tagKeys={tags}
-          tagFormatter={MOBILE_TAGS_FORMATTER}
+          tagFormatter={TAGS_FORMATTER}
           style="breakdowns"
         />,
         {
@@ -648,7 +648,7 @@ describe('Tag Facets', function () {
           project={project}
           tagKeys={tags}
           style="distributions"
-          tagFormatter={MOBILE_TAGS_FORMATTER}
+          tagFormatter={TAGS_FORMATTER}
         />,
         {
           organization,
@@ -670,7 +670,7 @@ describe('Tag Facets', function () {
           project={project}
           tagKeys={tags}
           style="distributions"
-          tagFormatter={MOBILE_TAGS_FORMATTER}
+          tagFormatter={TAGS_FORMATTER}
         />,
         {
           organization,
@@ -698,7 +698,7 @@ describe('Tag Facets', function () {
           project={project}
           tagKeys={tags}
           style="distributions"
-          tagFormatter={MOBILE_TAGS_FORMATTER}
+          tagFormatter={TAGS_FORMATTER}
         />,
         {
           organization,

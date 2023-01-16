@@ -8,7 +8,6 @@ import keyBy from 'lodash/keyBy';
 import pickBy from 'lodash/pickBy';
 
 import {Client} from 'sentry/api';
-import Feature from 'sentry/components/acl/feature';
 import AvatarList from 'sentry/components/avatar/avatarList';
 import DateTime from 'sentry/components/dateTime';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
@@ -22,6 +21,7 @@ import GroupTagDistributionMeter from 'sentry/components/group/tagDistributionMe
 import Placeholder from 'sentry/components/placeholder';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import * as SidebarSection from 'sentry/components/sidebarSection';
+import {backend, frontend} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import space from 'sentry/styles/space';
@@ -45,7 +45,14 @@ import withSentryRouter from 'sentry/utils/withSentryRouter';
 
 import FeatureBadge from '../featureBadge';
 
-import {MOBILE_TAGS, MOBILE_TAGS_FORMATTER, TagFacets} from './tagFacets';
+import {
+  BACKEND_TAGS,
+  DEFAULT_TAGS,
+  FRONTEND_TAGS,
+  MOBILE_TAGS,
+  TagFacets,
+  TAGS_FORMATTER,
+} from './tagFacets';
 
 type Props = WithRouterProps & {
   api: Client;
@@ -260,29 +267,6 @@ class BaseGroupSidebar extends Component<Props, State> {
 
         {event && <SuggestedOwners project={project} group={group} event={event} />}
 
-        <Feature
-          organization={organization}
-          features={['issue-details-tag-improvements']}
-        >
-          {isMobilePlatform(project.platform) &&
-            (project.platform === 'react-native' || organization.id === '1') && (
-              <TagFacets
-                environments={environments}
-                groupId={group.id}
-                tagKeys={MOBILE_TAGS}
-                event={event}
-                title={
-                  <div>
-                    {t('Most Impacted Tags')} <FeatureBadge type="beta" />
-                  </div>
-                }
-                tagFormatter={MOBILE_TAGS_FORMATTER}
-                style={tagFacetsStyle}
-                project={project}
-              />
-            )}
-        </Feature>
-
         <GroupReleaseStats
           organization={organization}
           project={project}
@@ -300,11 +284,30 @@ class BaseGroupSidebar extends Component<Props, State> {
 
         {this.renderPluginIssue()}
 
-        {(!organization.features.includes('issue-details-tag-improvements') ||
-          !(
-            isMobilePlatform(project.platform) &&
-            (project.platform === 'react-native' || organization.id === '1')
-          )) && (
+        {organization.features.includes('issue-details-tag-improvements') ? (
+          <TagFacets
+            environments={environments}
+            groupId={group.id}
+            tagKeys={
+              isMobilePlatform(project?.platform)
+                ? MOBILE_TAGS
+                : frontend.some(val => val === project?.platform)
+                ? FRONTEND_TAGS
+                : backend.some(val => val === project?.platform)
+                ? BACKEND_TAGS
+                : DEFAULT_TAGS
+            }
+            title={
+              <div>
+                {t('Tag Summary')} <FeatureBadge type="beta" />
+              </div>
+            }
+            event={event}
+            tagFormatter={TAGS_FORMATTER}
+            style={tagFacetsStyle}
+            project={project}
+          />
+        ) : (
           <SidebarSection.Wrap>
             <SidebarSection.Title>{t('Tag Summary')}</SidebarSection.Title>
             <SidebarSection.Content>

@@ -1,3 +1,4 @@
+import {useState} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
@@ -5,7 +6,7 @@ import debounce from 'lodash/debounce';
 import {TagSegment} from 'sentry/actionCreators/events';
 import Link from 'sentry/components/links/link';
 import {SegmentValue} from 'sentry/components/tagDistributionMeter';
-import Tooltip from 'sentry/components/tooltip';
+import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
@@ -16,7 +17,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 import {TagFacetsStyles} from '.';
 
-const COLORS = ['#402A65', '#694D99', '#9A81C4', '#BBA6DF', '#EAE2F8'];
+const COLORS = ['#3A3387', '#5F40A3', '#8C4FBD', '#B961D3', '#FEEBF9'];
 
 type Props = {
   project: Project;
@@ -24,6 +25,7 @@ type Props = {
   title: string;
   totalValues: number;
   colors?: string[];
+  expanded?: boolean;
   onTagClick?: (title: string, value: TagSegment) => void;
 };
 
@@ -62,8 +64,12 @@ function TagFacetsDistributionMeter({
   totalValues,
   onTagClick,
   project,
+  expanded: defaultExpandedState,
 }: Props) {
   const organization = useOrganization();
+  const [expanded, setExpanded] = useState<boolean>(!!defaultExpandedState);
+  const [hoveredValue, setHoveredValue] = useState<TagSegment | null>(null);
+
   function renderTitle() {
     if (!Array.isArray(segments) || segments.length <= 0) {
       return (
@@ -79,6 +85,14 @@ function TagFacetsDistributionMeter({
         <TitleDescription>
           <Label>{segments[0].name || t('n/a')}</Label>
         </TitleDescription>
+        <StyledChevron
+          direction={expanded ? 'up' : 'down'}
+          size="xs"
+          onClick={() => {
+            setExpanded(!expanded);
+          }}
+          aria-label={`expand-${title}`}
+        />
       </Title>
     );
   }
@@ -116,7 +130,8 @@ function TagFacetsDistributionMeter({
             <div
               key={value.value}
               style={{width: pct + '%'}}
-              onMouseOver={() =>
+              onMouseOver={() => {
+                setHoveredValue(value);
                 _debounceTrackHover({
                   tag: title,
                   value: value.value,
@@ -124,33 +139,25 @@ function TagFacetsDistributionMeter({
                   is_mobile: isMobilePlatform(project?.platform),
                   organization,
                   type: 'distributions',
-                })
-              }
+                });
+              }}
+              onMouseLeave={() => setHoveredValue(null)}
             >
-              <Tooltip
-                title={renderLegend(true)}
-                containerDisplayMode="block"
-                position="bottom"
-              >
-                {value.isOther ? (
-                  <OtherSegment
-                    aria-label={t('Other')}
-                    color={colors[colors.length - 1]}
-                  />
-                ) : (
-                  <Segment
-                    aria-label={t(
-                      'Add the %s %s segment tag to the search query',
-                      title,
-                      value.value
-                    )}
-                    color={colors[index]}
-                    {...segmentProps}
-                  >
-                    {index === 0 ? `${pctLabel}%` : null}
-                  </Segment>
-                )}
-              </Tooltip>
+              {value.isOther ? (
+                <OtherSegment aria-label={t('Other')} color={colors[colors.length - 1]} />
+              ) : (
+                <Segment
+                  aria-label={t(
+                    'Add the %s %s segment tag to the search query',
+                    title,
+                    value.value
+                  )}
+                  color={colors[index]}
+                  {...segmentProps}
+                >
+                  {index === 0 && pctLabel > 6 ? `${pctLabel}%` : null}
+                </Segment>
+              )}
             </div>
           );
         })}
@@ -163,12 +170,20 @@ function TagFacetsDistributionMeter({
       <LegendGrid>
         {segments.map((segment, index) => {
           const pctLabel = Math.floor(percent(segment.count, totalValues));
+          const unfocus = !!hoveredValue && hoveredValue !== segment;
+          const focus = hoveredValue === segment;
           return (
-            <LegendRow key={`segment-${segment.name}-${index}`} tooltip={tooltip}>
-              <LegendDot color={colors[index]} />
-              <LegendText>{segment.name}</LegendText>
-              <LegendPercent>{`${pctLabel}%`}</LegendPercent>
-            </LegendRow>
+            <Link key={`segment-${segment.name}-${index}`} to={segment.url}>
+              <LegendRow
+                tooltip={tooltip}
+                onMouseOver={() => setHoveredValue(segment)}
+                onMouseLeave={() => setHoveredValue(null)}
+              >
+                <LegendDot color={colors[index]} focus={focus} />
+                <LegendText unfocus={unfocus}>{segment.name}</LegendText>
+                {<LegendPercent>{`${pctLabel}%`}</LegendPercent>}
+              </LegendRow>
+            </Link>
           );
         })}
       </LegendGrid>
@@ -192,6 +207,7 @@ function TagFacetsDistributionMeter({
     <TagSummary>
       {renderTitle()}
       {renderSegments()}
+      {expanded && renderLegend()}
     </TagSummary>
   );
 }
@@ -205,6 +221,7 @@ const TagSummary = styled('div')`
 const SegmentBar = styled('div')`
   display: flex;
   overflow: hidden;
+  border-radius: ${space(0.75)};
 `;
 
 const Title = styled('div')`
@@ -218,8 +235,8 @@ const Title = styled('div')`
 const TitleType = styled('div')`
   color: ${p => p.theme.textColor};
   font-weight: bold;
-  ${p => p.theme.overflowEllipsis};
   font-size: ${p => p.theme.fontSizeSmall};
+  margin-right: ${space(1)};
 `;
 
 const TitleDescription = styled('div')`
@@ -227,6 +244,7 @@ const TitleDescription = styled('div')`
   color: ${p => p.theme.gray300};
   text-align: right;
   font-size: ${p => p.theme.fontSizeSmall};
+  ${p => p.theme.overflowEllipsis};
 `;
 
 const Label = styled('div')`
@@ -236,7 +254,7 @@ const Label = styled('div')`
 const OtherSegment = styled('span')<{color: string}>`
   display: block;
   width: 100%;
-  height: 16px;
+  height: ${space(2)};
   color: inherit;
   outline: none;
   background-color: ${p => p.color};
@@ -248,7 +266,7 @@ const Segment = styled(Link, {shouldForwardProp: isPropValid})<{color: string}>`
   }
   display: block;
   width: 100%;
-  height: 16px;
+  height: ${space(2)};
   color: ${p => p.theme.white};
   outline: none;
   background-color: ${p => p.color};
@@ -260,7 +278,6 @@ const Segment = styled(Link, {shouldForwardProp: isPropValid})<{color: string}>`
 
 const LegendGrid = styled('div')`
   display: grid;
-  row-gap: ${space(1)};
   margin: ${space(1)} 0;
 `;
 
@@ -268,9 +285,12 @@ const LegendRow = styled('div')<{tooltip: boolean}>`
   display: flex;
   align-items: center;
   ${p => (p.tooltip ? 'max-width: 200px' : '')}
+  cursor: pointer;
+  padding: ${space(0.5)} 0;
+  max-width: 295px;
 `;
 
-const LegendDot = styled('span')<{color: string}>`
+const LegendDot = styled('span')<{color: string; focus: boolean}>`
   padding: 0;
   position: relative;
   width: 11px;
@@ -280,14 +300,18 @@ const LegendDot = styled('span')<{color: string}>`
   border-radius: 50%;
   flex-shrink: 0;
   background-color: ${p => p.color};
+  transition: outline 0.3s;
+  ${p => (p.focus ? `outline: ${p.theme.gray100} ${space(0.5)} solid` : null)}
 `;
 
-const LegendText = styled('span')`
+const LegendText = styled('span')<{unfocus: boolean}>`
   font-size: ${p => p.theme.fontSizeSmall};
   margin-left: ${space(1)};
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
+  transition: color 0.3s;
+  color: ${p => (p.unfocus ? p.theme.gray300 : p.theme.gray400)};
 `;
 
 const LegendPercent = styled('span')`
@@ -296,4 +320,11 @@ const LegendPercent = styled('span')`
   color: ${p => p.theme.gray300};
   text-align: right;
   flex-grow: 1;
+`;
+
+const StyledChevron = styled(IconChevron)`
+  margin: -${space(0.5)} 0 0 ${space(0.5)};
+  color: ${p => p.theme.gray300};
+  min-width: ${space(1.5)};
+  margin-top: 0;
 `;
