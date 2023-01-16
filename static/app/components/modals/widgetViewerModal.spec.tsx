@@ -24,12 +24,6 @@ jest.mock('echarts-for-react/lib/core', () => {
   });
 });
 
-jest.mock('sentry/components/tooltip', () => {
-  return jest.fn(props => {
-    return <div>{props.children}</div>;
-  });
-});
-
 const stubEl = (props: {children?: React.ReactNode}) => <div>{props.children}</div>;
 
 let eventsMetaMock;
