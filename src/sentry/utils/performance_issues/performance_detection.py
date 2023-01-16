@@ -525,20 +525,22 @@ class SlowSpanDetector(PerformanceDetector):
         if not SlowSpanDetector.is_span_eligible(span):
             return
 
-        query = span.get("description", None)
-        query = query.strip()
+        description = span.get("description", None)
+        description = description.strip()
 
         if span_duration >= timedelta(
             milliseconds=duration_threshold
         ) and not self.stored_problems.get(fingerprint, False):
             spans_involved = [span_id]
+
+            hash = span.get("hash", "")
             type = DETECTOR_TYPE_TO_GROUP_TYPE[self.settings_key]
 
             self.stored_problems[fingerprint] = PerformanceProblem(
                 type=type,
-                fingerprint=self._fingerprint(query),
+                fingerprint=self._fingerprint(hash),
                 op=op,
-                desc=query,
+                desc=description,
                 cause_span_ids=[],
                 parent_span_ids=[],
                 offender_span_ids=spans_involved,
@@ -571,8 +573,8 @@ class SlowSpanDetector(PerformanceDetector):
 
         return True
 
-    def _fingerprint(self, query):
-        signature = (str(query)).encode("utf-8")
+    def _fingerprint(self, hash):
+        signature = (str(hash)).encode("utf-8")
         full_fingerprint = hashlib.sha1(signature).hexdigest()
         return f"1-{GroupType.PERFORMANCE_SLOW_SPAN.value}-{full_fingerprint}"
 
