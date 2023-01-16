@@ -55,7 +55,7 @@ class NPlusOneAPICallsDetectorTest(TestCase):
 
         assert self.find_problems(event) == [
             PerformanceProblem(
-                fingerprint="1-GroupType.PERFORMANCE_FILE_IO_MAIN_THREAD-153198dd61706844cf3d9a922f6f82543df8125f",
+                fingerprint=f"1-{GroupType.PERFORMANCE_FILE_IO_MAIN_THREAD.value}-153198dd61706844cf3d9a922f6f82543df8125f",
                 op="file.write",
                 desc="1669031858711_file.txt (4.0 kB)",
                 type=GroupType.PERFORMANCE_FILE_IO_MAIN_THREAD,
@@ -88,7 +88,8 @@ class NPlusOneAPICallsDetectorTest(TestCase):
         call_stack = b"org.slf4j.helpers.Util$ClassContextSecurityManager.getExtraClassContext"
         hashed_stack = hashlib.sha1(call_stack).hexdigest()
         assert (
-            problem.fingerprint == f"1-{GroupType.PERFORMANCE_FILE_IO_MAIN_THREAD}-{hashed_stack}"
+            problem.fingerprint
+            == f"1-{GroupType.PERFORMANCE_FILE_IO_MAIN_THREAD.value}-{hashed_stack}"
         )
         assert problem.title == "File IO on Main Thread"
 
