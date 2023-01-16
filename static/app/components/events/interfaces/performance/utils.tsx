@@ -17,6 +17,9 @@ import {ResourceLink} from './resources';
 import {TraceContextSpanProxy} from './spanEvidence';
 
 const RESOURCES_DESCRIPTIONS: Record<IssueType, string> = {
+  [IssueType.PERFORMANCE_CONSECUTIVE_DB_QUERIES]: t(
+    'Consecutive DB Queries are a sequence of database spans where one or more have been identified as parallelizable, or in other words, spans that may be shifted to the start of the sequence. This often occurs when a db query performs no filtering on the data, for example a query without a WHERE clause. To learn more about how to fix consecutive DB queries, check out these resources:'
+  ),
   [IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES]: t(
     "N+1 queries are extraneous queries (N) caused by a single, initial query (+1). In the Span Evidence above, we've identified the parent span where the extraneous spans are located and the extraneous spans themselves. To learn more about how to fix N+1 problems, check out these resources:"
   ),
@@ -35,6 +38,12 @@ const RESOURCES_DESCRIPTIONS: Record<IssueType, string> = {
 type PlatformSpecificResources = Partial<Record<PlatformType, ResourceLink[]>>;
 
 const DEFAULT_RESOURCE_LINK: Record<IssueType, ResourceLink[]> = {
+  [IssueType.PERFORMANCE_CONSECUTIVE_DB_QUERIES]: [
+    {
+      text: t('Sentry Docs: Consecutive DB Queries'),
+      link: 'https://docs.sentry.io/product/issues/issue-details/performance-issues/consecutive-db-queries/',
+    },
+  ],
   [IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES]: [
     {
       text: t('Sentry Docs: N+1 Queries'),
@@ -69,6 +78,7 @@ const RESOURCE_LINKS: Record<IssueType, PlatformSpecificResources> = {
     ],
   },
   [IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS]: {},
+  [IssueType.PERFORMANCE_CONSECUTIVE_DB_QUERIES]: {},
   [IssueType.PERFORMANCE_FILE_IO_MAIN_THREAD]: {},
   [IssueType.PERFORMANCE_SLOW_SPAN]: {},
   [IssueType.ERROR]: {},
@@ -134,10 +144,14 @@ export function getSpanInfoFromTransactionEvent(
     spanID => spansById[spanID]
   );
 
+  const causeSpans = (event?.perfProblem?.causeSpanIds ?? []).map(
+    spanID => spansById[spanID]
+  );
+
   const affectedSpanIds = [...event.perfProblem.offenderSpanIds];
   if (parentSpan !== null) {
     affectedSpanIds.push(parentSpan.span_id);
   }
 
-  return {parentSpan, offendingSpans, affectedSpanIds};
+  return {parentSpan, offendingSpans, affectedSpanIds, causeSpans};
 }

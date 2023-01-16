@@ -22,6 +22,7 @@ describe('SpanEvidenceKeyValueList', () => {
               op: 'http.server',
             }).span
           }
+          causeSpans={[]}
           offendingSpans={[
             new MockSpan({
               startTimestamp: 10,
@@ -49,9 +50,9 @@ describe('SpanEvidenceKeyValueList', () => {
         screen.getByTestId('span-evidence-key-value-list.parent-span')
       ).toHaveTextContent('http.server');
 
-      expect(screen.getByRole('cell', {name: 'Repeating Span'})).toBeInTheDocument();
+      expect(screen.getByRole('cell', {name: 'Repeating Spans (2)'})).toBeInTheDocument();
       expect(
-        screen.getByTestId('span-evidence-key-value-list.repeating-span')
+        screen.getByTestId(/span-evidence-key-value-list.repeating-spans/)
       ).toHaveTextContent('db - SELECT * FROM books');
 
       expect(
@@ -60,6 +61,57 @@ describe('SpanEvidenceKeyValueList', () => {
       expect(
         screen.queryByTestId('span-evidence-key-value-list.problem-parameters')
       ).not.toBeInTheDocument();
+    });
+  });
+
+  describe('Consecutive DB Queries', () => {
+    it('Renders relevant fields', () => {
+      render(
+        <SpanEvidenceKeyValueList
+          issueType={IssueType.PERFORMANCE_CONSECUTIVE_DB_QUERIES}
+          transactionName="/"
+          parentSpan={
+            new MockSpan({
+              startTimestamp: 0,
+              endTimestamp: 650,
+              op: 'http.server',
+            }).span
+          }
+          causeSpans={[
+            new MockSpan({
+              startTimestamp: 10,
+              endTimestamp: 200,
+              op: 'db',
+              description: 'SELECT * FROM USERS LIMIT 100',
+            }).span,
+          ]}
+          offendingSpans={[
+            new MockSpan({
+              startTimestamp: 200,
+              endTimestamp: 400,
+              op: 'db',
+              description: 'SELECT COUNT(*) FROM USERS',
+            }).span,
+          ]}
+        />
+      );
+
+      expect(screen.getByRole('cell', {name: 'Transaction'})).toBeInTheDocument();
+      expect(
+        screen.getByTestId('span-evidence-key-value-list.transaction')
+      ).toHaveTextContent('/');
+
+      expect(screen.getByRole('cell', {name: 'Starting Span'})).toBeInTheDocument();
+      expect(
+        screen.getByTestId('span-evidence-key-value-list.starting-span')
+      ).toHaveTextContent('db - SELECT * FROM USERS LIMIT 100');
+
+      expect(
+        screen.queryByRole('cell', {name: 'Parallelizable Span'})
+      ).toBeInTheDocument();
+      expect(
+        screen.getByTestId('span-evidence-key-value-list.parallelizable-span')
+      ).toHaveTextContent('db - SELECT COUNT(*) FROM USERS');
     });
   });
 
@@ -76,6 +128,7 @@ describe('SpanEvidenceKeyValueList', () => {
               op: 'pageload',
             }).span
           }
+          causeSpans={[]}
           offendingSpans={[
             new MockSpan({
               startTimestamp: 10,
@@ -98,9 +151,9 @@ describe('SpanEvidenceKeyValueList', () => {
         screen.getByTestId('span-evidence-key-value-list.transaction')
       ).toHaveTextContent('/');
 
-      expect(screen.getByRole('cell', {name: 'Offending Span'})).toBeInTheDocument();
+      expect(screen.getByRole('cell', {name: 'Repeating Spans (2)'})).toBeInTheDocument();
       expect(
-        screen.getByTestId('span-evidence-key-value-list.offending-span')
+        screen.getByTestId(/span-evidence-key-value-list.repeating-spans/)
       ).toHaveTextContent('GET http://service.api/book/?book_id=7');
 
       expect(screen.queryByRole('cell', {name: 'Parameters'})).toBeInTheDocument();
@@ -160,6 +213,7 @@ describe('SpanEvidenceKeyValueList', () => {
               op: 'pageload',
             }).span
           }
+          causeSpans={[]}
           offendingSpans={[
             new MockSpan({
               startTimestamp: 10,

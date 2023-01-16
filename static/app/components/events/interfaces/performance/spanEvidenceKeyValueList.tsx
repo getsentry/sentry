@@ -14,6 +14,7 @@ type Span = (RawSpanType | TraceContextSpanProxy) & {
 };
 
 type SpanEvidenceKeyValueListProps = {
+  causeSpans: Span[] | null;
   issueType: IssueType | undefined;
   offendingSpans: Span[];
   parentSpan: Span | null;
@@ -32,25 +33,46 @@ export function SpanEvidenceKeyValueList(props: SpanEvidenceKeyValueListProps) {
       [IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES]: NPlusOneDBQueriesSpanEvidence,
       [IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS]: NPlusOneAPICallsSpanEvidence,
       [IssueType.PERFORMANCE_SLOW_SPAN]: SlowSpanSpanEvidence,
+      [IssueType.PERFORMANCE_CONSECUTIVE_DB_QUERIES]: ConsecutiveDBQueriesSpanEvidence,
     }[props.issueType] ?? DefaultSpanEvidence;
 
   return <Component {...props} />;
 }
 
+const ConsecutiveDBQueriesSpanEvidence = ({
+  transactionName,
+  causeSpans,
+  offendingSpans,
+}: SpanEvidenceKeyValueListProps) => (
+  <PresortedKeyValueList
+    data={
+      [
+        makeTransactionNameRow(transactionName),
+        causeSpans
+          ? makeRow(t('Starting Span'), getSpanEvidenceValue(causeSpans[0]))
+          : null,
+        ...offendingSpans.map(span =>
+          makeRow(t('Parallelizable Span'), getSpanEvidenceValue(span))
+        ),
+      ].filter(Boolean) as KeyValueListData
+    }
+  />
+);
+
 const NPlusOneDBQueriesSpanEvidence = ({
   transactionName,
   parentSpan,
   offendingSpans,
-}: Pick<
-  SpanEvidenceKeyValueListProps,
-  'transactionName' | 'parentSpan' | 'offendingSpans'
->) => (
+}: SpanEvidenceKeyValueListProps) => (
   <PresortedKeyValueList
     data={
       [
         makeTransactionNameRow(transactionName),
         parentSpan ? makeRow(t('Parent Span'), getSpanEvidenceValue(parentSpan)) : null,
-        makeRow(t('Repeating Span'), getSpanEvidenceValue(offendingSpans[0])),
+        makeRow(
+          t('Repeating Spans (%s)', offendingSpans.length),
+          getSpanEvidenceValue(offendingSpans[0])
+        ),
       ].filter(Boolean) as KeyValueListData
     }
   />
@@ -59,7 +81,7 @@ const NPlusOneDBQueriesSpanEvidence = ({
 const NPlusOneAPICallsSpanEvidence = ({
   transactionName,
   offendingSpans,
-}: Pick<SpanEvidenceKeyValueListProps, 'transactionName' | 'offendingSpans'>) => {
+}: SpanEvidenceKeyValueListProps) => {
   const problemParameters = formatChangingQueryParameters(offendingSpans);
 
   return (
@@ -67,9 +89,12 @@ const NPlusOneAPICallsSpanEvidence = ({
       data={
         [
           makeTransactionNameRow(transactionName),
-          makeRow(t('Offending Span'), getSpanEvidenceValue(offendingSpans[0])),
+          makeRow(
+            t('Repeating Spans (%s)', offendingSpans.length),
+            getSpanEvidenceValue(offendingSpans[0])
+          ),
           problemParameters.length > 0
-            ? makeRow(t('Parameters'), problemParameters)
+            ? makeRow(t('Problem Parameter'), problemParameters)
             : null,
         ].filter(Boolean) as KeyValueListData
       }
@@ -80,7 +105,7 @@ const NPlusOneAPICallsSpanEvidence = ({
 const SlowSpanSpanEvidence = ({
   transactionName,
   offendingSpans,
-}: Pick<SpanEvidenceKeyValueListProps, 'transactionName' | 'offendingSpans'>) => (
+}: SpanEvidenceKeyValueListProps) => (
   <PresortedKeyValueList
     data={[
       makeTransactionNameRow(transactionName),
@@ -92,7 +117,7 @@ const SlowSpanSpanEvidence = ({
 const DefaultSpanEvidence = ({
   transactionName,
   offendingSpans,
-}: Pick<SpanEvidenceKeyValueListProps, 'transactionName' | 'offendingSpans'>) => (
+}: SpanEvidenceKeyValueListProps) => (
   <PresortedKeyValueList
     data={[
       makeTransactionNameRow(transactionName),

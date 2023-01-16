@@ -117,6 +117,7 @@ default_manager.add("organizations:performance-n-plus-one-api-calls-detector", O
 default_manager.add("organizations:performance-issues-compressed-assets-detector", OrganizationFeature)
 default_manager.add("organizations:performance-issues-dev", OrganizationFeature, True)
 default_manager.add("organizations:performance-issues-all-events-tab", OrganizationFeature, True)
+default_manager.add("organizations:performance-file-io-main-thread-detector", OrganizationFeature)
 default_manager.add("organizations:performance-onboarding-checklist", OrganizationFeature, True)
 default_manager.add("organizations:performance-span-histogram-view", OrganizationFeature, True)
 default_manager.add("organizations:performance-transaction-name-only-search", OrganizationFeature, True)
