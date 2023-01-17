@@ -17,7 +17,7 @@ import ActivityFeedItem from './activityFeedItem';
 
 type Props = {
   organization: Organization;
-} & RouteComponentProps<{orgId: string}, {}> &
+} & RouteComponentProps<{}, {}> &
   AsyncView['props'];
 
 type State = {
@@ -26,12 +26,13 @@ type State = {
 
 class OrganizationActivity extends AsyncView<Props, State> {
   getTitle() {
-    const {orgId} = this.props.params;
-    return routeTitle(t('Activity'), orgId, false);
+    const {organization} = this.props;
+    return routeTitle(t('Activity'), organization.slug, false);
   }
 
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
-    return [['activity', `/organizations/${this.props.params.orgId}/activity/`]];
+    const {organization} = this.props;
+    return [['activity', `/organizations/${organization.slug}/activity/`]];
   }
 
   renderLoading() {

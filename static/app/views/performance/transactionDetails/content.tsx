@@ -157,6 +157,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
           <QuickTraceQuery event={event} location={location} orgSlug={organization.slug}>
             {results => (
               <TransactionProfileIdProvider
+                projectId={event.projectID}
                 transactionId={event.type === 'transaction' ? event.id : undefined}
                 timestamp={event.dateReceived}
               >

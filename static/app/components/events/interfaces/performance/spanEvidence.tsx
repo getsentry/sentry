@@ -9,11 +9,9 @@ import {TraceContextType} from '../spans/types';
 import WaterfallModel from '../spans/waterfallModel';
 
 import {SpanEvidenceKeyValueList} from './spanEvidenceKeyValueList';
-import {getSpanInfoFromTransactionEvent} from './utils';
 
 interface Props {
   event: EventTransaction;
-  issueType: IssueType;
   organization: Organization;
 }
 
@@ -21,14 +19,18 @@ export type TraceContextSpanProxy = Omit<TraceContextType, 'span_id'> & {
   span_id: string; // TODO: Remove this temporary type.
 };
 
-export function SpanEvidenceSection({event, issueType, organization}: Props) {
-  const spanInfo = getSpanInfoFromTransactionEvent(event);
-
-  if (!spanInfo) {
+export function SpanEvidenceSection({event, organization}: Props) {
+  if (!event) {
     return null;
   }
 
-  const {parentSpan, offendingSpans, affectedSpanIds} = spanInfo;
+  const parentSpanIDs = event?.perfProblem?.parentSpanIds ?? [];
+  const offendingSpanIDs = event?.perfProblem?.offenderSpanIds ?? [];
+
+  const affectedSpanIds = [...offendingSpanIDs];
+  if (event?.perfProblem?.issueType !== IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS) {
+    affectedSpanIds.push(...parentSpanIDs);
+  }
 
   return (
     <DataSection
@@ -37,12 +39,7 @@ export function SpanEvidenceSection({event, issueType, organization}: Props) {
         'Span Evidence identifies the root cause of this issue, found in other similar events within the same issue.'
       )}
     >
-      <SpanEvidenceKeyValueList
-        issueType={issueType}
-        transactionName={event.title}
-        parentSpan={parentSpan}
-        offendingSpans={offendingSpans}
-      />
+      <SpanEvidenceKeyValueList event={event} />
 
       <TraceViewWrapper>
         <TraceView
