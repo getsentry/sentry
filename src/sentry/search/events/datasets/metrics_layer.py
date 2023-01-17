@@ -40,6 +40,9 @@ class MetricsLayerDatasetConfig(MetricsDatasetConfig):
             constants.PROJECT_NAME_ALIAS: self._resolve_project_slug_alias,
             constants.TEAM_KEY_TRANSACTION_ALIAS: self._resolve_team_key_transaction_alias,
             constants.TITLE_ALIAS: self._resolve_title_alias,
+            constants.PROJECT_DOT_ID_ALIAS: lambda alias: AliasedExpression(
+                self.builder.resolve_column(constants.PROJECT_ID_ALIAS), alias
+            ),
         }
 
     def resolve_metric(self, value: str) -> str:
