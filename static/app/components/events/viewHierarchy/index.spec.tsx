@@ -2,6 +2,16 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {ViewHierarchy} from '.';
 
+// Mocks for useVirtualizedTree hook
+class ResizeObserver {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
+
+window.ResizeObserver = ResizeObserver;
+window.Element.prototype.scrollTo = jest.fn();
+
 const DEFAULT_VALUES = {alpha: 1, height: 1, width: 1, x: 1, y: 1, visible: true};
 const MOCK_DATA = {
   rendering_system: 'test-rendering-system',
