@@ -681,7 +681,6 @@ def get_series(
 
     start, end, _num_intervals = to_intervals(metrics_query.start, metrics_query.end, interval)
 
-    # align start/end
     metrics_query = replace(metrics_query, start=start, end=end)
 
     intervals = list(
