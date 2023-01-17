@@ -1,5 +1,8 @@
+import logging
 from typing import Any, Mapping
 from unittest import mock
+
+import pytest
 
 from sentry.api.endpoints.project_stacktrace_link import ProjectStacktraceLinkEndpoint
 from sentry.integrations.example.integration import ExampleIntegration
@@ -312,18 +315,20 @@ class ProjectStracktraceLinkTestCodecov(BaseProjectStacktraceLink):
         )
         self.filepath = "src/path/to/file.py"
 
+    @pytest.fixture(autouse=True)
+    def inject_fixtures(self, caplog):
+        self._caplog = caplog
+
     @with_feature("organizations:codecov-stacktrace-integration")
-    @mock.patch(
-        "sentry.api.endpoints.project_stacktrace_link.ProjectStacktraceLinkEndpoint.get_codecov_line_coverage"
-    )
+    @mock.patch("sentry.integrations.utils.codecov.Codecov.get_codecov_line_coverage")
     @mock.patch.object(ExampleIntegration, "get_stacktrace_link")
-    def test_codecov_result(self, mock_integration, mock_codecov):
+    def test_codecov_line_coverage_success(self, mock_integration, mock_codecov):
         self.organization.flags.codecov_access = True
         self.organization.save()
 
         expected_line_coverage = [[1, 0], [3, 1], [4, 0]]
         expected_status_code = 200
-        mock_integration.return_value = "https://github.com/repo/path/to/file.py"
+        mock_integration.return_value = "https://github.com/repo/blob/master/src/path/to/file.py"
         mock_codecov.return_value = (expected_line_coverage, expected_status_code)
         response = self.get_success_response(
             self.organization.slug,
@@ -338,12 +343,35 @@ class ProjectStracktraceLinkTestCodecov(BaseProjectStacktraceLink):
         assert response.data["lineCoverage"] == expected_line_coverage
         assert response.data["codecovStatusCode"] == expected_status_code
 
-    def test_get_codecov_path(self):
-        project_stacktrace_link_endpoint = ProjectStacktraceLinkEndpoint()
-        codecov_path = project_stacktrace_link_endpoint.get_codecov_path(
-            "https://github.com/getsentry/sentry/blob/8a0bf7246d39cdeb56d457134ee32767673b7492/src/sentry/shared_integrations/client/base.py"
+    @with_feature("organizations:codecov-stacktrace-integration")
+    @mock.patch("sentry.integrations.utils.codecov.Codecov.get_codecov_line_coverage")
+    @mock.patch.object(ExampleIntegration, "get_stacktrace_link")
+    def test_codecov_line_coverage_exception(self, mock_integration, mock_codecov):
+        self._caplog.set_level(logging.ERROR, logger="sentry")
+        self.organization.flags.codecov_access = True
+        self.organization.save()
+
+        mock_integration.return_value = "https://github.com/repo/blob/master/src/path/to/file.py"
+        mock_codecov.return_value = Exception
+
+        self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            qs_params={
+                "file": self.filepath,
+                "absPath": "abs_path",
+                "module": "module",
+                "package": "package",
+            },
         )
-        assert codecov_path == "src/sentry/shared_integrations/client/base.py"
+
+        assert self._caplog.record_tuples == [
+            (
+                "sentry.api.endpoints.project_stacktrace_link",
+                logging.ERROR,
+                "Failed to get expected coverage data from Codecov, pending investigation. Continuing execution.",
+            )
+        ]
 
 
 class ProjectStacktraceLinkTestMultipleMatches(BaseProjectStacktraceLink):
