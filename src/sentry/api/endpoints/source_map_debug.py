@@ -50,6 +50,12 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
         },
     )
     def get(self, request: Request, project: Project, event_id: str) -> Response:
+        """
+        Retrieve information about source maps for a given event.
+        ```````````````````````````````````````````
+        Return a list of source map errors for a given event.
+        """
+
         if not self.has_feature(project.organization, request):
             raise NotFound(
                 detail="Endpoint not available without 'organizations:fix-source-map-cta' feature flag"
