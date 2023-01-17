@@ -18,6 +18,7 @@ import {useProfileEventsStats} from 'sentry/utils/profiling/hooks/useProfileEven
 interface ProfileChartsProps {
   query: string;
   router: InjectedRouter;
+  hideCount?: boolean;
   selection?: PageFilters;
 }
 
@@ -26,13 +27,20 @@ interface ProfileChartsProps {
 // cover it up.
 const SERIES_ORDER = ['count()', 'p99()', 'p95()', 'p75()'] as const;
 
-export function ProfileCharts({query, router, selection}: ProfileChartsProps) {
+export function ProfileCharts({query, router, selection, hideCount}: ProfileChartsProps) {
   const theme = useTheme();
+
+  const seriesOrder = useMemo(() => {
+    if (hideCount) {
+      return SERIES_ORDER.filter(s => s !== 'count()');
+    }
+    return SERIES_ORDER;
+  }, [hideCount]);
 
   const profileStats = useProfileEventsStats({
     query,
     referrer: 'api.profiling.landing-chart',
-    yAxes: SERIES_ORDER,
+    yAxes: seriesOrder,
   });
 
   const series: Series[] = useMemo(() => {
@@ -45,7 +53,7 @@ export function ProfileCharts({query, router, selection}: ProfileChartsProps) {
     const timestamps = profileStats.data[0].timestamps.map(ts => ts * 1e3);
 
     const allSeries = profileStats.data[0].data
-      .filter(rawData => SERIES_ORDER.indexOf(rawData.axis) > -1)
+      .filter(rawData => seriesOrder.includes(rawData.axis))
       .map(rawData => {
         if (timestamps.length !== rawData.values.length) {
           throw new Error('Invalid stats response');
@@ -79,21 +87,23 @@ export function ProfileCharts({query, router, selection}: ProfileChartsProps) {
       });
 
     allSeries.sort((a, b) => {
-      const idxA = SERIES_ORDER.indexOf(a.seriesName as any);
-      const idxB = SERIES_ORDER.indexOf(b.seriesName as any);
+      const idxA = seriesOrder.indexOf(a.seriesName as any);
+      const idxB = seriesOrder.indexOf(b.seriesName as any);
 
       return idxA - idxB;
     });
 
     return allSeries;
-  }, [profileStats]);
+  }, [profileStats, seriesOrder]);
 
   return (
     <ChartZoom router={router} {...selection?.datetime}>
       {zoomRenderProps => (
         <StyledPanel>
           <TitleContainer>
-            <StyledHeaderTitle>{t('Profiles by Count')}</StyledHeaderTitle>
+            {!hideCount && (
+              <StyledHeaderTitle>{t('Profiles by Count')}</StyledHeaderTitle>
+            )}
             <StyledHeaderTitle>{t('Profiles by Percentiles')}</StyledHeaderTitle>
           </TitleContainer>
           <AreaChart
@@ -108,7 +118,7 @@ export function ProfileCharts({query, router, selection}: ProfileChartsProps) {
               },
               {
                 top: '32px',
-                left: '52%',
+                left: hideCount ? '24px' : '52%',
                 right: '24px',
                 bottom: '16px',
               },
@@ -116,13 +126,18 @@ export function ProfileCharts({query, router, selection}: ProfileChartsProps) {
             legend={{
               right: 16,
               top: 12,
-              data: SERIES_ORDER.slice(),
+              data: seriesOrder.slice(),
             }}
             axisPointer={{
-              link: [{xAxisIndex: [0, 1]}],
+              link: [
+                {
+                  xAxisIndex: [0, 1],
+                },
+              ],
             }}
             xAxes={[
               {
+                show: !hideCount,
                 gridIndex: 0,
                 type: 'time' as const,
               },
