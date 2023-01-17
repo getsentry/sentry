@@ -69,7 +69,7 @@ DETECTOR_TYPE_TO_GROUP_TYPE = {
     DetectorType.N_PLUS_ONE_DB_QUERIES: GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
     DetectorType.N_PLUS_ONE_DB_QUERIES_EXTENDED: GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
     DetectorType.N_PLUS_ONE_API_CALLS: GroupType.PERFORMANCE_N_PLUS_ONE_API_CALLS,
-    DetectorType.CONSECUTIVE_DB_OP: GroupType.PERFORMANCE_CONSECUTIVE_DB_OP,
+    DetectorType.CONSECUTIVE_DB_OP: GroupType.PERFORMANCE_CONSECUTIVE_DB_QUERIES,
     DetectorType.FILE_IO_MAIN_THREAD: GroupType.PERFORMANCE_FILE_IO_MAIN_THREAD,
     DetectorType.M_N_PLUS_ONE_DB: GroupType.PERFORMANCE_M_N_PLUS_ONE_DB_QUERIES,
     DetectorType.UNCOMPRESSED_ASSETS: GroupType.PERFORMANCE_UNCOMPRESSED_ASSETS,
@@ -874,15 +874,16 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
 
     def _store_performance_problem(self) -> None:
         fingerprint = self._fingerprint()
-        offender_span_ids = [span.get("span_id", None) for span in self.consecutive_db_spans]
+        offender_span_ids = [span.get("span_id", None) for span in self.independent_db_spans]
+        cause_span_ids = [span.get("span_id", None) for span in self.consecutive_db_spans]
         query: str = self.independent_db_spans[0].get("description", None)
 
         self.stored_problems[fingerprint] = PerformanceProblem(
             fingerprint,
             "db",
             desc=query,  # TODO - figure out which query to use for description
-            type=GroupType.PERFORMANCE_CONSECUTIVE_DB_OP,
-            cause_span_ids=None,
+            type=GroupType.PERFORMANCE_CONSECUTIVE_DB_QUERIES,
+            cause_span_ids=cause_span_ids,
             parent_span_ids=None,
             offender_span_ids=offender_span_ids,
         )
@@ -957,7 +958,7 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
 
     def _fingerprint(self) -> str:
         hashed_spans = fingerprint_spans(self.consecutive_db_spans)
-        return f"1-{GroupType.PERFORMANCE_CONSECUTIVE_DB_OP.value}-{hashed_spans}"
+        return f"1-{GroupType.PERFORMANCE_CONSECUTIVE_DB_QUERIES.value}-{hashed_spans}"
 
     def on_complete(self) -> None:
         self._validate_and_store_performance_problem()
@@ -1587,6 +1588,14 @@ class UncompressedAssetSpanDetector(PerformanceDetector):
     def _fingerprint(self, span) -> str:
         hashed_spans = fingerprint_spans([span])
         return f"1-{GroupType.PERFORMANCE_UNCOMPRESSED_ASSETS.value}-{hashed_spans}"
+
+    def is_creation_allowed_for_organization(self, organization: Organization) -> bool:
+        return features.has(
+            "organizations:performance-issues-compressed-assets-detector", organization, actor=None
+        )
+
+    def is_creation_allowed_for_project(self, project: Project) -> bool:
+        return True  # Detection always allowed by project for now
 
 
 # Reports metrics and creates spans for detection
