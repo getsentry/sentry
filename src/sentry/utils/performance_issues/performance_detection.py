@@ -535,11 +535,10 @@ class SlowSpanDetector(PerformanceDetector):
 
             hash = span.get("hash", "")
             type = DETECTOR_TYPE_TO_GROUP_TYPE[self.settings_key]
-            transaction_name = self._event.get("transaction")
 
             self.stored_problems[fingerprint] = PerformanceProblem(
                 type=type,
-                fingerprint=self._fingerprint(transaction_name, op, hash, type),
+                fingerprint=self._fingerprint(hash),
                 op=op,
                 desc=description,
                 cause_span_ids=[],
@@ -574,10 +573,10 @@ class SlowSpanDetector(PerformanceDetector):
 
         return True
 
-    def _fingerprint(self, transaction_name, span_op, hash, problem_class):
-        signature = (str(transaction_name) + str(span_op) + str(hash)).encode("utf-8")
+    def _fingerprint(self, hash):
+        signature = (str(hash)).encode("utf-8")
         full_fingerprint = hashlib.sha1(signature).hexdigest()
-        return f"1-{problem_class}-{full_fingerprint}"
+        return f"1-{GroupType.PERFORMANCE_SLOW_SPAN.value}-{full_fingerprint}"
 
 
 class RenderBlockingAssetSpanDetector(PerformanceDetector):
