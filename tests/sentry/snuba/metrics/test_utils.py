@@ -1,8 +1,8 @@
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 
 import pytest
 
-from sentry.snuba.metrics.utils import get_intervals, get_num_intervals
+from sentry.snuba.metrics.utils import get_intervals, get_num_intervals, to_intervals
 
 MINUTE = 60
 HOUR = 60 * MINUTE
@@ -294,3 +294,90 @@ def test_get_intervals(start, end, granularity, interval, test_message, expected
 
 def _to_timestring(d):
     return d.strftime("%H:%M:%S %Z")
+
+
+test_to_intervals_cases = [
+    (
+        "2000-01-01T10:20",
+        "2000-01-01T10:40",
+        HOUR,
+        "10:00:00 UTC",
+        "11:00:00 UTC",
+        1,
+        "less than one hour, inside interval",
+    ),
+    (
+        "2000-01-01T10:00",
+        "2000-01-01T10:40",
+        HOUR,
+        "10:00:00 UTC",
+        "11:00:00 UTC",
+        1,
+        "less than one hour, inside interval 2",
+    ),
+    (
+        "2000-01-01T10:00",
+        "2000-01-01T11:00",
+        HOUR,
+        "10:00:00 UTC",
+        "11:00:00 UTC",
+        1,
+        "one hour perfectly aligned",
+    ),
+    (
+        "2000-01-01T10:50",
+        "2000-01-01T11:10",
+        HOUR,
+        "10:00:00 UTC",
+        "12:00:00 UTC",
+        2,
+        "less than one hour, spanning 2 intervals",
+    ),
+    (
+        "2000-01-01T10:01",
+        "2000-01-01T11:10",
+        2 * HOUR,
+        "10:00:00 UTC",
+        "12:00:00 UTC",
+        1,
+        "less than 2 hours unaligned",
+    ),
+    (
+        "2000-01-01T11:01",
+        "2000-01-01T13:10",
+        2 * HOUR,
+        "10:00:00 UTC",
+        "14:00:00 UTC",
+        2,
+        "span two, two hour intervals",
+    ),
+]
+
+
+@pytest.mark.parametrize(
+    "start,end,interval,expected_start,expected_end, expected_num_intervals, test_message",
+    test_to_intervals_cases,
+    ids=[x[6] for x in test_to_intervals_cases],
+)
+def test_to_intervals(
+    start, end, interval, expected_start, expected_end, expected_num_intervals, test_message
+):
+    start_date = datetime.fromisoformat(start)
+    end_date = datetime.fromisoformat(end)
+
+    actual_start, actual_end, actual_num_intervals = to_intervals(start_date, end_date, interval)
+
+    assert expected_start == _to_timestring(actual_start), test_message
+    assert expected_end == _to_timestring(actual_end), test_message
+    assert expected_num_intervals == actual_num_intervals, test_message
+
+
+def test_get_intervals_checks_valid_interval():
+    """
+    Checks that get_intervals verifies that granularity > 0
+    """
+    start = datetime(2021, 8, 25, 23, 59, tzinfo=timezone.utc)
+    end = start + timedelta(days=1)
+
+    with pytest.raises(AssertionError):
+        list(get_intervals(start=start, end=end, granularity=-3600))

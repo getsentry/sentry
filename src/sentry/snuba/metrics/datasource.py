@@ -7,6 +7,7 @@ efficient, we only look at the past 24 hours.
 """
 
 __all__ = ("get_metrics", "get_tags", "get_tag_values", "get_series", "get_single_metric_info")
+
 import logging
 from collections import defaultdict, deque
 from copy import copy
@@ -54,6 +55,7 @@ from sentry.snuba.metrics.utils import (
     Tag,
     TagValue,
     get_intervals,
+    to_intervals,
 )
 from sentry.utils.snuba import raw_snql_query
 
@@ -671,6 +673,17 @@ def get_series(
     include_meta: bool = False,
 ) -> dict:
     """Get time series for the given query"""
+
+    if metrics_query.interval is not None:
+        interval = metrics_query.interval
+    else:
+        interval = metrics_query.granularity.granularity
+
+    start, end, _num_intervals = to_intervals(metrics_query.start, metrics_query.end, interval)
+
+    # align start/end
+    metrics_query = replace(metrics_query, start=start, end=end)
+
     intervals = list(
         get_intervals(
             metrics_query.start,

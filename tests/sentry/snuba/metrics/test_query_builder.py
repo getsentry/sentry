@@ -1035,11 +1035,6 @@ def test_translate_results_missing_slots(_1, _2):
     ]
 
 
-def test_get_intervals():
-    with pytest.raises(AssertionError):
-        list(get_intervals(MOCK_NOW - timedelta(days=1), MOCK_NOW, -3600))
-
-
 def test_translate_meta_results():
     meta = [
         {"name": "p50(d:transactions/measurements.lcp@millisecond)", "type": "Float64"},

@@ -3,6 +3,7 @@ Metrics Service Layer Tests for Performance
 """
 import re
 from datetime import timedelta
+from datetime import timezone as datetime_timezone
 from unittest import mock
 
 import pytest
@@ -1187,8 +1188,12 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             use_case_id=UseCaseKey.PERFORMANCE,
         )
         assert data == {
-            "start": FakeDatetime(day_ago.year, day_ago.month, day_ago.day, 10, 30),
-            "end": FakeDatetime(day_ago.year, day_ago.month, day_ago.day, 16, 30),
+            "start": FakeDatetime(
+                day_ago.year, day_ago.month, day_ago.day, 10, 00, tzinfo=datetime_timezone.utc
+            ),
+            "end": FakeDatetime(
+                day_ago.year, day_ago.month, day_ago.day, 17, 00, tzinfo=datetime_timezone.utc
+            ),
             "intervals": [
                 FakeDatetime(
                     day_ago.year,
@@ -1196,16 +1201,16 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                     day_ago.day,
                     hour,
                     0,
-                    tzinfo=timezone.utc,
+                    tzinfo=datetime_timezone.utc,
                 )
-                for hour in range(10, 16)
+                for hour in range(10, 17)
             ],
             "groups": [
                 {
                     "by": {},
                     "series": {
-                        "rate(transaction.duration)": [0.1, 0, 0.1, 0.05, 0, 0.05],
-                        "count(transaction.duration)": [6, 0, 6, 3, 0, 3],
+                        "rate(transaction.duration)": [0.1, 0, 0.1, 0.05, 0, 0.05, 0],
+                        "count(transaction.duration)": [6, 0, 6, 3, 0, 3, 0],
                     },
                     "totals": {
                         "rate(transaction.duration)": 0.3,
