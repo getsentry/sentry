@@ -331,14 +331,19 @@ class OrderByNotSupportedOverCompositeEntityException(NotSupportedOverCompositeE
 
 
 def to_intervals(
-    start: datetime, end: datetime, interval_seconds: int
-) -> Tuple[datetime, datetime, int]:
+    start: Optional[datetime], end: Optional[datetime], interval_seconds: int
+) -> Tuple[Optional[datetime], Optional[datetime], int]:
     """
     Given a start date, end date and an alignment interval in seconds returns the aligned start, end and
     the number of total intervals in [start:end]
 
     """
     assert interval_seconds > 0
+
+    # horrible hack for backward compatibility
+    # TODO Try to fix this upstream
+    if start is None or end is None:
+        return None, None, 0
 
     if start.tzinfo is None:
         start.replace(tzinfo=timezone.utc)
