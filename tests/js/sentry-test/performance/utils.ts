@@ -4,6 +4,7 @@ import {EntryType, EventOrGroupType, EventTransaction, IssueType} from 'sentry/t
 export enum ProblemSpan {
   PARENT = 'parent',
   OFFENDER = 'offender',
+  CAUSE = 'cause',
 }
 
 export const EXAMPLE_TRANSACTION_TITLE = '/api/0/transaction-test-endpoint/';
@@ -110,6 +111,9 @@ export class TransactionEventBuilder {
           break;
         case ProblemSpan.OFFENDER:
           this.#event.perfProblem?.offenderSpanIds.push(spanId);
+          break;
+        case ProblemSpan.CAUSE:
+          this.#event.perfProblem?.causeSpanIds.push(spanId);
           break;
         default:
           break;
