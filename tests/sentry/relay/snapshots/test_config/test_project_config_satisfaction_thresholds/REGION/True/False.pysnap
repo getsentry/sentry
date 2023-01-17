@@ -1,6 +1,92 @@
 ---
+created: '2023-01-17T00:14:26.327187Z'
+creator: sentry
 source: tests/sentry/relay/test_config.py
 ---
+- condition:
+    inner:
+    - name: event.measurements.lcp.value
+      op: gt
+      value: 2400
+    - name: event.transaction
+      op: eq
+      value: bar
+    op: and
+  tagValue: frustrated
+  targetMetrics:
+  - s:transactions/user@none
+  - d:transactions/duration@millisecond
+  - d:transactions/measurements.lcp@millisecond
+  targetTag: satisfaction
+- condition:
+    inner:
+    - name: event.measurements.lcp.value
+      op: gt
+      value: 600
+    - name: event.transaction
+      op: eq
+      value: bar
+    op: and
+  tagValue: tolerated
+  targetMetrics:
+  - s:transactions/user@none
+  - d:transactions/duration@millisecond
+  - d:transactions/measurements.lcp@millisecond
+  targetTag: satisfaction
+- condition:
+    inner:
+    - name: event.transaction
+      op: eq
+      value: bar
+    op: and
+  tagValue: satisfied
+  targetMetrics:
+  - s:transactions/user@none
+  - d:transactions/duration@millisecond
+  - d:transactions/measurements.lcp@millisecond
+  targetTag: satisfaction
+- condition:
+    inner:
+    - name: event.duration
+      op: gt
+      value: 1600
+    - name: event.transaction
+      op: eq
+      value: foo
+    op: and
+  tagValue: frustrated
+  targetMetrics:
+  - s:transactions/user@none
+  - d:transactions/duration@millisecond
+  - d:transactions/measurements.lcp@millisecond
+  targetTag: satisfaction
+- condition:
+    inner:
+    - name: event.duration
+      op: gt
+      value: 400
+    - name: event.transaction
+      op: eq
+      value: foo
+    op: and
+  tagValue: tolerated
+  targetMetrics:
+  - s:transactions/user@none
+  - d:transactions/duration@millisecond
+  - d:transactions/measurements.lcp@millisecond
+  targetTag: satisfaction
+- condition:
+    inner:
+    - name: event.transaction
+      op: eq
+      value: foo
+    op: and
+  tagValue: satisfied
+  targetMetrics:
+  - s:transactions/user@none
+  - d:transactions/duration@millisecond
+  - d:transactions/measurements.lcp@millisecond
+  targetTag: satisfaction
 - condition:
     inner:
     - name: event.duration
