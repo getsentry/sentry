@@ -1,9 +1,9 @@
 import styled from '@emotion/styled';
 
+import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {t} from 'sentry/locale';
 import {EventTransaction, IssueType, Organization} from 'sentry/types';
 
-import {DataSection} from '../../eventTagsAndScreenshot/dataSection';
 import TraceView from '../spans/traceView';
 import {TraceContextType} from '../spans/types';
 import WaterfallModel from '../spans/waterfallModel';
@@ -33,9 +33,10 @@ export function SpanEvidenceSection({event, organization}: Props) {
   }
 
   return (
-    <DataSection
+    <EventDataSection
       title={t('Span Evidence')}
-      description={t(
+      type="span-evidence"
+      help={t(
         'Span Evidence identifies the root cause of this issue, found in other similar events within the same issue.'
       )}
     >
@@ -48,7 +49,7 @@ export function SpanEvidenceSection({event, organization}: Props) {
           isEmbedded
         />
       </TraceViewWrapper>
-    </DataSection>
+    </EventDataSection>
   );
 }
 

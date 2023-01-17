@@ -71,12 +71,7 @@ export function Csp({data, event}: Props) {
   );
 
   return (
-    <EventDataSection
-      type="csp"
-      title={<h3>{t('CSP Report')}</h3>}
-      actions={actions}
-      wrapTitle={false}
-    >
+    <EventDataSection type="csp" title={t('CSP Report')} actions={actions}>
       {getView(view, cleanData, meta)}
     </EventDataSection>
   );

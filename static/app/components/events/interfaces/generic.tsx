@@ -51,7 +51,7 @@ export function Generic({type, data, meta}: Props) {
   return (
     <EventDataSection
       type={type}
-      title={<h3>{t('Report')}</h3>}
+      title={t('Report')}
       actions={
         <ButtonBar merged active={view}>
           <Button barId="report" size="xs" onClick={() => setView('report')}>
@@ -62,7 +62,6 @@ export function Generic({type, data, meta}: Props) {
           </Button>
         </ButtonBar>
       }
-      wrapTitle={false}
     >
       {getView({view, data, meta})}
     </EventDataSection>
