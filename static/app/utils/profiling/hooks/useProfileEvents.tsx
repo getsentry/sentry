@@ -95,7 +95,7 @@ export function useProfileEvents<F extends string>({
     refetchOnWindowFocus: false,
     refetchOnMount,
     retry: false,
-    enabled: enabled && Boolean(endpointOptions.query.project),
+    enabled,
   });
 }
 
