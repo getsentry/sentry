@@ -67,7 +67,9 @@ class SharedGroupDetails extends Component<Props, State> {
     const {params, api} = this.props;
     const {shareId} = params;
     try {
-      const group = await api.requestPromise(`/shared/issues/${shareId}/`);
+      const group = await api.requestPromise(
+        `/organizations/${this.props.organization.slug}/shared/issues/${shareId}/`
+      );
       this.setState({loading: false, group});
     } catch {
       this.setState({loading: false, error: true});
