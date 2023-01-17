@@ -544,15 +544,9 @@ class SlowSpanDetector(PerformanceDetector):
             )
 
     def is_creation_allowed_for_organization(self, organization: Optional[Organization]) -> bool:
-        return features.has(
-            "organizations:organizations:performance-slow-db-issue", organization, actor=None
-        )
+        return features.has("organizations:performance-slow-db-issue", organization, actor=None)
 
     def is_creation_allowed_for_project(self, project: Optional[Project]) -> bool:
-        return True
-
-    # TODO: Temporarily set to true for now, but issues will not be created.
-    def is_creation_allowed_for_system(self) -> bool:
         return True
 
     @classmethod

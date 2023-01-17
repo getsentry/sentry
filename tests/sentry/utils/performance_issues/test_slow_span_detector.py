@@ -1,9 +1,9 @@
-import unittest
 from typing import List
 
 import pytest
 
 from sentry.eventstore.models import Event
+from sentry.testutils import TestCase
 from sentry.testutils.performance_issues.event_generators import (
     create_event,
     create_span,
@@ -21,7 +21,7 @@ from sentry.utils.performance_issues.performance_detection import (
 
 @region_silo_test
 @pytest.mark.django_db
-class SlowSpanDetectorTest(unittest.TestCase):
+class SlowSpanDetectorTest(TestCase):
     def setUp(self):
         super().setUp()
         self.settings = get_detection_settings()
@@ -108,3 +108,16 @@ class SlowSpanDetectorTest(unittest.TestCase):
                 offender_span_ids=["bbbbbbbbbbbbbbbb"],
             )
         ]
+
+    def test_respects_feature_flag(self):
+        project = self.create_project()
+        slow_span_event = create_event(
+            [create_span("db", 1005, "SELECT `product`.`id` FROM `products`")] * 1
+        )
+
+        detector = SlowSpanDetector(self.settings, slow_span_event)
+
+        assert not detector.is_creation_allowed_for_organization(project.organization)
+
+        with self.feature({"organizations:performance-slow-db-issue": True}):
+            assert detector.is_creation_allowed_for_organization(project.organization)
