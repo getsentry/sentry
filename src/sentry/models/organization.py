@@ -168,6 +168,10 @@ class Organization(Model, SnowflakeIdMixin):
                 "require_email_verification",
                 "Require and enforce email verification for all members.",
             ),
+            (
+                "codecov_access",
+                "Enable codecov integration.",
+            ),
         ),
         default=1,
     )

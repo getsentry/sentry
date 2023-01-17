@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import AsyncComponent from 'sentry/components/asyncComponent';
 import DocIntegrationAvatar from 'sentry/components/avatar/docIntegrationAvatar';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';

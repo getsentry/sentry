@@ -3,7 +3,7 @@ import {RouteComponentProps} from 'react-router';
 
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import MiniBarChart from 'sentry/components/charts/miniBarChart';
 import EmptyMessage from 'sentry/components/emptyMessage';
@@ -19,10 +19,11 @@ import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHea
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 
-type RouteParams = {orgId: string; projectId: string};
-
 type StatProps = {
-  params: RouteParams;
+  params: {
+    orgId: string;
+    projectId: string;
+  };
 };
 
 type StatState = AsyncComponent['state'] & {
@@ -81,7 +82,7 @@ class DataForwardingStats extends AsyncComponent<StatProps, StatState> {
   }
 }
 
-type Props = RouteComponentProps<RouteParams, {}> & {
+type Props = RouteComponentProps<{projectId: string}, {}> & {
   organization: Organization;
   project: Project;
 };
@@ -92,9 +93,10 @@ type State = AsyncComponent['state'] & {
 
 class ProjectDataForwarding extends AsyncComponent<Props, State> {
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
-    const {orgId, projectId} = this.props.params;
+    const {organization} = this.props;
+    const {projectId} = this.props.params;
 
-    return [['plugins', `/projects/${orgId}/${projectId}/plugins/`]];
+    return [['plugins', `/projects/${organization.slug}/${projectId}/plugins/`]];
   }
 
   get forwardingPlugins() {

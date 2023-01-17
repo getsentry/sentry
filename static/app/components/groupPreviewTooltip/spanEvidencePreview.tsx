@@ -90,7 +90,8 @@ const SpanEvidencePreviewBody = ({
           issueType={data?.perfProblem?.issueType}
           transactionName={data.title}
           parentSpan={spanInfo.parentSpan}
-          offendingSpan={spanInfo.offendingSpan}
+          offendingSpans={spanInfo.offendingSpans}
+          causeSpans={spanInfo.causeSpans}
         />
       </SpanEvidencePreviewWrapper>
     );

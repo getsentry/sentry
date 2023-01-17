@@ -6,10 +6,13 @@ import pytest
 from freezegun import freeze_time
 
 from sentry.constants import ObjectStatus
-from sentry.dynamic_sampling.latest_release_booster import get_redis_client_for_ds
-from sentry.dynamic_sampling.latest_release_ttas import Platform
-from sentry.dynamic_sampling.rules_generator import HEALTH_CHECK_GLOBS
-from sentry.dynamic_sampling.utils import RESERVED_IDS, RuleType
+from sentry.dynamic_sampling import (
+    HEALTH_CHECK_GLOBS,
+    RESERVED_IDS,
+    Platform,
+    RuleType,
+    get_redis_client_for_ds,
+)
 from sentry.models import ProjectKey
 from sentry.models.transaction_threshold import TransactionMetric
 from sentry.relay.config import ProjectConfig, get_project_config
@@ -73,7 +76,7 @@ DEFAULT_IGNORE_HEALTHCHECKS_RULE = {
         ],
     },
     "active": True,
-    "id": RESERVED_IDS[RuleType.IGNORE_HEALTHCHECKS_RULE],
+    "id": RESERVED_IDS[RuleType.IGNORE_HEALTH_CHECKS_RULE],
 }
 
 
@@ -246,7 +249,7 @@ def test_project_config_with_uniform_rules_based_on_plan_in_dynamic_sampling_rul
         }
     ):
         with mock.patch(
-            "sentry.dynamic_sampling.rules_generator.quotas.get_blended_sample_rate",
+            "sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate",
             return_value=0.1,
         ):
             cfg = get_project_config(default_project)
@@ -293,7 +296,7 @@ def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_r
         }
     ):
         with patch(
-            "sentry.dynamic_sampling.rules_generator.quotas.get_blended_sample_rate",
+            "sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate",
             return_value=0.1,
         ):
             cfg = get_project_config(default_project)
@@ -356,6 +359,7 @@ def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_r
                     "start": "2022-10-21 18:50:25+00:00",
                     "end": "2022-10-21 19:50:25+00:00",
                 },
+                "decayingFn": {"function": "linear", "decayedSampleRate": 0.1},
             },
             {
                 "sampleRate": 0.5,
@@ -377,6 +381,7 @@ def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_r
                     "start": "2022-10-21 18:50:25+00:00",
                     "end": "2022-10-21 19:50:25+00:00",
                 },
+                "decayingFn": {"function": "linear", "decayedSampleRate": 0.1},
             },
             {
                 "sampleRate": 0.5,
@@ -398,6 +403,7 @@ def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_r
                     "start": "2022-10-21 18:50:25+00:00",
                     "end": "2022-10-21 19:50:25+00:00",
                 },
+                "decayingFn": {"function": "linear", "decayedSampleRate": 0.1},
             },
             {
                 "sampleRate": 0.5,
@@ -419,6 +425,7 @@ def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_r
                     "start": "2022-10-21 18:50:25+00:00",
                     "end": "2022-10-21 19:50:25+00:00",
                 },
+                "decayingFn": {"function": "linear", "decayedSampleRate": 0.1},
             },
             {
                 "sampleRate": 0.5,
@@ -440,6 +447,7 @@ def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_r
                     "start": "2022-10-21 18:50:25+00:00",
                     "end": "2022-10-21 19:50:25+00:00",
                 },
+                "decayingFn": {"function": "linear", "decayedSampleRate": 0.1},
             },
             {
                 "sampleRate": 0.5,
@@ -461,6 +469,7 @@ def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_r
                     "start": "2022-10-21 18:50:25+00:00",
                     "end": "2022-10-21 19:50:25+00:00",
                 },
+                "decayingFn": {"function": "linear", "decayedSampleRate": 0.1},
             },
             {
                 "sampleRate": 0.1,

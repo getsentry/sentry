@@ -1,6 +1,6 @@
 import {useState} from 'react';
 
-import EventDataSection from 'sentry/components/events/eventDataSection';
+import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import CrashActions from 'sentry/components/events/interfaces/crashHeader/crashActions';
 import CrashTitle from 'sentry/components/events/interfaces/crashHeader/crashTitle';
 import {t} from 'sentry/locale';
@@ -48,7 +48,7 @@ function getIntendedStackView(thread: Thread, event: Event) {
   return stacktrace?.hasSystemFrames ? STACK_VIEW.APP : STACK_VIEW.FULL;
 }
 
-function Threads({
+export function Threads({
   data,
   event,
   projectId,
@@ -174,5 +174,3 @@ function Threads({
     </EventDataSection>
   );
 }
-
-export default Threads;

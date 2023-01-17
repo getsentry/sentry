@@ -591,6 +591,100 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                 use_case_id=UseCaseKey.PERFORMANCE,
             )
 
+    def test_query_with_sum_if_column(self):
+        for value, transaction in ((10, "/foo"), (20, "/bar"), (30, "/lorem")):
+            self.store_performance_metric(
+                name=TransactionMRI.DURATION.value,
+                tags={"transaction": transaction},
+                value=value,
+            )
+
+        metrics_query = self.build_metrics_query(
+            before_now="1m",
+            granularity="1m",
+            select=[
+                MetricField(
+                    op="sum_if_column",
+                    metric_mri=TransactionMRI.DURATION.value,
+                    params={"if_column": "transaction", "if_value": "/foo"},
+                ),
+            ],
+            groupby=[],
+            where=[],
+            limit=Limit(limit=1),
+            offset=Offset(offset=0),
+            include_series=False,
+        )
+
+        data = get_series(
+            [self.project],
+            metrics_query=metrics_query,
+            include_meta=True,
+            use_case_id=UseCaseKey.PERFORMANCE,
+        )
+
+        groups = data["groups"]
+        assert len(groups) == 1
+
+        expected_value = 10
+        expected_alias = "sum_if_column(transaction.duration)"
+        assert groups[0]["totals"] == {
+            expected_alias: expected_value,
+        }
+        assert data["meta"] == sorted(
+            [
+                {"name": expected_alias, "type": "Float64"},
+            ],
+            key=lambda elem: elem["name"],
+        )
+
+    def test_query_with_uniq_if_column(self):
+        for value, transaction in ((10, "/foo"), (20, "/foo"), (30, "/lorem")):
+            self.store_performance_metric(
+                name=TransactionMRI.USER.value,
+                tags={"transaction": transaction},
+                value=value,
+            )
+
+        metrics_query = self.build_metrics_query(
+            before_now="1m",
+            granularity="1m",
+            select=[
+                MetricField(
+                    op="uniq_if_column",
+                    metric_mri=TransactionMRI.USER.value,
+                    params={"if_column": "transaction", "if_value": "/foo"},
+                ),
+            ],
+            groupby=[],
+            where=[],
+            limit=Limit(limit=1),
+            offset=Offset(offset=0),
+            include_series=False,
+        )
+
+        data = get_series(
+            [self.project],
+            metrics_query=metrics_query,
+            include_meta=True,
+            use_case_id=UseCaseKey.PERFORMANCE,
+        )
+
+        groups = data["groups"]
+        assert len(groups) == 1
+
+        expected_count = 2
+        expected_alias = "uniq_if_column(transaction.user)"
+        assert groups[0]["totals"] == {
+            expected_alias: expected_count,
+        }
+        assert data["meta"] == sorted(
+            [
+                {"name": expected_alias, "type": "UInt64"},
+            ],
+            key=lambda elem: elem["name"],
+        )
+
     def test_query_with_tuple_condition(self):
         for value, transaction in ((10, "/foo"), (20, "/bar"), (30, "/lorem")):
             self.store_performance_metric(

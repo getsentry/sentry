@@ -1,4 +1,4 @@
-import React, {useEffect} from 'react';
+import {useEffect} from 'react';
 import {vec2} from 'gl-matrix';
 
 import {requestAnimationFrameTimeout} from 'sentry/views/profiling/utils';
@@ -7,16 +7,12 @@ export function useCanvasZoomOrScroll({
   handleWheel,
   handleScroll,
   canvas,
-  configSpaceCursor,
   setConfigSpaceCursor,
-  lastInteraction,
   setLastInteraction,
 }: {
   canvas: HTMLCanvasElement | null;
-  configSpaceCursor: vec2 | null;
   handleScroll: (evt: WheelEvent) => void;
   handleWheel: (evt: WheelEvent) => void;
-  lastInteraction: 'pan' | 'click' | 'zoom' | 'scroll' | 'select' | 'resize' | null;
   setConfigSpaceCursor: React.Dispatch<React.SetStateAction<vec2 | null>>;
   setLastInteraction: React.Dispatch<
     React.SetStateAction<'pan' | 'click' | 'zoom' | 'scroll' | 'select' | 'resize' | null>
@@ -61,13 +57,5 @@ export function useCanvasZoomOrScroll({
       }
       canvas.removeEventListener('wheel', onCanvasWheel);
     };
-  }, [
-    canvas,
-    handleWheel,
-    handleScroll,
-    configSpaceCursor,
-    lastInteraction,
-    setConfigSpaceCursor,
-    setLastInteraction,
-  ]);
+  }, [canvas, handleWheel, handleScroll, setConfigSpaceCursor, setLastInteraction]);
 }

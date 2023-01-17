@@ -1,5 +1,5 @@
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime, timedelta, timezone
 from unittest import mock
 
@@ -18,7 +18,6 @@ from snuba_sdk import (
     Function,
     Granularity,
     Limit,
-    Offset,
     Op,
     Or,
     OrderBy,
@@ -44,7 +43,6 @@ from sentry.snuba.metrics import (
     SnubaResultConverter,
     get_date_range,
     get_intervals,
-    get_num_intervals,
     parse_query,
     resolve_tags,
     translate_meta_results,
@@ -345,9 +343,6 @@ def test_timestamps():
 @mock.patch("sentry.api.utils.timezone.now", return_value=MOCK_NOW)
 def test_build_snuba_query(mock_now, mock_now2):
     # Your typical release health query querying everything
-    start = MOCK_NOW - timedelta(days=90)
-    end = MOCK_NOW
-    granularity = 3600
     query_definition = MetricsQuery(
         org_id=1,
         project_ids=[1],
@@ -356,9 +351,9 @@ def test_build_snuba_query(mock_now, mock_now2):
             MetricField("count_unique", SessionMRI.USER.value),
             MetricField("p95", SessionMRI.RAW_DURATION.value),
         ],
-        start=start,
-        end=end,
-        granularity=Granularity(granularity),
+        start=MOCK_NOW - timedelta(days=90),
+        end=MOCK_NOW,
+        granularity=Granularity(3600),
         where=[Condition(Column("release"), Op.EQ, "staging")],
         groupby=[MetricGroupByField("environment")],
     )
@@ -369,37 +364,33 @@ def test_build_snuba_query(mock_now, mock_now2):
     org_id = 1
     use_case_id = UseCaseKey.RELEASE_HEALTH
 
-    def expected_query(match, select, is_series, metric_name):
+    def expected_query(match, select, extra_groupby, metric_name):
         function, column, alias = select
-        limit = query_definition.get_default_limit()
-        if is_series:
-            # series queries are like the totals but with an additional group-by bucketed time
-            extra_groupby = [Column("bucketed_time")]
-            # for series we multiply the default limit (which is for totals)
-            # by the number of intervals max_total_groups * num_intervals = max_series_groups
-            limit = limit * get_num_intervals(start=start, end=end, granularity=granularity)
+
+        select_function = Function(
+            OP_TO_SNUBA_FUNCTION[match][alias],
+            [
+                Column("value"),
+                Function(
+                    "equals",
+                    [
+                        Column("metric_id"),
+                        resolve_weak(use_case_id, org_id, get_mri(metric_name)),
+                    ],
+                ),
+            ],
+        )
+
+        if alias == "p95":
+            select_function = Function(
+                "arrayElement", [select_function, 1], alias=f"{alias}({metric_name})"
+            )
         else:
-            # totals don't have any extra group-by
-            extra_groupby = []
+            select_function = replace(select_function, alias=f"{alias}({metric_name})")
 
         return Query(
             match=Entity(match),
-            select=[
-                Function(
-                    OP_TO_SNUBA_FUNCTION[match][alias],
-                    [
-                        Column("value"),
-                        Function(
-                            "equals",
-                            [
-                                Column("metric_id"),
-                                resolve_weak(use_case_id, org_id, get_mri(metric_name)),
-                            ],
-                        ),
-                    ],
-                    alias=f"{alias}({metric_name})",
-                )
-            ],
+            select=[select_function],
             groupby=[
                 AliasedExpression(
                     Column(resolve_tag_key(use_case_id, org_id, "environment")), alias="environment"
@@ -422,8 +413,10 @@ def test_build_snuba_query(mock_now, mock_now2):
                     [resolve_weak(use_case_id, org_id, get_mri(metric_name))],
                 ),
             ],
-            limit=Limit(limit),
-            offset=Offset(0),
+            # totals: MAX_POINTS // (90d * 24h)
+            # series: totals * (90d * 24h)
+            limit=Limit(4) if not extra_groupby else Limit(8644),
+            offset=None,
             granularity=query_definition.granularity,
         )
 
@@ -435,23 +428,23 @@ def test_build_snuba_query(mock_now, mock_now2):
     assert snuba_queries == {
         "metrics_counters": {
             "totals": expected_query(
-                "metrics_counters", ("sum", "value", "sum"), False, "sentry.sessions.session"
+                "metrics_counters", ("sum", "value", "sum"), [], "sentry.sessions.session"
             ),
             "series": expected_query(
                 "metrics_counters",
                 ("sum", "value", "sum"),
-                True,
+                [Column("bucketed_time")],
                 "sentry.sessions.session",
             ),
         },
         "metrics_sets": {
             "totals": expected_query(
-                "metrics_sets", ("uniq", "value", "count_unique"), False, "sentry.sessions.user"
+                "metrics_sets", ("uniq", "value", "count_unique"), [], "sentry.sessions.user"
             ),
             "series": expected_query(
                 "metrics_sets",
                 ("uniq", "value", "count_unique"),
-                True,
+                [Column("bucketed_time")],
                 "sentry.sessions.user",
             ),
         },
@@ -459,13 +452,13 @@ def test_build_snuba_query(mock_now, mock_now2):
             "totals": expected_query(
                 "metrics_distributions",
                 expected_percentile_select,
-                False,
+                [],
                 "sentry.sessions.session.duration",
             ),
             "series": expected_query(
                 "metrics_distributions",
                 expected_percentile_select,
-                True,
+                [Column("bucketed_time")],
                 "sentry.sessions.session.duration",
             ),
         },
@@ -592,7 +585,7 @@ def test_build_snuba_query_derived_metrics(mock_now, mock_now2):
                     ),
                 ],
                 limit=Limit(MAX_POINTS // 2) if key == "totals" else Limit(MAX_POINTS),
-                offset=Offset(0),
+                offset=None,
                 granularity=Granularity(query_definition.rollup),
             )
         )
@@ -622,7 +615,7 @@ def test_build_snuba_query_derived_metrics(mock_now, mock_now2):
                     ),
                 ],
                 limit=Limit(MAX_POINTS // 2) if key == "totals" else Limit(MAX_POINTS),
-                offset=Offset(0),
+                offset=None,
                 granularity=Granularity(query_definition.rollup),
             )
         )
@@ -696,7 +689,7 @@ def test_build_snuba_query_orderby(mock_now, mock_now2):
         ],
         orderby=[OrderBy(select, Direction.DESC)],
         limit=Limit(3),
-        offset=Offset(0),
+        offset=None,
         granularity=Granularity(query_definition.rollup),
     )
     assert counter_queries["series"] == Query(
@@ -724,7 +717,7 @@ def test_build_snuba_query_orderby(mock_now, mock_now2):
         ],
         orderby=[OrderBy(select, Direction.DESC)],
         limit=Limit(72),
-        offset=Offset(0),
+        offset=None,
         granularity=Granularity(query_definition.rollup),
     )
 
@@ -775,10 +768,16 @@ def test_build_snuba_query_with_derived_alias(mock_now, mock_now2):
     ]
 
     select = Function(
-        OP_TO_SNUBA_FUNCTION["metrics_distributions"]["p95"],
+        "arrayElement",
         [
-            Column("value"),
-            Function("and", conditions),
+            Function(
+                OP_TO_SNUBA_FUNCTION["metrics_distributions"]["p95"],
+                [
+                    Column("value"),
+                    Function("and", conditions),
+                ],
+            ),
+            1,
         ],
         alias=f"{op}({SessionMetricKey.DURATION.value})",
     )
@@ -807,7 +806,7 @@ def test_build_snuba_query_with_derived_alias(mock_now, mock_now2):
             ),
         ],
         limit=Limit(3),
-        offset=Offset(0),
+        offset=None,
         granularity=Granularity(query_definition.rollup),
     )
     assert distribution_queries["series"] == Query(
@@ -836,7 +835,7 @@ def test_build_snuba_query_with_derived_alias(mock_now, mock_now2):
             ),
         ],
         limit=Limit(72),
-        offset=Offset(0),
+        offset=None,
         granularity=Granularity(query_definition.rollup),
     )
 

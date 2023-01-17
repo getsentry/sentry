@@ -1,6 +1,7 @@
 import {cloneElement, useCallback, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
+import {t} from 'sentry/locale';
 import {FlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphPreferences';
 import {FlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphPreferences';
@@ -122,7 +123,7 @@ export function FlamegraphLayout(props: FlamegraphLayoutProps) {
             height={timelines.transaction_spans ? flamegraphTheme.SIZES.SPANS_HEIGHT : 20}
           >
             <CollapsibleTimeline
-              title="Transaction Spans"
+              title={t('Transaction')}
               open={timelines.transaction_spans}
               onOpen={onOpenSpans}
               onClose={onCloseSpans}

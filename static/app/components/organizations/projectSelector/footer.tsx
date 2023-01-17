@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';

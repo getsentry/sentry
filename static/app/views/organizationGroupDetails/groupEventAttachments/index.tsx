@@ -8,7 +8,7 @@ import withOrganization from 'sentry/utils/withOrganization';
 
 import GroupEventAttachments from './groupEventAttachments';
 
-type Props = RouteComponentProps<{groupId: string; orgId: string}, {}> & {
+type Props = RouteComponentProps<{groupId: string}, {}> & {
   group: Group;
   organization: Organization;
 };

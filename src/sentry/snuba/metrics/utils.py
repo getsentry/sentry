@@ -86,6 +86,8 @@ MetricOperationType = Literal[
     "count_web_vitals",
     "count_transaction_name",
     "team_key_transaction",
+    "sum_if_column",
+    "uniq_if_column",
 ]
 MetricUnit = Literal[
     "nanosecond",
@@ -130,8 +132,7 @@ OP_TO_SNUBA_FUNCTION = {
         "count": "countIf",
         "max": "maxIf",
         "min": "minIf",
-        "p50": "quantilesIf(0.50)",
-        # TODO: Would be nice to use `quantile(0.50)` (singular) here, but snuba responds with an error
+        "p50": "quantilesIf(0.50)",  # TODO: Would be nice to use `quantile(0.50)` (singular) here, but snuba responds with an error
         "p75": "quantilesIf(0.75)",
         "p90": "quantilesIf(0.90)",
         "p95": "quantilesIf(0.95)",
@@ -246,6 +247,8 @@ DERIVED_OPERATIONS = (
     "count_transaction_name",
     "team_key_transaction",
     "transform_null_to_unparameterized",
+    "sum_if_column",
+    "uniq_if_column",
 )
 OPERATIONS = (
     (

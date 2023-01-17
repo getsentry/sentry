@@ -3,7 +3,7 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import scrollToElement from 'scroll-to-element';
 
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import {
   hasAssembly,
   hasContextRegisters,
