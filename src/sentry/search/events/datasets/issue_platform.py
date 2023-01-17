@@ -55,7 +55,7 @@ class IssuePlatformDatasetConfig(DatasetConfig):
                 SnQLFunction(
                     "user_email",
                     snql_aggregate=lambda _, alias: Function(
-                        "max",
+                        # "max",
                         [self.builder.column("timestamp")],
                         alias,
                     ),
@@ -64,7 +64,7 @@ class IssuePlatformDatasetConfig(DatasetConfig):
                 SnQLFunction(
                     "user_name",
                     snql_aggregate=lambda _, alias: Function(
-                        "argMax",
+                        # "argMax",
                         [self.builder.column("timestamp")],
                         alias,
                     ),
@@ -73,7 +73,7 @@ class IssuePlatformDatasetConfig(DatasetConfig):
                 SnQLFunction(
                     "user_id",
                     snql_aggregate=lambda _, alias: Function(
-                        "max",
+                        # "max",
                         [self.builder.column("timestamp")],
                         alias,
                     ),
@@ -82,7 +82,7 @@ class IssuePlatformDatasetConfig(DatasetConfig):
                 SnQLFunction(
                     "ip_address_v4",
                     snql_aggregate=lambda _, alias: Function(
-                        ",max",
+                        # ",max",
                         [self.builder.column("timestamp")],
                         alias,
                     ),

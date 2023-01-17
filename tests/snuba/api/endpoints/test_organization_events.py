@@ -600,7 +600,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase, SearchIssueTest
         assert response.data["data"][0]["count()"] == 1
 
     def test_generic_issue_ids_filter(self):
-        _, _, group_info = self.store_search_issue(
+        event, _, group_info = self.store_search_issue(
             self.project.id,
             self.user.id,
             [f"{GroupType.PROFILE_BLOCKED_THREAD.value}-group1"],
@@ -609,9 +609,9 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase, SearchIssueTest
         )
 
         query = {
-            "field": ["count()"],
-            "statsPeriod": "2h",
-            "query": f"project:{self.project.slug} performance.issue_ids:{group_info.group.id}",
+            "field": ["title", "release", "environment", "user.display", "timestamp"],
+            "statsPeriod": "90d",
+            "query": f"issue:{group_info.group.qualified_short_id}",
             "dataset": "issuePlatform",
         }
         with self.feature(
@@ -621,7 +621,12 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase, SearchIssueTest
         ):
             response = self.do_request(query)
         assert response.status_code == 200, response.content
-        assert response.data["data"][0]["count()"] == 1
+        assert response.data["data"][0]["title"] == group_info.group.title
+        assert response.data["data"][0]["environment"] == "prod"
+        assert (
+            response.data["data"][0]["user.display"] is None
+        )  # CEO: shouldn't this have the user id?
+        assert response.data["data"][0]["timestamp"] == event.timestamp
 
     def test_has_performance_issue_ids(self):
         data = load_data(
@@ -2989,6 +2994,34 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase, SearchIssueTest
             "field": ["event.type", "user.display"],
             "query": "user.display:cath*",
             "statsPeriod": "24h",
+        }
+        response = self.do_request(query, features=features)
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 2
+        result = {r["user.display"] for r in data}
+        assert result == {"catherine", "cathy@example.com"}
+
+    def test_user_display_issue_platform(self):
+        project1 = self.create_project()
+        _, _, group_info = self.store_search_issue(
+            project1.id,
+            1,
+            ["group1-fingerprint"],
+            None,
+            timezone.now().replace(hour=0, minute=0, second=0) + timedelta(minutes=10),
+        )
+
+        features = {
+            "organizations:discover-basic": True,
+            "organizations:global-views": True,
+            "organizations:profiling": True,
+        }
+        query = {
+            "field": ["event.type", "user.display"],
+            "query": f"user.id:1 issue.id:{group_info.group.id}",
+            "statsPeriod": "24h",
+            "dataset": "issuePlatform",
         }
         response = self.do_request(query, features=features)
         assert response.status_code == 200, response.content
