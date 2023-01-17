@@ -3,7 +3,6 @@ from hashlib import md5
 from unittest import mock
 
 from sentry.constants import LOG_LEVELS_MAP
-from sentry.event_manager import GroupInfo
 from sentry.issues.ingest import (
     _create_issue_kwargs,
     materialize_metadata,
@@ -185,9 +184,9 @@ class SaveIssueOccurrenceToEventstreamTest(OccurrenceTestMixin, TestCase):  # ty
     def test(self) -> None:
         event_data = load_data("generic-event")
         event = self.store_event(data=event_data, project_id=self.project.id)
-        group_event = event.for_group(self.group)
         occurrence = self.build_occurrence(event_id=event.event_id)
-        group_info = GroupInfo(event.group, True, False, None, False)
+        group_info = save_issue_from_occurrence(occurrence, event, None)
+        group_event = event.for_group(group_info.group.id)
         with mock.patch("sentry.issues.ingest.eventstream") as eventstream, mock.patch.object(
             event, "for_group", return_value=group_event
         ):
