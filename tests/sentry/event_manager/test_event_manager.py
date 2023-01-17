@@ -2442,10 +2442,8 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
         }
     )
     @override_settings(SENTRY_PERFORMANCE_ISSUES_REDUCE_NOISE=True)
-    def test_perf_issue_slow_db_issue_not_created(self):
-        self.project.update_option("sentry:performance_issue_creation_rate", 1.0)
-
-        with mock.patch("sentry_sdk.tracing.Span.containing_transaction") as transaction:
+    def test_perf_issue_slow_db_issue_is_created(self):
+        with self.feature({"organizations:performance-slow-db-issue": True}):
             last_event = None
 
             for _ in range(100):
@@ -2454,29 +2452,8 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
                 event = manager.save(self.project.id)
                 last_event = event
 
-            # The group should not be created, but there should be a tag on the transaction
-            assert len(last_event.groups) == 0
-            transaction.set_tag.assert_called_with("_will_create_slow_db_issue", "true")
-
-    @override_options(
-        {
-            "performance.issues.slow_span.problem-creation": 1.0,
-            "performance_issue_creation_rate": 1.0,
-        }
-    )
-    @override_settings(SENTRY_PERFORMANCE_ISSUES_REDUCE_NOISE=False)
-    def test_perf_issue_slow_db_issue_not_created_with_noise_flag_false(self):
-        self.project.update_option("sentry:performance_issue_creation_rate", 1.0)
-
-        last_event = None
-
-        for _ in range(100):
-            manager = EventManager(make_event(**get_event("slow-db-spans")))
-            manager.normalize()
-            event = manager.save(self.project.id)
-            last_event = event
-
-        assert len(last_event.groups) == 0
+            assert len(last_event.groups) == 1
+            assert last_event.groups[0].type == GroupType.PERFORMANCE_SLOW_SPAN.value
 
 
 class AutoAssociateCommitTest(TestCase, EventManagerTestMixin):
