@@ -32,6 +32,9 @@ const RESOURCES_DESCRIPTIONS: Record<IssueType, string> = {
   [IssueType.PERFORMANCE_SLOW_SPAN]: t(
     'Slow DB Queries are SELECT query spans that take longer than 1s. A quick method to understand why this may be the case is running an EXPLAIN command on the query itself. To learn more about how to fix slow DB queries, check out these resources:'
   ),
+  [IssueType.PERFORMANCE_UNCOMPRESSED_ASSET]: t(
+    'Uncompressed assets are asset spans that take over 50ms and are larger than 512kB which can usually be made faster with compression. Check that your server or CDN serving your assets is accepting the content encoding header from the browser and is returning them compressed.'
+  ),
   [IssueType.ERROR]: '',
 };
 
@@ -56,6 +59,7 @@ const DEFAULT_RESOURCE_LINK: Record<IssueType, ResourceLink[]> = {
       link: 'https://docs.sentry.io/product/issues/issue-details/performance-issues/n-one-api-calls/',
     },
   ],
+  [IssueType.PERFORMANCE_UNCOMPRESSED_ASSET]: [],
   [IssueType.PERFORMANCE_FILE_IO_MAIN_THREAD]: [],
   [IssueType.PERFORMANCE_SLOW_SPAN]: [],
   [IssueType.ERROR]: [],
@@ -81,6 +85,7 @@ const RESOURCE_LINKS: Record<IssueType, PlatformSpecificResources> = {
   [IssueType.PERFORMANCE_CONSECUTIVE_DB_QUERIES]: {},
   [IssueType.PERFORMANCE_FILE_IO_MAIN_THREAD]: {},
   [IssueType.PERFORMANCE_SLOW_SPAN]: {},
+  [IssueType.PERFORMANCE_UNCOMPRESSED_ASSET]: {},
   [IssueType.ERROR]: {},
 };
 
