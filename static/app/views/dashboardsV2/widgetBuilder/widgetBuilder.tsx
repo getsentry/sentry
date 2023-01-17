@@ -17,7 +17,6 @@ import LoadingError from 'sentry/components/loadingError';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
 import {DateString, Organization, PageFilters, TagCollection} from 'sentry/types';
 import {defined, objectIsEmpty} from 'sentry/utils';
@@ -936,9 +935,9 @@ function WidgetBuilder({
   if (isEditing && !isValidWidgetIndex) {
     return (
       <SentryDocumentTitle title={dashboard.title} orgSlug={orgSlug}>
-        <PageContent>
+        <Layout.Page withPadding>
           <LoadingError message={t('The widget you want to edit was not found.')} />
-        </PageContent>
+        </Layout.Page>
       </SentryDocumentTitle>
     );
   }
@@ -964,7 +963,7 @@ function WidgetBuilder({
                     location={location}
                     forceTransactions={metricsDataSide.forceTransactionsOnly}
                   >
-                    <PageContentWithoutPadding>
+                    <Layout.Page>
                       <Header
                         orgSlug={orgSlug}
                         title={state.title}
@@ -1114,7 +1113,7 @@ function WidgetBuilder({
                           />
                         </Side>
                       </Body>
-                    </PageContentWithoutPadding>
+                    </Layout.Page>
                   </MEPSettingProvider>
                 )}
               </MetricsDataSwitcher>
@@ -1127,10 +1126,6 @@ function WidgetBuilder({
 }
 
 export default withPageFilters(withTags(WidgetBuilder));
-
-const PageContentWithoutPadding = styled(PageContent)`
-  padding: 0;
-`;
 
 const BuildSteps = styled(List)`
   gap: ${space(4)};

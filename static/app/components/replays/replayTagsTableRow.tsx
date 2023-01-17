@@ -1,4 +1,4 @@
-import React, {useMemo} from 'react';
+import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 import {LocationDescriptor} from 'history';
 
@@ -22,10 +22,10 @@ function ReplayTagsTableRow({tag, query, generateUrl}: Props) {
     if (tag.key === 'release') {
       return tag.value.map((value, index) => {
         return (
-          <React.Fragment key={value}>
+          <Fragment key={value}>
             {index > 0 && ', '}
             <Version key={index} version={value} anchor={false} withPackage />
-          </React.Fragment>
+          </Fragment>
         );
       });
     }
@@ -35,10 +35,10 @@ function ReplayTagsTableRow({tag, query, generateUrl}: Props) {
       const target = valueInQuery ? undefined : generateUrl?.({key: tag.key, value});
 
       return (
-        <React.Fragment key={value}>
+        <Fragment key={value}>
           {index > 0 && ', '}
           {target ? <Link to={target}>{value}</Link> : <AnnotatedText value={value} />}
-        </React.Fragment>
+        </Fragment>
       );
     });
   }, [tag, query, generateUrl]);

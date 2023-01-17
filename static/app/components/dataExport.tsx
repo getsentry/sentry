@@ -4,7 +4,7 @@ import debounce from 'lodash/debounce';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';

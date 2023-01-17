@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import PageHeading from 'sentry/components/pageHeading';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {Member, Organization, Project} from 'sentry/types';
@@ -134,11 +133,11 @@ class Create extends Component<Props, State> {
               location={location}
               canChangeProject
             />
-            <StyledHeading>
+            <Layout.Title>
               {wizardAlertType
                 ? `${t('Set Conditions for')} ${AlertWizardAlertNames[wizardAlertType]}`
                 : title}
-            </StyledHeading>
+            </Layout.Title>
           </Layout.HeaderContent>
         </Layout.Header>
         <Body>
@@ -187,10 +186,6 @@ class Create extends Component<Props, State> {
     );
   }
 }
-
-const StyledHeading = styled(PageHeading)`
-  line-height: 40px;
-`;
 
 const Body = styled(Layout.Body)`
   && {

@@ -1,8 +1,8 @@
-import React, {useEffect, useState} from 'react';
+import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import keyBy from 'lodash/keyBy';
 
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import Placeholder from 'sentry/components/placeholder';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import {t} from 'sentry/locale';
@@ -77,10 +77,10 @@ export default function TagFacetsDistributions({
           <Placeholder height="40px" />
         </TagPlaceholders>
       ) : (
-        <React.Fragment>
+        <Fragment>
           <SidebarSection.Title>{title || t('Most Impacted Tags')}</SidebarSection.Title>
           <Content>
-            <React.Fragment>
+            <Fragment>
               {sortedTagKeys.map(tagKey => {
                 const tagWithTopValues = tagsData[tagKey];
                 const topValues = tagWithTopValues ? tagWithTopValues.topValues : [];
@@ -127,9 +127,9 @@ export default function TagFacetsDistributions({
                   {t('View All Tags')}
                 </Button>
               </ShowAllButtonContainer>
-            </React.Fragment>
+            </Fragment>
           </Content>
-        </React.Fragment>
+        </Fragment>
       )}
     </SidebarSection.Wrap>
   );

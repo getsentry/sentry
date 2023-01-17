@@ -25,6 +25,7 @@ from sentry.models import (
     User,
 )
 from sentry.pipeline import NestedPipelineView
+from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.utils.http import absolute_uri
 
@@ -245,9 +246,11 @@ class VercelIntegration(IntegrationInstallation):
                 self.create_env_var(
                     vercel_client, vercel_project_id, env_var, details["value"], details["type"]
                 )
-
         config.update(data)
-        self.org_integration.update(config=config)
+        self.org_integration = integration_service.update_organization_integration(
+            org_integration_id=self.org_integration.id,
+            config=config,
+        )
 
     def create_env_var(self, client, vercel_project_id, key, value, type):
         data = {

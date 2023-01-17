@@ -240,6 +240,9 @@ class BaseGroupSidebar extends Component<Props, State> {
     const {allEnvironmentsGroupData, currentRelease, tagsWithTopValues} = this.state;
     const projectId = project.slug;
     const hasIssueActionsV2 = organization.features.includes('issue-actions-v2');
+    const hasStreamlineTargetingFeature = organization.features.includes(
+      'streamline-targeting-context'
+    );
 
     // Evenly split style between distributions and bars for AB testing
     const tagFacetsStyle =
@@ -255,10 +258,19 @@ class BaseGroupSidebar extends Component<Props, State> {
           </PageFiltersContainer>
         )}
 
-        <OwnedBy group={group} project={project} organization={organization} />
-        <AssignedTo group={group} projectId={project.id} onAssign={this.trackAssign} />
+        {!hasStreamlineTargetingFeature && (
+          <OwnedBy group={group} project={project} organization={organization} />
+        )}
+        <AssignedTo
+          group={group}
+          event={event}
+          project={project}
+          onAssign={this.trackAssign}
+        />
 
-        {event && <SuggestedOwners project={project} group={group} event={event} />}
+        {!hasStreamlineTargetingFeature && event && (
+          <SuggestedOwners project={project} group={group} event={event} />
+        )}
 
         <Feature
           organization={organization}
