@@ -413,7 +413,6 @@ def test_generate_rules_with_different_project_platforms(
                 "start": "2022-10-21 18:50:25+00:00",
                 "end": end,
             },
-            "decayingFn": {"function": "linear", "decayedSampleRate": 0.1},
         },
         {
             "active": True,
@@ -466,7 +465,6 @@ def test_generate_rules_return_uniform_rules_and_latest_release_rule(
             },
             "id": 1500,
             "timeRange": {"start": "2022-10-21 18:50:25+00:00", "end": "2022-10-21 20:03:03+00:00"},
-            "decayingFn": {"function": "linear", "decayedSampleRate": 0.1},
         },
         {
             "sampleRate": 0.5,
@@ -481,7 +479,6 @@ def test_generate_rules_return_uniform_rules_and_latest_release_rule(
             },
             "id": 1501,
             "timeRange": {"start": "2022-10-21 18:50:25+00:00", "end": "2022-10-21 20:03:03+00:00"},
-            "decayingFn": {"function": "linear", "decayedSampleRate": 0.1},
         },
         {
             "sampleRate": 0.5,
@@ -496,7 +493,6 @@ def test_generate_rules_return_uniform_rules_and_latest_release_rule(
             },
             "id": 1502,
             "timeRange": {"start": "2022-10-21 18:50:25+00:00", "end": "2022-10-21 20:03:03+00:00"},
-            "decayingFn": {"function": "linear", "decayedSampleRate": 0.1},
         },
         {
             "active": True,
@@ -553,7 +549,6 @@ def test_generate_rules_does_not_return_rule_with_deleted_release(
             },
             "id": 1500,
             "timeRange": {"start": "2022-10-21 18:50:25+00:00", "end": "2022-10-21 20:03:03+00:00"},
-            "decayingFn": {"function": "linear", "decayedSampleRate": 0.1},
         },
         {
             "active": True,

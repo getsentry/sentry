@@ -23,7 +23,6 @@ class BoostLatestReleasesDataProvider(BiasDataProvider):
     def get_bias_data(self, bias_params: BiasParams) -> BiasData:
         return {
             "id": RESERVED_IDS[RuleType.BOOST_LATEST_RELEASES_RULE],
-            "baseSampleRate": bias_params.base_sample_rate,
             "sampleRate": min(1.0, bias_params.base_sample_rate * RELEASE_BOOST_FACTOR),
             "boostedReleases": ProjectBoostedReleases(
                 bias_params.project.id
@@ -71,12 +70,6 @@ class BoostLatestReleasesRulesGenerator(BiasRulesGenerator):
                                 + boosted_release.platform.time_to_adoption
                             ).replace(tzinfo=UTC)
                         ),
-                    },
-                    # We want to use the linear decaying function for latest release boosting, with the goal
-                    # of interpolating the adoption growth with the reduction in sample rate.
-                    "decayingFn": {
-                        "function": "linear",
-                        "decayedSampleRate": bias_data["baseSampleRate"],
                     },
                 }
                 for idx, boosted_release in enumerate(boosted_releases)

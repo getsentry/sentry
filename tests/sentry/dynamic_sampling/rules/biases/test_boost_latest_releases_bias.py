@@ -24,7 +24,6 @@ MOCK_DATETIME = ONE_DAY_AGO.replace(hour=10, minute=0, second=0, microsecond=0)
 def test_generate_bias_rules(data_provider, default_project):
     now = timezone.now()
 
-    base_sample_rate = 0.2
     sample_rate = 0.7
     platform = "python"
 
@@ -51,7 +50,6 @@ def test_generate_bias_rules(data_provider, default_project):
 
     data_provider.get_bias_data.return_value = {
         "id": 1000,
-        "baseSampleRate": base_sample_rate,
         "sampleRate": sample_rate,
         "boostedReleases": boosted_releases,
     }
@@ -73,7 +71,6 @@ def test_generate_bias_rules(data_provider, default_project):
                 "end": (now + timedelta(seconds=LATEST_RELEASE_TTAS[platform])).isoformat(" "),
                 "start": now.isoformat(" "),
             },
-            "decayingFn": {"function": "linear", "decayedSampleRate": base_sample_rate},
             "type": "trace",
         },
         {
@@ -91,7 +88,6 @@ def test_generate_bias_rules(data_provider, default_project):
                 "end": (now + timedelta(seconds=LATEST_RELEASE_TTAS[platform])).isoformat(" "),
                 "start": now.isoformat(" "),
             },
-            "decayingFn": {"function": "linear", "decayedSampleRate": base_sample_rate},
             "type": "trace",
         },
     ]
