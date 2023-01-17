@@ -75,7 +75,7 @@ export function getCoverageColors(
   return lines.map(line => {
     const coverageLine = lineCoverage[coverageIndex];
     let coverage = Coverage.NOT_APPLICABLE;
-    if (coverageLine.lineNo === line[0]) {
+    if (coverageLine?.lineNo === line[0]) {
       coverage = coverageLine.coverage;
       coverageIndex += 1;
     }
@@ -201,7 +201,7 @@ const Context = ({
               key={index}
               line={line}
               isActive={isActive}
-              color={isActive ? 'transparent' : lineColors[index]}
+              color={isActive ? 'transparent' : lineColors[index] ?? 'transparent'}
             >
               {hasComponents && (
                 <ErrorBoundary mini>

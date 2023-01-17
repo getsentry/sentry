@@ -4,19 +4,19 @@ import {getCoverageColors} from './context';
 
 describe('Frame - Context', function () {
   const org = TestStubs.Organization();
-  const lines = [
+  const lines: Array<[number, string]> = [
     [231, 'this is line 231'],
     [232, 'this is line 232'],
     [233, 'this is line 233'],
     [234, 'this is line 234'],
-  ] as Array<[number, string]>;
+  ];
 
-  const lineCoverage = [
+  const lineCoverage: LineCoverage[] = [
     {lineNo: 230, coverage: Coverage.PARTIAL},
     {lineNo: 231, coverage: Coverage.PARTIAL},
     {lineNo: 232, coverage: Coverage.COVERED},
     {lineNo: 234, coverage: Coverage.NOT_COVERED},
-  ] as LineCoverage[];
+  ];
 
   it("doesn't show colors if the feature is disabled", function () {
     expect(getCoverageColors(org, true, lines, lineCoverage)).toEqual([
