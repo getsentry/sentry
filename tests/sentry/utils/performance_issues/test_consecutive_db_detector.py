@@ -51,10 +51,10 @@ class ConsecutiveDbDetectorTest(unittest.TestCase):
                 fingerprint="1-1007-e6a9fc04320a924f46c7c737432bb0389d9dd095",
                 op="db",
                 desc="SELECT `order`.`id` FROM `books_author`",
-                type=GroupType.PERFORMANCE_CONSECUTIVE_DB_OP,
+                type=GroupType.PERFORMANCE_CONSECUTIVE_DB_QUERIES,
                 parent_span_ids=None,
-                cause_span_ids=None,
-                offender_span_ids=["bbbbbbbbbbbbbbbb", "bbbbbbbbbbbbbbbb", "bbbbbbbbbbbbbbbb"],
+                cause_span_ids=["bbbbbbbbbbbbbbbb", "bbbbbbbbbbbbbbbb", "bbbbbbbbbbbbbbbb"],
+                offender_span_ids=["bbbbbbbbbbbbbbbb", "bbbbbbbbbbbbbbbb"],
             )
         ]
 
@@ -148,10 +148,10 @@ class ConsecutiveDbDetectorTest(unittest.TestCase):
                 fingerprint="1-1007-0700523cc3ca755e447329779e50aeb19549e74f",
                 op="db",
                 desc="SELECT `books_book`.`id`, `books_book`.`title`, `books_book`.`author_id` FROM `books_book` ORDER BY `books_book`.`id` ASC LIMIT 1",
-                type=GroupType.PERFORMANCE_CONSECUTIVE_DB_OP,
+                type=GroupType.PERFORMANCE_CONSECUTIVE_DB_QUERIES,
                 parent_span_ids=None,
-                cause_span_ids=None,
-                offender_span_ids=["abca1c35669c11f2", "a6e7c330f656df7f", "857ee9ba7db8cd31"],
+                cause_span_ids=["abca1c35669c11f2", "a6e7c330f656df7f", "857ee9ba7db8cd31"],
+                offender_span_ids=["857ee9ba7db8cd31"],
             )
         ]
 
@@ -204,9 +204,9 @@ class ConsecutiveDbDetectorTest(unittest.TestCase):
                 fingerprint="1-1007-e6a9fc04320a924f46c7c737432bb0389d9dd095",
                 op="db",
                 desc="SELECT COUNT(*) FROM `products`",
-                type=GroupType.PERFORMANCE_CONSECUTIVE_DB_OP,
+                type=GroupType.PERFORMANCE_CONSECUTIVE_DB_QUERIES,
                 parent_span_ids=None,
-                cause_span_ids=None,
-                offender_span_ids=["bbbbbbbbbbbbbbbb", "bbbbbbbbbbbbbbbb", "bbbbbbbbbbbbbbbb"],
+                cause_span_ids=["bbbbbbbbbbbbbbbb", "bbbbbbbbbbbbbbbb", "bbbbbbbbbbbbbbbb"],
+                offender_span_ids=["bbbbbbbbbbbbbbbb"],
             )
         ]
