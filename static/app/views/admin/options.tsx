@@ -270,6 +270,14 @@ const performanceOptionDefinitions: Field[] = [
     ),
     ...HIGH_THROUGHPUT_RATE_OPTION,
   },
+  {
+    key: 'performance.issues.file_io_main_thread-creation',
+    label: t('File IO Problem Creation Rate'),
+    help: t(
+      'Controls the overall rate at which performance problems are detected by the File IO Detector'
+    ),
+    ...HIGH_THROUGHPUT_RATE_OPTION,
+  },
 ];
 
 // This are ordered based on their display order visually
