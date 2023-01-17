@@ -54,7 +54,9 @@ runs:
   using: 'composite'
   steps:
     - name: Setup default environment variables
-      shell: bash
+      # the default for "bash" is:
+      #      bash --noprofile --norc -eo pipefail {0}
+      shell: bash --noprofile --norc -eo pipefail -ux {0}
       env:
         MATRIX_INSTANCE: ${{ matrix.instance }}
         # XXX: We should be using something like len(strategy.matrix.instance) (not possible atm)
@@ -95,7 +97,7 @@ runs:
 
         # this handles pytest test sharding
         if [ "$MATRIX_INSTANCE" ]; then
-          if ! [ "$MATRIX_INSTANCE_TOTAL" ]; then
+          if ! [ "${MATRIX_INSTANCE_TOTAL:-}" ]; then
             echo "MATRIX_INSTANCE_TOTAL is required."
             exit 1
           fi
@@ -113,15 +115,15 @@ runs:
       id: config
       env:
         MATRIX_INSTANCE: ${{ matrix.instance }}
-      shell: bash
+      shell: bash --noprofile --norc -eo pipefail -ux {0}
       run: |
         echo "yarn-cache-dir=$(yarn cache dir)" >> "$GITHUB_OUTPUT"
         echo "matrix-instance-number=$(($MATRIX_INSTANCE+1))" >> "$GITHUB_OUTPUT"
-        echo "matrix-instance-total=$(($MATRIX_INSTANCE_TOTAL))" >> "$GITHUB_OUTPUT"
+        echo "matrix-instance-total=$((${MATRIX_INSTANCE_TOTAL:-}))" >> "$GITHUB_OUTPUT"
         echo "acceptance-dir=.artifacts/visual-snapshots/acceptance" >> "$GITHUB_OUTPUT"
 
     - name: Install python dependencies
-      shell: bash
+      shell: bash --noprofile --norc -eo pipefail -ux {0}
       env:
         # This is necessary when other repositories (e.g. relay) want to take advantage of this workflow
         # without needing to fork it. The path needed is the one where setup.py is located
@@ -132,7 +134,7 @@ runs:
         SENTRY_LIGHT_BUILD=1 pip install --no-deps -e .
 
     - name: Start devservices
-      shell: bash
+      shell: bash --noprofile --norc -eo pipefail -ux {0}
       env:
         NEED_KAFKA: ${{ inputs.kafka }}
         NEED_SNUBA: ${{ inputs.snuba }}
