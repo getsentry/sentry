@@ -59,6 +59,7 @@ class OrganizationSerializerTest(TestCase):
             "integrations-ticket-rules",
             "invite-members",
             "invite-members-rate-limits",
+            "issue-actions-v2",
             "minute-resolution-sessions",
             "open-membership",
             "relay",
