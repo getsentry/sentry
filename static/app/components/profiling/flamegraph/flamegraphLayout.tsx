@@ -17,6 +17,8 @@ import {CollapsibleTimeline} from './collapsibleTimeline';
 // 664px is approximately the width where we start to scroll inside
 // 30px is the min height to where the drawer can still be resized
 const MIN_FLAMEGRAPH_DRAWER_DIMENSIONS: [number, number] = [680, 30];
+const FLAMEGRAPH_DRAWER_INITIAL_HEIGHT = 180;
+
 interface FlamegraphLayoutProps {
   flamegraph: React.ReactElement;
   flamegraphDrawer: React.ReactElement;
@@ -31,43 +33,37 @@ export function FlamegraphLayout(props: FlamegraphLayoutProps) {
   const flamegraphDrawerRef = useRef<HTMLDivElement>(null);
 
   const resizableOptions: UseResizableDrawerOptions = useMemo(() => {
-    const initialDimensions: [number, number] = [
-      // Half the screen minus the ~sidebar width
-      Math.max(window.innerWidth * 0.5 - 220, MIN_FLAMEGRAPH_DRAWER_DIMENSIONS[0]),
-      180,
-    ];
+    const isSidebarLayout = layout === 'table left' || layout === 'table right';
 
-    const onResize = (
-      newDimensions: [number, number],
-      maybeOldDimensions: [number, number] | undefined
-    ) => {
+    const initialSize = isSidebarLayout
+      ? // Half the screen minus the ~sidebar width
+        Math.max(window.innerWidth * 0.5 - 220, MIN_FLAMEGRAPH_DRAWER_DIMENSIONS[0])
+      : FLAMEGRAPH_DRAWER_INITIAL_HEIGHT;
+
+    const min = isSidebarLayout
+      ? MIN_FLAMEGRAPH_DRAWER_DIMENSIONS[0]
+      : MIN_FLAMEGRAPH_DRAWER_DIMENSIONS[1];
+
+    const onResize = (newSize: number, maybeOldSize: number | undefined) => {
       if (!flamegraphDrawerRef.current) {
         return;
       }
 
-      if (layout === 'table left' || layout === 'table right') {
-        flamegraphDrawerRef.current.style.width = `${
-          maybeOldDimensions?.[0] ?? newDimensions[0]
-        }px`;
+      if (isSidebarLayout) {
+        flamegraphDrawerRef.current.style.width = `${maybeOldSize ?? newSize}px`;
         flamegraphDrawerRef.current.style.height = `100%`;
       } else {
-        flamegraphDrawerRef.current.style.height = `${
-          maybeOldDimensions?.[1] ?? newDimensions[1]
-        }px`;
+        flamegraphDrawerRef.current.style.height = `${maybeOldSize ?? newSize}px`;
         flamegraphDrawerRef.current.style.width = `100%`;
       }
     };
 
     return {
-      initialDimensions,
+      initialSize,
       onResize,
       direction:
-        layout === 'table left'
-          ? 'horizontal-ltr'
-          : layout === 'table right'
-          ? 'horizontal-rtl'
-          : 'vertical',
-      min: MIN_FLAMEGRAPH_DRAWER_DIMENSIONS,
+        layout === 'table left' ? 'left' : layout === 'table right' ? 'right' : 'up',
+      min,
     };
   }, [layout]);
 
