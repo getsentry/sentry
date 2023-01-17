@@ -1,6 +1,6 @@
 import {useState} from 'react';
+import * as Sentry from '@sentry/react';
 
-import * as Sentry from 'sentry';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {getAttachmentUrl} from 'sentry/components/events/attachmentViewers/utils';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
