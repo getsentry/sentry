@@ -81,6 +81,7 @@ DETECTOR_TYPE_ISSUE_CREATION_TO_SYSTEM_OPTION = {
     DetectorType.N_PLUS_ONE_DB_QUERIES_EXTENDED: "performance.issues.n_plus_one_db_ext.problem-creation",
     DetectorType.CONSECUTIVE_DB_OP: "performance.issues.consecutive_db.problem-creation",
     DetectorType.N_PLUS_ONE_API_CALLS: "performance.issues.n_plus_one_api_calls.problem-creation",
+    DetectorType.FILE_IO_MAIN_THREAD: "performance.issues.file_io_main_thread.problem-creation",
     DetectorType.UNCOMPRESSED_ASSETS: "performance.issues.compressed_assets.problem-creation",
     # NOTE: Slow Span issues are not allowed for creation yet, the addition of this line is temporary so that we can
     # record some metrics for issues of this type that *should* be created. We won't actually create any of these issues atm.
@@ -284,6 +285,7 @@ def _detect_performance_problems(
         FileIOMainThreadDetector(detection_settings, data),
         NPlusOneAPICallsDetector(detection_settings, data),
         MNPlusOneDBSpanDetector(detection_settings, data),
+        UncompressedAssetSpanDetector(detection_settings, data),
     ]
 
     for detector in detectors:
@@ -956,8 +958,7 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
 
     def _fingerprint(self) -> str:
         hashed_spans = fingerprint_spans(self.consecutive_db_spans)
-        problem_class = GroupType.PERFORMANCE_CONSECUTIVE_DB_OP
-        return f"1-{problem_class}-{hashed_spans}"
+        return f"1-{GroupType.PERFORMANCE_CONSECUTIVE_DB_OP.value}-{hashed_spans}"
 
     def on_complete(self) -> None:
         self._validate_and_store_performance_problem()
@@ -1312,7 +1313,7 @@ class FileIOMainThreadDetector(PerformanceDetector):
             overall_stack.append(".".join(call_stack_strings))
         call_stack = "-".join(overall_stack).encode("utf8")
         hashed_stack = hashlib.sha1(call_stack).hexdigest()
-        return f"1-{GroupType.PERFORMANCE_FILE_IO_MAIN_THREAD}-{hashed_stack}"
+        return f"1-{GroupType.PERFORMANCE_FILE_IO_MAIN_THREAD.value}-{hashed_stack}"
 
     def _is_file_io_on_main_thread(self, span: Span) -> bool:
         data = span.get("data", {})
@@ -1320,6 +1321,11 @@ class FileIOMainThreadDetector(PerformanceDetector):
             return False
         # doing is True since the value can be any type
         return data.get("blocked_main_thread", False) is True
+
+    def is_creation_allowed_for_organization(self, organization: Organization) -> bool:
+        return features.has(
+            "organizations:performance-file-io-main-thread-detector", organization, actor=None
+        )
 
 
 class MNPlusOneState(ABC):
@@ -1420,7 +1426,7 @@ class ContinuingMNPlusOne(MNPlusOneState):
         self.pattern = pattern
 
         # The full list of spans involved in the MN pattern.
-        self.spans = pattern.copy()
+        self.spans: Sequence[Span] = pattern.copy()
         self.spans.append(first_span)
         self.pattern_index = 1
 
@@ -1457,8 +1463,8 @@ class ContinuingMNPlusOne(MNPlusOneState):
         offender_spans = self.spans[:offender_span_count]
 
         total_duration_threshold = self.settings["total_duration_threshold"]
-        total_duration = sum(map(get_span_duration, offender_spans), timedelta(0))
-        if total_duration < timedelta(milliseconds=total_duration_threshold):
+        total_duration = total_span_time(offender_spans)
+        if total_duration < total_duration_threshold:
             return None
 
         db_span = self._first_db_span()
