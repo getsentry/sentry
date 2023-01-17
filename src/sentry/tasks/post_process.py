@@ -601,14 +601,14 @@ def process_code_mappings(job: PostProcessJob) -> None:
     if job["is_reprocessed"]:
         return
 
-    from sentry.tasks.derive_code_mappings import derive_code_mappings
+    from sentry.tasks.derive_code_mappings import SUPPORTED_LANGUAGES, derive_code_mappings
 
     try:
         event = job["event"]
         project = event.project
 
         # Supported platforms
-        if event.data["platform"] not in ["javascript", "python", "ruby"]:
+        if event.data["platform"] not in SUPPORTED_LANGUAGES:
             return
 
         cache_key = f"code-mappings:{project.id}"
