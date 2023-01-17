@@ -81,7 +81,8 @@ const X_AXIS: Record<FlamegraphPreferences['xAxis'], string> = {
 const COLOR_CODINGS: Record<FlamegraphPreferences['colorCoding'], string> = {
   'by symbol name': t('By Symbol Name'),
   'by library': t('By Package'),
-  'by system / application': t('By System / Application'),
+  'by system frame': t('By System Frame'),
+  'by application frame': t('By Application Frame'),
   'by recursion': t('By Recursion'),
   'by frequency': t('By Frequency'),
 };

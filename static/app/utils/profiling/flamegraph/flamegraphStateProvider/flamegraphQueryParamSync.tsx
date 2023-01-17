@@ -26,7 +26,8 @@ function isColorCoding(
 
   return (
     value === 'by symbol name' ||
-    value === 'by system / application' ||
+    value === 'by system frame' ||
+    value === 'by application frame' ||
     value === 'by library' ||
     value === 'by recursion' ||
     value === 'by frequency'
