@@ -245,6 +245,7 @@ class GroupEventDetails extends Component<GroupEventDetailsProps, State> {
 
     return (
       <TransactionProfileIdProvider
+        projectId={event?.projectID}
         transactionId={event?.type === 'transaction' ? event.id : undefined}
         timestamp={event?.dateReceived}
       >
