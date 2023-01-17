@@ -301,18 +301,16 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
 
                 # Get commit sha from Git blame
                 try:
-                    should_get_commit_sha = (
-                        (
-                            not ctx["commit_id"]
-                            or ctx["commit_id"] == current_config["config"]["defaultBranch"]
-                        )
-                        and features.has(
+                    codecov_enabled = features.has(
                             "organizations:codecov-stacktrace-integration",
                             project.organization,
                             actor=request.user,
                         )
                         and project.organization.flags.codecov_access
-                    )
+                    should_get_commit_sha = codecov_enabled and (
+                            not ctx["commit_id"]
+                            or ctx["commit_id"] == current_config["config"]["defaultBranch"]
+                        )
 
                     if should_get_commit_sha:
                         integration = integrations.filter(provider="github")[0]
