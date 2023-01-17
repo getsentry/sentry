@@ -2998,6 +2998,40 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase, SearchIssueTest
         result = {r["user.display"] for r in data}
         assert result == {"catherine", "cathy@example.com"}
 
+    def test_user_display_issue_platform(self):
+        project1 = self.create_project()
+        event, occurrence, group_info = self.store_search_issue(
+            project1.id,
+            1,
+            ["group1-fingerprint"],
+            None,
+            self.ten_mins_ago,
+        )
+        # self.store_event(
+        #     data={
+        #         "event_id": "a" * 32,
+        #         "transaction": "/example",
+        #         "message": "how to make fast",
+        #         "timestamp": self.ten_mins_ago_iso,
+        #         "user": {"email": "cathy@example.com"},
+        #     },
+        #     project_id=project1.id,
+        # )
+
+        features = {"organizations:discover-basic": True, "organizations:global-views": True}
+        query = {
+            "field": ["event.type", "user.display"],
+            "query": f"user.display:cath* issue.id:{group_info.group.id}",
+            "statsPeriod": "24h",
+            "dataset": "issuePlatform",
+        }
+        response = self.do_request(query, features=features)
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 2
+        result = {r["user.display"] for r in data}
+        assert result == {"catherine", "cathy@example.com"}
+
     def test_user_display_with_aggregates(self):
         self.store_event(
             data={
