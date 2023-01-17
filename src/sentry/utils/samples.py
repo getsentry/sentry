@@ -251,8 +251,9 @@ def load_data(
 
             data["fingerprint"] = fingerprint
     elif event_type == "generic":
-        if project_id is not None:
-            data["project_id"] = project_id
+        pass
+        # if project_id is not None:
+        #     data["project_id"] = project_id
 
     data["platform"] = platform
     # XXX: Message is a legacy alias for logentry. Do not overwrite if set.

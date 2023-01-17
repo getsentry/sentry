@@ -1,15 +1,14 @@
 {
   "event_id": "44f1419e73884cd2b45c79918f4b6dc4",
-  "project_id": 1,
   "platform": "python",
   "tags": {"environment": "prod"},
-  "timestamp": 1562681591.0,
+  "timestamp": null,
   "type": "generic",
   "breadcrumbs": {
     "values": [
        {
           "category": "query",
-          "timestamp": 1562681591.0,
+          "timestamp": null,
           "message": "SELECT \"countries\".\"id\", \"countries\".\"name\", \"countries\".\"continent\", \"countries\".\"region\", \"countries\".\"surface_area\", \"coun...'CAN'",
           "type": "default",
           "level": "info"
@@ -37,10 +36,7 @@
        "name": "Python Requests"
     }
   },
-  "dist": {
-    "dist": "1",
-    "release": "3.0.2"
-  },
+  "dist":  "1",
   "environment": "prod",
   "extra": {},
   "message": "Code has errored",
@@ -87,11 +83,10 @@
   "sdk": {
     "name": "sentry.python",
     "version": "0.1",
-    "integrations": "no list",
-    "packages": "no list"
+    "integrations": [],
+    "packages": []
   },
   "server_name": "mcbk.local",
-  "trace_id": "a7d67cf796774551a95be6543cacd459",
   "transaction": "iOS_Swift.ViewController",
   "user": {
       "ip_address": "127.0.0.1"

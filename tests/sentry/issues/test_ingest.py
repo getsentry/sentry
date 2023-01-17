@@ -47,7 +47,7 @@ class SaveIssueOccurrenceTest(OccurrenceTestMixin, TestCase):  # type: ignore
         # assert result["data"][0]["group_ids"] == [self.group.id]
 
     def test_different_ids(self) -> None:
-        event_data = load_data("generic-event", project_id=self.project.id)
+        event_data = load_data("generic-event")
         event = self.store_event(data=event_data, project_id=self.project.id)
         occurrence = self.build_occurrence()
         with self.assertRaisesMessage(
@@ -183,7 +183,7 @@ class MaterializeMetadataTest(OccurrenceTestMixin, TestCase):  # type: ignore
 @region_silo_test
 class SaveIssueOccurrenceToEventstreamTest(OccurrenceTestMixin, TestCase):  # type: ignore
     def test(self) -> None:
-        event_data = load_data("generic-event", project_id=self.project.id)
+        event_data = load_data("generic-event")
         event = self.store_event(data=event_data, project_id=self.project.id)
         group_event = event.for_group(self.group)
         occurrence = self.build_occurrence(event_id=event.event_id)
