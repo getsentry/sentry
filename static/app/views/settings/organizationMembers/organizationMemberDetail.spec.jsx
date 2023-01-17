@@ -16,6 +16,7 @@ jest.mock('sentry/actionCreators/members', () => ({
 describe('OrganizationMemberDetail', function () {
   let organization;
   let routerContext;
+
   const team = TestStubs.Team();
   const idpTeam = TestStubs.Team({
     id: '4',
@@ -45,16 +46,27 @@ describe('OrganizationMemberDetail', function () {
     }),
     idpTeam,
   ];
+
+  const teamAssignment = {
+    teams: [team.slug],
+    teamRoles: [
+      {
+        teamSlug: team.slug,
+        role: null,
+      },
+    ],
+  };
+
   const member = TestStubs.Member({
     roles: TestStubs.OrgRoleList(),
     dateCreated: new Date(),
-    teams: [team.slug],
+    ...teamAssignment,
   });
   const pendingMember = TestStubs.Member({
     id: 2,
     roles: TestStubs.OrgRoleList(),
     dateCreated: new Date(),
-    teams: [team.slug],
+    ...teamAssignment,
     invite_link: 'http://example.com/i/abc123',
     pending: true,
   });
@@ -62,7 +74,7 @@ describe('OrganizationMemberDetail', function () {
     id: 3,
     roles: TestStubs.OrgRoleList(),
     dateCreated: new Date(),
-    teams: [team.slug],
+    ...teamAssignment,
     invite_link: 'http://example.com/i/abc123',
     pending: true,
     expired: true,
@@ -71,7 +83,11 @@ describe('OrganizationMemberDetail', function () {
     id: 4,
     roles: TestStubs.OrgRoleList(),
     dateCreated: new Date(),
-    teams: [idpTeam.slug],
+    ...teamAssignment,
+  });
+
+  beforeAll(() => {
+    TeamStore.loadInitialData(teams);
   });
 
   describe('Can Edit', function () {
@@ -104,7 +120,7 @@ describe('OrganizationMemberDetail', function () {
       });
     });
 
-    it('changes role to owner', function () {
+    it('changes org role to owner', function () {
       render(<OrganizationMemberDetail params={{memberId: member.id}} />, {
         context: routerContext,
       });
@@ -124,7 +140,7 @@ describe('OrganizationMemberDetail', function () {
         expect.anything(),
         expect.objectContaining({
           data: expect.objectContaining({
-            role: 'owner',
+            orgRole: 'owner',
           }),
         })
       );
@@ -145,7 +161,7 @@ describe('OrganizationMemberDetail', function () {
         expect.anything(),
         expect.objectContaining({
           data: expect.objectContaining({
-            teams: [],
+            teamRoles: [],
           }),
         })
       );
@@ -180,7 +196,10 @@ describe('OrganizationMemberDetail', function () {
         expect.anything(),
         expect.objectContaining({
           data: expect.objectContaining({
-            teams: ['team-slug', 'new-team'],
+            teamRoles: [
+              {teamSlug: 'team-slug', role: null},
+              {teamSlug: 'new-team', role: null},
+            ],
           }),
         })
       );

@@ -117,11 +117,11 @@ function TeamSelect({
           selectedTeams.map(team => (
             <ProjectTeamRow
               key={team.slug}
-              organization={organization}
-              team={team}
-              onRemove={slug => onRemoveTeam(slug)}
               disabled={disabled}
               confirmMessage={confirmMessage}
+              organization={organization}
+              team={team}
+              onRemoveTeam={slug => onRemoveTeam(slug)}
             />
           ))}
 
@@ -143,15 +143,15 @@ function TeamSelect({
             return (
               <MemberTeamRow
                 key={r.teamSlug}
+                disabled={disabled}
+                enforceIdpProvisioned={enforceIdpProvisioned}
+                confirmMessage={confirmMessage}
                 organization={organization}
                 team={team}
                 selectedOrgRole={selectedOrgRole}
                 selectedTeamRole={r.role}
                 onChangeTeamRole={onChangeTeamRole}
-                onRemove={slug => onRemoveTeam(slug)}
-                disabled={disabled}
-                confirmMessage={confirmMessage}
-                enforceIdpProvisioned={enforceIdpProvisioned}
+                onRemoveTeam={slug => onRemoveTeam(slug)}
               />
             );
           })}
@@ -224,7 +224,7 @@ function TeamSelect({
 type TeamRowProps = {
   confirmMessage: string | null;
   disabled: boolean;
-  onRemove: Props['onRemoveTeam'];
+  onRemoveTeam: Props['onRemoveTeam'];
   organization: Organization;
   team: Team;
 };
@@ -234,7 +234,7 @@ type ProjectTeamRowProps = {} & TeamRowProps;
 const ProjectTeamRow = ({
   organization,
   team,
-  onRemove,
+  onRemoveTeam,
   disabled,
   confirmMessage,
 }: ProjectTeamRowProps) => (
@@ -246,7 +246,7 @@ const ProjectTeamRow = ({
     <Confirm
       message={confirmMessage}
       bypass={!confirmMessage}
-      onConfirm={() => onRemove(team.slug)}
+      onConfirm={() => onRemoveTeam(team.slug)}
       disabled={disabled}
     >
       <Button size="xs" icon={<IconSubtract isCircled size="xs" />} disabled={disabled}>
@@ -268,7 +268,7 @@ const MemberTeamRow = ({
   team,
   selectedOrgRole,
   selectedTeamRole,
-  onRemove,
+  onRemoveTeam,
   onChangeTeamRole,
   disabled,
   confirmMessage,
@@ -305,7 +305,7 @@ const MemberTeamRow = ({
       <Confirm
         message={confirmMessage}
         bypass={!confirmMessage}
-        onConfirm={() => onRemove(team.slug)}
+        onConfirm={() => onRemoveTeam(team.slug)}
         disabled={disabled || (enforceIdpProvisioned && team.flags['idp:provisioned'])}
       >
         <Button
