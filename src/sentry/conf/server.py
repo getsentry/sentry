@@ -1195,8 +1195,6 @@ SENTRY_FEATURES = {
     "organizations:onboarding-heartbeat-footer": False,
     # Enable ANR rates in project details page
     "organizations:anr-rate": False,
-    # Enable deobfuscating exception values in Java issues
-    "organizations:java-exception-value-deobfuscation": False,
     # Enable tag improvements in the issue details page
     "organizations:issue-details-tag-improvements": False,
     # Enable the release details performance section
