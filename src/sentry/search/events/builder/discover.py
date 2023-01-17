@@ -56,12 +56,11 @@ from sentry.search.events import constants, fields
 from sentry.search.events import filter as event_filter
 from sentry.search.events.datasets.base import DatasetConfig
 from sentry.search.events.datasets.discover import DiscoverDatasetConfig
+from sentry.search.events.datasets.issue_platform import IssuePlatformDatasetConfig
 from sentry.search.events.datasets.metrics import MetricsDatasetConfig
 from sentry.search.events.datasets.metrics_layer import MetricsLayerDatasetConfig
 from sentry.search.events.datasets.profiles import ProfilesDatasetConfig
 from sentry.search.events.datasets.sessions import SessionsDatasetConfig
-from sentry.search.events.datasets.issue_platform import IssuePlatformDatasetConfig
-
 from sentry.search.events.types import (
     EventsResponse,
     HistogramParams,
@@ -327,7 +326,6 @@ class QueryBuilder(BaseQueryBuilder):
             Dataset.Discover,
             Dataset.Transactions,
             Dataset.Events,
-            # Dataset.IssuePlatform,
         ]:
             self.config = DiscoverDatasetConfig(self)
         elif self.dataset == Dataset.Sessions:
@@ -1598,68 +1596,6 @@ class TimeseriesQueryBuilder(UnresolvedQuery):
 
     def run_query(self, referrer: str, use_cache: bool = False) -> Any:
         return raw_snql_query(self.get_snql_query(), referrer, use_cache)
-
-
-class IssuePlatformTimeSeriesQueryBuilder(TimeseriesQueryBuilder):
-    from snuba_sdk import Function
-
-    """The IssuePlatform dataset isn't using the TimeSeriesProcessor which does the translation of 'time' to 'timestamp'."""
-
-    def __init__(
-        self,
-        dataset: Dataset,
-        params: ParamsType,
-        interval: int,
-        query: Optional[str] = None,
-        selected_columns: Optional[List[str]] = None,
-        equations: Optional[List[str]] = None,
-        functions_acl: Optional[List[str]] = None,
-        limit: Optional[int] = 10000,
-        has_metrics: bool = False,
-        skip_tag_resolution: bool = False,
-    ):
-        super().__init__(
-            dataset,
-            params,
-            interval,
-            query=query,
-            selected_columns=selected_columns,
-            equations=equations,
-            functions_acl=functions_acl,
-            has_metrics=has_metrics,
-            skip_tag_resolution=skip_tag_resolution,
-        )
-        rollup_to_start_func = {
-            60: "toStartOfMinute",
-            3600: "toStartOfHour",
-            3600 * 24: "toDate",
-        }
-        rollup_func = rollup_to_start_func.get(interval)
-        if rollup_func:
-            self.time_column = Function(
-                "toUnixTimestamp",
-                [Function("toDateTime", [Function(rollup_func, [Column("timestamp")])])],
-                alias="time",
-            )
-        else:
-            self.time_column = Function(
-                "multiply",
-                [
-                    Function(
-                        "intDiv",
-                        [
-                            Function(
-                                "toUInt32", [Function("toUnixTimestamp", [Column("timestamp")])]
-                            ),
-                            interval,
-                        ],
-                    ),
-                    interval,
-                ],
-                alias="time",
-            )
-
-        self.groupby = [self.time_column]
 
 
 class TopEventsQueryBuilder(TimeseriesQueryBuilder):

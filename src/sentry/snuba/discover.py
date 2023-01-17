@@ -16,7 +16,7 @@ from sentry.discover.arithmetic import categorize_columns
 from sentry.models import Group
 from sentry.search.events.builder import (
     HistogramQueryBuilder,
-    IssuePlatformTimeSeriesQueryBuilder,
+    IssuePlatformTimeseriesQueryBuilder,
     QueryBuilder,
     TimeseriesQueryBuilder,
     TopEventsQueryBuilder,
@@ -260,7 +260,7 @@ def timeseries_query(
     query_builder = (
         TimeseriesQueryBuilder
         if dataset == Dataset.Discover
-        else IssuePlatformTimeSeriesQueryBuilder
+        else IssuePlatformTimeseriesQueryBuilder
     )
     with sentry_sdk.start_span(op="discover.discover", description="timeseries.filter_transform"):
         equations, columns = categorize_columns(selected_columns)
