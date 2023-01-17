@@ -18,6 +18,8 @@ import {fragment, vertex} from './shaders';
 // These are both mutable and are used to avoid unnecessary allocations during rendering.
 const PHYSICAL_SPACE_PX = new Rect(0, 0, 1, 1);
 const CONFIG_TO_PHYSICAL_SPACE = mat3.create();
+const VERTICES_PER_FRAME = 6;
+const COLOR_COMPONENTS = 4;
 
 class FlamegraphRenderer {
   canvas: HTMLCanvasElement | null;
@@ -83,9 +85,6 @@ class FlamegraphRenderer {
   }
 
   init(): void {
-    const VERTICES_PER_TRIANGLE = 6;
-    const COLOR_COMPONENTS = 4;
-
     this.frames = this.flamegraph.frames;
     this.roots = this.flamegraph.root.children;
 
@@ -99,7 +98,7 @@ class FlamegraphRenderer {
     this.colorMap = colorMap;
 
     if (
-      VERTICES_PER_TRIANGLE * COLOR_COMPONENTS * this.frames.length !==
+      VERTICES_PER_FRAME * COLOR_COMPONENTS * this.frames.length !==
       colorBuffer.length
     ) {
       throw new Error('Color buffer length does not match the number of vertices');
@@ -115,13 +114,12 @@ class FlamegraphRenderer {
   initVertices(): void {
     const POSITIONS = 2;
     const BOUNDS = 4;
-    const VERTICES_PER_TRIANGLE = 6;
 
     const FRAME_COUNT = this.frames.length;
 
-    this.bounds = new Float32Array(VERTICES_PER_TRIANGLE * BOUNDS * FRAME_COUNT);
-    this.positions = new Float32Array(VERTICES_PER_TRIANGLE * POSITIONS * FRAME_COUNT);
-    this.searchResults = new Float32Array(FRAME_COUNT * VERTICES_PER_TRIANGLE);
+    this.bounds = new Float32Array(VERTICES_PER_FRAME * BOUNDS * FRAME_COUNT);
+    this.positions = new Float32Array(VERTICES_PER_FRAME * POSITIONS * FRAME_COUNT);
+    this.searchResults = new Float32Array(FRAME_COUNT * VERTICES_PER_FRAME);
 
     for (let index = 0; index < FRAME_COUNT; index++) {
       const frame = this.frames[index];
@@ -150,9 +148,9 @@ class FlamegraphRenderer {
 
       // @TODO check if we can pack bounds across vertex calls,
       // we are allocating 6x the amount of memory here
-      const boundsOffset = index * VERTICES_PER_TRIANGLE * BOUNDS;
+      const boundsOffset = index * VERTICES_PER_FRAME * BOUNDS;
 
-      for (let i = 0; i < VERTICES_PER_TRIANGLE; i++) {
+      for (let i = 0; i < VERTICES_PER_FRAME; i++) {
         const offset = boundsOffset + i * BOUNDS;
 
         this.bounds[offset] = x1;
@@ -516,8 +514,7 @@ class FlamegraphRenderer {
       configSpacePixel.height
     );
 
-    const VERTICES_PER_TRIANGLE = 6;
-    this.gl.drawArrays(this.gl.TRIANGLES, 0, this.frames.length * VERTICES_PER_TRIANGLE);
+    this.gl.drawArrays(this.gl.TRIANGLES, 0, this.frames.length * VERTICES_PER_FRAME);
   }
 }
 
