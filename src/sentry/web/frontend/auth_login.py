@@ -14,6 +14,7 @@ from rest_framework.response import Response
 
 from sentry import features
 from sentry.api.invite_helper import ApiInviteHelper, remove_invite_details_from_session
+from sentry.api.utils import generate_organization_url
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import WARN_SESSION_EXPIRED
 from sentry.http import get_server_hostname
@@ -29,6 +30,7 @@ from sentry.utils.auth import (
     login,
 )
 from sentry.utils.client_state import get_client_state_redirect_uri
+from sentry.utils.http import absolute_uri
 from sentry.utils.sdk import capture_exception
 from sentry.utils.urls import add_params_to_url
 from sentry.web.forms.accounts import AuthenticationForm, RegistrationForm
@@ -98,7 +100,7 @@ class AuthLoginView(BaseView):
         return bool(has_user_registration() or request.session.get("can_register"))
 
     def get_join_request_link(self, organization):
-        if not organization:
+        if not organization or not isinstance(organization, Organization):
             return None
 
         if organization.get_option("sentry:join_requests") is False:
@@ -129,6 +131,14 @@ class AuthLoginView(BaseView):
         )
 
     def handle_basic_auth(self, request: Request, **kwargs):
+        if request.method == "GET" and request.subdomain:
+            url = reverse("sentry-auth-organization", args=[request.subdomain])
+            # Only redirect to /auth/login/orgslug/ if the current requesting path is not the same.
+            if request.path_info != url:
+                url_prefix = generate_organization_url(request.subdomain)
+                url = absolute_uri(url, url_prefix=url_prefix)
+                return HttpResponseRedirect(url)
+
         can_register = self.can_register(request)
 
         op = request.POST.get("op")
