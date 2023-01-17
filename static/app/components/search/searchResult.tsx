@@ -38,7 +38,7 @@ function renderResultType({resultType, model}: Result['item']) {
 }
 
 function SearchResult({item, matches, highlighted}: Props) {
-  const params = useParams();
+  const params = useParams<{orgId: string}>();
 
   const {sourceType, model, extra} = item;
 
