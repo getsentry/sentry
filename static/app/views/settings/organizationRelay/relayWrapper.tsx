@@ -25,7 +25,7 @@ const RELAY_DOCS_LINK = 'https://getsentry.github.io/relay/';
 
 type Props = {
   organization: Organization;
-} & RouteComponentProps<{orgId: string}, {}>;
+} & RouteComponentProps<{}, {}>;
 
 type State = {
   relayActivities: Array<RelayActivity>;
