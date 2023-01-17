@@ -21,6 +21,7 @@ import getCurrentSentryReactTransaction from 'sentry/utils/getCurrentSentryReact
 import {decodeScalar} from 'sentry/utils/queryString';
 import toArray from 'sentry/utils/toArray';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 import {DEFAULT_MAX_DURATION} from './trends/utils';
 
@@ -202,7 +203,7 @@ export function handleTrendsClick({
 
   const target = trendsTargetRoute({location, organization});
 
-  browserHistory.push(target);
+  browserHistory.push(normalizeUrl(target));
 }
 
 export function trendsTargetRoute({

@@ -2,7 +2,7 @@ import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Query} from 'history';
 
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';

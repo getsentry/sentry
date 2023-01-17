@@ -10,9 +10,10 @@ from sentry.api.bases.organization import (
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
-from sentry.models import Integration, Repository
+from sentry.models import Repository
 from sentry.plugins.base import bindings
 from sentry.ratelimits.config import SENTRY_RATELIMITER_GROUP_DEFAULTS, RateLimitConfig
+from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.utils.sdk import capture_exception
 
 UNMIGRATABLE_PROVIDERS = ("bitbucket", "github")
@@ -49,20 +50,23 @@ class OrganizationRepositoriesEndpoint(OrganizationEndpoint):
         # TODO(mn): Remove once old Plugins are removed or everyone migrates to
         # the new Integrations. Hopefully someday?
         elif status == "unmigratable":
-            integrations = Integration.objects.filter(
-                organizationintegration__organization=organization,
-                organizationintegration__status=ObjectStatus.ACTIVE,
-                provider__in=(UNMIGRATABLE_PROVIDERS),
+
+            integrations = integration_service.get_integrations(
                 status=ObjectStatus.ACTIVE,
+                providers=UNMIGRATABLE_PROVIDERS,
+                organization_id=organization.id,
+                org_integration_status=ObjectStatus.ACTIVE,
+                limit=None,
             )
 
             repos = []
 
             for i in integrations:
                 try:
-                    repos.extend(
-                        i.get_installation(organization.id).get_unmigratable_repositories()
+                    installation = integration_service.get_installation(
+                        integration=i, organization_id=organization.id
                     )
+                    repos.extend(installation.get_unmigratable_repositories())
                 except Exception:
                     capture_exception()
                     # Don't rely on the Integration's API being available. If

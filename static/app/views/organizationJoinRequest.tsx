@@ -23,11 +23,11 @@ class OrganizationJoinRequest extends Component<Props, State> {
   };
 
   componentDidMount() {
-    const {orgId} = this.props.params;
+    const {params} = this.props;
 
     trackAdhocEvent({
       eventKey: 'join_request.viewed',
-      org_slug: orgId,
+      org_slug: params.orgId,
     });
   }
 
@@ -41,13 +41,13 @@ class OrganizationJoinRequest extends Component<Props, State> {
 
   handleCancel = e => {
     e.preventDefault();
+    const {params} = this.props;
 
-    const {orgId} = this.props.params;
-    window.location.assign(`/auth/login/${orgId}/`);
+    window.location.assign(`/auth/login/${params.orgId}/`);
   };
 
   render() {
-    const {orgId} = this.props.params;
+    const {params} = this.props;
     const {submitSuccess} = this.state;
 
     if (submitSuccess) {
@@ -58,7 +58,7 @@ class OrganizationJoinRequest extends Component<Props, State> {
             <StyledHeader>{t('Request Sent')}</StyledHeader>
             <StyledText>{t('Your request to join has been sent.')}</StyledText>
             <ReceiveEmailMessage>
-              {tct('You will receive an email when your request is approved.', {orgId})}
+              {t('You will receive an email when your request is approved.')}
             </ReceiveEmailMessage>
           </SuccessModal>
         </NarrowLayout>
@@ -71,12 +71,12 @@ class OrganizationJoinRequest extends Component<Props, State> {
         <StyledHeader>{t('Request to Join')}</StyledHeader>
         <StyledText>
           {tct('Ask the admins if you can join the [orgId] organization.', {
-            orgId,
+            orgId: params.orgId,
           })}
         </StyledText>
         <Form
           requireChanges
-          apiEndpoint={`/organizations/${orgId}/join-request/`}
+          apiEndpoint={`/organizations/${params.orgId}/join-request/`}
           apiMethod="POST"
           submitLabel={t('Request to Join')}
           onSubmitSuccess={this.handleSubmitSuccess}

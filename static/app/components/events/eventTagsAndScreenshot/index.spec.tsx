@@ -3,7 +3,7 @@ import {Fragment} from 'react';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
-import EventTagsAndScreenshot from 'sentry/components/events/eventTagsAndScreenshot';
+import {EventTagsAndScreenshot} from 'sentry/components/events/eventTagsAndScreenshot';
 import GlobalModal from 'sentry/components/globalModal';
 import {EventAttachment} from 'sentry/types';
 

@@ -236,8 +236,6 @@ const Button = reactForwardRef<ButtonElement, ButtonProps>((props, ref) => (
 
 Button.displayName = 'Button';
 
-export default Button;
-
 type StyledButtonProps = ButtonProps & {theme: Theme};
 
 const getBoxShadow = ({
@@ -482,4 +480,4 @@ const Icon = styled('span')<IconProps & Omit<StyledButtonProps, 'theme'>>`
 /**
  * Also export these styled components so we can use them as selectors
  */
-export {StyledButton, ButtonLabel, Icon};
+export {Button, StyledButton, ButtonLabel, Icon};

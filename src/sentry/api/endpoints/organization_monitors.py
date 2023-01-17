@@ -9,8 +9,9 @@ from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.validators import MonitorValidator
 from sentry.db.models.query import in_iexact
-from sentry.models import Monitor, MonitorStatus, MonitorType
+from sentry.models import Monitor, MonitorStatus, MonitorType, Project
 from sentry.search.utils import tokenize_query
+from sentry.signals import first_cron_monitor_created
 
 
 def map_value_to_constant(constant, value):
@@ -117,5 +118,11 @@ class OrganizationMonitorsEndpoint(OrganizationEndpoint):
             event=audit_log.get_event_id("MONITOR_ADD"),
             data=monitor.get_audit_log_data(),
         )
+
+        project = result["project"]
+        if not project.flags.has_cron_monitors:
+            first_cron_monitor_created.send_robust(
+                project=project, user=request.user, sender=Project
+            )
 
         return self.respond(serialize(monitor, request.user), status=201)

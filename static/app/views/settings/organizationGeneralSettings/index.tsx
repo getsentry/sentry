@@ -7,7 +7,7 @@ import {
   removeAndRedirectToRemainingOrganization,
   updateOrganization,
 } from 'sentry/actionCreators/organizations';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import List from 'sentry/components/list';
@@ -28,14 +28,12 @@ import OrganizationSettingsForm from './organizationSettingsForm';
 type Props = {
   organization: Organization;
   projects: Project[];
-} & RouteComponentProps<{orgId: string}, {}>;
+} & RouteComponentProps<{}, {}>;
 
 function OrganizationGeneralSettings(props: Props) {
   const api = useApi();
 
-  const {organization, projects, params} = props;
-  const {orgId} = params;
-
+  const {organization, projects} = props;
   const access = new Set(organization.access);
 
   const removeConfirmMessage = (
@@ -90,7 +88,7 @@ function OrganizationGeneralSettings(props: Props) {
 
     addLoadingMessage();
     removeAndRedirectToRemainingOrganization(api, {
-      orgId: params.orgId,
+      orgId: organization.slug,
       successMessage: `${organization.name} is queued for deletion.`,
       errorMessage: `Error removing the ${organization.name} organization`,
     });
@@ -98,7 +96,7 @@ function OrganizationGeneralSettings(props: Props) {
 
   return (
     <Fragment>
-      <SentryDocumentTitle title={t('General Settings')} orgSlug={orgId} />
+      <SentryDocumentTitle title={t('General Settings')} orgSlug={organization.slug} />
       <div>
         <SettingsPageHeader title={t('Organization Settings')} />
         <PermissionAlert />

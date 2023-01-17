@@ -41,6 +41,7 @@ import {formatVersion} from 'sentry/utils/formatters';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {getAdoptionSeries, getCount} from 'sentry/utils/sessions';
 import withApi from 'sentry/utils/withApi';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {sessionDisplayToField} from 'sentry/views/releases/list/releasesRequest';
 
 import {ReleasesDisplayOption} from './releasesDisplayOptions';
@@ -120,12 +121,14 @@ class ReleasesAdoptionChart extends Component<Props> {
 
     const project = selection.projects[0];
 
-    router.push({
-      pathname: `/organizations/${organization?.slug}/releases/${encodeURIComponent(
-        params.seriesId
-      )}/`,
-      query: {project, environment: location.query.environment},
-    });
+    router.push(
+      normalizeUrl({
+        pathname: `/organizations/${organization?.slug}/releases/${encodeURIComponent(
+          params.seriesId
+        )}/`,
+        query: {project, environment: location.query.environment},
+      })
+    );
   };
 
   renderEmpty() {
