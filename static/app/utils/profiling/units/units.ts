@@ -3,6 +3,7 @@ export function relativeChange(final: number, initial: number): number {
 }
 
 export type ProfilingFormatterUnit =
+  | 'nanosecond' // missmatch between units from backend
   | 'nanoseconds'
   | 'microseconds'
   | 'milliseconds'
@@ -10,6 +11,7 @@ export type ProfilingFormatterUnit =
   | 'count';
 
 const durationMappings: Record<ProfilingFormatterUnit, number> = {
+  nanosecond: 1e-9,
   nanoseconds: 1e-9,
   microseconds: 1e-6,
   milliseconds: 1e-3,
@@ -21,8 +23,16 @@ export function makeFormatTo(
   from: ProfilingFormatterUnit | string,
   to: ProfilingFormatterUnit | string
 ) {
+  if (durationMappings[from] === undefined) {
+    throw new Error(`Cannot format unit ${from}, duration mapping is not defined`);
+  }
+  if (durationMappings[to] === undefined) {
+    throw new Error(`Cannot format unit ${from}, duration mapping is not defined`);
+  }
   if (from === to) {
-    return (v: number) => v;
+    return (v: number) => {
+      return v;
+    };
   }
   return (v: number) => formatTo(v, from, to);
 }
@@ -33,7 +43,6 @@ export function formatTo(
 ) {
   const fromMultiplier = Math.log10(durationMappings[from]);
   const toMultiplier = Math.log10(durationMappings[to]);
-
   const value = v * Math.pow(10, fromMultiplier - toMultiplier);
   return value;
 }

@@ -63,6 +63,7 @@ import {FlamegraphDrawer} from './flamegraphDrawer/flamegraphDrawer';
 import {FlamegraphWarnings} from './flamegraphOverlays/FlamegraphWarnings';
 import {FlamegraphLayout} from './flamegraphLayout';
 import {FlamegraphSpans} from './flamegraphSpans';
+import {FlamegraphUIFrames} from './flamegraphUIFrames';
 
 function getTransactionConfigSpace(
   profileGroup: ProfileGroup,
@@ -190,7 +191,7 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
     });
   }, [profile, props.profiles, sorting, threadId, view, xAxis]);
 
-  useMemo(() => {
+  const uiFrames = useMemo(() => {
     if (!hasUIFrames) {
       return LOADING_OR_FALLBACK_UIFRAMES;
     }
@@ -621,7 +622,16 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
       </FlamegraphToolbar>
 
       <FlamegraphLayout
-        uiFrames={hasUIFrames ? null : null}
+        uiFrames={
+          hasUIFrames ? (
+            <FlamegraphUIFrames
+              canvasBounds={flamegraphCanvasBounds}
+              canvasPoolManager={canvasPoolManager}
+              flamegraphView={flamegraphView}
+              uiFrames={uiFrames}
+            />
+          ) : null
+        }
         spans={
           spanChart ? (
             <FlamegraphSpans
