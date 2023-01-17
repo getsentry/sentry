@@ -513,7 +513,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
         assert data["meta"] == sorted(
             [
                 {"name": "count(transaction.duration)", "type": "UInt64"},
-                {"name": "project_id", "type": "string"},
+                {"name": "project_id", "type": "UInt64"},
             ],
             key=lambda elem: elem["name"],
         )

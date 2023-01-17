@@ -414,19 +414,29 @@ def translate_meta_results(
     """
     results = []
     for record in meta:
-        operation, column_name = parse_expression(record["name"])
+        operation, parsed_alias = parse_expression(record["name"])
 
         # Column name could be either a mri, ["bucketed_time"] or a tag or a dataset col like
-        # "project_id" or "metric_id"
-        is_tag = column_name in alias_to_metric_group_by_field.keys()
-        is_time_col = column_name in [TS_COL_GROUP]
-        is_dataset_col = column_name in DATASET_COLUMNS
+        # "project_id" or "metric_id".
+        # Because this logic is quite convoluted, a naive change has been introduced which checks for DATASET_COLUMNS
+        # within the MetricGroupByField str field instead of doing it in the alias.
+        is_tag = (
+            parsed_alias in alias_to_metric_group_by_field.keys()
+            and not isinstance(alias_to_metric_group_by_field[parsed_alias].field, str)
+            and not alias_to_metric_group_by_field[parsed_alias].field in DATASET_COLUMNS
+        )
+        is_time_col = parsed_alias in [TS_COL_GROUP]
+        is_dataset_col = parsed_alias in DATASET_COLUMNS or (
+            parsed_alias in alias_to_metric_group_by_field.keys()
+            and isinstance(alias_to_metric_group_by_field[parsed_alias].field, str)
+            and alias_to_metric_group_by_field[parsed_alias].field in DATASET_COLUMNS
+        )
 
         if not (is_tag or is_time_col or is_dataset_col):
             # This handles two cases where we have an expression with an operation and an mri,
             # or a derived metric mri that has no associated operation
             try:
-                record["name"] = get_operation_with_public_name(operation, column_name)
+                record["name"] = get_operation_with_public_name(operation, parsed_alias)
                 if COMPOSITE_ENTITY_CONSTITUENT_ALIAS in record["name"]:
                     # Since instances of CompositeEntityDerivedMetric will not have meta data as they are computed post
                     # query, it suffices to set the type of that composite derived metric to any of the types of its
@@ -486,7 +496,7 @@ def translate_meta_results(
                     "string" if defined_parent_meta_type is None else defined_parent_meta_type
                 )
             elif is_time_col or is_dataset_col:
-                record["name"] = column_name
+                record["name"] = parsed_alias
 
         if record not in results:
             results.append(record)

@@ -2144,11 +2144,3 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
     @pytest.mark.xfail(reason="Having not supported")
     def test_having_condition(self):
         super().test_having_condition()
-
-    @pytest.mark.xfail(reason="Meta for project_id is wrong")
-    def test_project_id(self):
-        super().test_project_id()
-
-    @pytest.mark.xfail(reason="Meta for project.id is wrong")
-    def test_project_dot_id(self):
-        super().test_project_dot_id()
