@@ -3,7 +3,10 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {IssueType} from 'sentry/types';
 
-import {SpanEvidenceKeyValueList} from './spanEvidenceKeyValueList';
+import {
+  extractQueryParameters,
+  SpanEvidenceKeyValueList,
+} from './spanEvidenceKeyValueList';
 
 describe('SpanEvidenceKeyValueList', () => {
   describe('N+1 Database Queries', () => {
@@ -52,9 +55,7 @@ describe('SpanEvidenceKeyValueList', () => {
         screen.getByTestId(/span-evidence-key-value-list.repeating-spans/)
       ).toHaveTextContent('db - SELECT * FROM books');
 
-      expect(
-        screen.queryByRole('cell', {name: 'Problem Parameter'})
-      ).not.toBeInTheDocument();
+      expect(screen.queryByRole('cell', {name: 'Parameter'})).not.toBeInTheDocument();
       expect(
         screen.queryByTestId('span-evidence-key-value-list.problem-parameters')
       ).not.toBeInTheDocument();
@@ -131,13 +132,13 @@ describe('SpanEvidenceKeyValueList', () => {
               startTimestamp: 10,
               endTimestamp: 2100,
               op: 'http.client',
-              description: 'GET http://service.api/book/?book_id=7',
+              description: 'GET http://service.api/book/?book_id=7&sort=up',
             }).span,
             new MockSpan({
               startTimestamp: 10,
               endTimestamp: 2100,
               op: 'http.client',
-              description: 'GET http://service.api/book/?book_id=8',
+              description: 'GET http://service.api/book/?book_id=8&sort=down',
             }).span,
           ]}
         />
@@ -151,12 +152,49 @@ describe('SpanEvidenceKeyValueList', () => {
       expect(screen.getByRole('cell', {name: 'Repeating Spans (2)'})).toBeInTheDocument();
       expect(
         screen.getByTestId(/span-evidence-key-value-list.repeating-spans/)
-      ).toHaveTextContent('GET http://service.api/book/?book_id=7');
+      ).toHaveTextContent('/book/');
 
-      expect(screen.queryByRole('cell', {name: 'Problem Parameter'})).toBeInTheDocument();
+      expect(screen.queryByRole('cell', {name: 'Parameters'})).toBeInTheDocument();
       expect(
-        screen.getByTestId('span-evidence-key-value-list.problem-parameter')
-      ).toHaveTextContent('[ "book_id=7", "book_id=8" ]');
+        screen.getByTestId('span-evidence-key-value-list.parameters')
+      ).toHaveTextContent('book_id:{7,8} sort:{up,down}');
+    });
+
+    describe('extractQueryParameters', () => {
+      it('If the URLs have no parameters or are malformed, returns nothing', () => {
+        const URLs = [
+          new URL('http://service.io/items'),
+          new URL('http://service.io/values'),
+        ];
+
+        expect(extractQueryParameters(URLs)).toEqual({});
+      });
+
+      it('If the URLs have one changing parameter, returns it and its values', () => {
+        const URLs = [
+          new URL('http://service.io/items?id=4'),
+          new URL('http://service.io/items?id=5'),
+          new URL('http://service.io/items?id=6'),
+        ];
+
+        expect(extractQueryParameters(URLs)).toEqual({
+          id: ['4', '5', '6'],
+        });
+      });
+
+      it('If the URLs have multiple changing parameters, returns them and their values', () => {
+        const URLs = [
+          new URL('http://service.io/items?id=4&sort=down&filter=none'),
+          new URL('http://service.io/items?id=5&sort=up&filter=none'),
+          new URL('http://service.io/items?id=6&sort=up&filter=none'),
+        ];
+
+        expect(extractQueryParameters(URLs)).toEqual({
+          id: ['4', '5', '6'],
+          sort: ['down', 'up'],
+          filter: ['none'],
+        });
+      });
     });
   });
 
