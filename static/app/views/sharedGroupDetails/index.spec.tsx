@@ -11,7 +11,7 @@ describe('SharedGroupDetails', function () {
 
   beforeEach(function () {
     MockApiClient.addMockResponse({
-      url: '/organizations/test-org/shared/issues/a/',
+      url: '/organizations/org-slug/shared/issues/a/',
       body: TestStubs.Group({
         title: 'ZeroDivisionError',
         latestEvent: TestStubs.Event({

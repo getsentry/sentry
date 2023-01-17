@@ -13,8 +13,9 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import SentryTypes from 'sentry/sentryTypes';
 import space from 'sentry/styles/space';
-import {Group} from 'sentry/types';
+import {Group, Organization} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
+import withOrganization from 'sentry/utils/withOrganization';
 
 import {OrganizationContext} from '../organizationContext';
 
@@ -22,6 +23,7 @@ import SharedGroupHeader from './sharedGroupHeader';
 
 type Props = RouteComponentProps<{shareId: string}, {}> & {
   api: Client;
+  organization: Organization;
 };
 
 type State = {
@@ -102,13 +104,13 @@ class SharedGroupDetails extends Component<Props, State> {
       return <LoadingError onRetry={this.handleRetry} />;
     }
 
-    const {location} = this.props;
+    const {location, organization} = this.props;
     const {permalink, latestEvent, project} = group;
     const title = this.getTitle();
 
     return (
       <SentryDocumentTitle noSuffix title={title}>
-        <OrganizationContext.Provider value={project.organization}>
+        <OrganizationContext.Provider value={organization}>
           <div className="app">
             <div className="pattern-bg" />
             <div className="container">
@@ -128,7 +130,7 @@ class SharedGroupDetails extends Component<Props, State> {
                   <Container className="group-overview event-details-container">
                     <BorderlessEventEntries
                       location={location}
-                      organization={project.organization}
+                      organization={organization}
                       group={group}
                       event={latestEvent}
                       project={project}
@@ -151,4 +153,4 @@ const Container = styled('div')`
 `;
 
 export {SharedGroupDetails};
-export default withApi(SharedGroupDetails);
+export default withOrganization(withApi(SharedGroupDetails));
