@@ -5,7 +5,7 @@ from sentry.testutils.silo import region_silo_test
 
 
 @region_silo_test(stable=True)
-class OrganizationIntegrationReposTest(APITestCase):
+class OrganizationIntegrationIssuesTest(APITestCase):
     def setUp(self):
         super().setUp()
         self.login_as(self.user)
