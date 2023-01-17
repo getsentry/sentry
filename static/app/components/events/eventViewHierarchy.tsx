@@ -1,6 +1,7 @@
 import {useState} from 'react';
-import isEqual from 'lodash/isEqual';
 
+import * as Sentry from 'sentry';
+import ErrorBoundary from 'sentry/components/errorBoundary';
 import {getAttachmentUrl} from 'sentry/components/events/attachmentViewers/utils';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {tn} from 'sentry/locale';
@@ -9,9 +10,8 @@ import {useQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import {EventDataSection} from './eventDataSection';
-import {ViewHierarchy, ViewHierarchyData} from './viewHierarchy';
+import {ViewHierarchy} from './viewHierarchy';
 
-const DEFAULT_RESPONSE: ViewHierarchyData = {rendering_system: '', windows: []};
 const FIVE_SECONDS_IN_MS = 5 * 1000;
 
 type Props = {
@@ -37,8 +37,16 @@ function EventViewHierarchy({projectSlug, viewHierarchies}: Props) {
   );
 
   // TODO(nar): This loading behaviour is subject to change
-  if (isLoading || !data || isEqual(DEFAULT_RESPONSE, data)) {
+  if (isLoading || !data) {
     return <LoadingIndicator />;
+  }
+
+  let parsedViewHierarchy;
+  try {
+    parsedViewHierarchy = JSON.parse(data);
+  } catch (err) {
+    Sentry.captureException(err);
+    return null;
   }
 
   return (
@@ -46,7 +54,9 @@ function EventViewHierarchy({projectSlug, viewHierarchies}: Props) {
       type="view_hierarchy"
       title={tn('View Hierarchy', 'View Hierarchies', viewHierarchies.length)}
     >
-      <ViewHierarchy viewHierarchy={JSON.parse(data)} />
+      <ErrorBoundary>
+        <ViewHierarchy viewHierarchy={parsedViewHierarchy} />
+      </ErrorBoundary>
     </EventDataSection>
   );
 }
