@@ -17,12 +17,12 @@ coverage:
         target: 90%
         flags:
           - backend
-      acceptance:
+      backend-and-frontend:
         # codecov will not fail status checks for master
         only_pulls: true
         target: 60%
         flags:
-          - acceptance
+          - backend-and-frontend
   ignore:
   - src/*/migrations/
   - src/bitfield/
@@ -42,7 +42,7 @@ flags:
     paths:
     - "src/sentry/**/*.py"
     carryforward: true
-  acceptance:
+  backend-and-frontend:
     paths:
     - "static/app/"
     - "src/sentry/**/*.py"

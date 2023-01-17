@@ -115,7 +115,7 @@ jobs:
         uses: ./.github/actions/artifacts
         with:
           files: .artifacts/coverage/*
-          type: acceptance
+          type: backend-and-frontend
 
   acceptance:
     if: needs.files-changed.outputs.acceptance == 'true'
