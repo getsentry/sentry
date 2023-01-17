@@ -3,17 +3,15 @@ import {browserHistory, InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import Alert from 'sentry/components/alert';
-import Button from 'sentry/components/button';
+import {Alert} from 'sentry/components/alert';
+import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import * as Layout from 'sentry/components/layouts/thirds';
-import ExternalLink from 'sentry/components/links/externalLink';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
-import PageHeading from 'sentry/components/pageHeading';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import Pagination from 'sentry/components/pagination';
 import {ProfileEventsTable} from 'sentry/components/profiling/profileEventsTable';
@@ -23,7 +21,7 @@ import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import SmartSearchBar, {SmartSearchBarProps} from 'sentry/components/smartSearchBar';
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
 import space from 'sentry/styles/space';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
@@ -126,19 +124,15 @@ function ProfilingContent({location, router}: ProfilingContentProps) {
           <Layout.Page>
             <Layout.Header>
               <Layout.HeaderContent>
-                <StyledHeading>
+                <Layout.Title>
                   {t('Profiling')}
                   <PageHeadingQuestionTooltip
-                    title={tct(
-                      'A view of how your application performs in a variety of environments, based off of the performance profiles collected from real user devices in production. [link: Read the docs].',
-                      {
-                        link: (
-                          <ExternalLink href="https://docs.sentry.io/product/profiling/" />
-                        ),
-                      }
+                    docsUrl="https://docs.sentry.io/product/profiling/"
+                    title={t(
+                      'A view of how your application performs in a variety of environments, based off of the performance profiles collected from real user devices in production.'
                     )}
                   />
-                </StyledHeading>
+                </Layout.Title>
               </Layout.HeaderContent>
               <Layout.HeaderActions>
                 <ButtonBar gap={1}>
@@ -242,10 +236,6 @@ const FIELDS = [
 ] as const;
 
 type FieldType = typeof FIELDS[number];
-
-const StyledHeading = styled(PageHeading)`
-  line-height: 40px;
-`;
 
 const ActionBar = styled('div')`
   display: grid;

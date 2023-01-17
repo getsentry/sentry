@@ -76,7 +76,7 @@ type Props = {
   organization: Organization;
   projects: Project[];
 } & WithRouteAnalyticsProps &
-  RouteComponentProps<{groupId: string; orgId: string; eventId?: string}, {}>;
+  RouteComponentProps<{groupId: string; eventId?: string}, {}>;
 
 type State = {
   error: boolean;
@@ -223,8 +223,8 @@ class GroupDetails extends Component<Props, State> {
       this.setState({loadingEvent: true, eventError: false});
     }
 
-    const {params, environments, api} = this.props;
-    const orgSlug = params.orgId;
+    const {params, environments, api, organization} = this.props;
+    const orgSlug = organization.slug;
     const groupId = params.groupId;
     const eventId = params.eventId ?? 'latest';
     const projectId = group?.project?.slug;
@@ -430,7 +430,7 @@ class GroupDetails extends Component<Props, State> {
   }
 
   async fetchData(trackView = false) {
-    const {api, isGlobalSelectionReady, params} = this.props;
+    const {api, isGlobalSelectionReady, organization, params} = this.props;
 
     // Need to wait for global selection store to be ready before making request
     if (!isGlobalSelectionReady) {
@@ -458,7 +458,7 @@ class GroupDetails extends Component<Props, State> {
 
       const project = data.project;
 
-      markEventSeen(api, params.orgId, project.slug, params.groupId);
+      markEventSeen(api, organization.slug, project.slug, params.groupId);
 
       if (!project) {
         Sentry.withScope(() => {

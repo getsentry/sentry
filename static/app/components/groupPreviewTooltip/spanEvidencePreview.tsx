@@ -91,6 +91,7 @@ const SpanEvidencePreviewBody = ({
           transactionName={data.title}
           parentSpan={spanInfo.parentSpan}
           offendingSpans={spanInfo.offendingSpans}
+          causeSpans={spanInfo.causeSpans}
         />
       </SpanEvidencePreviewWrapper>
     );

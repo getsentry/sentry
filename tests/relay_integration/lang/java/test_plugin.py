@@ -45,104 +45,103 @@ PROGUARD_BUG_SOURCE = b"x"
 
 class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
     def test_basic_resolving(self):
-        with self.feature("organizations:java-exception-value-deobfuscation"):
-            url = reverse(
-                "sentry-api-0-dsym-files",
-                kwargs={
-                    "organization_slug": self.project.organization.slug,
-                    "project_slug": self.project.slug,
-                },
-            )
+        url = reverse(
+            "sentry-api-0-dsym-files",
+            kwargs={
+                "organization_slug": self.project.organization.slug,
+                "project_slug": self.project.slug,
+            },
+        )
 
-            self.login_as(user=self.user)
+        self.login_as(user=self.user)
 
-            out = BytesIO()
-            f = zipfile.ZipFile(out, "w")
-            f.writestr("proguard/%s.txt" % PROGUARD_UUID, PROGUARD_SOURCE)
-            f.writestr("ignored-file.txt", b"This is just some stuff")
-            f.close()
+        out = BytesIO()
+        f = zipfile.ZipFile(out, "w")
+        f.writestr("proguard/%s.txt" % PROGUARD_UUID, PROGUARD_SOURCE)
+        f.writestr("ignored-file.txt", b"This is just some stuff")
+        f.close()
 
-            response = self.client.post(
-                url,
-                {
-                    "file": SimpleUploadedFile(
-                        "symbols.zip", out.getvalue(), content_type="application/zip"
-                    )
-                },
-                format="multipart",
-            )
-            assert response.status_code == 201, response.content
-            assert len(response.data) == 1
+        response = self.client.post(
+            url,
+            {
+                "file": SimpleUploadedFile(
+                    "symbols.zip", out.getvalue(), content_type="application/zip"
+                )
+            },
+            format="multipart",
+        )
+        assert response.status_code == 201, response.content
+        assert len(response.data) == 1
 
-            event_data = {
-                "user": {"ip_address": "31.172.207.97"},
-                "extra": {},
-                "project": self.project.id,
-                "platform": "java",
-                "debug_meta": {"images": [{"type": "proguard", "uuid": PROGUARD_UUID}]},
-                "exception": {
-                    "values": [
-                        {
-                            "stacktrace": {
-                                "frames": [
-                                    {
-                                        "function": "a",
-                                        "abs_path": None,
-                                        "module": "org.a.b.g$a",
-                                        "filename": None,
-                                        "lineno": 67,
-                                    },
-                                    {
-                                        "function": "a",
-                                        "abs_path": None,
-                                        "module": "org.a.b.g$a",
-                                        "filename": None,
-                                        "lineno": 69,
-                                    },
-                                ]
-                            },
-                            "module": "org.a.b",
-                            "type": "g$a",
-                            "value": "Attempt to invoke virtual method 'org.a.b.g$a.a' on a null object reference",
-                        }
-                    ]
-                },
-                "timestamp": iso_format(before_now(seconds=1)),
-            }
-
-            event = self.post_and_retrieve_event(event_data)
-            if not self.use_relay():
-                # We measure the number of queries after an initial post,
-                # because there are many queries polluting the array
-                # before the actual "processing" happens (like, auth_user)
-                with self.assertWriteQueries(
+        event_data = {
+            "user": {"ip_address": "31.172.207.97"},
+            "extra": {},
+            "project": self.project.id,
+            "platform": "java",
+            "debug_meta": {"images": [{"type": "proguard", "uuid": PROGUARD_UUID}]},
+            "exception": {
+                "values": [
                     {
-                        "nodestore_node": 2,
-                        "sentry_eventuser": 1,
-                        "sentry_groupedmessage": 1,
-                        "sentry_userreport": 1,
+                        "stacktrace": {
+                            "frames": [
+                                {
+                                    "function": "a",
+                                    "abs_path": None,
+                                    "module": "org.a.b.g$a",
+                                    "filename": None,
+                                    "lineno": 67,
+                                },
+                                {
+                                    "function": "a",
+                                    "abs_path": None,
+                                    "module": "org.a.b.g$a",
+                                    "filename": None,
+                                    "lineno": 69,
+                                },
+                            ]
+                        },
+                        "module": "org.a.b",
+                        "type": "g$a",
+                        "value": "Attempt to invoke virtual method 'org.a.b.g$a.a' on a null object reference",
                     }
-                ):
-                    self.post_and_retrieve_event(event_data)
+                ]
+            },
+            "timestamp": iso_format(before_now(seconds=1)),
+        }
 
-            exc = event.interfaces["exception"].values[0]
-            bt = exc.stacktrace
-            frames = bt.frames
+        event = self.post_and_retrieve_event(event_data)
+        if not self.use_relay():
+            # We measure the number of queries after an initial post,
+            # because there are many queries polluting the array
+            # before the actual "processing" happens (like, auth_user)
+            with self.assertWriteQueries(
+                {
+                    "nodestore_node": 2,
+                    "sentry_eventuser": 1,
+                    "sentry_groupedmessage": 1,
+                    "sentry_userreport": 1,
+                }
+            ):
+                self.post_and_retrieve_event(event_data)
 
-            assert exc.type == "Util$ClassContextSecurityManager"
-            assert (
-                exc.value
-                == "Attempt to invoke virtual method 'org.slf4j.helpers.Util$ClassContextSecurityManager.getExtraClassContext' on a null object reference"
-            )
-            assert exc.module == "org.slf4j.helpers"
-            assert frames[0].function == "getClassContext"
-            assert frames[0].module == "org.slf4j.helpers.Util$ClassContextSecurityManager"
-            assert frames[1].function == "getExtraClassContext"
-            assert frames[1].module == "org.slf4j.helpers.Util$ClassContextSecurityManager"
+        exc = event.interfaces["exception"].values[0]
+        bt = exc.stacktrace
+        frames = bt.frames
 
-            assert event.culprit == (
-                "org.slf4j.helpers.Util$ClassContextSecurityManager " "in getExtraClassContext"
-            )
+        assert exc.type == "Util$ClassContextSecurityManager"
+        assert (
+            exc.value
+            == "Attempt to invoke virtual method 'org.slf4j.helpers.Util$ClassContextSecurityManager.getExtraClassContext' on a null object reference"
+        )
+        assert exc.module == "org.slf4j.helpers"
+        assert frames[0].function == "getClassContext"
+        assert frames[0].module == "org.slf4j.helpers.Util$ClassContextSecurityManager"
+        assert frames[1].function == "getExtraClassContext"
+        assert frames[1].module == "org.slf4j.helpers.Util$ClassContextSecurityManager"
+
+        assert event.culprit == (
+            "org.slf4j.helpers.Util$ClassContextSecurityManager " "in getExtraClassContext"
+        )
 
     def test_resolving_inline(self):
         url = reverse(

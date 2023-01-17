@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 import xor from 'lodash/xor';
 
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';

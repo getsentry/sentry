@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import Access from 'sentry/components/acl/access';
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import {Hovercard} from 'sentry/components/hovercard';
 import {PanelItem} from 'sentry/components/panels';
 import Tag from 'sentry/components/tag';

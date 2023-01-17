@@ -1,7 +1,7 @@
 import {Component, Fragment} from 'react';
 import PropTypes from 'prop-types';
 
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import GridEditable from 'sentry/components/gridEditable';
 
 const COLUMN_ORDER = [

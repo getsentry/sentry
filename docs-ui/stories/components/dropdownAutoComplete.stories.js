@@ -1,4 +1,4 @@
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
 import DropdownButton from 'sentry/components/dropdownButton';
 
