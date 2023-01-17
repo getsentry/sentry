@@ -14,6 +14,7 @@ import {
   CodecovStatusCode,
   Coverage,
   Frame,
+  LineCoverage,
   Organization,
   SentryAppComponent,
 } from 'sentry/types';
@@ -48,6 +49,51 @@ type Props = {
   organization?: Organization;
   registersMeta?: Record<any, any>;
 };
+
+export function getCoverageColors(
+  organization: Organization,
+  missingData: boolean,
+  lines: [number, string][],
+  lineCoverage?: LineCoverage[]
+): string[] {
+  const shouldShowCodecovData =
+    organization?.features.includes('codecov-stacktrace-integration') &&
+    organization?.codecovAccess;
+
+  if (!shouldShowCodecovData || !missingData || !lineCoverage) {
+    return lines.map(() => 'transparent');
+  }
+
+  let coverageIndex = 0;
+  for (const [index, lc] of lineCoverage.entries()) {
+    if (lc.lineNo === lines[0][0]) {
+      coverageIndex = index;
+      break;
+    }
+  }
+
+  return lines.map(line => {
+    const coverageLine = lineCoverage[coverageIndex];
+    let coverage = Coverage.NOT_APPLICABLE;
+    if (coverageLine.lineNo === line[0]) {
+      coverage = coverageLine.coverage;
+      coverageIndex += 1;
+    }
+
+    switch (coverage) {
+      case Coverage.COVERED:
+        return 'green100';
+      case Coverage.NOT_COVERED:
+        return 'red100';
+      case Coverage.PARTIAL:
+        return 'yellow100';
+      case Coverage.NOT_APPLICABLE:
+      // fallthrough
+      default:
+        return 'transparent';
+    }
+  });
+}
 
 const Context = ({
   hasContextVars = false,
@@ -113,46 +159,6 @@ const Context = ({
     }
   }
 
-  const getLineCoverageColor = (line: [number, string], isActive): string => {
-    const shouldShowCodecovData =
-      organization?.features.includes('codecov-stacktrace-integration') &&
-      organization?.codecovAccess;
-    const missingData = isLoading || !data;
-
-    if (
-      !shouldShowCodecovData ||
-      missingData ||
-      data?.codecovStatusCode !== CodecovStatusCode.COVERAGE_EXISTS
-    ) {
-      return 'transparent';
-    }
-
-    if (isActive) {
-      return 'transparent';
-    }
-
-    let coverage = Coverage.NOT_APPLICABLE;
-    for (const lc of data.lineCoverage!) {
-      if (lc.lineNo === line[0]) {
-        coverage = lc.coverage;
-        break;
-      }
-    }
-
-    switch (coverage) {
-      case Coverage.COVERED:
-        return 'green100';
-      case Coverage.NOT_COVERED:
-        return 'red100';
-      case Coverage.PARTIAL:
-        return 'yellow100';
-      case Coverage.NOT_APPLICABLE:
-      // fallthrough
-      default:
-        return 'transparent';
-    }
-  };
-
   const contextLines = isExpanded
     ? frame.context
     : frame.context.filter(l => l[0] === frame.lineNo);
@@ -163,6 +169,15 @@ const Context = ({
     !!frame.filename &&
     isExpanded &&
     organization?.features.includes('integrations-stacktrace-link');
+
+  const missingData =
+    isLoading || !data || data?.codecovStatusCode !== CodecovStatusCode.COVERAGE_EXISTS;
+  const lineColors = getCoverageColors(
+    organization!,
+    missingData,
+    contextLines,
+    data?.lineCoverage
+  );
 
   return (
     <Wrapper
@@ -186,7 +201,7 @@ const Context = ({
               key={index}
               line={line}
               isActive={isActive}
-              color={getLineCoverageColor(line, isActive)}
+              color={isActive ? 'transparent' : lineColors[index]}
             >
               {hasComponents && (
                 <ErrorBoundary mini>
