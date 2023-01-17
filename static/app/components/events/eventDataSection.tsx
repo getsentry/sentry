@@ -24,7 +24,7 @@ type Props = {
   className?: string;
   /**
    * If the section has a guide associated to it, you may specify the guide
-   * target and it will wrapp the title with a GuideAnchor
+   * target and it will wrap the title with a GuideAnchor
    */
   guideTarget?: string;
   /**
