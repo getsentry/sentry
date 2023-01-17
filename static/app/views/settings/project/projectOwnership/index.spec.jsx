@@ -47,7 +47,7 @@ describe('Project Ownership', () => {
     it('renders', () => {
       const wrapper = render(
         <ProjectOwnership
-          params={{orgId: org.slug, projectId: project.slug}}
+          params={{projectId: project.slug}}
           organization={org}
           project={project}
         />
@@ -68,7 +68,7 @@ describe('Project Ownership', () => {
       });
       render(
         <ProjectOwnership
-          params={{orgId: org.slug, projectId: project.slug}}
+          params={{projectId: project.slug}}
           organization={org}
           project={project}
         />,
@@ -98,7 +98,7 @@ describe('Project Ownership', () => {
 
       render(
         <ProjectOwnership
-          params={{orgId: org.slug, projectId: project.slug}}
+          params={{projectId: project.slug}}
           organization={org}
           project={project}
         />

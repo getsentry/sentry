@@ -7,7 +7,7 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
 import Access from 'sentry/components/acl/access';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import DateTime from 'sentry/components/dateTime';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
@@ -19,6 +19,7 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import {Panel, PanelAlert, PanelBody, PanelHeader} from 'sentry/components/panels';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
+import {Organization} from 'sentry/types';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import KeyRateLimitsForm from 'sentry/views/settings/project/projectKeys/details/keyRateLimitsForm';
 import ProjectKeyCredentials from 'sentry/views/settings/project/projectKeys/projectKeyCredentials';
@@ -28,9 +29,9 @@ type Props = {
   api: Client;
   data: ProjectKey;
   onRemove: () => void;
+  organization: Organization;
   params: {
     keyId: string;
-    orgId: string;
     projectId: string;
   };
 };
@@ -52,13 +53,16 @@ class KeySettings extends Component<Props, State> {
     }
 
     addLoadingMessage(t('Revoking key\u2026'));
-    const {api, onRemove, params} = this.props;
-    const {keyId, orgId, projectId} = params;
+    const {api, organization, onRemove, params} = this.props;
+    const {keyId, projectId} = params;
 
     try {
-      await api.requestPromise(`/projects/${orgId}/${projectId}/keys/${keyId}/`, {
-        method: 'DELETE',
-      });
+      await api.requestPromise(
+        `/projects/${organization.slug}/${projectId}/keys/${keyId}/`,
+        {
+          method: 'DELETE',
+        }
+      );
 
       onRemove();
       addSuccessMessage(t('Revoked key'));
@@ -72,9 +76,9 @@ class KeySettings extends Component<Props, State> {
   };
 
   render() {
-    const {keyId, orgId, projectId} = this.props.params;
-    const {data} = this.props;
-    const apiEndpoint = `/projects/${orgId}/${projectId}/keys/${keyId}/`;
+    const {keyId, projectId} = this.props.params;
+    const {data, organization} = this.props;
+    const apiEndpoint = `/projects/${organization.slug}/${projectId}/keys/${keyId}/`;
     const loaderLink = getDynamicText({
       value: data.dsn.cdn,
       fixed: '__JS_SDK_LOADER_URL__',
@@ -119,6 +123,7 @@ class KeySettings extends Component<Props, State> {
             </Form>
 
             <KeyRateLimitsForm
+              organization={organization}
               params={this.props.params}
               data={data}
               disabled={!hasAccess}

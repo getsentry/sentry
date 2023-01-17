@@ -6,7 +6,7 @@ import tourFilter from 'sentry-images/spot/discover-tour-filter.svg';
 import tourGroup from 'sentry-images/spot/discover-tour-group.svg';
 
 import Banner from 'sentry/components/banner';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import FeatureTourModal, {
   TourImage,
   TourStep,

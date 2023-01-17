@@ -5,6 +5,7 @@ import OrganizationRepositoriesContainer from 'sentry/views/settings/organizatio
 
 describe('OrganizationRepositoriesContainer', function () {
   const context = TestStubs.routerContext();
+  const organization = TestStubs.Organization();
 
   beforeEach(function () {
     Client.clearMockResponses();
@@ -24,7 +25,7 @@ describe('OrganizationRepositoriesContainer', function () {
 
     it('is loading when initially rendering', function () {
       const wrapper = render(
-        <OrganizationRepositoriesContainer params={{orgId: 'org-slug'}} />,
+        <OrganizationRepositoriesContainer organization={organization} />,
         {
           context,
         }

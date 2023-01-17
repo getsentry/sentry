@@ -41,12 +41,6 @@ export const FIELD_TO_METRICS_EXPRESSION = {
   'crash_free_rate(user)': SessionMetric.USER_CRASH_FREE_RATE,
   'crash_rate(session)': SessionMetric.SESSION_CRASH_RATE,
   'crash_rate(user)': SessionMetric.USER_CRASH_RATE,
-  'avg(session.duration)': `avg(${SessionMetric.SESSION_DURATION})`,
-  'max(session.duration)': `max(${SessionMetric.SESSION_DURATION})`,
-  'p50(session.duration)': `p50(${SessionMetric.SESSION_DURATION})`,
-  'p75(session.duration)': `p75(${SessionMetric.SESSION_DURATION})`,
-  'p95(session.duration)': `p95(${SessionMetric.SESSION_DURATION})`,
-  'p99(session.duration)': `p99(${SessionMetric.SESSION_DURATION})`,
   project: 'project_id',
 };
 
@@ -91,7 +85,7 @@ export const SESSIONS_FIELDS: Readonly<Partial<Record<SessionField, SessionsMeta
   },
   [SessionField.SESSION_DURATION]: {
     name: 'session.duration',
-    operations: ['avg', 'p50', 'p75', 'p95', 'p99', 'max'],
+    operations: [],
     type: 'duration',
   },
 };
@@ -183,72 +177,6 @@ export const SESSIONS_OPERATIONS: Readonly<
         kind: 'column',
         columnTypes: ['integer', 'string'],
         defaultValue: SessionField.SESSION,
-        required: true,
-      },
-    ],
-  },
-  avg: {
-    outputType: null,
-    parameters: [
-      {
-        kind: 'column',
-        columnTypes: ['duration'],
-        defaultValue: SessionField.SESSION_DURATION,
-        required: true,
-      },
-    ],
-  },
-  max: {
-    outputType: null,
-    parameters: [
-      {
-        kind: 'column',
-        columnTypes: ['duration'],
-        defaultValue: SessionField.SESSION_DURATION,
-        required: true,
-      },
-    ],
-  },
-  p50: {
-    outputType: null,
-    parameters: [
-      {
-        kind: 'column',
-        columnTypes: ['duration'],
-        defaultValue: SessionField.SESSION_DURATION,
-        required: true,
-      },
-    ],
-  },
-  p75: {
-    outputType: null,
-    parameters: [
-      {
-        kind: 'column',
-        columnTypes: ['duration'],
-        defaultValue: SessionField.SESSION_DURATION,
-        required: true,
-      },
-    ],
-  },
-  p95: {
-    outputType: null,
-    parameters: [
-      {
-        kind: 'column',
-        columnTypes: ['duration'],
-        defaultValue: SessionField.SESSION_DURATION,
-        required: true,
-      },
-    ],
-  },
-  p99: {
-    outputType: null,
-    parameters: [
-      {
-        kind: 'column',
-        columnTypes: ['duration'],
-        defaultValue: SessionField.SESSION_DURATION,
         required: true,
       },
     ],

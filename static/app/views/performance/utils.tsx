@@ -12,7 +12,7 @@ import {
   Project,
   ReleaseProject,
 } from 'sentry/types';
-import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {statsPeriodToDays} from 'sentry/utils/dates';
 import EventView from 'sentry/utils/discover/eventView';
 import {TRACING_FIELDS} from 'sentry/utils/discover/fields';
@@ -21,6 +21,7 @@ import getCurrentSentryReactTransaction from 'sentry/utils/getCurrentSentryReact
 import {decodeScalar} from 'sentry/utils/queryString';
 import toArray from 'sentry/utils/toArray';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 import {DEFAULT_MAX_DURATION} from './trends/utils';
 
@@ -194,17 +195,15 @@ export function handleTrendsClick({
   organization: Organization;
   projectPlatforms: string;
 }) {
-  trackAnalyticsEvent({
-    eventKey: 'performance_views.change_view',
-    eventName: 'Performance Views: Change View',
-    organization_id: parseInt(organization.id, 10),
+  trackAdvancedAnalyticsEvent('performance_views.change_view', {
+    organization,
     view_name: 'TRENDS',
     project_platforms: projectPlatforms,
   });
 
   const target = trendsTargetRoute({location, organization});
 
-  browserHistory.push(target);
+  browserHistory.push(normalizeUrl(target));
 }
 
 export function trendsTargetRoute({

@@ -63,10 +63,10 @@ export default class ReplayReader {
       breadcrumbs,
       spans
     );
-    replayRecord.startedAt = new Date(startTimestampMs);
-    replayRecord.finishedAt = new Date(endTimestampMs);
+    replayRecord.started_at = new Date(startTimestampMs);
+    replayRecord.finished_at = new Date(endTimestampMs);
     replayRecord.duration = duration(
-      replayRecord.finishedAt.getTime() - replayRecord.startedAt.getTime()
+      replayRecord.finished_at.getTime() - replayRecord.started_at.getTime()
     );
 
     const sortedSpans = spansFactory(spans);

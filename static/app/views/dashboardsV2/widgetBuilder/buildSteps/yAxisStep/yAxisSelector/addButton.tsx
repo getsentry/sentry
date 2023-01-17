@@ -1,6 +1,6 @@
 import {MouseEventHandler} from 'react';
 
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import {IconAdd} from 'sentry/icons';
 
 interface Props {

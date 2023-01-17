@@ -5,7 +5,7 @@ import moment from 'moment';
 
 import {navigateTo} from 'sentry/actionCreators/navigation';
 import Avatar from 'sentry/components/avatar';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import Card from 'sentry/components/card';
 import LetterAvatar from 'sentry/components/letterAvatar';
 import Tooltip from 'sentry/components/tooltip';

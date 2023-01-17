@@ -3,7 +3,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {action} from '@storybook/addon-actions';
 
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import DropdownButton from 'sentry/components/dropdownButton';
 import DropdownLink from 'sentry/components/dropdownLink';

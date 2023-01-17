@@ -24,6 +24,9 @@ class TSDBModel(Enum):
     # number of transactions seen specific to a group
     group_performance = 10
 
+    # number of occurrences seen specific to a generic group
+    group_generic = 20
+
     # the number of events sent to the server
     project_total_received = 100
     # the number of events rejected due to rate limiting
@@ -46,6 +49,8 @@ class TSDBModel(Enum):
     users_affected_by_project = 301
     # distinct count of users that have been affected by an event in a performance group
     users_affected_by_perf_group = 302
+    # distinct count of users that have been affected by an event in a generic group
+    users_affected_by_generic_group = 303
 
     # frequent_organization_received_by_system = 400
     # frequent_organization_rejected_by_system = 401

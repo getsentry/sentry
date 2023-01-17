@@ -1,6 +1,6 @@
 import {action} from '@storybook/addon-actions';
 
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import {IconClose} from 'sentry/icons';
 

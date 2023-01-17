@@ -4,9 +4,12 @@ import Link from 'sentry/components/links/link';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconArrow} from 'sentry/icons';
 import space from 'sentry/styles/space';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 import type {ReplayListLocationQuery} from 'sentry/views/replays/types';
+import {ReplayRecord} from 'sentry/views/replays/types';
 
 type NotSortable = {
   label: string;
@@ -14,7 +17,7 @@ type NotSortable = {
 };
 
 type Sortable = {
-  fieldName: string;
+  fieldName: keyof ReplayRecord;
   label: string;
   sort: undefined | Sort;
   tooltip?: string;
@@ -24,6 +27,7 @@ type Props = NotSortable | Sortable;
 
 function SortableHeader(props: Props) {
   const location = useLocation<ReplayListLocationQuery>();
+  const organization = useOrganization();
 
   if (!('sort' in props) || !props.sort) {
     const {label, tooltip} = props;
@@ -53,6 +57,17 @@ function SortableHeader(props: Props) {
               : 'descending'
             : 'none'
         }
+        onClick={() => {
+          const column = sort?.field.endsWith(fieldName)
+            ? sort?.kind === 'desc'
+              ? fieldName
+              : '-' + fieldName
+            : '-' + fieldName;
+          trackAdvancedAnalyticsEvent('replay.list-sorted', {
+            organization,
+            column,
+          });
+        }}
         to={{
           pathname: location.pathname,
           query: {

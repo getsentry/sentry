@@ -2,7 +2,7 @@ import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Flamegraph} from 'sentry/components/profiling/flamegraph/flamegraph';
 import {ProfileDragDropImportProps} from 'sentry/components/profiling/flamegraph/flamegraphOverlays/profileDragDropImport';
@@ -74,7 +74,7 @@ function ProfileFlamegraph(): React.ReactElement {
   const profiledTransaction = useProfileTransaction();
 
   const hasFlameChartSpans = useMemo(() => {
-    return organization.features.includes('organizations:profiling-flamechart-spans');
+    return organization.features.includes('profiling-flamechart-spans');
   }, [organization.features]);
 
   const spanTree: SpanTree = useMemo(() => {
@@ -91,7 +91,10 @@ function ProfileFlamegraph(): React.ReactElement {
   const [storedPreferences] = useLocalStorageState<DeepPartial<FlamegraphState>>(
     FLAMEGRAPH_LOCALSTORAGE_PREFERENCES_KEY,
     {
-      preferences: {layout: DEFAULT_FLAMEGRAPH_STATE.preferences.layout},
+      preferences: {
+        layout: DEFAULT_FLAMEGRAPH_STATE.preferences.layout,
+        view: DEFAULT_FLAMEGRAPH_STATE.preferences.view,
+      },
     }
   );
 

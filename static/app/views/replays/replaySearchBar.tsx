@@ -43,7 +43,7 @@ function SearchBar(props: Props) {
       {...props}
       onGetTagValues={undefined}
       supportedTags={REPLAY_TAGS}
-      placeholder={t('Search for users, duration, countErrors, and more')}
+      placeholder={t('Search for users, duration, count_errors, and more')}
       prepareQuery={prepareQuery}
       maxQueryLength={MAX_QUERY_LENGTH}
       searchSource="replay_index"
