@@ -93,6 +93,7 @@ export enum FieldKey {
   TIMESTAMP_TO_HOUR = 'timestamp.to_hour',
   TIMES_SEEN = 'timesSeen',
   TITLE = 'title',
+  TOTAL_COUNT = 'total.count',
   TRACE = 'trace',
   TRACE_PARENT_SPAN = 'trace.parent_span',
   TRACE_SPAN = 'trace.span',
@@ -854,6 +855,11 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
+  [FieldKey.TOTAL_COUNT]: {
+    desc: t('The total number of events for the current query'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.NUMBER,
+  },
   [FieldKey.TRACE_PARENT_SPAN]: {
     desc: t('Span identification number of the parent to the event'),
     kind: FieldKind.FIELD,
@@ -950,6 +956,7 @@ export const ISSUE_FIELDS = [
   FieldKey.ID,
   FieldKey.IS,
   FieldKey.ISSUE_CATEGORY,
+  FieldKey.ISSUE_TYPE,
   FieldKey.LAST_SEEN,
   FieldKey.LOCATION,
   FieldKey.MESSAGE,
@@ -1063,6 +1070,9 @@ export const DISCOVER_FIELDS = [
   FieldKey.TRACE_SPAN,
   FieldKey.TRACE_PARENT_SPAN,
 
+  // Meta field that returns total count, usually for equations
+  FieldKey.TOTAL_COUNT,
+
   // Field alises defined in src/sentry/api/event_search.py
   FieldKey.PROJECT,
   FieldKey.ISSUE,
@@ -1079,20 +1089,20 @@ export const DISCOVER_FIELDS = [
 enum ReplayFieldKey {
   BROWSER_NAME = 'browser.name',
   BROWSER_VERSION = 'browser.version',
-  COUNT_ERRORS = 'countErrors',
-  COUNT_SEGMENTS = 'countSegments',
-  // COUNT_URLS = 'countUrls',
+  COUNT_ERRORS = 'count_errors',
+  COUNT_SEGMENTS = 'count_segments',
+  // COUNT_URLS = 'count_urls',
   DEVICE_MODEL = 'device.model',
   DURATION = 'duration',
-  // ERROR_IDS = 'errorIds',
-  // LONGEST_TRANSACTION = 'longestTransaction',
+  // ERROR_IDS = 'error_ids',
+  // LONGEST_TRANSACTION = 'longest_transaction',
   OS_NAME = 'os.name',
   OS_VERSION = 'os.version',
   RELEASES = 'releases',
-  // TRACE_IDS = 'traceIds',
+  // TRACE_IDS = 'trace_ids',
   URLS = 'urls',
-  USER_IP_ADDRESS = 'user.ipAddress',
-  USER_NAME = 'user.name',
+  USER_IP_ADDRESS = 'user.ip',
+  USER_NAME = 'user.username',
 }
 
 export const REPLAY_FIELDS = [

@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import startCase from 'lodash/startCase';
 import moment from 'moment';
 
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import ListItem from 'sentry/components/list/listItem';

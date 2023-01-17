@@ -3,8 +3,8 @@ import {Location} from 'history';
 
 import {addLoadingMessage, clearIndicators} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
-import Alert from 'sentry/components/alert';
-import Button from 'sentry/components/button';
+import {Alert} from 'sentry/components/alert';
+import {Button} from 'sentry/components/button';
 import {openConfirmModal} from 'sentry/components/confirm';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';

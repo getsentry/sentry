@@ -2,8 +2,8 @@ import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 import flatten from 'lodash/flatten';
 
-import Alert from 'sentry/components/alert';
-import Button from 'sentry/components/button';
+import {Alert} from 'sentry/components/alert';
+import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import FormField from 'sentry/components/forms/formField';
 import {TableType} from 'sentry/components/forms/types';
