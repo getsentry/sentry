@@ -113,7 +113,7 @@ const Context = ({
     }
   }
 
-  const getLineCoverageColor = (line: [number, string]): string => {
+  const getLineCoverageColor = (line: [number, string], isActive): string => {
     const shouldShowCodecovData =
       organization?.features.includes('codecov-stacktrace-integration') &&
       organization?.codecovAccess;
@@ -124,6 +124,10 @@ const Context = ({
       missingData ||
       data?.codecovStatusCode !== CodecovStatusCode.COVERAGE_EXISTS
     ) {
+      return 'transparent';
+    }
+
+    if (isActive) {
       return 'transparent';
     }
 
@@ -182,7 +186,7 @@ const Context = ({
               key={index}
               line={line}
               isActive={isActive}
-              color={getLineCoverageColor(line)}
+              color={getLineCoverageColor(line, isActive)}
             >
               {hasComponents && (
                 <ErrorBoundary mini>
