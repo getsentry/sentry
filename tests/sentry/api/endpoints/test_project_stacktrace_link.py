@@ -226,38 +226,6 @@ class ProjectStacktraceLinkTest(BaseProjectStacktraceLink):
         assert response.data["error"] == "stack_root_mismatch"
         assert response.data["integrations"] == [serialized_integration(self.integration)]
 
-    @with_feature("organizations:codecov-stacktrace-integration")
-    @mock.patch(
-        "sentry.api.endpoints.project_stacktrace_link.ProjectStacktraceLinkEndpoint.get_codecov_line_coverage"
-    )
-    @mock.patch.object(ExampleIntegration, "get_stacktrace_link")
-    def test_codecov_result(self, mock_integration, mock_codecov):
-        self.organization.flags.codecov_access = True
-        self.organization.save()
-        expected_line_coverage = [[1, 0], [3, 1], [4, 0]]
-        expected_status_code = 200
-        mock_integration.return_value = "https://github.com/repo/path/to/file.py"
-        mock_codecov.return_value = (expected_line_coverage, expected_status_code)
-        response = self.get_success_response(
-            self.organization.slug,
-            self.project.slug,
-            qs_params={
-                "file": self.filepath,
-                "absPath": "abs_path",
-                "module": "module",
-                "package": "package",
-            },
-        )
-        assert response.data["lineCoverage"] == expected_line_coverage
-        assert response.data["codecovStatusCode"] == expected_status_code
-
-    def test_get_codecov_path(self):
-        project_stacktrace_link_endpoint = ProjectStacktraceLinkEndpoint()
-        codecov_path = project_stacktrace_link_endpoint.get_codecov_path(
-            "https://github.com/getsentry/sentry/blob/8a0bf7246d39cdeb56d457134ee32767673b7492/src/sentry/shared_integrations/client/base.py"
-        )
-        assert codecov_path == "src/sentry/shared_integrations/client/base.py"
-
 
 @region_silo_test
 class ProjectStacktraceLinkTestMobile(BaseProjectStacktraceLink):
@@ -330,6 +298,52 @@ class ProjectStacktraceLinkTestMobile(BaseProjectStacktraceLink):
         )
         assert response.data["config"] == self.expected_configurations(self.code_mapping1)
         assert response.data["sourceUrl"] == f"{example_base_url}/{file_path}"
+
+
+class ProjectStracktraceLinkTestCodecov(BaseProjectStacktraceLink):
+    def setUp(self):
+        BaseProjectStacktraceLink.setUp(self)
+        self.code_mapping1 = self.create_code_mapping(
+            organization_integration=self.oi,
+            project=self.project,
+            repo=self.repo,
+            stack_root="",
+            source_root="",
+        )
+        self.filepath = "src/path/to/file.py"
+
+    @with_feature("organizations:codecov-stacktrace-integration")
+    @mock.patch(
+        "sentry.api.endpoints.project_stacktrace_link.ProjectStacktraceLinkEndpoint.get_codecov_line_coverage"
+    )
+    @mock.patch.object(ExampleIntegration, "get_stacktrace_link")
+    def test_codecov_result(self, mock_integration, mock_codecov):
+        self.organization.flags.codecov_access = True
+        self.organization.save()
+
+        expected_line_coverage = [[1, 0], [3, 1], [4, 0]]
+        expected_status_code = 200
+        mock_integration.return_value = "https://github.com/repo/path/to/file.py"
+        mock_codecov.return_value = (expected_line_coverage, expected_status_code)
+        response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            qs_params={
+                "file": self.filepath,
+                "absPath": "abs_path",
+                "module": "module",
+                "package": "package",
+            },
+        )
+        assert response.data["lineCoverage"] == expected_line_coverage
+        assert response.data["codecovStatusCode"] == expected_status_code
+
+    def test_get_codecov_path(self):
+        project_stacktrace_link_endpoint = ProjectStacktraceLinkEndpoint()
+        codecov_path = project_stacktrace_link_endpoint.get_codecov_path(
+            "https://github.com/getsentry/sentry/blob/8a0bf7246d39cdeb56d457134ee32767673b7492/src/sentry/shared_integrations/client/base.py"
+        )
+        assert codecov_path == "src/sentry/shared_integrations/client/base.py"
 
 
 class ProjectStacktraceLinkTestMultipleMatches(BaseProjectStacktraceLink):

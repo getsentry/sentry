@@ -192,27 +192,23 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
         return None
 
     def get_codecov_line_coverage(
-        self, config: JSONData, source_url: str, access_token: str
+        self, repo: str, service: str, branch: str, source_url: str, access_token: str
     ) -> Tuple[Optional[Sequence[Tuple[int, int]]], Optional[int]]:
-        owner_username, repo_name = config["repoName"].split("/")
+        owner_username, repo_name = repo.split("/")
         url = CODECOV_URL.format(
-            service=config["provider"]["key"], owner_username=owner_username, repo_name=repo_name
+            service=service, owner_username=owner_username, repo_name=repo_name
         )
         path = self.get_codecov_path(source_url)
         line_coverage, status_code = None, None
         if path:
-            params = {"branch": config["defaultBranch"], "path": path}
-            try:
-                response = requests.get(
-                    url, params=params, headers={"Authorization": "tokenAuth %s" % access_token}
-                )
-                line_coverage, status_code = (
-                    response.json()["files"][0]["line_coverage"],
-                    response.status_code,
-                )
-            except Exception:
-                if status_code != 404:
-                    logger.exception("Failed to get coverage from Codecov")
+            params = {"branch": branch, "path": path}
+            response = requests.get(
+                url, params=params, headers={"Authorization": "tokenAuth %s" % access_token}
+            )
+            line_coverage, status_code = (
+                response.json()["files"][0]["line_coverage"],
+                response.status_code,
+            )
         else:
             logger.error("Could not find codecov path")
         return line_coverage, status_code
@@ -297,22 +293,29 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                     if current_config["outcome"].get("attemptedUrl"):
                         result["attemptedUrl"] = current_config["outcome"]["attemptedUrl"]
 
-                if (
-                    features.has(
-                        "organizations:codecov-stacktrace-integration",
-                        project.organization,
-                        actor=request.user,
+                try:
+                    should_get_codecov_line_coverage = (
+                        features.has(
+                            "organizations:codecov-stacktrace-integration",
+                            project.organization,
+                            actor=request.user,
+                        )
+                        and project.organization.flags.codecov_access
                     )
-                    and project.organization.flags.codecov_access
-                ):
-                    (
-                        result["lineCoverage"],
-                        result["codecovStatusCode"],
-                    ) = self.get_codecov_line_coverage(
-                        current_config["config"],
-                        result["sourceUrl"],
-                        CODECOV_TOKEN,
-                    )
+                    if should_get_codecov_line_coverage:
+                        (
+                            result["lineCoverage"],
+                            result["codecovStatusCode"],
+                        ) = self.get_codecov_line_coverage(
+                            current_config["config"]["repoName"],
+                            current_config["config"]["provider"]["key"],
+                            current_config["config"]["defaultBranch"],
+                            result["sourceUrl"],
+                            CODECOV_TOKEN,
+                        )
+                except Exception:
+                    if not result.get("codecovStatusCode") or result["codecovStatusCode"] != 404:
+                        logger.exception("Failed to get coverage from Codecov")
 
             try:
                 set_tags(scope, result)
