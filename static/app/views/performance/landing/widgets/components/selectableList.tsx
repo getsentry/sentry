@@ -72,7 +72,16 @@ export const GrowLink = styled(Link)`
 `;
 
 export const WidgetEmptyStateWarning = () => {
-  return <StyledEmptyStateWarning small>{t('No results')}</StyledEmptyStateWarning>;
+  return (
+    <StyledEmptyStateWarning>
+      <PrimaryNote>{t('No results found')}</PrimaryNote>
+      <Note>
+        {t(
+          'Transactions may not be listed due to the filters above or a low sampling rate'
+        )}
+      </Note>
+    </StyledEmptyStateWarning>
+  );
 };
 
 export function ListClose(props: {
@@ -105,6 +114,18 @@ const StyledIconClose = styled(IconClose)`
 const StyledEmptyStateWarning = styled(EmptyStateWarning)`
   min-height: 300px;
   justify-content: center;
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+`;
+
+const PrimaryNote = styled('p')`
+  font-size: ${p => p.theme.fontSizeExtraLarge};
+`;
+
+const Note = styled('p')`
+  font-size: ${p => p.theme.fontSizeMedium};
+  max-width: 300px;
 `;
 
 const ListItemContainer = styled('div')`
