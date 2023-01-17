@@ -1,6 +1,7 @@
 import kebabCase from 'lodash/kebabCase';
 import mapValues from 'lodash/mapValues';
 
+import {getSpanInfoFromTransactionEvent} from 'sentry/components/events/interfaces/performance/utils';
 import {t} from 'sentry/locale';
 import {
   Entry,
@@ -23,18 +24,27 @@ type Span = (RawSpanType | TraceContextSpanProxy) & {
 };
 
 type SpanEvidenceKeyValueListProps = {
-  causeSpans: Span[] | null;
+  causeSpans: Span[];
   event: EventTransaction;
-  issueType: IssueType | undefined;
   offendingSpans: Span[];
   parentSpan: Span | null;
 };
 
 const TEST_ID_NAMESPACE = 'span-evidence-key-value-list';
 
-export function SpanEvidenceKeyValueList(props: SpanEvidenceKeyValueListProps) {
-  if (!props.issueType) {
-    return <DefaultSpanEvidence {...props} />;
+export function SpanEvidenceKeyValueList({event}: {event: EventTransaction}) {
+  const spanInfo = getSpanInfoFromTransactionEvent(event);
+  const performanceProblem = event?.perfProblem;
+
+  if (!performanceProblem?.issueType || !spanInfo) {
+    return (
+      <DefaultSpanEvidence
+        event={event}
+        offendingSpans={[]}
+        causeSpans={[]}
+        parentSpan={null}
+      />
+    );
   }
 
   const Component =
@@ -43,9 +53,9 @@ export function SpanEvidenceKeyValueList(props: SpanEvidenceKeyValueListProps) {
       [IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS]: NPlusOneAPICallsSpanEvidence,
       [IssueType.PERFORMANCE_SLOW_SPAN]: SlowSpanSpanEvidence,
       [IssueType.PERFORMANCE_CONSECUTIVE_DB_QUERIES]: ConsecutiveDBQueriesSpanEvidence,
-    }[props.issueType] ?? DefaultSpanEvidence;
+    }[performanceProblem.issueType] ?? DefaultSpanEvidence;
 
-  return <Component {...props} />;
+  return <Component event={event} {...spanInfo} />;
 }
 
 const ConsecutiveDBQueriesSpanEvidence = ({
@@ -129,10 +139,14 @@ const SlowSpanSpanEvidence = ({event, offendingSpans}: SpanEvidenceKeyValueListP
 
 const DefaultSpanEvidence = ({event, offendingSpans}: SpanEvidenceKeyValueListProps) => (
   <PresortedKeyValueList
-    data={[
-      makeTransactionNameRow(event),
-      makeRow(t('Offending Span'), getSpanEvidenceValue(offendingSpans[0])),
-    ]}
+    data={
+      [
+        makeTransactionNameRow(event),
+        offendingSpans.length > 0
+          ? makeRow(t('Offending Span'), getSpanEvidenceValue(offendingSpans[0]))
+          : null,
+      ].filter(Boolean) as KeyValueListData
+    }
   />
 );
 

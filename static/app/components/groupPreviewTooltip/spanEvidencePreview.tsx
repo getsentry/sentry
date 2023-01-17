@@ -2,7 +2,6 @@ import {Fragment, ReactChild, useEffect} from 'react';
 import styled from '@emotion/styled';
 
 import {SpanEvidenceKeyValueList} from 'sentry/components/events/interfaces/performance/spanEvidenceKeyValueList';
-import {getSpanInfoFromTransactionEvent} from 'sentry/components/events/interfaces/performance/utils';
 import {GroupPreviewHovercard} from 'sentry/components/groupPreviewTooltip/groupPreviewHovercard';
 import {useDelayedLoadingState} from 'sentry/components/groupPreviewTooltip/utils';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -81,18 +80,10 @@ const SpanEvidencePreviewBody = ({
     return <EmptyWrapper>{t('Failed to load preview')}</EmptyWrapper>;
   }
 
-  const spanInfo = data && getSpanInfoFromTransactionEvent(data);
-
-  if (spanInfo && data) {
+  if (data) {
     return (
       <SpanEvidencePreviewWrapper data-test-id="span-evidence-preview-body">
-        <SpanEvidenceKeyValueList
-          issueType={data?.perfProblem?.issueType}
-          event={data}
-          parentSpan={spanInfo.parentSpan}
-          offendingSpans={spanInfo.offendingSpans}
-          causeSpans={spanInfo.causeSpans}
-        />
+        <SpanEvidenceKeyValueList event={data} />
       </SpanEvidencePreviewWrapper>
     );
   }

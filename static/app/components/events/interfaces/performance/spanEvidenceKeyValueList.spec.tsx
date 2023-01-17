@@ -1,4 +1,8 @@
-import {EXAMPLE_TRANSACTION_TITLE, MockSpan} from 'sentry-test/performance/utils';
+import {
+  MockSpan,
+  ProblemSpan,
+  TransactionEventBuilder,
+} from 'sentry-test/performance/utils';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {EntryType, IssueType} from 'sentry/types';
@@ -10,39 +14,35 @@ import {
 
 describe('SpanEvidenceKeyValueList', () => {
   describe('N+1 Database Queries', () => {
-    const event = TestStubs.Event({
-      title: EXAMPLE_TRANSACTION_TITLE,
+    const builder = new TransactionEventBuilder('a1', '/');
+
+    const parentSpan = new MockSpan({
+      startTimestamp: 0,
+      endTimestamp: 200,
+      op: 'http.server',
+      problemSpan: ProblemSpan.PARENT,
     });
 
+    parentSpan.addChild({
+      startTimestamp: 10,
+      endTimestamp: 2100,
+      op: 'db',
+      description: 'SELECT * FROM books',
+      problemSpan: ProblemSpan.OFFENDER,
+    });
+
+    parentSpan.addChild({
+      startTimestamp: 10,
+      endTimestamp: 2100,
+      op: 'db',
+      description: 'SELECT * FROM books WHERE id = %s',
+      problemSpan: ProblemSpan.OFFENDER,
+    });
+
+    builder.addSpan(parentSpan);
+
     it('Renders relevant fields', () => {
-      render(
-        <SpanEvidenceKeyValueList
-          issueType={IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES}
-          event={event}
-          parentSpan={
-            new MockSpan({
-              startTimestamp: 0,
-              endTimestamp: 200,
-              op: 'http.server',
-            }).span
-          }
-          causeSpans={[]}
-          offendingSpans={[
-            new MockSpan({
-              startTimestamp: 10,
-              endTimestamp: 2100,
-              op: 'db',
-              description: 'SELECT * FROM books',
-            }).span,
-            new MockSpan({
-              startTimestamp: 10,
-              endTimestamp: 2100,
-              op: 'db',
-              description: 'SELECT * FROM books WHERE id = %s',
-            }).span,
-          ]}
-        />
-      );
+      render(<SpanEvidenceKeyValueList event={builder.getEvent()} />);
 
       expect(screen.getByRole('cell', {name: 'Transaction'})).toBeInTheDocument();
       expect(
@@ -67,40 +67,39 @@ describe('SpanEvidenceKeyValueList', () => {
   });
 
   describe('Consecutive DB Queries', () => {
-    const event = TestStubs.Event({
-      title: EXAMPLE_TRANSACTION_TITLE,
+    const builder = new TransactionEventBuilder(
+      'a1',
+      '/',
+      IssueType.PERFORMANCE_CONSECUTIVE_DB_QUERIES
+    );
+
+    const parentSpan = new MockSpan({
+      startTimestamp: 0,
+      endTimestamp: 650,
+      op: 'http.server',
+      problemSpan: ProblemSpan.PARENT,
     });
 
+    parentSpan.addChild({
+      startTimestamp: 10,
+      endTimestamp: 200,
+      op: 'db',
+      description: 'SELECT * FROM USERS LIMIT 100',
+      problemSpan: ProblemSpan.CAUSE,
+    });
+
+    parentSpan.addChild({
+      startTimestamp: 200,
+      endTimestamp: 400,
+      op: 'db',
+      description: 'SELECT COUNT(*) FROM USERS',
+      problemSpan: ProblemSpan.OFFENDER,
+    });
+
+    builder.addSpan(parentSpan);
+
     it('Renders relevant fields', () => {
-      render(
-        <SpanEvidenceKeyValueList
-          event={event}
-          issueType={IssueType.PERFORMANCE_CONSECUTIVE_DB_QUERIES}
-          parentSpan={
-            new MockSpan({
-              startTimestamp: 0,
-              endTimestamp: 650,
-              op: 'http.server',
-            }).span
-          }
-          causeSpans={[
-            new MockSpan({
-              startTimestamp: 10,
-              endTimestamp: 200,
-              op: 'db',
-              description: 'SELECT * FROM USERS LIMIT 100',
-            }).span,
-          ]}
-          offendingSpans={[
-            new MockSpan({
-              startTimestamp: 200,
-              endTimestamp: 400,
-              op: 'db',
-              description: 'SELECT COUNT(*) FROM USERS',
-            }).span,
-          ]}
-        />
-      );
+      render(<SpanEvidenceKeyValueList event={builder.getEvent()} />);
 
       expect(screen.getByRole('cell', {name: 'Transaction'})).toBeInTheDocument();
       expect(
@@ -122,47 +121,48 @@ describe('SpanEvidenceKeyValueList', () => {
   });
 
   describe('N+1 API Calls', () => {
-    const event = TestStubs.Event({
-      title: '/',
-      entries: [
-        TestStubs.EventEntry({
-          type: EntryType.REQUEST,
-          data: {
-            url: 'http://some.service.io',
-          },
-        }),
-      ],
+    const builder = new TransactionEventBuilder(
+      'a1',
+      '/',
+      IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS
+    );
+
+    const parentSpan = new MockSpan({
+      startTimestamp: 0,
+      endTimestamp: 200,
+      op: 'pageload',
+      problemSpan: ProblemSpan.PARENT,
     });
 
+    parentSpan.addChild({
+      startTimestamp: 10,
+      endTimestamp: 2100,
+      op: 'http.client',
+      description: 'GET /book/?book_id=7&sort=up',
+      problemSpan: ProblemSpan.OFFENDER,
+    });
+
+    parentSpan.addChild({
+      startTimestamp: 10,
+      endTimestamp: 2100,
+      op: 'http.client',
+      description: 'GET /book/?book_id=8&sort=down',
+      problemSpan: ProblemSpan.OFFENDER,
+    });
+
+    builder.addSpan(parentSpan);
+
+    builder.addEntry(
+      TestStubs.EventEntry({
+        type: EntryType.REQUEST,
+        data: {
+          url: 'http://some.service.io',
+        },
+      })
+    );
+
     it('Renders relevant fields', () => {
-      render(
-        <SpanEvidenceKeyValueList
-          event={event}
-          issueType={IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS}
-          parentSpan={
-            new MockSpan({
-              startTimestamp: 0,
-              endTimestamp: 200,
-              op: 'pageload',
-            }).span
-          }
-          causeSpans={[]}
-          offendingSpans={[
-            new MockSpan({
-              startTimestamp: 10,
-              endTimestamp: 2100,
-              op: 'http.client',
-              description: 'GET /book/?book_id=7&sort=up',
-            }).span,
-            new MockSpan({
-              startTimestamp: 10,
-              endTimestamp: 2100,
-              op: 'http.client',
-              description: 'GET /book/?book_id=8&sort=down',
-            }).span,
-          ]}
-        />
-      );
+      render(<SpanEvidenceKeyValueList event={builder.getEvent()} />);
 
       expect(screen.getByRole('cell', {name: 'Transaction'})).toBeInTheDocument();
       expect(
@@ -219,33 +219,31 @@ describe('SpanEvidenceKeyValueList', () => {
   });
 
   describe('Slow DB Span', () => {
-    const event = TestStubs.Event({
-      title: EXAMPLE_TRANSACTION_TITLE,
+    const builder = new TransactionEventBuilder(
+      'a1',
+      '/',
+      IssueType.PERFORMANCE_SLOW_SPAN
+    );
+
+    const parentSpan = new MockSpan({
+      startTimestamp: 0,
+      endTimestamp: 200,
+      op: 'pageload',
+      problemSpan: ProblemSpan.PARENT,
     });
 
+    parentSpan.addChild({
+      startTimestamp: 10,
+      endTimestamp: 10100,
+      op: 'db',
+      description: 'SELECT pokemon FROM pokedex',
+      problemSpan: ProblemSpan.OFFENDER,
+    });
+
+    builder.addSpan(parentSpan);
+
     it('Renders relevant fields', () => {
-      render(
-        <SpanEvidenceKeyValueList
-          event={event}
-          issueType={IssueType.PERFORMANCE_SLOW_SPAN}
-          parentSpan={
-            new MockSpan({
-              startTimestamp: 0,
-              endTimestamp: 200,
-              op: 'pageload',
-            }).span
-          }
-          causeSpans={[]}
-          offendingSpans={[
-            new MockSpan({
-              startTimestamp: 10,
-              endTimestamp: 10100,
-              op: 'db',
-              description: 'SELECT pokemon FROM pokedex',
-            }).span,
-          ]}
-        />
-      );
+      render(<SpanEvidenceKeyValueList event={builder.getEvent()} />);
 
       expect(screen.getByRole('cell', {name: 'Transaction'})).toBeInTheDocument();
       expect(

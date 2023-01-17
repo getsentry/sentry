@@ -140,15 +140,9 @@ export function getSpanInfoFromTransactionEvent(
   const offendingSpanIDs = event?.perfProblem?.offenderSpanIds ?? [];
   const causeSpanIDs = event?.perfProblem?.causeSpanIds ?? [];
 
-  const affectedSpanIds = [...offendingSpanIDs];
-  if (event?.perfProblem?.issueType !== IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS) {
-    affectedSpanIds.push(...parentSpanIDs);
-  }
-
   return {
     parentSpan: spansById[parentSpanIDs[0]],
     offendingSpans: offendingSpanIDs.map(spanID => spansById[spanID]),
     causeSpans: causeSpanIDs.map(spanID => spansById[spanID]),
-    affectedSpanIds,
   };
 }
