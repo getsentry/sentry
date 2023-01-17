@@ -149,7 +149,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
         return self._serialize_member(member)
 
     def get_organization_by_id(
-        self, *, id: int, user_id: Optional[int]
+        self, *, id: int, user_id: Optional[int] = None, slug: Optional[str] = None
     ) -> Optional[ApiUserOrganizationContext]:
         membership: Optional[ApiOrganizationMember] = None
         if user_id is not None:
@@ -160,7 +160,10 @@ class DatabaseBackedOrganizationService(OrganizationService):
                 pass
 
         try:
-            org = Organization.objects.get(id=id)
+            query = Organization.objects.filter(id=id)
+            if slug is not None:
+                query = query.filter(slug=slug)
+            org = query.get()
         except Organization.DoesNotExist:
             return None
 
