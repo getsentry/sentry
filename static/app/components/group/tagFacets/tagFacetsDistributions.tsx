@@ -65,7 +65,7 @@ export default function TagFacetsDistributions({
 
   const tagsData = tagFormatter?.(state.tagsData) ?? state.tagsData;
   const topTagKeys = tagKeys.filter(tagKey => Object.keys(tagsData).includes(tagKey));
-  const allTagKeys = Object.keys(tagsData)
+  const remainingTagKeys = Object.keys(tagsData)
     .filter(tagKey => !tagKeys.includes(tagKey))
     .sort();
 
@@ -97,7 +97,7 @@ export default function TagFacetsDistributions({
                 groupId={groupId}
                 organization={organization}
                 project={project}
-                tagKeys={allTagKeys}
+                tagKeys={remainingTagKeys}
                 tagsData={tagsData}
               />
               <ShowAllButtonContainer>
@@ -166,7 +166,7 @@ function TagFacetsDistributionMeterWrapper({
             segments={segments}
             onTagClick={() => undefined}
             project={project}
-            expanded={expandFirstTag && index === 0}
+            expandByDefault={expandFirstTag && index === 0}
           />
         );
       })}

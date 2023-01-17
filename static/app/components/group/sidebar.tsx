@@ -1,7 +1,6 @@
 import {Component, Fragment} from 'react';
 import {WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
-import MD5 from 'crypto-js/md5';
 import isEqual from 'lodash/isEqual';
 import isObject from 'lodash/isObject';
 import keyBy from 'lodash/keyBy';
@@ -251,12 +250,6 @@ class BaseGroupSidebar extends Component<Props, State> {
       'streamline-targeting-context'
     );
 
-    // Evenly split style between distributions and bars for AB testing
-    const tagFacetsStyle =
-      parseInt(MD5(organization.id).toString().substring(0, 6), 36) % 2 === 0
-        ? 'distributions'
-        : 'bars';
-
     return (
       <Container>
         {!hasIssueActionsV2 && (
@@ -316,7 +309,7 @@ class BaseGroupSidebar extends Component<Props, State> {
             }
             event={event}
             tagFormatter={TAGS_FORMATTER}
-            style={tagFacetsStyle}
+            style="distributions"
             project={project}
           />
         ) : (

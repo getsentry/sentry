@@ -25,7 +25,7 @@ type Props = {
   title: string;
   totalValues: number;
   colors?: string[];
-  expanded?: boolean;
+  expandByDefault?: boolean;
   onTagClick?: (title: string, value: TagSegment) => void;
 };
 
@@ -64,10 +64,10 @@ function TagFacetsDistributionMeter({
   totalValues,
   onTagClick,
   project,
-  expanded: defaultExpandedState,
+  expandByDefault,
 }: Props) {
   const organization = useOrganization();
-  const [expanded, setExpanded] = useState<boolean>(!!defaultExpandedState);
+  const [expanded, setExpanded] = useState<boolean>(!!expandByDefault);
   const [hoveredValue, setHoveredValue] = useState<TagSegment | null>(null);
 
   function renderTitle() {
@@ -155,6 +155,7 @@ function TagFacetsDistributionMeter({
                   color={colors[index]}
                   {...segmentProps}
                 >
+                  {/* if the first segment is 6% or less, the label won't fit cleanly into the segment, so don't show the label */}
                   {index === 0 && pctLabel > 6 ? `${pctLabel}%` : null}
                 </Segment>
               )}
