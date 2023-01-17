@@ -1,7 +1,10 @@
+from unittest.mock import patch
+
 import pytest
 from snuba_sdk import And, Column, Condition, Function, Op
 
 from sentry.exceptions import (
+    IncompatibleMetricsQuery,
     InvalidQuerySubscription,
     InvalidSearchQuery,
     UnsupportedQuerySubscription,
@@ -550,6 +553,36 @@ class EntitySubscriptionTestCase(TestCase):
                 Condition(Column("project_id"), Op.IN, [self.project.id]),
                 Condition(Column("metric_id"), Op.IN, [metric_id]),
             ]
+
+    def test_get_entity_subscription_with_multiple_entities_with_metrics_layer(
+        self,
+    ) -> None:
+        with Feature("organizations:use-metrics-layer"):
+            aggregate = "percentile(transaction.duration,.95)"
+            entity_subscription = get_entity_subscription(
+                query_type=SnubaQuery.Type.PERFORMANCE,
+                dataset=Dataset.Metrics,
+                aggregate=aggregate,
+                time_window=3600,
+                extra_fields={"org_id": self.organization.id},
+            )
+            with patch(
+                "sentry.snuba.entity_subscription.PerformanceMetricsEntitySubscription.get_snql_aggregations"
+            ) as method:
+                # We have two aggregates on the metrics dataset but one with generic_metrics_sets and the other with
+                # generic_metrics_distributions.
+                method.return_value = [aggregate, "count_unique(user)"]
+                entity_subscription.get_snql_aggregations = method
+
+                with pytest.raises(IncompatibleMetricsQuery):
+                    entity_subscription.build_query_builder(
+                        "",
+                        [self.project.id],
+                        None,
+                        {
+                            "organization_id": self.organization.id,
+                        },
+                    ).get_snql_query()
 
     def test_get_entity_subscription_for_events_dataset(self) -> None:
         aggregate = "count_unique(user)"
