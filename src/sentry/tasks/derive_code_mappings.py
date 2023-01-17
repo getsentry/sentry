@@ -146,7 +146,6 @@ def get_installation(
     )
 
     if not integration or not organization_integration:
-        logger.exception(f"Github integration not found for {organization.id}")
         return None, None
 
     installation = integration_service.get_installation(
