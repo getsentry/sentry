@@ -58,6 +58,24 @@ export const displayCrashFreePercent = (
   return `${rounded}\u0025`;
 };
 
+export const displayAnrPercent = (
+  percent: number,
+  decimalThreshold = CRASH_FREE_DECIMAL_THRESHOLD,
+  decimalPlaces = 3
+): string => {
+  if (isNaN(percent)) {
+    return '\u2015';
+  }
+
+  const rounded = getCrashFreePercent(
+    percent,
+    decimalThreshold,
+    decimalPlaces
+  ).toLocaleString();
+
+  return `${rounded}\u0025`;
+};
+
 export const getSessionStatusPercent = (percent: number, absolute = true) => {
   return round(absolute ? Math.abs(percent) : percent, 3);
 };
