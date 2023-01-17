@@ -36,6 +36,8 @@ function EventViewHierarchy({projectSlug, viewHierarchies}: Props) {
     {staleTime: FIVE_SECONDS_IN_MS, refetchOnWindowFocus: false}
   );
 
+  // Memoize the JSON parsing because downstream hooks depend on
+  // referential equality of objects in the data
   const hierarchy = useMemo<ViewHierarchyData>(() => {
     if (!data) {
       return null;
