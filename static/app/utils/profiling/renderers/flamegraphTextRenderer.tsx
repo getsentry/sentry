@@ -6,9 +6,11 @@ import {
   ELLIPSIS,
   findRangeBinarySearch,
   getContext,
+  lowerBound,
   Rect,
   resizeCanvasToDisplaySize,
   trimTextCenter,
+  upperBound,
 } from 'sentry/utils/profiling/gl/utils';
 import {TextRenderer} from 'sentry/utils/profiling/renderers/textRenderer';
 
@@ -62,7 +64,17 @@ class FlamegraphTextRenderer extends TextRenderer {
     // This allows us to do a couple optimizations that improve our best case performance.
     // 1. We can skip drawing the entire tree if the root frame is not visible
     // 2. We can skip drawing and
-    const frames: FlamegraphFrame[] = [...this.flamegraph.root.children];
+
+    // Find the upper and lower bounds of the frames we need to draw so we dont end up
+    // iterating over all of the root frames and avoid creating shallow copies if we dont need to.
+    const start = lowerBound(configView.left, this.flamegraph.root.children);
+    const end = upperBound(configView.right, this.flamegraph.root.children);
+
+    // Populate the initial set of frames to draw
+    const frames: FlamegraphFrame[] = new Array(end - start);
+    for (let i = start; i < end; i++) {
+      frames[i - start] = this.flamegraph.root.children[i];
+    }
 
     while (frames.length > 0) {
       const frame = frames.pop()!;

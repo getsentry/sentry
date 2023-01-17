@@ -6,9 +6,11 @@ import {
   ELLIPSIS,
   findRangeBinarySearch,
   getContext,
+  lowerBound,
   Rect,
   resizeCanvasToDisplaySize,
   trimTextCenter,
+  upperBound,
 } from 'sentry/utils/profiling/gl/utils';
 import {TextRenderer} from 'sentry/utils/profiling/renderers/textRenderer';
 import {SpanChart, SpanChartNode} from 'sentry/utils/profiling/spanChart';
@@ -60,7 +62,16 @@ class SpansTextRenderer extends TextRenderer {
     // This allows us to do a couple optimizations that improve our best case performance.
     // 1. We can skip drawing the entire tree if the root frame is not visible
     // 2. We can skip drawing and
-    const spans: SpanChartNode[] = [...this.spanChart.root.children];
+    // Find the upper and lower bounds of the frames we need to draw so we dont end up
+    // iterating over all of the root frames and avoid creating shallow copies if we dont need to.
+    const start = lowerBound(configView.left, this.spanChart.root.children);
+    const end = upperBound(configView.right, this.spanChart.root.children);
+
+    // Populate the initial set of frames to draw
+    const spans: SpanChartNode[] = new Array(end - start);
+    for (let i = start; i < end; i++) {
+      spans[i - start] = this.spanChart.root.children[i];
+    }
 
     while (spans.length > 0) {
       const span = spans.pop()!;
