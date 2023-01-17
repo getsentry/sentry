@@ -600,7 +600,6 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase, SearchIssueTest
         assert response.data["data"][0]["count()"] == 1
 
     def test_generic_issue_ids_filter(self):
-        # CEO: this won't pass until the translation mapper is updated
         _, _, group_info = self.store_search_issue(
             self.project.id,
             self.user.id,
