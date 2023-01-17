@@ -186,6 +186,8 @@ class SaveIssueOccurrenceToEventstreamTest(OccurrenceTestMixin, TestCase):  # ty
         event = self.store_event(data=event_data, project_id=self.project.id)
         occurrence = self.build_occurrence(event_id=event.event_id)
         group_info = save_issue_from_occurrence(occurrence, event, None)
+        assert group_info is not None
+
         group_event = event.for_group(group_info.group.id)
         with mock.patch("sentry.issues.ingest.eventstream") as eventstream, mock.patch.object(
             event, "for_group", return_value=group_event
