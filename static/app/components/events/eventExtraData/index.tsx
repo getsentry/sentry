@@ -1,5 +1,7 @@
 import {memo, useState} from 'react';
 
+import {Button} from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
 import ContextBlock from 'sentry/components/events/contexts/contextBlock';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {t} from 'sentry/locale';
@@ -22,8 +24,16 @@ export const EventExtraData = memo(
       <EventDataSection
         type="extra"
         title={t('Additional Data')}
-        toggleRaw={() => setRaw(!raw)}
-        raw={raw}
+        actions={
+          <ButtonBar merged active={raw ? 'raw' : 'formatted'}>
+            <Button barId="formatted" size="xs" onClick={() => setRaw(false)}>
+              {t('Formatted')}
+            </Button>
+            <Button barId="raw" size="xs" onClick={() => setRaw(true)}>
+              {t('Raw')}
+            </Button>
+          </ButtonBar>
+        }
       >
         {!defined(event.context) ? null : (
           <ContextBlock

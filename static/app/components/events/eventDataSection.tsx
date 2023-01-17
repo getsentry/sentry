@@ -1,12 +1,9 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
 import {DataSection} from 'sentry/components/events/styles';
 import Anchor from 'sentry/components/links/anchor';
 import {IconLink} from 'sentry/icons';
-import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 
 type Props = {
@@ -16,9 +13,7 @@ type Props = {
   actions?: React.ReactNode;
   className?: string;
   isCentered?: boolean;
-  raw?: boolean;
   showPermalink?: boolean;
-  toggleRaw?: (enable: boolean) => void;
   wrapTitle?: boolean;
 };
 
@@ -47,8 +42,6 @@ export function EventDataSection({
   className,
   type,
   title,
-  toggleRaw,
-  raw = false,
   wrapTitle = true,
   actions,
   isCentered = false,
@@ -73,16 +66,6 @@ export function EventDataSection({
               titleNode
             )}
           </Title>
-          {type === 'extra' && (
-            <ButtonBar merged active={raw ? 'raw' : 'formatted'}>
-              <Button barId="formatted" size="xs" onClick={() => toggleRaw?.(false)}>
-                {t('Formatted')}
-              </Button>
-              <Button barId="raw" size="xs" onClick={() => toggleRaw?.(true)}>
-                {t('Raw')}
-              </Button>
-            </ButtonBar>
-          )}
           {actions && <ActionContainer>{actions}</ActionContainer>}
         </SectionHeader>
       )}
