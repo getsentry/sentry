@@ -162,7 +162,6 @@ export function EventEntry({
       if (group?.issueCategory === IssueCategory.PERFORMANCE) {
         return (
           <SpanEvidenceSection
-            issueType={group?.issueType}
             event={event as EventTransaction}
             organization={organization as Organization}
           />
