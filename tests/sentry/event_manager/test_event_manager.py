@@ -2443,7 +2443,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
     )
     @override_settings(SENTRY_PERFORMANCE_ISSUES_REDUCE_NOISE=True)
     def test_perf_issue_slow_db_issue_is_created(self):
-        with self.feature({"organizations:performance-slow-db-issue": True}):
+        def attempt_to_generate_slow_db_issue() -> Event:
             last_event = None
 
             for _ in range(100):
@@ -2451,6 +2451,15 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
                 manager.normalize()
                 event = manager.save(self.project.id)
                 last_event = event
+
+            return last_event
+
+        # Should not create the group without the feature flag
+        last_event = attempt_to_generate_slow_db_issue()
+        assert len(last_event.groups) == 0
+
+        with self.feature({"organizations:performance-slow-db-issue": True}):
+            last_event = attempt_to_generate_slow_db_issue()
 
             assert len(last_event.groups) == 1
             assert last_event.groups[0].type == GroupType.PERFORMANCE_SLOW_SPAN.value
