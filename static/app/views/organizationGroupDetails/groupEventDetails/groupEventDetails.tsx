@@ -7,7 +7,7 @@ import isEqual from 'lodash/isEqual';
 import {fetchSentryAppComponents} from 'sentry/actionCreators/sentryAppComponents';
 import {Client} from 'sentry/api';
 import GroupEventDetailsLoadingError from 'sentry/components/errors/groupEventDetailsLoadingError';
-import EventEntries from 'sentry/components/events/eventEntries';
+import {EventEntries} from 'sentry/components/events/eventEntries';
 import {withMeta} from 'sentry/components/events/meta/metaProxy';
 import GroupSidebar from 'sentry/components/group/sidebar';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -40,7 +40,7 @@ import {
 } from '../utils';
 
 export interface GroupEventDetailsProps
-  extends RouteComponentProps<{groupId: string; orgId: string; eventId?: string}, {}> {
+  extends RouteComponentProps<{groupId: string; eventId?: string}, {}> {
   api: Client;
   environments: Environment[];
   eventError: boolean;
@@ -91,7 +91,7 @@ class GroupEventDetails extends Component<GroupEventDetailsProps, State> {
       if (shouldRedirect) {
         browserHistory.replace(
           normalizeUrl({
-            pathname: `/organizations/${params.orgId}/issues/${params.groupId}/`,
+            pathname: `/organizations/${organization.slug}/issues/${params.groupId}/`,
             query: location.query,
           })
         );

@@ -1195,8 +1195,6 @@ SENTRY_FEATURES = {
     "organizations:onboarding-heartbeat-footer": False,
     # Enable ANR rates in project details page
     "organizations:anr-rate": False,
-    # Enable deobfuscating exception values in Java issues
-    "organizations:java-exception-value-deobfuscation": False,
     # Enable tag improvements in the issue details page
     "organizations:issue-details-tag-improvements": False,
     # Enable the release details performance section
@@ -2084,9 +2082,7 @@ SENTRY_DEVSERVICES = {
                 "ENABLE_ISSUE_OCCURRENCE_CONSUMER": "1"
                 if settings.SENTRY_USE_ISSUE_OCCURRENCE
                 else "",
-                "ENABLE_AUTORUN_MIGRATION_SEARCH_ISSUES": os.environ.get(
-                    "ENABLE_AUTORUN_MIGRATION_SEARCH_ISSUES", ""
-                ),
+                "ENABLE_AUTORUN_MIGRATION_SEARCH_ISSUES": "1",
             },
             "only_if": "snuba" in settings.SENTRY_EVENTSTREAM
             or "kafka" in settings.SENTRY_EVENTSTREAM,

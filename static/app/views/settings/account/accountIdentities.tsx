@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import moment from 'moment';
 
 import {disconnectIdentity} from 'sentry/actionCreators/account';
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import DateTime from 'sentry/components/dateTime';

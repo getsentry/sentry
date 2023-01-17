@@ -58,6 +58,15 @@ from sentry.models import (
     User,
     UserOption,
 )
+from sentry.models.integrations import (
+    ExternalActor,
+    ExternalIssue,
+    Integration,
+    OrganizationIntegration,
+    PagerDutyService,
+    ProjectIntegration,
+    RepositoryProjectPathConfig,
+)
 from tests.sentry.hybrid_cloud import (
     validate_models_have_silos,
     validate_no_cross_silo_foreign_keys,
@@ -103,6 +112,13 @@ fk_emeptions = {
     (GroupSeen, User),
     (GroupShare, User),
     (GroupSubscription, User),
+    (Integration, AlertRuleTriggerAction),
+    (Integration, ExternalActor),
+    (Integration, ExternalIssue),
+    (Integration, ProjectIntegration),
+    (OrganizationIntegration, Organization),
+    (OrganizationIntegration, PagerDutyService),
+    (OrganizationIntegration, RepositoryProjectPathConfig),
     (SentryApp, Organization),
     (SentryAppComponent, SentryApp),
     (SentryAppInstallation, Organization),

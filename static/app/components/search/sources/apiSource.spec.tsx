@@ -21,7 +21,7 @@ describe('ApiSource', function () {
     router,
     location: router.location,
     routes: [],
-    params: {},
+    params: {orgId: org.slug},
     children: jest.fn().mockReturnValue(null),
   };
 
