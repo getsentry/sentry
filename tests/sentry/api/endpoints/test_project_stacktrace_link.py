@@ -1,5 +1,8 @@
+import logging
 from typing import Any, Mapping
 from unittest import mock
+
+import pytest
 
 from sentry.api.endpoints.project_stacktrace_link import ProjectStacktraceLinkEndpoint
 from sentry.integrations.example.integration import ExampleIntegration
@@ -174,7 +177,9 @@ class ProjectStacktraceLinkTest(BaseProjectStacktraceLink):
         with mock.patch.object(
             ExampleIntegration, "get_stacktrace_link", return_value="https://sourceurl.com/"
         ):
-            response = self.get_success_response(self.organization.slug, self.project.slug)
+            response = self.get_success_response(
+                self.organization.slug, self.project.slug, qs_params={"file": self.filepath}
+            )
             assert response.data["config"] == self.expected_configurations(self.code_mapping1)
             assert response.data["sourceUrl"] == "https://sourceurl.com/"
             assert response.data["integrations"] == [serialized_integration(self.integration)]
@@ -245,57 +250,6 @@ class ProjectStacktraceLinkTest(BaseProjectStacktraceLink):
         assert response.data["error"] == "stack_root_mismatch"
         assert response.data["integrations"] == [serialized_integration(self.integration)]
 
-    @mock.patch.object(ExampleIntegration, "get_blame_for_file")
-    def test_get_commit_sha_valid_line_no(self, mock_blame):
-        mock_blame.return_value = git_blame
-        project_stacktrace_link_endpoint = ProjectStacktraceLinkEndpoint()
-        commit_sha = project_stacktrace_link_endpoint.get_commit_sha(
-            self.integration, self.organization.id, 26, "test/path/file.py", self.repo, "main"
-        )
-        assert commit_sha == "5c7dc040fe713f718193e28972b43db94e5097b4"
-
-    @mock.patch.object(ExampleIntegration, "get_blame_for_file")
-    def test_get_commit_sha_invalid_line_no(self, mock_blame):
-        mock_blame.return_value = git_blame
-        project_stacktrace_link_endpoint = ProjectStacktraceLinkEndpoint()
-        commit_sha = project_stacktrace_link_endpoint.get_commit_sha(
-            self.integration, self.organization.id, 80, "test/path/file.py", self.repo, "main"
-        )
-        assert commit_sha is None
-
-    @mock.patch("sentry.integrations.mixins.repositories.RepositoryMixin.get_stacktrace_link")
-    @mock.patch("sentry.integrations.github.client.GitHubClientMixin.get_blame_for_file")
-    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
-    @with_feature("organizations:codecov-stacktrace-integration")
-    def test_get_commit_sha_success(self, get_jwt, mock_git_blame, mock_get_stacktrace_link):
-        self.organization.flags.codecov_access = True
-        self.organization.save()
-        self.integration.provider = "github"
-        self.integration.save()
-
-        mock_get_stacktrace_link.side_effect = (
-            "https://github.com/repo/blob/master/src/path/to/file.py"
-        )
-        mock_git_blame.return_value = git_blame
-
-        response = self.get_success_response(
-            self.organization.slug,
-            self.project.slug,
-            qs_params={"file": self.filepath, "lineNo": 26},
-        )
-        assert response.data["commitSha"] == "5c7dc040fe713f718193e28972b43db94e5097b4"
-
-    @mock.patch.object(ExampleIntegration, "get_blame_for_file")
-    def test_get_commit_sha_exception(self, mock_blame):
-        mock_blame.return_value = Exception
-        project_stacktrace_link_endpoint = ProjectStacktraceLinkEndpoint()
-        self.assertRaisesMessage(
-            project_stacktrace_link_endpoint.get_commit_sha(
-                self.integration, self.organization.id, 80, "test/path/file.py", self.repo, "main"
-            ),
-            "Could not get git blame",
-        )
-
 
 @region_silo_test
 class ProjectStacktraceLinkTestMobile(BaseProjectStacktraceLink):
@@ -359,6 +313,105 @@ class ProjectStacktraceLinkTestMobile(BaseProjectStacktraceLink):
         )
         assert response.data["config"] == self.expected_configurations(self.code_mapping1)
         assert response.data["sourceUrl"] == f"{example_base_url}/{file_path}"
+
+
+class ProjectStracktraceLinkTestCodecov(BaseProjectStacktraceLink):
+    def setUp(self):
+        BaseProjectStacktraceLink.setUp(self)
+        self.code_mapping1 = self.create_code_mapping(
+            organization_integration=self.oi,
+            project=self.project,
+            repo=self.repo,
+            stack_root="",
+            source_root="",
+        )
+        self.filepath = "src/path/to/file.py"
+
+    @pytest.fixture(autouse=True)
+    def inject_fixtures(self, caplog):
+        self._caplog = caplog
+
+    @mock.patch.object(ExampleIntegration, "get_blame_for_file")
+    def test_get_commit_sha_valid_line_no(self, mock_blame):
+        mock_blame.return_value = git_blame
+        project_stacktrace_link_endpoint = ProjectStacktraceLinkEndpoint()
+        commit_sha = project_stacktrace_link_endpoint.get_commit_sha(
+            integration=self.integration,
+            organization_id=self.organization.id,
+            line_no=26,
+            filepath="test/path/file.py",
+            repository=self.repo,
+            branch="main",
+        )
+        assert commit_sha == "5c7dc040fe713f718193e28972b43db94e5097b4"
+
+    @mock.patch.object(ExampleIntegration, "get_blame_for_file")
+    def test_get_commit_sha_invalid_line_no(self, mock_blame):
+        mock_blame.return_value = git_blame
+        project_stacktrace_link_endpoint = ProjectStacktraceLinkEndpoint()
+        commit_sha = project_stacktrace_link_endpoint.get_commit_sha(
+            integration=self.integration,
+            organization_id=self.organization.id,
+            line_no=80,
+            filepath="test/path/file.py",
+            repository=self.repo,
+            branch="main",
+        )
+        assert commit_sha == ""
+
+    @mock.patch("sentry.integrations.mixins.repositories.RepositoryMixin.get_stacktrace_link")
+    @mock.patch("sentry.integrations.github.client.GitHubClientMixin.get_blame_for_file")
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @with_feature("organizations:codecov-stacktrace-integration")
+    def test_get_commit_sha_success(self, get_jwt, mock_blame, mock_get_stacktrace_link):
+        self.organization.flags.codecov_access = True
+        self.organization.save()
+        self.integration.provider = "github"
+        self.integration.save()
+
+        mock_get_stacktrace_link.return_value = (
+            "https://github.com/repo/blob/master/src/path/to/file.py",
+        )
+
+        mock_blame.return_value = git_blame
+
+        response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            qs_params={"file": self.filepath, "lineNo": 26},
+        )
+        assert response.data["commitSha"] == "5c7dc040fe713f718193e28972b43db94e5097b4"
+
+    @mock.patch("sentry.integrations.mixins.repositories.RepositoryMixin.get_stacktrace_link")
+    @mock.patch("sentry.integrations.github.client.GitHubClientMixin.get_blame_for_file")
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @with_feature("organizations:codecov-stacktrace-integration")
+    def test_get_commit_sha_logger_warning(self, get_jwt, mock_blame, mock_get_stacktrace_link):
+        self._caplog.set_level(logging.WARNING, logger="sentry")
+        self.organization.flags.codecov_access = True
+        self.organization.save()
+        self.integration.provider = "github"
+        self.integration.save()
+
+        mock_get_stacktrace_link.return_value = (
+            "https://github.com/repo/blob/master/src/path/to/file.py",
+        )
+        mock_blame.return_value = []
+
+        response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            qs_params={"file": self.filepath, "lineNo": 26},
+        )
+
+        assert self._caplog.record_tuples == [
+            (
+                "sentry.api.endpoints.project_stacktrace_link",
+                logging.WARNING,
+                "Failed to get commit from git blame.",
+            )
+        ]
+        assert response.data["commitSha"] == ""
 
 
 class ProjectStacktraceLinkTestMultipleMatches(BaseProjectStacktraceLink):

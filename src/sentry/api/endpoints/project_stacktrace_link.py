@@ -190,21 +190,29 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
         repository: Repository,
         branch: str,
     ) -> Optional[str]:
-        commitSha = None
+        commitSha = ""
         integrationInstallation = integration.get_installation(organization_id=organization_id)
-        try:
-            git_blame_list = integrationInstallation.get_blame_for_file(
-                repository,
-                filepath,
-                branch,
-                line_no,
-            )
+        git_blame_list = integrationInstallation.get_blame_for_file(
+            repository,
+            filepath,
+            branch,
+            line_no,
+        )
+        if git_blame_list != []:
             for blame in git_blame_list:
                 if blame["startingLine"] <= line_no <= blame["endingLine"]:
                     commitSha = str(blame["commit"]["oid"])
                     break
-        except Exception:
-            logger.exception("Could not get git blame")
+        if not commitSha:
+            logger.warning(
+                "Failed to get commit from git blame.",
+                extra={
+                    "git_blame_response": git_blame_list,
+                    "filepath": filepath,
+                    "line_no": line_no,
+                    "branch": branch,
+                },
+            )
         return commitSha
 
     def get(self, request: Request, project: Project) -> Response:
@@ -291,26 +299,37 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                     if current_config["outcome"].get("attemptedUrl"):
                         result["attemptedUrl"] = current_config["outcome"]["attemptedUrl"]
 
-                if (
-                    not ctx["commit_id"]
-                    and features.has(
-                        "organizations:codecov-stacktrace-integration",
-                        project.organization,
-                        actor=request.user,
-                    )
-                    and project.organization.flags.codecov_access
-                ):
-                    integration = integrations.filter(provider="github")[0]
-                    line_no = ctx.get("line_no")
-                    if line_no:
-                        result["commitSha"] = self.get_commit_sha(
-                            integration,
-                            project.organization_id,
-                            int(line_no),
-                            filepath,
-                            current_config["repository"],
-                            current_config["config"]["defaultBranch"],
+                # Get commit sha from Git blame
+                try:
+                    should_get_commit_sha = (
+                        (
+                            not ctx["commit_id"]
+                            or ctx["commit_id"] == current_config["config"]["defaultBranch"]
                         )
+                        and features.has(
+                            "organizations:codecov-stacktrace-integration",
+                            project.organization,
+                            actor=request.user,
+                        )
+                        and project.organization.flags.codecov_access
+                    )
+
+                    if should_get_commit_sha:
+                        integration = integrations.filter(provider="github")[0]
+                        line_no = ctx.get("line_no")
+                        if line_no:
+                            result["commitSha"] = self.get_commit_sha(
+                                integration,
+                                project.organization_id,
+                                int(line_no),
+                                filepath,
+                                current_config["repository"],
+                                current_config["config"]["defaultBranch"],
+                            )
+                except Exception:
+                    logger.exception(
+                        "Code execution will continue, however, we failed to fetch the commit via Git blame."
+                    )
 
             try:
                 set_tags(scope, result)
