@@ -32,6 +32,9 @@ const RESOURCES_DESCRIPTIONS: Record<IssueType, string> = {
   [IssueType.PERFORMANCE_SLOW_SPAN]: t(
     'Slow DB Queries are SELECT query spans that take longer than 1s. A quick method to understand why this may be the case is running an EXPLAIN command on the query itself. To learn more about how to fix slow DB queries, check out these resources:'
   ),
+  [IssueType.PERFORMANCE_RENDER_BLOCKING_ASSET]: t(
+    'Large render blocking assets are a type of resource that is delaying the First Contentful Paint (FCP). Delaying FCP impacts how long it takes to initially load the page for the user. The resource may take form of a script, stylesheet, image, or other asset that may require optimization. To learn more about how to fix large render blocking assets, check out these resources:'
+  ),
   [IssueType.ERROR]: '',
 };
 
@@ -58,6 +61,12 @@ const DEFAULT_RESOURCE_LINK: Record<IssueType, ResourceLink[]> = {
   ],
   [IssueType.PERFORMANCE_FILE_IO_MAIN_THREAD]: [],
   [IssueType.PERFORMANCE_SLOW_SPAN]: [],
+  [IssueType.PERFORMANCE_RENDER_BLOCKING_ASSET]: [
+    {
+      text: t('Web Vital: First Contentful Paint'),
+      link: 'https://web.dev/fcp/',
+    },
+  ],
   [IssueType.ERROR]: [],
 };
 

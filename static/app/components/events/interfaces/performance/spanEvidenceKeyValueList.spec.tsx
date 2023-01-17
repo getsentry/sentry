@@ -234,4 +234,35 @@ describe('SpanEvidenceKeyValueList', () => {
       ).toHaveTextContent('SELECT pokemon FROM pokedex');
     });
   });
+
+  describe('Render Blocking Asset', () => {
+    it('Renders relevant fields', () => {
+      render(
+        <SpanEvidenceKeyValueList
+          issueType={IssueType.PERFORMANCE_RENDER_BLOCKING_ASSET}
+          transactionName="/"
+          parentSpan={null}
+          causeSpans={[]}
+          offendingSpans={[
+            new MockSpan({
+              startTimestamp: 0,
+              endTimestamp: 1000,
+              op: 'resource.script',
+              description: 'https://example.com/resource.js',
+            }).span,
+          ]}
+        />
+      );
+
+      expect(screen.getByRole('cell', {name: 'Transaction'})).toBeInTheDocument();
+      expect(
+        screen.getByTestId('span-evidence-key-value-list.transaction')
+      ).toHaveTextContent('/');
+
+      expect(screen.getByRole('cell', {name: 'Slow Resource Span'})).toBeInTheDocument();
+      expect(
+        screen.getByTestId('span-evidence-key-value-list.slow-resource-span')
+      ).toHaveTextContent('resource.script - https://example.com/resource.js');
+    });
+  });
 });

@@ -34,6 +34,7 @@ export function SpanEvidenceKeyValueList(props: SpanEvidenceKeyValueListProps) {
       [IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS]: NPlusOneAPICallsSpanEvidence,
       [IssueType.PERFORMANCE_SLOW_SPAN]: SlowSpanSpanEvidence,
       [IssueType.PERFORMANCE_CONSECUTIVE_DB_QUERIES]: ConsecutiveDBQueriesSpanEvidence,
+      [IssueType.PERFORMANCE_RENDER_BLOCKING_ASSET]: RenderBlockingAssetSpanEvidence,
     }[props.issueType] ?? DefaultSpanEvidence;
 
   return <Component {...props} />;
@@ -110,6 +111,18 @@ const SlowSpanSpanEvidence = ({
     data={[
       makeTransactionNameRow(transactionName),
       makeRow(t('Slow Span'), getSpanEvidenceValue(offendingSpans[0])),
+    ]}
+  />
+);
+
+const RenderBlockingAssetSpanEvidence = ({
+  transactionName,
+  offendingSpans,
+}: SpanEvidenceKeyValueListProps) => (
+  <PresortedKeyValueList
+    data={[
+      makeTransactionNameRow(transactionName),
+      makeRow(t('Slow Resource Span'), getSpanEvidenceValue(offendingSpans[0])),
     ]}
   />
 );
