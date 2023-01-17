@@ -5,7 +5,10 @@ import sentry_sdk
 from django.conf import settings
 
 from sentry import features
-from sentry.ingest.transaction_clusterer.datasource import TRANSACTION_SOURCE_URL
+from sentry.ingest.transaction_clusterer.datasource import (
+    TRANSACTION_SOURCE_SANITIZED,
+    TRANSACTION_SOURCE_URL,
+)
 from sentry.models import Project
 from sentry.utils import redis
 from sentry.utils.safe import safe_execute
@@ -71,7 +74,15 @@ def record_transaction_name(project: Project, event_data: Mapping[str, Any], **k
     if transaction_name and features.has(
         "organizations:transaction-name-clusterer", project.organization
     ):
-        if source == TRANSACTION_SOURCE_URL:
+        # For now, we also feed back transactions into the clustering algorithm
+        # that have already been sanitized, so we have a chance to discover
+        # more high cardinality segments after partial sanitation.
+        # For example, we may have sanitized `/orgs/*/projects/foo`,
+        # But the clusterer has yet to discover `/orgs/*/projects/*`.
+        #
+        # Disadvantage: the load on redis does not decrease over time.
+        #
+        if source in (TRANSACTION_SOURCE_URL, TRANSACTION_SOURCE_SANITIZED):
             safe_execute(
                 _store_transaction_name, project, transaction_name, _with_transaction=False
             )
