@@ -12,7 +12,7 @@ from sentry.incidents.endpoints.bases import OrganizationEndpoint
 from sentry.incidents.logic import get_available_action_integrations_for_org, get_pagerduty_services
 from sentry.incidents.models import AlertRuleTriggerAction
 from sentry.incidents.serializers import ACTION_TARGET_TYPE_TO_STRING
-from sentry.models import SentryAppInstallation
+from sentry.services.hybrid_cloud.app import app_service
 
 
 def build_action_response(
@@ -92,7 +92,7 @@ class OrganizationAlertRuleAvailableActionIndexEndpoint(OrganizationEndpoint):
             elif registered_type.type == AlertRuleTriggerAction.Type.SENTRY_APP:
                 actions += [
                     build_action_response(registered_type, sentry_app_installation=install)
-                    for install in SentryAppInstallation.objects.get_installed_for_organization(
+                    for install in app_service.get_installed_for_organization(
                         organization.id
                     ).filter(
                         sentry_app__is_alertable=True,

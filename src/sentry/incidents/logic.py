@@ -11,7 +11,11 @@ from snuba_sdk import Column, Condition, Limit, Op
 
 from sentry import analytics, audit_log, features, quotas
 from sentry.auth.access import SystemAccess
-from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS, SentryAppInstallationStatus
+from sentry.constants import (
+    CRASH_RATE_ALERT_AGGREGATE_ALIAS,
+    ObjectStatus,
+    SentryAppInstallationStatus,
+)
 from sentry.incidents import tasks
 from sentry.incidents.models import (
     AlertRule,
@@ -33,9 +37,10 @@ from sentry.incidents.models import (
     IncidentTrigger,
     TriggerStatus,
 )
-from sentry.models import Integration, PagerDutyService, Project, SentryApp
+from sentry.models import PagerDutyService, Project, SentryApp
 from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.fields import resolve_field
+from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions import DuplicateDisplayNameError
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.entity_subscription import (
@@ -233,10 +238,11 @@ def create_incident_activity(
     kwargs = {}
     if date_added:
         kwargs["date_added"] = date_added
+    if user:
+        kwargs["user_id"] = user.id
     activity = IncidentActivity.objects.create(
         incident=incident,
         type=activity_type.value,
-        user=user,
         value=value,
         previous_value=previous_value,
         comment=comment,
@@ -1219,9 +1225,8 @@ def get_alert_rule_trigger_action_slack_channel_id(
 ):
     from sentry.integrations.slack.utils import get_channel_id
 
-    try:
-        integration = Integration.objects.get(id=integration_id)
-    except Integration.DoesNotExist:
+    integration = integration_service.get_integration(integration_id=integration_id)
+    if integration is None:
         raise InvalidTriggerActionError("Slack workspace is a required field.")
 
     try:
@@ -1322,8 +1327,11 @@ def get_available_action_integrations_for_org(organization):
         for registration in AlertRuleTriggerAction.get_registered_types()
         if registration.integration_provider is not None
     ]
-    return Integration.objects.get_active_integrations(organization.id).filter(
-        provider__in=providers
+    return integration_service.get_integrations(
+        status=ObjectStatus.ACTIVE,
+        org_integration_status=ObjectStatus.ACTIVE,
+        organization_id=organization.id,
+        providers=providers,
     )
 
 

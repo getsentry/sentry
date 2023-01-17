@@ -10,6 +10,7 @@ from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.occurrence_consumer import _process_message
 from sentry.models import Group
 from sentry.testutils import SnubaTestCase, TestCase
+from sentry.testutils.silo import region_silo_test
 from sentry.types.issues import GroupType
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
@@ -50,6 +51,7 @@ def get_test_message(
     return payload
 
 
+@region_silo_test(stable=True)
 class IssueOccurrenceTestMessage(OccurrenceTestMixin, TestCase, SnubaTestCase):  # type: ignore
     def setUp(self) -> None:
         super().setUp()

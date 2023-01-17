@@ -15,7 +15,8 @@ from sentry.incidents.serializers import (
     STRING_TO_ACTION_TYPE,
 )
 from sentry.integrations.slack.utils import validate_channel_id
-from sentry.models import OrganizationMember, SentryAppInstallation, Team, User
+from sentry.models import OrganizationMember, SentryAppInstallation, Team
+from sentry.services.hybrid_cloud.user import user_service
 from sentry.shared_integrations.exceptions import ApiRateLimitedError
 
 
@@ -104,13 +105,14 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
                 if not access.has_team_access(team):
                     raise serializers.ValidationError("Team does not exist")
             elif target_type == AlertRuleTriggerAction.TargetType.USER:
-                try:
-                    user = User.objects.get(id=identifier)
-                except User.DoesNotExist:
+
+                user = user_service.get_user(identifier)
+                if user is None:
                     raise serializers.ValidationError("User does not exist")
 
                 if not OrganizationMember.objects.filter(
-                    organization=self.context["organization"], user=user
+                    organization=self.context["organization"],
+                    user_id=user.id,
                 ).exists():
                     raise serializers.ValidationError("User does not belong to this organization")
         elif attrs.get("type") == AlertRuleTriggerAction.Type.SLACK:
