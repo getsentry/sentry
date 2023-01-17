@@ -113,17 +113,15 @@ const Context = ({
     }
   }
 
-  const shouldShowCodecovData =
-    organization?.features.includes('codecov-stacktrace-integration') &&
-    organization?.codecovAccess;
-
-  if (shouldShowCodecovData && (isLoading || !data)) {
-    return null;
-  }
-
   const getLineCoverageColor = (line: [number, string]): string => {
+    const shouldShowCodecovData =
+      organization?.features.includes('codecov-stacktrace-integration') &&
+      organization?.codecovAccess;
+    const missingData = isLoading || !data;
+
     if (
       !shouldShowCodecovData ||
+      missingData ||
       data?.codecovStatusCode !== CodecovStatusCode.COVERAGE_EXISTS
     ) {
       return 'transparent';
