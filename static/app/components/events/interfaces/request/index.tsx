@@ -69,7 +69,7 @@ export function Request({data, event}: Props) {
   }
 
   const title = (
-    <Header key="title">
+    <Fragment>
       <ExternalLink href={fullUrl} title={fullUrl}>
         <Path>
           <strong>{data.method || 'GET'}</strong>
@@ -78,7 +78,7 @@ export function Request({data, event}: Props) {
         {fullUrl && <StyledIconOpen size="xs" />}
       </ExternalLink>
       <small>{parsedUrl ? parsedUrl.hostname : ''}</small>
-    </Header>
+    </Fragment>
   );
 
   return (
@@ -86,7 +86,6 @@ export function Request({data, event}: Props) {
       type={EntryType.REQUEST}
       title={title}
       actions={actions}
-      wrapTitle={false}
       className="request"
     >
       {view === 'curl' ? (
@@ -156,11 +155,6 @@ const Path = styled('span')`
   & strong {
     margin-right: ${space(0.5)};
   }
-`;
-
-const Header = styled('h3')`
-  display: flex;
-  align-items: center;
 `;
 
 // Nudge the icon down so it is centered. the `external-icon` class

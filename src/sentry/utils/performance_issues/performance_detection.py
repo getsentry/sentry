@@ -1327,6 +1327,9 @@ class FileIOMainThreadDetector(PerformanceDetector):
             "organizations:performance-file-io-main-thread-detector", organization, actor=None
         )
 
+    def is_creation_allowed_for_project(self, project: Project) -> bool:
+        return True
+
 
 class MNPlusOneState(ABC):
     """Abstract base class for the MNPlusOneDBSpanDetector state machine."""
@@ -1588,6 +1591,14 @@ class UncompressedAssetSpanDetector(PerformanceDetector):
     def _fingerprint(self, span) -> str:
         hashed_spans = fingerprint_spans([span])
         return f"1-{GroupType.PERFORMANCE_UNCOMPRESSED_ASSETS.value}-{hashed_spans}"
+
+    def is_creation_allowed_for_organization(self, organization: Organization) -> bool:
+        return features.has(
+            "organizations:performance-issues-compressed-assets-detector", organization, actor=None
+        )
+
+    def is_creation_allowed_for_project(self, project: Project) -> bool:
+        return True  # Detection always allowed by project for now
 
 
 # Reports metrics and creates spans for detection
