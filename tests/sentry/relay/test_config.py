@@ -359,6 +359,7 @@ def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_r
                     "start": "2022-10-21 18:50:25+00:00",
                     "end": "2022-10-21 19:50:25+00:00",
                 },
+                "decayingFn": {"function": "linear", "decayedSampleRate": 0.1},
             },
             {
                 "sampleRate": 0.5,
@@ -380,6 +381,7 @@ def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_r
                     "start": "2022-10-21 18:50:25+00:00",
                     "end": "2022-10-21 19:50:25+00:00",
                 },
+                "decayingFn": {"function": "linear", "decayedSampleRate": 0.1},
             },
             {
                 "sampleRate": 0.5,
@@ -401,6 +403,7 @@ def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_r
                     "start": "2022-10-21 18:50:25+00:00",
                     "end": "2022-10-21 19:50:25+00:00",
                 },
+                "decayingFn": {"function": "linear", "decayedSampleRate": 0.1},
             },
             {
                 "sampleRate": 0.5,
@@ -422,6 +425,7 @@ def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_r
                     "start": "2022-10-21 18:50:25+00:00",
                     "end": "2022-10-21 19:50:25+00:00",
                 },
+                "decayingFn": {"function": "linear", "decayedSampleRate": 0.1},
             },
             {
                 "sampleRate": 0.5,
@@ -443,6 +447,7 @@ def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_r
                     "start": "2022-10-21 18:50:25+00:00",
                     "end": "2022-10-21 19:50:25+00:00",
                 },
+                "decayingFn": {"function": "linear", "decayedSampleRate": 0.1},
             },
             {
                 "sampleRate": 0.5,
@@ -464,6 +469,7 @@ def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_r
                     "start": "2022-10-21 18:50:25+00:00",
                     "end": "2022-10-21 19:50:25+00:00",
                 },
+                "decayingFn": {"function": "linear", "decayedSampleRate": 0.1},
             },
             {
                 "sampleRate": 0.1,
