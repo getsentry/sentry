@@ -93,6 +93,10 @@ export class TransactionEventBuilder {
     return (this.#spans.length + 1).toString(16).padStart(16, '0');
   }
 
+  addEntry(entry: EventTransaction['entries'][number]) {
+    this.#event.entries.push(entry);
+  }
+
   addSpan(mockSpan: MockSpan, numSpans = 1, parentSpanId?: string) {
     for (let i = 0; i < numSpans; i++) {
       const spanId = this.generateSpanId();
