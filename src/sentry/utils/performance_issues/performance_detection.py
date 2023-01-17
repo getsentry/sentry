@@ -1588,6 +1588,14 @@ class UncompressedAssetSpanDetector(PerformanceDetector):
         hashed_spans = fingerprint_spans([span])
         return f"1-{GroupType.PERFORMANCE_UNCOMPRESSED_ASSETS.value}-{hashed_spans}"
 
+    def is_creation_allowed_for_organization(self, organization: Organization) -> bool:
+        return features.has(
+            "organizations:performance-issues-compressed-assets-detector", organization, actor=None
+        )
+
+    def is_creation_allowed_for_project(self, project: Project) -> bool:
+        return True  # Detection always allowed by project for now
+
 
 # Reports metrics and creates spans for detection
 def report_metrics_for_detectors(

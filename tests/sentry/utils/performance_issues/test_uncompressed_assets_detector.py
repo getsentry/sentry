@@ -1,11 +1,12 @@
-import unittest
 from typing import List
 
 import pytest
 
 from sentry.eventstore.models import Event
+from sentry.testutils import TestCase
 from sentry.testutils.performance_issues.event_generators import PROJECT_ID, create_span
 from sentry.testutils.performance_issues.span_builder import SpanBuilder
+from sentry.testutils.performance_issues.event_generators import get_event
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.performance_issues.performance_detection import (
     GroupType,
@@ -27,7 +28,7 @@ def create_asset_span(
 
 @region_silo_test
 @pytest.mark.django_db
-class UncompressedAssetsDetectorTest(unittest.TestCase):
+class UncompressedAssetsDetectorTest(TestCase):
     def setUp(self):
         super().setUp()
         self.settings = get_detection_settings()
@@ -148,3 +149,29 @@ class UncompressedAssetsDetectorTest(unittest.TestCase):
         }
 
         assert len(self.find_problems(event)) == 0
+
+    def test_respects_feature_flag(self):
+        project = self.create_project()
+        event = get_event("uncompressed-assets/uncompressed-script-asset")
+
+        detector = UncompressedAssetSpanDetector(self.settings, event)
+
+        assert not detector.is_creation_allowed_for_organization(project.organization)
+
+        with self.feature({"organizations:performance-issues-compressed-assets-detector": True}):
+            assert detector.is_creation_allowed_for_organization(project.organization)
+
+    def test_detects_problems_from_event(self):
+        event = get_event("uncompressed-assets/uncompressed-script-asset")
+
+        assert self.find_problems(event) == [
+            PerformanceProblem(
+                fingerprint="1-1012-cd13ad1ab06d25a36fb216047291643e48228608",
+                op="resource.script",
+                desc="https://s1.sentry-cdn.com/_static/dist/sentry/chunks/app_components_charts_utils_tsx-app_utils_performance_quickTrace_utils_tsx-app_utils_withPage-3926ec.bc434924850c44d4057f.js",
+                type=GroupType.PERFORMANCE_UNCOMPRESSED_ASSETS,
+                parent_span_ids=[],
+                cause_span_ids=[],
+                offender_span_ids=["b66a5642da1edb52"],
+            ),
+        ]
