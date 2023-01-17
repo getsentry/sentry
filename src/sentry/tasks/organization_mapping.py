@@ -54,6 +54,9 @@ def _remove_duplicate_mappings(expiration_threshold_time: datetime) -> None:
 
     # Enumerate orgs with multiple mappings, remove ones that don't exist in region silo
     for dupe in duplicates_query:
+        metrics.incr(
+            "sentry.hybrid_cloud.tasks.organizationmapping.remove_duplicate", sample_rate=1.0
+        )
         organization_id = dupe["organization_id"]
 
         # Organization exists in the region silo
