@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
 import AsyncComponent from 'sentry/components/asyncComponent';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import NotFound from 'sentry/components/errors/notFound';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
@@ -153,6 +153,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
       metaResults?: TraceMetaQueryChildrenProps
     ) => (
       <TransactionProfileIdProvider
+        projectId={event.projectID}
         transactionId={event.type === 'transaction' ? event.id : undefined}
         timestamp={event.dateReceived}
       >
@@ -247,7 +248,6 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                         project={projects[0] as Project}
                         location={location}
                         showTagSummary={false}
-                        api={this.api}
                       />
                     </QuickTraceContext.Provider>
                   </SpanEntryContext.Provider>

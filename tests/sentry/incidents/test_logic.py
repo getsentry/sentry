@@ -5,7 +5,6 @@ from unittest.mock import patch
 
 import pytest
 import responses
-from django.conf import settings
 from django.core import mail
 from django.utils import timezone
 from freezegun import freeze_time
@@ -513,9 +512,7 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
         assert alert_rule.include_all_projects == include_all_projects
 
     # This test will fail unless real migrations are run. Refer to migration 0061.
-    @pytest.mark.skipif(
-        not settings.MIGRATIONS_TEST_MIGRATE, reason="requires custom migration 0061"
-    )
+    @pytest.mark.migrations  # requires custom migration 0061
     def test_two_archived_with_same_name(self):
         name = "allowed"
         alert_rule_1 = create_alert_rule(

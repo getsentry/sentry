@@ -1,68 +1,153 @@
+import kebabCase from 'lodash/kebabCase';
+import mapValues from 'lodash/mapValues';
+
 import {t} from 'sentry/locale';
-import {IssueType, KeyValueListData} from 'sentry/types';
+import {IssueType, KeyValueListData, KeyValueListDataItem} from 'sentry/types';
 
 import KeyValueList from '../keyValueList';
 import {RawSpanType} from '../spans/types';
 
 import {TraceContextSpanProxy} from './spanEvidence';
 
+type Span = (RawSpanType | TraceContextSpanProxy) & {
+  data?: any;
+};
+
 type SpanEvidenceKeyValueListProps = {
+  causeSpans: Span[] | null;
   issueType: IssueType | undefined;
-  offendingSpans: Array<RawSpanType | TraceContextSpanProxy>;
-  parentSpan: RawSpanType | TraceContextSpanProxy | null;
+  offendingSpans: Span[];
+  parentSpan: Span | null;
   transactionName: string;
 };
 
 const TEST_ID_NAMESPACE = 'span-evidence-key-value-list';
 
-export function SpanEvidenceKeyValueList({
-  issueType,
+export function SpanEvidenceKeyValueList(props: SpanEvidenceKeyValueListProps) {
+  if (!props.issueType) {
+    return <DefaultSpanEvidence {...props} />;
+  }
+
+  const Component =
+    {
+      [IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES]: NPlusOneDBQueriesSpanEvidence,
+      [IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS]: NPlusOneAPICallsSpanEvidence,
+      [IssueType.PERFORMANCE_SLOW_SPAN]: SlowSpanSpanEvidence,
+      [IssueType.PERFORMANCE_CONSECUTIVE_DB_QUERIES]: ConsecutiveDBQueriesSpanEvidence,
+    }[props.issueType] ?? DefaultSpanEvidence;
+
+  return <Component {...props} />;
+}
+
+const ConsecutiveDBQueriesSpanEvidence = ({
+  transactionName,
+  causeSpans,
+  offendingSpans,
+}: SpanEvidenceKeyValueListProps) => (
+  <PresortedKeyValueList
+    data={
+      [
+        makeTransactionNameRow(transactionName),
+        causeSpans
+          ? makeRow(t('Starting Span'), getSpanEvidenceValue(causeSpans[0]))
+          : null,
+        ...offendingSpans.map(span =>
+          makeRow(t('Parallelizable Span'), getSpanEvidenceValue(span))
+        ),
+      ].filter(Boolean) as KeyValueListData
+    }
+  />
+);
+
+const NPlusOneDBQueriesSpanEvidence = ({
   transactionName,
   parentSpan,
   offendingSpans,
-}: SpanEvidenceKeyValueListProps) {
-  const data: KeyValueListData = [
-    {
-      key: '0',
-      subject: t('Transaction'),
-      value: transactionName,
-      subjectDataTestId: `${TEST_ID_NAMESPACE}.transaction-name`,
-    },
-    {
-      key: '1',
-      subject: t('Parent Span'),
-      value: getSpanEvidenceValue(parentSpan),
-      subjectDataTestId: `${TEST_ID_NAMESPACE}.parent-name`,
-    },
-    {
-      key: '2',
-      subject:
-        issueType === IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES
-          ? t('Repeating Span')
-          : t('Offending Span'),
-      value: getSpanEvidenceValue(offendingSpans[0]),
-      subjectDataTestId: `${TEST_ID_NAMESPACE}.offending-spans`,
-    },
-  ];
+}: SpanEvidenceKeyValueListProps) => (
+  <PresortedKeyValueList
+    data={
+      [
+        makeTransactionNameRow(transactionName),
+        parentSpan ? makeRow(t('Parent Span'), getSpanEvidenceValue(parentSpan)) : null,
+        makeRow(
+          t('Repeating Spans (%s)', offendingSpans.length),
+          getSpanEvidenceValue(offendingSpans[0])
+        ),
+      ].filter(Boolean) as KeyValueListData
+    }
+  />
+);
 
-  let problemParameters;
-  if (issueType === IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS) {
-    problemParameters = getProblemParameters(offendingSpans);
-  }
+const NPlusOneAPICallsSpanEvidence = ({
+  transactionName,
+  offendingSpans,
+}: SpanEvidenceKeyValueListProps) => {
+  const problemParameters = formatChangingQueryParameters(offendingSpans);
+  const basePath = formatBasePath(offendingSpans[0]);
 
-  if (problemParameters?.length > 0) {
-    data.push({
-      key: '3',
-      subject: t('Problem Parameter'),
-      value: problemParameters,
-      subjectDataTestId: `${TEST_ID_NAMESPACE}.problem-parameters`,
-    });
-  }
+  return (
+    <PresortedKeyValueList
+      data={
+        [
+          makeTransactionNameRow(transactionName),
+          basePath
+            ? makeRow(t('Repeating Spans (%s)', offendingSpans.length), basePath)
+            : null,
+          problemParameters.length > 0
+            ? makeRow(t('Parameters'), problemParameters)
+            : null,
+        ].filter(Boolean) as KeyValueListData
+      }
+    />
+  );
+};
 
-  return <KeyValueList data={data} />;
-}
+const SlowSpanSpanEvidence = ({
+  transactionName,
+  offendingSpans,
+}: SpanEvidenceKeyValueListProps) => (
+  <PresortedKeyValueList
+    data={[
+      makeTransactionNameRow(transactionName),
+      makeRow(t('Slow Span'), getSpanEvidenceValue(offendingSpans[0])),
+    ]}
+  />
+);
 
-function getSpanEvidenceValue(span: RawSpanType | TraceContextSpanProxy | null) {
+const DefaultSpanEvidence = ({
+  transactionName,
+  offendingSpans,
+}: SpanEvidenceKeyValueListProps) => (
+  <PresortedKeyValueList
+    data={[
+      makeTransactionNameRow(transactionName),
+      makeRow(t('Offending Span'), getSpanEvidenceValue(offendingSpans[0])),
+    ]}
+  />
+);
+
+const PresortedKeyValueList = ({data}: {data: KeyValueListData}) => (
+  <KeyValueList isSorted={false} data={data} />
+);
+
+const makeTransactionNameRow = (transactionName: string) =>
+  makeRow(t('Transaction'), transactionName);
+
+const makeRow = (
+  subject: KeyValueListDataItem['subject'],
+  value: KeyValueListDataItem['value']
+): KeyValueListDataItem => {
+  const itemKey = kebabCase(subject);
+
+  return {
+    key: itemKey,
+    subject,
+    value,
+    subjectDataTestId: `${TEST_ID_NAMESPACE}.${itemKey}`,
+  };
+};
+
+function getSpanEvidenceValue(span: Span | null) {
   if (!span || (!span.op && !span.description)) {
     return t('(no value)');
   }
@@ -78,30 +163,70 @@ function getSpanEvidenceValue(span: RawSpanType | TraceContextSpanProxy | null) 
   return `${span.op} - ${span.description}`;
 }
 
-function getProblemParameters(
-  offendingSpans: Array<RawSpanType | TraceContextSpanProxy>
-): string[] {
-  const uniqueParameterPairs = new Set<string>();
+type ParameterLookup = Record<string, string[]>;
 
-  offendingSpans.forEach(span => {
-    // TODO: Look into the span data if possible, not just the description
-    // TODO: Find the unique parameter names and values in a better format
+/** Extracts changing URL query parameters from a list of `http.client` spans.
+ * e.g.,
+ *
+ * https://service.io/r?id=1&filter=none
+ * https://service.io/r?id=2&filter=none
+ * https://service.io/r?id=3&filter=none
 
-    if (!span.description) {
-      return;
+  * @returns A condensed string describing the query parameters changing
+  * between the URLs of the given span. e.g., "id:{1,2,3}"
+ */
+function formatChangingQueryParameters(spans: Span[]): string {
+  const URLs = spans
+    .map(extractSpanURLString)
+    .filter((url): url is URL => url instanceof URL);
+
+  const allQueryParameters = extractQueryParameters(URLs);
+
+  const pairs: string[] = [];
+  for (const key in allQueryParameters) {
+    const values = allQueryParameters[key];
+
+    // By definition, if the parameter only has one value that means it's not
+    // changing between calls, so omit it!
+    if (values.length > 1) {
+      pairs.push(`${key}:{${values.join(',')}}`);
+    }
+  }
+
+  return pairs.join(' ');
+}
+
+const extractSpanURLString = (span: Span): URL | null => {
+  try {
+    let URLString = span?.data?.url;
+    if (!URLString) {
+      const [_method, _url] = (span?.description ?? '').split(' ', 2);
+      URLString = _url;
     }
 
-    const [_method, url] = span.description.split(' ', 2);
-    try {
-      const parsedURL = new URL(url);
+    return new URL(URLString);
+  } catch (e) {
+    return null;
+  }
+};
 
-      for (const [key, value] of parsedURL.searchParams) {
-        uniqueParameterPairs.add(`${key}=${value}`);
-      }
-    } catch {
-      // Ignore error
+export function extractQueryParameters(URLs: URL[]): ParameterLookup {
+  const parameterValuesByKey: ParameterLookup = {};
+
+  URLs.forEach(url => {
+    for (const [key, value] of url.searchParams) {
+      parameterValuesByKey[key] ??= [];
+      parameterValuesByKey[key].push(value);
     }
   });
 
-  return Array.from(uniqueParameterPairs);
+  return mapValues(parameterValuesByKey, parameterList => {
+    return Array.from(new Set(parameterList));
+  });
+}
+
+function formatBasePath(span: Span): string {
+  const spanURL = extractSpanURLString(span);
+
+  return spanURL?.pathname ?? '';
 }

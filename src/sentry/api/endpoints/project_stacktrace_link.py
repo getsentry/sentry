@@ -118,7 +118,7 @@ def try_path_munging(
 
 
 def set_tags(scope: Scope, result: JSONData) -> None:
-    scope.set_tag("stacktrace_link.found", result.get("sourceUrl", False))
+    scope.set_tag("stacktrace_link.found", result["sourceUrl"] is not None)
     scope.set_tag("stacktrace_link.source_url", result.get("sourceUrl"))
     scope.set_tag("stacktrace_link.error", result.get("error"))
     scope.set_tag("stacktrace_link.tried_url", result.get("attemptedUrl"))

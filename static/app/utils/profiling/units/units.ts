@@ -2,17 +2,29 @@ export function relativeChange(final: number, initial: number): number {
   return (final - initial) / initial;
 }
 
+/**
+ * Contains both singular and plural forms of units because the backend currently
+ * returns different units between profiles and measurements
+ */
 export type ProfilingFormatterUnit =
+  | 'nanosecond'
   | 'nanoseconds'
+  | 'microsecond'
   | 'microseconds'
+  | 'millisecond'
   | 'milliseconds'
+  | 'second'
   | 'seconds'
   | 'count';
 
 const durationMappings: Record<ProfilingFormatterUnit, number> = {
+  nanosecond: 1e-9,
   nanoseconds: 1e-9,
+  microsecond: 1e-6,
   microseconds: 1e-6,
+  millisecond: 1e-3,
   milliseconds: 1e-3,
+  second: 1,
   seconds: 1,
   count: 1,
 };

@@ -5,7 +5,8 @@ from rest_framework import serializers
 
 from sentry.api.exceptions import ParameterValidationError
 from sentry.api.validators.integrations import validate_provider
-from sentry.models import Organization, OrganizationIntegration
+from sentry.models import Organization
+from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.types.integrations import ExternalProviders
 
 EXTERNAL_ID_LENGTH_MIN = 1
@@ -67,10 +68,11 @@ def validate_external_name(external_name: str) -> str:
 
 
 def validate_integration_id(integration_id: str, organization: Organization) -> str:
-
-    integration_query = OrganizationIntegration.objects.filter(
-        organization=organization, integration_id=integration_id
+    organization_integration = integration_service.get_organization_integration(
+        integration_id=int(integration_id), organization_id=organization.id
     )
-    if not integration_query.exists():
-        raise serializers.ValidationError("Integration does not exist for this organization")
-    return integration_id
+
+    if organization_integration:
+        return integration_id
+
+    raise serializers.ValidationError("Integration does not exist for this organization")

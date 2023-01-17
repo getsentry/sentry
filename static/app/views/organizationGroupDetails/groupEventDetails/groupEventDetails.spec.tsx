@@ -50,7 +50,7 @@ const TestComponent = (props: Partial<GroupEventDetailsProps>) => {
     project,
     organization,
     environments: [{id: '1', name: 'dev', displayName: 'Dev'}],
-    params: {orgId: organization.slug, groupId: group.id, eventId: '1'},
+    params: {groupId: group.id, eventId: '1'},
     router,
     location: {} as Location<any>,
     route: {},

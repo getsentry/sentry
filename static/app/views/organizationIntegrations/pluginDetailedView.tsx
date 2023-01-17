@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import * as modal from 'sentry/actionCreators/modal';
 import AsyncComponent from 'sentry/components/asyncComponent';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import ContextPickerModal from 'sentry/components/contextPickerModal';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -26,9 +26,13 @@ class PluginDetailedView extends AbstractIntegrationDetailedView<
   State & AbstractIntegrationDetailedView['state']
 > {
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
-    const {orgId, integrationSlug} = this.props.params;
+    const {organization} = this.props;
+    const {integrationSlug} = this.props.params;
     return [
-      ['plugins', `/organizations/${orgId}/plugins/configs/?plugins=${integrationSlug}`],
+      [
+        'plugins',
+        `/organizations/${organization.slug}/plugins/configs/?plugins=${integrationSlug}`,
+      ],
     ];
   }
 
@@ -120,7 +124,7 @@ class PluginDetailedView extends AbstractIntegrationDetailedView<
           }}
         />
       ),
-      {allowClickClose: false}
+      {closeEvents: 'escape-key'}
     );
   };
 

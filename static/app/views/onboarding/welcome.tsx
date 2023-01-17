@@ -6,7 +6,7 @@ import OnboardingInstall from 'sentry-images/spot/onboarding-install.svg';
 import OnboardingSetup from 'sentry-images/spot/onboarding-setup.svg';
 
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import Link from 'sentry/components/links/link';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';

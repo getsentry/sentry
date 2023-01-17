@@ -6,7 +6,7 @@ import {
   addLoadingMessage,
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import Link from 'sentry/components/links/link';
@@ -53,7 +53,7 @@ function ServiceHookRow({orgId, projectId, hook, onToggleActive}: RowProps) {
   );
 }
 
-type Props = RouteComponentProps<{orgId: string; projectId: string}, {}> & {
+type Props = RouteComponentProps<{projectId: string}, {}> & {
   organization: Organization;
 };
 

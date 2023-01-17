@@ -1,8 +1,7 @@
 import {browserHistory} from 'react-router';
-import styled from '@emotion/styled';
 
 import EditableText from 'sentry/components/editableText';
-import PageHeading from 'sentry/components/pageHeading';
+import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
 import {Organization, SavedQuery} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
@@ -60,19 +59,15 @@ function EventInputName({organization, eventView, savedQuery, isHomepage}: Props
   const value = isHomepage ? HOMEPAGE_DEFAULT : eventView.name || NAME_DEFAULT;
 
   return (
-    <StyledHeading data-test-id={`discover2-query-name-${value}`}>
+    <Layout.Title data-test-id={`discover2-query-name-${value}`}>
       <EditableText
         value={value}
         onChange={handleChange}
         isDisabled={!eventView.id || isHomepage}
         errorMessage={t('Please set a name for this query')}
       />
-    </StyledHeading>
+    </Layout.Title>
   );
 }
-
-const StyledHeading = styled(PageHeading)`
-  line-height: 40px;
-`;
 
 export default EventInputName;

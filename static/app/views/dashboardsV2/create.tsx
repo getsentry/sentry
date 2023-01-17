@@ -2,7 +2,7 @@ import {useEffect, useState} from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
 
 import Feature from 'sentry/components/acl/feature';
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
@@ -14,7 +14,7 @@ import DashboardDetail from './detail';
 import {DashboardState, Widget} from './types';
 import {cloneDashboard, constructWidgetFromQuery} from './utils';
 
-type Props = RouteComponentProps<{orgId: string; templateId?: string}, {}> & {
+type Props = RouteComponentProps<{templateId?: string}, {}> & {
   children: React.ReactNode;
   organization: Organization;
 };
