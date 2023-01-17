@@ -402,11 +402,11 @@ def get_incident_aggregates(
 
 
 def subscribe_to_incident(incident, user):
-    return IncidentSubscription.objects.get_or_create(incident=incident, user=user)
+    return IncidentSubscription.objects.get_or_create(incident=incident, user_id=user.id)
 
 
 def unsubscribe_from_incident(incident, user):
-    return IncidentSubscription.objects.filter(incident=incident, user=user).delete()
+    return IncidentSubscription.objects.filter(incident=incident, user_id=user.id).delete()
 
 
 def get_incident_subscribers(incident):
@@ -547,7 +547,7 @@ def create_alert_rule(
         subscribe_projects_to_alert_rule(alert_rule, projects)
 
         AlertRuleActivity.objects.create(
-            alert_rule=alert_rule, user=user, type=AlertRuleActivityType.CREATED.value
+            alert_rule=alert_rule, user_id=user.id, type=AlertRuleActivityType.CREATED.value
         )
 
     return alert_rule

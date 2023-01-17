@@ -48,7 +48,7 @@ def build_action_response(
 
     elif sentry_app_installation:
         action_response["sentryAppName"] = sentry_app_installation.sentry_app.name
-        action_response["sentryAppId"] = sentry_app_installation.sentry_app_id
+        action_response["sentryAppId"] = sentry_app_installation.sentry_app.id
         action_response["sentryAppInstallationUuid"] = sentry_app_installation.uuid
         action_response["status"] = SentryAppStatus.as_str(
             sentry_app_installation.sentry_app.status
@@ -93,10 +93,9 @@ class OrganizationAlertRuleAvailableActionIndexEndpoint(OrganizationEndpoint):
                 actions += [
                     build_action_response(registered_type, sentry_app_installation=install)
                     for install in app_service.get_installed_for_organization(
-                        organization.id
-                    ).filter(
-                        sentry_app__is_alertable=True,
+                        organization_id=organization.id
                     )
+                    if install.sentry_app.is_alertable
                 ]
 
             else:

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import abc
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING, Any, Dict, List
 
 from sentry.constants import SentryAppInstallationStatus
 from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_delegation, stubbed
@@ -17,6 +17,17 @@ class AppService(InterfaceWithLifecycle):
     def find_installation_by_proxy_user(
         self, *, proxy_user_id: int, organization_id: int
     ) -> ApiSentryAppInstallation | None:
+        pass
+
+    @abc.abstractmethod
+    def get_related_sentry_app_components(
+        self,
+        *,
+        organization_ids: List[int],
+        sentry_app_ids: List[int],
+        type: str,
+        group_by="sentry_app_id",
+    ) -> Dict[str | int, Dict[str, Dict[str, Any]]]:
         pass
 
     @abc.abstractmethod
@@ -38,6 +49,7 @@ class AppService(InterfaceWithLifecycle):
             slug=app.slug,
             uuid=app.uuid,
             events=app.events,
+            is_alertable=app.is_alertable,
         )
 
     def serialize_sentry_app_installation(
@@ -88,3 +100,4 @@ class ApiSentryApp:
     slug: str = ""
     uuid: str = ""
     events: List[str] = field(default_factory=list)
+    is_alertable: bool = False

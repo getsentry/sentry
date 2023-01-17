@@ -1,12 +1,27 @@
 from __future__ import annotations
 
-from typing import List
+from typing import Any, Dict, List
 
 from sentry.models import SentryApp, SentryAppInstallation
 from sentry.services.hybrid_cloud.app import ApiSentryAppInstallation, AppService
 
 
 class DatabaseBackedAppService(AppService):
+    def get_related_sentry_app_components(
+        self,
+        *,
+        organization_ids: List[int],
+        sentry_app_ids: List[int],
+        type: str,
+        group_by="sentry_app_id",
+    ) -> Dict[str | int, Dict[str, Dict[str, Any]]]:
+        return SentryAppInstallation.objects.get_related_sentry_app_components(
+            organization_ids=organization_ids,
+            sentry_app_ids=sentry_app_ids,
+            type=type,
+            group_by=group_by,
+        )
+
     def get_installed_for_organization(
         self, *, organization_id: int
     ) -> List[ApiSentryAppInstallation]:
