@@ -153,6 +153,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
       metaResults?: TraceMetaQueryChildrenProps
     ) => (
       <TransactionProfileIdProvider
+        projectId={event.projectID}
         transactionId={event.type === 'transaction' ? event.id : undefined}
         timestamp={event.dateReceived}
       >
