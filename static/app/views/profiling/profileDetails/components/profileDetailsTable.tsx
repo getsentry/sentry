@@ -211,7 +211,12 @@ export function ProfileDetailsTable() {
         location={location}
       />
 
-      <Pagination pageLinks={pageLinks} />
+      <Pagination
+        pageLinks={pageLinks}
+        onCursor={cur => {
+          setPaginationCursor(cur);
+        }}
+      />
     </Fragment>
   );
 }

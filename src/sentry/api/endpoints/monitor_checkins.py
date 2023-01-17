@@ -22,7 +22,8 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.parameters import GLOBAL_PARAMS, MONITOR_PARAMS
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.models import CheckInStatus, Monitor, MonitorCheckIn, MonitorStatus, ProjectKey
+from sentry.models import CheckInStatus, Monitor, MonitorCheckIn, MonitorStatus, Project, ProjectKey
+from sentry.signals import first_cron_checkin_received, first_cron_monitor_created
 
 
 @region_silo_endpoint
@@ -51,11 +52,7 @@ class MonitorCheckInsEndpoint(MonitorEndpoint):
         self, request: Request, project, monitor, organization_slug: str | None = None
     ) -> Response:
         """
-        Retrieve check-ins for a monitor
-        ````````````````````````````````
-
-        :pparam string monitor_id: the id of the monitor.
-        :auth: required
+        Retrieve a list of check-ins for a monitor
         """
         # we don't allow read permission with DSNs
         if isinstance(request.auth, ProjectKey):
@@ -100,11 +97,12 @@ class MonitorCheckInsEndpoint(MonitorEndpoint):
         self, request: Request, project, monitor, organization_slug: str | None = None
     ) -> Response:
         """
-        Create a new check-in for a monitor
-        ```````````````````````````````````
+        Creates a new check-in for a monitor.
 
-        :pparam string monitor_id: the id of the monitor.
-        :auth: required
+        If `status` is not present, it will be assumed that the check-in is starting, and be marked as `in_progress`.
+
+        To achieve a ping-like behavior, you can simply define `status` and optionally `duration` and
+        this check-in will be automatically marked as finished.
 
         Note: If a DSN is utilized for authentication, the response will be limited in details.
         """
@@ -130,6 +128,17 @@ class MonitorCheckInsEndpoint(MonitorEndpoint):
                 duration=result.get("duration"),
                 status=getattr(CheckInStatus, result["status"].upper()),
             )
+
+            if not project.flags.has_cron_checkins:
+                # Backfill users that already have cron monitors
+                if not project.flags.has_cron_monitors:
+                    first_cron_monitor_created.send_robust(
+                        project=project, user=None, sender=Project
+                    )
+                first_cron_checkin_received.send_robust(
+                    project=project, monitor_id=str(monitor.guid), sender=Project
+                )
+
             if checkin.status == CheckInStatus.ERROR and monitor.status != MonitorStatus.DISABLED:
                 if not monitor.mark_failed(last_checkin=checkin.date_added):
                     if isinstance(request.auth, ProjectKey):

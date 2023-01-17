@@ -71,6 +71,7 @@ TRANSACTION_METRICS_NAMES = {
     "d:transactions/breakdowns.span_ops.ops.browser@millisecond": PREFIX + 122,
     "d:transactions/breakdowns.span_ops.ops.resource@millisecond": PREFIX + 123,
     "d:transactions/breakdowns.span_ops.ops.ui@millisecond": PREFIX + 124,
+    "c:transactions/count_per_root_project@none": PREFIX + 125,
 }
 
 # 200 - 299

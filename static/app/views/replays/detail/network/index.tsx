@@ -1,4 +1,4 @@
-import {useRef, useState} from 'react';
+import {useRef} from 'react';
 import {AutoSizer, CellMeasurer, GridCellProps, MultiGrid} from 'react-virtualized';
 import styled from '@emotion/styled';
 
@@ -11,7 +11,6 @@ import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import NetworkFilters from 'sentry/views/replays/detail/network/networkFilters';
 import NetworkHeaderCell, {
   COLUMN_COUNT,
-  HEADER_HEIGHT,
 } from 'sentry/views/replays/detail/network/networkHeaderCell';
 import NetworkTableCell from 'sentry/views/replays/detail/network/networkTableCell';
 import useNetworkFilters from 'sentry/views/replays/detail/network/useNetworkFilters';
@@ -19,6 +18,9 @@ import useSortNetwork from 'sentry/views/replays/detail/network/useSortNetwork';
 import NoRowRenderer from 'sentry/views/replays/detail/noRowRenderer';
 import useVirtualizedGrid from 'sentry/views/replays/detail/useVirtualizedGrid';
 import type {NetworkSpan} from 'sentry/views/replays/types';
+
+const HEADER_HEIGHT = 25;
+const BODY_HEIGHT = 28;
 
 type Props = {
   networkSpans: undefined | NetworkSpan[];
@@ -52,20 +54,21 @@ function NetworkList({networkSpans, startTimestampMs}: Props) {
       })
     : null;
 
-  const [scrollBarWidth, setScrollBarWidth] = useState(0);
   const gridRef = useRef<MultiGrid>(null);
-  const tableRef = useRef<HTMLDivElement>(null);
-  const {cache} = useVirtualizedGrid({
-    cellMeasurer: {
-      defaultWidth: 100,
-      fixedHeight: true,
-    },
-    ref: gridRef,
-    wrapperRef: tableRef,
-    deps: [items, searchTerm],
-  });
+  const {cache, getColumnWidth, onScrollbarPresenceChange, onWrapperResize} =
+    useVirtualizedGrid({
+      cellMeasurer: {
+        defaultHeight: BODY_HEIGHT,
+        defaultWidth: 100,
+        fixedHeight: true,
+      },
+      gridRef,
+      columnCount: COLUMN_COUNT,
+      dynamicColumnIndex: 1,
+      deps: [items, searchTerm],
+    });
 
-  const renderTableRow = ({columnIndex, rowIndex, key, style, parent}: GridCellProps) => {
+  const cellRenderer = ({columnIndex, rowIndex, key, style, parent}: GridCellProps) => {
     const network = items[rowIndex - 1];
 
     return (
@@ -76,27 +79,37 @@ function NetworkList({networkSpans, startTimestampMs}: Props) {
         parent={parent}
         rowIndex={rowIndex}
       >
-        {rowIndex === 0 ? (
-          <NetworkHeaderCell
-            handleSort={handleSort}
-            index={columnIndex}
-            sortConfig={sortConfig}
-            style={style}
-          />
-        ) : (
-          <NetworkTableCell
-            columnIndex={columnIndex}
-            handleClick={handleClick}
-            handleMouseEnter={handleMouseEnter}
-            handleMouseLeave={handleMouseLeave}
-            isCurrent={network.id === current?.id}
-            isHovered={network.id === hovered?.id}
-            sortConfig={sortConfig}
-            span={network}
-            startTimestampMs={startTimestampMs}
-            style={style}
-          />
-        )}
+        {({
+          measure: _,
+          registerChild,
+        }: {
+          measure: () => void;
+          registerChild?: (element?: Element) => void;
+        }) =>
+          rowIndex === 0 ? (
+            <NetworkHeaderCell
+              ref={e => e && registerChild?.(e)}
+              handleSort={handleSort}
+              index={columnIndex}
+              sortConfig={sortConfig}
+              style={{...style, height: HEADER_HEIGHT}}
+            />
+          ) : (
+            <NetworkTableCell
+              ref={e => e && registerChild?.(e)}
+              columnIndex={columnIndex}
+              handleClick={handleClick}
+              handleMouseEnter={handleMouseEnter}
+              handleMouseLeave={handleMouseLeave}
+              isCurrent={network.id === current?.id}
+              isHovered={network.id === hovered?.id}
+              sortConfig={sortConfig}
+              span={network}
+              startTimestampMs={startTimestampMs}
+              style={{...style, height: BODY_HEIGHT}}
+            />
+          )
+        }
       </CellMeasurer>
     );
   };
@@ -104,29 +117,17 @@ function NetworkList({networkSpans, startTimestampMs}: Props) {
   return (
     <NetworkContainer>
       <NetworkFilters networkSpans={networkSpans} {...filterProps} />
-      <NetworkTable ref={tableRef}>
+      <NetworkTable>
         {networkSpans ? (
-          <AutoSizer>
+          <AutoSizer onResize={onWrapperResize}>
             {({width, height}) => (
               <MultiGrid
                 ref={gridRef}
+                cellRenderer={cellRenderer}
                 columnCount={COLUMN_COUNT}
-                columnWidth={({index}) => {
-                  if (index === 1) {
-                    return Math.max(
-                      Array.from(new Array(COLUMN_COUNT)).reduce(
-                        (remaining, _, i) =>
-                          i === 1 ? remaining : remaining - cache.columnWidth({index: i}),
-                        width - scrollBarWidth
-                      ),
-                      200
-                    );
-                  }
-
-                  return cache.columnWidth({index});
-                }}
-                cellRenderer={renderTableRow}
-                deferredMeasurementCache={cache}
+                columnWidth={getColumnWidth(width)}
+                estimatedColumnSize={width}
+                estimatedRowSize={HEADER_HEIGHT + items.length * BODY_HEIGHT}
                 fixedRowCount={1}
                 height={height}
                 noContentRenderer={() => (
@@ -137,13 +138,11 @@ function NetworkList({networkSpans, startTimestampMs}: Props) {
                     {t('No network requests recorded')}
                   </NoRowRenderer>
                 )}
-                onScrollbarPresenceChange={({vertical, size}) =>
-                  setScrollBarWidth(vertical ? size : 0)
-                }
+                onScrollbarPresenceChange={onScrollbarPresenceChange}
                 overscanColumnCount={COLUMN_COUNT}
                 overscanRowCount={5}
                 rowCount={items.length + 1}
-                rowHeight={({index}) => (index === 0 ? HEADER_HEIGHT : 28)}
+                rowHeight={({index}) => (index === 0 ? HEADER_HEIGHT : BODY_HEIGHT)}
                 width={width}
               />
             )}

@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import {SLOW_TOOLTIP_DELAY} from 'sentry/constants';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
@@ -37,7 +37,7 @@ function Expander({
       tooltipProps={isHoverPreviewed ? {delay: SLOW_TOOLTIP_DELAY} : undefined}
       onClick={onToggleContext}
     >
-      <IconChevron direction={isExpanded ? 'up' : 'down'} size="8px" />
+      <IconChevron direction={isExpanded ? 'up' : 'down'} legacySize="8px" />
     </StyledButton>
   );
 }

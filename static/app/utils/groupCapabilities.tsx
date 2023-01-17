@@ -12,6 +12,14 @@ const ISSUE_CATEGORY_CAPABILITIES: Record<IssueCategory, IssueCategoryCapabiliti
     ignore: {enabled: true},
     share: {enabled: true},
     codeowners: {enabled: true},
+
+    // Tabs
+    userFeedback: {enabled: true},
+    attachments: {enabled: true},
+    mergedIssues: {enabled: true},
+    grouping: {enabled: true},
+    similarIssues: {enabled: true},
+    replays: {enabled: true},
   },
   [IssueCategory.PERFORMANCE]: {
     delete: {
@@ -32,6 +40,14 @@ const ISSUE_CATEGORY_CAPABILITIES: Record<IssueCategory, IssueCategoryCapabiliti
       enabled: false,
       disabledReason: t('Codeowners do not apply to performance issues'),
     },
+
+    // Tabs
+    userFeedback: {enabled: false},
+    attachments: {enabled: false},
+    mergedIssues: {enabled: false},
+    grouping: {enabled: false},
+    similarIssues: {enabled: false},
+    replays: {enabled: false},
   },
 };
 

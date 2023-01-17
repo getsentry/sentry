@@ -5,7 +5,7 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
-import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {
@@ -95,12 +95,13 @@ function EventsContentWrapper(props: ChildProps) {
   const onChangeSpanOperationBreakdownFilter = (
     newFilter: SpanOperationBreakdownFilter
   ) => {
-    trackAnalyticsEvent({
-      eventName: 'Performance Views: Transaction Events Ops Breakdown Filter Dropdown',
-      eventKey: 'performance_views.transactionEvents.ops_filter_dropdown.selection',
-      organization_id: parseInt(organization.id, 10),
-      action: newFilter as string,
-    });
+    trackAdvancedAnalyticsEvent(
+      'performance_views.transactionEvents.ops_filter_dropdown.selection',
+      {
+        organization,
+        action: newFilter as string,
+      }
+    );
 
     // Check to see if the current table sort matches the EventsDisplayFilter.
     // If it does, we can re-sort using the new SpanOperationBreakdownFilter
@@ -133,12 +134,13 @@ function EventsContentWrapper(props: ChildProps) {
   };
 
   const onChangeEventsDisplayFilter = (newFilterName: EventsDisplayFilterName) => {
-    trackAnalyticsEvent({
-      eventName: 'Performance Views: Transaction Events Display Filter Dropdown',
-      eventKey: 'performance_views.transactionEvents.display_filter_dropdown.selection',
-      organization_id: parseInt(organization.id, 10),
-      action: newFilterName as string,
-    });
+    trackAdvancedAnalyticsEvent(
+      'performance_views.transactionEvents.display_filter_dropdown.selection',
+      {
+        organization,
+        action: newFilterName as string,
+      }
+    );
 
     const nextQuery: Location['query'] = {
       ...removeHistogramQueryStrings(location, [ZOOM_START, ZOOM_END]),

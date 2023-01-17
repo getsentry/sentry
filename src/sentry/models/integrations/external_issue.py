@@ -79,8 +79,10 @@ class ExternalIssue(Model):
     __repr__ = sane_repr("organization_id", "integration_id", "key")
 
     def get_installation(self) -> Any:
-        from sentry.models import Integration
+        from sentry.services.hybrid_cloud.integration import integration_service
 
-        return Integration.objects.get(id=self.integration_id).get_installation(
-            organization_id=self.organization_id
+        integration = integration_service.get_integration(integration_id=self.integration_id)
+
+        return integration_service.get_installation(
+            integration=integration, organization_id=self.organization_id
         )
