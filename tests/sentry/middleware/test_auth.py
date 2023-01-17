@@ -1,17 +1,11 @@
 import base64
 from functools import cached_property
-from typing import cast
 
 from django.test import RequestFactory
-from django.utils import timezone
 from freezegun import freeze_time
 
 from sentry.middleware.auth import AuthenticationMiddleware
-from sentry.models import ApiKey, ApiToken, UserIP
-from sentry.region_to_control.producer import (
-    MockRegionToControlMessageService,
-    region_to_control_message_service,
-)
+from sentry.models import ApiKey, ApiToken, OutboxScope, RegionOutbox, UserIP
 from sentry.services.hybrid_cloud.auth import AuthenticatedToken
 from sentry.services.hybrid_cloud.user import user_service
 from sentry.silo import SiloMode
@@ -31,27 +25,12 @@ class AuthenticationMiddlewareTestCase(TestCase):
             assert request.user == user_service.serialize_user(self.user)
 
     def assert_user_ip(self, request):
-        if SiloMode.get_current_mode() == SiloMode.REGION:
-            cast(
-                MockRegionToControlMessageService, region_to_control_message_service
-            ).mock.write_region_to_control_message.assert_called_with(
-                dict(
-                    user_ip_event=dict(
-                        user_id=self.user.id,
-                        ip_address="127.0.0.1",
-                        last_seen=timezone.now(),
-                        country_code=None,
-                        region_code=None,
-                    ),
-                    audit_log_event=None,
-                ),
-                False,
-            )
-            with exempt_from_silo_limits():
-                assert not UserIP.objects.filter(user=self.user, ip_address="127.0.0.1").exists()
-        else:
+        with exempt_from_silo_limits():
             # Force the user object to materialize
             request.user.id  # noqa
+            RegionOutbox.for_shard(
+                shard_scope=OutboxScope.USER_IP_SCOPE, shard_identifier=self.user.id
+            ).drain_shard()
             assert UserIP.objects.filter(user=self.user, ip_address="127.0.0.1").exists()
 
     def setUp(self):

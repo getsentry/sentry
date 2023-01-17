@@ -3,7 +3,8 @@ import datetime
 from dataclasses import dataclass
 from typing import Mapping, Optional
 
-from sentry.services.hybrid_cloud import InterfaceWithLifecycle
+from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_delegation
+from sentry.silo import SiloMode
 
 
 @dataclass
@@ -29,7 +30,7 @@ class AuditLogEvent:
     # TODO: Serializing actor id -- right now we just serialize the user id and label, but not the id itself.
 
 
-class AuditLogService(InterfaceWithLifecycle):
+class LogService(InterfaceWithLifecycle):
     @abc.abstractmethod
     def close(self) -> None:
         pass
@@ -41,3 +42,24 @@ class AuditLogService(InterfaceWithLifecycle):
     @abc.abstractmethod
     def record_user_ip(self, *, event: UserIpEvent) -> None:
         pass
+
+
+def impl_by_db() -> LogService:
+    from .impl import DatabaseBackedLogService
+
+    return DatabaseBackedLogService()
+
+
+def impl_by_outbox() -> LogService:
+    from .impl import OutboxBackedLogService
+
+    return OutboxBackedLogService()
+
+
+log_service = silo_mode_delegation(
+    {
+        SiloMode.REGION: impl_by_outbox,
+        SiloMode.CONTROL: impl_by_db,
+        SiloMode.MONOLITH: impl_by_db,
+    }
+)

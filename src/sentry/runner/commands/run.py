@@ -578,30 +578,6 @@ def occurrences_ingest_consumer():
         get_occurrences_ingest_consumer(consumer_type).run()
 
 
-@run.command("region-to-control-consumer")
-@log_options()
-@click.option(
-    "region_name",
-    "--region-name",
-    required=True,
-    help="Regional name to run the consumer for",
-)
-@batching_kafka_options("region-to-control-consumer")
-@configuration
-def region_to_control_consumer(region_name, **kafka_options):
-    """
-    Runs a "region -> consumer" task.
-
-    Processes specific even datums like UserIP that are produced in region silos but updated in control silos.
-    see region_to_control module
-    """
-    from sentry.region_to_control.consumer import get_region_to_control_consumer
-    from sentry.utils import metrics
-
-    with metrics.global_tags(region_name=region_name):
-        get_region_to_control_consumer(**kafka_options).run()
-
-
 @run.command("ingest-metrics-parallel-consumer")
 @log_options()
 @batching_kafka_options("ingest-metrics-consumer")
