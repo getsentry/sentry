@@ -339,25 +339,30 @@ function Sidebar({location, organization}: Props) {
           {hasOrganization && (
             <Fragment>
               <SidebarSection>
-                {projects}
                 {issues}
-                {performance}
-                {profiling}
-                {releases}
-                {replays}
-                {monitors}
-                {userFeedback}
-                {alerts}
-                {discover2}
-                {dashboards}
+                {projects}
               </SidebarSection>
 
               <SidebarSection>
+                {performance}
+                {profiling}
+                {replays}
+                {userFeedback}
+                {releases}
+              </SidebarSection>
+
+              <SidebarSection>
+                {discover2}
+                {dashboards}
                 {activity}
                 {stats}
               </SidebarSection>
 
-              <SidebarSection>{settings}</SidebarSection>
+              <SidebarSection>
+                {alerts}
+                {monitors}
+                {settings}
+              </SidebarSection>
             </Fragment>
           )}
         </PrimaryItems>
