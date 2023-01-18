@@ -124,11 +124,12 @@ function shouldshowCodecovFeatures(
 }
 
 interface CodecovLinkProps {
-  sourceUrl: string | undefined;
   codecovStatusCode?: CodecovStatusCode;
+  codecovUrl?: string;
+  sourceUrl?: string;
 }
 
-function CodecovLink({sourceUrl, codecovStatusCode}: CodecovLinkProps) {
+function CodecovLink({sourceUrl, codecovUrl, codecovStatusCode}: CodecovLinkProps) {
   if (codecovStatusCode === CodecovStatusCode.NO_COVERAGE_DATA) {
     return (
       <CodecovWarning>
@@ -139,14 +140,9 @@ function CodecovLink({sourceUrl, codecovStatusCode}: CodecovLinkProps) {
   }
 
   if (codecovStatusCode === CodecovStatusCode.COVERAGE_EXISTS) {
-    if (!sourceUrl) {
+    if (!sourceUrl || !codecovUrl) {
       return null;
     }
-    const codecovUrl = sourceUrl.replaceAll(
-      new RegExp('github.com/.[^/]*', 'g'),
-      'app.codecov.io/gh'
-    );
-
     return (
       <OpenInLink href={codecovUrl} openInNewTab>
         {t('View Coverage Tests on Codecov')}
@@ -283,6 +279,7 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
         {shouldshowCodecovFeatures(organization, match) && (
           <CodecovLink
             sourceUrl={match.sourceUrl}
+            codecovUrl={match.codecovUrl}
             codecovStatusCode={match.codecovStatusCode}
           />
         )}
