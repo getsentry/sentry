@@ -1,9 +1,7 @@
 import {mat3, vec2} from 'gl-matrix';
 
-import {Flamegraph} from '../flamegraph';
-import {FlamegraphSearch} from '../flamegraph/flamegraphStateProvider/reducers/flamegraphSearch';
-import {FlamegraphTheme} from '../flamegraph/flamegraphTheme';
-import {FlamegraphFrame, getFlamegraphFrameSearchId} from '../flamegraphFrame';
+import {FlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
+
 import {
   createProgram,
   createShader,
@@ -12,25 +10,22 @@ import {
   Rect,
   resizeCanvasToDisplaySize,
 } from '../gl/utils';
+import {UIFrameNode, UIFrames} from '../uiFrames';
 
 import {fragment, vertex} from './shaders';
 
 // These are both mutable and are used to avoid unnecessary allocations during rendering.
 const PHYSICAL_SPACE_PX = new Rect(0, 0, 1, 1);
 const CONFIG_TO_PHYSICAL_SPACE = mat3.create();
-const VERTICES_PER_FRAME = 6;
-const COLOR_COMPONENTS = 4;
 
-class FlamegraphRenderer {
+class UIFramesRenderer {
   canvas: HTMLCanvasElement | null;
-  flamegraph: Flamegraph;
+  uiFrames: UIFrames;
 
   gl: WebGLRenderingContext | null = null;
   program: WebGLProgram | null = null;
 
   theme: FlamegraphTheme;
-  frames: ReadonlyArray<FlamegraphFrame> = [];
-  roots: ReadonlyArray<FlamegraphFrame> = [];
 
   // Vertex and color buffer
   positions: Float32Array = new Float32Array();
@@ -39,8 +34,6 @@ class FlamegraphRenderer {
   searchResults: Float32Array = new Float32Array();
 
   colorMap: Map<string | number, number[]> = new Map();
-
-  lastDragPosition: vec2 | null = null;
 
   attributes: {
     a_bounds: number | null;
@@ -72,40 +65,21 @@ class FlamegraphRenderer {
 
   constructor(
     canvas: HTMLCanvasElement,
-    flamegraph: Flamegraph,
+    uiFrames: UIFrames,
     theme: FlamegraphTheme,
     options: {draw_border: boolean} = {draw_border: false}
   ) {
-    this.flamegraph = flamegraph;
+    this.uiFrames = uiFrames;
     this.canvas = canvas;
     this.theme = theme;
     this.options = options;
+
+    this.colors = new Float32Array(uiFrames.frames.length * 6 * 4).fill(0.5);
 
     this.init();
   }
 
   init(): void {
-    this.frames = this.flamegraph.frames;
-    this.roots = this.flamegraph.root.children;
-
-    // Generate colors for the flamegraph
-    const {colorBuffer, colorMap} = this.theme.COLORS.STACK_TO_COLOR(
-      this.frames,
-      this.theme.COLORS.COLOR_MAP,
-      this.theme.COLORS.COLOR_BUCKET
-    );
-
-    this.colorMap = colorMap;
-
-    if (
-      VERTICES_PER_FRAME * COLOR_COMPONENTS * this.frames.length !==
-      colorBuffer.length
-    ) {
-      throw new Error('Color buffer length does not match the number of vertices');
-    }
-
-    this.colors = new Float32Array(colorBuffer);
-
     this.initCanvasContext();
     this.initVertices();
     this.initShaders();
@@ -114,20 +88,23 @@ class FlamegraphRenderer {
   initVertices(): void {
     const POSITIONS = 2;
     const BOUNDS = 4;
+    const VERTICES = 6;
 
-    const FRAME_COUNT = this.frames.length;
+    const FRAME_COUNT = this.uiFrames.frames.length;
 
-    this.bounds = new Float32Array(VERTICES_PER_FRAME * BOUNDS * FRAME_COUNT);
-    this.positions = new Float32Array(VERTICES_PER_FRAME * POSITIONS * FRAME_COUNT);
-    this.searchResults = new Float32Array(FRAME_COUNT * VERTICES_PER_FRAME);
+    this.bounds = new Float32Array(VERTICES * BOUNDS * FRAME_COUNT);
+    this.positions = new Float32Array(VERTICES * POSITIONS * FRAME_COUNT);
+    this.searchResults = new Float32Array(FRAME_COUNT * VERTICES);
 
     for (let index = 0; index < FRAME_COUNT; index++) {
-      const frame = this.frames[index];
+      const frame = this.uiFrames.frames[index];
 
+      const rowOffset = frame.type === 'frozen' ? 1 : 0;
       const x1 = frame.start;
       const x2 = frame.end;
-      const y1 = frame.depth;
-      const y2 = frame.depth + 1;
+      // UIFrames have no notion of depth
+      const y1 = -1 + rowOffset;
+      const y2 = 0 + rowOffset;
 
       // top left -> top right -> bottom left ->
       // bottom left -> top right -> bottom right
@@ -148,9 +125,9 @@ class FlamegraphRenderer {
 
       // @TODO check if we can pack bounds across vertex calls,
       // we are allocating 6x the amount of memory here
-      const boundsOffset = index * VERTICES_PER_FRAME * BOUNDS;
+      const boundsOffset = index * VERTICES * BOUNDS;
 
-      for (let i = 0; i < VERTICES_PER_FRAME; i++) {
+      for (let i = 0; i < VERTICES; i++) {
         const offset = boundsOffset + i * BOUNDS;
 
         this.bounds[offset] = x1;
@@ -235,37 +212,6 @@ class FlamegraphRenderer {
     this.uniforms.u_draw_border = uDrawBorder;
 
     {
-      const aIsSearchResult = this.gl.getAttribLocation(
-        this.program,
-        'a_is_search_result'
-      );
-
-      if (aIsSearchResult === -1) {
-        throw new Error('Could not locate a_is_search_result in shader');
-      }
-
-      // attributes get data from buffers
-      this.attributes.a_is_search_result = aIsSearchResult;
-
-      // Init color buffer
-      const searchResultsBuffer = this.gl.createBuffer();
-
-      // Bind it to ARRAY_BUFFER (think of it as ARRAY_BUFFER = searchResultsBuffer)
-      this.gl.bindBuffer(this.gl.ARRAY_BUFFER, searchResultsBuffer);
-      this.gl.bufferData(this.gl.ARRAY_BUFFER, this.searchResults, this.gl.DYNAMIC_DRAW);
-
-      const size = 1;
-      const type = this.gl.FLOAT;
-      const normalize = false;
-      const stride = 0;
-      const offset = 0;
-
-      this.gl.vertexAttribPointer(aIsSearchResult, size, type, normalize, stride, offset);
-      // Point to attribute location
-      this.gl.enableVertexAttribArray(aIsSearchResult);
-    }
-
-    {
       const aColorAttributeLocation = this.gl.getAttribLocation(this.program, 'a_color');
 
       if (aColorAttributeLocation === -1) {
@@ -298,6 +244,37 @@ class FlamegraphRenderer {
       );
       // Point to attribute location
       this.gl.enableVertexAttribArray(aColorAttributeLocation);
+    }
+
+    {
+      const aIsSearchResult = this.gl.getAttribLocation(
+        this.program,
+        'a_is_search_result'
+      );
+
+      if (aIsSearchResult === -1) {
+        throw new Error('Could not locate a_is_search_result in shader');
+      }
+
+      // attributes get data from buffers
+      this.attributes.a_is_search_result = aIsSearchResult;
+
+      // Init color buffer
+      const searchResultsBuffer = this.gl.createBuffer();
+
+      // Bind it to ARRAY_BUFFER (think of it as ARRAY_BUFFER = searchResultsBuffer)
+      this.gl.bindBuffer(this.gl.ARRAY_BUFFER, searchResultsBuffer);
+      this.gl.bufferData(this.gl.ARRAY_BUFFER, this.searchResults, this.gl.DYNAMIC_DRAW);
+
+      const size = 1;
+      const type = this.gl.FLOAT;
+      const normalize = false;
+      const stride = 0;
+      const offset = 0;
+
+      this.gl.vertexAttribPointer(aIsSearchResult, size, type, normalize, stride, offset);
+      // Point to attribute location
+      this.gl.enableVertexAttribArray(aIsSearchResult);
     }
 
     {
@@ -382,92 +359,27 @@ class FlamegraphRenderer {
     this.gl.useProgram(this.program);
   }
 
-  getColorForFrame(frame: FlamegraphFrame): number[] {
-    return this.colorMap.get(frame.key) ?? this.theme.COLORS.FRAME_FALLBACK_COLOR;
+  getColorForFrame(): number[] {
+    return this.theme.COLORS.FRAME_FALLBACK_COLOR;
   }
 
-  findHoveredNode(configSpaceCursor: vec2): FlamegraphFrame | null {
+  findHoveredNode(configSpaceCursor: vec2, configSpace: Rect): UIFrameNode | null {
     // ConfigSpace origin is at top of rectangle, so we need to offset bottom by 1
     // to account for size of renderered rectangle.
-    if (configSpaceCursor[1] > this.flamegraph.configSpace.bottom + 1) {
+    if (configSpaceCursor[1] > configSpace.bottom + 1) {
       return null;
     }
 
-    if (configSpaceCursor[0] < this.flamegraph.configSpace.left) {
+    if (configSpaceCursor[0] < configSpace.left) {
       return null;
     }
 
-    if (configSpaceCursor[0] > this.flamegraph.configSpace.right) {
+    if (configSpaceCursor[0] > configSpace.right) {
       return null;
     }
 
-    let hoveredNode: FlamegraphFrame | null = null;
-    const queue = [...this.roots];
-
-    while (queue.length && !hoveredNode) {
-      const frame = queue.pop()!;
-
-      // We treat entire flamegraph as a segment tree, this allows us to query in O(log n) time by
-      // only looking at the nodes that are relevant to the current cursor position. We discard any values
-      // on x axis that do not overlap the cursor, and descend until we find a node that overlaps at cursor y position
-      if (configSpaceCursor[0] < frame.start || configSpaceCursor[0] > frame.end) {
-        continue;
-      }
-
-      // If our frame depth overlaps cursor y position, we have found our node
-      if (
-        configSpaceCursor[1] >= frame.depth &&
-        configSpaceCursor[1] <= frame.depth + 1
-      ) {
-        hoveredNode = frame;
-        break;
-      }
-
-      // Descend into the rest of the children
-      for (let i = 0; i < frame.children.length; i++) {
-        queue.push(frame.children[i]);
-      }
-    }
-    return hoveredNode;
-  }
-
-  setSearchResults(searchResults: FlamegraphSearch['results']['frames']) {
-    if (!this.program || !this.gl) {
-      return;
-    }
-
-    const matchedFrame = new Float32Array(6).fill(1);
-    const unMatchedFrame = new Float32Array(6).fill(0);
-
-    for (let i = 0; i < this.frames.length; i++) {
-      this.searchResults.set(
-        searchResults.has(getFlamegraphFrameSearchId(this.frames[i]))
-          ? matchedFrame
-          : unMatchedFrame,
-        i * 6
-      );
-    }
-
-    const aIsSearchResult = this.gl.getAttribLocation(this.program, 'a_is_search_result');
-    // attributes get data from buffers
-    this.attributes.a_is_search_result = aIsSearchResult;
-
-    // Init color buffer
-    const searchResultsBuffer = this.gl.createBuffer();
-
-    // Bind it to ARRAY_BUFFER (think of it as ARRAY_BUFFER = searchResultsBuffer)
-    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, searchResultsBuffer);
-    this.gl.bufferData(this.gl.ARRAY_BUFFER, this.searchResults, this.gl.DYNAMIC_DRAW);
-
-    const size = 1;
-    const type = this.gl.FLOAT;
-    const normalize = false;
-    const stride = 0;
-    const offset = 0;
-
-    this.gl.vertexAttribPointer(aIsSearchResult, size, type, normalize, stride, offset);
-    // Point to attribute location
-    this.gl.enableVertexAttribArray(aIsSearchResult);
+    // Run binary search
+    return null;
   }
 
   draw(configViewToPhysicalSpace: mat3): void {
@@ -496,11 +408,10 @@ class FlamegraphRenderer {
     // Model to projection
     this.gl.uniformMatrix3fv(this.uniforms.u_model, false, configViewToPhysicalSpace);
 
-    // Check if we should draw border
-    this.gl.uniform1i(this.uniforms.u_draw_border, this.options.draw_border ? 1 : 0);
-
     // Tell webgl to convert clip space to px
     this.gl.viewport(0, 0, this.gl.canvas.width, this.gl.canvas.height);
+
+    this.gl.uniform1i(this.uniforms.u_draw_border, 1);
 
     const physicalToConfig = mat3.invert(
       CONFIG_TO_PHYSICAL_SPACE,
@@ -514,8 +425,9 @@ class FlamegraphRenderer {
       configSpacePixel.height
     );
 
-    this.gl.drawArrays(this.gl.TRIANGLES, 0, this.frames.length * VERTICES_PER_FRAME);
+    const VERTICES = 6;
+    this.gl.drawArrays(this.gl.TRIANGLES, 0, this.uiFrames.frames.length * VERTICES);
   }
 }
 
-export {FlamegraphRenderer};
+export {UIFramesRenderer};
