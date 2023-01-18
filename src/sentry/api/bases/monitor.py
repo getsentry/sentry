@@ -1,3 +1,8 @@
+from __future__ import annotations
+
+from typing import Any, Mapping
+
+import sentry_sdk
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -37,7 +42,16 @@ class MonitorEndpoint(Endpoint):
 
     @staticmethod
     def respond_invalid() -> Response:
-        return Response(status=status.HTTP_400_BAD_REQUEST, data={"details": "Invalid monitor"})
+        span = sentry_sdk.Hub.current.scope.span
+        response = Response(status=status.HTTP_400_BAD_REQUEST, data={"details": "Invalid monitor"})
+        span.set_data("response.data", response.data)
+        return response
+
+    def respond(self, context: Mapping[str, Any] | None = None, **kwargs: Any) -> Response:
+        span = sentry_sdk.Hub.current.scope.span
+        response = Response(context, **kwargs)
+        span.set_data("response.data", response.data)
+        return Response(context, **kwargs)
 
     def convert_args(self, request: Request, monitor_id, *args, **kwargs):
         try:
