@@ -452,7 +452,9 @@ def query_subscription_consumer(**options):
     run_processor_with_signals(subscriber)
 
 
-def batching_kafka_options(group, max_batch_size=None, max_batch_time_ms=1000):
+def batching_kafka_options(
+    group, max_batch_size=None, max_batch_time_ms=1000, allow_force_cluster=True
+):
     """
     Expose batching_kafka_consumer options as CLI args.
 
@@ -492,21 +494,22 @@ def batching_kafka_options(group, max_batch_size=None, max_batch_time_ms=1000):
             help="Position in the commit log topic to begin reading from when no prior offset has been recorded.",
         )(f)
 
-        f = click.option(
-            "--force-topic",
-            "force_topic",
-            default=None,
-            type=str,
-            help="Override the Kafka topic the consumer will read from.",
-        )(f)
+        if allow_force_cluster:
+            f = click.option(
+                "--force-topic",
+                "force_topic",
+                default=None,
+                type=str,
+                help="Override the Kafka topic the consumer will read from.",
+            )(f)
 
-        f = click.option(
-            "--force-cluster",
-            "force_cluster",
-            default=None,
-            type=str,
-            help="Kafka cluster ID of the overridden topic. Configure clusters via KAFKA_CLUSTERS in server settings.",
-        )(f)
+            f = click.option(
+                "--force-cluster",
+                "force_cluster",
+                default=None,
+                type=str,
+                help="Kafka cluster ID of the overridden topic. Configure clusters via KAFKA_CLUSTERS in server settings.",
+            )(f)
 
         return f
 
@@ -616,7 +619,7 @@ def region_to_control_consumer(region_name, **kafka_options):
 
 @run.command("ingest-metrics-parallel-consumer")
 @log_options()
-@batching_kafka_options("ingest-metrics-consumer")
+@batching_kafka_options("ingest-metrics-consumer", allow_force_cluster=False)
 @strict_offset_reset_option()
 @configuration
 @click.option(
@@ -641,8 +644,8 @@ def metrics_parallel_consumer(**options):
     )
     from sentry.sentry_metrics.consumers.indexer.parallel import get_parallel_metrics_consumer
 
-    use_case = UseCaseKey(options["ingest_profile"])
-    db_backend = IndexerStorage(options["indexer_db"])
+    use_case = UseCaseKey(options.pop("ingest_profile"))
+    db_backend = IndexerStorage(options.pop("indexer_db"))
     ingest_config = get_ingest_config(use_case, db_backend)
     slicing_router = get_slicing_router(ingest_config)
 
@@ -696,11 +699,10 @@ def replays_recordings_consumer(**options):
 @run.command("indexer-last-seen-updater")
 @log_options()
 @configuration
-@batching_kafka_options("indexer-last-seen-updater-consumer", max_batch_size=100)
+@batching_kafka_options(
+    "indexer-last-seen-updater-consumer", max_batch_size=100, allow_force_cluster=False
+)
 @strict_offset_reset_option()
-@click.option("commit_max_batch_size", "--commit-max-batch-size", type=int, default=25000)
-@click.option("commit_max_batch_time", "--commit-max-batch-time-ms", type=int, default=10000)
-@click.option("--topic", default="snuba-metrics", help="Topic to read indexer output from.")
 @click.option("--ingest-profile", required=True)
 @click.option("--indexer-db", default="postgres")
 def last_seen_updater(**options):
@@ -709,7 +711,7 @@ def last_seen_updater(**options):
     from sentry.utils.metrics import global_tags
 
     ingest_config = get_ingest_config(
-        UseCaseKey(options["ingest_profile"]), IndexerStorage(options["indexer_db"])
+        UseCaseKey(options.pop("ingest_profile")), IndexerStorage(options.pop("indexer_db"))
     )
 
     consumer = get_last_seen_updater(ingest_config=ingest_config, **options)

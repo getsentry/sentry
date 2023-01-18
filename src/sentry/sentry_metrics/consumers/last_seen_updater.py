@@ -2,7 +2,7 @@ import datetime
 import functools
 from abc import abstractmethod
 from datetime import timedelta
-from typing import Any, Callable, Mapping, Optional, Set, Union
+from typing import Any, Callable, Mapping, Optional, Set
 
 import rapidjson
 from arroyo.backends.kafka import KafkaConsumer, KafkaPayload
@@ -198,8 +198,6 @@ def get_last_seen_updater(
     auto_offset_reset: str,
     strict_offset_reset: bool,
     ingest_config: MetricsIngestConfiguration,
-    # TODO: remove ignored parameter?
-    **options: Mapping[str, Union[str, int]],
 ) -> StreamProcessor[KafkaPayload]:
     """
     The last_seen updater uses output from the metrics indexer to update the

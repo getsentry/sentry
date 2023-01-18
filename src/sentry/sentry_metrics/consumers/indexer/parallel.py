@@ -187,8 +187,6 @@ def get_parallel_metrics_consumer(
     strict_offset_reset: bool,
     indexer_profile: MetricsIngestConfiguration,
     slicing_router: Optional[SlicingRouter],
-    # TODO: those options are discarded, try removing this?
-    **options: Mapping[str, Union[str, int]],
 ) -> StreamProcessor[KafkaPayload]:
     processing_factory = MetricsConsumerStrategyFactory(
         max_msg_batch_size=max_msg_batch_size,
