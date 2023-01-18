@@ -57,6 +57,10 @@ class AuthOrganizationLoginView(AuthLoginView):
             )
 
         if organization.status != OrganizationStatus.VISIBLE:
+            if request.subdomain:
+                return self.handle_basic_auth(
+                    request, organization=ApiOrganizationSummary(name=organization_slug)
+                )
             return self.redirect(reverse("sentry-login"))
 
         request.session.set_test_cookie()
