@@ -289,6 +289,7 @@ export function parseTypescriptChromeTraceArrayFormat(
     activeProfileIndex: 0,
     profiles,
     metadata: {} as Profiling.Schema['metadata'],
+    measurements: {},
   };
 }
 
@@ -536,5 +537,6 @@ export function parseChromeTraceFormat(
     traceID: profileID,
     transactionID: null,
     metadata: {} as Profiling.Schema['metadata'],
+    measurements: {},
   };
 }
