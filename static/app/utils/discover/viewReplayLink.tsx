@@ -26,9 +26,7 @@ function ViewReplayLink({
   }
   return (
     <Tooltip title={t('View Replay')}>
-      <StyledLink data-test-id="view-replay" to={to}>
-        {children}
-      </StyledLink>
+      <StyledLink to={to}>{children}</StyledLink>
     </Tooltip>
   );
 }
