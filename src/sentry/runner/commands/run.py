@@ -70,7 +70,14 @@ def strict_offset_reset_option():
     return click.option(
         "--strict-offset-reset/--no-strict-offset-reset",
         default=True,
-        help="Forces the kafka consumer auto offset reset.",
+        help=(
+            "--strict-offset-reset, the default, means that the kafka consumer "
+            "still errors in case the offset has expired.\n\n"
+            "--no-strict-offset-reset will use the auto offset reset even in that case. "
+            "This is useful in development, but not desirable in production since expired "
+            "offsets mean data-loss.\n\n"
+            "Most consumers that do not have this option at all default to 'Not Strict'."
+        ),
     )
 
 
