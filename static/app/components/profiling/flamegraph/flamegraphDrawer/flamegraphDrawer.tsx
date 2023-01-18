@@ -32,6 +32,7 @@ interface FlamegraphDrawerProps {
   referenceNode: FlamegraphFrame;
   rootNodes: FlamegraphFrame[];
   onResize?: MouseEventHandler<HTMLElement>;
+  onResizeReset?: MouseEventHandler<HTMLElement>;
 }
 
 const FlamegraphDrawer = memo(function FlamegraphDrawer(props: FlamegraphDrawerProps) {
@@ -188,6 +189,11 @@ const FlamegraphDrawer = memo(function FlamegraphDrawer(props: FlamegraphDrawerP
           onMouseDown={
             flamegraphPreferences.layout === 'table bottom' ? props.onResize : undefined
           }
+          onDoubleClick={
+            flamegraphPreferences.layout === 'table bottom'
+              ? props.onResizeReset
+              : undefined
+          }
         />
         <ProfilingDetailsListItem margin="none">
           <ExportProfileButton
@@ -247,7 +253,10 @@ const FlamegraphDrawer = memo(function FlamegraphDrawer(props: FlamegraphDrawerP
         <ResizableVerticalDrawer>
           {/* The border should be 1px, but we want the actual handler to be wider
           to improve the user experience and not have users have to click on the exact pixel */}
-          <InvisibleHandler onMouseDown={props.onResize} />
+          <InvisibleHandler
+            onMouseDown={props.onResize}
+            onDoubleClick={props.onResizeReset}
+          />
         </ResizableVerticalDrawer>
       ) : null}
     </FrameDrawer>

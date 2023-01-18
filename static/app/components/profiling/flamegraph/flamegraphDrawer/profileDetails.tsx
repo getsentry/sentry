@@ -100,7 +100,7 @@ export function ProfileDetails(props: ProfileDetailsProps) {
     };
   }, [flamegraphPreferences.layout]);
 
-  const {onMouseDown} = useResizableDrawer(resizableOptions);
+  const {onMouseDown, onDoubleClick} = useResizableDrawer(resizableOptions);
 
   const organization = organizations.find(
     o => o.id === String(props.profileGroup.metadata.organizationID)
@@ -141,6 +141,7 @@ export function ProfileDetails(props: ProfileDetailsProps) {
             cursor: isResizableDetailsBar ? 'ns-resize' : undefined,
           }}
           onMouseDown={isResizableDetailsBar ? onMouseDown : undefined}
+          onDoubleClick={isResizableDetailsBar ? onDoubleClick : undefined}
         />
       </ProfilingDetailsFrameTabs>
 
