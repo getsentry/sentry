@@ -122,6 +122,7 @@ from sentry.search.events.constants import (
 )
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.configuration import UseCaseKey
+from sentry.silo import SiloMode
 from sentry.snuba.metrics.datasource import get_series
 from sentry.tagstore.snuba import SnubaTagStorage
 from sentry.testutils.factories import get_fixture_path
@@ -314,6 +315,7 @@ class BaseTestCase(Fixtures):
         GroupMeta.objects.clear_local_cache()
 
     def _post_teardown(self):
+        SiloMode.exit_single_process_silo_context()
         super()._post_teardown()
 
     def options(self, options):
