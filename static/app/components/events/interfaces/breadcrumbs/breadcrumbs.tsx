@@ -167,6 +167,11 @@ const StyledPanelTable = styled(PanelTable)<{scrollbarSize: number}>`
       }
     }
 
+    /* Scroll bar header */
+    :nth-child(6) {
+      padding: 0;
+    }
+
     /* Content */
     :nth-child(n + 7) {
       grid-column: 1/-1;
@@ -196,8 +201,6 @@ const StyledPanelTable = styled(PanelTable)<{scrollbarSize: number}>`
       }
     }
   }
-
-  overflow: hidden;
 `;
 
 const Time = styled('div')`
