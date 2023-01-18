@@ -16,7 +16,6 @@ from sentry.discover.arithmetic import categorize_columns
 from sentry.models import Group
 from sentry.search.events.builder import (
     HistogramQueryBuilder,
-    IssuePlatformTimeseriesQueryBuilder,
     QueryBuilder,
     TimeseriesQueryBuilder,
     TopEventsQueryBuilder,
@@ -103,18 +102,17 @@ def zerofill(data, start, end, rollup, orderby):
     data_by_time = {}
 
     for obj in data:
-        time = "time" if obj.get("time") is not None else "timestamp"
         # This is needed for SnQL, and was originally done in utils.snuba.get_snuba_translators
-        if isinstance(obj[time], str):
+        if isinstance(obj["time"], str):
             # `datetime.fromisoformat` is new in Python3.7 and before Python3.11, it is not a full
             # ISO 8601 parser. It is only the inverse function of `datetime.isoformat`, which is
             # the format returned by snuba. This is significantly faster when compared to other
             # parsers like `dateutil.parser.parse` and `datetime.strptime`.
-            obj[time] = int(to_timestamp(datetime.fromisoformat(obj[time])))
-        if obj[time] in data_by_time:
-            data_by_time[obj[time]].append(obj)
+            obj["time"] = int(to_timestamp(datetime.fromisoformat(obj["time"])))
+        if obj["time"] in data_by_time:
+            data_by_time[obj["time"]].append(obj)
         else:
-            data_by_time[obj[time]] = [obj]
+            data_by_time[obj["time"]] = [obj]
 
     for key in range(start, end, rollup):
         if key in data_by_time and len(data_by_time[key]) > 0:
@@ -232,7 +230,6 @@ def timeseries_query(
     allow_metric_aggregates=False,
     has_metrics=False,
     use_metrics_layer=False,
-    dataset=Dataset.Discover,
 ):
     """
     High-level API for doing arbitrary user timeseries queries against events.
@@ -257,15 +254,10 @@ def timeseries_query(
     time bucket. Requires that we only pass
     allow_metric_aggregates (bool) Ignored here, only used in metric enhanced performance
     """
-    query_builder = (
-        TimeseriesQueryBuilder
-        if dataset == Dataset.Discover
-        else IssuePlatformTimeseriesQueryBuilder
-    )
     with sentry_sdk.start_span(op="discover.discover", description="timeseries.filter_transform"):
         equations, columns = categorize_columns(selected_columns)
-        base_builder = query_builder(
-            dataset,
+        base_builder = TimeseriesQueryBuilder(
+            Dataset.Discover,
             params,
             rollup,
             query=query,
@@ -281,8 +273,8 @@ def timeseries_query(
             comp_query_params = deepcopy(params)
             comp_query_params["start"] -= comparison_delta
             comp_query_params["end"] -= comparison_delta
-            comparison_builder = query_builder(
-                dataset,
+            comparison_builder = TimeseriesQueryBuilder(
+                Dataset.Discover,
                 comp_query_params,
                 rollup,
                 query=query,
