@@ -5,10 +5,10 @@ import requests
 from sentry import options
 
 CODECOV_URL = "https://api.codecov.io/api/v2/{service}/{owner_username}/repos/{repo_name}/report"
-CODECOV_TOKEN = options.get("codecov.client-secret")
 
 
 def get_codecov_line_coverage(repo: str, service: str, branch: str, path: str) -> Any:
+    CODECOV_TOKEN = options.get("codecov.client-secret")
     owner_username, repo_name = repo.split("/")
     if service == "github":
         service = "gh"

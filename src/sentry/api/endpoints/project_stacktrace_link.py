@@ -11,7 +11,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
 from sentry.integrations import IntegrationFeatures
-from sentry.integrations.utils.codecov import CODECOV_TOKEN, get_codecov_line_coverage
+from sentry.integrations.utils.codecov import get_codecov_line_coverage
 from sentry.models import Integration, Project, RepositoryProjectPathConfig
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.event_frames import munged_filename_and_frames
@@ -269,7 +269,6 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                         actor=request.user,
                     )
                     and project.organization.flags.codecov_access
-                    and CODECOV_TOKEN
                 )
                 if should_get_codecov_line_coverage:
                     try:
