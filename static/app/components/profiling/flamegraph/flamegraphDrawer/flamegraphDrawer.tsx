@@ -2,6 +2,7 @@ import {memo, MouseEventHandler, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
+import Checkbox from 'sentry/components/checkbox';
 import {ExportProfileButton} from 'sentry/components/profiling/exportProfileButton';
 import {IconPanel} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -171,8 +172,8 @@ const FlamegraphDrawer = memo(function FlamegraphDrawer(props: FlamegraphDrawerP
         <Separator />
         <ProfilingDetailsListItem>
           <FrameDrawerLabel>
-            <input
-              type="checkbox"
+            <Checkbox
+              size="xs"
               checked={recursion === 'collapsed'}
               onChange={handleRecursionChange}
             />
@@ -278,10 +279,7 @@ const FrameDrawerLabel = styled('label')`
   margin-bottom: 0;
   height: 100%;
   font-weight: normal;
-
-  > input {
-    margin: 0 ${space(0.5)} 0 0;
-  }
+  gap: ${space(0.5)};
 `;
 
 // Linter produces a false positive for the grid layout. I did not manage to find out
