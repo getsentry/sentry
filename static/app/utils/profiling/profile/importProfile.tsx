@@ -170,6 +170,7 @@ function importSentrySampledProfile(
         samples: samplesByThread[key],
       },
     };
+
     profiles.push(
       wrapWithSpan(
         options.transaction,

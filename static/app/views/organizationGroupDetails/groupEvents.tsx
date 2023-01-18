@@ -19,7 +19,7 @@ type Props = {
   api: Client;
   group: Group;
   organization: Organization;
-} & RouteComponentProps<{groupId: string; orgId: string}, {}>;
+} & RouteComponentProps<{groupId: string}, {}>;
 
 interface State {
   query: string;
@@ -67,11 +67,12 @@ class GroupEvents extends Component<Props, State> {
   handleSearch = (query: string) => {
     const targetQueryParams = {...this.props.location.query};
     targetQueryParams.query = query;
-    const {groupId, orgId} = this.props.params;
+    const {organization} = this.props;
+    const {groupId} = this.props.params;
 
     browserHistory.push(
       normalizeUrl({
-        pathname: `/organizations/${orgId}/issues/${groupId}/events/`,
+        pathname: `/organizations/${organization.slug}/issues/${groupId}/events/`,
         query: targetQueryParams,
       })
     );

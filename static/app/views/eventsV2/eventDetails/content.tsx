@@ -153,6 +153,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
       metaResults?: TraceMetaQueryChildrenProps
     ) => (
       <TransactionProfileIdProvider
+        projectId={event.projectID}
         transactionId={event.type === 'transaction' ? event.id : undefined}
         timestamp={event.dateReceived}
       >
@@ -247,7 +248,6 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                         project={projects[0] as Project}
                         location={location}
                         showTagSummary={false}
-                        api={this.api}
                       />
                     </QuickTraceContext.Provider>
                   </SpanEntryContext.Provider>

@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {urlEncode} from '@sentry/utils';
 
 import {logout} from 'sentry/actionCreators/account';
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
@@ -37,10 +37,22 @@ type State = AsyncView['state'] & {
 class AcceptOrganizationInvite extends AsyncView<Props, State> {
   disableErrorReport = false;
 
+  get orgSlug(): string | null {
+    const {params} = this.props;
+    if (params.orgId) {
+      return params.orgId;
+    }
+    const {customerDomain} = window.__initialData;
+    if (customerDomain?.subdomain) {
+      return customerDomain.subdomain;
+    }
+    return null;
+  }
+
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
-    const {memberId, orgId, token} = this.props.params;
-    if (orgId) {
-      return [['inviteDetails', `/accept-invite/${orgId}/${memberId}/${token}/`]];
+    const {memberId, token} = this.props.params;
+    if (this.orgSlug) {
+      return [['inviteDetails', `/accept-invite/${this.orgSlug}/${memberId}/${token}/`]];
     }
     return [['inviteDetails', `/accept-invite/${memberId}/${token}/`]];
   }
@@ -60,14 +72,17 @@ class AcceptOrganizationInvite extends AsyncView<Props, State> {
   };
 
   handleAcceptInvite = async () => {
-    const {memberId, orgId, token} = this.props.params;
+    const {memberId, token} = this.props.params;
 
     this.setState({accepting: true});
     try {
-      if (orgId) {
-        await this.api.requestPromise(`/accept-invite/${orgId}/${memberId}/${token}/`, {
-          method: 'POST',
-        });
+      if (this.orgSlug) {
+        await this.api.requestPromise(
+          `/accept-invite/${this.orgSlug}/${memberId}/${token}/`,
+          {
+            method: 'POST',
+          }
+        );
       } else {
         await this.api.requestPromise(`/accept-invite/${memberId}/${token}/`, {
           method: 'POST',

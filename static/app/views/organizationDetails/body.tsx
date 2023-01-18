@@ -1,6 +1,6 @@
 import {Fragment, useState} from 'react';
 
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import Footer from 'sentry/components/footer';

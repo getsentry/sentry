@@ -5,7 +5,6 @@ import {Location} from 'history';
 import uniq from 'lodash/uniq';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {Client} from 'sentry/api';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
@@ -28,8 +27,7 @@ import {Image} from 'sentry/types/debugImage';
 import {isNotSharedOrganization} from 'sentry/types/utils';
 import {defined, objectIsEmpty} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import withApi from 'sentry/utils/withApi';
-import withOrganization from 'sentry/utils/withOrganization';
+import useApi from 'sentry/utils/useApi';
 import {projectProcessingIssuesMessages} from 'sentry/views/settings/project/projectProcessingIssues';
 
 import {CommitRow} from '../commitRow';
@@ -89,7 +87,6 @@ function hasThreadOrExceptionMinifiedFrameData(definedEvent: Event, bestThread?:
 type ProGuardErrors = Array<Error>;
 
 type Props = {
-  api: Client;
   location: Location;
   /**
    * The organization can be the shared view on a public issue view.
@@ -107,13 +104,14 @@ const EventEntries = ({
   organization,
   project,
   location,
-  api,
   event,
   group,
   className,
   isShare = false,
   showTagSummary = true,
 }: Props) => {
+  const api = useApi();
+
   const [isLoading, setIsLoading] = useState(true);
   const [proGuardErrors, setProGuardErrors] = useState<ProGuardErrors>([]);
   const [attachments, setAttachments] = useState<IssueAttachment[]>([]);
@@ -539,6 +537,4 @@ const StyledReplayEventDataSection = styled(EventDataSection)`
   margin-bottom: ${space(3)};
 `;
 
-// TODO(ts): any required due to our use of SharedViewOrganization
-export default withOrganization<any>(withApi(EventEntries));
-export {BorderlessEventEntries};
+export {EventEntries, BorderlessEventEntries};
