@@ -176,7 +176,10 @@ class AuthOAuth2Test(AuthProviderTestCase):
         state = self.initiate_oauth_flow(http_host=HTTP_HOST)
         response = self.initiate_callback(state, auth_data, expect_success=False, follow=True)
         assert response.status_code == 200
-        assert response.redirect_chain == [("http://albertos-apples.testserver/auth/login/", 302)]
+        assert response.redirect_chain == [
+            ("http://albertos-apples.testserver/auth/login/", 302),
+            ("http://albertos-apples.testserver/auth/login/albertos-apples/", 302),
+        ]
         assert response.context["user"] != self.user
 
     def test_oauth2_flow_with_2fa(self):
