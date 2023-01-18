@@ -14,13 +14,13 @@ import space from 'sentry/styles/space';
 import {formatVersion} from 'sentry/utils/formatters';
 import {FlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphPreferences';
 import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphPreferences';
+import {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
+import {makeFormatter} from 'sentry/utils/profiling/units/units';
+import useProjects from 'sentry/utils/useProjects';
 import {
   useResizableDrawer,
   UseResizableDrawerOptions,
 } from 'sentry/utils/useResizableDrawer';
-import {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
-import {makeFormatter} from 'sentry/utils/profiling/units/units';
-import useProjects from 'sentry/utils/useProjects';
 
 import {ProfilingDetailsFrameTabs, ProfilingDetailsListItem} from './flamegraphDrawer';
 
