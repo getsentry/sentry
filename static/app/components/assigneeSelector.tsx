@@ -43,49 +43,57 @@ function AssigneeAvatar({
   };
   const assignedToSuggestion = suggestedActors.find(actor => actor.id === assignedTo?.id);
 
-  return assignedTo ? (
-    <ActorAvatar
-      actor={assignedTo}
-      className="avatar"
-      size={24}
-      tooltip={
-        <TooltipWrapper>
-          {tct('Assigned to [name]', {
-            name: assignedTo.type === 'team' ? `#${assignedTo.name}` : assignedTo.name,
-          })}
-          {assignedToSuggestion &&
-            suggestedReasons[assignedToSuggestion.suggestedReason] && (
-              <TooltipSubtext>
-                {suggestedReasons[assignedToSuggestion.suggestedReason]}
-              </TooltipSubtext>
-            )}
-        </TooltipWrapper>
-      }
-    />
-  ) : suggestedActors && suggestedActors.length > 0 ? (
-    <SuggestedAvatarStack
-      size={28}
-      owners={suggestedActors}
-      tooltipOptions={{isHoverable: true}}
-      tooltip={
-        <TooltipWrapper>
-          <div>
-            {tct('Suggestion: [name]', {
-              name:
-                suggestedActors[0].type === 'team'
-                  ? `#${suggestedActors[0].name}`
-                  : suggestedActors[0].name,
+  if (assignedTo) {
+    return (
+      <ActorAvatar
+        actor={assignedTo}
+        className="avatar"
+        size={24}
+        tooltip={
+          <TooltipWrapper>
+            {tct('Assigned to [name]', {
+              name: assignedTo.type === 'team' ? `#${assignedTo.name}` : assignedTo.name,
             })}
-            {suggestedActors.length > 1 &&
-              tn(' + %s other', ' + %s others', suggestedActors.length - 1)}
-          </div>
-          <TooltipSubtext>
-            {suggestedReasons[suggestedActors[0].suggestedReason]}
-          </TooltipSubtext>
-        </TooltipWrapper>
-      }
-    />
-  ) : (
+            {assignedToSuggestion &&
+              suggestedReasons[assignedToSuggestion.suggestedReason] && (
+                <TooltipSubtext>
+                  {suggestedReasons[assignedToSuggestion.suggestedReason]}
+                </TooltipSubtext>
+              )}
+          </TooltipWrapper>
+        }
+      />
+    );
+  }
+
+  if (suggestedActors.length > 0) {
+    return (
+      <SuggestedAvatarStack
+        size={28}
+        owners={suggestedActors}
+        tooltipOptions={{isHoverable: true}}
+        tooltip={
+          <TooltipWrapper>
+            <div>
+              {tct('Suggestion: [name]', {
+                name:
+                  suggestedActors[0].type === 'team'
+                    ? `#${suggestedActors[0].name}`
+                    : suggestedActors[0].name,
+              })}
+              {suggestedActors.length > 1 &&
+                tn(' + %s other', ' + %s others', suggestedActors.length - 1)}
+            </div>
+            <TooltipSubtext>
+              {suggestedReasons[suggestedActors[0].suggestedReason]}
+            </TooltipSubtext>
+          </TooltipWrapper>
+        }
+      />
+    );
+  }
+
+  return (
     <Tooltip
       isHoverable
       skipWrapper
