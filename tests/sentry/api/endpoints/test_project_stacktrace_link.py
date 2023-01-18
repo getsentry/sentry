@@ -320,7 +320,7 @@ class ProjectStracktraceLinkTestCodecov(BaseProjectStacktraceLink):
         self._caplog = caplog
 
     @with_feature("organizations:codecov-stacktrace-integration")
-    @mock.patch("sentry.integrations.utils.codecov.Codecov.get_codecov_line_coverage")
+    @mock.patch("sentry.integrations.utils.codecov.get_codecov_line_coverage")
     @mock.patch.object(ExampleIntegration, "get_stacktrace_link")
     def test_codecov_line_coverage_success(self, mock_integration, mock_codecov):
         self.organization.flags.codecov_access = True
@@ -344,7 +344,7 @@ class ProjectStracktraceLinkTestCodecov(BaseProjectStacktraceLink):
         assert response.data["codecovStatusCode"] == expected_status_code
 
     @with_feature("organizations:codecov-stacktrace-integration")
-    @mock.patch("sentry.integrations.utils.codecov.Codecov.get_codecov_line_coverage")
+    @mock.patch("sentry.integrations.utils.codecov.get_codecov_line_coverage")
     @mock.patch.object(ExampleIntegration, "get_stacktrace_link")
     def test_codecov_line_coverage_exception(self, mock_integration, mock_codecov):
         self._caplog.set_level(logging.ERROR, logger="sentry")

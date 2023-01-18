@@ -1,22 +1,24 @@
 import logging
 from typing import Dict, List, Mapping, Optional
 
+import requests
 from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_sdk import Scope, configure_scope
 
-from sentry import analytics, features
+from sentry import analytics, features, options
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
 from sentry.integrations import IntegrationFeatures
-from sentry.integrations.utils.codecov import Codecov
+from sentry.integrations.utils.codecov import get_codecov_line_coverage
 from sentry.models import Integration, Project, RepositoryProjectPathConfig
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.event_frames import munged_filename_and_frames
 from sentry.utils.json import JSONData
 
 logger = logging.getLogger(__name__)
+CODECOV_TOKEN = options.get("codecov.client-secret")
 
 
 def get_link(
@@ -268,26 +270,26 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                         actor=request.user,
                     )
                     and project.organization.flags.codecov_access
+                    and CODECOV_TOKEN
                 )
                 if should_get_codecov_line_coverage:
                     try:
-                        (
-                            result["lineCoverage"],
-                            result["codecovStatusCode"],
-                        ) = Codecov.get_codecov_line_coverage(
+                        result["lineCoverage"] = get_codecov_line_coverage(
                             repo=current_config["config"]["repoName"],
                             service=current_config["config"]["provider"]["key"],
                             branch=current_config["config"]["defaultBranch"],
                             path=current_config["outcome"]["sourcePath"],
                         )
-                    except Exception:
-                        if (
-                            not result.get("codecovStatusCode")
-                            or result["codecovStatusCode"] != 404
-                        ):
+                        if result["lineCoverage"]:
+                            result["codecovStatusCode"] = 200
+                    except requests.exceptions.HTTPError as error:
+                        result["codecovStatusCode"] = error.response.status_code
+                        if error.response.status_code != 404:
                             logger.exception(
                                 "Failed to get expected coverage data from Codecov, pending investigation. Continuing execution."
                             )
+                    except Exception:
+                        logger.exception("Something unexpected happen. Continuing execution.")
 
             try:
                 set_tags(scope, result)
