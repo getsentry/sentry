@@ -14,18 +14,19 @@ import OrgDashboards from './orgDashboards';
 import {DashboardState} from './types';
 import {DashboardBasicFeature} from './view';
 
-type Props = RouteComponentProps<{orgId: string}, {}> & {
+type Props = RouteComponentProps<{}, {}> & {
   api: Client;
   children: React.ReactNode;
   organization: Organization;
 };
 
 function DashboardsV2Container(props: Props) {
-  const {organization, params, api, location, children} = props;
+  const {organization, api, location, children} = props;
 
   if (organization.features.includes('dashboards-edit')) {
     return <Fragment>{children}</Fragment>;
   }
+  const params = {...props.params, orgId: organization.slug};
 
   return (
     <DashboardBasicFeature organization={organization}>

@@ -53,7 +53,7 @@ export function EventEntry({
   const groupingCurrentLevel = group?.metadata?.current_level;
 
   switch (entry.type) {
-    case EntryType.EXCEPTION: {
+    case EntryType.EXCEPTION:
       return hasNativeStackTraceV2 ? (
         <ExceptionV2
           event={event}
@@ -71,14 +71,14 @@ export function EventEntry({
           hasHierarchicalGrouping={hasHierarchicalGrouping}
         />
       );
-    }
-    case EntryType.MESSAGE: {
+
+    case EntryType.MESSAGE:
       return <Message event={event} data={entry.data} />;
-    }
-    case EntryType.REQUEST: {
+
+    case EntryType.REQUEST:
       return <Request event={event} data={entry.data} />;
-    }
-    case EntryType.STACKTRACE: {
+
+    case EntryType.STACKTRACE:
       return hasNativeStackTraceV2 ? (
         <StackTraceV2
           event={event}
@@ -96,24 +96,24 @@ export function EventEntry({
           hasHierarchicalGrouping={hasHierarchicalGrouping}
         />
       );
-    }
-    case EntryType.TEMPLATE: {
+
+    case EntryType.TEMPLATE:
       return <Template event={event} data={entry.data} />;
-    }
-    case EntryType.CSP: {
+
+    case EntryType.CSP:
       return <Csp event={event} data={entry.data} />;
-    }
+
     case EntryType.EXPECTCT:
-    case EntryType.EXPECTSTAPLE: {
+    case EntryType.EXPECTSTAPLE:
       const {data, type} = entry;
       return <Generic type={type} data={data} />;
-    }
+
     case EntryType.HPKP:
       return (
         <Generic type={entry.type} data={entry.data} meta={event._meta?.hpkp ?? {}} />
       );
 
-    case EntryType.BREADCRUMBS: {
+    case EntryType.BREADCRUMBS:
       return (
         <Breadcrumbs
           data={entry.data}
@@ -123,8 +123,8 @@ export function EventEntry({
           projectSlug={projectSlug}
         />
       );
-    }
-    case EntryType.THREADS: {
+
+    case EntryType.THREADS:
       return hasNativeStackTraceV2 ? (
         <ThreadsV2
           event={event}
@@ -142,7 +142,7 @@ export function EventEntry({
           hasHierarchicalGrouping={hasHierarchicalGrouping}
         />
       );
-    }
+
     case EntryType.DEBUGMETA:
       return (
         <DebugMeta
@@ -153,45 +153,44 @@ export function EventEntry({
           data={entry.data}
         />
       );
+
     case EntryType.SPANS:
       // XXX: We currently do not show spans in the share view,
       if (isShare) {
         return null;
       }
-
       if (group?.issueCategory === IssueCategory.PERFORMANCE) {
         return (
           <SpanEvidenceSection
-            issueType={group?.issueType}
             event={event as EventTransaction}
             organization={organization as Organization}
           />
         );
       }
-
       return (
         <Spans
           event={event as EventTransaction}
           organization={organization as Organization}
         />
       );
+
     case EntryType.RESOURCES:
       if (!group || !group.issueType) {
         return null;
       }
-
       return (
         <Resources
           description={getResourceDescription(group.issueType)}
           links={getResourceLinks(group.issueType, event.platform)}
         />
       );
+
+    // this should not happen
     default:
-      // this should not happen
-      /* eslint no-console:0 */
-      window.console &&
-        console.error &&
-        console.error('Unregistered interface: ' + (entry as any).type);
+      if (window.console) {
+        // eslint-disable-next-line no-console
+        console.error?.('Unregistered interface: ' + (entry as any).type);
+      }
       return null;
   }
 }

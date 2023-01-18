@@ -84,8 +84,8 @@ export const UNSAVED_FILTERS_MESSAGE = t(
 const HookHeader = HookOrDefault({hookName: 'component:dashboards-header'});
 
 type RouteParams = {
-  orgId: string;
   dashboardId?: string;
+  templateId?: string;
   widgetId?: number;
   widgetIndex?: number;
 };

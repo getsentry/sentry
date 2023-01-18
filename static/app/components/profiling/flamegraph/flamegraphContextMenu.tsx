@@ -30,7 +30,8 @@ import useProjects from 'sentry/utils/useProjects';
 
 const FLAMEGRAPH_COLOR_CODINGS: FlamegraphColorCodings = [
   'by symbol name',
-  'by system / application',
+  'by system frame',
+  'by application frame',
   'by library',
   'by recursion',
   'by frequency',
