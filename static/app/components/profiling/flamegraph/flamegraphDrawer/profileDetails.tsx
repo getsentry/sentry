@@ -17,7 +17,7 @@ import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/hooks/
 import {
   useResizableDrawer,
   UseResizableDrawerOptions,
-} from 'sentry/utils/profiling/hooks/useResizableDrawer';
+} from 'sentry/utils/useResizableDrawer';
 import {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
 import {makeFormatter} from 'sentry/utils/profiling/units/units';
 import useProjects from 'sentry/utils/useProjects';
