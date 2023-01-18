@@ -80,12 +80,6 @@ class SearchIssueTestMixin(OccurrenceTestMixin):
         event_data = {
             "tags": [("sentry:user", user_id_val)],
             "timestamp": iso_format(insert_timestamp),
-            "user": {
-                "id": 1,
-                "username": "user",
-                "email": "hellboy@meow.com",
-                "ip_address": "127.0.0.1",
-            },
         }
         if tags:
             event_data["tags"].extend(tags)
@@ -134,7 +128,9 @@ class SearchIssueTestMixin(OccurrenceTestMixin):
         assert len(result["data"]) == 1
         assert result["data"][0]["project_id"] == project_id
         assert result["data"][0]["group_id"] == group_info.group.id if group_info else None
-        # assert result["data"][0]["tags[sentry:user]"] == user_id_val
+        assert (
+            result["data"][0]["tags[sentry:user]"] == user_id_val if not user else f"id:{user_id}"
+        )
         assert result["data"][0]["environment"] == environment
         assert result["data"][0]["timestamp"] == insert_timestamp.isoformat()
 

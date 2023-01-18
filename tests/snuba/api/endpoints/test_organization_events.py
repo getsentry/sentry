@@ -601,7 +601,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase, SearchIssueTest
 
     def test_generic_issue_ids_filter(self):
         user_data = {
-            "id": 1,
+            "id": self.user.id,
             "username": "user",
             "email": "hellboy@meow.com",
             "ip_address": "127.0.0.1",
@@ -3010,7 +3010,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase, SearchIssueTest
     def test_user_display_issue_platform(self):
         project1 = self.create_project()
         user_data = {
-            "id": 1,
+            "id": self.user.id,
             "username": "user",
             "email": "hellboy@meow.com",
             "ip_address": "127.0.0.1",
