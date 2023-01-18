@@ -17,7 +17,7 @@ def get_profiles_process_consumer(
     topic: str,
     group_id: str,
     auto_offset_reset: str,
-    no_strict_offset_reset: bool,
+    strict_offset_reset: bool,
     force_topic: str | None,
     force_cluster: str | None,
     **options: dict[str, str],
@@ -27,7 +27,7 @@ def get_profiles_process_consumer(
         topic,
         group_id,
         auto_offset_reset=auto_offset_reset,
-        no_strict_offset_reset=no_strict_offset_reset,
+        strict_offset_reset=strict_offset_reset,
         force_cluster=force_cluster,
     )
     consumer = KafkaConsumer(consumer_config)
@@ -43,7 +43,7 @@ def get_config(
     topic: str,
     group_id: str,
     auto_offset_reset: str,
-    no_strict_offset_reset: bool,
+    strict_offset_reset: bool,
     force_cluster: str | None,
 ) -> MutableMapping[str, Any]:
     cluster_name: str = force_cluster or settings.KAFKA_TOPICS[topic]["cluster"]
@@ -53,5 +53,5 @@ def get_config(
         ),
         group_id=group_id,
         auto_offset_reset=auto_offset_reset,
-        strict_offset_reset=not no_strict_offset_reset,
+        strict_offset_reset=strict_offset_reset,
     )

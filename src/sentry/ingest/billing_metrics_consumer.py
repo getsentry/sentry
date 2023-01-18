@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 def get_metrics_billing_consumer(
     group_id: str,
     auto_offset_reset: str,
-    no_strict_offset_reset: bool,
+    strict_offset_reset: bool,
     force_topic: Union[str, None],
     force_cluster: Union[str, None],
     max_batch_size: int,
@@ -37,7 +37,7 @@ def get_metrics_billing_consumer(
             build_kafka_consumer_configuration(
                 default_config={},
                 group_id=group_id,
-                strict_offset_reset=not no_strict_offset_reset,
+                strict_offset_reset=strict_offset_reset,
                 auto_offset_reset=auto_offset_reset,
                 bootstrap_servers=bootstrap_servers,
             ),

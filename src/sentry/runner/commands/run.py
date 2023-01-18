@@ -66,10 +66,10 @@ class QueueSetType(click.ParamType):
 QueueSet = QueueSetType()
 
 
-def no_strict_offset_reset_option():
+def strict_offset_reset_option():
     return click.option(
-        "--no-strict-offset-reset",
-        is_flag=True,
+        "--strict-offset-reset/--no-strict-offset-reset",
+        default=True,
         help="Forces the kafka consumer auto offset reset.",
     )
 
@@ -356,7 +356,7 @@ def cron(**options):
     type=click.Choice(["earliest", "latest"]),
     help="Position in the commit log topic to begin reading from when no prior offset has been recorded.",
 )
-@no_strict_offset_reset_option()
+@strict_offset_reset_option()
 # TODO: Remove this option once we have fully cut over to the streaming consumer
 @click.option(
     "--use-streaming-consumer",
@@ -386,7 +386,7 @@ def post_process_forwarder(**options):
             commit_batch_timeout_ms=options["commit_batch_timeout_ms"],
             concurrency=options["concurrency"],
             initial_offset_reset=options["initial_offset_reset"],
-            strict_offset_reset=not options["no_strict_offset_reset"],
+            strict_offset_reset=options["strict_offset_reset"],
             use_streaming_consumer=bool(options["use_streaming_consumer"]),
         )
     except ForwarderNotRequired:
@@ -565,7 +565,7 @@ def ingest_consumer(consumer_types, all_consumer_types, **options):
 
 
 @run.command("occurrences-ingest-consumer")
-@no_strict_offset_reset_option()
+@strict_offset_reset_option()
 @configuration
 def occurrences_ingest_consumer(**options):
     from django.conf import settings
@@ -589,7 +589,7 @@ def occurrences_ingest_consumer(**options):
     help="Regional name to run the consumer for",
 )
 @batching_kafka_options("region-to-control-consumer", max_batch_size=100)
-@no_strict_offset_reset_option()
+@strict_offset_reset_option()
 @configuration
 def region_to_control_consumer(region_name, **kafka_options):
     """
@@ -610,7 +610,7 @@ def region_to_control_consumer(region_name, **kafka_options):
 @run.command("ingest-metrics-parallel-consumer")
 @log_options()
 @batching_kafka_options("ingest-metrics-consumer")
-@no_strict_offset_reset_option()
+@strict_offset_reset_option()
 @configuration
 @click.option(
     "--processes",
@@ -650,7 +650,7 @@ def metrics_parallel_consumer(**options):
 @run.command("billing-metrics-consumer")
 @log_options()
 @batching_kafka_options("billing-metrics-consumer", max_batch_size=100)
-@no_strict_offset_reset_option()
+@strict_offset_reset_option()
 @configuration
 def metrics_billing_consumer(**options):
     from sentry.ingest.billing_metrics_consumer import get_metrics_billing_consumer
@@ -663,7 +663,7 @@ def metrics_billing_consumer(**options):
 @log_options()
 @click.option("--topic", default="profiles", help="Topic to get profiles data from.")
 @batching_kafka_options("ingest-profiles", max_batch_size=100)
-@no_strict_offset_reset_option()
+@strict_offset_reset_option()
 @configuration
 def profiles_consumer(**options):
     from sentry.profiles.consumers import get_profiles_process_consumer
@@ -690,7 +690,7 @@ def replays_recordings_consumer(**options):
 @log_options()
 @configuration
 @batching_kafka_options("indexer-last-seen-updater-consumer", max_batch_size=100)
-@no_strict_offset_reset_option()
+@strict_offset_reset_option()
 @click.option("commit_max_batch_size", "--commit-max-batch-size", type=int, default=25000)
 @click.option("commit_max_batch_time", "--commit-max-batch-time-ms", type=int, default=10000)
 @click.option("--topic", default="snuba-metrics", help="Topic to read indexer output from.")

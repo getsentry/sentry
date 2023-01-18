@@ -21,7 +21,7 @@ from .messages import AuditLogEvent, RegionToControlMessage, UserIpEvent
 
 def get_region_to_control_consumer(
     group_id: str,
-    no_strict_offset_reset: bool,
+    strict_offset_reset: bool,
     auto_offset_reset: str = "earliest",
     **opts: Any,
 ) -> StreamProcessor[KafkaPayload]:
@@ -34,7 +34,7 @@ def get_region_to_control_consumer(
                 cluster_name,
             ),
             auto_offset_reset=auto_offset_reset,
-            strict_offset_reset=not no_strict_offset_reset,
+            strict_offset_reset=strict_offset_reset,
             group_id=group_id,
         )
     )

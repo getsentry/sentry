@@ -184,7 +184,7 @@ def get_parallel_metrics_consumer(
     output_block_size: int,
     group_id: str,
     auto_offset_reset: str,
-    no_strict_offset_reset: bool,
+    strict_offset_reset: bool,
     indexer_profile: MetricsIngestConfiguration,
     slicing_router: Optional[SlicingRouter],
     # TODO: those options are discarded, try removing this?
@@ -211,7 +211,7 @@ def get_parallel_metrics_consumer(
                 indexer_profile.input_topic,
                 group_id,
                 auto_offset_reset=auto_offset_reset,
-                no_strict_offset_reset=no_strict_offset_reset,
+                strict_offset_reset=strict_offset_reset,
             )
         ),
         Topic(indexer_profile.input_topic),
