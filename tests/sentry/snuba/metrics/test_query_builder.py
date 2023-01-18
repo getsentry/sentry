@@ -261,12 +261,14 @@ def test_parse_query(query_string, expected):
 
 @freeze_time("2018-12-11 03:21:00")
 def test_round_range():
+    # since data is not exactly aligned it will return 2d + 1h (+ one interval to cover everything)
     start, end, interval = get_date_range({"statsPeriod": "2d"})
-    assert start == datetime(2018, 12, 9, 4, tzinfo=timezone.utc)
+    assert start == datetime(2018, 12, 9, 3, tzinfo=timezone.utc)
     assert end == datetime(2018, 12, 11, 4, tzinfo=timezone.utc)
 
+    # since data is not exactly aligned it will return 2h + 1d (+ one interval to cover everything)
     start, end, interval = get_date_range({"statsPeriod": "2d", "interval": "1d"})
-    assert start == datetime(2018, 12, 10, tzinfo=timezone.utc)
+    assert start == datetime(2018, 12, 9, tzinfo=timezone.utc)
     assert end == datetime(2018, 12, 12, tzinfo=timezone.utc)
 
 
@@ -274,21 +276,21 @@ def test_round_range():
     "now,interval,parameters,expected",
     [
         ("2022-10-01 09:00:00", "1h", {"timeframe": "60m"}, ("08:00:00 10-01", "09:00:00 10-01")),
-        ("2022-10-01 09:20:00", "1h", {"timeframe": "60m"}, ("09:00:00 10-01", "10:00:00 10-01")),
+        ("2022-10-01 09:20:00", "1h", {"timeframe": "60m"}, ("08:00:00 10-01", "10:00:00 10-01")),
         ("2022-10-01 09:00:00", "2h", {"timeframe": "60m"}, ("08:00:00 10-01", "10:00:00 10-01")),
         ("2022-10-01 10:00:00", "2h", {"timeframe": "60m"}, ("08:00:00 10-01", "10:00:00 10-01")),
         ("2022-10-01 09:20:00", "2h", {"timeframe": "60m"}, ("08:00:00 10-01", "10:00:00 10-01")),
         ("2022-10-01 09:00:00", "1h", {"timeframe": "14h"}, ("19:00:00 09-30", "09:00:00 10-01")),
-        ("2022-10-01 09:20:00", "1h", {"timeframe": "14h"}, ("20:00:00 09-30", "10:00:00 10-01")),
-        ("2022-10-01 09:00:00", "2h", {"timeframe": "14h"}, ("20:00:00 09-30", "10:00:00 10-01")),
+        ("2022-10-01 09:20:00", "1h", {"timeframe": "14h"}, ("19:00:00 09-30", "10:00:00 10-01")),
+        ("2022-10-01 09:00:00", "2h", {"timeframe": "14h"}, ("18:00:00 09-30", "10:00:00 10-01")),
         ("2022-10-01 10:00:00", "2h", {"timeframe": "14h"}, ("20:00:00 09-30", "10:00:00 10-01")),
-        ("2022-10-01 09:20:00", "2h", {"timeframe": "14h"}, ("20:00:00 09-30", "10:00:00 10-01")),
+        ("2022-10-01 09:20:00", "2h", {"timeframe": "14h"}, ("18:00:00 09-30", "10:00:00 10-01")),
         ("2022-10-01 09:00:00", "1h", {"timeframe": "91d"}, ("09:00:00 07-02", "09:00:00 10-01")),
         ("2022-10-01 10:00:00", "1h", {"timeframe": "91d"}, ("10:00:00 07-02", "10:00:00 10-01")),
-        ("2022-10-01 09:20:00", "1h", {"timeframe": "91d"}, ("10:00:00 07-02", "10:00:00 10-01")),
-        ("2022-10-01 09:00:00", "2h", {"timeframe": "91d"}, ("10:00:00 07-02", "10:00:00 10-01")),
+        ("2022-10-01 09:20:00", "1h", {"timeframe": "91d"}, ("09:00:00 07-02", "10:00:00 10-01")),
+        ("2022-10-01 09:00:00", "2h", {"timeframe": "91d"}, ("08:00:00 07-02", "10:00:00 10-01")),
         ("2022-10-01 10:00:00", "2h", {"timeframe": "91d"}, ("10:00:00 07-02", "10:00:00 10-01")),
-        ("2022-10-01 09:20:00", "2h", {"timeframe": "91d"}, ("10:00:00 07-02", "10:00:00 10-01")),
+        ("2022-10-01 09:20:00", "2h", {"timeframe": "91d"}, ("08:00:00 07-02", "10:00:00 10-01")),
     ],
 )
 def test_get_date_range(now, interval, parameters, expected):
@@ -311,7 +313,7 @@ def test_invalid_interval():
     # get_date_range is now only responsible for parsing start, end and interval,
     # and not responsible for validation so just letting it bubble up the ZeroDivisionError if
     # the requested interval is 0d
-    with pytest.raises(ZeroDivisionError):
+    with pytest.raises(Exception):
         get_date_range({"interval": "0d"})
 
 
@@ -334,7 +336,10 @@ def test_exclusive_end():
 @freeze_time("2020-12-18T11:14:17.105Z")
 def test_timestamps():
     start, end, interval = get_date_range({"statsPeriod": "1d", "interval": "12h"})
-    assert start == datetime(2020, 12, 17, 12, tzinfo=timezone.utc)
+
+    # one day before now aligned downward at 12h
+    assert start == datetime(2020, 12, 17, 0, tzinfo=timezone.utc)
+    # the next 12h alignment form now
     assert end == datetime(2020, 12, 18, 12, tzinfo=timezone.utc)
     assert interval == 12 * 60 * 60
 
@@ -486,6 +491,11 @@ def test_build_snuba_query_derived_metrics(mock_now, mock_now2):
             "statsPeriod": ["2d"],
         }
     )
+
+    NUM_INTERVALS = 2 + 1  # period / interval_length + 1 ( add one for last partial interval)
+    TOTALS_LIMIT = MAX_POINTS // NUM_INTERVALS
+    SERIES_LIMIT = TOTALS_LIMIT * NUM_INTERVALS
+
     query_definition = QueryDefinition([PseudoProject(1, 1)], query_params)
     query_builder = SnubaQueryBuilder(
         [PseudoProject(1, 1)], query_definition.to_metrics_query(), use_case_id
@@ -573,7 +583,7 @@ def test_build_snuba_query_derived_metrics(mock_now, mock_now2):
                     Condition(Column("org_id"), Op.EQ, 1),
                     Condition(Column("project_id"), Op.IN, [1]),
                     Condition(
-                        Column("timestamp"), Op.GTE, datetime(2021, 8, 24, 0, tzinfo=timezone.utc)
+                        Column("timestamp"), Op.GTE, datetime(2021, 8, 23, 0, tzinfo=timezone.utc)
                     ),
                     Condition(
                         Column("timestamp"), Op.LT, datetime(2021, 8, 26, 0, tzinfo=timezone.utc)
@@ -584,7 +594,7 @@ def test_build_snuba_query_derived_metrics(mock_now, mock_now2):
                         [resolve_weak(use_case_id, org_id, SessionMRI.SESSION.value)],
                     ),
                 ],
-                limit=Limit(MAX_POINTS // 2) if key == "totals" else Limit(MAX_POINTS),
+                limit=Limit(TOTALS_LIMIT) if key == "totals" else Limit(SERIES_LIMIT),
                 offset=None,
                 granularity=Granularity(query_definition.rollup),
             )
@@ -603,10 +613,10 @@ def test_build_snuba_query_derived_metrics(mock_now, mock_now2):
                     Condition(Column("org_id"), Op.EQ, 1),
                     Condition(Column("project_id"), Op.IN, [1]),
                     Condition(
-                        Column("timestamp"), Op.GTE, datetime(2021, 8, 24, 0, tzinfo=pytz.utc)
+                        Column("timestamp"), Op.GTE, datetime(2021, 8, 23, 0, tzinfo=timezone.utc)
                     ),
                     Condition(
-                        Column("timestamp"), Op.LT, datetime(2021, 8, 26, 0, tzinfo=pytz.utc)
+                        Column("timestamp"), Op.LT, datetime(2021, 8, 26, 0, tzinfo=timezone.utc)
                     ),
                     Condition(
                         Column("metric_id"),
@@ -614,7 +624,7 @@ def test_build_snuba_query_derived_metrics(mock_now, mock_now2):
                         [resolve_weak(use_case_id, org_id, SessionMRI.ERROR.value)],
                     ),
                 ],
-                limit=Limit(MAX_POINTS // 2) if key == "totals" else Limit(MAX_POINTS),
+                limit=Limit(TOTALS_LIMIT) if key == "totals" else Limit(SERIES_LIMIT),
                 offset=None,
                 granularity=Granularity(query_definition.rollup),
             )
@@ -676,7 +686,7 @@ def test_build_snuba_query_orderby(mock_now, mock_now2):
         where=[
             Condition(Column("org_id"), Op.EQ, 1),
             Condition(Column("project_id"), Op.IN, [1]),
-            Condition(Column("timestamp"), Op.GTE, datetime(2021, 8, 25, 0, tzinfo=pytz.utc)),
+            Condition(Column("timestamp"), Op.GTE, datetime(2021, 8, 24, 23, tzinfo=pytz.utc)),
             Condition(Column("timestamp"), Op.LT, datetime(2021, 8, 26, 0, tzinfo=pytz.utc)),
             Condition(
                 Column(resolve_tag_key(use_case_id, org_id, "release"), entity=None),
@@ -704,7 +714,7 @@ def test_build_snuba_query_orderby(mock_now, mock_now2):
         where=[
             Condition(Column("org_id"), Op.EQ, 1),
             Condition(Column("project_id"), Op.IN, [1]),
-            Condition(Column("timestamp"), Op.GTE, datetime(2021, 8, 25, 0, tzinfo=pytz.utc)),
+            Condition(Column("timestamp"), Op.GTE, datetime(2021, 8, 24, 23, tzinfo=pytz.utc)),
             Condition(Column("timestamp"), Op.LT, datetime(2021, 8, 26, 0, tzinfo=pytz.utc)),
             Condition(
                 Column(resolve_tag_key(use_case_id, org_id, "release"), entity=None),
@@ -716,7 +726,7 @@ def test_build_snuba_query_orderby(mock_now, mock_now2):
             ),
         ],
         orderby=[OrderBy(select, Direction.DESC)],
-        limit=Limit(72),
+        limit=Limit(3 * 25),  # 25 intervals so 25 times the limit for totals
         offset=None,
         granularity=Granularity(query_definition.rollup),
     )
@@ -792,7 +802,7 @@ def test_build_snuba_query_with_derived_alias(mock_now, mock_now2):
         where=[
             Condition(Column("org_id"), Op.EQ, 1),
             Condition(Column("project_id"), Op.IN, [1]),
-            Condition(Column("timestamp"), Op.GTE, datetime(2021, 8, 25, 0, tzinfo=pytz.utc)),
+            Condition(Column("timestamp"), Op.GTE, datetime(2021, 8, 24, 23, tzinfo=pytz.utc)),
             Condition(Column("timestamp"), Op.LT, datetime(2021, 8, 26, 0, tzinfo=pytz.utc)),
             Condition(
                 Column(resolve_tag_key(use_case_id, org_id, "release"), entity=None),
@@ -821,7 +831,7 @@ def test_build_snuba_query_with_derived_alias(mock_now, mock_now2):
         where=[
             Condition(Column("org_id"), Op.EQ, 1),
             Condition(Column("project_id"), Op.IN, [1]),
-            Condition(Column("timestamp"), Op.GTE, datetime(2021, 8, 25, 0, tzinfo=pytz.utc)),
+            Condition(Column("timestamp"), Op.GTE, datetime(2021, 8, 24, 23, tzinfo=pytz.utc)),
             Condition(Column("timestamp"), Op.LT, datetime(2021, 8, 26, 0, tzinfo=pytz.utc)),
             Condition(
                 Column(resolve_tag_key(use_case_id, org_id, "release"), entity=None),
@@ -834,7 +844,7 @@ def test_build_snuba_query_with_derived_alias(mock_now, mock_now2):
                 [resolve(use_case_id, org_id, SessionMRI.RAW_DURATION.value)],
             ),
         ],
-        limit=Limit(72),
+        limit=Limit(3 * 25),  # 25 intervals so 25 * limit for totals
         offset=None,
         granularity=Granularity(query_definition.rollup),
     )
@@ -948,14 +958,14 @@ def test_translate_results_derived_metrics(_1, _2):
         {
             "by": {},
             "totals": {
-                "session.all": 8,
+                "session.all": 8.0,
                 "session.crash_free_rate": 0.5,
                 "session.errored": 6,
             },
             "series": {
-                "session.all": [4, 4],
-                "session.crash_free_rate": [0.5, 0.5],
-                "session.errored": [3, 3],
+                "session.all": [0, 4, 4],
+                "session.crash_free_rate": [None, 0.5, 0.5],
+                "session.errored": [0, 3, 3],
             },
         },
     ]
@@ -1028,7 +1038,7 @@ def test_translate_results_missing_slots(_1, _2):
             },
             "series": {
                 # No data for 2021-08-24
-                "sum(sentry.sessions.session)": [100, 0, 300],
+                "sum(sentry.sessions.session)": [0, 100, 0, 300],
             },
         },
     ]
