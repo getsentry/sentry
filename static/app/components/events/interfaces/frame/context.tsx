@@ -100,12 +100,20 @@ const Context = ({
     [projects, event]
   );
 
-  const {data, isLoading} = useStacktraceLink({
-    event,
-    frame,
-    orgSlug: organization?.slug || '',
-    projectSlug: project?.slug,
-  });
+  const {data, isLoading} = useStacktraceLink(
+    {
+      event,
+      frame,
+      orgSlug: organization?.slug || '',
+      projectSlug: project?.slug,
+    },
+    {
+      enabled:
+        organization?.features.includes('codecov-stacktrace-integration') &&
+        organization?.codecovAccess &&
+        isExpanded,
+    }
+  );
 
   if (
     !hasContextSource &&
@@ -150,15 +158,11 @@ const Context = ({
     !!frame.filename &&
     isExpanded &&
     organization?.features.includes('integrations-stacktrace-link');
-
-  const shouldShowCodecovData =
-    organization?.features.includes('codecov-stacktrace-integration') &&
-    organization?.codecovAccess;
-  const missingData =
-    isLoading || !data || data?.codecovStatusCode !== CodecovStatusCode.COVERAGE_EXISTS;
+  const hasCoverageData =
+    !isLoading && !!data && data!.codecovStatusCode === CodecovStatusCode.COVERAGE_EXISTS;
 
   const lineColors: Array<Color | 'transparent'> =
-    shouldShowCodecovData && !missingData && data.lineCoverage!
+    hasCoverageData && data.lineCoverage!
       ? getCoverageColors(contextLines, data.lineCoverage)
       : [];
 

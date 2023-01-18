@@ -1,8 +1,25 @@
-import {Coverage, LineCoverage} from 'sentry/types';
+import {render} from 'sentry-test/reactTestingLibrary';
 
-import {getCoverageColors} from './context';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import {Coverage, Frame, LineCoverage} from 'sentry/types';
+
+import Context, {getCoverageColors} from './context';
 
 describe('Frame - Context', function () {
+  const org = TestStubs.Organization();
+  const project = TestStubs.Project({});
+  const event = TestStubs.Event({projectID: project.id});
+  const integration = TestStubs.GitHubIntegration();
+  const repo = TestStubs.Repository({integrationId: integration.id});
+  const frame = {filename: '/sentry/app.py', lineNo: 233} as Frame;
+  const config = TestStubs.RepositoryProjectPathConfig({project, repo, integration});
+
+  beforeEach(function () {
+    jest.clearAllMocks();
+    MockApiClient.clearMockResponses();
+    ProjectsStore.loadInitialData([project]);
+  });
+
   const lines: Array<[number, string]> = [
     [231, 'this is line 231'],
     [232, 'this is line 232'],
@@ -24,5 +41,32 @@ describe('Frame - Context', function () {
       'transparent',
       'red100',
     ]);
+  });
+
+  it("doesn't query stacktrace link if the flag is off", function () {
+    const mock = MockApiClient.addMockResponse({
+      url: `/projects/${org.slug}/${project.slug}/stacktrace-link/`,
+      body: {
+        config,
+        sourceUrl: null,
+        integrations: [integration],
+      },
+    });
+    render(
+      <Context
+        frame={frame}
+        event={event}
+        organization={org}
+        registers={{}}
+        components={[]}
+      />,
+      {
+        context: TestStubs.routerContext([{organization: org}]),
+        organization: org,
+        project,
+      }
+    );
+
+    expect(mock).not.toHaveBeenCalled();
   });
 });
