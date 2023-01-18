@@ -1,4 +1,6 @@
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
+import keyBy from 'lodash/keyBy';
 
 import ClippedBox from 'sentry/components/clippedBox';
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -9,9 +11,18 @@ import {
 import {IconFlag} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Frame, Organization, SentryAppComponent} from 'sentry/types';
+import {
+  CodecovStatusCode,
+  Coverage,
+  Frame,
+  LineCoverage,
+  Organization,
+  SentryAppComponent,
+} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
+import {Color} from 'sentry/utils/theme';
+import useProjects from 'sentry/utils/useProjects';
 import withOrganization from 'sentry/utils/withOrganization';
 
 import {parseAssembly} from '../utils';
@@ -21,6 +32,7 @@ import ContextLine from './contextLine';
 import {FrameRegisters} from './frameRegisters';
 import {FrameVariables} from './frameVariables';
 import {OpenInContextLine} from './openInContextLine';
+import useStacktraceLink from './useStacktraceLink';
 
 type Props = {
   components: Array<SentryAppComponent>;
@@ -40,6 +52,30 @@ type Props = {
   registersMeta?: Record<any, any>;
 };
 
+export function getCoverageColors(
+  lines: [number, string][],
+  lineCov: LineCoverage[]
+): Array<Color | 'transparent'> {
+  const lineCoverage = keyBy(lineCov, 'lineNo');
+  return lines.map(line => {
+    const coverage = lineCoverage[line[0]]
+      ? lineCoverage[line[0]].coverage
+      : Coverage.NOT_APPLICABLE;
+    switch (coverage) {
+      case Coverage.COVERED:
+        return 'green100';
+      case Coverage.NOT_COVERED:
+        return 'red100';
+      case Coverage.PARTIAL:
+        return 'yellow100';
+      case Coverage.NOT_APPLICABLE:
+      // fallthrough
+      default:
+        return 'transparent';
+    }
+  });
+}
+
 const Context = ({
   hasContextVars = false,
   hasContextSource = false,
@@ -58,6 +94,26 @@ const Context = ({
   registersMeta,
 }: Props) => {
   const isMobile = isMobileLanguage(event);
+  const {projects} = useProjects();
+  const project = useMemo(
+    () => projects.find(p => p.id === event.projectID),
+    [projects, event]
+  );
+
+  const {data, isLoading} = useStacktraceLink(
+    {
+      event,
+      frame,
+      orgSlug: organization?.slug || '',
+      projectSlug: project?.slug,
+    },
+    {
+      enabled:
+        organization?.features.includes('codecov-stacktrace-integration') &&
+        organization?.codecovAccess &&
+        isExpanded,
+    }
+  );
 
   if (
     !hasContextSource &&
@@ -102,6 +158,13 @@ const Context = ({
     !!frame.filename &&
     isExpanded &&
     organization?.features.includes('integrations-stacktrace-link');
+  const hasCoverageData =
+    !isLoading && !!data && data!.codecovStatusCode === CodecovStatusCode.COVERAGE_EXISTS;
+
+  const lineColors: Array<Color | 'transparent'> =
+    hasCoverageData && data.lineCoverage!
+      ? getCoverageColors(contextLines, data.lineCoverage)
+      : [];
 
   return (
     <Wrapper
@@ -121,7 +184,12 @@ const Context = ({
           const showStacktraceLink = hasStacktraceLink && isActive;
 
           return (
-            <StyledContextLine key={index} line={line} isActive={isActive}>
+            <StyledContextLine
+              key={index}
+              line={line}
+              isActive={isActive}
+              color={isActive ? 'transparent' : lineColors[index] ?? 'transparent'}
+            >
               {hasComponents && (
                 <ErrorBoundary mini>
                   <OpenInContextLine

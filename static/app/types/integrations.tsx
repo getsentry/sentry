@@ -145,6 +145,7 @@ export type SentryAppSchemaStacktraceLink = {
 };
 
 export enum Coverage {
+  NOT_APPLICABLE = -1,
   NOT_COVERED = 0,
   COVERED = 1,
   PARTIAL = 2,
