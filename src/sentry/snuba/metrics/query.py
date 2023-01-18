@@ -280,20 +280,10 @@ class MetricsQuery(MetricsQueryValidationRunner):
 
         return action_by_str_fields
 
-    # TODO remove and call get_num_intervals directly
-    @staticmethod
-    def calculate_intervals_len(
-        end: Optional[datetime],
-        granularity: int,
-        start: Optional[datetime] = None,
-        interval: Optional[int] = None,
-    ) -> int:
-        return get_num_intervals(start=start, end=end, granularity=granularity, interval=interval)
-
     def validate_limit(self) -> None:
         if self.limit is None:
             return
-        intervals_len = self.calculate_intervals_len(
+        intervals_len = get_num_intervals(
             end=self.end,
             start=self.start,
             granularity=self.granularity.granularity,
@@ -331,7 +321,7 @@ class MetricsQuery(MetricsQueryValidationRunner):
     def get_default_limit(self) -> int:
         totals_limit: int = MAX_POINTS
         if self.start and self.end and self.include_series:
-            intervals_len = self.calculate_intervals_len(
+            intervals_len = get_num_intervals(
                 start=self.start,
                 end=self.end,
                 granularity=self.granularity.granularity,
