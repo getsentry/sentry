@@ -1,3 +1,5 @@
+import {Project} from 'sentry/types';
+
 export type ProfilingEventParameters = {
   'profiling_views.give_feedback_action': {};
   'profiling_views.go_to_flamegraph': {source: string};
@@ -7,9 +9,15 @@ export type ProfilingEventParameters = {
   'profiling_views.onboarding_action': {
     action: 'done' | 'dismissed';
   };
-  'profiling_views.profile_details': {};
-  'profiling_views.profile_flamegraph': {};
-  'profiling_views.profile_summary': {};
+  'profiling_views.profile_details': {
+    project: Project | undefined;
+  };
+  'profiling_views.profile_flamegraph': {
+    project: Project | undefined;
+  };
+  'profiling_views.profile_summary': {
+    project: Project | undefined;
+  };
   'profiling_views.visit_discord_channel': {};
 };
 

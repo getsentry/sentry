@@ -20,11 +20,11 @@ import {PageFilters, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {isAggregateField} from 'sentry/utils/discover/fields';
+import {useCurrentProjectFromRouteParam} from 'sentry/utils/profiling/hooks/useCurrentProjectFromRouteParam';
 import {useProfileFilters} from 'sentry/utils/profiling/hooks/useProfileFilters';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
 import withPageFilters from 'sentry/utils/withPageFilters';
 
 import {ProfileSummaryContent} from './content';
@@ -39,19 +39,17 @@ interface ProfileSummaryPageProps {
 
 function ProfileSummaryPage(props: ProfileSummaryPageProps) {
   const organization = useOrganization();
-  const {projects} = useProjects({
-    slugs: defined(props.params.projectId) ? [props.params.projectId] : [],
-  });
+  const {currentProject: project} = useCurrentProjectFromRouteParam();
 
   useEffect(() => {
     trackAdvancedAnalyticsEvent('profiling_views.profile_summary', {
       organization,
+      project,
     });
+    // ignore  currentProject so we don't block the analytics event
+    // or fire more than once unnecessarily
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [organization]);
-
-  // Extract the project matching the provided project slug,
-  // if it doesn't exist, set this to null and handle it accordingly.
-  const project = projects.length === 1 ? projects[0] : null;
 
   const transaction = decodeScalar(props.location.query.transaction);
 
