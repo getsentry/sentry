@@ -603,7 +603,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase, SearchIssueTest
         user_data = {
             "id": self.user.id,
             "username": "user",
-            "email": "hellboy@meow.com",
+            "email": "hellboy@bar.com",
             "ip_address": "127.0.0.1",
         }
         event, _, group_info = self.store_search_issue(
@@ -3012,7 +3012,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase, SearchIssueTest
         user_data = {
             "id": self.user.id,
             "username": "user",
-            "email": "hellboy@meow.com",
+            "email": "hellboy@bar.com",
             "ip_address": "127.0.0.1",
         }
         _, _, group_info = self.store_search_issue(
@@ -3040,7 +3040,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase, SearchIssueTest
         data = response.data["data"]
         assert len(data) == 1
         result = {r["user.display"] for r in data}
-        assert result == {"hellboy@meow.com"}
+        assert result == {user_data["email"]}
 
     def test_user_display_with_aggregates(self):
         self.store_event(
