@@ -6,6 +6,10 @@ export interface UseResizableDrawerOptions {
    */
   direction: 'right' | 'left' | 'down' | 'up';
   /**
+   * The starting size of the container
+   */
+  initialSize: number;
+  /**
    * The minimum sizes the container may be dragged to
    */
   min: number;
@@ -13,10 +17,6 @@ export interface UseResizableDrawerOptions {
    * Triggered while dragging
    */
   onResize: (newSize: number, maybeOldSize?: number) => void;
-  /**
-   * The starting size of the container. If not specified will be assumed as 0
-   */
-  initialSize?: number;
 }
 
 /**
@@ -25,6 +25,10 @@ export interface UseResizableDrawerOptions {
  * This only resizes one dimension at a time.
  */
 export function useResizableDrawer(options: UseResizableDrawerOptions): {
+  /**
+   * Apply this to include 'reset' functionality on the drag handle
+   */
+  onDoubleClick: React.MouseEventHandler<HTMLElement>;
   /**
    * Apply to the drag handle element
    */
@@ -113,6 +117,11 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
     [onMouseMove, onMouseUp]
   );
 
+  const onDoubleClick = useCallback(() => {
+    setSize(options.initialSize);
+    options.onResize(options.initialSize);
+  }, [options]);
+
   useLayoutEffect(() => {
     return () => {
       if (rafIdRef.current !== null) {
@@ -121,5 +130,5 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
     };
   });
 
-  return {size, onMouseDown};
+  return {size, onMouseDown, onDoubleClick};
 }
