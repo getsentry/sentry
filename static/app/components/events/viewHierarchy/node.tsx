@@ -2,7 +2,6 @@ import styled from '@emotion/styled';
 
 import {IconAdd, IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
 
 type NodeProps = {
   id: string;
@@ -10,15 +9,15 @@ type NodeProps = {
   label: string;
   onExpandClick: () => void;
   collapsible?: boolean;
+  isFocused?: boolean;
   isSelected?: boolean;
-  onSelection?: () => void;
 };
 
 function Node({
   label,
   id,
-  onSelection,
   isExpanded,
+  isFocused,
   isSelected,
   onExpandClick,
   collapsible = false,
@@ -39,7 +38,7 @@ function Node({
           <IconAdd legacySize="9px" color="white" />
         )}
       </IconWrapper>
-      <NodeTitle id={`${id}-title`} onClick={onSelection} selected={isSelected}>
+      <NodeTitle id={`${id}-title`} selected={isSelected} focused={isFocused}>
         {label}
       </NodeTitle>
     </NodeContents>
@@ -54,14 +53,17 @@ const NodeContents = styled('div')`
   white-space: nowrap;
 `;
 
-const NodeTitle = styled('span')<{selected?: boolean}>`
+const NodeTitle = styled('span')<{focused?: boolean; selected?: boolean}>`
   cursor: pointer;
-  ${({selected, theme}) =>
+  ${({focused, theme}) =>
+    focused &&
+    `
+    color: ${theme.white};
+  `}
+  ${({selected}) =>
     selected &&
     `
-    background-color: ${theme.purple200};
-    padding: 0 ${space(0.5)};
-    border-radius: ${theme.borderRadius}
+    font-weight: bold;
   `}
 `;
 

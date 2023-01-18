@@ -31,7 +31,7 @@ export interface UseVirtualizedListProps<T extends TreeLike> {
         node: VirtualizedTreeNode<T>,
         opts?: {expandChildren: boolean}
       ) => void;
-      handleRowClick: (evt: React.MouseEvent<HTMLElement>) => void;
+      handleRowClick: (evt: React.MouseEvent<HTMLElement>, toggle?: boolean) => void;
       handleRowKeyDown: (event: React.KeyboardEvent) => void;
       handleRowMouseEnter: (event: React.MouseEvent<HTMLElement>) => void;
       selectedNodeIndex: number | null;
@@ -315,9 +315,14 @@ export function useVirtualizedTree<T extends TreeLike>(
   // When a row is clicked, we update the selected node
   const handleRowClick = useCallback(
     (selectedNodeIndex: number) => {
-      return (_evt: React.MouseEvent<HTMLElement>) => {
-        dispatch({type: 'set selected node index', payload: selectedNodeIndex});
-        markRowAsClicked(selectedNodeIndex, latestItemsRef.current, {
+      return (_evt: React.MouseEvent<HTMLElement>, toggleSelection?: boolean) => {
+        let selectedNode: number | null = selectedNodeIndex;
+        if (toggleSelection && selectedNodeIndex === state.selectedNodeIndex) {
+          selectedNode = null;
+        }
+
+        dispatch({type: 'set selected node index', payload: selectedNode});
+        markRowAsClicked(selectedNode, latestItemsRef.current, {
           ghostRowRef: clickedGhostRowRef.current,
           rowHeight: props.rowHeight,
           scrollTop: latestStateRef.current.scrollTop,
@@ -325,7 +330,7 @@ export function useVirtualizedTree<T extends TreeLike>(
         });
       };
     },
-    [props.rowHeight, theme]
+    [props.rowHeight, theme, state.selectedNodeIndex]
   );
 
   // When a node is expanded, the underlying tree is recomputed (the flattened tree is updated)
