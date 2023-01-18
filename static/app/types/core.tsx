@@ -78,6 +78,27 @@ export enum DataCategory {
   REPLAYS = 'replays',
 }
 
+// https://github.com/getsentry/relay/blob/master/relay-common/src/constants.rs
+// Should be used in conjuction with DATA_CATEGORY_INFO rather than manipulating the string
+export enum DataCategoryExact {
+  ERROR = 'error',
+  TRANSACTION = 'transaction',
+  ATTACHMENT = 'attachment',
+  PROFILE = 'profile',
+  REPLAY = 'replay',
+  TRANSACTION_PROCESSED = 'transaction_processed',
+  TRANSACTION_INDEXED = 'transaction_indexed',
+}
+
+export interface DataCategoryInfo {
+  apiName: string;
+  displayName: string;
+  name: string;
+  plural: string;
+  titleName: React.ReactNode;
+  uid: number;
+}
+
 export type EventType = 'error' | 'transaction' | 'attachment';
 
 export enum Outcome {
