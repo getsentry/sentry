@@ -6,6 +6,10 @@ export interface UseResizableDrawerOptions {
    */
   direction: 'right' | 'left' | 'down' | 'up';
   /**
+   * The starting size of the container
+   */
+  initialSize: number;
+  /**
    * The minimum sizes the container may be dragged to
    */
   min: number;
@@ -13,10 +17,6 @@ export interface UseResizableDrawerOptions {
    * Triggered while dragging
    */
   onResize: (newSize: number, maybeOldSize?: number) => void;
-  /**
-   * The starting size of the container. If not specified will be assumed as 0
-   */
-  initialSize?: number;
 }
 
 /**
@@ -25,6 +25,16 @@ export interface UseResizableDrawerOptions {
  * This only resizes one dimension at a time.
  */
 export function useResizableDrawer(options: UseResizableDrawerOptions): {
+  /**
+   * Indicates the drag handle is held. Useful to apply a styled to your handle
+   * that will not be removed if the mouse moves outside of the hitbox of your
+   * handle.
+   */
+  isHeld: boolean;
+  /**
+   * Apply this to include 'reset' functionality on the drag handle
+   */
+  onDoubleClick: React.MouseEventHandler<HTMLElement>;
   /**
    * Apply to the drag handle element
    */
@@ -40,6 +50,7 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
   const rafIdRef = useRef<number | null>(null);
   const currentMouseVectorRaf = useRef<[number, number] | null>(null);
   const [size, setSize] = useState<number>(options.initialSize ?? 0);
+  const [isHeld, setIsHeld] = useState(false);
 
   // We intentionally fire this once at mount to ensure the dimensions are set and
   // any potentional values set by CSS will be overriden. If no initialDimensions are provided,
@@ -101,10 +112,12 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
     document.documentElement.style.cursor = '';
     document.removeEventListener('mousemove', onMouseMove);
     document.removeEventListener('mouseup', onMouseUp);
+    setIsHeld(false);
   }, [onMouseMove]);
 
   const onMouseDown = useCallback(
     (evt: React.MouseEvent<HTMLElement>) => {
+      setIsHeld(true);
       currentMouseVectorRaf.current = [evt.clientX, evt.clientY];
 
       document.addEventListener('mousemove', onMouseMove, {passive: true});
@@ -112,6 +125,11 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
     },
     [onMouseMove, onMouseUp]
   );
+
+  const onDoubleClick = useCallback(() => {
+    setSize(options.initialSize);
+    options.onResize(options.initialSize);
+  }, [options]);
 
   useLayoutEffect(() => {
     return () => {
@@ -121,5 +139,5 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
     };
   });
 
-  return {size, onMouseDown};
+  return {size, isHeld, onMouseDown, onDoubleClick};
 }
