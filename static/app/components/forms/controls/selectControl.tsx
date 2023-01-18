@@ -1,6 +1,7 @@
 import {forwardRef, useCallback, useMemo} from 'react';
 import ReactSelect, {
   components as selectComponents,
+  createFilter,
   GroupedOptionsType,
   mergeStyles,
   OptionsType,
@@ -512,8 +513,14 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
     Option,
   };
 
+  const filterOptions = createFilter({
+    // Use plainTextLabel if available
+    stringify: option => option.data.plainTextLabel ?? `${option.label} ${option.value}`,
+  });
+
   return (
     <SelectPicker<OptionType>
+      filterOption={filterOptions}
       styles={mappedStyles}
       components={{...replacedComponents, ...components}}
       async={async}

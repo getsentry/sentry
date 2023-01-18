@@ -272,10 +272,42 @@ const performanceOptionDefinitions: Field[] = [
     ...HIGH_THROUGHPUT_RATE_OPTION,
   },
   {
-    key: 'performance.issues.file_io_main_thread-creation',
+    key: 'performance.issues.file_io_main_thread.problem-creation',
     label: t('File IO Problem Creation Rate'),
     help: t(
       'Controls the overall rate at which performance problems are detected by the File IO Detector'
+    ),
+    ...HIGH_THROUGHPUT_RATE_OPTION,
+  },
+  {
+    key: 'performance.issues.slow_span.problem-creation',
+    label: t('Problem Creation Rate'),
+    help: t(
+      'Controls the overall rate at which performance problems are detected by the slow DB span detector.'
+    ),
+    ...HIGH_THROUGHPUT_RATE_OPTION,
+  },
+  {
+    key: 'performance.issues.slow_span.la-rollout',
+    label: t('Limited Availability Detection Rate'),
+    help: t(
+      'Controls the rate at which performance problems are detected by the slow DB span detector for LA organizations.'
+    ),
+    ...HIGH_THROUGHPUT_RATE_OPTION,
+  },
+  {
+    key: 'performance.issues.slow_span.ea-rollout',
+    label: t('Early Adopter Detection Rate'),
+    help: t(
+      'Controls the rate at which performance problems are detected by the slow DB span detector for EA organizations.'
+    ),
+    ...HIGH_THROUGHPUT_RATE_OPTION,
+  },
+  {
+    key: 'performance.issues.slow_span.ga-rollout',
+    label: t('General Availability Detection Rate'),
+    help: t(
+      'Controls the rate at which performance problems are detected by the slow DB span detector for GA organizations.'
     ),
     ...HIGH_THROUGHPUT_RATE_OPTION,
   },
