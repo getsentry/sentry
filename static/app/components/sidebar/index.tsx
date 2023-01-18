@@ -543,7 +543,7 @@ const SidebarSection = styled(SidebarSectionGroup)<{
   noMargin?: boolean;
   noPadding?: boolean;
 }>`
-  ${p => !p.noMargin && `margin: ${space(1)} 0`};
+  ${p => !p.noMargin && `margin: ${space(0.5)} 0`};
   ${p => !p.noPadding && 'padding: 0 19px'};
 
   @media (max-width: ${p => p.theme.breakpoints.small}) {
