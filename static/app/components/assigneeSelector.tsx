@@ -16,11 +16,15 @@ import {t, tct, tn} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import space from 'sentry/styles/space';
-import type {Actor, SuggestedOwnerReason} from 'sentry/types';
+import type {Actor, Group, SuggestedOwnerReason} from 'sentry/types';
 import useOrganization from 'sentry/utils/useOrganization';
 
 interface AssigneeSelectorProps
-  extends Omit<AssigneeSelectorDropdownProps, 'children' | 'organization'> {
+  extends Omit<AssigneeSelectorDropdownProps, 'children' | 'organization' | 'group'> {
+  /**
+   * The group id
+   */
+  id: string;
   noDropdown?: boolean;
 }
 
@@ -121,16 +125,15 @@ function AssigneeAvatar({
 function AssigneeSelector({noDropdown, ...props}: AssigneeSelectorProps) {
   const organization = useOrganization();
   const groups = useLegacyStore(GroupStore);
-  const group = groups.find(item => item.id === props.id);
-  const assignedTo = group?.assignedTo;
+  const group = groups.find(item => item.id === props.id) as Group;
 
   return (
     <AssigneeWrapper>
-      <AssigneeSelectorDropdown organization={organization} {...props}>
+      <AssigneeSelectorDropdown organization={organization} group={group} {...props}>
         {({loading, isOpen, getActorProps, suggestedAssignees}) => {
           const avatarElement = (
             <AssigneeAvatar
-              assignedTo={assignedTo}
+              assignedTo={group.assignedTo}
               suggestedActors={suggestedAssignees}
             />
           );
