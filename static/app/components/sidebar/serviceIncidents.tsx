@@ -6,7 +6,7 @@ import sortBy from 'lodash/sortBy';
 import startCase from 'lodash/startCase';
 
 import {loadIncidents} from 'sentry/actionCreators/serviceIncidents';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import Text from 'sentry/components/text';

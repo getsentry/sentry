@@ -2,7 +2,7 @@ import {isValidElement, useEffect, useRef, useState} from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {IconClose, IconMenu} from 'sentry/icons';
 import {t} from 'sentry/locale';

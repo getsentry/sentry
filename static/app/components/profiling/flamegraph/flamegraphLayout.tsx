@@ -17,11 +17,14 @@ import {CollapsibleTimeline} from './collapsibleTimeline';
 // 664px is approximately the width where we start to scroll inside
 // 30px is the min height to where the drawer can still be resized
 const MIN_FLAMEGRAPH_DRAWER_DIMENSIONS: [number, number] = [680, 30];
+const FLAMEGRAPH_DRAWER_INITIAL_HEIGHT = 180;
+
 interface FlamegraphLayoutProps {
   flamegraph: React.ReactElement;
   flamegraphDrawer: React.ReactElement;
   minimap: React.ReactElement;
   spans: React.ReactElement | null;
+  uiFrames: React.ReactElement | null;
 }
 
 export function FlamegraphLayout(props: FlamegraphLayoutProps) {
@@ -31,43 +34,37 @@ export function FlamegraphLayout(props: FlamegraphLayoutProps) {
   const flamegraphDrawerRef = useRef<HTMLDivElement>(null);
 
   const resizableOptions: UseResizableDrawerOptions = useMemo(() => {
-    const initialDimensions: [number, number] = [
-      // Half the screen minus the ~sidebar width
-      Math.max(window.innerWidth * 0.5 - 220, MIN_FLAMEGRAPH_DRAWER_DIMENSIONS[0]),
-      180,
-    ];
+    const isSidebarLayout = layout === 'table left' || layout === 'table right';
 
-    const onResize = (
-      newDimensions: [number, number],
-      maybeOldDimensions: [number, number] | undefined
-    ) => {
+    const initialSize = isSidebarLayout
+      ? // Half the screen minus the ~sidebar width
+        Math.max(window.innerWidth * 0.5 - 220, MIN_FLAMEGRAPH_DRAWER_DIMENSIONS[0])
+      : FLAMEGRAPH_DRAWER_INITIAL_HEIGHT;
+
+    const min = isSidebarLayout
+      ? MIN_FLAMEGRAPH_DRAWER_DIMENSIONS[0]
+      : MIN_FLAMEGRAPH_DRAWER_DIMENSIONS[1];
+
+    const onResize = (newSize: number, maybeOldSize: number | undefined) => {
       if (!flamegraphDrawerRef.current) {
         return;
       }
 
-      if (layout === 'table left' || layout === 'table right') {
-        flamegraphDrawerRef.current.style.width = `${
-          maybeOldDimensions?.[0] ?? newDimensions[0]
-        }px`;
+      if (isSidebarLayout) {
+        flamegraphDrawerRef.current.style.width = `${maybeOldSize ?? newSize}px`;
         flamegraphDrawerRef.current.style.height = `100%`;
       } else {
-        flamegraphDrawerRef.current.style.height = `${
-          maybeOldDimensions?.[1] ?? newDimensions[1]
-        }px`;
+        flamegraphDrawerRef.current.style.height = `${maybeOldSize ?? newSize}px`;
         flamegraphDrawerRef.current.style.width = `100%`;
       }
     };
 
     return {
-      initialDimensions,
+      initialSize,
       onResize,
       direction:
-        layout === 'table left'
-          ? 'horizontal-ltr'
-          : layout === 'table right'
-          ? 'horizontal-rtl'
-          : 'vertical',
-      min: MIN_FLAMEGRAPH_DRAWER_DIMENSIONS,
+        layout === 'table left' ? 'left' : layout === 'table right' ? 'right' : 'up',
+      min,
     };
   }, [layout]);
 
@@ -103,6 +100,24 @@ export function FlamegraphLayout(props: FlamegraphLayoutProps) {
     [dispatch]
   );
 
+  const onOpenUIFrames = useCallback(
+    () =>
+      dispatch({
+        type: 'toggle timeline',
+        payload: {timeline: 'ui_frames', value: true},
+      }),
+    [dispatch]
+  );
+
+  const onCloseUIFrames = useCallback(
+    () =>
+      dispatch({
+        type: 'toggle timeline',
+        payload: {timeline: 'ui_frames', value: false},
+      }),
+    [dispatch]
+  );
+
   return (
     <FlamegraphLayoutContainer>
       <FlamegraphGrid layout={layout}>
@@ -118,6 +133,20 @@ export function FlamegraphLayout(props: FlamegraphLayoutProps) {
             {props.minimap}
           </CollapsibleTimeline>
         </MinimapContainer>
+        {props.uiFrames ? (
+          <UIFramesContainer
+            height={timelines.ui_frames ? flamegraphTheme.SIZES.UI_FRAMES_HEIGHT : 20}
+          >
+            <CollapsibleTimeline
+              title={t('UI Frames')}
+              open={timelines.ui_frames}
+              onOpen={onOpenUIFrames}
+              onClose={onCloseUIFrames}
+            >
+              {props.uiFrames}
+            </CollapsibleTimeline>
+          </UIFramesContainer>
+        ) : null}
         {props.spans ? (
           <SpansContainer
             height={timelines.transaction_spans ? flamegraphTheme.SIZES.SPANS_HEIGHT : 20}
@@ -153,10 +182,10 @@ const FlamegraphGrid = styled('div')<{
   width: 100%;
   grid-template-rows: ${({layout}) =>
     layout === 'table bottom'
-      ? 'auto auto 1fr'
+      ? 'auto auto auto 1fr'
       : layout === 'table right'
-      ? 'min-content min-content 1fr'
-      : 'min-content min-content 1fr'};
+      ? 'min-content min-content min-content 1fr'
+      : 'min-content min-content min-content 1fr'};
   grid-template-columns: ${({layout}) =>
     layout === 'table bottom'
       ? '100%'
@@ -170,6 +199,7 @@ const FlamegraphGrid = styled('div')<{
     layout === 'table bottom'
       ? `
         'minimap'
+        'ui-frames'
         'spans'
         'flamegraph'
         'frame-stack'
@@ -177,12 +207,14 @@ const FlamegraphGrid = styled('div')<{
       : layout === 'table right'
       ? `
         'minimap    frame-stack'
+        'ui-frames  frame-stack'
         'spans     frame-stack'
         'flamegraph frame-stack'
       `
       : layout === 'table left'
       ? `
         'frame-stack minimap'
+        'frame-stack ui-frames'
         'frame-stack spans'
         'frame-stack flamegraph'
     `
@@ -213,6 +245,14 @@ const SpansContainer = styled('div')<{
   position: relative;
   height: ${p => p.height}px;
   grid-area: spans;
+`;
+
+const UIFramesContainer = styled('div')<{
+  height: FlamegraphTheme['SIZES']['UI_FRAMES_HEIGHT'];
+}>`
+  position: relative;
+  height: ${p => p.height}px;
+  grid-area: ui-frames;
 `;
 
 const FlamegraphDrawerContainer = styled('div')<{

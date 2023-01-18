@@ -6,21 +6,19 @@ import {createDashboard} from 'sentry/actionCreators/dashboards';
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
-import Alert from 'sentry/components/alert';
-import Button from 'sentry/components/button';
+import {Alert} from 'sentry/components/alert';
+import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import CompactSelect from 'sentry/components/compactSelect';
 import * as Layout from 'sentry/components/layouts/thirds';
-import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
-import PageHeading from 'sentry/components/pageHeading';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import SearchBar from 'sentry/components/searchBar';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import Switch from 'sentry/components/switchButton';
 import {IconAdd} from 'sentry/icons';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, SelectValue} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
@@ -283,19 +281,15 @@ class ManageDashboards extends AsyncView<Props, State> {
             <NoProjectMessage organization={organization}>
               <Layout.Header>
                 <Layout.HeaderContent>
-                  <StyledHeading>
+                  <Layout.Title>
                     {t('Dashboards')}
                     <PageHeadingQuestionTooltip
-                      title={tct(
-                        'A broad overview of your application’s health where you can navigate through error and performance data across multiple projects. [link: Read the docs].',
-                        {
-                          link: (
-                            <ExternalLink href="https://docs.sentry.io/product/dashboards/" />
-                          ),
-                        }
+                      docsUrl="https://docs.sentry.io/product/dashboards/"
+                      title={t(
+                        'A broad overview of your application’s health where you can navigate through error and performance data across multiple projects.'
                       )}
                     />
-                  </StyledHeading>
+                  </Layout.Title>
                 </Layout.HeaderContent>
                 <Layout.HeaderActions>
                   <ButtonBar gap={1.5}>
@@ -336,10 +330,6 @@ class ManageDashboards extends AsyncView<Props, State> {
     );
   }
 }
-
-const StyledHeading = styled(PageHeading)`
-  line-height: 40px;
-`;
 
 const StyledActions = styled('div')`
   display: grid;

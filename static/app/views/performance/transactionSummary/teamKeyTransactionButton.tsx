@@ -1,6 +1,6 @@
 import {Component} from 'react';
 
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import TeamKeyTransactionComponent, {
   TitleProps,
 } from 'sentry/components/performance/teamKeyTransaction';

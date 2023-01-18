@@ -1,7 +1,7 @@
 import {useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import {t} from 'sentry/locale';
 import {LightFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 import {

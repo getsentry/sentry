@@ -21,7 +21,6 @@ import {
 } from 'sentry/components/modals/widgetViewerModal/utils';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
-import PageHeading from 'sentry/components/pageHeading';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {usingCustomerDomain} from 'sentry/constants';
 import {t} from 'sentry/locale';
@@ -85,8 +84,8 @@ export const UNSAVED_FILTERS_MESSAGE = t(
 const HookHeader = HookOrDefault({hookName: 'component:dashboards-header'});
 
 type RouteParams = {
-  orgId: string;
   dashboardId?: string;
+  templateId?: string;
   widgetId?: number;
   widgetIndex?: number;
 };
@@ -641,13 +640,13 @@ class DashboardDetail extends Component<Props, State> {
         <Layout.Page withPadding>
           <NoProjectMessage organization={organization}>
             <StyledPageHeader>
-              <StyledHeading>
+              <Layout.Title>
                 <DashboardTitle
                   dashboard={modifiedDashboard ?? dashboard}
                   onUpdate={this.setModifiedDashboard}
                   isEditing={this.isEditing}
                 />
-              </StyledHeading>
+              </Layout.Title>
               <Controls
                 organization={organization}
                 dashboards={dashboards}
@@ -774,13 +773,13 @@ class DashboardDetail extends Component<Props, State> {
                       },
                     ]}
                   />
-                  <StyledHeading>
+                  <Layout.Title>
                     <DashboardTitle
                       dashboard={modifiedDashboard ?? dashboard}
                       onUpdate={this.setModifiedDashboard}
                       isEditing={this.isEditing}
                     />
-                  </StyledHeading>
+                  </Layout.Title>
                 </Layout.HeaderContent>
                 <Layout.HeaderActions>
                   <Controls
@@ -936,10 +935,6 @@ const StyledPageHeader = styled('div')`
     grid-column-gap: ${space(2)};
     height: 40px;
   }
-`;
-
-const StyledHeading = styled(PageHeading)`
-  line-height: 40px;
 `;
 
 export default withProjects(withApi(withOrganization(DashboardDetail)));

@@ -1,7 +1,7 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
-import ThreadsV2 from 'sentry/components/events/interfaces/threadsV2';
+import {ThreadsV2} from 'sentry/components/events/interfaces/threadsV2';
 import {displayOptions} from 'sentry/components/events/traceEventDataSection';
 import {EventOrGroupType} from 'sentry/types';
 import {EntryType, Event} from 'sentry/types/event';

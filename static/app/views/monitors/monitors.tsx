@@ -5,7 +5,7 @@ import * as qs from 'query-string';
 
 import onboardingImg from 'sentry-images/spot/onboarding-preview.svg';
 
-import Button, {ButtonProps} from 'sentry/components/button';
+import {Button, ButtonProps} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import FeatureBadge from 'sentry/components/featureBadge';
 import IdBadge from 'sentry/components/idBadge';
@@ -13,7 +13,7 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import Link from 'sentry/components/links/link';
 import OnboardingPanel from 'sentry/components/onboardingPanel';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import PageHeading from 'sentry/components/pageHeading';
+import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import Pagination from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
@@ -38,7 +38,7 @@ import {Monitor} from './types';
 
 type Props = AsyncView['props'] &
   WithRouteAnalyticsProps &
-  WithRouterProps<{orgId: string}> & {
+  WithRouterProps<{}> & {
     organization: Organization;
   };
 
@@ -107,9 +107,16 @@ class Monitors extends AsyncView<Props, State> {
       <Layout.Page>
         <Layout.Header>
           <Layout.HeaderContent>
-            <StyledHeading>
-              {t('Cron Monitors')} <FeatureBadge type="beta" />
-            </StyledHeading>
+            <Layout.Title>
+              {t('Cron Monitors')}
+              <PageHeadingQuestionTooltip
+                title={t(
+                  'Scheduled monitors that check in on recurring jobs and tell you if they’re running on schedule, failing, or succeeding.'
+                )}
+                docsUrl="https://docs.sentry.io/product/crons/"
+              />
+              <FeatureBadge type="beta" />
+            </Layout.Title>
           </Layout.HeaderContent>
           <Layout.HeaderActions>
             <ButtonBar gap={1}>
@@ -182,10 +189,6 @@ class Monitors extends AsyncView<Props, State> {
     );
   }
 }
-
-const StyledHeading = styled(PageHeading)`
-  line-height: 40px;
-`;
 
 const StyledLink = styled(Link)`
   flex: 1;
