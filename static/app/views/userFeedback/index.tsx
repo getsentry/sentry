@@ -10,7 +10,6 @@ import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import {EventUserFeedback} from 'sentry/components/events/userFeedback';
 import CompactIssue from 'sentry/components/issues/compactIssue';
 import * as Layout from 'sentry/components/layouts/thirds';
-import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
@@ -19,7 +18,7 @@ import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionT
 import Pagination from 'sentry/components/pagination';
 import {Panel} from 'sentry/components/panels';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, UserReport} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -32,7 +31,7 @@ type State = AsyncView['state'] & {
   reportList: UserReport[];
 };
 
-type Props = RouteComponentProps<{orgId: string}, {}> & {
+type Props = RouteComponentProps<{}, {}> & {
   organization: Organization;
 };
 
@@ -69,7 +68,7 @@ class OrganizationUserFeedback extends AsyncView<Props, State> {
   }
 
   renderResults() {
-    const {orgId} = this.props.params;
+    const {organization} = this.props;
 
     return (
       <Panel className="issue-list" data-test-id="user-feedback-list">
@@ -77,7 +76,11 @@ class OrganizationUserFeedback extends AsyncView<Props, State> {
           const issue = item.issue;
           return (
             <CompactIssue key={item.id} id={issue.id} data={issue} eventId={item.eventID}>
-              <StyledEventUserFeedback report={item} orgId={orgId} issueId={issue.id} />
+              <StyledEventUserFeedback
+                report={item}
+                orgId={organization.slug}
+                issueId={issue.id}
+              />
             </CompactIssue>
           );
         })}
@@ -129,13 +132,9 @@ class OrganizationUserFeedback extends AsyncView<Props, State> {
               <Layout.Title>
                 {t('User Feedback')}
                 <PageHeadingQuestionTooltip
-                  title={tct(
-                    'Feedback submitted by users who experienced an error while using your application, including their name, email address, and any additional comments. [link: Read the docs].',
-                    {
-                      link: (
-                        <ExternalLink href="https://docs.sentry.io/product/user-feedback/" />
-                      ),
-                    }
+                  docsUrl="https://docs.sentry.io/product/user-feedback/"
+                  title={t(
+                    'Feedback submitted by users who experienced an error while using your application, including their name, email address, and any additional comments.'
                   )}
                 />
               </Layout.Title>

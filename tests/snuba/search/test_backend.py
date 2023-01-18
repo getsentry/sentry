@@ -2324,7 +2324,7 @@ class EventsGenericSnubaSearchTest(SharedSnubaTest, OccurrenceTestMixin):
                 "platform": "python",
                 "tags": {"my_tag": "1"},
                 "timestamp": before_now(minutes=1).isoformat(),
-                "message_timestamp": before_now(minutes=1).isoformat(),
+                "received": before_now(minutes=1).isoformat(),
             },
         )
         self.profile_group_1 = group_info.group
@@ -2338,7 +2338,7 @@ class EventsGenericSnubaSearchTest(SharedSnubaTest, OccurrenceTestMixin):
                 "platform": "python",
                 "tags": {"my_tag": "1"},
                 "timestamp": before_now(minutes=2).isoformat(),
-                "message_timestamp": before_now(minutes=2).isoformat(),
+                "received": before_now(minutes=2).isoformat(),
             },
         )
         self.profile_group_2 = group_info.group

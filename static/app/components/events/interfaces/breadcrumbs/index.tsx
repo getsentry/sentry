@@ -300,10 +300,8 @@ function BreadcrumbsContainer({data, event, organization, projectSlug, isShare}:
   return (
     <EventDataSection
       type={EntryType.BREADCRUMBS}
-      title={<h3>{t('Breadcrumbs')}</h3>}
+      title={t('Breadcrumbs')}
       actions={!showReplay ? actions : null}
-      wrapTitle={false}
-      isCentered
     >
       {showReplay ? (
         <Fragment>
