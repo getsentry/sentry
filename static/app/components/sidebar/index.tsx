@@ -14,7 +14,6 @@ import {
   IconDashboard,
   IconIssues,
   IconLightning,
-  IconList,
   IconPlay,
   IconProfiling,
   IconProject,
@@ -292,16 +291,6 @@ function Sidebar({location, organization}: Props) {
     </Feature>
   );
 
-  const activity = hasOrganization && (
-    <SidebarItem
-      {...sidebarItemProps}
-      icon={<IconList size="md" />}
-      label={t('Activity')}
-      to={`/organizations/${organization.slug}/activity/`}
-      id="activity"
-    />
-  );
-
   const stats = hasOrganization && (
     <SidebarItem
       {...sidebarItemProps}
@@ -347,20 +336,19 @@ function Sidebar({location, organization}: Props) {
                 {performance}
                 {profiling}
                 {replays}
-                {userFeedback}
-                {releases}
+                {monitors}
+                {alerts}
               </SidebarSection>
 
               <SidebarSection>
                 {discover2}
                 {dashboards}
-                {activity}
-                {stats}
+                {releases}
+                {userFeedback}
               </SidebarSection>
 
               <SidebarSection>
-                {alerts}
-                {monitors}
+                {stats}
                 {settings}
               </SidebarSection>
             </Fragment>
