@@ -112,10 +112,10 @@ describe('SpanEvidenceKeyValueList', () => {
       ).toHaveTextContent('db - SELECT * FROM USERS LIMIT 100');
 
       expect(
-        screen.queryByRole('cell', {name: 'Parallelizable Span'})
+        screen.queryByRole('cell', {name: 'Parallelizable Spans'})
       ).toBeInTheDocument();
       expect(
-        screen.getByTestId('span-evidence-key-value-list.parallelizable-span')
+        screen.getByTestId('span-evidence-key-value-list.parallelizable-spans')
       ).toHaveTextContent('db - SELECT COUNT(*) FROM USERS');
     });
   });
