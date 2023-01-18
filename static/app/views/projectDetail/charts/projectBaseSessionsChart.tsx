@@ -23,7 +23,7 @@ import {EChartEventHandler, Series} from 'sentry/types/echarts';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {MINUTES_THRESHOLD_TO_DISPLAY_SECONDS} from 'sentry/utils/sessions';
 import withPageFilters from 'sentry/utils/withPageFilters';
-import {displayAnrPercent, displayCrashFreePercent} from 'sentry/views/releases/utils';
+import {displayCrashFreePercent} from 'sentry/views/releases/utils';
 import {sessionTerm} from 'sentry/views/releases/utils/sessionTerm';
 
 import {DisplayModes} from '../projectCharts';
@@ -136,9 +136,7 @@ function ProjectBaseSessionsChart({
                             }
                             releaseSeries={releaseSeries}
                             displayMode={displayMode}
-                            additionalSeries={
-                              additionalSeries ? additionalSeries : undefined
-                            }
+                            additionalSeries={additionalSeries}
                           />
                         </TransitionChart>
                       );
@@ -306,7 +304,7 @@ class Chart extends Component<ChartProps, ChartState> {
           }
 
           if (this.isAnr) {
-            return displayAnrPercent(value, 0, 3);
+            return displayCrashFreePercent(value, 0, 3, false);
           }
 
           return typeof value === 'number' ? value.toLocaleString() : value;
@@ -323,7 +321,7 @@ class Chart extends Component<ChartProps, ChartState> {
         : this.isAnr
         ? {
             axisLabel: {
-              formatter: (value: number) => displayAnrPercent(value),
+              formatter: (value: number) => displayCrashFreePercent(value, 0, 3, false),
             },
             scale: true,
           }

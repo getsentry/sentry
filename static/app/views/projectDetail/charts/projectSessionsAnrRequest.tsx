@@ -221,7 +221,7 @@ function ProjectSessionsAnrRequest({
         totalSessions,
         previousTimeseriesData,
         timeseriesData: timeseriesData ?? [],
-        additionalSeries: badBehaviourSeries ?? [],
+        additionalSeries: badBehaviourSeries ?? undefined,
       })}
     </Fragment>
   );
