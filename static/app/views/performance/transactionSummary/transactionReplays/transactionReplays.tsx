@@ -26,10 +26,8 @@ import ReplayTable from 'sentry/views/replays/replayTable';
 import {ReplayColumns} from 'sentry/views/replays/replayTable/types';
 import type {ReplayListLocationQuery} from 'sentry/views/replays/types';
 
-import useReplaysFromTransaction from './useReplaysFromTransaction';
+import useReplaysFromTransaction, {EventSpanData} from './useReplaysFromTransaction';
 import useReplaysWithTxData from './useReplaysWithTxData';
-
-type EventSpanData = ReturnType<typeof useReplaysFromTransaction>['events'];
 
 function TransactionReplays() {
   const location = useLocation<ReplayListLocationQuery>();
@@ -93,18 +91,17 @@ function ReplaysContentWrapper({
   organization,
   setError,
 }: ChildProps) {
-  const {events, eventView, fetchError, isFetching, pageLinks} =
-    useReplaysFromTransaction({
-      replayIdsEventView,
-      location,
-      organization,
-    });
+  const {data, fetchError, isFetching, pageLinks} = useReplaysFromTransaction({
+    replayIdsEventView,
+    location,
+    organization,
+  });
 
   useEffect(() => {
     setError(fetchError?.message ?? fetchError);
   }, [setError, fetchError]);
 
-  if (!eventView) {
+  if (!data) {
     return isFetching ? (
       <Layout.Main fullWidth>
         <LoadingIndicator />
@@ -113,6 +110,8 @@ function ReplaysContentWrapper({
       <Fragment>{null}</Fragment>
     );
   }
+
+  const {events, eventView} = data;
   return (
     <ReplaysContent
       eventView={eventView}
@@ -130,7 +129,7 @@ function ReplaysContent({
   pageLinks,
 }: {
   eventView: EventView;
-  events: EventSpanData;
+  events: EventSpanData[];
   organization: Organization;
   pageLinks: string | null;
 }) {

@@ -16,7 +16,7 @@ type Options = {
   replayIdsEventView: EventView;
 };
 
-type EventSpanData = {
+export type EventSpanData = {
   'count()': number;
   replayId: string;
   'span_ops_breakdown.relative': string;
@@ -31,8 +31,10 @@ type EventSpanData = {
 };
 
 type Return = {
-  eventView: null | EventView;
-  events: EventSpanData[];
+  data: null | {
+    eventView: EventView;
+    events: EventSpanData[];
+  };
   fetchError: any;
   isFetching: boolean;
   pageLinks: null | string;
@@ -95,10 +97,15 @@ function useReplaysFromTransaction({
   }, [fetchReplayIds]);
 
   return {
-    eventView,
-    events: response.events || [],
+    data:
+      response.events && eventView
+        ? {
+            eventView,
+            events: response.events,
+          }
+        : null,
     fetchError,
-    isFetching: false,
+    isFetching: !fetchError && !response.events,
     pageLinks: response.pageLinks,
   };
 }

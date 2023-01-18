@@ -1,12 +1,10 @@
 import {useMemo} from 'react';
 
-import useReplaysFromTransaction from 'sentry/views/performance/transactionSummary/transactionReplays/useReplaysFromTransaction';
+import {EventSpanData} from 'sentry/views/performance/transactionSummary/transactionReplays/useReplaysFromTransaction';
 import {ReplayListRecord} from 'sentry/views/replays/types';
 
-type EventSpanData = ReturnType<typeof useReplaysFromTransaction>['events'];
-
 type Opts = {
-  events: EventSpanData;
+  events: EventSpanData[];
   replays: undefined | ReplayListRecord[];
 };
 
