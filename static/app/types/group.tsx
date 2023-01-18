@@ -654,7 +654,7 @@ export type KeyValueListDataItem = {
   meta?: Meta;
   subjectDataTestId?: string;
   subjectIcon?: React.ReactNode;
-  value?: React.ReactNode;
+  value?: React.ReactNode | React.ReactNode[];
 };
 
 export type KeyValueListData = KeyValueListDataItem[];

@@ -64,17 +64,13 @@ const ConsecutiveDBQueriesSpanEvidence = ({
   offendingSpans,
 }: SpanEvidenceKeyValueListProps) => (
   <PresortedKeyValueList
-    data={
-      [
-        makeTransactionNameRow(event),
-        causeSpans
-          ? makeRow(t('Starting Span'), getSpanEvidenceValue(causeSpans[0]))
-          : null,
-        ...offendingSpans.map(span =>
-          makeRow(t('Parallelizable Span'), getSpanEvidenceValue(span))
-        ),
-      ].filter(Boolean) as KeyValueListData
-    }
+    data={[
+      makeTransactionNameRow(event),
+      ...(causeSpans
+        ? [makeRow(t('Starting Span'), getSpanEvidenceValue(causeSpans[0]))]
+        : []),
+      makeRow('Parallelizable Spans', getMultiSpanEvidenceValues(offendingSpans)),
+    ]}
   />
 );
 
@@ -158,7 +154,7 @@ const makeTransactionNameRow = (event: Event) => makeRow(t('Transaction'), event
 
 const makeRow = (
   subject: KeyValueListDataItem['subject'],
-  value: KeyValueListDataItem['value']
+  value: KeyValueListDataItem['value'] | KeyValueListDataItem['value'][]
 ): KeyValueListDataItem => {
   const itemKey = kebabCase(subject);
 
@@ -169,6 +165,10 @@ const makeRow = (
     subjectDataTestId: `${TEST_ID_NAMESPACE}.${itemKey}`,
   };
 };
+
+function getMultiSpanEvidenceValues(spans: Span[]) {
+  return spans.map(span => getSpanEvidenceValue(span));
+}
 
 function getSpanEvidenceValue(span: Span | null) {
   if (!span || (!span.op && !span.description)) {

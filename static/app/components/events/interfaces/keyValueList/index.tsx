@@ -1,3 +1,4 @@
+import React from 'react';
 import styled from '@emotion/styled';
 import sortBy from 'lodash/sortBy';
 
@@ -55,6 +56,12 @@ function KeyValueList({
               raw,
             };
 
+            const valueContainer = Array.isArray(value) ? (
+              <MultiValueContainer values={value} />
+            ) : (
+              <Value {...valueProps} />
+            );
+
             return (
               <tr key={`${key}-${idx}`}>
                 <TableSubject className="key" wide={longKeys}>
@@ -64,11 +71,11 @@ function KeyValueList({
                   <Tablevalue>
                     {actionButton ? (
                       <ValueWithButtonContainer>
-                        <Value {...valueProps} />
+                        {valueContainer}
                         <ActionButtonWrapper>{actionButton}</ActionButtonWrapper>
                       </ValueWithButtonContainer>
                     ) : (
-                      <Value {...valueProps} />
+                      valueContainer
                     )}
                   </Tablevalue>
                 </td>
@@ -80,6 +87,16 @@ function KeyValueList({
     </Table>
   );
 }
+
+const MultiValueContainer = ({values}: {values: React.ReactNode[]}): JSX.Element => {
+  return (
+    <React.Fragment>
+      {values.map((val, idx) => (
+        <Value key={`${val}-${idx}`} value={val} />
+      ))}
+    </React.Fragment>
+  );
+};
 
 export default KeyValueList;
 
