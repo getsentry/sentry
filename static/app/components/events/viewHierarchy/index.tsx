@@ -53,17 +53,21 @@ function ViewHierarchy({viewHierarchy}: ViewHierarchyProps) {
     r,
     {handleExpandTreeNode}
   ) => {
+    const key = `view-hierarchy-node-${r.key}`;
+    const depthMarkers = Array(r.item.depth)
+      .fill('')
+      .map((_, i) => <DepthMarker key={`${key}-depth-${i}`} />);
     return (
       <TreeItem
-        key={`view-hierarchy-node-${r.key}`}
+        key={key}
         ref={n => {
           r.ref = n;
         }}
         style={r.styles}
-        depth={r.item.depth}
       >
+        {depthMarkers}
         <Node
-          id={`view-hierarchy-node-${r.key}`}
+          id={key}
           label={getNodeLabel(r.item.node)}
           onExpandClick={() => handleExpandTreeNode(r.item, {expandChildren: false})}
           collapsible={!!r.item.node.children?.length}
@@ -127,7 +131,13 @@ const RenderedItemsContainer = styled('div')`
   position: relative;
 `;
 
-const TreeItem = styled('div')<{depth: number}>`
-  padding-left: ${p => p.depth * 16}px;
+const TreeItem = styled('div')`
+  display: flex;
   height: 20px;
+`;
+
+const DepthMarker = styled('div')`
+  margin-left: 5px;
+  width: ${space(2)};
+  border-left: 1px solid ${p => p.theme.gray200};
 `;
