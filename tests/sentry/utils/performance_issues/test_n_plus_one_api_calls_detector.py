@@ -3,6 +3,7 @@ from typing import List
 import pytest
 
 from sentry.eventstore.models import Event
+from sentry.models import ProjectOption
 from sentry.testutils import TestCase
 from sentry.testutils.performance_issues.event_generators import get_event
 from sentry.testutils.silo import region_silo_test
@@ -33,7 +34,7 @@ class NPlusOneAPICallsDetectorTest(TestCase):
         problems = self.find_problems(event)
         assert self.find_problems(event) == [
             PerformanceProblem(
-                fingerprint="1-GroupType.PERFORMANCE_N_PLUS_ONE_API_CALLS-3b2ee4021cd4e24acd32179932e10553e312786b",
+                fingerprint="1-1010-3b2ee4021cd4e24acd32179932e10553e312786b",
                 op="http.client",
                 type=GroupType.PERFORMANCE_N_PLUS_ONE_API_CALLS,
                 desc="GET /api/0/organizations/sentry/events/?field=replayId&field=count%28%29&per_page=50&query=issue.id%3A",
@@ -84,6 +85,27 @@ class NPlusOneAPICallsDetectorTest(TestCase):
 
         with self.feature({"organizations:performance-n-plus-one-api-calls-detector": True}):
             assert detector.is_creation_allowed_for_organization(project.organization)
+
+    def test_respects_project_option(self):
+        project = self.create_project()
+        event = get_event("n-plus-one-api-calls/n-plus-one-api-calls-in-issue-stream")
+        event["project_id"] = project.id
+
+        settings = get_detection_settings(project.id)
+        detector = NPlusOneAPICallsDetector(settings, event)
+
+        assert detector.is_creation_allowed_for_project(project)
+
+        ProjectOption.objects.set_value(
+            project=project,
+            key="sentry:performance_issue_settings",
+            value={"n_plus_one_api_calls_detection_rate": 0.0},
+        )
+
+        settings = get_detection_settings(project.id)
+        detector = NPlusOneAPICallsDetector(settings, event)
+
+        assert not detector.is_creation_allowed_for_project(project)
 
 
 @pytest.mark.parametrize(

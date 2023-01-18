@@ -2,17 +2,31 @@ export function relativeChange(final: number, initial: number): number {
   return (final - initial) / initial;
 }
 
+/**
+ * Contains both singular and plural forms of units because the backend currently
+ * returns different units between profiles and measurements
+ */
 export type ProfilingFormatterUnit =
+  | 'nanosecond'
   | 'nanoseconds'
+  | 'microsecond'
   | 'microseconds'
+  | 'millisecond'
   | 'milliseconds'
-  | 'seconds';
+  | 'second'
+  | 'seconds'
+  | 'count';
 
 const durationMappings: Record<ProfilingFormatterUnit, number> = {
+  nanosecond: 1e-9,
   nanoseconds: 1e-9,
+  microsecond: 1e-6,
   microseconds: 1e-6,
+  millisecond: 1e-3,
   milliseconds: 1e-3,
+  second: 1,
   seconds: 1,
+  count: 1,
 };
 
 export function makeFormatTo(
@@ -46,25 +60,32 @@ const format = (v: number, abbrev: string, precision: number) => {
 export function makeFormatter(
   from: ProfilingFormatterUnit | string
 ): (value: number) => string {
+  const DEFAULT_PRECISION = 2;
   const multiplier = durationMappings[from];
 
   if (multiplier === undefined) {
     throw new Error(`Cannot format unit ${from}, duration mapping is not defined`);
   }
 
+  if (from === 'count') {
+    return (value: number) => {
+      return value.toFixed(0);
+    };
+  }
+
   return (value: number) => {
     const duration = value * multiplier;
 
     if (duration >= 1) {
-      return format(duration, 's', 2);
+      return format(duration, 's', DEFAULT_PRECISION);
     }
     if (duration / 1e-3 >= 1) {
-      return format(duration / 1e-3, 'ms', 2);
+      return format(duration / 1e-3, 'ms', DEFAULT_PRECISION);
     }
     if (duration / 1e-6 >= 1) {
-      return format(duration / 1e-6, 'μs', 2);
+      return format(duration / 1e-6, 'μs', DEFAULT_PRECISION);
     }
-    return format(duration / 1e-9, 'ns', 2);
+    return format(duration / 1e-9, 'ns', DEFAULT_PRECISION);
   };
 }
 
@@ -80,10 +101,10 @@ export function makeTimelineFormatter(from: ProfilingFormatterUnit | string) {
   }
 
   return (value: number) => {
-    const s = value * multiplier;
+    const s = Math.abs(value * multiplier);
     const m = s / 60;
     const ms = s * 1e3;
 
-    return `${pad(m, 2)}:${pad(s % 60, 2)}.${pad(ms % 1e3, 3)}`;
+    return `${value < 0 ? '-' : ''}${pad(m, 2)}:${pad(s % 60, 2)}.${pad(ms % 1e3, 3)}`;
   };
 }

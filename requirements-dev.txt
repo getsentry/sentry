@@ -7,6 +7,7 @@ openapi-core>=0.14.2
 pytest>=7.2
 pytest-cov>=4.0.0
 pytest-django>=4.4.0
+pytest-fail-slow>=0.3.0
 pytest-rerunfailures>=10
 pytest-sentry>=0.1.11
 pytest-xdist>=3

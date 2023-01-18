@@ -4,7 +4,7 @@ import memoize from 'lodash/memoize';
 import moment from 'moment-timezone';
 
 import AsyncComponent from 'sentry/components/asyncComponent';
-import Button, {StyledButton} from 'sentry/components/button';
+import {Button, StyledButton} from 'sentry/components/button';
 import Checkbox from 'sentry/components/checkbox';
 import CompactSelect from 'sentry/components/compactSelect';
 import DateTime from 'sentry/components/dateTime';

@@ -3,7 +3,7 @@ import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion, MotionProps, useAnimation} from 'framer-motion';
 
-import Button, {ButtonProps} from 'sentry/components/button';
+import {Button, ButtonProps} from 'sentry/components/button';
 import Hook from 'sentry/components/hook';
 import Link from 'sentry/components/links/link';
 import LogoSentry from 'sentry/components/logoSentry';
@@ -28,7 +28,6 @@ import {usePersistedOnboardingState} from './utils';
 import TargetedOnboardingWelcome from './welcome';
 
 type RouteParams = {
-  orgId: string;
   step: string;
 };
 
@@ -106,11 +105,10 @@ function Onboarding(props: Props) {
     if (!stepObj) {
       return;
     }
-
     if (step.cornerVariant !== stepObj.cornerVariant) {
       cornerVariantControl.start('none');
     }
-    browserHistory.push(normalizeUrl(`/onboarding/${props.params.orgId}/${step.id}/`));
+    browserHistory.push(normalizeUrl(`/onboarding/${organization.slug}/${step.id}/`));
   };
 
   const goNextStep = (step: StepDescriptor) => {
@@ -119,9 +117,7 @@ function Onboarding(props: Props) {
     if (step.cornerVariant !== nextStep.cornerVariant) {
       cornerVariantControl.start('none');
     }
-    browserHistory.push(
-      normalizeUrl(`/onboarding/${props.params.orgId}/${nextStep.id}/`)
-    );
+    browserHistory.push(normalizeUrl(`/onboarding/${organization.slug}/${nextStep.id}/`));
   };
 
   const handleGoBack = () => {
@@ -139,7 +135,7 @@ function Onboarding(props: Props) {
       cornerVariantControl.start('none');
     }
     browserHistory.replace(
-      normalizeUrl(`/onboarding/${props.params.orgId}/${previousStep.id}/`)
+      normalizeUrl(`/onboarding/${organization.slug}/${previousStep.id}/`)
     );
   };
 
@@ -204,7 +200,7 @@ function Onboarding(props: Props) {
                 data-test-id={`onboarding-step-${stepObj.id}`}
                 stepIndex={stepIndex}
                 onComplete={() => stepObj && goNextStep(stepObj)}
-                orgId={props.params.orgId}
+                orgId={organization.slug}
                 organization={props.organization}
                 search={props.location.search}
                 {...{

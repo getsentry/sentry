@@ -205,8 +205,10 @@ class OrganizationTest(TestCase):
         org = self.create_organization()
         update_tracked_data(org)
         org.flags.early_adopter = True
+        org.flags.codecov_access = True
         org.flags.require_2fa = True
         assert flag_has_changed(org, "early_adopter")
+        assert flag_has_changed(org, "codecov_access")
         assert flag_has_changed(org, "allow_joinleave") is False
         assert flag_has_changed(org, "require_2fa") is True
 

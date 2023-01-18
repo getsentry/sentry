@@ -9,7 +9,7 @@ import FormField from 'sentry/components/forms/formField';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import {API_ACCESS_SCOPES} from 'sentry/constants';
 import {t} from 'sentry/locale';
-import {Choices, Organization} from 'sentry/types';
+import {Organization} from 'sentry/types';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -17,8 +17,6 @@ import AsyncView from 'sentry/views/asyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 import {DeprecatedApiKey} from './types';
-
-const API_CHOICES: Choices = API_ACCESS_SCOPES.map(s => [s, s]);
 
 type RouteParams = {
   apiKey: string;
@@ -93,12 +91,14 @@ class OrganizationApiKeyDetails extends AsyncView<Props, State> {
               <TextField label={t('API Key')} name="key" disabled />
 
               <FormField name="scope_list" label={t('Scopes')} inline={false} required>
-                {({value, onChange}) => (
-                  <MultipleCheckbox
-                    value={value}
-                    onChange={onChange}
-                    choices={API_CHOICES}
-                  />
+                {({name, value, onChange}) => (
+                  <MultipleCheckbox value={value} onChange={onChange} name={name}>
+                    {API_ACCESS_SCOPES.map(scope => (
+                      <MultipleCheckbox.Item value={scope} key={scope}>
+                        {scope}
+                      </MultipleCheckbox.Item>
+                    ))}
+                  </MultipleCheckbox>
                 )}
               </FormField>
 

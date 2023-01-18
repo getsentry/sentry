@@ -33,7 +33,7 @@ function SubscribeAction({
     <ActionButton
       className={className}
       disabled={disabled || disabledNotifications}
-      title={getSubscriptionReason(group, true)}
+      title={getSubscriptionReason(group)}
       tooltipProps={{delay: 300}}
       priority={!disablePriority && group.isSubscribed ? 'primary' : 'default'}
       size={size}

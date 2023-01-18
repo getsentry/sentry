@@ -1,7 +1,7 @@
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'sentry/components/panels';
 import {t, tct} from 'sentry/locale';

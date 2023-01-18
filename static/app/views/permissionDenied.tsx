@@ -1,11 +1,11 @@
 import {useEffect} from 'react';
 import * as Sentry from '@sentry/react';
 
+import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
-import {PageContent} from 'sentry/styles/organization';
 import {Organization, Project} from 'sentry/types';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import {useRoutes} from 'sentry/utils/useRoutes';
@@ -37,7 +37,7 @@ function PermissionDenied(props: Props) {
 
   return (
     <SentryDocumentTitle title={t('Permission Denied')}>
-      <PageContent>
+      <Layout.Page withPadding>
         <LoadingError
           message={tct(
             `Your role does not have the necessary permissions to access this
@@ -49,7 +49,7 @@ function PermissionDenied(props: Props) {
             }
           )}
         />
-      </PageContent>
+      </Layout.Page>
     </SentryDocumentTitle>
   );
 }

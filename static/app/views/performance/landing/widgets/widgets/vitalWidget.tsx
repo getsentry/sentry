@@ -2,7 +2,7 @@ import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import _EventsRequest from 'sentry/components/charts/eventsRequest';
 import {getInterval} from 'sentry/components/charts/utils';
 import Truncate from 'sentry/components/truncate';
@@ -220,6 +220,20 @@ export function VitalWidget(props: PerformanceWidgetProps) {
     // TODO(k-fish): Add analytics.
   };
 
+  const assembleAccordionItems = provided =>
+    getItems(provided).map(item => ({header: item, content: getChart(provided)}));
+
+  const getChart = provided => () =>
+    (
+      <_VitalChart
+        {...provided.widgetData.chart}
+        {...provided}
+        field={field}
+        vitalFields={vitalFields}
+        grid={provided.grid}
+      />
+    );
+
   const getItems = provided =>
     provided.widgetData.list.data.slice(0, 3).map(listItem => () => {
       const transaction = (listItem?.transaction as string | undefined) ?? '';
@@ -292,16 +306,7 @@ export function VitalWidget(props: PerformanceWidgetProps) {
             <Accordion
               expandedIndex={selectedListIndex}
               setExpandedIndex={setSelectListIndex}
-              headers={getItems(provided)}
-              content={
-                <_VitalChart
-                  {...provided.widgetData.chart}
-                  {...provided}
-                  field={field}
-                  vitalFields={vitalFields}
-                  grid={provided.grid}
-                />
-              }
+              items={assembleAccordionItems(provided)}
             />
           ),
           // accordion items height + chart height

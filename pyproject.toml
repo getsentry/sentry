@@ -23,8 +23,6 @@ addopts = "-ra --tb=short --strict-markers -p no:celery"
 # currently we have a few relative imports that don't work with that.
 markers = [
     "snuba: mark a test as requiring snuba",
-    "itunes: test requires iTunes interaction, skipped unless --itunes is provided",
-    "getsentryllc: test requires credentials for the GetSentry LLC organisation in Apple App Store Connect",
     "sentry_metrics: test requires access to sentry metrics",
 ]
 selenium_driver = "chrome"
