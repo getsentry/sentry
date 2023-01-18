@@ -65,7 +65,7 @@ class OutboxBackedLogService(LogService):
             shard_scope=OutboxScope.AUDIT_LOG_SCOPE,
             shard_identifier=event.organization_id,
             category=OutboxCategory.AUDIT_LOG_EVENT,
-            object_identifie=RegionOutbox.next_object_identifier(),
+            object_identifier=RegionOutbox.next_object_identifier(),
             payload=asdict(event),
         ).save()
 
