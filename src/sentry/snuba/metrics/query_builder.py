@@ -10,6 +10,7 @@ __all__ = (
 )
 
 from datetime import datetime, timedelta
+from enum import Enum
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple, Union
 
 from snuba_sdk import (
@@ -400,6 +401,52 @@ def get_metric_object_from_metric_field(
     return metric_object_factory(op=metric_field.op, metric_mri=metric_field.metric_mri)
 
 
+class AliasMetaType(Enum):
+    TAG = 0
+    DATASET_COLUMN = 1
+    TIME_COLUMN = 2
+    SELECT_METRIC_FIELD = 3
+    GROUP_BY_METRIC_FIELD = 4
+
+
+def get_alias_meta_type(
+    returned_alias: str,
+    alias_to_metric_group_by_field: Dict[str, MetricGroupByField],
+) -> Tuple[AliasMetaType, Tuple[Optional[str], str]]:
+    # This logic is a rewrite of the logic below, which was convoluted and not very expressive.
+    #
+    # Column name could be either a mri, ["bucketed_time"] or a tag or a dataset col like
+    # "project_id" or "metric_id".
+    #
+    # is_tag = parsed_alias in alias_to_metric_group_by_field.keys()
+    # is_time_col = parsed_alias in [TS_COL_GROUP]
+    # is_dataset_col = parsed_alias in DATASET_COLUMNS
+    parsed_expr = parse_expression(returned_alias)
+    parsed_op, parsed_alias = parsed_expr
+
+    if parsed_alias in alias_to_metric_group_by_field:
+        field = alias_to_metric_group_by_field[parsed_alias].field
+        # This specific check is performed to extract the field from the MetricGroupByField in order
+        # to understand the target column.
+        if isinstance(field, str):
+            if field in DATASET_COLUMNS:
+                return AliasMetaType.DATASET_COLUMN, parsed_expr
+            elif field in [TS_COL_GROUP]:
+                return AliasMetaType.TIME_COLUMN, parsed_expr
+            else:
+                return AliasMetaType.TAG, parsed_expr
+        elif isinstance(field, MetricField):
+            return AliasMetaType.GROUP_BY_METRIC_FIELD, parsed_expr
+
+    # This logic has been copied from the logic before.
+    if parsed_alias in DATASET_COLUMNS:
+        return AliasMetaType.DATASET_COLUMN, parsed_expr
+    elif parsed_alias in [TS_COL_GROUP]:
+        return AliasMetaType.TIME_COLUMN, parsed_expr
+
+    return AliasMetaType.SELECT_METRIC_FIELD, parsed_expr
+
+
 def translate_meta_results(
     meta: Sequence[Dict[str, str]],
     alias_to_metric_field: Dict[str, MetricField],
@@ -414,29 +461,13 @@ def translate_meta_results(
     """
     results = []
     for record in meta:
-        operation, parsed_alias = parse_expression(record["name"])
-
-        # Column name could be either a mri, ["bucketed_time"] or a tag or a dataset col like
-        # "project_id" or "metric_id".
-        # Because this logic is quite convoluted, a naive change has been introduced which checks for DATASET_COLUMNS
-        # within the MetricGroupByField str field instead of doing it in the alias.
-        is_tag = (
-            parsed_alias in alias_to_metric_group_by_field.keys()
-            and not isinstance(alias_to_metric_group_by_field[parsed_alias].field, str)
-            and not alias_to_metric_group_by_field[parsed_alias].field in DATASET_COLUMNS
-        )
-        is_time_col = parsed_alias in [TS_COL_GROUP]
-        is_dataset_col = parsed_alias in DATASET_COLUMNS or (
-            parsed_alias in alias_to_metric_group_by_field.keys()
-            and isinstance(alias_to_metric_group_by_field[parsed_alias].field, str)
-            and alias_to_metric_group_by_field[parsed_alias].field in DATASET_COLUMNS
+        alias_type, (parsed_op, parsed_alias) = get_alias_meta_type(
+            record["name"], alias_to_metric_group_by_field
         )
 
-        if not (is_tag or is_time_col or is_dataset_col):
-            # This handles two cases where we have an expression with an operation and an mri,
-            # or a derived metric mri that has no associated operation
+        if alias_type == AliasMetaType.SELECT_METRIC_FIELD:
             try:
-                record["name"] = get_operation_with_public_name(operation, parsed_alias)
+                record["name"] = get_operation_with_public_name(parsed_op, parsed_alias)
                 if COMPOSITE_ENTITY_CONSTITUENT_ALIAS in record["name"]:
                     # Since instances of CompositeEntityDerivedMetric will not have meta data as they are computed post
                     # query, it suffices to set the type of that composite derived metric to any of the types of its
@@ -480,26 +511,21 @@ def translate_meta_results(
                 # For example, If we have two constituents of types "UInt64" and "Float64",
                 # then there inferred type would be "Float64"
                 continue
-        else:
-            if is_tag:
-                # since we changed value from int to str we need
-                # also want to change type
-                metric_groupby_field = alias_to_metric_group_by_field[record["name"]]
-                if isinstance(metric_groupby_field.field, MetricField):
-                    defined_parent_meta_type = get_metric_object_from_metric_field(
-                        metric_groupby_field.field
-                    ).get_meta_type()
-                else:
-                    defined_parent_meta_type = None
+        elif alias_type == AliasMetaType.GROUP_BY_METRIC_FIELD:
+            metric_groupby_field = alias_to_metric_group_by_field[record["name"]]
+            defined_parent_meta_type = get_metric_object_from_metric_field(
+                metric_groupby_field.field
+            ).get_meta_type()
 
-                record["type"] = (
-                    "string" if defined_parent_meta_type is None else defined_parent_meta_type
-                )
-            elif is_time_col or is_dataset_col:
-                record["name"] = parsed_alias
+            record["type"] = defined_parent_meta_type
+        elif alias_type == AliasMetaType.TAG:
+            record["type"] = "string"
+        elif alias_type == AliasMetaType.DATASET_COLUMN or alias_type == AliasMetaType.TIME_COLUMN:
+            record["name"] = parsed_alias
 
         if record not in results:
             results.append(record)
+
     return sorted(results, key=lambda elem: elem["name"])
 
 
