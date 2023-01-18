@@ -41,7 +41,7 @@ export function TraceEventContext({event, data}: Props) {
           ...v,
           subjectDataTestId: `trace-context-${v.key.toLowerCase()}-value`,
         }))}
-        isSorted={false}
+        shouldSort={false}
         raw={false}
         isContextData
       />
@@ -52,7 +52,7 @@ export function TraceEventContext({event, data}: Props) {
           knownKeys: [...traceKnownDataValues, ...traceIgnoredDataValues],
           meta,
         })}
-        isSorted={false}
+        shouldSort={false}
         raw={false}
         isContextData
       />
