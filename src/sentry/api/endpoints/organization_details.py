@@ -529,6 +529,11 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                     status=status.HTTP_409_CONFLICT,
                 )
 
+            # Send outbox message to clean up mappings after organization
+            # creation transaction
+            outbox = Organization.outbox_to_verify_mapping(organization.id)
+            outbox.save()
+
             if was_pending_deletion:
                 self.create_audit_entry(
                     request=request,

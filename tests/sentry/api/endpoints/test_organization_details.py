@@ -699,18 +699,37 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert b"storeCrashReports" in resp.content
 
     def test_update_slug_with_mapping(self):
-        self.create_organization_mapping(self.organization)
+        self.create_organization_mapping(self.organization, slug="test")
+        with exempt_from_silo_limits():
+            assert OrganizationMapping.objects.filter(
+                organization_id=self.organization.id, slug="test"
+            ).exists()
+
         response = self.get_success_response(
             self.organization.slug, slug="santry", idempotencyKey="1234"
         )
 
-        organization_id = response.data["id"]
-        org = Organization.objects.get(id=organization_id)
+        org = Organization.objects.get(id=response.data["id"])
         assert org.slug == "santry"
 
         with exempt_from_silo_limits():
+            org_mapping = OrganizationMapping.objects.get(organization_id=org.id, slug="santry")
+            assert not org_mapping.verified
+            assert org_mapping.idempotency_key
+
+            assert OrganizationMapping.objects.filter(organization_id=org.id, slug="test").exists()
+
+        # Drain outbox
+        outbox = Organization.outbox_to_verify_mapping(org.id)
+        outbox.drain_shard()
+
+        with exempt_from_silo_limits():
             assert OrganizationMapping.objects.filter(
-                organization_id=organization_id, slug="santry", idempotency_key="1234"
+                organization_id=org.id, slug="santry", verified=True, idempotency_key=""
+            ).exists()
+
+            assert not OrganizationMapping.objects.filter(
+                organization_id=org.id, slug="test"
             ).exists()
 
     def test_update_name_with_mapping(self):

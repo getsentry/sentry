@@ -66,3 +66,15 @@ class DatabaseBackedOrganizationMappingService(OrganizationMappingService):
                 .select_for_update()
                 .update(**update.as_update())
             )
+
+    def verify_mappings(self, organization_id: int, slug: str) -> None:
+        try:
+            mapping = OrganizationMapping.objects.get(organization_id=organization_id, slug=slug)
+        except OrganizationMapping.DoesNotExist:
+            return
+
+        mapping.update(verified=True, idempotency_key="")
+
+        OrganizationMapping.objects.filter(
+            organization_id=organization_id, date_created__lte=mapping.date_created
+        ).exclude(slug=slug).delete()
