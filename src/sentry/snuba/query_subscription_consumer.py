@@ -237,7 +237,7 @@ class QuerySubscriptionConsumer:
 
         self._reset_batch()
 
-    def shutdown(self) -> None:
+    def signal_shutdown(self) -> None:
         self.__shutdown_requested = True
 
     def handle_message(self, message: Message) -> None:

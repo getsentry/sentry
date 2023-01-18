@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import signal
 import sys
 from concurrent.futures import ThreadPoolExecutor
 from multiprocessing import cpu_count
@@ -11,6 +10,7 @@ from sentry.bgtasks.api import managed_bgtasks
 from sentry.ingest.types import ConsumerType
 from sentry.runner.decorators import configuration, log_options
 from sentry.sentry_metrics.consumers.indexer.slicing_router import get_slicing_router
+from sentry.utils.kafka import run_processor_with_signals
 
 DEFAULT_BLOCK_SIZE = int(32 * 1e6)
 
@@ -371,6 +371,7 @@ def post_process_forwarder(**options):
     from sentry.eventstream.base import ForwarderNotRequired
 
     try:
+        # TODO(markus): convert to use run_processor_with_signals -- can't yet because there's a custom shutdown handler
         eventstream.run_post_process_forwarder(
             entity=options["entity"],
             consumer_group=options["consumer_group"],
@@ -437,13 +438,7 @@ def query_subscription_consumer(**options):
         force_offset_reset=options["force_offset_reset"],
     )
 
-    def handler(signum, frame):
-        subscriber.shutdown()
-
-    signal.signal(signal.SIGINT, handler)
-    signal.signal(signal.SIGTERM, handler)
-
-    subscriber.run()
+    run_processor_with_signals(subscriber)
 
 
 def batching_kafka_options(group, max_batch_size=None, max_batch_time_ms=1000):
@@ -561,7 +556,8 @@ def ingest_consumer(consumer_types, all_consumer_types, **options):
     with metrics.global_tags(
         ingest_consumer_types=",".join(sorted(consumer_types)), _all_threads=True
     ):
-        get_ingest_consumer(consumer_types=consumer_types, executor=executor, **options).run()
+        consumer = get_ingest_consumer(consumer_types=consumer_types, executor=executor, **options)
+        run_processor_with_signals(consumer)
 
 
 @run.command("occurrences-ingest-consumer")
@@ -575,7 +571,8 @@ def occurrences_ingest_consumer():
     consumer_type = settings.KAFKA_INGEST_OCCURRENCES
 
     with metrics.global_tags(ingest_consumer_types=consumer_type, _all_threads=True):
-        get_occurrences_ingest_consumer(consumer_type).run()
+        consumer = get_occurrences_ingest_consumer(consumer_type)
+        run_processor_with_signals(consumer)
 
 
 @run.command("region-to-control-consumer")
@@ -598,8 +595,10 @@ def region_to_control_consumer(region_name, **kafka_options):
     from sentry.region_to_control.consumer import get_region_to_control_consumer
     from sentry.utils import metrics
 
+    consumer = get_region_to_control_consumer(**kafka_options)
+
     with metrics.global_tags(region_name=region_name):
-        get_region_to_control_consumer(**kafka_options).run()
+        run_processor_with_signals(consumer)
 
 
 @run.command("ingest-metrics-parallel-consumer")
@@ -637,14 +636,8 @@ def metrics_parallel_consumer(**options):
         indexer_profile=ingest_config, slicing_router=slicing_router, **options
     )
 
-    def handler(signum, frame):
-        streamer.signal_shutdown()
-
-    signal.signal(signal.SIGINT, handler)
-    signal.signal(signal.SIGTERM, handler)
-
     initialize_global_consumer_state(ingest_config)
-    streamer.run()
+    run_processor_with_signals(streamer)
 
 
 @run.command("billing-metrics-consumer")
@@ -655,7 +648,7 @@ def metrics_billing_consumer(**options):
     from sentry.ingest.billing_metrics_consumer import get_metrics_billing_consumer
 
     consumer = get_metrics_billing_consumer(**options)
-    consumer.run()
+    run_processor_with_signals(consumer)
 
 
 @run.command("ingest-profiles")
@@ -666,7 +659,8 @@ def metrics_billing_consumer(**options):
 def profiles_consumer(**options):
     from sentry.profiles.consumers import get_profiles_process_consumer
 
-    get_profiles_process_consumer(**options).run()
+    consumer = get_profiles_process_consumer(**options)
+    run_processor_with_signals(consumer)
 
 
 @run.command("ingest-replay-recordings")
@@ -679,7 +673,8 @@ def profiles_consumer(**options):
 def replays_recordings_consumer(**options):
     from sentry.replays.consumers import get_replays_recordings_consumer
 
-    get_replays_recordings_consumer(**options).run()
+    consumer = get_replays_recordings_consumer(**options)
+    run_processor_with_signals(consumer)
 
 
 @run.command("indexer-last-seen-updater")
@@ -702,11 +697,5 @@ def last_seen_updater(**options):
 
     consumer = get_last_seen_updater(ingest_config=ingest_config, **options)
 
-    def handler(signum, frame):
-        consumer.signal_shutdown()
-
-    signal.signal(signal.SIGINT, handler)
-    signal.signal(signal.SIGTERM, handler)
-
     with global_tags(_all_threads=True, pipeline=ingest_config.internal_metrics_tag):
-        consumer.run()
+        run_processor_with_signals(consumer)
