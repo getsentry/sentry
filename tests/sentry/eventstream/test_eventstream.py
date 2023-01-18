@@ -244,6 +244,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         occurrence_data = group_event.occurrence.to_dict()
         del occurrence_data["evidence_data"]
         del occurrence_data["evidence_display"]
+        assert payload1["occurrence_id"] == occurrence_data.get("id")
         assert payload1["occurrence_data"] == occurrence_data
         assert payload1["group_id"] == self.group.id
 
@@ -297,6 +298,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         headers, body = self.__produce_payload(*insert_args, **insert_kwargs)
 
         assert ("queue", b"post_process_errors") in headers
+        assert "occurrence_id" not in dict(headers)
         assert body["queue"] == "post_process_errors"
 
     @patch("sentry.eventstream.insert", autospec=True)
@@ -322,6 +324,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         headers, body = self.__produce_payload(*insert_args, **insert_kwargs)
 
         assert ("queue", b"post_process_transactions") in headers
+        assert "occurrence_id" not in dict(headers)
         assert body["queue"] == "post_process_transactions"
 
     @patch("sentry.eventstream.insert", autospec=True)
@@ -350,4 +353,5 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         headers, body = self.__produce_payload(*insert_args, **insert_kwargs)
 
         assert ("queue", b"post_process_issue_platform") in headers
+        assert ("occurrence_id", bytes(group_event.occurrence.id, encoding="utf-8")) in headers
         assert body["queue"] == "post_process_issue_platform"

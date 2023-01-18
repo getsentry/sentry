@@ -94,6 +94,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
                     "Received-Timestamp": str(received_timestamp),
                     "event_id": str(event.event_id),
                     "project_id": str(event.project_id),
+                    "occurrence_id": self._get_occurrence_data(event).get("id"),
                     "group_id": str(event.group_id) if event.group_id is not None else None,
                     "primary_hash": str(primary_hash) if primary_hash is not None else None,
                     "is_new": encode_bool(is_new),
