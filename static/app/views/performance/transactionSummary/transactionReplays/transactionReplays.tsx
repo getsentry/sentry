@@ -111,10 +111,10 @@ function ReplaysContentWrapper({
     );
   }
 
-  const {events, eventView} = data;
+  const {events, replayRecordsEventView} = data;
   return (
     <ReplaysContent
-      eventView={eventView}
+      eventView={replayRecordsEventView}
       events={events}
       organization={organization}
       pageLinks={pageLinks}

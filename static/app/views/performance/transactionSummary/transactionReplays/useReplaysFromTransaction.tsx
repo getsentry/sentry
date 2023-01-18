@@ -32,8 +32,8 @@ export type EventSpanData = {
 
 type Return = {
   data: null | {
-    eventView: EventView;
     events: EventSpanData[];
+    replayRecordsEventView: EventView;
   };
   fetchError: any;
   isFetching: boolean;
@@ -77,7 +77,7 @@ function useReplaysFromTransaction({
     }
   }, [api, cursor, organization.slug, replayIdsEventView]);
 
-  const eventView = useMemo(() => {
+  const replayRecordsEventView = useMemo(() => {
     if (!response.replayIds) {
       return null;
     }
@@ -98,10 +98,10 @@ function useReplaysFromTransaction({
 
   return {
     data:
-      response.events && eventView
+      response.events && replayRecordsEventView
         ? {
-            eventView,
             events: response.events,
+            replayRecordsEventView,
           }
         : null,
     fetchError,
