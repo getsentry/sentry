@@ -126,10 +126,9 @@ function shouldshowCodecovFeatures(
 interface CodecovLinkProps {
   codecovStatusCode?: CodecovStatusCode;
   codecovUrl?: string;
-  sourceUrl?: string;
 }
 
-function CodecovLink({sourceUrl, codecovUrl, codecovStatusCode}: CodecovLinkProps) {
+function CodecovLink({codecovUrl, codecovStatusCode}: CodecovLinkProps) {
   if (codecovStatusCode === CodecovStatusCode.NO_COVERAGE_DATA) {
     return (
       <CodecovWarning>
@@ -140,7 +139,7 @@ function CodecovLink({sourceUrl, codecovUrl, codecovStatusCode}: CodecovLinkProp
   }
 
   if (codecovStatusCode === CodecovStatusCode.COVERAGE_EXISTS) {
-    if (!sourceUrl || !codecovUrl) {
+    if (!codecovUrl) {
       return null;
     }
     return (
@@ -278,7 +277,6 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
         </OpenInLink>
         {shouldshowCodecovFeatures(organization, match) && (
           <CodecovLink
-            sourceUrl={match.sourceUrl}
             codecovUrl={match.codecovUrl}
             codecovStatusCode={match.codecovStatusCode}
           />
