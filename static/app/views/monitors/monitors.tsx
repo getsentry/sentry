@@ -13,6 +13,7 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import Link from 'sentry/components/links/link';
 import OnboardingPanel from 'sentry/components/onboardingPanel';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import Pagination from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
@@ -107,7 +108,14 @@ class Monitors extends AsyncView<Props, State> {
         <Layout.Header>
           <Layout.HeaderContent>
             <Layout.Title>
-              {t('Cron Monitors')} <FeatureBadge type="beta" />
+              {t('Cron Monitors')}
+              <PageHeadingQuestionTooltip
+                title={t(
+                  'Scheduled monitors that check in on recurring jobs and tell you if they’re running on schedule, failing, or succeeding.'
+                )}
+                docsUrl="https://docs.sentry.io/product/crons/"
+              />
+              <FeatureBadge type="beta" />
             </Layout.Title>
           </Layout.HeaderContent>
           <Layout.HeaderActions>
