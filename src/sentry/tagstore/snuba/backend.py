@@ -3,12 +3,14 @@ import os
 import re
 from collections import defaultdict
 from collections.abc import Iterable
-from typing import Optional, Sequence
+from datetime import datetime, timedelta
+from typing import Any, Dict, Optional, Sequence
 
 from dateutil.parser import parse as parse_datetime
 from django.core.cache import cache
 from pytz import UTC
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
+from snuba_sdk import Column, Condition, Direction, Entity, Function, Op, OrderBy, Query, Request
 
 from sentry.api.utils import default_start_end_dates
 from sentry.issues.query import apply_performance_conditions
@@ -46,6 +48,12 @@ from sentry.types.issues import GroupCategory
 from sentry.utils import metrics, snuba
 from sentry.utils.dates import to_timestamp
 from sentry.utils.hashlib import md5_text
+from sentry.utils.snuba import (
+    _prepare_start_end,
+    get_organization_id_from_project_ids,
+    nest_groups,
+    raw_snql_query,
+)
 
 _max_unsampled_projects = 50
 if os.environ.get("SENTRY_SINGLE_TENANT"):
@@ -524,17 +532,64 @@ class SnubaTagStorage(TagStorage):
     def get_generic_group_list_tag_value(
         self, project_ids, group_id_list, environment_ids, key, value
     ):
-        return self.__get_group_list_tag_value(
-            project_ids,
+        translated_params = self._translate_filter_keys(project_ids, group_id_list, environment_ids)
+        organization_id = get_organization_id_from_project_ids(project_ids)
+        start, end = _prepare_start_end(
+            datetime(2008, 5, 8),
+            datetime.utcnow() + timedelta(seconds=1),
+            organization_id,
             group_id_list,
-            environment_ids,
-            key,
-            value,
-            Dataset.IssuePlatform,
-            [],
-            [],
-            "tagstore.get_generic_group_list_tag_value",
         )
+
+        snuba_request = Request(
+            dataset="search_issues",
+            app_id="tagstore",
+            query=Query(
+                match=Entity("search_issues"),
+                select=[
+                    Column("group_id"),
+                    Function("count", [], "times_seen"),
+                    Function("min", [Column("timestamp")], "first_seen"),
+                    Function("max", [Column("timestamp")], "last_seen"),
+                ],
+                where=[
+                    Condition(Column("project_id"), Op.IN, project_ids),
+                    Condition(Column("group_id"), Op.IN, group_id_list),
+                    Condition(Column("timestamp"), Op.LT, end),
+                    Condition(Column("timestamp"), Op.GTE, start),
+                    Condition(Column("environment"), Op.IN, translated_params["environment"]),
+                    Condition(Column(f"tags[{key}]"), Op.EQ, value),
+                ],
+                groupby=[Column("group_id")],
+            ),
+        )
+        result_snql = raw_snql_query(
+            snuba_request, referrer="tagstore.get_generic_group_list_tag_value", use_cache=True
+        )
+
+        nested_groups = nest_groups(
+            result_snql["data"], ["group_id"], ["times_seen", "first_seen", "last_seen"]
+        )
+
+        return {
+            group_id: GroupTagValue(
+                group_id=group_id, key=key, value=value, **fix_tag_value_data(data)
+            )
+            for group_id, data in nested_groups.items()
+        }
+
+    def _translate_filter_keys(self, project_ids, group_ids, environment_ids) -> Dict[str, Any]:
+        from sentry.utils.snuba import get_snuba_translators
+
+        filter_keys = {"project_id": project_ids}
+        if environment_ids:
+            filter_keys["environment"] = environment_ids
+        if group_ids:
+            filter_keys["group_id"] = group_ids
+
+        forward, reverse = get_snuba_translators(filter_keys, is_grouprelease=False)
+
+        return forward(filter_keys)
 
     def get_group_seen_values_for_environments(
         self, project_ids, group_id_list, environment_ids, start=None, end=None
@@ -843,16 +898,52 @@ class SnubaTagStorage(TagStorage):
     def get_generic_groups_user_counts(
         self, project_ids, group_ids, environment_ids, start=None, end=None
     ):
-        return self.__get_groups_user_counts(
-            project_ids,
-            group_ids,
-            environment_ids,
+        translated_params = self._translate_filter_keys(project_ids, group_ids, environment_ids)
+        organization_id = get_organization_id_from_project_ids(project_ids)
+        if not start:
+            start = datetime(2008, 5, 8)
+        if not end:
+            end = datetime.utcnow() + timedelta(seconds=1)
+
+        start, end = _prepare_start_end(
             start,
             end,
-            Dataset.IssuePlatform,
-            [],
-            "tagstore.get_generic_groups_user_counts",
+            organization_id,
+            group_ids,
         )
+
+        where_conditions = [
+            Condition(Column("project_id"), Op.IN, project_ids),
+            Condition(Column("group_id"), Op.IN, group_ids),
+            Condition(Column("timestamp"), Op.LT, end),
+            Condition(Column("timestamp"), Op.GTE, start),
+        ]
+        if translated_params.get("environment"):
+            where_conditions.append(
+                Condition(Column("environment"), Op.IN, translated_params["environment"])
+            )
+        snuba_request = Request(
+            dataset="search_issues",
+            app_id="tagstore",
+            query=Query(
+                match=Entity("search_issues"),
+                select=[
+                    Column("group_id"),
+                    Function("uniq", [Column("tags[sentry:user]")], "count"),
+                ],
+                where=where_conditions,
+                groupby=[Column("group_id")],
+                orderby=[OrderBy(Column("count"), Direction.DESC)],
+            ),
+        )
+
+        result_snql = raw_snql_query(
+            snuba_request, referrer="tagstore.get_generic_groups_user_counts", use_cache=True
+        )
+
+        result = nest_groups(result_snql["data"], ["group_id"], ["count"])
+
+        return defaultdict(int, {k: v for k, v in result.items() if v})
 
     def get_tag_value_paginator(
         self,
