@@ -186,19 +186,19 @@ const suite = (
     makeDrawRightSideOfScreen(textRenderer, flamegraph)(new Map())
   );
 
-  // benchmark(
-  //   `${name} (full profile, w/ search matching ${flamegraph.frames.length} of ${flamegraph.frames.length})`,
-  //   () => makeDrawFullScreen(textRenderer, flamegraph)(results)
-  // );
+  benchmark(
+    `${name} (full profile, w/ search matching ${flamegraph.frames.length} of ${flamegraph.frames.length})`,
+    () => makeDrawFullScreen(textRenderer, flamegraph)(results)
+  );
 
-  // benchmark(
-  //   `${name} (center half, w/ search ${flamegraph.frames.length} of ${flamegraph.frames.length})`,
-  //   () => makeDrawCenterScreen(textRenderer, flamegraph)(results)
-  // );
-  // benchmark(
-  //   `${name} (right quarter, w/ search ${flamegraph.frames.length} of ${flamegraph.frames.length})`,
-  //   () => makeDrawRightSideOfScreen(textRenderer, flamegraph)(results)
-  // );
+  benchmark(
+    `${name} (center half, w/ search ${flamegraph.frames.length} of ${flamegraph.frames.length})`,
+    () => makeDrawCenterScreen(textRenderer, flamegraph)(results)
+  );
+  benchmark(
+    `${name} (right quarter, w/ search ${flamegraph.frames.length} of ${flamegraph.frames.length})`,
+    () => makeDrawRightSideOfScreen(textRenderer, flamegraph)(results)
+  );
 };
 
 suite('android', makeTextRenderer(androidFlamegraph), androidFlamegraph);
