@@ -10,7 +10,6 @@ import ButtonBar from 'sentry/components/buttonBar';
 import FeatureBadge from 'sentry/components/featureBadge';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
-import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import OnboardingPanel from 'sentry/components/onboardingPanel';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
@@ -20,7 +19,7 @@ import {PanelTable} from 'sentry/components/panels';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import SearchBar from 'sentry/components/searchBar';
 import TimeSince from 'sentry/components/timeSince';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -111,10 +110,10 @@ class Monitors extends AsyncView<Props, State> {
             <Layout.Title>
               {t('Cron Monitors')}
               <PageHeadingQuestionTooltip
-                title={tct(
-                  'Scheduled monitors that check in on recurring jobs and tell you if they’re running on schedule, failing, or succeeding. [link: Read the docs].',
-                  {link: <ExternalLink href="https://docs.sentry.io/product/crons/" />}
+                title={t(
+                  'Scheduled monitors that check in on recurring jobs and tell you if they’re running on schedule, failing, or succeeding.'
                 )}
+                docsUrl="https://docs.sentry.io/product/crons/"
               />
               <FeatureBadge type="beta" />
             </Layout.Title>
