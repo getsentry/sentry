@@ -10,7 +10,7 @@ import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegrap
 import {
   useResizableDrawer,
   UseResizableDrawerOptions,
-} from 'sentry/utils/profiling/hooks/useResizableDrawer';
+} from 'sentry/utils/useResizableDrawer';
 
 import {CollapsibleTimeline} from './collapsibleTimeline';
 

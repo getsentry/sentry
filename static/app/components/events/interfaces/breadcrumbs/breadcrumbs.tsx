@@ -15,7 +15,7 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {EntryType} from 'sentry/types';
 import {Crumb} from 'sentry/types/breadcrumbs';
-import {useResizableDrawer} from 'sentry/utils/profiling/hooks/useResizableDrawer';
+import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
 
 import {Breadcrumb} from './breadcrumb';
 

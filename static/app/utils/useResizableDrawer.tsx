@@ -83,20 +83,21 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
         if (!currentMouseVectorRaf.current) {
           return;
         }
-        const newPositionVector: [number, number] = [event.clientX, event.clientY];
 
-        const positionDelta = [
-          currentMouseVectorRaf.current[0] - newPositionVector[0],
-          currentMouseVectorRaf.current[1] - newPositionVector[1],
-        ];
+        const newPositionVector: [number, number] = [event.clientX, event.clientY];
+        const newAxisPosition = isXAxis ? newPositionVector[0] : newPositionVector[1];
+
+        const currentAxisPosition = isXAxis
+          ? currentMouseVectorRaf.current[0]
+          : currentMouseVectorRaf.current[1];
+
+        const positionDelta = currentAxisPosition - newAxisPosition;
 
         currentMouseVectorRaf.current = newPositionVector;
 
-        const sizeDelta = isXAxis ? positionDelta[0] : positionDelta[1];
-
         // Round to 1px precision
         const newSize = Math.round(
-          Math.max(options.min, sizeRef.current + sizeDelta * (isInverted ? -1 : 1))
+          Math.max(options.min, sizeRef.current + positionDelta * (isInverted ? -1 : 1))
         );
 
         options.onResize(newSize);
