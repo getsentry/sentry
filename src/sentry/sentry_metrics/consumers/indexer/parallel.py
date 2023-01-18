@@ -184,8 +184,10 @@ def get_parallel_metrics_consumer(
     output_block_size: int,
     group_id: str,
     auto_offset_reset: str,
+    no_strict_offset_reset: bool,
     indexer_profile: MetricsIngestConfiguration,
     slicing_router: Optional[SlicingRouter],
+    # TODO: those options are discarded, try removing this?
     **options: Mapping[str, Union[str, int]],
 ) -> StreamProcessor[KafkaPayload]:
     processing_factory = MetricsConsumerStrategyFactory(
@@ -204,7 +206,14 @@ def get_parallel_metrics_consumer(
     create_topics(cluster_name, [indexer_profile.input_topic])
 
     return StreamProcessor(
-        KafkaConsumer(get_config(indexer_profile.input_topic, group_id, auto_offset_reset)),
+        KafkaConsumer(
+            get_config(
+                indexer_profile.input_topic,
+                group_id,
+                auto_offset_reset=auto_offset_reset,
+                no_strict_offset_reset=no_strict_offset_reset,
+            )
+        ),
         Topic(indexer_profile.input_topic),
         processing_factory,
         CommitPolicy(

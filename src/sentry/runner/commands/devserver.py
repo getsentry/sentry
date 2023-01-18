@@ -24,7 +24,7 @@ _DEV_METRICS_INDEXER_ARGS = [
     # Avoid Offset out of range errors.
     "--auto-offset-reset",
     "latest",
-    # TODO: we want to pass no-strict-offset-reset here
+    "--no-strict-offset-reset",
 ]
 
 _DEFAULT_DAEMONS = {

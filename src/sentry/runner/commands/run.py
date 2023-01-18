@@ -66,6 +66,14 @@ class QueueSetType(click.ParamType):
 QueueSet = QueueSetType()
 
 
+def no_strict_offset_reset_option():
+    return click.option(
+        "--no-strict-offset-reset",
+        is_flag=True,
+        help="Forces the kafka consumer auto offset reset.",
+    )
+
+
 @click.group()
 def run():
     "Run a service."
@@ -348,11 +356,7 @@ def cron(**options):
     type=click.Choice(["earliest", "latest"]),
     help="Position in the commit log topic to begin reading from when no prior offset has been recorded.",
 )
-@click.option(
-    "--no-strict-offset-reset",
-    is_flag=True,
-    help="Forces the kafka consumer auto offset reset.",
-)
+@no_strict_offset_reset_option()
 # TODO: Remove this option once we have fully cut over to the streaming consumer
 @click.option(
     "--use-streaming-consumer",
@@ -604,6 +608,7 @@ def region_to_control_consumer(region_name, **kafka_options):
 @run.command("ingest-metrics-parallel-consumer")
 @log_options()
 @batching_kafka_options("ingest-metrics-consumer")
+@no_strict_offset_reset_option()
 @configuration
 @click.option(
     "--processes",
@@ -681,6 +686,7 @@ def replays_recordings_consumer(**options):
 @log_options()
 @configuration
 @batching_kafka_options("indexer-last-seen-updater-consumer", max_batch_size=100)
+@no_strict_offset_reset_option()
 @click.option("commit_max_batch_size", "--commit-max-batch-size", type=int, default=25000)
 @click.option("commit_max_batch_time", "--commit-max-batch-time-ms", type=int, default=10000)
 @click.option("--topic", default="snuba-metrics", help="Topic to read indexer output from.")

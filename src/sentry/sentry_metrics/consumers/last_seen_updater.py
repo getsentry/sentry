@@ -196,7 +196,9 @@ def get_last_seen_updater(
     max_batch_size: int,
     max_batch_time: float,
     auto_offset_reset: str,
+    no_strict_offset_reset: bool,
     ingest_config: MetricsIngestConfiguration,
+    # TODO: remove ignored parameter?
     **options: Mapping[str, Union[str, int]],
 ) -> StreamProcessor[KafkaPayload]:
     """
@@ -212,7 +214,14 @@ def get_last_seen_updater(
     )
 
     return StreamProcessor(
-        KafkaConsumer(get_config(ingest_config.output_topic, group_id, auto_offset_reset)),
+        KafkaConsumer(
+            get_config(
+                ingest_config.output_topic,
+                group_id,
+                auto_offset_reset=auto_offset_reset,
+                no_strict_offset_reset=no_strict_offset_reset,
+            )
+        ),
         Topic(ingest_config.output_topic),
         processing_factory,
         IMMEDIATE,
