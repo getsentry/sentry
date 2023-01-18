@@ -66,6 +66,13 @@ def get_transaction_names(project: Project) -> Iterator[str]:
     return client.sscan_iter(redis_key)  # type: ignore
 
 
+def clear_transaction_names(project: Project) -> None:
+    client = get_redis_client()
+    redis_key = _get_redis_key(project)
+
+    client.delete(redis_key)
+
+
 def record_transaction_name(project: Project, event_data: Mapping[str, Any], **kwargs: Any) -> None:
     transaction_info = event_data.get("transaction_info") or {}
 
