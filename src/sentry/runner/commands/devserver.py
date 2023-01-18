@@ -53,10 +53,7 @@ _DEFAULT_DAEMONS = {
         "--no-strict-offset-reset",
     ],
     "ingest": ["sentry", "run", "ingest-consumer", "--all-consumer-types"],
-    # TODO: we would want to pass auto-offset-reset=latest and
-    # no-strict-offset-reset here but this consumer takes no
-    # arguments.
-    "occurrences": ["sentry", "run", "occurrences-ingest-consumer"],
+    "occurrences": ["sentry", "run", "occurrences-ingest-consumer", "--no-strict-offset-reset"],
     # TODO: this consumer does not take no-strict-offset-reset
     "region_to_control": ["sentry", "run", "region-to-control-consumer", "--region-name", "_local"],
     "server": ["sentry", "run", "web"],

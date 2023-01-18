@@ -32,12 +32,14 @@ class InvalidEventPayloadError(Exception):
 
 def get_occurrences_ingest_consumer(
     consumer_type: str,
+    no_strict_offset_reset: bool,
 ) -> StreamProcessor[KafkaPayload]:
-    return create_ingest_occurences_consumer(consumer_type)
+    return create_ingest_occurences_consumer(consumer_type, no_strict_offset_reset)
 
 
 def create_ingest_occurences_consumer(
-    topic_name: str, **options: Any
+    topic_name: str,
+    no_strict_offset_reset: bool,
 ) -> StreamProcessor[KafkaPayload]:
     kafka_cluster = settings.KAFKA_TOPICS[topic_name]["cluster"]
     create_topics(kafka_cluster, [topic_name])
@@ -47,6 +49,7 @@ def create_ingest_occurences_consumer(
             get_kafka_consumer_cluster_options(kafka_cluster),
             auto_offset_reset="latest",
             group_id="occurrence-consumer",
+            strict_offset_reset=not no_strict_offset_reset,
         )
     )
 
