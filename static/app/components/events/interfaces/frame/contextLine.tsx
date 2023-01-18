@@ -3,8 +3,10 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
+import {Color} from 'sentry/utils/theme';
+
 interface Props {
-  color: string;
+  color: Color | 'transparent';
   isActive: boolean;
   line: [number, string];
   children?: React.ReactNode;

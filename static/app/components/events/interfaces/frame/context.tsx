@@ -20,6 +20,7 @@ import {
 } from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
+import {Color} from 'sentry/utils/theme';
 import useProjects from 'sentry/utils/useProjects';
 import withOrganization from 'sentry/utils/withOrganization';
 
@@ -51,27 +52,10 @@ type Props = {
 };
 
 export function getCoverageColors(
-  organization: Organization,
-  missingData: boolean,
   lines: [number, string][],
-  lineCoverage?: LineCoverage[]
-): string[] {
-  const shouldShowCodecovData =
-    organization?.features.includes('codecov-stacktrace-integration') &&
-    organization?.codecovAccess;
-
-  if (!shouldShowCodecovData || !missingData || !lineCoverage) {
-    return lines.map(() => 'transparent');
-  }
-
-  let coverageIndex = 0;
-  for (const [index, lc] of lineCoverage.entries()) {
-    if (lc.lineNo === lines[0][0]) {
-      coverageIndex = index;
-      break;
-    }
-  }
-
+  lineCoverage: LineCoverage[]
+): Array<Color | 'transparent'> {
+  let coverageIndex = lineCoverage.findIndex(lc => lc.lineNo === lines[0][0]);
   return lines.map(line => {
     const coverageLine = lineCoverage[coverageIndex];
     let coverage = Coverage.NOT_APPLICABLE;
@@ -170,14 +154,16 @@ const Context = ({
     isExpanded &&
     organization?.features.includes('integrations-stacktrace-link');
 
+  const shouldShowCodecovData =
+    organization?.features.includes('codecov-stacktrace-integration') &&
+    organization?.codecovAccess;
   const missingData =
     isLoading || !data || data?.codecovStatusCode !== CodecovStatusCode.COVERAGE_EXISTS;
-  const lineColors = getCoverageColors(
-    organization!,
-    missingData,
-    contextLines,
-    data?.lineCoverage
-  );
+
+  const lineColors: Array<Color | 'transparent'> =
+    shouldShowCodecovData && !missingData && data.lineCoverage!
+      ? getCoverageColors(contextLines, data.lineCoverage)
+      : [];
 
   return (
     <Wrapper
