@@ -600,12 +600,19 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase, SearchIssueTest
         assert response.data["data"][0]["count()"] == 1
 
     def test_generic_issue_ids_filter(self):
+        user_data = {
+            "id": 1,
+            "username": "user",
+            "email": "hellboy@meow.com",
+            "ip_address": "127.0.0.1",
+        }
         event, _, group_info = self.store_search_issue(
             self.project.id,
             self.user.id,
             [f"{GroupType.PROFILE_BLOCKED_THREAD.value}-group1"],
             "prod",
             timezone.now().replace(hour=0, minute=0, second=0) + timedelta(minutes=1),
+            user=user_data,
         )
 
         query = {
@@ -623,9 +630,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase, SearchIssueTest
         assert response.status_code == 200, response.content
         assert response.data["data"][0]["title"] == group_info.group.title
         assert response.data["data"][0]["environment"] == "prod"
-        assert (
-            response.data["data"][0]["user.display"] is None
-        )  # CEO: shouldn't this have the user id?
+        assert response.data["data"][0]["user.display"] == user_data["email"]
         assert response.data["data"][0]["timestamp"] == event.timestamp
 
     def test_has_performance_issue_ids(self):
@@ -3004,12 +3009,19 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase, SearchIssueTest
 
     def test_user_display_issue_platform(self):
         project1 = self.create_project()
+        user_data = {
+            "id": 1,
+            "username": "user",
+            "email": "hellboy@meow.com",
+            "ip_address": "127.0.0.1",
+        }
         _, _, group_info = self.store_search_issue(
             project1.id,
             1,
             ["group1-fingerprint"],
             None,
             timezone.now().replace(hour=0, minute=0, second=0) + timedelta(minutes=10),
+            user=user_data,
         )
 
         features = {
@@ -3018,17 +3030,17 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase, SearchIssueTest
             "organizations:profiling": True,
         }
         query = {
-            "field": ["event.type", "user.display"],
-            "query": f"user.id:1 issue.id:{group_info.group.id}",
+            "field": ["user.display"],
+            "query": f"user.display:hell* issue.id:{group_info.group.id}",
             "statsPeriod": "24h",
             "dataset": "issuePlatform",
         }
         response = self.do_request(query, features=features)
         assert response.status_code == 200, response.content
         data = response.data["data"]
-        assert len(data) == 2
+        assert len(data) == 1
         result = {r["user.display"] for r in data}
-        assert result == {"catherine", "cathy@example.com"}
+        assert result == {"hellboy@meow.com"}
 
     def test_user_display_with_aggregates(self):
         self.store_event(
