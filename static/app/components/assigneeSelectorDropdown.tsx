@@ -384,6 +384,7 @@ export class AssigneeSelectorDropdown extends Component<
       ? [
           {
             label: this.renderDropdownGroupLabel(t('Everyone Else')),
+            hideGroupLabel: !filteredSuggestedAssignees.length,
             id: 'everyone-else',
             items: [...filteredSessionUser, ...filteredTeams, ...filteredMembers],
           },
