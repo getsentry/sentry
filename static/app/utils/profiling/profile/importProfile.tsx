@@ -30,6 +30,7 @@ export interface ImportOptions {
 
 export interface ProfileGroup {
   activeProfileIndex: number;
+  measurements: Partial<Profiling.Schema['measurements']>;
   metadata: Partial<Profiling.Schema['metadata']>;
   name: string;
   profiles: Profile[];
@@ -110,6 +111,7 @@ function importJSSelfProfile(
     transactionID: null,
     activeProfileIndex: 0,
     profiles: [profile],
+    measurements: {},
     metadata: {
       platform: 'javascript',
       durationNS: profile.duration,
@@ -187,6 +189,7 @@ function importSentrySampledProfile(
     traceID: firstTransaction?.trace_id ?? '',
     name: firstTransaction?.name ?? '',
     activeProfileIndex: 0,
+    measurements: {},
     metadata: {
       // androidAPILevel: number;
       // deviceClassification: string;
@@ -232,6 +235,7 @@ function importSchema(
     name: input.metadata?.transactionName ?? traceID,
     activeProfileIndex: input.activeProfileIndex ?? 0,
     metadata: input.metadata ?? {},
+    measurements: input.measurements ?? {},
     profiles: input.profiles.map(profile =>
       importSingleProfile(profile, frameIndex, options)
     ),
