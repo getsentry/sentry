@@ -6,19 +6,18 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_sdk import Scope, configure_scope
 
-from sentry import analytics, features, options
+from sentry import analytics, features
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
 from sentry.integrations import IntegrationFeatures
-from sentry.integrations.utils.codecov import get_codecov_line_coverage
+from sentry.integrations.utils.codecov import CODECOV_TOKEN, get_codecov_line_coverage
 from sentry.models import Integration, Project, RepositoryProjectPathConfig
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.event_frames import munged_filename_and_frames
 from sentry.utils.json import JSONData
 
 logger = logging.getLogger(__name__)
-CODECOV_TOKEN = options.get("codecov.client-secret")
 
 
 def get_link(
