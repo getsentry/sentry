@@ -220,8 +220,7 @@ const StyledSidebarItem = styled(Link)`
   position: relative;
   cursor: pointer;
   font-size: 15px;
-  line-height: 32px;
-  height: 34px;
+  height: 30px;
   flex-shrink: 0;
 
   transition: 0.15s color linear;
