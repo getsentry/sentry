@@ -20,13 +20,13 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import space from 'sentry/styles/space';
 import type {
   Actor,
-  Group,
   Organization,
+  SuggestedOwner,
   SuggestedOwnerReason,
   Team,
   User,
 } from 'sentry/types';
-import {buildTeamId, buildUserId} from 'sentry/utils';
+import {buildTeamId, buildUserId, valueIsEqual} from 'sentry/utils';
 
 export type SuggestedAssignee = Actor & {
   assignee: AssignableTeam | User;
@@ -49,7 +49,7 @@ type RenderProps = {
 
 export interface AssigneeSelectorDropdownProps {
   children: (props: RenderProps) => React.ReactNode;
-  group: Group;
+  id: string;
   organization: Organization;
   disabled?: boolean;
   memberList?: User[];
@@ -62,7 +62,10 @@ export interface AssigneeSelectorDropdownProps {
 }
 
 type State = {
+  loading: boolean;
+  assignedTo?: Actor;
   memberList?: User[];
+  suggestedOwners?: SuggestedOwner[] | null;
 };
 
 export class AssigneeSelectorDropdown extends Component<
@@ -72,12 +75,57 @@ export class AssigneeSelectorDropdown extends Component<
   state = this.getInitialState();
 
   getInitialState() {
+    const group = GroupStore.get(this.props.id);
     const memberList = MemberListStore.loaded ? MemberListStore.getAll() : undefined;
+    const loading = GroupStore.hasStatus(this.props.id, 'assignTo');
+    const suggestedOwners = group?.owners;
 
     return {
+      assignedTo: group?.assignedTo,
       memberList,
-      loading: false,
+      loading,
+      suggestedOwners,
     };
+  }
+
+  componentWillReceiveProps(nextProps: AssigneeSelectorDropdownProps) {
+    const loading = GroupStore.hasStatus(nextProps.id, 'assignTo');
+    if (nextProps.id !== this.props.id || loading !== this.state.loading) {
+      const group = GroupStore.get(this.props.id);
+      this.setState({
+        loading,
+        assignedTo: group?.assignedTo,
+        suggestedOwners: group?.owners,
+      });
+    }
+  }
+
+  shouldComponentUpdate(nextProps: AssigneeSelectorDropdownProps, nextState: State) {
+    if (nextState.loading !== this.state.loading) {
+      return true;
+    }
+
+    // If the memberList in props has changed, re-render as
+    // props have updated, and we won't use internal state anyways.
+    if (
+      nextProps.memberList &&
+      !valueIsEqual(this.props.memberList, nextProps.memberList)
+    ) {
+      return true;
+    }
+
+    if (!valueIsEqual(this.props.owners, nextProps.owners)) {
+      return true;
+    }
+
+    const currentMembers = this.memberList();
+    // XXX(billyvg): this means that once `memberList` is not-null, this component will never update due to `memberList` changes
+    // Note: this allows us to show a "loading" state for memberList, but only before `MemberListStore.loadInitialData`
+    // is called
+    if (currentMembers === undefined && nextState.memberList !== currentMembers) {
+      return true;
+    }
+    return !valueIsEqual(nextState.assignedTo, this.state.assignedTo, true);
   }
 
   componentWillUnmount() {
@@ -85,6 +133,7 @@ export class AssigneeSelectorDropdown extends Component<
   }
 
   unlisteners = [
+    GroupStore.listen(itemIds => this.onGroupChange(itemIds), undefined),
     MemberListStore.listen((users: User[]) => {
       this.handleMemberListUpdate(users);
     }, undefined),
@@ -106,8 +155,23 @@ export class AssigneeSelectorDropdown extends Component<
     return this.props.memberList ?? this.state.memberList;
   }
 
+  onGroupChange(itemIds: Set<string>) {
+    if (!itemIds.has(this.props.id)) {
+      return;
+    }
+    const group = GroupStore.get(this.props.id);
+    this.setState({
+      assignedTo: group?.assignedTo,
+      suggestedOwners: group?.owners,
+      loading: GroupStore.hasStatus(this.props.id, 'assignTo'),
+    });
+  }
+
   assignableTeams(): AssignableTeam[] {
-    const {group} = this.props;
+    const group = GroupStore.get(this.props.id);
+    if (!group) {
+      return [];
+    }
 
     const teams = ProjectsStore.getBySlug(group.project.slug)?.teams ?? [];
     return teams
@@ -121,15 +185,17 @@ export class AssigneeSelectorDropdown extends Component<
   }
 
   assignToUser(user: User | Actor) {
-    assignToUser({id: this.props.group.id, user, assignedBy: 'assignee_selector'});
+    assignToUser({id: this.props.id, user, assignedBy: 'assignee_selector'});
+    this.setState({loading: true});
   }
 
   assignToTeam(team: Team) {
     assignToActor({
       actor: {id: team.id, type: 'team'},
-      id: this.props.group.id,
+      id: this.props.id,
       assignedBy: 'assignee_selector',
     });
+    this.setState({loading: true});
   }
 
   handleAssign: React.ComponentProps<typeof DropdownAutoComplete>['onSelect'] = (
@@ -159,7 +225,8 @@ export class AssigneeSelectorDropdown extends Component<
 
   clearAssignTo = (e: React.MouseEvent<HTMLDivElement>) => {
     // clears assignment
-    clearAssignment(this.props.group.id, 'assignee_selector');
+    clearAssignment(this.props.id, 'assignee_selector');
+    this.setState({loading: true});
     e.stopPropagation();
   };
 
@@ -252,7 +319,7 @@ export class AssigneeSelectorDropdown extends Component<
   renderSuggestedAssigneeNodes(): React.ComponentProps<
     typeof DropdownAutoComplete
   >['items'] {
-    const {assignedTo} = this.props.group;
+    const {assignedTo} = this.state;
     const textReason: Record<SuggestedOwnerReason, string> = {
       suspectCommit: t('Suspect Commit'),
       releaseCommit: t('Suspect Release'),
@@ -363,7 +430,7 @@ export class AssigneeSelectorDropdown extends Component<
   }
 
   renderInviteMemberLink() {
-    const loading = GroupStore.hasStatus(this.props.group.id, 'assignTo');
+    const {loading} = this.state;
 
     return (
       <InviteMemberLink
@@ -389,7 +456,7 @@ export class AssigneeSelectorDropdown extends Component<
     const assignableTeams = this.assignableTeams();
     const memberList = this.memberList() ?? [];
 
-    const {owners, group} = this.props;
+    const {owners} = this.props;
     if (owners !== undefined) {
       // Add team or user from store
       return owners
@@ -420,11 +487,12 @@ export class AssigneeSelectorDropdown extends Component<
         .filter((owner): owner is SuggestedAssignee => !!owner);
     }
 
-    if (!group.owners) {
+    const {suggestedOwners} = this.state;
+    if (!suggestedOwners) {
       return [];
     }
 
-    const suggestedAssignees: Array<SuggestedAssignee | null> = group.owners.map(
+    const suggestedAssignees: Array<SuggestedAssignee | null> = suggestedOwners.map(
       owner => {
         // converts a backend suggested owner to a suggested assignee
         const [ownerType, id] = owner.owner.split(':');
@@ -462,9 +530,9 @@ export class AssigneeSelectorDropdown extends Component<
   }
 
   render() {
-    const {disabled, children, group} = this.props;
+    const {disabled, children} = this.props;
+    const {loading, assignedTo} = this.state;
     const memberList = this.memberList();
-    const loading = GroupStore.hasStatus(group.id, 'assignTo');
 
     const suggestedAssignees = this.getSuggestedAssignees();
 
@@ -483,7 +551,7 @@ export class AssigneeSelectorDropdown extends Component<
         itemSize="small"
         searchPlaceholder={t('Filter teams and people')}
         menuFooter={
-          group.assignedTo ? (
+          assignedTo ? (
             <div>
               <MenuItemFooterWrapper role="button" onClick={this.clearAssignTo}>
                 <IconContainer>

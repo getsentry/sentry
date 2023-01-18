@@ -214,7 +214,7 @@ function AssignedTo({group, project, event, disableDropdown = false}: AssignedTo
           organization={organization}
           owners={owners}
           disabled={disableDropdown}
-          group={group}
+          id={group.id}
         >
           {({loading, isOpen, getActorProps}) => (
             <DropdownButton data-test-id="assignee-selector" {...getActorProps({})}>
