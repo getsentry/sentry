@@ -57,7 +57,12 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
       const isXAxis = options.direction === 'left' || options.direction === 'right';
       const isInverted = options.direction === 'down' || options.direction === 'left';
 
+      document.body.style.pointerEvents = 'none';
       document.body.style.userSelect = 'none';
+
+      // We've disabled pointerEvents on the body, the cursor needs to be
+      // applied to the root most element to work
+      document.documentElement.style.cursor = isXAxis ? 'ew-resize' : 'ns-resize';
 
       if (rafIdRef.current !== null) {
         window.cancelAnimationFrame(rafIdRef.current);
@@ -93,6 +98,7 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
   const onMouseUp = useCallback(() => {
     document.body.style.pointerEvents = '';
     document.body.style.userSelect = '';
+    document.documentElement.style.cursor = '';
     document.removeEventListener('mousemove', onMouseMove);
     document.removeEventListener('mouseup', onMouseUp);
   }, [onMouseMove]);
