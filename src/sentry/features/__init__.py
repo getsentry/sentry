@@ -127,7 +127,7 @@ default_manager.add("organizations:performance-vitals-inp", OrganizationFeature,
 default_manager.add("organizations:performance-mep-bannerless-ui", OrganizationFeature, True)
 default_manager.add("organizations:performance-mep-reintroduce-histograms", OrganizationFeature, True)
 default_manager.add("organizations:performance-new-widget-designs", OrganizationFeature, True)
-default_manager.add("organizations:performance-slow-db-issue", OrganizationFeature, True)
+default_manager.add("organizations:performance-slow-db-issue", OrganizationFeature)
 default_manager.add("organizations:profiling", OrganizationFeature)
 default_manager.add("organizations:profiling-flamechart-spans", OrganizationFeature, True)
 default_manager.add("organizations:profiling-dashboard-redesign", OrganizationFeature, True)
