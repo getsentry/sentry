@@ -1,24 +1,18 @@
-import {useCallback, useEffect, useMemo, useState} from 'react';
+import {useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import * as Sentry from '@sentry/react';
 import {Location} from 'history';
 import first from 'lodash/first';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import Pagination from 'sentry/components/pagination';
 import type {Group, Organization} from 'sentry/types';
-import {TableData} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
-import {doDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
-import {decodeScalar} from 'sentry/utils/queryString';
-import {DEFAULT_SORT, REPLAY_LIST_FIELDS} from 'sentry/utils/replays/fetchReplayList';
 import useReplayList from 'sentry/utils/replays/hooks/useReplayList';
-import useApi from 'sentry/utils/useApi';
-import useCleanQueryParamsOnRouteLeave from 'sentry/utils/useCleanQueryParamsOnRouteLeave';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
+import useReplaysFromIssue from 'sentry/views/organizationGroupDetails/groupReplays/useReplaysFromIssue';
 import ReplayTable from 'sentry/views/replays/replayTable';
 import {ReplayColumns} from 'sentry/views/replays/replayTable/types';
 import type {ReplayListLocationQuery} from 'sentry/views/replays/types';
@@ -28,68 +22,16 @@ type Props = {
 };
 
 function GroupReplays({group}: Props) {
-  const api = useApi();
-  const location = useLocation<ReplayListLocationQuery>();
-  const organization = useOrganization();
   const theme = useTheme();
   const hasRoomForColumns = useMedia(`(min-width: ${theme.breakpoints.small})`);
+  const organization = useOrganization();
+  const location = useLocation<ReplayListLocationQuery>();
 
-  const [response, setResponse] = useState<{
-    pageLinks: null | string;
-    replayIds: undefined | string[];
-  }>({pageLinks: null, replayIds: undefined});
-
-  const [fetchError, setFetchError] = useState();
-
-  const {cursor} = location.query;
-  const fetchReplayIds = useCallback(async () => {
-    const eventView = EventView.fromSavedQuery({
-      id: '',
-      name: `Errors within replay`,
-      version: 2,
-      fields: ['replayId', 'count()'],
-      query: `issue.id:${group.id} !replayId:""`,
-      projects: [Number(group.project.id)],
-    });
-
-    try {
-      const [{data}, _textStatus, resp] = await doDiscoverQuery<TableData>(
-        api,
-        `/organizations/${organization.slug}/events/`,
-        eventView.getEventsAPIPayload({
-          query: {cursor},
-        } as Location<ReplayListLocationQuery>)
-      );
-
-      setResponse({
-        pageLinks: resp?.getResponseHeader('Link') ?? '',
-        replayIds: data.map(record => String(record.replayId)),
-      });
-    } catch (err) {
-      Sentry.captureException(err);
-      setFetchError(err);
-    }
-  }, [api, cursor, organization.slug, group.id, group.project.id]);
-
-  const eventView = useMemo(() => {
-    if (!response.replayIds) {
-      return null;
-    }
-    return EventView.fromSavedQuery({
-      id: '',
-      name: '',
-      version: 2,
-      fields: REPLAY_LIST_FIELDS,
-      projects: [Number(group.project.id)],
-      query: `id:[${String(response.replayIds)}]`,
-      orderby: decodeScalar(location.query.sort, DEFAULT_SORT),
-    });
-  }, [location.query.sort, group.project.id, response.replayIds]);
-
-  useCleanQueryParamsOnRouteLeave({fieldsToClean: ['cursor']});
-  useEffect(() => {
-    fetchReplayIds();
-  }, [fetchReplayIds]);
+  const {eventView, fetchError, pageLinks} = useReplaysFromIssue({
+    group,
+    location,
+    organization,
+  });
 
   if (!eventView) {
     return (
@@ -115,7 +57,7 @@ function GroupReplays({group}: Props) {
     <GroupReplaysTable
       eventView={eventView}
       organization={organization}
-      pageLinks={response.pageLinks}
+      pageLinks={pageLinks}
     />
   );
 }
