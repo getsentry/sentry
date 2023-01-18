@@ -1,6 +1,6 @@
 {
   "$schema": "https://json.schemastore.org/package.json",
-  "name": "sentryy",
+  "name": "sentry",
   "version": "0.0.0",
   "private": true,
   "repository": {
