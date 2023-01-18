@@ -84,7 +84,6 @@ export type GrowthEventParameters = {
   'growth.metric_alert_preset_use_template': {
     preset: string;
   };
-  'growth.onboarding_clicked_instrument_app': {source?: string};
   'growth.onboarding_clicked_project_in_sidebar': {platform: string};
   'growth.onboarding_clicked_setup_platform_later': PlatformParam & {
     project_index: number;
@@ -97,18 +96,9 @@ export type GrowthEventParameters = {
   'growth.onboarding_start_onboarding': {
     source?: string;
   };
-  'growth.onboarding_take_to_error': {};
   'growth.onboarding_view_full_docs': {};
-  'growth.onboarding_view_sample_event': SampleEventParam;
   'growth.platformpicker_category': PlatformCategory;
   'growth.platformpicker_search': PlatformSearchParam;
-  'growth.sample_error_onboarding_link_clicked': {
-    platform?: string;
-    project_id?: string;
-  };
-  'growth.sample_transaction_docs_link_clicked': {
-    project_id: string;
-  };
   'growth.select_platform': PlatformPickerParam;
   'growth.submitted_mobile_prompt_ask_teammate': MobilePromptBannerParams;
   'invite_modal.add_more': InviteModal;
@@ -170,10 +160,7 @@ export const growthEventMap: Record<GrowthAnalyticsKey, string | null> = {
     'Growth: Metric Alert Preset Sidebar Clicked',
   'growth.onboarding_start_onboarding': 'Growth: Onboarding Start Onboarding',
   'growth.onboarding_clicked_skip': 'Growth: Onboarding Clicked Skip',
-  'growth.onboarding_take_to_error': 'Growth: Onboarding Take to Error',
   'growth.onboarding_view_full_docs': 'Growth: Onboarding View Full Docs',
-  'growth.onboarding_view_sample_event': 'Growth: Onboarding View Sample Event',
-  'growth.onboarding_clicked_instrument_app': 'Growth: Onboarding Clicked Instrument App',
   'growth.onboarding_clicked_setup_platform_later':
     'Growth: Onboarding Clicked Setup Platform Later',
   'growth.onboarding_quick_start_cta': 'Growth: Quick Start Onboarding CTA',
@@ -185,10 +172,6 @@ export const growthEventMap: Record<GrowthAnalyticsKey, string | null> = {
   'growth.demo_modal_clicked_demo': 'Growth: Demo Modal Clicked Demo',
   'growth.clicked_enter_sandbox': 'Growth: Clicked Enter Sandbox',
   'growth.onboarding_clicked_project_in_sidebar': 'Growth: Clicked Project Sidebar',
-  'growth.sample_transaction_docs_link_clicked':
-    'Growth: Sample Transaction Docs Link Clicked',
-  'growth.sample_error_onboarding_link_clicked':
-    'Growth: Sample Error Onboarding Link Clicked',
   'member_settings_page.loaded': 'Member Settings Page Loaded',
   'invite_modal.opened': 'Invite Modal: Opened',
   'invite_modal.closed': 'Invite Modal: Closed',

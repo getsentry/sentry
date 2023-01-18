@@ -6,7 +6,6 @@ import {IconLightning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {AvatarProject, Organization} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 
 function SampleEventAlert({
   organization,
@@ -29,13 +28,9 @@ function SampleEventAlert({
         to={`/${organization.slug}/${project.slug}/getting-started/${
           project.platform || ''
         }`}
-        onClick={() =>
-          trackAdvancedAnalyticsEvent('growth.sample_error_onboarding_link_clicked', {
-            project_id: project.id?.toString(),
-            organization,
-            platform: project.platform,
-          })
-        }
+        analyticsEventKey="growth.sample_error_onboarding_link_clicked"
+        analyticsEventName="Growth: Sample Error Onboarding Link Clicked"
+        analyticsParams={{project_id: project.id?.toString(), platform: project.platform}}
       >
         {t('Get Started')}
       </Button>

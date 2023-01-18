@@ -7,7 +7,6 @@ import {t} from 'sentry/locale';
 import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
 import space from 'sentry/styles/space';
 import {Group} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventWaiter, {EventWaiterProps} from 'sentry/utils/eventWaiter';
 import testableTransition from 'sentry/utils/testableTransition';
 
@@ -31,11 +30,8 @@ const FirstEventIndicator = ({children, ...props}: FirstEventIndicatorProps) => 
             tooltipProps={{disabled: !!firstIssue}}
             disabled={!firstIssue}
             priority="primary"
-            onClick={() =>
-              trackAdvancedAnalyticsEvent('growth.onboarding_take_to_error', {
-                organization: props.organization,
-              })
-            }
+            analyticsEventName="Growth: Onboarding Take to Error"
+            analyticsEventKey="growth.onboarding_take_to_error"
             to={`/organizations/${props.organization.slug}/issues/${
               firstIssue && firstIssue !== true && 'id' in firstIssue
                 ? `${firstIssue.id}/`

@@ -101,11 +101,6 @@ class CreateSampleEventButton extends Component<CreateSampleEventButtonProps, St
       return;
     }
 
-    trackAdvancedAnalyticsEvent('growth.onboarding_view_sample_event', {
-      platform: project.platform,
-      organization,
-    });
-
     addLoadingMessage(t('Processing sample event...'), {
       duration: EVENT_POLL_RETRIES * EVENT_POLL_INTERVAL,
     });
@@ -164,7 +159,6 @@ class CreateSampleEventButton extends Component<CreateSampleEventButtonProps, St
     const {
       api: _api,
       organization: _organization,
-      project: _project,
       source: _source,
       ...props
     } = this.props;
@@ -173,6 +167,9 @@ class CreateSampleEventButton extends Component<CreateSampleEventButtonProps, St
     return (
       <Button
         {...props}
+        analyticsEventKey="growth.onboarding_view_sample_event"
+        analyticsEventName="Growth: Onboarding View Sample Event"
+        analyticsParams={{platform: props.project?.platform}}
         disabled={props.disabled || creating}
         onClick={this.createSampleGroup}
       />

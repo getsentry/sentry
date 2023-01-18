@@ -58,10 +58,6 @@ function TargetedOnboardingWelcome({organization, ...props}: StepProps) {
   });
 
   const onComplete = () => {
-    trackAdvancedAnalyticsEvent('growth.onboarding_clicked_instrument_app', {
-      organization,
-      source,
-    });
     if (clientState) {
       setClientState({
         ...clientState,
@@ -95,6 +91,9 @@ function TargetedOnboardingWelcome({organization, ...props}: StepProps) {
               cta={
                 <Fragment>
                   <ButtonWithFill
+                    analyticsEventKey="growth.onboarding_clicked_instrument_app"
+                    analyticsEventName="Growth: Onboarding Clicked Instrument App"
+                    analyticsParams={{source}}
                     onClick={() => {
                       // triggerFall();
                       onComplete();

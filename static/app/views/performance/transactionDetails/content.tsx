@@ -103,7 +103,6 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
 
   renderBody() {
     const {event} = this.state;
-    const {organization} = this.props;
 
     if (!event) {
       return <NotFound />;
@@ -114,9 +113,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
 
     return (
       <Fragment>
-        {isSampleTransaction && (
-          <FinishSetupAlert organization={organization} projectId={this.projectId} />
-        )}
+        {isSampleTransaction && <FinishSetupAlert projectId={this.projectId} />}
         {this.renderContent(event)}
       </Fragment>
     );
