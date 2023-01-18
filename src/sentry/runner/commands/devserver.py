@@ -86,10 +86,8 @@ _DEFAULT_DAEMONS = {
         "performance",
         *_DEV_METRICS_INDEXER_ARGS,
     ],
-    # TODO: we want to pass no-strict-offset-reset here
     "metrics-billing": ["sentry", "run", "billing-metrics-consumer", "--no-strict-offset-reset"],
-    # TODO: we want to pass no-strict-offset-reset here
-    "profiles": ["sentry", "run", "ingest-profiles"],
+    "profiles": ["sentry", "run", "ingest-profiles", "--no-strict-offset-reset"],
 }
 
 

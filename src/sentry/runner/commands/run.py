@@ -661,6 +661,7 @@ def metrics_billing_consumer(**options):
 @log_options()
 @click.option("--topic", default="profiles", help="Topic to get profiles data from.")
 @batching_kafka_options("ingest-profiles", max_batch_size=100)
+@no_strict_offset_reset_option()
 @configuration
 def profiles_consumer(**options):
     from sentry.profiles.consumers import get_profiles_process_consumer
