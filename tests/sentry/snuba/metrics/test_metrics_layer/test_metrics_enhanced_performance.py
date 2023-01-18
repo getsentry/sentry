@@ -22,6 +22,7 @@ from sentry.models import (
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.snuba.metrics import (
+    MAX_POINTS,
     MetricConditionField,
     MetricField,
     MetricGroupByField,
@@ -2004,7 +2005,10 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             include_series=True,
             interval=3600,
         )
-        assert metrics_query.limit.limit == 1666
+        INTERVAL_LEN = 7  # 6 hours unaligned generate 7 1h intervals
+        EXPECTED_DEFAULT_LIMIT = MAX_POINTS // INTERVAL_LEN
+
+        assert metrics_query.limit.limit == EXPECTED_DEFAULT_LIMIT
 
     def test_high_limit_provided_not_raise_exception_when_high_interval_provided(self):
         # Each of these denotes how many events to create in each hour
