@@ -589,6 +589,7 @@ def occurrences_ingest_consumer(**options):
     help="Regional name to run the consumer for",
 )
 @batching_kafka_options("region-to-control-consumer", max_batch_size=100)
+@no_strict_offset_reset_option()
 @configuration
 def region_to_control_consumer(region_name, **kafka_options):
     """
