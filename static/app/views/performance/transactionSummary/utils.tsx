@@ -146,6 +146,8 @@ export function generateTransactionLink(transactionName: string) {
 }
 
 export function generateReplayLink(routes: PlainRoute<any>[]) {
+  const referrer = getRouteStringFromRoutes(routes);
+
   return (
     organization: Organization,
     tableRow: TableDataRow,
@@ -157,7 +159,6 @@ export function generateReplayLink(routes: PlainRoute<any>[]) {
     }
 
     const replaySlug = `${tableRow['project.name']}:${replayId}`;
-    const referrer = getRouteStringFromRoutes(routes);
 
     if (!tableRow.timestamp) {
       return {

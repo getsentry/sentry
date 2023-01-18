@@ -9,6 +9,7 @@ type Options = {
   organization: Organization;
   projectIds: number[];
   groupIds?: string | string[];
+  replayIds?: string | string[];
   transactionNames?: string | string[];
 };
 
@@ -16,9 +17,10 @@ type CountState = Record<string, undefined | number>;
 
 function useReplaysCount({
   groupIds,
-  transactionNames,
   organization,
   projectIds,
+  replayIds,
+  transactionNames,
 }: Options) {
   const api = useApi();
 
@@ -32,21 +34,29 @@ function useReplaysCount({
   );
 
   const zeroCounts = useMemo(() => {
-    const ids = toArray(groupIds || []);
-    const names = toArray(transactionNames || []);
-    return [...ids, ...names].reduce<CountState>((record, key) => {
+    const gIds = toArray(groupIds || []);
+    const txnNames = toArray(transactionNames || []);
+    const rIds = toArray(replayIds || []);
+    return [...gIds, ...txnNames, ...rIds].reduce<CountState>((record, key) => {
       record[key] = 0;
       return record;
     }, {});
-  }, [groupIds, transactionNames]);
+  }, [groupIds, replayIds, transactionNames]);
 
   const query = useMemo(() => {
-    if (groupIds === undefined && transactionNames === undefined) {
-      throw new Error('Missing groupId or transactionName in useReplaysCount()');
-    }
-    if (groupIds !== undefined && transactionNames !== undefined) {
+    const fieldsProvided = [
+      groupIds !== undefined,
+      transactionNames !== undefined,
+      replayIds !== undefined,
+    ].filter(Boolean);
+    if (fieldsProvided.length === 0) {
       throw new Error(
-        'Unable to query both groupId and transactionName simultaneously in useReplaysCount()'
+        'Missing one of: groupIds|transactionNames|replayIds in useReplaysCount()'
+      );
+    }
+    if (fieldsProvided.length > 1) {
+      throw new Error(
+        'Unable to query more than one of: groupIds|transactionNames|replayIDs simultaneously in useReplaysCount()'
       );
     }
 
@@ -56,6 +66,17 @@ function useReplaysCount({
         return {
           field: 'issue.id' as const,
           conditions: `issue.id:[${groupsToFetch.join(',')}]`,
+        };
+      }
+      return null;
+    }
+
+    if (replayIds && replayIds.length) {
+      const replaysToFetch = filterUnseen(replayIds);
+      if (replaysToFetch.length) {
+        return {
+          field: 'replay_id' as const,
+          conditions: `replay_id:[${replaysToFetch.join(',')}]`,
         };
       }
       return null;
@@ -74,7 +95,7 @@ function useReplaysCount({
       return null;
     }
     return null;
-  }, [filterUnseen, groupIds, transactionNames]);
+  }, [filterUnseen, groupIds, replayIds, transactionNames]);
 
   const fetchReplayCount = useCallback(async () => {
     try {
