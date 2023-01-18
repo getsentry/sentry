@@ -11,6 +11,7 @@ class ResizeObserver {
 
 window.ResizeObserver = ResizeObserver;
 window.Element.prototype.scrollTo = jest.fn();
+window.Element.prototype.scrollIntoView = jest.fn();
 
 const DEFAULT_VALUES = {alpha: 1, height: 1, width: 1, x: 1, y: 1, visible: true};
 const MOCK_DATA = {
@@ -43,32 +44,8 @@ const MOCK_DATA = {
 };
 
 describe('View Hierarchy', function () {
-  it('allows selecting and deselecting through the tree to highlight node data', function () {
-    render(<ViewHierarchy viewHierarchy={MOCK_DATA} />);
-
-    expect(screen.queryByText('200')).not.toBeInTheDocument();
-
-    userEvent.click(screen.getByText('Container - test_identifier'));
-
-    expect(screen.getByText('200')).toBeInTheDocument();
-
-    // 1 for the tree node, 1 for the details panel header
-    expect(screen.getAllByText('Container - test_identifier')).toHaveLength(2);
-    // 1 for the "identifier" value in the details panel
-    expect(screen.getByText('Container')).toBeInTheDocument();
-
-    // Click the node again
-    userEvent.click(screen.getAllByText('Container - test_identifier')[0]);
-
-    // 1 for the tree node
-    expect(screen.getByText('Container - test_identifier')).toBeInTheDocument();
-    expect(screen.queryByText('Container')).not.toBeInTheDocument();
-  });
-
   it('can continue to make selections for inspecting data', function () {
     render(<ViewHierarchy viewHierarchy={MOCK_DATA} />);
-
-    userEvent.click(screen.getByText('Container - test_identifier'));
 
     // 1 for the tree node, 1 for the details panel header
     expect(screen.getAllByText('Container - test_identifier')).toHaveLength(2);
@@ -79,5 +56,23 @@ describe('View Hierarchy', function () {
     expect(screen.getAllByText('Nested Container - nested')).toHaveLength(2);
     // Only visible in the tree node
     expect(screen.getByText('Container - test_identifier')).toBeInTheDocument();
+
+    userEvent.click(screen.getByText('Text'));
+
+    // 1 for the tree node, 1 for the details panel header, 1 for the details value
+    expect(screen.getAllByText('Text')).toHaveLength(3);
+    // Only visible in the tree node
+    expect(screen.getByText('Nested Container - nested')).toBeInTheDocument();
+  });
+
+  it('can navigate with keyboard shortcuts after a selection', function () {
+    render(<ViewHierarchy viewHierarchy={MOCK_DATA} />);
+
+    userEvent.click(screen.getAllByText('Container - test_identifier')[0]);
+
+    userEvent.keyboard('{ArrowDown}');
+
+    // 1 for the tree node, 1 for the details panel header
+    expect(screen.getAllByText('Nested Container - nested')).toHaveLength(2);
   });
 });
