@@ -162,7 +162,7 @@ const TreeItem = styled('div')`
 
 const DepthMarker = styled('div')`
   margin-left: 5px;
-  width: ${space(2)};
+  min-width: ${space(2)};
   border-left: 1px solid ${p => p.theme.gray200};
 `;
 
