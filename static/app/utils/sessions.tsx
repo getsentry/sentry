@@ -9,6 +9,7 @@ import {
   SIX_HOURS,
   SIXTY_DAYS,
   THIRTY_DAYS,
+  TWENTY_FOUR_HOURS,
 } from 'sentry/components/charts/utils';
 import {SessionApiResponse, SessionFieldWithOperation, SessionStatus} from 'sentry/types';
 import {SeriesDataUnit} from 'sentry/types/echarts';
@@ -252,18 +253,23 @@ export function initSessionsChart(theme: Theme) {
 }
 
 type GetSessionsIntervalOptions = {
+  dailyInterval?: boolean;
   highFidelity?: boolean;
 };
 
 export function getSessionsInterval(
   datetimeObj: DateTimeObject,
-  {highFidelity}: GetSessionsIntervalOptions = {}
+  {highFidelity, dailyInterval}: GetSessionsIntervalOptions = {}
 ) {
   const diffInMinutes = getDiffInMinutes(datetimeObj);
 
   if (moment(datetimeObj.start).isSameOrBefore(moment().subtract(30, 'days'))) {
     // we cannot use sub-hour session resolution on buckets older than 30 days
     highFidelity = false;
+  }
+
+  if (dailyInterval === true && diffInMinutes > TWENTY_FOUR_HOURS) {
+    return '1d';
   }
 
   if (diffInMinutes >= SIXTY_DAYS) {

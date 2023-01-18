@@ -1,5 +1,6 @@
 import {Component} from 'react';
 import {Theme, withTheme} from '@emotion/react';
+import {LineSeriesOption} from 'echarts';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 
@@ -39,6 +40,7 @@ type ProjectSessionsChartRequestRenderProps = {
   reloading: boolean;
   timeseriesData: Series[];
   totalSessions: number | null;
+  additionalSeries?: LineSeriesOption[];
 };
 
 export type ProjectSessionsChartRequestProps = {
