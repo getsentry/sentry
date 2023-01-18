@@ -71,18 +71,10 @@ class FlamegraphTextRenderer extends TextRenderer {
     const end = upperBound(configView.right, this.flamegraph.root.children);
 
     // Populate the initial set of frames to draw
-    const frames: FlamegraphFrame[] = new Array(end - start);
-    for (let i = start; i < end; i++) {
-      frames[i - start] = this.flamegraph.root.children[i];
-    }
+    const frames: FlamegraphFrame[] = this.flamegraph.root.children.slice(start, end);
 
     while (frames.length > 0) {
       const frame = frames.pop()!;
-
-      // Check if our rect overlaps with the current viewport and skip rendering if it does not.
-      if (frame.end < configView.left || frame.start > configView.right) {
-        continue;
-      }
 
       if (frame.depth > BOTTOM_BOUNDARY) {
         continue;
@@ -107,7 +99,8 @@ class FlamegraphTextRenderer extends TextRenderer {
         continue;
       }
 
-      for (let i = 0; i < frame.children.length; i++) {
+      const endChild = upperBound(configView.right, frame.children);
+      for (let i = lowerBound(configView.left, frame.children); i < endChild; i++) {
         frames.push(frame.children[i]);
       }
 

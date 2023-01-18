@@ -50,6 +50,7 @@ describe('getContext', () => {
 
 describe('upperBound', () => {
   it.each([
+    [[], 5, 0],
     [[1, 2, 3], 2, 1],
     [[-3, -2, -1], -2, 1],
     [[1, 2, 3], 10, 3],
@@ -74,6 +75,7 @@ describe('upperBound', () => {
 
 describe('lowerBound', () => {
   it.each([
+    [[], 5, 0],
     [[1, 2, 3], 1, 0],
     [[-3, -2, -1], -1, 1],
     [[1, 2, 3], 10, 3],

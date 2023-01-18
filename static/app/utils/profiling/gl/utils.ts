@@ -505,6 +505,14 @@ export function upperBound<T extends {end: number; start: number}>(
   let low = 0;
   let high = values.length;
 
+  if (high === 0) {
+    return 0;
+  }
+
+  if (high === 1) {
+    return values[0].start < target ? 1 : 0;
+  }
+
   while (low !== high) {
     const mid = low + Math.floor((high - low) / 2);
 
@@ -524,6 +532,14 @@ export function lowerBound<T extends {end: number; start: number}>(
 ) {
   let low = 0;
   let high = values.length;
+
+  if (high === 0) {
+    return 0;
+  }
+
+  if (high === 1) {
+    return values[0].end < target ? 1 : 0;
+  }
 
   while (low !== high) {
     const mid = low + Math.floor((high - low) / 2);

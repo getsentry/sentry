@@ -68,18 +68,10 @@ class SpansTextRenderer extends TextRenderer {
     const end = upperBound(configView.right, this.spanChart.root.children);
 
     // Populate the initial set of frames to draw
-    const spans: SpanChartNode[] = new Array(end - start);
-    for (let i = start; i < end; i++) {
-      spans[i - start] = this.spanChart.root.children[i];
-    }
+    const spans: SpanChartNode[] = this.spanChart.root.children.slice(start, end);
 
     while (spans.length > 0) {
       const span = spans.pop()!;
-
-      // Check if our rect overlaps with the current viewport and skip rendering if it does not.
-      if (span.end < configView.left || span.start > configView.right) {
-        continue;
-      }
 
       if (span.depth > BOTTOM_BOUNDARY) {
         continue;
@@ -104,7 +96,8 @@ class SpansTextRenderer extends TextRenderer {
         continue;
       }
 
-      for (let i = 0; i < span.children.length; i++) {
+      const endChild = upperBound(configView.right, span.children);
+      for (let i = lowerBound(configView.left, span.children); i < endChild; i++) {
         spans.push(span.children[i]);
       }
 
