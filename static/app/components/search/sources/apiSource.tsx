@@ -271,7 +271,7 @@ async function createEventIdLookupResult(
   };
 }
 
-type Props = WithRouterProps<{orgId: string}> & {
+type Props = WithRouterProps<{}> & {
   children: (props: ChildProps) => React.ReactElement;
   /**
    * search term
@@ -330,8 +330,8 @@ class ApiSource extends Component<Props, State> {
 
   // Debounced method to handle querying all API endpoints (when necessary)
   doSearch = debounce((query: string) => {
-    const {params, organization} = this.props;
-    const orgId = (params && params.orgId) || (organization && organization.slug);
+    const {organization} = this.props;
+    const orgId = organization?.slug;
 
     let searchUrls = ['/organizations/'];
     let directUrls: (string | null)[] = [];
@@ -458,9 +458,10 @@ class ApiSource extends Component<Props, State> {
   }
 
   // Process API requests that create result objects that should be searchable
-  async getSearchableResults(requests) {
-    const {params, organization} = this.props;
-    const orgId = (params && params.orgId) || (organization && organization.slug);
+  async getSearchableResults(requests: Promise<any>[]) {
+    const {organization} = this.props;
+    const orgId = organization?.slug;
+
     const [
       organizations,
       projects,
