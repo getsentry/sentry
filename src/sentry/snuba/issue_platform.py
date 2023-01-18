@@ -5,10 +5,9 @@ from typing import Dict, Optional, Sequence
 import sentry_sdk
 
 from sentry.discover.arithmetic import categorize_columns
-from sentry.search.events.builder import IssuePlatformTimeseriesQueryBuilder
+from sentry.search.events.builder import IssuePlatformTimeseriesQueryBuilder, QueryBuilder
 from sentry.search.events.fields import InvalidSearchQuery, get_json_meta_type
-from sentry.snuba import discover
-from sentry.snuba.discover import zerofill
+from sentry.snuba.discover import EventsResponse, transform_tips, zerofill
 from sentry.utils.snuba import Dataset, SnubaTSResult, bulk_snql_query
 
 
@@ -24,33 +23,76 @@ def query(
     referrer=None,
     auto_fields=False,
     auto_aggregations=False,
+    include_equation_fields=False,
+    allow_metric_aggregates=False,
     use_aggregate_conditions=False,
-    allow_metric_aggregates=True,
     conditions=None,
     functions_acl=None,
-    dry_run=False,
     transform_alias_to_input_format=False,
-    has_metrics: bool = True,
-    use_metrics_layer: bool = False,
-):
-    return discover.query(
-        selected_columns,
-        query,
+    sample=None,
+    has_metrics=False,
+    use_metrics_layer=False,
+    skip_tag_resolution=False,
+) -> EventsResponse:
+    """
+    High-level API for doing arbitrary user queries against events.
+
+    This function operates on the Discover public event schema and
+    virtual fields/aggregate functions for selected columns and
+    conditions are supported through this function.
+
+    The resulting list will have all internal field names mapped
+    back into their public schema names.
+
+    selected_columns (Sequence[str]) List of public aliases to fetch.
+    query (str) Filter query string to create conditions from.
+    params (Dict[str, str]) Filtering parameters with start, end, project_id, environment
+    equations (Sequence[str]) List of equations to calculate for the query
+    orderby (None|str|Sequence[str]) The field to order results by.
+    offset (None|int) The record offset to read.
+    limit (int) The number of records to fetch.
+    referrer (str|None) A referrer string to help locate the origin of this query.
+    auto_fields (bool) Set to true to have project + eventid fields automatically added.
+    auto_aggregations (bool) Whether aggregates should be added automatically if they're used
+                    in conditions, and there's at least one aggregate already.
+    include_equation_fields (bool) Whether fields should be added automatically if they're used in
+                    equations
+    allow_metric_aggregates (bool) Ignored here, only used in metric enhanced performance
+    use_aggregate_conditions (bool) Set to true if aggregates conditions should be used at all.
+    conditions (Sequence[Condition]) List of conditions that are passed directly to snuba without
+                    any additional processing.
+    transform_alias_to_input_format (bool) Whether aggregate columns should be returned in the originally
+                                requested function format.
+    sample (float) The sample rate to run the query with
+    """
+    if not selected_columns:
+        raise InvalidSearchQuery("No columns selected")
+
+    builder = QueryBuilder(
+        Dataset.IssuePlatform,
         params,
+        snuba_params=snuba_params,
+        query=query,
+        selected_columns=selected_columns,
         equations=equations,
         orderby=orderby,
-        offset=offset,
-        limit=limit,
-        referrer=referrer,
         auto_fields=auto_fields,
         auto_aggregations=auto_aggregations,
         use_aggregate_conditions=use_aggregate_conditions,
-        conditions=conditions,
         functions_acl=functions_acl,
-        transform_alias_to_input_format=transform_alias_to_input_format,
+        limit=limit,
+        offset=offset,
+        equation_config={"auto_add": include_equation_fields},
+        sample_rate=sample,
         has_metrics=has_metrics,
-        dataset=Dataset.IssuePlatform,
+        transform_alias_to_input_format=transform_alias_to_input_format,
+        skip_tag_resolution=skip_tag_resolution,
     )
+    if conditions is not None:
+        builder.add_conditions(conditions)
+    result = builder.process_results(builder.run_query(referrer))
+    result["meta"]["tips"] = transform_tips(builder.tips)
+    return result
 
 
 def timeseries_query(

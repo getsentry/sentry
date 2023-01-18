@@ -155,7 +155,6 @@ def query(
     has_metrics=False,
     use_metrics_layer=False,
     skip_tag_resolution=False,
-    dataset=Dataset.Discover,
 ) -> EventsResponse:
     """
     High-level API for doing arbitrary user queries against events.
@@ -192,7 +191,7 @@ def query(
         raise InvalidSearchQuery("No columns selected")
 
     builder = QueryBuilder(
-        dataset,
+        Dataset.Discover,
         params,
         snuba_params=snuba_params,
         query=query,
