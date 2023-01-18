@@ -11,7 +11,7 @@ import {ProfileDetailsTable} from './components/profileDetailsTable';
 
 function ProfileDetails() {
   const organization = useOrganization();
-  const {currentProject} = useCurrentProjectFromRouteParam();
+  const currentProject = useCurrentProjectFromRouteParam();
   useEffect(() => {
     trackAdvancedAnalyticsEvent('profiling_views.profile_summary', {
       organization,

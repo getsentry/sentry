@@ -4,9 +4,5 @@ import useProjects from 'sentry/utils/useProjects';
 export function useCurrentProjectFromRouteParam() {
   const params = useParams();
   const projects = useProjects({limit: 1, slugs: [params?.projectId]});
-  const currentProject = projects.projects?.[0] ?? null;
-  return {
-    currentProject,
-    ...projects,
-  };
+  return projects.projects?.[0] ?? null;
 }

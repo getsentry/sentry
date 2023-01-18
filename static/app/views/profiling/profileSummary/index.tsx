@@ -39,7 +39,7 @@ interface ProfileSummaryPageProps {
 
 function ProfileSummaryPage(props: ProfileSummaryPageProps) {
   const organization = useOrganization();
-  const {currentProject: project} = useCurrentProjectFromRouteParam();
+  const project = useCurrentProjectFromRouteParam();
 
   useEffect(() => {
     trackAdvancedAnalyticsEvent('profiling_views.profile_summary', {

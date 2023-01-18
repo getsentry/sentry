@@ -55,7 +55,7 @@ function ProfileFlamegraph(): React.ReactElement {
     }
   );
 
-  const {currentProject} = useCurrentProjectFromRouteParam();
+  const currentProject = useCurrentProjectFromRouteParam();
 
   useEffect(() => {
     trackAdvancedAnalyticsEvent('profiling_views.profile_flamegraph', {
