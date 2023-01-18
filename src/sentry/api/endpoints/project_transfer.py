@@ -13,7 +13,6 @@ from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.api.decorators import sudo_required
 from sentry.models import OrganizationMember
 from sentry.utils.email import MessageBuilder
-from sentry.utils.http import absolute_uri
 from sentry.utils.signing import sign
 
 delete_logger = logging.getLogger("sentry.deletions.api")
@@ -65,10 +64,11 @@ class ProjectTransferEndpoint(ProjectEndpoint):
                 status=status.HTTP_404_NOT_FOUND,
             )
 
+        organization = project.organization
         transaction_id = uuid4().hex
         url_data = sign(
             actor_id=request.user.id,
-            from_organization_id=project.organization.id,
+            from_organization_id=organization.id,
             project_id=project.id,
             user_id=owner.user_id,
             transaction_id=transaction_id,
@@ -79,7 +79,9 @@ class ProjectTransferEndpoint(ProjectEndpoint):
             "from_org": project.organization.name,
             "project_name": project.slug,
             "request_time": timezone.now(),
-            "url": absolute_uri("/accept-transfer/") + "?" + urlencode({"data": url_data}),
+            "url": organization.absolute_url(
+                "/accept-transfer/", query=urlencode({"data": url_data})
+            ),
             "requester": request.user,
         }
         MessageBuilder(

@@ -4,7 +4,6 @@ from django.urls import reverse
 
 from sentry import roles
 from sentry.db.models import FlexibleForeignKey, Model, region_silo_only_model, sane_repr
-from sentry.utils.http import absolute_uri
 
 
 @region_silo_only_model
@@ -27,16 +26,16 @@ class OrganizationAccessRequest(Model):
         from sentry.models import OrganizationMember
         from sentry.utils.email import MessageBuilder
 
+        organization = self.team.organization
         user = self.member.user
         email = user.email
-        organization = self.team.organization
 
         context = {
             "email": email,
             "name": user.get_display_name(),
             "organization": organization,
             "team": self.team,
-            "url": absolute_uri(
+            "url": organization.absolute_url(
                 reverse(
                     "sentry-organization-teams",
                     kwargs={"organization_slug": organization.slug},

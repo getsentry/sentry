@@ -254,15 +254,14 @@ class OrganizationMember(Model):
     def get_invite_link(self):
         if not self.is_pending or not self.invite_approved:
             return None
-        return absolute_uri(
-            reverse(
-                "sentry-accept-invite",
-                kwargs={
-                    "member_id": self.id,
-                    "token": self.token or self.legacy_token,
-                },
-            )
+        path = reverse(
+            "sentry-accept-invite",
+            kwargs={
+                "member_id": self.id,
+                "token": self.token or self.legacy_token,
+            },
         )
+        return self.organization.absolute_url(path)
 
     def send_invite_email(self):
         from sentry.utils.email import MessageBuilder

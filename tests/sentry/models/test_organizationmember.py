@@ -33,16 +33,22 @@ class OrganizationMemberTest(TestCase):
             assert member.legacy_token == "df41d9dfd4ba25d745321e654e15b5d0"
 
     def test_send_invite_email(self):
-        organization = self.create_organization()
-        member = OrganizationMember(id=1, organization=organization, email="foo@example.com")
+        member = OrganizationMember(id=1, organization=self.organization, email="foo@example.com")
         with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
             member.send_invite_email()
 
         assert len(mail.outbox) == 1
 
         msg = mail.outbox[0]
-
         assert msg.to == ["foo@example.com"]
+
+    @with_feature("organizations:customer-domains")
+    def test_send_invite_email_customer_domains(self):
+        member = OrganizationMember(id=1, organization=self.organization, email="admin@example.com")
+        with self.tasks():
+            member.send_invite_email()
+        assert len(mail.outbox) == 1
+        assert self.organization.absolute_url("/accept/") in mail.outbox[0].body
 
     def test_send_sso_link_email(self):
         organization = self.create_organization()
@@ -63,8 +69,7 @@ class OrganizationMemberTest(TestCase):
             user.password = ""
             user.save()
 
-        organization = self.create_organization()
-        member = self.create_member(user=user, organization=organization)
+        member = self.create_member(user=user, organization=self.organization)
         provider = manager.get("dummy")
 
         with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
@@ -72,15 +77,14 @@ class OrganizationMemberTest(TestCase):
 
         context = builder.call_args[1]["context"]
 
-        assert context["organization"] == organization
+        assert context["organization"] == self.organization
         assert context["provider"] == provider
 
         assert not context["has_password"]
         assert "set_password_url" in context
 
     def test_token_expires_at_set_on_save(self):
-        organization = self.create_organization()
-        member = OrganizationMember(organization=organization, email="foo@example.com")
+        member = OrganizationMember(organization=self.organization, email="foo@example.com")
         member.token = member.generate_token()
         member.save()
 
@@ -89,8 +93,7 @@ class OrganizationMemberTest(TestCase):
         assert member.token_expires_at.date() == expires_at.date()
 
     def test_token_expiration(self):
-        organization = self.create_organization()
-        member = OrganizationMember(organization=organization, email="foo@example.com")
+        member = OrganizationMember(organization=self.organization, email="foo@example.com")
         member.token = member.generate_token()
         member.save()
 
@@ -101,8 +104,7 @@ class OrganizationMemberTest(TestCase):
         assert member.token_expired
 
     def test_set_user(self):
-        organization = self.create_organization()
-        member = OrganizationMember(organization=organization, email="foo@example.com")
+        member = OrganizationMember(organization=self.organization, email="foo@example.com")
         member.token = member.generate_token()
         member.save()
 
@@ -115,8 +117,7 @@ class OrganizationMemberTest(TestCase):
         assert member.email is None
 
     def test_regenerate_token(self):
-        organization = self.create_organization()
-        member = OrganizationMember(organization=organization, email="foo@example.com")
+        member = OrganizationMember(organization=self.organization, email="foo@example.com")
         assert member.token is None
         assert member.token_expires_at is None
 
@@ -127,10 +128,9 @@ class OrganizationMemberTest(TestCase):
         assert member.token_expires_at.date() == expires_at.date()
 
     def test_delete_expired_clear(self):
-        organization = self.create_organization()
         ninety_one_days = timezone.now() - timedelta(days=1)
         member = OrganizationMember.objects.create(
-            organization=organization,
+            organization=self.organization,
             role="member",
             email="test@example.com",
             token="abc-def",
@@ -171,10 +171,9 @@ class OrganizationMemberTest(TestCase):
         assert not OrganizationMember.objects.filter(id=member2.id).exists()
 
     def test_delete_expired_miss(self):
-        organization = self.create_organization()
         tomorrow = timezone.now() + timedelta(days=1)
         member = OrganizationMember.objects.create(
-            organization=organization,
+            organization=self.organization,
             role="member",
             email="test@example.com",
             token="abc-def",
@@ -185,9 +184,8 @@ class OrganizationMemberTest(TestCase):
 
     def test_delete_expired_leave_claimed(self):
         user = self.create_user()
-        organization = self.create_organization()
         member = OrganizationMember.objects.create(
-            organization=organization,
+            organization=self.organization,
             role="member",
             user=user,
             email="test@example.com",
@@ -198,9 +196,8 @@ class OrganizationMemberTest(TestCase):
         assert OrganizationMember.objects.get(id=member.id)
 
     def test_delete_expired_leave_null_expires(self):
-        organization = self.create_organization()
         member = OrganizationMember.objects.create(
-            organization=organization,
+            organization=self.organization,
             role="member",
             email="test@example.com",
             token="abc-def",
@@ -210,9 +207,8 @@ class OrganizationMemberTest(TestCase):
         assert OrganizationMember.objects.get(id=member.id)
 
     def test_approve_invite(self):
-        organization = self.create_organization()
         member = OrganizationMember.objects.create(
-            organization=organization,
+            organization=self.organization,
             role="member",
             email="test@example.com",
             invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
@@ -224,32 +220,30 @@ class OrganizationMemberTest(TestCase):
         assert member.invite_status == InviteStatus.APPROVED.value
 
     def test_scopes_with_member_admin_config(self):
-        organization = self.create_organization()
         member = OrganizationMember.objects.create(
-            organization=organization,
+            organization=self.organization,
             role="member",
             email="test@example.com",
         )
 
         assert "event:admin" in member.get_scopes()
 
-        organization.update_option("sentry:events_member_admin", True)
+        self.organization.update_option("sentry:events_member_admin", True)
 
         assert "event:admin" in member.get_scopes()
 
-        organization.update_option("sentry:events_member_admin", False)
+        self.organization.update_option("sentry:events_member_admin", False)
 
         assert "event:admin" not in member.get_scopes()
 
     def test_scopes_with_member_alert_write(self):
-        organization = self.create_organization()
         member = OrganizationMember.objects.create(
-            organization=organization,
+            organization=self.organization,
             role="member",
             email="test@example.com",
         )
         admin = OrganizationMember.objects.create(
-            organization=organization,
+            organization=self.organization,
             role="admin",
             email="admin@example.com",
         )
@@ -257,12 +251,12 @@ class OrganizationMemberTest(TestCase):
         assert "alerts:write" in member.get_scopes()
         assert "alerts:write" in admin.get_scopes()
 
-        organization.update_option("sentry:alerts_member_write", True)
+        self.organization.update_option("sentry:alerts_member_write", True)
 
         assert "alerts:write" in member.get_scopes()
         assert "alerts:write" in admin.get_scopes()
 
-        organization.update_option("sentry:alerts_member_write", False)
+        self.organization.update_option("sentry:alerts_member_write", False)
 
         assert "alerts:write" not in member.get_scopes()
         assert "alerts:write" in admin.get_scopes()
