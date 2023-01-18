@@ -293,7 +293,7 @@ class SnubaTagStorage(TagStorage):
                 aggregations=aggregations,
                 limit=limit,
                 orderby="-count",
-                referrer="tagstore._get_tag_keys",
+                referrer="tagstore.__get_tag_keys",
                 **kwargs,
             )
             if should_cache:
