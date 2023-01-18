@@ -11,7 +11,6 @@ import {
 } from 'sentry/components/assigneeSelectorDropdown';
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import {Button} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
 import {AutoCompleteRoot} from 'sentry/components/dropdownAutoComplete/menu';
 import {
   findMatchedRules,
@@ -19,7 +18,7 @@ import {
 } from 'sentry/components/group/suggestedOwners/findMatchedRules';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import * as SidebarSection from 'sentry/components/sidebarSection';
-import {IconAdd, IconChevron, IconSettings, IconUser} from 'sentry/icons';
+import {IconChevron, IconSettings, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import MemberListStore from 'sentry/stores/memberListStore';
 import TeamStore from 'sentry/stores/teamStore';
@@ -197,26 +196,17 @@ function AssignedTo({group, project, event, disableDropdown = false}: AssignedTo
       <StyledSidebarTitle>
         {t('Assigned To')}
         {hasStreamlineTargetingFeature && (
-          <ButtonBar>
-            <Access access={['project:write']}>
-              <Button
-                onClick={() => {
-                  openCreateOwnershipRule({project, organization, issueId: group.id});
-                }}
-                aria-label={t('Create Ownership Rule')}
-                icon={<IconAdd />}
-                borderless
-                size="xs"
-              />
-            </Access>
+          <Access access={['project:write']}>
             <Button
-              to={`/settings/${organization.slug}/projects/${project.slug}/ownership/`}
-              aria-label={t('Issue Owners Settings')}
+              onClick={() => {
+                openCreateOwnershipRule({project, organization, issueId: group.id});
+              }}
+              aria-label={t('Create Ownership Rule')}
               icon={<IconSettings />}
               borderless
               size="xs"
             />
-          </ButtonBar>
+          </Access>
         )}
       </StyledSidebarTitle>
       <StyledSidebarSectionContent>
