@@ -258,9 +258,6 @@ from .endpoints.organization_events_meta import (
     OrganizationEventsRelatedIssuesEndpoint,
 )
 from .endpoints.organization_events_span_ops import OrganizationEventsSpanOpsEndpoint
-from .endpoints.organization_events_spans_count_histogram import (
-    OrganizationEventsSpansCountHistogramEndpoint,
-)
 from .endpoints.organization_events_spans_histogram import OrganizationEventsSpansHistogramEndpoint
 from .endpoints.organization_events_spans_performance import (
     OrganizationEventsSpansExamplesEndpoint,
@@ -457,6 +454,7 @@ from .endpoints.relay import (
 from .endpoints.release_deploys import ReleaseDeploysEndpoint
 from .endpoints.setup_wizard import SetupWizard
 from .endpoints.shared_group_details import SharedGroupDetailsEndpoint
+from .endpoints.source_map_debug import SourceMapDebugEndpoint
 from .endpoints.system_health import SystemHealthEndpoint
 from .endpoints.system_options import SystemOptionsEndpoint
 from .endpoints.team_alerts_triggered import (
@@ -1223,14 +1221,6 @@ urlpatterns = [
                     name="sentry-api-0-organization-events-spans-histogram",
                 ),
                 url(
-                    # TODO (@udameli): This is a temporary endpoint necessary for the performance issue experiment.
-                    # If the span count histogram proves to be valuable, then OrganizationEventsSpansHistogramEndpoint
-                    # functionality will be extended so it can return span count distribution data
-                    r"^(?P<organization_slug>[^\/]+)/events-spans-counts-histogram/$",
-                    OrganizationEventsSpansCountHistogramEndpoint.as_view(),
-                    name="sentry-api-0-organization-events-spans-count-histogram",
-                ),
-                url(
                     r"^(?P<organization_slug>[^\/]+)/events-trends/$",
                     OrganizationEventsTrendsEndpoint.as_view(),
                     name="sentry-api-0-organization-events-trends",
@@ -1938,6 +1928,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/events/(?P<event_id>[\w-]+)/owners/$",
                     EventOwnersEndpoint.as_view(),
                     name="sentry-api-0-event-owners",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/events/(?P<event_id>[\w-]+)/source-map-debug/$",
+                    SourceMapDebugEndpoint.as_view(),
+                    name="sentry-api-0-event-source-map-debug",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/files/dsyms/$",

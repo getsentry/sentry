@@ -53,7 +53,7 @@ from sentry.constants import (
     DataCategory,
 )
 from sentry.culprit import generate_culprit
-from sentry.dynamic_sampling.latest_release_booster import LatestReleaseBias, LatestReleaseParams
+from sentry.dynamic_sampling import LatestReleaseBias, LatestReleaseParams
 from sentry.eventstore.processing import event_processing_store
 from sentry.eventtypes import (
     CspEvent,
@@ -2505,7 +2505,7 @@ def save_transaction_events(jobs: Sequence[Job], projects: ProjectsMapping) -> S
 
 @metrics.wraps("event_manager.save_generic_events")
 def save_generic_events(jobs: Sequence[Job], projects: ProjectsMapping) -> Sequence[Job]:
-    with metrics.timer("event_manager.save_generic.ganization_ids"):
+    with metrics.timer("event_manager.save_generic.organization_ids"):
         organization_ids = {project.organization_id for project in projects.values()}
 
     with metrics.timer("event_manager.save_generic.fetch_organizations"):
