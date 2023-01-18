@@ -24,6 +24,7 @@ interface FlamegraphLayoutProps {
   flamegraphDrawer: React.ReactElement;
   minimap: React.ReactElement;
   spans: React.ReactElement | null;
+  uiFrames: React.ReactElement | null;
 }
 
 export function FlamegraphLayout(props: FlamegraphLayoutProps) {
@@ -99,6 +100,24 @@ export function FlamegraphLayout(props: FlamegraphLayoutProps) {
     [dispatch]
   );
 
+  const onOpenUIFrames = useCallback(
+    () =>
+      dispatch({
+        type: 'toggle timeline',
+        payload: {timeline: 'ui_frames', value: true},
+      }),
+    [dispatch]
+  );
+
+  const onCloseUIFrames = useCallback(
+    () =>
+      dispatch({
+        type: 'toggle timeline',
+        payload: {timeline: 'ui_frames', value: false},
+      }),
+    [dispatch]
+  );
+
   return (
     <FlamegraphLayoutContainer>
       <FlamegraphGrid layout={layout}>
@@ -114,6 +133,20 @@ export function FlamegraphLayout(props: FlamegraphLayoutProps) {
             {props.minimap}
           </CollapsibleTimeline>
         </MinimapContainer>
+        {props.uiFrames ? (
+          <UIFramesContainer
+            height={timelines.ui_frames ? flamegraphTheme.SIZES.UI_FRAMES_HEIGHT : 20}
+          >
+            <CollapsibleTimeline
+              title={t('UI Frames')}
+              open={timelines.ui_frames}
+              onOpen={onOpenUIFrames}
+              onClose={onCloseUIFrames}
+            >
+              {props.uiFrames}
+            </CollapsibleTimeline>
+          </UIFramesContainer>
+        ) : null}
         {props.spans ? (
           <SpansContainer
             height={timelines.transaction_spans ? flamegraphTheme.SIZES.SPANS_HEIGHT : 20}
@@ -149,10 +182,10 @@ const FlamegraphGrid = styled('div')<{
   width: 100%;
   grid-template-rows: ${({layout}) =>
     layout === 'table bottom'
-      ? 'auto auto 1fr'
+      ? 'auto auto auto 1fr'
       : layout === 'table right'
-      ? 'min-content min-content 1fr'
-      : 'min-content min-content 1fr'};
+      ? 'min-content min-content min-content 1fr'
+      : 'min-content min-content min-content 1fr'};
   grid-template-columns: ${({layout}) =>
     layout === 'table bottom'
       ? '100%'
@@ -166,6 +199,7 @@ const FlamegraphGrid = styled('div')<{
     layout === 'table bottom'
       ? `
         'minimap'
+        'ui-frames'
         'spans'
         'flamegraph'
         'frame-stack'
@@ -173,12 +207,14 @@ const FlamegraphGrid = styled('div')<{
       : layout === 'table right'
       ? `
         'minimap    frame-stack'
+        'ui-frames  frame-stack'
         'spans     frame-stack'
         'flamegraph frame-stack'
       `
       : layout === 'table left'
       ? `
         'frame-stack minimap'
+        'frame-stack ui-frames'
         'frame-stack spans'
         'frame-stack flamegraph'
     `
@@ -209,6 +245,14 @@ const SpansContainer = styled('div')<{
   position: relative;
   height: ${p => p.height}px;
   grid-area: spans;
+`;
+
+const UIFramesContainer = styled('div')<{
+  height: FlamegraphTheme['SIZES']['UI_FRAMES_HEIGHT'];
+}>`
+  position: relative;
+  height: ${p => p.height}px;
+  grid-area: ui-frames;
 `;
 
 const FlamegraphDrawerContainer = styled('div')<{
