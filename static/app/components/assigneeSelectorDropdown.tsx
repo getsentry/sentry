@@ -45,7 +45,6 @@ type RenderProps = {
   isOpen: boolean;
   loading: boolean;
   suggestedAssignees: SuggestedAssignee[];
-  assignedTo?: Actor;
 };
 
 export interface AssigneeSelectorDropdownProps {
@@ -535,6 +534,8 @@ export class AssigneeSelectorDropdown extends Component<
     const {loading, assignedTo} = this.state;
     const memberList = this.memberList();
 
+    const suggestedAssignees = this.getSuggestedAssignees();
+
     return (
       <DropdownAutoComplete
         disabled={disabled}
@@ -572,8 +573,7 @@ export class AssigneeSelectorDropdown extends Component<
             loading,
             isOpen,
             getActorProps,
-            assignedTo,
-            suggestedAssignees: this.getSuggestedAssignees(),
+            suggestedAssignees,
           })
         }
       </DropdownAutoComplete>
