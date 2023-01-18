@@ -1,4 +1,4 @@
-from typing import Optional, Sequence, Tuple
+from typing import Any
 
 import requests
 
@@ -8,9 +8,7 @@ CODECOV_URL = "https://api.codecov.io/api/v2/{service}/{owner_username}/repos/{r
 CODECOV_TOKEN = options.get("codecov.client-secret")
 
 
-def get_codecov_line_coverage(
-    repo: str, service: str, branch: str, path: str
-) -> Tuple[Optional[Sequence[Tuple[int, int]]], Optional[int]]:
+def get_codecov_line_coverage(repo: str, service: str, branch: str, path: str) -> Any:
     owner_username, repo_name = repo.split("/")
     if service == "github":
         service = "gh"
