@@ -56,7 +56,7 @@ def query_replays_collection(
 
     sort_ordering = get_valid_sort_commands(
         sort,
-        default=OrderBy(Column("startedAt"), Direction.DESC),
+        default=OrderBy(Column("started_at"), Direction.DESC),
         query_config=ReplayQueryConfig(),
     )
     paginators = make_pagination_values(limit, offset)
@@ -159,7 +159,7 @@ def query_replays_count(
                 Function(
                     "notEmpty",
                     parameters=[Function("groupArray", parameters=[Column("is_archived")])],
-                    alias="isArchived",
+                    alias="is_archived",
                 ),
             ],
             where=[
@@ -172,7 +172,7 @@ def query_replays_count(
                 # Must include the first sequence otherwise the replay is too old.
                 Condition(Function("min", parameters=[Column("segment_id")]), Op.EQ, 0),
                 # Require non-archived replays.
-                Condition(Column("isArchived"), Op.EQ, 0),
+                Condition(Column("is_archived"), Op.EQ, 0),
             ],
             orderby=[],
             groupby=[Column("replay_id")],
@@ -289,28 +289,36 @@ def _sorted_aggregated_urls(agg_urls_column, alias):
 # Filter
 
 replay_url_parser_config = SearchConfig(
-    numeric_keys={"duration", "countErrors", "countSegments"},
+    numeric_keys={"duration", "count_errors", "count_segments", "count_urls", "activity"},
 )
 
 
 class ReplayQueryConfig(QueryConfig):
     # Numeric filters.
     duration = Number()
-    count_errors = Number(name="countErrors")
-    count_segments = Number(name="countSegments")
+    count_errors = Number(query_alias="count_errors")
+    count_segments = Number(query_alias="count_segments")
+    count_urls = Number(query_alias="count_urls")
     activity = Number()
 
     # String filters.
     replay_id = String(field_alias="id")
+    replay_type = String(query_alias="replay_type")
     platform = String()
-    agg_environment = String(field_alias="environment")
     releases = ListField()
+    release = ListField(query_alias="releases")
     dist = String()
-    urls = ListField(field_alias="urls", query_alias="urls_sorted")
+    error_ids = ListField(query_alias="error_ids", is_uuid=True)
+    error_id = ListField(query_alias="error_ids", is_uuid=True)
+    trace_ids = ListField(query_alias="trace_ids", is_uuid=True)
+    trace_id = ListField(query_alias="trace_ids", is_uuid=True)
+    trace = ListField(query_alias="trace_ids", is_uuid=True)
+    urls = ListField(query_alias="urls_sorted")
+    url = ListField(query_alias="urls_sorted")
     user_id = String(field_alias="user.id", query_alias="user_id")
     user_email = String(field_alias="user.email", query_alias="user_email")
     user_name = String(field_alias="user.name", query_alias="user_name")
-    user_ip_address = String(field_alias="user.ipAddress", query_alias="user_ipAddress")
+    user_ip_address = String(field_alias="user.ip", query_alias="user_ip")
     os_name = String(field_alias="os.name", query_alias="os_name")
     os_version = String(field_alias="os.version", query_alias="os_version")
     browser_name = String(field_alias="browser.name", query_alias="browser_name")
@@ -326,10 +334,12 @@ class ReplayQueryConfig(QueryConfig):
     tags = Tag(field_alias="*")
 
     # Sort keys
-    started_at = String(name="startedAt", is_filterable=False)
-    finished_at = String(name="finishedAt", is_filterable=False)
+    agg_environment = String(field_alias="environment", is_filterable=False)
+    started_at = String(is_filterable=False)
+    finished_at = String(is_filterable=False)
     # Dedicated url parameter should be used.
-    project_id = String(field_alias="projectId", query_alias="projectId", is_filterable=False)
+    project_id = String(query_alias="projectId", is_filterable=False)
+    project = String(query_alias="projectId", is_filterable=False)
 
 
 # Pagination.
@@ -371,12 +381,12 @@ def _strip_uuid_dashes(
 
 def _activity_score():
     #  taken from frontend calculation:
-    #  score = (countErrors * 25 + pagesVisited * 5 ) / 10;
+    #  score = (count_errors * 25 + pagesVisited * 5 ) / 10;
     #  score = Math.floor(Math.min(10, Math.max(1, score)));
 
     error_weight = Function(
         "multiply",
-        parameters=[Column("countErrors"), 25],
+        parameters=[Column("count_errors"), 25],
     )
     pages_visited_weight = Function(
         "multiply",
@@ -437,24 +447,30 @@ def _activity_score():
 
 FIELD_QUERY_ALIAS_MAP: Dict[str, List[str]] = {
     "id": ["replay_id"],
-    "replayType": ["replayType"],
-    "projectId": ["projectId"],
+    "replay_type": ["replay_type"],
+    "project_id": ["project_id"],
+    "project": ["project_id"],
     "platform": ["platform"],
     "environment": ["agg_environment"],
     "releases": ["releases"],
+    "release": ["releases"],
     "dist": ["dist"],
-    "traceIds": ["traceIds"],
-    "errorIds": ["errorIds"],
-    "startedAt": ["startedAt"],
-    "finishedAt": ["finishedAt"],
-    "duration": ["duration", "startedAt", "finishedAt"],
+    "trace_ids": ["trace_ids"],
+    "trace_id": ["trace_ids"],
+    "trace": ["trace_ids"],
+    "error_ids": ["error_ids"],
+    "error_id": ["error_ids"],
+    "started_at": ["started_at"],
+    "finished_at": ["finished_at"],
+    "duration": ["duration", "started_at", "finished_at"],
     "urls": ["urls_sorted", "agg_urls"],
-    "countErrors": ["countErrors"],
-    "countUrls": ["urls_sorted"],
-    "countSegments": ["countSegments"],
-    "isArchived": ["isArchived"],
-    "activity": ["activity", "countErrors", "urls_sorted", "agg_urls"],
-    "user": ["user_id", "user_email", "user_name", "user_ipAddress"],
+    "url": ["urls_sorted", "agg_urls"],
+    "count_errors": ["count_errors"],
+    "count_urls": ["count_urls", "urls_sorted", "agg_urls"],
+    "count_segments": ["count_segments"],
+    "is_archived": ["is_archived"],
+    "activity": ["activity", "count_errors", "urls_sorted", "agg_urls"],
+    "user": ["user_id", "user_email", "user_name", "user_ip"],
     "os": ["os_name", "os_version"],
     "browser": ["browser_name", "browser_version"],
     "device": ["device_name", "device_brand", "device_family", "device_model"],
@@ -464,7 +480,7 @@ FIELD_QUERY_ALIAS_MAP: Dict[str, List[str]] = {
     "user.id": ["user_id"],
     "user.email": ["user_email"],
     "user.name": ["user_name"],
-    "user.ipAddress": ["user_ipAddress"],
+    "user.ip": ["user_ip"],
     "os.name": ["os_name"],
     "os.version": ["os_version"],
     "browser.name": ["browser_name"],
@@ -483,8 +499,8 @@ FIELD_QUERY_ALIAS_MAP: Dict[str, List[str]] = {
 
 QUERY_ALIAS_COLUMN_MAP = {
     "replay_id": _strip_uuid_dashes("replay_id", Column("replay_id")),
-    "replayType": _grouped_unique_scalar_value(column_name="replay_type", alias="replayType"),
-    "projectId": Function(
+    "replay_type": _grouped_unique_scalar_value(column_name="replay_type", alias="replay_type"),
+    "project_id": Function(
         "toString",
         parameters=[_grouped_unique_scalar_value(column_name="project_id", alias="agg_pid")],
         alias="projectId",
@@ -495,7 +511,7 @@ QUERY_ALIAS_COLUMN_MAP = {
     ),
     "releases": _grouped_unique_values(column_name="release", alias="releases", aliased=True),
     "dist": _grouped_unique_scalar_value(column_name="dist"),
-    "traceIds": Function(
+    "trace_ids": Function(
         "arrayMap",
         parameters=[
             Lambda(
@@ -509,7 +525,7 @@ QUERY_ALIAS_COLUMN_MAP = {
         ],
         alias="traceIds",
     ),
-    "errorIds": Function(
+    "error_ids": Function(
         "arrayMap",
         parameters=[
             Lambda(["error_id"], _strip_uuid_dashes("error_id", Identifier("error_id"))),
@@ -520,11 +536,13 @@ QUERY_ALIAS_COLUMN_MAP = {
         ],
         alias="errorIds",
     ),
-    "startedAt": Function("min", parameters=[Column("replay_start_timestamp")], alias="startedAt"),
-    "finishedAt": Function("max", parameters=[Column("timestamp")], alias="finishedAt"),
+    "started_at": Function(
+        "min", parameters=[Column("replay_start_timestamp")], alias="started_at"
+    ),
+    "finished_at": Function("max", parameters=[Column("timestamp")], alias="finished_at"),
     "duration": Function(
         "dateDiff",
-        parameters=["second", Column("startedAt"), Column("finishedAt")],
+        parameters=["second", Column("started_at"), Column("finished_at")],
         alias="duration",
     ),
     "urls_sorted": _sorted_aggregated_urls(Column("agg_urls"), "urls_sorted"),
@@ -533,13 +551,18 @@ QUERY_ALIAS_COLUMN_MAP = {
         parameters=[Function("tuple", parameters=[Column("segment_id"), Column("urls")])],
         alias="agg_urls",
     ),
-    "countSegments": Function("count", parameters=[Column("segment_id")], alias="countSegments"),
-    "countErrors": Function(
+    "count_segments": Function("count", parameters=[Column("segment_id")], alias="count_segments"),
+    "count_errors": Function(
         "uniqArray",
         parameters=[Column("error_ids")],
-        alias="countErrors",
+        alias="count_errors",
     ),
-    "isArchived": Function(
+    "count_urls": Function(
+        "length",
+        parameters=[Column("urls_sorted")],
+        alias="count_urls",
+    ),
+    "is_archived": Function(
         "notEmpty",
         parameters=[Function("groupArray", parameters=[Column("is_archived")])],
         alias="isArchived",
@@ -548,7 +571,7 @@ QUERY_ALIAS_COLUMN_MAP = {
     "user_id": _grouped_unique_scalar_value(column_name="user_id"),
     "user_email": _grouped_unique_scalar_value(column_name="user_email"),
     "user_name": _grouped_unique_scalar_value(column_name="user_name"),
-    "user_ipAddress": Function(
+    "user_ip": Function(
         "IPv4NumToString",
         parameters=[
             _grouped_unique_scalar_value(
@@ -556,7 +579,7 @@ QUERY_ALIAS_COLUMN_MAP = {
                 aliased=False,
             )
         ],
-        alias="user_ipAddress",
+        alias="user_ip",
     ),
     "os_name": _grouped_unique_scalar_value(column_name="os_name"),
     "os_version": _grouped_unique_scalar_value(column_name="os_version"),
@@ -575,8 +598,8 @@ QUERY_ALIAS_COLUMN_MAP = {
 
 def collect_aliases(fields: List[str]) -> List[str]:
     """Return a unique list of aliases required to satisfy the fields."""
-    # isArchived is a required field.  It must always be selected.
-    result = {"isArchived"}
+    # is_archived is a required field.  It must always be selected.
+    result = {"is_archived"}
 
     saw_tags = False
     for field in fields:

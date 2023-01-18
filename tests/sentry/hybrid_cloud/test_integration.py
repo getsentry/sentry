@@ -238,6 +238,18 @@ class OrganizationIntegrationServiceTest(BaseIntegrationServiceTest):
         )
         assert result is None
 
+    def test_get_organization_context(self):
+        new_org = self.create_organization()
+        with exempt_from_silo_limits():
+            org_integration = self.integration3.add_organization(new_org)
+
+        result_integration, result_org_integration = integration_service.get_organization_context(
+            organization_id=new_org.id,
+            provider="example",
+        )
+        self.verify_integration_result(result=result_integration, expected=self.integration3)
+        self.verify_org_integration_result(result=result_org_integration, expected=org_integration)
+
     @freeze_time()
     def test_update_organization_integrations(self):
         now = datetime.now(timezone.utc)

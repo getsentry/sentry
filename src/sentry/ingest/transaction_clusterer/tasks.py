@@ -66,3 +66,7 @@ def cluster_projects(projects: Sequence[Project]) -> None:
                 clusterer.add_input(redis.get_transaction_names(project))
                 new_rules = clusterer.get_rules()
                 rules.update_rules(project, new_rules)
+
+                # Clear transaction names to prevent the set from picking up
+                # noise over a long time range.
+                redis.clear_transaction_names(project)

@@ -21,7 +21,7 @@ from sentry.utils.json import JSONData
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.safe import get_path
 
-SUPPORTED_LANGUAGES = ["javascript", "python"]
+SUPPORTED_LANGUAGES = ["javascript", "python", "node", "ruby"]
 
 logger = logging.getLogger(__name__)
 
@@ -146,7 +146,6 @@ def get_installation(
     )
 
     if not integration or not organization_integration:
-        logger.exception(f"Github integration not found for {organization.id}")
         return None, None
 
     installation = integration_service.get_installation(

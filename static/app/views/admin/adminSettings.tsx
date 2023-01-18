@@ -29,6 +29,15 @@ const optionsAvailable = [
   'performance.issues.n_plus_one_api_calls.la-rollout',
   'performance.issues.n_plus_one_api_calls.ea-rollout',
   'performance.issues.n_plus_one_api_calls.ga-rollout',
+  'performance.issues.compressed_assets.problem-creation',
+  'performance.issues.compressed_assets.la-rollout',
+  'performance.issues.compressed_assets.ea-rollout',
+  'performance.issues.compressed_assets.ga-rollout',
+  'performance.issues.file_io_main_thread.problem-creation',
+  'performance.issues.slow_span.problem-creation',
+  'performance.issues.slow_span.la-rollout',
+  'performance.issues.slow_span.ea-rollout',
+  'performance.issues.slow_span.ga-rollout',
 ];
 
 type Field = ReturnType<typeof getOption>;
@@ -122,6 +131,24 @@ export default class AdminSettings extends AsyncView<{}, State> {
               {fields['performance.issues.n_plus_one_api_calls.la-rollout']}
               {fields['performance.issues.n_plus_one_api_calls.ea-rollout']}
               {fields['performance.issues.n_plus_one_api_calls.ga-rollout']}
+            </Panel>
+            <Panel>
+              <PanelHeader>Performance Issues - Compressed Assets Detector</PanelHeader>
+              {fields['performance.issues.compressed_assets.problem-creation']}
+              {fields['performance.issues.compressed_assets.la-rollout']}
+              {fields['performance.issues.compressed_assets.ea-rollout']}
+              {fields['performance.issues.compressed_assets.ga-rollout']}
+            </Panel>
+            <Panel>
+              <PanelHeader>Performance Issues - File IO on Main Thread</PanelHeader>
+              {fields['performance.issues.file_io_main_thread.problem-creation']}
+            </Panel>
+            <Panel>
+              <PanelHeader>Performance Issues - Slow DB Span Detector</PanelHeader>
+              {fields['performance.issues.slow_span.problem-creation']}
+              {fields['performance.issues.slow_span.la-rollout']}
+              {fields['performance.issues.slow_span.ea-rollout']}
+              {fields['performance.issues.slow_span.ga-rollout']}
             </Panel>
           </Feature>
         </Form>

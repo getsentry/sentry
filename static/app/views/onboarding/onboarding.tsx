@@ -3,7 +3,7 @@ import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion, MotionProps, useAnimation} from 'framer-motion';
 
-import Button, {ButtonProps} from 'sentry/components/button';
+import {Button, ButtonProps} from 'sentry/components/button';
 import Hook from 'sentry/components/hook';
 import Link from 'sentry/components/links/link';
 import LogoSentry from 'sentry/components/logoSentry';
@@ -15,6 +15,7 @@ import {Organization, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import Redirect from 'sentry/utils/redirect';
 import testableTransition from 'sentry/utils/testableTransition';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
 import withProjects from 'sentry/utils/withProjects';
 import PageCorners from 'sentry/views/onboarding/components/pageCorners';
@@ -27,7 +28,6 @@ import {usePersistedOnboardingState} from './utils';
 import TargetedOnboardingWelcome from './welcome';
 
 type RouteParams = {
-  orgId: string;
   step: string;
 };
 
@@ -105,11 +105,10 @@ function Onboarding(props: Props) {
     if (!stepObj) {
       return;
     }
-
     if (step.cornerVariant !== stepObj.cornerVariant) {
       cornerVariantControl.start('none');
     }
-    browserHistory.push(`/onboarding/${props.params.orgId}/${step.id}/`);
+    browserHistory.push(normalizeUrl(`/onboarding/${organization.slug}/${step.id}/`));
   };
 
   const goNextStep = (step: StepDescriptor) => {
@@ -118,7 +117,7 @@ function Onboarding(props: Props) {
     if (step.cornerVariant !== nextStep.cornerVariant) {
       cornerVariantControl.start('none');
     }
-    browserHistory.push(`/onboarding/${props.params.orgId}/${nextStep.id}/`);
+    browserHistory.push(normalizeUrl(`/onboarding/${organization.slug}/${nextStep.id}/`));
   };
 
   const handleGoBack = () => {
@@ -135,7 +134,9 @@ function Onboarding(props: Props) {
     if (stepObj.cornerVariant !== previousStep.cornerVariant) {
       cornerVariantControl.start('none');
     }
-    browserHistory.replace(`/onboarding/${props.params.orgId}/${previousStep.id}/`);
+    browserHistory.replace(
+      normalizeUrl(`/onboarding/${organization.slug}/${previousStep.id}/`)
+    );
   };
 
   const genSkipOnboardingLink = () => {
@@ -154,7 +155,9 @@ function Onboarding(props: Props) {
             });
           }
         }}
-        to={`/organizations/${organization.slug}/issues/?referrer=onboarding-skip`}
+        to={normalizeUrl(
+          `/organizations/${organization.slug}/issues/?referrer=onboarding-skip`
+        )}
       >
         {t('Skip Onboarding')}
       </SkipOnboardingLink>
@@ -162,7 +165,11 @@ function Onboarding(props: Props) {
   };
 
   if (!stepObj || stepIndex === -1) {
-    return <Redirect to={`/onboarding/${organization.slug}/${onboardingSteps[0].id}/`} />;
+    return (
+      <Redirect
+        to={normalizeUrl(`/onboarding/${organization.slug}/${onboardingSteps[0].id}/`)}
+      />
+    );
   }
   return (
     <OnboardingWrapper data-test-id="targeted-onboarding">
@@ -193,7 +200,7 @@ function Onboarding(props: Props) {
                 data-test-id={`onboarding-step-${stepObj.id}`}
                 stepIndex={stepIndex}
                 onComplete={() => stepObj && goNextStep(stepObj)}
-                orgId={props.params.orgId}
+                orgId={organization.slug}
                 organization={props.organization}
                 search={props.location.search}
                 {...{

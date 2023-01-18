@@ -23,7 +23,7 @@ type Props = Pick<
   hideGuide?: boolean;
 };
 
-function StackTrace({
+export function StackTraceV2({
   projectId,
   event,
   data,
@@ -96,5 +96,3 @@ function StackTrace({
     </TraceEventDataSection>
   );
 }
-
-export default StackTrace;

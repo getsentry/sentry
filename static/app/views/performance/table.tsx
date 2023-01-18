@@ -137,7 +137,7 @@ class _Table extends Component<Props, State> {
               }}
             />
           ),
-          {modalCss, backdrop: 'static'}
+          {modalCss, closeEvents: 'escape-key'}
         );
         return;
       }

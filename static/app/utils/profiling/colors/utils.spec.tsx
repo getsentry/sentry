@@ -2,7 +2,7 @@ import {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
 import {
   makeColorBucketTheme,
   makeColorMap,
-  makeColorMapByImage,
+  makeColorMapByLibrary,
   makeColorMapByRecursion,
   makeStackToColor,
 } from 'sentry/utils/profiling/colors/utils';
@@ -100,9 +100,8 @@ describe('makeColorMap', () => {
     const b = f(1, 'b');
 
     b.frame = a.frame;
-    const frames = [a, b];
 
-    const map = makeColorMap(frames, makeColorBucketTheme(LCH_LIGHT));
+    const map = makeColorMap([a, b], makeColorBucketTheme(LCH_LIGHT));
     expect(map.get(a.key)).toEqual(map.get(b.key));
   });
   it('default colors by frame name', () => {
@@ -116,19 +115,6 @@ describe('makeColorMap', () => {
     expect(getDominantColor(map.get(1))).toBe('blue');
   });
 
-  it('colors by custom sort', () => {
-    // Reverse order to ensure we actually sort
-    const frames = [f(1, 'c'), f(2, 'b'), f(3, 'a')];
-
-    const map = makeColorMap(frames, makeColorBucketTheme(LCH_LIGHT), (a, b) =>
-      b.frame.name > a.frame.name ? 1 : -1
-    );
-
-    expect(getDominantColor(map.get(3))).toBe('blue');
-    expect(getDominantColor(map.get(2))).toBe('green');
-    expect(getDominantColor(map.get(1))).toBe('red');
-  });
-
   it('colors by image', () => {
     // Reverse order to ensure we actually sort
     const frames = [
@@ -137,7 +123,7 @@ describe('makeColorMap', () => {
       f(3, 'a', undefined, 'a'),
     ];
 
-    const map = makeColorMapByImage(frames, makeColorBucketTheme(LCH_LIGHT));
+    const map = makeColorMapByLibrary(frames, makeColorBucketTheme(LCH_LIGHT));
 
     expect(getDominantColor(map.get(3))).toBe('red');
     expect(getDominantColor(map.get(2))).toBe('green');

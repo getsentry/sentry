@@ -3,16 +3,14 @@ import {WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import capitalize from 'lodash/capitalize';
 
-import MenuItemActionLink from 'sentry/components/actions/menuItemActionLink';
 import AsyncComponent from 'sentry/components/asyncComponent';
-import Button from 'sentry/components/button';
-import DropdownLink from 'sentry/components/dropdownLink';
-import EmptyMessage from 'sentry/components/emptyMessage';
+import {Button} from 'sentry/components/button';
+import Confirm from 'sentry/components/confirm';
 import IntegrationExternalMappingForm from 'sentry/components/integrationExternalMappingForm';
 import Pagination from 'sentry/components/pagination';
-import {Panel, PanelBody, PanelHeader, PanelItem} from 'sentry/components/panels';
+import {PanelTable} from 'sentry/components/panels';
 import Tooltip from 'sentry/components/tooltip';
-import {IconAdd, IconArrow, IconEllipsis, IconQuestion} from 'sentry/icons';
+import {IconAdd, IconArrow, IconDelete, IconQuestion} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import PluginIcon from 'sentry/plugins/components/pluginIcon';
 import space from 'sentry/styles/space';
@@ -23,7 +21,7 @@ import {
   Integration,
   Organization,
 } from 'sentry/types';
-import {getIntegrationIcon, isExternalActorMapping} from 'sentry/utils/integrationUtil';
+import {isExternalActorMapping} from 'sentry/utils/integrationUtil';
 // eslint-disable-next-line no-restricted-imports
 import withSentryRouter from 'sentry/utils/withSentryRouter';
 
@@ -153,41 +151,29 @@ class IntegrationExternalMappings extends AsyncComponent<Props, State> {
     );
   }
 
-  renderMappingOptions(mapping: ExternalActorMappingOrSuggestion) {
+  renderMappingActions(mapping: ExternalActorMappingOrSuggestion) {
     const {type, onDelete, organization} = this.props;
     const canDelete = organization.access.includes('org:integrations');
     return isExternalActorMapping(mapping) ? (
-      <Tooltip
-        title={t(
-          'You must be an organization owner, manager or admin to delete an external user mapping.'
-        )}
-        disabled={canDelete}
+      <Confirm
+        disabled={!canDelete}
+        onConfirm={() => onDelete(mapping)}
+        message={t('Are you sure you want to remove this external %s mapping?', type)}
       >
-        <DropdownLink
-          anchorRight
-          disabled={!canDelete}
-          customTitle={
-            <Button
-              borderless
-              size="sm"
-              icon={<IconEllipsisVertical size="sm" />}
-              aria-label={t('Actions')}
-              data-test-id="mapping-option"
-              disabled={!canDelete}
-            />
+        <Button
+          borderless
+          size="sm"
+          icon={<IconDelete size="sm" />}
+          aria-label={t('Remove user mapping')}
+          title={
+            canDelete
+              ? t('Remove user mapping')
+              : t(
+                  'You must be an organization owner, manager or admin to delete an external user mapping.'
+                )
           }
-        >
-          <MenuItemActionLink
-            shouldConfirm
-            message={t('Are you sure you want to remove this external %s mapping?', type)}
-            onAction={() => onDelete(mapping)}
-            aria-label={t('Delete External %s', capitalize(type))}
-            data-test-id="delete-mapping-button"
-          >
-            <RedText>{t('Delete')}</RedText>
-          </MenuItemActionLink>
-        </DropdownLink>
-      </Tooltip>
+        />
+      </Confirm>
     ) : (
       <Tooltip
         title={t('This %s mapping suggestion was generated from a CODEOWNERS file', type)}
@@ -211,54 +197,39 @@ class IntegrationExternalMappings extends AsyncComponent<Props, State> {
     const {integration, type, onCreate, pageLinks} = this.props;
     return (
       <Fragment>
-        <Panel>
-          <PanelHeader disablePadding hasButtons>
-            <HeaderLayout>
-              <ExternalNameColumn header>
-                {tct('External [type]', {type})}
+        <MappingTable
+          data-test-id="mapping-table"
+          isEmpty={!this.allMappings.length}
+          emptyMessage={tct('Set up External [type] Mappings.', {type: capitalize(type)})}
+          headers={[
+            tct('External [type]', {type}),
+            <IconArrow key="arrow" direction="right" size="sm" />,
+            tct('Sentry [type]', {type}),
+            <AddButton
+              key="delete-button"
+              data-test-id="add-mapping-button"
+              onClick={() => onCreate()}
+              size="xs"
+              icon={<IconAdd size="xs" isCircled />}
+            >
+              {tct('Add [type] Mapping', {type})}
+            </AddButton>,
+          ]}
+        >
+          {this.allMappings.map((mapping, index) => (
+            <Fragment key={index}>
+              <ExternalNameColumn>
+                <StyledPluginIcon pluginId={integration.provider.key} size={19} />
+                <span>{mapping.externalName}</span>
               </ExternalNameColumn>
-              <ArrowColumn>
-                <IconArrow direction="right" size="md" />
-              </ArrowColumn>
-              <SentryNameColumn>{tct('Sentry [type]', {type})}</SentryNameColumn>
-              <ButtonColumn>
-                <AddButton
-                  data-test-id="add-mapping-button"
-                  onClick={() => onCreate()}
-                  size="xs"
-                  icon={<IconAdd size="xs" isCircled />}
-                >
-                  <ButtonText>{tct('Add [type] Mapping', {type})}</ButtonText>
-                </AddButton>
-              </ButtonColumn>
-            </HeaderLayout>
-          </PanelHeader>
-          <PanelBody data-test-id="mapping-table">
-            {!this.allMappings.length && (
-              <EmptyMessage
-                icon={getIntegrationIcon(integration.provider.key, 'lg')}
-                data-test-id="empty-message"
-              >
-                {tct('Set up External [type] Mappings.', {type: capitalize(type)})}
-              </EmptyMessage>
-            )}
-            {this.allMappings.map((mapping, index) => (
-              <ConfigPanelItem key={index}>
-                <Layout>
-                  <ExternalNameColumn>
-                    <StyledPluginIcon pluginId={integration.provider.key} size={19} />
-                    <span>{mapping.externalName}</span>
-                  </ExternalNameColumn>
-                  <ArrowColumn>
-                    <IconArrow direction="right" size="md" />
-                  </ArrowColumn>
-                  <SentryNameColumn>{this.renderMappingName(mapping)}</SentryNameColumn>
-                  <ButtonColumn>{this.renderMappingOptions(mapping)}</ButtonColumn>
-                </Layout>
-              </ConfigPanelItem>
-            ))}
-          </PanelBody>
-        </Panel>
+              <div>
+                <IconArrow direction="right" size="sm" color="gray300" />
+              </div>
+              <ExternalForm>{this.renderMappingName(mapping)}</ExternalForm>
+              <div>{this.renderMappingActions(mapping)}</div>
+            </Fragment>
+          ))}
+        </MappingTable>
         <Pagination pageLinks={pageLinks} />
       </Fragment>
     );
@@ -267,37 +238,32 @@ class IntegrationExternalMappings extends AsyncComponent<Props, State> {
 
 export default withSentryRouter(IntegrationExternalMappings);
 
-const AddButton = styled(Button)`
-  text-transform: capitalize;
-  height: inherit;
-`;
+const MappingTable = styled(PanelTable)`
+  overflow: visible;
+  grid-template-columns: 1fr max-content 1fr 66px;
 
-const ButtonText = styled('div')`
-  white-space: break-spaces;
-`;
+  ${p =>
+    !p.isEmpty
+      ? `
+  > :nth-child(n + 5) {
+    display: flex;
+    align-items: center;
+    padding: ${space(1.5)} ${space(2)};
+  }
 
-const Layout = styled('div')`
-  display: grid;
-  grid-column-gap: ${space(1)};
-  padding: ${space(1)};
-  width: 100%;
-  align-items: center;
-  grid-template-columns: 2.25fr 50px 2.75fr 100px;
-  grid-template-areas: 'external-name arrow sentry-name button';
-`;
+  > * {
+    padding: ${space(1)} ${space(2)};
+  }
+`
+      : `
+  > :not(:nth-child(n + 5)) {
+    padding: ${space(1)} ${space(2)};
+  }`}
 
-const HeaderLayout = styled(Layout)`
-  align-items: center;
-  padding: 0 ${space(1)} 0 ${space(2)};
-  text-transform: uppercase;
-`;
-
-const ConfigPanelItem = styled(PanelItem)`
-  padding: 0 ${space(1)};
-`;
-
-const IconEllipsisVertical = styled(IconEllipsis)`
-  transform: rotate(90deg);
+  > :nth-child(4n) {
+    padding-right: ${space(1)};
+    justify-content: end;
+  }
 `;
 
 const StyledPluginIcon = styled(PluginIcon)`
@@ -305,34 +271,14 @@ const StyledPluginIcon = styled(PluginIcon)`
   margin-right: ${space(2)};
 `;
 
-// Columns below
-const Column = styled('span')`
-  overflow: hidden;
-  overflow-wrap: break-word;
+const ExternalNameColumn = styled('div')`
+  font-family: ${p => p.theme.text.familyMono};
 `;
 
-const ExternalNameColumn = styled(Column)<{header?: boolean}>`
-  grid-area: external-name;
-  display: flex;
-  align-items: center;
-  font-family: ${p => (p.header ? 'inherit' : p.theme.text.familyMono)};
+const AddButton = styled(Button)`
+  align-self: end;
 `;
 
-const ArrowColumn = styled(Column)`
-  grid-area: arrow;
-`;
-
-const SentryNameColumn = styled(Column)`
-  grid-area: sentry-name;
-  overflow: visible;
-`;
-
-const ButtonColumn = styled(Column)`
-  grid-area: button;
-  text-align: right;
-  overflow: visible;
-`;
-
-const RedText = styled('span')`
-  color: ${p => p.theme.errorText};
+const ExternalForm = styled('div')`
+  width: 100%;
 `;

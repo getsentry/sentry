@@ -21,6 +21,7 @@ export const DEFAULT_FLAMEGRAPH_STATE: FlamegraphState = {
   },
   preferences: {
     timelines: {
+      ui_frames: true,
       minimap: true,
       transaction_spans: true,
     },
@@ -32,7 +33,10 @@ export const DEFAULT_FLAMEGRAPH_STATE: FlamegraphState = {
   },
   search: {
     index: null,
-    results: new Map(),
+    results: {
+      frames: new Map(),
+      spans: new Map(),
+    },
     query: '',
   },
 };

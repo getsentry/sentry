@@ -2,7 +2,7 @@ import {Fragment, PureComponent} from 'react';
 import styled from '@emotion/styled';
 
 import UserAvatar from 'sentry/components/avatar/userAvatar';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import Link from 'sentry/components/links/link';
@@ -191,7 +191,13 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
               <Button
                 disabled
                 size="sm"
-                title={t('You do not have access to remove members')}
+                title={
+                  isIdpProvisioned
+                    ? t(
+                        "This user is managed through your organization's identity provider."
+                      )
+                    : t('You do not have access to remove members')
+                }
                 icon={<IconSubtract isCircled size="xs" />}
               >
                 {t('Remove')}
@@ -211,27 +217,20 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
               </Confirm>
             )}
 
-            {showLeaveButton && !memberCanLeave && !isIdpProvisioned && (
+            {showLeaveButton && !memberCanLeave && (
               <Button
                 size="sm"
                 icon={<IconClose size="xs" />}
                 disabled
-                title={t(
-                  'You cannot leave this organization as you are the only organization owner.'
-                )}
-              >
-                {t('Leave')}
-              </Button>
-            )}
-
-            {showLeaveButton && !memberCanLeave && isIdpProvisioned && (
-              <Button
-                size="sm"
-                icon={<IconClose size="xs" />}
-                disabled
-                title={t(
-                  "This user is managed through your organization's identity provider."
-                )}
+                title={
+                  isIdpProvisioned
+                    ? t(
+                        "Your account is managed through your organization's identity provider."
+                      )
+                    : t(
+                        'You cannot leave this organization as you are the only organization owner.'
+                      )
+                }
               >
                 {t('Leave')}
               </Button>

@@ -9,7 +9,7 @@ import momentTimezone from 'moment-timezone';
 
 import {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import {AreaChart, AreaChartSeries} from 'sentry/components/charts/areaChart';
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import MarkArea from 'sentry/components/charts/components/markArea';
@@ -44,6 +44,7 @@ import getDynamicText from 'sentry/utils/getDynamicText';
 import {MINUTES_THRESHOLD_TO_DISPLAY_SECONDS} from 'sentry/utils/sessions';
 import theme from 'sentry/utils/theme';
 import toArray from 'sentry/utils/toArray';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 // eslint-disable-next-line no-restricted-imports
 import withSentryRouter from 'sentry/utils/withSentryRouter';
 import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/rules/metric/constants';
@@ -263,10 +264,12 @@ class MetricChart extends PureComponent<Props, State> {
     }
 
     const handleIncidentClick = (incident: Incident) => {
-      router.push({
-        pathname: alertDetailsLink(organization, incident),
-        query: {alert: incident.identifier},
-      });
+      router.push(
+        normalizeUrl({
+          pathname: alertDetailsLink(organization, incident),
+          query: {alert: incident.identifier},
+        })
+      );
     };
 
     const {criticalDuration, warningDuration, totalDuration, chartOption} =

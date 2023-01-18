@@ -319,9 +319,8 @@ class IntegrationInstallation:
 
     def get_default_identity(self) -> Identity | None:
         """For Integrations that rely solely on user auth for authentication."""
-
         if not self.org_integration:
-            return None
+            raise Identity.DoesNotExist
         return Identity.objects.get(id=self.org_integration.default_auth_id)
 
     def error_message_from_json(self, data: Mapping[str, Any]) -> Any:

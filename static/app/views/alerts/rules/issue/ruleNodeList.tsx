@@ -68,10 +68,11 @@ const createSelectOptions = (
 
     return {
       value: node,
+      plainTextLabel: node.prompt ?? node.label,
       label: (
         <Fragment>
           {isNew && <StyledFeatureBadge type="new" noTooltip />}
-          {node.prompt?.length ? node.prompt : node.label}
+          {node.prompt ?? node.label}
         </Fragment>
       ),
     };

@@ -3,7 +3,7 @@ import {browserHistory, RouteComponentProps} from 'react-router';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {removeTeam, updateTeamSuccess} from 'sentry/actionCreators/teams';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import Form, {FormProps} from 'sentry/components/forms/form';
@@ -17,7 +17,7 @@ import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
 import AsyncView from 'sentry/views/asyncView';
 
-type Props = RouteComponentProps<{orgId: string; teamId: string}, {}> & {
+type Props = RouteComponentProps<{teamId: string}, {}> & {
   organization: Organization;
   team: Team;
 };

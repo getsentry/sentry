@@ -24,6 +24,7 @@ from sentry.testutils.performance_issues.store_transaction import PerfIssueTrans
 from sentry.testutils.silo import region_silo_test
 from sentry.types.integrations import ExternalProviders
 from sentry.types.issues import GroupType
+from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
 
 @region_silo_test
@@ -434,7 +435,7 @@ class PerformanceGroupSerializerSnubaTest(
         proj = self.create_project()
         environment = self.create_environment(project=proj)
 
-        first_group_fingerprint = f"{GroupType.PERFORMANCE_SLOW_SPAN.value}-group1"
+        first_group_fingerprint = f"{GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN.value}-group1"
         timestamp = timezone.now() - timedelta(days=5)
         times = 5
         for _ in range(0, times):
@@ -468,4 +469,53 @@ class PerformanceGroupSerializerSnubaTest(
         assert result["userCount"] == 2
         assert iso_format(result["lastSeen"]) == iso_format(timestamp + timedelta(minutes=2))
         assert iso_format(result["firstSeen"]) == iso_format(timestamp + timedelta(minutes=1))
+        assert result["count"] == str(times + 1)
+
+
+@region_silo_test
+class ProfilingGroupSerializerSnubaTest(
+    APITestCase,
+    SnubaTestCase,
+    SearchIssueTestMixin,
+):
+    def test_profiling_seen_stats(self):
+        proj = self.create_project()
+        environment = self.create_environment(project=proj)
+
+        first_group_fingerprint = f"{GroupType.PROFILE_BLOCKED_THREAD.value}-group1"
+        timestamp = timezone.now().replace(hour=0, minute=0, second=0)
+        times = 5
+        for incr in range(0, times):
+            # for user_0 - user_4, first_group
+            self.store_search_issue(
+                proj.id,
+                incr,
+                [first_group_fingerprint],
+                environment.name,
+                timestamp + timedelta(minutes=incr),
+            )
+
+        # user_5, another_group
+        event, issue_occurrence, group_info = self.store_search_issue(
+            proj.id,
+            5,
+            [first_group_fingerprint],
+            environment.name,
+            timestamp + timedelta(minutes=5),
+        )
+
+        first_group = group_info.group
+
+        result = serialize(
+            first_group,
+            serializer=GroupSerializerSnuba(
+                environment_ids=[environment.id],
+                start=timestamp - timedelta(days=1),
+                end=timestamp + timedelta(days=1),
+            ),
+        )
+
+        assert result["userCount"] == 6
+        assert iso_format(result["lastSeen"]) == iso_format(timestamp + timedelta(minutes=5))
+        assert iso_format(result["firstSeen"]) == iso_format(timestamp)
         assert result["count"] == str(times + 1)
