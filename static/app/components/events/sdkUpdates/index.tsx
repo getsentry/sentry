@@ -1,4 +1,4 @@
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {t, tct} from 'sentry/locale';
 import {Event} from 'sentry/types/event';

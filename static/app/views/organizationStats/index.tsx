@@ -63,7 +63,7 @@ export const PAGE_QUERY_PARAMS = [
 type Props = {
   organization: Organization;
   selection: PageFilters;
-} & RouteComponentProps<{orgId: string}, {}>;
+} & RouteComponentProps<{}, {}>;
 
 export class OrganizationStats extends Component<Props> {
   get dataCategory(): DataCategory {

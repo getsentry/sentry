@@ -14,6 +14,7 @@ import Form, {FormProps} from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import {FieldValue} from 'sentry/components/forms/model';
 import Hook from 'sentry/components/hook';
+import ExternalLink from 'sentry/components/links/externalLink';
 import {removePageFiltersStorage} from 'sentry/components/organizations/pageFilters/persistence';
 import {Panel, PanelAlert, PanelHeader} from 'sentry/components/panels';
 import {fields} from 'sentry/data/forms/projectGeneralSettings';
@@ -311,9 +312,9 @@ class ProjectGeneralSettings extends AsyncView<Props, State> {
                     'Configure origin URLs which Sentry should accept events from. This is used for communication with clients like [link].',
                     {
                       link: (
-                        <a href="https://github.com/getsentry/sentry-javascript">
+                        <ExternalLink href="https://github.com/getsentry/sentry-javascript">
                           sentry-javascript
-                        </a>
+                        </ExternalLink>
                       ),
                     }
                   )}{' '}

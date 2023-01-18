@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import {ExportProfileButton} from 'sentry/components/profiling/exportProfileButton';
 import {t} from 'sentry/locale';
 import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
+import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 
 interface FlamegraphWarningProps {
@@ -10,6 +11,7 @@ interface FlamegraphWarningProps {
 }
 
 export function FlamegraphWarnings(props: FlamegraphWarningProps) {
+  const orgSlug = useOrganization().slug;
   const params = useParams();
 
   // A profile may be empty while we are fetching it from the network; while that is happening an empty profile is
@@ -30,15 +32,11 @@ export function FlamegraphWarnings(props: FlamegraphWarningProps) {
           <ExportProfileButton
             variant="default"
             eventId={params.eventId}
-            orgId={params.orgId}
+            orgId={orgSlug}
             size="sm"
             projectId={params.projectId}
             title={undefined}
-            disabled={
-              params.eventId === undefined ||
-              params.orgId === undefined ||
-              params.projectId === undefined
-            }
+            disabled={params.eventId === undefined || params.projectId === undefined}
           >
             {t('Export Raw Profile')}
           </ExportProfileButton>

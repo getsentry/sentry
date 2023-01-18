@@ -1,4 +1,4 @@
-import React, {useCallback, useRef, useState} from 'react';
+import {useCallback, useRef, useState} from 'react';
 import {useResizeObserver} from '@react-aria/utils';
 
 type Dimensions = {height: number; width: number};

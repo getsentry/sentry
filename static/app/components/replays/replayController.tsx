@@ -1,4 +1,4 @@
-import React, {useCallback, useLayoutEffect, useRef, useState} from 'react';
+import {useCallback, useLayoutEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {useResizeObserver} from '@react-aria/utils';
 
@@ -89,7 +89,7 @@ function ReplayPlayPauseBar() {
         title={t('Next breadcrumb')}
         icon={<IconNext size="sm" />}
         onClick={() => {
-          const startTimestampMs = replay?.getReplay().startedAt?.getTime();
+          const startTimestampMs = replay?.getReplay().started_at?.getTime();
           if (!startTimestampMs) {
             return;
           }
