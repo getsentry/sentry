@@ -24,6 +24,7 @@ _DEV_METRICS_INDEXER_ARGS = [
     # Avoid Offset out of range errors.
     "--auto-offset-reset",
     "latest",
+    # TODO: we want to pass no-strict-offset-reset here
 ]
 
 _DEFAULT_DAEMONS = {
@@ -37,6 +38,7 @@ _DEFAULT_DAEMONS = {
         "--loglevel=debug",
         "--commit-batch-size=100",
         "--commit-batch-timeout-ms=1000",
+        "--no-strict-offset-reset",
     ],
     "post-process-forwarder-transactions": [
         "sentry",
@@ -48,9 +50,14 @@ _DEFAULT_DAEMONS = {
         "--commit-batch-timeout-ms=1000",
         "--commit-log-topic=snuba-transactions-commit-log",
         "--synchronize-commit-group=transactions_group",
+        "--no-strict-offset-reset",
     ],
     "ingest": ["sentry", "run", "ingest-consumer", "--all-consumer-types"],
+    # TODO: we would want to pass auto-offset-reset=latest and
+    # no-strict-offset-reset here but this consumer takes no
+    # arguments.
     "occurrences": ["sentry", "run", "occurrences-ingest-consumer"],
+    # TODO: this consumer does not take no-strict-offset-reset
     "region_to_control": ["sentry", "run", "region-to-control-consumer", "--region-name", "_local"],
     "server": ["sentry", "run", "web"],
     "storybook": ["yarn", "storybook"],
@@ -79,7 +86,9 @@ _DEFAULT_DAEMONS = {
         "performance",
         *_DEV_METRICS_INDEXER_ARGS,
     ],
+    # TODO: we want to pass no-strict-offset-reset here
     "metrics-billing": ["sentry", "run", "billing-metrics-consumer"],
+    # TODO: we want to pass no-strict-offset-reset here
     "profiles": ["sentry", "run", "ingest-profiles"],
 }
 
