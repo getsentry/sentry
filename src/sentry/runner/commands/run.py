@@ -72,7 +72,7 @@ def strict_offset_reset_option():
         default=True,
         help=(
             "--strict-offset-reset, the default, means that the kafka consumer "
-            "still errors in case the offset has expired.\n\n"
+            "still errors in case the offset is out of range.\n\n"
             "--no-strict-offset-reset will use the auto offset reset even in that case. "
             "This is useful in development, but not desirable in production since expired "
             "offsets mean data-loss.\n\n"
