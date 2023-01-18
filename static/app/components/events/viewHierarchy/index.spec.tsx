@@ -1,4 +1,4 @@
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import {ViewHierarchy} from '.';
 
@@ -44,7 +44,7 @@ const MOCK_DATA = {
 };
 
 describe('View Hierarchy', function () {
-  it('can continue to make selections for inspecting data', function () {
+  it('can continue make selections for inspecting data', function () {
     render(<ViewHierarchy viewHierarchy={MOCK_DATA} />);
 
     // 1 for the tree node, 1 for the details panel header
@@ -65,6 +65,24 @@ describe('View Hierarchy', function () {
     expect(screen.getByText('Nested Container - nested')).toBeInTheDocument();
   });
 
+  it('can expand and collapse by clicking the icon', function () {
+    render(<ViewHierarchy viewHierarchy={MOCK_DATA} />);
+
+    expect(screen.queryByText('Text')).toBeInTheDocument();
+
+    userEvent.click(
+      within(screen.getByLabelText('Nested Container - nested')).getByRole('button', {
+        name: 'Collapse',
+      })
+    );
+
+    expect(screen.queryByText('Text')).not.toBeInTheDocument();
+
+    userEvent.click(screen.getByRole('button', {name: 'Expand'}));
+
+    expect(screen.queryByText('Text')).toBeInTheDocument();
+  });
+
   it('can navigate with keyboard shortcuts after a selection', function () {
     render(<ViewHierarchy viewHierarchy={MOCK_DATA} />);
 
@@ -74,5 +92,19 @@ describe('View Hierarchy', function () {
 
     // 1 for the tree node, 1 for the details panel header
     expect(screen.getAllByText('Nested Container - nested')).toHaveLength(2);
+  });
+
+  it('can expand/collapse with the keyboard', function () {
+    render(<ViewHierarchy viewHierarchy={MOCK_DATA} />);
+
+    userEvent.click(screen.getAllByText('Nested Container - nested')[0]);
+
+    userEvent.keyboard('{Enter}');
+
+    expect(screen.queryByText('Text')).not.toBeInTheDocument();
+
+    userEvent.keyboard('{Enter}');
+
+    expect(screen.getByText('Text')).toBeInTheDocument();
   });
 });
