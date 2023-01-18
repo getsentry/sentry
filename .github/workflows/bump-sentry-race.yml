@@ -1,4 +1,4 @@
-name: bump sentry in getsentry
+name: bump sentry race
 
 # Serializes the execution of this workflow.
 concurrency:
@@ -7,7 +7,7 @@ concurrency:
 on:
   push:
     branches:
-      - master
+      - bukzor/bump-sentry-race
 
 defaults:
   run:
@@ -16,7 +16,7 @@ defaults:
     shell: bash --noprofile --norc -eo pipefail -ux {0}
 
 jobs:
-  bump-sentry:
+  bump-sentry-race:
     runs-on: ubuntu-20.04
     steps:
       - name: checkout
@@ -34,19 +34,26 @@ jobs:
           # who can write to getsentry and is SAML+SSO ready.
           token: ${{ secrets.BUMP_SENTRY_TOKEN }}
 
-      - name: bump-sentry ${{ github.sha }}
+      - name: bump-sentry-race ${{ github.sha }}
         run: |
           cd getsentry
 
           python -S -m bin.bump_sentry ${{ github.sha }}
 
+          : forcing the race {
+          git reset --hard HEAD^
+          date > date.txt
+          git add date.txt
+          git commit date -m 'bump-sentry-race: forcing the race'
+          : } forcing the race
+
           # If getsentry is pushed to by any other means while we were here,
           # we won't be able to push.
           for i in 1 2 3 4 5; do
-              git push origin master && exit 0
+              git push origin bukzor/bump-sentry-race && exit 0
               # There's a little bit of network delay here that suffices
               # as a small sleep.
-              git pull --rebase origin master
+              git pull --rebase origin bukzor/bump-sentry-race
           done
 
           # 5th and final attempt.
