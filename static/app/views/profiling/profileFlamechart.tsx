@@ -60,7 +60,7 @@ function ProfileFlamegraph(): React.ReactElement {
   useEffect(() => {
     trackAdvancedAnalyticsEvent('profiling_views.profile_flamegraph', {
       organization,
-      project: currentProject,
+      project_platform: currentProject?.platform,
     });
     // ignore  currentProject so we don't block the analytics event
     // or fire more than once unnecessarily

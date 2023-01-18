@@ -1,4 +1,4 @@
-import {Project} from 'sentry/types';
+import {PlatformKey} from 'sentry/data/platformCategories';
 
 export type ProfilingEventParameters = {
   'profiling_views.give_feedback_action': {};
@@ -10,13 +10,13 @@ export type ProfilingEventParameters = {
     action: 'done' | 'dismissed';
   };
   'profiling_views.profile_details': {
-    project: Project | undefined;
+    project_platform: PlatformKey | undefined;
   };
   'profiling_views.profile_flamegraph': {
-    project: Project | undefined;
+    project_platform: PlatformKey | undefined;
   };
   'profiling_views.profile_summary': {
-    project: Project | undefined;
+    project_platform: PlatformKey | undefined;
   };
   'profiling_views.visit_discord_channel': {};
 };

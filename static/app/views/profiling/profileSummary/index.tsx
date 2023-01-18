@@ -44,7 +44,7 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
   useEffect(() => {
     trackAdvancedAnalyticsEvent('profiling_views.profile_summary', {
       organization,
-      project,
+      project_platform: project?.platform,
     });
     // ignore  currentProject so we don't block the analytics event
     // or fire more than once unnecessarily
