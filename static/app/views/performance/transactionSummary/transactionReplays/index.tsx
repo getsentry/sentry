@@ -50,7 +50,13 @@ function TransactionReplays(props: Props) {
       renderDisabled={renderNoAccess}
     >
       <PageLayout
-        location={location}
+        location={{
+          ...location,
+          query: {
+            ...location.query,
+            statsPeriod: '14d',
+          },
+        }}
         organization={organization}
         projects={projects}
         tab={Tab.Replays}
