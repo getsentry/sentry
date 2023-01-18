@@ -648,6 +648,7 @@ def metrics_parallel_consumer(**options):
 @run.command("billing-metrics-consumer")
 @log_options()
 @batching_kafka_options("billing-metrics-consumer", max_batch_size=100)
+@no_strict_offset_reset_option()
 @configuration
 def metrics_billing_consumer(**options):
     from sentry.ingest.billing_metrics_consumer import get_metrics_billing_consumer
