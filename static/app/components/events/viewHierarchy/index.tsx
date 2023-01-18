@@ -44,7 +44,9 @@ function ViewHierarchy({viewHierarchy}: ViewHierarchyProps) {
     null
   );
   const [selectedWindow] = useState(0);
-  const [selectedNode, setSelectedNode] = useState<ViewHierarchyWindow | null>(null);
+  const [selectedNode, setSelectedNode] = useState<ViewHierarchyWindow | undefined>(
+    viewHierarchy.windows[0]
+  );
   const hierarchy = useMemo(() => {
     return [viewHierarchy.windows[selectedWindow]];
   }, [selectedWindow, viewHierarchy.windows]);
@@ -73,14 +75,10 @@ function ViewHierarchy({viewHierarchy}: ViewHierarchyProps) {
         tabIndex={selectedNodeIndex === r.key ? 0 : 1}
         onMouseEnter={handleRowMouseEnter}
         onKeyDown={handleRowKeyDown}
-        onClick={e => {
-          handleRowClick(e, selectedNode === r.item.node);
-          if (r.item.node !== selectedNode) {
-            setSelectedNode(r.item.node);
-          } else {
-            setSelectedNode(null);
-          }
+        onFocus={() => {
+          setSelectedNode(r.item.node);
         }}
+        onClick={handleRowClick}
       >
         {depthMarkers}
         <Node
@@ -89,7 +87,6 @@ function ViewHierarchy({viewHierarchy}: ViewHierarchyProps) {
           onExpandClick={() => handleExpandTreeNode(r.item, {expandChildren: false})}
           collapsible={!!r.item.node.children?.length}
           isExpanded={r.item.expanded}
-          isSelected={selectedNode === r.item.node}
           isFocused={selectedNodeIndex === r.key}
         />
       </TreeItem>
@@ -109,6 +106,7 @@ function ViewHierarchy({viewHierarchy}: ViewHierarchyProps) {
     tree: hierarchy,
     expanded: true,
     overscroll: 10,
+    initialSelectedNodeIndex: 0,
   });
 
   return (

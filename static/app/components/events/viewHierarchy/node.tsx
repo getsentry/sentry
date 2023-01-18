@@ -18,7 +18,6 @@ function Node({
   id,
   isExpanded,
   isFocused,
-  isSelected,
   onExpandClick,
   collapsible = false,
 }: NodeProps) {
@@ -38,7 +37,7 @@ function Node({
           <IconAdd legacySize="9px" color="white" />
         )}
       </IconWrapper>
-      <NodeTitle id={`${id}-title`} selected={isSelected} focused={isFocused}>
+      <NodeTitle id={`${id}-title`} focused={isFocused}>
         {label}
       </NodeTitle>
     </NodeContents>
@@ -53,17 +52,12 @@ const NodeContents = styled('div')`
   white-space: nowrap;
 `;
 
-const NodeTitle = styled('span')<{focused?: boolean; selected?: boolean}>`
+const NodeTitle = styled('span')<{focused?: boolean}>`
   cursor: pointer;
   ${({focused, theme}) =>
     focused &&
     `
     color: ${theme.white};
-  `}
-  ${({selected}) =>
-    selected &&
-    `
-    font-weight: bold;
   `}
 `;
 
