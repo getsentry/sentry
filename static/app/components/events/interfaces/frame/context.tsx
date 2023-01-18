@@ -1,5 +1,6 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
+import keyBy from 'lodash/keyBy';
 
 import ClippedBox from 'sentry/components/clippedBox';
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -53,17 +54,13 @@ type Props = {
 
 export function getCoverageColors(
   lines: [number, string][],
-  lineCoverage: LineCoverage[]
+  lineCov: LineCoverage[]
 ): Array<Color | 'transparent'> {
-  let coverageIndex = lineCoverage.findIndex(lc => lc.lineNo === lines[0][0]);
+  const lineCoverage = keyBy(lineCov, 'lineNo');
   return lines.map(line => {
-    const coverageLine = lineCoverage[coverageIndex];
-    let coverage = Coverage.NOT_APPLICABLE;
-    if (coverageLine?.lineNo === line[0]) {
-      coverage = coverageLine.coverage;
-      coverageIndex += 1;
-    }
-
+    const coverage = lineCoverage[line[0]]
+      ? lineCoverage[line[0]].coverage
+      : Coverage.NOT_APPLICABLE;
     switch (coverage) {
       case Coverage.COVERED:
         return 'green100';
