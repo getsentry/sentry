@@ -158,3 +158,21 @@ class MONITOR_PARAMS:
         type=OpenApiTypes.UUID,
         description="The id of the check-in",
     )
+
+
+class EVENT_PARAMS:
+    EVENT_ID = OpenApiParameter(
+        name="event_id",
+        location="path",
+        required=True,
+        type=OpenApiTypes.UUID,
+        description="The id of the event",
+    )
+
+    FRAME_IDX = OpenApiParameter(
+        name="frame_idx",
+        location="query",
+        required=True,  # TODO: make not required
+        type=int,
+        description="Index of the frame that should be used for source map resolution.",
+    )

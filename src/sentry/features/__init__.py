@@ -76,6 +76,7 @@ default_manager.add("organizations:discover-events-rate-limit", OrganizationFeat
 default_manager.add("organizations:discover-quick-context", OrganizationFeature, True)
 default_manager.add("organizations:discover-query-builder-as-landing-page", OrganizationFeature, True)
 default_manager.add("organizations:enterprise-perf", OrganizationFeature)
+default_manager.add("organizations:fix-source-map-cta", OrganizationFeature, True)
 default_manager.add("organizations:grouping-stacktrace-ui", OrganizationFeature, True)
 default_manager.add("organizations:grouping-title-ui", OrganizationFeature, True)
 default_manager.add("organizations:grouping-tree-ui", OrganizationFeature, True)
