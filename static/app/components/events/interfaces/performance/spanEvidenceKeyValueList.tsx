@@ -151,7 +151,7 @@ const DefaultSpanEvidence = ({event, offendingSpans}: SpanEvidenceKeyValueListPr
 );
 
 const PresortedKeyValueList = ({data}: {data: KeyValueListData}) => (
-  <KeyValueList isSorted={false} data={data} />
+  <KeyValueList shouldSort={false} data={data} />
 );
 
 const makeTransactionNameRow = (event: Event) => makeRow(t('Transaction'), event.title);
