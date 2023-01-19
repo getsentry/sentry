@@ -440,7 +440,8 @@ class MetricsLayerDatasetConfig(MetricsDatasetConfig):
     def _event_type_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
         """Not really a converter, check its transaction, error otherwise"""
         value = search_filter.value.value
-        if value == "transaction":
+        operator = search_filter.operator
+        if value == "transaction" and operator == "=":
             return None
 
         raise IncompatibleMetricsQuery("Can only filter event.type:transaction")
