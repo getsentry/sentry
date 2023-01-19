@@ -177,20 +177,23 @@ class RedisBuffer(Buffer):
         - Add hashmap key to pending flushes
         """
 
-        # TODO(dcramer): longer term we'd rather not have to serialize values
-        # here (unless it's to JSON)
         key = self._make_key(model, filters)
         pending_key = self._make_pending_key_from_key(key)
         # We can't use conn.map() due to wanting to support multiple pending
         # keys (one per Redis partition)
-        conn = self.cluster.get_local_client_for_key(key)
+        if self.is_redis_cluster:
+            conn = self.cluster
+        else:
+            conn = self.cluster.get_local_client_for_key(key)
 
         pipe = conn.pipeline()
         pipe.hsetnx(key, "m", f"{model.__module__}.{model.__name__}")
-        # TODO(dcramer): once this goes live in production, we can kill the pickle path
-        # (this is to ensure a zero downtime deploy where we can transition event processing)
-        pipe.hsetnx(key, "f", pickle.dumps(filters))
-        # pipe.hsetnx(key, 'f', json.dumps(self._dump_values(filters)))
+
+        if self.is_redis_cluster:
+            pipe.hsetnx(key, "f", json.dumps(self._dump_values(filters)))
+        else:
+            pipe.hsetnx(key, "f", pickle.dumps(filters))
+
         for column, amount in columns.items():
             pipe.hincrby(key, "i+" + column, amount)
 
@@ -199,10 +202,10 @@ class RedisBuffer(Buffer):
             # hook here
             # e.g. "update score if last_seen or times_seen is changed"
             for column, value in extra.items():
-                # TODO(dcramer): once this goes live in production, we can kill the pickle path
-                # (this is to ensure a zero downtime deploy where we can transition event processing)
-                pipe.hset(key, "e+" + column, pickle.dumps(value))
-                # pipe.hset(key, 'e+' + column, json.dumps(self._dump_value(value)))
+                if self.is_redis_cluster:
+                    pipe.hset(key, "e+" + column, json.dumps(self._dump_value(value)))
+                else:
+                    pipe.hset(key, "e+" + column, pickle.dumps(value))
 
         if signal_only is True:
             pipe.hset(key, "s", "1")
@@ -241,19 +244,32 @@ class RedisBuffer(Buffer):
 
         try:
             keycount = 0
-            with self.cluster.all() as conn:
-                results = conn.zrange(pending_key, 0, -1)
+            if self.is_redis_cluster:
+                keys = self.cluster.zrange(pending_key, 0, -1)
+                keycount += len(keys)
 
-            with self.cluster.all() as conn:
-                for host_id, keys in results.value.items():
-                    if not keys:
-                        continue
-                    keycount += len(keys)
-                    for key in keys:
-                        pending_buffer.append(key.decode("utf-8"))
-                        if pending_buffer.full():
-                            process_incr.apply_async(kwargs={"batch_keys": pending_buffer.flush()})
-                    conn.target([host_id]).zrem(pending_key, *keys)
+                for key in keys:
+                    pending_buffer.append(key)
+                    if pending_buffer.full():
+                        process_incr.apply_async(kwargs={"batch_keys": pending_buffer.flush()})
+
+                self.cluster.zrem(pending_key, *keys)
+            else:
+                with self.cluster.all() as conn:
+                    results = conn.zrange(pending_key, 0, -1)
+
+                with self.cluster.all() as conn:
+                    for host_id, keys in results.value.items():
+                        if not keys:
+                            continue
+                        keycount += len(keys)
+                        for key in keys:
+                            pending_buffer.append(key.decode("utf-8"))
+                            if pending_buffer.full():
+                                process_incr.apply_async(
+                                    kwargs={"batch_keys": pending_buffer.flush()}
+                                )
+                        conn.target([host_id]).zrem(pending_key, *keys)
 
             # queue up remainder of pending keys
             if not pending_buffer.empty():

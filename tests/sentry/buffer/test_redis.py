@@ -10,6 +10,7 @@ from freezegun import freeze_time
 from sentry import options
 from sentry.buffer.redis import RedisBuffer
 from sentry.models import Group, Project
+from sentry.utils import json
 
 
 class TestRedisBuffer:
@@ -79,7 +80,11 @@ class TestRedisBuffer:
     @mock.patch("sentry.buffer.redis.RedisBuffer._make_key", mock.Mock(return_value="foo"))
     @mock.patch("sentry.buffer.base.Buffer.process")
     def test_process_does_bubble_up_pickle(self, process):
-        client = self.buf.cluster.get_routing_client()
+        if self.buf.is_redis_cluster:
+            client = self.buf.cluster
+        else:
+            client = self.buf.cluster.get_routing_client()
+
         client.hmset(
             "foo",
             {
@@ -126,7 +131,11 @@ class TestRedisBuffer:
 
     def test_incr_saves_to_redis(self):
         now = datetime(2017, 5, 3, 6, 6, 6, tzinfo=timezone.utc)
-        client = self.buf.cluster.get_routing_client()
+        if self.buf.is_redis_cluster:
+            client = self.buf.cluster
+        else:
+            client = self.buf.cluster.get_routing_client()
+
         model = mock.Mock()
         model.__name__ = "Mock"
         columns = {"times_seen": 1}
@@ -138,25 +147,48 @@ class TestRedisBuffer:
         result = {force_text(k): v for k, v in result.items()}
 
         f = result.pop("f")
-        assert pickle.loads(f) == {"pk": 1, "datetime": now}
-        assert pickle.loads(result.pop("e+datetime")) == now
-        assert pickle.loads(result.pop("e+foo")) == "bar"
-        assert result == {"i+times_seen": b"1", "m": b"unittest.mock.Mock"}
+        if self.buf.is_redis_cluster:
+
+            def load_values(x):
+                return self.buf._load_values(json.loads(x))
+
+            def load_value(x):
+                return self.buf._load_value(json.loads(x))
+
+        else:
+            load_value = load_values = pickle.loads
+        assert load_values(f) == {"pk": 1, "datetime": now}
+        assert load_value(result.pop("e+datetime")) == now
+        assert load_value(result.pop("e+foo")) == "bar"
+
+        if self.buf.is_redis_cluster:
+            assert result == {"i+times_seen": "1", "m": "unittest.mock.Mock"}
+        else:
+            assert result == {"i+times_seen": b"1", "m": b"unittest.mock.Mock"}
 
         pending = client.zrange("b:p", 0, -1)
-        assert pending == [key.encode("utf-8")]
+        if self.buf.is_redis_cluster:
+            assert pending == [key]
+        else:
+            assert pending == [key.encode("utf-8")]
         self.buf.incr(model, columns, filters, extra={"foo": "baz", "datetime": now})
         result = client.hgetall(key)
         # Force keys to strings
         result = {force_text(k): v for k, v in result.items()}
         f = result.pop("f")
-        assert pickle.loads(f) == {"pk": 1, "datetime": now}
-        assert pickle.loads(result.pop("e+datetime")) == now
-        assert pickle.loads(result.pop("e+foo")) == "baz"
-        assert result == {"i+times_seen": b"2", "m": b"unittest.mock.Mock"}
+        assert load_values(f) == {"pk": 1, "datetime": now}
+        assert load_value(result.pop("e+datetime")) == now
+        assert load_value(result.pop("e+foo")) == "baz"
+        if self.buf.is_redis_cluster:
+            assert result == {"i+times_seen": "2", "m": "unittest.mock.Mock"}
+        else:
+            assert result == {"i+times_seen": b"2", "m": b"unittest.mock.Mock"}
 
         pending = client.zrange("b:p", 0, -1)
-        assert pending == [key.encode("utf-8")]
+        if self.buf.is_redis_cluster:
+            assert pending == [key]
+        else:
+            assert pending == [key.encode("utf-8")]
 
     @mock.patch("sentry.buffer.redis.RedisBuffer._make_key", mock.Mock(return_value="foo"))
     @mock.patch("sentry.buffer.redis.process_incr")
@@ -186,7 +218,11 @@ class TestRedisBuffer:
         ]
 
         # Confirm that we've only processed the unpartitioned buffer
-        client = self.buf.cluster.get_routing_client()
+        if self.buf.is_redis_cluster:
+            client = self.buf.cluster
+        else:
+            client = self.buf.cluster.get_routing_client()
+
         assert client.zrange("b:p", 0, -1) == []
         assert client.zrange("b:p:0", 0, -1) != []
         assert client.zrange("b:p:1", 0, -1) != []
