@@ -263,6 +263,7 @@ class Factories:
     def create_org_mapping(org, **kwds):
         kwds.setdefault("organization_id", org.id)
         kwds.setdefault("slug", org.slug)
+        kwds.setdefault("name", org.name)
         kwds.setdefault("idempotency_key", uuid4().hex)
         kwds.setdefault("region_name", "test-region")
         return OrganizationMapping.objects.create(**kwds)
