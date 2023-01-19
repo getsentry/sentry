@@ -15,6 +15,7 @@ function ProfileDetails() {
   useEffect(() => {
     trackAdvancedAnalyticsEvent('profiling_views.profile_summary', {
       organization,
+      project_id: currentProject?.id,
       project_platform: currentProject?.platform,
     });
     // ignore  currentProject so we don't block the analytics event

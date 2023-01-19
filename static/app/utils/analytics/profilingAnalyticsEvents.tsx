@@ -10,12 +10,15 @@ export type ProfilingEventParameters = {
     action: 'done' | 'dismissed';
   };
   'profiling_views.profile_details': {
+    project_id: string | number | undefined;
     project_platform: PlatformKey | undefined;
   };
   'profiling_views.profile_flamegraph': {
+    project_id: string | number | undefined;
     project_platform: PlatformKey | undefined;
   };
   'profiling_views.profile_summary': {
+    project_id: string | number | undefined;
     project_platform: PlatformKey | undefined;
   };
   'profiling_views.visit_discord_channel': {};
