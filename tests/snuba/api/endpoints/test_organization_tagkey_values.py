@@ -619,6 +619,32 @@ class ReplayOrganizationTagKeyValuesTest(OrganizationTagKeyTestCase, ReplaysSnub
                 tags={"fruit": "apple", "drink": "water"},
             )
         )
+        self.store_replays(
+            mock_replay(
+                seq1_timestamp,
+                self.project.id,
+                uuid.uuid4().hex,
+                platform="python",
+                replay_type="error",
+                environment="development",
+                dist="def456",
+                release="1.0.0",
+                user_id="456",
+                user_name="test",
+                user_email="test@bacon.com",
+                ipv4="10.0.0.1",
+                browser_name="Firefox",
+                browser_version="99.0.0",
+                sdk_name="sentry.javascript.browser",
+                sdk_version="5.15.5",
+                os_name="SuseLinux",
+                os_version="1.0.0",
+                device_name="Microwave",
+                device_brand="Samsung",
+                device_model="123",
+                device_family="Sears",
+            )
+        )
 
     def run_test(self, key, expected, **kwargs):
         # all tests here require that we search in replays so make that the default here
@@ -631,25 +657,30 @@ class ReplayOrganizationTagKeyValuesTest(OrganizationTagKeyTestCase, ReplaysSnub
         # 3 orange values were mocked, but we only return 2 because two of them
         # were in the same replay
         self.run_test("fruit", expected=[("orange", 2), ("apple", 1)])
-        self.run_test("replay_type", expected=[("session", 3)])
-        self.run_test("environment", expected=[("production", 3)])
-        self.run_test("dist", expected=[("abc123", 3)])
+        self.run_test("replay_type", expected=[("session", 3), ("error", 1)])
+        self.run_test("environment", expected=[("production", 3), ("development", 1)])
+        self.run_test("dist", expected=[("def456", 1), ("abc123", 3)])
         self.run_test(
             "url", expected=[("http://localhost:3000/login", 3), ("http://localhost:3000/", 3)]
         )
-        self.run_test("platform", expected=[("javascript", 3)])
-        self.run_test("release", expected=[("version@1.3", 3)])
-        self.run_test("user.id", expected=[("123", 3)])
-        self.run_test("user.username", expected=[("username", 3)])
-        self.run_test("user.email", expected=[("username@example.com", 3)])
-        self.run_test("user.ip", expected=[("127.0.0.1", 3)])
-        self.run_test("sdk.name", expected=[("sentry.javascript.react", 3)])
-        self.run_test("sdk.version", expected=[("6.18.1", 3)])
-        self.run_test("os.name", expected=[("iOS", 3)])
-        self.run_test("os.version", expected=[("16.2", 3)])
-        self.run_test("browser.name", expected=[("Chrome", 3)])
-        self.run_test("browser.version", expected=[("103.0.38", 3)])
-        self.run_test("device.name", expected=[("iPhone 13 Pro", 3)])
-        self.run_test("device.brand", expected=[("Apple", 3)])
-        self.run_test("device.family", expected=[("iPhone", 3)])
-        self.run_test("device.model_id", expected=[("13 Pro", 3)])
+        self.run_test("platform", expected=[("python", 1), ("javascript", 3)])
+        self.run_test("release", expected=[("version@1.3", 3), ("1.0.0", 1)])
+        self.run_test("user.id", expected=[("456", 1), ("123", 3)])
+        self.run_test("user.username", expected=[("username", 3), ("test", 1)])
+        self.run_test("user.email", expected=[("username@example.com", 3), ("test@bacon.com", 1)])
+        self.run_test("user.ip", expected=[("127.0.0.1", 3), ("10.0.0.1", 1)])
+        self.run_test(
+            "sdk.name", expected=[("sentry.javascript.react", 3), ("sentry.javascript.browser", 1)]
+        )
+        self.run_test("sdk.version", expected=[("6.18.1", 3), ("5.15.5", 1)])
+        self.run_test("os.name", expected=[("iOS", 3), ("SuseLinux", 1)])
+        self.run_test("os.version", expected=[("16.2", 3), ("1.0.0", 1)])
+        self.run_test(
+            "browser.name",
+            expected=[("Firefox", 1), ("Chrome", 3)],
+        )
+        self.run_test("browser.version", expected=[("99.0.0", 1), ("103.0.38", 3)])
+        self.run_test("device.name", expected=[("iPhone 13 Pro", 3), ("Microwave", 1)])
+        self.run_test("device.brand", expected=[("Samsung", 1), ("Apple", 3)])
+        self.run_test("device.family", expected=[("iPhone", 3), ("Sears", 1)])
+        self.run_test("device.model_id", expected=[("13 Pro", 3), ("123", 1)])
