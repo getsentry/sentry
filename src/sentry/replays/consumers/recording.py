@@ -35,7 +35,7 @@ class MessageContext:
     # The message attribute can cause large log messages to be emitted which can pin the CPU
     # to 100.
     def __repr__(self):
-        return "MessageContext(message_dict, transaction)"
+        return f"MessageContext(message_dict=..., transaction={repr(self.transaction)})"
 
 
 class ProcessReplayRecordingStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
