@@ -541,6 +541,16 @@ class SnubaTagStorage(TagStorage):
             group_id_list,
         )
 
+        where_conditions = [
+            Condition(Column("project_id"), Op.IN, project_ids),
+            Condition(Column("group_id"), Op.IN, group_id_list),
+            Condition(Column("timestamp"), Op.LT, end),
+            Condition(Column("timestamp"), Op.GTE, start),
+            Condition(Column(f"tags[{key}]"), Op.EQ, value),
+        ]
+        if translated_params.get("environment"):
+            Condition(Column("environment"), Op.IN, translated_params["environment"]),
+
         snuba_request = Request(
             dataset="search_issues",
             app_id="tagstore",
@@ -552,14 +562,7 @@ class SnubaTagStorage(TagStorage):
                     Function("min", [Column("timestamp")], "first_seen"),
                     Function("max", [Column("timestamp")], "last_seen"),
                 ],
-                where=[
-                    Condition(Column("project_id"), Op.IN, project_ids),
-                    Condition(Column("group_id"), Op.IN, group_id_list),
-                    Condition(Column("timestamp"), Op.LT, end),
-                    Condition(Column("timestamp"), Op.GTE, start),
-                    Condition(Column("environment"), Op.IN, translated_params["environment"]),
-                    Condition(Column(f"tags[{key}]"), Op.EQ, value),
-                ],
+                where=where_conditions,
                 groupby=[Column("group_id")],
             ),
         )
