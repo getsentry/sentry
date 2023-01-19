@@ -40,26 +40,27 @@ class TestRedisBuffer:
         self.buf.process_pending()
         assert len(process_incr.apply_async.mock_calls) == 1
         process_incr.apply_async.assert_any_call(kwargs={"batch_keys": ["foo", "bar"]})
-        client = self.buf.cluster.get_routing_client()
+        client = self.buf.get_routing_client()
         assert client.zrange("b:p", 0, -1) == []
 
     @mock.patch("sentry.buffer.redis.RedisBuffer._make_key", mock.Mock(return_value="foo"))
     @mock.patch("sentry.buffer.redis.process_incr")
     def test_process_pending_multiple_batches(self, process_incr):
         self.buf.incr_batch_size = 2
-        with self.buf.cluster.map() as client:
-            client.zadd("b:p", {"foo": 1, "bar": 2, "baz": 3})
+        client = self.buf.get_routing_client()
+        client.zadd("b:p", {"foo": 1, "bar": 2, "baz": 3})
         self.buf.process_pending()
         assert len(process_incr.apply_async.mock_calls) == 2
         process_incr.apply_async.assert_any_call(kwargs={"batch_keys": ["foo", "bar"]})
         process_incr.apply_async.assert_any_call(kwargs={"batch_keys": ["baz"]})
-        client = self.buf.cluster.get_routing_client()
+        client = self.buf.get_routing_client()
         assert client.zrange("b:p", 0, -1) == []
 
     @mock.patch("sentry.buffer.redis.RedisBuffer._make_key", mock.Mock(return_value="foo"))
     @mock.patch("sentry.buffer.base.Buffer.process")
     def test_process_does_bubble_up_json(self, process):
-        client = self.buf.cluster.get_routing_client()
+        client = self.buf.get_routing_client()
+
         client.hmset(
             "foo",
             {
@@ -80,10 +81,7 @@ class TestRedisBuffer:
     @mock.patch("sentry.buffer.redis.RedisBuffer._make_key", mock.Mock(return_value="foo"))
     @mock.patch("sentry.buffer.base.Buffer.process")
     def test_process_does_bubble_up_pickle(self, process):
-        if self.buf.is_redis_cluster:
-            client = self.buf.cluster
-        else:
-            client = self.buf.cluster.get_routing_client()
+        client = self.buf.get_routing_client()
 
         client.hmset(
             "foo",
@@ -101,18 +99,19 @@ class TestRedisBuffer:
         self.buf.process("foo")
         process.assert_called_once_with(Group, columns, filters, extra, signal_only)
 
+    @pytest.mark.django_db
     @freeze_time()
-    def test_group_cache_updated(self):
+    def test_group_cache_updated(self, default_group, task_runner):
         # Make sure group is stored in the cache and keep track of times_seen at the time
-        orig_times_seen = Group.objects.get_from_cache(id=self.group.id).times_seen
+        orig_times_seen = Group.objects.get_from_cache(id=default_group.id).times_seen
         times_seen_incr = 5
         self.buf.incr(
             Group,
             {"times_seen": times_seen_incr},
-            {"pk": self.group.id},
+            {"pk": default_group.id},
             {"last_seen": timezone.now()},
         )
-        with self.tasks(), mock.patch("sentry.buffer", self.buf):
+        with task_runner(), mock.patch("sentry.buffer", self.buf):
             self.buf.process_pending()
         group = Group.objects.get_from_cache(id=self.group.id)
         assert group.times_seen == orig_times_seen + times_seen_incr
@@ -131,10 +130,7 @@ class TestRedisBuffer:
 
     def test_incr_saves_to_redis(self):
         now = datetime(2017, 5, 3, 6, 6, 6, tzinfo=timezone.utc)
-        if self.buf.is_redis_cluster:
-            client = self.buf.cluster
-        else:
-            client = self.buf.cluster.get_routing_client()
+        client = self.buf.get_routing_client()
 
         model = mock.Mock()
         model.__name__ = "Mock"
@@ -218,10 +214,7 @@ class TestRedisBuffer:
         ]
 
         # Confirm that we've only processed the unpartitioned buffer
-        if self.buf.is_redis_cluster:
-            client = self.buf.cluster
-        else:
-            client = self.buf.cluster.get_routing_client()
+        client = self.buf.cluster.get_routing_client()
 
         assert client.zrange("b:p", 0, -1) == []
         assert client.zrange("b:p:0", 0, -1) != []
@@ -248,10 +241,7 @@ class TestRedisBuffer:
     @mock.patch("sentry.buffer.redis.RedisBuffer._make_key", mock.Mock(return_value="foo"))
     @mock.patch("sentry.buffer.base.Buffer.process")
     def test_process_uses_signal_only(self, process):
-        if self.buf.is_redis_cluster:
-            client = self.buf.cluster
-        else:
-            client = self.buf.cluster.get_routing_client()
+        client = self.buf.get_routing_client()
 
         client.hmset(
             "foo",
@@ -269,7 +259,7 @@ class TestRedisBuffer:
 #    @mock.patch("sentry.buffer.redis.RedisBuffer._make_key", mock.Mock(return_value="foo"))
 #    def test_incr_uses_signal_only(self):
 #        now = datetime(2017, 5, 3, 6, 6, 6, tzinfo=timezone.utc)
-#        client = self.buf.cluster.get_routing_client()
+#        client = self.buf.get_routing_client()
 #        model = mock.Mock()
 #        model.__name__ = "Mock"
 #        columns = {"times_seen": 1}

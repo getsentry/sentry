@@ -60,6 +60,12 @@ class RedisBuffer(Buffer):
         assert self.pending_partitions > 0
         assert self.incr_batch_size > 0
 
+    def get_routing_client(self):
+        if self.is_redis_cluster:
+            return self.cluster
+        else:
+            return self.cluster.get_routing_client()
+
     def validate(self):
         try:
             # wait 10 seconds at most
@@ -346,7 +352,7 @@ class RedisBuffer(Buffer):
                     incr_values[k[2:]] = int(v)
                 elif k.startswith("e+"):
                     if v.startswith(b"[" if not self.is_redis_cluster else "["):
-                        extra_values[k[2:]] = self._load_value(json.loads(v.decode("utf-8")))
+                        extra_values[k[2:]] = self._load_value(json.loads(force_text(v)))
                     else:
                         # TODO(dcramer): legacy pickle support - remove in Sentry 9.1
                         extra_values[k[2:]] = pickle.loads(force_bytes(v))
