@@ -225,7 +225,7 @@ class Columns(Enum):
         event_name="ip_address",
         transaction_name="ip_address",
         discover_name="ip_address",
-        issue_platform_name="ip_address_v4",
+        issue_platform_name="ip_address",
         alias="user.ip",
     )
     USER_DISPLAY = Column(

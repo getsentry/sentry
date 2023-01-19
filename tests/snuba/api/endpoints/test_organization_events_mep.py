@@ -3,6 +3,7 @@ from unittest import mock
 import pytest
 from django.urls import reverse
 
+from sentry.api.bases.organization_events import DATASET_OPTIONS
 from sentry.discover.models import TeamKeyTransaction
 from sentry.models import ProjectTeam
 from sentry.models.transaction_threshold import (
@@ -85,7 +86,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert response.status_code == 400, response.content
         assert (
             response.data["detail"]
-            == "dataset must be one of: discover, metricsEnhanced, metrics, profiles"
+            == f"dataset must be one of: {', '.join([key for key in DATASET_OPTIONS.keys()])}"
         )
 
     def test_out_of_retention(self):
