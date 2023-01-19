@@ -711,7 +711,7 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         return self.settings["detection_rate"] > random.random()
 
     @staticmethod
-    def condense_url(url: str) -> str:
+    def parameterize_url(url: str) -> str:
         parsed_url = urlparse(str(url))
 
         protocol_fragments = []
@@ -728,7 +728,7 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
             try:
                 int(fragment)
                 path_fragments.append("%d")
-            except ValueError:  # Not an integer
+            except ValueError:  # Not an integer parameter
                 path_fragments.append(str(fragment))
 
         query = parse_qs(parsed_url.query)
@@ -739,7 +739,7 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
                 ".".join(host_fragments),
                 "/".join(path_fragments),
                 "?",
-                "&".join(sorted(query.keys())),
+                "&".join(sorted([f"{key}=%s" for key in query.keys()])),
             ]
         ).rstrip("?")
 
