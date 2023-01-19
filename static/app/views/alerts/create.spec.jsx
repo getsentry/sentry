@@ -494,7 +494,9 @@ describe('ProjectAlertsCreate', function () {
         );
       });
       expect(
-        screen.getByText('issues would have triggered this rule in the past 14 days')
+        screen.getByText('4 issues would have triggered this rule in the past 14 days', {
+          exact: false,
+        })
       ).toBeInTheDocument();
       for (const group of groups) {
         expect(screen.getByText(group.shortId)).toBeInTheDocument();
