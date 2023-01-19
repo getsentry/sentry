@@ -3,6 +3,7 @@ import uuid
 from datetime import timedelta
 from functools import cached_property
 
+import pytz
 from django.urls import reverse
 
 from sentry.replays.testutils import mock_replay
@@ -568,10 +569,17 @@ class ReplayOrganizationTagKeyValuesTest(OrganizationTagKeyTestCase, ReplaysSnub
         replay1_id = uuid.uuid4().hex
         replay2_id = uuid.uuid4().hex
         replay3_id = uuid.uuid4().hex
-        seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=22)
+        date_now = datetime.datetime.now(tz=pytz.utc).replace(
+            hour=0, minute=0, second=0, microsecond=0
+        )
+        self.r1_seq1_timestamp = date_now - datetime.timedelta(seconds=22)
+        self.r1_seq2_timestamp = date_now - datetime.timedelta(seconds=15)
+        self.r2_seq1_timestamp = date_now - datetime.timedelta(seconds=10)
+        self.r3_seq1_timestamp = date_now - datetime.timedelta(seconds=10)
+        self.r4_seq1_timestamp = date_now - datetime.timedelta(seconds=5)
         self.store_replays(
             mock_replay(
-                seq1_timestamp,
+                self.r1_seq1_timestamp,
                 self.project.id,
                 replay1_id,
                 urls=[
@@ -585,7 +593,7 @@ class ReplayOrganizationTagKeyValuesTest(OrganizationTagKeyTestCase, ReplaysSnub
         )
         self.store_replays(
             mock_replay(
-                seq1_timestamp,
+                self.r1_seq2_timestamp,
                 self.project.id,
                 replay1_id,
                 urls=[
@@ -599,7 +607,7 @@ class ReplayOrganizationTagKeyValuesTest(OrganizationTagKeyTestCase, ReplaysSnub
         )
         self.store_replays(
             mock_replay(
-                seq1_timestamp,
+                self.r2_seq1_timestamp,
                 self.project.id,
                 replay2_id,
                 urls=[
@@ -611,7 +619,7 @@ class ReplayOrganizationTagKeyValuesTest(OrganizationTagKeyTestCase, ReplaysSnub
         )
         self.store_replays(
             mock_replay(
-                seq1_timestamp,
+                self.r3_seq1_timestamp,
                 self.project.id,
                 replay3_id,
                 urls=[
@@ -623,7 +631,7 @@ class ReplayOrganizationTagKeyValuesTest(OrganizationTagKeyTestCase, ReplaysSnub
         )
         self.store_replays(
             mock_replay(
-                seq1_timestamp,
+                self.r4_seq1_timestamp,
                 self.project.id,
                 uuid.uuid4().hex,
                 platform="python",
@@ -648,48 +656,99 @@ class ReplayOrganizationTagKeyValuesTest(OrganizationTagKeyTestCase, ReplaysSnub
             )
         )
 
-    def run_test(self, key, expected, **kwargs):
-        # all tests here require that we search in replays so make that the default here
+    def get_replays_response(self, key, kwargs):
         qs_params = kwargs.get("qs_params", {})
         qs_params["includeReplays"] = "1"
         kwargs["qs_params"] = qs_params
-        super().run_test(key, expected, **kwargs)
+        response = self.get_success_response(key, **kwargs)
+        return sorted(response.data, key=lambda x: x["value"])
 
-    def test_simple(self):
+    def run_test(self, key, expected, **kwargs):
+        # all tests here require that we search in replays so make that the default here
+
+        res = self.get_replays_response(key, kwargs)
+
+        assert [(val["value"], val["count"]) for val in res] == expected
+
+    def run_test_and_check_seen(self, key, expected, **kwargs):
+        res = self.get_replays_response(key, kwargs)
+        assert [
+            (val["value"], val["count"], val["firstSeen"], val["lastSeen"]) for val in res
+        ] == expected
+
+    def test_replays_tags_values(self):
         # 3 orange values were mocked, but we only return 2 because two of them
         # were in the same replay
-        self.run_test("fruit", expected=[("orange", 2), ("apple", 1)])
-        self.run_test("replay_type", expected=[("session", 3), ("error", 1)])
-        self.run_test("environment", expected=[("production", 3), ("development", 1)])
-        self.run_test("dist", expected=[("def456", 1), ("abc123", 3)])
+        self.run_test("fruit", expected=[("apple", 1), ("orange", 2)])
+        self.run_test("replay_type", expected=[("error", 1), ("session", 3)])
+        self.run_test("environment", expected=[("development", 1), ("production", 3)])
+        self.run_test("dist", expected=[("abc123", 3), ("def456", 1)])
+
+        self.run_test("platform", expected=[("javascript", 3), ("python", 1)])
+        self.run_test("release", expected=[("1.0.0", 1), ("version@1.3", 3)])
+        self.run_test("user.id", expected=[("123", 3), ("456", 1)])
+        self.run_test("user.username", expected=[("test", 1), ("username", 3)])
+        self.run_test("user.email", expected=[("test@bacon.com", 1), ("username@example.com", 3)])
+        self.run_test("user.ip", expected=[("10.0.0.1", 1), ("127.0.0.1", 3)])
         self.run_test(
-            "url",
-            expected=[
-                ("http://localhost:3000/test456", 1),
-                ("http://localhost:3000/test123", 1),
-                ("http://localhost:3000/otherpage", 1),
-                ("http://localhost:3000/login", 2),
-                ("http://localhost:3000/", 3),
-            ],
+            "sdk.name", expected=[("sentry.javascript.browser", 1), ("sentry.javascript.react", 3)]
         )
-        self.run_test("platform", expected=[("python", 1), ("javascript", 3)])
-        self.run_test("release", expected=[("version@1.3", 3), ("1.0.0", 1)])
-        self.run_test("user.id", expected=[("456", 1), ("123", 3)])
-        self.run_test("user.username", expected=[("username", 3), ("test", 1)])
-        self.run_test("user.email", expected=[("username@example.com", 3), ("test@bacon.com", 1)])
-        self.run_test("user.ip", expected=[("127.0.0.1", 3), ("10.0.0.1", 1)])
-        self.run_test(
-            "sdk.name", expected=[("sentry.javascript.react", 3), ("sentry.javascript.browser", 1)]
-        )
-        self.run_test("sdk.version", expected=[("6.18.1", 3), ("5.15.5", 1)])
-        self.run_test("os.name", expected=[("iOS", 3), ("SuseLinux", 1)])
-        self.run_test("os.version", expected=[("16.2", 3), ("1.0.0", 1)])
+        self.run_test("sdk.version", expected=[("5.15.5", 1), ("6.18.1", 3)])
+        self.run_test("os.name", expected=[("SuseLinux", 1), ("iOS", 3)])
+        self.run_test("os.version", expected=[("1.0.0", 1), ("16.2", 3)])
         self.run_test(
             "browser.name",
-            expected=[("Firefox", 1), ("Chrome", 3)],
+            expected=[("Chrome", 3), ("Firefox", 1)],
         )
-        self.run_test("browser.version", expected=[("99.0.0", 1), ("103.0.38", 3)])
-        self.run_test("device.name", expected=[("iPhone 13 Pro", 3), ("Microwave", 1)])
-        self.run_test("device.brand", expected=[("Samsung", 1), ("Apple", 3)])
-        self.run_test("device.family", expected=[("iPhone", 3), ("Sears", 1)])
-        self.run_test("device.model_id", expected=[("13 Pro", 3), ("123", 1)])
+        self.run_test("browser.version", expected=[("103.0.38", 3), ("99.0.0", 1)])
+        self.run_test("device.name", expected=[("Microwave", 1), ("iPhone 13 Pro", 3)])
+        self.run_test("device.brand", expected=[("Apple", 3), ("Samsung", 1)])
+        self.run_test("device.family", expected=[("Sears", 1), ("iPhone", 3)])
+
+        # check firstSeen/lastSeen for some of the tags
+        self.run_test_and_check_seen(
+            "device.model_id",
+            expected=[
+                ("123", 1, self.r4_seq1_timestamp, self.r4_seq1_timestamp),
+                ("13 Pro", 3, self.r1_seq1_timestamp, self.r3_seq1_timestamp),
+            ],
+        )
+
+        self.run_test_and_check_seen(
+            "url",
+            expected=[
+                ("http://localhost:3000/", 3, self.r1_seq1_timestamp, self.r3_seq1_timestamp),
+                ("http://localhost:3000/login", 2, self.r1_seq2_timestamp, self.r3_seq1_timestamp),
+                (
+                    "http://localhost:3000/otherpage",
+                    1,
+                    self.r2_seq1_timestamp,
+                    self.r2_seq1_timestamp,
+                ),
+                (
+                    "http://localhost:3000/test123",
+                    1,
+                    self.r1_seq1_timestamp,
+                    self.r1_seq1_timestamp,
+                ),
+                (
+                    "http://localhost:3000/test456",
+                    1,
+                    self.r1_seq2_timestamp,
+                    self.r1_seq2_timestamp,
+                ),
+            ],
+        )
+
+    def test_schema(self):
+
+        res = self.get_replays_response("fruit", {})
+
+        assert sorted(res[0].keys()) == [
+            "count",
+            "firstSeen",
+            "key",
+            "lastSeen",
+            "name",
+            "value",
+        ]
