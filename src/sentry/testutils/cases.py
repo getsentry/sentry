@@ -869,10 +869,17 @@ class AcceptanceTestCase(TransactionTestCase):
             yield
 
     def wait_for_loading(self):
+        # Avoid tests finishing before their API calls have finished.
+        # NOTE: This is not fool-proof, it requires loading indicators to be
+        # used.
         self.browser.wait_until_not('[data-test-id="events-request-loading"]')
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
         self.browser.wait_until_not('[data-test-id="loading-placeholder"]')
         self.browser.wait_until_not(".loading")
+
+    def tearDown(self):
+        self.wait_for_loading()
+        super().tearDown()
 
     def save_cookie(self, name, value, **params):
         self.browser.save_cookie(name=name, value=value, **params)
