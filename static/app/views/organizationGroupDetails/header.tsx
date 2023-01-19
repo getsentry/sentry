@@ -280,7 +280,7 @@ function GroupHeader({
           <FeatureBadge
             type="alpha"
             title={t(
-              'Slow DB Span Performance Issues are in active development and may change'
+              'Consecutive DB Query Performance Issues are in active development and may change'
             )}
           />
         )}
