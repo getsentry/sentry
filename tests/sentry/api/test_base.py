@@ -246,6 +246,7 @@ class CustomerDomainTest(APITestCase):
         assert request_with_subdomain("sentry") is None
 
 
+@override_settings(SENTRY_SILO_MODE_IS_ENFORCED=True)
 class SiloModeTest(APITestCase):
     def _test_active_on(self, endpoint_mode, active_mode, expect_to_be_active):
         @EndpointSiloLimit(endpoint_mode)
