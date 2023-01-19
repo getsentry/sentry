@@ -577,7 +577,7 @@ class ReplayOrganizationTagKeyValuesTest(OrganizationTagKeyTestCase, ReplaysSnub
                 urls=[
                     "http://localhost:3000/",
                     "http://localhost:3000/login",
-                ],  # duplicate urls are okay,
+                ],
                 tags={"fruit": "orange"},
                 segment_id=0,
             ),
@@ -590,7 +590,7 @@ class ReplayOrganizationTagKeyValuesTest(OrganizationTagKeyTestCase, ReplaysSnub
                 urls=[
                     "http://localhost:3000/",
                     "http://localhost:3000/login",
-                ],  # duplicate urls are okay,
+                ],
                 tags={"fruit": "orange"},
                 segment_id=1,
             ),
@@ -603,7 +603,7 @@ class ReplayOrganizationTagKeyValuesTest(OrganizationTagKeyTestCase, ReplaysSnub
                 urls=[
                     "http://localhost:3000/",
                     "http://localhost:3000/login",
-                ],  # duplicate urls are okay,
+                ],
                 tags={"fruit": "orange"},
             )
         )
@@ -628,6 +628,8 @@ class ReplayOrganizationTagKeyValuesTest(OrganizationTagKeyTestCase, ReplaysSnub
         super().run_test(key, expected, **kwargs)
 
     def test_simple(self):
+        # 3 orange values were mocked, but we only return 2 because two of them
+        # were in the same replay
         self.run_test("fruit", expected=[("orange", 2), ("apple", 1)])
         self.run_test("replay_type", expected=[("session", 3)])
         self.run_test("environment", expected=[("production", 3)])

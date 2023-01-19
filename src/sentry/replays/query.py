@@ -196,23 +196,26 @@ def query_replays_dataset_tagkey_values(
 ):
     """Query replay tagkey values. Like our other tag functionality, aggregates do not work here."""
 
-    query_options = {"limit": Limit(1000)}
     where = []
 
     if environment:
         where.append(Condition(Column("environment"), Op.IN, environment))
 
-    value = TAG_QUERY_ALIAS_COLUMN_MAP.get(tag_key)
-    if value is None:
-        group_by_param = Function(
+    grouped_column = TAG_QUERY_ALIAS_COLUMN_MAP.get(tag_key)
+    if grouped_column is None:
+        # see https://clickhouse.com/docs/en/sql-reference/functions/array-join/
+        # for arrayJoin behavior. we use it to return a flattened
+        # row for each value in the tags.value array
+        aggregated_column = Function(
             "arrayJoin",
             parameters=[all_values_for_tag_key(tag_key, Column("tags.key"), Column("tags.value"))],
             alias="tag_value",
         )
-        value = Column("tag_value")
+        grouped_column = Column("tag_value")
 
     else:
-        group_by_param = Function("identity", parameters=[value], alias="tag_value")
+        # using identity to alias the column
+        aggregated_column = Function("identity", parameters=[grouped_column], alias="tag_value")
 
     snuba_request = Request(
         dataset="replays",
@@ -223,7 +226,7 @@ def query_replays_dataset_tagkey_values(
                 Function("uniq", parameters=[Column("replay_id")], alias="times_seen"),
                 Function("min", parameters=[Column("timestamp")], alias="first_seen"),
                 Function("max", parameters=[Column("timestamp")], alias="last_seen"),
-                group_by_param,
+                aggregated_column,
             ],
             where=[
                 Condition(Column("project_id"), Op.IN, project_ids),
@@ -233,9 +236,9 @@ def query_replays_dataset_tagkey_values(
                 *where,
             ],
             orderby=[OrderBy(Column("times_seen"), Direction.DESC)],
-            groupby=[value],
+            groupby=[grouped_column],
             granularity=Granularity(3600),
-            **query_options,
+            limit=Limit(1000),
         ),
     )
     return raw_snql_query(
