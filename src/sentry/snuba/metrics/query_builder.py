@@ -154,7 +154,7 @@ def resolve_tags(
         elif input_.function == "match":
             column = input_.parameters[0]
 
-            if column.name not in FILTERABLE_TAGS:
+            if isinstance(column, Column) and column.name not in FILTERABLE_TAGS:
                 raise InvalidParams(
                     f"Unable to resolve `match` function with {column.name}, only {FILTERABLE_TAGS} are supported"
                 )
