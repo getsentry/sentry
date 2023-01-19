@@ -41,11 +41,16 @@ class IssuePlatformTimeseriesQueryBuilder(TimeseriesQueryBuilder):
         }
         rollup_func = rollup_to_start_func.get(interval)
         if rollup_func:
-            self.time_column = Function(
-                "toUnixTimestamp",
-                [Function("toDateTime", [Function(rollup_func, [Column("timestamp")])])],
-                alias="time",
-            )
+            if rollup_func == "toDate":
+                self.time_column = Function(
+                    "toUnixTimestamp",
+                    [Function("toDateTime", [Function(rollup_func, [Column("timestamp")])])],
+                    alias="time",
+                )
+            else:
+                self.time_column = Function(
+                    "toUnixTimestamp", [Function(rollup_func, [Column("timestamp")])], alias="time"
+                )
         else:
             self.time_column = Function(
                 "multiply",
