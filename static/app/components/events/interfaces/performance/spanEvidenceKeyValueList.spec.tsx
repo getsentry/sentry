@@ -222,7 +222,7 @@ describe('SpanEvidenceKeyValueList', () => {
     const builder = new TransactionEventBuilder(
       'a1',
       '/',
-      IssueType.PERFORMANCE_SLOW_SPAN
+      IssueType.PERFORMANCE_SLOW_DB_QUERY
     );
 
     const parentSpan = new MockSpan({
@@ -250,9 +250,9 @@ describe('SpanEvidenceKeyValueList', () => {
         screen.getByTestId('span-evidence-key-value-list.transaction')
       ).toHaveTextContent('/');
 
-      expect(screen.getByRole('cell', {name: 'Slow Span'})).toBeInTheDocument();
+      expect(screen.getByRole('cell', {name: 'Slow DB Query'})).toBeInTheDocument();
       expect(
-        screen.getByTestId('span-evidence-key-value-list.slow-span')
+        screen.getByTestId('span-evidence-key-value-list.slow-db-query')
       ).toHaveTextContent('SELECT pokemon FROM pokedex');
     });
   });
