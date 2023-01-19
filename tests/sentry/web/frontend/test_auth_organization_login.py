@@ -1049,15 +1049,6 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         assert resp.redirect_chain == [("/auth/login/", 302)]
         self.assertTemplateUsed(resp, "sentry/login.html")
 
-    def test_org_not_visible_customer_domain(self):
-        Organization.objects.filter(id=self.organization.id).update(
-            status=OrganizationStatus.DELETION_IN_PROGRESS
-        )
-
-        resp = self.client.get(self.path, HTTP_HOST=f"{self.organization.slug}.testserver")
-        assert resp.status_code == 200
-        self.assertTemplateUsed(resp, "sentry/organization-login.html")
-
 
 @region_silo_test
 class OrganizationAuthLoginNoPasswordTest(AuthProviderTestCase):

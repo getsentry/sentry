@@ -100,7 +100,7 @@ class AuthLoginView(BaseView):
         return bool(has_user_registration() or request.session.get("can_register"))
 
     def get_join_request_link(self, organization):
-        if not organization or not isinstance(organization, Organization):
+        if not organization:
             return None
 
         if organization.get_option("sentry:join_requests") is False:
@@ -131,7 +131,16 @@ class AuthLoginView(BaseView):
         )
 
     def handle_basic_auth(self, request: Request, **kwargs):
-        if request.method == "GET" and request.subdomain:
+        op = request.POST.get("op")
+        organization = kwargs.pop("organization", None)
+
+        if (
+            request.method == "GET"
+            and request.subdomain
+            and Organization.objects.filter(
+                slug=request.subdomain, status=OrganizationStatus.VISIBLE
+            ).exists()
+        ):
             url = reverse("sentry-auth-organization", args=[request.subdomain])
             # Only redirect to /auth/login/orgslug/ if the current requesting path is not the same.
             if request.path_info != url:
@@ -140,9 +149,6 @@ class AuthLoginView(BaseView):
                 return HttpResponseRedirect(url)
 
         can_register = self.can_register(request)
-
-        op = request.POST.get("op")
-        organization = kwargs.pop("organization", None)
 
         if not op:
             # Detect that we are on the register page by url /register/ and

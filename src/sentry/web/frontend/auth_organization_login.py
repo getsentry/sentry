@@ -52,15 +52,9 @@ class AuthOrganizationLoginView(AuthLoginView):
         try:
             organization = Organization.objects.get(slug=organization_slug)
         except Organization.DoesNotExist:
-            return self.handle_basic_auth(
-                request, organization=ApiOrganizationSummary(name=organization_slug)
-            )
+            return self.redirect(reverse("sentry-login"))
 
         if organization.status != OrganizationStatus.VISIBLE:
-            if request.subdomain:
-                return self.handle_basic_auth(
-                    request, organization=ApiOrganizationSummary(name=organization_slug)
-                )
             return self.redirect(reverse("sentry-login"))
 
         request.session.set_test_cookie()
