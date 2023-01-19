@@ -64,7 +64,9 @@ describe('OrganizationGeneralSettings', function () {
       method: 'PUT',
     });
 
-    userEvent.click(screen.getByRole('checkbox', {name: /codecov access/i}));
+    userEvent.click(
+      screen.getByRole('checkbox', {name: /Enable Code Coverage Insights/i})
+    );
 
     await waitFor(() => {
       expect(mock).toHaveBeenCalledWith(
