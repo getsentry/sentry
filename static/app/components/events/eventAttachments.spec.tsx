@@ -33,7 +33,8 @@ describe('EventAttachments', function () {
 
     expect(
       screen.getByText(
-        'Your limit of stored crash reports has been reached for this issue.'
+        'Your limit of stored crash reports has been reached for this issue.',
+        {exact: false}
       )
     ).toBeInTheDocument();
   });

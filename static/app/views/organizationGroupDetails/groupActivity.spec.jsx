@@ -289,7 +289,9 @@ describe('GroupActivity', function () {
     });
 
     await waitFor(() => expect(teamRequest).toHaveBeenCalledTimes(1));
-    expect(await screen.findByText(`#${team.slug}`)).toBeInTheDocument();
+    expect(
+      await screen.findByText(`assigned this issue to #${team.slug}`)
+    ).toBeInTheDocument();
     expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
       /Sentry assigned this issue to #team-slug/
     );

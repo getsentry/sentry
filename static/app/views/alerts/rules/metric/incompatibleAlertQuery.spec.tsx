@@ -61,7 +61,9 @@ describe('IncompatibleAlertQuery', () => {
     });
     expect(eventView.getYAxis()).toBe('count_unique(issue)');
     renderComponent(eventView);
-    expect(screen.getByText('An alert can’t use the metric')).toBeInTheDocument();
+    expect(
+      screen.getByText('An alert can’t use the metric just yet.')
+    ).toBeInTheDocument();
     expect(screen.getByText('count_unique(issue)')).toBeInTheDocument();
   });
 

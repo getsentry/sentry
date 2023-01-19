@@ -273,9 +273,9 @@ describe('Performance > VitalDetail', function () {
       screen.getByText(textWithMarkupMatcher('The p75 for all transactions is 4500ms'))
     ).toBeInTheDocument();
 
-    expect(screen.getByText('Good 50%')).toBeInTheDocument();
-    expect(screen.getByText('Meh 33%')).toBeInTheDocument();
-    expect(screen.getByText('Poor 17%')).toBeInTheDocument();
+    expect(screen.getByText('Good 50%', {exact: false})).toBeInTheDocument();
+    expect(screen.getByText('Meh 33%', {exact: false})).toBeInTheDocument();
+    expect(screen.getByText('Poor 17%', {exact: false})).toBeInTheDocument();
 
     // It shows a chart
     expect(screen.getByText('Duration p75')).toBeInTheDocument();

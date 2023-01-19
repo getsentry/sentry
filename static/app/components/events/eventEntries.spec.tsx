@@ -199,7 +199,7 @@ describe('EventEntries', function () {
 
           expect(errorItem.length).toBe(1);
           expect(
-            screen.getByText('Some frames appear to be minified. Did you configure the')
+            screen.getByText('Some frames appear to be minified. Did you configure the ?')
           ).toBeInTheDocument();
 
           expect(
@@ -277,7 +277,7 @@ describe('EventEntries', function () {
 
           expect(errorItem.length).toBe(1);
           expect(
-            screen.getByText('Some frames appear to be minified. Did you configure the')
+            screen.getByText('Some frames appear to be minified. Did you configure the ?')
           ).toBeInTheDocument();
 
           expect(screen.getByText('Sentry Gradle Plugin')).toBeInTheDocument();
