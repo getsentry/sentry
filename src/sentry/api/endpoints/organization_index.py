@@ -23,12 +23,14 @@ from sentry.models import (
     ProjectPlatform,
 )
 from sentry.search.utils import tokenize_query
+from sentry.services.hybrid_cloud.organization_mapping import organization_mapping_service
 from sentry.signals import org_setup_complete, terms_accepted
 
 
 class OrganizationSerializer(BaseOrganizationSerializer):
     defaultTeam = serializers.BooleanField(required=False)
     agreeTerms = serializers.BooleanField(required=True)
+    idempotencyKey = serializers.CharField(max_length=32, required=False)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -204,6 +206,15 @@ class OrganizationIndexEndpoint(Endpoint):
                 with transaction.atomic():
                     org = Organization.objects.create(name=result["name"], slug=result.get("slug"))
 
+                    organization_mapping_service.create(
+                        user=request.user,
+                        organization_id=org.id,
+                        slug=org.slug,
+                        name=org.name,
+                        idempotency_key=result.get("idempotencyKey", ""),
+                        region_name=settings.SENTRY_REGION or "us",
+                    )
+
                     om = OrganizationMember.objects.create(
                         organization=org, user=request.user, role=roles.get_top_dog().id
                     )
@@ -233,6 +244,8 @@ class OrganizationIndexEndpoint(Endpoint):
                         actor_id=request.user.id if request.user.is_authenticated else None,
                     )
 
+            # TODO(hybrid-cloud): We'll need to catch a more generic error
+            # when the internal RPC is implemented.
             except IntegrityError:
                 return Response(
                     {"detail": "An organization with this slug already exists."}, status=409

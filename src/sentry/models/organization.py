@@ -178,6 +178,9 @@ class Organization(Model, SnowflakeIdMixin):
 
     objects = OrganizationManager(cache_fields=("pk", "slug"))
 
+    # Not persisted. Getsentry fills this in in post-save hooks and we use it for synchronizing data across silos.
+    customer_id: Optional[str] = None
+
     class Meta:
         app_label = "sentry"
         db_table = "sentry_organization"
@@ -242,6 +245,15 @@ class Organization(Model, SnowflakeIdMixin):
             shard_scope=OutboxScope.ORGANIZATION_SCOPE,
             shard_identifier=org_id,
             category=OutboxCategory.ORGANIZATION_UPDATE,
+            object_identifier=org_id,
+        )
+
+    @staticmethod
+    def outbox_to_verify_mapping(org_id: int) -> RegionOutbox:
+        return RegionOutbox(
+            shard_scope=OutboxScope.ORGANIZATION_SCOPE,
+            shard_identifier=org_id,
+            category=OutboxCategory.VERIFY_ORGANIZATION_MAPPING,
             object_identifier=org_id,
         )
 
