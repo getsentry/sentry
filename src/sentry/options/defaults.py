@@ -568,11 +568,16 @@ register("performance.issues.consecutive_db.ga-rollout", default=0.0)
 register("performance.issues.n_plus_one_db.problem-detection", default=0.0)
 register("performance.issues.n_plus_one_db.problem-creation", default=0.0)
 register("performance.issues.n_plus_one_db_ext.problem-creation", default=0.0)
-register("performance.issues.file_io_main_thread-creation", default=0.0)
+register("performance.issues.file_io_main_thread.problem-creation", default=0.0)
 register("performance.issues.n_plus_one_api_calls.problem-creation", default=0.0)
 register("performance.issues.n_plus_one_api_calls.la-rollout", default=0.0)
 register("performance.issues.n_plus_one_api_calls.ea-rollout", default=0.0)
 register("performance.issues.n_plus_one_api_calls.ga-rollout", default=0.0)
+register("performance.issues.slow_db_query.problem-creation", default=0.0)
+register("performance.issues.slow_db_query.la-rollout", default=0.0)
+register("performance.issues.slow_db_query.ea-rollout", default=0.0)
+register("performance.issues.slow_db_query.ga-rollout", default=0.0)
+
 
 # System-wide options for default performance detection settings for any org opted into the performance-issues-ingest feature. Meant for rollout.
 register("performance.issues.n_plus_one_db.count_threshold", default=5)

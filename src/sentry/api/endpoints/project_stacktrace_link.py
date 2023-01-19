@@ -116,12 +116,15 @@ def try_path_munging(
 
 
 def set_tags(scope: Scope, result: JSONData) -> None:
-    scope.set_tag("stacktrace_link.found", result.get("sourceUrl", False))
+    scope.set_tag("stacktrace_link.found", result["sourceUrl"] is not None)
     scope.set_tag("stacktrace_link.source_url", result.get("sourceUrl"))
     scope.set_tag("stacktrace_link.error", result.get("error"))
     scope.set_tag("stacktrace_link.tried_url", result.get("attemptedUrl"))
     if result["config"]:
         scope.set_tag("stacktrace_link.empty_root", result["config"]["stackRoot"] == "")
+        scope.set_tag(
+            "stacktrace_link.auto_derived", result["config"]["automaticallyGenerated"] is True
+        )
 
 
 @region_silo_endpoint
@@ -205,7 +208,6 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
         except Exception:
             logger.exception("There was a failure sorting the code mappings")
 
-        derived = False
         current_config = None
         with configure_scope() as scope:
             set_top_tags(scope, project, ctx, len(configs) > 0)
@@ -215,11 +217,6 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                     # Later on, if there are matching code mappings this will be overwritten
                     result["error"] = "stack_root_mismatch"
                     continue
-                if (
-                    filepath.startswith(config.stack_root)
-                    and config.automatically_generated is True
-                ):
-                    derived = True
 
                 outcome = {}
                 munging_outcome = {}
@@ -262,7 +259,6 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                     if current_config["outcome"].get("attemptedUrl"):
                         result["attemptedUrl"] = current_config["outcome"]["attemptedUrl"]
             try:
-                scope.set_tag("stacktrace_link.auto_derived", derived)
                 set_tags(scope, result)
             except Exception:
                 logger.exception("Failed to set tags.")

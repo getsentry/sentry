@@ -956,6 +956,7 @@ export const ISSUE_FIELDS = [
   FieldKey.ID,
   FieldKey.IS,
   FieldKey.ISSUE_CATEGORY,
+  FieldKey.ISSUE_TYPE,
   FieldKey.LAST_SEEN,
   FieldKey.LOCATION,
   FieldKey.MESSAGE,
