@@ -201,7 +201,7 @@ def test_distribution_too_long():
     dist_len = 201
     data = validate_and_normalize({"release": "a" * 62, "dist": "b" * dist_len})
 
-    assert len(data.get("dist")) == dist_len - 1
+    assert data.get("dist") is None
 
 
 def test_distribution_bad_char():
