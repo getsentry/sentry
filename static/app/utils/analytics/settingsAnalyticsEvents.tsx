@@ -7,6 +7,7 @@ export type SettingsEventParameters = {
     notification_type: string;
     tuning_field_type: string;
   };
+  'organization_settings.codecov_access_updated': {has_access: boolean};
 };
 
 export type SettingsEventKey = keyof SettingsEventParameters;
@@ -16,4 +17,6 @@ export const settingsEventMap: Record<SettingsEventKey, string | null> = {
   'notification_settings.tuning_page_viewed': 'Notification Settings: Tuning Page Viewed',
   'notification_settings.updated_tuning_setting':
     'Notification Settings: Updated Tuning Setting',
+  'organization_settings.codecov_access_updated':
+    'Organization Settings: Codecov Access Updated',
 };
