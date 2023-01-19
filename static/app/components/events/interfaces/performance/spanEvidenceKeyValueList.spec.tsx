@@ -288,4 +288,52 @@ describe('SpanEvidenceKeyValueList', () => {
       ).toHaveTextContent('resource.script - https://example.com/resource.js');
     });
   });
+
+  describe('Uncompressed Asset', () => {
+    const builder = new TransactionEventBuilder(
+      'a1',
+      '/',
+      IssueType.PERFORMANCE_UNCOMPRESSED_ASSET,
+      {
+        duration: 0.931, // in seconds
+      }
+    );
+
+    const offenderSpan = new MockSpan({
+      startTimestamp: 0,
+      endTimestamp: 0.487, // in seconds
+      op: 'resource.script',
+      description: 'https://example.com/resource.js',
+      problemSpan: ProblemSpan.OFFENDER,
+      data: {
+        'Encoded Body Size': 31041901,
+      },
+    });
+
+    builder.addSpan(offenderSpan);
+
+    it('Renders relevant fields', () => {
+      render(<SpanEvidenceKeyValueList event={builder.getEvent()} />);
+
+      expect(screen.getByRole('cell', {name: 'Transaction'})).toBeInTheDocument();
+      expect(
+        screen.getByTestId('span-evidence-key-value-list.transaction')
+      ).toHaveTextContent('/');
+
+      expect(screen.getByRole('cell', {name: 'Slow Resource Span'})).toBeInTheDocument();
+      expect(
+        screen.getByTestId('span-evidence-key-value-list.slow-resource-span')
+      ).toHaveTextContent('resource.script - https://example.com/resource.js');
+
+      expect(screen.getByRole('cell', {name: 'Asset Size'})).toBeInTheDocument();
+      expect(
+        screen.getByTestId('span-evidence-key-value-list.asset-size')
+      ).toHaveTextContent('29.6 MiB (31041901 B)');
+
+      expect(screen.getByRole('cell', {name: 'Duration Impact'})).toBeInTheDocument();
+      expect(
+        screen.getByTestId('span-evidence-key-value-list.duration-impact')
+      ).toHaveTextContent('52.309% (487ms/931ms)');
+    });
+  });
 });
