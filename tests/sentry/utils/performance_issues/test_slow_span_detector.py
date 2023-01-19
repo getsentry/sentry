@@ -27,7 +27,7 @@ class SlowDBQueryDetectorTest(TestCase):
         self.settings = get_detection_settings()
 
     def find_problems(self, event: Event) -> List[PerformanceProblem]:
-        detector = SlowDBQueryDetectorTest(self.settings, event)
+        detector = SlowDBQueryDetector(self.settings, event)
         run_detector_on_data(detector, event)
         return list(detector.stored_problems.values())
 
