@@ -18,9 +18,12 @@ def performance() -> None:
 
 @performance.command()
 @click.argument("filename", type=click.Path(exists=True))
+@click.option(
+    "-d", "--detector", "detector_class", help="Limit detection to only one detector class"
+)
 @click.option("-v", "--verbose", count=True)
 @configuration
-def detect(filename, verbose):
+def detect(filename, detector_class, verbose):
     """
     Runs performance problem detection on event data in the supplied filename
     using default detector settings with every detector. Filename should be a
@@ -28,13 +31,16 @@ def detect(filename, verbose):
     """
     from sentry.utils.performance_issues import performance_detection
 
-    detector_classes = [
-        cls
-        for _, cls in performance_detection.__dict__.items()
-        if isclass(cls)
-        and issubclass(cls, performance_detection.PerformanceDetector)
-        and cls != performance_detection.PerformanceDetector
-    ]
+    if detector_class:
+        detector_classes = [performance_detection.__dict__[detector_class]]
+    else:
+        detector_classes = [
+            cls
+            for _, cls in performance_detection.__dict__.items()
+            if isclass(cls)
+            and issubclass(cls, performance_detection.PerformanceDetector)
+            and cls != performance_detection.PerformanceDetector
+        ]
 
     settings = performance_detection.get_detection_settings()
 
