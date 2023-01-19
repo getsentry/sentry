@@ -9,7 +9,7 @@ CODECOV_URL = "https://api.codecov.io/api/v2/{service}/{owner_username}/repos/{r
 
 def get_codecov_data(
     repo: str, service: str, branch: str, path: str
-) -> Optional[Sequence[Tuple[int, int]]]:
+) -> Tuple[Optional[Sequence[Tuple[int, int]]], Optional[str]]:
     codecov_token = options.get("codecov.client-secret")
     line_coverage = None
     codecov_url = None
