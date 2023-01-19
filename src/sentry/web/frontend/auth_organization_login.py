@@ -8,7 +8,6 @@ from rest_framework.response import Response
 from sentry.auth.helper import AuthHelper
 from sentry.constants import WARN_SESSION_EXPIRED
 from sentry.models import AuthProvider, Organization, OrganizationStatus
-from sentry.services.hybrid_cloud.organization import ApiOrganizationSummary
 from sentry.utils.auth import initiate_login
 from sentry.web.frontend.auth_login import AuthLoginView
 

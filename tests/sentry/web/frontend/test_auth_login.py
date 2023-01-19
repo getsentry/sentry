@@ -445,7 +445,7 @@ class AuthLoginCustomerDomainTest(TestCase):
     def test_renders_correct_template_nonexistent_org(self):
         resp = self.client.get(
             self.path,
-            HTTP_HOST=f"does-not-exist.testserver",
+            HTTP_HOST="does-not-exist.testserver",
         )
 
         assert resp.status_code == 200
