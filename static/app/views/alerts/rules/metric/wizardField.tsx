@@ -212,7 +212,7 @@ export default function WizardField({
                   matchTemplateAggregate(template, aggregate) &&
                   matchTemplateDataset(template, dataset) &&
                   matchTemplateEventTypes(template, eventTypes, aggregate)
-              ) as AlertType) || 'num_errors';
+              ) as AlertType) || 'custom';
 
         const {fieldOptionsConfig, hidePrimarySelector, hideParameterSelector} =
           getFieldOptionConfig({
@@ -250,6 +250,8 @@ export default function WizardField({
                 model.setValue('aggregate', template.aggregate);
                 model.setValue('dataset', template.dataset);
                 model.setValue('eventTypes', [template.eventTypes]);
+                // Keep alertType last
+                model.setValue('alertType', option.value);
               }}
             />
             <StyledQueryField
