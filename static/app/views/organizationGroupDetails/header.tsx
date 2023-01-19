@@ -275,7 +275,7 @@ function GroupHeader({
         {group.issueType === IssueType.PERFORMANCE_CONSECUTIVE_DB_QUERIES && (
           <FeatureBadge
             type="alpha"
-            title="Slow DB Span Performance Issues are in active development and may change"
+            title="Consecutive DB Query Performance Issues are in active development and may change"
           />
         )}
         {group.issueType === IssueType.PERFORMANCE_RENDER_BLOCKING_ASSET && (
