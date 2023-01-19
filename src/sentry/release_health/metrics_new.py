@@ -21,6 +21,7 @@ from snuba_sdk import Column, Condition, Entity, Function, Op, Query, Request
 from snuba_sdk.expressions import Granularity
 from snuba_sdk.query import SelectableExpression
 
+from sentry.models import Environment
 from sentry.models.project import Project
 from sentry.release_health.base import (
     CrashFreeBreakdown,
@@ -94,6 +95,21 @@ def filter_releases_by_project_release(project_releases: Sequence[ProjectRelease
         op=Op.IN,
         rhs=[rel for _proj, rel in project_releases],
     )
+
+
+def _model_environment_ids_to_environment_names(
+    environment_ids: Sequence[int],
+) -> Mapping[int, Optional[str]]:
+    """
+    Maps Environment Model ids to the environment name
+    Note: this does a Db lookup
+    """
+    empty_string_to_none: Callable[[Any], Optional[Any]] = lambda v: None if v == "" else v
+    id_to_name: Mapping[int, Optional[str]] = {
+        k: empty_string_to_none(v)
+        for k, v in Environment.objects.filter(id__in=environment_ids).values_list("id", "name")
+    }
+    return defaultdict(lambda: None, id_to_name)
 
 
 class MetricsLayerReleaseHealthBackend(ReleaseHealthBackend):
@@ -1525,7 +1541,6 @@ class MetricsLayerReleaseHealthBackend(ReleaseHealthBackend):
 
         return ret_series, totals
 
-    # TODO implement
     def get_project_sessions_count(
         self,
         project_id: ProjectId,
@@ -1538,9 +1553,44 @@ class MetricsLayerReleaseHealthBackend(ReleaseHealthBackend):
         Returns the number of sessions in the specified period (optionally
         filtered by environment)
         """
-        raise NotImplementedError()
+        projects, org_id = self._get_projects_and_org_id([project_id])
 
-    # TODO implement
+        select = [MetricField(metric_mri=SessionMRI.ALL.value, alias="value", op=None)]
+
+        where = []
+
+        if environment_id is not None:
+            # convert the PosgreSQL environmentID into the clickhouse string index
+            # for the environment name
+            env_names = _model_environment_ids_to_environment_names([environment_id])
+            env_name = env_names[environment_id]
+
+            where.append(Condition(Column("tags[environment]"), Op.EQ, env_name))
+
+        query = MetricsQuery(
+            org_id=org_id,
+            project_ids=[project_id],
+            select=select,
+            start=start,
+            end=end,
+            where=where,
+            granularity=Granularity(rollup),
+            include_series=False,
+            include_totals=True,
+        )
+
+        raw_result = get_series(
+            projects=projects,
+            metrics_query=query,
+            use_case_id=USE_CASE_ID,
+        )
+
+        groups = raw_result["groups"]
+        if len(groups) > 0:
+            return get_path(groups[0], "totals", "value", default=0)
+        else:
+            return 0
+
     def get_num_sessions_per_project(
         self,
         project_ids: Sequence[ProjectId],
@@ -1549,11 +1599,53 @@ class MetricsLayerReleaseHealthBackend(ReleaseHealthBackend):
         environment_ids: Optional[Sequence[int]] = None,
         rollup: Optional[int] = None,  # rollup in seconds
     ) -> Sequence[ProjectWithCount]:
-        """
-        Returns the number of sessions for each project specified.
-        Additionally
-        """
-        raise NotImplementedError()
+
+        projects, org_id = self._get_projects_and_org_id(project_ids)
+
+        select = [MetricField(metric_mri=SessionMRI.ALL.value, alias="value", op=None)]
+
+        where = []
+
+        groupby = [
+            MetricGroupByField(field="project_id"),
+        ]
+
+        if environment_ids is not None and len(environment_ids) > 0:
+            # convert the PosgreSQL environmentID into the clickhouse string index
+            # for the environment name
+            env_names_dict = _model_environment_ids_to_environment_names(environment_ids)
+            env_names = [value for value in env_names_dict.values() if value is not None]
+            where.append(
+                Condition(
+                    lhs=Column(name="tags[environment]"),
+                    op=Op.IN,
+                    rhs=env_names,
+                )
+            )
+
+        query = MetricsQuery(
+            org_id=org_id,
+            project_ids=project_ids,
+            select=select,
+            start=start,
+            end=end,
+            where=where,
+            groupby=groupby,
+            granularity=Granularity(rollup),
+            include_series=False,
+            include_totals=True,
+        )
+
+        raw_result = get_series(
+            projects=projects,
+            metrics_query=query,
+            use_case_id=USE_CASE_ID,
+        )
+        ret_val = [
+            (get_path(group, "by", "project_id"), get_path(group, "totals", "value"))
+            for group in raw_result["groups"]
+        ]
+        return ret_val
 
     # TODO implement
     def get_project_releases_by_stability(
