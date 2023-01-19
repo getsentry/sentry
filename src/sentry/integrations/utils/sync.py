@@ -4,13 +4,12 @@ import logging
 from typing import TYPE_CHECKING, Mapping, Sequence
 
 from sentry import features
-from sentry.models import Group, GroupAssignee, Project
+from sentry.models import Group, GroupAssignee, Organization, Project
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.user import user_service
 from sentry.tasks.integrations import sync_assignee_outbound
 
 if TYPE_CHECKING:
-    from sentry.models import Organization
     from sentry.services.hybrid_cloud.integration import APIIntegration
 
 
