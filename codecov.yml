@@ -1,3 +1,7 @@
+codecov:
+  notify:
+    after_n_builds: 5
+
 # Setting coverage targets per flag
 coverage:
   status:
