@@ -55,6 +55,7 @@ export function SpanEvidenceKeyValueList({event}: {event: EventTransaction}) {
       [IssueType.PERFORMANCE_CONSECUTIVE_DB_QUERIES]: ConsecutiveDBQueriesSpanEvidence,
       [IssueType.PERFORMANCE_RENDER_BLOCKING_ASSET]: RenderBlockingAssetSpanEvidence,
     }[performanceProblem.issueType] ?? DefaultSpanEvidence;
+
   return <Component event={event} {...spanInfo} />;
 }
 
@@ -138,12 +139,12 @@ const SlowSpanSpanEvidence = ({event, offendingSpans}: SpanEvidenceKeyValueListP
 );
 
 const RenderBlockingAssetSpanEvidence = ({
-  transactionName,
+  event,
   offendingSpans,
 }: SpanEvidenceKeyValueListProps) => (
   <PresortedKeyValueList
     data={[
-      makeTransactionNameRow(transactionName),
+      makeTransactionNameRow(event),
       makeRow(t('Slow Resource Span'), getSpanEvidenceValue(offendingSpans[0])),
     ]}
   />
