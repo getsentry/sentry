@@ -151,11 +151,10 @@ def ingest_recording(message: RecordingIngestMessage, transaction: Transaction) 
     if count_existing_segments > 0:
         with sentry_sdk.push_scope() as scope:
             scope.level = "warning"
-            scope.add_attachment(bytes=recording_segment, filename="dup_replay_segment")
             scope.set_tag("replay_id", message.replay_id)
             scope.set_tag("project_id", message.project_id)
 
-            logging.exception("Recording segment was already processed.")
+        logging.warning("Recording segment was already processed.")
 
         return None
 
