@@ -72,4 +72,15 @@ class DashboardDetailPage(BasePage):
         button = self.browser.element('[data-test-id="dashboard-commit"]')
         self.browser.wait_until_clickable('[data-test-id="dashboard-commit"]')
         button.click()
+        # This is a kind of hack.
+        # After we click the button, an API is made and we want to wait until
+        # the API call finishes. Since the loading indicator isn't used
+        # we can't rely on self.wait_until_loaded(). The UI shows a
+        # success toast, however if a previous step of a test shows a success
+        # toast, we wait_until([data-test-id="toast-success"]) as it'll
+        # return immediately due to the previous toast.
+        # Since clicking the save dasboard button is removed one the API
+        # call is complete, we can wait for until to go away as a signal
+        # that the API is complete.
+        self.browser.wait_until_not('[data-test-id="dashboard-commit"]')
         self.wait_until_loaded()
