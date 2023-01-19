@@ -21,6 +21,7 @@ export const DEFAULT_FLAMEGRAPH_STATE: FlamegraphState = {
   },
   preferences: {
     timelines: {
+      ui_frames: true,
       minimap: true,
       transaction_spans: true,
     },
