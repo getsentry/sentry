@@ -336,7 +336,7 @@ class RedisBuffer(Buffer):
                 filters = self._load_values(json.loads(force_text(values.pop("f"))))
             else:
                 # TODO(dcramer): legacy pickle support - remove in Sentry 9.1
-                filters = pickle.loads(values.pop("f"))
+                filters = pickle.loads(force_bytes(values.pop("f")))
 
             incr_values = {}
             extra_values = {}
@@ -345,11 +345,11 @@ class RedisBuffer(Buffer):
                 if k.startswith("i+"):
                     incr_values[k[2:]] = int(v)
                 elif k.startswith("e+"):
-                    if v.startswith(b"["):
+                    if v.startswith(b"[" if not self.is_redis_cluster else "["):
                         extra_values[k[2:]] = self._load_value(json.loads(v.decode("utf-8")))
                     else:
                         # TODO(dcramer): legacy pickle support - remove in Sentry 9.1
-                        extra_values[k[2:]] = pickle.loads(v)
+                        extra_values[k[2:]] = pickle.loads(force_bytes(v))
                 elif k == "s":
                     signal_only = bool(int(v))  # Should be 1 if set
 
