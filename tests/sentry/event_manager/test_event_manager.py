@@ -23,12 +23,12 @@ from fixtures.github import (
 from sentry import audit_log, nodestore, tsdb
 from sentry.attachments import CachedAttachment, attachment_cache
 from sentry.constants import MAX_VERSION_LENGTH, DataCategory
-from sentry.dynamic_sampling.latest_release_booster import (
+from sentry.dynamic_sampling import (
     ExtendedBoostedRelease,
+    Platform,
     ProjectBoostedReleases,
     get_redis_client_for_ds,
 )
-from sentry.dynamic_sampling.latest_release_ttas import Platform
 from sentry.event_manager import (
     EventManager,
     EventUser,
@@ -76,6 +76,7 @@ from sentry.testutils import (
 )
 from sentry.testutils.helpers import apply_feature_flag_on_cls, override_options
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.performance_issues.event_generators import get_event
 from sentry.testutils.silo import region_silo_test
 from sentry.types.activity import ActivityType
 from sentry.types.issues import GroupCategory, GroupType
@@ -88,7 +89,6 @@ from sentry.utils.performance_issues.performance_detection import (
 )
 from sentry.utils.samples import load_data
 from tests.sentry.integrations.github.test_repository import stub_installation_token
-from tests.sentry.utils.performance_issues.test_performance_detection import EVENTS
 
 
 def make_event(**kwargs):
@@ -2224,7 +2224,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
         self.project.update_option("sentry:performance_issue_creation_rate", 1.0)
 
         with mock.patch("sentry_sdk.tracing.Span.containing_transaction"):
-            manager = EventManager(make_event(**EVENTS["n-plus-one-in-django-index-view"]))
+            manager = EventManager(make_event(**get_event("n-plus-one-in-django-index-view")))
             manager.normalize()
             event = manager.save(self.project.id)
             data = event.data
@@ -2304,7 +2304,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
         self.project.update_option("sentry:performance_issue_creation_rate", 1.0)
 
         with mock.patch("sentry_sdk.tracing.Span.containing_transaction"):
-            manager = EventManager(make_event(**EVENTS["n-plus-one-in-django-index-view"]))
+            manager = EventManager(make_event(**get_event("n-plus-one-in-django-index-view")))
             manager.normalize()
             event = manager.save(self.project.id)
             group = event.groups[0]
@@ -2320,7 +2320,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
             assert group.location() == "hi"
             assert group.title == "lol"
 
-            manager = EventManager(make_event(**EVENTS["n-plus-one-in-django-index-view"]))
+            manager = EventManager(make_event(**get_event("n-plus-one-in-django-index-view")))
             manager.normalize()
             with self.tasks():
                 manager.save(self.project.id)
@@ -2347,7 +2347,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
                 "projects:performance-suspect-spans-ingestion": True,
             }
         ):
-            manager = EventManager(make_event(**EVENTS["n-plus-one-in-django-index-view"]))
+            manager = EventManager(make_event(**get_event("n-plus-one-in-django-index-view")))
             manager.normalize()
             event = manager.save(self.project.id)
             assert len(event.groups) == 1
@@ -2356,7 +2356,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
             group = event.groups[0]
             group.type = GroupType.ERROR.value
             group.save()
-            manager = EventManager(make_event(**EVENTS["n-plus-one-in-django-index-view"]))
+            manager = EventManager(make_event(**get_event("n-plus-one-in-django-index-view")))
             manager.normalize()
             event = manager.save(self.project.id)
 
@@ -2397,7 +2397,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
                 "projects:performance-suspect-spans-ingestion": True,
             }
         ):
-            manager = EventManager(make_event(**EVENTS["n-plus-one-in-django-index-view"]))
+            manager = EventManager(make_event(**get_event("n-plus-one-in-django-index-view")))
             manager.normalize()
             event = manager.save(self.project.id)
             data = event.data
@@ -2414,9 +2414,9 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
                 "projects:performance-suspect-spans-ingestion": True,
             }
         ):
-            manager1 = EventManager(make_event(**EVENTS["n-plus-one-in-django-index-view"]))
-            manager2 = EventManager(make_event(**EVENTS["n-plus-one-in-django-index-view"]))
-            manager3 = EventManager(make_event(**EVENTS["n-plus-one-in-django-index-view"]))
+            manager1 = EventManager(make_event(**get_event("n-plus-one-in-django-index-view")))
+            manager2 = EventManager(make_event(**get_event("n-plus-one-in-django-index-view")))
+            manager3 = EventManager(make_event(**get_event("n-plus-one-in-django-index-view")))
             manager1.normalize()
             manager2.normalize()
             manager3.normalize()
@@ -2434,6 +2434,49 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
             assert data1["hashes"] == []
             assert data2["hashes"] == []
             assert data3["hashes"] == [expected_hash]
+
+    @override_options(
+        {
+            "performance.issues.slow_span.problem-creation": 1.0,
+            "performance_issue_creation_rate": 1.0,
+        }
+    )
+    @override_settings(SENTRY_PERFORMANCE_ISSUES_REDUCE_NOISE=True)
+    def test_perf_issue_slow_db_issue_not_created(self):
+        self.project.update_option("sentry:performance_issue_creation_rate", 1.0)
+
+        with mock.patch("sentry_sdk.tracing.Span.containing_transaction") as transaction:
+            last_event = None
+
+            for _ in range(100):
+                manager = EventManager(make_event(**get_event("slow-db-spans")))
+                manager.normalize()
+                event = manager.save(self.project.id)
+                last_event = event
+
+            # The group should not be created, but there should be a tag on the transaction
+            assert len(last_event.groups) == 0
+            transaction.set_tag.assert_called_with("_will_create_slow_db_issue", "true")
+
+    @override_options(
+        {
+            "performance.issues.slow_span.problem-creation": 1.0,
+            "performance_issue_creation_rate": 1.0,
+        }
+    )
+    @override_settings(SENTRY_PERFORMANCE_ISSUES_REDUCE_NOISE=False)
+    def test_perf_issue_slow_db_issue_not_created_with_noise_flag_false(self):
+        self.project.update_option("sentry:performance_issue_creation_rate", 1.0)
+
+        last_event = None
+
+        for _ in range(100):
+            manager = EventManager(make_event(**get_event("slow-db-spans")))
+            manager.normalize()
+            event = manager.save(self.project.id)
+            last_event = event
+
+        assert len(last_event.groups) == 0
 
 
 class AutoAssociateCommitTest(TestCase, EventManagerTestMixin):
@@ -3399,10 +3442,7 @@ class DSLatestReleaseBoostTest(TestCase):
             )
 
     @freeze_time()
-    @mock.patch(
-        "sentry.dynamic_sampling.latest_release_booster.ProjectBoostedReleases.BOOSTED_RELEASES_LIMIT",
-        2,
-    )
+    @mock.patch("sentry.dynamic_sampling.rules.helpers.latest_releases.BOOSTED_RELEASES_LIMIT", 2)
     def test_least_recently_boosted_release_is_removed_if_limit_is_exceeded(self):
         ts = time()
 
@@ -3481,10 +3521,7 @@ class DSLatestReleaseBoostTest(TestCase):
             ]
 
     @freeze_time()
-    @mock.patch(
-        "sentry.dynamic_sampling.latest_release_booster.ProjectBoostedReleases.BOOSTED_RELEASES_LIMIT",
-        2,
-    )
+    @mock.patch("sentry.dynamic_sampling.rules.helpers.latest_releases.BOOSTED_RELEASES_LIMIT", 2)
     def test_removed_boost_not_added_again_if_limit_is_exceeded(self):
         with self.options(
             {

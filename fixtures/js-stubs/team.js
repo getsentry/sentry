@@ -5,6 +5,9 @@ export function Team(params = {}) {
     name: 'Team Name',
     isMember: true,
     memberCount: 0,
+    flags: {
+      'idp:provisioned': false,
+    },
     ...params,
   };
 }

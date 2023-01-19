@@ -9,7 +9,7 @@ import {useMenuTrigger} from '@react-aria/menu';
 import {useResizeObserver} from '@react-aria/utils';
 
 import Badge from 'sentry/components/badge';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import DropdownButton, {DropdownButtonProps} from 'sentry/components/dropdownButton';
 import SelectControl, {
   ControlProps,
@@ -109,7 +109,6 @@ export const CompactSelectControl = ({
           {isLoading && <StyledLoadingIndicator size={12} mini />}
           {hasValue && isClearable && !isLoading && (
             <ClearButton
-              type="button"
               size="zero"
               borderless
               onClick={() => props.clearValue()}

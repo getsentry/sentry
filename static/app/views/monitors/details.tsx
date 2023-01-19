@@ -9,6 +9,9 @@ import {Panel, PanelHeader} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
+import withRouteAnalytics, {
+  WithRouteAnalyticsProps,
+} from 'sentry/utils/routeAnalytics/withRouteAnalytics';
 import withOrganization from 'sentry/utils/withOrganization';
 import AsyncView from 'sentry/views/asyncView';
 
@@ -20,7 +23,8 @@ import MonitorOnboarding from './onboarding';
 import {Monitor} from './types';
 
 type Props = AsyncView['props'] &
-  RouteComponentProps<{monitorId: string; orgId: string}, {}> & {
+  WithRouteAnalyticsProps &
+  RouteComponentProps<{monitorId: string}, {}> & {
     organization: Organization;
   };
 
@@ -35,7 +39,13 @@ class MonitorDetails extends AsyncView<Props, State> {
 
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {params, location} = this.props;
-    return [['monitor', `/monitors/${params.monitorId}/`, {query: location.query}]];
+    return [
+      [
+        'monitor',
+        `/organizations/${this.orgSlug}/monitors/${params.monitorId}/`,
+        {query: location.query},
+      ],
+    ];
   }
 
   getTitle() {
@@ -48,6 +58,16 @@ class MonitorDetails extends AsyncView<Props, State> {
   onUpdate = (data: Monitor) =>
     this.setState(state => ({monitor: {...state.monitor, ...data}}));
 
+  onRequestSuccess(response) {
+    this.props.setEventNames(
+      'monitors.details_page_viewed',
+      'Monitors: Details Page Viewed'
+    );
+    this.props.setRouteAnalyticsParams({
+      empty_state: !response.data?.lastCheckIn,
+    });
+  }
+
   renderBody() {
     const {monitor} = this.state;
 
@@ -56,7 +76,7 @@ class MonitorDetails extends AsyncView<Props, State> {
     }
 
     return (
-      <Fragment>
+      <Layout.Page>
         <MonitorHeader monitor={monitor} orgId={this.orgSlug} onUpdate={this.onUpdate} />
         <Layout.Body>
           <Layout.Main fullWidth>
@@ -68,20 +88,20 @@ class MonitorDetails extends AsyncView<Props, State> {
                   <DatePageFilter alignDropdown="left" />
                 </StyledPageFilterBar>
 
-                <MonitorStats monitor={monitor} />
+                <MonitorStats monitor={monitor} orgId={this.orgSlug} />
 
                 <MonitorIssues monitor={monitor} orgId={this.orgSlug} />
 
                 <Panel>
                   <PanelHeader>{t('Recent Check-ins')}</PanelHeader>
 
-                  <MonitorCheckIns monitor={monitor} />
+                  <MonitorCheckIns monitor={monitor} orgId={this.orgSlug} />
                 </Panel>
               </Fragment>
             )}
           </Layout.Main>
         </Layout.Body>
-      </Fragment>
+      </Layout.Page>
     );
   }
 }
@@ -90,4 +110,4 @@ const StyledPageFilterBar = styled(PageFilterBar)`
   margin-bottom: ${space(2)};
 `;
 
-export default withOrganization(MonitorDetails);
+export default withRouteAnalytics(withOrganization(MonitorDetails));

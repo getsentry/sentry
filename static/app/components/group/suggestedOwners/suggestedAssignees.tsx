@@ -2,7 +2,7 @@ import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import SuggestedOwnerHovercard from 'sentry/components/group/suggestedOwnerHovercard';
 import Placeholder from 'sentry/components/placeholder';
 import * as SidebarSection from 'sentry/components/sidebarSection';
@@ -144,5 +144,6 @@ const SuggestionRow = styled('div')`
 `;
 
 const StyledButton = styled(Button)`
-  padding-right: 0;
+  /* Matches button padding so the icon lines up with others in sidebar */
+  margin-right: -2px;
 `;

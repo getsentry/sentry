@@ -2,7 +2,7 @@ import {Component} from 'react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import FormContext, {
   FormContextData,
 } from 'sentry/components/deprecatedforms/formContext';
@@ -170,7 +170,6 @@ class Form<
             </Button>
             {this.props.onCancel && (
               <Button
-                type="button"
                 disabled={isSaving}
                 onClick={this.props.onCancel}
                 style={{marginLeft: 5}}

@@ -34,6 +34,13 @@ export type BaseEventAnalyticsParams = {
   sdk_version?: string;
 };
 
+type BaseTour = {
+  duration: number;
+  step: number;
+};
+
+type ReleasesTour = BaseTour & {project_id: string};
+
 export type TeamInsightsEventParameters = {
   'alert_builder.filter': {query: string; session_id?: string};
   'alert_details.viewed': {alert_id: number};
@@ -88,8 +95,13 @@ export type TeamInsightsEventParameters = {
     project_id: string;
     rule_id: string;
   };
+  'project_detail.change_chart': {chart_index: number; metric: string};
   'project_detail.open_discover': {};
   'project_detail.open_issues': {};
+  'project_detail.performance_tour.advance': BaseTour;
+  'project_detail.performance_tour.close': BaseTour;
+  'project_detail.releases_tour.advance': ReleasesTour;
+  'project_detail.releases_tour.close': ReleasesTour;
 };
 
 export type TeamInsightsEventKey = keyof TeamInsightsEventParameters;
@@ -136,4 +148,9 @@ export const workflowEventMap: Record<TeamInsightsEventKey, string | null> = {
   'project_creation_page.created': 'Project Create: Project Created',
   'project_detail.open_issues': 'Project Detail: Open issues from project detail',
   'project_detail.open_discover': 'Project Detail: Open discover from project detail',
+  'project_detail.change_chart': 'Project Detail: Change Chart',
+  'project_detail.performance_tour.advance': 'Project Detail: Performance Tour Advance',
+  'project_detail.performance_tour.close': 'Project Detail: Performance Tour Close',
+  'project_detail.releases_tour.advance': 'Project Detail: Releases Tour Advance',
+  'project_detail.releases_tour.close': 'Project Detail: Releases Tour Close',
 };

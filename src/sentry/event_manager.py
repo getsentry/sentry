@@ -53,8 +53,7 @@ from sentry.constants import (
     DataCategory,
 )
 from sentry.culprit import generate_culprit
-from sentry.dynamic_sampling.feature_multiplexer import DynamicSamplingFeatureMultiplexer
-from sentry.dynamic_sampling.latest_release_booster import LatestReleaseBias, LatestReleaseParams
+from sentry.dynamic_sampling import LatestReleaseBias, LatestReleaseParams
 from sentry.eventstore.processing import event_processing_store
 from sentry.eventtypes import (
     CspEvent,
@@ -911,9 +910,10 @@ def _get_or_create_release_many(jobs: Sequence[Job], projects: ProjectsMapping) 
                 # Dynamic Sampling - Boosting latest release functionality
                 if (
                     options.get("dynamic-sampling:boost-latest-release")
-                    and DynamicSamplingFeatureMultiplexer(
-                        project=projects[project_id]
-                    ).is_on_dynamic_sampling
+                    and features.has(
+                        "organizations:dynamic-sampling", projects[project_id].organization
+                    )
+                    and options.get("dynamic-sampling:enabled-biases")
                     and data.get("type") == "transaction"
                 ):
                     with sentry_sdk.start_span(
@@ -2213,7 +2213,9 @@ def _calculate_span_grouping(jobs: Sequence[Job], projects: ProjectsMapping) -> 
 @metrics.wraps("save_event.detect_performance_problems")
 def _detect_performance_problems(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
     for job in jobs:
-        job["performance_problems"] = detect_performance_problems(job["data"])
+        job["performance_problems"] = detect_performance_problems(
+            job["data"], projects[job["project_id"]]
+        )
 
 
 class PerformanceJob(TypedDict, total=False):
@@ -2310,6 +2312,7 @@ def _save_aggregate_performance(jobs: Sequence[PerformanceJob], projects: Projec
 
                     new_grouphashes = new_grouphashes - groups_to_ignore
 
+                delete_slow_span_group_hashes(new_grouphashes, performance_problems)
                 new_grouphashes_count = len(new_grouphashes)
 
                 with metrics.timer("performance.performance_issue.check_write_limits"):
@@ -2336,10 +2339,13 @@ def _save_aggregate_performance(jobs: Sequence[PerformanceJob], projects: Projec
                         tags={"platform": event.platform or "unknown"},
                         sample_rate=1.0,
                     ) as metric_tags, transaction.atomic():
-                        span.set_tag("create_group_transaction.outcome", "no_group")
-                        metric_tags["create_group_transaction.outcome"] = "no_group"
-
                         problem = performance_problems_by_hash[new_grouphash]
+
+                        span.set_tag("create_group_transaction.outcome", "no_group")
+                        span.set_tag("group_type", problem.type.name)
+                        metric_tags["create_group_transaction.outcome"] = "no_group"
+                        metric_tags["group_type"] = problem.type.name
+
                         group_kwargs = kwargs.copy()
                         group_kwargs["type"] = problem.type.value
 
@@ -2416,19 +2422,45 @@ def _save_aggregate_performance(jobs: Sequence[PerformanceJob], projects: Projec
 
 @metrics.wraps("performance.performance_issue.should_create_group", sample_rate=1.0)
 def should_create_group(client: Any, grouphash: str, type: GroupType) -> bool:
-    times_seen = client.incr(f"grouphash:{grouphash}")
-    metrics.incr(
-        "performance.performance_issue.grouphash_counted",
-        tags={"times_seen": times_seen, "group_type": GROUP_TYPE_TO_TEXT.get(type, "Unknown Type")},
-        sample_rate=1.0,
-    )
+    with sentry_sdk.start_span(op="event_manager.should_create_group") as span:
+        times_seen = client.incr(f"grouphash:{grouphash}")
+        metrics.incr(
+            "performance.performance_issue.grouphash_counted",
+            tags={
+                "times_seen": times_seen,
+                "group_type": GROUP_TYPE_TO_TEXT.get(type, "Unknown Type"),
+            },
+            sample_rate=1.0,
+        )
 
-    if times_seen >= GROUPHASH_IGNORE_LIMIT_MAP.get(type, DEFAULT_GROUPHASH_IGNORE_LIMIT):
-        client.delete(grouphash)
-        return True
-    else:
-        client.expire(grouphash, 60 * 60 * 24)  # 24 hour expiration from last seen
-        return False
+        if times_seen >= GROUPHASH_IGNORE_LIMIT_MAP.get(type, DEFAULT_GROUPHASH_IGNORE_LIMIT):
+            client.delete(grouphash)
+            metrics.incr(
+                "performance.performance_issue.issue_will_be_created",
+                tags={"group_type": type.name},
+                sample_rate=1.0,
+            )
+
+            # TODO: Experimental tag to indicate when a Slow DB Issue would have been created.
+            # This is in place to confirm whether the above rate limit is effective in preventing spikes
+            # and inaccuracies.
+            if type == GroupType.PERFORMANCE_SLOW_SPAN:
+                if span.containing_transaction:
+                    span.containing_transaction.set_tag("_will_create_slow_db_issue", "true")
+                return False
+
+            return True
+        else:
+            client.expire(grouphash, 60 * 60 * 24)  # 24 hour expiration from last seen
+            return False
+
+
+def delete_slow_span_group_hashes(
+    group_hashes: set[str], performance_problems: Sequence[PerformanceProblem]
+) -> None:
+    for problem in performance_problems:
+        if problem.type == GroupType.PERFORMANCE_SLOW_SPAN and problem.fingerprint in group_hashes:
+            group_hashes.remove(problem.fingerprint)
 
 
 @metrics.wraps("event_manager.save_transaction_events")
@@ -2473,7 +2505,7 @@ def save_transaction_events(jobs: Sequence[Job], projects: ProjectsMapping) -> S
 
 @metrics.wraps("event_manager.save_generic_events")
 def save_generic_events(jobs: Sequence[Job], projects: ProjectsMapping) -> Sequence[Job]:
-    with metrics.timer("event_manager.save_generic.ganization_ids"):
+    with metrics.timer("event_manager.save_generic.organization_ids"):
         organization_ids = {project.organization_id for project in projects.values()}
 
     with metrics.timer("event_manager.save_generic.fetch_organizations"):

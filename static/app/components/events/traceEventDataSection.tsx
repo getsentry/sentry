@@ -7,7 +7,7 @@ import {
 } from 'react';
 import styled from '@emotion/styled';
 
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import CompactSelect from 'sentry/components/compactSelect';
 import CompositeSelect from 'sentry/components/compositeSelect';
@@ -22,7 +22,7 @@ import {isNativePlatform} from 'sentry/utils/platform';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
-import EventDataSection from './eventDataSection';
+import {EventDataSection} from './eventDataSection';
 
 const sortByOptions = {
   'recent-first': t('Newest'),
@@ -206,7 +206,6 @@ export function TraceEventDataSection({
                   >
                     <ButtonBar active={state.fullStackTrace ? 'full' : 'relevant'} merged>
                       <Button
-                        type="button"
                         size="xs"
                         barId="relevant"
                         onClick={() =>
@@ -220,7 +219,6 @@ export function TraceEventDataSection({
                         {t('Most Relevant')}
                       </Button>
                       <Button
-                        type="button"
                         size="xs"
                         barId="full"
                         priority={!hasAppOnlyFrames ? 'primary' : undefined}
@@ -247,7 +245,7 @@ export function TraceEventDataSection({
                 )}
                 <CompactSelect
                   triggerProps={{
-                    icon: <IconSort />,
+                    icon: <IconSort size="xs" />,
                     size: 'xs',
                     title: sortByTooltip,
                   }}
@@ -264,7 +262,7 @@ export function TraceEventDataSection({
                 />
                 <CompositeSelect
                   triggerProps={{
-                    icon: <IconEllipsis />,
+                    icon: <IconEllipsis size="xs" />,
                     size: 'xs',
                     showChevron: false,
                     'aria-label': t('Options'),

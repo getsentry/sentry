@@ -1,4 +1,5 @@
 import {
+  act,
   renderGlobalModal,
   screen,
   userEvent,
@@ -43,17 +44,19 @@ describe('StacktraceLinkModal', () => {
 
   it('links to source code with one GitHub integration', () => {
     renderGlobalModal();
-    openModal(modalProps => (
-      <StacktraceLinkModal
-        {...modalProps}
-        filename={filename}
-        closeModal={closeModal}
-        integrations={[integration]}
-        organization={org}
-        project={project}
-        onSubmit={onSubmit}
-      />
-    ));
+    act(() =>
+      openModal(modalProps => (
+        <StacktraceLinkModal
+          {...modalProps}
+          filename={filename}
+          closeModal={closeModal}
+          integrations={[integration]}
+          organization={org}
+          project={project}
+          onSubmit={onSubmit}
+        />
+      ))
+    );
 
     expect(screen.getByText('Tell us where your source code is')).toBeInTheDocument();
 
@@ -73,17 +76,19 @@ describe('StacktraceLinkModal', () => {
     });
 
     renderGlobalModal();
-    openModal(modalProps => (
-      <StacktraceLinkModal
-        {...modalProps}
-        filename={filename}
-        closeModal={closeModal}
-        integrations={[integration]}
-        organization={org}
-        project={project}
-        onSubmit={onSubmit}
-      />
-    ));
+    act(() =>
+      openModal(modalProps => (
+        <StacktraceLinkModal
+          {...modalProps}
+          filename={filename}
+          closeModal={closeModal}
+          integrations={[integration]}
+          organization={org}
+          project={project}
+          onSubmit={onSubmit}
+        />
+      ))
+    );
 
     userEvent.type(
       screen.getByRole('textbox', {name: 'Copy the URL and paste it below'}),
@@ -105,17 +110,19 @@ describe('StacktraceLinkModal', () => {
     });
 
     renderGlobalModal({context: TestStubs.routerContext()});
-    openModal(modalProps => (
-      <StacktraceLinkModal
-        {...modalProps}
-        filename={filename}
-        closeModal={closeModal}
-        integrations={[integration]}
-        organization={org}
-        project={project}
-        onSubmit={onSubmit}
-      />
-    ));
+    act(() =>
+      openModal(modalProps => (
+        <StacktraceLinkModal
+          {...modalProps}
+          filename={filename}
+          closeModal={closeModal}
+          integrations={[integration]}
+          organization={org}
+          project={project}
+          onSubmit={onSubmit}
+        />
+      ))
+    );
 
     userEvent.type(
       screen.getByRole('textbox', {name: 'Copy the URL and paste it below'}),

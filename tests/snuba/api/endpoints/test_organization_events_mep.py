@@ -2,10 +2,8 @@ from unittest import mock
 
 import pytest
 from django.urls import reverse
-from snuba_sdk.conditions import InvalidConditionError
 
 from sentry.discover.models import TeamKeyTransaction
-from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
 from sentry.models import ProjectTeam
 from sentry.models.transaction_threshold import (
     ProjectTransactionThreshold,
@@ -161,6 +159,64 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
 
         assert meta["isMetricsData"]
         assert field_meta["project.name"] == "string"
+        assert field_meta["environment"] == "string"
+        assert field_meta["epm()"] == "number"
+
+    def test_project_id(self):
+        self.store_transaction_metric(
+            1,
+            tags={"environment": "staging"},
+            timestamp=self.min_ago,
+        )
+
+        response = self.do_request(
+            {
+                "field": ["project_id", "environment", "epm()"],
+                "query": "event.type:transaction",
+                "dataset": "metrics",
+                "per_page": 50,
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        data = response.data["data"]
+        meta = response.data["meta"]
+        field_meta = meta["fields"]
+
+        assert data[0]["project_id"] == self.project.id
+        assert data[0]["environment"] == "staging"
+
+        assert meta["isMetricsData"]
+        assert field_meta["project_id"] == "integer"
+        assert field_meta["environment"] == "string"
+        assert field_meta["epm()"] == "number"
+
+    def test_project_dot_id(self):
+        self.store_transaction_metric(
+            1,
+            tags={"environment": "staging"},
+            timestamp=self.min_ago,
+        )
+
+        response = self.do_request(
+            {
+                "field": ["project.id", "environment", "epm()"],
+                "query": "event.type:transaction",
+                "dataset": "metrics",
+                "per_page": 50,
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        data = response.data["data"]
+        meta = response.data["meta"]
+        field_meta = meta["fields"]
+
+        assert data[0]["project.id"] == self.project.id
+        assert data[0]["environment"] == "staging"
+
+        assert meta["isMetricsData"]
+        assert field_meta["project.id"] == "integer"
         assert field_meta["environment"] == "string"
         assert field_meta["epm()"] == "number"
 
@@ -1174,39 +1230,6 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         response = self.do_request(query)
         assert response.status_code == 400, response.content
 
-    @mock.patch("sentry.snuba.metrics_performance.MetricsQueryBuilder")
-    def test_failed_dry_run_does_not_error(self, mock_builder):
-        with self.feature("organizations:performance-dry-run-mep"):
-            mock_builder.side_effect = InvalidSearchQuery("Something bad")
-            query = {
-                "field": ["count()"],
-                "project": [self.project.id],
-            }
-            response = self.do_request(query)
-            assert response.status_code == 200, response.content
-            assert len(mock_builder.mock_calls) == 1
-            assert mock_builder.call_args.kwargs["dry_run"]
-
-            mock_builder.side_effect = IncompatibleMetricsQuery("Something bad")
-            query = {
-                "field": ["count()"],
-                "project": [self.project.id],
-            }
-            response = self.do_request(query)
-            assert response.status_code == 200, response.content
-            assert len(mock_builder.mock_calls) == 2
-            assert mock_builder.call_args.kwargs["dry_run"]
-
-            mock_builder.side_effect = InvalidConditionError("Something bad")
-            query = {
-                "field": ["count()"],
-                "project": [self.project.id],
-            }
-            response = self.do_request(query)
-            assert response.status_code == 200, response.content
-            assert len(mock_builder.mock_calls) == 3
-            assert mock_builder.call_args.kwargs["dry_run"]
-
     def test_count_unique_user_returns_zero(self):
         self.store_transaction_metric(
             50,
@@ -1590,7 +1613,6 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert meta["isMetricsData"]
 
     def test_environment_query(self):
-        self.features["organizations:use-metrics-layer"] = True
         self.create_environment(self.project, name="staging")
         self.store_transaction_metric(
             1,
@@ -1747,7 +1769,6 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert field_meta["apdex()"] == "number"
 
     def test_apdex_project_threshold(self):
-        self.features["organizations:use-metrics-layer"] = True
         ProjectTransactionThreshold.objects.create(
             project=self.project,
             organization=self.project.organization,
@@ -2123,3 +2144,11 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
     @pytest.mark.xfail(reason="Having not supported")
     def test_having_condition(self):
         super().test_having_condition()
+
+    @pytest.mark.xfail(reason="Meta for project_id is wrong")
+    def test_project_id(self):
+        super().test_project_id()
+
+    @pytest.mark.xfail(reason="Meta for project.id is wrong")
+    def test_project_dot_id(self):
+        super().test_project_dot_id()

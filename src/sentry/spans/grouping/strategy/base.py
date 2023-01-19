@@ -224,7 +224,7 @@ def remove_http_client_query_string_strategy(span: Span) -> Optional[Sequence[st
     return [method, url.scheme, url.netloc, url.path]
 
 
-@span_op("redis")
+@span_op(["redis", "db.redis"])
 def remove_redis_command_arguments_strategy(span: Span) -> Optional[Sequence[str]]:
     """For a `redis` span, the fingerprint to use is simply the redis command name.
     The arguments to the redis command is highly variable and therefore not used as

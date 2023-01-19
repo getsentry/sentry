@@ -47,7 +47,7 @@ const {organization, router, routerContext} = initializeOrg({
   },
   router: {
     location: {query: {}, search: ''},
-    params: {orgId: 'org-slug'},
+    params: {},
   },
   project,
 });
@@ -162,7 +162,7 @@ describe('IssueList', function () {
         datetime: {period: '14d'},
       },
       location: {query: {query: 'is:unresolved'}, search: 'query=is:unresolved'},
-      params: {orgId: organization.slug},
+      params: {},
       organization,
       tags: tags.reduce((acc, tag) => {
         acc[tag.key] = tag;
@@ -585,7 +585,7 @@ describe('IssueList', function () {
       });
 
       const routerWithSavedSearch = {
-        params: {orgId: 'org-slug', searchId: pinnedSearch.id},
+        params: {searchId: pinnedSearch.id},
       };
 
       render(
@@ -1113,7 +1113,7 @@ describe('IssueList', function () {
           datetime: {period: '14d'},
         },
         ...merge({}, routerProps, {
-          params: {orgId: organization.slug},
+          params: {},
           location: {query: {query: 'is:unresolved'}, search: 'query=is:unresolved'},
         }),
         organization: TestStubs.Organization({

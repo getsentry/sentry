@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import Access from 'sentry/components/acl/access';
 import AsyncComponent from 'sentry/components/asyncComponent';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import CircleIndicator from 'sentry/components/circleIndicator';
 import SentryAppIcon from 'sentry/components/sentryAppIcon';
 import Tag from 'sentry/components/tag';
@@ -236,7 +236,7 @@ const Author = styled('div')`
 
 const DisabledNotice = styled(({reason, ...p}: {reason: React.ReactNode}) => (
   <div {...p}>
-    <IconFlag color="errorText" size="1.5em" />
+    <IconFlag color="errorText" size="md" />
     {reason}
   </div>
 ))`

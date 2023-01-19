@@ -1,4 +1,4 @@
-import React, {Component, useLayoutEffect, useRef} from 'react';
+import {Component, createRef, useEffect, useRef} from 'react';
 import {
   AutoSizer,
   CellMeasurer,
@@ -65,7 +65,7 @@ type StateType = {
   spanRows: Record<string, {spanRow: React.RefObject<HTMLDivElement>; treeDepth: number}>;
 };
 
-const listRef = React.createRef<ReactVirtualizedList>();
+const listRef = createRef<ReactVirtualizedList>();
 
 class SpanTree extends Component<PropType> {
   state: StateType = {
@@ -712,7 +712,6 @@ class SpanTree extends Component<PropType> {
     this.setState((prevState: StateType) => {
       const newSpanRows = {...prevState.spanRows};
       delete newSpanRows[spanId];
-
       return {spanRows: newSpanRows};
     });
   };
@@ -836,16 +835,7 @@ function SpanRow(props: SpanRowProps) {
   const rowRef = useRef<HTMLDivElement>(null);
   const spanNode = spanTree[index];
 
-  // Lifecycle management for row refs, we need to separately do this in useLayoutEffect since
-  // we won't have access to the refs in useEffect.
-  // From React's useLayoutEffect docs:
-
-  // "Updates scheduled inside useLayoutEffect will be flushed synchronously, before the browser has a chance to paint."
-
-  // In `useEffect`, the return function for cleanup isn't able to remove the ref from the map since the component no longer has access
-  // to it, since the return function is executed after the browser paints and so the DOM node is removed.
-
-  useLayoutEffect(() => {
+  useEffect(() => {
     // Gap spans do not have IDs, so we can't really store them. This should not be a big deal, since
     // we only need to keep track of spans to calculate an average depth, a few missing spans will not
     // throw off the calculation too hard

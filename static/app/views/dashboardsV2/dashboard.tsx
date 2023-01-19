@@ -16,13 +16,14 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
 import {Client} from 'sentry/api';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import {IconResize} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters} from 'sentry/types';
 import theme from 'sentry/utils/theme';
 import withApi from 'sentry/utils/withApi';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withPageFilters from 'sentry/utils/withPageFilters';
 
 import AddWidget, {ADD_WIDGET_BUTTON_DRAG_ID} from './addWidget';
@@ -206,23 +207,27 @@ class Dashboard extends Component<Props, State> {
     const {organization, router, location, paramDashboardId} = this.props;
 
     if (paramDashboardId) {
-      router.push({
-        pathname: `/organizations/${organization.slug}/dashboard/${paramDashboardId}/widget/new/`,
+      router.push(
+        normalizeUrl({
+          pathname: `/organizations/${organization.slug}/dashboard/${paramDashboardId}/widget/new/`,
+          query: {
+            ...location.query,
+            source: DashboardWidgetSource.DASHBOARDS,
+          },
+        })
+      );
+      return;
+    }
+
+    router.push(
+      normalizeUrl({
+        pathname: `/organizations/${organization.slug}/dashboards/new/widget/new/`,
         query: {
           ...location.query,
           source: DashboardWidgetSource.DASHBOARDS,
         },
-      });
-      return;
-    }
-
-    router.push({
-      pathname: `/organizations/${organization.slug}/dashboards/new/widget/new/`,
-      query: {
-        ...location.query,
-        source: DashboardWidgetSource.DASHBOARDS,
-      },
-    });
+      })
+    );
 
     return;
   };
@@ -288,23 +293,27 @@ class Dashboard extends Component<Props, State> {
     const {organization, router, location, paramDashboardId} = this.props;
 
     if (paramDashboardId) {
-      router.push({
-        pathname: `/organizations/${organization.slug}/dashboard/${paramDashboardId}/widget/${index}/edit/`,
+      router.push(
+        normalizeUrl({
+          pathname: `/organizations/${organization.slug}/dashboard/${paramDashboardId}/widget/${index}/edit/`,
+          query: {
+            ...location.query,
+            source: DashboardWidgetSource.DASHBOARDS,
+          },
+        })
+      );
+      return;
+    }
+
+    router.push(
+      normalizeUrl({
+        pathname: `/organizations/${organization.slug}/dashboards/new/widget/${index}/edit/`,
         query: {
           ...location.query,
           source: DashboardWidgetSource.DASHBOARDS,
         },
-      });
-      return;
-    }
-
-    router.push({
-      pathname: `/organizations/${organization.slug}/dashboards/new/widget/${index}/edit/`,
-      query: {
-        ...location.query,
-        source: DashboardWidgetSource.DASHBOARDS,
-      },
-    });
+      })
+    );
 
     return;
   };

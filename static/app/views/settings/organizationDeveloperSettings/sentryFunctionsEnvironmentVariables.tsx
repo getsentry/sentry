@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import {TextField} from 'sentry/components/forms';
 import {PanelBody, PanelHeader} from 'sentry/components/panels';
 import {IconAdd, IconDelete} from 'sentry/icons';
@@ -52,7 +52,6 @@ function SentryFunctionEnvironmentVariables(props: Props) {
         {t('Environment Variables')}
         <StyledAddButton
           size="sm"
-          type="button"
           icon={<IconAdd isCircled />}
           aria-label={t('Add Environment Variable')}
           onClick={addEnvVar}
@@ -88,7 +87,6 @@ function SentryFunctionEnvironmentVariables(props: Props) {
                 <StyledAddButton
                   size="sm"
                   icon={<IconDelete />}
-                  type="button"
                   aria-label={tct('Remove Environment Variable [i]', {i})}
                   onClick={() => removeEnvVar(i)}
                 />

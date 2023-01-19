@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import Input from 'sentry/components/input';
 import {IconChevron, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -116,7 +116,7 @@ const OpenInDiscoverButton = styled(Button)`
 
 const Container = styled('div')`
   border: 1px solid ${p => p.theme.border};
-  box-shadow: inset ${p => p.theme.dropShadowLight};
+  box-shadow: inset ${p => p.theme.dropShadowMedium};
   background: ${p => p.theme.backgroundSecondary};
   padding: 7px ${space(1)};
   position: relative;

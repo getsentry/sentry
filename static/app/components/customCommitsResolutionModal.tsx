@@ -1,7 +1,7 @@
 import {useState} from 'react';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import SelectAsyncField from 'sentry/components/deprecatedforms/selectAsyncField';
 import TimeSince from 'sentry/components/timeSince';
 import Version from 'sentry/components/version';
@@ -74,7 +74,7 @@ function CustomCommitsResolutionModal({
         />
       </Body>
       <Footer>
-        <Button type="button" css={{marginRight: space(1.5)}} onClick={closeModal}>
+        <Button css={{marginRight: space(1.5)}} onClick={closeModal}>
           {t('Cancel')}
         </Button>
         <Button type="submit" priority="primary">

@@ -1,5 +1,5 @@
 import Breadcrumbs from 'sentry/components/breadcrumbs';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import EditableText from 'sentry/components/editableText';
 import {FeatureFeedback} from 'sentry/components/featureFeedback';

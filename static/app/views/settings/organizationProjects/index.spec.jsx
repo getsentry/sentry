@@ -36,9 +36,7 @@ describe('OrganizationProjects', function () {
   });
 
   it('should render the projects in the store', function () {
-    const {container} = render(
-      <OrganizationProjectsContainer params={{orgId: org.slug}} location={{query: {}}} />
-    );
+    const {container} = render(<OrganizationProjectsContainer location={{query: {}}} />);
 
     expect(container).toSnapshot();
 
@@ -61,10 +59,9 @@ describe('OrganizationProjects', function () {
       url: `/organizations/${org.slug}/projects/`,
       body: [],
     });
-    render(
-      <OrganizationProjectsContainer location={{query: {}}} params={{orgId: org.slug}} />,
-      {context: routerContext}
-    );
+    render(<OrganizationProjectsContainer location={{query: {}}} />, {
+      context: routerContext,
+    });
 
     const searchBox = screen.getByRole('textbox');
 

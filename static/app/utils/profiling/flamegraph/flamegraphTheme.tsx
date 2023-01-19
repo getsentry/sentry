@@ -50,10 +50,13 @@ export interface FlamegraphTheme {
     // Nice color picker for GLSL colors - https://keiwando.com/color-picker/
     SAMPLE_TICK_COLOR: ColorChannels;
     SEARCH_RESULT_FRAME_COLOR: string;
+    SEARCH_RESULT_SPAN_COLOR: string;
     SELECTED_FRAME_BORDER_COLOR: string;
+    SPAN_COLOR_BUCKET: (t: number) => ColorChannels;
     SPAN_FALLBACK_COLOR: [number, number, number, number];
-    SPAN_FRAME_BACKGROUND: string;
     SPAN_FRAME_BORDER: string;
+    SPAN_FRAME_LINE_PATTERN: string;
+    SPAN_FRAME_LINE_PATTERN_BACKGROUND: string;
     STACK_TO_COLOR: (
       frames: ReadonlyArray<FlamegraphFrame>,
       colorMapFn: FlamegraphTheme['COLORS']['COLOR_MAP'],
@@ -83,9 +86,11 @@ export interface FlamegraphTheme {
     MINIMAP_POSITION_OVERLAY_BORDER_WIDTH: number;
     SPANS_BAR_HEIGHT: number;
     SPANS_DEPTH_OFFSET: number;
+    SPANS_FONT_SIZE: number;
     SPANS_HEIGHT: number;
     TIMELINE_HEIGHT: number;
     TOOLTIP_FONT_SIZE: number;
+    UI_FRAMES_HEIGHT: number;
   };
 }
 
@@ -105,12 +110,25 @@ export const LCH_DARK = {
   L_d: 0.1,
 };
 
+const SPAN_LCH_LIGHT = {
+  C_0: 0.3,
+  C_d: 0.25,
+  L_0: 0.8,
+  L_d: 0.15,
+};
+
+const SPANS_LCH_DARK = {
+  C_0: 0.3,
+  C_d: 0.15,
+  L_0: 0.2,
+  L_d: 0.1,
+};
+
 const SIZES: FlamegraphTheme['SIZES'] = {
   BAR_FONT_SIZE: 11,
   BAR_HEIGHT: 20,
   BAR_PADDING: 4,
   FLAMEGRAPH_DEPTH_OFFSET: 12,
-  SPANS_DEPTH_OFFSET: 3,
   FOCUSED_FRAME_BORDER_WIDTH: 2,
   FRAME_BORDER_WIDTH: 2,
   GRID_LINE_WIDTH: 2,
@@ -120,10 +138,13 @@ const SIZES: FlamegraphTheme['SIZES'] = {
   LABEL_FONT_SIZE: 10,
   MINIMAP_HEIGHT: 100,
   MINIMAP_POSITION_OVERLAY_BORDER_WIDTH: 2,
-  SPANS_HEIGHT: 100,
-  SPANS_BAR_HEIGHT: 12,
+  SPANS_BAR_HEIGHT: 20,
+  SPANS_DEPTH_OFFSET: 6,
+  SPANS_FONT_SIZE: 11,
+  SPANS_HEIGHT: 160,
   TIMELINE_HEIGHT: 20,
   TOOLTIP_FONT_SIZE: 12,
+  UI_FRAMES_HEIGHT: 60,
 };
 
 const FONTS: FlamegraphTheme['FONTS'] = {
@@ -136,13 +157,14 @@ export const LightFlamegraphTheme: FlamegraphTheme = {
   COLORS: {
     BAR_LABEL_FONT_COLOR: '#000',
     COLOR_BUCKET: makeColorBucketTheme(LCH_LIGHT),
+    SPAN_COLOR_BUCKET: makeColorBucketTheme(SPAN_LCH_LIGHT, 140, 220),
     COLOR_MAP: makeColorMap,
     CURSOR_CROSSHAIR: '#bbbbbb',
     DIFFERENTIAL_DECREASE: [0.309, 0.2058, 0.98],
     DIFFERENTIAL_INCREASE: [0.98, 0.2058, 0.4381],
     FOCUSED_FRAME_BORDER_COLOR: lightTheme.focus,
-    FRAME_FALLBACK_COLOR: [0, 0, 0, 0.035],
-    SPAN_FALLBACK_COLOR: [0, 0, 0, 0.035],
+    FRAME_FALLBACK_COLOR: [0, 0, 0, 0.1],
+    SPAN_FALLBACK_COLOR: [0, 0, 0, 0.1],
     GRID_FRAME_BACKGROUND_COLOR: 'rgba(255, 255, 255, 0.8)',
     GRID_LINE_COLOR: '#e5e7eb',
     HIGHLIGHTED_LABEL_COLOR: [255, 255, 0],
@@ -152,8 +174,10 @@ export const LightFlamegraphTheme: FlamegraphTheme = {
     MINIMAP_POSITION_OVERLAY_COLOR: 'rgba(0,0,0,0.1)',
     SAMPLE_TICK_COLOR: [255, 0, 0, 0.5],
     SEARCH_RESULT_FRAME_COLOR: 'vec4(0.99, 0.70, 0.35, 1.0)',
+    SEARCH_RESULT_SPAN_COLOR: '#fdb359',
     SELECTED_FRAME_BORDER_COLOR: lightTheme.blue400,
-    SPAN_FRAME_BACKGROUND: 'rgba(231, 231, 231, 0.5)',
+    SPAN_FRAME_LINE_PATTERN: '#dedae3',
+    SPAN_FRAME_LINE_PATTERN_BACKGROUND: '#f4f2f7',
     SPAN_FRAME_BORDER: 'rgba(200, 200, 200, 1)',
     STACK_TO_COLOR: makeStackToColor([0, 0, 0, 0.035]),
   },
@@ -165,13 +189,14 @@ export const DarkFlamegraphTheme: FlamegraphTheme = {
   COLORS: {
     BAR_LABEL_FONT_COLOR: 'rgb(255 255 255 / 80%)',
     COLOR_BUCKET: makeColorBucketTheme(LCH_DARK),
+    SPAN_COLOR_BUCKET: makeColorBucketTheme(SPANS_LCH_DARK, 140, 220),
     COLOR_MAP: makeColorMap,
     CURSOR_CROSSHAIR: '#828285',
     DIFFERENTIAL_DECREASE: [0.309, 0.2058, 0.98],
     DIFFERENTIAL_INCREASE: [0.98, 0.2058, 0.4381],
     FOCUSED_FRAME_BORDER_COLOR: darkTheme.focus,
-    FRAME_FALLBACK_COLOR: [1, 1, 1, 0.1],
-    SPAN_FALLBACK_COLOR: [1, 1, 1, 0.1],
+    FRAME_FALLBACK_COLOR: [1, 1, 1, 0.3],
+    SPAN_FALLBACK_COLOR: [1, 1, 1, 0.3],
     GRID_FRAME_BACKGROUND_COLOR: 'rgba(0, 0, 0, 0.4)',
     GRID_LINE_COLOR: '#222227',
     HIGHLIGHTED_LABEL_COLOR: [255, 255, 0],
@@ -181,8 +206,10 @@ export const DarkFlamegraphTheme: FlamegraphTheme = {
     MINIMAP_POSITION_OVERLAY_COLOR: 'rgba(255,255,255,0.1)',
     SAMPLE_TICK_COLOR: [255, 0, 0, 0.5],
     SEARCH_RESULT_FRAME_COLOR: 'vec4(0.99, 0.70, 0.35, 0.7)',
+    SPAN_FRAME_LINE_PATTERN: '#594b66',
+    SPAN_FRAME_LINE_PATTERN_BACKGROUND: '#1a1724',
     SELECTED_FRAME_BORDER_COLOR: lightTheme.blue400,
-    SPAN_FRAME_BACKGROUND: 'rgba(232, 232, 232, 0.2)',
+    SEARCH_RESULT_SPAN_COLOR: '#b9834a',
     SPAN_FRAME_BORDER: '#57575b',
     STACK_TO_COLOR: makeStackToColor([1, 1, 1, 0.1]),
   },

@@ -20,7 +20,7 @@ export const inputStyles = (p: InputStylesProps & {theme: Theme}) => css`
   background: ${p.theme.background};
   border: 1px solid ${p.theme.border};
   border-radius: ${p.theme.borderRadius};
-  box-shadow: inset ${p.theme.dropShadowLight};
+  box-shadow: inset ${p.theme.dropShadowMedium};
   resize: vertical;
   transition: border 0.1s, box-shadow 0.1s;
 
