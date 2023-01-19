@@ -32,17 +32,7 @@ const EmptyEventTransaction: EventTransaction = {
 };
 
 function sortByStartTimeAndDuration(a: RawSpanType, b: RawSpanType) {
-  if (a.start_timestamp < b.start_timestamp) {
-    return -1;
-  }
-  // if the start times are the same, we want to sort by end time
-  if (a.start_timestamp === b.start_timestamp) {
-    if (a.timestamp < b.timestamp) {
-      return 1; // a is a child of b
-    }
-    return -1; // b is a child of a
-  }
-  return 1;
+  return a.start_timestamp - b.start_timestamp;
 }
 
 export class SpanTreeNode {
@@ -158,6 +148,21 @@ class SpanTree {
               parent
             )
           );
+        }
+
+        let foundOverlap = false;
+        let start = parent.children.length - 1;
+        while (start >= 0) {
+          const child = parent.children[start];
+          if (span.start_timestamp < child.span.timestamp) {
+            foundOverlap = true;
+            break;
+          }
+          start--;
+        }
+        if (foundOverlap) {
+          this.orphanedSpans.push(span);
+          continue;
         }
         // Insert child span
         parent.children.push(new SpanTreeNode(span, parent));
