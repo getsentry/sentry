@@ -152,17 +152,34 @@ def resolve_tags(
                 ],
             )
         elif input_.function == "match":
-            column = input_.parameters[0]
+            first_param = input_.parameters[0]
 
-            if isinstance(column, Column) and column.name not in FILTERABLE_TAGS:
+            # For now, we only support as the first parameter of "match" only the direct column and the "ifNull"
+            # function with the column inside. This has been done because a complex algorithm would be required to
+            # infer the matched column without evaluating the query's subtree.
+            #
+            # All the conditions below are just for checking the column name to which the "match" refers and have
+            # nothing to do with the resolution.
+            if isinstance(first_param, Function) and first_param.function == "ifNull":
+                extracted_column = first_param.parameters[0]
+            else:
+                extracted_column = first_param
+
+            if not isinstance(extracted_column, Column):
                 raise InvalidParams(
-                    f"Unable to resolve `match` function with {column.name}, only {FILTERABLE_TAGS} are supported"
+                    "The `match` function requires as first parameter `Column(...)` or `Function('ifNull', "
+                    "Column(...))`"
+                )
+
+            if extracted_column.name not in FILTERABLE_TAGS:
+                raise InvalidParams(
+                    f"Unable to resolve `match` function with {first_param.name}, only {FILTERABLE_TAGS} are supported"
                 )
 
             return Function(
                 function=input_.function,
                 parameters=[
-                    resolve_tags(use_case_id, org_id, column),
+                    resolve_tags(use_case_id, org_id, first_param),
                     input_.parameters[1],  # We directly pass the regex.
                 ],
             )

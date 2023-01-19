@@ -1778,6 +1778,61 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             ("os.name", "Windows *", 3),
             ("os.name", "*8", 2),
         ):
+            # We want to test the "match" both with "Column(...)" and also with "Function('ifNull', Column(...))".
+            for use_if_null in [True, False]:
+                column = Column(name=f"tags[{tag_key}]")
+
+                metrics_query = self.build_metrics_query(
+                    before_now="1h",
+                    granularity="1h",
+                    select=[
+                        MetricField(
+                            op="count",
+                            metric_mri=TransactionMRI.DURATION.value,
+                            alias="duration_count",
+                        ),
+                    ],
+                    where=[
+                        Condition(
+                            lhs=Function(
+                                "match",
+                                parameters=[
+                                    Function("ifNull", parameters=[column, ""])
+                                    if use_if_null
+                                    else column,
+                                    f"(?i)^{tag_wildcard_value.replace('*', '.*')}$",
+                                ],
+                            ),
+                            op=Op.EQ,
+                            rhs=1,
+                        )
+                    ],
+                    limit=Limit(limit=50),
+                    offset=Offset(offset=0),
+                    include_series=False,
+                )
+                data = get_series(
+                    [self.project],
+                    metrics_query=metrics_query,
+                    include_meta=True,
+                    use_case_id=UseCaseKey.PERFORMANCE,
+                )
+
+                assert data["groups"] == [
+                    {
+                        "by": {},
+                        "totals": {"duration_count": expected_count},
+                    },
+                ]
+                assert data["meta"] == sorted(
+                    [
+                        {"name": "duration_count", "type": "UInt64"},
+                    ],
+                    key=lambda elem: elem["name"],
+                )
+
+    def test_wildcard_match_with_non_supported_function(self):
+        with pytest.raises(InvalidParams):
             metrics_query = self.build_metrics_query(
                 before_now="1h",
                 granularity="1h",
@@ -1793,8 +1848,8 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                         lhs=Function(
                             "match",
                             parameters=[
-                                Column(name=f"tags[{tag_key}]"),
-                                f"(?i)^{tag_wildcard_value.replace('*', '.*')}$",
+                                Function("has", parameters=[Column(name="tags[os.name]"), ""]),
+                                "2*",
                             ],
                         ),
                         op=Op.EQ,
@@ -1805,34 +1860,14 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                 offset=Offset(offset=0),
                 include_series=False,
             )
-            data = get_series(
+            get_series(
                 [self.project],
                 metrics_query=metrics_query,
                 include_meta=True,
                 use_case_id=UseCaseKey.PERFORMANCE,
             )
 
-            assert data["groups"] == [
-                {
-                    "by": {},
-                    "totals": {"duration_count": expected_count},
-                },
-            ]
-            assert data["meta"] == sorted(
-                [
-                    {"name": "duration_count", "type": "UInt64"},
-                ],
-                key=lambda elem: elem["name"],
-            )
-
     def test_wildcard_match_with_non_filterable_tags(self):
-        self.store_performance_metric(
-            type="distribution",
-            name=TransactionMRI.DURATION.value,
-            tags={"http_status_code": "200"},
-            value=0,
-        )
-
         with pytest.raises(InvalidParams):
             metrics_query = self.build_metrics_query(
                 before_now="1h",
