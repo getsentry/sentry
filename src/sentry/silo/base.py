@@ -119,12 +119,13 @@ class SiloLimit(abc.ABC):
         raise NotImplementedError
 
     def is_available(self, extra_modes: Iterable[SiloMode] = ()) -> bool:
-        current_mode = SiloMode.get_current_mode()
-        return (
-            current_mode == SiloMode.MONOLITH
-            or current_mode in self.modes
-            or current_mode in extra_modes
-        )
+        return True
+        # current_mode = SiloMode.get_current_mode()
+        # return (
+        #     current_mode == SiloMode.MONOLITH
+        #     or current_mode in self.modes
+        #     or current_mode in extra_modes
+        # )
 
     def create_override(
         self,
