@@ -902,7 +902,6 @@ class SnubaTagStorage(TagStorage):
     ):
         translated_params = self._translate_filter_keys(project_ids, group_ids, environment_ids)
         organization_id = get_organization_id_from_project_ids(project_ids)
-
         start, end = _prepare_start_end(
             start,
             end,
