@@ -11,6 +11,7 @@ export {IconChat} from './iconChat';
 export {IconCheckmark} from './iconCheckmark';
 export {IconChevron} from './iconChevron';
 export {IconCircle} from './iconCircle';
+export {IconCircleFill} from './iconCircleFill';
 export {IconClock} from './iconClock';
 export {IconClose} from './iconClose';
 export {IconCode} from './iconCode';

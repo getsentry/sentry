@@ -458,7 +458,9 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
         - The API also does not support setting secondary emails.
         """
 
-        with sentry_sdk.start_transaction(name="Provision Scim Member", sampled=True) as txn:
+        with sentry_sdk.start_transaction(
+            name="scim.provision_member", op="scim", sampled=True
+        ) as txn:
             if (
                 features.has("organizations:scim-orgmember-roles", organization, actor=None)
                 and "sentryOrgRole" in request.data

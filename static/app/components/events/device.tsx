@@ -18,9 +18,9 @@ export function EventDevice({event}: Props) {
   }));
 
   return (
-    <EventDataSection type="device" title={t('Device')} wrapTitle>
+    <EventDataSection type="device" title={t('Device')}>
       <KeyValueList
-        isSorted={false}
+        shouldSort={false}
         data={[
           {
             key: 'name',
