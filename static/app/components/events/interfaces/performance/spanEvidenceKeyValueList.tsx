@@ -150,18 +150,6 @@ const RenderBlockingAssetSpanEvidence = ({
   />
 );
 
-const RenderBlockingAssetSpanEvidence = ({
-  event,
-  offendingSpans,
-}: SpanEvidenceKeyValueListProps) => (
-  <PresortedKeyValueList
-    data={[
-      makeTransactionNameRow(event),
-      makeRow(t('Slow Resource Span'), getSpanEvidenceValue(offendingSpans[0])),
-    ]}
-  />
-);
-
 const DefaultSpanEvidence = ({event, offendingSpans}: SpanEvidenceKeyValueListProps) => (
   <PresortedKeyValueList
     data={
