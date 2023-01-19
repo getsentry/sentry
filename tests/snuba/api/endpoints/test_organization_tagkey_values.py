@@ -576,7 +576,8 @@ class ReplayOrganizationTagKeyValuesTest(OrganizationTagKeyTestCase, ReplaysSnub
                 replay1_id,
                 urls=[
                     "http://localhost:3000/",
-                    "http://localhost:3000/login",
+                    "http://localhost:3000/test123",
+                    "http://localhost:3000/test123",
                 ],
                 tags={"fruit": "orange"},
                 segment_id=0,
@@ -590,6 +591,7 @@ class ReplayOrganizationTagKeyValuesTest(OrganizationTagKeyTestCase, ReplaysSnub
                 urls=[
                     "http://localhost:3000/",
                     "http://localhost:3000/login",
+                    "http://localhost:3000/test456",
                 ],
                 tags={"fruit": "orange"},
                 segment_id=1,
@@ -602,7 +604,7 @@ class ReplayOrganizationTagKeyValuesTest(OrganizationTagKeyTestCase, ReplaysSnub
                 replay2_id,
                 urls=[
                     "http://localhost:3000/",
-                    "http://localhost:3000/login",
+                    "http://localhost:3000/otherpage",
                 ],
                 tags={"fruit": "orange"},
             )
@@ -661,7 +663,14 @@ class ReplayOrganizationTagKeyValuesTest(OrganizationTagKeyTestCase, ReplaysSnub
         self.run_test("environment", expected=[("production", 3), ("development", 1)])
         self.run_test("dist", expected=[("def456", 1), ("abc123", 3)])
         self.run_test(
-            "url", expected=[("http://localhost:3000/login", 3), ("http://localhost:3000/", 3)]
+            "url",
+            expected=[
+                ("http://localhost:3000/test456", 1),
+                ("http://localhost:3000/test123", 1),
+                ("http://localhost:3000/otherpage", 1),
+                ("http://localhost:3000/login", 2),
+                ("http://localhost:3000/", 3),
+            ],
         )
         self.run_test("platform", expected=[("python", 1), ("javascript", 3)])
         self.run_test("release", expected=[("version@1.3", 3), ("1.0.0", 1)])
