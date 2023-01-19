@@ -13,6 +13,7 @@ __all__ = (
     "PluginTestCase",
     "CliTestCase",
     "AcceptanceTestCase",
+    "SlowAcceptanceTestCase",
     "IntegrationTestCase",
     "SnubaTestCase",
     "BaseMetricsTestCase",
@@ -858,8 +859,7 @@ class CliTestCase(TestCase):
         return self.runner.invoke(self.command, args, obj={}, **kwargs)
 
 
-@pytest.mark.usefixtures("browser")
-class AcceptanceTestCase(TransactionTestCase):
+class BaseAcceptanceTestCase(TransactionTestCase):
     browser: Browser
 
     @pytest.fixture(autouse=True)
@@ -892,6 +892,16 @@ class AcceptanceTestCase(TransactionTestCase):
                 data=json.dumps({"guide": item, "status": "viewed", "useful": True}),
             )
             assert res.status_code == 201, res.content
+
+
+@pytest.mark.usefixtures("function_browser")
+class SlowAcceptanceTestCase(BaseAcceptanceTestCase):
+    pass
+
+
+@pytest.mark.usefixtures("class_browser")
+class AcceptanceTestCase(BaseAcceptanceTestCase):
+    pass
 
 
 class IntegrationTestCase(TestCase):

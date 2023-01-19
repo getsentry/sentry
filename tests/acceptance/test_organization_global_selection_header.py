@@ -7,7 +7,7 @@ from django.utils import timezone
 
 from fixtures.page_objects.issue_details import IssueDetailsPage
 from fixtures.page_objects.issue_list import IssueListPage
-from sentry.testutils import AcceptanceTestCase, SnubaTestCase
+from sentry.testutils import SlowAcceptanceTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 
@@ -15,7 +15,7 @@ event_time = before_now(days=3).replace(tzinfo=pytz.utc)
 
 
 @region_silo_test
-class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
+class OrganizationGlobalHeaderTest(SlowAcceptanceTestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
         self.user = self.create_user("foo@example.com")

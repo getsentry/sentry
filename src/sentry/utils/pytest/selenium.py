@@ -459,6 +459,15 @@ def start_chrome(**chrome_args):
 
 
 @pytest.fixture(scope="function")
+def function_browser(request, live_server):
+    return browser(request, live_server)
+
+
+@pytest.fixture(scope="class")
+def class_browser(request, live_server):
+    return browser(request, live_server)
+
+
 def browser(request, live_server):
     window_size = request.config.getoption("window_size")
     window_width, window_height = map(int, window_size.split("x", 1))
