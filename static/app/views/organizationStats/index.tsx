@@ -1,4 +1,4 @@
-import {Component, Fragment} from 'react';
+import {Component} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import {LocationDescriptorObject} from 'history';
@@ -313,7 +313,7 @@ export class OrganizationStats extends Component<Props> {
       : CHART_OPTIONS_DATACATEGORY.filter(opt => opt.value !== DataCategory.REPLAYS);
 
     return (
-      <Fragment>
+      <SelectorGrid>
         <DropdownDataCategory
           triggerProps={{prefix: t('Category')}}
           value={this.dataCategory}
@@ -330,7 +330,7 @@ export class OrganizationStats extends Component<Props> {
           onUpdate={this.handleUpdateDatetime}
           relativeOptions={omit(DEFAULT_RELATIVE_PERIODS, ['1h'])}
         />
-      </Fragment>
+      </SelectorGrid>
     );
   };
 
@@ -366,8 +366,8 @@ export class OrganizationStats extends Component<Props> {
             <Layout.Main fullWidth>
               <HookHeader organization={organization} />
               {this.renderProjectPageControl()}
+              {this.renderPageControl()}
               <div>
-                {this.renderPageControl()}
                 <ErrorBoundary mini>
                   <UsageStatsOrganization
                     organization={organization}
@@ -406,6 +406,19 @@ export class OrganizationStats extends Component<Props> {
 }
 
 export default withPageFilters(withOrganization(OrganizationStats));
+
+const SelectorGrid = styled('div')`
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: ${space(2)};
+  margin-bottom: ${space(2)};
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  @media (min-width: ${p => p.theme.breakpoints.large}) {
+    grid-template-columns: repeat(4, 1fr);
+  }
+`;
 
 const DropdownDataCategory = styled(CompactSelect)`
   position: relative;
