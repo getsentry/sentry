@@ -35,8 +35,8 @@ class TestRedisBuffer:
     @mock.patch("sentry.buffer.redis.process_incr")
     def test_process_pending_one_batch(self, process_incr):
         self.buf.incr_batch_size = 5
-        with self.buf.cluster.map() as client:
-            client.zadd("b:p", {"foo": 1, "bar": 2})
+        client = self.buf.get_routing_client()
+        client.zadd("b:p", {"foo": 1, "bar": 2})
         self.buf.process_pending()
         assert len(process_incr.apply_async.mock_calls) == 1
         process_incr.apply_async.assert_any_call(kwargs={"batch_keys": ["foo", "bar"]})
@@ -113,7 +113,7 @@ class TestRedisBuffer:
         )
         with task_runner(), mock.patch("sentry.buffer", self.buf):
             self.buf.process_pending()
-        group = Group.objects.get_from_cache(id=self.group.id)
+        group = Group.objects.get_from_cache(id=default_group.id)
         assert group.times_seen == orig_times_seen + times_seen_incr
 
     def test_get(self):
@@ -214,7 +214,7 @@ class TestRedisBuffer:
         ]
 
         # Confirm that we've only processed the unpartitioned buffer
-        client = self.buf.cluster.get_routing_client()
+        client = self.buf.get_routing_client()
 
         assert client.zrange("b:p", 0, -1) == []
         assert client.zrange("b:p:0", 0, -1) != []
