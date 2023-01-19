@@ -71,6 +71,7 @@ const DEFAULT_RESOURCE_LINK: Record<IssueType, ResourceLink[]> = {
       link: 'https://web.dev/fcp/',
     },
   ],
+  [IssueType.PERFORMANCE_SLOW_DB_QUERY]: [],
   [IssueType.ERROR]: [],
 };
 
