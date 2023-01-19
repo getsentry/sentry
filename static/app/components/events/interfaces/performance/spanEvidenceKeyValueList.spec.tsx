@@ -222,7 +222,7 @@ describe('SpanEvidenceKeyValueList', () => {
     const builder = new TransactionEventBuilder(
       'a1',
       '/',
-      IssueType.PERFORMANCE_SLOW_SPAN
+      IssueType.PERFORMANCE_SLOW_DB_QUERY
     );
 
     const parentSpan = new MockSpan({

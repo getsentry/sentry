@@ -29,7 +29,7 @@ const RESOURCES_DESCRIPTIONS: Record<IssueType, string> = {
   [IssueType.PERFORMANCE_FILE_IO_MAIN_THREAD]: t(
     'File IO operations on your main thread may cause app hangs.'
   ),
-  [IssueType.PERFORMANCE_SLOW_SPAN]: t(
+  [IssueType.PERFORMANCE_SLOW_DB_QUERY]: t(
     'Slow DB Queries are SELECT query spans that take longer than 1s. A quick method to understand why this may be the case is running an EXPLAIN command on the query itself. To learn more about how to fix slow DB queries, check out these resources:'
   ),
   [IssueType.PERFORMANCE_UNCOMPRESSED_ASSET]: t(
@@ -61,7 +61,7 @@ const DEFAULT_RESOURCE_LINK: Record<IssueType, ResourceLink[]> = {
   ],
   [IssueType.PERFORMANCE_UNCOMPRESSED_ASSET]: [],
   [IssueType.PERFORMANCE_FILE_IO_MAIN_THREAD]: [],
-  [IssueType.PERFORMANCE_SLOW_SPAN]: [],
+  [IssueType.PERFORMANCE_SLOW_DB_QUERY]: [],
   [IssueType.ERROR]: [],
 };
 
@@ -84,7 +84,7 @@ const RESOURCE_LINKS: Record<IssueType, PlatformSpecificResources> = {
   [IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS]: {},
   [IssueType.PERFORMANCE_CONSECUTIVE_DB_QUERIES]: {},
   [IssueType.PERFORMANCE_FILE_IO_MAIN_THREAD]: {},
-  [IssueType.PERFORMANCE_SLOW_SPAN]: {},
+  [IssueType.PERFORMANCE_SLOW_DB_QUERY]: {},
   [IssueType.PERFORMANCE_UNCOMPRESSED_ASSET]: {},
   [IssueType.ERROR]: {},
 };

@@ -51,7 +51,7 @@ export function SpanEvidenceKeyValueList({event}: {event: EventTransaction}) {
     {
       [IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES]: NPlusOneDBQueriesSpanEvidence,
       [IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS]: NPlusOneAPICallsSpanEvidence,
-      [IssueType.PERFORMANCE_SLOW_SPAN]: SlowSpanSpanEvidence,
+      [IssueType.PERFORMANCE_SLOW_DB_QUERY]: SlowDBQueryEvidence,
       [IssueType.PERFORMANCE_CONSECUTIVE_DB_QUERIES]: ConsecutiveDBQueriesSpanEvidence,
     }[performanceProblem.issueType] ?? DefaultSpanEvidence;
 
@@ -128,11 +128,11 @@ const isRequestEntry = (entry: Entry): entry is EntryRequest => {
   return entry.type === EntryType.REQUEST;
 };
 
-const SlowSpanSpanEvidence = ({event, offendingSpans}: SpanEvidenceKeyValueListProps) => (
+const SlowDBQueryEvidence = ({event, offendingSpans}: SpanEvidenceKeyValueListProps) => (
   <PresortedKeyValueList
     data={[
       makeTransactionNameRow(event),
-      makeRow(t('Slow Span'), getSpanEvidenceValue(offendingSpans[0])),
+      makeRow(t('Slow DB Query'), getSpanEvidenceValue(offendingSpans[0])),
     ]}
   />
 );
