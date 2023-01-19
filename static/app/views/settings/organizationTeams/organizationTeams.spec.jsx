@@ -313,7 +313,12 @@ describe('OrganizationTeams', function () {
         />
       );
 
-      expect(screen.getByText('a minimum team-level role of')).toBeInTheDocument();
+      expect(
+        // Text broken up by styles
+        screen.getByText(
+          'Your organization role as an has granted you a minimum team-level role of'
+        )
+      ).toBeInTheDocument();
     });
 
     it('does not render alert with lowest org role', function () {

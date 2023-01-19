@@ -437,7 +437,7 @@ class Group(Model):
         choices=(
             (GroupType.ERROR.value, _("Error")),
             (GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value, _("N Plus One DB Queries")),
-            (GroupType.PERFORMANCE_SLOW_SPAN.value, _("Slow Span")),
+            (GroupType.PERFORMANCE_SLOW_DB_QUERY.value, _("Slow DB Query")),
             (
                 GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN.value,
                 _("Render Blocking Asset Span"),
