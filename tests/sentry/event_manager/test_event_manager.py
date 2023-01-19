@@ -2437,7 +2437,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
 
     @override_options(
         {
-            "performance.issues.slow_span.problem-creation": 1.0,
+            "performance.issues.slow_db_query.problem-creation": 1.0,
             "performance_issue_creation_rate": 1.0,
         }
     )

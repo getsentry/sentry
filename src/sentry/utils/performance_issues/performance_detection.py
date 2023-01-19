@@ -83,7 +83,7 @@ DETECTOR_TYPE_ISSUE_CREATION_TO_SYSTEM_OPTION = {
     DetectorType.N_PLUS_ONE_API_CALLS: "performance.issues.n_plus_one_api_calls.problem-creation",
     DetectorType.FILE_IO_MAIN_THREAD: "performance.issues.file_io_main_thread.problem-creation",
     DetectorType.UNCOMPRESSED_ASSETS: "performance.issues.compressed_assets.problem-creation",
-    DetectorType.SLOW_DB_QUERY: "performance.issues.slow_span.problem-creation",
+    DetectorType.SLOW_DB_QUERY: "performance.issues.slow_db_query.problem-creation",
 }
 
 
