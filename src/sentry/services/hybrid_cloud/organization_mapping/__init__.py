@@ -26,6 +26,7 @@ if TYPE_CHECKING:
 class APIOrganizationMapping:
     organization_id: int = -1
     slug: str = ""
+    name: str = ""
     region_name: str = ""
     date_created: datetime = timezone.now()
     verified: bool = False
@@ -51,6 +52,7 @@ class OrganizationMappingService(InterfaceWithLifecycle):
         user: User,
         organization_id: int,
         slug: str,
+        name: str,
         region_name: str,
         idempotency_key: Optional[str] = "",
         customer_id: Optional[str],
@@ -76,6 +78,10 @@ class OrganizationMappingService(InterfaceWithLifecycle):
 
     @abstractmethod
     def update(self, update: ApiOrganizationMappingUpdate) -> None:
+        pass
+
+    @abstractmethod
+    def verify_mappings(self, organization_id: int, slug: str) -> None:
         pass
 
 
