@@ -6,16 +6,21 @@ import TagFacetsBreakdowns from './tagFacetsBreakdowns';
 import TagFacetsDistributions from './tagFacetsDistributions';
 import {TagFacetsProps} from './tagFacetsTypes';
 
-export const MOBILE_TAGS = [
-  'device',
-  'environment',
-  'os',
-  'release',
-  'browser',
+export const MOBILE_TAGS = ['device', 'os', 'release', 'environment', 'transaction'];
+
+export const FRONTEND_TAGS = ['browser', 'transaction', 'release', 'url', 'environment'];
+
+export const BACKEND_TAGS = [
   'transaction',
+  'url',
+  'user',
+  'release',
+  'organization.slug',
 ];
 
-export function MOBILE_TAGS_FORMATTER(tagsData: Record<string, TagWithTopValues>) {
+export const DEFAULT_TAGS = ['transaction', 'environment', 'release'];
+
+export function TAGS_FORMATTER(tagsData: Record<string, TagWithTopValues>) {
   // For "release" tag keys, format the release tag value to be more readable (ie removing version prefix)
   const transformedTagsData = {};
   Object.keys(tagsData).forEach(tagKey => {

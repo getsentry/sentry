@@ -1,13 +1,14 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {MOBILE_TAGS_FORMATTER, TagFacets} from 'sentry/components/group/tagFacets';
+import {TagFacets, TAGS_FORMATTER} from 'sentry/components/group/tagFacets';
 import {Event} from 'sentry/types/event';
 
 const {organization} = initializeOrg();
 describe('Tag Facets', function () {
   let tagsMock;
   const project = TestStubs.Project();
+  project.platform = 'android';
   const tags = ['os', 'device', 'release'];
   const routerContext = TestStubs.routerContext();
 
@@ -186,7 +187,7 @@ describe('Tag Facets', function () {
           groupId="1"
           project={project}
           tagKeys={tags}
-          tagFormatter={MOBILE_TAGS_FORMATTER}
+          tagFormatter={TAGS_FORMATTER}
           style="bars"
         />,
         {
@@ -209,7 +210,7 @@ describe('Tag Facets', function () {
           groupId="1"
           project={project}
           tagKeys={tags}
-          tagFormatter={MOBILE_TAGS_FORMATTER}
+          tagFormatter={TAGS_FORMATTER}
           style="bars"
         />,
         {
@@ -230,7 +231,7 @@ describe('Tag Facets', function () {
           groupId="1"
           project={project}
           tagKeys={tags}
-          tagFormatter={MOBILE_TAGS_FORMATTER}
+          tagFormatter={TAGS_FORMATTER}
           style="bars"
         />,
         {
@@ -271,7 +272,7 @@ describe('Tag Facets', function () {
           groupId="1"
           project={project}
           tagKeys={tags}
-          tagFormatter={MOBILE_TAGS_FORMATTER}
+          tagFormatter={TAGS_FORMATTER}
           style="bars"
         />,
         {
@@ -325,7 +326,7 @@ describe('Tag Facets', function () {
           groupId="1"
           project={project}
           tagKeys={tags}
-          tagFormatter={MOBILE_TAGS_FORMATTER}
+          tagFormatter={TAGS_FORMATTER}
           style="bars"
         />,
         {
@@ -452,7 +453,7 @@ describe('Tag Facets', function () {
           groupId="1"
           project={project}
           tagKeys={tags}
-          tagFormatter={MOBILE_TAGS_FORMATTER}
+          tagFormatter={TAGS_FORMATTER}
           style="breakdowns"
         />,
         {
@@ -475,7 +476,7 @@ describe('Tag Facets', function () {
           groupId="1"
           project={project}
           tagKeys={tags}
-          tagFormatter={MOBILE_TAGS_FORMATTER}
+          tagFormatter={TAGS_FORMATTER}
           style="breakdowns"
         />,
         {
@@ -496,7 +497,7 @@ describe('Tag Facets', function () {
           groupId="1"
           project={project}
           tagKeys={tags}
-          tagFormatter={MOBILE_TAGS_FORMATTER}
+          tagFormatter={TAGS_FORMATTER}
           style="breakdowns"
         />,
         {
@@ -521,7 +522,7 @@ describe('Tag Facets', function () {
           groupId="1"
           project={project}
           tagKeys={tags}
-          tagFormatter={MOBILE_TAGS_FORMATTER}
+          tagFormatter={TAGS_FORMATTER}
           style="breakdowns"
         />,
         {
@@ -556,7 +557,7 @@ describe('Tag Facets', function () {
           groupId="1"
           project={project}
           tagKeys={tags}
-          tagFormatter={MOBILE_TAGS_FORMATTER}
+          tagFormatter={TAGS_FORMATTER}
           style="breakdowns"
         />,
         {
@@ -610,7 +611,7 @@ describe('Tag Facets', function () {
           groupId="1"
           project={project}
           tagKeys={tags}
-          tagFormatter={MOBILE_TAGS_FORMATTER}
+          tagFormatter={TAGS_FORMATTER}
           style="breakdowns"
         />,
         {
@@ -648,7 +649,7 @@ describe('Tag Facets', function () {
           project={project}
           tagKeys={tags}
           style="distributions"
-          tagFormatter={MOBILE_TAGS_FORMATTER}
+          tagFormatter={TAGS_FORMATTER}
         />,
         {
           organization,
@@ -670,7 +671,7 @@ describe('Tag Facets', function () {
           project={project}
           tagKeys={tags}
           style="distributions"
-          tagFormatter={MOBILE_TAGS_FORMATTER}
+          tagFormatter={TAGS_FORMATTER}
         />,
         {
           organization,
@@ -680,8 +681,8 @@ describe('Tag Facets', function () {
         expect(tagsMock).toHaveBeenCalled();
       });
       expect(screen.getByText('os')).toBeInTheDocument();
-      expect(screen.getByText('Android 12')).toBeInTheDocument();
-      expect(screen.getByText('66%')).toBeInTheDocument();
+      expect(screen.getAllByText('Android 12').length).toEqual(2);
+      expect(screen.getAllByText('66%').length).toEqual(2);
       expect(screen.getByText('device')).toBeInTheDocument();
       expect(screen.getByText('iPhone10')).toBeInTheDocument();
       expect(screen.getByText('27%')).toBeInTheDocument();
@@ -690,7 +691,7 @@ describe('Tag Facets', function () {
       expect(screen.getByText('100%')).toBeInTheDocument();
     });
 
-    it('displays tag breakdown when hovering over segments', async function () {
+    it('expands first tag distribution by default', async function () {
       render(
         <TagFacets
           environments={[]}
@@ -698,7 +699,7 @@ describe('Tag Facets', function () {
           project={project}
           tagKeys={tags}
           style="distributions"
-          tagFormatter={MOBILE_TAGS_FORMATTER}
+          tagFormatter={TAGS_FORMATTER}
         />,
         {
           organization,
@@ -707,11 +708,8 @@ describe('Tag Facets', function () {
       await waitFor(() => {
         expect(tagsMock).toHaveBeenCalled();
       });
-      expect(screen.queryByText('iOS 16.0')).not.toBeInTheDocument();
-      expect(screen.queryByText('33%')).not.toBeInTheDocument();
-      userEvent.hover(screen.getByText('66%'));
-      expect(await screen.findByText('iOS 16.0')).toBeInTheDocument();
-      expect(screen.getByText('33%')).toBeInTheDocument();
+      expect(screen.getByText('iOS 16.0')).toBeInTheDocument();
+      expect(screen.getAllByText('Android 12').length).toEqual(2);
     });
   });
 });
