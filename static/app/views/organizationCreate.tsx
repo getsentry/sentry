@@ -1,3 +1,4 @@
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {ApiForm, CheckboxField, TextField} from 'sentry/components/forms';
 import NarrowLayout from 'sentry/components/narrowLayout';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -38,6 +39,11 @@ function OrganizationCreate() {
             // redirect to project creation *(BYPASS REACT ROUTER AND FORCE PAGE REFRESH TO GRAB CSRF TOKEN)*
             // browserHistory.pushState(null, `/organizations/${data.slug}/projects/new/`);
             window.location.assign(nextUrl);
+          }}
+          onSubmitError={error => {
+            addErrorMessage(
+              error.responseJSON?.detail ?? t('Unable to create organization.')
+            );
           }}
           requireChanges
         >
