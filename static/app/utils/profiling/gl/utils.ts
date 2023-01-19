@@ -53,6 +53,66 @@ export function createProgram(
   throw new Error('Failed to create program');
 }
 
+export function getUniform(
+  gl: WebGLRenderingContext,
+  program: WebGLProgram,
+  name: string
+): WebGLUniformLocation {
+  const uniform = gl.getUniformLocation(program, name);
+  if (!uniform) {
+    throw new Error(`Could not locate uniform ${name} in shader`);
+  }
+  return uniform;
+}
+
+export function getAttribute(
+  gl: WebGLRenderingContext,
+  program: WebGLProgram,
+  name: string
+): number {
+  const attribute = gl.getAttribLocation(program, name);
+  if (attribute === -1) {
+    throw new Error(`Could not locate attribute ${name} in shader`);
+  }
+  return attribute;
+}
+
+export function createAndBindBuffer(
+  gl: WebGLRenderingContext,
+  data: ArrayBufferView,
+  usage: number
+): WebGLBuffer {
+  const buffer = gl.createBuffer();
+  if (!buffer) {
+    throw new Error('Could not create buffer');
+  }
+  gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+  gl.bufferData(gl.ARRAY_BUFFER, data, usage);
+  return buffer;
+}
+
+export function pointToAndEnableVertexAttribute(
+  gl: WebGLRenderingContext,
+  attribute: number,
+  attributeInfo: {
+    normalized: boolean;
+    offset: number;
+    size: number;
+    stride: number;
+    type: number;
+  }
+) {
+  gl.vertexAttribPointer(
+    attribute,
+    attributeInfo.size,
+    attributeInfo.type,
+    attributeInfo.normalized,
+    attributeInfo.stride,
+    attributeInfo.offset
+  );
+  gl.enableVertexAttribArray(attribute);
+}
+
 // Create a projection matrix with origins at 0,0 in top left corner, scaled to width/height
 export function makeProjectionMatrix(width: number, height: number): mat3 {
   const projectionMatrix = mat3.create();
