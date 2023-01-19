@@ -8,13 +8,12 @@ from django.utils import timezone
 from django.utils.encoding import force_bytes, force_text
 
 from sentry.buffer import Buffer
-from sentry.exceptions import InvalidConfiguration
 from sentry.tasks.process_buffer import process_incr, process_pending
 from sentry.utils import json, metrics
 from sentry.utils.compat import crc32
 from sentry.utils.hashlib import md5_text
 from sentry.utils.imports import import_string
-from sentry.utils.redis import get_dynamic_cluster_from_options
+from sentry.utils.redis import get_dynamic_cluster_from_options, validate_dynamic_cluster
 
 _local_buffers = None
 _local_buffers_lock = threading.Lock()
@@ -67,14 +66,7 @@ class RedisBuffer(Buffer):
             return self.cluster.get_routing_client()
 
     def validate(self):
-        try:
-            # wait 10 seconds at most
-            with self.cluster.all(timeout=10) as client:
-                client.ping()
-            # disconnect after successfull service validation
-            self.cluster.disconnect_pools()
-        except Exception as e:
-            raise InvalidConfiguration(str(e))
+        validate_dynamic_cluster(self.is_redis_cluster, self.cluster)
 
     def _coerce_val(self, value):
         if isinstance(value, models.Model):
