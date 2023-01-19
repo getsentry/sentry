@@ -3,8 +3,6 @@ import os
 
 import pytest
 
-from sentry.silo import single_process_silo_mode_state
-
 pytest_plugins = ["sentry.utils.pytest"]
 
 
@@ -144,10 +142,3 @@ def setup_default_hybrid_cloud_stubs():
         for stub in stubs:
             stack.enter_context(stub)
         yield
-
-
-@pytest.fixture(autouse=True)
-def cleanup_single_process_silo_mode_state():
-    single_process_silo_mode_state.mode = None
-    yield
-    single_process_silo_mode_state.mode = None
