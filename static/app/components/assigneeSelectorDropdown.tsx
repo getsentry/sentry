@@ -257,9 +257,9 @@ export class AssigneeSelectorDropdown extends Component<
                     : member.name || member.email}
                 </Highlight>
               </AssigneeLabel>
-              <AssigneeLabel>
-                {suggestedReason && <SuggestedReason>{suggestedReason}</SuggestedReason>}
-              </AssigneeLabel>
+              {suggestedReason && (
+                <SuggestedAssigneeReason>{suggestedReason}</SuggestedAssigneeReason>
+              )}
             </div>
           ) : (
             <Label>
@@ -302,9 +302,9 @@ export class AssigneeSelectorDropdown extends Component<
               <AssigneeLabel>
                 <Highlight text={inputValue}>{display}</Highlight>
               </AssigneeLabel>
-              <AssigneeLabel>
-                {suggestedReason && <SuggestedReason>{suggestedReason}</SuggestedReason>}
-              </AssigneeLabel>
+              {suggestedReason && (
+                <SuggestedAssigneeReason>{suggestedReason}</SuggestedAssigneeReason>
+              )}
             </div>
           ) : (
             <Label>
@@ -654,6 +654,11 @@ const AssigneeLabel = styled('div')`
   ${p => p.theme.overflowEllipsis}
   margin-left: ${space(1)};
   max-width: 300px;
+`;
+
+const SuggestedAssigneeReason = styled(AssigneeLabel)`
+  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSizeSmall};
 `;
 
 const GroupHeader = styled('div')`
