@@ -217,6 +217,7 @@ export type AvatarSentryApp = {
   slug: string;
   uuid: string;
   avatars?: Avatar[];
+  foo?: string;
 };
 
 export type SentryAppInstallation = {

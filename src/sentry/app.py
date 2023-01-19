@@ -12,7 +12,7 @@ from sentry.utils.sdk import RavenShim
 
 raven = client = RavenShim()
 
-
+print("hello")  # NOQA
 # These are backwards incompatible imports that should no longer be used.
 # They will be removed to reduce the size of the import graph
 from sentry import search, tsdb  # NOQA
