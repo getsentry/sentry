@@ -290,7 +290,7 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
         if features.has("organizations:scim-orgmember-roles", organization, actor=None):
 
             if "sentryOrgRole" in request.data and request.data["sentryOrgRole"]:
-                # Only do an update if something is changing
+                # Only do an update if the org role is changing
                 if (
                     member.flags["idp:role-restricted"]
                     and member.role.lower() == request.data["sentryOrgRole"].lower()
@@ -311,6 +311,8 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
                         member, serializer=_scim_member_serializer_with_expansion(organization)
                     )
                     return Response(context, status=200)
+
+                # Remove role-restricted flag since org role is blank
                 idp_role_restricted = False
                 requested_role = organization.default_role
 
