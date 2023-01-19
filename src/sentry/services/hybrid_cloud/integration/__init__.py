@@ -125,7 +125,7 @@ class IntegrationService(InterfaceWithLifecycle):
         limit: int | None = 5,
     ) -> List[APIIntegration]:
         """
-        Returns all APIIntegrations matching the provided kwargs. Defaults to a limit of 5.
+        Returns all APIIntegrations matching the provided kwargs.
         """
         pass
 
@@ -158,7 +158,6 @@ class IntegrationService(InterfaceWithLifecycle):
         Returns all APIOrganizationIntegrations from the matching kwargs.
         If providers is set, it will also be filtered by the integration providers set in the list.
         If has_grace_period is set, it will filter by whether the grace_period is null or not.
-        Defaults to a limit of 5.
         """
         pass
 
