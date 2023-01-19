@@ -24,7 +24,7 @@ const RESOURCES_DESCRIPTIONS: Record<IssueType, string> = {
     "N+1 queries are extraneous queries (N) caused by a single, initial query (+1). In the Span Evidence above, we've identified the parent span where the extraneous spans are located and the extraneous spans themselves. To learn more about how to fix N+1 problems, check out these resources:"
   ),
   [IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS]: t(
-    "N+1 API Calls are repeated concurrent calls to fetch a resource type. In the Span Evidence section we've identified the repeated calls. To learn more about how and when to fix N+1 API Calls, check out these resources:"
+    'N+1 API Calls are repeated concurrent calls to fetch a resource. These spans will always begin at the same time and may potentially be combined to fetch everything at once to reduce server load. Alternatively, you may be able to lazily load the resources. To learn more about how and when to fix N+1 API Calls, check out these resources:'
   ),
   [IssueType.PERFORMANCE_FILE_IO_MAIN_THREAD]: t(
     'File IO operations on your main thread may cause app hangs.'
