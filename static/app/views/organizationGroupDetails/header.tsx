@@ -266,16 +266,16 @@ function GroupHeader({
             title="N+1 API Calls Performance Issues are in active development and may change"
           />
         )}
-        {group.issueType === IssueType.PERFORMANCE_SLOW_SPAN && (
+        {group.issueType === IssueType.PERFORMANCE_SLOW_DB_QUERY && (
           <FeatureBadge
             type="alpha"
-            title="Slow DB Span Performance Issues are in active development and may change"
+            title="Slow DB Query Performance Issues are in active development and may change"
           />
         )}
         {group.issueType === IssueType.PERFORMANCE_CONSECUTIVE_DB_QUERIES && (
           <FeatureBadge
             type="alpha"
-            title="Slow DB Span Performance Issues are in active development and may change"
+            title="Consecutive DB Query Performance Issues are in active development and may change"
           />
         )}
         {group.issueType === IssueType.PERFORMANCE_RENDER_BLOCKING_ASSET && (
