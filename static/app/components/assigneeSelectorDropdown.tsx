@@ -51,6 +51,7 @@ export interface AssigneeSelectorDropdownProps {
   children: (props: RenderProps) => React.ReactNode;
   id: string;
   organization: Organization;
+  assignedTo?: Actor;
   disabled?: boolean;
   memberList?: User[];
   onAssign?: (
@@ -63,7 +64,6 @@ export interface AssigneeSelectorDropdownProps {
 
 type State = {
   loading: boolean;
-  assignedTo?: Actor;
   memberList?: User[];
   suggestedOwners?: SuggestedOwner[] | null;
 };
@@ -94,7 +94,6 @@ export class AssigneeSelectorDropdown extends Component<
       const group = GroupStore.get(this.props.id);
       this.setState({
         loading,
-        assignedTo: group?.assignedTo,
         suggestedOwners: group?.owners,
       });
     }
@@ -125,7 +124,7 @@ export class AssigneeSelectorDropdown extends Component<
     if (currentMembers === undefined && nextState.memberList !== currentMembers) {
       return true;
     }
-    return !valueIsEqual(nextState.assignedTo, this.state.assignedTo, true);
+    return !valueIsEqual(this.props.assignedTo, nextProps.assignedTo, true);
   }
 
   componentWillUnmount() {
@@ -161,7 +160,6 @@ export class AssigneeSelectorDropdown extends Component<
     }
     const group = GroupStore.get(this.props.id);
     this.setState({
-      assignedTo: group?.assignedTo,
       suggestedOwners: group?.owners,
       loading: GroupStore.hasStatus(this.props.id, 'assignTo'),
     });
@@ -319,7 +317,7 @@ export class AssigneeSelectorDropdown extends Component<
   renderSuggestedAssigneeNodes(): React.ComponentProps<
     typeof DropdownAutoComplete
   >['items'] {
-    const {assignedTo} = this.state;
+    const {assignedTo} = this.props;
     const textReason: Record<SuggestedOwnerReason, string> = {
       suspectCommit: t('Suspect Commit'),
       releaseCommit: t('Suspect Release'),
@@ -530,8 +528,8 @@ export class AssigneeSelectorDropdown extends Component<
   }
 
   render() {
-    const {disabled, children} = this.props;
-    const {loading, assignedTo} = this.state;
+    const {disabled, children, assignedTo} = this.props;
+    const {loading} = this.state;
     const memberList = this.memberList();
 
     const suggestedAssignees = this.getSuggestedAssignees();

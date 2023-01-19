@@ -20,7 +20,10 @@ import type {Actor, Group, SuggestedOwnerReason} from 'sentry/types';
 import useOrganization from 'sentry/utils/useOrganization';
 
 interface AssigneeSelectorProps
-  extends Omit<AssigneeSelectorDropdownProps, 'children' | 'organization'> {
+  extends Omit<
+    AssigneeSelectorDropdownProps,
+    'children' | 'organization' | 'assignedTo'
+  > {
   noDropdown?: boolean;
 }
 
@@ -125,7 +128,11 @@ function AssigneeSelector({noDropdown, ...props}: AssigneeSelectorProps) {
 
   return (
     <AssigneeWrapper>
-      <AssigneeSelectorDropdown organization={organization} {...props}>
+      <AssigneeSelectorDropdown
+        organization={organization}
+        assignedTo={group.assignedTo}
+        {...props}
+      >
         {({loading, isOpen, getActorProps, suggestedAssignees}) => {
           const avatarElement = (
             <AssigneeAvatar
