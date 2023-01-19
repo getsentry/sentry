@@ -2,10 +2,8 @@ import {useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
-import first from 'lodash/first';
 
 import * as Layout from 'sentry/components/layouts/thirds';
-import Pagination from 'sentry/components/pagination';
 import type {Group, Organization} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import useReplayList from 'sentry/utils/replays/hooks/useReplayList';
@@ -49,7 +47,6 @@ function GroupReplays({group}: Props) {
             ReplayColumns.activity,
           ]}
         />
-        <Pagination pageLinks={null} />
       </StyledLayoutPage>
     );
   }
@@ -65,7 +62,6 @@ function GroupReplays({group}: Props) {
 const GroupReplaysTable = ({
   eventView,
   organization,
-  pageLinks,
 }: {
   eventView: EventView;
   organization: Organization;
@@ -87,7 +83,7 @@ const GroupReplaysTable = ({
         fetchError={fetchError}
         isFetching={isFetching}
         replays={replays}
-        sort={first(eventView.sorts)}
+        sort={undefined}
         visibleColumns={[
           ReplayColumns.session,
           ...(hasRoomForColumns ? [ReplayColumns.startedAt] : []),
@@ -96,7 +92,6 @@ const GroupReplaysTable = ({
           ReplayColumns.activity,
         ]}
       />
-      <Pagination pageLinks={pageLinks} />
     </StyledLayoutPage>
   );
 };

@@ -1,11 +1,9 @@
 import {Fragment, useEffect, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import {Location} from 'history';
-import first from 'lodash/first';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
@@ -132,7 +130,6 @@ function ReplaysContent({
   eventView,
   events,
   organization,
-  pageLinks,
 }: {
   eventView: EventView;
   events: EventSpanData[];
@@ -160,7 +157,7 @@ function ReplaysContent({
         fetchError={fetchError}
         isFetching={isFetching}
         replays={replaysWithTx}
-        sort={first(eventView.sorts)}
+        sort={undefined}
         visibleColumns={[
           ReplayColumns.session,
           ...(hasRoomForColumns
@@ -171,7 +168,6 @@ function ReplaysContent({
           ReplayColumns.activity,
         ]}
       />
-      <Pagination pageLinks={pageLinks} />
     </Layout.Main>
   );
 }
