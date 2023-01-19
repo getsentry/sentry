@@ -527,8 +527,16 @@ def get_query_params_to_update_for_organizations(query_params):
 
 
 def _prepare_start_end(
-    start: datetime, end: datetime, organization_id: int, group_ids: Optional[Sequence[int]]
+    start: Optional[datetime],
+    end: Optional[datetime],
+    organization_id: int,
+    group_ids: Optional[Sequence[int]],
 ) -> Tuple[datetime, datetime]:
+    if not start:
+        start = datetime(2008, 5, 8)
+    if not end:
+        end = datetime.utcnow() + timedelta(seconds=1)
+
     # convert to naive UTC datetimes, as Snuba only deals in UTC
     # and this avoids offset-naive and offset-aware issues
     start = naiveify_datetime(start)

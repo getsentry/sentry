@@ -3,7 +3,6 @@ import os
 import re
 from collections import defaultdict
 from collections.abc import Iterable
-from datetime import datetime, timedelta
 from typing import Any, Dict, Optional, Sequence
 
 from dateutil.parser import parse as parse_datetime
@@ -535,8 +534,8 @@ class SnubaTagStorage(TagStorage):
         translated_params = self._translate_filter_keys(project_ids, group_id_list, environment_ids)
         organization_id = get_organization_id_from_project_ids(project_ids)
         start, end = _prepare_start_end(
-            datetime(2008, 5, 8),
-            datetime.utcnow() + timedelta(seconds=1),
+            None,
+            None,
             organization_id,
             group_id_list,
         )
@@ -903,11 +902,6 @@ class SnubaTagStorage(TagStorage):
     ):
         translated_params = self._translate_filter_keys(project_ids, group_ids, environment_ids)
         organization_id = get_organization_id_from_project_ids(project_ids)
-        if not start:
-            start = datetime(2008, 5, 8)
-        if not end:
-            end = datetime.utcnow() + timedelta(seconds=1)
-
         start, end = _prepare_start_end(
             start,
             end,
