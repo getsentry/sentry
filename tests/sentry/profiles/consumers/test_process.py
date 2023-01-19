@@ -6,6 +6,7 @@ from arroyo.backends.kafka import KafkaPayload
 from arroyo.types import BrokerValue, Message, Partition, Topic
 
 from sentry.profiles.consumers.process.factory import ProcessProfileStrategyFactory
+from sentry.profiles.task import _prepare_frames_from_profile
 from sentry.testutils.cases import TestCase
 from sentry.utils import json
 
@@ -56,3 +57,45 @@ class TestProcessProfileConsumerStrategy(TestCase):
         )
 
         process_profile_task.assert_called_with(profile=profile)
+
+
+def test_adjust_instruction_addr_sample_format():
+    profile = {
+        "version": "1",
+        "profile": {
+            "frames": [
+                {"instruction_addr": "0xdeadbeef", "platform": "native"},
+                {"instruction_addr": "0xbeefdead", "platform": "native"},
+            ],
+            "stacks": [[1, 0]],
+        },
+        "debug_meta": {"images": []},
+    }
+
+    _, stacktraces = _prepare_frames_from_profile(profile)
+    frames = stacktraces[0]["frames"]
+
+    assert "adjust_instruction_addr" not in frames[0]
+    assert not frames[1]["adjust_instruction_addr"]
+
+
+def test_adjust_instruction_addr_original_format():
+    profile = {
+        "sampled_profile": {
+            "samples": [
+                {
+                    "frames": [
+                        {"instruction_addr": "0xdeadbeef", "platform": "native"},
+                        {"instruction_addr": "0xbeefdead", "platform": "native"},
+                    ],
+                }
+            ]
+        },
+        "debug_meta": {"images": []},
+    }
+
+    _, stacktraces = _prepare_frames_from_profile(profile)
+    frames = stacktraces[0]["frames"]
+
+    assert not frames[0]["adjust_instruction_addr"]
+    assert "adjust_instruction_addr" not in frames[1]
