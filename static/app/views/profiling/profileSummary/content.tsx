@@ -18,7 +18,6 @@ import {
   useProfileEvents,
 } from 'sentry/utils/profiling/hooks/useProfileEvents';
 import {decodeScalar} from 'sentry/utils/queryString';
-import useRouter from 'sentry/utils/useRouter';
 import {ProfileCharts} from 'sentry/views/profiling/landing/profileCharts';
 
 const FUNCTIONS_CURSOR_NAME = 'functionsCursor';
@@ -32,7 +31,6 @@ interface ProfileSummaryContentProps {
 }
 
 function ProfileSummaryContent(props: ProfileSummaryContentProps) {
-  const router = useRouter();
   const fields = useMemo(
     () => getProfilesTableFields(props.project.platform),
     [props.project]
@@ -104,7 +102,7 @@ function ProfileSummaryContent(props: ProfileSummaryContentProps) {
 
   return (
     <Layout.Main fullWidth>
-      <ProfileCharts query={props.query} router={router} hideCount />
+      <ProfileCharts query={props.query} hideCount />
       <TableHeader>
         <CompactSelect
           triggerProps={{prefix: t('Filter'), size: 'xs'}}

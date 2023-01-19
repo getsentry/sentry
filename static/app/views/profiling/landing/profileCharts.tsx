@@ -1,5 +1,4 @@
 import {useMemo} from 'react';
-import {InjectedRouter} from 'react-router';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -14,10 +13,10 @@ import {Series} from 'sentry/types/echarts';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import {useProfileEventsStats} from 'sentry/utils/profiling/hooks/useProfileEventsStats';
+import useRouter from 'sentry/utils/useRouter';
 
 interface ProfileChartsProps {
   query: string;
-  router: InjectedRouter;
   hideCount?: boolean;
   selection?: PageFilters;
 }
@@ -27,7 +26,8 @@ interface ProfileChartsProps {
 // cover it up.
 const SERIES_ORDER = ['count()', 'p99()', 'p95()', 'p75()'] as const;
 
-export function ProfileCharts({query, router, selection, hideCount}: ProfileChartsProps) {
+export function ProfileCharts({query, selection, hideCount}: ProfileChartsProps) {
+  const router = useRouter();
   const theme = useTheme();
 
   const seriesOrder = useMemo(() => {
