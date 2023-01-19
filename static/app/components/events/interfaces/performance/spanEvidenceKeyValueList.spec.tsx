@@ -258,23 +258,20 @@ describe('SpanEvidenceKeyValueList', () => {
   });
 
   describe('Render Blocking Asset', () => {
+    const builder = new TransactionEventBuilder('a1', '/');
+
+    const offenderSpan = new MockSpan({
+      startTimestamp: 0,
+      endTimestamp: 1000,
+      op: 'resource.script',
+      description: 'https://example.com/resource.js',
+      problemSpan: ProblemSpan.OFFENDER,
+    });
+
+    builder.addSpan(offenderSpan);
+
     it('Renders relevant fields', () => {
-      render(
-        <SpanEvidenceKeyValueList
-          issueType={IssueType.PERFORMANCE_RENDER_BLOCKING_ASSET}
-          transactionName="/"
-          parentSpan={null}
-          causeSpans={[]}
-          offendingSpans={[
-            new MockSpan({
-              startTimestamp: 0,
-              endTimestamp: 1000,
-              op: 'resource.script',
-              description: 'https://example.com/resource.js',
-            }).span,
-          ]}
-        />
-      );
+      render(<SpanEvidenceKeyValueList event={builder.getEvent()} />);
 
       expect(screen.getByRole('cell', {name: 'Transaction'})).toBeInTheDocument();
       expect(
