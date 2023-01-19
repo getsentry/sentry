@@ -17,8 +17,8 @@ import {
 import {updateOnboardingTask} from 'sentry/actionCreators/onboardingTasks';
 import Access from 'sentry/components/acl/access';
 import Feature from 'sentry/components/acl/feature';
-import Alert from 'sentry/components/alert';
-import Button from 'sentry/components/button';
+import {Alert} from 'sentry/components/alert';
+import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
@@ -63,6 +63,7 @@ import {getDisplayName} from 'sentry/utils/environment';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import routeTitleGen from 'sentry/utils/routeTitle';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
 import withProjects from 'sentry/utils/withProjects';
 import PreviewTable from 'sentry/views/alerts/rules/issue/previewTable';
@@ -535,9 +536,11 @@ class IssueRuleEditor extends AsyncView<Props, State> {
 
     metric.endTransaction({name: 'saveAlertRule'});
 
-    router.push({
-      pathname: `/organizations/${organization.slug}/alerts/rules/${project.slug}/${rule.id}/details/`,
-    });
+    router.push(
+      normalizeUrl({
+        pathname: `/organizations/${organization.slug}/alerts/rules/${project.slug}/${rule.id}/details/`,
+      })
+    );
     addSuccessMessage(isNew ? t('Created alert rule') : t('Updated alert rule'));
   };
 
@@ -641,7 +644,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
   handleCancel = () => {
     const {organization, router} = this.props;
 
-    router.push(`/organizations/${organization.slug}/alerts/rules/`);
+    router.push(normalizeUrl(`/organizations/${organization.slug}/alerts/rules/`));
   };
 
   hasError = (field: string) => {

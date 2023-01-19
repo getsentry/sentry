@@ -6,8 +6,6 @@ import {
 } from 'sentry-test/performance/utils';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {IssueType} from 'sentry/types';
-
 import {SpanEvidenceSection} from './spanEvidence';
 
 const {organization} = initializeData();
@@ -72,11 +70,7 @@ describe('spanEvidence', () => {
     builder.addSpan(parentProblemSpan);
 
     render(
-      <SpanEvidenceSection
-        event={builder.getEvent()}
-        organization={organization}
-        issueType={IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES}
-      />,
+      <SpanEvidenceSection event={builder.getEvent()} organization={organization} />,
       {organization}
     );
 

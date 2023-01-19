@@ -5,15 +5,15 @@ import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import AsyncComponent from 'sentry/components/asyncComponent';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import platforms from 'sentry/data/platforms';
 import {t} from 'sentry/locale';
-import {PageHeader} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
 import {IntegrationProvider, Organization, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
 import AddInstallationInstructions from 'sentry/views/onboarding/components/integrations/addInstallationInstructions';
 import PostInstallCodeSnippet from 'sentry/views/onboarding/components/integrations/postInstallCodeSnippet';
@@ -87,7 +87,7 @@ class PlatformIntegrationSetup extends AsyncComponent<Props, State> {
 
     const url = `/organizations/${organization.slug}/projects/${projectId}/getting-started/`;
 
-    browserHistory.push(url);
+    browserHistory.push(normalizeUrl(url));
   }
 
   handleAddIntegration = () => {
@@ -122,16 +122,16 @@ class PlatformIntegrationSetup extends AsyncComponent<Props, State> {
 
     return (
       <OuterWrapper>
-        <StyledPageHeader>
+        <InnerWrapper>
           <StyledTitle>
             {t('Automatically instrument %s', platformIntegration.name)}
           </StyledTitle>
-          <PlatformHeaderButtonBar
-            gettingStartedLink={gettingStartedLink}
-            docsLink={docsLink}
-          />
-        </StyledPageHeader>
-        <InnerWrapper>
+          <HeaderButtons>
+            <PlatformHeaderButtonBar
+              gettingStartedLink={gettingStartedLink}
+              docsLink={docsLink}
+            />
+          </HeaderButtons>
           {!installed ? (
             <Fragment>
               <AddInstallationInstructions />
@@ -187,7 +187,7 @@ const StyledButtonBar = styled(ButtonBar)`
 `;
 
 const InnerWrapper = styled('div')`
-  width: 850px;
+  max-width: 850px;
 `;
 
 const OuterWrapper = styled('div')`
@@ -197,12 +197,14 @@ const OuterWrapper = styled('div')`
   margin-top: 50px;
 `;
 
-const StyledPageHeader = styled(PageHeader)`
+const HeaderButtons = styled('div')`
+  width: min-content;
   margin-bottom: ${space(3)};
 `;
 
 const StyledTitle = styled('h2')`
-  margin: 0 ${space(3)} 0 0;
+  margin: 0;
+  margin-bottom: ${space(2)};
 `;
 
 export default withOrganization(PlatformIntegrationSetup);

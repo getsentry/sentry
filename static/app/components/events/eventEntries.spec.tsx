@@ -2,13 +2,11 @@ import {initializeData} from 'sentry-test/performance/initializePerformanceData'
 import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import type {Error} from 'sentry/components/events/errors';
-import EventEntries from 'sentry/components/events/eventEntries';
+import {EventEntries} from 'sentry/components/events/eventEntries';
 import {Group, IssueCategory} from 'sentry/types';
 import {EntryType, Event} from 'sentry/types/event';
 
-const {organization, project} = initializeData();
-
-const api = new MockApiClient();
+const {organization, project, router} = initializeData();
 
 async function renderComponent(event: Event, errors?: Array<Error>) {
   render(
@@ -16,8 +14,7 @@ async function renderComponent(event: Event, errors?: Array<Error>) {
       organization={organization}
       event={{...event, errors: errors ?? event.errors}}
       project={project}
-      location={location}
-      api={api}
+      location={router.location}
     />
   );
 
@@ -302,8 +299,7 @@ describe('EventEntries', function () {
           organization={organization}
           event={newEvent}
           project={project}
-          location={location}
-          api={api}
+          location={router.location}
           group={group}
         />,
         {organization}
@@ -345,8 +341,7 @@ describe('EventEntries', function () {
           organization={organization}
           event={newEvent}
           project={project}
-          location={location}
-          api={api}
+          location={router.location}
           group={group}
         />
       );

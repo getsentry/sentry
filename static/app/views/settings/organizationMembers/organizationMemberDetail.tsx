@@ -10,7 +10,7 @@ import {
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import {resendMemberInvite, updateMember} from 'sentry/actionCreators/members';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import DateTime from 'sentry/components/dateTime';
 import NotFound from 'sentry/components/errors/notFound';
@@ -27,6 +27,7 @@ import {Member, Organization, Team} from 'sentry/types';
 import isMemberDisabledFromLimit from 'sentry/utils/isMemberDisabledFromLimit';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import Teams from 'sentry/utils/teams';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
 import AsyncView from 'sentry/views/asyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
@@ -169,7 +170,7 @@ class OrganizationMemberDetail extends AsyncView<Props, State> {
 
     try {
       await Promise.all(requests);
-      router.push(`/settings/${organization.slug}/members/`);
+      router.push(normalizeUrl(`/settings/${organization.slug}/members/`));
       addSuccessMessage(t('All authenticators have been removed'));
     } catch (err) {
       addErrorMessage(t('Error removing authenticators'));

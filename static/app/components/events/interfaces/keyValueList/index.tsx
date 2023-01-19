@@ -10,15 +10,15 @@ import {Value, ValueProps} from './value';
 
 interface Props extends Pick<ValueProps, 'raw' | 'isContextData'> {
   data?: KeyValueListData;
-  isSorted?: boolean;
   longKeys?: boolean;
   onClick?: () => void;
+  shouldSort?: boolean;
 }
 
 function KeyValueList({
   data,
   isContextData = false,
-  isSorted = true,
+  shouldSort = true,
   raw = false,
   longKeys = false,
   onClick,
@@ -28,7 +28,7 @@ function KeyValueList({
     return null;
   }
 
-  const keyValueData = isSorted ? sortBy(data, [({key}) => key.toLowerCase()]) : data;
+  const keyValueData = shouldSort ? sortBy(data, [({key}) => key.toLowerCase()]) : data;
 
   return (
     <Table className="table key-value" onClick={onClick} {...props}>

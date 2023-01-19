@@ -12,7 +12,7 @@ import {
 } from 'sentry/actionCreators/sentryAppTokens';
 import Avatar from 'sentry/components/avatar';
 import AvatarChooser, {Model} from 'sentry/components/avatarChooser';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import DateTime from 'sentry/components/dateTime';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import Form from 'sentry/components/forms/form';

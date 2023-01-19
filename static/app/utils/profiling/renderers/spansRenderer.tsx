@@ -1,5 +1,6 @@
 import {mat3, vec2} from 'gl-matrix';
 
+import {FlamegraphSearch} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphSearch';
 import {FlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 import {
   getContext,
@@ -62,6 +63,7 @@ export class SpanChartRenderer2D {
   canvas: HTMLCanvasElement | null;
   spanChart: SpanChart;
   theme: FlamegraphTheme;
+  searchResults: FlamegraphSearch['results']['spans'] = new Map();
 
   pattern: CanvasPattern;
   patternDataUrl: string;
@@ -100,6 +102,10 @@ export class SpanChartRenderer2D {
     return (
       this.colors.get(span.node.span.span_id) ?? this.theme.COLORS.FRAME_FALLBACK_COLOR
     );
+  }
+
+  setSearchResults(searchResults: FlamegraphSearch['results']['spans']) {
+    this.searchResults = searchResults;
   }
 
   findHoveredNode(configSpaceCursor: vec2): SpanChartNode | null {
@@ -182,6 +188,10 @@ export class SpanChartRenderer2D {
       const color =
         this.colors.get(span.node.span.span_id) ?? this.theme.COLORS.SPAN_FALLBACK_COLOR;
 
+      // Reset any transforms that may have been applied before.
+      // If we dont do it, it sometimes causes the canvas to be drawn with a translation
+      this.context.setTransform(1, 0, 0, 1, 0, 0);
+
       if (span.node.span.op === 'missing instrumentation') {
         this.context.beginPath();
         this.context.rect(
@@ -195,8 +205,9 @@ export class SpanChartRenderer2D {
         this.context.fill();
       } else {
         this.context.beginPath();
-        this.context.setTransform(1, 0, 0, 1, 0, 0);
-        this.context.fillStyle = colorComponentsToRgba(color);
+        this.context.fillStyle = this.searchResults.has(span.node.span.span_id)
+          ? this.theme.COLORS.SEARCH_RESULT_SPAN_COLOR
+          : colorComponentsToRgba(color);
         this.context.fillRect(
           rect.x + BORDER_WIDTH / 2,
           rect.y + BORDER_WIDTH / 2,

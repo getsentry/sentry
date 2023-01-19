@@ -16,6 +16,7 @@ export interface SpanChartNode {
   node: SpanTree['root'];
   parent: SpanChartNode | null;
   start: number;
+  text: string;
 }
 
 class SpanChart {
@@ -23,6 +24,7 @@ class SpanChart {
   root: SpanChartNode = {
     parent: null,
     node: SpanTreeNode.Root(),
+    text: 'root',
     duration: 0,
     depth: -1,
     start: 0,
@@ -86,8 +88,8 @@ class SpanChart {
       depthOffset === 0
         ? [[null, tree.root]]
         : [...tree.root.children.map(child => [null, child] as [null, SpanTreeNode])];
-    let depth = depthOffset;
 
+    let depth = 0;
     while (queue.length) {
       let children_at_depth = queue.length;
 
@@ -102,8 +104,12 @@ class SpanChart {
           duration: this.toFinalUnit(duration),
           start: this.toFinalUnit(start),
           end: this.toFinalUnit(end),
+          text:
+            node.span.op && node.span.description
+              ? node.span.op + ': ' + node.span.description
+              : node.span.op || node.span.description || '<unknown span>',
           node,
-          depth,
+          depth: depth + depthOffset,
           parent,
           children: [],
         };
@@ -142,6 +148,7 @@ class SpanChart {
     for (let i = 0; i < this.spanTrees.length; i++) {
       depth += this.forEachSpanOfTree(this.spanTrees[i], depth, visit);
     }
+
     return nodes;
   }
 }

@@ -50,6 +50,7 @@ export interface FlamegraphTheme {
     // Nice color picker for GLSL colors - https://keiwando.com/color-picker/
     SAMPLE_TICK_COLOR: ColorChannels;
     SEARCH_RESULT_FRAME_COLOR: string;
+    SEARCH_RESULT_SPAN_COLOR: string;
     SELECTED_FRAME_BORDER_COLOR: string;
     SPAN_COLOR_BUCKET: (t: number) => ColorChannels;
     SPAN_FALLBACK_COLOR: [number, number, number, number];
@@ -89,6 +90,7 @@ export interface FlamegraphTheme {
     SPANS_HEIGHT: number;
     TIMELINE_HEIGHT: number;
     TOOLTIP_FONT_SIZE: number;
+    UI_FRAMES_HEIGHT: number;
   };
 }
 
@@ -127,7 +129,6 @@ const SIZES: FlamegraphTheme['SIZES'] = {
   BAR_HEIGHT: 20,
   BAR_PADDING: 4,
   FLAMEGRAPH_DEPTH_OFFSET: 12,
-  SPANS_DEPTH_OFFSET: 6,
   FOCUSED_FRAME_BORDER_WIDTH: 2,
   FRAME_BORDER_WIDTH: 2,
   GRID_LINE_WIDTH: 2,
@@ -137,11 +138,13 @@ const SIZES: FlamegraphTheme['SIZES'] = {
   LABEL_FONT_SIZE: 10,
   MINIMAP_HEIGHT: 100,
   MINIMAP_POSITION_OVERLAY_BORDER_WIDTH: 2,
-  SPANS_HEIGHT: 160,
   SPANS_BAR_HEIGHT: 20,
+  SPANS_DEPTH_OFFSET: 6,
   SPANS_FONT_SIZE: 11,
+  SPANS_HEIGHT: 160,
   TIMELINE_HEIGHT: 20,
   TOOLTIP_FONT_SIZE: 12,
+  UI_FRAMES_HEIGHT: 60,
 };
 
 const FONTS: FlamegraphTheme['FONTS'] = {
@@ -171,6 +174,7 @@ export const LightFlamegraphTheme: FlamegraphTheme = {
     MINIMAP_POSITION_OVERLAY_COLOR: 'rgba(0,0,0,0.1)',
     SAMPLE_TICK_COLOR: [255, 0, 0, 0.5],
     SEARCH_RESULT_FRAME_COLOR: 'vec4(0.99, 0.70, 0.35, 1.0)',
+    SEARCH_RESULT_SPAN_COLOR: '#fdb359',
     SELECTED_FRAME_BORDER_COLOR: lightTheme.blue400,
     SPAN_FRAME_LINE_PATTERN: '#dedae3',
     SPAN_FRAME_LINE_PATTERN_BACKGROUND: '#f4f2f7',
@@ -205,6 +209,7 @@ export const DarkFlamegraphTheme: FlamegraphTheme = {
     SPAN_FRAME_LINE_PATTERN: '#594b66',
     SPAN_FRAME_LINE_PATTERN_BACKGROUND: '#1a1724',
     SELECTED_FRAME_BORDER_COLOR: lightTheme.blue400,
+    SEARCH_RESULT_SPAN_COLOR: '#b9834a',
     SPAN_FRAME_BORDER: '#57575b',
     STACK_TO_COLOR: makeStackToColor([1, 1, 1, 0.1]),
   },

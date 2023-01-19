@@ -45,6 +45,7 @@ class Referrer(Enum):
     )
     API_DASHBOARDS_WIDGET_LINE_CHART = "api.dashboards.widget.line-chart"
     API_DASHBOARDS_WORLDMAPWIDGET = "api.dashboards.worldmapwidget"
+    API_DISCOVER_TOTAL_COUNT_FIELD = "api.discover.total-events-field"
     API_DISCOVER_DAILY_CHART = "api.discover.daily-chart"
     API_DISCOVER_DAILYTOP5_CHART_FIND_TOPN = "api.discover.dailytop5-chart.find-topn"
     API_DISCOVER_DAILYTOP5_CHART = "api.discover.dailytop5-chart"

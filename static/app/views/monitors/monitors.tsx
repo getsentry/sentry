@@ -5,7 +5,7 @@ import * as qs from 'query-string';
 
 import onboardingImg from 'sentry-images/spot/onboarding-preview.svg';
 
-import Button, {ButtonProps} from 'sentry/components/button';
+import {Button, ButtonProps} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import FeatureBadge from 'sentry/components/featureBadge';
 import IdBadge from 'sentry/components/idBadge';
@@ -13,13 +13,13 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import Link from 'sentry/components/links/link';
 import OnboardingPanel from 'sentry/components/onboardingPanel';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import Pagination from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import SearchBar from 'sentry/components/searchBar';
 import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
-import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -38,7 +38,7 @@ import {Monitor} from './types';
 
 type Props = AsyncView['props'] &
   WithRouteAnalyticsProps &
-  WithRouterProps<{orgId: string}> & {
+  WithRouterProps<{}> & {
     organization: Organization;
   };
 
@@ -104,12 +104,19 @@ class Monitors extends AsyncView<Props, State> {
     const {organization} = this.props;
 
     return (
-      <StyledPageContent>
+      <Layout.Page>
         <Layout.Header>
           <Layout.HeaderContent>
-            <HeaderTitle>
-              {t('Cron Monitors')} <FeatureBadge type="beta" />
-            </HeaderTitle>
+            <Layout.Title>
+              {t('Cron Monitors')}
+              <PageHeadingQuestionTooltip
+                title={t(
+                  'Scheduled monitors that check in on recurring jobs and tell you if they’re running on schedule, failing, or succeeding.'
+                )}
+                docsUrl="https://docs.sentry.io/product/crons/"
+              />
+              <FeatureBadge type="beta" />
+            </Layout.Title>
           </Layout.HeaderContent>
           <Layout.HeaderActions>
             <ButtonBar gap={1}>
@@ -162,34 +169,26 @@ class Monitors extends AsyncView<Props, State> {
               </Fragment>
             ) : (
               <OnboardingPanel image={<img src={onboardingImg} />}>
-                <h3>{t('Let Sentry Monitor Your Recurring Jobs')}</h3>
+                <h3>{t('Let Sentry monitor your recurring jobs')}</h3>
                 <p>
                   {t(
                     "We'll tell you if your recurring jobs are running on schedule, failing, or succeeding."
                   )}
                 </p>
                 <ButtonList gap={1}>
+                  <NewMonitorButton>{t('Set up first cron monitor')}</NewMonitorButton>
                   <Button href="https://docs.sentry.io/product/crons" external>
-                    {t('View the Docs')}
+                    {t('Read docs')}
                   </Button>
-                  <NewMonitorButton>{t('Set Up First Cron Monitor')}</NewMonitorButton>
                 </ButtonList>
               </OnboardingPanel>
             )}
           </Layout.Main>
         </Layout.Body>
-      </StyledPageContent>
+      </Layout.Page>
     );
   }
 }
-
-const StyledPageContent = styled(PageContent)`
-  padding: 0;
-`;
-
-const HeaderTitle = styled(Layout.Title)`
-  margin-top: 0;
-`;
 
 const StyledLink = styled(Link)`
   flex: 1;

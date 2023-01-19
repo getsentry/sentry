@@ -145,7 +145,7 @@ export default class ProjectCspReports extends AsyncView<Props, State> {
               information, take a look at [link:the article on html5rocks.com].`,
                 {
                   link: (
-                    <a href="http://www.html5rocks.com/en/tutorials/security/content-security-policy/" />
+                    <ExternalLink href="http://www.html5rocks.com/en/tutorials/security/content-security-policy/" />
                   ),
                 }
               )}

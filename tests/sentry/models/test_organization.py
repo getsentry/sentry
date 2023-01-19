@@ -205,8 +205,10 @@ class OrganizationTest(TestCase):
         org = self.create_organization()
         update_tracked_data(org)
         org.flags.early_adopter = True
+        org.flags.codecov_access = True
         org.flags.require_2fa = True
         assert flag_has_changed(org, "early_adopter")
+        assert flag_has_changed(org, "codecov_access")
         assert flag_has_changed(org, "allow_joinleave") is False
         assert flag_has_changed(org, "require_2fa") is True
 
@@ -484,7 +486,7 @@ class Require2fa(TestCase):
         result = org.get_audit_log_data()
         assert result["flags"] == int(org.flags)
 
-    def test_send_delete_confirmation_system_audi(self):
+    def test_send_delete_confirmation_system_audit(self):
         org = self.create_organization(owner=self.user)
         audit_entry = create_system_audit_entry(
             organization=org,

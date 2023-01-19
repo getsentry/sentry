@@ -140,7 +140,10 @@ export async function openEditOwnershipRules(options: EditOwnershipRulesModalOpt
   const mod = await import('sentry/components/modals/editOwnershipRulesModal');
   const {default: Modal, modalCss} = mod;
 
-  openModal(deps => <Modal {...deps} {...options} />, {backdrop: 'static', modalCss});
+  openModal(deps => <Modal {...deps} {...options} />, {
+    closeEvents: 'escape-key',
+    modalCss,
+  });
 }
 
 export async function openCommandPalette(options: ModalOptions = {}) {
@@ -240,14 +243,20 @@ export async function openWidgetBuilderOverwriteModal(
   const mod = await import('sentry/components/modals/widgetBuilder/overwriteWidgetModal');
   const {default: Modal, modalCss} = mod;
 
-  openModal(deps => <Modal {...deps} {...options} />, {backdrop: 'static', modalCss});
+  openModal(deps => <Modal {...deps} {...options} />, {
+    closeEvents: 'escape-key',
+    modalCss,
+  });
 }
 
 export async function openAddToDashboardModal(options) {
   const mod = await import('sentry/components/modals/widgetBuilder/addToDashboardModal');
   const {default: Modal, modalCss} = mod;
 
-  openModal(deps => <Modal {...deps} {...options} />, {backdrop: 'static', modalCss});
+  openModal(deps => <Modal {...deps} {...options} />, {
+    closeEvents: 'escape-key',
+    modalCss,
+  });
 }
 
 export async function openReprocessEventModal({
@@ -263,13 +272,6 @@ export async function openReprocessEventModal({
 
 export async function demoSignupModal(options: ModalOptions = {}) {
   const mod = await import('sentry/components/modals/demoSignUp');
-  const {default: Modal, modalCss} = mod;
-
-  openModal(deps => <Modal {...deps} {...options} />, {modalCss});
-}
-
-export async function demoSignupModalV2(options: ModalOptions = {}) {
-  const mod = await import('sentry/components/modals/demoSignUpV2');
   const {default: Modal, modalCss} = mod;
 
   openModal(deps => <Modal {...deps} {...options} />, {modalCss});
@@ -293,7 +295,10 @@ export async function openDashboardWidgetQuerySelectorModal(
   const mod = await import('sentry/components/modals/dashboardWidgetQuerySelectorModal');
   const {default: Modal, modalCss} = mod;
 
-  openModal(deps => <Modal {...deps} {...options} />, {backdrop: 'static', modalCss});
+  openModal(deps => <Modal {...deps} {...options} />, {
+    closeEvents: 'escape-key',
+    modalCss,
+  });
 }
 
 export async function openWidgetViewerModal({
@@ -304,7 +309,7 @@ export async function openWidgetViewerModal({
   const {default: Modal, modalCss} = mod;
 
   openModal(deps => <Modal {...deps} {...options} />, {
-    backdrop: 'static',
+    closeEvents: 'escape-key',
     modalCss,
     onClose,
   });

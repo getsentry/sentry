@@ -18,6 +18,7 @@ import {
   useCanvasScheduler,
 } from 'sentry/utils/profiling/canvasScheduler';
 import {CanvasView} from 'sentry/utils/profiling/canvasView';
+import {useFlamegraphSearch} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphSearch';
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
 import {
@@ -59,6 +60,7 @@ export function FlamegraphSpans({
   setSpansCanvasRef,
 }: FlamegraphSpansProps) {
   const flamegraphTheme = useFlamegraphTheme();
+  const flamegraphSearch = useFlamegraphSearch();
   const scheduler = useCanvasScheduler(canvasPoolManager);
   const profiledTransaction = useProfileTransaction();
 
@@ -102,6 +104,13 @@ export function FlamegraphSpans({
   }, [configSpaceCursor, spansRenderer]);
 
   useEffect(() => {
+    if (!spansRenderer) {
+      return;
+    }
+    spansRenderer.setSearchResults(flamegraphSearch.results.spans);
+  }, [spansRenderer, flamegraphSearch.results.spans]);
+
+  useEffect(() => {
     if (!spansCanvas || !spansView || !spansRenderer || !spansTextRenderer) {
       return undefined;
     }
@@ -128,14 +137,16 @@ export function FlamegraphSpans({
     const drawText = () => {
       spansTextRenderer.draw(
         spansView.configView.transformRect(spansView.configSpaceTransform),
-        spansView.fromTransformedConfigView(spansCanvas.physicalSpace)
-        // flamegraphSearch.results
+        spansView.fromTransformedConfigView(spansCanvas.physicalSpace),
+        flamegraphSearch.results.spans
       );
     };
 
     scheduler.registerBeforeFrameCallback(clearCanvas);
     scheduler.registerBeforeFrameCallback(drawSpans);
     scheduler.registerAfterFrameCallback(drawText);
+
+    scheduler.draw();
 
     return () => {
       scheduler.unregisterBeforeFrameCallback(drawSpans);
@@ -148,6 +159,7 @@ export function FlamegraphSpans({
     scheduler,
     spansView,
     spansTextRenderer,
+    flamegraphSearch.results.spans,
     profiledTransaction.type,
   ]);
 

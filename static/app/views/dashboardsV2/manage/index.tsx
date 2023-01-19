@@ -6,12 +6,11 @@ import {createDashboard} from 'sentry/actionCreators/dashboards';
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
-import Alert from 'sentry/components/alert';
-import Button from 'sentry/components/button';
+import {Alert} from 'sentry/components/alert';
+import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import CompactSelect from 'sentry/components/compactSelect';
-import {Title} from 'sentry/components/layouts/thirds';
-import ExternalLink from 'sentry/components/links/externalLink';
+import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
@@ -19,13 +18,13 @@ import SearchBar from 'sentry/components/searchBar';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import Switch from 'sentry/components/switchButton';
 import {IconAdd} from 'sentry/icons';
-import {t, tct} from 'sentry/locale';
-import {PageContent} from 'sentry/styles/organization';
+import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, SelectValue} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {decodeScalar} from 'sentry/utils/queryString';
 import withApi from 'sentry/utils/withApi';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
 import AsyncView from 'sentry/views/asyncView';
 
@@ -183,9 +182,9 @@ class ManageDashboards extends AsyncView<Props, State> {
 
   renderNoAccess() {
     return (
-      <PageContent>
+      <Layout.Page>
         <Alert type="warning">{t("You don't have access to this feature")}</Alert>
-      </PageContent>
+      </Layout.Page>
     );
   }
 
@@ -214,10 +213,12 @@ class ManageDashboards extends AsyncView<Props, State> {
       organization,
     });
 
-    browserHistory.push({
-      pathname: `/organizations/${organization.slug}/dashboards/new/`,
-      query: location.query,
-    });
+    browserHistory.push(
+      normalizeUrl({
+        pathname: `/organizations/${organization.slug}/dashboards/new/`,
+        query: location.query,
+      })
+    );
   }
 
   async onAdd(dashboard: DashboardDetails) {
@@ -249,17 +250,19 @@ class ManageDashboards extends AsyncView<Props, State> {
       dashboard_id: dashboardId,
     });
 
-    browserHistory.push({
-      pathname: `/organizations/${organization.slug}/dashboards/new/${dashboardId}/`,
-      query: location.query,
-    });
+    browserHistory.push(
+      normalizeUrl({
+        pathname: `/organizations/${organization.slug}/dashboards/new/${dashboardId}/`,
+        query: location.query,
+      })
+    );
   }
 
   renderLoading() {
     return (
-      <PageContent>
+      <Layout.Page withPadding>
         <LoadingIndicator />
-      </PageContent>
+      </Layout.Page>
     );
   }
 
@@ -274,23 +277,21 @@ class ManageDashboards extends AsyncView<Props, State> {
         renderDisabled={this.renderNoAccess}
       >
         <SentryDocumentTitle title={t('Dashboards')} orgSlug={organization.slug}>
-          <StyledPageContent>
+          <Layout.Page>
             <NoProjectMessage organization={organization}>
-              <PageContent>
-                <StyledPageHeader>
-                  <StyledTitle>
+              <Layout.Header>
+                <Layout.HeaderContent>
+                  <Layout.Title>
                     {t('Dashboards')}
                     <PageHeadingQuestionTooltip
-                      title={tct(
-                        'A broad overview of your application’s health where you can navigate through error and performance data across multiple projects. [link: Read the docs].',
-                        {
-                          link: (
-                            <ExternalLink href="https://docs.sentry.io/product/dashboards/" />
-                          ),
-                        }
+                      docsUrl="https://docs.sentry.io/product/dashboards/"
+                      title={t(
+                        'A broad overview of your application’s health where you can navigate through error and performance data across multiple projects.'
                       )}
                     />
-                  </StyledTitle>
+                  </Layout.Title>
+                </Layout.HeaderContent>
+                <Layout.HeaderActions>
                   <ButtonBar gap={1.5}>
                     <TemplateSwitch>
                       {t('Show Templates')}
@@ -313,33 +314,22 @@ class ManageDashboards extends AsyncView<Props, State> {
                       {t('Create Dashboard')}
                     </Button>
                   </ButtonBar>
-                </StyledPageHeader>
-                {showTemplates && this.renderTemplates()}
-                {this.renderActions()}
-                {this.renderDashboards()}
-              </PageContent>
+                </Layout.HeaderActions>
+              </Layout.Header>
+              <Layout.Body>
+                <Layout.Main fullWidth>
+                  {showTemplates && this.renderTemplates()}
+                  {this.renderActions()}
+                  {this.renderDashboards()}
+                </Layout.Main>
+              </Layout.Body>
             </NoProjectMessage>
-          </StyledPageContent>
+          </Layout.Page>
         </SentryDocumentTitle>
       </Feature>
     );
   }
 }
-
-const StyledTitle = styled(Title)`
-  width: auto;
-`;
-
-const StyledPageContent = styled(PageContent)`
-  padding: 0;
-`;
-
-const StyledPageHeader = styled('div')`
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  margin-bottom: ${space(2)};
-`;
 
 const StyledActions = styled('div')`
   display: grid;
@@ -365,7 +355,7 @@ const TemplateSwitch = styled('label')`
 const TemplateContainer = styled('div')`
   display: grid;
   gap: ${space(2)};
-  margin-bottom: ${space(2)};
+  margin-bottom: ${space(0.5)};
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     grid-template-columns: repeat(2, minmax(200px, 1fr));

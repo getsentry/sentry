@@ -1,12 +1,16 @@
 import {mat3} from 'gl-matrix';
 
+import {FlamegraphSearch} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphSearch';
 import {
+  computeHighlightedBounds,
   ELLIPSIS,
   findRangeBinarySearch,
   getContext,
+  lowerBound,
   Rect,
   resizeCanvasToDisplaySize,
   trimTextCenter,
+  upperBound,
 } from 'sentry/utils/profiling/gl/utils';
 import {TextRenderer} from 'sentry/utils/profiling/renderers/textRenderer';
 import {SpanChart, SpanChartNode} from 'sentry/utils/profiling/spanChart';
@@ -29,8 +33,8 @@ class SpansTextRenderer extends TextRenderer {
 
   draw(
     configView: Rect,
-    configViewToPhysicalSpace: mat3
-    // flamegraphSearchResults: FlamegraphSearch['results']
+    configViewToPhysicalSpace: mat3,
+    flamegraphSearchResults: FlamegraphSearch['results']['spans']
   ): void {
     // Make sure we set font size before we measure text for the first draw
     const FONT_SIZE = this.theme.SIZES.SPANS_FONT_SIZE * window.devicePixelRatio;
@@ -48,20 +52,26 @@ class SpansTextRenderer extends TextRenderer {
 
     const TOP_BOUNDARY = configView.top - 1;
     const BOTTOM_BOUNDARY = configView.bottom + 1;
+    const HIGHLIGHT_BACKGROUND_COLOR = `rgb(${this.theme.COLORS.HIGHLIGHTED_LABEL_COLOR.join(
+      ', '
+    )})`;
+    const HAS_SEARCH_RESULTS = flamegraphSearchResults.size > 0;
+    const TEXT_Y_POSITION = FONT_SIZE / 2 - BASELINE_OFFSET;
 
     // We start by iterating over root spans, so we draw the call stacks top-down.
     // This allows us to do a couple optimizations that improve our best case performance.
     // 1. We can skip drawing the entire tree if the root frame is not visible
     // 2. We can skip drawing and
-    const spans: SpanChartNode[] = [...this.spanChart.root.children];
+    // Find the upper and lower bounds of the frames we need to draw so we dont end up
+    // iterating over all of the root frames and avoid creating shallow copies if we dont need to.
+    const start = lowerBound(configView.left, this.spanChart.root.children);
+    const end = upperBound(configView.right, this.spanChart.root.children);
+
+    // Populate the initial set of frames to draw
+    const spans: SpanChartNode[] = this.spanChart.root.children.slice(start, end);
 
     while (spans.length > 0) {
       const span = spans.pop()!;
-
-      // Check if our rect overlaps with the current viewport and skip rendering if it does not.
-      if (span.end < configView.left || span.start > configView.right) {
-        continue;
-      }
 
       if (span.depth > BOTTOM_BOUNDARY) {
         continue;
@@ -86,7 +96,8 @@ class SpansTextRenderer extends TextRenderer {
         continue;
       }
 
-      for (let i = 0; i < span.children.length; i++) {
+      const endChild = upperBound(configView.right, span.children);
+      for (let i = lowerBound(configView.left, span.children); i < endChild; i++) {
         spans.push(span.children[i]);
       }
 
@@ -116,10 +127,7 @@ class SpansTextRenderer extends TextRenderer {
       const x = rectX + (rectWidth < 0 ? rectWidth : 0) + HALF_SIDE_PADDING;
       const y = rectY + (rectHeight < 0 ? rectHeight : 0) + BASELINE_OFFSET;
 
-      const text = span.node.span.op
-        ? span.node.span.op + '' + (span.node.span.description || '')
-        : span.node.span.description || '<unknown span>';
-
+      const text = span.text;
       const trim = trimTextCenter(
         text,
         findRangeBinarySearch(
@@ -128,6 +136,28 @@ class SpansTextRenderer extends TextRenderer {
           paddedRectangleWidth
         )[0]
       );
+
+      if (HAS_SEARCH_RESULTS) {
+        const frameResults = flamegraphSearchResults.get(span.node.span.span_id);
+
+        if (frameResults) {
+          this.context.fillStyle = HIGHLIGHT_BACKGROUND_COLOR;
+
+          const highlightedBounds = computeHighlightedBounds(frameResults.match, trim);
+
+          const frontMatter = trim.text.slice(0, highlightedBounds[0]);
+          const highlightWidth = this.measureAndCacheText(
+            trim.text.substring(highlightedBounds[0], highlightedBounds[1])
+          ).width;
+
+          this.context.fillRect(
+            x + this.measureAndCacheText(frontMatter).width,
+            y + TEXT_Y_POSITION,
+            highlightWidth,
+            FONT_SIZE
+          );
+        }
+      }
 
       this.context.fillStyle = this.theme.COLORS.LABEL_FONT_COLOR;
       this.context.fillText(trim.text, x, y);

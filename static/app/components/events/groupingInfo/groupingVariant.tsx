@@ -2,7 +2,7 @@ import {Component} from 'react';
 import styled from '@emotion/styled';
 import capitalize from 'lodash/capitalize';
 
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import QuestionTooltip from 'sentry/components/questionTooltip';
@@ -266,7 +266,7 @@ class GroupVariant extends Component<Props, State> {
             value: d[1],
           }))}
           isContextData
-          isSorted={false}
+          shouldSort={false}
         />
       </VariantWrapper>
     );
