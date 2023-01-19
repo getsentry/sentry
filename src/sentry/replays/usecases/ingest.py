@@ -148,7 +148,10 @@ def ingest_recording(message: RecordingIngestMessage, transaction: Transaction) 
         ).count()
 
     if count_existing_segments > 0:
-        logging.warning("Recording segment was already processed.")
+        logging.warning(
+            "Recording segment was already processed.",
+            extra={"project_id": message.project_id, "replay_id": message.replay_id},
+        )
         return None
 
     # create a File for our recording segment.
