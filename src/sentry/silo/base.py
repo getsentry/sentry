@@ -4,12 +4,15 @@ import abc
 import contextlib
 import functools
 import itertools
+import logging
 import sys
 import threading
 from enum import Enum
 from typing import Any, Callable, Generator, Iterable
 
 from django.conf import settings
+
+logger = logging.getLogger("silomode")
 
 
 class SiloMode(Enum):
@@ -148,15 +151,18 @@ class SiloLimit(abc.ABC):
             # immutably determined when the decorator is first evaluated.
             is_available = self.is_available(extra_modes)
 
-            if is_available:
-                return original_method(*args, **kwargs)
-            else:
-                handler = self.handle_when_unavailable(
-                    original_method,
-                    SiloMode.get_current_mode(),
-                    itertools.chain([SiloMode.MONOLITH], self.modes, extra_modes),
-                )
-                return handler(*args, **kwargs)
+            if not is_available:
+                if settings.SENTRY_SILO_MODE_IS_ENFORCED:
+                    handler = self.handle_when_unavailable(
+                        original_method,
+                        SiloMode.get_current_mode(),
+                        itertools.chain([SiloMode.MONOLITH], self.modes, extra_modes),
+                    )
+                    return handler(*args, **kwargs)
+                else:
+                    logger.error("Ignoring silo mode violation")
+
+            return original_method(*args, **kwargs)
 
         functools.update_wrapper(override, original_method)
         return override
