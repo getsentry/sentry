@@ -95,6 +95,7 @@ const RESOURCE_LINKS: Record<IssueType, PlatformSpecificResources> = {
   [IssueType.PERFORMANCE_FILE_IO_MAIN_THREAD]: {},
   [IssueType.PERFORMANCE_SLOW_SPAN]: {},
   [IssueType.PERFORMANCE_UNCOMPRESSED_ASSET]: {},
+  [IssueType.PERFORMANCE_RENDER_BLOCKING_ASSET]: {},
   [IssueType.ERROR]: {},
 };
 

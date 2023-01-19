@@ -258,7 +258,11 @@ describe('SpanEvidenceKeyValueList', () => {
   });
 
   describe('Render Blocking Asset', () => {
-    const builder = new TransactionEventBuilder('a1', '/');
+    const builder = new TransactionEventBuilder(
+      'a1',
+      '/',
+      IssueType.PERFORMANCE_RENDER_BLOCKING_ASSET
+    );
 
     const offenderSpan = new MockSpan({
       startTimestamp: 0,
