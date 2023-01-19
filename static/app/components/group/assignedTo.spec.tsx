@@ -122,6 +122,7 @@ describe('Group > AssignedTo', () => {
       )
     );
 
+    // Group changes are passed down from parent component
     rerender(<AssignedTo project={project} group={assignedGroup} event={event} />);
     expect(await screen.findByText(team1slug)).toBeInTheDocument();
     // TEAM_1 initials
@@ -159,6 +160,7 @@ describe('Group > AssignedTo', () => {
       )
     );
 
+    // Group changes are passed down from parent component
     rerender(<AssignedTo project={project} group={assignedGroup} event={event} />);
     await openMenu();
     userEvent.click(screen.getByRole('button', {name: 'Clear Assignee'}));
