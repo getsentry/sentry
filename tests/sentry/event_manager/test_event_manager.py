@@ -2437,7 +2437,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
 
     @override_options(
         {
-            "performance.issues.slow_span.problem-creation": 1.0,
+            "performance.issues.slow_db_query.problem-creation": 1.0,
             "performance_issue_creation_rate": 1.0,
         }
     )
@@ -2462,7 +2462,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
             last_event = attempt_to_generate_slow_db_issue()
 
             assert len(last_event.groups) == 1
-            assert last_event.groups[0].type == GroupType.PERFORMANCE_SLOW_SPAN.value
+            assert last_event.groups[0].type == GroupType.PERFORMANCE_SLOW_DB_QUERY.value
 
 
 class AutoAssociateCommitTest(TestCase, EventManagerTestMixin):

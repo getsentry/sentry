@@ -13,7 +13,7 @@ from sentry.testutils.silo import region_silo_test
 from sentry.utils.performance_issues.performance_detection import (
     GroupType,
     PerformanceProblem,
-    SlowSpanDetector,
+    SlowDBQueryDetector,
     get_detection_settings,
     run_detector_on_data,
 )
@@ -21,13 +21,13 @@ from sentry.utils.performance_issues.performance_detection import (
 
 @region_silo_test
 @pytest.mark.django_db
-class SlowSpanDetectorTest(TestCase):
+class SlowDBQueryDetectorTest(TestCase):
     def setUp(self):
         super().setUp()
         self.settings = get_detection_settings()
 
     def find_problems(self, event: Event) -> List[PerformanceProblem]:
-        detector = SlowSpanDetector(self.settings, event)
+        detector = SlowDBQueryDetector(self.settings, event)
         run_detector_on_data(detector, event)
         return list(detector.stored_problems.values())
 
@@ -43,7 +43,7 @@ class SlowSpanDetectorTest(TestCase):
                 fingerprint="1-1001-da39a3ee5e6b4b0d3255bfef95601890afd80709",
                 op="db",
                 desc="SELECT count() FROM table WHERE id = %s",
-                type=GroupType.PERFORMANCE_SLOW_SPAN,
+                type=GroupType.PERFORMANCE_SLOW_DB_QUERY,
                 parent_span_ids=None,
                 cause_span_ids=None,
                 offender_span_ids=["bbbbbbbbbbbbbbbb"],
@@ -66,7 +66,7 @@ class SlowSpanDetectorTest(TestCase):
                 fingerprint="1-1001-da39a3ee5e6b4b0d3255bfef95601890afd80709",
                 op="db.query",
                 desc="SELECT count() FROM table WHERE id = %s",
-                type=GroupType.PERFORMANCE_SLOW_SPAN,
+                type=GroupType.PERFORMANCE_SLOW_DB_QUERY,
                 parent_span_ids=[],
                 cause_span_ids=[],
                 offender_span_ids=["bbbbbbbbbbbbbbbb"],
@@ -81,7 +81,7 @@ class SlowSpanDetectorTest(TestCase):
                 fingerprint="1-1001-d02c8b2fd92a2d72011671feda429fa8ce2ac00f",
                 op="db",
                 desc="\n                SELECT VERSION(),\n                       @@sql_mode,\n                       @@default_storage_engine,\n                       @@sql_auto_is_null,\n                       @@lower_case_table_names,\n                       CONVERT_TZ('2001-01-01 01:00:00', 'UTC', 'UTC') IS NOT NULL\n            ",
-                type=GroupType.PERFORMANCE_SLOW_SPAN,
+                type=GroupType.PERFORMANCE_SLOW_DB_QUERY,
                 parent_span_ids=None,
                 cause_span_ids=None,
                 offender_span_ids=["a05754d3fde2db29"],
@@ -102,7 +102,7 @@ class SlowSpanDetectorTest(TestCase):
                 fingerprint="1-1001-da39a3ee5e6b4b0d3255bfef95601890afd80709",
                 op="db",
                 desc="SELECT `product`.`id` FROM `products`",
-                type=GroupType.PERFORMANCE_SLOW_SPAN,
+                type=GroupType.PERFORMANCE_SLOW_DB_QUERY,
                 parent_span_ids=[],
                 cause_span_ids=[],
                 offender_span_ids=["bbbbbbbbbbbbbbbb"],
@@ -115,7 +115,7 @@ class SlowSpanDetectorTest(TestCase):
             [create_span("db", 1005, "SELECT `product`.`id` FROM `products`")] * 1
         )
 
-        detector = SlowSpanDetector(self.settings, slow_span_event)
+        detector = SlowDBQueryDetector(self.settings, slow_span_event)
 
         assert not detector.is_creation_allowed_for_organization(project.organization)
 

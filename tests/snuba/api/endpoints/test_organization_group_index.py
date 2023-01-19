@@ -3077,9 +3077,9 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         mock_eventstream.start_merge = Mock(return_value=eventstream_state)
 
         mock_uuid4.return_value = self.get_mock_uuid()
-        group1 = self.create_group(times_seen=1, type=GroupType.PERFORMANCE_SLOW_SPAN.value)
-        group2 = self.create_group(times_seen=50, type=GroupType.PERFORMANCE_SLOW_SPAN.value)
-        group3 = self.create_group(times_seen=2, type=GroupType.PERFORMANCE_SLOW_SPAN.value)
+        group1 = self.create_group(times_seen=1, type=GroupType.PERFORMANCE_SLOW_DB_QUERY.value)
+        group2 = self.create_group(times_seen=50, type=GroupType.PERFORMANCE_SLOW_DB_QUERY.value)
+        group3 = self.create_group(times_seen=2, type=GroupType.PERFORMANCE_SLOW_DB_QUERY.value)
         self.create_group()
 
         self.login_as(user=self.user)
@@ -3336,10 +3336,10 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
         mock_eventstream_api.start_delete_groups = Mock(return_value=eventstream_state)
 
         group1 = self.create_group(
-            status=GroupStatus.RESOLVED, type=GroupType.PERFORMANCE_SLOW_SPAN.value
+            status=GroupStatus.RESOLVED, type=GroupType.PERFORMANCE_SLOW_DB_QUERY.value
         )
         group2 = self.create_group(
-            status=GroupStatus.UNRESOLVED, type=GroupType.PERFORMANCE_SLOW_SPAN.value
+            status=GroupStatus.UNRESOLVED, type=GroupType.PERFORMANCE_SLOW_DB_QUERY.value
         )
 
         hashes = []
@@ -3414,7 +3414,7 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
                 self.create_group(
                     project=self.project,
                     status=GroupStatus.RESOLVED,
-                    type=GroupType.PERFORMANCE_SLOW_SPAN.value,
+                    type=GroupType.PERFORMANCE_SLOW_DB_QUERY.value,
                 )
             )
 

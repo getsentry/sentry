@@ -303,9 +303,9 @@ class ConvertTypeValueTest(TestCase):
         assert convert_type_value(
             ["performance_n_plus_one_db_queries"], [self.project], self.user, None
         ) == [1006]
-        assert convert_type_value(["performance_slow_span"], [self.project], self.user, None) == [
-            1001
-        ]
+        assert convert_type_value(
+            ["performance_slow_db_query"], [self.project], self.user, None
+        ) == [1001]
         assert convert_type_value(
             ["error", "performance_n_plus_one_db_queries"], [self.project], self.user, None
         ) == [1, 1006]
