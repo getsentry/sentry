@@ -131,7 +131,7 @@ def timeseries_query(
     time bucket. Requires that we only pass
     allow_metric_aggregates (bool) Ignored here, only used in metric enhanced performance
     """
-    with sentry_sdk.start_span(op="discover.discover", description="timeseries.filter_transform"):
+    with sentry_sdk.start_span(op="issueplatform", description="timeseries.filter_transform"):
         equations, columns = categorize_columns(selected_columns)
         base_builder = IssuePlatformTimeseriesQueryBuilder(
             Dataset.IssuePlatform,
@@ -162,7 +162,7 @@ def timeseries_query(
 
         query_results = bulk_snql_query([query.get_snql_query() for query in query_list], referrer)
 
-    with sentry_sdk.start_span(op="discover.discover", description="timeseries.transform_results"):
+    with sentry_sdk.start_span(op="issueplatform", description="timeseries.transform_results"):
         results = []
         for snql_query, result in zip(query_list, query_results):
             results.append(
