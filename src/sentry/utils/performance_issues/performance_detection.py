@@ -69,7 +69,7 @@ DETECTOR_TYPE_TO_GROUP_TYPE = {
     DetectorType.N_PLUS_ONE_DB_QUERIES: GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
     DetectorType.N_PLUS_ONE_DB_QUERIES_EXTENDED: GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
     DetectorType.N_PLUS_ONE_API_CALLS: GroupType.PERFORMANCE_N_PLUS_ONE_API_CALLS,
-    DetectorType.CONSECUTIVE_DB_OP: GroupType.PERFORMANCE_CONSECUTIVE_DB_OP,
+    DetectorType.CONSECUTIVE_DB_OP: GroupType.PERFORMANCE_CONSECUTIVE_DB_QUERIES,
     DetectorType.FILE_IO_MAIN_THREAD: GroupType.PERFORMANCE_FILE_IO_MAIN_THREAD,
     DetectorType.M_N_PLUS_ONE_DB: GroupType.PERFORMANCE_M_N_PLUS_ONE_DB_QUERIES,
     DetectorType.UNCOMPRESSED_ASSETS: GroupType.PERFORMANCE_UNCOMPRESSED_ASSETS,
@@ -83,10 +83,6 @@ DETECTOR_TYPE_ISSUE_CREATION_TO_SYSTEM_OPTION = {
     DetectorType.N_PLUS_ONE_API_CALLS: "performance.issues.n_plus_one_api_calls.problem-creation",
     DetectorType.FILE_IO_MAIN_THREAD: "performance.issues.file_io_main_thread.problem-creation",
     DetectorType.UNCOMPRESSED_ASSETS: "performance.issues.compressed_assets.problem-creation",
-    # NOTE: Slow Span issues are not allowed for creation yet, the addition of this line is temporary so that we can
-    # record some metrics for issues of this type that *should* be created. We won't actually create any of these issues atm.
-    # This is handled within `event_manager.py` before the issue gets created.
-    # TODO: Remove this once we've verified that quality issues will be created, and not during spikes.
     DetectorType.SLOW_SPAN: "performance.issues.slow_span.problem-creation",
 }
 
@@ -263,7 +259,7 @@ def get_detection_settings(project_id: Optional[int] = None) -> Dict[DetectorTyp
         },
         DetectorType.UNCOMPRESSED_ASSETS: {
             "size_threshold_bytes": 500 * 1024,
-            "duration_threshold": 50,  # ms
+            "duration_threshold": 200,  # ms
             "allowed_span_ops": ["resource.css", "resource.script"],
         },
     }
@@ -535,11 +531,10 @@ class SlowSpanDetector(PerformanceDetector):
 
             hash = span.get("hash", "")
             type = DETECTOR_TYPE_TO_GROUP_TYPE[self.settings_key]
-            transaction_name = self._event.get("transaction")
 
             self.stored_problems[fingerprint] = PerformanceProblem(
                 type=type,
-                fingerprint=self._fingerprint(transaction_name, op, hash, type),
+                fingerprint=self._fingerprint(hash),
                 op=op,
                 desc=description,
                 cause_span_ids=[],
@@ -547,16 +542,10 @@ class SlowSpanDetector(PerformanceDetector):
                 offender_span_ids=spans_involved,
             )
 
-    # TODO: Temporarily set to true for now, but issues will not be created.
     def is_creation_allowed_for_organization(self, organization: Optional[Organization]) -> bool:
-        return True
+        return features.has("organizations:performance-slow-db-issue", organization, actor=None)
 
-    # TODO: Temporarily set to true for now, but issues will not be created.
     def is_creation_allowed_for_project(self, project: Optional[Project]) -> bool:
-        return True
-
-    # TODO: Temporarily set to true for now, but issues will not be created.
-    def is_creation_allowed_for_system(self) -> bool:
         return True
 
     @classmethod
@@ -574,10 +563,10 @@ class SlowSpanDetector(PerformanceDetector):
 
         return True
 
-    def _fingerprint(self, transaction_name, span_op, hash, problem_class):
-        signature = (str(transaction_name) + str(span_op) + str(hash)).encode("utf-8")
+    def _fingerprint(self, hash):
+        signature = (str(hash)).encode("utf-8")
         full_fingerprint = hashlib.sha1(signature).hexdigest()
-        return f"1-{problem_class}-{full_fingerprint}"
+        return f"1-{GroupType.PERFORMANCE_SLOW_SPAN.value}-{full_fingerprint}"
 
 
 class RenderBlockingAssetSpanDetector(PerformanceDetector):
@@ -875,15 +864,16 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
 
     def _store_performance_problem(self) -> None:
         fingerprint = self._fingerprint()
-        offender_span_ids = [span.get("span_id", None) for span in self.consecutive_db_spans]
+        offender_span_ids = [span.get("span_id", None) for span in self.independent_db_spans]
+        cause_span_ids = [span.get("span_id", None) for span in self.consecutive_db_spans]
         query: str = self.independent_db_spans[0].get("description", None)
 
         self.stored_problems[fingerprint] = PerformanceProblem(
             fingerprint,
             "db",
             desc=query,  # TODO - figure out which query to use for description
-            type=GroupType.PERFORMANCE_CONSECUTIVE_DB_OP,
-            cause_span_ids=None,
+            type=GroupType.PERFORMANCE_CONSECUTIVE_DB_QUERIES,
+            cause_span_ids=cause_span_ids,
             parent_span_ids=None,
             offender_span_ids=offender_span_ids,
         )
@@ -958,7 +948,7 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
 
     def _fingerprint(self) -> str:
         hashed_spans = fingerprint_spans(self.consecutive_db_spans)
-        return f"1-{GroupType.PERFORMANCE_CONSECUTIVE_DB_OP.value}-{hashed_spans}"
+        return f"1-{GroupType.PERFORMANCE_CONSECUTIVE_DB_QUERIES.value}-{hashed_spans}"
 
     def on_complete(self) -> None:
         self._validate_and_store_performance_problem()
@@ -1327,6 +1317,9 @@ class FileIOMainThreadDetector(PerformanceDetector):
             "organizations:performance-file-io-main-thread-detector", organization, actor=None
         )
 
+    def is_creation_allowed_for_project(self, project: Project) -> bool:
+        return True
+
 
 class MNPlusOneState(ABC):
     """Abstract base class for the MNPlusOneDBSpanDetector state machine."""
@@ -1588,6 +1581,14 @@ class UncompressedAssetSpanDetector(PerformanceDetector):
     def _fingerprint(self, span) -> str:
         hashed_spans = fingerprint_spans([span])
         return f"1-{GroupType.PERFORMANCE_UNCOMPRESSED_ASSETS.value}-{hashed_spans}"
+
+    def is_creation_allowed_for_organization(self, organization: Organization) -> bool:
+        return features.has(
+            "organizations:performance-issues-compressed-assets-detector", organization, actor=None
+        )
+
+    def is_creation_allowed_for_project(self, project: Project) -> bool:
+        return True  # Detection always allowed by project for now
 
 
 # Reports metrics and creates spans for detection
