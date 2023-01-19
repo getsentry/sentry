@@ -14,7 +14,7 @@ from sentry.utils import json, metrics
 from sentry.utils.compat import crc32
 from sentry.utils.hashlib import md5_text
 from sentry.utils.imports import import_string
-from sentry.utils.redis import get_cluster_from_options
+from sentry.utils.redis import get_dynamic_cluster_from_options
 
 _local_buffers = None
 _local_buffers_lock = threading.Lock()
@@ -52,7 +52,9 @@ class RedisBuffer(Buffer):
     pending_key = "b:p"
 
     def __init__(self, pending_partitions=1, incr_batch_size=2, **options):
-        self.cluster, options = get_cluster_from_options("SENTRY_BUFFER_OPTIONS", options)
+        self.is_redis_cluster, self.cluster, options = get_dynamic_cluster_from_options(
+            "SENTRY_BUFFER_OPTIONS", options
+        )
         self.pending_partitions = pending_partitions
         self.incr_batch_size = incr_batch_size
         assert self.pending_partitions > 0

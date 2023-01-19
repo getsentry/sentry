@@ -2,18 +2,27 @@ import pickle
 from datetime import datetime
 from unittest import mock
 
+import pytest
 from django.utils import timezone
 from django.utils.encoding import force_text
 from freezegun import freeze_time
 
+from sentry import options
 from sentry.buffer.redis import RedisBuffer
 from sentry.models import Group, Project
-from sentry.testutils import TestCase
 
 
-class RedisBufferTest(TestCase):
-    def setUp(self):
-        self.buf = RedisBuffer()
+class TestRedisBuffer:
+    @pytest.fixture(params=["cluster", "blaster"])
+    def buffer(self, set_sentry_option, request):
+        value = options.get("redis.clusters")
+        value["default"]["is_redis_cluster"] = request.param == "cluster"
+        set_sentry_option("redis.clusters", value)
+        return RedisBuffer()
+
+    @pytest.fixture(autouse=True)
+    def setup_buffer(self, buffer):
+        self.buf = buffer
 
     def test_coerce_val_handles_foreignkeys(self):
         assert self.buf._coerce_val(Project(id=1)) == b"1"
