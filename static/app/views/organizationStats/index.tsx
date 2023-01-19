@@ -65,6 +65,11 @@ type Props = {
   selection: PageFilters;
 } & RouteComponentProps<{}, {}>;
 
+const UsageStatsOrganization = HookOrDefault({
+  hookName: 'component:enhanced-org-stats',
+  defaultComponent: UsageStatsOrg,
+});
+
 export class OrganizationStats extends Component<Props> {
   get dataCategory(): DataCategory {
     const dataCategory = this.props.location?.query?.dataCategory;
@@ -333,11 +338,9 @@ export class OrganizationStats extends Component<Props> {
     const {organization} = this.props;
     const hasTeamInsights = organization.features.includes('team-insights');
 
-    // We only show UsageProjectStats if multiple projects are selected
-    const shouldRenderProjectStats = this.hasProjectStats
-      ? this.projectIds.includes(-1) || this.projectIds.length !== 1
-      : // Always render if they don't have the proper flags
-        true;
+    const isSingleProject = this.hasProjectStats
+      ? this.projectIds.length === 1 && !this.projectIds.includes(-1)
+      : false;
 
     return (
       <SentryDocumentTitle title="Usage Stats">
@@ -363,10 +366,10 @@ export class OrganizationStats extends Component<Props> {
             <Layout.Main fullWidth>
               <HookHeader organization={organization} />
               {this.renderProjectPageControl()}
-              <PageGrid>
+              <div>
                 {this.renderPageControl()}
                 <ErrorBoundary mini>
-                  <UsageStatsOrg
+                  <UsageStatsOrganization
                     organization={organization}
                     dataCategory={this.dataCategory}
                     dataCategoryName={this.dataCategoryName}
@@ -374,10 +377,11 @@ export class OrganizationStats extends Component<Props> {
                     chartTransform={this.chartTransform}
                     handleChangeState={this.setStateOnUrl}
                     projectIds={this.projectIds}
+                    isSingleProject={isSingleProject}
                   />
                 </ErrorBoundary>
-              </PageGrid>
-              {shouldRenderProjectStats && (
+              </div>
+              {!isSingleProject && (
                 <ErrorBoundary mini>
                   <UsageStatsProjects
                     organization={organization}
@@ -403,20 +407,8 @@ export class OrganizationStats extends Component<Props> {
 
 export default withPageFilters(withOrganization(OrganizationStats));
 
-const PageGrid = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: ${space(2)};
-
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
-    grid-template-columns: repeat(4, 1fr);
-  }
-`;
-
 const DropdownDataCategory = styled(CompactSelect)`
+  position: relative;
   grid-column: auto / span 1;
 
   button[aria-haspopup='listbox'] {
@@ -429,6 +421,18 @@ const DropdownDataCategory = styled(CompactSelect)`
   }
   @media (min-width: ${p => p.theme.breakpoints.large}) {
     grid-column: auto / span 1;
+  }
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    pointer-events: none;
+    box-shadow: inset 0 0 0 1px ${p => p.theme.border};
+    border-radius: ${p => p.theme.borderRadius};
   }
 `;
 
