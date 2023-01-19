@@ -36,7 +36,7 @@ class CreateAttachmentMixin:
         return self.attachment
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class EventAttachmentDetailsTest(APITestCase, CreateAttachmentMixin):
     def test_simple(self):
         self.login_as(user=self.user)

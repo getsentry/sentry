@@ -5,7 +5,7 @@ from typing import Any, List
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import eventstore, features
+from sentry import eventstore
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import DetailedEventSerializer, serialize
@@ -22,10 +22,7 @@ def wrap_event_response(request_user: Any, event: Event, project: Project, envir
     prev_event_id = None
 
     if event.group_id:
-        if (
-            features.has("organizations:performance-issues", project.organization)
-            and event.get_event_type() == "transaction"
-        ):
+        if event.get_event_type() == "transaction":
             conditions = apply_performance_conditions([], event.group)
             _filter = eventstore.Filter(
                 conditions=conditions,

@@ -39,6 +39,8 @@ def pytest_configure(config):
         category=UnsupportedBackend,
     )
 
+    config.addinivalue_line("markers", "migrations: requires MIGRATIONS_TEST_MIGRATE=1")
+
     # HACK: Only needed for testing!
     os.environ.setdefault("_SENTRY_SKIP_CONFIGURATION", "1")
 
@@ -194,11 +196,6 @@ def pytest_configure(config):
     # This is so tests can assume this feature is off by default
     settings.SENTRY_FEATURES["organizations:performance-view"] = False
 
-    # Enables performance problem detection
-    settings.SENTRY_OPTIONS["performance.issues.all.problem-creation"] = 1.0
-    # Enables performance issue detection and creation
-    settings.SENTRY_FEATURES["organizations:performance-issues-ingest"] = True
-
     # If a request hits the wrong silo, replace the 404 response with an error state
     settings.FAIL_ON_UNAVAILABLE_API_CALL = True
 
@@ -268,6 +265,13 @@ def register_extensions():
     bindings.add(
         "integration-repository.provider", ExampleRepositoryProvider, id="integrations:example"
     )
+
+
+def pytest_runtest_setup(item):
+    if not settings.MIGRATIONS_TEST_MIGRATE and any(
+        mark for mark in item.iter_markers(name="migrations")
+    ):
+        pytest.skip("migrations are not enabled, run with MIGRATIONS_TEST_MIGRATE=1 pytest ...")
 
 
 def pytest_runtest_teardown(item):

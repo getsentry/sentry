@@ -20,6 +20,8 @@ import {PerformanceLanding} from 'sentry/views/performance/landing';
 import {REACT_NATIVE_COLUMN_TITLES} from 'sentry/views/performance/landing/data';
 import {LandingDisplayField} from 'sentry/views/performance/landing/utils';
 
+const searchHandlerMock = jest.fn();
+
 const WrappedComponent = ({data, withStaticFilters = false}) => {
   const eventView = generatePerformanceEventView(data.router.location, data.projects, {
     withStaticFilters,
@@ -42,7 +44,7 @@ const WrappedComponent = ({data, withStaticFilters = false}) => {
             projects={data.projects}
             selection={eventView.getPageFilters()}
             onboardingProject={undefined}
-            handleSearch={() => {}}
+            handleSearch={searchHandlerMock}
             handleTrendsClick={() => {}}
             setError={() => {}}
             withStaticFilters={withStaticFilters}
@@ -54,8 +56,8 @@ const WrappedComponent = ({data, withStaticFilters = false}) => {
 };
 
 describe('Performance > Landing > Index', function () {
-  let eventStatsMock: any;
-  let eventsMock: any;
+  let eventStatsMock: jest.Mock;
+  let eventsMock: jest.Mock;
   let wrapper: any;
 
   act(() => void TeamStore.loadInitialData([], false, null));
@@ -132,6 +134,7 @@ describe('Performance > Landing > Index', function () {
 
   afterEach(function () {
     MockApiClient.clearMockResponses();
+    jest.resetAllMocks();
 
     // @ts-ignore no-console
     // eslint-disable-next-line no-console
@@ -239,7 +242,7 @@ describe('Performance > Landing > Index', function () {
           interval: '15m',
           partial: '1',
           project: [],
-          query: 'transaction.duration:<15m event.type:transaction',
+          query: 'event.type:transaction',
           referrer: 'api.performance.generic-widget-chart.user-misery-area',
           statsPeriod: '48h',
           yAxis: ['user_misery()', 'tpm()', 'failure_rate()'],
@@ -307,11 +310,20 @@ describe('Performance > Landing > Index', function () {
   });
 
   describe('With transaction search feature', function () {
+    it('does not search for empty string transaction', async function () {
+      const data = initializeData();
+
+      render(<WrappedComponent data={data} withStaticFilters />, data.routerContext);
+
+      await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
+      userEvent.type(screen.getByPlaceholderText('Search Transactions'), '{enter}');
+      expect(searchHandlerMock).toHaveBeenCalledWith('', 'transactionsOnly');
+    });
+
     it('renders the search bar', async function () {
       addMetricsDataMock();
 
       const data = initializeData({
-        features: ['performance-transaction-name-only-search'],
         query: {
           field: 'test',
         },
@@ -326,12 +338,7 @@ describe('Performance > Landing > Index', function () {
     });
 
     it('extracts free text from the query', async function () {
-      const data = initializeData({
-        features: [
-          'performance-transaction-name-only-search',
-          'performance-transaction-name-only-search-indexed',
-        ],
-      });
+      const data = initializeData();
 
       wrapper = render(<WrappedComponent data={data} />, data.routerContext);
 

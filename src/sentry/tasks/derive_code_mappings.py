@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 import logging
-from typing import Any, List, Mapping, Tuple
+from typing import TYPE_CHECKING, Any, List, Mapping, Tuple
 
 from sentry_sdk import set_tag, set_user
 
@@ -8,20 +10,23 @@ from sentry.db.models.fields.node import NodeData
 from sentry.integrations.utils.code_mapping import CodeMapping, CodeMappingTreesHelper
 from sentry.locks import locks
 from sentry.models import Project
-from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
+from sentry.services.hybrid_cloud.integration import APIOrganizationIntegration, integration_service
 from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.tasks.base import instrumented_task
 from sentry.utils.json import JSONData
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.safe import get_path
 
-SUPPORTED_LANGUAGES = ["javascript", "python"]
+SUPPORTED_LANGUAGES = ["javascript", "python", "node", "ruby"]
 
 logger = logging.getLogger(__name__)
+
+if TYPE_CHECKING:
+    from sentry.integrations.base import IntegrationInstallation
 
 
 @instrumented_task(  # type: ignore
@@ -52,9 +57,9 @@ def derive_code_mappings(
     }
     feat_key = "organizations:derive-code-mappings"
     # Check the feature flag again to ensure the feature is still enabled.
-    should_continue = features.has(feat_key, org) or features.has(f"{feat_key}-dry-run", org)
+    org_has_flag = features.has(feat_key, org) or features.has(f"{feat_key}-dry-run", org)
 
-    if not (dry_run or should_continue or data["platform"] not in SUPPORTED_LANGUAGES):
+    if not (dry_run or org_has_flag or data["platform"] not in SUPPORTED_LANGUAGES):
         logger.info("Event should not be processed.", extra=extra)
         return
 
@@ -72,13 +77,20 @@ def derive_code_mappings(
 
     try:
         with lock.acquire():
-            trees = installation.get_trees_for_org()
+            # This method is specific to the GithubIntegration
+            trees = installation.get_trees_for_org()  # type: ignore
     except ApiError as error:
-        json_data: JSONData = error.json
-        msg: str = json_data.get("message")
+        msg = error.text
+        if error.json:
+            json_data: JSONData = error.json
+            msg = json_data.get("message")
+        extra["error"] = msg
+
         if msg == "Not Found":
-            logger.warning("The org has uninstalled the Sentry App.")
+            logger.warning("The org has uninstalled the Sentry App.", extra=extra)
             return
+
+        raise error  # Let's be report the issue
     except UnableToAcquireLock as error:
         extra["error"] = error
         logger.warning("derive_code_mappings.getting_lock_failed", extra=extra)
@@ -126,29 +138,21 @@ def get_stacktrace(data: NodeData) -> List[Mapping[str, Any]]:
     return []
 
 
-def get_installation(organization: Organization) -> Tuple[Integration, OrganizationIntegration]:
-    integration = None
-    try:
-        integration = Integration.objects.filter(
-            organizations=organization,
-            provider="github",
-        )
-    except Integration.DoesNotExist:
-        logger.exception(f"Github integration not found for {organization.id}")
-        return None, None
-
-    if not integration.exists():
-        return None, None
-
-    integration = integration.first()
-    organization_integration = OrganizationIntegration.objects.filter(
-        organization=organization, integration=integration
+def get_installation(
+    organization: Organization,
+) -> Tuple[IntegrationInstallation | None, APIOrganizationIntegration | None]:
+    integration, organization_integration = integration_service.get_organization_context(
+        organization_id=organization.id, provider="github"
     )
-    if not organization_integration.exists():
+
+    if not integration or not organization_integration:
         return None, None
 
-    organization_integration = organization_integration.first()
-    return integration.get_installation(organization.id), organization_integration
+    installation = integration_service.get_installation(
+        integration=integration, organization_id=organization.id
+    )
+
+    return installation, organization_integration
 
 
 def set_project_codemappings(
@@ -177,7 +181,7 @@ def set_project_codemappings(
             stack_root=code_mapping.stacktrace_root,
             defaults={
                 "repository": repository,
-                "organization_integration": organization_integration,
+                "organization_integration_id": organization_integration.id,
                 "source_root": code_mapping.source_path,
                 "default_branch": code_mapping.repo.branch,
                 "automatically_generated": True,
@@ -185,7 +189,7 @@ def set_project_codemappings(
         )
         if not created:
             logger.info(
-                "derive_code_mappings: code mapping already exists",
+                "Code mapping already exists",
                 extra={
                     "project": project,
                     "stacktrace_root": code_mapping.stacktrace_root,
@@ -210,12 +214,12 @@ def report_project_codemappings(
         "stacktrace_paths": stacktrace_paths,
     }
     if code_mappings:
-        msg = "derive_code_mappings: code mappings would have been created."
+        msg = "Code mappings would have been created."
     else:
-        msg = "derive_code_mappings: NO code mappings would have been created."
+        msg = "NO code mappings would have been created."
     existing_code_mappings = RepositoryProjectPathConfig.objects.filter(project=project)
     if existing_code_mappings.exists():
-        msg = "derive_code_mappings: code mappings already exist."
+        msg = "Code mappings already exist."
         extra["existing_code_mappings"] = existing_code_mappings
 
     logger.info(msg, extra=extra)

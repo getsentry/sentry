@@ -39,11 +39,11 @@ from sentry.testutils.helpers.datetime import before_now
 pytestmark = pytest.mark.sentry_metrics
 
 
-@freeze_time("2022-09-29 10:00:00")
+@freeze_time(BaseMetricsLayerTestCase.MOCK_DATETIME)
 class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
     @property
     def now(self):
-        return timezone.now()
+        return BaseMetricsLayerTestCase.MOCK_DATETIME
 
     def test_valid_filter_include_meta_derived_metrics(self):
         query_params = MultiValueDict(
@@ -589,6 +589,100 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                 include_meta=True,
                 use_case_id=UseCaseKey.PERFORMANCE,
             )
+
+    def test_query_with_sum_if_column(self):
+        for value, transaction in ((10, "/foo"), (20, "/bar"), (30, "/lorem")):
+            self.store_performance_metric(
+                name=TransactionMRI.DURATION.value,
+                tags={"transaction": transaction},
+                value=value,
+            )
+
+        metrics_query = self.build_metrics_query(
+            before_now="1m",
+            granularity="1m",
+            select=[
+                MetricField(
+                    op="sum_if_column",
+                    metric_mri=TransactionMRI.DURATION.value,
+                    params={"if_column": "transaction", "if_value": "/foo"},
+                ),
+            ],
+            groupby=[],
+            where=[],
+            limit=Limit(limit=1),
+            offset=Offset(offset=0),
+            include_series=False,
+        )
+
+        data = get_series(
+            [self.project],
+            metrics_query=metrics_query,
+            include_meta=True,
+            use_case_id=UseCaseKey.PERFORMANCE,
+        )
+
+        groups = data["groups"]
+        assert len(groups) == 1
+
+        expected_value = 10
+        expected_alias = "sum_if_column(transaction.duration)"
+        assert groups[0]["totals"] == {
+            expected_alias: expected_value,
+        }
+        assert data["meta"] == sorted(
+            [
+                {"name": expected_alias, "type": "Float64"},
+            ],
+            key=lambda elem: elem["name"],
+        )
+
+    def test_query_with_uniq_if_column(self):
+        for value, transaction in ((10, "/foo"), (20, "/foo"), (30, "/lorem")):
+            self.store_performance_metric(
+                name=TransactionMRI.USER.value,
+                tags={"transaction": transaction},
+                value=value,
+            )
+
+        metrics_query = self.build_metrics_query(
+            before_now="1m",
+            granularity="1m",
+            select=[
+                MetricField(
+                    op="uniq_if_column",
+                    metric_mri=TransactionMRI.USER.value,
+                    params={"if_column": "transaction", "if_value": "/foo"},
+                ),
+            ],
+            groupby=[],
+            where=[],
+            limit=Limit(limit=1),
+            offset=Offset(offset=0),
+            include_series=False,
+        )
+
+        data = get_series(
+            [self.project],
+            metrics_query=metrics_query,
+            include_meta=True,
+            use_case_id=UseCaseKey.PERFORMANCE,
+        )
+
+        groups = data["groups"]
+        assert len(groups) == 1
+
+        expected_count = 2
+        expected_alias = "uniq_if_column(transaction.user)"
+        assert groups[0]["totals"] == {
+            expected_alias: expected_count,
+        }
+        assert data["meta"] == sorted(
+            [
+                {"name": expected_alias, "type": "UInt64"},
+            ],
+            key=lambda elem: elem["name"],
+        )
 
     def test_query_with_tuple_condition(self):
         for value, transaction in ((10, "/foo"), (20, "/bar"), (30, "/lorem")):
@@ -1187,15 +1281,18 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             use_case_id=UseCaseKey.PERFORMANCE,
         )
         assert data == {
-            "start": FakeDatetime(2022, 9, 28, 10, 30),
-            "end": FakeDatetime(2022, 9, 28, 16, 30),
+            "start": FakeDatetime(day_ago.year, day_ago.month, day_ago.day, 10, 30),
+            "end": FakeDatetime(day_ago.year, day_ago.month, day_ago.day, 16, 30),
             "intervals": [
-                FakeDatetime(2022, 9, 28, 10, 0, tzinfo=timezone.utc),
-                FakeDatetime(2022, 9, 28, 11, 0, tzinfo=timezone.utc),
-                FakeDatetime(2022, 9, 28, 12, 0, tzinfo=timezone.utc),
-                FakeDatetime(2022, 9, 28, 13, 0, tzinfo=timezone.utc),
-                FakeDatetime(2022, 9, 28, 14, 0, tzinfo=timezone.utc),
-                FakeDatetime(2022, 9, 28, 15, 0, tzinfo=timezone.utc),
+                FakeDatetime(
+                    day_ago.year,
+                    day_ago.month,
+                    day_ago.day,
+                    hour,
+                    0,
+                    tzinfo=timezone.utc,
+                )
+                for hour in range(10, 16)
             ],
             "groups": [
                 {
@@ -1424,15 +1521,16 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
         )
 
     def test_team_key_transactions_my_teams(self):
-        for idx, (transaction, value) in enumerate(
-            (("foo_transaction", 1), ("bar_transaction", 1), ("baz_transaction", 0.5))
+        for transaction, value in (
+            ("foo_transaction", 1),
+            ("bar_transaction", 1),
+            ("baz_transaction", 0.5),
         ):
             self.store_performance_metric(
                 type="distribution",
                 name=TransactionMRI.DURATION.value,
                 tags={"transaction": transaction},
                 value=value,
-                minutes_before_now=idx,
             )
 
         metrics_query = self.build_metrics_query(
@@ -1770,22 +1868,18 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                 use_case_id=UseCaseKey.PERFORMANCE,
             )
 
-    @freeze_time("2022-09-22 11:07:00")
     def test_team_key_transaction_as_condition(self):
         now = timezone.now()
 
-        for idx, (transaction, value) in enumerate(
+        for minutes, (transaction, value) in enumerate(
             (("foo_transaction", 1), ("bar_transaction", 1), ("baz_transaction", 0.5))
         ):
-            self.store_metric(
-                org_id=self.organization.id,
-                project_id=self.project.id,
+            self.store_performance_metric(
                 type="distribution",
                 name=TransactionMRI.DURATION.value,
                 tags={"transaction": transaction},
-                timestamp=(now - timedelta(minutes=idx)).timestamp(),
                 value=value,
-                use_case_id=UseCaseKey.PERFORMANCE,
+                minutes_before_now=minutes,
             )
 
         metrics_query = MetricsQuery(

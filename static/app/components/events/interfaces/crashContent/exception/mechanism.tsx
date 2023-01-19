@@ -1,4 +1,4 @@
-import {css} from '@emotion/react';
+import {css, Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import forOwn from 'lodash/forOwn';
 import isNil from 'lodash/isNil';
@@ -14,7 +14,6 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {StackTraceMechanism} from 'sentry/types/stacktrace';
 import {isUrl} from 'sentry/utils';
-import {Theme} from 'sentry/utils/theme';
 
 type Props = {
   data: StackTraceMechanism;

@@ -215,6 +215,21 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
     chart: chartQuery,
   };
 
+  const assembleAccordionItems = provided =>
+    getItems(provided).map(item => ({header: item, content: getChart(provided)}));
+
+  const getChart = provided => () =>
+    (
+      <DurationChart
+        {...provided.widgetData.chart}
+        {...provided}
+        disableMultiAxis
+        disableXAxis
+        chartColors={props.chartColor ? [props.chartColor] : undefined}
+        isLineChart
+      />
+    );
+
   const getItems = provided =>
     provided.widgetData.list.data.map(listItem => () => {
       const transaction = (listItem.transaction as string | undefined) ?? '';
@@ -365,17 +380,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
             <Accordion
               expandedIndex={selectedListIndex}
               setExpandedIndex={setSelectListIndex}
-              headers={getItems(provided)}
-              content={
-                <DurationChart
-                  {...provided.widgetData.chart}
-                  {...provided}
-                  disableMultiAxis
-                  disableXAxis
-                  chartColors={props.chartColor ? [props.chartColor] : undefined}
-                  isLineChart
-                />
-              }
+              items={assembleAccordionItems(provided)}
             />
           ),
           // accordion items height + chart height

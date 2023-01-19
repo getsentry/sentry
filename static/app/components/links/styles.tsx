@@ -1,4 +1,4 @@
-import {Theme} from 'sentry/utils/theme';
+import {Theme} from '@emotion/react';
 
 export const linkStyles = ({disabled, theme}: {theme: Theme; disabled?: boolean}) => `
   border-radius: ${theme.linkBorderRadius};

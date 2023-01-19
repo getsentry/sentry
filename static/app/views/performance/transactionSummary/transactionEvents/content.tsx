@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 import omit from 'lodash/omit';
 
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import CompactSelect from 'sentry/components/compactSelect';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
@@ -38,7 +38,6 @@ type Props = {
   projects: Project[];
   setError: SetStateAction<string | undefined>;
   spanOperationBreakdownFilter: SpanOperationBreakdownFilter;
-  totalEventCount: string;
   transactionName: string;
   percentileValues?: Record<EventsDisplayFilterName, number>;
   webVital?: WebVital;
@@ -62,7 +61,6 @@ function EventsContent(props: Props) {
     spanOperationBreakdownFilter,
     webVital,
     setError,
-    totalEventCount,
     projectId,
     projects,
   } = props;
@@ -96,7 +94,6 @@ function EventsContent(props: Props) {
     <Layout.Main fullWidth>
       <Search {...props} />
       <EventsTable
-        totalEventCount={totalEventCount}
         eventView={eventView}
         organization={organization}
         routes={routes}

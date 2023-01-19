@@ -1,8 +1,8 @@
 import {useState} from 'react';
 import {MultiValueProps} from 'react-select';
-import {useTheme} from '@emotion/react';
+import {Theme, useTheme} from '@emotion/react';
 
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import SelectControl, {
   StylesConfig,
 } from 'sentry/components/forms/controls/selectControl';
@@ -11,7 +11,6 @@ import TeamSelector from 'sentry/components/teamSelector';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
 import {OrgRole, SelectValue} from 'sentry/types';
-import {Theme} from 'sentry/utils/theme';
 
 import renderEmailValue from './renderEmailValue';
 import {InviteStatus} from './types';
@@ -130,7 +129,6 @@ function InviteRowControl({
       <Button
         borderless
         icon={<IconClose />}
-        size="zero"
         onClick={onRemove}
         disabled={disableRemove}
         aria-label={t('Remove')}

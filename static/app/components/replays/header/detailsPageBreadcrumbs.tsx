@@ -5,6 +5,8 @@ import Breadcrumbs from 'sentry/components/breadcrumbs';
 import Placeholder from 'sentry/components/placeholder';
 import ReplaysFeatureBadge from 'sentry/components/replays/replaysFeatureBadge';
 import {t} from 'sentry/locale';
+import EventView from 'sentry/utils/discover/eventView';
+import {useLocation} from 'sentry/utils/useLocation';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
 type Props = {
@@ -13,14 +15,19 @@ type Props = {
 };
 
 function DetailsPageBreadcrumbs({orgSlug, replayRecord}: Props) {
-  const labelTitle = replayRecord?.user.displayName;
+  const location = useLocation();
+  const eventView = EventView.fromLocation(location);
+  const labelTitle = replayRecord?.user.display_name;
 
   return (
     <Breadcrumbs
       crumbs={[
         {
-          to: `/organizations/${orgSlug}/replays/`,
-          label: t('Replays'),
+          to: {
+            pathname: `/organizations/${orgSlug}/replays/`,
+            query: eventView.generateQueryStringObject(),
+          },
+          label: t('Session Replay'),
         },
         {
           label: labelTitle ? (

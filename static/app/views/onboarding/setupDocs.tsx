@@ -2,13 +2,13 @@ import 'prism-sentry/index.css';
 
 import {Fragment, useCallback, useEffect, useState} from 'react';
 import {browserHistory} from 'react-router';
-import {css} from '@emotion/react';
+import {css, Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 import * as qs from 'query-string';
 
 import {loadDocs} from 'sentry/actionCreators/projects';
-import Alert, {alertStyles} from 'sentry/components/alert';
+import {Alert, alertStyles} from 'sentry/components/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import {PlatformKey} from 'sentry/data/platformCategories';
@@ -19,8 +19,8 @@ import {Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {platformToIntegrationMap} from 'sentry/utils/integrationUtil';
-import {Theme} from 'sentry/utils/theme';
 import useApi from 'sentry/utils/useApi';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withProjects from 'sentry/utils/withProjects';
 
 import FirstEventFooter from './components/firstEventFooter';
@@ -176,7 +176,9 @@ function SetupDocs({
         state: 'finished',
       });
       browserHistory.push(
-        `/organizations/${organization.slug}/issues/?referrer=onboarding-setup-docs-on-complete`
+        normalizeUrl(
+          `/organizations/${organization.slug}/issues/?referrer=onboarding-setup-docs-on-complete`
+        )
       );
     }
   });
@@ -299,7 +301,7 @@ function SetupDocs({
               }
             );
             if (!project.platform || !clientState) {
-              browserHistory.push(orgIssuesURL);
+              browserHistory.push(normalizeUrl(orgIssuesURL));
               return;
             }
             // if we have a next project, switch to that

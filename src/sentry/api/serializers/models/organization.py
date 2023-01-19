@@ -387,6 +387,7 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     access: frozenset[str]
     pendingAccessRequests: int
     onboardingTasks: OnboardingTasksSerializerResponse
+    codecovAccess: bool
 
 
 class DetailedOrganizationSerializer(OrganizationSerializer):
@@ -489,6 +490,7 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                     obj.get_option("sentry:join_requests", JOIN_REQUESTS_DEFAULT)
                 ),
                 "relayPiiConfig": str(obj.get_option("sentry:relay_pii_config") or "") or None,
+                "codecovAccess": bool(obj.flags.codecov_access),
             }
         )
 
@@ -558,7 +560,7 @@ class DetailedOrganizationSerializerWithProjectsAndTeams(DetailedOrganizationSer
         team_list = self._team_list(obj, access)
         project_list = self._project_list(obj, access)
 
-        context["teams"] = serialize(team_list, user, TeamSerializer())
-        context["projects"] = serialize(project_list, user, ProjectSummarySerializer())
+        context["teams"] = serialize(team_list, user, TeamSerializer(access=access))
+        context["projects"] = serialize(project_list, user, ProjectSummarySerializer(access=access))
 
         return context

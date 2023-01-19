@@ -53,8 +53,7 @@ from sentry.constants import (
     DataCategory,
 )
 from sentry.culprit import generate_culprit
-from sentry.dynamic_sampling.feature_multiplexer import DynamicSamplingFeatureMultiplexer
-from sentry.dynamic_sampling.latest_release_booster import LatestReleaseBias, LatestReleaseParams
+from sentry.dynamic_sampling import LatestReleaseBias, LatestReleaseParams
 from sentry.eventstore.processing import event_processing_store
 from sentry.eventtypes import (
     CspEvent,
@@ -390,7 +389,13 @@ class EventManager:
             **DEFAULT_STORE_NORMALIZER_ARGS,
         )
 
+        pre_normalize_type = self._data.get("type")
         self._data = CanonicalKeyDict(rust_normalizer.normalize_event(dict(self._data)))
+        # XXX: This is a hack to make generic events work (for now?). I'm not sure whether we should
+        # include this in the rust normalizer, since we don't want people sending us these via the
+        # sdk.
+        if pre_normalize_type == "generic":
+            self._data["type"] = pre_normalize_type
 
     def get_data(self) -> CanonicalKeyDict:
         return self._data
@@ -905,9 +910,10 @@ def _get_or_create_release_many(jobs: Sequence[Job], projects: ProjectsMapping) 
                 # Dynamic Sampling - Boosting latest release functionality
                 if (
                     options.get("dynamic-sampling:boost-latest-release")
-                    and DynamicSamplingFeatureMultiplexer(
-                        project=projects[project_id]
-                    ).is_on_dynamic_sampling
+                    and features.has(
+                        "organizations:dynamic-sampling", projects[project_id].organization
+                    )
+                    and options.get("dynamic-sampling:enabled-biases")
                     and data.get("type") == "transaction"
                 ):
                     with sentry_sdk.start_span(
@@ -1184,7 +1190,7 @@ def _nodestore_save_many(jobs: Sequence[Job]) -> None:
 
         event = job["event"]
         # We only care about `unprocessed` for error events
-        if event.get_event_type() != "transaction" and job["groups"]:
+        if event.get_event_type() not in ("transaction", "generic") and job["groups"]:
             unprocessed = event_processing_store.get(
                 cache_key_for_event({"project": event.project_id, "event_id": event.event_id}),
                 unprocessed=True,
@@ -2207,7 +2213,9 @@ def _calculate_span_grouping(jobs: Sequence[Job], projects: ProjectsMapping) -> 
 @metrics.wraps("save_event.detect_performance_problems")
 def _detect_performance_problems(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
     for job in jobs:
-        job["performance_problems"] = detect_performance_problems(job["data"])
+        job["performance_problems"] = detect_performance_problems(
+            job["data"], projects[job["project_id"]]
+        )
 
 
 class PerformanceJob(TypedDict, total=False):
@@ -2261,14 +2269,9 @@ def _save_aggregate_performance(jobs: Sequence[PerformanceJob], projects: Projec
         event = job["event"]
         project = event.project
 
-        if not features.has("organizations:performance-issues-ingest", project.organization):
-            continue
-        # General system-wide option
-        rate = options.get("performance.issues.all.problem-creation") or 0
-
-        # More granular, per-project option
+        # Granular, per-project option
         per_project_rate = project.get_option("sentry:performance_issue_creation_rate", 1.0)
-        if rate > random.random() and per_project_rate > random.random():
+        if per_project_rate > random.random():
 
             kwargs = _create_kwargs(job)
             kwargs["culprit"] = job["culprit"]
@@ -2335,10 +2338,13 @@ def _save_aggregate_performance(jobs: Sequence[PerformanceJob], projects: Projec
                         tags={"platform": event.platform or "unknown"},
                         sample_rate=1.0,
                     ) as metric_tags, transaction.atomic():
-                        span.set_tag("create_group_transaction.outcome", "no_group")
-                        metric_tags["create_group_transaction.outcome"] = "no_group"
-
                         problem = performance_problems_by_hash[new_grouphash]
+
+                        span.set_tag("create_group_transaction.outcome", "no_group")
+                        span.set_tag("group_type", problem.type.name)
+                        metric_tags["create_group_transaction.outcome"] = "no_group"
+                        metric_tags["group_type"] = problem.type.name
+
                         group_kwargs = kwargs.copy()
                         group_kwargs["type"] = problem.type.value
 
@@ -2418,12 +2424,21 @@ def should_create_group(client: Any, grouphash: str, type: GroupType) -> bool:
     times_seen = client.incr(f"grouphash:{grouphash}")
     metrics.incr(
         "performance.performance_issue.grouphash_counted",
-        tags={"times_seen": times_seen, "group_type": GROUP_TYPE_TO_TEXT.get(type, "Unknown Type")},
+        tags={
+            "times_seen": times_seen,
+            "group_type": GROUP_TYPE_TO_TEXT.get(type, "Unknown Type"),
+        },
         sample_rate=1.0,
     )
 
     if times_seen >= GROUPHASH_IGNORE_LIMIT_MAP.get(type, DEFAULT_GROUPHASH_IGNORE_LIMIT):
         client.delete(grouphash)
+        metrics.incr(
+            "performance.performance_issue.issue_will_be_created",
+            tags={"group_type": type.name},
+            sample_rate=1.0,
+        )
+
         return True
     else:
         client.expire(grouphash, 60 * 60 * 24)  # 24 hour expiration from last seen
@@ -2472,7 +2487,7 @@ def save_transaction_events(jobs: Sequence[Job], projects: ProjectsMapping) -> S
 
 @metrics.wraps("event_manager.save_generic_events")
 def save_generic_events(jobs: Sequence[Job], projects: ProjectsMapping) -> Sequence[Job]:
-    with metrics.timer("event_manager.save_generic.ganization_ids"):
+    with metrics.timer("event_manager.save_generic.organization_ids"):
         organization_ids = {project.organization_id for project in projects.values()}
 
     with metrics.timer("event_manager.save_generic.fetch_organizations"):

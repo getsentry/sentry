@@ -1,3 +1,4 @@
+import {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Panel} from 'sentry/components/panels';
@@ -5,24 +6,35 @@ import QuestionTooltip from 'sentry/components/questionTooltip';
 import TextOverflow from 'sentry/components/textOverflow';
 import space from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
-import {Theme} from 'sentry/utils/theme';
 
 type Props = {
   title: React.ReactNode;
   className?: string;
   help?: React.ReactNode;
+  renderOpenButton?: () => React.ReactNode;
   score?: React.ReactNode;
   trend?: React.ReactNode;
   trendStatus?: 'good' | 'bad';
 };
 
-function ScoreCard({title, score, help, trend, trendStatus, className}: Props) {
+function ScoreCard({
+  title,
+  score,
+  help,
+  trend,
+  trendStatus,
+  className,
+  renderOpenButton,
+}: Props) {
   return (
     <ScorePanel className={className}>
-      <HeaderTitle>
-        <Title>{title}</Title>
-        {help && <QuestionTooltip title={help} size="sm" position="top" />}
-      </HeaderTitle>
+      <HeaderWrapper>
+        <HeaderTitle>
+          <Title>{title}</Title>
+          {help && <QuestionTooltip title={help} size="sm" position="top" />}
+        </HeaderTitle>
+        {renderOpenButton?.()}
+      </HeaderWrapper>
 
       <ScoreWrapper>
         <Score>{score ?? '\u2014'}</Score>
@@ -68,6 +80,13 @@ export const Title = styled('div')`
   color: ${p => p.theme.headingColor};
   ${p => p.theme.overflowEllipsis};
   font-weight: 600;
+`;
+
+const HeaderWrapper = styled('div')`
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
 `;
 
 export const ScoreWrapper = styled('div')`

@@ -1,12 +1,23 @@
-import Alert from 'sentry/components/alert';
-import Button from 'sentry/components/button';
+import {Alert} from 'sentry/components/alert';
 import {isEventFromBrowserJavaScriptSDK} from 'sentry/components/events/interfaces/spans/utils';
+import ExternalLink from 'sentry/components/links/externalLink';
 import {PlatformKey, sourceMaps} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
-import {EntryType, Event, EventTransaction, Project} from 'sentry/types';
+import {
+  EntryException,
+  EntryType,
+  Event,
+  EventTransaction,
+  Organization,
+} from 'sentry/types';
+import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {eventHasSourceMaps} from 'sentry/utils/events';
+import {getFileExtension} from 'sentry/utils/fileExtension';
 import useOrganization from 'sentry/utils/useOrganization';
+import useRouter from 'sentry/utils/useRouter';
+
+const fileNameBlocklist = ['@webkit-masked-url'];
 
 // This list must always be updated with the documentation.
 // Ideally it would be nice if we could send a request validating that this URL exists,
@@ -40,33 +51,106 @@ function isLocalhost(url?: string) {
   return url.includes('localhost') || url.includes('127.0.0.1');
 }
 
-type Props = {
-  event: Event;
-  projectId: Project['id'];
-};
-
-export function SetupSourceMapsAlert({projectId, event}: Props) {
-  const organization = useOrganization();
-
-  if (!organization.features?.includes('source-maps-cta')) {
-    return null;
+export function shouldDisplaySetupSourceMapsAlert(
+  organization: Organization,
+  projectId: string | undefined,
+  event: Event | undefined
+): boolean {
+  if (!defined(projectId) || !defined(event)) {
+    return false;
   }
 
-  const eventPlatform = event.platform ?? 'other';
+  if (!organization.features?.includes('source-maps-cta')) {
+    return false;
+  }
+
+  const eventPlatform = event?.platform ?? 'other';
   const eventFromBrowserJavaScriptSDK = isEventFromBrowserJavaScriptSDK(
     event as EventTransaction
   );
+  const exceptionEntry = event?.entries.find(
+    entry => entry.type === EntryType.EXCEPTION
+  ) as EntryException | undefined; // could there be more than one? handling only the first one for now
+  const exceptionEntryValues = exceptionEntry?.data.values;
 
   // We would like to filter out all platforms that do not have the concept of source maps
   if (
     !eventFromBrowserJavaScriptSDK &&
     !sourceMaps.includes(eventPlatform as PlatformKey)
   ) {
-    return null;
+    return false;
   }
 
   // If the event already has source maps, we do not want to show this alert
   if (eventHasSourceMaps(event)) {
+    return false;
+  }
+
+  // If event has no exception, we do not want to show this alert
+  if (!exceptionEntry || exceptionEntryValues?.length === 0) {
+    return false;
+  }
+
+  // If the event does not have exception stacktrace, we do not want to show this alert
+  if (
+    exceptionEntryValues?.every(
+      exception => !exception.stacktrace && !exception.rawStacktrace
+    )
+  ) {
+    return false;
+  }
+
+  // If there are no in-app frames, we do not want to show this alert
+  if (
+    exceptionEntryValues?.every(exception =>
+      exception.stacktrace?.frames?.every(frame => !frame.inApp)
+    )
+  ) {
+    return false;
+  }
+
+  if (
+    exceptionEntryValues?.every(exception =>
+      exception.stacktrace?.frames?.every(frame => {
+        let filename = '';
+        try {
+          filename = new URL(frame.absPath ?? '').pathname.split('/').reverse()[0];
+        } catch {
+          // do nothing
+        }
+
+        return (
+          // If all filenames are anonymous, we do not want to show this alert
+          (frame.filename === '<anonymous>' && frame.inApp) ||
+          // If all function names are on the blocklist, we do not want to show this alert
+          fileNameBlocklist.includes(frame.function ?? '') ||
+          // If all absolute paths do not have a file extension, we do not want to show this alert
+          (frame.absPath && !getFileExtension(filename))
+        );
+      })
+    )
+  ) {
+    return false;
+  }
+
+  // Otherwise, show the alert
+  return true;
+}
+
+type Props = {
+  event: Event;
+};
+
+export function SetupSourceMapsAlert({event}: Props) {
+  const organization = useOrganization();
+  const router = useRouter();
+  const projectId = router.location.query.project;
+  const eventPlatform = event.platform ?? 'other';
+  const eventFromBrowserJavaScriptSDK = isEventFromBrowserJavaScriptSDK(
+    event as EventTransaction
+  );
+
+  if (!shouldDisplaySetupSourceMapsAlert(organization, projectId, event)) {
     return null;
   }
 
@@ -89,11 +173,8 @@ export function SetupSourceMapsAlert({projectId, event}: Props) {
       type="info"
       showIcon
       trailingItems={
-        <Button
-          priority="link"
-          size="zero"
+        <ExternalLink
           href={docUrl}
-          external
           onClick={() => {
             trackAdvancedAnalyticsEvent(
               'issue_group_details.stack_traces.setup_source_maps_alert.clicked',
@@ -106,7 +187,7 @@ export function SetupSourceMapsAlert({projectId, event}: Props) {
           }}
         >
           {t('Upload Source Maps')}
-        </Button>
+        </ExternalLink>
       }
     >
       {isLocalhost(url)

@@ -1,6 +1,6 @@
 import {Component} from 'react';
 import {InjectedRouter} from 'react-router';
-import {withTheme} from '@emotion/react';
+import {Theme, withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {DataZoomComponentOption, LegendComponentOption} from 'echarts';
 import {Location} from 'history';
@@ -42,7 +42,6 @@ import {
   stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
 import getDynamicText from 'sentry/utils/getDynamicText';
-import {Theme} from 'sentry/utils/theme';
 import {eventViewFromWidget} from 'sentry/views/dashboardsV2/utils';
 
 import {getDatasetConfig} from '../datasetConfig/base';

@@ -1,4 +1,4 @@
-import React, {Fragment, useCallback, useMemo, useState} from 'react';
+import {Fragment, useCallback, useMemo, useState} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {
@@ -12,11 +12,11 @@ import cloneDeep from 'lodash/cloneDeep';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
-import Alert from 'sentry/components/alert';
-import Button from 'sentry/components/button';
+import {Alert} from 'sentry/components/alert';
+import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import Textarea from 'sentry/components/forms/controls/textarea';
-import Field from 'sentry/components/forms/field';
+import FieldGroup from 'sentry/components/forms/fieldGroup';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import {Data} from 'sentry/components/forms/types';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -88,6 +88,7 @@ export function FeedbackModal<T extends Data>({
   const {organization} = useLegacyStore(OrganizationStore);
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
   const location = useLocation();
+
   const theme = useTheme();
   const user = ConfigStore.get('user');
   const isSelfHosted = ConfigStore.get('isSelfHosted');
@@ -112,7 +113,7 @@ export function FeedbackModal<T extends Data>({
       const commonEventProps: Event = {
         message,
         request: {
-          url: location.pathname,
+          url: window.location.href, // gives the full url (origin + pathname)
         },
         extra: {
           orgFeatures: organization?.features ?? [],
@@ -150,7 +151,6 @@ export function FeedbackModal<T extends Data>({
       closeModal();
     },
     [
-      location.pathname,
       closeModal,
       organization?.features,
       organization?.access,
@@ -269,7 +269,7 @@ export function FeedbackModal<T extends Data>({
             stacked
             required
           />
-          <Field
+          <FieldGroup
             label={t('Additional feedback')}
             inline={false}
             required={false}
@@ -289,7 +289,7 @@ export function FeedbackModal<T extends Data>({
                 })
               }
             />
-          </Field>
+          </FieldGroup>
         </ModalBody>
         <ModalFooter secondaryAction={props?.secondaryAction} />
       </Fragment>

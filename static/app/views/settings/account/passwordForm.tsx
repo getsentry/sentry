@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import Form, {FormProps} from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import {PanelAlert, PanelItem} from 'sentry/components/panels';

@@ -2,7 +2,7 @@ import {useCallback, useRef} from 'react';
 import {findDOMNode} from 'react-dom';
 import styled from '@emotion/styled';
 
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import Clipboard from 'sentry/components/clipboard';
 import {
   Input,
@@ -104,12 +104,7 @@ function TextCopyInput({
       />
       <InputTrailingItems>
         <Clipboard hideUnsupported value={children}>
-          <StyledCopyButton
-            type="button"
-            borderless
-            disabled={disabled}
-            onClick={handleCopyClick}
-          >
+          <StyledCopyButton borderless disabled={disabled} onClick={handleCopyClick}>
             <IconCopy size={size === 'xs' ? 'xs' : 'sm'} />
           </StyledCopyButton>
         </Clipboard>

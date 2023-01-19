@@ -7,13 +7,13 @@ import {
   useRef,
   useState,
 } from 'react';
-import {css} from '@emotion/react';
+import {css, Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import _TextArea, {TextAreaProps} from 'sentry/components/forms/controls/textarea';
 import _Input, {InputProps} from 'sentry/components/input';
 import space from 'sentry/styles/space';
-import {FormSize, Theme} from 'sentry/utils/theme';
+import {FormSize} from 'sentry/utils/theme';
 
 interface InputContext {
   /**
@@ -70,7 +70,7 @@ export function InputGroup({children, ...props}: React.HTMLAttributes<HTMLDivEle
   );
 }
 
-export {InputProps};
+export type {InputProps};
 export const Input = forwardRef<HTMLInputElement, InputProps>(
   ({size, disabled, ...props}, ref) => {
     const {leadingWidth, trailingWidth, setInputProps} = useContext(InputGroupContext);
@@ -92,7 +92,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
   }
 );
 
-export {TextAreaProps};
+export type {TextAreaProps};
 export const TextArea = forwardRef<HTMLTextAreaElement, TextAreaProps>(
   ({size, disabled, ...props}, ref) => {
     const {leadingWidth, trailingWidth, setInputProps} = useContext(InputGroupContext);

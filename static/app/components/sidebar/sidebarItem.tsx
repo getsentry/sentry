@@ -1,5 +1,5 @@
 import {Fragment, isValidElement} from 'react';
-import {css} from '@emotion/react';
+import {css, Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import FeatureBadge from 'sentry/components/featureBadge';
@@ -10,7 +10,6 @@ import Tooltip from 'sentry/components/tooltip';
 import {Organization} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import localStorage from 'sentry/utils/localStorage';
-import {Theme} from 'sentry/utils/theme';
 import useRouter from 'sentry/utils/useRouter';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
@@ -221,8 +220,7 @@ const StyledSidebarItem = styled(Link)`
   position: relative;
   cursor: pointer;
   font-size: 15px;
-  line-height: 32px;
-  height: 34px;
+  height: 30px;
   flex-shrink: 0;
 
   transition: 0.15s color linear;

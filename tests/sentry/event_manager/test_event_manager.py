@@ -23,12 +23,12 @@ from fixtures.github import (
 from sentry import audit_log, nodestore, tsdb
 from sentry.attachments import CachedAttachment, attachment_cache
 from sentry.constants import MAX_VERSION_LENGTH, DataCategory
-from sentry.dynamic_sampling.latest_release_booster import (
+from sentry.dynamic_sampling import (
     ExtendedBoostedRelease,
+    Platform,
     ProjectBoostedReleases,
     get_redis_client_for_ds,
 )
-from sentry.dynamic_sampling.latest_release_ttas import Platform
 from sentry.event_manager import (
     EventManager,
     EventUser,
@@ -76,6 +76,7 @@ from sentry.testutils import (
 )
 from sentry.testutils.helpers import apply_feature_flag_on_cls, override_options
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.performance_issues.event_generators import get_event
 from sentry.testutils.silo import region_silo_test
 from sentry.types.activity import ActivityType
 from sentry.types.issues import GroupCategory, GroupType
@@ -88,7 +89,6 @@ from sentry.utils.performance_issues.performance_detection import (
 )
 from sentry.utils.samples import load_data
 from tests.sentry.integrations.github.test_repository import stub_installation_token
-from tests.sentry.utils.performance_issues.test_performance_detection import EVENTS
 
 
 def make_event(**kwargs):
@@ -2219,18 +2219,12 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
             assert record.data["sentry:grouping_config"] == DEFAULT_GROUPING_CONFIG
             assert record.data["slug"] == self.project.slug
 
-    @override_options({"performance.issues.all.problem-creation": 1.0})
-    @override_options({"performance.issues.all.problem-detection": 1.0})
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
     def test_perf_issue_creation(self):
         self.project.update_option("sentry:performance_issue_creation_rate", 1.0)
 
-        with mock.patch("sentry_sdk.tracing.Span.containing_transaction"), self.feature(
-            {
-                "organizations:performance-issues-ingest": True,
-            }
-        ):
-            manager = EventManager(make_event(**EVENTS["n-plus-one-in-django-index-view"]))
+        with mock.patch("sentry_sdk.tracing.Span.containing_transaction"):
+            manager = EventManager(make_event(**get_event("n-plus-one-in-django-index-view")))
             manager.normalize()
             event = manager.save(self.project.id)
             data = event.data
@@ -2305,18 +2299,12 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
                 ],
             )
 
-    @override_options({"performance.issues.all.problem-creation": 1.0})
-    @override_options({"performance.issues.all.problem-detection": 1.0})
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
     def test_perf_issue_update(self):
         self.project.update_option("sentry:performance_issue_creation_rate", 1.0)
 
-        with mock.patch("sentry_sdk.tracing.Span.containing_transaction"), self.feature(
-            {
-                "organizations:performance-issues-ingest": True,
-            }
-        ):
-            manager = EventManager(make_event(**EVENTS["n-plus-one-in-django-index-view"]))
+        with mock.patch("sentry_sdk.tracing.Span.containing_transaction"):
+            manager = EventManager(make_event(**get_event("n-plus-one-in-django-index-view")))
             manager.normalize()
             event = manager.save(self.project.id)
             group = event.groups[0]
@@ -2332,7 +2320,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
             assert group.location() == "hi"
             assert group.title == "lol"
 
-            manager = EventManager(make_event(**EVENTS["n-plus-one-in-django-index-view"]))
+            manager = EventManager(make_event(**get_event("n-plus-one-in-django-index-view")))
             manager.normalize()
             with self.tasks():
                 manager.save(self.project.id)
@@ -2349,8 +2337,6 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
             assert group.message == "nope"
             assert group.culprit == "/books/"
 
-    @override_options({"performance.issues.all.problem-creation": 1.0})
-    @override_options({"performance.issues.all.problem-detection": 1.0})
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
     def test_error_issue_no_associate_perf_event(self):
         """Test that you can't associate a performance event with an error issue"""
@@ -2359,10 +2345,9 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
         with mock.patch("sentry_sdk.tracing.Span.containing_transaction"), self.feature(
             {
                 "projects:performance-suspect-spans-ingestion": True,
-                "organizations:performance-issues-ingest": True,
             }
         ):
-            manager = EventManager(make_event(**EVENTS["n-plus-one-in-django-index-view"]))
+            manager = EventManager(make_event(**get_event("n-plus-one-in-django-index-view")))
             manager.normalize()
             event = manager.save(self.project.id)
             assert len(event.groups) == 1
@@ -2371,14 +2356,12 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
             group = event.groups[0]
             group.type = GroupType.ERROR.value
             group.save()
-            manager = EventManager(make_event(**EVENTS["n-plus-one-in-django-index-view"]))
+            manager = EventManager(make_event(**get_event("n-plus-one-in-django-index-view")))
             manager.normalize()
             event = manager.save(self.project.id)
 
             assert len(event.groups) == 0
 
-    @override_options({"performance.issues.all.problem-creation": 1.0})
-    @override_options({"performance.issues.all.problem-detection": 1.0})
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
     def test_perf_issue_no_associate_error_event(self):
         """Test that you can't associate an error event with a performance issue"""
@@ -2387,7 +2370,6 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
         with mock.patch("sentry_sdk.tracing.Span.containing_transaction"), self.feature(
             {
                 "projects:performance-suspect-spans-ingestion": True,
-                "organizations:performance-issues-ingest": True,
             }
         ):
             manager = EventManager(make_event())
@@ -2405,8 +2387,6 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
 
             assert len(event.groups) == 0
 
-    @override_options({"performance.issues.all.problem-creation": 1.0})
-    @override_options({"performance.issues.all.problem-detection": 1.0})
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
     @override_settings(SENTRY_PERFORMANCE_ISSUES_REDUCE_NOISE=True)
     def test_perf_issue_creation_ignored(self):
@@ -2415,18 +2395,15 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
         with mock.patch("sentry_sdk.tracing.Span.containing_transaction"), self.feature(
             {
                 "projects:performance-suspect-spans-ingestion": True,
-                "organizations:performance-issues-ingest": True,
             }
         ):
-            manager = EventManager(make_event(**EVENTS["n-plus-one-in-django-index-view"]))
+            manager = EventManager(make_event(**get_event("n-plus-one-in-django-index-view")))
             manager.normalize()
             event = manager.save(self.project.id)
             data = event.data
             assert event.get_event_type() == "transaction"
             assert data["hashes"] == []
 
-    @override_options({"performance.issues.all.problem-creation": 1.0})
-    @override_options({"performance.issues.all.problem-detection": 1.0})
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
     @override_settings(SENTRY_PERFORMANCE_ISSUES_REDUCE_NOISE=True)
     def test_perf_issue_creation_over_ignored_threshold(self):
@@ -2435,12 +2412,11 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
         with mock.patch("sentry_sdk.tracing.Span.containing_transaction"), self.feature(
             {
                 "projects:performance-suspect-spans-ingestion": True,
-                "organizations:performance-issues-ingest": True,
             }
         ):
-            manager1 = EventManager(make_event(**EVENTS["n-plus-one-in-django-index-view"]))
-            manager2 = EventManager(make_event(**EVENTS["n-plus-one-in-django-index-view"]))
-            manager3 = EventManager(make_event(**EVENTS["n-plus-one-in-django-index-view"]))
+            manager1 = EventManager(make_event(**get_event("n-plus-one-in-django-index-view")))
+            manager2 = EventManager(make_event(**get_event("n-plus-one-in-django-index-view")))
+            manager3 = EventManager(make_event(**get_event("n-plus-one-in-django-index-view")))
             manager1.normalize()
             manager2.normalize()
             manager3.normalize()
@@ -2458,6 +2434,35 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
             assert data1["hashes"] == []
             assert data2["hashes"] == []
             assert data3["hashes"] == [expected_hash]
+
+    @override_options(
+        {
+            "performance.issues.slow_span.problem-creation": 1.0,
+            "performance_issue_creation_rate": 1.0,
+        }
+    )
+    @override_settings(SENTRY_PERFORMANCE_ISSUES_REDUCE_NOISE=True)
+    def test_perf_issue_slow_db_issue_is_created(self):
+        def attempt_to_generate_slow_db_issue() -> Event:
+            last_event = None
+
+            for _ in range(100):
+                manager = EventManager(make_event(**get_event("slow-db-spans")))
+                manager.normalize()
+                event = manager.save(self.project.id)
+                last_event = event
+
+            return last_event
+
+        # Should not create the group without the feature flag
+        last_event = attempt_to_generate_slow_db_issue()
+        assert len(last_event.groups) == 0
+
+        with self.feature({"organizations:performance-slow-db-issue": True}):
+            last_event = attempt_to_generate_slow_db_issue()
+
+            assert len(last_event.groups) == 1
+            assert last_event.groups[0].type == GroupType.PERFORMANCE_SLOW_SPAN.value
 
 
 class AutoAssociateCommitTest(TestCase, EventManagerTestMixin):
@@ -3423,10 +3428,7 @@ class DSLatestReleaseBoostTest(TestCase):
             )
 
     @freeze_time()
-    @mock.patch(
-        "sentry.dynamic_sampling.latest_release_booster.ProjectBoostedReleases.BOOSTED_RELEASES_LIMIT",
-        2,
-    )
+    @mock.patch("sentry.dynamic_sampling.rules.helpers.latest_releases.BOOSTED_RELEASES_LIMIT", 2)
     def test_least_recently_boosted_release_is_removed_if_limit_is_exceeded(self):
         ts = time()
 
@@ -3505,10 +3507,7 @@ class DSLatestReleaseBoostTest(TestCase):
             ]
 
     @freeze_time()
-    @mock.patch(
-        "sentry.dynamic_sampling.latest_release_booster.ProjectBoostedReleases.BOOSTED_RELEASES_LIMIT",
-        2,
-    )
+    @mock.patch("sentry.dynamic_sampling.rules.helpers.latest_releases.BOOSTED_RELEASES_LIMIT", 2)
     def test_removed_boost_not_added_again_if_limit_is_exceeded(self):
         with self.options(
             {

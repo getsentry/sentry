@@ -367,10 +367,6 @@ def post_process_group(
                     project=event.project,
                     event=event,
                 )
-            if not features.has(
-                "organizations:performance-issues-post-process-group", event.project.organization
-            ):
-                return
 
         # TODO: Remove this check once we're sending all group ids as `group_states` and treat all
         # events the same way
@@ -605,14 +601,14 @@ def process_code_mappings(job: PostProcessJob) -> None:
     if job["is_reprocessed"]:
         return
 
-    from sentry.tasks.derive_code_mappings import derive_code_mappings
+    from sentry.tasks.derive_code_mappings import SUPPORTED_LANGUAGES, derive_code_mappings
 
     try:
         event = job["event"]
         project = event.project
 
         # Supported platforms
-        if event.data["platform"] not in ["javascript", "python"]:
+        if event.data["platform"] not in SUPPORTED_LANGUAGES:
             return
 
         cache_key = f"code-mappings:{project.id}"

@@ -5,6 +5,7 @@ import {Result} from 'sentry/components/forms/controls/selectAsyncControl';
 import {
   IconAsana,
   IconBitbucket,
+  IconCodecov,
   IconGeneric,
   IconGithub,
   IconGitlab,
@@ -33,6 +34,8 @@ import {
   IntegrationEventParameters,
 } from 'sentry/utils/analytics/integrations';
 import makeAnalyticsFunction from 'sentry/utils/analytics/makeAnalyticsFunction';
+
+import {IconSize} from './theme';
 
 const mapIntegrationParams = analyticsParams => {
   // Reload expects integration_status even though it's not relevant for non-sentry apps
@@ -196,8 +199,10 @@ export const safeGetQsParam = (param: string) => {
   }
 };
 
-export const getIntegrationIcon = (integrationType?: string, size?: string) => {
-  const iconSize = size || 'md';
+export const getIntegrationIcon = (
+  integrationType?: string,
+  iconSize: IconSize = 'md'
+) => {
   switch (integrationType) {
     case 'asana':
       return <IconAsana size={iconSize} />;
@@ -213,6 +218,8 @@ export const getIntegrationIcon = (integrationType?: string, size?: string) => {
       return <IconJira size={iconSize} />;
     case 'vsts':
       return <IconVsts size={iconSize} />;
+    case 'codecov':
+      return <IconCodecov size={iconSize} />;
     default:
       return <IconGeneric size={iconSize} />;
   }

@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import base64
-
 from django.contrib.auth import get_user as auth_get_user
 from django.contrib.auth.models import AnonymousUser
 from django.utils.deprecation import MiddlewareMixin
@@ -12,10 +10,10 @@ from rest_framework.request import Request
 
 from sentry.api.authentication import ApiKeyAuthentication, TokenAuthentication
 from sentry.models import UserIP
-from sentry.services.hybrid_cloud.auth import AuthenticationRequest, auth_service
+from sentry.services.hybrid_cloud.auth import auth_service, authentication_request_from
 from sentry.silo import SiloMode
 from sentry.utils.auth import AuthUserPasswordExpired, logger
-from sentry.utils.linksign import find_signature, process_signature
+from sentry.utils.linksign import process_signature
 from sentry.utils.types import Any
 
 
@@ -123,25 +121,3 @@ class HybridCloudAuthenticationMiddleware(MiddlewareMixin):
 
     def process_exception(self, request: Request, exception: Exception):
         pass
-
-
-def authentication_request_from(request: Request) -> AuthenticationRequest:
-    return AuthenticationRequest(
-        backend=request.session.get("_auth_user_backend", None),
-        user_id=request.session.get("_auth_user_id", None),
-        user_hash=request.session.get("_auth_user_hash", None),
-        nonce=request.session.get("_nonce", None),
-        remote_addr=request.META["REMOTE_ADDR"],
-        signature=find_signature(request),
-        absolute_url=request.build_absolute_uri(),
-        path=request.path,
-        authorization_b64=_normalize_to_b64(request.META.get("HTTP_AUTHORIZATION")),
-    )
-
-
-def _normalize_to_b64(input: str | bytes | None) -> str | None:
-    if input is None:
-        return None
-    if isinstance(input, str):
-        input = input.encode("utf8")
-    return base64.b64encode(input).decode("utf8")

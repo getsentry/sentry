@@ -1,14 +1,13 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import Alert from 'sentry/components/alert';
-import Button from 'sentry/components/button';
+import {Alert} from 'sentry/components/alert';
+import {Button} from 'sentry/components/button';
 import Placeholder from 'sentry/components/placeholder';
 import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
 import ReplayPlayer from 'sentry/components/replays/replayPlayer';
 import ReplaysFeatureBadge from 'sentry/components/replays/replaysFeatureBadge';
 import {relativeTimeInMs} from 'sentry/components/replays/utils';
-import {IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Event} from 'sentry/types/event';
@@ -35,7 +34,7 @@ function ReplayContent({orgSlug, replaySlug, event}: Props) {
 
   const replayRecord = replay?.getReplay();
 
-  const startTimestampMs = replayRecord?.startedAt.getTime() ?? 0;
+  const startTimestampMs = replayRecord?.started_at.getTime() ?? 0;
 
   const initialTimeOffset = useMemo(() => {
     if (eventTimestamp && startTimestampMs) {
@@ -79,7 +78,7 @@ function ReplayContent({orgSlug, replaySlug, event}: Props) {
           <ReplayPlayer isPreview />
         </StaticPanel>
         <CTAOverlay>
-          <Button icon={<IconPlay />} priority="primary" to={fullReplayUrl}>
+          <Button priority="primary" to={fullReplayUrl}>
             {t('Open Replay')}
           </Button>
         </CTAOverlay>
@@ -124,7 +123,7 @@ const BadgeContainer = styled('div')`
   background: ${p => p.theme.background};
   border-radius: 2.25rem;
   padding: ${space(0.75)} ${space(0.75)} ${space(0.75)} ${space(1)};
-  box-shadow: ${p => p.theme.dropShadowLightest};
+  box-shadow: ${p => p.theme.dropShadowLight};
   gap: 0 ${space(0.25)};
 `;
 

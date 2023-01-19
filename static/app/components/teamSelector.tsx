@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
 import {addTeamToProject} from 'sentry/actionCreators/projects';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import SelectControl, {
   ControlProps,
   GeneralSelectValue,
@@ -38,7 +38,7 @@ const unassignedOption = {
   value: null,
   label: (
     <UnassignedWrapper>
-      <StyledIconUser size="20px" />
+      <StyledIconUser size="md" />
       {t('Unassigned')}
     </UnassignedWrapper>
   ),
@@ -198,7 +198,6 @@ function TeamSelector(props: Props) {
           containerDisplayMode="flex"
         >
           <AddToProjectButton
-            type="button"
             size="zero"
             borderless
             disabled={!canAddTeam}

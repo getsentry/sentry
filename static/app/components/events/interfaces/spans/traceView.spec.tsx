@@ -5,7 +5,6 @@ import {
 } from 'sentry-test/performance/initializePerformanceData';
 import {MockSpan, TransactionEventBuilder} from 'sentry-test/performance/utils';
 import {
-  act,
   render,
   screen,
   userEvent,
@@ -24,7 +23,7 @@ import QuickTraceQuery from 'sentry/utils/performance/quickTrace/quickTraceQuery
 
 function initializeData(settings) {
   const data = _initializeData(settings);
-  act(() => void ProjectsStore.loadInitialData(data.organization.projects));
+  ProjectsStore.loadInitialData(data.organization.projects);
   return data;
 }
 
@@ -223,9 +222,7 @@ describe('TraceView', () => {
 
     // TODO: This test can be converted later to use the TransactionEventBuilder instead
     it('should allow expanding of embedded transactions', async () => {
-      const {organization, project, location} = initializeData({
-        features: ['unified-span-view'],
-      });
+      const {organization, project, location} = initializeData({});
 
       const event = generateSampleEvent();
       generateSampleSpan(

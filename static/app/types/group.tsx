@@ -56,8 +56,12 @@ export enum IssueCategory {
 
 export enum IssueType {
   ERROR = 'error',
-  PERFORMANCE_N_PLUS_ONE_DB_QUERIES = 'performance_n_plus_one_db_queries',
+  PERFORMANCE_CONSECUTIVE_DB_QUERIES = 'performance_consecutive_db_queries',
   PERFORMANCE_FILE_IO_MAIN_THREAD = 'performance_file_io_main_thread',
+  PERFORMANCE_N_PLUS_ONE_API_CALLS = 'performance_n_plus_one_api_calls',
+  PERFORMANCE_N_PLUS_ONE_DB_QUERIES = 'performance_n_plus_one_db_queries',
+  PERFORMANCE_SLOW_SPAN = 'performance_slow_span',
+  PERFORMANCE_UNCOMPRESSED_ASSET = 'performance_uncompressed_assets',
 }
 
 type CapabilityInfo = {
@@ -71,7 +75,11 @@ type CapabilityInfo = {
  */
 export type IssueCategoryCapabilities = {
   /**
-   * Are codeowner features enabled for this issue
+   * Is the Attachments tab shown for this issue
+   */
+  attachments: CapabilityInfo;
+  /**
+   * Are codeowner features shown for this issue
    */
   codeowners: CapabilityInfo;
   /**
@@ -83,6 +91,10 @@ export type IssueCategoryCapabilities = {
    */
   deleteAndDiscard: CapabilityInfo;
   /**
+   * Is the Grouping tab shown for this issue
+   */
+  grouping: CapabilityInfo;
+  /**
    * Can the issue be ignored (and the dropdown options)
    */
   ignore: CapabilityInfo;
@@ -91,9 +103,25 @@ export type IssueCategoryCapabilities = {
    */
   merge: CapabilityInfo;
   /**
+   * Is the Merged Issues tab shown for this issue
+   */
+  mergedIssues: CapabilityInfo;
+  /**
+   * Is the Replays tab shown for this issue
+   */
+  replays: CapabilityInfo;
+  /**
    * Can the issue be shared
    */
   share: CapabilityInfo;
+  /**
+   * Is the Similar Issues tab shown for this issue
+   */
+  similarIssues: CapabilityInfo;
+  /**
+   * Is the User Feedback tab enabled for this issue
+   */
+  userFeedback: CapabilityInfo;
 };
 
 // endpoint: /api/0/issues/:issueId/attachments/?limit=50
@@ -618,7 +646,7 @@ export type UserReport = {
   user: User;
 };
 
-export type KeyValueListData = {
+export type KeyValueListDataItem = {
   key: string;
   subject: string;
   actionButton?: React.ReactNode;
@@ -627,7 +655,9 @@ export type KeyValueListData = {
   subjectDataTestId?: string;
   subjectIcon?: React.ReactNode;
   value?: React.ReactNode;
-}[];
+};
+
+export type KeyValueListData = KeyValueListDataItem[];
 
 // Response from ShortIdLookupEndpoint
 // /organizations/${orgId}/shortids/${query}/

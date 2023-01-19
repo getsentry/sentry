@@ -21,18 +21,18 @@ from sentry.utils.performance_issues.performance_detection import (
 
 @region_silo_test
 @pytest.mark.django_db
-class ConsecutiveDbDetectorTest(unittest.TestCase):
+class RenderBlockingAssetDetectorTest(unittest.TestCase):
     def setUp(self):
         super().setUp()
         self.settings = get_detection_settings()
 
-    def find_render_blocking_asset_problems(self, event: Event) -> List[PerformanceProblem]:
+    def find_problems(self, event: Event) -> List[PerformanceProblem]:
         detector = RenderBlockingAssetSpanDetector(self.settings, event)
         run_detector_on_data(detector, event)
         return list(detector.stored_problems.values())
 
-    def test_calls_detect_render_blocking_asset(self):
-        render_blocking_asset_event = {
+    def test_detects_render_blocking_asset(self):
+        event = {
             "event_id": "a" * 16,
             "project": PROJECT_ID,
             "measurements": {
@@ -46,7 +46,20 @@ class ConsecutiveDbDetectorTest(unittest.TestCase):
             ],
         }
 
-        non_render_blocking_asset_event = {
+        assert self.find_problems(event) == [
+            PerformanceProblem(
+                fingerprint="6060649d4f8435d88735",
+                op="resource.script",
+                desc="SELECT count() FROM table WHERE id = %s",
+                type=GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN,
+                parent_span_ids=[],
+                cause_span_ids=[],
+                offender_span_ids=["bbbbbbbbbbbbbbbb"],
+            )
+        ]
+
+    def test_not_detect_render_block_asset(self):
+        event = {
             "event_id": "a" * 16,
             "project": PROJECT_ID,
             "measurements": {
@@ -62,7 +75,11 @@ class ConsecutiveDbDetectorTest(unittest.TestCase):
                 ),
             ],
         }
-        no_fcp_event = {
+
+        assert self.find_problems(event) == []
+
+    def test_does_not_detect_with_no_fcp(self):
+        event = {
             "event_id": "a" * 16,
             "project": PROJECT_ID,
             "measurements": {
@@ -75,7 +92,11 @@ class ConsecutiveDbDetectorTest(unittest.TestCase):
                 create_span("resource.script", duration=1000.0),
             ],
         }
-        no_measurements_event = {
+
+        assert self.find_problems(event) == []
+
+    def test_does_not_detect_with_no_measurements(self):
+        event = {
             "event_id": "a" * 16,
             "project": PROJECT_ID,
             "measurements": None,
@@ -83,7 +104,11 @@ class ConsecutiveDbDetectorTest(unittest.TestCase):
                 create_span("resource.script", duration=1000.0),
             ],
         }
-        short_render_blocking_asset_event = {
+
+        assert self.find_problems(event) == []
+
+    def test_does_not_detect_with_short_render_blocking_asset(self):
+        event = {
             "event_id": "a" * 16,
             "project": PROJECT_ID,
             "measurements": {
@@ -97,18 +122,4 @@ class ConsecutiveDbDetectorTest(unittest.TestCase):
             ],
         }
 
-        assert self.find_render_blocking_asset_problems(non_render_blocking_asset_event) == []
-        assert self.find_render_blocking_asset_problems(no_fcp_event) == []
-        assert self.find_render_blocking_asset_problems(short_render_blocking_asset_event) == []
-        assert self.find_render_blocking_asset_problems(no_measurements_event) == []
-        assert self.find_render_blocking_asset_problems(render_blocking_asset_event) == [
-            PerformanceProblem(
-                fingerprint="6060649d4f8435d88735",
-                op="resource.script",
-                desc="SELECT count() FROM table WHERE id = %s",
-                type=GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN,
-                parent_span_ids=[],
-                cause_span_ids=[],
-                offender_span_ids=["bbbbbbbbbbbbbbbb"],
-            )
-        ]
+        assert self.find_problems(event) == []

@@ -12,7 +12,7 @@ from sentry.notifications.types import (
     NotificationSettingTypes,
 )
 from sentry.notifications.utils.participants import (
-    FALLTHROUGH_NOTIFICATION_LIMIT,
+    FALLTHROUGH_NOTIFICATION_LIMIT_EA,
     get_fallthrough_recipients,
     get_owner_reason,
     get_owners,
@@ -21,7 +21,7 @@ from sentry.notifications.utils.participants import (
 )
 from sentry.ownership import grammar
 from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema
-from sentry.services.hybrid_cloud.user import APIUser, UserService, user_service
+from sentry.services.hybrid_cloud.user import APIUser, user_service
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.features import with_feature
@@ -46,8 +46,8 @@ class GetSendToMemberTest(TestCase):
 
     def test_send_to_user(self):
         assert self.get_send_to_member() == {
-            ExternalProviders.EMAIL: {user_service.serialize_user(self.user)},
-            ExternalProviders.SLACK: {user_service.serialize_user(self.user)},
+            ExternalProviders.EMAIL: {user_service.get_user(self.user.id)},
+            ExternalProviders.SLACK: {user_service.get_user(self.user.id)},
         }
 
         NotificationSetting.objects.update_settings(
@@ -59,7 +59,7 @@ class GetSendToMemberTest(TestCase):
         )
 
         assert self.get_send_to_member() == {
-            ExternalProviders.SLACK: {user_service.serialize_user(self.user)}
+            ExternalProviders.SLACK: {user_service.get_user(self.user.id)}
         }
 
     def test_other_org_user(self):
@@ -70,8 +70,8 @@ class GetSendToMemberTest(TestCase):
         project_2 = self.create_project(organization=org_2, teams=[team_2, team_3])
 
         assert self.get_send_to_member(project_2, user_2.id) == {
-            ExternalProviders.EMAIL: {user_service.serialize_user(user_2)},
-            ExternalProviders.SLACK: {user_service.serialize_user(user_2)},
+            ExternalProviders.EMAIL: {user_service.get_user(user_2.id)},
+            ExternalProviders.SLACK: {user_service.get_user(user_2.id)},
         }
         assert self.get_send_to_member(self.project, user_2.id) == {}
 
@@ -84,8 +84,8 @@ class GetSendToMemberTest(TestCase):
         project_2 = self.create_project(organization=org_2, teams=[team_2])
 
         assert self.get_send_to_member(project_2, user_2.id) == {
-            ExternalProviders.EMAIL: {user_service.serialize_user(user_2)},
-            ExternalProviders.SLACK: {user_service.serialize_user(user_2)},
+            ExternalProviders.EMAIL: {user_service.get_user(user_2.id)},
+            ExternalProviders.SLACK: {user_service.get_user(user_2.id)},
         }
         assert self.get_send_to_member(self.project, user_3.id) == {}
 
@@ -122,7 +122,7 @@ class GetSendToTeamTest(TestCase):
 
     def test_send_to_team(self):
         assert self.get_send_to_team() == {
-            ExternalProviders.EMAIL: {user_service.serialize_user(self.user)},
+            ExternalProviders.EMAIL: {user_service.get_user(self.user.id)},
         }
 
         NotificationSetting.objects.update_settings(
@@ -151,7 +151,7 @@ class GetSendToTeamTest(TestCase):
             team=self.team,
         )
         assert self.get_send_to_team() == {
-            ExternalProviders.EMAIL: {user_service.serialize_user(self.user)}
+            ExternalProviders.EMAIL: {user_service.get_user(self.user.id)}
         }
 
     def test_other_project_team(self):
@@ -160,8 +160,8 @@ class GetSendToTeamTest(TestCase):
         project_2 = self.create_project(organization=self.organization, teams=[team_2])
 
         assert self.get_send_to_team(project_2, team_2.id) == {
-            ExternalProviders.EMAIL: {user_service.serialize_user(user_2)},
-            ExternalProviders.SLACK: {user_service.serialize_user(user_2)},
+            ExternalProviders.EMAIL: {user_service.get_user(user_2.id)},
+            ExternalProviders.SLACK: {user_service.get_user(user_2.id)},
         }
         assert self.get_send_to_team(self.project, team_2.id) == {}
 
@@ -172,8 +172,8 @@ class GetSendToTeamTest(TestCase):
         project_2 = self.create_project(organization=org_2, teams=[team_2])
 
         assert self.get_send_to_team(project_2, team_2.id) == {
-            ExternalProviders.EMAIL: {user_service.serialize_user(user_2)},
-            ExternalProviders.SLACK: {user_service.serialize_user(user_2)},
+            ExternalProviders.EMAIL: {user_service.get_user(user_2.id)},
+            ExternalProviders.SLACK: {user_service.get_user(user_2.id)},
         }
         assert self.get_send_to_team(self.project, team_2.id) == {}
 
@@ -217,8 +217,8 @@ class GetSentToReleaseMembersTest(TestCase):
         event.group = self.group
         with self.feature("organizations:active-release-notifications-enable"):
             assert self.get_send_to_release_members(event) == {
-                ExternalProviders.EMAIL: {user_service.serialize_user(self.user)},
-                ExternalProviders.SLACK: {user_service.serialize_user(self.user)},
+                ExternalProviders.EMAIL: {user_service.get_user(self.user.id)},
+                ExternalProviders.SLACK: {user_service.get_user(self.user.id)},
             }
             assert spy_get_release_committers.call_count == 1
 
@@ -295,8 +295,8 @@ class GetSendToOwnersTest(TestCase):
         event = self.store_event("user.jsx")
 
         assert self.get_send_to_owners(event) == {
-            ExternalProviders.EMAIL: {UserService.serialize_user(self.user)},
-            ExternalProviders.SLACK: {UserService.serialize_user(self.user)},
+            ExternalProviders.EMAIL: {user_service.get_user(self.user.id)},
+            ExternalProviders.SLACK: {user_service.get_user(self.user.id)},
         }
 
         # Make sure that disabling mail alerts works as expected
@@ -309,7 +309,7 @@ class GetSendToOwnersTest(TestCase):
         )
 
         assert self.get_send_to_owners(event) == {
-            ExternalProviders.SLACK: {UserService.serialize_user(self.user)},
+            ExternalProviders.SLACK: {user_service.get_user(self.user.id)},
         }
 
     def test_single_user_no_teams(self):
@@ -322,12 +322,12 @@ class GetSendToOwnersTest(TestCase):
 
         assert self.get_send_to_owners(event) == {
             ExternalProviders.EMAIL: {
-                user_service.serialize_user(self.user),
-                user_service.serialize_user(self.user2),
+                user_service.get_user(self.user.id),
+                user_service.get_user(self.user2.id),
             },
             ExternalProviders.SLACK: {
-                user_service.serialize_user(self.user),
-                user_service.serialize_user(self.user2),
+                user_service.get_user(self.user.id),
+                user_service.get_user(self.user2.id),
             },
         }
 
@@ -340,10 +340,10 @@ class GetSendToOwnersTest(TestCase):
             project=self.project,
         )
         assert self.get_send_to_owners(event) == {
-            ExternalProviders.EMAIL: {user_service.serialize_user(self.user)},
+            ExternalProviders.EMAIL: {user_service.get_user(self.user.id)},
             ExternalProviders.SLACK: {
-                user_service.serialize_user(self.user),
-                user_service.serialize_user(self.user2),
+                user_service.get_user(self.user.id),
+                user_service.get_user(self.user2.id),
             },
         }
 
@@ -368,8 +368,8 @@ class GetSendToOwnersTest(TestCase):
         )
 
         assert self.get_send_to_owners(event) == {
-            ExternalProviders.EMAIL: {UserService.serialize_user(self.user)},
-            ExternalProviders.SLACK: {UserService.serialize_user(self.user)},
+            ExternalProviders.EMAIL: {user_service.get_user(self.user.id)},
+            ExternalProviders.SLACK: {user_service.get_user(self.user.id)},
         }
 
     def test_fallthrough(self):
@@ -377,12 +377,12 @@ class GetSendToOwnersTest(TestCase):
 
         assert self.get_send_to_owners(event) == {
             ExternalProviders.EMAIL: {
-                UserService.serialize_user(self.user),
-                UserService.serialize_user(self.user2),
+                user_service.get_user(self.user.id),
+                user_service.get_user(self.user2.id),
             },
             ExternalProviders.SLACK: {
-                UserService.serialize_user(self.user),
-                UserService.serialize_user(self.user2),
+                user_service.get_user(self.user.id),
+                user_service.get_user(self.user2.id),
             },
         }
 
@@ -445,7 +445,7 @@ class GetOwnersCase(TestCase):
         assert len(expected) == len(received)
         for recipient in expected:
             if isinstance(recipient, User):
-                assert UserService.serialize_user(recipient) in received
+                assert user_service.get_user(recipient.id) in received
             else:
                 assert recipient in received
 
@@ -529,7 +529,7 @@ class GetOwnersCase(TestCase):
             )
             assert (
                 owner_reason
-                == f"We notified team admins and recently active members in the {self.project.get_full_name()} project of this issue"
+                == f"We notified recently active members in the {self.project.get_full_name()} project of this issue"
             )
 
     def test_get_owner_reason_member(self):
@@ -545,7 +545,6 @@ class GetOwnersCase(TestCase):
             assert owner_reason is None
 
 
-# @apply_feature_flag_on_cls("organizations:issue-alert-fallback-targeting")
 class GetSendToFallthroughTest(TestCase):
     def get_send_to_fallthrough(
         self,
@@ -572,6 +571,7 @@ class GetSendToFallthroughTest(TestCase):
             organization=self.organization, members=[self.user, self.user2]
         )
         self.project.add_team(self.team2)
+        self.organization.flags.early_adopter = True
 
         ProjectOwnership.objects.create(
             project_id=self.project.id,
@@ -604,8 +604,8 @@ class GetSendToFallthroughTest(TestCase):
         event = self.store_event("empty.py", self.project)
         assert self.get_send_to_fallthrough(event, self.project, None,) == {
             ExternalProviders.EMAIL: {
-                UserService.serialize_user(self.user),
-                UserService.serialize_user(self.user2),
+                user_service.get_user(self.user.id),
+                user_service.get_user(self.user2.id),
             },
         }
 
@@ -627,8 +627,8 @@ class GetSendToFallthroughTest(TestCase):
             event, self.project, FallthroughChoiceType.ALL_MEMBERS
         ) == {
             ExternalProviders.EMAIL: {
-                UserService.serialize_user(self.user),
-                UserService.serialize_user(self.user2),
+                user_service.get_user(self.user.id),
+                user_service.get_user(self.user2.id),
             },
         }
 
@@ -675,8 +675,8 @@ class GetSendToFallthroughTest(TestCase):
             event, empty_project, FallthroughChoiceType.ALL_MEMBERS
         ) == {
             ExternalProviders.EMAIL: {
-                UserService.serialize_user(self.user),
-                UserService.serialize_user(self.user2),
+                user_service.get_user(self.user.id),
+                user_service.get_user(self.user2.id),
             }
         }
 
@@ -690,9 +690,9 @@ class GetSendToFallthroughTest(TestCase):
             event, self.project, FallthroughChoiceType.ALL_MEMBERS
         ) == {
             ExternalProviders.EMAIL: {
-                UserService.serialize_user(self.user),
-                UserService.serialize_user(self.user2),
-                UserService.serialize_user(self.user3),
+                user_service.get_user(self.user.id),
+                user_service.get_user(self.user2.id),
+                user_service.get_user(self.user3.id),
             }
         }
 
@@ -716,7 +716,7 @@ class GetSendToFallthroughTest(TestCase):
         event = self.store_event("admin.lol", self.project)
         # Check that the notified users are only the 2 active users.
         expected_notified_users = {
-            UserService.serialize_user(user) for user in [self.user, self.user2]
+            user_service.get_user(user.id) for user in [self.user, self.user2]
         }
         assert self.get_send_to_fallthrough(
             event, self.project, FallthroughChoiceType.ACTIVE_MEMBERS
@@ -724,15 +724,15 @@ class GetSendToFallthroughTest(TestCase):
 
     @with_feature("organizations:issue-alert-fallback-targeting")
     def test_fallthrough_admin_or_recent_under_20(self):
-        notified_users = [self.user, self.user2]
+        notifiable_users = [self.user, self.user2]
         for i in range(10):
             new_user = self.create_user(email=f"user_{i}@example.com", is_active=True)
             self.create_member(
                 user=new_user, organization=self.organization, role="owner", teams=[self.team2]
             )
-            notified_users.append(new_user)
+            notifiable_users.append(new_user)
 
-        for user in notified_users:
+        for user in notifiable_users:
             NotificationSetting.objects.update_settings(
                 ExternalProviders.SLACK,
                 NotificationSettingTypes.ISSUE_ALERTS,
@@ -741,7 +741,7 @@ class GetSendToFallthroughTest(TestCase):
             )
 
         event = self.store_event("admin.lol", self.project)
-        expected_notified_users = {UserService.serialize_user(user) for user in notified_users}
+        expected_notified_users = {user_service.get_user(user.id) for user in notifiable_users}
         notified_users = self.get_send_to_fallthrough(
             event, self.project, FallthroughChoiceType.ACTIVE_MEMBERS
         )[ExternalProviders.EMAIL]
@@ -751,15 +751,15 @@ class GetSendToFallthroughTest(TestCase):
 
     @with_feature("organizations:issue-alert-fallback-targeting")
     def test_fallthrough_admin_or_recent_over_20(self):
-        notified_users = [self.user, self.user2]
-        for i in range(FALLTHROUGH_NOTIFICATION_LIMIT + 5):
+        notifiable_users = [self.user, self.user2]
+        for i in range(FALLTHROUGH_NOTIFICATION_LIMIT_EA + 5):
             new_user = self.create_user(email=f"user_{i}@example.com", is_active=True)
             self.create_member(
                 user=new_user, organization=self.organization, role="owner", teams=[self.team2]
             )
-            notified_users.append(new_user)
+            notifiable_users.append(new_user)
 
-        for user in notified_users:
+        for user in notifiable_users:
             NotificationSetting.objects.update_settings(
                 ExternalProviders.SLACK,
                 NotificationSettingTypes.ISSUE_ALERTS,
@@ -768,10 +768,38 @@ class GetSendToFallthroughTest(TestCase):
             )
 
         event = self.store_event("admin.lol", self.project)
-        expected_notified_users = {UserService.serialize_user(user) for user in notified_users}
+        expected_notified_users = {user_service.get_user(user.id) for user in notifiable_users}
         notified_users = self.get_send_to_fallthrough(
             event, self.project, FallthroughChoiceType.ACTIVE_MEMBERS
         )[ExternalProviders.EMAIL]
 
-        assert len(notified_users) == FALLTHROUGH_NOTIFICATION_LIMIT
+        assert len(notified_users) == FALLTHROUGH_NOTIFICATION_LIMIT_EA
         assert notified_users.issubset(expected_notified_users)
+
+    @with_feature("organizations:issue-alert-fallback-targeting")
+    def test_fallthrough_ga_limit(self):
+        self.organization.flags.early_adopter = False
+
+        notifiable_users = [self.user, self.user2]
+        for i in range(FALLTHROUGH_NOTIFICATION_LIMIT_EA + 5):
+            new_user = self.create_user(email=f"user_{i}@example.com", is_active=True)
+            self.create_member(
+                user=new_user, organization=self.organization, role="owner", teams=[self.team2]
+            )
+            notifiable_users.append(new_user)
+
+        for user in notifiable_users:
+            NotificationSetting.objects.update_settings(
+                ExternalProviders.SLACK,
+                NotificationSettingTypes.ISSUE_ALERTS,
+                NotificationSettingOptionValues.NEVER,
+                user=user,
+            )
+
+        event = self.store_event("admin.lol", self.project)
+        notified_users = self.get_send_to_fallthrough(
+            event, self.project, FallthroughChoiceType.ACTIVE_MEMBERS
+        )[ExternalProviders.EMAIL]
+
+        # Check that we notify all possible folks with the GA limit.
+        assert len(notified_users) == len(notifiable_users)

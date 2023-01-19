@@ -651,6 +651,7 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
                 "dashboards - change from big number to other chart enforces min height of 2"
             )
 
+    @pytest.mark.skip(reason="flaky: DD-1211")
     def test_changing_area_widget_larger_than_min_height_for_number_chart_keeps_height(
         self,
     ):

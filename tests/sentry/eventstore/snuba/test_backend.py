@@ -63,7 +63,7 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase):
 
         event_data_2 = load_data(
             platform="transaction",
-            fingerprint=[f"{GroupType.PERFORMANCE_SLOW_SPAN.value}-group3"],
+            fingerprint=[f"{GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN.value}-group3"],
         )
         event_data_2["timestamp"] = iso_format(before_now(seconds=30))
         event_data_2["start_timestamp"] = iso_format(before_now(seconds=31))
@@ -279,18 +279,16 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase):
             project_ids=[self.project2.id],
             conditions=apply_performance_conditions([], group),
         )
-        with self.feature("organizations:performance-issues"):
-            event = self.eventstore.get_event_by_id(self.project2.id, "f" * 32)
-            prev_event = self.eventstore.get_prev_event_id(event, filter=_filter)
-            next_event = self.eventstore.get_next_event_id(event, filter=_filter)
+        event = self.eventstore.get_event_by_id(self.project2.id, "f" * 32)
+        prev_event = self.eventstore.get_prev_event_id(event, filter=_filter)
+        next_event = self.eventstore.get_next_event_id(event, filter=_filter)
 
         assert prev_event == (str(self.project2.id), "e" * 32)
         assert next_event is None
 
-        with self.feature("organizations:performance-issues"):
-            event = self.eventstore.get_event_by_id(self.project2.id, "e" * 32)
-            prev_event = self.eventstore.get_prev_event_id(event, filter=_filter)
-            next_event = self.eventstore.get_next_event_id(event, filter=_filter)
+        event = self.eventstore.get_event_by_id(self.project2.id, "e" * 32)
+        prev_event = self.eventstore.get_prev_event_id(event, filter=_filter)
+        next_event = self.eventstore.get_next_event_id(event, filter=_filter)
 
         assert prev_event is None
         assert next_event == (str(self.project2.id), "f" * 32)

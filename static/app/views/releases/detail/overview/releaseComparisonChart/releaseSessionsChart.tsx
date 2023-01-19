@@ -1,6 +1,6 @@
 import {Component} from 'react';
 import {WithRouterProps} from 'react-router';
-import {withTheme} from '@emotion/react';
+import {Theme, withTheme} from '@emotion/react';
 import round from 'lodash/round';
 
 import {AreaChart, AreaChartProps} from 'sentry/components/charts/areaChart';
@@ -21,19 +21,16 @@ import {
   SessionStatus,
 } from 'sentry/types';
 import {defined} from 'sentry/utils';
-import {getDuration, getExactDuration} from 'sentry/utils/formatters';
 import {
   getCountSeries,
   getCrashFreeRateSeries,
-  getSessionP50Series,
   getSessionStatusRateSeries,
   initSessionsChart,
   MINUTES_THRESHOLD_TO_DISPLAY_SECONDS,
 } from 'sentry/utils/sessions';
-import {Theme} from 'sentry/utils/theme';
 // eslint-disable-next-line no-restricted-imports
 import withSentryRouter from 'sentry/utils/withSentryRouter';
-import {displayCrashFreePercent, roundDuration} from 'sentry/views/releases/utils';
+import {displayCrashFreePercent} from 'sentry/views/releases/utils';
 
 import {
   generateReleaseMarkLines,
@@ -83,10 +80,6 @@ class ReleaseSessionsChart extends Component<Props> {
       case ReleaseComparisonChartType.ERRORED_USERS:
       case ReleaseComparisonChartType.CRASHED_USERS:
         return defined(value) ? `${value}%` : '\u2015';
-      case ReleaseComparisonChartType.SESSION_DURATION:
-        return defined(value) && typeof value === 'number'
-          ? getExactDuration(value, true)
-          : '\u2015';
       case ReleaseComparisonChartType.SESSION_COUNT:
       case ReleaseComparisonChartType.USER_COUNT:
       default:
@@ -122,14 +115,6 @@ class ReleaseSessionsChart extends Component<Props> {
             color: theme.chartLabel,
           },
         };
-      case ReleaseComparisonChartType.SESSION_DURATION:
-        return {
-          scale: true,
-          axisLabel: {
-            formatter: (value: number) => getDuration(value, undefined, true),
-            color: theme.chartLabel,
-          },
-        };
       case ReleaseComparisonChartType.SESSION_COUNT:
       case ReleaseComparisonChartType.USER_COUNT:
       default:
@@ -155,7 +140,6 @@ class ReleaseSessionsChart extends Component<Props> {
       default:
         return AreaChart;
       case ReleaseComparisonChartType.SESSION_COUNT:
-      case ReleaseComparisonChartType.SESSION_DURATION:
       case ReleaseComparisonChartType.USER_COUNT:
         return StackedAreaChart;
     }
@@ -186,7 +170,6 @@ class ReleaseSessionsChart extends Component<Props> {
       case ReleaseComparisonChartType.CRASHED_USERS:
         return [theme.red300];
       case ReleaseComparisonChartType.SESSION_COUNT:
-      case ReleaseComparisonChartType.SESSION_DURATION:
       case ReleaseComparisonChartType.USER_COUNT:
       default:
         return undefined;
@@ -511,33 +494,6 @@ class ReleaseSessionsChart extends Component<Props> {
                   g => g.by['session.status'] === SessionStatus.CRASHED
                 ),
                 releaseSessions.intervals
-              ),
-            },
-          ],
-          markLines,
-        };
-      case ReleaseComparisonChartType.SESSION_DURATION:
-        return {
-          series: [
-            {
-              seriesName: t('This Release'),
-              connectNulls: true,
-              data: getSessionP50Series(
-                releaseSessions?.groups,
-                releaseSessions?.intervals,
-                SessionFieldWithOperation.DURATION,
-                duration => roundDuration(duration / 1000)
-              ),
-            },
-          ],
-          previousSeries: [
-            {
-              seriesName: t('All Releases'),
-              data: getSessionP50Series(
-                allSessions?.groups,
-                allSessions?.intervals,
-                SessionFieldWithOperation.DURATION,
-                duration => roundDuration(duration / 1000)
               ),
             },
           ],

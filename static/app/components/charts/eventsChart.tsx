@@ -1,6 +1,6 @@
 import * as React from 'react';
 import {InjectedRouter} from 'react-router';
-import {withTheme} from '@emotion/react';
+import {Theme, withTheme} from '@emotion/react';
 import type {
   EChartsOption,
   LegendComponentOption,
@@ -45,7 +45,6 @@ import {
   isEquation,
 } from 'sentry/utils/discover/fields';
 import {decodeList} from 'sentry/utils/queryString';
-import {Theme} from 'sentry/utils/theme';
 
 import EventsGeoRequest from './eventsGeoRequest';
 import EventsRequest from './eventsRequest';

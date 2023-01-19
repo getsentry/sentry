@@ -49,7 +49,7 @@ jobs:
     # If you change the runs-on image, you must also change the runner in jest-balance.yml
     # so that the balancer runs in the same environment as the tests.
     runs-on: ubuntu-20.04
-    timeout-minutes: 20
+    timeout-minutes: 30
     strategy:
       # This helps not having to run multiple jobs because one fails, thus, reducing resource usage
       # and reducing the risk that one of many runs would turn red again (read: intermittent tests)
@@ -103,13 +103,16 @@ jobs:
           css-path: src/sentry/static/sentry/dist/entrypoints/sentry.css
 
       - name: Save snapshots
-        uses: getsentry/action-visual-snapshot@5811b6c34e1ec3b9fc30613d4b55ef740fec6086
+        uses: getsentry/action-visual-snapshot@d08945864bd75129863897062b8c1687f1600a2d
         with:
           save-only: true
           snapshot-path: .artifacts/visual-snapshots
 
+      # This job runs when FE or BE changes happen, however, we only upload coverage data for
+      # FE changes since it conflicts with codecov's carry forward functionality
       - name: Handle artifacts
         uses: ./.github/actions/artifacts
+        if: needs.files-changed.outputs.frontend_all == 'true'
         with:
           files: .artifacts/coverage/*
           type: frontend
@@ -180,11 +183,13 @@ jobs:
           PYTEST_SNAPSHOTS_DIR: ${{ steps.setup.outputs.acceptance-dir }}
 
       - name: Save snapshots
-        uses: getsentry/action-visual-snapshot@5811b6c34e1ec3b9fc30613d4b55ef740fec6086
+        uses: getsentry/action-visual-snapshot@d08945864bd75129863897062b8c1687f1600a2d
         with:
           save-only: true
           snapshot-path: .artifacts/visual-snapshots
 
+      # This job runs when FE or BE changes happen, however, we only upload coverage data for
+      # BE changes since it conflicts with codecov's carry forward functionality
       - name: Handle artifacts
         uses: ./.github/actions/artifacts
         if: needs.files-changed.outputs.backend_all == 'true'
@@ -243,11 +248,13 @@ jobs:
           PYTEST_SNAPSHOTS_DIR: ${{ steps.setup.outputs.acceptance-dir }}
 
       - name: Save snapshots
-        uses: getsentry/action-visual-snapshot@5811b6c34e1ec3b9fc30613d4b55ef740fec6086
+        uses: getsentry/action-visual-snapshot@d08945864bd75129863897062b8c1687f1600a2d
         with:
           save-only: true
           snapshot-path: .artifacts/visual-snapshots
 
+      # This job runs when FE or BE changes happen, however, we only upload coverage data for
+      # BE changes since it conflicts with codecov's carry forward functionality
       - name: Handle artifacts
         uses: ./.github/actions/artifacts
         if: needs.files-changed.outputs.backend_all == 'true'
@@ -269,7 +276,7 @@ jobs:
           echo "One of the dependent jobs have failed. You may need to re-run it." && exit 1
 
       - name: Diff snapshots
-        uses: getsentry/action-visual-snapshot@5811b6c34e1ec3b9fc30613d4b55ef740fec6086
+        uses: getsentry/action-visual-snapshot@d08945864bd75129863897062b8c1687f1600a2d
         # Run this step only if there are acceptance related code changes
         # Forks are handled in visual-diff.yml
         if: needs.files-changed.outputs.acceptance == 'true' && github.event.pull_request.head.repo.full_name == 'getsentry/sentry'

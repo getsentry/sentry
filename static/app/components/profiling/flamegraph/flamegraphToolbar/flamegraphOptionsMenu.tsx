@@ -1,6 +1,6 @@
 import {Fragment, useMemo} from 'react';
 
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import CompositeSelect from 'sentry/components/compositeSelect';
 import {IconSliders} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -74,14 +74,15 @@ function FlamegraphOptionsMenu({
 }
 
 const X_AXIS: Record<FlamegraphPreferences['xAxis'], string> = {
-  standalone: t('Standalone'),
+  profile: t('Profile'),
   transaction: t('Transaction'),
 };
 
 const COLOR_CODINGS: Record<FlamegraphPreferences['colorCoding'], string> = {
   'by symbol name': t('By Symbol Name'),
   'by library': t('By Package'),
-  'by system / application': t('By System / Application'),
+  'by system frame': t('By System Frame'),
+  'by application frame': t('By Application Frame'),
   'by recursion': t('By Recursion'),
   'by frequency': t('By Frequency'),
 };

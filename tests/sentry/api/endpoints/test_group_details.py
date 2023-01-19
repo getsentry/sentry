@@ -21,17 +21,16 @@ from sentry.models import (
     GroupStatus,
     GroupSubscription,
     GroupTombstone,
-    Integration,
     Release,
 )
 from sentry.plugins.base import plugins
 from sentry.testutils import APITestCase, SnubaTestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
 from sentry.types.activity import ActivityType
 from sentry.types.issues import GroupType
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class GroupDetailsTest(APITestCase, SnubaTestCase):
     def test_with_numerical_id(self):
         self.login_as(user=self.user)
@@ -173,13 +172,13 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
 
     def test_integration_external_issue_annotation(self):
         group = self.create_group()
-        integration = Integration.objects.create(
+        integration = self.create_integration(
+            organization=group.organization,
             provider="jira",
             external_id="some_id",
             name="Hello world",
             metadata={"base_url": "https://example.com"},
         )
-        integration.add_organization(group.organization, self.user)
         self.create_integration_external_issue(group=group, integration=integration, key="api-123")
 
         self.login_as(user=self.user)
@@ -231,7 +230,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
             assert response.status_code == 429
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class GroupUpdateTest(APITestCase):
     def test_resolve(self):
         self.login_as(user=self.user)
@@ -391,7 +390,10 @@ class GroupUpdateTest(APITestCase):
         # hitting an endpoint that uses `client.{get,put,post}` to redirect to
         # another endpoint. This catches a regression that happened when
         # migrating to DRF 3.x.
-        api_key = ApiKey.objects.create(organization=self.organization, scope_list=["event:write"])
+        with exempt_from_silo_limits():
+            api_key = ApiKey.objects.create(
+                organization=self.organization, scope_list=["event:write"]
+            )
         group = self.create_group()
         url = f"/api/0/issues/{group.id}/"
 
@@ -547,7 +549,7 @@ class GroupUpdateTest(APITestCase):
             assert response.status_code == 429
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class GroupDeleteTest(APITestCase):
     def test_delete(self):
         self.login_as(user=self.user)

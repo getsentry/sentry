@@ -10,6 +10,7 @@ from sentry.integrations.client import ApiClient
 from sentry.integrations.github.utils import get_jwt, get_next_link
 from sentry.integrations.utils.code_mapping import Repo, RepoTree, filter_source_code_files
 from sentry.models import Integration, Repository
+from sentry.services.hybrid_cloud.integration import APIIntegration, integration_service
 from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.utils import jwt
 from sentry.utils.cache import cache
@@ -108,9 +109,12 @@ class GitHubClientMixin(ApiClient):  # type: ignore
                     f"The tree for {repo_full_name} has been truncated. Use different a approach for retrieving contents of tree."
                 )
             tree = contents["tree"]
-        except ApiError as e:
-            json_data: JSONData = e.json
-            msg: str = json_data.get("message")
+        except ApiError as error:
+            msg = error.text
+            if error.json:
+                json_data: JSONData = error.json
+                msg = json_data.get("message")
+
             # TODO: Add condition for  getsentry/DataForThePeople
             # e.g. getsentry/nextjs-sentry-example
             if msg == "Git Repository is empty.":
@@ -118,8 +122,8 @@ class GitHubClientMixin(ApiClient):  # type: ignore
             elif msg == "Not Found":
                 logger.warning(f"The Github App does not have access to {repo_full_name}.")
             else:
-                # Raise it so we can stop hammering the API
-                raise (e)
+                # Raise it so we stop hammering the API
+                raise error
 
         return tree
 
@@ -186,10 +190,13 @@ class GitHubClientMixin(ApiClient):  # type: ignore
                 repo_files = self.get_cached_repo_files(full_name, branch)
                 trees[full_name] = RepoTree(Repo(full_name, branch), repo_files)
             logger.info("Using cached trees for Github org.", extra=extra)
-        except ApiError as e:
-            json_data: JSONData = e.json
-            msg: str = json_data.get("message")
+        except ApiError as error:
+            msg = error.text
+            if error.json:
+                json_data: JSONData = error.json
+                msg = json_data.get("message")
             if msg.startswith("API rate limit exceeded for installation"):
+                # Report to Sentry; we will not continue
                 logger.exception("API rate limit exceeded. We will not hit it.")
         except Exception:
             # Reset the control cache in order to repopulate
@@ -321,6 +328,8 @@ class GitHubClientMixin(ApiClient):  # type: ignore
         Should the token have expired, a new token will be generated and
         automatically persisted into the integration.
         """
+        self.integration: APIIntegration
+
         token: str | None = self.integration.metadata.get("access_token")
         expires_at: str | None = self.integration.metadata.get("expires_at")
 
@@ -330,12 +339,16 @@ class GitHubClientMixin(ApiClient):  # type: ignore
             or (datetime.strptime(expires_at, "%Y-%m-%dT%H:%M:%S") < datetime.utcnow())
             or force_refresh
         ):
+            from copy import deepcopy
+
             res = self.create_token()
             token = res["token"]
             expires_at = datetime.strptime(res["expires_at"], "%Y-%m-%dT%H:%M:%SZ").isoformat()
-
-            self.integration.metadata.update({"access_token": token, "expires_at": expires_at})
-            self.integration.save()
+            new_metadata = deepcopy(self.integration.metadata)
+            new_metadata.update({"access_token": token, "expires_at": expires_at})
+            self.integration = integration_service.update_integration(  # type: ignore
+                integration_id=self.integration.id, metadata=new_metadata
+            )
 
         return token or ""
 

@@ -1,6 +1,4 @@
-import {css} from '@emotion/react';
-
-import {Theme} from 'sentry/utils/theme';
+import {css, Theme} from '@emotion/react';
 
 /**
  * Inner padding for inputs. This is deprecated. If necessary, use the values
@@ -43,7 +41,7 @@ const inputStyles = (props: Props) =>
     background: ${props.theme.background};
     border: 1px solid ${props.theme.border};
     border-radius: ${props.theme.borderRadius};
-    box-shadow: inset ${props.theme.dropShadowLight};
+    box-shadow: inset ${props.theme.dropShadowMedium};
     padding: ${INPUT_PADDING}px;
     resize: vertical;
     height: 40px;

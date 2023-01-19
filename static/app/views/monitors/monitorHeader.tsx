@@ -2,9 +2,11 @@ import styled from '@emotion/styled';
 
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 import {SectionHeading} from 'sentry/components/charts/styles';
+import Clipboard from 'sentry/components/clipboard';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import TimeSince from 'sentry/components/timeSince';
+import {IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 
@@ -26,7 +28,7 @@ const MonitorHeader = ({monitor, orgId, onUpdate}: Props) => {
   const crumbs = [
     {
       label: t('Crons'),
-      to: `/organizations/${orgId}/crons`,
+      to: `/organizations/${orgId}/crons/`,
     },
     {
       label: t('Cron Monitor Details'),
@@ -38,17 +40,19 @@ const MonitorHeader = ({monitor, orgId, onUpdate}: Props) => {
       <Layout.HeaderContent>
         <Breadcrumbs crumbs={crumbs} />
         <Layout.Title>
-          <MonitorName>
-            <IdBadge
-              project={monitor.project}
-              avatarSize={28}
-              hideName
-              avatarProps={{hasTooltip: true, tooltip: monitor.project.slug}}
-            />
-            {monitor.name}
-          </MonitorName>
+          <IdBadge
+            project={monitor.project}
+            avatarSize={28}
+            hideName
+            avatarProps={{hasTooltip: true, tooltip: monitor.project.slug}}
+          />
+          {monitor.name}
         </Layout.Title>
-        <MonitorId>{monitor.id}</MonitorId>
+        <Clipboard value={monitor.id}>
+          <MonitorId>
+            {monitor.id} <IconCopy size="xs" />
+          </MonitorId>
+        </Clipboard>
       </Layout.HeaderContent>
       <Layout.HeaderActions>
         <MonitorHeaderActions orgId={orgId} monitor={monitor} onUpdate={onUpdate} />
@@ -68,16 +72,10 @@ const MonitorHeader = ({monitor, orgId, onUpdate}: Props) => {
   );
 };
 
-const MonitorName = styled('div')`
-  display: grid;
-  grid-template-columns: max-content 1fr;
-  grid-column-gap: ${space(1)};
-  align-items: center;
-`;
-
 const MonitorId = styled('div')`
   margin-top: ${space(1)};
   color: ${p => p.theme.subText};
+  cursor: pointer;
 `;
 
 const MonitorStats = styled('div')`
@@ -87,6 +85,7 @@ const MonitorStats = styled('div')`
   grid-column-gap: ${space(4)};
   grid-row-gap: ${space(0.5)};
   margin-bottom: ${space(2)};
+  margin-top: ${space(1)};
 `;
 
 const MonitorStatLabel = styled(SectionHeading)`

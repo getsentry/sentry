@@ -75,12 +75,14 @@ function makeAllTheProviders({context, ...initializeOrgOptions}: ProviderOptions
 }
 
 /**
- * Migrating from enzyme?
- * Try avoiding unnecessary context and just mount your component. If it works, then you dont need anything else.
+ * Try avoiding unnecessary context and just mount your component. If it works,
+ * then you dont need anything else.
+ *
  * render(<TestedComponent />);
  *
- * If your component requires routerContext or organization to render, pass it via context options argument.
- * render(<TestedComponent />, {context: routerContext, organization});
+ * If your component requires routerContext or organization to render, pass it
+ * via context options argument. render(<TestedComponent />, {context:
+ * routerContext, organization});
  */
 function render(ui: React.ReactElement, options?: Options) {
   options = options ?? {};
@@ -110,7 +112,17 @@ function render(ui: React.ReactElement, options?: Options) {
 const fireEvent = rtl.fireEvent;
 
 function renderGlobalModal(options?: Options) {
-  return render(<GlobalModal />, options);
+  const result = render(<GlobalModal />, options);
+
+  /**
+   * Helper that waits for the modal to be removed from the DOM. You may need to
+   * wait for the modal to be removed to avoid any act warnings.
+   */
+  function waitForModalToHide() {
+    return rtl.waitForElementToBeRemoved(() => rtl.screen.getByRole('dialog'));
+  }
+
+  return {...result, waitForModalToHide};
 }
 
 /**

@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import capitalize from 'lodash/capitalize';
 
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct, tn} from 'sentry/locale';
 import {Organization, ResolutionStatusDetails} from 'sentry/types';
@@ -43,14 +43,13 @@ function getBulkConfirmMessage(action: string, queryCount: number) {
 
 function PerformanceIssueAlert({
   allInQuerySelected,
-  organization,
   children,
 }: {
   allInQuerySelected: boolean;
   children: string;
   organization: Organization;
 }) {
-  if (!allInQuerySelected || !organization.features.includes('performance-issues')) {
+  if (!allInQuerySelected) {
     return null;
   }
 

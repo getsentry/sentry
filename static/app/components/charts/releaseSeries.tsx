@@ -1,6 +1,6 @@
 import {Component} from 'react';
 import {WithRouterProps} from 'react-router';
-import {withTheme} from '@emotion/react';
+import {Theme, withTheme} from '@emotion/react';
 import {Query} from 'history';
 import isEqual from 'lodash/isEqual';
 import memoize from 'lodash/memoize';
@@ -16,7 +16,6 @@ import {escape} from 'sentry/utils';
 import {getFormattedDate, getUtcDateString} from 'sentry/utils/dates';
 import {formatVersion} from 'sentry/utils/formatters';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
-import {Theme} from 'sentry/utils/theme';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 // eslint-disable-next-line no-restricted-imports

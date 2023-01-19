@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
-import Alert from 'sentry/components/alert';
-import Button from 'sentry/components/button';
+import {Alert} from 'sentry/components/alert';
+import {Button} from 'sentry/components/button';
 import {Panel} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
 
@@ -28,7 +28,7 @@ function LoadingError({
       className={className}
       trailingItems={
         onRetry && (
-          <Button onClick={onRetry} type="button" priority="default" size="sm">
+          <Button onClick={onRetry} priority="default" size="sm">
             {t('Retry')}
           </Button>
         )

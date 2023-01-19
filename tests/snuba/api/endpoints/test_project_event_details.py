@@ -144,7 +144,7 @@ class ProjectEventDetailsTransactionTest(APITestCase, SnubaTestCase):
                 "event_id": "a" * 32,
                 "timestamp": four_min_ago,
                 "start_timestamp": four_min_ago,
-                "fingerprint": [f"{GroupType.PERFORMANCE_SLOW_SPAN.value}-group1"],
+                "fingerprint": [f"{GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN.value}-group1"],
             },
             project_id=project.id,
         )
@@ -155,7 +155,7 @@ class ProjectEventDetailsTransactionTest(APITestCase, SnubaTestCase):
                 "event_id": "b" * 32,
                 "timestamp": three_min_ago,
                 "start_timestamp": three_min_ago,
-                "fingerprint": [f"{GroupType.PERFORMANCE_SLOW_SPAN.value}-group1"],
+                "fingerprint": [f"{GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN.value}-group1"],
             },
             project_id=project.id,
         )
@@ -168,7 +168,7 @@ class ProjectEventDetailsTransactionTest(APITestCase, SnubaTestCase):
                 "start_timestamp": two_min_ago,
                 "environment": "production",
                 "tags": {"environment": "production"},
-                "fingerprint": [f"{GroupType.PERFORMANCE_SLOW_SPAN.value}-group1"],
+                "fingerprint": [f"{GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN.value}-group1"],
             },
             project_id=project.id,
         )
@@ -198,8 +198,7 @@ class ProjectEventDetailsTransactionTest(APITestCase, SnubaTestCase):
                 "organization_slug": self.cur_transaction_event.project.organization.slug,
             },
         )
-        with self.feature("organizations:performance-issues"):
-            response = self.client.get(url, format="json", data={"group_id": self.group.id})
+        response = self.client.get(url, format="json", data={"group_id": self.group.id})
 
         assert response.status_code == 200, response.content
         assert response.data["id"] == str(self.cur_transaction_event.event_id)
@@ -217,8 +216,7 @@ class ProjectEventDetailsTransactionTest(APITestCase, SnubaTestCase):
                 "organization_slug": self.prev_transaction_event.project.organization.slug,
             },
         )
-        with self.feature("organizations:performance-issues"):
-            response = self.client.get(url, format="json", data={"group_id": self.group.id})
+        response = self.client.get(url, format="json", data={"group_id": self.group.id})
 
         assert response.status_code == 200, response.content
         assert response.data["id"] == str(self.prev_transaction_event.event_id)
@@ -236,8 +234,7 @@ class ProjectEventDetailsTransactionTest(APITestCase, SnubaTestCase):
                 "organization_slug": self.next_transaction_event.project.organization.slug,
             },
         )
-        with self.feature("organizations:performance-issues"):
-            response = self.client.get(url, format="json", data={"group_id": self.group.id})
+        response = self.client.get(url, format="json", data={"group_id": self.group.id})
 
         assert response.status_code == 200, response.content
         assert response.data["id"] == str(self.next_transaction_event.event_id)
@@ -253,8 +250,7 @@ class ProjectEventDetailsTransactionTest(APITestCase, SnubaTestCase):
                 "organization_slug": self.cur_transaction_event.project.organization.slug,
             },
         )
-        with self.feature("organizations:performance-issues"):
-            response = self.client.get(url, format="json")
+        response = self.client.get(url, format="json")
 
         assert response.status_code == 200, response.content
         assert response.data["id"] == str(self.cur_transaction_event.event_id)

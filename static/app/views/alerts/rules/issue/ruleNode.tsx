@@ -2,8 +2,8 @@ import {Fragment, useCallback, useEffect} from 'react';
 import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import Alert from 'sentry/components/alert';
-import Button from 'sentry/components/button';
+import {Alert} from 'sentry/components/alert';
+import {Button} from 'sentry/components/button';
 import FeatureBadge from 'sentry/components/featureBadge';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import Input from 'sentry/components/input';
@@ -533,7 +533,6 @@ function RuleNode({
             <Button
               size="sm"
               icon={<IconSettings size="xs" />}
-              type="button"
               onClick={() =>
                 openModal(deps => (
                   <TicketRuleModal
@@ -556,7 +555,6 @@ function RuleNode({
             <Button
               size="sm"
               icon={<IconSettings size="xs" />}
-              type="button"
               disabled={Boolean(data.disabled) || disabled}
               onClick={() => {
                 openModal(
@@ -570,7 +568,7 @@ function RuleNode({
                       resetValues={data}
                     />
                   ),
-                  {allowClickClose: false}
+                  {closeEvents: 'escape-key'}
                 );
               }}
             >
@@ -582,7 +580,6 @@ function RuleNode({
           disabled={disabled}
           aria-label={t('Delete Node')}
           onClick={handleDelete}
-          type="button"
           size="sm"
           icon={<IconDelete />}
         />
@@ -648,7 +645,6 @@ const MarginlessAlert = styled(Alert)`
   border-top: 1px ${p => p.theme.innerBorder} solid;
   margin: 0;
   padding: ${space(1)} ${space(1)};
-  font-size: ${p => p.theme.fontSizeSmall};
 `;
 
 const StyledFeatureBadge = styled(FeatureBadge)`

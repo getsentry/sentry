@@ -209,11 +209,7 @@ const UtcPickerLabel = styled('label')`
   font-weight: normal;
   user-select: none;
   cursor: pointer;
-
-  input {
-    margin: 0 0 0 0.5em;
-    cursor: pointer;
-  }
+  gap: ${space(1)};
 `;
 
 export default SearchBarDatePicker;

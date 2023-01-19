@@ -51,7 +51,6 @@ function Exception({
           hasHierarchicalGrouping={hasHierarchicalGrouping}
           groupingCurrentLevel={groupingCurrentLevel}
           meta={meta}
-          projectId={projectId}
         />
       )}
     </ErrorBoundary>

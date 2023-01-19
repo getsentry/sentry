@@ -1,10 +1,10 @@
+import {Theme} from '@emotion/react';
 import type {XAXisComponentOption} from 'echarts';
 import merge from 'lodash/merge';
 
 import BaseChart from 'sentry/components/charts/baseChart';
 import {truncationFormatter, useShortInterval} from 'sentry/components/charts/utils';
 import {getFormattedDate, getTimeFormat} from 'sentry/utils/dates';
-import {Theme} from 'sentry/utils/theme';
 
 type ChartProps = React.ComponentProps<typeof BaseChart>;
 type HelperProps =

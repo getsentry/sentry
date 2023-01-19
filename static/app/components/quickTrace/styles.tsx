@@ -1,3 +1,4 @@
+import {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {LocationDescriptor} from 'history';
 
@@ -9,7 +10,6 @@ import Truncate from 'sentry/components/truncate';
 import space from 'sentry/styles/space';
 import {getDuration} from 'sentry/utils/formatters';
 import {QuickTraceEvent} from 'sentry/utils/performance/quickTrace/types';
-import {Theme} from 'sentry/utils/theme';
 
 export const SectionSubtext = styled('div')`
   color: ${p => p.theme.subText};

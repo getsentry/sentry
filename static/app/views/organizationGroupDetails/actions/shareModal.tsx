@@ -3,9 +3,9 @@ import styled from '@emotion/styled';
 
 import {bulkUpdate} from 'sentry/actionCreators/group';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {closeModal, ModalRenderProps} from 'sentry/actionCreators/modal';
+import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import AutoSelectText from 'sentry/components/autoSelectText';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Switch from 'sentry/components/switchButton';
 import {IconCopy, IconRefresh} from 'sentry/icons';
@@ -35,6 +35,7 @@ function ShareIssueModal({
   projectSlug,
   groupId,
   onToggle,
+  closeModal,
 }: ShareIssueModalProps) {
   const api = useApi({persistInFlight: true});
   const [loading, setLoading] = useState(false);
@@ -151,7 +152,6 @@ function ShareIssueModal({
       <Footer>
         {!loading && isShared && shareUrl ? (
           <Button
-            type="button"
             priority="primary"
             onClick={() => {
               navigator.clipboard.writeText(shareUrl);
@@ -162,7 +162,6 @@ function ShareIssueModal({
           </Button>
         ) : (
           <Button
-            type="button"
             priority="primary"
             onClick={() => {
               closeModal();

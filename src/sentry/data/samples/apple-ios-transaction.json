@@ -1,7 +1,6 @@
 {
   "event_id": "c5313ca3dc5b4ccf8956d81d4b9154bd",
   "project": 6426,
-  "release": "checkout-app@3.1",
   "dist": "1",
   "platform": "other",
   "message": "",
@@ -14,7 +13,6 @@
     ["os", "iOS 14.5"],
     ["os.name", "iOS"],
     ["dist", "1"],
-    ["release", "checkout-app@3.1"],
     ["user", "id:2017"],
     ["transaction", "iOS_Swift.ViewController"]
   ],

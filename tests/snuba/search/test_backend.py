@@ -10,6 +10,7 @@ from django.utils import timezone
 from sentry import options
 from sentry.api.issue_search import convert_query_values, issue_search_config, parse_search_query
 from sentry.exceptions import InvalidSearchQuery
+from sentry.issues.occurrence_consumer import process_event_and_issue_occurrence
 from sentry.models import (
     Environment,
     Group,
@@ -32,6 +33,7 @@ from sentry.testutils import SnubaTestCase, TestCase, xfail_if_not_postgres
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.types.issues import GroupType
 from sentry.utils.snuba import SENTRY_SNUBA_MAP, SnubaError
+from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 
 def date_to_query_format(date):
@@ -389,8 +391,7 @@ class EventsSnubaSearchTest(SharedSnubaTest):
         )
 
     def test_category(self):
-        with self.feature("organizations:performance-issues"):
-            results = self.make_query(search_filter_query="issue.category:error")
+        results = self.make_query(search_filter_query="issue.category:error")
         assert set(results) == {self.group1, self.group2}
 
         event_3 = self.store_event(
@@ -403,30 +404,24 @@ class EventsSnubaSearchTest(SharedSnubaTest):
         )
         group_3 = event_3.group
         group_3.update(type=GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value)
-        with self.feature("organizations:performance-issues"):
-            results = self.make_query(search_filter_query="issue.category:performance")
+        results = self.make_query(search_filter_query="issue.category:performance")
         assert set(results) == {group_3}
 
-        with self.feature("organizations:performance-issues"):
-            results = self.make_query(search_filter_query="issue.category:[error, performance]")
+        results = self.make_query(search_filter_query="issue.category:[error, performance]")
         assert set(results) == {self.group1, self.group2, group_3}
 
         with pytest.raises(InvalidSearchQuery):
-            with self.feature("organizations:performance-issues"):
-                self.make_query(search_filter_query="issue.category:hellboy")
+            self.make_query(search_filter_query="issue.category:hellboy")
 
     def test_not_perf_category(self):
-        with self.feature("organizations:performance-issues"):
-            results = self.make_query(search_filter_query="issue.category:error foo")
+        results = self.make_query(search_filter_query="issue.category:error foo")
         assert set(results) == {self.group1}
 
-        with self.feature("organizations:performance-issues"):
-            not_results = self.make_query(search_filter_query="!issue.category:performance foo")
+        not_results = self.make_query(search_filter_query="!issue.category:performance foo")
         assert set(not_results) == {self.group1}
 
     def test_type(self):
-        with self.feature("organizations:performance-issues"):
-            results = self.make_query(search_filter_query="issue.type:error")
+        results = self.make_query(search_filter_query="issue.type:error")
         assert set(results) == {self.group1, self.group2}
 
         event_3 = self.store_event(
@@ -441,10 +436,9 @@ class EventsSnubaSearchTest(SharedSnubaTest):
         group_3 = event_3.group
         group_3.update(type=GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value)
 
-        with self.feature("organizations:performance-issues"):
-            results = self.make_query(
-                search_filter_query="issue.type:performance_n_plus_one_db_queries"
-            )
+        results = self.make_query(
+            search_filter_query="issue.type:performance_n_plus_one_db_queries"
+        )
         assert set(results) == {group_3}
 
         event_4 = self.store_event(
@@ -456,20 +450,19 @@ class EventsSnubaSearchTest(SharedSnubaTest):
             project_id=self.project.id,
         )
         group_4 = event_4.group
-        group_4.update(type=GroupType.PERFORMANCE_SLOW_SPAN.value)
-        with self.feature("organizations:performance-issues"):
-            results = self.make_query(search_filter_query="issue.type:performance_slow_span")
+        group_4.update(type=GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN.value)
+        results = self.make_query(
+            search_filter_query="issue.type:performance_render_blocking_asset_span"
+        )
         assert set(results) == {group_4}
 
-        with self.feature("organizations:performance-issues"):
-            results = self.make_query(
-                search_filter_query="issue.type:[performance_slow_span, performance_n_plus_one_db_queries, error]"
-            )
+        results = self.make_query(
+            search_filter_query="issue.type:[performance_render_blocking_asset_span, performance_n_plus_one_db_queries, error]"
+        )
         assert set(results) == {self.group1, self.group2, group_3, group_4}
 
         with pytest.raises(InvalidSearchQuery):
-            with self.feature("organizations:performance-issues"):
-                self.make_query(search_filter_query="issue.type:performance_i_dont_exist")
+            self.make_query(search_filter_query="issue.type:performance_i_dont_exist")
 
     def test_status_with_environment(self):
         results = self.make_query(
@@ -2024,9 +2017,7 @@ class EventsSnubaSearchTest(SharedSnubaTest):
         )
 
         results = self.make_query(search_filter_query="!message:else")
-
-        with self.feature("organizations:performance-issues"):
-            results2 = self.make_query(search_filter_query="!message:else")
+        results2 = self.make_query(search_filter_query="!message:else")
 
         assert list(results) == list(results2)
 
@@ -2055,7 +2046,7 @@ class EventsTransactionsSnubaSearchTest(SharedSnubaTest):
                 "timestamp": iso_format(before_now(minutes=1)),
                 "start_timestamp": iso_format(before_now(minutes=1)),
                 "tags": {"my_tag": 1},
-                "fingerprint": [f"{GroupType.PERFORMANCE_SLOW_SPAN.value}-group1"],
+                "fingerprint": [f"{GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN.value}-group1"],
             },
             project_id=self.project.id,
         )
@@ -2068,7 +2059,7 @@ class EventsTransactionsSnubaSearchTest(SharedSnubaTest):
                 "timestamp": iso_format(before_now(minutes=2)),
                 "start_timestamp": iso_format(before_now(minutes=2)),
                 "tags": {"my_tag": 1},
-                "fingerprint": [f"{GroupType.PERFORMANCE_SLOW_SPAN.value}-group2"],
+                "fingerprint": [f"{GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN.value}-group2"],
             },
             project_id=self.project.id,
         )
@@ -2109,29 +2100,25 @@ class EventsTransactionsSnubaSearchTest(SharedSnubaTest):
         self.error_group_2 = error_event_2.group
 
     def test_performance_query(self):
-        with self.feature("organizations:performance-issues"):
-            results = self.make_query(search_filter_query="issue.category:performance my_tag:1")
+        results = self.make_query(search_filter_query="issue.category:performance my_tag:1")
         assert list(results) == [self.perf_group_1, self.perf_group_2]
 
-        with self.feature("organizations:performance-issues"):
-            results = self.make_query(
-                search_filter_query="issue.type:[performance_n_plus_one_db_queries, performance_slow_span] my_tag:1"
-            )
+        results = self.make_query(
+            search_filter_query="issue.type:[performance_n_plus_one_db_queries, performance_render_blocking_asset_span] my_tag:1"
+        )
         assert list(results) == [self.perf_group_1, self.perf_group_2]
 
     def test_error_performance_query(self):
-        with self.feature("organizations:performance-issues"):
-            results = self.make_query(search_filter_query="my_tag:1")
+        results = self.make_query(search_filter_query="my_tag:1")
         assert list(results) == [
             self.perf_group_1,
             self.perf_group_2,
             self.error_group_2,
             self.error_group_1,
         ]
-        with self.feature("organizations:performance-issues"):
-            results = self.make_query(
-                search_filter_query="issue.category:[performance, error] my_tag:1"
-            )
+        results = self.make_query(
+            search_filter_query="issue.category:[performance, error] my_tag:1"
+        )
         assert list(results) == [
             self.perf_group_1,
             self.perf_group_2,
@@ -2139,10 +2126,9 @@ class EventsTransactionsSnubaSearchTest(SharedSnubaTest):
             self.error_group_1,
         ]
 
-        with self.feature("organizations:performance-issues"):
-            results = self.make_query(
-                search_filter_query="issue.type:[performance_slow_span, error] my_tag:1"
-            )
+        results = self.make_query(
+            search_filter_query="issue.type:[performance_render_blocking_asset_span, error] my_tag:1"
+        )
         assert list(results) == [
             self.perf_group_1,
             self.perf_group_2,
@@ -2151,39 +2137,36 @@ class EventsTransactionsSnubaSearchTest(SharedSnubaTest):
         ]
 
     def test_cursor_performance_issues(self):
-        with self.feature("organizations:performance-issues"):
-            results = self.make_query(
-                projects=[self.project],
-                search_filter_query="issue.category:performance my_tag:1",
-                sort_by="date",
-                limit=1,
-                count_hits=True,
-            )
+        results = self.make_query(
+            projects=[self.project],
+            search_filter_query="issue.category:performance my_tag:1",
+            sort_by="date",
+            limit=1,
+            count_hits=True,
+        )
 
         assert list(results) == [self.perf_group_1]
         assert results.hits == 2
 
-        with self.feature("organizations:performance-issues"):
-            results = self.make_query(
-                projects=[self.project],
-                search_filter_query="issue.category:performance my_tag:1",
-                sort_by="date",
-                limit=1,
-                cursor=results.next,
-                count_hits=True,
-            )
+        results = self.make_query(
+            projects=[self.project],
+            search_filter_query="issue.category:performance my_tag:1",
+            sort_by="date",
+            limit=1,
+            cursor=results.next,
+            count_hits=True,
+        )
         assert list(results) == [self.perf_group_2]
         assert results.hits == 2
 
-        with self.feature("organizations:performance-issues"):
-            results = self.make_query(
-                projects=[self.project],
-                search_filter_query="issue.category:performance my_tag:1",
-                sort_by="date",
-                limit=1,
-                cursor=results.next,
-                count_hits=True,
-            )
+        results = self.make_query(
+            projects=[self.project],
+            search_filter_query="issue.category:performance my_tag:1",
+            sort_by="date",
+            limit=1,
+            cursor=results.next,
+            count_hits=True,
+        )
         assert list(results) == []
         assert results.hits == 2
 
@@ -2199,7 +2182,9 @@ class EventsTransactionsSnubaSearchTest(SharedSnubaTest):
                 "level": "info",
                 "culprit": "app/components/events/eventEntries in map",
                 "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
-                "fingerprint": [f"{GroupType.PERFORMANCE_SLOW_SPAN.value}-group12"],
+                "fingerprint": [
+                    f"{GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN.value}-group12"
+                ],
                 "event_id": "e" * 32,
                 "timestamp": iso_format(self.base_datetime),
                 "start_timestamp": iso_format(self.base_datetime),
@@ -2212,7 +2197,7 @@ class EventsTransactionsSnubaSearchTest(SharedSnubaTest):
         created_group = tx.groups[0]
 
         find_group = Group.objects.filter(
-            Q(type=GroupType.PERFORMANCE_SLOW_SPAN.value, message__icontains="tea")
+            Q(type=GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN.value, message__icontains="tea")
         ).first()
 
         assert created_group == find_group
@@ -2232,14 +2217,11 @@ class EventsTransactionsSnubaSearchTest(SharedSnubaTest):
         assert result["data"][0]["transaction_name"] == transaction_name
         assert result["data"][0]["group_ids"] == [created_group.id]
 
-        with self.feature("organizations:performance-issues"):
-            results = self.make_query(search_filter_query="issue.category:performance tea")
-            assert set(results) == {created_group}
+        results = self.make_query(search_filter_query="issue.category:performance tea")
+        assert set(results) == {created_group}
 
-            results2 = self.make_query(search_filter_query="tea")
-            assert set(results2) == {created_group}
-
-        assert not self.make_query(search_filter_query="issue.category:performance tea")
+        results2 = self.make_query(search_filter_query="tea")
+        assert set(results2) == {created_group}
 
     def test_search_message_error_and_perf_issues(self):
         tx = self.store_event(
@@ -2247,7 +2229,9 @@ class EventsTransactionsSnubaSearchTest(SharedSnubaTest):
                 "level": "info",
                 "culprit": "app/components/events/eventEntries in map",
                 "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
-                "fingerprint": [f"{GroupType.PERFORMANCE_SLOW_SPAN.value}-group12"],
+                "fingerprint": [
+                    f"{GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN.value}-group12"
+                ],
                 "event_id": "e" * 32,
                 "timestamp": iso_format(self.base_datetime),
                 "start_timestamp": iso_format(self.base_datetime),
@@ -2276,13 +2260,15 @@ class EventsTransactionsSnubaSearchTest(SharedSnubaTest):
 
         assert error_issue != perf_issue
 
-        with self.feature("organizations:performance-issues"):
-            assert set(self.make_query(search_filter_query="is:unresolved /api/0/events")) == {
-                perf_issue,
-                error_issue,
-            }
+        assert set(self.make_query(search_filter_query="is:unresolved /api/0/events")) == {
+            perf_issue,
+            error_issue,
+        }
 
-        assert set(self.make_query(search_filter_query="/api/0/events")) == {error_issue}
+        assert set(self.make_query(search_filter_query="/api/0/events")) == {
+            error_issue,
+            perf_issue,
+        }
 
     def test_compound_message_negation(self):
         self.store_event(
@@ -2300,7 +2286,9 @@ class EventsTransactionsSnubaSearchTest(SharedSnubaTest):
                 "level": "info",
                 "culprit": "app/components/events/eventEntries in map",
                 "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
-                "fingerprint": [f"{GroupType.PERFORMANCE_SLOW_SPAN.value}-group12"],
+                "fingerprint": [
+                    f"{GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN.value}-group12"
+                ],
                 "event_id": "e" * 32,
                 "timestamp": iso_format(self.base_datetime),
                 "start_timestamp": iso_format(self.base_datetime),
@@ -2310,12 +2298,180 @@ class EventsTransactionsSnubaSearchTest(SharedSnubaTest):
             project_id=self.project.id,
         )
 
-        error_issues_only = self.make_query(search_filter_query="!message:else")
-
-        with self.feature("organizations:performance-issues"):
-            error_and_perf_issues = self.make_query(search_filter_query="!message:else")
+        error_issues_only = self.make_query(
+            search_filter_query="!message:else group.category:error"
+        )
+        error_and_perf_issues = self.make_query(search_filter_query="!message:else")
 
         assert set(error_and_perf_issues) > set(error_issues_only)
+
+
+class EventsGenericSnubaSearchTest(SharedSnubaTest, OccurrenceTestMixin):
+    @property
+    def backend(self):
+        return EventsDatasetSnubaSearchBackend()
+
+    def setUp(self):
+        super().setUp()
+        self.base_datetime = (datetime.utcnow() - timedelta(days=3)).replace(tzinfo=pytz.utc)
+
+        _, group_info = process_event_and_issue_occurrence(
+            self.build_occurrence_data(),
+            {
+                "event_id": uuid.uuid4().hex,
+                "project_id": self.project.id,
+                "title": "some problem",
+                "platform": "python",
+                "tags": {"my_tag": "1"},
+                "timestamp": before_now(minutes=1).isoformat(),
+                "received": before_now(minutes=1).isoformat(),
+            },
+        )
+        self.profile_group_1 = group_info.group
+
+        _, group_info = process_event_and_issue_occurrence(
+            self.build_occurrence_data(fingerprint=["put-me-in-group-2"]),
+            {
+                "event_id": uuid.uuid4().hex,
+                "project_id": self.project.id,
+                "title": "some other problem",
+                "platform": "python",
+                "tags": {"my_tag": "1"},
+                "timestamp": before_now(minutes=2).isoformat(),
+                "received": before_now(minutes=2).isoformat(),
+            },
+        )
+        self.profile_group_2 = group_info.group
+
+        process_event_and_issue_occurrence(
+            self.build_occurrence_data(fingerprint=["put-me-in-group-3"]),
+            {
+                "event_id": uuid.uuid4().hex,
+                "project_id": self.project.id,
+                "title": "some other problem",
+                "platform": "python",
+                "tags": {"my_tag": "2"},
+                "timestamp": before_now(minutes=2).isoformat(),
+                "message_timestamp": before_now(minutes=2).isoformat(),
+            },
+        )
+
+        error_event_data = {
+            "timestamp": iso_format(self.base_datetime - timedelta(days=20)),
+            "message": "bar",
+            "environment": "staging",
+            "tags": {
+                "server": "example.com",
+                "url": "http://example.com",
+                "sentry:user": "event2@example.com",
+                "my_tag": 1,
+            },
+        }
+
+        error_event = self.store_event(
+            data={
+                **error_event_data,
+                "fingerprint": ["put-me-in-error_group_1"],
+                "event_id": "c" * 32,
+                "stacktrace": {"frames": [{"module": "error_group_1"}]},
+            },
+            project_id=self.project.id,
+        )
+        self.error_group_1 = error_event.group
+
+        error_event_2 = self.store_event(
+            data={
+                **error_event_data,
+                "fingerprint": ["put-me-in-error_group_2"],
+                "event_id": "d" * 32,
+                "stacktrace": {"frames": [{"module": "error_group_2"}]},
+            },
+            project_id=self.project.id,
+        )
+        self.error_group_2 = error_event_2.group
+
+    def test_no_feature(self):
+        results = self.make_query(search_filter_query="issue.category:profile my_tag:1")
+        assert list(results) == []
+
+    def test_generic_query(self):
+        with self.feature("organizations:issue-platform"):
+            results = self.make_query(search_filter_query="issue.category:profile my_tag:1")
+        assert list(results) == [self.profile_group_1, self.profile_group_2]
+
+        with self.feature("organizations:issue-platform"):
+            results = self.make_query(
+                search_filter_query="issue.type:profile_blocked_thread my_tag:1"
+            )
+        assert list(results) == [self.profile_group_1, self.profile_group_2]
+
+    def test_error_generic_query(self):
+        with self.feature("organizations:issue-platform"):
+            results = self.make_query(search_filter_query="my_tag:1")
+        assert list(results) == [
+            self.profile_group_1,
+            self.profile_group_2,
+            self.error_group_2,
+            self.error_group_1,
+        ]
+        with self.feature("organizations:issue-platform"):
+            results = self.make_query(
+                search_filter_query="issue.category:[profile, error] my_tag:1"
+            )
+        assert list(results) == [
+            self.profile_group_1,
+            self.profile_group_2,
+            self.error_group_2,
+            self.error_group_1,
+        ]
+
+        with self.feature("organizations:issue-platform"):
+            results = self.make_query(
+                search_filter_query="issue.type:[profile_blocked_thread, error] my_tag:1"
+            )
+        assert list(results) == [
+            self.profile_group_1,
+            self.profile_group_2,
+            self.error_group_2,
+            self.error_group_1,
+        ]
+
+    def test_cursor_performance_issues(self):
+        with self.feature("organizations:issue-platform"):
+            results = self.make_query(
+                projects=[self.project],
+                search_filter_query="issue.category:profile my_tag:1",
+                sort_by="date",
+                limit=1,
+                count_hits=True,
+            )
+
+        assert list(results) == [self.profile_group_1]
+        assert results.hits == 2
+
+        with self.feature("organizations:issue-platform"):
+            results = self.make_query(
+                projects=[self.project],
+                search_filter_query="issue.category:profile my_tag:1",
+                sort_by="date",
+                limit=1,
+                cursor=results.next,
+                count_hits=True,
+            )
+        assert list(results) == [self.profile_group_2]
+        assert results.hits == 2
+
+        with self.feature("organizations:issue-platform"):
+            results = self.make_query(
+                projects=[self.project],
+                search_filter_query="issue.category:profile my_tag:1",
+                sort_by="date",
+                limit=1,
+                cursor=results.next,
+                count_hits=True,
+            )
+        assert list(results) == []
+        assert results.hits == 2
 
 
 class CdcEventsSnubaSearchTest(SharedSnubaTest):

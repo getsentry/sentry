@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {ModalRenderProps, openModal} from 'sentry/actionCreators/modal';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
@@ -189,7 +189,6 @@ class AdminUserEdit extends AsyncView<Props, State> {
           }}
           extraButton={
             <Button
-              type="button"
               onClick={openDeleteModal}
               style={{marginLeft: space(1)}}
               priority="danger"

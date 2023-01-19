@@ -108,6 +108,34 @@ export function getDeviceKnownDataDetails({
               )
             : undefined,
       };
+    case DeviceContextKey.FREE_STORAGE: {
+      return {
+        subject: t('Free Storage'),
+        value: data.free_storage ? <FileSize bytes={data.free_storage} /> : undefined,
+      };
+    }
+    case DeviceContextKey.STORAGE_SIZE: {
+      return {
+        subject: t('Storage Size'),
+        value: data.storage_size ? <FileSize bytes={data.storage_size} /> : undefined,
+      };
+    }
+    case DeviceContextKey.EXTERNAL_STORAGE_SIZE: {
+      return {
+        subject: t('External Storage Size'),
+        value: data.external_storage_size ? (
+          <FileSize bytes={data.external_storage_size} />
+        ) : undefined,
+      };
+    }
+    case DeviceContextKey.EXTERNAL_FREE_STORAGE: {
+      return {
+        subject: t('External Free Storage'),
+        value: data.external_free_storage ? (
+          <FileSize bytes={data.external_free_storage} />
+        ) : undefined,
+      };
+    }
     case DeviceContextKey.SIMULATOR:
       return {
         subject: t('Simulator'),

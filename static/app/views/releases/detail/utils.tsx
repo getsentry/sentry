@@ -1,3 +1,4 @@
+import {Theme} from '@emotion/react';
 import {Location} from 'history';
 import pick from 'lodash/pick';
 import moment from 'moment';
@@ -17,7 +18,6 @@ import {
 } from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {decodeList} from 'sentry/utils/queryString';
-import {Theme} from 'sentry/utils/theme';
 
 import {getReleaseBounds, getReleaseParams, isMobileRelease} from '../utils';
 import {commonTermsDescription, SessionTerm} from '../utils/sessionTerm';
@@ -116,7 +116,6 @@ export const releaseComparisonChartLabels = {
   [ReleaseComparisonChartType.ERRORED_USERS]: t('Errored'),
   [ReleaseComparisonChartType.CRASHED_USERS]: t('Crashed User Rate'),
   [ReleaseComparisonChartType.SESSION_COUNT]: t('Session Count'),
-  [ReleaseComparisonChartType.SESSION_DURATION]: t('Session Duration p50'),
   [ReleaseComparisonChartType.USER_COUNT]: t('User Count'),
   [ReleaseComparisonChartType.ERROR_COUNT]: t('Error Count'),
   [ReleaseComparisonChartType.TRANSACTION_COUNT]: t('Transaction Count'),
@@ -135,7 +134,6 @@ export const releaseComparisonChartTitles = {
   [ReleaseComparisonChartType.ERRORED_USERS]: t('Errored User Rate'),
   [ReleaseComparisonChartType.CRASHED_USERS]: t('Crashed User Rate'),
   [ReleaseComparisonChartType.SESSION_COUNT]: t('Session Count'),
-  [ReleaseComparisonChartType.SESSION_DURATION]: t('Session Duration'),
   [ReleaseComparisonChartType.USER_COUNT]: t('User Count'),
   [ReleaseComparisonChartType.ERROR_COUNT]: t('Error Count'),
   [ReleaseComparisonChartType.TRANSACTION_COUNT]: t('Transaction Count'),

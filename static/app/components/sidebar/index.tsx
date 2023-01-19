@@ -14,7 +14,6 @@ import {
   IconDashboard,
   IconIssues,
   IconLightning,
-  IconList,
   IconPlay,
   IconProfiling,
   IconProject,
@@ -40,7 +39,7 @@ import {getDiscoverLandingUrl} from 'sentry/utils/discover/urls';
 import theme from 'sentry/utils/theme';
 import useMedia from 'sentry/utils/useMedia';
 
-import {ProfilingOnboardingSidebar} from '../profiling/ProfilingOnboarding/proflingOnboardingSidebar';
+import {ProfilingOnboardingSidebar} from '../profiling/ProfilingOnboarding/profilingOnboardingSidebar';
 
 import Broadcasts from './broadcasts';
 import SidebarHelp from './help';
@@ -292,16 +291,6 @@ function Sidebar({location, organization}: Props) {
     </Feature>
   );
 
-  const activity = hasOrganization && (
-    <SidebarItem
-      {...sidebarItemProps}
-      icon={<IconList size="md" />}
-      label={t('Activity')}
-      to={`/organizations/${organization.slug}/activity/`}
-      id="activity"
-    />
-  );
-
   const stats = hasOrganization && (
     <SidebarItem
       {...sidebarItemProps}
@@ -339,25 +328,29 @@ function Sidebar({location, organization}: Props) {
           {hasOrganization && (
             <Fragment>
               <SidebarSection>
-                {projects}
                 {issues}
-                {performance}
-                {profiling}
-                {releases}
-                {replays}
-                {monitors}
-                {userFeedback}
-                {alerts}
-                {discover2}
-                {dashboards}
+                {projects}
               </SidebarSection>
 
               <SidebarSection>
-                {activity}
-                {stats}
+                {performance}
+                {profiling}
+                {replays}
+                {monitors}
+                {alerts}
               </SidebarSection>
 
-              <SidebarSection>{settings}</SidebarSection>
+              <SidebarSection>
+                {discover2}
+                {dashboards}
+                {releases}
+                {userFeedback}
+              </SidebarSection>
+
+              <SidebarSection>
+                {stats}
+                {settings}
+              </SidebarSection>
             </Fragment>
           )}
         </PrimaryItems>

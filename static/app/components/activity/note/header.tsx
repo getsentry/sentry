@@ -1,3 +1,4 @@
+import {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import ActivityAuthor from 'sentry/components/activity/author';
@@ -6,7 +7,6 @@ import Tooltip from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {User} from 'sentry/types';
-import {Theme} from 'sentry/utils/theme';
 
 import EditorTools from './editorTools';
 

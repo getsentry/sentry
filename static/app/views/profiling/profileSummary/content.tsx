@@ -93,7 +93,7 @@ function ProfileSummaryContent(props: ProfileSummaryContentProps) {
     value => {
       browserHistory.push({
         ...props.location,
-        query: {...props.location.query, sort: value},
+        query: {...props.location.query, cursor: undefined, sort: value},
       });
     },
     [props.location]

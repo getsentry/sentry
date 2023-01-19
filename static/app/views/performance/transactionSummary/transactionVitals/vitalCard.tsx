@@ -1,11 +1,11 @@
 import {Component} from 'react';
-import {withTheme} from '@emotion/react';
+import {Theme, withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import throttle from 'lodash/throttle';
 
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import {BarChart, BarChartSeries} from 'sentry/components/charts/barChart';
 import BarChartZoom from 'sentry/components/charts/barChartZoom';
 import MarkLine from 'sentry/components/charts/components/markLine';
@@ -27,7 +27,6 @@ import {
 } from 'sentry/utils/performance/histogram/utils';
 import {Vital} from 'sentry/utils/performance/vitals/types';
 import {VitalData} from 'sentry/utils/performance/vitals/vitalsCardsDiscoverQuery';
-import {Theme} from 'sentry/utils/theme';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {EventsDisplayFilterName} from 'sentry/views/performance/transactionSummary/transactionEvents/utils';
 

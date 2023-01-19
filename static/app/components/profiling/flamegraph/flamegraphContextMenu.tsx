@@ -30,14 +30,15 @@ import useProjects from 'sentry/utils/useProjects';
 
 const FLAMEGRAPH_COLOR_CODINGS: FlamegraphColorCodings = [
   'by symbol name',
-  'by system / application',
+  'by system frame',
+  'by application frame',
   'by library',
   'by recursion',
   'by frequency',
 ];
-const FLAMEGRAPH_VIEW_OPTIONS: FlamegraphViewOptions = ['top down', 'bottom up'];
-const FLAMEGRAPH_SORTING_OPTIONS: FlamegraphSorting = ['left heavy', 'call order'];
-const FLAMEGRAPH_AXIS_OPTIONS: FlamegraphAxisOptions = ['standalone', 'transaction'];
+const FLAMEGRAPH_VIEW_OPTIONS: FlamegraphViewOptions[] = ['top down', 'bottom up'];
+const FLAMEGRAPH_SORTING_OPTIONS: FlamegraphSorting[] = ['left heavy', 'call order'];
+const FLAMEGRAPH_AXIS_OPTIONS: FlamegraphAxisOptions[] = ['profile', 'transaction'];
 
 interface FlamegraphContextMenuProps {
   contextMenu: ReturnType<typeof useContextMenu>;

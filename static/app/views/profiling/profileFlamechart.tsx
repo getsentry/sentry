@@ -1,7 +1,8 @@
-import {Fragment, useEffect, useMemo} from 'react';
+import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
+import * as qs from 'query-string';
 
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Flamegraph} from 'sentry/components/profiling/flamegraph/flamegraph';
 import {ProfileDragDropImportProps} from 'sentry/components/profiling/flamegraph/flamegraphOverlays/profileDragDropImport';
@@ -24,29 +25,32 @@ import {FlamegraphThemeProvider} from 'sentry/utils/profiling/flamegraph/flamegr
 import {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
 import {Profile} from 'sentry/utils/profiling/profile/profile';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
-import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
-import {useProfileGroup} from './profileGroupProvider';
+import {useProfileGroup, useSetProfileGroup} from './profileGroupProvider';
 
 const LoadingGroup: ProfileGroup = {
   name: 'Loading',
   activeProfileIndex: 0,
   transactionID: null,
   metadata: {},
+  measurements: {},
   traceID: '',
   profiles: [Profile.Empty],
 };
 
 function ProfileFlamegraph(): React.ReactElement {
-  const location = useLocation();
   const organization = useOrganization();
-  const [profileGroup, setProfileGroup] = useProfileGroup();
+  const profileGroup = useProfileGroup();
+  const setProfileGroup = useSetProfileGroup();
 
   const [storedPreferences] = useLocalStorageState<DeepPartial<FlamegraphState>>(
     FLAMEGRAPH_LOCALSTORAGE_PREFERENCES_KEY,
     {
-      preferences: {layout: DEFAULT_FLAMEGRAPH_STATE.preferences.layout},
+      preferences: {
+        layout: DEFAULT_FLAMEGRAPH_STATE.preferences.layout,
+        view: DEFAULT_FLAMEGRAPH_STATE.preferences.view,
+      },
     }
   );
 
@@ -56,18 +60,27 @@ function ProfileFlamegraph(): React.ReactElement {
     });
   }, [organization]);
 
-  const onImport: ProfileDragDropImportProps['onImport'] = profiles => {
-    setProfileGroup({type: 'resolved', data: profiles});
-  };
+  const onImport: ProfileDragDropImportProps['onImport'] = useCallback(
+    profiles => {
+      setProfileGroup({type: 'resolved', data: profiles});
+    },
+    [setProfileGroup]
+  );
 
   const initialFlamegraphPreferencesState = useMemo((): DeepPartial<FlamegraphState> => {
-    const queryStringState = decodeFlamegraphStateFromQueryParams(location.query);
+    const queryStringState = decodeFlamegraphStateFromQueryParams(
+      qs.parse(window.location.search)
+    );
 
     return {
       ...queryStringState,
       preferences: {
         ...storedPreferences.preferences,
         ...queryStringState.preferences,
+        timelines: {
+          ...DEFAULT_FLAMEGRAPH_STATE.preferences.timelines,
+          ...(storedPreferences?.preferences?.timelines ?? {}),
+        },
         layout:
           storedPreferences?.preferences?.layout ??
           queryStringState.preferences?.layout ??

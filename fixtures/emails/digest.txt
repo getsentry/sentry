@@ -1,6 +1,23 @@
 Notifications for example
 June 22, 2016, 4:16 p.m. UTC to July 4, 2016, 2:18 p.m. UTC
 
+Rule #3
+
+* DecidingKoiError: faithful hookworm top sharp filly merely sought trivially (8193 events, 9186 users)
+  http://testserver/organizations/example/issues/2/?referrer=digest_email
+
+* something bad happened (5113 events, 5954 users)
+  http://testserver/organizations/example/issues/201/?referrer=digest_email
+
+* N+1 Query (4418 events, 3851 users)
+  http://testserver/organizations/example/issues/100/?referrer=digest_email
+
+* SnailError: molly engaged wahoo feline hedgehog salmon novel boxer polecat (920 events, 5856 users)
+  http://testserver/organizations/example/issues/3/?referrer=digest_email
+
+* something bad happened (349 events, 6979 users)
+  http://testserver/organizations/example/issues/200/?referrer=digest_email
+
 Rule #2
 
 * DecidingKoiError: faithful hookworm top sharp filly merely sought trivially (8193 events, 9186 users)
@@ -15,27 +32,25 @@ Rule #2
 * SnailError: molly engaged wahoo feline hedgehog salmon novel boxer polecat (920 events, 5856 users)
   http://testserver/organizations/example/issues/3/?referrer=digest_email
 
-Rule #3
-
-* DecidingKoiError: faithful hookworm top sharp filly merely sought trivially (8193 events, 9186 users)
-  http://testserver/organizations/example/issues/2/?referrer=digest_email
-
-* N+1 Query (4418 events, 3851 users)
-  http://testserver/organizations/example/issues/100/?referrer=digest_email
-
-* SnailError: molly engaged wahoo feline hedgehog salmon novel boxer polecat (920 events, 5856 users)
-  http://testserver/organizations/example/issues/3/?referrer=digest_email
+* something bad happened (349 events, 6979 users)
+  http://testserver/organizations/example/issues/200/?referrer=digest_email
 
 Rule #1
 
 * DecidingKoiError: faithful hookworm top sharp filly merely sought trivially (8193 events, 9186 users)
   http://testserver/organizations/example/issues/2/?referrer=digest_email
 
+* something bad happened (5113 events, 5954 users)
+  http://testserver/organizations/example/issues/201/?referrer=digest_email
+
 * N+1 Query (4418 events, 3851 users)
   http://testserver/organizations/example/issues/100/?referrer=digest_email
 
 * SnailError: molly engaged wahoo feline hedgehog salmon novel boxer polecat (920 events, 5856 users)
   http://testserver/organizations/example/issues/3/?referrer=digest_email
+
+* something bad happened (349 events, 6979 users)
+  http://testserver/organizations/example/issues/200/?referrer=digest_email
 
 
 
