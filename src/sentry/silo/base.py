@@ -120,6 +120,9 @@ class SiloLimit(abc.ABC):
 
     def is_available(self, extra_modes: Iterable[SiloMode] = ()) -> bool:
         return True
+
+        # TODO: Un-comment this block and remove `skip` from SiloModeTest
+
         # current_mode = SiloMode.get_current_mode()
         # return (
         #     current_mode == SiloMode.MONOLITH
