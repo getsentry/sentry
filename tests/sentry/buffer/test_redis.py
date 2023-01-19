@@ -163,10 +163,15 @@ class TestRedisBuffer:
     @mock.patch("sentry.buffer.redis.process_pending")
     def test_process_pending_partitions_none(self, process_pending, process_incr):
         self.buf.pending_partitions = 2
-        with self.buf.cluster.map() as client:
-            client.zadd("b:p:0", {"foo": 1})
-            client.zadd("b:p:1", {"bar": 1})
-            client.zadd("b:p", {"baz": 1})
+        if self.buf.is_redis_cluster:
+            self.buf.cluster.zadd("b:p:0", {"foo": 1})
+            self.buf.cluster.zadd("b:p:1", {"bar": 1})
+            self.buf.cluster.zadd("b:p", {"baz": 1})
+        else:
+            with self.buf.cluster.map() as client:
+                client.zadd("b:p:0", {"foo": 1})
+                client.zadd("b:p:1", {"bar": 1})
+                client.zadd("b:p", {"baz": 1})
 
         # On first pass, we are expecting to do:
         # * process the buffer that doesn't have a partition (b:p)
@@ -207,7 +212,11 @@ class TestRedisBuffer:
     @mock.patch("sentry.buffer.redis.RedisBuffer._make_key", mock.Mock(return_value="foo"))
     @mock.patch("sentry.buffer.base.Buffer.process")
     def test_process_uses_signal_only(self, process):
-        client = self.buf.cluster.get_routing_client()
+        if self.buf.is_redis_cluster:
+            client = self.buf.cluster
+        else:
+            client = self.buf.cluster.get_routing_client()
+
         client.hmset(
             "foo",
             {

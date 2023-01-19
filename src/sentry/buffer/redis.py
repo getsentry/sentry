@@ -152,8 +152,11 @@ class RedisBuffer(Buffer):
         Fetches buffered values for a model/filter. Passed columns must be integer columns.
         """
         key = self._make_key(model, filters)
-        conn = self.cluster.get_local_client_for_key(key)
-        pipe = conn.pipeline()
+        if self.is_redis_cluster:
+            pipe = self.cluster.pipeline(transaction=False)
+        else:
+            conn = self.cluster.get_local_client_for_key(key)
+            pipe = conn.pipeline()
 
         for col in columns:
             pipe.hget(key, f"i+{col}")
@@ -225,7 +228,10 @@ class RedisBuffer(Buffer):
             # super fast and is fine to do redundantly.
 
         pending_key = self._make_pending_key(partition)
-        client = self.cluster.get_routing_client()
+        if self.is_redis_cluster:
+            client = self.cluster
+        else:
+            client = self.cluster.get_routing_client()
         lock_key = self._make_lock_key(pending_key)
         # prevent a stampede due to celerybeat + periodic task
         if not client.set(lock_key, "1", nx=True, ex=60):
@@ -271,7 +277,11 @@ class RedisBuffer(Buffer):
         return super().process(model, columns, filters, extra, signal_only)
 
     def _process_single_incr(self, key):
-        client = self.cluster.get_routing_client()
+        if self.is_redis_cluster:
+            client = self.cluster
+        else:
+            client = self.cluster.get_routing_client()
+
         lock_key = self._make_lock_key(key)
         # prevent a stampede due to the way we use celery etas + duplicate
         # tasks
@@ -283,8 +293,12 @@ class RedisBuffer(Buffer):
         pending_key = self._make_pending_key_from_key(key)
 
         try:
-            conn = self.cluster.get_local_client_for_key(key)
-            pipe = conn.pipeline()
+            if self.is_redis_cluster:
+                pipe = self.cluster.pipeline(transaction=False)
+            else:
+                conn = self.cluster.get_local_client_for_key(key)
+                pipe = conn.pipeline()
+
             pipe.hgetall(key)
             pipe.zrem(pending_key, key)
             pipe.delete(key)
@@ -300,13 +314,10 @@ class RedisBuffer(Buffer):
                 self.logger.debug("buffer.revoked.empty", extra={"redis_key": key})
                 return
 
-            # XXX(py3): Note that ``import_string`` explicitly wants a str in
-            # python2, so we'll decode (for python3) and then translate back to
-            # a byte string (in python2) for import_string.
-            model = import_string(str(values.pop("m").decode("utf-8")))
+            model = import_string(force_text(values.pop("m")))
 
-            if values["f"].startswith(b"{"):
-                filters = self._load_values(json.loads(values.pop("f").decode("utf-8")))
+            if values["f"].startswith(b"{" if not self.is_redis_cluster else "{"):
+                filters = self._load_values(json.loads(force_text(values.pop("f"))))
             else:
                 # TODO(dcramer): legacy pickle support - remove in Sentry 9.1
                 filters = pickle.loads(values.pop("f"))
