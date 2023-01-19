@@ -558,6 +558,62 @@ export function findRangeBinarySearch(
   }
 }
 
+export function upperBound<T extends {end: number; start: number}>(
+  target: number,
+  values: T[]
+) {
+  let low = 0;
+  let high = values.length;
+
+  if (high === 0) {
+    return 0;
+  }
+
+  if (high === 1) {
+    return values[0].start < target ? 1 : 0;
+  }
+
+  while (low !== high) {
+    const mid = low + Math.floor((high - low) / 2);
+
+    if (values[mid].start < target) {
+      low = mid + 1;
+    } else {
+      high = mid;
+    }
+  }
+
+  return low;
+}
+
+export function lowerBound<T extends {end: number; start: number}>(
+  target: number,
+  values: T[]
+) {
+  let low = 0;
+  let high = values.length;
+
+  if (high === 0) {
+    return 0;
+  }
+
+  if (high === 1) {
+    return values[0].end < target ? 1 : 0;
+  }
+
+  while (low !== high) {
+    const mid = low + Math.floor((high - low) / 2);
+
+    if (values[mid].end < target) {
+      low = mid + 1;
+    } else {
+      high = mid;
+    }
+  }
+
+  return low;
+}
+
 export function formatColorForSpan(
   frame: SpanChartNode,
   renderer: SpanChartRenderer2D
