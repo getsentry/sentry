@@ -8,6 +8,7 @@ from sentry.silo import SiloMode
 from sentry.testutils import TestCase
 
 
+@override_settings(SENTRY_SILO_MODE_IS_ENFORCED=True)
 class AvailableOnTest(TestCase):
     class TestModel(Model):
         __include_in_export__ = False
