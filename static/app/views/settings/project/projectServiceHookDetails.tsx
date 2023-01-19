@@ -7,7 +7,7 @@ import {
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
 import AsyncComponent from 'sentry/components/asyncComponent';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import MiniBarChart from 'sentry/components/charts/miniBarChart';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -17,17 +17,18 @@ import TextCopyInput from 'sentry/components/textCopyInput';
 import {t} from 'sentry/locale';
 import {Organization, ServiceHook} from 'sentry/types';
 import getDynamicText from 'sentry/utils/getDynamicText';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import AsyncView from 'sentry/views/asyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import ServiceHookSettingsForm from 'sentry/views/settings/project/serviceHookSettingsForm';
 
 type Params = {
   hookId: string;
-  orgId: string;
   projectId: string;
 };
 
 type StatsProps = {
+  organization: Organization;
   params: Params;
 };
 
@@ -39,11 +40,12 @@ class HookStats extends AsyncComponent<StatsProps, StatsState> {
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const until = Math.floor(new Date().getTime() / 1000);
     const since = until - 3600 * 24 * 30;
-    const {hookId, orgId, projectId} = this.props.params;
+    const {organization} = this.props;
+    const {hookId, projectId} = this.props.params;
     return [
       [
         'stats',
-        `/projects/${orgId}/${projectId}/hooks/${hookId}/stats/`,
+        `/projects/${organization.slug}/${projectId}/hooks/${hookId}/stats/`,
         {
           query: {
             since,
@@ -123,7 +125,7 @@ export default class ProjectServiceHookDetails extends AsyncView<Props, State> {
       success: () => {
         clearIndicators();
         browserHistory.push(
-          `/settings/${organization.slug}/projects/${projectId}/hooks/`
+          normalizeUrl(`/settings/${organization.slug}/projects/${projectId}/hooks/`)
         );
       },
       error: () => {
@@ -133,24 +135,23 @@ export default class ProjectServiceHookDetails extends AsyncView<Props, State> {
   };
 
   renderBody() {
-    const {organization} = this.props;
-    const {projectId, hookId} = this.props.params;
+    const {organization, params} = this.props;
+    const {projectId, hookId} = params;
     const {hook} = this.state;
     if (!hook) {
       return null;
     }
-    const params = {...this.props.params, orgId: organization.slug};
 
     return (
       <Fragment>
         <SettingsPageHeader title={t('Service Hook Details')} />
 
         <ErrorBoundary>
-          <HookStats params={params} />
+          <HookStats params={params} organization={organization} />
         </ErrorBoundary>
 
         <ServiceHookSettingsForm
-          orgId={organization.slug}
+          organization={organization}
           projectId={projectId}
           hookId={hookId}
           initialData={{

@@ -9,16 +9,16 @@ import {mapResponseToReplayRecord} from 'sentry/utils/replays/replayDataUtils';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import type {ReplayListRecord} from 'sentry/views/replays/types';
 
-export const DEFAULT_SORT = '-startedAt';
+export const DEFAULT_SORT = '-started_at';
 
 export const REPLAY_LIST_FIELDS = [
   'activity',
-  'countErrors',
+  'count_errors',
   'duration',
-  'finishedAt',
+  'finished_at',
   'id',
-  'projectId',
-  'startedAt',
+  'project_id',
+  'started_at',
   'urls',
   'user',
 ];

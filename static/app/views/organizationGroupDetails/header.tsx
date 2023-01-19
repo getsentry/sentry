@@ -1,5 +1,6 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
+import {LocationDescriptor} from 'history';
 import omit from 'lodash/omit';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
@@ -26,17 +27,12 @@ import Tooltip from 'sentry/components/tooltip';
 import {IconChat} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {
-  Event,
-  Group,
-  IssueCategory,
-  IssueType,
-  Organization,
-  Project,
-} from 'sentry/types';
+import {Event, Group, IssueType, Organization, Project} from 'sentry/types';
 import {getMessage} from 'sentry/utils/events';
+import {getIssueCapability} from 'sentry/utils/groupCapabilities';
 import projectSupportsReplay from 'sentry/utils/replays/projectSupportsReplay';
 import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 
 import GroupActions from './actions';
 import {Tab} from './types';
@@ -52,6 +48,130 @@ type Props = {
   event?: Event;
 };
 
+interface GroupHeaderTabsProps extends Pick<Props, 'baseUrl' | 'group' | 'project'> {
+  disabledTabs: Tab[];
+  eventRoute: LocationDescriptor;
+}
+
+function GroupHeaderTabs({
+  baseUrl,
+  disabledTabs,
+  eventRoute,
+  group,
+  project,
+}: GroupHeaderTabsProps) {
+  const organization = useOrganization();
+  const replaysCount = useReplaysCount({
+    groupIds: group.id,
+    organization,
+    projectIds: [Number(project.id)],
+  })[group.id];
+  const projectFeatures = new Set(project ? project.features : []);
+  const organizationFeatures = new Set(organization ? organization.features : []);
+
+  const hasGroupingTreeUI = organizationFeatures.has('grouping-tree-ui');
+  const hasSimilarView = projectFeatures.has('similarity-view');
+  const hasEventAttachments = organizationFeatures.has('event-attachments');
+  const hasSessionReplay =
+    organizationFeatures.has('session-replay-ui') && projectSupportsReplay(project);
+
+  return (
+    <StyledTabList hideBorder>
+      <Item
+        key={Tab.DETAILS}
+        disabled={disabledTabs.includes(Tab.DETAILS)}
+        to={`${baseUrl}${location.search}`}
+      >
+        {t('Details')}
+      </Item>
+      <Item
+        key={Tab.ACTIVITY}
+        textValue={t('Activity')}
+        disabled={disabledTabs.includes(Tab.ACTIVITY)}
+        to={`${baseUrl}activity/${location.search}`}
+      >
+        {t('Activity')}
+        <IconBadge>
+          {group.numComments}
+          <IconChat size="xs" />
+        </IconBadge>
+      </Item>
+      <Item
+        key={Tab.USER_FEEDBACK}
+        textValue={t('User Feedback')}
+        hidden={!getIssueCapability(group.issueCategory, 'userFeedback').enabled}
+        disabled={disabledTabs.includes(Tab.USER_FEEDBACK)}
+        to={`${baseUrl}feedback/${location.search}`}
+      >
+        {t('User Feedback')} <Badge text={group.userReportCount} />
+      </Item>
+      <Item
+        key={Tab.ATTACHMENTS}
+        hidden={
+          !hasEventAttachments ||
+          !getIssueCapability(group.issueCategory, 'attachments').enabled
+        }
+        disabled={disabledTabs.includes(Tab.ATTACHMENTS)}
+        to={`${baseUrl}attachments/${location.search}`}
+      >
+        {t('Attachments')}
+      </Item>
+      <Item
+        key={Tab.TAGS}
+        disabled={disabledTabs.includes(Tab.TAGS)}
+        to={`${baseUrl}tags/${location.search}`}
+      >
+        {t('Tags')}
+      </Item>
+      <Item key={Tab.EVENTS} disabled={disabledTabs.includes(Tab.EVENTS)} to={eventRoute}>
+        {t('All Events')}
+      </Item>
+      <Item
+        key={Tab.MERGED}
+        hidden={!getIssueCapability(group.issueCategory, 'mergedIssues').enabled}
+        disabled={disabledTabs.includes(Tab.MERGED)}
+        to={`${baseUrl}merged/${location.search}`}
+      >
+        {t('Merged Issues')}
+      </Item>
+      <Item
+        key={Tab.GROUPING}
+        hidden={
+          !hasGroupingTreeUI ||
+          !getIssueCapability(group.issueCategory, 'grouping').enabled
+        }
+        disabled={disabledTabs.includes(Tab.GROUPING)}
+        to={`${baseUrl}grouping/${location.search}`}
+      >
+        {t('Grouping')}
+      </Item>
+      <Item
+        key={Tab.SIMILAR_ISSUES}
+        hidden={
+          !hasSimilarView ||
+          !getIssueCapability(group.issueCategory, 'similarIssues').enabled
+        }
+        disabled={disabledTabs.includes(Tab.SIMILAR_ISSUES)}
+        to={`${baseUrl}similar/${location.search}`}
+      >
+        {t('Similar Issues')}
+      </Item>
+      <Item
+        key={Tab.REPLAYS}
+        textValue={t('Replays')}
+        hidden={
+          !hasSessionReplay || !getIssueCapability(group.issueCategory, 'replays').enabled
+        }
+        to={`${baseUrl}replays/${location.search}`}
+      >
+        {t('Replays')}
+        <ReplayCountBadge count={replaysCount} />
+        <ReplaysFeatureBadge noTooltip />
+      </Item>
+    </StyledTabList>
+  );
+}
+
 function GroupHeader({
   baseUrl,
   group,
@@ -61,12 +181,6 @@ function GroupHeader({
   project,
 }: Props) {
   const location = useLocation();
-
-  const replaysCount = useReplaysCount({
-    groupIds: group.id,
-    organization,
-    projectIds: [Number(project.id)],
-  })[group.id];
 
   const disabledTabs = useMemo(() => {
     const hasReprocessingV2Feature = organization.features.includes('reprocessing-v2');
@@ -104,161 +218,13 @@ function GroupHeader({
     return [];
   }, [organization, groupReprocessingStatus]);
 
-  const eventRouteToObject = useMemo(() => {
+  const eventRoute = useMemo(() => {
     const searchTermWithoutQuery = omit(location.query, 'query');
     return {
       pathname: `${baseUrl}events/`,
       query: searchTermWithoutQuery,
     };
   }, [location, baseUrl]);
-
-  const errorIssueTabs = useMemo(() => {
-    const projectFeatures = new Set(project ? project.features : []);
-    const organizationFeatures = new Set(organization ? organization.features : []);
-
-    const hasGroupingTreeUI = organizationFeatures.has('grouping-tree-ui');
-    const hasSimilarView = projectFeatures.has('similarity-view');
-    const hasEventAttachments = organizationFeatures.has('event-attachments');
-    const hasSessionReplay =
-      organizationFeatures.has('session-replay-ui') && projectSupportsReplay(project);
-
-    return (
-      <StyledTabList hideBorder>
-        <Item
-          key={Tab.DETAILS}
-          disabled={disabledTabs.includes(Tab.DETAILS)}
-          to={`${baseUrl}${location.search}`}
-        >
-          {t('Details')}
-        </Item>
-        <Item
-          key={Tab.ACTIVITY}
-          textValue={t('Activity')}
-          disabled={disabledTabs.includes(Tab.ACTIVITY)}
-          to={`${baseUrl}activity/${location.search}`}
-        >
-          {t('Activity')}
-          <IconBadge>
-            {group.numComments}
-            <IconChat size="xs" />
-          </IconBadge>
-        </Item>
-        <Item
-          key={Tab.USER_FEEDBACK}
-          textValue={t('User Feedback')}
-          disabled={disabledTabs.includes(Tab.USER_FEEDBACK)}
-          to={`${baseUrl}feedback/${location.search}`}
-        >
-          {t('User Feedback')} <Badge text={group.userReportCount} />
-        </Item>
-        <Item
-          key={Tab.ATTACHMENTS}
-          hidden={!hasEventAttachments}
-          disabled={disabledTabs.includes(Tab.ATTACHMENTS)}
-          to={`${baseUrl}attachments/${location.search}`}
-        >
-          {t('Attachments')}
-        </Item>
-        <Item
-          key={Tab.TAGS}
-          disabled={disabledTabs.includes(Tab.TAGS)}
-          to={`${baseUrl}tags/${location.search}`}
-        >
-          {t('Tags')}
-        </Item>
-        <Item
-          key={Tab.EVENTS}
-          disabled={disabledTabs.includes(Tab.EVENTS)}
-          to={eventRouteToObject}
-        >
-          {t('All Events')}
-        </Item>
-        <Item
-          key={Tab.MERGED}
-          disabled={disabledTabs.includes(Tab.MERGED)}
-          to={`${baseUrl}merged/${location.search}`}
-        >
-          {t('Merged Issues')}
-        </Item>
-        <Item
-          key={Tab.GROUPING}
-          hidden={!hasGroupingTreeUI}
-          disabled={disabledTabs.includes(Tab.GROUPING)}
-          to={`${baseUrl}grouping/${location.search}`}
-        >
-          {t('Grouping')}
-        </Item>
-        <Item
-          key={Tab.SIMILAR_ISSUES}
-          hidden={!hasSimilarView}
-          disabled={disabledTabs.includes(Tab.SIMILAR_ISSUES)}
-          to={`${baseUrl}similar/${location.search}`}
-        >
-          {t('Similar Issues')}
-        </Item>
-        <Item
-          key={Tab.REPLAYS}
-          textValue={t('Replays')}
-          hidden={!hasSessionReplay}
-          to={`${baseUrl}replays/${location.search}`}
-        >
-          {t('Replays')}
-          <ReplayCountBadge count={replaysCount} />
-          <ReplaysFeatureBadge noTooltip />
-        </Item>
-      </StyledTabList>
-    );
-  }, [
-    baseUrl,
-    location,
-    disabledTabs,
-    group.numComments,
-    group.userReportCount,
-    organization,
-    project,
-    replaysCount,
-    eventRouteToObject,
-  ]);
-
-  const performanceIssueTabs = useMemo(() => {
-    return (
-      <StyledTabList hideBorder>
-        <Item
-          key={Tab.DETAILS}
-          disabled={disabledTabs.includes(Tab.DETAILS)}
-          to={`${baseUrl}${location.search}`}
-        >
-          {t('Details')}
-        </Item>
-        <Item
-          key={Tab.ACTIVITY}
-          textValue={t('Activity')}
-          disabled={disabledTabs.includes(Tab.ACTIVITY)}
-          to={`${baseUrl}activity/${location.search}`}
-        >
-          {t('Activity')}
-          <IconBadge>
-            {group.numComments}
-            <IconChat size="xs" />
-          </IconBadge>
-        </Item>
-        <Item
-          key={Tab.TAGS}
-          disabled={disabledTabs.includes(Tab.TAGS)}
-          to={`${baseUrl}tags/${location.search}`}
-        >
-          {t('Tags')}
-        </Item>
-        <Item
-          key={Tab.EVENTS}
-          disabled={disabledTabs.includes(Tab.EVENTS)}
-          to={eventRouteToObject}
-        >
-          {t('Events')}
-        </Item>
-      </StyledTabList>
-    );
-  }, [disabledTabs, group.numComments, baseUrl, location, eventRouteToObject]);
 
   const {userCount} = group;
 
@@ -298,6 +264,18 @@ function GroupHeader({
           <FeatureBadge
             type="alpha"
             title="N+1 API Calls Performance Issues are in active development and may change"
+          />
+        )}
+        {group.issueType === IssueType.PERFORMANCE_SLOW_SPAN && (
+          <FeatureBadge
+            type="alpha"
+            title="Slow DB Span Performance Issues are in active development and may change"
+          />
+        )}
+        {group.issueType === IssueType.PERFORMANCE_CONSECUTIVE_DB_QUERIES && (
+          <FeatureBadge
+            type="alpha"
+            title="Slow DB Span Performance Issues are in active development and may change"
           />
         )}
       </ShortIdBreadrcumb>
@@ -346,7 +324,7 @@ function GroupHeader({
           <StatsWrapper>
             <div className="count">
               <h6 className="nav-header">{t('Events')}</h6>
-              <Link disabled={disableActions} to={eventRouteToObject}>
+              <Link disabled={disableActions} to={eventRoute}>
                 <Count className="count" value={group.count} />
               </Link>
             </div>
@@ -385,9 +363,7 @@ function GroupHeader({
             />
           </HeaderRow>
         )}
-        {group.issueCategory === IssueCategory.PERFORMANCE
-          ? performanceIssueTabs
-          : errorIssueTabs}
+        <GroupHeaderTabs {...{baseUrl, disabledTabs, eventRoute, group, project}} />
       </div>
     </Layout.Header>
   );
@@ -412,6 +388,7 @@ const ShortIdBreadrcumb = styled('div')`
 const StyledShortId = styled(ShortId)`
   font-family: ${p => p.theme.text.family};
   font-size: ${p => p.theme.fontSizeMedium};
+  line-height: 1;
 `;
 
 const HeaderRow = styled('div')`

@@ -239,6 +239,7 @@ function buildRoutes() {
           component={errorHandler(withDomainRequired(OrganizationContextContainer))}
           key="orgless-onboarding"
         >
+          <IndexRedirect to="welcome/" />
           <Route
             path=":step/"
             component={make(() => import('sentry/views/onboarding/onboarding'))}
@@ -2275,6 +2276,6 @@ function buildRoutes() {
 // when the app renders Main. Memoize to avoid rebuilding the route tree.
 export const routes = memoize(buildRoutes);
 
-function NoOp(props) {
+function NoOp(props: {children: React.ReactNode}) {
   return <Fragment>{props.children}</Fragment>;
 }

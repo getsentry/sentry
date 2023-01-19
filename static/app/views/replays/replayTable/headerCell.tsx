@@ -10,16 +10,16 @@ type Props = {
 
 function HeaderCell({column, sort}: Props) {
   switch (column) {
-    case 'user':
+    case ReplayColumns.user:
       return <SortableHeader label={t('User')} />;
 
-    case 'session':
+    case ReplayColumns.session:
       return <SortableHeader label={t('Session')} />;
 
-    case 'projectId':
-      return <SortableHeader sort={sort} fieldName="projectId" label={t('Project')} />;
+    case ReplayColumns.projectId:
+      return <SortableHeader sort={sort} fieldName="project_id" label={t('Project')} />;
 
-    case 'slowestTransaction':
+    case ReplayColumns.slowestTransaction:
       return (
         <SortableHeader
           label={t('Slowest Transaction')}
@@ -29,16 +29,18 @@ function HeaderCell({column, sort}: Props) {
         />
       );
 
-    case 'startedAt':
-      return <SortableHeader sort={sort} fieldName="startedAt" label={t('Start Time')} />;
+    case ReplayColumns.startedAt:
+      return (
+        <SortableHeader sort={sort} fieldName="started_at" label={t('Start Time')} />
+      );
 
-    case 'duration':
+    case ReplayColumns.duration:
       return <SortableHeader sort={sort} fieldName="duration" label={t('Duration')} />;
 
-    case 'countErrors':
-      return <SortableHeader sort={sort} fieldName="countErrors" label={t('Errors')} />;
+    case ReplayColumns.countErrors:
+      return <SortableHeader sort={sort} fieldName="count_errors" label={t('Errors')} />;
 
-    case 'activity':
+    case ReplayColumns.activity:
       return (
         <SortableHeader
           sort={sort}

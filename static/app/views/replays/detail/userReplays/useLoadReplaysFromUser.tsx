@@ -21,8 +21,8 @@ function getUserCondition(user: undefined | ReplayRecord['user']) {
   if (user?.email) {
     return `user.email:${user.email}`;
   }
-  if (user?.ip_address) {
-    return `user.ipAddress:${user.ip_address}`;
+  if (user?.ip) {
+    return `user.ipAddress:${user.ip}`;
   }
   return '';
 }

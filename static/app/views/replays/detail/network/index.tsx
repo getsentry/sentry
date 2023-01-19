@@ -11,7 +11,6 @@ import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import NetworkFilters from 'sentry/views/replays/detail/network/networkFilters';
 import NetworkHeaderCell, {
   COLUMN_COUNT,
-  HEADER_HEIGHT,
 } from 'sentry/views/replays/detail/network/networkHeaderCell';
 import NetworkTableCell from 'sentry/views/replays/detail/network/networkTableCell';
 import useNetworkFilters from 'sentry/views/replays/detail/network/useNetworkFilters';
@@ -19,6 +18,9 @@ import useSortNetwork from 'sentry/views/replays/detail/network/useSortNetwork';
 import NoRowRenderer from 'sentry/views/replays/detail/noRowRenderer';
 import useVirtualizedGrid from 'sentry/views/replays/detail/useVirtualizedGrid';
 import type {NetworkSpan} from 'sentry/views/replays/types';
+
+const HEADER_HEIGHT = 25;
+const BODY_HEIGHT = 28;
 
 type Props = {
   networkSpans: undefined | NetworkSpan[];
@@ -56,6 +58,7 @@ function NetworkList({networkSpans, startTimestampMs}: Props) {
   const {cache, getColumnWidth, onScrollbarPresenceChange, onWrapperResize} =
     useVirtualizedGrid({
       cellMeasurer: {
+        defaultHeight: BODY_HEIGHT,
         defaultWidth: 100,
         fixedHeight: true,
       },
@@ -65,7 +68,7 @@ function NetworkList({networkSpans, startTimestampMs}: Props) {
       deps: [items, searchTerm],
     });
 
-  const renderTableRow = ({columnIndex, rowIndex, key, style, parent}: GridCellProps) => {
+  const cellRenderer = ({columnIndex, rowIndex, key, style, parent}: GridCellProps) => {
     const network = items[rowIndex - 1];
 
     return (
@@ -76,27 +79,37 @@ function NetworkList({networkSpans, startTimestampMs}: Props) {
         parent={parent}
         rowIndex={rowIndex}
       >
-        {rowIndex === 0 ? (
-          <NetworkHeaderCell
-            handleSort={handleSort}
-            index={columnIndex}
-            sortConfig={sortConfig}
-            style={style}
-          />
-        ) : (
-          <NetworkTableCell
-            columnIndex={columnIndex}
-            handleClick={handleClick}
-            handleMouseEnter={handleMouseEnter}
-            handleMouseLeave={handleMouseLeave}
-            isCurrent={network.id === current?.id}
-            isHovered={network.id === hovered?.id}
-            sortConfig={sortConfig}
-            span={network}
-            startTimestampMs={startTimestampMs}
-            style={style}
-          />
-        )}
+        {({
+          measure: _,
+          registerChild,
+        }: {
+          measure: () => void;
+          registerChild?: (element?: Element) => void;
+        }) =>
+          rowIndex === 0 ? (
+            <NetworkHeaderCell
+              ref={e => e && registerChild?.(e)}
+              handleSort={handleSort}
+              index={columnIndex}
+              sortConfig={sortConfig}
+              style={{...style, height: HEADER_HEIGHT}}
+            />
+          ) : (
+            <NetworkTableCell
+              ref={e => e && registerChild?.(e)}
+              columnIndex={columnIndex}
+              handleClick={handleClick}
+              handleMouseEnter={handleMouseEnter}
+              handleMouseLeave={handleMouseLeave}
+              isCurrent={network.id === current?.id}
+              isHovered={network.id === hovered?.id}
+              sortConfig={sortConfig}
+              span={network}
+              startTimestampMs={startTimestampMs}
+              style={{...style, height: BODY_HEIGHT}}
+            />
+          )
+        }
       </CellMeasurer>
     );
   };
@@ -110,10 +123,11 @@ function NetworkList({networkSpans, startTimestampMs}: Props) {
             {({width, height}) => (
               <MultiGrid
                 ref={gridRef}
+                cellRenderer={cellRenderer}
                 columnCount={COLUMN_COUNT}
                 columnWidth={getColumnWidth(width)}
-                cellRenderer={renderTableRow}
-                deferredMeasurementCache={cache}
+                estimatedColumnSize={width}
+                estimatedRowSize={HEADER_HEIGHT + items.length * BODY_HEIGHT}
                 fixedRowCount={1}
                 headerHeight={HEADER_HEIGHT}
                 height={height}
@@ -129,7 +143,7 @@ function NetworkList({networkSpans, startTimestampMs}: Props) {
                 overscanColumnCount={COLUMN_COUNT}
                 overscanRowCount={5}
                 rowCount={items.length + 1}
-                rowHeight={28}
+                rowHeight={({index}) => (index === 0 ? HEADER_HEIGHT : BODY_HEIGHT)}
                 width={width}
               />
             )}

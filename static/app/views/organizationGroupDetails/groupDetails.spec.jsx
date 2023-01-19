@@ -65,7 +65,12 @@ describe('groupDetails', () => {
 
   const createWrapper = (props = {selection}) => {
     return render(
-      <GroupDetails {...router} router={router} selection={props.selection}>
+      <GroupDetails
+        {...router}
+        router={router}
+        selection={props.selection}
+        organization={organization}
+      >
         <MockComponent />
       </GroupDetails>,
       {context: routerContext}

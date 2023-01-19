@@ -9,12 +9,10 @@ import {fetchSavedQuery} from 'sentry/actionCreators/discoverSavedQueries';
 import {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import {Title} from 'sentry/components/layouts/thirds';
 import * as Layout from 'sentry/components/layouts/thirds';
-import ExternalLink from 'sentry/components/links/externalLink';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import TimeSince from 'sentry/components/timeSince';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, SavedQuery} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
@@ -145,23 +143,19 @@ class ResultsHeader extends Component<Props, State> {
 
     return (
       <Layout.Header>
-        <StyledHeaderContent>
+        <Layout.HeaderContent>
           {isHomepage ? (
-            <StyledTitle>
-              <GuideAnchor target="discover_landing_header">
+            <GuideAnchor target="discover_landing_header">
+              <Layout.Title>
                 {t('Discover')}
                 <PageHeadingQuestionTooltip
-                  title={tct(
-                    'Create queries to get insights into the health of your system. [link: Read the docs].',
-                    {
-                      link: (
-                        <ExternalLink href="https://docs.sentry.io/product/discover-queries/" />
-                      ),
-                    }
+                  docsUrl="https://docs.sentry.io/product/discover-queries/"
+                  title={t(
+                    'Create queries to get insights into the health of your system.'
                   )}
                 />
-              </GuideAnchor>
-            </StyledTitle>
+              </Layout.Title>
+            </GuideAnchor>
           ) : (
             <Fragment>
               <DiscoverBreadcrumb
@@ -179,7 +173,7 @@ class ResultsHeader extends Component<Props, State> {
             </Fragment>
           )}
           {this.renderAuthor()}
-        </StyledHeaderContent>
+        </Layout.HeaderContent>
         <Layout.HeaderActions>
           <SavedQueryButtonGroup
             setSavedQuery={setSavedQuery}
@@ -222,17 +216,8 @@ const Subtitle = styled('h4')`
   margin: ${space(0.5)} 0 0 0;
 `;
 
-const StyledHeaderContent = styled(Layout.HeaderContent)`
-  overflow: unset;
-`;
-
 const BannerWrapper = styled('div')`
   grid-column: 1 / -1;
-`;
-
-const StyledTitle = styled(Title)`
-  overflow: unset;
-  margin-top: 0;
 `;
 
 export default withApi(ResultsHeader);

@@ -11,7 +11,6 @@ import {
 import ScoreBar from 'sentry/components/scoreBar';
 import TimeSince from 'sentry/components/timeSince';
 import CHART_PALETTE from 'sentry/constants/chartPalette';
-import {IconCalendar} from 'sentry/icons';
 import space from 'sentry/styles/space';
 import type {Organization} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
@@ -41,7 +40,7 @@ export default function TableCell({
   replay,
 }: Props) {
   switch (column) {
-    case 'user':
+    case ReplayColumns.user:
       return (
         <UserCell
           key="user"
@@ -52,7 +51,7 @@ export default function TableCell({
         />
       );
 
-    case 'session':
+    case ReplayColumns.session:
       return (
         <SessionCell
           key="session"
@@ -62,9 +61,9 @@ export default function TableCell({
           referrer={referrer}
         />
       );
-    case 'projectId':
+    case ReplayColumns.projectId:
       return <ProjectCell key="projectId" replay={replay} />;
-    case 'slowestTransaction':
+    case ReplayColumns.slowestTransaction:
       return (
         <TransactionCell
           key="slowestTransaction"
@@ -72,13 +71,13 @@ export default function TableCell({
           organization={organization}
         />
       );
-    case 'startedAt':
+    case ReplayColumns.startedAt:
       return <StartedAtCell key="startedAt" replay={replay} />;
-    case 'duration':
+    case ReplayColumns.duration:
       return <DurationCell key="duration" replay={replay} />;
-    case 'countErrors':
+    case ReplayColumns.countErrors:
       return <ErrorCountCell key="countErrors" replay={replay} />;
-    case 'activity':
+    case ReplayColumns.activity:
       return <ActivityCell key="activity" replay={replay} />;
     default:
       return null;
@@ -92,7 +91,7 @@ function UserCell({
   replay,
 }: BaseProps & {eventView: EventView; organization: Organization; referrer: string}) {
   const {projects} = useProjects();
-  const project = projects.find(p => p.id === replay.projectId);
+  const project = projects.find(p => p.id === replay.project_id);
 
   return (
     <UserBadge
@@ -107,15 +106,15 @@ function UserCell({
             },
           }}
         >
-          {replay.user.displayName || ''}
+          {replay.user.display_name || ''}
         </Link>
       }
       user={{
-        username: replay.user.displayName || '',
+        username: replay.user.display_name || '',
         email: replay.user.email || '',
         id: replay.user.id || '',
-        ip_address: replay.user.ip_address || '',
-        name: replay.user.name || '',
+        ip_address: replay.user.ip || '',
+        name: replay.user.username || '',
       }}
       // this is the subheading for the avatar, so displayEmail in this case is a misnomer
       displayEmail={<StringWalkerSummary urls={replay.urls} />}
@@ -130,7 +129,7 @@ function SessionCell({
   replay,
 }: BaseProps & {eventView: EventView; organization: Organization; referrer: string}) {
   const {projects} = useProjects();
-  const project = projects.find(p => p.id === replay.projectId);
+  const project = projects.find(p => p.id === replay.project_id);
 
   return (
     <UserBadge
@@ -145,15 +144,15 @@ function SessionCell({
             },
           }}
         >
-          {replay.user.displayName || ''}
+          {replay.user.display_name || ''}
         </Link>
       }
       user={{
-        username: replay.user.displayName || '',
+        username: replay.user.display_name || '',
         email: replay.user.email || '',
         id: replay.user.id || '',
-        ip_address: replay.user.ip_address || '',
-        name: replay.user.name || '',
+        ip_address: replay.user.ip || '',
+        name: replay.user.username || '',
       }}
       // this is the subheading for the avatar, so displayEmail in this case is a misnomer
       displayEmail={<StringWalker urls={replay.urls} />}
@@ -163,7 +162,7 @@ function SessionCell({
 
 function ProjectCell({replay}: BaseProps) {
   const {projects} = useProjects();
-  const project = projects.find(p => p.id === replay.projectId);
+  const project = projects.find(p => p.id === replay.project_id);
 
   return (
     <Item>{project ? <ProjectBadge project={project} avatarSize={16} /> : null}</Item>
@@ -198,8 +197,7 @@ function TransactionCell({
 function StartedAtCell({replay}: BaseProps) {
   return (
     <Item>
-      <IconCalendar color="gray500" size="sm" />
-      <TimeSince date={replay.startedAt} />
+      <TimeSince date={replay.started_at} />
     </Item>
   );
 }
@@ -213,7 +211,7 @@ function DurationCell({replay}: BaseProps) {
 }
 
 function ErrorCountCell({replay}: BaseProps) {
-  return <Item data-test-id="replay-table-count-errors">{replay.countErrors || 0}</Item>;
+  return <Item data-test-id="replay-table-count-errors">{replay.count_errors || 0}</Item>;
 }
 
 function ActivityCell({replay}: BaseProps) {

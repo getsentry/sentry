@@ -7,7 +7,7 @@ import {
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import {disablePlugin, enablePlugin} from 'sentry/actionCreators/plugins';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import ExternalLink from 'sentry/components/links/externalLink';
 import PluginConfig from 'sentry/components/pluginConfig';
 import {t} from 'sentry/locale';
@@ -25,7 +25,7 @@ type Props = {
     plugins: Plugin[];
   };
   project: Project;
-} & RouteComponentProps<{orgId: string; pluginId: string; projectId: string}, {}>;
+} & RouteComponentProps<{pluginId: string; projectId: string}, {}>;
 
 type State = {
   pluginDetails?: Plugin;
@@ -117,12 +117,14 @@ class ProjectPluginDetails extends AsyncView<Props, State> {
   };
 
   handleEnable = () => {
-    enablePlugin(this.props.params);
+    const {organization, params} = this.props;
+    enablePlugin({...params, orgId: organization.slug});
     this.analyticsChangeEnableStatus(true);
   };
 
   handleDisable = () => {
-    disablePlugin(this.props.params);
+    const {organization, params} = this.props;
+    disablePlugin({...params, orgId: organization.slug});
     this.analyticsChangeEnableStatus(false);
   };
 

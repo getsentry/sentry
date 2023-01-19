@@ -45,7 +45,7 @@ type Props = {
   api: Client;
   group: Group;
   organization: Organization;
-} & RouteComponentProps<{orgId: string}, {}>;
+} & RouteComponentProps<{}, {}>;
 
 type State = {
   createBusy: boolean;
@@ -221,7 +221,7 @@ class GroupActivity extends Component<Props, State> {
                             <GroupActivityItem
                               author={<ActivityAuthor>{authorName}</ActivityAuthor>}
                               activity={item}
-                              orgSlug={this.props.params.orgId}
+                              orgSlug={organization.slug}
                               projectId={group.project.id}
                             />
                           }
