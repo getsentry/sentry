@@ -391,6 +391,22 @@ def contains_complete_query(span: Span, is_source: Optional[bool] = False) -> bo
         return query and not query.endswith("...")
 
 
+def get_url_from_span(span: Span) -> str:
+    data = span.get("data") or {}
+    url = data.get("url") or ""
+    if not url:
+        # If data is missing, fall back to description
+        description = span.get("description") or ""
+        parts = description.split(" ", 1)
+        if len(parts) == 2:
+            url = parts[1]
+
+    if type(url) is dict:
+        url = url.get("pathname") or ""
+
+    return url
+
+
 def total_span_time(span_list: List[Dict[str, Any]]) -> float:
     """Return the total non-overlapping span time in milliseconds for all the spans in the list"""
     # Sort the spans so that when iterating the next span in the list is either within the current, or afterwards
@@ -765,18 +781,9 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         if "_next/data" in description:
             return False
 
-        # Ignore anything that looks like an asset. Some frameworks (and apps)
-        # fetch assets via XHR, which is not our concern
-        data = span.get("data") or {}
-        url = data.get("url") or ""
+        url = get_url_from_span(span)
         if not url:
-            # If data is missing, fall back to description
-            parts = description.split(" ", 1)
-            if len(parts) == 2:
-                url = parts[1]
-
-        if type(url) is dict:
-            url = url.get("pathname") or ""
+            return False
 
         parsed_url = urlparse(str(url))
 
